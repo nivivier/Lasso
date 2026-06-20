@@ -1,0 +1,27 @@
+# === Données sensibles (PII employés) — ne JAMAIS versionner ===
+/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite.bak
+
+# === Fichiers uploadés (logos…) sauf la protection .htaccess ===
+/uploads/*
+!/uploads/.htaccess
+
+# === Configuration locale / secrets de production ===
+/lib/config.local.php
+
+# === Journaux ===
+*.log
+
+# === Décomptes / exports (PII) — ne JAMAIS versionner ===
+*.xlsx
+*.xls
+*.csv
+*.ods
+
+# === Outils locaux & OS ===
+.claude/settings.local.json
+.DS_Store
+**/.DS_Store

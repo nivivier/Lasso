@@ -1,0 +1,20 @@
+<?php
+// ============================================================================
+//  EXEMPLE de configuration locale / production.
+//  Copiez ce fichier en  lib/config.local.php  (non versionné) sur le serveur
+//  et décommentez/ajustez les valeurs. Les constantes définies ici l'emportent
+//  sur les valeurs par défaut de config.php.
+// ============================================================================
+
+// --- Environnement -------------------------------------------------------
+// define('APP_ENV', 'prod');   // 'prod' en production, 'dev' en local
+
+// --- Base de données HORS de la racine web (recommandé) ------------------
+// define('APP_DB_PATH', '/home/clients/xxxxxxxx/data/database.sqlite');
+
+// --- HTTPS ---------------------------------------------------------------
+// define('FORCE_HTTPS', true);
+
+// --- Secret d'installation (protège l'écran de création du 1er compte) ---
+// Mettez une longue valeur aléatoire, puis ouvrez  ?p=setup&key=<cette valeur>
+// define('SETUP_SECRET', 'collez-ici-une-longue-chaine-aleatoire');

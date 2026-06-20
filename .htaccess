@@ -1,0 +1,18 @@
+DirectoryIndex index.php
+Options -Indexes
+
+# Bloque l'accès direct aux fichiers sensibles
+<FilesMatch "\.(sqlite|sqlite-wal|sqlite-shm|sql|md)$">
+    Require all denied
+</FilesMatch>
+
+# Bloque les fichiers cachés (.htaccess, .DS_Store, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Bloque l'accès au dossier .git (déploiement par git) et aux fichiers de conf
+RedirectMatch 404 /\.git
+<FilesMatch "(^\.git|composer\.(json|lock)|config\.local\.php(\.example)?)$">
+    Require all denied
+</FilesMatch>

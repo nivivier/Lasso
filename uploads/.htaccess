@@ -1,0 +1,5 @@
+# Empêche l'exécution de tout script dans le dossier des fichiers uploadés.
+<FilesMatch "\.(php|phtml|phar|phps|cgi|pl|py|sh)$">
+    Require all denied
+</FilesMatch>
+Options -ExecCGI -Indexes
