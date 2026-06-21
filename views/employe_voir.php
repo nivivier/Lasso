@@ -18,7 +18,6 @@
 </div>
 
 <div class="card mb-22">
-    <h2 class="mt-0">Informations</h2>
     <?php $adresse = trim($emp['rue'] . ($emp['rue'] && $emp['npa_localite'] ? ', ' : '') . $emp['npa_localite']); ?>
     <dl class="info-grid">
         <div><dt>Date de naissance</dt><dd><?= trim((string) ($emp['date_naissance'] ?? '')) !== '' ? e(date('d.m.Y', strtotime($emp['date_naissance']))) : '—' ?></dd></div>
