@@ -3,7 +3,7 @@
 /** @var array $taux */ /** @var bool $configuree */
 $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', ''));
 ?>
-<div class="page-head"><h1>Taux</h1></div>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Taux de l'année <?= $annee ?> enregistrés.</p><?php endif; ?>
 
 <div class="card form">

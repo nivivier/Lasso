@@ -20,7 +20,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     </button>
 </header>
 <div class="scrim" id="scrim"></div>
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar sidebar-stacked" id="sidebar">
     <div class="side-brand">
         <div class="side-brand-txt">
             <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
@@ -38,20 +38,10 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
             <?= icon('file-text') ?> Fiches de salaire
         </a>
-        <?php $settingsPages = ['employeur', 'taux_horaires', 'unites', 'taux', 'export', 'parametres'];
-              $settingsOpen = in_array($cur, $settingsPages, true); ?>
-        <div class="side-group <?= $settingsOpen ? 'open' : '' ?>">
-            <button type="button" class="side-parent" id="param-toggle" aria-expanded="<?= $settingsOpen ? 'true' : 'false' ?>">
-                <?= icon('settings') ?> <span>Paramètres</span> <span class="chev"><?= icon('chevron') ?></span>
-            </button>
-            <div class="side-subnav">
-                <a href="?p=employeur" class="<?= $cur === 'employeur' ? 'on' : '' ?>">Employeur</a>
-                <a href="?p=taux" class="<?= $cur === 'taux' ? 'on' : '' ?>">Taux des déductions</a>
-                <a href="?p=taux_horaires" class="<?= $cur === 'taux_horaires' ? 'on' : '' ?>">Salaires horaires</a>
-                <a href="?p=unites" class="<?= $cur === 'unites' ? 'on' : '' ?>">Unités de temps</a>
-                <a href="?p=export" class="<?= $cur === 'export' ? 'on' : '' ?>">Exporter les données</a>
-            </div>
-        </div>
+        <?php $settingsPages = ['employeur', 'taux_horaires', 'unites', 'taux', 'export', 'comptes', 'parametres']; ?>
+        <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
+            <?= icon('settings') ?> Paramètres
+        </a>
     </nav>
     <div class="side-user">
         <div class="side-user-mail" title="<?= e($u['email']) ?>"><?= e($u['email']) ?></div>
@@ -59,7 +49,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=logout" class="side-logout">Déconnexion</a>
     </div>
     <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-         propulsé par <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso
+        <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso
     </a>
 </aside>
 <main class="content">

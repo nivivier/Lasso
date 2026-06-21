@@ -1,7 +1,7 @@
 <?php /** @var bool $saved */ /** @var array $unites */
 $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 ?>
-<div class="page-head"><h1>Unités de temps</h1></div>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Unités de temps mises à jour.</p><?php endif; ?>
 
 <div class="card form">

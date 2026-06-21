@@ -1,10 +1,9 @@
 <?php /** @var bool $saved */ /** @var ?string $err */ ?>
-<div class="page-head"><h1>Employeur</h1></div>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Coordonnées enregistrées.</p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
 <div class="card form">
-    <p class="muted small">Nom et adresse apparaissent en tête de chaque fiche de salaire. L'e-mail d'expéditeur sert à l'envoi automatique des fiches par e-mail.</p>
     <form method="post" action="?p=employeur" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 

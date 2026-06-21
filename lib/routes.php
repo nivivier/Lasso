@@ -133,6 +133,84 @@ function route_compte(): void
     render('compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
 }
 
+// -------------------------------------------------------------- COMPTES (admin)
+// Gestion des comptes utilisateurs : liste, création, réinitialisation, suppression.
+// Tous les comptes ont les mêmes droits (pas de rôles) ; usage 1–2 personnes.
+function route_comptes(): void
+{
+    require_login();
+    $err = null;
+    $emailSaisi = '';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $email = trim($_POST['email'] ?? '');
+        $mdp   = $_POST['mot_de_passe'] ?? '';
+        $emailSaisi = $email;
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $err = 'Adresse e-mail invalide.';
+        } elseif (strlen($mdp) < PASSWORD_MIN) {
+            $err = 'Le mot de passe doit faire au moins ' . PASSWORD_MIN . ' caractères.';
+        } else {
+            $stmt = db()->prepare('SELECT id FROM utilisateurs WHERE email = ?');
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $err = 'Cette adresse e-mail est déjà utilisée par un compte.';
+            }
+        }
+        if (!$err) {
+            db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)')
+                ->execute([$email, password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST])]);
+            redirect('comptes', ['ok' => 'created']);
+        }
+    }
+    $comptes = db()->query('SELECT id, email, cree_le FROM utilisateurs ORDER BY cree_le, id')->fetchAll();
+    render('comptes', [
+        'comptes'    => $comptes,
+        'err'        => $err,
+        'emailSaisi' => $emailSaisi,
+        'ok'         => $_GET['ok'] ?? null,
+        'flagErr'    => $_GET['err'] ?? null,
+        'moi'        => (int) current_user()['id'],
+    ], 'Paramètres — Comptes');
+}
+
+function route_compte_reset(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('comptes');
+    }
+    check_csrf();
+    $id  = (int) ($_POST['id'] ?? 0);
+    $mdp = $_POST['nouveau_mot_de_passe'] ?? '';
+    if (strlen($mdp) < PASSWORD_MIN) {
+        redirect('comptes', ['err' => 'short']);
+    }
+    db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
+        ->execute([password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST]), $id]);
+    redirect('comptes', ['ok' => 'reset']);
+}
+
+function route_compte_delete(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('comptes');
+    }
+    check_csrf();
+    $id  = (int) ($_POST['id'] ?? 0);
+    $moi = (int) current_user()['id'];
+    if ($id === $moi) {
+        redirect('comptes', ['err' => 'self']);     // pas d'auto-suppression
+    }
+    $total = (int) db()->query('SELECT COUNT(*) FROM utilisateurs')->fetchColumn();
+    if ($total <= 1) {
+        redirect('comptes', ['err' => 'last']);      // ne jamais vider la table
+    }
+    db()->prepare('DELETE FROM utilisateurs WHERE id = ?')->execute([$id]);
+    redirect('comptes', ['ok' => 'deleted']);
+}
+
 // -------------------------------------------------------------- EMPLOYÉS
 function route_employes(): void
 {

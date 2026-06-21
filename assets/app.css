@@ -93,6 +93,48 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-subnav a.on { background: var(--primary); color: #fff; }
 .side-subnav .ico { width: 16px; height: 16px; }
 
+/* Réinitialisation de mot de passe : champ + bouton sur une ligne */
+.reset-form { display: flex; align-items: center; gap: 8px; }
+.reset-form input { flex: 1 1 auto; min-width: 0; max-width: 240px; }
+.reset-form .btn-sm { flex: 0 0 auto; }
+.mt-22 { margin-top: 22px; }
+
+/* === Page Paramètres : barre d'onglets === */
+.param-tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--line); margin: 0 0 26px; }
+.param-tabs a {
+    padding: 10px 15px; font-size: 14px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+    transition: color .15s, border-color .15s;
+}
+.param-tabs a:hover { color: var(--ink); text-decoration: none; }
+.param-tabs a.on { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* === Essai : navigation à grosse icône + libellé dessous === */
+.sidebar-stacked { width: 120px; padding: 20px 8px; }
+.sidebar-stacked .side-nav { gap: 6px; }
+.sidebar-stacked .side-nav a,
+.sidebar-stacked .side-parent {
+    flex-direction: column; align-items: center; gap: 7px;
+    padding: 14px 8px; text-align: center;
+    font-size: 12px; font-weight: 600; line-height: 1.2;
+}
+.sidebar-stacked .side-nav > a > .ico,
+.sidebar-stacked .side-parent > .ico { width: 26px; height: 26px; opacity: .95; }
+.sidebar-stacked .side-parent { width: 100%; position: relative; }
+.sidebar-stacked .side-parent .chev { position: absolute; top: 9px; right: 11px; margin: 0; }
+.sidebar-stacked .side-parent .chev .ico { width: 13px; height: 13px; }
+/* Sous-menu : centré, sans liseré ni indentation */
+.sidebar-stacked .side-subnav { margin: 2px 0 4px; padding-left: 0; border-left: none; gap: 1px; }
+.sidebar-stacked .side-subnav a { justify-content: center; text-align: center; font-size: 12px; }
+/* En-tête, pied et compte adaptés au rail étroit */
+.sidebar-stacked .side-brand { padding: 0 4px 18px; text-align: center; }
+.sidebar-stacked .side-logo { width: 100%; max-width: 92px; margin: 0 auto; }
+.sidebar-stacked .side-sub { display: none; }
+.sidebar-stacked .side-user { text-align: center; }
+.sidebar-stacked .side-user-mail { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-stacked .side-account, .sidebar-stacked .side-logout { text-align: center; font-size: 12px; }
+.sidebar-stacked .side-powered { justify-content: center; flex-wrap: wrap; font-size: 10px; text-align: center; }
+
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
 .burger, .side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }

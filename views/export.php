@@ -1,5 +1,5 @@
 <?php /** @var array $annees */ ?>
-<div class="page-head"><h1>Exporter les données</h1></div>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
 
 <div class="card form mb-22">
     <h2 class="mt-0">Sauvegarde complète</h2>

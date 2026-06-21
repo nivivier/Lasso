@@ -1,5 +1,5 @@
 <?php /** @var bool $saved */ /** @var array $tauxHoraires */ ?>
-<div class="page-head"><h1>Salaires horaires standard</h1></div>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Taux horaires mis à jour.</p><?php endif; ?>
 
 <div class="card form">
