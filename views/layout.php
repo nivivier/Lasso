@@ -20,7 +20,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     </button>
 </header>
 <div class="scrim" id="scrim"></div>
-<aside class="sidebar sidebar-stacked" id="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="side-brand">
         <div class="side-brand-txt">
             <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
@@ -71,16 +71,6 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     document.querySelectorAll('.flash').forEach(el => {
         setTimeout(() => { el.classList.add('flash-out'); setTimeout(() => el.remove(), 400); }, 3000);
     });
-
-    // Sous-menu « Paramètres » dépliable
-    const paramToggle = document.getElementById('param-toggle');
-    if (paramToggle) {
-        paramToggle.addEventListener('click', () => {
-            const grp = paramToggle.closest('.side-group');
-            const open = grp.classList.toggle('open');
-            paramToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        });
-    }
 
     // Lignes cliquables (souris + clavier). Un clic sur un lien/bouton dans la
     // ligne garde son comportement propre.
