@@ -9,7 +9,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     <title><?= e($pageTitle) ?> — <?= e($nomEmployeur) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">
 <?php if ($u): ?>

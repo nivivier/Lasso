@@ -12,22 +12,13 @@
 <div class="page-head">
     <h1>Fiche · <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></h1>
     <div class="head-actions">
-        <form method="post" action="?p=fiche_cout" id="cout-form" class="cout-toggle">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-            <label class="check">
-                <input type="checkbox" name="afficher_cout_emp" value="1"
-                       onchange="document.getElementById('cout-form').submit()"
-                       <?= (int) $f['afficher_cout_emp'] ? 'checked' : '' ?>>
-                Afficher le coût employeur
-            </label>
-        </form>
+
         <?php if (!empty($modifiable)): ?>
-            <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> Modifier</a>
+            <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
         <?php else: ?>
-            <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> Modifier</button>
+            <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
         <?php endif; ?>
-        <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" target="_blank"><?= icon('printer') ?> Imprimer / PDF</a>
+        <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" target="_blank" title="Imprimer / PDF"><?= icon('printer') ?> <span class="lbl">Imprimer / PDF</span></a>
         <?php
         $envoyee = trim((string) ($f['email_envoye_le'] ?? '')) !== '';
         $peutEnvoyer = filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) && filter_var($emailExp, FILTER_VALIDATE_EMAIL);
@@ -37,16 +28,16 @@
                   onsubmit="return confirm('Envoyer cette fiche par e-mail à <?= e($emailEmploye) ?> ?');">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-                <button type="submit" class="btn"><?= icon('mail') ?> Envoyer</button>
+                <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
             </form>
         <?php else: ?>
             <button class="btn" disabled
                     title="<?= !filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) ? 'Aucune adresse e-mail pour cet employé' : 'Aucun e-mail d\'expéditeur configuré (Paramètres → Employeur)' ?>">
-                <?= icon('mail') ?> Envoyer
+                <?= icon('mail') ?> <span class="lbl">Envoyer</span>
             </button>
         <?php endif; ?>
         <?php if ($envoyee): ?>
-            <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?> Envoyée</span>
+            <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?> <span class="lbl">Envoyée</span></span>
         <?php endif; ?>
         <form method="post" action="?p=fiche_delete" onsubmit="return confirm('Supprimer définitivement cette fiche ?');" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -56,24 +47,38 @@
     </div>
 </div>
 
-<div class="card form options-fiche mb-22">
-    <div class="opt-block">
+<div class="fiche-wrapper">
+    <div class="fiche-main">
+        <div class="card">
+            <?php require __DIR__ . '/_fiche_body.php'; ?>
+        </div>
+    </div>
+    <aside class="fiche-aside">
         <form method="post" action="?p=fiche_date" class="paiement-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-            <div class="paiement-left">
-                <h2>Date de paiement</h2>
+            <h2>Date de paiement</h2>
+            <div class="paiement-date-row">
                 <input type="date" name="date_paiement" value="<?= e($f['date_paiement']) ?>" class="paiement-date">
                 <?php if (!empty($f['date_paiement'])): ?>
                     <span class="paid-check">✓</span>
                 <?php endif; ?>
-                <p class="muted small mb-0">Laissez la date vide pour marquer la fiche « à payer ».</p>
+                <button type="submit" class="btn paiement-save" title="Enregistrer"><?= icon('save') ?><span class="lbl">Enregistrer</span></button>
             </div>
-            <button type="submit" class="btn-sm">Enregistrer</button>
-        </form>
-    </div>
-</div>
+            <p class="muted small">Laissez la date vide pour marquer la fiche « à payer ».</p>
 
-<div class="card">
-    <?php require __DIR__ . '/_fiche_body.php'; ?>
+        </form>
+        
+                    <h2>Affichage avancé</h2>
+                <form method="post" action="?p=fiche_cout" id="cout-form" class="cout-toggle">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+            <label class="check">
+                <input type="checkbox" name="afficher_cout_emp" value="1"
+                       onchange="document.getElementById('cout-form').submit()"
+                       <?= (int) $f['afficher_cout_emp'] ? 'checked' : '' ?>>
+                Coût employeur
+            </label>
+        </form>
+    </aside>
 </div>
