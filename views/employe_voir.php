@@ -37,7 +37,7 @@
         <?php if ($fiches): ?>
             <a class="btn ghost" href="?p=certificat&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-text') ?> Certificat de salaire</a>
         <?php endif; ?>
-        <a class="btn" href="?p=fiche_new&employe_id=<?= (int) $emp['id'] ?>">+ Nouvelle fiche</a>
+        <a class="btn" href="?p=fiche_new&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-plus') ?> Nouvelle fiche</a>
     </div>
 </div>
 

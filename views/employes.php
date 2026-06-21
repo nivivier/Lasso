@@ -1,7 +1,7 @@
 <?php /** @var array $employes */ /** @var array $derniere */ ?>
 <div class="page-head">
     <h1>Employés</h1>
-    <a class="btn" href="?p=employe">+ Nouvel employé</a>
+    <a class="btn" href="?p=employe"><?= icon('user-plus') ?> Nouvel employé</a>
 </div>
 
 <?php if (!$employes): ?>

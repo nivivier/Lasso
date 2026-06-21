@@ -2,7 +2,7 @@
 /** @var array $employes */ /** @var int $employeId */ ?>
 <div class="page-head">
     <h1>Fiches de salaire</h1>
-    <a class="btn" href="?p=fiche_new">+ Nouvelle fiche</a>
+    <a class="btn" href="?p=fiche_new"><?= icon('file-plus') ?> Nouvelle fiche</a>
 </div>
 
 <form method="get" class="filters">
