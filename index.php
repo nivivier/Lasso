@@ -56,6 +56,7 @@ $handlers = [
     'employe_delete' => 'route_employe_delete',
     'parametres'    => 'route_parametres',
     'employeur'     => 'route_employeur',
+    'emails'        => 'route_emails',
     'taux_horaires' => 'route_taux_horaires',
     'unites'        => 'route_unites',
     'export'        => 'route_export',

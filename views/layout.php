@@ -38,7 +38,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
             <?= icon('file-text') ?> Fiches de salaire
         </a>
-        <?php $settingsPages = ['employeur', 'taux_horaires', 'unites', 'taux', 'export', 'comptes', 'parametres']; ?>
+        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'comptes', 'parametres']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>

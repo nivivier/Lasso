@@ -9,7 +9,7 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
 <div class="card form">
     <div class="year-bar">
         <h2>Grille de taux</h2>
-        <label class="inline">Année
+        <label class="inline">
             <select onchange="location.href='?p=taux&annee='+this.value">
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
@@ -18,8 +18,7 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
         </label>
     </div>
     <p class="muted small">
-        Les taux sont <strong>propres à chaque année</strong>. Modifier l'année <?= $annee ?> n'affecte pas
-        les fiches des autres années. Une fiche déjà créée conserve de toute façon les taux figés à sa création.
+        Les taux sont <strong>propres à chaque année</strong>. Une fiche déjà créée conserve les taux figés à sa création.
         <?php if (!$configuree): ?>
             <br><span class="tag-warn">Année <?= $annee ?> non encore configurée</span> — valeurs reprises de l'année précédente (ou par défaut). Enregistrez pour les fixer.
         <?php endif; ?>

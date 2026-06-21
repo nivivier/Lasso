@@ -3,6 +3,7 @@
 // L'onglet actif est déduit de la route courante (?p=…).
 $tabs = [
     'employeur'     => 'Employeur',
+    'emails'        => 'E-mails',
     'taux'          => 'Taux des déductions',
     'taux_horaires' => 'Salaires horaires',
     'unites'        => 'Unités de temps',

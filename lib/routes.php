@@ -345,19 +345,8 @@ function route_employeur(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $champs = ['employeur_nom', 'employeur_rue', 'employeur_npa', 'employeur_pays',
-                   'employeur_email_contact', 'employeur_email_expediteur',
                    'employeur_telephone', 'employeur_heures_hebdo',
-                   'employeur_contact_nom', 'employeur_contact_tel',
-                   'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user'];
-        $emailContact = trim($_POST['employeur_email_contact'] ?? '');
-        $emailExp     = trim($_POST['employeur_email_expediteur'] ?? '');
-        $smtpUser     = trim($_POST['smtp_user'] ?? '');
-        if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
-            || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))
-            || ($smtpUser !== '' && !filter_var($smtpUser, FILTER_VALIDATE_EMAIL))) {
-            render('employeur', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'Employeur');
-            return;
-        }
+                   'employeur_contact_nom', 'employeur_contact_tel'];
         // Logos : traités avant l'écriture pour pouvoir afficher une erreur d'upload.
         $logos = [];
         try {
@@ -376,11 +365,6 @@ function route_employeur(): void
         foreach ($champs as $k) {
             $stmt->execute([$k, trim($_POST[$k] ?? '')]);
         }
-        // Mot de passe SMTP : mis à jour uniquement s'il est saisi (jamais réaffiché).
-        $smtpPass = (string) ($_POST['smtp_pass'] ?? '');
-        if ($smtpPass !== '') {
-            $stmt->execute(['smtp_pass', $smtpPass]);
-        }
         foreach ($logos as $cle => $path) {
             $ancien = param($cle); // ancien fichier à supprimer s'il était uploadé
             $stmt->execute([$cle, $path]);
@@ -391,6 +375,37 @@ function route_employeur(): void
         redirect('employeur', ['ok' => 1]);
     }
     render('employeur', ['saved' => isset($_GET['ok']), 'err' => null], 'Employeur');
+}
+
+// Paramètres d'envoi des e-mails (expéditeur, contact, SMTP authentifié).
+function route_emails(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $champs = ['employeur_email_contact', 'employeur_email_expediteur',
+                   'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user'];
+        $emailContact = trim($_POST['employeur_email_contact'] ?? '');
+        $emailExp     = trim($_POST['employeur_email_expediteur'] ?? '');
+        $smtpUser     = trim($_POST['smtp_user'] ?? '');
+        if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
+            || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))
+            || ($smtpUser !== '' && !filter_var($smtpUser, FILTER_VALIDATE_EMAIL))) {
+            render('emails', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'E-mails');
+            return;
+        }
+        $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+        foreach ($champs as $k) {
+            $stmt->execute([$k, trim($_POST[$k] ?? '')]);
+        }
+        // Mot de passe SMTP : mis à jour uniquement s'il est saisi (jamais réaffiché).
+        $smtpPass = (string) ($_POST['smtp_pass'] ?? '');
+        if ($smtpPass !== '') {
+            $stmt->execute(['smtp_pass', $smtpPass]);
+        }
+        redirect('emails', ['ok' => 1]);
+    }
+    render('emails', ['saved' => isset($_GET['ok']), 'err' => null], 'E-mails');
 }
 
 function route_taux_horaires(): void
