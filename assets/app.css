@@ -583,8 +583,8 @@ abbr {
 .compta-lettrage tr.ecr-mois-sep td { background: var(--bg); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */
-.compta-cr td { padding: 8px 16px; }
-.compta-cr .cr-section th { background: #faf9fe; text-transform: uppercase; font-size: 11.5px; letter-spacing: .05em; color: var(--muted); text-align: left; padding: 12px 16px; }
+.compta-cr td { padding: 5px 12px; }
+.compta-cr .cr-section th { background: #faf9fe; text-transform: uppercase; font-size: 11.5px; letter-spacing: .05em; color: var(--muted); text-align: left; padding: 8px 12px; }
 .compta-cr .cr-groupe td { font-weight: 600; color: var(--ink); }
 .compta-cr .cr-compte td:first-child { padding-left: 34px; color: var(--muted); }
 .compta-cr .cr-clic { cursor: pointer; }
@@ -702,6 +702,7 @@ abbr {
 .bilan-card .list,
 .compta-print .list { table-layout: fixed; }
 .bilan-card .list { min-width: 420px; } /* défile horizontalement sur mobile plutôt que de se comprimer */
+.bilan-card .list th, .bilan-card .list td { padding: 6px 12px; }
 .bilan-card .list th.num,
 .compta-print .list th.num { width: 110px; }
 
