@@ -512,7 +512,6 @@ function route_compta_regles(): void
             $planId    = (int) ($_POST['plan_compte_id'] ?? 0);
             $cid       = ($_POST['compte_bancaire_id'] ?? '') === '' ? null : (int) $_POST['compte_bancaire_id'];
             $operateur = in_array($_POST['operateur'] ?? '', ['ET', 'OU'], true) ? $_POST['operateur'] : 'ET';
-            $prio      = (int) ($_POST['priorite'] ?? 0);
             $actif     = isset($_POST['actif']) ? 1 : 0;
             $conditions = $parseConditions();
 
@@ -520,12 +519,13 @@ function route_compta_regles(): void
                 db()->beginTransaction();
                 if ($section === 'edit') {
                     $id = (int) ($_POST['id'] ?? 0);
-                    db()->prepare('UPDATE regles_lettrage SET compte_bancaire_id=?, plan_compte_id=?, operateur=?, priorite=?, actif=? WHERE id=?')
-                        ->execute([$cid, $planId, $operateur, $prio, $actif, $id]);
+                    db()->prepare('UPDATE regles_lettrage SET compte_bancaire_id=?, plan_compte_id=?, operateur=?, actif=? WHERE id=?')
+                        ->execute([$cid, $planId, $operateur, $actif, $id]);
                     db()->prepare('DELETE FROM conditions_lettrage WHERE regle_id = ?')->execute([$id]);
                 } else {
+                    $maxPrio = (int) db()->query('SELECT COALESCE(MAX(priorite),0) FROM regles_lettrage')->fetchColumn();
                     db()->prepare('INSERT INTO regles_lettrage (compte_bancaire_id, plan_compte_id, operateur, priorite, actif) VALUES (?, ?, ?, ?, 1)')
-                        ->execute([$cid, $planId, $operateur, $prio]);
+                        ->execute([$cid, $planId, $operateur, $maxPrio + 10]);
                     $id = (int) db()->lastInsertId();
                 }
                 $insC = db()->prepare('INSERT INTO conditions_lettrage (regle_id, type, op, valeur, ordre) VALUES (?, ?, ?, ?, ?)');
@@ -545,6 +545,21 @@ function route_compta_regles(): void
             exit;
         } elseif ($section === 'del') {
             db()->prepare('DELETE FROM regles_lettrage WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+        } elseif ($section === 'move_up' || $section === 'move_down') {
+            $id  = (int) ($_POST['id'] ?? 0);
+            $all = db()->query('SELECT id FROM regles_lettrage ORDER BY priorite ASC, id ASC')->fetchAll(PDO::FETCH_COLUMN);
+            $pos = (int) array_search($id, $all, true);
+            if ($id > 0 && $pos !== false) {
+                $swap = $section === 'move_up' ? $pos - 1 : $pos + 1;
+                if ($swap >= 0 && $swap < count($all)) {
+                    $upd = db()->prepare('UPDATE regles_lettrage SET priorite = ? WHERE id = ?');
+                    db()->beginTransaction();
+                    foreach ($all as $i => $rid) { $upd->execute([$i * 10, (int) $rid]); }
+                    $upd->execute([$swap * 10, $id]);
+                    $upd->execute([$pos  * 10, (int) $all[$swap]]);
+                    db()->commit();
+                }
+            }
         }
         redirect('compta_regles', ['ok' => 1]);
     }
