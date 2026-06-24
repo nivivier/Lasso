@@ -500,7 +500,7 @@ function nb_fiches_a_payer(): int
 function nb_ecritures_a_lettrer(): int
 {
     try {
-        return (int) db()->query('SELECT COUNT(*) FROM ecritures WHERE plan_compte_id IS NULL')->fetchColumn();
+        return (int) db()->query("SELECT COUNT(*) FROM ecritures WHERE plan_compte_id IS NULL AND origine_lettrage <> 'ignore'")->fetchColumn();
     } catch (\Exception) {
         return 0;
     }
