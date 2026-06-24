@@ -738,6 +738,10 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
     $premiereAnnee = db()->prepare("SELECT solde, montant FROM ecritures
         WHERE compte_bancaire_id = ? AND solde IS NOT NULL AND substr(date_op,1,4) = ?
         ORDER BY date_op ASC, id DESC LIMIT 1");
+    // Cumul des écritures manuelles (jamais reflétées dans le solde courant
+    // bancaire) jusqu'à une date : elles font bel et bien varier le patrimoine.
+    $manuelCumul = db()->prepare("SELECT COALESCE(SUM(montant), 0) FROM ecritures
+        WHERE compte_bancaire_id = ? AND import_id IS NULL AND date_op <= ?");
     $patrimoine = [];
     $continuite = [];
     foreach (compta_comptes() as $c) {
@@ -746,7 +750,9 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
         foreach ($cols as $a) {
             $clotureFin->execute([$cid, "$a-12-31"]);
             $v = $clotureFin->fetchColumn();
-            $ligne['valeurs'][$a] = $v === false ? (float) $c['solde_initial'] : (float) $v;
+            $base = $v === false ? (float) $c['solde_initial'] : (float) $v;
+            $manuelCumul->execute([$cid, "$a-12-31"]);
+            $ligne['valeurs'][$a] = $base + (float) $manuelCumul->fetchColumn();
             $clotureFin->execute([$cid, ($a - 1) . '-12-31']);
             $clotPrec = $clotureFin->fetchColumn();
             $premiereAnnee->execute([$cid, (string) $a]);
