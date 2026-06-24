@@ -50,11 +50,11 @@
         <tr><th>Mois</th><th class="num">Brut</th><th class="num">Net</th><th>Paiement</th><th class="num">Coût employeur</th><th class="center">Envoyée</th></tr>
     </thead>
     <tbody>
-    <?php foreach ($fiches as $f): $apayer = trim((string) $f['date_paiement']) === ''; ?>
+    <?php foreach ($fiches as $f): $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f); ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>">
             <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
-            <td class="num strong <?= $apayer ? 'net-apayer' : '' ?>"><?= chf((float) $f['salaire_net']) ?></td>
+            <td class="num strong <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
             <td><?= badge_paiement($f) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
             <td class="center"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>

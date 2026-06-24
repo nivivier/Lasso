@@ -26,13 +26,17 @@
                     <div class="compte-read">
                         <strong><?= e($c['libelle']) ?></strong>
                         <?php if ($c['iban']): ?><span class="muted small"> · <?= e($c['iban']) ?></span><?php endif; ?>
+                        <?php if ((float) $c['solde_initial'] != 0.0): ?>
+                            <span class="muted small"> · solde initial <?= chf((float) $c['solde_initial']) ?></span>
+                        <?php endif; ?>
                     </div>
                     <form method="post" action="?p=compta_comptes" class="inline-edit compte-edit-form" hidden>
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                        <input name="libelle" value="<?= e($c['libelle']) ?>" class="grow" required>
+                        <input name="libelle" value="<?= e($c['libelle']) ?>" class="grow" required placeholder="Libellé">
                         <input name="iban" value="<?= e($c['iban']) ?>" placeholder="CH…" class="w-iban">
+                        <input name="solde_initial" type="number" step="0.01" value="<?= (float) $c['solde_initial'] ?>" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
@@ -57,6 +61,7 @@
                         <input type="hidden" name="section" value="add">
                         <input name="libelle" placeholder="ex. Compte PostFinance — Local" required class="grow">
                         <input name="iban" placeholder="CH86 0900 0000 1587 1688 5" class="w-iban">
+                        <input name="solde_initial" type="number" step="0.01" value="0" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)">
                         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                         <button type="button" class="btn ghost btn-sm" id="cancel-new-compte"><?= icon('x') ?> Annuler</button>
                     </form>

@@ -265,19 +265,20 @@ function route_compta_comptes(): void
         check_csrf();
         $section = $_POST['section'] ?? '';
         if ($section === 'add' || $section === 'edit') {
-            $libelle = trim($_POST['libelle'] ?? '');
-            $iban    = strtoupper(preg_replace('/\s+/', '', $_POST['iban'] ?? ''));
+            $libelle      = trim($_POST['libelle'] ?? '');
+            $iban         = strtoupper(preg_replace('/\s+/', '', $_POST['iban'] ?? ''));
+            $soldeInitial = (float) str_replace(["'", ' '], '', $_POST['solde_initial'] ?? '0');
             if ($libelle === '') {
                 $err = 'Le libellé est obligatoire.';
             } else {
                 try {
                     if ($section === 'edit') {
-                        db()->prepare('UPDATE comptes_bancaires SET libelle=?, iban=? WHERE id=?')
-                            ->execute([$libelle, $iban, (int) ($_POST['id'] ?? 0)]);
+                        db()->prepare('UPDATE comptes_bancaires SET libelle=?, iban=?, solde_initial=? WHERE id=?')
+                            ->execute([$libelle, $iban, $soldeInitial, (int) ($_POST['id'] ?? 0)]);
                     } else {
                         $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM comptes_bancaires')->fetchColumn();
-                        db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, ordre) VALUES (?, ?, ?)')
-                            ->execute([$libelle, $iban, $ordre]);
+                        db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, solde_initial, ordre) VALUES (?, ?, ?, ?)')
+                            ->execute([$libelle, $iban, $soldeInitial, $ordre]);
                     }
                     redirect('compta_comptes', ['ok' => 1]);
                 } catch (PDOException $ex) {
@@ -615,8 +616,13 @@ function compter_impact_regle(array $regle, array $ecritures): int
 function route_compta_bilan(): void
 {
     require_login();
-    $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
-    $nbPrec = max(0, min(3, (int) ($_GET['prec'] ?? 0)));
+    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
+    if (isset($_GET['prec'])) {
+        $nbPrec = max(0, min(3, (int) $_GET['prec']));
+        $_SESSION['bilan_prec'] = $nbPrec;
+    } else {
+        $nbPrec = (int) ($_SESSION['bilan_prec'] ?? 2); // défaut : 3 colonnes (année + 2 précédentes)
+    }
     render('compta_bilan', compta_bilan_data($annee, $nbPrec), 'Comptabilité — Bilan & résultat');
 }
 
@@ -706,7 +712,7 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
         foreach ($cols as $a) {
             $clotureFin->execute([$cid, "$a-12-31"]);
             $v = $clotureFin->fetchColumn();
-            $ligne['valeurs'][$a] = $v === false ? null : (float) $v;
+            $ligne['valeurs'][$a] = $v === false ? (float) $c['solde_initial'] : (float) $v;
             $clotureFin->execute([$cid, ($a - 1) . '-12-31']);
             $clotPrec = $clotureFin->fetchColumn();
             $premiereAnnee->execute([$cid, (string) $a]);
@@ -741,7 +747,7 @@ function route_compta_bilan_print(): void
 {
     require_login();
     $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
-    $nbPrec = max(0, min(3, (int) ($_GET['prec'] ?? 0)));
+    $nbPrec = max(0, min(3, (int) ($_GET['prec'] ?? ($_SESSION['bilan_prec'] ?? 2))));
     render_bare('compta_bilan_print', compta_bilan_data($annee, $nbPrec) + ['nomEmployeur' => (string) param('employeur_nom')]);
 }
 

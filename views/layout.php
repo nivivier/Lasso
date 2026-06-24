@@ -36,13 +36,17 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=employes" class="<?= in_array($cur, ['employes', 'employe', 'employe_voir']) ? 'on' : '' ?>">
             <?= icon('users') ?> Employés
         </a>
+        <?php $nbFiches = nb_fiches_a_payer(); ?>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
             <?= icon('file-text') ?> Fiches de salaire
+            <?php if ($nbFiches > 0): ?><span class="nav-badge"><?= $nbFiches ?></span><?php endif; ?>
         </a>
         <span class="side-nav-sep">Comptabilité</span>
         <?php $ecrituresPages = ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles']; ?>
+        <?php $nbEcr = nb_ecritures_a_lettrer(); ?>
         <a href="?p=compta_ecritures" class="<?= in_array($cur, $ecrituresPages, true) ? 'on' : '' ?>">
             <?= icon('banknote') ?> Écritures
+            <?php if ($nbEcr > 0): ?><span class="nav-badge"><?= $nbEcr ?></span><?php endif; ?>
         </a>
         <?php $bilanPages = ['compta_bilan', 'compta_plan', 'compta_comptes']; ?>
         <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">

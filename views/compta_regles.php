@@ -139,8 +139,8 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                     <div class="regle-cond-row">
                         <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-new" title="Ajouter une condition"><?= icon('plus') ?></button>
                         <select name="operateur" class="regle-op-select" hidden>
-                            <option value="ET">ET (toutes)</option>
-                            <option value="OU">OU (au moins une)</option>
+                            <option value="ET">ET</option>
+                            <option value="OU">OU</option>
                         </select>
                     </div>
                 </div>
@@ -197,8 +197,8 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                     <div class="regle-cond-row">
                         <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition"><?= icon('plus') ?></button>
                         <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?>>
-                            <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET (toutes)</option>
-                            <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU (au moins une)</option>
+                            <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET</option>
+                            <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU</option>
                         </select>
                     </div>
                 </div>
