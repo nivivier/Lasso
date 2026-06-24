@@ -149,6 +149,7 @@ $ecr2 = [
     ['plan_compte_id' => 11, 'montant' => -470.0],
     ['plan_compte_id' => 12, 'montant' => -5.0],
     ['plan_compte_id' => null, 'montant' => -9.0], // non lettrée
+    ['plan_compte_id' => null, 'montant' => -50.0, 'origine_lettrage' => 'ignore'], // « Ne pas lettrer » : exclue
 ];
 $agg = agreger_resultat($ecr2, $arbre);
 check('total produits', 340.0, $agg['total_produits']);
@@ -157,8 +158,8 @@ check('résultat', -135.0, $agg['resultat']);
 check('somme feuille Cotisations (240)', 240.0, $agg['sommes'][2]);
 check('sous-total groupe Recettes (340)', 340.0, plan_sous_total(1, $byParent, $agg['sommes']));
 check('sous-total groupe Charges (−470)', -470.0, plan_sous_total(10, $byParent, $agg['sommes']));
-check('non lettrées : nb', 1, $agg['non_lettrees']['nb']);
-check('non lettrées : montant', -9.0, $agg['non_lettrees']['montant']);
+check('non lettrées : nb (ignore exclu)', 1, $agg['non_lettrees']['nb']);
+check('non lettrées : montant (ignore exclu)', -9.0, $agg['non_lettrees']['montant']);
 
 echo "\n";
 if ($fails === 0) {

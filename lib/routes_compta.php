@@ -82,7 +82,7 @@ function compta_annees(): array
 // $compteId / $annee : filtres optionnels. Renvoie le nombre d'écritures lettrées.
 function compta_lettrer_par_regles(?int $compteId, ?int $annee): int
 {
-    $sql = "SELECT id, compte_bancaire_id, texte, montant FROM ecritures WHERE origine_lettrage <> 'manuel'";
+    $sql = "SELECT id, compte_bancaire_id, texte, montant FROM ecritures WHERE origine_lettrage NOT IN ('manuel', 'ignore')";
     $params = [];
     if ($compteId) {
         $sql .= ' AND compte_bancaire_id = ?';
@@ -408,8 +408,13 @@ function route_compta_ecritures(): void
             $texte   = trim($_POST['texte'] ?? '');
             $montant = (float) str_replace(["'", "\u{202F}", ' '], '', $_POST['montant'] ?? '0');
             $planRaw = $_POST['plan_compte_id'] ?? '';
-            $planId  = ($planRaw !== '' && $planRaw !== '0') ? (int) $planRaw : null;
-            $origLettrage = $planId !== null ? 'manuel' : '';
+            if ($planRaw === 'ignore') {
+                $planId = null;
+                $origLettrage = 'ignore';
+            } else {
+                $planId  = ($planRaw !== '' && $planRaw !== '0') ? (int) $planRaw : null;
+                $origLettrage = $planId !== null ? 'manuel' : '';
+            }
             if ($cid && $date_op && $texte) {
                 if ($section === 'create') {
                     $hash = sha1('manual-' . uniqid('', true) . mt_rand());
@@ -433,9 +438,14 @@ function route_compta_ecritures(): void
             $ids = array_filter($ids);
             if ($ids) {
                 if ($planId === '' || $planId === '0') {
-                    // Délettrage : remet à NULL.
+                    // Délettrage : remet à NULL (annule aussi un « Ne pas lettrer »).
                     $in = implode(',', array_fill(0, count($ids), '?'));
                     db()->prepare("UPDATE ecritures SET plan_compte_id = NULL, origine_lettrage = '' WHERE id IN ($in)")
+                        ->execute(array_values($ids));
+                } elseif ($planId === 'ignore') {
+                    // Marquage « Ne pas lettrer » : sans catégorie, mais exclue des non-lettrées.
+                    $in = implode(',', array_fill(0, count($ids), '?'));
+                    db()->prepare("UPDATE ecritures SET plan_compte_id = NULL, origine_lettrage = 'ignore' WHERE id IN ($in)")
                         ->execute(array_values($ids));
                 } elseif (plan_est_feuille((int) $planId, compta_plan_map())) {
                     // Seules les catégories feuilles (sans enfant) sont assignables.
@@ -475,9 +485,11 @@ function route_compta_ecritures(): void
         $params[] = (string) $annee;
     }
     if ($statut === 'a_lettrer') {
-        $sql .= ' AND e.plan_compte_id IS NULL';
+        $sql .= " AND e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore'";
     } elseif ($statut === 'lettre') {
         $sql .= ' AND e.plan_compte_id IS NOT NULL';
+    } elseif ($statut === 'ignore') {
+        $sql .= " AND e.origine_lettrage = 'ignore'";
     }
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
     $stmt = db()->prepare($sql);
@@ -487,7 +499,7 @@ function route_compta_ecritures(): void
     // $annees déjà calculé en haut pour le défaut de l'année.
     $nbALettrer = 0;
     foreach ($ecritures as $e) {
-        if ($e['plan_compte_id'] === null) {
+        if ($e['plan_compte_id'] === null && ($e['origine_lettrage'] ?? '') !== 'ignore') {
             $nbALettrer++;
         }
     }
@@ -627,7 +639,7 @@ function route_compta_regles(): void
 // Écritures non lettrées (id, compte, texte, montant) — pour l'aperçu d'impact.
 function compta_ecritures_non_lettrees(): array
 {
-    return db()->query('SELECT id, compte_bancaire_id, texte, montant FROM ecritures WHERE plan_compte_id IS NULL')->fetchAll();
+    return db()->query("SELECT id, compte_bancaire_id, texte, montant FROM ecritures WHERE plan_compte_id IS NULL AND origine_lettrage <> 'ignore'")->fetchAll();
 }
 
 // Combien d'écritures (parmi $ecritures) la règle toucherait (scope compte inclus).
@@ -695,7 +707,7 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
 
     // Compte de résultat de l'année sélectionnée (warning non-lettrées + détail).
     $plan = compta_plan_map();
-    $stmt = db()->prepare('SELECT montant, plan_compte_id FROM ecritures WHERE substr(date_op,1,4) = ?');
+    $stmt = db()->prepare('SELECT montant, plan_compte_id, origine_lettrage FROM ecritures WHERE substr(date_op,1,4) = ?');
     $stmt->execute([(string) $annee]);
     $resultat = agreger_resultat($stmt->fetchAll(), $plan);
 

@@ -476,6 +476,10 @@ function agreger_resultat(array $ecritures, array $plan): array
     $nonLettrees = ['nb' => 0, 'montant' => 0.0];
 
     foreach ($ecritures as $e) {
+        // Marquée « Ne pas lettrer » : volontairement exclue (ni résultat, ni non-lettrées).
+        if (($e['origine_lettrage'] ?? '') === 'ignore') {
+            continue;
+        }
         $pid = $e['plan_compte_id'] ?? null;
         $montant = (float) $e['montant'];
         if ($pid === null || !isset($plan[(int) $pid])) {

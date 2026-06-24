@@ -13,16 +13,18 @@ $isEdit   = $editEcr !== null;
 $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($statut);
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
-$catSearchField = function (string $name, ?int $selected, string $placeholder) use ($feuilles, $cheminById): string {
-    $initChemin = $selected !== null ? ($cheminById[$selected] ?? '') : '';
+$catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuilles, $cheminById): string {
+    $initChemin = $ignore ? 'Ne pas lettrer' : ($selected !== null ? ($cheminById[$selected] ?? '') : '');
+    $hiddenVal  = $ignore ? 'ignore' : ($selected ?? '');
     $items = '';
     foreach ($feuilles as $f) {
         $items .= '<li data-val="' . (int) $f['id'] . '">' . e($f['chemin']) . '</li>';
     }
     return '<div class="cat-search form-cat-search">'
          . '<input type="text" class="cat-search-input" placeholder="' . e($placeholder) . '" autocomplete="off" value="' . e($initChemin) . '">'
-         . '<input type="hidden" name="' . e($name) . '" class="cat-search-val" value="' . e($selected ?? '') . '">'
-         . '<ul class="cat-search-list" hidden role="listbox"><li data-val="">— Sans catégorie —</li>' . $items . '</ul>'
+         . '<input type="hidden" name="' . e($name) . '" class="cat-search-val" value="' . e($hiddenVal) . '">'
+         . '<ul class="cat-search-list" hidden role="listbox"><li data-val="">— Sans catégorie —</li>'
+         . '<li data-val="ignore">Ne pas lettrer</li>' . $items . '</ul>'
          . '</div>';
 };
 ?>
@@ -75,7 +77,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder) u
             <input type="text" name="texte" required value="<?= e($isEdit ? $editEcr['texte'] : '') ?>" placeholder="ex. Remboursement frais divers">
         </label>
         <label>Catégorie <span class="muted" style="font-weight:400">(optionnel)</span>
-            <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…') ?>
+            <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…', $isEdit && ($editEcr['origine_lettrage'] ?? '') === 'ignore') ?>
         </label>
         <div class="form-actions">
             <button type="submit" class="btn"><?= icon('check') ?> <?= $isEdit ? 'Enregistrer' : 'Créer l\'écriture' ?></button>
@@ -107,7 +109,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder) u
     </label>
     <label>Statut
         <select name="statut" onchange="this.form.submit()">
-            <?php foreach (['tous' => 'Toutes', 'a_lettrer' => 'À lettrer', 'lettre' => 'Lettrées'] as $k => $lib): ?>
+            <?php foreach (['tous' => 'Toutes', 'a_lettrer' => 'À lettrer', 'lettre' => 'Lettrées', 'ignore' => 'Ne pas lettrer'] as $k => $lib): ?>
                 <option value="<?= $k ?>" <?= $statut === $k ? 'selected' : '' ?>><?= e($lib) ?></option>
             <?php endforeach; ?>
         </select>
@@ -137,6 +139,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder) u
             <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
             <ul class="cat-search-list" hidden role="listbox">
                 <li data-val="">— Retirer le lettrage —</li>
+                <li data-val="ignore">Ne pas lettrer</li>
                 <?php foreach ($feuilles as $f): ?>
                     <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
                 <?php endforeach; ?>
@@ -173,8 +176,14 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder) u
             <?= e($moisFr[substr($moisCle, 5, 2)] ?? substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4) ?>
         </td></tr>
     <?php endif; ?>
-        <?php $isManuel = $ecr['import_id'] === null; ?>
-        <tr class="<?= $ecr['plan_compte_id'] === null ? 'non-lettre' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
+        <?php
+        $isManuel = $ecr['import_id'] === null;
+        $estIgnore = $ecr['plan_compte_id'] === null && ($ecr['origine_lettrage'] ?? '') === 'ignore';
+        $estNonLettre = $ecr['plan_compte_id'] === null && !$estIgnore;
+        $rowCatLabel = $estIgnore ? 'Ne pas lettrer' : ($cheminById[(int) ($ecr['plan_compte_id'] ?? 0)] ?? '');
+        $rowCatVal   = $estIgnore ? 'ignore' : ($ecr['plan_compte_id'] ?? '');
+        ?>
+        <tr class="<?= $estNonLettre ? 'non-lettre' : '' ?><?= $estIgnore ? ' ecr-ignore' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteId === 0): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
@@ -186,8 +195,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder) u
                     <input type="hidden" name="section" value="lettrer">
                     <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
                     <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —"
-                           value="<?= e($cheminById[(int) ($ecr['plan_compte_id'] ?? 0)] ?? '') ?>">
-                    <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($ecr['plan_compte_id'] ?? '') ?>">
+                           value="<?= e($rowCatLabel) ?>">
+                    <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
                 </form>
             </td>
             <td class="actions">
@@ -209,6 +218,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder) u
 <!-- Dropdown partagé pour le lettrage individuel (repositionné par JS) -->
 <ul id="row-cat-list" class="cat-search-list" hidden role="listbox">
     <li data-val="">— à lettrer —</li>
+    <li data-val="ignore">Ne pas lettrer</li>
     <?php foreach ($feuilles as $f): ?>
         <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
     <?php endforeach; ?>
