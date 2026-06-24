@@ -128,9 +128,11 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         <form method="post" action="?p=compta_regles">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <div class="regle-head">
-                <label class="regle-label">Compte
-                    <select name="compte_bancaire_id"><?= $compteOptions($prefillCompte !== null ? (string) $prefillCompte : '') ?></select>
-                </label>
+                <!-- Compte -->
+                <div class="regle-cond-ctrl">
+                    <span class="regle-sub">Compte</span>
+                    <select name="compte_bancaire_id" class="regle-ctrl-select"><?= $compteOptions($prefillCompte !== null ? (string) $prefillCompte : '') ?></select>
+                </div>
                 <!-- Groupe Conditions : toujours affiché ; ET/OU visible si >1 condition -->
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Conditions</span>
@@ -171,6 +173,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         <form method="post" action="?p=compta_regles">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $rid ?>">
+            <input type="hidden" name="section" value="edit">
             <div class="regle-head">
                 <!-- Toggle actif/inactif -->
                 <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
@@ -183,9 +186,11 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                     <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter"><?= icon('chevron-up') ?></button>
                     <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre"><?= icon('chevron-down') ?></button>
                 </div>
-                <label class="regle-label">Compte
-                    <select name="compte_bancaire_id"><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
-                </label>
+                <!-- Compte -->
+                <div class="regle-cond-ctrl">
+                    <span class="regle-sub">Compte</span>
+                    <select name="compte_bancaire_id" class="regle-ctrl-select"><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
+                </div>
                 <!-- Groupe Conditions : toujours affiché ; ET/OU visible si >1 condition -->
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Conditions</span>
