@@ -629,15 +629,26 @@ abbr {
 .regle-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
 .regle-head select, .regle-head input[type="text"], .regle-head input[type="number"] { margin-bottom: 0; }
 .regle-head .flex-spacer { flex: 1 1 auto; }
+/* Toggle actif/inactif : pill CSS */
+.regle-toggle { cursor: pointer; display: flex; align-items: center; }
+.regle-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.regle-toggle-pill { display: inline-block; width: 30px; height: 17px; border-radius: 9px; background: var(--line); border: 1px solid rgba(0,0,0,.12); transition: background .15s, border-color .15s; cursor: pointer; position: relative; flex-shrink: 0; }
+.regle-toggle-pill::after { content: ''; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.regle-toggle input:checked ~ .regle-toggle-pill { background: var(--primary); border-color: var(--primary); }
+.regle-toggle input:checked ~ .regle-toggle-pill::after { transform: translateX(13px); }
+/* Flèches de tri */
 .regle-arrows { display: flex; gap: 2px; align-items: center; }
 .regle-arrows .btn { padding: 2px 5px; line-height: 1; }
-.regle-cat { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 0; margin-top: 8px; }
+/* Groupe Conditions inline (label + + Cond + ET/OU) */
+.regle-cond-ctrl { display: flex; flex-direction: column; gap: 2px; }
+.regle-sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.regle-cond-row { display: flex; gap: 4px; align-items: center; }
+.regle-op-select { margin: 0; }
+/* Catégorie */
+.regle-cat { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0 0; }
 .regle-cat input { margin-bottom: 0; }
 .regle-cat .grow { flex: 1 1 auto; min-width: 200px; }
-.regle-add-cond { margin: 6px 0 4px; }
 .regle-label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.regle-toggle { display: flex; align-items: center; cursor: pointer; }
-.regle-toggle input[type="checkbox"] { width: 16px; height: 16px; margin: 0; cursor: pointer; }
 .regle-conds { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0; min-height: 10px; }
 .regle-no-cond { margin: 0; }
 .cond-row { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }

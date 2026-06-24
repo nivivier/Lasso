@@ -26,12 +26,11 @@ $catSearchable = function ($selected) use ($feuilles): string {
 };
 
 // Rendu d'une ligne de condition (PHP, pour les conditions déjà en base).
-$condRow = function (array $cond) use ($feuilles): string {
+$condRow = function (array $cond): string {
     $type   = $cond['type']   ?? 'texte';
     $op     = $cond['op']     ?? 'contient';
     $valeur = (string) ($cond['valeur'] ?? '');
 
-    // Normalise les anciens types plats vers le type unifié 'montant'.
     if (in_array($type, ['montant_min', 'montant_max', 'montant_exact'], true)) {
         $op   = match ($type) { 'montant_max' => '<=', 'montant_exact' => '=', default => '>=' };
         $type = 'montant';
@@ -53,9 +52,8 @@ $condRow = function (array $cond) use ($feuilles): string {
     $isTexte   = $type === 'texte';
     $isSens    = $type === 'sens';
     $isMontant = $type === 'montant';
-
-    $valSens = in_array($valeur, ['credit', 'debit'], true) ? $valeur : 'credit';
-    $valNum  = $isMontant ? $valeur : '';
+    $valSens   = in_array($valeur, ['credit', 'debit'], true) ? $valeur : 'credit';
+    $valNum    = $isMontant ? $valeur : '';
 
     $sensOpts = '<option value="credit"' . ($valSens === 'credit' ? ' selected' : '') . '>Crédit (+)</option>'
               . '<option value="debit"'  . ($valSens === 'debit'  ? ' selected' : '') . '>Débit (−)</option>';
@@ -71,8 +69,7 @@ $condRow = function (array $cond) use ($feuilles): string {
          . '</div>';
 };
 
-$condVide = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
-
+$condVide  = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
 $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new']);
 ?>
 <div class="page-head page-head-sub">
@@ -86,7 +83,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         : 'Cette règle toucherait <strong>' . (int) $test . '</strong> écriture(s) non lettrée(s).' ?></p>
 <?php endif; ?>
 
-<!-- Template JS pour l'ajout dynamique d'une condition -->
 <template id="cond-tpl">
     <div class="cond-row" data-type="texte">
         <select name="cond_type[]" class="cond-type">
@@ -127,13 +123,25 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         </div>
     </div>
 
-    <!-- Nouvelle règle (masquée par défaut, ou ouverte si prefill depuis Lettrage) -->
+    <!-- Nouvelle règle -->
     <div id="new-rule-card" class="regle-card regle-new <?= $ouvrirNew ? '' : 'hidden' ?>">
         <form method="post" action="?p=compta_regles">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <div class="regle-head">
-                <label class="regle-label">Compte<select name="compte_bancaire_id"><?= $compteOptions($prefillCompte !== null ? (string) $prefillCompte : '') ?></select></label>
-                <label class="regle-label regle-op-wrap" hidden>Conditions<select name="operateur"><option value="ET">ET (toutes)</option><option value="OU">OU (au moins une)</option></select></label>
+                <label class="regle-label">Compte
+                    <select name="compte_bancaire_id"><?= $compteOptions($prefillCompte !== null ? (string) $prefillCompte : '') ?></select>
+                </label>
+                <!-- Groupe Conditions : toujours affiché ; ET/OU visible si >1 condition -->
+                <div class="regle-cond-ctrl">
+                    <span class="regle-sub">Conditions</span>
+                    <div class="regle-cond-row">
+                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-new" title="Ajouter une condition"><?= icon('plus') ?></button>
+                        <select name="operateur" class="regle-op-select" hidden>
+                            <option value="ET">ET (toutes)</option>
+                            <option value="OU">OU (au moins une)</option>
+                        </select>
+                    </div>
+                </div>
                 <span class="flex-spacer"></span>
                 <span class="test-result muted small"></span>
                 <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
@@ -142,9 +150,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
             </div>
             <div class="regle-conds" id="conds-new">
                 <?= $prefillMotif !== '' ? $condVide($prefillMotif) : $condVide() ?>
-            </div>
-            <div class="regle-add-cond">
-                <button type="button" class="btn ghost btn-sm add-cond" data-target="conds-new"><?= icon('plus') ?> Condition</button>
             </div>
             <div class="regle-cat">
                 <label class="regle-label grow">Catégorie cible<?= $catSearchable(null) ?></label>
@@ -157,9 +162,9 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
     <?php endif; ?>
 
     <?php foreach ($regles as $r):
-        $rid   = (int) $r['id'];
-        $actif = (int) $r['actif'] === 1;
-        $imp   = (int) ($impacts[$rid] ?? 0);
+        $rid     = (int) $r['id'];
+        $actif   = (int) $r['actif'] === 1;
+        $imp     = (int) ($impacts[$rid] ?? 0);
         $nbConds = count($r['conditions']);
     ?>
     <div class="regle-card <?= $actif ? '' : 'regle-inactive' ?>">
@@ -167,21 +172,32 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $rid ?>">
             <div class="regle-head">
-                <!-- Gauche : toggle + flèches + compte + opérateur -->
+                <!-- Toggle actif/inactif -->
                 <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
                     <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?>
                            class="regle-actif-cb" onchange="this.closest('form').submit()">
+                    <span class="regle-toggle-pill"></span>
                 </label>
+                <!-- Flèches de réordonnancement -->
                 <div class="regle-arrows">
                     <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter"><?= icon('chevron-up') ?></button>
                     <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre"><?= icon('chevron-down') ?></button>
                 </div>
-                <label class="regle-label">Compte<select name="compte_bancaire_id"><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select></label>
-                <label class="regle-label regle-op-wrap" <?= $nbConds <= 1 ? 'hidden' : '' ?>>Conditions<select name="operateur">
-                    <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET (toutes)</option>
-                    <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU (au moins une)</option>
-                </select></label>
-                <!-- Droite : impact + boutons -->
+                <label class="regle-label">Compte
+                    <select name="compte_bancaire_id"><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
+                </label>
+                <!-- Groupe Conditions : toujours affiché ; ET/OU visible si >1 condition -->
+                <div class="regle-cond-ctrl">
+                    <span class="regle-sub">Conditions</span>
+                    <div class="regle-cond-row">
+                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition"><?= icon('plus') ?></button>
+                        <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?>>
+                            <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET (toutes)</option>
+                            <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU (au moins une)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Spacer + boutons -->
                 <span class="flex-spacer"></span>
                 <?php if ($actif): ?>
                     <?php if ($imp > 0): ?>
@@ -204,9 +220,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                     <p class="muted small regle-no-cond">Aucune condition — la règle ne s'applique pas.</p>
                 <?php endif; ?>
             </div>
-            <div class="regle-add-cond">
-                <button type="button" class="btn ghost btn-sm add-cond" data-target="conds-<?= $rid ?>"><?= icon('plus') ?> Condition</button>
-            </div>
             <div class="regle-cat">
                 <label class="regle-label grow">Catégorie cible<?= $catSearchable((int) $r['plan_compte_id']) ?></label>
             </div>
@@ -219,7 +232,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 (function () {
     const tpl = document.getElementById('cond-tpl');
 
-    // Mise à jour de data-type + affichage conditionnel des champs.
     function updateCondType(row) {
         const type = row.querySelector('.cond-type').value;
         row.dataset.type = type;
@@ -228,11 +240,11 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         row.querySelectorAll('.cond-vis-montant').forEach(el => el.hidden = (type !== 'montant'));
     }
 
-    // Affiche/masque l'opérateur ET/OU selon le nombre de conditions dans le formulaire.
+    // Affiche/masque le select ET/OU selon le nombre de conditions.
     function updateOperateurVisibility(form) {
-        const n    = form.querySelectorAll('.regle-conds .cond-row').length;
-        const wrap = form.querySelector('.regle-op-wrap');
-        if (wrap) wrap.hidden = (n <= 1);
+        const n   = form.querySelectorAll('.regle-conds .cond-row').length;
+        const sel = form.querySelector('.regle-op-select');
+        if (sel) sel.hidden = (n <= 1);
     }
 
     function initCondRow(row) {
@@ -258,7 +270,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 
     document.querySelectorAll('.cond-row').forEach(initCondRow);
 
-    // Boutons « + Condition ».
     document.querySelectorAll('.add-cond').forEach(btn => {
         btn.addEventListener('click', () => {
             if (!tpl) return;
@@ -284,7 +295,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 
         const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-        // Affichage initial.
         const initItem = items.find(li => li.dataset.val === hidden.value);
         if (initItem) input.value = initItem.textContent;
 
@@ -331,7 +341,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         });
     });
 
-    // Boutons « Tester » : fetch sans rechargement.
+    // Tester : fetch sans rechargement.
     function bindTester(card) {
         const btn = card.querySelector('.btn-tester');
         if (!btn) return;
