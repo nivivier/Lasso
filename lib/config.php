@@ -45,8 +45,8 @@ if (!defined('FORCE_HTTPS')) {
 // --- Sécurité : mots de passe & sessions ----------------------------------
 if (!defined('PASSWORD_MIN'))      define('PASSWORD_MIN', 12);       // longueur minimale
 if (!defined('BCRYPT_COST'))       define('BCRYPT_COST', 12);        // coût bcrypt
-if (!defined('SESSION_IDLE'))      define('SESSION_IDLE', 1800);     // 30 min d'inactivité
-if (!defined('SESSION_ABSOLUTE'))  define('SESSION_ABSOLUTE', 43200);// 12 h de durée de vie max
+if (!defined('SESSION_IDLE'))      define('SESSION_IDLE', 3600);     // 1h d'inactivité
+if (!defined('SESSION_ABSOLUTE'))  define('SESSION_ABSOLUTE', 86400);// 24 h de durée de vie max
 
 // --- Sécurité : anti-force-brute du login ---------------------------------
 if (!defined('LOGIN_MAX_ATTEMPTS')) define('LOGIN_MAX_ATTEMPTS', 5); // échecs tolérés…

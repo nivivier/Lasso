@@ -58,11 +58,11 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
                 'emp_taux_ac'         => '<abbr title="Assurance Chômage">AC</abbr>',
                 'emp_taux_amat'       => '<abbr title="Assurance Maternité (Genève)">A.Mat</abbr>',
                 'emp_taux_af'         => 'Allocations familiales',
-                'emp_taux_laa_reduit' => '<abbr title="Assurance contre les Accidents">LAA</abbr> réduit',
-                'emp_taux_laa_plein'  => '<abbr title="Assurance contre les Accidents">LAA</abbr> plein',
                 'emp_taux_frais'      => 'Frais d\'administration',
                 'emp_taux_cpe'        => '<abbr title="Contribution Petite Enfance">CPE</abbr>',
                 'emp_taux_lfp'        => '<abbr title="Loi sur la Formation Professionnelle">LFP</abbr>',
+                'emp_taux_laa_reduit' => '<abbr title="Assurance contre les Accidents">LAA</abbr> réduit',
+                'emp_taux_laa_plein'  => '<abbr title="Assurance contre les Accidents">LAA</abbr> plein',
                 'emp_taux_lpp'        => '<abbr title="Prévoyance Professionnelle (2e pilier)">LPP</abbr>',
             ];
             foreach ($partPat as $k => $lib): ?>
