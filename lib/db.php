@@ -289,6 +289,7 @@ function run_migrations(PDO $pdo): void
         10 => 'migration_10', // conditions_lettrage (builder ET/OU) + operateur sur regles_lettrage
         11 => 'migration_11', // prenom + nom sur les utilisateurs
         12 => 'migration_12', // regles_lettrage : supprime NOT NULL sur motif/type_match/sens_filtre
+        13 => 'migration_13', // répare FK conditions_lettrage cassé par migration_12 (RENAME side-effect)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -562,6 +563,8 @@ function migration_12(PDO $pdo): void
 {
     // Supprime le NOT NULL sur motif/type_match/sens_filtre, obsolètes depuis migration_10.
     // SQLite ne supporte pas ALTER COLUMN → recréation de la table.
+    // ATTENTION : FK = OFF obligatoire car SQLite met à jour les FK des autres tables
+    // lors d'un RENAME (conditions_lettrage.regle_id pointerait sur _regles_lettrage_old).
     $info = $pdo->query('PRAGMA table_info(regles_lettrage)')->fetchAll(PDO::FETCH_ASSOC);
     $motifNotnull = false;
     foreach ($info as $col) {
@@ -572,6 +575,7 @@ function migration_12(PDO $pdo): void
     }
     if (!$motifNotnull) return;
 
+    $pdo->exec('PRAGMA foreign_keys = OFF');
     $pdo->exec("ALTER TABLE regles_lettrage RENAME TO _regles_lettrage_old");
     $pdo->exec("CREATE TABLE regles_lettrage (
         id                 INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -594,6 +598,32 @@ function migration_12(PDO $pdo): void
         COALESCE(operateur, 'ET'), priorite, actif, cree_le
         FROM _regles_lettrage_old");
     $pdo->exec("DROP TABLE _regles_lettrage_old");
+    $pdo->exec('PRAGMA foreign_keys = ON');
+}
+
+function migration_13(PDO $pdo): void
+{
+    // Répare le FK de conditions_lettrage si migration_12 a été exécutée sans FK=OFF :
+    // SQLite ayant mis à jour la référence lors du RENAME, conditions_lettrage.regle_id
+    // pointait sur _regles_lettrage_old (droppée), cassant tout INSERT dans cette table.
+    $sql = (string) $pdo->query(
+        "SELECT COALESCE(sql,'') FROM sqlite_master WHERE type='table' AND name='conditions_lettrage'"
+    )->fetchColumn();
+    if (strpos($sql, '_regles_lettrage_old') === false) return;
+
+    $pdo->exec('PRAGMA foreign_keys = OFF');
+    $pdo->exec('ALTER TABLE conditions_lettrage RENAME TO _conditions_lettrage_old');
+    $pdo->exec("CREATE TABLE conditions_lettrage (
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        regle_id INTEGER NOT NULL REFERENCES regles_lettrage(id) ON DELETE CASCADE,
+        type     TEXT NOT NULL DEFAULT 'texte',
+        op       TEXT NOT NULL DEFAULT 'contient',
+        valeur   TEXT NOT NULL DEFAULT '',
+        ordre    INTEGER NOT NULL DEFAULT 0
+    )");
+    $pdo->exec('INSERT INTO conditions_lettrage SELECT * FROM _conditions_lettrage_old');
+    $pdo->exec('DROP TABLE _conditions_lettrage_old');
+    $pdo->exec('PRAGMA foreign_keys = ON');
 }
 
 function seed_parametres(PDO $pdo): void
