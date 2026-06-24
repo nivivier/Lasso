@@ -1,6 +1,7 @@
 <?php
 /** @var array $comptes */ /** @var int $compteId */ /** @var int $annee */ /** @var array $annees */
-/** @var string $categorieFilter */ /** @var array $ecritures */ /** @var array $feuilles */
+/** @var string $categorieFilter */ /** @var string $axeFilter */ /** @var array $ecritures */
+/** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 
 // Map id → chemin pour initialiser les inputs individuels.
@@ -10,7 +11,9 @@ foreach ($feuilles as $f) { $cheminById[(int) $f['id']] = $f['chemin']; }
 // Formulaire écriture manuelle (création ou modification).
 $showForm = $openNew || $editEcr !== null;
 $isEdit   = $editEcr !== null;
-$qs = '&compte=' . $compteId . '&annee=' . $annee . '&categorie=' . urlencode($categorieFilter);
+$qs = '&compte=' . $compteId . '&annee=' . $annee . '&categorie=' . urlencode($categorieFilter) . '&axe=' . urlencode($axeFilter);
+$axeById = [];
+foreach ($axes as $ax) { $axeById[(int) $ax['id']] = $ax['libelle']; }
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
 $catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuilles, $cheminById): string {
@@ -35,6 +38,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <input type="hidden" name="p" value="compta_ecritures">
             <input type="hidden" name="compte" value="<?= $compteId ?>">
             <input type="hidden" name="categorie" value="<?= e($categorieFilter) ?>">
+            <input type="hidden" name="axe" value="<?= e($axeFilter) ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
                 <option value="0">Toutes</option>
                 <?php foreach ($annees as $a): ?>
@@ -76,9 +80,24 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <label>Description
             <input type="text" name="texte" required value="<?= e($isEdit ? $editEcr['texte'] : '') ?>" placeholder="ex. Remboursement frais divers">
         </label>
+        <div class="grid2-optional">
         <label>Catégorie <span class="muted" style="font-weight:400">(optionnel)</span>
             <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…', $isEdit && ($editEcr['origine_lettrage'] ?? '') === 'ignore') ?>
         </label>
+        <?php if ($axes): ?>
+        <label>Axe analytique <span class="muted" style="font-weight:400">(optionnel)</span>
+            <select name="axe_analytique_id">
+                <option value="">— Aucun —</option>
+                <?php foreach ($axes as $ax): ?>
+                    <option value="<?= (int) $ax['id'] ?>"
+                        <?= $isEdit && (int)($editEcr['axe_analytique_id'] ?? 0) === (int) $ax['id'] ? 'selected' : '' ?>>
+                        <?= e($ax['libelle']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <?php endif; ?>
+        </div>
         <div class="form-actions">
             <button type="submit" class="btn"><?= icon('check') ?> <?= $isEdit ? 'Enregistrer' : 'Créer l\'écriture' ?></button>
             <a href="?p=compta_ecritures<?= $qs ?>" class="btn ghost">Annuler</a>
@@ -132,6 +151,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </ul>
         </div>
     </label>
+    <?php if ($axes): ?>
+    <label>Axe
+        <select name="axe" onchange="this.form.submit()">
+            <option value="" <?= $axeFilter === '' ? 'selected' : '' ?>>Tous</option>
+            <option value="sans_axe" <?= $axeFilter === 'sans_axe' ? 'selected' : '' ?>>— Sans axe —</option>
+            <?php foreach ($axes as $ax): ?>
+                <option value="<?= (int) $ax['id'] ?>" <?= $axeFilter === (string) $ax['id'] ? 'selected' : '' ?>><?= e($ax['libelle']) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <?php endif; ?>
     <label class="search-label"><span>Rechercher <span id="search-count" class="muted small"></span></span>
         <input type="search" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher">
     </label>
@@ -148,7 +178,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <div class="card">
 
 <div class="bulk-bar" id="bulk-bar" hidden>
-    <span class="bulk-titre muted small">Lettrage groupé</span>
+    <span class="bulk-titre muted small">Catégorie :</span>
     <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="lettrer">
@@ -163,8 +193,22 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <?php endforeach; ?>
             </ul>
         </div>
-        <button type="submit">Appliquer à la sélection</button>
+        <button type="submit">Appliquer</button>
     </form>
+    <?php if ($axes): ?>
+    <span class="bulk-titre muted small" style="margin-left:12px">Axe :</span>
+    <form method="post" id="axe-bulkform" action="?p=compta_ecritures<?= $qs ?>">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="section" value="axer">
+        <select name="axe_analytique_id" class="inline-year-select">
+            <option value="">— Retirer l'axe —</option>
+            <?php foreach ($axes as $ax): ?>
+                <option value="<?= (int) $ax['id'] ?>"><?= e($ax['libelle']) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button type="submit">Appliquer</button>
+    </form>
+    <?php endif; ?>
 </div>
 
 <div class="table-scroll">
@@ -177,6 +221,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <th>Texte</th>
             <th class="num">Montant</th>
             <th>Catégorie</th>
+            <?php if ($axes): ?><th>Axe</th><?php endif; ?>
             <th></th>
         </tr>
     </thead>
@@ -184,7 +229,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php
     $prevMois = null;
     $moisFr = ['01'=>'Janvier','02'=>'Février','03'=>'Mars','04'=>'Avril','05'=>'Mai','06'=>'Juin','07'=>'Juillet','08'=>'Août','09'=>'Septembre','10'=>'Octobre','11'=>'Novembre','12'=>'Décembre'];
-    $nbCols = 6 + ($compteId === 0 ? 1 : 0);
+    $nbCols = 6 + ($compteId === 0 ? 1 : 0) + ($axes ? 1 : 0);
     foreach ($ecritures as $ecr): $neg = (float) $ecr['montant'] < 0;
         $moisCle = substr((string) $ecr['date_op'], 0, 7);
         if ($moisCle !== $prevMois):
@@ -217,6 +262,18 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
                 </form>
             </td>
+            <?php if ($axes): ?>
+            <td class="axe-cell">
+                <form method="post" action="?p=compta_ecritures<?= $qs ?>">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="section" value="axer">
+                    <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
+                    <input type="text" class="row-axe-input" autocomplete="off" placeholder="—"
+                           value="<?= e($axeById[(int) ($ecr['axe_analytique_id'] ?? 0)] ?? '') ?>">
+                    <input type="hidden" name="axe_analytique_id" class="row-axe-val" value="<?= e($ecr['axe_analytique_id'] ?? '') ?>">
+                </form>
+            </td>
+            <?php endif; ?>
             <td class="actions">
                 <?php if ($isManuel): ?>
                     <a class="btn ghost btn-sm icon-only" title="Modifier cette écriture"
@@ -232,6 +289,16 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 </table>
 </div>
 </div>
+
+<!-- Dropdown partagé pour l'axe individuel (repositionné par JS) -->
+<?php if ($axes): ?>
+<ul id="row-axe-list" class="cat-search-list" hidden role="listbox">
+    <li data-val="">— Retirer l'axe —</li>
+    <?php foreach ($axes as $ax): ?>
+        <li data-val="<?= (int) $ax['id'] ?>"><?= e($ax['libelle']) ?></li>
+    <?php endforeach; ?>
+</ul>
+<?php endif; ?>
 
 <!-- Dropdown partagé pour le lettrage individuel (repositionné par JS) -->
 <ul id="row-cat-list" class="cat-search-list" hidden role="listbox">
@@ -435,6 +502,68 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
     });
     // Repositionner sur scroll
+    window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
+})();
+
+// Bulk axe — injecte les IDs cochés dans le formulaire axe avant soumission
+(function () {
+    const axeForm = document.getElementById('axe-bulkform');
+    if (!axeForm) return;
+    axeForm.addEventListener('submit', e => {
+        axeForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+        document.querySelectorAll('.row-check:checked').forEach(cb => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = cb.value;
+            axeForm.appendChild(inp);
+        });
+        if (!document.querySelectorAll('.row-check:checked').length) {
+            e.preventDefault();
+        }
+    });
+})();
+
+// Dropdown partagé — axe analytique individuel par ligne
+(function () {
+    const list = document.getElementById('row-axe-list');
+    if (!list) return;
+    const items = Array.from(list.querySelectorAll('li'));
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    let activeInput = null, activeHidden = null, activeForm = null;
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    function position(input) {
+        const r = input.getBoundingClientRect();
+        list.style.top   = (r.bottom + window.scrollY + 2) + 'px';
+        list.style.left  = r.left + 'px';
+        list.style.width = Math.max(r.width, 180) + 'px';
+    }
+    document.querySelectorAll('.row-axe-input').forEach(input => {
+        const form   = input.closest('form');
+        const hidden = form.querySelector('.row-axe-val');
+        input.addEventListener('focus', () => { activeInput = input; activeHidden = hidden; activeForm = form; filter(''); list.hidden = false; position(input); });
+        input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (!list.hidden) {
+                    list.hidden = true;
+                    const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
+                    if (activeInput) activeInput.value = cur && cur.dataset.val !== '' ? cur.textContent : '';
+                }
+            }, 150);
+        });
+    });
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            if (!activeHidden || !activeInput || !activeForm) return;
+            activeHidden.value = li.dataset.val;
+            activeInput.value  = li.dataset.val !== '' ? li.textContent : '';
+            list.hidden = true;
+            activeForm.submit();
+        });
+    });
+    document.addEventListener('mousedown', e => {
+        if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
+    });
     window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
 })();
 </script>

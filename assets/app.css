@@ -71,7 +71,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 /* La pastille : carré arrondi derrière l'icône */
 .side-nav a .ico {
-    width: 32px; height: 32px; padding: 7px; box-sizing: border-box; flex-shrink: 0;
+    width: 36px; height: 36px; padding: 7px; box-sizing: border-box; flex-shrink: 0;
     border-radius: 9px; background: rgba(255,255,255,.07);
     transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
@@ -82,7 +82,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-nav a:hover .ico { background: rgba(255,255,255,.16); transform: translateY(-1px); }
 .side-nav a.on { color: #fff; }
 .side-nav a.on .ico { background: var(--primary); box-shadow: 0 5px 14px rgba(109,74,222,.45); }
-.side-nav-sep { margin: 12px 6px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,.4); }
+.side-nav-sep { margin: 14px 6px 2px; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,.4); }
 .side-nav-sep:empty { margin: 16px 6px 0; }
 .ico { width: 18px; height: 18px; flex-shrink: 0; }
 
@@ -192,6 +192,14 @@ h3.sub.no-mt { margin-top: 0; }
 .bulk-cat-search .cat-search-list { top: auto; bottom: 100%; margin: 0 0 2px; }
 /* Cat-search dans le formulaire écriture manuelle */
 .form-cat-search { position: relative; }
+/* Axe analytique par ligne */
+.axe-cell { min-width: 120px; }
+.row-axe-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 110px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
+.row-axe-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
+#row-axe-list { position: absolute; z-index: 200; }
+/* Grille 2 colonnes pour la section catégorie+axe dans le formulaire manuel */
+.grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
 /* Cat-search dans la barre de filtres */
 .filtre-cat-search { position: relative; min-width: 200px; }
 .filtre-cat-search .cat-search-input { padding: 10px 12px; font-size: 14.5px; }
@@ -523,7 +531,7 @@ abbr {
     /* La sidebar devient un tiroir hors écran */
     body.has-sidebar { flex-direction: column; }
     .sidebar {
-        position: fixed; top: 0; left: 0; bottom: 0; height: 100vh; width: 200px;
+        position: fixed; top: 0; left: 0; bottom: 0; height: 100vh; width: 160px;
         transform: translateX(-100%); transition: transform .25s ease; z-index: 50;
     }
     /* Texte et icônes légèrement agrandis dans le tiroir */

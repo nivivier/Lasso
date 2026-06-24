@@ -48,7 +48,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('banknote') ?> Écritures
             <?php if ($nbEcr > 0): ?><span class="nav-badge"><?= $nbEcr ?></span><?php endif; ?>
         </a>
-        <?php $bilanPages = ['compta_bilan', 'compta_plan', 'compta_comptes']; ?>
+        <?php $bilanPages = ['compta_bilan', 'compta_plan', 'compta_comptes', 'compta_axes']; ?>
         <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
             <?= icon('book-open') ?> Comptes annuels
         </a>

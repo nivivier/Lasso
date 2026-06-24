@@ -2,7 +2,7 @@
 /** @var int $annee */ /** @var array $annees */ /** @var array $cols */ /** @var int $nbPrec */
 /** @var array $resultat */ /** @var array $sommesParAnnee */ /** @var array $totauxParAnnee */
 /** @var array $continuite */ /** @var array $plan */ /** @var array $lignesParCat */
-/** @var array $patrimoine */
+/** @var array $patrimoine */ /** @var array $ventilation */
 
 $byParent = plan_enfants($plan);
 $nbCols   = count($cols);
@@ -135,7 +135,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
     <?php if ($resultat['non_lettrees']['nb'] > 0): ?>
 <p class="err"><?= (int) $resultat['non_lettrees']['nb'] ?> écriture(s) de <?= (int) $annee ?> non lettrée(s)
    (<?= chf($resultat['non_lettrees']['montant']) ?> CHF) ne sont pas prises en compte.
-   <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&statut=a_lettrer">Les lettrer</a>.</p>
+   <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&categorie=a_lettrer">Les lettrer</a>.</p>
 <?php endif; ?>
     <div class="table-scroll">
     <table class="list compta-cr">
@@ -152,6 +152,60 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
     </table>
     </div>
 </div>
+
+<?php if ($ventilation): ?>
+<div class="card bilan-card" style="margin-top:28px">
+    <div class="section-head">
+        <h2>Ventilation analytique <?= (int) $annee ?></h2>
+        <a href="?p=compta_axes" class="btn ghost btn-sm" style="margin-left:auto"><?= icon('pencil') ?> Gérer les axes</a>
+    </div>
+    <div class="table-scroll">
+    <table class="list">
+        <thead>
+            <tr>
+                <th>Axe</th>
+                <th class="num">Recettes</th>
+                <th class="num">Dépenses</th>
+                <th class="num">Résultat</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($ventilation as $v): $res = $v['resultat']; ?>
+            <tr>
+                <td><?= e($v['libelle']) ?><?php if ($v['code']): ?> <span class="muted small"><?= e($v['code']) ?></span><?php endif; ?></td>
+                <td class="num <?= $v['produits'] > 0 ? 'montant-pos' : '' ?>"><?= $v['produits'] != 0 ? chf($v['produits']) : '<span class="muted">—</span>' ?></td>
+                <td class="num <?= $v['charges'] < 0 ? 'montant-neg' : '' ?>"><?= $v['charges'] != 0 ? chf($v['charges']) : '<span class="muted">—</span>' ?></td>
+                <td class="num strong <?= $res > 0 ? 'montant-pos' : ($res < 0 ? 'montant-neg' : '') ?>"><?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?></td>
+            </tr>
+        <?php endforeach; ?>
+        <?php
+        $totProd = array_sum(array_column($ventilation, 'produits'));
+        $totChg  = array_sum(array_column($ventilation, 'charges'));
+        $totRes  = $totProd + $totChg;
+        ?>
+        <tr class="cr-total">
+            <td>Total ventilé</td>
+            <td class="num"><?= chf($totProd) ?></td>
+            <td class="num"><?= chf($totChg) ?></td>
+            <td class="num"><?= chf($totRes) ?></td>
+        </tr>
+        </tbody>
+    </table>
+    </div>
+    <p class="muted small" style="padding:8px 12px 0">
+        Les écritures non ventilées ne sont pas incluses.
+        <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">Voir les écritures lettrées sans axe.</a>
+    </p>
+</div>
+<?php else: ?>
+<div class="card bilan-card" style="margin-top:28px">
+    <div class="section-head">
+        <h2>Ventilation analytique</h2>
+        <a href="?p=compta_axes" class="btn btn-sm" style="margin-left:auto"><?= icon('plus') ?> Créer des axes</a>
+    </div>
+    <p class="muted small" style="padding:4px 0 8px">Aucun axe analytique défini. Créez des axes (ex. Label, Tour, Stages, Local) pour ventiler les écritures par activité.</p>
+</div>
+<?php endif; ?>
 
 <script>
 (function () {
