@@ -402,7 +402,31 @@ function route_compta_ecritures(): void
         check_csrf();
         $section = $_POST['section'] ?? '';
         $retour  = ['compte' => $compteId, 'annee' => $annee, 'statut' => $statut];
-        if ($section === 'lettrer') {
+        if ($section === 'create' || $section === 'update') {
+            $cid     = (int) ($_POST['compte_bancaire_id'] ?? 0);
+            $date_op = trim($_POST['date_op'] ?? '');
+            $texte   = trim($_POST['texte'] ?? '');
+            $montant = (float) str_replace(["'", "\u{202F}", ' '], '', $_POST['montant'] ?? '0');
+            $planRaw = $_POST['plan_compte_id'] ?? '';
+            $planId  = ($planRaw !== '' && $planRaw !== '0') ? (int) $planRaw : null;
+            $origLettrage = $planId !== null ? 'manuel' : '';
+            if ($cid && $date_op && $texte) {
+                if ($section === 'create') {
+                    $hash = sha1('manual-' . uniqid('', true) . mt_rand());
+                    db()->prepare('INSERT INTO ecritures (compte_bancaire_id, date_op, texte, montant, plan_compte_id, origine_lettrage, hash) VALUES (?,?,?,?,?,?,?)')
+                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $hash]);
+                } else {
+                    $id = (int) ($_POST['id'] ?? 0);
+                    db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=? WHERE id=? AND import_id IS NULL')
+                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $id]);
+                }
+            }
+            redirect('compta_ecritures', $retour);
+        } elseif ($section === 'delete_manual') {
+            $id = (int) ($_POST['id'] ?? 0);
+            db()->prepare('DELETE FROM ecritures WHERE id=? AND import_id IS NULL')->execute([$id]);
+            redirect('compta_ecritures', $retour);
+        } elseif ($section === 'lettrer') {
             // Affectation manuelle (une ou plusieurs écritures) à une catégorie.
             $ids = array_map('intval', (array) ($_POST['ids'] ?? []));
             $planId = $_POST['plan_compte_id'] ?? '';
@@ -427,6 +451,14 @@ function route_compta_ecritures(): void
             redirect('compta_ecritures', $retour + ['rules' => $n]);
         }
         redirect('compta_ecritures', $retour);
+    }
+
+    // Écriture manuelle à éditer (mode ?edit=ID).
+    $editEcr = null;
+    if (isset($_GET['edit'])) {
+        $stmt2 = db()->prepare('SELECT * FROM ecritures WHERE id=? AND import_id IS NULL');
+        $stmt2->execute([(int) $_GET['edit']]);
+        $editEcr = $stmt2->fetch() ?: null;
     }
 
     // Construction de la requête filtrée.
@@ -469,6 +501,8 @@ function route_compta_ecritures(): void
         'feuilles'   => plan_feuilles(compta_plan_actif()),
         'nbALettrer' => $nbALettrer,
         'rules'      => $_GET['rules'] ?? null,
+        'editEcr'    => $editEcr,
+        'openNew'    => isset($_GET['new']),
     ], 'Comptabilité — Lettrage');
 }
 
