@@ -290,6 +290,7 @@ function run_migrations(PDO $pdo): void
         11 => 'migration_11', // prenom + nom sur les utilisateurs
         12 => 'migration_12', // regles_lettrage : supprime NOT NULL sur motif/type_match/sens_filtre
         13 => 'migration_13', // répare FK conditions_lettrage cassé par migration_12 (RENAME side-effect)
+        14 => 'migration_14', // comptes_bancaires : colonne solde_initial (solde de départ)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -624,6 +625,14 @@ function migration_13(PDO $pdo): void
     $pdo->exec('INSERT INTO conditions_lettrage SELECT * FROM _conditions_lettrage_old');
     $pdo->exec('DROP TABLE _conditions_lettrage_old');
     $pdo->exec('PRAGMA foreign_keys = ON');
+}
+
+function migration_14(PDO $pdo): void
+{
+    foreach ($pdo->query('PRAGMA table_info(comptes_bancaires)') as $col) {
+        if ($col['name'] === 'solde_initial') return;
+    }
+    $pdo->exec('ALTER TABLE comptes_bancaires ADD COLUMN solde_initial REAL NOT NULL DEFAULT 0');
 }
 
 function seed_parametres(PDO $pdo): void

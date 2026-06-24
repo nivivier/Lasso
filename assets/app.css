@@ -76,6 +76,9 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 .side-nav a:hover { color: #fff; text-decoration: none; }
+/* Pastilles de comptage dans la barre latérale */
+.nav-badge { margin-left: auto; background: rgba(255,255,255,.22); color: #fff; font-size: 9.5px; font-weight: 700; min-width: 17px; height: 17px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; flex-shrink: 0; }
+.side-nav a.on .nav-badge { background: rgba(255,255,255,.3); }
 .side-nav a:hover .ico { background: rgba(255,255,255,.16); transform: translateY(-1px); }
 .side-nav a.on { color: #fff; }
 .side-nav a.on .ico { background: var(--primary); box-shadow: 0 5px 14px rgba(109,74,222,.45); }
@@ -173,6 +176,17 @@ h3.sub.no-mt { margin-top: 0; }
 }
 .form input, .filters input { appearance: none; -webkit-appearance: none; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
+/* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
+.row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 180px;
+    padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.row-cat-input::placeholder { color: var(--muted); }
+.row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
+/* Dropdown partagé positionné en absolu dans le flux de la page */
+#row-cat-list { position: absolute; z-index: 200; }
+/* Bulk cat-search : largeur fixe pour tenir dans la barre flottante */
+.bulk-cat-search { width: 280px; flex-shrink: 0; position: relative; }
+.bulk-cat-search .cat-search-input { font-size: 13.5px; padding: 7px 10px; margin: 0; }
 .filters .search-label input { width: 100%; }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
 .filters select:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
@@ -299,6 +313,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: #fff4e0; color: #9a6700; margin-left: 0; }
+.badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
 .list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
@@ -317,6 +332,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .resume tfoot .col-petit { color: var(--brand); }
 .resume tfoot td.col-cout { color: var(--ink); } /* total coût employeur en noir */
 .list td.net-apayer { color: var(--amber); }      /* net en jaune quand à payer */
+.list td.net-avenir { color: var(--muted); }  /* net en gris quand à venir */
 .list .apayer-row td { background: var(--amber-tint); } /* ligne « Total à verser » sur fond jaune */
 
 /* Mini-fiches dans la liste employés */
@@ -685,6 +701,7 @@ abbr {
 .compta-print .list thead th { font-size: 9.5px; border-bottom: 1px solid #aaa; color: #666; background: transparent; padding-bottom: 3px; }
 .compta-print .cr-section th { background: transparent; border: none; border-top: 1px solid #bbb; border-bottom: 1px solid #bbb; padding: 3px 10px; font-size: 10px; color: #555; }
 .compta-print .cr-groupe td { background: transparent; }
+.compta-print .cr-compte td { font-size: 9.5px; padding-top: 1px; padding-bottom: 1px; color: #555; }
 .compta-print .cr-total td,
 .compta-print .list tr.cr-total td { background: transparent; border-top: 1px solid #999; border-bottom: none; }
 .compta-print .cr-resultat td { border-top: 1.5px solid #444; border-bottom: none; }

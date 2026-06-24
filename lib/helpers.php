@@ -395,7 +395,24 @@ function badge_paiement(array $f): string
     if ($date !== '') {
         return '<span class="badge ok-badge">Payé le ' . e(date('d.m.Y', strtotime($date))) . '</span>';
     }
+    $annee = (int) ($f['annee'] ?? 0);
+    $mois  = (int) ($f['mois'] ?? 0);
+    $cy = (int) date('Y');
+    $cm = (int) date('n');
+    if ($annee > $cy || ($annee === $cy && $mois > $cm)) {
+        return '<span class="badge muted-badge">À venir</span>';
+    }
     return '<span class="badge warn-badge">À payer</span>';
+}
+
+function fiche_a_venir(array $f): bool
+{
+    if (trim((string) ($f['date_paiement'] ?? '')) !== '') return false;
+    $cy = (int) date('Y');
+    $cm = (int) date('n');
+    $annee = (int) ($f['annee'] ?? 0);
+    $mois  = (int) ($f['mois'] ?? 0);
+    return $annee > $cy || ($annee === $cy && $mois > $cm);
 }
 
 // Coût employeur d'une fiche pour les listes : « — » si aucune charge patronale figée
@@ -463,6 +480,30 @@ function icon(string $name): string
     $p = $paths[$name] ?? '';
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
         . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $p . '</svg>';
+}
+
+// Nombre de fiches non payées (date_paiement vide) du mois courant ou avant.
+function nb_fiches_a_payer(): int
+{
+    try {
+        $m = (int) date('m');
+        $y = (int) date('Y');
+        $s = db()->prepare("SELECT COUNT(*) FROM fiches WHERE date_paiement = '' AND (annee < ? OR (annee = ? AND mois <= ?))");
+        $s->execute([$y, $y, $m]);
+        return (int) $s->fetchColumn();
+    } catch (\Exception) {
+        return 0;
+    }
+}
+
+// Nombre d'écritures comptables non lettrées.
+function nb_ecritures_a_lettrer(): int
+{
+    try {
+        return (int) db()->query('SELECT COUNT(*) FROM ecritures WHERE plan_compte_id IS NULL')->fetchColumn();
+    } catch (\Exception) {
+        return 0;
+    }
 }
 
 function render(string $view, array $data = [], ?string $title = null): void

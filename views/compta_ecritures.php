@@ -3,16 +3,9 @@
 /** @var string $statut */ /** @var array $ecritures */ /** @var array $feuilles */
 /** @var int $nbALettrer */ /** @var ?string $rules */
 
-// <option> des catégories assignables (feuilles), libellées par leur chemin.
-$catOptions = function ($selected, string $vide = '— à lettrer —') use ($feuilles): string {
-    $sel = $selected === null ? '' : (string) $selected;
-    $html = '<option value=""' . ($sel === '' ? ' selected' : '') . '>' . e($vide) . '</option>';
-    foreach ($feuilles as $f) {
-        $s = $sel === (string) $f['id'] ? ' selected' : '';
-        $html .= '<option value="' . (int) $f['id'] . '"' . $s . '>' . e($f['chemin']) . '</option>';
-    }
-    return $html;
-};
+// Map id → chemin pour initialiser les inputs individuels.
+$cheminById = [];
+foreach ($feuilles as $f) { $cheminById[(int) $f['id']] = $f['chemin']; }
 // Query string des filtres courants (pour conserver le filtre après POST).
 $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($statut);
 ?>
@@ -76,7 +69,16 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
     <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="lettrer">
-        <select name="plan_compte_id"><?= $catOptions(null, '— Retirer le lettrage —') ?></select>
+        <div class="cat-search bulk-cat-search">
+            <input type="text" class="cat-search-input" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
+            <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
+            <ul class="cat-search-list" hidden role="listbox">
+                <li data-val="">— Retirer le lettrage —</li>
+                <?php foreach ($feuilles as $f): ?>
+                    <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
         <button type="submit">Appliquer à la sélection</button>
     </form>
 </div>
@@ -119,7 +121,9 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="lettrer">
                     <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
-                    <select name="plan_compte_id" onchange="this.form.submit()"><?= $catOptions($ecr['plan_compte_id']) ?></select>
+                    <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —"
+                           value="<?= e($cheminById[(int) ($ecr['plan_compte_id'] ?? 0)] ?? '') ?>">
+                    <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($ecr['plan_compte_id'] ?? '') ?>">
                 </form>
             </td>
             <td class="actions">
@@ -132,6 +136,14 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
 </table>
 </div>
 </div>
+
+<!-- Dropdown partagé pour le lettrage individuel (repositionné par JS) -->
+<ul id="row-cat-list" class="cat-search-list" hidden role="listbox">
+    <li data-val="">— à lettrer —</li>
+    <?php foreach ($feuilles as $f): ?>
+        <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
+    <?php endforeach; ?>
+</ul>
 
 <script>
 (function () {
@@ -161,15 +173,12 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
     const count  = document.getElementById('search-count');
     const rows   = Array.from(document.querySelectorAll('.compta-lettrage tbody tr'));
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    // Texte recherchable d'une ligne : date + intitulé + montant + catégorie
-    // sélectionnée (et NON toute la liste déroulante des catégories).
     const texteLigne = r => {
         const date = r.querySelector('td.nowrap')?.textContent || '';
         const cpt  = r.querySelector('.compte-cell')?.textContent || '';
         const txt  = r.querySelector('.texte-cell')?.textContent || '';
         const mt   = r.querySelector('td.num')?.textContent || '';
-        const sel  = r.querySelector('.cat-cell select');
-        const cat  = sel ? sel.options[sel.selectedIndex].text : '';
+        const cat  = r.querySelector('.row-cat-input')?.value || '';
         return norm(date + ' ' + cpt + ' ' + txt + ' ' + mt + ' ' + cat);
     };
     if (search) {
@@ -187,6 +196,78 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
         };
         search.addEventListener('input', apply);
     }
+})();
+// Dropdown cherchable — bulk-lettrage (dropdown propre à la barre)
+(function () {
+    const wrap = document.querySelector('.bulk-cat-search');
+    if (!wrap) return;
+    const input  = wrap.querySelector('.cat-search-input');
+    const hidden = wrap.querySelector('.cat-search-val');
+    const list   = wrap.querySelector('.cat-search-list');
+    const items  = Array.from(list.querySelectorAll('li'));
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    // Sélection initiale : "— Retirer le lettrage —"
+    const initItem = items.find(li => li.dataset.val === hidden.value);
+    if (initItem) input.value = initItem.textContent;
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('blur',  () => { setTimeout(() => { list.hidden = true; const cur = items.find(li => li.dataset.val === hidden.value); input.value = cur ? cur.textContent : ''; }, 150); });
+    items.forEach(li => { li.addEventListener('mousedown', e => { e.preventDefault(); hidden.value = li.dataset.val; input.value = li.textContent; list.hidden = true; }); });
+})();
+
+// Dropdown partagé — lettrage individuel par ligne
+(function () {
+    const list = document.getElementById('row-cat-list');
+    if (!list) return;
+    const items = Array.from(list.querySelectorAll('li'));
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    let activeInput = null, activeHidden = null, activeForm = null;
+
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    function position(input) {
+        const r = input.getBoundingClientRect();
+        list.style.top    = (r.bottom + window.scrollY + 2) + 'px';
+        list.style.left   = r.left + 'px';
+        list.style.width  = Math.max(r.width, 260) + 'px';
+    }
+
+    document.querySelectorAll('.row-cat-input').forEach(input => {
+        const form   = input.closest('form');
+        const hidden = form.querySelector('.row-cat-val');
+        input.addEventListener('focus', () => {
+            activeInput = input; activeHidden = hidden; activeForm = form;
+            filter(''); list.hidden = false; position(input);
+        });
+        input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
+        input.addEventListener('blur',  () => {
+            setTimeout(() => {
+                if (!list.hidden) {
+                    list.hidden = true;
+                    const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
+                    if (activeInput) activeInput.value = cur && cur.dataset.val !== '' ? cur.textContent : '';
+                }
+            }, 150);
+        });
+    });
+
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            if (!activeHidden || !activeInput || !activeForm) return;
+            activeHidden.value = li.dataset.val;
+            activeInput.value  = li.dataset.val !== '' ? li.textContent : '';
+            list.hidden = true;
+            activeForm.submit();
+        });
+    });
+
+    // Fermer si clic en dehors
+    document.addEventListener('mousedown', e => {
+        if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
+    });
+    // Repositionner sur scroll
+    window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
 })();
 </script>
 <?php endif; ?>
