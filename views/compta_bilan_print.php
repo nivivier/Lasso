@@ -49,54 +49,56 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
         <a href="?p=compta_bilan&annee=<?= (int) $annee ?>">Fermer</a>
     </div>
-    <div class="sheet compta-print">
-        <div class="cp-head">
-            <?php $cpLogo = param_logo('clair'); ?>
-            <?php if ($cpLogo !== ''): ?>
-            <img src="<?= e($cpLogo) ?>" alt="" class="cp-logo">
-            <?php endif; ?>
-            <div>
-                <h1><?= $nomEmployeur !== '' ? e($nomEmployeur) : 'Comptabilité' ?></h1>
-                <div class="cp-sub">Bilan &amp; compte de résultat — exercice <?= (int) $annee ?></div>
+    <div class="sheet">
+        <div class="compta-print">
+            <div class="cp-head">
+                <?php $cpLogo = param_logo('clair'); ?>
+                <?php if ($cpLogo !== ''): ?>
+                <img src="<?= e($cpLogo) ?>" alt="" class="cp-logo">
+                <?php endif; ?>
+                <div>
+                    <h1><?= $nomEmployeur !== '' ? e($nomEmployeur) : 'Comptabilité' ?></h1>
+                    <div class="cp-sub">Bilan &amp; compte de résultat — exercice <?= (int) $annee ?></div>
+                </div>
             </div>
-        </div>
 
-        <h2>État du patrimoine</h2>
-        <table class="list">
-            <thead>
-                <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
-            </thead>
-            <tbody>
-                <?php foreach ($patrimoine as $p): ?>
-                <tr>
-                    <td><?= e($p['libelle']) ?></td>
-                    <?php foreach ($cols as $a): $v = $p['valeurs'][$a] ?? null; ?>
-                        <td class="num"><?= $v === null ? '—' : chf((float) $v) ?></td>
+            <h2>État du patrimoine</h2>
+            <table class="list">
+                <thead>
+                    <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($patrimoine as $p): ?>
+                    <tr>
+                        <td><?= e($p['libelle']) ?></td>
+                        <?php foreach ($cols as $a): $v = $p['valeurs'][$a] ?? null; ?>
+                            <td class="num"><?= $v === null ? '—' : chf((float) $v) ?></td>
+                        <?php endforeach; ?>
+                    </tr>
                     <?php endforeach; ?>
-                </tr>
-                <?php endforeach; ?>
-                <tr class="cr-total">
-                    <td>Total du patrimoine</td>
-                    <?php foreach ($cols as $a): ?><td class="num"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
-                </tr>
-            </tbody>
-        </table>
+                    <tr class="cr-total">
+                        <td>Total du patrimoine</td>
+                        <?php foreach ($cols as $a): ?><td class="num"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
+                    </tr>
+                </tbody>
+            </table>
 
-        <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
-        <table class="list compta-cr">
-            <?php if ($nbCols > 1): ?>
-            <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
-            <?php endif; ?>
-            <tbody>
-                <?= $blocSens('produit', 'Recettes') ?>
-                <?= compta_ligne_total('Total des recettes', 'produits', 'cr-total', $cols, $totauxParAnnee) ?>
-                <?= $blocSens('charge', 'Dépenses') ?>
-                <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
-                <?= compta_ligne_total('Résultat de l\'année', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
-            </tbody>
-        </table>
+            <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
+            <table class="list compta-cr">
+                <?php if ($nbCols > 1): ?>
+                <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
+                <?php endif; ?>
+                <tbody>
+                    <?= $blocSens('produit', 'Recettes') ?>
+                    <?= compta_ligne_total('Total des recettes', 'produits', 'cr-total', $cols, $totauxParAnnee) ?>
+                    <?= $blocSens('charge', 'Dépenses') ?>
+                    <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
+                    <?= compta_ligne_total('Résultat de l\'année', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
+                </tbody>
+            </table>
 
-        <p class="cp-foot">Édité le <?= e(date('d.m.Y')) ?> · comptabilité de caisse</p>
+            <p class="cp-foot">Édité le <?= e(date('d.m.Y')) ?> · comptabilité de caisse</p>
+        </div>
     </div>
     <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
 </body>
