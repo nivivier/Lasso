@@ -701,6 +701,7 @@ abbr {
 .bilan-card { padding-top: 14px; }
 .bilan-card .list,
 .compta-print .list { table-layout: fixed; }
+.bilan-card .list { min-width: 420px; } /* défile horizontalement sur mobile plutôt que de se comprimer */
 .bilan-card .list th.num,
 .compta-print .list th.num { width: 110px; }
 
