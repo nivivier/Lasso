@@ -202,15 +202,17 @@ function init_schema(PDO $pdo): void
         );
 
         -- Règles de lettrage automatique. compte_bancaire_id NULL = globale.
+        -- motif/type_match/sens_filtre conservés pour compatibilité ascendante (migration_10 → conditions_lettrage).
         CREATE TABLE IF NOT EXISTS regles_lettrage (
             id                 INTEGER PRIMARY KEY AUTOINCREMENT,
             compte_bancaire_id INTEGER REFERENCES comptes_bancaires(id) ON DELETE CASCADE,
-            motif              TEXT NOT NULL,
-            type_match         TEXT NOT NULL DEFAULT 'contient', -- contient | commence | exact
-            sens_filtre        TEXT NOT NULL DEFAULT '',          -- '' | credit | debit
-            montant_min        REAL,                              -- condition de montant (valeur absolue), NULL = pas de borne
+            motif              TEXT,
+            type_match         TEXT,
+            sens_filtre        TEXT,
+            montant_min        REAL,
             montant_max        REAL,
             plan_compte_id     INTEGER NOT NULL REFERENCES plan_comptes(id) ON DELETE CASCADE,
+            operateur          TEXT NOT NULL DEFAULT 'ET',
             priorite           INTEGER NOT NULL DEFAULT 0,
             actif              INTEGER NOT NULL DEFAULT 1,
             cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
@@ -286,6 +288,7 @@ function run_migrations(PDO $pdo): void
         9  => 'migration_9',  // regles_lettrage : montant_min / montant_max
         10 => 'migration_10', // conditions_lettrage (builder ET/OU) + operateur sur regles_lettrage
         11 => 'migration_11', // prenom + nom sur les utilisateurs
+        12 => 'migration_12', // regles_lettrage : supprime NOT NULL sur motif/type_match/sens_filtre
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -553,6 +556,44 @@ function migration_11(PDO $pdo): void
     if (!in_array('nom', $cols)) {
         $pdo->exec("ALTER TABLE utilisateurs ADD COLUMN nom TEXT NOT NULL DEFAULT ''");
     }
+}
+
+function migration_12(PDO $pdo): void
+{
+    // Supprime le NOT NULL sur motif/type_match/sens_filtre, obsolètes depuis migration_10.
+    // SQLite ne supporte pas ALTER COLUMN → recréation de la table.
+    $info = $pdo->query('PRAGMA table_info(regles_lettrage)')->fetchAll(PDO::FETCH_ASSOC);
+    $motifNotnull = false;
+    foreach ($info as $col) {
+        if ($col['name'] === 'motif' && (int) $col['notnull'] === 1) {
+            $motifNotnull = true;
+            break;
+        }
+    }
+    if (!$motifNotnull) return;
+
+    $pdo->exec("ALTER TABLE regles_lettrage RENAME TO _regles_lettrage_old");
+    $pdo->exec("CREATE TABLE regles_lettrage (
+        id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+        compte_bancaire_id INTEGER REFERENCES comptes_bancaires(id) ON DELETE CASCADE,
+        motif              TEXT,
+        type_match         TEXT,
+        sens_filtre        TEXT,
+        montant_min        REAL,
+        montant_max        REAL,
+        plan_compte_id     INTEGER NOT NULL REFERENCES plan_comptes(id) ON DELETE CASCADE,
+        operateur          TEXT NOT NULL DEFAULT 'ET',
+        priorite           INTEGER NOT NULL DEFAULT 0,
+        actif              INTEGER NOT NULL DEFAULT 1,
+        cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
+    )");
+    $pdo->exec("INSERT INTO regles_lettrage (id, compte_bancaire_id, motif, type_match, sens_filtre,
+        montant_min, montant_max, plan_compte_id, operateur, priorite, actif, cree_le)
+        SELECT id, compte_bancaire_id, motif, type_match, sens_filtre,
+        montant_min, montant_max, plan_compte_id,
+        COALESCE(operateur, 'ET'), priorite, actif, cree_le
+        FROM _regles_lettrage_old");
+    $pdo->exec("DROP TABLE _regles_lettrage_old");
 }
 
 function seed_parametres(PDO $pdo): void
