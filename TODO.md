@@ -6,7 +6,7 @@ _(aucun)_
 
 ## Améliorations prioritaires
 
-_(aucune)_
+- ajouter la possibilité de créer/modifier/supprimer une écriture manuelle
 
 ## Idées (à ne pas implémenter pour le moment)
 

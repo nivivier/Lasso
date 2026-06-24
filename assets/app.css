@@ -187,6 +187,14 @@ h3.sub.no-mt { margin-top: 0; }
 /* Bulk cat-search : largeur fixe pour tenir dans la barre flottante */
 .bulk-cat-search { width: 280px; flex-shrink: 0; position: relative; }
 .bulk-cat-search .cat-search-input { font-size: 13.5px; padding: 7px 10px; margin: 0; }
+/* Cat-search dans le formulaire écriture manuelle */
+.form-cat-search { position: relative; }
+/* Formulaire écriture manuelle */
+.ecr-manuel-form { margin-bottom: 16px; }
+.ecr-manuel-form h3.form-subtitle { margin: 0 0 16px; font-size: 15px; font-weight: 700; }
+/* Ligne écriture manuelle : légère teinte pour la distinguer des imports */
+.compta-lettrage tr.ecr-manuelle td { background: #f9f8ff; }
+.compta-lettrage tr.ecr-manuelle:hover td { background: #f1eeff; }
 .filters .search-label input { width: 100%; }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
 .filters select:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }

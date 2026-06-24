@@ -1,13 +1,30 @@
 <?php
 /** @var array $comptes */ /** @var int $compteId */ /** @var int $annee */ /** @var array $annees */
 /** @var string $statut */ /** @var array $ecritures */ /** @var array $feuilles */
-/** @var int $nbALettrer */ /** @var ?string $rules */
+/** @var int $nbALettrer */ /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 
 // Map id → chemin pour initialiser les inputs individuels.
 $cheminById = [];
 foreach ($feuilles as $f) { $cheminById[(int) $f['id']] = $f['chemin']; }
-// Query string des filtres courants (pour conserver le filtre après POST).
+
+// Formulaire écriture manuelle (création ou modification).
+$showForm = $openNew || $editEcr !== null;
+$isEdit   = $editEcr !== null;
 $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($statut);
+
+// Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
+$catSearchField = function (string $name, ?int $selected, string $placeholder) use ($feuilles, $cheminById): string {
+    $initChemin = $selected !== null ? ($cheminById[$selected] ?? '') : '';
+    $items = '';
+    foreach ($feuilles as $f) {
+        $items .= '<li data-val="' . (int) $f['id'] . '">' . e($f['chemin']) . '</li>';
+    }
+    return '<div class="cat-search form-cat-search">'
+         . '<input type="text" class="cat-search-input" placeholder="' . e($placeholder) . '" autocomplete="off" value="' . e($initChemin) . '">'
+         . '<input type="hidden" name="' . e($name) . '" class="cat-search-val" value="' . e($selected ?? '') . '">'
+         . '<ul class="cat-search-list" hidden role="listbox"><li data-val="">— Sans catégorie —</li>' . $items . '</ul>'
+         . '</div>';
+};
 ?>
 <div class="page-head">
     <div class="page-head-title">
@@ -26,10 +43,56 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
     </div>
     <div class="head-actions">
         <a href="?p=compta_regles" class="btn ghost"><?= icon('settings') ?> Lettrage automatique</a>
+        <button type="button" id="btn-new-ecr" class="btn ghost"><?= icon('plus') ?> Écriture manuelle</button>
         <a href="?p=compta_import" class="btn"><?= icon('upload') ?> Importer</a>
     </div>
 </div>
 <?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
+
+<!-- Formulaire écriture manuelle -->
+<div class="card form ecr-manuel-form" id="ecr-manuel-form" <?= $showForm ? '' : 'hidden' ?>>
+    <h3 class="form-subtitle"><?= $isEdit ? 'Modifier l\'écriture' : 'Nouvelle écriture manuelle' ?></h3>
+    <form method="post" action="?p=compta_ecritures<?= $qs ?>">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="section" value="<?= $isEdit ? 'update' : 'create' ?>">
+        <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= (int) $editEcr['id'] ?>"><?php endif; ?>
+        <div class="grid3">
+            <label>Compte
+                <select name="compte_bancaire_id" required>
+                    <?php foreach ($comptes as $c): ?>
+                        <option value="<?= (int) $c['id'] ?>" <?= ($isEdit ? (int)$editEcr['compte_bancaire_id'] : $compteId) === (int)$c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Date
+                <input type="date" name="date_op" required value="<?= e($isEdit ? $editEcr['date_op'] : date('Y-m-d')) ?>">
+            </label>
+            <label>Montant <span class="muted" style="font-weight:400">(+ crédit, − débit)</span>
+                <input type="number" name="montant" step="0.01" required value="<?= $isEdit ? (float)$editEcr['montant'] : '' ?>" placeholder="ex. -150.00">
+            </label>
+        </div>
+        <label>Description
+            <input type="text" name="texte" required value="<?= e($isEdit ? $editEcr['texte'] : '') ?>" placeholder="ex. Remboursement frais divers">
+        </label>
+        <label>Catégorie <span class="muted" style="font-weight:400">(optionnel)</span>
+            <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…') ?>
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="btn"><?= icon('check') ?> <?= $isEdit ? 'Enregistrer' : 'Créer l\'écriture' ?></button>
+            <a href="?p=compta_ecritures<?= $qs ?>" class="btn ghost">Annuler</a>
+            <?php if ($isEdit): ?>
+                <button type="submit" form="del-ecr-form" class="btn danger" onclick="return confirm('Supprimer cette écriture ?')"><?= icon('trash') ?> Supprimer</button>
+            <?php endif; ?>
+        </div>
+    </form>
+    <?php if ($isEdit): ?>
+    <form id="del-ecr-form" method="post" action="?p=compta_ecritures<?= $qs ?>" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="section" value="delete_manual">
+        <input type="hidden" name="id" value="<?= (int) $editEcr['id'] ?>">
+    </form>
+    <?php endif; ?>
+</div>
 
 <form method="get" class="filters card-soft">
     <input type="hidden" name="p" value="compta_ecritures">
@@ -110,7 +173,8 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
             <?= e($moisFr[substr($moisCle, 5, 2)] ?? substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4) ?>
         </td></tr>
     <?php endif; ?>
-        <tr class="<?= $ecr['plan_compte_id'] === null ? 'non-lettre' : '' ?>">
+        <?php $isManuel = $ecr['import_id'] === null; ?>
+        <tr class="<?= $ecr['plan_compte_id'] === null ? 'non-lettre' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteId === 0): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
@@ -127,8 +191,13 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
                 </form>
             </td>
             <td class="actions">
-                <a class="btn ghost btn-sm" title="Créer une règle depuis cette écriture"
-                   href="?p=compta_regles&motif=<?= urlencode($ecr['texte']) ?>&compte=<?= (int) $ecr['compte_bancaire_id'] ?>"><?= icon('tag') ?></a>
+                <?php if ($isManuel): ?>
+                    <a class="btn ghost btn-sm icon-only" title="Modifier cette écriture"
+                       href="?p=compta_ecritures<?= $qs ?>&edit=<?= (int) $ecr['id'] ?>"><?= icon('pencil') ?></a>
+                <?php else: ?>
+                    <a class="btn ghost btn-sm icon-only" title="Créer une règle depuis cette écriture"
+                       href="?p=compta_regles&motif=<?= urlencode($ecr['texte']) ?>&compte=<?= (int) $ecr['compte_bancaire_id'] ?>"><?= icon('tag') ?></a>
+                <?php endif; ?>
             </td>
         </tr>
     <?php endforeach; ?>
@@ -197,6 +266,33 @@ $qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($stat
         search.addEventListener('input', apply);
     }
 })();
+// Bouton "Nouvelle écriture manuelle" — affiche/masque le formulaire
+(function () {
+    const btn  = document.getElementById('btn-new-ecr');
+    const form = document.getElementById('ecr-manuel-form');
+    if (!btn || !form) return;
+    btn.addEventListener('click', () => {
+        form.hidden = !form.hidden;
+        if (!form.hidden) form.querySelector('input[type="date"], input[name="texte"]')?.focus();
+    });
+})();
+
+// Cat-search — formulaire écriture manuelle
+(function () {
+    const wrap = document.querySelector('.form-cat-search');
+    if (!wrap) return;
+    const input  = wrap.querySelector('.cat-search-input');
+    const hidden = wrap.querySelector('.cat-search-val');
+    const list   = wrap.querySelector('.cat-search-list');
+    const items  = Array.from(list.querySelectorAll('li'));
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('blur',  () => { setTimeout(() => { list.hidden = true; const cur = items.find(li => li.dataset.val === hidden.value); input.value = cur && cur.dataset.val !== '' ? cur.textContent : ''; }, 150); });
+    items.forEach(li => { li.addEventListener('mousedown', e => { e.preventDefault(); hidden.value = li.dataset.val; input.value = li.dataset.val !== '' ? li.textContent : ''; list.hidden = true; }); });
+})();
+
 // Dropdown cherchable — bulk-lettrage (dropdown propre à la barre)
 (function () {
     const wrap = document.querySelector('.bulk-cat-search');
