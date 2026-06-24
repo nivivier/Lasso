@@ -97,6 +97,8 @@ function route_compte(): void
     $u = current_user();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
+        $prenom  = trim($_POST['prenom'] ?? '');
+        $nom     = trim($_POST['nom'] ?? '');
         $email   = trim($_POST['email'] ?? '');
         $actuel  = $_POST['mot_de_passe_actuel'] ?? '';
         $nouveau = $_POST['nouveau_mot_de_passe'] ?? '';
@@ -119,15 +121,12 @@ function route_compte(): void
             }
         }
         if ($err) {
-            render('compte', ['u' => ['email' => $email] + $u, 'err' => $err, 'saved' => null], 'Mon compte');
+            render('compte', ['u' => ['prenom' => $prenom, 'nom' => $nom, 'email' => $email] + $u, 'err' => $err, 'saved' => null], 'Mon compte');
             return;
         }
-        if ($nouveau !== '') {
-            db()->prepare('UPDATE utilisateurs SET email = ?, mot_de_passe = ? WHERE id = ?')
-                ->execute([$email, password_hash($nouveau, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST]), $u['id']]);
-        } else {
-            db()->prepare('UPDATE utilisateurs SET email = ? WHERE id = ?')->execute([$email, $u['id']]);
-        }
+        $hash = $nouveau !== '' ? password_hash($nouveau, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST]) : $u['mot_de_passe'];
+        db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, mot_de_passe = ? WHERE id = ?')
+            ->execute([$prenom, $nom, $email, $hash, $u['id']]);
         redirect('compte', ['ok' => 1]);
     }
     render('compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
@@ -458,7 +457,8 @@ function route_export(): void
 {
     require_login();
     $annees = db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN);
-    render('export', ['annees' => array_map('intval', $annees)], 'Exporter les données');
+    $anneesCompta = array_map('intval', db()->query("SELECT DISTINCT substr(date_op,1,4) FROM ecritures ORDER BY 1 DESC")->fetchAll(PDO::FETCH_COLUMN));
+    render('export', ['annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta], 'Exporter les données');
 }
 
 function route_taux(): void

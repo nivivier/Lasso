@@ -1,22 +1,28 @@
 <?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var string $statut */
 /** @var array $employes */ /** @var int $employeId */ ?>
 <div class="page-head">
-    <h1>Fiches de salaire</h1>
+    <div class="page-head-title">
+        <h1>Fiches de salaire</h1>
+        <form method="get">
+            <input type="hidden" name="p" value="fiches">
+            <input type="hidden" name="statut" value="<?= e($statut) ?>">
+            <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
+            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+                <?php
+                $opts = array_unique(array_merge([$annee, (int) date('Y')], array_map('intval', $annees)));
+                rsort($opts);
+                foreach ($opts as $a): ?>
+                    <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+    </div>
     <a class="btn" href="?p=fiche_new"><?= icon('file-plus') ?> Nouvelle fiche</a>
 </div>
 
 <form method="get" class="filters">
     <input type="hidden" name="p" value="fiches">
-    <label>Année
-        <select name="annee" onchange="this.form.submit()">
-            <?php
-            $opts = array_unique(array_merge([$annee, (int) date('Y')], array_map('intval', $annees)));
-            rsort($opts);
-            foreach ($opts as $a): ?>
-                <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
+    <input type="hidden" name="annee" value="<?= (int) $annee ?>">
     <label>Statut
         <select name="statut" onchange="this.form.submit()">
             <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>

@@ -8,6 +8,7 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calc.php';
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/routes.php';
+require_once __DIR__ . '/lib/routes_compta.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
 if (FORCE_HTTPS && !is_https() && PHP_SAPI !== 'cli') {
@@ -78,6 +79,17 @@ $handlers = [
     'certificat_xml'   => 'route_certificat_xml',
     'resumes'      => 'route_resumes',
     'backup'       => 'route_backup',
+    // Comptabilité
+    'compta'           => 'route_compta',
+    'compta_plan'      => 'route_compta_plan',
+    'compta_comptes'   => 'route_compta_comptes',
+    'compta_import'    => 'route_compta_import',
+    'compta_ecritures' => 'route_compta_ecritures',
+    'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
+    'compta_regles'    => 'route_compta_regles',
+    'compta_bilan'          => 'route_compta_bilan',
+    'compta_bilan_print'    => 'route_compta_bilan_print',
+    'compta_ecritures_csv'  => 'route_compta_ecritures_csv',
 ];
 
 if (isset($handlers[$route])) {

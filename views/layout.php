@@ -32,21 +32,55 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=resumes" class="<?= $cur === 'resumes' ? 'on' : '' ?>">
             <?= icon('bar-chart') ?> Tableau de bord
         </a>
+        <span class="side-nav-sep">Salaires</span>
         <a href="?p=employes" class="<?= in_array($cur, ['employes', 'employe', 'employe_voir']) ? 'on' : '' ?>">
             <?= icon('users') ?> Employés
         </a>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
             <?= icon('file-text') ?> Fiches de salaire
         </a>
+        <span class="side-nav-sep">Comptabilité</span>
+        <?php $ecrituresPages = ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles']; ?>
+        <a href="?p=compta_ecritures" class="<?= in_array($cur, $ecrituresPages, true) ? 'on' : '' ?>">
+            <?= icon('banknote') ?> Écritures
+        </a>
+        <?php $bilanPages = ['compta_bilan', 'compta_plan', 'compta_comptes']; ?>
+        <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
+            <?= icon('book-open') ?> Comptes annuels
+        </a>
+        <span class="side-nav-sep"></span>
         <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'comptes', 'parametres']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>
     </nav>
-    <div class="side-user">
-        <div class="side-user-mail" title="<?= e($u['email']) ?>"><?= e($u['email']) ?></div>
-        <a href="?p=compte" class="side-account <?= $cur === 'compte' ? 'on' : '' ?>">Mon compte</a>
-        <a href="?p=logout" class="side-logout">Déconnexion</a>
+    <?php
+    $prenom = trim((string)($u['prenom'] ?? ''));
+    $nom    = trim((string)($u['nom'] ?? ''));
+    if ($prenom !== '' && $nom !== '') {
+        $initiales  = mb_strtoupper(mb_substr($prenom, 0, 1) . mb_substr($nom, 0, 1), 'UTF-8');
+        $nomComplet = $prenom . ' ' . $nom;
+    } elseif ($prenom !== '' || $nom !== '') {
+        $n = $prenom !== '' ? $prenom : $nom;
+        $initiales  = mb_strtoupper(mb_substr($n, 0, 2), 'UTF-8');
+        $nomComplet = $n;
+    } else {
+        $initiales  = mb_strtoupper(mb_substr($u['email'], 0, 2), 'UTF-8');
+        $nomComplet = $u['email'];
+    }
+    ?>
+    <div class="side-avatar-wrap" id="side-avatar-wrap">
+        <button class="side-avatar" id="side-avatar-btn" aria-haspopup="true" aria-expanded="false">
+            <?= e($initiales) ?>
+        </button>
+        <div class="side-avatar-menu" id="side-avatar-menu" hidden>
+            <div class="side-avatar-id">
+                <strong><?= e($nomComplet) ?></strong>
+                <span><?= e($u['email']) ?></span>
+            </div>
+            <a href="?p=compte" class="<?= $cur === 'compte' ? 'on' : '' ?>">Mon compte</a>
+            <a href="?p=logout">Déconnexion</a>
+        </div>
     </div>
     <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
         <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso
@@ -66,6 +100,20 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     burger.addEventListener('click', () => toggle(!body.classList.contains('nav-open')));
     close.addEventListener('click', () => toggle(false));
     scrim.addEventListener('click', () => toggle(false));
+
+    // Pastille utilisateur : ouvre/ferme le menu au clic, ferme si clic dehors.
+    const avatarBtn  = document.getElementById('side-avatar-btn');
+    const avatarMenu = document.getElementById('side-avatar-menu');
+    avatarBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = avatarMenu.hasAttribute('hidden');
+        avatarMenu.toggleAttribute('hidden', !open);
+        avatarBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', () => {
+        avatarMenu.setAttribute('hidden', '');
+        avatarBtn.setAttribute('aria-expanded', 'false');
+    });
 
     // Messages flottants : disparition automatique après 3 s
     document.querySelectorAll('.flash').forEach(el => {

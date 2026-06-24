@@ -7,6 +7,15 @@
     <form method="post" action="?p=compte">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
+        <div class="grid2">
+            <label>Prénom
+                <input type="text" name="prenom" value="<?= e($u['prenom'] ?? '') ?>" autocomplete="given-name">
+            </label>
+            <label>Nom
+                <input type="text" name="nom" value="<?= e($u['nom'] ?? '') ?>" autocomplete="family-name">
+            </label>
+        </div>
+
         <label>E-mail du compte
             <input type="email" name="email" value="<?= e($u['email']) ?>" required>
         </label>
