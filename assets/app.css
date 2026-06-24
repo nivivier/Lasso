@@ -569,6 +569,10 @@ abbr {
 .compta-lettrage .cat-cell form { margin: 0; }
 .compta-lettrage tr.non-lettre td { background: #fffaf2; }
 .compta-lettrage tr.non-lettre:hover td { background: #fff4e0; }
+/* « Ne pas lettrer » : volontairement exclue → grisée, libellé en italique discret */
+.compta-lettrage tr.ecr-ignore td { background: #fafafa; color: var(--muted); }
+.compta-lettrage tr.ecr-ignore:hover td { background: #f3f3f6; }
+.compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
 .compta-lettrage tr.ecr-mois-sep td { background: var(--bg); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */
