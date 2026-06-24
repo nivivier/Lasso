@@ -483,17 +483,20 @@ function route_compta_regles(): void
         $parseConditions = function (): array {
             $types    = $_POST['cond_type']        ?? [];
             $ops      = $_POST['cond_op']           ?? [];
+            $opsNum   = $_POST['cond_op_num']       ?? [];
             $valTexte = $_POST['cond_valeur_text']  ?? [];
             $valSens  = $_POST['cond_valeur_sens']  ?? [];
             $valNum   = $_POST['cond_valeur_num']   ?? [];
             $conds = [];
             foreach ($types as $i => $type) {
-                $type = in_array($type, ['texte', 'sens', 'montant_min', 'montant_max'], true) ? $type : 'texte';
+                $type = in_array($type, ['texte', 'sens', 'montant'], true) ? $type : 'texte';
                 [$valeur, $op] = match ($type) {
-                    'sens'        => [in_array($valSens[$i] ?? '', ['credit', 'debit'], true) ? ($valSens[$i] ?? 'credit') : 'credit', '='],
-                    'montant_min' => [trim((string) ($valNum[$i] ?? '')), '>='],
-                    'montant_max' => [trim((string) ($valNum[$i] ?? '')), '<='],
-                    default       => [
+                    'sens'    => [in_array($valSens[$i] ?? '', ['credit', 'debit'], true) ? ($valSens[$i] ?? 'credit') : 'credit', '='],
+                    'montant' => [
+                        trim((string) ($valNum[$i] ?? '')),
+                        in_array($opsNum[$i] ?? '', ['>=', '<=', '='], true) ? $opsNum[$i] : '>=',
+                    ],
+                    default   => [
                         trim((string) ($valTexte[$i] ?? '')),
                         in_array($ops[$i] ?? '', ['contient', 'commence', 'exact'], true) ? $ops[$i] : 'contient',
                     ],

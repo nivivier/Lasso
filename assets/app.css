@@ -628,7 +628,9 @@ abbr {
 .regle-card.hidden { display: none; }
 .regle-head { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
 .regle-head select, .regle-head input { margin-bottom: 0; }
-.regle-head .grow { flex: 1 1 auto; min-width: 200px; }
+.regle-cat { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
+.regle-cat select, .regle-cat input { margin-bottom: 0; }
+.regle-cat .grow { flex: 1 1 auto; min-width: 200px; }
 .regle-label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .regle-toggle { display: flex; align-items: center; padding-bottom: 6px; cursor: pointer; }
 .regle-toggle input[type="checkbox"] { width: 16px; height: 16px; margin: 0; cursor: pointer; }
