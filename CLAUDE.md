@@ -26,6 +26,10 @@ Avant de conclure une tâche qui touche au code : `php -l` sur les fichiers modi
   **Migrations versionnées** via `PRAGMA user_version` + `$steps` → `migration_N()`
   (idempotentes : `ALTER` après vérif d'existence de colonne). Pour faire évoluer le
   schéma : ajouter une entrée `$steps` + une fonction `migration_N()`.
+  ⚠️ Toute migration qui fait `ALTER TABLE … RENAME TO` doit encadrer les opérations
+  avec `PRAGMA foreign_keys = OFF` / `ON` : SQLite ≥ 3.26 met à jour automatiquement
+  les FK des autres tables pour pointer sur le nouveau nom, ce qui casse ces FK si la
+  table intermédiaire est ensuite droppée.
 - **Calcul** `lib/calc.php` : `calculer_fiche()`, `r2()` (arrondi 2 déc.),
   `seuil_heures()`, `laa_effectif()`, `taux_pour_annee()`, `taux_stockes()`, `TAUX_DEFAUT`.
 - **Helpers** `lib/helpers.php` : `e()` (échappement), `param()` (paramètres, cachés),
