@@ -747,9 +747,16 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
     $clotureFin = db()->prepare("SELECT solde FROM ecritures
         WHERE compte_bancaire_id = ? AND solde IS NOT NULL AND date_op <= ?
         ORDER BY date_op DESC, id ASC LIMIT 1");
-    $premiereAnnee = db()->prepare("SELECT solde, montant FROM ecritures
+    // Ouverture de l'année : 1re ligne bancaire portant un solde courant, et sa date.
+    // PostFinance ne renseigne le solde que sur la DERNIÈRE opération d'une journée ;
+    // l'ouverture se reconstitue donc en retranchant la somme des montants bancaires
+    // de l'année jusqu'à cette date incluse (et non le seul montant de cette ligne,
+    // qui ignorerait les autres mouvements du même jour).
+    $premiereAnnee = db()->prepare("SELECT solde, date_op FROM ecritures
         WHERE compte_bancaire_id = ? AND solde IS NOT NULL AND substr(date_op,1,4) = ?
-        ORDER BY date_op ASC, id DESC LIMIT 1");
+        ORDER BY date_op ASC, id ASC LIMIT 1");
+    $cumulBancaireJusqua = db()->prepare("SELECT COALESCE(SUM(montant), 0) FROM ecritures
+        WHERE compte_bancaire_id = ? AND import_id IS NOT NULL AND substr(date_op,1,4) = ? AND date_op <= ?");
     // Cumul des écritures manuelles (jamais reflétées dans le solde courant
     // bancaire) jusqu'à une date : elles font bel et bien varier le patrimoine.
     $manuelCumul = db()->prepare("SELECT COALESCE(SUM(montant), 0) FROM ecritures
@@ -770,7 +777,8 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
             $premiereAnnee->execute([$cid, (string) $a]);
             $prem = $premiereAnnee->fetch();
             if ($clotPrec !== false && $prem) {
-                $ouverture = (float) $prem['solde'] - (float) $prem['montant'];
+                $cumulBancaireJusqua->execute([$cid, (string) $a, $prem['date_op']]);
+                $ouverture = (float) $prem['solde'] - (float) $cumulBancaireJusqua->fetchColumn();
                 if (abs($ouverture - (float) $clotPrec) > 0.01) {
                     $continuite[] = ['compte' => $c['libelle'], 'annee' => $a,
                         'ouverture' => $ouverture, 'cloture_prec' => (float) $clotPrec];
