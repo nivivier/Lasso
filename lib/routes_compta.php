@@ -391,17 +391,17 @@ function route_compta_ecritures(): void
     } else {
         $annee = (int) ($_SESSION['ecr_annee'] ?? ($annees[0] ?? date('Y')));
     }
-    if (isset($_GET['statut'])) {
-        $statut = $_GET['statut'];
-        $_SESSION['ecr_statut'] = $statut;
+    if (isset($_GET['categorie'])) {
+        $categorieFilter = $_GET['categorie'];
+        $_SESSION['ecr_categorie'] = $categorieFilter;
     } else {
-        $statut = $_SESSION['ecr_statut'] ?? 'tous';
+        $categorieFilter = $_SESSION['ecr_categorie'] ?? '';
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $section = $_POST['section'] ?? '';
-        $retour  = ['compte' => $compteId, 'annee' => $annee, 'statut' => $statut];
+        $retour  = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter];
         if ($section === 'create' || $section === 'update') {
             $cid     = (int) ($_POST['compte_bancaire_id'] ?? 0);
             $date_op = trim($_POST['date_op'] ?? '');
@@ -484,37 +484,29 @@ function route_compta_ecritures(): void
         $sql .= ' AND substr(e.date_op,1,4) = ?';
         $params[] = (string) $annee;
     }
-    if ($statut === 'a_lettrer') {
+    if ($categorieFilter === 'a_lettrer') {
         $sql .= " AND e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore'";
-    } elseif ($statut === 'lettre') {
-        $sql .= ' AND e.plan_compte_id IS NOT NULL';
-    } elseif ($statut === 'ignore') {
-        $sql .= " AND e.origine_lettrage = 'ignore'";
+    } elseif (ctype_digit((string) $categorieFilter) && $categorieFilter !== '') {
+        $sql .= ' AND e.plan_compte_id = ?';
+        $params[] = (int) $categorieFilter;
     }
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
     $ecritures = $stmt->fetchAll();
 
-    // $annees déjà calculé en haut pour le défaut de l'année.
-    $nbALettrer = 0;
-    foreach ($ecritures as $e) {
-        if ($e['plan_compte_id'] === null && ($e['origine_lettrage'] ?? '') !== 'ignore') {
-            $nbALettrer++;
-        }
-    }
+    $feuilles = plan_feuilles(compta_plan_actif());
     render('compta_ecritures', [
-        'comptes'    => $comptes,
-        'compteId'   => $compteId,
-        'annee'      => $annee,
-        'annees'     => $annees,
-        'statut'     => $statut,
-        'ecritures'  => $ecritures,
-        'feuilles'   => plan_feuilles(compta_plan_actif()),
-        'nbALettrer' => $nbALettrer,
-        'rules'      => $_GET['rules'] ?? null,
-        'editEcr'    => $editEcr,
-        'openNew'    => isset($_GET['new']),
+        'comptes'         => $comptes,
+        'compteId'        => $compteId,
+        'annee'           => $annee,
+        'annees'          => $annees,
+        'categorieFilter' => $categorieFilter,
+        'ecritures'       => $ecritures,
+        'feuilles'        => $feuilles,
+        'rules'           => $_GET['rules'] ?? null,
+        'editEcr'         => $editEcr,
+        'openNew'         => isset($_GET['new']),
     ], 'Comptabilité — Lettrage');
 }
 
