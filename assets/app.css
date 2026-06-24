@@ -192,6 +192,11 @@ h3.sub.no-mt { margin-top: 0; }
 .bulk-cat-search .cat-search-list { top: auto; bottom: 100%; margin: 0 0 2px; }
 /* Cat-search dans le formulaire écriture manuelle */
 .form-cat-search { position: relative; }
+/* Cat-search dans la barre de filtres */
+.filtre-cat-search { position: relative; min-width: 200px; }
+.filtre-cat-search .cat-search-input { padding: 10px 12px; font-size: 14.5px; }
+/* En-têtes de groupe dans les listes cat-search */
+.cat-search-group { padding: 6px 12px 2px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); cursor: default; pointer-events: none; }
 /* Formulaire écriture manuelle */
 .ecr-manuel-form { margin-bottom: 16px; }
 .ecr-manuel-form h3.form-subtitle { margin: 0 0 16px; font-size: 15px; font-weight: 700; }

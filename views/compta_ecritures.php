@@ -108,22 +108,29 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </select>
     </label>
     <label>Catégorie
-        <select name="categorie" onchange="this.form.submit()">
-            <option value="" <?= $categorieFilter === '' ? 'selected' : '' ?>>Toutes</option>
-            <option value="a_lettrer" <?= $categorieFilter === 'a_lettrer' ? 'selected' : '' ?>>— À lettrer —</option>
-            <?php
-            $sensCourant = null;
-            foreach ($feuilles as $f):
-                if ($f['sens'] !== $sensCourant):
-                    if ($sensCourant !== null) echo '</optgroup>';
-                    $sensCourant = $f['sens'];
-                    echo '<optgroup label="' . e($sensCourant === 'produit' ? 'Recettes' : 'Dépenses') . '">';
-                endif;
-            ?>
-                <option value="<?= (int) $f['id'] ?>" <?= $categorieFilter === (string) $f['id'] ? 'selected' : '' ?>><?= e($f['chemin']) ?></option>
-            <?php endforeach; ?>
-            <?php if ($sensCourant !== null) echo '</optgroup>'; ?>
-        </select>
+        <?php
+        $filtreTexte = match($categorieFilter) {
+            'a_lettrer' => '— À lettrer —',
+            'ignore'    => '— Ne pas lettrer —',
+            ''          => '',
+            default     => $cheminById[(int) $categorieFilter] ?? '',
+        };
+        ?>
+        <div class="cat-search filtre-cat-search">
+            <input type="text" class="cat-search-input" placeholder="Toutes" autocomplete="off" value="<?= e($filtreTexte) ?>">
+            <input type="hidden" name="categorie" class="cat-search-val" value="<?= e($categorieFilter) ?>">
+            <ul class="cat-search-list" hidden role="listbox">
+                <li data-val="">Toutes</li>
+                <li data-val="a_lettrer">— À lettrer —</li>
+                <li data-val="ignore">— Ne pas lettrer —</li>
+                <?php $sensCourant = null; foreach ($feuilles as $f): ?>
+                    <?php if ($f['sens'] !== $sensCourant): $sensCourant = $f['sens']; ?>
+                        <li class="cat-search-group" data-val="__group__"><?= $sensCourant === 'produit' ? 'Recettes' : 'Dépenses' ?></li>
+                    <?php endif; ?>
+                    <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
     </label>
     <label class="search-label"><span>Rechercher <span id="search-count" class="muted small"></span></span>
         <input type="search" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher">
@@ -287,6 +294,50 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         search.addEventListener('input', apply);
     }
 })();
+// Cat-search — filtre catégorie (soumet le form GET à la sélection)
+(function () {
+    const wrap = document.querySelector('.filtre-cat-search');
+    if (!wrap) return;
+    const input  = wrap.querySelector('.cat-search-input');
+    const hidden = wrap.querySelector('.cat-search-val');
+    const list   = wrap.querySelector('.cat-search-list');
+    const items  = Array.from(list.querySelectorAll('li:not(.cat-search-group)'));
+    const groups = Array.from(list.querySelectorAll('.cat-search-group'));
+    const norm   = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    function filter(q) {
+        const nq = norm(q);
+        items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); });
+        // Masquer les en-têtes de groupe si tous leurs items sont cachés
+        groups.forEach(g => {
+            let sib = g.nextElementSibling;
+            let hasVisible = false;
+            while (sib && !sib.classList.contains('cat-search-group')) {
+                if (!sib.hidden) hasVisible = true;
+                sib = sib.nextElementSibling;
+            }
+            g.hidden = !hasVisible;
+        });
+    }
+    input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('blur',  () => {
+        setTimeout(() => {
+            list.hidden = true;
+            const cur = items.find(li => li.dataset.val === hidden.value);
+            input.value = cur ? (cur.dataset.val !== '' ? cur.textContent : '') : '';
+        }, 150);
+    });
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            hidden.value = li.dataset.val;
+            input.value  = li.dataset.val !== '' ? li.textContent : '';
+            list.hidden  = true;
+            wrap.closest('form').submit();
+        });
+    });
+})();
+
 // Bouton "Nouvelle écriture manuelle" — affiche/masque le formulaire
 (function () {
     const btn  = document.getElementById('btn-new-ecr');

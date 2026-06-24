@@ -486,6 +486,8 @@ function route_compta_ecritures(): void
     }
     if ($categorieFilter === 'a_lettrer') {
         $sql .= " AND e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore'";
+    } elseif ($categorieFilter === 'ignore') {
+        $sql .= " AND e.origine_lettrage = 'ignore'";
     } elseif (ctype_digit((string) $categorieFilter) && $categorieFilter !== '') {
         $sql .= ' AND e.plan_compte_id = ?';
         $params[] = (int) $categorieFilter;
