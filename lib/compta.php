@@ -224,8 +224,12 @@ function regle_match(array $regle, array $ecr): bool
                 if ($valeur === 'debit'  && $montant >= 0) return false;
                 return true;
             }
-            if ($type === 'montant_min') return $abs >= (float) $valeur - 0.0001;
-            if ($type === 'montant_max') return $abs <= (float) $valeur + 0.0001;
+            if ($type === 'montant' || $type === 'montant_min' || $type === 'montant_max') {
+                $val = (float) $valeur;
+                if ($type === 'montant_min') return $abs >= $val - 0.0001;
+                if ($type === 'montant_max') return $abs <= $val + 0.0001;
+                return match ($op) { '>=' => $abs >= $val - 0.0001, '<=' => $abs <= $val + 0.0001, default => abs($abs - $val) < 0.01 };
+            }
             // type texte
             if ($valeur === '') return false;
             $motif = normaliser_texte($valeur);
