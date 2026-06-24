@@ -1,7 +1,7 @@
 <?php
 /** @var array $comptes */ /** @var int $compteId */ /** @var int $annee */ /** @var array $annees */
-/** @var string $statut */ /** @var array $ecritures */ /** @var array $feuilles */
-/** @var int $nbALettrer */ /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
+/** @var string $categorieFilter */ /** @var array $ecritures */ /** @var array $feuilles */
+/** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 
 // Map id → chemin pour initialiser les inputs individuels.
 $cheminById = [];
@@ -10,7 +10,7 @@ foreach ($feuilles as $f) { $cheminById[(int) $f['id']] = $f['chemin']; }
 // Formulaire écriture manuelle (création ou modification).
 $showForm = $openNew || $editEcr !== null;
 $isEdit   = $editEcr !== null;
-$qs = '&compte=' . $compteId . '&annee=' . $annee . '&statut=' . urlencode($statut);
+$qs = '&compte=' . $compteId . '&annee=' . $annee . '&categorie=' . urlencode($categorieFilter);
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
 $catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuilles, $cheminById): string {
@@ -34,7 +34,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <form method="get" id="annee-form">
             <input type="hidden" name="p" value="compta_ecritures">
             <input type="hidden" name="compte" value="<?= $compteId ?>">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
+            <input type="hidden" name="categorie" value="<?= e($categorieFilter) ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
                 <option value="0">Toutes</option>
                 <?php foreach ($annees as $a): ?>
@@ -107,11 +107,22 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php endforeach; ?>
         </select>
     </label>
-    <label>Statut
-        <select name="statut" onchange="this.form.submit()">
-            <?php foreach (['tous' => 'Toutes', 'a_lettrer' => 'À lettrer', 'lettre' => 'Lettrées', 'ignore' => 'Ne pas lettrer'] as $k => $lib): ?>
-                <option value="<?= $k ?>" <?= $statut === $k ? 'selected' : '' ?>><?= e($lib) ?></option>
+    <label>Catégorie
+        <select name="categorie" onchange="this.form.submit()">
+            <option value="" <?= $categorieFilter === '' ? 'selected' : '' ?>>Toutes</option>
+            <option value="a_lettrer" <?= $categorieFilter === 'a_lettrer' ? 'selected' : '' ?>>— À lettrer —</option>
+            <?php
+            $sensCourant = null;
+            foreach ($feuilles as $f):
+                if ($f['sens'] !== $sensCourant):
+                    if ($sensCourant !== null) echo '</optgroup>';
+                    $sensCourant = $f['sens'];
+                    echo '<optgroup label="' . e($sensCourant === 'produit' ? 'Recettes' : 'Dépenses') . '">';
+                endif;
+            ?>
+                <option value="<?= (int) $f['id'] ?>" <?= $categorieFilter === (string) $f['id'] ? 'selected' : '' ?>><?= e($f['chemin']) ?></option>
             <?php endforeach; ?>
+            <?php if ($sensCourant !== null) echo '</optgroup>'; ?>
         </select>
     </label>
     <label class="search-label"><span>Rechercher <span id="search-count" class="muted small"></span></span>
