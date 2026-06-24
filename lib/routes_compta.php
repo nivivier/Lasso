@@ -375,10 +375,27 @@ function route_compta_ecritures(): void
 {
     require_login();
     $comptes = compta_comptes();
-    $compteId = isset($_GET['compte']) ? (int) $_GET['compte'] : ((int) ($comptes[0]['id'] ?? 0));
-    $annees   = compta_annees();
-    $annee    = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) ($annees[0] ?? date('Y'));
-    $statut   = $_GET['statut'] ?? 'a_lettrer'; // tous | a_lettrer | lettre
+
+    // Filtres : GET prioritaire, sinon dernière valeur en session, sinon défaut.
+    if (isset($_GET['compte'])) {
+        $compteId = (int) $_GET['compte'];
+        $_SESSION['ecr_compte'] = $compteId;
+    } else {
+        $compteId = (int) ($_SESSION['ecr_compte'] ?? 0);
+    }
+    $annees = compta_annees();
+    if (isset($_GET['annee'])) {
+        $annee = (int) $_GET['annee'];
+        $_SESSION['ecr_annee'] = $annee;
+    } else {
+        $annee = (int) ($_SESSION['ecr_annee'] ?? ($annees[0] ?? date('Y')));
+    }
+    if (isset($_GET['statut'])) {
+        $statut = $_GET['statut'];
+        $_SESSION['ecr_statut'] = $statut;
+    } else {
+        $statut = $_SESSION['ecr_statut'] ?? 'tous';
+    }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -404,7 +421,8 @@ function route_compta_ecritures(): void
             }
             redirect('compta_ecritures', $retour);
         } elseif ($section === 'apply_rules') {
-            $n = compta_lettrer_par_regles($compteId ?: null, $annee ?: null);
+            // Toujours tous comptes + toutes années : les règles sont globales.
+            $n = compta_lettrer_par_regles(null, null);
             redirect('compta_ecritures', $retour + ['rules' => $n]);
         }
         redirect('compta_ecritures', $retour);
