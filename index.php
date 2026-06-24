@@ -87,6 +87,7 @@ $handlers = [
     'compta_ecritures' => 'route_compta_ecritures',
     'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
     'compta_regles'    => 'route_compta_regles',
+    'compta_axes'           => 'route_compta_axes',
     'compta_bilan'          => 'route_compta_bilan',
     'compta_bilan_print'    => 'route_compta_bilan_print',
     'compta_ecritures_csv'  => 'route_compta_ecritures_csv',

@@ -397,11 +397,17 @@ function route_compta_ecritures(): void
     } else {
         $categorieFilter = $_SESSION['ecr_categorie'] ?? '';
     }
+    if (isset($_GET['axe'])) {
+        $axeFilter = $_GET['axe'];
+        $_SESSION['ecr_axe'] = $axeFilter;
+    } else {
+        $axeFilter = $_SESSION['ecr_axe'] ?? '';
+    }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $section = $_POST['section'] ?? '';
-        $retour  = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter];
+        $retour  = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter];
         if ($section === 'create' || $section === 'update') {
             $cid     = (int) ($_POST['compte_bancaire_id'] ?? 0);
             $date_op = trim($_POST['date_op'] ?? '');
@@ -415,15 +421,17 @@ function route_compta_ecritures(): void
                 $planId  = ($planRaw !== '' && $planRaw !== '0') ? (int) $planRaw : null;
                 $origLettrage = $planId !== null ? 'manuel' : '';
             }
+            $axeRaw = $_POST['axe_analytique_id'] ?? '';
+            $axeId  = ($axeRaw !== '' && $axeRaw !== '0') ? (int) $axeRaw : null;
             if ($cid && $date_op && $texte) {
                 if ($section === 'create') {
                     $hash = sha1('manual-' . uniqid('', true) . mt_rand());
-                    db()->prepare('INSERT INTO ecritures (compte_bancaire_id, date_op, texte, montant, plan_compte_id, origine_lettrage, hash) VALUES (?,?,?,?,?,?,?)')
-                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $hash]);
+                    db()->prepare('INSERT INTO ecritures (compte_bancaire_id, date_op, texte, montant, plan_compte_id, origine_lettrage, axe_analytique_id, hash) VALUES (?,?,?,?,?,?,?,?)')
+                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $axeId, $hash]);
                 } else {
                     $id = (int) ($_POST['id'] ?? 0);
-                    db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=? WHERE id=? AND import_id IS NULL')
-                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $id]);
+                    db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=?, axe_analytique_id=? WHERE id=? AND import_id IS NULL')
+                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $axeId, $id]);
                 }
             }
             redirect('compta_ecritures', $retour);
@@ -452,6 +460,21 @@ function route_compta_ecritures(): void
                     $in = implode(',', array_fill(0, count($ids), '?'));
                     $stmt = db()->prepare("UPDATE ecritures SET plan_compte_id = ?, origine_lettrage = 'manuel' WHERE id IN ($in)");
                     $stmt->execute(array_merge([(int) $planId], array_values($ids)));
+                }
+            }
+            redirect('compta_ecritures', $retour);
+        } elseif ($section === 'axer') {
+            // Affectation d'un axe analytique (une ou plusieurs écritures).
+            $ids   = array_filter(array_map('intval', (array) ($_POST['ids'] ?? [])));
+            $axeId = $_POST['axe_analytique_id'] ?? '';
+            if ($ids) {
+                $in = implode(',', array_fill(0, count($ids), '?'));
+                if ($axeId === '' || $axeId === '0') {
+                    db()->prepare("UPDATE ecritures SET axe_analytique_id = NULL WHERE id IN ($in)")
+                        ->execute(array_values($ids));
+                } else {
+                    $stmt = db()->prepare("UPDATE ecritures SET axe_analytique_id = ? WHERE id IN ($in)");
+                    $stmt->execute(array_merge([(int) $axeId], array_values($ids)));
                 }
             }
             redirect('compta_ecritures', $retour);
@@ -492,20 +515,29 @@ function route_compta_ecritures(): void
         $sql .= ' AND e.plan_compte_id = ?';
         $params[] = (int) $categorieFilter;
     }
+    if (ctype_digit((string) $axeFilter) && $axeFilter !== '') {
+        $sql .= ' AND e.axe_analytique_id = ?';
+        $params[] = (int) $axeFilter;
+    } elseif ($axeFilter === 'sans_axe') {
+        $sql .= ' AND e.axe_analytique_id IS NULL AND e.plan_compte_id IS NOT NULL';
+    }
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
     $ecritures = $stmt->fetchAll();
 
     $feuilles = plan_feuilles(compta_plan_actif());
+    $axes     = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
     render('compta_ecritures', [
         'comptes'         => $comptes,
         'compteId'        => $compteId,
         'annee'           => $annee,
         'annees'          => $annees,
         'categorieFilter' => $categorieFilter,
+        'axeFilter'       => $axeFilter,
         'ecritures'       => $ecritures,
         'feuilles'        => $feuilles,
+        'axes'            => $axes,
         'rules'           => $_GET['rules'] ?? null,
         'editEcr'         => $editEcr,
         'openNew'         => isset($_GET['new']),
@@ -652,6 +684,95 @@ function compter_impact_regle(array $regle, array $ecritures): int
     return $n;
 }
 
+// --- Axes analytiques -------------------------------------------------------
+function route_compta_axes(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'create') {
+            $libelle = trim($_POST['libelle'] ?? '');
+            $code    = trim($_POST['code'] ?? '');
+            if ($libelle !== '') {
+                $max = (int) db()->query('SELECT COALESCE(MAX(ordre), 0) FROM axes_analytiques')->fetchColumn();
+                db()->prepare('INSERT INTO axes_analytiques (libelle, code, ordre) VALUES (?,?,?)')
+                    ->execute([$libelle, $code, $max + 10]);
+            }
+        } elseif ($section === 'update') {
+            $id    = (int) ($_POST['id'] ?? 0);
+            $lib   = trim($_POST['libelle'] ?? '');
+            $code  = trim($_POST['code'] ?? '');
+            $actif = isset($_POST['actif']) ? 1 : 0;
+            if ($id && $lib !== '') {
+                db()->prepare('UPDATE axes_analytiques SET libelle=?, code=?, actif=? WHERE id=?')
+                    ->execute([$lib, $code, $actif, $id]);
+            }
+        } elseif ($section === 'delete') {
+            $id = (int) ($_POST['id'] ?? 0);
+            if ($id) {
+                db()->prepare('UPDATE ecritures SET axe_analytique_id = NULL WHERE axe_analytique_id = ?')->execute([$id]);
+                db()->prepare('DELETE FROM axes_analytiques WHERE id = ?')->execute([$id]);
+            }
+        } elseif ($section === 'move_up' || $section === 'move_down') {
+            $id  = (int) ($_POST['id'] ?? 0);
+            $all = db()->query('SELECT id FROM axes_analytiques ORDER BY ordre ASC, id ASC')->fetchAll(PDO::FETCH_COLUMN);
+            $pos = array_search($id, $all, true);
+            if ($id > 0 && $pos !== false) {
+                $swap = $section === 'move_up' ? $pos - 1 : $pos + 1;
+                if ($swap >= 0 && $swap < count($all)) {
+                    $upd = db()->prepare('UPDATE axes_analytiques SET ordre = ? WHERE id = ?');
+                    db()->beginTransaction();
+                    foreach ($all as $i => $rid) { $upd->execute([$i * 10, (int) $rid]); }
+                    $upd->execute([$swap * 10, $id]);
+                    $upd->execute([$pos  * 10, (int) $all[$swap]]);
+                    db()->commit();
+                }
+            }
+        }
+        redirect('compta_axes', ['ok' => 1]);
+    }
+    render('compta_axes', [
+        'axes'  => db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll(),
+        'saved' => isset($_GET['ok']),
+    ], 'Comptabilité — Axes analytiques');
+}
+
+// Ventilation du compte de résultat par axe analytique pour une année.
+function calculer_ventilation_analytique(int $annee, array $plan): array
+{
+    $axes = db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll();
+    if (!$axes) return [];
+    $stmt = db()->prepare(
+        'SELECT plan_compte_id, SUM(montant) s FROM ecritures
+         WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
+         GROUP BY plan_compte_id'
+    );
+    $rows = [];
+    foreach ($axes as $axe) {
+        $stmt->execute([(int) $axe['id'], (string) $annee]);
+        $produits = 0.0;
+        $charges  = 0.0;
+        foreach ($stmt as $r) {
+            if (($plan[(int) $r['plan_compte_id']]['sens'] ?? 'charge') === 'produit') {
+                $produits += (float) $r['s'];
+            } else {
+                $charges += (float) $r['s'];
+            }
+        }
+        $rows[] = [
+            'id'       => (int) $axe['id'],
+            'libelle'  => $axe['libelle'],
+            'code'     => $axe['code'],
+            'actif'    => (int) $axe['actif'],
+            'produits' => $produits,
+            'charges'  => $charges,
+            'resultat' => $produits + $charges,
+        ];
+    }
+    return $rows;
+}
+
 // --- Bilan & compte de résultat --------------------------------------------
 function route_compta_bilan(): void
 {
@@ -794,6 +915,7 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
         'plan'           => $plan,
         'lignesParCat'   => $lignesParCat,
         'patrimoine'     => $patrimoine,
+        'ventilation'    => calculer_ventilation_analytique($annee, $plan),
     ];
 }
 

@@ -291,6 +291,7 @@ function run_migrations(PDO $pdo): void
         12 => 'migration_12', // regles_lettrage : supprime NOT NULL sur motif/type_match/sens_filtre
         13 => 'migration_13', // répare FK conditions_lettrage cassé par migration_12 (RENAME side-effect)
         14 => 'migration_14', // comptes_bancaires : colonne solde_initial (solde de départ)
+        15 => 'migration_15', // axes_analytiques + ecritures.axe_analytique_id
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -633,6 +634,22 @@ function migration_14(PDO $pdo): void
         if ($col['name'] === 'solde_initial') return;
     }
     $pdo->exec('ALTER TABLE comptes_bancaires ADD COLUMN solde_initial REAL NOT NULL DEFAULT 0');
+}
+
+function migration_15(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS axes_analytiques (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        libelle TEXT NOT NULL,
+        code    TEXT NOT NULL DEFAULT '',
+        ordre   INTEGER NOT NULL DEFAULT 0,
+        actif   INTEGER NOT NULL DEFAULT 1,
+        cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+    )");
+    foreach ($pdo->query('PRAGMA table_info(ecritures)') as $col) {
+        if ($col['name'] === 'axe_analytique_id') return;
+    }
+    $pdo->exec('ALTER TABLE ecritures ADD COLUMN axe_analytique_id INTEGER REFERENCES axes_analytiques(id) ON DELETE SET NULL');
 }
 
 function seed_parametres(PDO $pdo): void
