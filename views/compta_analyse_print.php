@@ -6,7 +6,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Comptabilité analytique <?= (int) $annee ?><?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
+    <title>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?><?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
     <link rel="stylesheet" href="assets/app.css">
 </head>
 <body class="print-page">
@@ -23,7 +23,7 @@
                 <?php endif; ?>
                 <div>
                     <h1><?= $nomEmployeur !== '' ? e($nomEmployeur) : 'Comptabilité' ?></h1>
-                    <p>Comptabilité analytique — Exercice <?= (int) $annee ?></p>
+                    <p>Comptabilité analytique — <?= $annee ? 'Exercice ' . (int) $annee : 'Toutes les années' ?></p>
                 </div>
             </div>
 

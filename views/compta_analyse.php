@@ -8,6 +8,7 @@
         <form method="get">
             <input type="hidden" name="p" value="compta_analyse">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>
                 <?php endforeach; ?>
@@ -35,7 +36,7 @@
 </div>
 <?php elseif (!$ventilation): ?>
 <div class="card" style="margin-top:8px">
-    <div class="section-head"><h2>Comptabilité analytique <?= (int) $annee ?></h2></div>
+    <div class="section-head"><h2>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?></h2></div>
     <p class="muted small" style="padding:4px 0 12px">
         Aucune écriture lettrée et ventilée pour <?= (int) $annee ?>.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>">Affecter un axe aux écritures.</a>
@@ -44,7 +45,7 @@
 <?php else: ?>
 <div class="card" style="margin-top:8px">
     <div class="section-head">
-        <h2>Comptabilité analytique <?= (int) $annee ?></h2>
+        <h2>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?></h2>
     </div>
     <div class="table-scroll">
     <table class="list compta-cr">
