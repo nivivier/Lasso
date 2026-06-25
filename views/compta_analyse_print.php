@@ -35,6 +35,7 @@
                 <thead>
                     <tr>
                         <th>Axe</th>
+                        <th>Code</th>
                         <th class="num">Recettes</th>
                         <th class="num">Dépenses</th>
                         <th class="num">Résultat</th>
@@ -47,7 +48,8 @@
                     $totChg  += $v['charges'];
                 ?>
                     <tr class="cr-groupe">
-                        <td><?= e($v['libelle']) ?><?php if ($v['code']): ?> <span class="muted small">· <?= e($v['code']) ?></span><?php endif; ?></td>
+                        <td><?= e($v['libelle']) ?></td>
+                        <td class="muted"><?= $v['code'] ? e($v['code']) : '' ?></td>
                         <td class="num"><?= $v['produits'] != 0 ? chf($v['produits']) : '—' ?></td>
                         <td class="num"><?= $v['charges']  != 0 ? chf($v['charges'])  : '—' ?></td>
                         <td class="num"><?= $res != 0 ? chf($res) : '—' ?></td>
@@ -57,6 +59,7 @@
                 <tfoot>
                     <tr class="cr-total">
                         <td>Total ventilé</td>
+                        <td></td>
                         <td class="num"><?= chf($totProd) ?></td>
                         <td class="num"><?= chf($totChg) ?></td>
                         <td class="num"><?= chf($totProd + $totChg) ?></td>
