@@ -191,36 +191,40 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <div class="card">
 
 <div class="bulk-bar" id="bulk-bar" hidden>
-    <span class="bulk-titre muted small">Catégorie :</span>
-    <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="section" value="lettrer">
-        <div class="cat-search bulk-cat-search">
-            <input type="text" class="cat-search-input" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
-            <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
-            <ul class="cat-search-list" hidden role="listbox">
-                <li data-val="">— Retirer le lettrage —</li>
-                <li data-val="ignore">Ne pas lettrer</li>
-                <?php foreach ($feuilles as $f): ?>
-                    <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <button type="submit">Appliquer</button>
-    </form>
+    <div class="bulk-group">
+        <span class="bulk-titre">Catégorie :</span>
+        <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="section" value="lettrer">
+            <div class="cat-search bulk-cat-search">
+                <input type="text" class="cat-search-input" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
+                <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="">— Retirer le lettrage —</li>
+                    <li data-val="ignore">Ne pas lettrer</li>
+                    <?php foreach ($feuilles as $f): ?>
+                        <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <button type="submit">Appliquer</button>
+        </form>
+    </div>
     <?php if ($axes): ?>
-    <span class="bulk-titre muted small" style="margin-left:12px">Axe :</span>
-    <form method="post" id="axe-bulkform" action="?p=compta_ecritures<?= $qs ?>">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="section" value="axer">
-        <select name="axe_analytique_id" class="inline-year-select">
-            <option value="">— Retirer l'axe —</option>
-            <?php foreach ($axes as $ax): ?>
-                <option value="<?= (int) $ax['id'] ?>"><?= e($ax['libelle']) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit">Appliquer</button>
-    </form>
+    <div class="bulk-group">
+        <span class="bulk-titre">Axe :</span>
+        <form method="post" id="axe-bulkform" action="?p=compta_ecritures<?= $qs ?>">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="section" value="axer">
+            <select name="axe_analytique_id" class="inline-year-select">
+                <option value="">— Retirer l'axe —</option>
+                <?php foreach ($axes as $ax): ?>
+                    <option value="<?= (int) $ax['id'] ?>"><?= e($ax['libelle']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit">Appliquer</button>
+        </form>
+    </div>
     <?php endif; ?>
 </div>
 
