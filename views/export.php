@@ -19,6 +19,7 @@
         <input type="hidden" name="p" value="compta_ecritures_csv">
         <label class="inline">Année
             <select name="annee">
+                <option value="0">Toutes les années</option>
                 <?php foreach ($anneesCompta as $a): ?>
                     <option value="<?= $a ?>"><?= $a ?></option>
                 <?php endforeach; ?>
