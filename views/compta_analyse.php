@@ -15,10 +15,10 @@
             </select>
         </form>
     </div>
-    <div class="page-head-actions">
+    <div class="head-actions">
         <a href="?p=compta_axes" class="btn ghost btn-sm"><?= icon('settings') ?> Gérer les axes</a>
         <?php if ($ventilation): ?>
-        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
+        <a class="btn ghost btn-sm" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
         <?php endif; ?>
     </div>
 </div>
@@ -38,7 +38,7 @@
 <div class="card">
     <div class="section-head"></div>
     <p class="muted small card-note">
-        Aucune écriture lettrée et ventilée pour <?= (int) $annee ?>.
+        Aucune écriture lettrée et ventilée<?= $annee ? ' pour ' . (int) $annee : '' ?>.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>">Affecter un axe aux écritures.</a>
     </p>
 </div>

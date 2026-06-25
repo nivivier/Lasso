@@ -82,9 +82,9 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     return $h;
 };
 
-$premiere = (int) ($cols[0] ?? 0);
-$derniere = (int) ($cols[$nbCols - 1] ?? $premiere);
-$titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $premiere : (string) $premiere;
+$anneeRecente  = (int) ($cols[0] ?? 0);
+$anneeAncienne = (int) ($cols[$nbCols - 1] ?? $anneeRecente);
+$titreAnnee = $nbCols > 1 ? $anneeAncienne . ' – ' . $anneeRecente : (string) $anneeRecente;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
