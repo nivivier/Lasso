@@ -23,13 +23,34 @@ $hasAmount = function (int $id) use (&$hasAmount, $byParent, $sommesParAnnee): b
 
 $pad = fn(int $p) => 'style="padding-left:' . (16 + $p * 18) . 'px"';
 
-$cellules = function (callable $val) use ($cols, $anneeRef): string {
+$cellules = function (callable $val) use ($cols, $anneeRef, $nbCols): string {
     $h = '';
+    $total = 0.0;
     foreach ($cols as $a) {
         $cls = (int) $a !== $anneeRef ? ' col-prec' : '';
-        $h .= '<td class="num' . $cls . '">' . chf($val((int) $a)) . '</td>';
+        $v = $val((int) $a);
+        $total += $v;
+        $h .= '<td class="num' . $cls . '">' . chf($v) . '</td>';
+    }
+    if ($nbCols > 1) {
+        $h .= '<td class="num total-col">' . chf($total) . '</td>';
     }
     return $h;
+};
+
+$ligneTotalAxe = function (string $libelle, string $cle, string $cls) use ($cols, $totauxParAnnee, $anneeRef, $nbCols): string {
+    $h = '<tr class="' . $cls . '"><td>' . e($libelle) . '</td>';
+    $total = 0.0;
+    foreach ($cols as $a) {
+        $precCls = (int) $a !== $anneeRef ? ' col-prec' : '';
+        $v = (float) ($totauxParAnnee[(int) $a][$cle] ?? 0);
+        $total += $v;
+        $h .= '<td class="num' . $precCls . '">' . chf($v) . '</td>';
+    }
+    if ($nbCols > 1) {
+        $h .= '<td class="num total-col">' . chf($total) . '</td>';
+    }
+    return $h . '</tr>';
 };
 
 $rendre = function (array $row, int $prof) use (&$rendre, $byParent, $sommesParAnnee, $pad, $cellules, $hasAmount): string {
@@ -54,7 +75,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     $hasAny = false;
     foreach ($nodesRacine as $r) { if ($hasAmount((int) $r['id'])) { $hasAny = true; break; } }
     if (!$hasAny) return '';
-    $h = '<tr class="cr-section"><th colspan="' . ($nbCols + 1) . '">' . e($titre) . '</th></tr>';
+    $h = '<tr class="cr-section"><th colspan="' . ($nbCols + 1 + ($nbCols > 1 ? 1 : 0)) . '">' . e($titre) . '</th></tr>';
     foreach ($nodesRacine as $r) {
         $h .= $rendre($r, 0);
     }
@@ -101,15 +122,16 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
                         <?php foreach ($cols as $a): ?>
                             <th class="num<?= (int) $a !== $anneeRef ? ' col-prec' : '' ?>"><?= (int) $a ?></th>
                         <?php endforeach; ?>
+                        <th class="num total-col">Total</th>
                     </tr>
                 </thead>
                 <?php endif; ?>
                 <tbody>
                     <?= $blocSens('produit', 'Recettes') ?>
-                    <?= compta_ligne_total('Total des recettes', 'produits', 'cr-total', $cols, $totauxParAnnee) ?>
+                    <?= $ligneTotalAxe('Total des recettes', 'produits', 'cr-total') ?>
                     <?= $blocSens('charge', 'Dépenses') ?>
-                    <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
-                    <?= compta_ligne_total('Résultat', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
+                    <?= $ligneTotalAxe('Total des dépenses', 'charges', 'cr-total') ?>
+                    <?= $ligneTotalAxe('Résultat', 'resultat', 'cr-resultat') ?>
                 </tbody>
             </table>
 

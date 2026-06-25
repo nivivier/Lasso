@@ -623,6 +623,7 @@ abbr {
 .compta-cr .cr-clic { cursor: pointer; }
 /* Colonnes des années précédentes en gris (écran uniquement) */
 .compta-cr td.col-prec, .bilan-card td.col-prec { color: var(--muted); }
+.compta-cr td.total-col, .compta-cr th.total-col { border-left: 1px solid var(--line); font-weight: 600; }
 .compta-cr .cr-groupe td.col-prec { color: var(--muted); }
 .compta-cr th.col-prec, .bilan-card th.col-prec { color: var(--muted); font-weight: 500; }
 .compta-cr .cr-clic:hover td { background: var(--primary-tint); color: var(--ink); }
