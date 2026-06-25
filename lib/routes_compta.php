@@ -700,13 +700,13 @@ function route_compta_axes(): void
                     ->execute([$libelle, $code, $max + 10]);
             }
         } elseif ($section === 'update') {
-            $id    = (int) ($_POST['id'] ?? 0);
-            $lib   = trim($_POST['libelle'] ?? '');
-            $code  = trim($_POST['code'] ?? '');
-            $actif = isset($_POST['actif']) ? 1 : 0;
+            $id   = (int) ($_POST['id'] ?? 0);
+            $lib  = trim($_POST['libelle'] ?? '');
+            $code = trim($_POST['code'] ?? '');
             if ($id && $lib !== '') {
-                db()->prepare('UPDATE axes_analytiques SET libelle=?, code=?, actif=? WHERE id=?')
-                    ->execute([$lib, $code, $actif, $id]);
+                // actif non inclus dans ce formulaire (géré séparément par toggle_actif).
+                db()->prepare('UPDATE axes_analytiques SET libelle=?, code=? WHERE id=?')
+                    ->execute([$lib, $code, $id]);
             }
         } elseif ($section === 'toggle_actif') {
             $id = (int) ($_POST['id'] ?? 0);
