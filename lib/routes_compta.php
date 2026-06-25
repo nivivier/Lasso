@@ -912,7 +912,8 @@ function route_compta_analyse_axe(): void
         $totauxParAnnee[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc];
     }
 
-    $anneeRef = (int) ($cols[0] ?? $annee);
+    // Quand toutes les années : aucune colonne isolée n'est mise en valeur, seul le total l'est.
+    $anneeRef = $annee === 0 ? -1 : (int) ($cols[0] ?? $annee);
 
     // Écritures ventilées sur cet axe.
     if ($annee === 0) {
@@ -1025,8 +1026,8 @@ function route_compta_analyse_axe_print(): void
         $totauxParAnnee[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc];
     }
 
-    // Année de référence pour le col-prec : colonne la plus récente.
-    $anneeRef = (int) ($cols[0] ?? $annee);
+    // Quand toutes les années : aucune colonne isolée n'est mise en valeur, seul le total l'est.
+    $anneeRef = $annee === 0 ? -1 : (int) ($cols[0] ?? $annee);
 
     render_bare('compta_analyse_axe_print', [
         'axe'            => $axe,
