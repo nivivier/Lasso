@@ -205,9 +205,10 @@ h3.sub.no-mt { margin-top: 0; }
 /* Grille 2 colonnes pour la section catégorie+axe dans le formulaire manuel */
 .grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
-/* Cat-search dans la barre de filtres */
+/* Cat-search dans la barre de filtres — même hauteur que les <select> */
 .filtre-cat-search { position: relative; min-width: 200px; }
-.filtre-cat-search .cat-search-input { padding: 10px 12px; font-size: 14.5px; }
+.filtre-cat-search .cat-search-input { padding: 5px 10px; font-size: 13.5px; }
+.filters input[type="search"] { padding: 5px 10px; font-size: 13.5px; }
 /* En-têtes de groupe dans les listes cat-search */
 .cat-search-group { padding: 6px 12px 2px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); cursor: default; pointer-events: none; }
 /* Formulaire écriture manuelle */
