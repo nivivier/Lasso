@@ -47,8 +47,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 </head>
 <body class="print-page">
     <div class="print-toolbar">
-        <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
-        <a href="?p=compta_bilan&annee=<?= (int) $annee ?>">Fermer</a>
+        <button onclick="window.print()"><?= icon('printer') ?> Imprimer / PDF</button>
     </div>
     <div class="sheet">
         <div class="compta-print">

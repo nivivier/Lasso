@@ -8,8 +8,7 @@
 </head>
 <body class="print-page">
     <div class="print-toolbar">
-        <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
-        <a href="?p=fiche&id=<?= (int) $f['id'] ?>">Fermer</a>
+        <button onclick="window.print()"><?= icon('printer') ?> Imprimer / PDF</button>
     </div>
     <div class="sheet">
         <?php require __DIR__ . '/_fiche_body.php'; ?>

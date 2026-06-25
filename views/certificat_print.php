@@ -8,8 +8,7 @@
 </head>
 <body class="print-page">
     <div class="print-toolbar">
-        <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
-        <a href="?p=certificat&employe_id=<?= (int) $emp['id'] ?>&annee=<?= (int) $annee ?>">Fermer</a>
+        <button onclick="window.print()"><?= icon('printer') ?> Imprimer / PDF</button>
     </div>
     <div class="sheet">
         <?php require __DIR__ . '/_certificat_body.php'; ?>

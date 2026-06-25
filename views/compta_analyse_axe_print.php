@@ -94,8 +94,7 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
 </head>
 <body class="print-page">
     <div class="print-toolbar">
-        <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
-        <a href="?p=compta_analyse">Fermer</a>
+        <button onclick="window.print()"><?= icon('printer') ?> Imprimer / PDF</button>
     </div>
     <div class="sheet">
         <div class="compta-print">
