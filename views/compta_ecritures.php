@@ -25,8 +25,9 @@ foreach ($feuilles as $f) {
 $showForm = $openNew || $editEcr !== null;
 $isEdit   = $editEcr !== null;
 $qs = '&compte=' . $compteId . '&annee=' . $annee . '&categorie=' . urlencode($categorieFilter) . '&axe=' . urlencode($axeFilter);
-$axeById = [];
-foreach ($axes as $ax) { $axeById[(int) $ax['id']] = $ax['libelle']; }
+$axeLabel = fn(array $ax): string => ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
+$axeById  = [];
+foreach ($axes as $ax) { $axeById[(int) $ax['id']] = $axeLabel($ax); }
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
 $catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuilles, $cheminById): string {
@@ -104,7 +105,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <?php foreach ($axes as $ax): ?>
                     <option value="<?= (int) $ax['id'] ?>"
                         <?= $isEdit && (int)($editEcr['axe_analytique_id'] ?? 0) === (int) $ax['id'] ? 'selected' : '' ?>>
-                        <?= e($ax['libelle']) ?>
+                        <?= e($axeLabel($ax)) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -170,7 +171,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <option value="" <?= $axeFilter === '' ? 'selected' : '' ?>>Tous</option>
             <option value="sans_axe" <?= $axeFilter === 'sans_axe' ? 'selected' : '' ?>>— Sans axe —</option>
             <?php foreach ($axes as $ax): ?>
-                <option value="<?= (int) $ax['id'] ?>" <?= $axeFilter === (string) $ax['id'] ? 'selected' : '' ?>><?= e($ax['libelle']) ?></option>
+                <option value="<?= (int) $ax['id'] ?>" <?= $axeFilter === (string) $ax['id'] ? 'selected' : '' ?>><?= e($axeLabel($ax)) ?></option>
             <?php endforeach; ?>
         </select>
     </label>
@@ -219,7 +220,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <select name="axe_analytique_id" class="inline-year-select">
                 <option value="">— Retirer l'axe —</option>
                 <?php foreach ($axes as $ax): ?>
-                    <option value="<?= (int) $ax['id'] ?>"><?= e($ax['libelle']) ?></option>
+                    <option value="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></option>
                 <?php endforeach; ?>
             </select>
             <button type="submit">Appliquer</button>
@@ -315,7 +316,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <ul id="row-axe-list" class="cat-search-list" hidden role="listbox">
     <li data-val="">— Retirer l'axe —</li>
     <?php foreach ($axes as $ax): ?>
-        <li data-val="<?= (int) $ax['id'] ?>"><?= e($ax['libelle']) ?></li>
+        <li data-val="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></li>
     <?php endforeach; ?>
 </ul>
 <?php endif; ?>
