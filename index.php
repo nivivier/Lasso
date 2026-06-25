@@ -90,6 +90,7 @@ $handlers = [
     'compta_axes'           => 'route_compta_axes',
     'compta_analyse'        => 'route_compta_analyse',
     'compta_analyse_print'      => 'route_compta_analyse_print',
+    'compta_analyse_axe'        => 'route_compta_analyse_axe',
     'compta_analyse_axe_print'  => 'route_compta_analyse_axe_print',
     'compta_bilan'          => 'route_compta_bilan',
     'compta_bilan_print'    => 'route_compta_bilan_print',

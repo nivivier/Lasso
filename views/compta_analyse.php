@@ -64,12 +64,10 @@
             $res      = $v['resultat'];
             $totProd += $v['produits'];
             $totChg  += $v['charges'];
-            $detail   = $detailParAxe[(int) $v['id']] ?? [];
-            $nbCats   = count($detail);
+            $nbCats   = count($detailParAxe[(int) $v['id']] ?? []);
         ?>
-            <tr class="cr-groupe cr-clic" data-axe="<?= (int) $v['id'] ?>" tabindex="0" role="button" aria-expanded="false">
+            <tr class="cr-groupe cr-clic row-link" data-href="?p=compta_analyse_axe&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>">
                 <td>
-                    <span class="cr-toggle" aria-hidden="true"><?= icon('chevron') ?></span>
                     <?= e($v['libelle']) ?>
                     <?php if ($v['code']): ?><span class="muted small"> · <?= e($v['code']) ?></span><?php endif; ?>
                     <?php if (!$v['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
@@ -85,42 +83,7 @@
                     <?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?>
                 </td>
                 <td>
-                    <a class="btn-icon ghost" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Aperçu" onclick="event.stopPropagation()"><?= icon('eye') ?></a>
-                </td>
-            </tr>
-            <tr class="cr-detail" data-axe="<?= (int) $v['id'] ?>" hidden>
-                <td colspan="5">
-                <?php if ($detail):
-                    $curSens = null;
-                    foreach ($detail as $pid => $cat):
-                        if ($cat['sens'] !== $curSens):
-                            $curSens = $cat['sens'];
-                ?>
-                    <div class="cr-sens-label">
-                        <?= $curSens === 'produit' ? 'Recettes' : 'Dépenses' ?>
-                    </div>
-                <?php  endif; ?>
-                    <div class="cr-axe-cat">
-                        <div class="cr-axe-cat-head">
-                            <span><?= e($cat['libelle']) ?></span>
-                            <span class="num <?= $cat['montant'] > 0 ? 'montant-pos' : ($cat['montant'] < 0 ? 'montant-neg' : '') ?>"><?= chf($cat['montant']) ?></span>
-                        </div>
-                        <?php foreach ($cat['lignes'] as $l):
-                            $neg = (float) $l['montant'] < 0;
-                        ?>
-                        <div class="cr-det-row">
-                            <span class="dt"><?= e(date('d.m.Y', strtotime((string) $l['date_op']))) ?></span>
-                            <span class="cpt"><?= e($l['compte']) ?></span>
-                            <span class="tx" title="<?= e($l['texte']) ?>"><?= e($l['texte']) ?></span>
-                            <span class="mt <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $l['montant']) ?></span>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endforeach; ?>
-                <?php else: ?>
-                    <p class="muted small">Aucune écriture ventilée sur cet axe.</p>
-                <?php endif; ?>
-
+                    <a class="btn ghost btn-sm icon-only" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Aperçu impression"><?= icon('eye') ?></a>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -140,25 +103,4 @@
         Les écritures non ventilées ne sont pas incluses.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">Voir les écritures lettrées sans axe.</a>
     </p>
-
-
-<script>
-(function () {
-    function toggle(row) {
-        const axe = row.getAttribute('data-axe');
-        const det = document.querySelector('.cr-detail[data-axe="' + axe + '"]');
-        if (!det) return;
-        const open = det.hasAttribute('hidden');
-        det.toggleAttribute('hidden', !open);
-        row.classList.toggle('open', open);
-        row.setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-    document.querySelectorAll('.cr-clic').forEach(row => {
-        row.addEventListener('click', () => toggle(row));
-        row.addEventListener('keydown', e => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(row); }
-        });
-    });
-})();
-</script>
 <?php endif; ?>

@@ -851,8 +851,109 @@ function compta_analyse_data(?int $annee): array
 function route_compta_analyse(): void
 {
     require_login();
-    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : null;
+    // Pas de param → toutes les années (0) plutôt que la plus récente.
+    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
     render('compta_analyse', compta_analyse_data($annee), 'Comptabilité analytique');
+}
+
+function route_compta_analyse_axe(): void
+{
+    require_login();
+    $axeId = (int) ($_GET['axe'] ?? 0);
+    if (!$axeId) redirect('compta_analyse');
+
+    $stmt = db()->prepare('SELECT * FROM axes_analytiques WHERE id = ?');
+    $stmt->execute([$axeId]);
+    $axe = $stmt->fetch();
+    if (!$axe) redirect('compta_analyse');
+
+    $annees = compta_annees();
+    $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) ($annees[0] ?? date('Y'));
+
+    $plan = compta_plan_map();
+
+    // Sommaires par catégorie (même logique que axe_print).
+    if ($annee === 0) {
+        $cols = $annees;
+        $sommesParAnnee = [];
+        $stmtAll = db()->prepare(
+            'SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s FROM ecritures
+             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
+             GROUP BY y, plan_compte_id'
+        );
+        $stmtAll->execute([$axeId]);
+        foreach ($stmtAll as $r) {
+            $sommesParAnnee[(int) $r['y']][(int) $r['plan_compte_id']] = (float) $r['s'];
+        }
+        foreach ($cols as $a) {
+            if (!isset($sommesParAnnee[$a])) $sommesParAnnee[$a] = [];
+        }
+    } else {
+        if ($annees && !in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
+        $cols = [$annee];
+        $sommesParAnnee = [$annee => []];
+        $stmtSommes = db()->prepare(
+            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
+             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
+             GROUP BY plan_compte_id'
+        );
+        $stmtSommes->execute([$axeId, (string) $annee]);
+        foreach ($stmtSommes as $r) {
+            $sommesParAnnee[$annee][(int) $r['plan_compte_id']] = (float) $r['s'];
+        }
+    }
+
+    $totauxParAnnee = [];
+    foreach ($cols as $a) {
+        $tp = 0.0; $tc = 0.0;
+        foreach ($sommesParAnnee[$a] as $pid => $m) {
+            if (($plan[$pid]['sens'] ?? 'charge') === 'produit') $tp += $m; else $tc += $m;
+        }
+        $totauxParAnnee[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc];
+    }
+
+    $anneeRef = (int) ($cols[0] ?? $annee);
+
+    // Écritures ventilées sur cet axe.
+    if ($annee === 0) {
+        $stmtEcr = db()->prepare(
+            'SELECT e.id, e.date_op, e.texte, e.montant,
+                    cb.libelle AS compte_libelle,
+                    pc.libelle AS cat_libelle
+             FROM ecritures e
+             JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             LEFT JOIN plan_comptes pc ON pc.id = e.plan_compte_id
+             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL
+             ORDER BY e.date_op DESC, e.id DESC'
+        );
+        $stmtEcr->execute([$axeId]);
+    } else {
+        $stmtEcr = db()->prepare(
+            'SELECT e.id, e.date_op, e.texte, e.montant,
+                    cb.libelle AS compte_libelle,
+                    pc.libelle AS cat_libelle
+             FROM ecritures e
+             JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             LEFT JOIN plan_comptes pc ON pc.id = e.plan_compte_id
+             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL
+               AND substr(e.date_op,1,4) = ?
+             ORDER BY e.date_op DESC, e.id DESC'
+        );
+        $stmtEcr->execute([$axeId, (string) $annee]);
+    }
+    $ecritures = $stmtEcr->fetchAll();
+
+    render('compta_analyse_axe', [
+        'axe'            => $axe,
+        'annee'          => $annee,
+        'anneeRef'       => $anneeRef,
+        'annees'         => $annees,
+        'cols'           => $cols,
+        'plan'           => $plan,
+        'sommesParAnnee' => $sommesParAnnee,
+        'totauxParAnnee' => $totauxParAnnee,
+        'ecritures'      => $ecritures,
+    ], 'Analytique — ' . $axe['libelle']);
 }
 
 function route_compta_analyse_print(): void
