@@ -381,49 +381,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         search.addEventListener('input', apply);
     }
 })();
-// Cat-search — filtre catégorie (soumet le form GET à la sélection)
-(function () {
-    const wrap = document.querySelector('.filtre-cat-search');
-    if (!wrap) return;
-    const input  = wrap.querySelector('.cat-search-input');
-    const hidden = wrap.querySelector('.cat-search-val');
-    const list   = wrap.querySelector('.cat-search-list');
-    const items  = Array.from(list.querySelectorAll('li:not(.cat-search-group)'));
-    const groups = Array.from(list.querySelectorAll('.cat-search-group'));
-    const norm   = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    function filter(q) {
-        const nq = norm(q);
-        items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); });
-        // Masquer les en-têtes de groupe si tous leurs items sont cachés
-        groups.forEach(g => {
-            let sib = g.nextElementSibling;
-            let hasVisible = false;
-            while (sib && !sib.classList.contains('cat-search-group')) {
-                if (!sib.hidden) hasVisible = true;
-                sib = sib.nextElementSibling;
-            }
-            g.hidden = !hasVisible;
-        });
-    }
-    input.addEventListener('focus', () => { input.value = ''; filter(''); list.hidden = false; });
-    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
-    input.addEventListener('blur',  () => {
-        setTimeout(() => {
-            list.hidden = true;
-            const cur = items.find(li => li.dataset.val === hidden.value);
-            input.value = cur ? (cur.dataset.val !== '' ? cur.textContent.trim() : '') : '';
-        }, 150);
-    });
-    items.forEach(li => {
-        li.addEventListener('mousedown', e => {
-            e.preventDefault();
-            hidden.value = li.dataset.val;
-            input.value  = li.dataset.val !== '' ? li.textContent : '';
-            list.hidden  = true;
-            wrap.closest('form').submit();
-        });
-    });
-})();
 
 // Bouton "Nouvelle écriture manuelle" — affiche/masque le formulaire
 (function () {
@@ -594,3 +551,48 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 })();
 </script>
 <?php endif; ?>
+<script>
+// Cat-search — filtre catégorie (soumet le form GET à la sélection)
+// Toujours rendu, même quand la liste d'écritures est vide.
+(function () {
+    const wrap = document.querySelector('.filtre-cat-search');
+    if (!wrap) return;
+    const input  = wrap.querySelector('.cat-search-input');
+    const hidden = wrap.querySelector('.cat-search-val');
+    const list   = wrap.querySelector('.cat-search-list');
+    const items  = Array.from(list.querySelectorAll('li:not(.cat-search-group)'));
+    const groups = Array.from(list.querySelectorAll('.cat-search-group'));
+    const norm   = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    function filter(q) {
+        const nq = norm(q);
+        items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); });
+        groups.forEach(g => {
+            let sib = g.nextElementSibling;
+            let hasVisible = false;
+            while (sib && !sib.classList.contains('cat-search-group')) {
+                if (!sib.hidden) hasVisible = true;
+                sib = sib.nextElementSibling;
+            }
+            g.hidden = !hasVisible;
+        });
+    }
+    input.addEventListener('focus', () => { input.value = ''; filter(''); list.hidden = false; });
+    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('blur',  () => {
+        setTimeout(() => {
+            list.hidden = true;
+            const cur = items.find(li => li.dataset.val === hidden.value);
+            input.value = cur ? (cur.dataset.val !== '' ? cur.textContent.trim() : '') : '';
+        }, 150);
+    });
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            hidden.value = li.dataset.val;
+            input.value  = li.dataset.val !== '' ? li.textContent : '';
+            list.hidden  = true;
+            wrap.closest('form').submit();
+        });
+    });
+})();
+</script>
