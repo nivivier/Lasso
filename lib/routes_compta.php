@@ -1101,22 +1101,36 @@ function route_compta_ecritures_csv(): void
     require_login();
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
 
-    $stmt = db()->prepare(
-        'SELECT e.date_op, e.texte, e.tiers, e.communication, e.montant,
-                cb.libelle AS compte_bancaire,
-                p.libelle  AS categorie,
-                e.origine_lettrage
-         FROM ecritures e
-         JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
-         LEFT JOIN plan_comptes p  ON p.id  = e.plan_compte_id
-         WHERE substr(e.date_op,1,4) = ?
-         ORDER BY e.date_op ASC, e.id ASC'
-    );
-    $stmt->execute([(string) $annee]);
-    $rows = $stmt->fetchAll();
+    if ($annee === 0) {
+        $rows = db()->query(
+            'SELECT e.date_op, e.texte, e.tiers, e.communication, e.montant,
+                    cb.libelle AS compte_bancaire,
+                    p.libelle  AS categorie,
+                    e.origine_lettrage
+             FROM ecritures e
+             JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             LEFT JOIN plan_comptes p  ON p.id  = e.plan_compte_id
+             ORDER BY e.date_op ASC, e.id ASC'
+        )->fetchAll();
+    } else {
+        $stmt = db()->prepare(
+            'SELECT e.date_op, e.texte, e.tiers, e.communication, e.montant,
+                    cb.libelle AS compte_bancaire,
+                    p.libelle  AS categorie,
+                    e.origine_lettrage
+             FROM ecritures e
+             JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             LEFT JOIN plan_comptes p  ON p.id  = e.plan_compte_id
+             WHERE substr(e.date_op,1,4) = ?
+             ORDER BY e.date_op ASC, e.id ASC'
+        );
+        $stmt->execute([(string) $annee]);
+        $rows = $stmt->fetchAll();
+    }
 
     $nom = (string) param('employeur_nom');
-    $filename = 'ecritures-' . $annee . ($nom !== '' ? '-' . preg_replace('/[^a-z0-9]/i', '-', $nom) : '') . '.csv';
+    $anneeLabel = $annee === 0 ? 'toutes-annees' : (string) $annee;
+    $filename = 'ecritures-' . $anneeLabel . ($nom !== '' ? '-' . preg_replace('/[^a-z0-9]/i', '-', $nom) : '') . '.csv';
 
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
