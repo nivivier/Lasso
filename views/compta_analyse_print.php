@@ -22,7 +22,7 @@
                 <?php endif; ?>
                 <div>
                     <h1><?= $nomEmployeur !== '' ? e($nomEmployeur) : 'Comptabilité' ?></h1>
-                    <p>Comptabilité analytique — <?= $annee ? 'Exercice ' . (int) $annee : 'Toutes les années' ?></p>
+                    <div class="cp-sub">Comptabilité analytique <?= $annee ? (int) $annee : '— toutes les années' ?></div>
                 </div>
             </div>
 

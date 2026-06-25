@@ -105,11 +105,7 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
                 <?php endif; ?>
                 <div>
                     <h1><?= $nomEmployeur !== '' ? e($nomEmployeur) : 'Comptabilité' ?></h1>
-                    <div class="cp-sub">
-                        <?= e((string) $axe['libelle']) ?>
-                        <?php if ($axe['code']): ?><span class="muted"> · <?= e((string) $axe['code']) ?></span><?php endif; ?>
-                        — <?= $titreAnnee ?>
-                    </div>
+                    <div class="cp-sub"><?= e((string) $axe['libelle']) ?> <?= $titreAnnee ?></div>
                 </div>
             </div>
 
