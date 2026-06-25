@@ -118,6 +118,6 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
             </p>
         </div>
     </div>
-    <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
+
 </body>
 </html>
