@@ -13,13 +13,25 @@
         <button type="button" id="btn-new-axe" class="btn btn-sm"><?= icon('plus') ?> Ajouter un axe</button>
     </div>
     <table class="list" style="margin-top:10px">
-        <thead><tr><th>Axe analytique</th><th class="center">Actif</th><th></th></tr></thead>
+        <thead><tr><th style="width:36px"></th><th>Axe analytique</th><th></th></tr></thead>
         <tbody>
         <?php if (!$axes): ?>
             <tr><td colspan="3" class="muted small">Aucun axe analytique. Exemples : Label, Tour, Stages, Local.</td></tr>
         <?php endif; ?>
         <?php foreach ($axes as $a): ?>
             <tr>
+                <td style="padding:0 0 0 12px">
+                    <form method="post" action="?p=compta_axes">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="section" value="toggle_actif">
+                        <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+                        <label class="regle-toggle" title="<?= $a['actif'] ? 'Désactiver' : 'Activer' ?>">
+                            <input type="checkbox" name="actif" value="1" <?= $a['actif'] ? 'checked' : '' ?>
+                                   class="regle-actif-cb" onchange="this.closest('form').submit()">
+                            <span class="regle-toggle-pill"></span>
+                        </label>
+                    </form>
+                </td>
                 <td>
                     <div class="axe-read">
                         <strong><?= e($a['libelle']) ?></strong>
@@ -32,13 +44,9 @@
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
                         <input name="libelle" value="<?= e($a['libelle']) ?>" class="grow" required placeholder="Libellé">
                         <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban" style="max-width:120px" title="Code court optionnel (ex. LAB, TOU, STA)">
-                        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;white-space:nowrap">
-                            <input type="checkbox" name="actif" value="1" <?= $a['actif'] ? 'checked' : '' ?>> Actif
-                        </label>
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
-                <td class="center"><?= $a['actif'] ? icon('check') : '<span class="muted">—</span>' ?></td>
                 <td class="actions nowrap">
                     <form method="post" action="?p=compta_axes" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
