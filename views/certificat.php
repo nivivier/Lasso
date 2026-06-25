@@ -13,7 +13,7 @@
     </div>
     <div class="head-actions">
         <a class="btn ghost" href="?p=certificat_xml&employe_id=<?= (int) $emp['id'] ?>&annee=<?= (int) $annee ?>"><?= icon('download') ?> XML (eCS CSI)</a>
-        <a class="btn" href="?p=certificat_print&employe_id=<?= (int) $emp['id'] ?>&annee=<?= (int) $annee ?>" target="_blank"><?= icon('printer') ?> Aperçu</a>
+        <a class="btn" href="?p=certificat_print&employe_id=<?= (int) $emp['id'] ?>&annee=<?= (int) $annee ?>" target="_blank"><?= icon('eye') ?> Aperçu</a>
     </div>
 </div>
 

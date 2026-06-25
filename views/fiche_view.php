@@ -18,7 +18,7 @@
         <?php else: ?>
             <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
         <?php endif; ?>
-        <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" target="_blank" title="Aperçu"><?= icon('printer') ?> <span class="lbl">Aperçu</span></a>
+        <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
         <?php
         $envoyee = trim((string) ($f['email_envoye_le'] ?? '')) !== '';
         $peutEnvoyer = filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) && filter_var($emailExp, FILTER_VALIDATE_EMAIL);
