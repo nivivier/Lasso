@@ -17,7 +17,7 @@
     </div>
     <div class="page-head-actions">
         <?php if ($ventilation): ?>
-        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" target="_blank" rel="noopener"><?= icon('printer') ?> Imprimer / PDF</a>
+        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" target="_blank" rel="noopener"><?= icon('printer') ?> Aperçu</a>
         <?php endif; ?>
         <a href="?p=compta_axes" class="btn ghost btn-sm"><?= icon('settings') ?> Gérer les axes</a>
     </div>
@@ -87,7 +87,7 @@
                     <?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?>
                 </td>
                 <td>
-                    <a class="btn-icon ghost" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Imprimer / PDF" onclick="event.stopPropagation()"><?= icon('printer') ?></a>
+                    <a class="btn-icon ghost" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Aperçu" onclick="event.stopPropagation()"><?= icon('printer') ?></a>
                 </td>
             </tr>
             <tr class="cr-detail" data-axe="<?= (int) $v['id'] ?>" hidden>

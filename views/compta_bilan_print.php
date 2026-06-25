@@ -100,6 +100,6 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
             <p class="cp-foot">Édité le <?= e(date('d.m.Y')) ?> · comptabilité de caisse</p>
         </div>
     </div>
-    <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
+
 </body>
 </html>

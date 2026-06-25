@@ -14,6 +14,6 @@
     <div class="sheet">
         <?php require __DIR__ . '/_certificat_body.php'; ?>
     </div>
-    <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
+
 </body>
 </html>
