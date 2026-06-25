@@ -22,13 +22,16 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         $id = (int) $row['id'];
         $enfants = $byParent[$id] ?? [];
         if ($enfants) {
+            // Rendre les enfants d'abord ; si tous masqués, masquer le groupe.
+            $childHtml = '';
+            foreach ($enfants as $child) { $childHtml .= $rendre($child, $prof + 1); }
+            if ($childHtml === '') return '';
             $h = '<tr class="cr-groupe"><td ' . $pad($prof) . '>' . e($row['libelle']) . '</td>'
                . $cellules(fn(int $a) => plan_sous_total($id, $byParent, $sommesParAnnee[$a] ?? [])) . '</tr>';
-            foreach ($enfants as $child) {
-                $h .= $rendre($child, $prof + 1);
-            }
-            return $h;
+            return $h . $childHtml;
         }
+        // Feuille inactive sans montant dans l'année sélectionnée → masquée.
+        if (!(int) ($row['actif'] ?? 1) && empty($sommesParAnnee[$annee][$id])) return '';
         // Feuille : ligne cliquable (le détail concerne l'année sélectionnée).
         $lignes = $lignesParCat[$id] ?? [];
         $h = '<tr class="cr-compte cr-clic" data-cat="' . $id . '" tabindex="0" role="button" aria-expanded="false">'

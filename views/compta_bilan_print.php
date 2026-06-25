@@ -16,17 +16,18 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         }
         return $h;
     };
-    $rendre = function (array $row, int $prof) use (&$rendre, $byParent, $sommesParAnnee, $pad, $cellules): string {
+    $rendre = function (array $row, int $prof) use (&$rendre, $byParent, $sommesParAnnee, $pad, $cellules, $annee): string {
         $id = (int) $row['id'];
         $enfants = $byParent[$id] ?? [];
         if ($enfants) {
+            $childHtml = '';
+            foreach ($enfants as $child) { $childHtml .= $rendre($child, $prof + 1); }
+            if ($childHtml === '') return '';
             $h = '<tr class="cr-groupe"><td ' . $pad($prof) . '>' . e($row['libelle']) . '</td>'
                . $cellules(fn(int $a) => plan_sous_total($id, $byParent, $sommesParAnnee[$a] ?? [])) . '</tr>';
-            foreach ($enfants as $child) {
-                $h .= $rendre($child, $prof + 1);
-            }
-            return $h;
+            return $h . $childHtml;
         }
+        if (!(int) ($row['actif'] ?? 1) && empty($sommesParAnnee[$annee][$id])) return '';
         return '<tr class="cr-compte"><td ' . $pad($prof) . '>' . e($row['libelle']) . '</td>'
              . $cellules(fn(int $a) => (float) ($sommesParAnnee[$a][$id] ?? 0)) . '</tr>';
     };
