@@ -666,6 +666,7 @@ abbr {
 .compta-cr td { padding: 5px 12px; }
 .compta-cr .cr-section th { background: var(--surface); text-transform: uppercase; font-size: 11.5px; letter-spacing: .05em; color: var(--muted); text-align: left; padding: 8px 12px; }
 .compta-cr .cr-groupe td { font-weight: 600; color: var(--ink); }
+.compta-cr.cr-flat .cr-groupe td { font-weight: 400; }
 .compta-cr .cr-compte td { font-size: 13px; }
 .compta-cr .cr-compte td:first-child { padding-left: 34px; color: var(--muted); }
 .compta-cr .cr-clic { cursor: pointer; }
