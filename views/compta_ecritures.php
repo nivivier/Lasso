@@ -277,21 +277,40 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="lettrer">
                     <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
-                    <?php if ($rowCatPrefix !== ''): ?><div class="cat-prefix"><?= e($rowCatPrefix) ?></div><?php endif; ?>
-                    <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —"
-                           value="<?= e($rowCatLeaf) ?>">
                     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
+                    <?php if ($rowCatVal !== ''): ?>
+                    <div class="row-field-disp">
+                        <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?> · </span><?php endif; ?><?= e($rowCatLeaf) ?></span>
+                        <button type="button" class="row-edit-btn" title="Modifier"><?= icon('pencil') ?></button>
+                    </div>
+                    <div class="row-field-inp" hidden>
+                        <div class="cat-prefix"><?= e($rowCatPrefix) ?></div>
+                        <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —" value="<?= e($rowCatLeaf) ?>">
+                    </div>
+                    <?php else: ?>
+                    <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —" value="">
+                    <?php endif; ?>
                 </form>
             </td>
             <?php if ($axes): ?>
+            <?php $axeValAff = $axeById[(int) ($ecr['axe_analytique_id'] ?? 0)] ?? ''; ?>
             <td class="axe-cell">
                 <form method="post" action="?p=compta_ecritures<?= $qs ?>">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="axer">
                     <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
-                    <input type="text" class="row-axe-input" autocomplete="off" placeholder="—"
-                           value="<?= e($axeById[(int) ($ecr['axe_analytique_id'] ?? 0)] ?? '') ?>">
                     <input type="hidden" name="axe_analytique_id" class="row-axe-val" value="<?= e($ecr['axe_analytique_id'] ?? '') ?>">
+                    <?php if ($axeValAff !== ''): ?>
+                    <div class="row-field-disp">
+                        <span class="row-field-txt"><?= e($axeValAff) ?></span>
+                        <button type="button" class="row-edit-btn" title="Modifier"><?= icon('pencil') ?></button>
+                    </div>
+                    <div class="row-field-inp" hidden>
+                        <input type="text" class="row-axe-input" autocomplete="off" placeholder="—" value="<?= e($axeValAff) ?>">
+                    </div>
+                    <?php else: ?>
+                    <input type="text" class="row-axe-input" autocomplete="off" placeholder="—" value="">
+                    <?php endif; ?>
                 </form>
             </td>
             <?php endif; ?>
@@ -344,6 +363,19 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         updateBulkBar();
     });
     document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
+
+    // Crayon → passer en mode édition pour catégorie / axe d'une ligne.
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.row-edit-btn');
+        if (!btn) return;
+        const disp = btn.closest('.row-field-disp');
+        if (!disp) return;
+        const inp = disp.nextElementSibling;
+        if (!inp) return;
+        disp.hidden = true;
+        inp.hidden = false;
+        inp.querySelector('input[type="text"]')?.focus();
+    });
 
     // Clic sur le texte → bascule résumé ↔ texte brut complet.
     document.querySelectorAll('.compta-lettrage .texte-cell').forEach(td => {
@@ -466,6 +498,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 list.hidden = true;
                 const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
                 if (cur) applyLeaf(cur); else if (activeInput) { activeInput.value = ''; if (activePrefix) activePrefix.textContent = ''; }
+                const inp = input.closest('.row-field-inp');
+                if (inp) { const disp = inp.previousElementSibling; if (disp?.classList.contains('row-field-disp')) { inp.hidden = true; disp.hidden = false; } }
             }, 150);
         });
     });
@@ -525,11 +559,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
         input.addEventListener('blur', () => {
             setTimeout(() => {
-                if (!list.hidden) {
-                    list.hidden = true;
-                    const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
-                    if (activeInput) activeInput.value = cur && cur.dataset.val !== '' ? cur.textContent : '';
-                }
+                list.hidden = true;
+                const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
+                if (activeInput) activeInput.value = cur && cur.dataset.val !== '' ? cur.textContent : '';
+                const inp = input.closest('.row-field-inp');
+                if (inp) { const disp = inp.previousElementSibling; if (disp?.classList.contains('row-field-disp')) { inp.hidden = true; disp.hidden = false; } }
             }, 150);
         });
     });
