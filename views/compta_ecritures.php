@@ -463,11 +463,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
         input.addEventListener('blur',  () => {
             setTimeout(() => {
-                if (!list.hidden) {
-                    list.hidden = true;
-                    const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
-                    if (cur) applyLeaf(cur); else if (activeInput) { activeInput.value = ''; if (activePrefix) activePrefix.textContent = ''; }
-                }
+                list.hidden = true;
+                const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
+                if (cur) applyLeaf(cur); else if (activeInput) { activeInput.value = ''; if (activePrefix) activePrefix.textContent = ''; }
             }, 150);
         });
     });
