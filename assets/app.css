@@ -220,7 +220,8 @@ h3.sub.no-mt { margin-top: 0; }
 .filtre-cat-search .cat-search-input { padding: 9px 10px; font-size: 13.5px; }
 .filters input[type="search"] { padding: 9px 10px; font-size: 13.5px; }
 /* En-têtes de groupe dans les listes cat-search */
-.cat-search-group { padding: 6px 12px 2px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); cursor: default; pointer-events: none; }
+.cat-search-sens  { padding: 6px 12px 2px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); cursor: default; pointer-events: none; }
+.cat-search-group { padding: 2px 12px 1px 22px; font-size: 10.5px; font-weight: 600; color: var(--muted); cursor: default; pointer-events: none; }
 /* Formulaire écriture manuelle */
 .ecr-manuel-form { margin-bottom: 16px; }
 .ecr-manuel-form h3.form-subtitle { margin: 0 0 16px; font-size: 15px; font-weight: 700; }
