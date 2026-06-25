@@ -796,14 +796,14 @@ abbr {
 .compta-print .list th.num { width: 110px; }
 
 /* Version imprimable du bilan — style typographique commun écran + impression */
-/* inline-flex colonne : le conteneur prend la largeur de la plus large des tables,
-   align-items:stretch force les deux à cette même largeur */
-.compta-print { display: inline-flex; flex-direction: column; align-items: stretch; color: var(--ink); }
-.compta-print .cp-head { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid var(--brand); padding-bottom: 10px; margin-bottom: 18px; }
+/* Flex colonne pleine largeur ; le header occupe toute la largeur du sheet,
+   les tableaux sont centrés horizontalement. */
+.compta-print { display: flex; flex-direction: column; align-items: center; width: 100%; color: var(--ink); }
+.compta-print .cp-head { align-self: stretch; display: flex; align-items: center; gap: 16px; border-bottom: 2px solid var(--brand); padding-bottom: 10px; margin-bottom: 18px; }
 .compta-print .cp-logo { height: 48px; width: auto; object-fit: contain; flex-shrink: 0; }
-.compta-print .cp-head h1 { margin: 0; font-size: 22px; color: var(--brand); }
-.compta-print .cp-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.compta-print h2 { font-size: 13px; font-weight: 700; margin: 16px 0 3px; }
+.compta-print .cp-head h1 { margin: 0; font-size: 13px; font-weight: 500; color: var(--muted); }
+.compta-print .cp-sub { font-size: 20px; font-weight: 700; color: var(--brand); margin-top: 4px; }
+.compta-print h2 { font-size: 13px; font-weight: 700; margin: 16px 0 3px; align-self: stretch; }
 .compta-print table { width: auto; margin-bottom: 6px; border: none; border-radius: 0; box-shadow: none; background: transparent; border-collapse: collapse; }
 .compta-print .list th,
 .compta-print .list td { padding: 2px 10px; font-size: 11px; border: none; border-bottom: 1px solid #e0e0e0; background: transparent; }
