@@ -177,11 +177,16 @@ h3.sub.no-mt { margin-top: 0; }
 .form input, .filters input { appearance: none; -webkit-appearance: none; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
-.row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 180px;
-    padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
+.row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 140px;
+    padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
     cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .row-cat-input::placeholder { color: var(--muted); }
 .row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
+/* Préfixe (catégorie parente) affiché au-dessus de l'input */
+.cat-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); min-height: 13px; margin-bottom: 1px; }
+/* Texte plus compact pour Date et Compte */
+.compta-lettrage td.nowrap { font-size: 12px; }
+.compta-lettrage .compte-cell { font-size: 11px; }
 /* Dropdown partagé positionné en absolu dans le flux de la page */
 #row-cat-list { position: absolute; z-index: 200; }
 /* Bulk cat-search : largeur fixe pour tenir dans la barre flottante */

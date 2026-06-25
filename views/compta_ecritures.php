@@ -4,9 +4,22 @@
 /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 
-// Map id → chemin pour initialiser les inputs individuels.
-$cheminById = [];
-foreach ($feuilles as $f) { $cheminById[(int) $f['id']] = $f['chemin']; }
+// Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
+$cheminById    = [];
+$catPrefixById = [];
+$catLeafById   = [];
+foreach ($feuilles as $f) {
+    $ch = $f['chemin'];
+    $cheminById[(int) $f['id']] = $ch;
+    $sep = mb_strrpos($ch, ' › ');
+    if ($sep !== false) {
+        $catPrefixById[(int) $f['id']] = mb_substr($ch, 0, $sep);
+        $catLeafById[(int) $f['id']]   = mb_substr($ch, $sep + 3);
+    } else {
+        $catPrefixById[(int) $f['id']] = '';
+        $catLeafById[(int) $f['id']]   = $ch;
+    }
+}
 
 // Formulaire écriture manuelle (création ou modification).
 $showForm = $openNew || $editEcr !== null;
@@ -243,8 +256,10 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         $isManuel = $ecr['import_id'] === null;
         $estIgnore = $ecr['plan_compte_id'] === null && ($ecr['origine_lettrage'] ?? '') === 'ignore';
         $estNonLettre = $ecr['plan_compte_id'] === null && !$estIgnore;
-        $rowCatLabel = $estIgnore ? 'Ne pas lettrer' : ($cheminById[(int) ($ecr['plan_compte_id'] ?? 0)] ?? '');
         $rowCatVal   = $estIgnore ? 'ignore' : ($ecr['plan_compte_id'] ?? '');
+        $pid = (int) ($ecr['plan_compte_id'] ?? 0);
+        $rowCatPrefix = $estIgnore ? '' : ($catPrefixById[$pid] ?? '');
+        $rowCatLeaf   = $estIgnore ? 'Ne pas lettrer' : ($catLeafById[$pid] ?? '');
         ?>
         <tr class="<?= $estNonLettre ? 'non-lettre' : '' ?><?= $estIgnore ? ' ecr-ignore' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td>
@@ -257,8 +272,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="lettrer">
                     <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
+                    <div class="cat-prefix"><?= e($rowCatPrefix) ?></div>
                     <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —"
-                           value="<?= e($rowCatLabel) ?>">
+                           value="<?= e($rowCatLeaf) ?>">
                     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
                 </form>
             </td>
@@ -302,10 +318,10 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 <!-- Dropdown partagé pour le lettrage individuel (repositionné par JS) -->
 <ul id="row-cat-list" class="cat-search-list" hidden role="listbox">
-    <li data-val="">— à lettrer —</li>
-    <li data-val="ignore">Ne pas lettrer</li>
-    <?php foreach ($feuilles as $f): ?>
-        <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
+    <li data-val="" data-prefix="" data-leaf="">— à lettrer —</li>
+    <li data-val="ignore" data-prefix="" data-leaf="Ne pas lettrer">Ne pas lettrer</li>
+    <?php foreach ($feuilles as $f): $fid = (int) $f['id']; ?>
+        <li data-val="<?= $fid ?>" data-prefix="<?= e($catPrefixById[$fid] ?? '') ?>" data-leaf="<?= e($catLeafById[$fid] ?? $f['chemin']) ?>"><?= e($f['chemin']) ?></li>
     <?php endforeach; ?>
 </ul>
 
@@ -457,7 +473,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     if (!list) return;
     const items = Array.from(list.querySelectorAll('li'));
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    let activeInput = null, activeHidden = null, activeForm = null;
+    let activeInput = null, activeHidden = null, activeForm = null, activePrefix = null;
 
     function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
     function position(input) {
@@ -466,12 +482,20 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         list.style.left   = r.left + 'px';
         list.style.width  = Math.max(r.width, 260) + 'px';
     }
+    function applyLeaf(li) {
+        if (!activeInput) return;
+        const hasVal = li.dataset.val !== '';
+        activeInput.value = hasVal ? li.dataset.leaf : '';
+        if (activePrefix) activePrefix.textContent = hasVal ? (li.dataset.prefix || '') : '';
+    }
 
     document.querySelectorAll('.row-cat-input').forEach(input => {
         const form   = input.closest('form');
         const hidden = form.querySelector('.row-cat-val');
+        const pfx    = form.querySelector('.cat-prefix');
         input.addEventListener('focus', () => {
-            activeInput = input; activeHidden = hidden; activeForm = form;
+            activeInput = input; activeHidden = hidden; activeForm = form; activePrefix = pfx;
+            input.value = ''; // vider pour la recherche
             filter(''); list.hidden = false; position(input);
         });
         input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
@@ -480,7 +504,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 if (!list.hidden) {
                     list.hidden = true;
                     const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
-                    if (activeInput) activeInput.value = cur && cur.dataset.val !== '' ? cur.textContent : '';
+                    if (cur) applyLeaf(cur); else if (activeInput) { activeInput.value = ''; if (activePrefix) activePrefix.textContent = ''; }
                 }
             }, 150);
         });
@@ -491,17 +515,15 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             e.preventDefault();
             if (!activeHidden || !activeInput || !activeForm) return;
             activeHidden.value = li.dataset.val;
-            activeInput.value  = li.dataset.val !== '' ? li.textContent : '';
+            applyLeaf(li);
             list.hidden = true;
             activeForm.submit();
         });
     });
 
-    // Fermer si clic en dehors
     document.addEventListener('mousedown', e => {
         if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
     });
-    // Repositionner sur scroll
     window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
 })();
 
