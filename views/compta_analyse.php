@@ -43,7 +43,7 @@
     </p>
 </div>
 <?php else: ?>
-<div class="card mt-8">
+
     <div class="section-head"></div>
     <div class="table-scroll">
     <table class="list compta-cr">
@@ -140,7 +140,7 @@
         Les écritures non ventilées ne sont pas incluses.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">Voir les écritures lettrées sans axe.</a>
     </p>
-</div>
+
 
 <script>
 (function () {

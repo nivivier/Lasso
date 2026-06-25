@@ -140,7 +140,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php endif; ?>
 </div>
 
-<form method="get" class="filters card-soft">
+<form method="get" class="filters">
     <input type="hidden" name="p" value="compta_ecritures">
     <input type="hidden" name="annee" value="<?= $annee ?>">
     <label>Compte
@@ -201,7 +201,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 
 
-<div class="card">
+
 
 <div class="bulk-bar" id="bulk-bar" hidden>
     <div class="bulk-group">
@@ -342,7 +342,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     </tbody>
 </table>
 </div>
-</div>
+
 
 <!-- Dropdown partagé pour l'axe individuel (repositionné par JS) -->
 <?php if ($axes): ?>
