@@ -195,7 +195,7 @@ h3.sub.no-mt { margin-top: 0; }
 .row-edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--primary); outline-offset: 1px; }
 .row-edit-btn svg { width: 12px; height: 12px; }
 /* Texte plus compact pour Date et Compte */
-.compta-lettrage td.nowrap { font-size: 12px; }
+.compta-lettrage td.nowrap { font-size: 12px; width: 1%; white-space: nowrap; }
 .compta-lettrage .compte-cell { font-size: 11px; }
 /* Dropdown partagé positionné en absolu dans le flux de la page */
 #row-cat-list { position: absolute; z-index: 200; }
@@ -208,7 +208,7 @@ h3.sub.no-mt { margin-top: 0; }
 /* Cat-search dans le formulaire écriture manuelle */
 .form-cat-search { position: relative; }
 /* Axe analytique par ligne */
-.axe-cell { min-width: 120px; }
+.axe-cell { width: 1%; white-space: nowrap; }
 .row-axe-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 110px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .row-axe-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
 #row-axe-list { position: absolute; z-index: 200; }
