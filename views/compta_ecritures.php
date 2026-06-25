@@ -405,13 +405,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             g.hidden = !hasVisible;
         });
     }
-    input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
+    input.addEventListener('focus', () => { input.value = ''; filter(''); list.hidden = false; });
     input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
     input.addEventListener('blur',  () => {
         setTimeout(() => {
             list.hidden = true;
             const cur = items.find(li => li.dataset.val === hidden.value);
-            input.value = cur ? (cur.dataset.val !== '' ? cur.textContent : '') : '';
+            input.value = cur ? (cur.dataset.val !== '' ? cur.textContent.trim() : '') : '';
         }, 150);
     });
     items.forEach(li => {
