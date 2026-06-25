@@ -802,7 +802,7 @@ abbr {
 .compta-print .cp-head { align-self: stretch; display: flex; align-items: center; gap: 16px; border-bottom: 2px solid var(--brand); padding-bottom: 10px; margin-bottom: 18px; }
 .compta-print .cp-logo { height: 48px; width: auto; object-fit: contain; flex-shrink: 0; }
 .compta-print .cp-head h1 { margin: 0; font-size: 13px; font-weight: 500; color: var(--muted); }
-.compta-print .cp-sub { font-size: 20px; font-weight: 700; color: var(--brand); margin-top: 4px; }
+.compta-print .cp-sub { font-size: 20px; font-weight: 700; color: var(--brand); margin-top: 4px; line-height: 1.2; }
 .compta-print h2 { font-size: 13px; font-weight: 700; margin: 16px 0 3px; align-self: stretch; }
 .compta-print table { width: auto; margin-bottom: 6px; border: none; border-radius: 0; box-shadow: none; background: transparent; border-collapse: collapse; }
 .compta-print .list th,

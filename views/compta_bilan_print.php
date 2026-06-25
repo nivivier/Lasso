@@ -58,7 +58,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
                 <?php endif; ?>
                 <div>
                     <h1><?= $nomEmployeur !== '' ? e($nomEmployeur) : 'Comptabilité' ?></h1>
-                    <div class="cp-sub">Bilan &amp; compte de résultat — exercice <?= (int) $annee ?></div>
+                    <div class="cp-sub">Bilan &amp; compte de résultat <?= (int) $annee ?></div>
                 </div>
             </div>
 
