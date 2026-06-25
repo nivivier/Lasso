@@ -98,8 +98,10 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     <?php require $contentView; ?>
 </main>
 <div id="preview-modal" hidden aria-modal="true" role="dialog" aria-label="Aperçu">
-    <button id="preview-modal-close" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
-    <iframe id="preview-modal-frame" src="" title="Aperçu"></iframe>
+    <div id="preview-modal-inner">
+        <button id="preview-modal-close" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
+        <iframe id="preview-modal-frame" src="" title="Aperçu"></iframe>
+    </div>
 </div>
 <script>
 (function () {
