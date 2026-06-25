@@ -875,26 +875,43 @@ function route_compta_analyse_axe_print(): void
 
     $annees = compta_annees();
     $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) ($annees[0] ?? date('Y'));
-    if (!in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
-    $nbPrec = max(0, min((int) ($_GET['prec'] ?? 0), count($annees) - 1));
-
-    $pos  = array_search($annee, $annees);
-    $cols = array_slice($annees, $pos === false ? 0 : $pos, $nbPrec + 1);
 
     $plan = compta_plan_map();
-
-    $stmtSommes = db()->prepare(
-        'SELECT plan_compte_id, SUM(montant) s FROM ecritures
-         WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
-         GROUP BY plan_compte_id'
-    );
     $sommesParAnnee = [];
-    foreach ($cols as $a) {
-        $sommesParAnnee[$a] = [];
-        $stmtSommes->execute([$axeId, (string) $a]);
-        foreach ($stmtSommes as $r) {
-            $sommesParAnnee[$a][(int) $r['plan_compte_id']] = (float) $r['s'];
+
+    if ($annee === 0) {
+        // Toutes les années : une colonne par année disponible, sans filtre temporel.
+        $cols = $annees;
+        $stmtAll = db()->prepare(
+            'SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s FROM ecritures
+             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
+             GROUP BY y, plan_compte_id'
+        );
+        $stmtAll->execute([$axeId]);
+        foreach ($stmtAll as $r) {
+            $sommesParAnnee[(int) $r['y']][(int) $r['plan_compte_id']] = (float) $r['s'];
         }
+        foreach ($cols as $a) {
+            if (!isset($sommesParAnnee[$a])) $sommesParAnnee[$a] = [];
+        }
+    } else {
+        if (!in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
+        $cols = $annees; // toutes les années disponibles en colonnes
+        $stmtSommes = db()->prepare(
+            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
+             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
+             GROUP BY plan_compte_id'
+        );
+        foreach ($cols as $a) {
+            $sommesParAnnee[$a] = [];
+            $stmtSommes->execute([$axeId, (string) $a]);
+            foreach ($stmtSommes as $r) {
+                $sommesParAnnee[$a][(int) $r['plan_compte_id']] = (float) $r['s'];
+            }
+        }
+        // Restreindre aux colonnes demandées (année sélectionnée seulement).
+        $cols = [$annee];
+        $sommesParAnnee = [$annee => $sommesParAnnee[$annee] ?? []];
     }
 
     $totauxParAnnee = [];
@@ -907,11 +924,14 @@ function route_compta_analyse_axe_print(): void
         $totauxParAnnee[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc];
     }
 
+    // Année de référence pour le col-prec : colonne la plus récente.
+    $anneeRef = (int) ($cols[0] ?? $annee);
+
     render_bare('compta_analyse_axe_print', [
         'axe'            => $axe,
         'annee'          => $annee,
+        'anneeRef'       => $anneeRef,
         'annees'         => $annees,
-        'nbPrec'         => $nbPrec,
         'cols'           => $cols,
         'plan'           => $plan,
         'sommesParAnnee' => $sommesParAnnee,

@@ -623,11 +623,6 @@ abbr {
 .cr-count { display: inline-block; min-width: 18px; text-align: center; font-size: 11px; font-weight: 700; color: var(--primary-d); background: var(--primary-tint); border-radius: 20px; padding: 1px 7px; margin-left: 6px; }
 .cr-detail > td { padding: 0 16px 10px 34px; background: #faf9fe; }
 .cr-axe-cat { margin-bottom: 8px; }
-.axe-print-bar { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; border-top: 1px solid var(--line); margin-top: 8px; }
-.axe-print-bar form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.axe-print-bar select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--text); }
-.axe-print-bar button { display: flex; align-items: center; gap: 5px; font-size: 13px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
-.axe-print-bar button:hover { background: var(--hover); }
 .cr-axe-cat-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 13px; padding: 4px 0 2px; border-bottom: 1px solid var(--line); margin-bottom: 2px; }
 .cr-det-row { display: grid; grid-template-columns: 78px 1fr 2fr auto; gap: 12px; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
 .cr-det-row:last-child { border-bottom: none; }

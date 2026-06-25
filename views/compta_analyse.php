@@ -55,6 +55,7 @@
                 <th class="num">Recettes</th>
                 <th class="num">Dépenses</th>
                 <th class="num">Résultat</th>
+                <th style="width:36px"></th>
             </tr>
         </thead>
         <tbody>
@@ -85,9 +86,12 @@
                 <td class="num strong <?= $res > 0 ? 'montant-pos' : ($res < 0 ? 'montant-neg' : '') ?>">
                     <?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?>
                 </td>
+                <td>
+                    <a class="btn-icon ghost" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Imprimer / PDF" onclick="event.stopPropagation()"><?= icon('printer') ?></a>
+                </td>
             </tr>
             <tr class="cr-detail" data-axe="<?= (int) $v['id'] ?>" hidden>
-                <td colspan="4">
+                <td colspan="5">
                 <?php if ($detail):
                     $curSens = null;
                     foreach ($detail as $pid => $cat):
@@ -119,25 +123,6 @@
                     <p class="muted small" style="padding:8px 0">Aucune écriture ventilée sur cet axe.</p>
                 <?php endif; ?>
 
-                <?php if ($annees): $defAnnee = $annee ?: (int) ($annees[0] ?? date('Y')); ?>
-                <div class="axe-print-bar">
-                    <form method="get" target="_blank">
-                        <input type="hidden" name="p" value="compta_analyse_axe_print">
-                        <input type="hidden" name="axe" value="<?= (int) $v['id'] ?>">
-                        <select name="annee">
-                            <?php foreach ($annees as $a): ?>
-                                <option value="<?= (int) $a ?>"<?= (int) $a === $defAnnee ? ' selected' : '' ?>><?= (int) $a ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <select name="prec">
-                            <?php for ($ni = 0, $maxPrec = count($annees) - 1; $ni <= min(4, $maxPrec); $ni++): ?>
-                                <option value="<?= $ni ?>"><?= $ni === 0 ? '1 an' : ($ni + 1) . ' ans' ?></option>
-                            <?php endfor; ?>
-                        </select>
-                        <button type="submit"><?= icon('printer') ?> Imprimer / PDF</button>
-                    </form>
-                </div>
-                <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -148,6 +133,7 @@
                 <td class="num"><?= chf($totProd) ?></td>
                 <td class="num"><?= chf($totChg) ?></td>
                 <td class="num"><?= chf($totProd + $totChg) ?></td>
+                <td></td>
             </tr>
         </tfoot>
     </table>
