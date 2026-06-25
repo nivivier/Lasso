@@ -7,7 +7,7 @@ $byParent = plan_enfants($plan);
 $nbCols   = count($cols);
 
 // Bloc statique (produits / charges) en arbre, une colonne par année.
-$blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnnee, $cols, $nbCols): string {
+$blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnnee, $cols, $nbCols, $annee): string {
     $pad = fn(int $p) => 'class="cr-noeud-pad" style="--depth:' . $p . '"';
     $cellules = function (callable $val) use ($cols): string {
         $h = '';
