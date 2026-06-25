@@ -7,7 +7,7 @@
 </div>
 <?php if ($saved): ?><p class="ok flash">Axe enregistré.</p><?php endif; ?>
 
-<div class="card form">
+
     <div class="card-head">
         <p class="muted small mb-0">Un axe analytique permet de ventiler les écritures selon un critère transversal (projet, secteur, activité…). Associez un axe à chaque écriture pour obtenir le résultat par axe dans les comptes annuels.</p>
         <button type="button" id="btn-new-axe" class="btn btn-sm"><?= icon('plus') ?> Ajouter un axe</button>
@@ -88,7 +88,6 @@
             </tr>
         </tfoot>
     </table>
-</div>
 
 <script>
 (function () {

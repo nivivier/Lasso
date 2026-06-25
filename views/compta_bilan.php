@@ -102,7 +102,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 </div>
 <?php endif; ?>
 
-<div class="card bilan-card">
+
     <div class="section-head">
         <h2>État du patrimoine</h2>
         <a href="?p=compta_comptes" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Comptes bancaires</a>
@@ -128,10 +128,9 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </tbody>
     </table>
     </div>
-</div>
 
 
-<div class="card bilan-card mt-28">
+
     <div class="section-head">
         <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
         <a href="?p=compta_plan" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Plan comptable</a>
@@ -155,7 +154,6 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </tbody>
     </table>
     </div>
-</div>
 
 
 <script>
