@@ -708,6 +708,11 @@ function route_compta_axes(): void
                 db()->prepare('UPDATE axes_analytiques SET libelle=?, code=?, actif=? WHERE id=?')
                     ->execute([$lib, $code, $actif, $id]);
             }
+        } elseif ($section === 'toggle_actif') {
+            $id = (int) ($_POST['id'] ?? 0);
+            if ($id) {
+                db()->prepare('UPDATE axes_analytiques SET actif = 1 - actif WHERE id = ?')->execute([$id]);
+            }
         } elseif ($section === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id) {
