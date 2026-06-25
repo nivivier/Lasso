@@ -50,7 +50,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .sidebar {
     width: 160px;
     flex-shrink: 0;
-    background: linear-gradient(165deg, var(--brand) 0%, #3a2f6b 100%);
+    background: linear-gradient(165deg, var(--brand) 0%, var(--brand-2) 100%);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -134,7 +134,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 body.auth-bg {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(150deg, #292150 0%, #4a3a8f 55%, #6d4ade 120%);
+    background: linear-gradient(150deg, var(--brand) 0%, #4a3a8f 55%, var(--primary) 120%);
     padding: 24px;
 }
 .auth-wrap { display: flex; flex-direction: column; align-items: center; gap: 22px; width: 100%; max-width: 380px; }
@@ -477,7 +477,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 
 /* =================== Print =================== */
 .print-toolbar { padding: 13px 18px; background: var(--brand); color: #fff; display: flex; gap: 16px; align-items: center; }
-.print-toolbar a { color: rgba(255,255,255,.9); }
+
 .print-toolbar button { background: var(--primary); border-color: var(--primary); }
 .sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: 6px; }
 body.print-page { background: #e9e9f2; }
@@ -808,15 +808,15 @@ abbr {
 .compta-print h2 { font-size: 13px; font-weight: 700; margin: 16px 0 3px; align-self: stretch; }
 .compta-print table { width: auto; margin-bottom: 6px; border: none; border-radius: 0; box-shadow: none; background: transparent; border-collapse: collapse; }
 .compta-print .list th,
-.compta-print .list td { padding: 2px 10px; font-size: 11px; border: none; border-bottom: 1px solid #e0e0e0; background: transparent; }
+.compta-print .list td { padding: 2px 10px; font-size: 11px; border: none; border-bottom: 1px solid var(--line); background: transparent; }
 .compta-print .list tbody tr:hover td { background: transparent; }
-.compta-print .list thead th { font-size: 9.5px; border-bottom: 1px solid #aaa; color: #666; background: transparent; padding-bottom: 3px; }
-.compta-print .cr-section th { background: transparent; border: none; border-top: 1px solid #bbb; border-bottom: 1px solid #bbb; padding: 3px 10px; font-size: 10px; color: #555; }
+.compta-print .list thead th { font-size: 9.5px; border-bottom: 1px solid var(--line); color: var(--muted); background: transparent; padding-bottom: 3px; }
+.compta-print .cr-section th { background: transparent; border: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 3px 10px; font-size: 10px; color: var(--muted); }
 .compta-print .cr-groupe td { background: transparent; }
-.compta-print .cr-compte td { font-size: 9.5px; padding-top: 1px; padding-bottom: 1px; color: #555; }
+.compta-print .cr-compte td { font-size: 9.5px; padding-top: 1px; padding-bottom: 1px; color: var(--muted); }
 .compta-print .cr-total td,
-.compta-print .list tr.cr-total td { background: transparent; border-top: 1px solid #999; border-bottom: none; }
-.compta-print .cr-resultat td { border-top: 1.5px solid #444; border-bottom: none; }
+.compta-print .list tr.cr-total td { background: transparent; border-top: 1px solid var(--line); border-bottom: none; }
+.compta-print .cr-resultat td { border-top: 1.5px solid var(--ink); border-bottom: none; }
 .compta-print .cp-foot { color: var(--muted); font-size: 11px; margin-top: 14px; }
 .compta-print .list.compta-cr { margin-top: 16px; }
 
@@ -830,8 +830,4 @@ abbr {
 .compta-cr-foot { padding: 8px 12px 4px; }
 .cr-detail td > .muted.small { padding: 8px 0; }
 
-/* Vue print analytique — lignes de détail par catégorie */
-.cr-print-sens { padding: 4px 12px 0 34px; font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
-.cr-print-cat td:first-child { padding-left: 44px; }
-.cr-print-det { font-size: 9px; color: #666; }
-.cr-print-det td:first-child { padding-left: 56px; }
+

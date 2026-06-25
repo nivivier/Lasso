@@ -993,22 +993,17 @@ function route_compta_analyse_axe_print(): void
         $cols = array_values(array_filter($annees, fn($a) => isset($sommesParAnnee[$a])));
     } else {
         if (!in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
-        $cols = $annees; // toutes les années disponibles en colonnes
+        $cols = [$annee];
         $stmtSommes = db()->prepare(
             'SELECT plan_compte_id, SUM(montant) s FROM ecritures
              WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
              GROUP BY plan_compte_id'
         );
-        foreach ($cols as $a) {
-            $sommesParAnnee[$a] = [];
-            $stmtSommes->execute([$axeId, (string) $a]);
-            foreach ($stmtSommes as $r) {
-                $sommesParAnnee[$a][(int) $r['plan_compte_id']] = (float) $r['s'];
-            }
+        $sommesParAnnee = [$annee => []];
+        $stmtSommes->execute([$axeId, (string) $annee]);
+        foreach ($stmtSommes as $r) {
+            $sommesParAnnee[$annee][(int) $r['plan_compte_id']] = (float) $r['s'];
         }
-        // Restreindre aux colonnes demandées (année sélectionnée seulement).
-        $cols = [$annee];
-        $sommesParAnnee = [$annee => $sommesParAnnee[$annee] ?? []];
     }
 
     $totauxParAnnee = [];

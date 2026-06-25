@@ -27,7 +27,7 @@
             </div>
 
             <?php if (!$ventilation): ?>
-            <p class="muted small">Aucune écriture ventilée pour <?= (int) $annee ?>.</p>
+            <p class="muted small">Aucune écriture ventilée<?= $annee ? ' pour ' . (int) $annee : '' ?>.</p>
             <?php else:
                 $totProd = 0.0; $totChg = 0.0;
             ?>
