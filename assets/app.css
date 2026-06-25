@@ -186,8 +186,9 @@ h3.sub.no-mt { margin-top: 0; }
 .cat-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); margin-bottom: 1px; }
 /* Mode affichage statique (catégorie / axe déjà remplis) */
 .row-field-disp { display: flex; align-items: center; gap: 3px; min-height: 28px; }
-.row-field-txt { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.row-field-prefix { color: var(--muted); font-size: 10.5px; margin-right: 3px; }
+.row-field-txt { flex: 1; display: flex; flex-direction: column; min-width: 0; font-size: 13px; overflow: hidden; }
+.row-field-txt > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-field-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); }
 .row-edit-btn { background: none; border: none; padding: 2px 3px; cursor: pointer; color: var(--muted);
     opacity: 0; flex-shrink: 0; line-height: 0; border-radius: var(--radius-sm); transition: opacity .12s; }
 .cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn { opacity: 1; }

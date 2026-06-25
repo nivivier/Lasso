@@ -280,7 +280,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
                     <?php if ($rowCatVal !== ''): ?>
                     <div class="row-field-disp">
-                        <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?> · </span><?php endif; ?><?= e($rowCatLeaf) ?></span>
+                        <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?><span><?= e($rowCatLeaf) ?></span></span>
                         <button type="button" class="row-edit-btn" title="Modifier"><?= icon('pencil') ?></button>
                     </div>
                     <div class="row-field-inp" hidden>
