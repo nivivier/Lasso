@@ -634,8 +634,9 @@ abbr {
     .cr-det-row { grid-template-columns: 70px 1fr auto; }
     .cr-det-row .cpt { display: none; }
 }
-.compta-cr .cr-total td { font-weight: 700; border-top: 1px solid var(--line); background: #faf9fe; }
+.compta-cr .cr-total td { font-weight: 700; border-top: 1px solid var(--line); background: #faf9fe; font-size: 15px; }
 .compta-cr .cr-resultat td { font-weight: 800; color: var(--primary); border-top: 2px solid var(--primary); font-size: 15px; }
+.compta-cr .cr-resultat td.col-prec { color: var(--muted); border-top-color: var(--line); }
 .list tr.cr-total td { font-weight: 700; background: #faf9fe; }
 
 /* Plan comptable hiérarchique */
