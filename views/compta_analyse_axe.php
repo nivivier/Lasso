@@ -89,7 +89,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 </div>
 
 <div class="section-head">
-    <h2>Compte de résultat<?= $nbCols === 1 ? ' ' . (int) $anneeRef : '' ?></h2>
+    <h2>Compte de résultat<?= $annee !== 0 && $nbCols === 1 ? ' ' . (int) $anneeRef : '' ?></h2>
 	<a href="?p=compta_analyse_axe_print&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm ml-auto" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
 </div>
 
