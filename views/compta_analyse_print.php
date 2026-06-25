@@ -46,7 +46,6 @@
                     $res      = $v['resultat'];
                     $totProd += $v['produits'];
                     $totChg  += $v['charges'];
-                    $detail   = $detailParAxe[(int) $v['id']] ?? [];
                 ?>
                     <tr class="cr-groupe">
                         <td><?= e($v['libelle']) ?><?php if ($v['code']): ?> <span class="muted small">· <?= e($v['code']) ?></span><?php endif; ?></td>
@@ -54,29 +53,6 @@
                         <td class="num"><?= $v['charges']  != 0 ? chf($v['charges'])  : '—' ?></td>
                         <td class="num"><?= $res != 0 ? chf($res) : '—' ?></td>
                     </tr>
-                    <?php
-                    $curSens = null;
-                    foreach ($detail as $pid => $cat):
-                        if ($cat['sens'] !== $curSens):
-                            $curSens = $cat['sens'];
-                    ?>
-                        <tr><td colspan="4" class="cr-print-sens">
-                            <?= $curSens === 'produit' ? 'Recettes' : 'Dépenses' ?>
-                        </td></tr>
-                    <?php endif; ?>
-                        <tr class="cr-compte cr-print-cat">
-                            <td><?= e($cat['libelle']) ?></td>
-                            <td class="num"><?= $cat['sens'] === 'produit' && $cat['montant'] != 0 ? chf($cat['montant']) : '—' ?></td>
-                            <td class="num"><?= $cat['sens'] === 'charge'  && $cat['montant'] != 0 ? chf($cat['montant']) : '—' ?></td>
-                            <td class="num"></td>
-                        </tr>
-                        <?php foreach ($cat['lignes'] as $l): ?>
-                        <tr class="cr-print-det">
-                            <td><?= e(date('d.m.Y', strtotime((string) $l['date_op']))) ?> · <?= e($l['texte']) ?></td>
-                            <td class="num" colspan="3"><?= chf((float) $l['montant']) ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endforeach; ?>
                 <?php endforeach; ?>
                 </tbody>
                 <tfoot>

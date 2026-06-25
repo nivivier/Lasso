@@ -53,7 +53,6 @@
                 <th class="num">Recettes</th>
                 <th class="num">Dépenses</th>
                 <th class="num">Résultat</th>
-                <th class="col-icon"></th>
             </tr>
         </thead>
         <tbody>
@@ -82,9 +81,6 @@
                 <td class="num strong <?= $res > 0 ? 'montant-pos' : ($res < 0 ? 'montant-neg' : '') ?>">
                     <?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?>
                 </td>
-                <td>
-                    <a class="btn ghost btn-sm icon-only" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Aperçu impression"><?= icon('eye') ?></a>
-                </td>
             </tr>
         <?php endforeach; ?>
         </tbody>
@@ -94,7 +90,6 @@
                 <td class="num"><?= chf($totProd) ?></td>
                 <td class="num"><?= chf($totChg) ?></td>
                 <td class="num"><?= chf($totProd + $totChg) ?></td>
-                <td></td>
             </tr>
         </tfoot>
     </table>
