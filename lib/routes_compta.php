@@ -862,6 +862,64 @@ function route_compta_analyse_print(): void
     render_bare('compta_analyse_print', compta_analyse_data($annee));
 }
 
+function route_compta_analyse_axe_print(): void
+{
+    require_login();
+    $axeId = (int) ($_GET['axe'] ?? 0);
+    if (!$axeId) redirect('compta_analyse');
+
+    $stmt = db()->prepare('SELECT * FROM axes_analytiques WHERE id = ?');
+    $stmt->execute([$axeId]);
+    $axe = $stmt->fetch();
+    if (!$axe) redirect('compta_analyse');
+
+    $annees = compta_annees();
+    $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) ($annees[0] ?? date('Y'));
+    if (!in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
+    $nbPrec = max(0, min((int) ($_GET['prec'] ?? 0), count($annees) - 1));
+
+    $pos  = array_search($annee, $annees);
+    $cols = array_slice($annees, $pos === false ? 0 : $pos, $nbPrec + 1);
+
+    $plan = compta_plan_map();
+
+    $stmtSommes = db()->prepare(
+        'SELECT plan_compte_id, SUM(montant) s FROM ecritures
+         WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
+         GROUP BY plan_compte_id'
+    );
+    $sommesParAnnee = [];
+    foreach ($cols as $a) {
+        $sommesParAnnee[$a] = [];
+        $stmtSommes->execute([$axeId, (string) $a]);
+        foreach ($stmtSommes as $r) {
+            $sommesParAnnee[$a][(int) $r['plan_compte_id']] = (float) $r['s'];
+        }
+    }
+
+    $totauxParAnnee = [];
+    foreach ($cols as $a) {
+        $tp = 0.0; $tc = 0.0;
+        foreach ($sommesParAnnee[$a] as $pid => $m) {
+            if (($plan[$pid]['sens'] ?? 'charge') === 'produit') $tp += $m;
+            else $tc += $m;
+        }
+        $totauxParAnnee[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc];
+    }
+
+    render_bare('compta_analyse_axe_print', [
+        'axe'            => $axe,
+        'annee'          => $annee,
+        'annees'         => $annees,
+        'nbPrec'         => $nbPrec,
+        'cols'           => $cols,
+        'plan'           => $plan,
+        'sommesParAnnee' => $sommesParAnnee,
+        'totauxParAnnee' => $totauxParAnnee,
+        'nomEmployeur'   => (string) param('employeur_nom'),
+    ]);
+}
+
 // --- Bilan & compte de résultat --------------------------------------------
 function route_compta_bilan(): void
 {

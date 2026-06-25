@@ -118,6 +118,26 @@
                 <?php else: ?>
                     <p class="muted small" style="padding:8px 0">Aucune écriture ventilée sur cet axe.</p>
                 <?php endif; ?>
+
+                <?php if ($annees): $defAnnee = $annee ?: (int) ($annees[0] ?? date('Y')); ?>
+                <div class="axe-print-bar">
+                    <form method="get" target="_blank">
+                        <input type="hidden" name="p" value="compta_analyse_axe_print">
+                        <input type="hidden" name="axe" value="<?= (int) $v['id'] ?>">
+                        <select name="annee">
+                            <?php foreach ($annees as $a): ?>
+                                <option value="<?= (int) $a ?>"<?= (int) $a === $defAnnee ? ' selected' : '' ?>><?= (int) $a ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="prec">
+                            <?php for ($ni = 0, $maxPrec = count($annees) - 1; $ni <= min(4, $maxPrec); $ni++): ?>
+                                <option value="<?= $ni ?>"><?= $ni === 0 ? '1 an' : ($ni + 1) . ' ans' ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <button type="submit"><?= icon('printer') ?> Imprimer / PDF</button>
+                    </form>
+                </div>
+                <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
