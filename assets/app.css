@@ -448,6 +448,20 @@ span + .badge.muted-badge { margin-left: 6px; }
 .ps-table .grand-total td { font-size: 16px; font-weight: 800; background: var(--teal-tint); color: var(--teal-d); padding: 10px 10px; border: none; }
 .ps-table .grand-total.apayer td { background: var(--amber-tint); color: var(--amber); } /* à payer → jaune */
 
+/* =================== Modal aperçu impression =================== */
+#preview-modal { position: fixed; inset: 0; z-index: 500; background: rgba(20,16,40,.72); display: flex; }
+#preview-modal[hidden] { display: none !important; }
+#preview-modal-frame { flex: 1; border: none; background: #fff; }
+#preview-modal-close {
+    position: fixed; top: 12px; right: 14px; z-index: 501;
+    width: 38px; height: 38px; border-radius: 50%; padding: 0;
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+    color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: none;
+}
+#preview-modal-close:hover { background: rgba(255,255,255,.32); border-color: rgba(255,255,255,.4); }
+#preview-modal-close .ico { width: 20px; height: 20px; }
+
 /* =================== Print =================== */
 .print-toolbar { padding: 13px 18px; background: var(--brand); color: #fff; display: flex; gap: 16px; align-items: center; }
 .print-toolbar a { color: rgba(255,255,255,.9); }

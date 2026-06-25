@@ -52,7 +52,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
             <?= icon('book-open') ?> Comptes annuels
         </a>
-        <?php $analysePages = ['compta_analyse', 'compta_axes']; ?>
+        <?php $analysePages = ['compta_analyse', 'compta_analyse_axe', 'compta_axes']; ?>
         <a href="?p=compta_analyse" class="<?= in_array($cur, $analysePages, true) ? 'on' : '' ?>">
             <?= icon('layers') ?> Analyse
         </a>
@@ -97,6 +97,10 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
 <main class="content">
     <?php require $contentView; ?>
 </main>
+<div id="preview-modal" hidden aria-modal="true" role="dialog" aria-label="Aperçu">
+    <button id="preview-modal-close" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
+    <iframe id="preview-modal-frame" src="" title="Aperçu"></iframe>
+</div>
 <script>
 (function () {
     const body = document.body, burger = document.getElementById('burger'),
@@ -136,6 +140,44 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         row.addEventListener('keydown', e => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(row); }
         });
+    });
+
+    // Modal plein écran pour les aperçus d'impression (liens [data-preview]).
+    const previewModal = document.getElementById('preview-modal');
+    const previewFrame = document.getElementById('preview-modal-frame');
+    const previewClose = document.getElementById('preview-modal-close');
+    function openPreview(url) {
+        previewFrame.src = url;
+        previewModal.removeAttribute('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    function closePreview() {
+        previewModal.setAttribute('hidden', '');
+        previewFrame.src = '';
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('click', e => {
+        const a = e.target.closest('a[data-preview]');
+        if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        openPreview(a.href);
+    });
+    previewClose.addEventListener('click', closePreview);
+    previewModal.addEventListener('click', e => { if (e.target === previewModal) closePreview(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !previewModal.hasAttribute('hidden')) closePreview();
+    });
+    // Intercepte "Fermer" et Escape dans l'iframe (même origine → accès DOM autorisé).
+    previewFrame.addEventListener('load', () => {
+        try {
+            const doc = previewFrame.contentDocument;
+            doc.querySelectorAll('.print-toolbar a').forEach(a => {
+                a.addEventListener('click', ev => { ev.preventDefault(); closePreview(); });
+            });
+            doc.addEventListener('keydown', ev => {
+                if (ev.key === 'Escape') { ev.stopPropagation(); closePreview(); }
+            }, true);
+        } catch(err) {}
     });
 })();
 </script>

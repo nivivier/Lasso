@@ -88,7 +88,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     </div>
     <div class="head-actions">
         <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('pencil') ?> Écritures</a>
-        <a href="?p=compta_analyse_axe_print&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost" target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
+        <a href="?p=compta_analyse_axe_print&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
     </div>
 </div>
 
