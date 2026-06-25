@@ -113,7 +113,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 <div class="card form">
     <div class="card-head">
         <p class="muted small mb-0">Chaque règle associe automatiquement une catégorie aux écritures qui satisfont toutes ses conditions (ET) ou l'une d'elles (OU). Évaluées par <strong>priorité croissante</strong> (première correspondance gagnante) ; à priorité égale, une règle ciblant un compte précis l'emporte sur une règle globale. Insensible à la casse et aux accents. <strong>Touche</strong> = écritures non lettrées concernées.</p>
-        <div style="display:flex;gap:8px;flex-shrink:0">
+        <div class="inline-actions">
             <form method="post" action="?p=compta_ecritures">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="section" value="apply_rules">

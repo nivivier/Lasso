@@ -12,15 +12,15 @@
         <p class="muted small mb-0">Un axe analytique permet de ventiler les écritures selon un critère transversal (projet, secteur, activité…). Associez un axe à chaque écriture pour obtenir le résultat par axe dans les comptes annuels.</p>
         <button type="button" id="btn-new-axe" class="btn btn-sm"><?= icon('plus') ?> Ajouter un axe</button>
     </div>
-    <table class="list" style="margin-top:10px">
-        <thead><tr><th style="width:36px"></th><th>Axe analytique</th><th></th></tr></thead>
+    <table class="list mt-10">
+        <thead><tr><th class="col-icon"></th><th>Axe analytique</th><th></th></tr></thead>
         <tbody>
         <?php if (!$axes): ?>
             <tr><td colspan="3" class="muted small">Aucun axe analytique. Exemples : Label, Tour, Stages, Local.</td></tr>
         <?php endif; ?>
         <?php foreach ($axes as $a): ?>
             <tr>
-                <td style="padding:0 0 0 12px">
+                <td class="td-toggle">
                     <form method="post" action="?p=compta_axes">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="toggle_actif">
@@ -36,14 +36,14 @@
                     <div class="axe-read">
                         <strong><?= e($a['libelle']) ?></strong>
                         <?php if ($a['code']): ?><span class="muted small"> · <?= e($a['code']) ?></span><?php endif; ?>
-                        <?php if (!$a['actif']): ?><span class="badge muted-badge" style="margin-left:6px">inactif</span><?php endif; ?>
+                        <?php if (!$a['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
                     </div>
                     <form method="post" action="?p=compta_axes" class="inline-edit axe-edit-form" hidden>
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="update">
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
                         <input name="libelle" value="<?= e($a['libelle']) ?>" class="grow" required placeholder="Libellé">
-                        <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban" style="max-width:120px" title="Code court optionnel (ex. LAB, TOU, STA)">
+                        <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban input-code" title="Code court optionnel (ex. LAB, TOU, STA)">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
@@ -79,7 +79,7 @@
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="create">
                         <input name="libelle" placeholder="ex. Label, Tour, Stages, Local" required class="grow">
-                        <input name="code" placeholder="Code court" class="w-iban" style="max-width:120px" title="Code court optionnel">
+                        <input name="code" placeholder="Code court" class="w-iban input-code" title="Code court optionnel">
                         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                         <button type="button" class="btn ghost btn-sm" id="cancel-new-axe"><?= icon('x') ?> Annuler</button>
                     </form>

@@ -32,7 +32,7 @@
             <?php else:
                 $totProd = 0.0; $totChg = 0.0;
             ?>
-            <table class="list compta-cr" style="margin-top:16px">
+            <table class="list compta-cr">
                 <thead>
                     <tr>
                         <th>Axe</th>
@@ -60,19 +60,19 @@
                         if ($cat['sens'] !== $curSens):
                             $curSens = $cat['sens'];
                     ?>
-                        <tr><td colspan="4" style="padding:4px 12px 0 34px; font-size:10px; color:#888; text-transform:uppercase; letter-spacing:.05em; font-weight:600">
+                        <tr><td colspan="4" class="cr-print-sens">
                             <?= $curSens === 'produit' ? 'Recettes' : 'Dépenses' ?>
                         </td></tr>
                     <?php endif; ?>
-                        <tr class="cr-compte">
-                            <td style="padding-left:44px"><?= e($cat['libelle']) ?></td>
+                        <tr class="cr-compte cr-print-cat">
+                            <td><?= e($cat['libelle']) ?></td>
                             <td class="num"><?= $cat['sens'] === 'produit' && $cat['montant'] != 0 ? chf($cat['montant']) : '—' ?></td>
                             <td class="num"><?= $cat['sens'] === 'charge'  && $cat['montant'] != 0 ? chf($cat['montant']) : '—' ?></td>
                             <td class="num"></td>
                         </tr>
                         <?php foreach ($cat['lignes'] as $l): ?>
-                        <tr style="font-size:9px; color:#666">
-                            <td style="padding-left:56px"><?= e(date('d.m.Y', strtotime((string) $l['date_op']))) ?> · <?= e($l['texte']) ?></td>
+                        <tr class="cr-print-det">
+                            <td><?= e(date('d.m.Y', strtotime((string) $l['date_op']))) ?> · <?= e($l['texte']) ?></td>
                             <td class="num" colspan="3"><?= chf((float) $l['montant']) ?></td>
                         </tr>
                         <?php endforeach; ?>
