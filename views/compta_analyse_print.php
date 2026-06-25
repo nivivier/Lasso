@@ -31,7 +31,7 @@
             <?php else:
                 $totProd = 0.0; $totChg = 0.0;
             ?>
-            <table class="list compta-cr">
+            <table class="list compta-cr cr-flat">
                 <thead>
                     <tr>
                         <th>Axe</th>

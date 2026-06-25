@@ -46,7 +46,7 @@
 
     <div class="section-head"></div>
     <div class="table-scroll">
-    <table class="list compta-cr">
+    <table class="list compta-cr cr-flat">
         <thead>
             <tr>
                 <th>Axe</th>
