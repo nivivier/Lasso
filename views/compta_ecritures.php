@@ -243,7 +243,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php endif; ?>
 </div>
 
-<div class="table-scroll">
 <table class="list compta-lettrage">
     <thead>
         <tr>
@@ -341,7 +340,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php endforeach; ?>
     </tbody>
 </table>
-</div>
 
 
 <!-- Dropdown partagé pour l'axe individuel (repositionné par JS) -->
