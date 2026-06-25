@@ -874,7 +874,6 @@ function route_compta_analyse_axe(): void
 
     // Sommaires par catégorie (même logique que axe_print).
     if ($annee === 0) {
-        $cols = $annees;
         $sommesParAnnee = [];
         $stmtAll = db()->prepare(
             'SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s FROM ecritures
@@ -885,9 +884,8 @@ function route_compta_analyse_axe(): void
         foreach ($stmtAll as $r) {
             $sommesParAnnee[(int) $r['y']][(int) $r['plan_compte_id']] = (float) $r['s'];
         }
-        foreach ($cols as $a) {
-            if (!isset($sommesParAnnee[$a])) $sommesParAnnee[$a] = [];
-        }
+        // Seulement les années ayant des écritures sur cet axe, triées desc.
+        $cols = array_values(array_filter($annees, fn($a) => isset($sommesParAnnee[$a])));
     } else {
         if ($annees && !in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
         $cols = [$annee];
@@ -982,8 +980,7 @@ function route_compta_analyse_axe_print(): void
     $sommesParAnnee = [];
 
     if ($annee === 0) {
-        // Toutes les années : une colonne par année disponible, sans filtre temporel.
-        $cols = $annees;
+        // Toutes les années : une colonne par année ayant des écritures sur cet axe.
         $stmtAll = db()->prepare(
             'SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s FROM ecritures
              WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
@@ -993,9 +990,7 @@ function route_compta_analyse_axe_print(): void
         foreach ($stmtAll as $r) {
             $sommesParAnnee[(int) $r['y']][(int) $r['plan_compte_id']] = (float) $r['s'];
         }
-        foreach ($cols as $a) {
-            if (!isset($sommesParAnnee[$a])) $sommesParAnnee[$a] = [];
-        }
+        $cols = array_values(array_filter($annees, fn($a) => isset($sommesParAnnee[$a])));
     } else {
         if (!in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
         $cols = $annees; // toutes les années disponibles en colonnes
