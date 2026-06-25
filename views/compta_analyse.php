@@ -36,7 +36,7 @@
 </div>
 <?php elseif (!$ventilation): ?>
 <div class="card" style="margin-top:8px">
-    <div class="section-head"><h2>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?></h2></div>
+    <div class="section-head"></div>
     <p class="muted small" style="padding:4px 0 12px">
         Aucune écriture lettrée et ventilée pour <?= (int) $annee ?>.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>">Affecter un axe aux écritures.</a>
@@ -44,9 +44,7 @@
 </div>
 <?php else: ?>
 <div class="card" style="margin-top:8px">
-    <div class="section-head">
-        <h2>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?></h2>
-    </div>
+    <div class="section-head"></div>
     <div class="table-scroll">
     <table class="list compta-cr">
         <thead>
@@ -87,7 +85,7 @@
                     <?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?>
                 </td>
                 <td>
-                    <a class="btn-icon ghost" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Aperçu" onclick="event.stopPropagation()"><?= icon('printer') ?></a>
+                    <a class="btn-icon ghost" href="?p=compta_analyse_axe_print&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>" target="_blank" rel="noopener" title="Aperçu" onclick="event.stopPropagation()"><?= icon('eye') ?></a>
                 </td>
             </tr>
             <tr class="cr-detail" data-axe="<?= (int) $v['id'] ?>" hidden>
