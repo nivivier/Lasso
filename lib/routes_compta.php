@@ -787,7 +787,7 @@ function route_compta_analyse(): void
         'annees'      => $annees,
         'axes'        => $axes,
         'ventilation' => $ventilation,
-    ], 'Comptabilité — Analyse analytique');
+    ], 'Comptabilité analytique');
 }
 
 // --- Bilan & compte de résultat --------------------------------------------
