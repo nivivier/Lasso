@@ -748,14 +748,25 @@ function calculer_ventilation_analytique(int $annee, array $plan): array
 {
     $axes = db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll();
     if (!$axes) return [];
-    $stmt = db()->prepare(
-        'SELECT plan_compte_id, SUM(montant) s FROM ecritures
-         WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
-         GROUP BY plan_compte_id'
-    );
+    // $annee === 0 = toutes les années
+    if ($annee) {
+        $stmt = db()->prepare(
+            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
+             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
+             GROUP BY plan_compte_id'
+        );
+    } else {
+        $stmt = db()->prepare(
+            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
+             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
+             GROUP BY plan_compte_id'
+        );
+    }
     $rows = [];
     foreach ($axes as $axe) {
-        $stmt->execute([(int) $axe['id'], (string) $annee]);
+        $params = [(int) $axe['id']];
+        if ($annee) $params[] = (string) $annee;
+        $stmt->execute($params);
         $produits = 0.0;
         $charges  = 0.0;
         foreach ($stmt as $r) {
@@ -779,25 +790,37 @@ function calculer_ventilation_analytique(int $annee, array $plan): array
 }
 
 // --- Analyse analytique ----------------------------------------------------
-function compta_analyse_data(int $annee): array
+function compta_analyse_data(?int $annee): array
 {
     $annees = compta_annees();
-    if (!$annee) $annee = (int) ($annees[0] ?? date('Y'));
+    // null = pas de paramètre → année la plus récente ; 0 = toutes les années
+    if ($annee === null) $annee = (int) ($annees[0] ?? date('Y'));
     $plan  = compta_plan_map();
     $axes  = db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll();
     $ventilation = calculer_ventilation_analytique($annee, $plan);
 
     // Détail par axe : pour chaque axe, toutes les écritures groupées par catégorie.
-    $stmtLig = db()->prepare(
-        'SELECT e.plan_compte_id, e.date_op, e.texte, e.montant, cb.libelle AS compte
-         FROM ecritures e JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
-         WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
-         ORDER BY e.date_op ASC, e.id ASC'
-    );
+    if ($annee) {
+        $stmtLig = db()->prepare(
+            'SELECT e.plan_compte_id, e.date_op, e.texte, e.montant, cb.libelle AS compte
+             FROM ecritures e JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
+             ORDER BY e.date_op ASC, e.id ASC'
+        );
+    } else {
+        $stmtLig = db()->prepare(
+            'SELECT e.plan_compte_id, e.date_op, e.texte, e.montant, cb.libelle AS compte
+             FROM ecritures e JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL
+             ORDER BY e.date_op ASC, e.id ASC'
+        );
+    }
     $detailParAxe = [];
     foreach ($axes as $axe) {
         $aid = (int) $axe['id'];
-        $stmtLig->execute([$aid, (string) $annee]);
+        $params = [$aid];
+        if ($annee) $params[] = (string) $annee;
+        $stmtLig->execute($params);
         $catMap = [];
         foreach ($stmtLig as $r) {
             $pid = (int) $r['plan_compte_id'];
@@ -828,14 +851,14 @@ function compta_analyse_data(int $annee): array
 function route_compta_analyse(): void
 {
     require_login();
-    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
+    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : null;
     render('compta_analyse', compta_analyse_data($annee), 'Comptabilité analytique');
 }
 
 function route_compta_analyse_print(): void
 {
     require_login();
-    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
+    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : null;
     render_bare('compta_analyse_print', compta_analyse_data($annee));
 }
 
