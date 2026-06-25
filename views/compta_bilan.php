@@ -9,7 +9,7 @@ $nbCols   = count($cols);
 
 // Rendu d'un sens (produit / charge) en arbre, une colonne de montant par année.
 $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnnee, $lignesParCat, $cols, $nbCols, $annee): string {
-    $pad = fn(int $p) => 'style="padding-left:' . (16 + $p * 22) . 'px"';
+    $pad = fn(int $p) => 'class="bilan-noeud-pad" style="--depth:' . $p . '"';
     $cellules = function (callable $val) use ($cols, $annee): string {
         $h = '';
         foreach ($cols as $a) {
@@ -76,7 +76,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </form>
     </div>
     <div class="head-actions">
-        <label class="inline" style="font-size:13px;font-weight:500;color:var(--muted);gap:6px">
+        <label class="inline">
             Années précédentes
             <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&prec='+this.value">
                 <?php foreach ([0,1,2,3] as $n): ?>
@@ -105,7 +105,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 <div class="card bilan-card">
     <div class="section-head">
         <h2>État du patrimoine</h2>
-        <a href="?p=compta_comptes" class="btn ghost btn-sm" style="margin-left:auto"><?= icon('pencil') ?> Comptes bancaires</a>
+        <a href="?p=compta_comptes" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Comptes bancaires</a>
     </div>
     <div class="table-scroll">
     <table class="list">
@@ -131,10 +131,10 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 </div>
 
 
-<div class="card bilan-card" style="margin-top:28px">
+<div class="card bilan-card mt-28">
     <div class="section-head">
         <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
-        <a href="?p=compta_plan" class="btn ghost btn-sm" style="margin-left:auto"><?= icon('pencil') ?> Plan comptable</a>
+        <a href="?p=compta_plan" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Plan comptable</a>
     </div>
     <?php if ($resultat['non_lettrees']['nb'] > 0): ?>
 <p class="err"><?= (int) $resultat['non_lettrees']['nb'] ?> écriture(s) de <?= (int) $annee ?> non lettrée(s)

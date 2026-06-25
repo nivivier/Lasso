@@ -34,7 +34,7 @@ $deductions = [
         <div class="ps-period"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></div>
     </div>
 
-        <div class="ps-parties" style="margin-bottom: 24px;">
+        <div class="ps-parties" class="mb-24">
         <div>
             <h3>Employeur</h3>
             <p><strong><?= e(param('employeur_nom')) ?></strong><br>
@@ -50,7 +50,7 @@ $deductions = [
         </div>
     </div>
 
-    <table class="ps-table" style="margin-bottom: 24px;">
+    <table class="ps-table" class="mb-24">
         <thead><tr><th>Salaire</th><th class="num">Détail</th><th class="num">Montant (CHF)</th></tr></thead>
         <tbody>
             <?php if ($uneSeule):

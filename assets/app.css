@@ -147,6 +147,11 @@ body.auth-bg {
 .page-head h1 { font-size: 28px; margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
 .page-head-sub { flex-direction: column; align-items: flex-start; gap: 4px; }
 .head-actions { display: flex; gap: 12px; align-items: center; }
+.head-actions label.inline { font-size: 13px; font-weight: 500; color: var(--muted); gap: 6px; }
+.label-hint { font-weight: 400; }
+.input-code { max-width: 120px; }
+.inline-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.td-toggle { padding: 0 0 0 12px; }
 .page-head-title { display: flex; align-items: center; gap: 12px; }
 .inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
@@ -320,6 +325,11 @@ button:active, .btn:active { transform: translateY(1px); }
 .mb-16 { margin-bottom: 16px; }
 .mt-16 { margin-top: 16px; }
 .mb-22 { margin-bottom: 22px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-8  { margin-top: 8px; }
+.mt-10 { margin-top: 10px; }
+.mt-28 { margin-top: 28px; }
+.ml-auto { margin-left: auto; }
 .d-inline { display: inline; }
 button:disabled, .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
 button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-color: var(--primary); }
@@ -355,6 +365,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: #fff4e0; color: #9a6700; margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
+span + .badge.muted-badge { margin-left: 6px; }
+.col-icon { width: 36px; }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
 .list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
@@ -653,7 +665,7 @@ abbr {
 
 /* Plan comptable hiérarchique */
 .plan-table td { vertical-align: middle; padding: 2px 10px; }
-.plan-table .inline-edit { gap: 6px; min-height: 30px; }
+.plan-table .inline-edit { gap: 6px; min-height: 30px; padding-left: calc(var(--depth, 0) * 22px); }
 .plan-puce { display: inline-flex; align-items: center; justify-content: center; width: 16px; color: var(--muted); flex: 0 0 auto; }
 .plan-puce .ico { width: 14px; height: 14px; }
 /* Libellé en lecture seule + crayon (mode JS). Édition directe en repli sans JS. */
@@ -769,3 +781,20 @@ abbr {
 .compta-print .list tr.cr-total td { background: transparent; border-top: 1px solid #999; border-bottom: none; }
 .compta-print .cr-resultat td { border-top: 1.5px solid #444; border-bottom: none; }
 .compta-print .cp-foot { color: var(--muted); font-size: 11px; margin-top: 14px; }
+.compta-print .list.compta-cr { margin-top: 16px; }
+
+/* Nœuds d'arbre avec profondeur variable (CSS custom property --depth) */
+.bilan-noeud-pad { padding-left: calc(16px + var(--depth, 0) * 22px); }
+.cr-noeud-pad    { padding-left: calc(16px + var(--depth, 0) * 18px); }
+
+/* Labels de section et notes dans les cartes comptabilité */
+.cr-sens-label  { padding: 8px 0 2px; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; color: var(--muted); }
+.card-note      { padding: 4px 0 12px; }
+.compta-cr-foot { padding: 8px 12px 4px; }
+.cr-detail td > .muted.small { padding: 8px 0; }
+
+/* Vue print analytique — lignes de détail par catégorie */
+.cr-print-sens { padding: 4px 12px 0 34px; font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.cr-print-cat td:first-child { padding-left: 44px; }
+.cr-print-det { font-size: 9px; color: #666; }
+.cr-print-det td:first-child { padding-left: 56px; }

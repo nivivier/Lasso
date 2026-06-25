@@ -98,7 +98,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <label>Date
                 <input type="date" name="date_op" required value="<?= e($isEdit ? $editEcr['date_op'] : date('Y-m-d')) ?>">
             </label>
-            <label>Montant <span class="muted" style="font-weight:400">(+ crédit, − débit)</span>
+            <label>Montant <span class="muted label-hint">(+ crédit, − débit)</span>
                 <input type="number" name="montant" step="0.01" required value="<?= $isEdit ? (float)$editEcr['montant'] : '' ?>" placeholder="ex. -150.00">
             </label>
         </div>
@@ -106,11 +106,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <input type="text" name="texte" required value="<?= e($isEdit ? $editEcr['texte'] : '') ?>" placeholder="ex. Remboursement frais divers">
         </label>
         <div class="grid2-optional">
-        <label>Catégorie <span class="muted" style="font-weight:400">(optionnel)</span>
+        <label>Catégorie <span class="muted label-hint">(optionnel)</span>
             <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…', $isEdit && ($editEcr['origine_lettrage'] ?? '') === 'ignore') ?>
         </label>
         <?php if ($axes): ?>
-        <label>Axe analytique <span class="muted" style="font-weight:400">(optionnel)</span>
+        <label>Axe analytique <span class="muted label-hint">(optionnel)</span>
             <select name="axe_analytique_id">
                 <option value="">— Aucun —</option>
                 <?php foreach ($axes as $ax): ?>

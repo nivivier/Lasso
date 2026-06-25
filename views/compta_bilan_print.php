@@ -8,7 +8,7 @@ $nbCols   = count($cols);
 
 // Bloc statique (produits / charges) en arbre, une colonne par année.
 $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnnee, $cols, $nbCols): string {
-    $pad = fn(int $p) => 'style="padding-left:' . (16 + $p * 18) . 'px"';
+    $pad = fn(int $p) => 'class="cr-noeud-pad" style="--depth:' . $p . '"';
     $cellules = function (callable $val) use ($cols): string {
         $h = '';
         foreach ($cols as $a) {

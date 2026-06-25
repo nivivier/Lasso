@@ -42,9 +42,9 @@ $flashErr = [
 
     <?php foreach (['produit' => 'Produits (recettes)', 'charge' => 'Charges (dépenses)'] as $sens => $titre):
         $rows = array_values(array_filter($lignes, fn($l) => $l['sens'] === $sens)); ?>
-    <div class="section-head" style="<?= $sens === 'produit' ? 'margin-top:0' : '' ?>">
+    <div class="section-head <?= $sens === 'produit' ? 'mt-0' : '' ?>">
         <h2 class="mt-0"><?= e($titre) ?></h2>
-        <button type="button" class="btn btn-sm" style="margin-left:auto"
+        <button type="button" class="btn btn-sm ml-auto"
                 data-show="plan-add-<?= $sens ?>"><?= icon('plus') ?> Nouveau</button>
     </div>
     <table class="list mb-16 plan-table" data-sens="<?= $sens ?>">
@@ -56,7 +56,7 @@ $flashErr = [
             <tr class="plan-row <?= $p['a_enfants'] ? 'plan-groupe' : '' ?> <?= $actif ? '' : 'plan-archive' ?>"
                 data-id="<?= $pid ?>" data-sens="<?= $sens ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>">
                 <td>
-                    <div class="inline-edit" style="padding-left:<?= $prof * 22 ?>px">
+                    <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                         <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>

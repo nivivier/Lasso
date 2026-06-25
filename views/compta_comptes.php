@@ -14,7 +14,7 @@
         <p class="muted small mb-0">Un compte bancaire par IBAN. L'IBAN sert à rattacher automatiquement les fichiers importés et à cibler les règles de lettrage.</p>
         <button type="button" id="btn-new-compte" class="btn btn-sm"><?= icon('plus') ?> Ajouter un compte</button>
     </div>
-    <table class="list" style="margin-top:10px">
+    <table class="list mt-10">
         <thead><tr><th>Compte bancaire</th><th></th></tr></thead>
         <tbody>
         <?php if (!$comptes): ?>

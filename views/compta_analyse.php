@@ -24,26 +24,26 @@
 </div>
 
 <?php if (!$axes): ?>
-<div class="card" style="margin-top:8px">
+<div class="card">
     <div class="section-head">
         <h2>Comptabilité analytique</h2>
-        <a href="?p=compta_axes" class="btn btn-sm" style="margin-left:auto"><?= icon('plus') ?> Créer des axes</a>
+        <a href="?p=compta_axes" class="btn btn-sm ml-auto"><?= icon('plus') ?> Créer des axes</a>
     </div>
-    <p class="muted small" style="padding:4px 0 12px">
+    <p class="muted small card-note">
         Aucun axe analytique défini. Créez des axes (ex. Label, Tour, Stages, Local)
         pour ventiler les écritures par activité et obtenir le résultat par axe.
     </p>
 </div>
 <?php elseif (!$ventilation): ?>
-<div class="card" style="margin-top:8px">
+<div class="card">
     <div class="section-head"></div>
-    <p class="muted small" style="padding:4px 0 12px">
+    <p class="muted small card-note">
         Aucune écriture lettrée et ventilée pour <?= (int) $annee ?>.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>">Affecter un axe aux écritures.</a>
     </p>
 </div>
 <?php else: ?>
-<div class="card" style="margin-top:8px">
+<div class="card mt-8">
     <div class="section-head"></div>
     <div class="table-scroll">
     <table class="list compta-cr">
@@ -53,7 +53,7 @@
                 <th class="num">Recettes</th>
                 <th class="num">Dépenses</th>
                 <th class="num">Résultat</th>
-                <th style="width:36px"></th>
+                <th class="col-icon"></th>
             </tr>
         </thead>
         <tbody>
@@ -72,7 +72,7 @@
                     <span class="cr-toggle" aria-hidden="true"><?= icon('chevron') ?></span>
                     <?= e($v['libelle']) ?>
                     <?php if ($v['code']): ?><span class="muted small"> · <?= e($v['code']) ?></span><?php endif; ?>
-                    <?php if (!$v['actif']): ?><span class="badge muted-badge" style="margin-left:6px">inactif</span><?php endif; ?>
+                    <?php if (!$v['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
                     <?php if ($nbCats): ?><span class="cr-count"><?= $nbCats ?></span><?php endif; ?>
                 </td>
                 <td class="num <?= $v['produits'] > 0 ? 'montant-pos' : '' ?>">
@@ -96,7 +96,7 @@
                         if ($cat['sens'] !== $curSens):
                             $curSens = $cat['sens'];
                 ?>
-                    <div class="muted small" style="padding: 8px 0 2px; font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:.05em">
+                    <div class="cr-sens-label">
                         <?= $curSens === 'produit' ? 'Recettes' : 'Dépenses' ?>
                     </div>
                 <?php  endif; ?>
@@ -118,7 +118,7 @@
                     </div>
                 <?php endforeach; ?>
                 <?php else: ?>
-                    <p class="muted small" style="padding:8px 0">Aucune écriture ventilée sur cet axe.</p>
+                    <p class="muted small">Aucune écriture ventilée sur cet axe.</p>
                 <?php endif; ?>
 
                 </td>
@@ -136,7 +136,7 @@
         </tfoot>
     </table>
     </div>
-    <p class="muted small" style="padding:8px 12px 4px">
+    <p class="muted small compta-cr-foot">
         Les écritures non ventilées ne sont pas incluses.
         <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">Voir les écritures lettrées sans axe.</a>
     </p>

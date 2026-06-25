@@ -21,7 +21,7 @@ $hasAmount = function (int $id) use (&$hasAmount, $byParent, $sommesParAnnee): b
     return false;
 };
 
-$pad = fn(int $p) => 'style="padding-left:' . (16 + $p * 18) . 'px"';
+$pad = fn(int $p) => 'class="cr-noeud-pad" style="--depth:' . $p . '"';
 
 $cellules = function (callable $val) use ($cols, $anneeRef, $nbCols): string {
     $h = '';
@@ -114,7 +114,7 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
                 </div>
             </div>
 
-            <table class="list compta-cr" style="margin-top:16px">
+            <table class="list compta-cr">
                 <?php if ($nbCols > 1): ?>
                 <thead>
                     <tr>
