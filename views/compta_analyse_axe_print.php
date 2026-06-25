@@ -108,7 +108,7 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
                     <div class="cp-sub">
                         <?= e((string) $axe['libelle']) ?>
                         <?php if ($axe['code']): ?><span class="muted"> · <?= e((string) $axe['code']) ?></span><?php endif; ?>
-                        — <?= $nbCols > 1 ? 'exercices ' . $titreAnnee : 'exercice ' . $titreAnnee ?>
+                        — <?= $titreAnnee ?>
                     </div>
                 </div>
             </div>
