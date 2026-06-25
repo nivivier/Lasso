@@ -15,5 +15,6 @@
         <?php require __DIR__ . '/_fiche_body.php'; ?>
     </div>
 
+<script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
 </body>
 </html>

@@ -101,5 +101,6 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </div>
     </div>
 
+<script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
 </body>
 </html>

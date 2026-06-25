@@ -119,5 +119,6 @@ $titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef
         </div>
     </div>
 
+<script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
 </body>
 </html>
