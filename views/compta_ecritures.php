@@ -30,12 +30,16 @@ $axeById  = [];
 foreach ($axes as $ax) { $axeById[(int) $ax['id']] = $axeLabel($ax); }
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
-$catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuilles, $cheminById): string {
+$catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuilles, $cheminById, $catPrefixById): string {
     $initChemin = $ignore ? 'Ne pas lettrer' : ($selected !== null ? ($cheminById[$selected] ?? '') : '');
     $hiddenVal  = $ignore ? 'ignore' : ($selected ?? '');
     $items = '';
+    $grpCourant = null;
     foreach ($feuilles as $f) {
-        $items .= '<li data-val="' . (int) $f['id'] . '">' . e($f['chemin']) . '</li>';
+        $fid = (int) $f['id'];
+        $grp = $catPrefixById[$fid] ?? '';
+        if ($grp !== $grpCourant) { $grpCourant = $grp; if ($grp !== '') $items .= '<li class="cat-search-group">' . e($grp) . '</li>'; }
+        $items .= '<li data-val="' . $fid . '">' . e($f['chemin']) . '</li>';
     }
     return '<div class="cat-search form-cat-search">'
          . '<input type="text" class="cat-search-input" placeholder="' . e($placeholder) . '" autocomplete="off" value="' . e($initChemin) . '">'
@@ -203,8 +207,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <ul class="cat-search-list" hidden role="listbox">
                     <li data-val="">— Retirer le lettrage —</li>
                     <li data-val="ignore">Ne pas lettrer</li>
-                    <?php foreach ($feuilles as $f): ?>
-                        <li data-val="<?= (int) $f['id'] ?>"><?= e($f['chemin']) ?></li>
+                    <?php $grpCourant = null; foreach ($feuilles as $f): $fid = (int) $f['id']; $grp = $catPrefixById[$fid] ?? ''; ?>
+                    <?php if ($grp !== $grpCourant): $grpCourant = $grp; if ($grp !== ''): ?><li class="cat-search-group"><?= e($grp) ?></li><?php endif; endif; ?>
+                        <li data-val="<?= $fid ?>"><?= e($f['chemin']) ?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
@@ -218,7 +223,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="axer">
             <select name="axe_analytique_id" class="inline-year-select">
-                <option value="">— Retirer l'axe —</option>
+                <option value="">— Retirer —</option>
                 <?php foreach ($axes as $ax): ?>
                     <option value="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></option>
                 <?php endforeach; ?>
@@ -344,7 +349,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <ul id="row-cat-list" class="cat-search-list" hidden role="listbox">
     <li data-val="" data-prefix="" data-leaf="">— à lettrer —</li>
     <li data-val="ignore" data-prefix="" data-leaf="Ne pas lettrer">Ne pas lettrer</li>
-    <?php foreach ($feuilles as $f): $fid = (int) $f['id']; ?>
+    <?php $grpCourant = null; foreach ($feuilles as $f): $fid = (int) $f['id']; $grp = $catPrefixById[$fid] ?? ''; ?>
+    <?php if ($grp !== $grpCourant): $grpCourant = $grp; if ($grp !== ''): ?><li class="cat-search-group"><?= e($grp) ?></li><?php endif; endif; ?>
         <li data-val="<?= $fid ?>" data-prefix="<?= e($catPrefixById[$fid] ?? '') ?>" data-leaf="<?= e($catLeafById[$fid] ?? $f['chemin']) ?>"><?= e($f['chemin']) ?></li>
     <?php endforeach; ?>
 </ul>
@@ -433,9 +439,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     const input  = wrap.querySelector('.cat-search-input');
     const hidden = wrap.querySelector('.cat-search-val');
     const list   = wrap.querySelector('.cat-search-list');
-    const items  = Array.from(list.querySelectorAll('li'));
+    const items  = Array.from(list.querySelectorAll('li:not(.cat-search-group)'));
+    const groups = Array.from(list.querySelectorAll('.cat-search-group'));
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    function filterGroups() { groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; }); }
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); filterGroups(); }
     input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
     input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
     input.addEventListener('blur',  () => { setTimeout(() => { list.hidden = true; const cur = items.find(li => li.dataset.val === hidden.value); input.value = cur && cur.dataset.val !== '' ? cur.textContent : ''; }, 150); });
@@ -449,12 +457,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     const input  = wrap.querySelector('.cat-search-input');
     const hidden = wrap.querySelector('.cat-search-val');
     const list   = wrap.querySelector('.cat-search-list');
-    const items  = Array.from(list.querySelectorAll('li'));
+    const items  = Array.from(list.querySelectorAll('li:not(.cat-search-group)'));
+    const groups = Array.from(list.querySelectorAll('.cat-search-group'));
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    // Sélection initiale : "— Retirer le lettrage —"
     const initItem = items.find(li => li.dataset.val === hidden.value);
     if (initItem) input.value = initItem.textContent;
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    function filterGroups() { groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; }); }
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); filterGroups(); }
     input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
     input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
     input.addEventListener('blur',  () => { setTimeout(() => { list.hidden = true; const cur = items.find(li => li.dataset.val === hidden.value); input.value = cur ? cur.textContent : ''; }, 150); });
@@ -465,11 +474,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 (function () {
     const list = document.getElementById('row-cat-list');
     if (!list) return;
-    const items = Array.from(list.querySelectorAll('li'));
+    const items  = Array.from(list.querySelectorAll('li:not(.cat-search-group)'));
+    const groups = Array.from(list.querySelectorAll('.cat-search-group'));
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     let activeInput = null, activeHidden = null, activeForm = null, activePrefix = null;
 
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
+    function filterGroups() { groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; }); }
+    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); filterGroups(); }
     function position(input) {
         const r = input.getBoundingClientRect();
         list.style.top    = (r.bottom + window.scrollY + 2) + 'px';
