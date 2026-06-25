@@ -50,6 +50,7 @@
         <thead>
             <tr>
                 <th>Axe</th>
+                <th>Code</th>
                 <th class="num">Recettes</th>
                 <th class="num">Dépenses</th>
                 <th class="num">Résultat</th>
@@ -68,10 +69,10 @@
             <tr class="cr-groupe cr-clic row-link" data-href="?p=compta_analyse_axe&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>">
                 <td>
                     <?= e($v['libelle']) ?>
-                    <?php if ($v['code']): ?><span class="muted small"> · <?= e($v['code']) ?></span><?php endif; ?>
                     <?php if (!$v['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
                     <?php if ($nbCats): ?><span class="cr-count"><?= $nbCats ?></span><?php endif; ?>
                 </td>
+                <td class="muted small"><?= $v['code'] ? e($v['code']) : '' ?></td>
                 <td class="num <?= $v['produits'] > 0 ? 'montant-pos' : '' ?>">
                     <?= $v['produits'] != 0 ? chf($v['produits']) : '<span class="muted">—</span>' ?>
                 </td>
@@ -87,6 +88,7 @@
         <tfoot>
             <tr class="cr-total">
                 <td>Total ventilé</td>
+                <td></td>
                 <td class="num"><?= chf($totProd) ?></td>
                 <td class="num"><?= chf($totChg) ?></td>
                 <td class="num"><?= chf($totProd + $totChg) ?></td>
