@@ -10,10 +10,11 @@ $nbCols   = count($cols);
 // Rendu d'un sens (produit / charge) en arbre, une colonne de montant par année.
 $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnnee, $lignesParCat, $cols, $nbCols, $annee): string {
     $pad = fn(int $p) => 'style="padding-left:' . (16 + $p * 22) . 'px"';
-    $cellules = function (callable $val) use ($cols): string {
+    $cellules = function (callable $val) use ($cols, $annee): string {
         $h = '';
         foreach ($cols as $a) {
-            $h .= '<td class="num">' . chf($val((int) $a)) . '</td>';
+            $cls = (int) $a !== $annee ? ' col-prec' : '';
+            $h .= '<td class="num' . $cls . '">' . chf($val((int) $a)) . '</td>';
         }
         return $h;
     };
@@ -106,20 +107,20 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
     <div class="table-scroll">
     <table class="list">
         <thead>
-            <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
+            <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
         </thead>
         <tbody>
             <?php foreach ($patrimoine as $p): ?>
             <tr>
                 <td><?= e($p['libelle']) ?></td>
                 <?php foreach ($cols as $a): $v = $p['valeurs'][$a] ?? null; ?>
-                    <td class="num"><?= $v === null ? '<span class="muted">—</span>' : chf((float) $v) ?></td>
+                    <td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= $v === null ? '<span class="muted">—</span>' : chf((float) $v) ?></td>
                 <?php endforeach; ?>
             </tr>
             <?php endforeach; ?>
             <tr class="cr-total">
                 <td>Total du patrimoine</td>
-                <?php foreach ($cols as $a): ?><td class="num"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
+                <?php foreach ($cols as $a): ?><td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
             </tr>
         </tbody>
     </table>
@@ -140,7 +141,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
     <div class="table-scroll">
     <table class="list compta-cr">
         <?php if ($nbCols > 1): ?>
-        <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
+        <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
         <?php endif; ?>
         <tbody>
             <?= $blocSens('produit', 'Recettes') ?>

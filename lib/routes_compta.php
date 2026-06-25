@@ -790,9 +790,11 @@ function route_compta_bilan(): void
 // Ligne de total d'un tableau de bilan (une cellule par colonne d'année).
 function compta_ligne_total(string $libelle, string $cle, string $cls, array $cols, array $totauxParAnnee): string
 {
-    $h = '<tr class="' . $cls . '"><td>' . e($libelle) . '</td>';
+    $h    = '<tr class="' . $cls . '"><td>' . e($libelle) . '</td>';
+    $cur  = (int) ($cols[0] ?? 0);
     foreach ($cols as $a) {
-        $h .= '<td class="num">' . chf((float) ($totauxParAnnee[(int) $a][$cle] ?? 0)) . '</td>';
+        $precCls = ((int) $a !== $cur) ? ' col-prec' : '';
+        $h .= '<td class="num' . $precCls . '">' . chf((float) ($totauxParAnnee[(int) $a][$cle] ?? 0)) . '</td>';
     }
     return $h . '</tr>';
 }

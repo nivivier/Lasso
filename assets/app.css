@@ -207,8 +207,8 @@ h3.sub.no-mt { margin-top: 0; }
 @media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
 /* Cat-search dans la barre de filtres — même hauteur que les <select> */
 .filtre-cat-search { position: relative; min-width: 200px; }
-.filtre-cat-search .cat-search-input { padding: 7px 10px; font-size: 13.5px; }
-.filters input[type="search"] { padding: 7px 10px; font-size: 13.5px; }
+.filtre-cat-search .cat-search-input { padding: 9px 10px; font-size: 13.5px; }
+.filters input[type="search"] { padding: 9px 10px; font-size: 13.5px; }
 /* En-têtes de groupe dans les listes cat-search */
 .cat-search-group { padding: 6px 12px 2px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); cursor: default; pointer-events: none; }
 /* Formulaire écriture manuelle */
@@ -605,8 +605,13 @@ abbr {
 .compta-cr td { padding: 5px 12px; }
 .compta-cr .cr-section th { background: #faf9fe; text-transform: uppercase; font-size: 11.5px; letter-spacing: .05em; color: var(--muted); text-align: left; padding: 8px 12px; }
 .compta-cr .cr-groupe td { font-weight: 600; color: var(--ink); }
+.compta-cr .cr-compte td { font-size: 13px; }
 .compta-cr .cr-compte td:first-child { padding-left: 34px; color: var(--muted); }
 .compta-cr .cr-clic { cursor: pointer; }
+/* Colonnes des années précédentes en gris (écran uniquement) */
+.compta-cr td.col-prec, .bilan-card td.col-prec { color: var(--muted); }
+.compta-cr .cr-groupe td.col-prec { color: var(--muted); }
+.compta-cr th.col-prec, .bilan-card th.col-prec { color: var(--muted); font-weight: 500; }
 .compta-cr .cr-clic:hover td { background: var(--primary-tint); color: var(--ink); }
 .compta-cr .cr-clic td:first-child { padding-left: 16px; }
 .cr-toggle { display: inline-flex; vertical-align: middle; margin-right: 4px; color: var(--muted); transition: transform .15s; }
