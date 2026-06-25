@@ -86,16 +86,14 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
             </select>
         </form>
     </div>
-    <div class="head-actions">
-        <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('pencil') ?> Écritures</a>
-        <a href="?p=compta_analyse_axe_print&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
-    </div>
 </div>
 
 <div class="section-head">
     <h2>Compte de résultat<?= $nbCols === 1 ? ' ' . (int) $anneeRef : '' ?></h2>
+	<a href="?p=compta_analyse_axe_print&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm ml-auto" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
 </div>
-<div class="table-scroll bilan-card">
+
+<div class="table-scroll">
 <table class="list compta-cr">
     <?php if ($nbCols > 1): ?>
     <thead>
@@ -119,9 +117,11 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 </div>
 
 <?php if ($ecritures): ?>
-<div class="section-head mt-28">
+<div class="section-head">
     <h2>Écritures</h2>
+    <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Modifier</a>
 </div>
+
 <table class="list compta-lettrage">
     <thead>
         <tr>
