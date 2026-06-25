@@ -182,8 +182,8 @@ h3.sub.no-mt { margin-top: 0; }
     cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .row-cat-input::placeholder { color: var(--muted); }
 .row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
-/* Préfixe (catégorie parente) affiché au-dessus de l'input */
-.cat-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); min-height: 13px; margin-bottom: 1px; }
+/* Préfixe (catégorie parente) affiché au-dessus de l'input — absent si pas de parent */
+.cat-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); margin-bottom: 1px; }
 /* Texte plus compact pour Date et Compte */
 .compta-lettrage td.nowrap { font-size: 12px; }
 .compta-lettrage .compte-cell { font-size: 11px; }

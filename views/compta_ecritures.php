@@ -272,7 +272,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="lettrer">
                     <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
-                    <div class="cat-prefix"><?= e($rowCatPrefix) ?></div>
+                    <?php if ($rowCatPrefix !== ''): ?><div class="cat-prefix"><?= e($rowCatPrefix) ?></div><?php endif; ?>
                     <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —"
                            value="<?= e($rowCatLeaf) ?>">
                     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
