@@ -1,5 +1,5 @@
 <?php
-/** @var array $axe */ /** @var int $annee */ /** @var array $annees */ /** @var int $nbPrec */
+/** @var array $axe */ /** @var int $annee */ /** @var int $anneeRef */ /** @var array $annees */
 /** @var array $cols */ /** @var array $plan */ /** @var array $sommesParAnnee */
 /** @var array $totauxParAnnee */ /** @var string $nomEmployeur */
 
@@ -23,10 +23,10 @@ $hasAmount = function (int $id) use (&$hasAmount, $byParent, $sommesParAnnee): b
 
 $pad = fn(int $p) => 'style="padding-left:' . (16 + $p * 18) . 'px"';
 
-$cellules = function (callable $val) use ($cols, $annee): string {
+$cellules = function (callable $val) use ($cols, $anneeRef): string {
     $h = '';
     foreach ($cols as $a) {
-        $cls = (int) $a !== $annee ? ' col-prec' : '';
+        $cls = (int) $a !== $anneeRef ? ' col-prec' : '';
         $h .= '<td class="num' . $cls . '">' . chf($val((int) $a)) . '</td>';
     }
     return $h;
@@ -61,9 +61,8 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     return $h;
 };
 
-$titreAnnee = $nbCols > 1
-    ? (int) $cols[count($cols) - 1] . ' – ' . (int) $cols[0]
-    : (string) (int) $annee;
+$derniere = (int) ($cols[count($cols) - 1] ?? $anneeRef);
+$titreAnnee = $nbCols > 1 ? $derniere . ' – ' . $anneeRef : (string) $anneeRef;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -89,7 +88,7 @@ $titreAnnee = $nbCols > 1
                     <div class="cp-sub">
                         <?= e((string) $axe['libelle']) ?>
                         <?php if ($axe['code']): ?><span class="muted"> · <?= e((string) $axe['code']) ?></span><?php endif; ?>
-                        — <?= $nbCols > 1 ? 'exercices ' . $titreAnnee : 'exercice ' . (int) $annee ?>
+                        — <?= $nbCols > 1 ? 'exercices ' . $titreAnnee : 'exercice ' . $titreAnnee ?>
                     </div>
                 </div>
             </div>
@@ -100,7 +99,7 @@ $titreAnnee = $nbCols > 1
                     <tr>
                         <th>Catégorie</th>
                         <?php foreach ($cols as $a): ?>
-                            <th class="num<?= (int) $a !== $annee ? ' col-prec' : '' ?>"><?= (int) $a ?></th>
+                            <th class="num<?= (int) $a !== $anneeRef ? ' col-prec' : '' ?>"><?= (int) $a ?></th>
                         <?php endforeach; ?>
                     </tr>
                 </thead>
