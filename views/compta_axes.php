@@ -2,7 +2,7 @@
 /** @var array $axes */ /** @var bool $saved */
 ?>
 <div class="page-head page-head-sub">
-    <?= lien_retour('?p=compta_bilan', 'Comptes annuels') ?>
+    <?= lien_retour('?p=compta_analyse', 'Analyse') ?>
     <h1>Axes analytiques</h1>
 </div>
 <?php if ($saved): ?><p class="ok flash">Axe enregistré.</p><?php endif; ?>

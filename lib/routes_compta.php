@@ -773,6 +773,23 @@ function calculer_ventilation_analytique(int $annee, array $plan): array
     return $rows;
 }
 
+// --- Analyse analytique ----------------------------------------------------
+function route_compta_analyse(): void
+{
+    require_login();
+    $annees = compta_annees();
+    $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) ($annees[0] ?? date('Y'));
+    $plan   = compta_plan_map();
+    $axes   = db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll();
+    $ventilation = calculer_ventilation_analytique($annee, $plan);
+    render('compta_analyse', [
+        'annee'       => $annee,
+        'annees'      => $annees,
+        'axes'        => $axes,
+        'ventilation' => $ventilation,
+    ], 'Comptabilité — Analyse analytique');
+}
+
 // --- Bilan & compte de résultat --------------------------------------------
 function route_compta_bilan(): void
 {
@@ -917,7 +934,6 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
         'plan'           => $plan,
         'lignesParCat'   => $lignesParCat,
         'patrimoine'     => $patrimoine,
-        'ventilation'    => calculer_ventilation_analytique($annee, $plan),
     ];
 }
 
