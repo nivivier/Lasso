@@ -17,7 +17,7 @@
     </div>
     <div class="page-head-actions">
         <?php if ($ventilation): ?>
-        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" target="_blank" rel="noopener"><?= icon('printer') ?> Aperçu</a>
+        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
         <?php endif; ?>
         <a href="?p=compta_axes" class="btn ghost btn-sm"><?= icon('settings') ?> Gérer les axes</a>
     </div>
