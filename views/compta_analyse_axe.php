@@ -139,7 +139,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
         <tr>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <td class="muted small nowrap"><?= e($ecr['compte_libelle']) ?></td>
-            <td class="texte-cell" title="<?= e($ecr['texte']) ?>"><?= e($ecr['texte']) ?></td>
+            <td class="texte-cell" title="<?= e($ecr['texte']) ?>" data-summary="<?= e(resumer_texte_postfinance($ecr['texte'])) ?>"><?= e(resumer_texte_postfinance($ecr['texte'])) ?></td>
             <td class="muted small"><?= e($ecr['cat_libelle']) ?></td>
             <td class="num <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
         </tr>
