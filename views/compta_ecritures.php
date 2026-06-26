@@ -391,13 +391,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         inp.querySelector('input[type="text"]')?.focus();
     });
 
-    // Clic sur le texte → bascule résumé ↔ texte brut complet.
-    document.querySelectorAll('.compta-lettrage .texte-cell').forEach(td => {
-        td.addEventListener('click', () => {
-            const expanded = td.classList.toggle('expanded');
-            td.textContent = expanded ? td.title : td.dataset.summary;
-        });
-    });
+
 
     // Recherche instantanée (insensible à la casse et aux accents).
     const search = document.getElementById('compta-search');

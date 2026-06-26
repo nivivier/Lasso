@@ -144,6 +144,14 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         });
     });
 
+    // Clic sur le texte résumé → bascule résumé ↔ texte brut complet (toutes pages).
+    document.addEventListener('click', e => {
+        const td = e.target.closest('.compta-lettrage .texte-cell');
+        if (!td) return;
+        const expanded = td.classList.toggle('expanded');
+        td.textContent = expanded ? td.title : td.dataset.summary;
+    });
+
     // Modal plein écran pour les aperçus d'impression (liens [data-preview]).
     const previewModal = document.getElementById('preview-modal');
     const previewFrame = document.getElementById('preview-modal-frame');
