@@ -421,9 +421,9 @@ function route_compta_ecritures(): void
                 $planId  = ($planRaw !== '' && $planRaw !== '0') ? (int) $planRaw : null;
                 $origLettrage = $planId !== null ? 'manuel' : '';
             }
-            $axeRaw = (int) ($_POST['axe_analytique_id'] ?? 0);
             if ($cid && $date_op && $texte) {
                 if ($section === 'create') {
+                    $axeRaw = (int) ($_POST['axe_analytique_id'] ?? 0);
                     $hash = sha1('manual-' . uniqid('', true) . mt_rand());
                     db()->prepare('INSERT INTO ecritures (compte_bancaire_id, date_op, texte, montant, plan_compte_id, origine_lettrage, hash) VALUES (?,?,?,?,?,?,?)')
                         ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $hash]);
@@ -435,7 +435,7 @@ function route_compta_ecritures(): void
                     $id = (int) ($_POST['id'] ?? 0);
                     db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=? WHERE id=? AND import_id IS NULL')
                         ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $id]);
-                    compta_save_ventilations($id, $axeRaw ? [['axe_id' => $axeRaw, 'montant' => $montant]] : []);
+                    // Ventilations gérées exclusivement via le panneau multi-axe (compta_ventilation_save).
                 }
             }
             redirect('compta_ecritures', $retour);
@@ -1295,9 +1295,9 @@ function route_compta_ventilation_save(): void
     check_csrf();
     $ecrId = (int) ($_POST['ecriture_id'] ?? 0);
     if (!$ecrId) { echo json_encode(['ok' => false]); return; }
-    if (!db()->prepare('SELECT id FROM ecritures WHERE id = ?')->execute([$ecrId]) ) {
-        echo json_encode(['ok' => false]); return;
-    }
+    $chk = db()->prepare('SELECT id FROM ecritures WHERE id = ?');
+    $chk->execute([$ecrId]);
+    if (!$chk->fetch()) { echo json_encode(['ok' => false]); return; }
 
     $axeIds   = array_map('intval',   (array) ($_POST['axe_id'] ?? []));
     $montants = array_map('floatval', (array) ($_POST['montant'] ?? []));
@@ -1308,12 +1308,5 @@ function route_compta_ventilation_save(): void
         }
     }
     compta_save_ventilations($ecrId, $lignes);
-
-    $stmt = db()->prepare(
-        'SELECT ev.axe_id, ev.montant, a.libelle, a.code
-         FROM ecritures_ventilations ev JOIN axes_analytiques a ON a.id = ev.axe_id
-         WHERE ev.ecriture_id = ? ORDER BY ev.id'
-    );
-    $stmt->execute([$ecrId]);
-    echo json_encode(['ok' => true, 'ventilations' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    echo json_encode(['ok' => true, 'ventilations' => compta_ventilations_ecriture($ecrId)]);
 }

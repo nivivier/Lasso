@@ -218,9 +218,11 @@ h3.sub.no-mt { margin-top: 0; }
 .axe-cell { width: 1%; white-space: nowrap; }
 .axe-disp { display: flex; align-items: center; gap: 4px; }
 .axe-disp-txt { display: inline-block; min-width: 24px; }
-.axe-add-btn { opacity: 0; }
+.axe-add-btn, .axe-edit-btn { opacity: 0; pointer-events: none; }
 .axe-cell:hover .axe-add-btn,
-.axe-cell:hover .axe-edit-btn { opacity: 1; }
+.axe-cell:hover .axe-edit-btn,
+.axe-add-btn:focus-visible,
+.axe-edit-btn:focus-visible { opacity: 1; pointer-events: auto; }
 
 /* Panneau de ventilation multi-axe (flottant, positionné par JS) */
 .axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 300px; }
