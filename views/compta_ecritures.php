@@ -1,7 +1,7 @@
 <?php
 /** @var array $comptes */ /** @var int $compteId */ /** @var int $annee */ /** @var array $annees */
 /** @var string $categorieFilter */ /** @var string $axeFilter */ /** @var array $ecritures */
-/** @var array $feuilles */ /** @var array $axes */
+/** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 
 // Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
@@ -305,26 +305,22 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <?php endif; ?>
                 </form>
             </td>
-            <?php if ($axes): ?>
-            <?php $axeValAff = $axeById[(int) ($ecr['axe_analytique_id'] ?? 0)] ?? ''; ?>
-            <td class="axe-cell">
-                <form method="post" action="?p=compta_ecritures<?= $qs ?>">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="section" value="axer">
-                    <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
-                    <input type="hidden" name="axe_analytique_id" class="row-axe-val" value="<?= e($ecr['axe_analytique_id'] ?? '') ?>">
-                    <?php if ($axeValAff !== ''): ?>
-                    <div class="row-field-disp">
-                        <span class="row-field-txt"><?= e($axeValAff) ?></span>
-                        <button type="button" class="row-edit-btn" title="Modifier"><?= icon('pencil') ?></button>
-                    </div>
-                    <div class="row-field-inp" hidden>
-                        <input type="text" class="row-axe-input" autocomplete="off" placeholder="—" value="<?= e($axeValAff) ?>">
-                    </div>
-                    <?php else: ?>
-                    <input type="text" class="row-axe-input" autocomplete="off" placeholder="—" value="">
+            <?php if ($axes):
+                $vents  = $ventilationsParEcr[(int) $ecr['id']] ?? [];
+                $codes  = array_filter(array_map(fn($v) => $v['code'] !== '' ? e($v['code']) : e($v['libelle']), $vents));
+                $dispTxt = implode(' / ', $codes);
+            ?>
+            <td class="axe-cell"
+                data-ecr-id="<?= (int) $ecr['id'] ?>"
+                data-ecr-montant="<?= (float) $ecr['montant'] ?>"
+                data-ventilations="<?= e(json_encode(array_values($vents), JSON_UNESCAPED_UNICODE)) ?>">
+                <div class="axe-disp">
+                    <span class="axe-disp-txt muted small"><?= $dispTxt !== '' ? $dispTxt : '' ?></span>
+                    <?php if ($vents): ?>
+                    <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier la ventilation"><?= icon('pencil') ?></button>
                     <?php endif; ?>
-                </form>
+                    <button type="button" class="row-edit-btn axe-add-btn" title="Ajouter un axe"><?= icon('plus') ?></button>
+                </div>
             </td>
             <?php endif; ?>
             <td class="actions">
@@ -342,14 +338,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 </table>
 
 
-<!-- Dropdown partagé pour l'axe individuel (repositionné par JS) -->
+<!-- Panneau de ventilation analytique (singleton, positionné par JS) -->
 <?php if ($axes): ?>
-<ul id="row-axe-list" class="cat-search-list" hidden role="listbox">
-    <li data-val="">— Retirer l'axe —</li>
-    <?php foreach ($axes as $ax): ?>
-        <li data-val="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></li>
-    <?php endforeach; ?>
-</ul>
+<div id="axe-panel" class="axe-panel" hidden aria-label="Ventilation analytique">
+    <div id="axe-panel-rows"></div>
+    <div class="axe-panel-total"><span id="axe-panel-sum">0.00</span> / <span id="axe-panel-ref"></span> CHF</div>
+    <div class="axe-panel-btns">
+        <button type="button" id="axe-panel-add" class="btn ghost btn-sm"><?= icon('plus') ?> Ajouter</button>
+        <button type="button" id="axe-panel-save" class="btn btn-sm"><?= icon('check') ?> Enregistrer</button>
+        <button type="button" id="axe-panel-cancel" class="btn ghost btn-sm">Annuler</button>
+    </div>
+</div>
 <?php endif; ?>
 
 <!-- Dropdown partagé pour le lettrage individuel (repositionné par JS) -->
@@ -563,49 +562,120 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     });
 })();
 
-// Dropdown partagé — axe analytique individuel par ligne
+// Panneau de ventilation analytique (multi-axe par écriture)
 (function () {
-    const list = document.getElementById('row-axe-list');
-    if (!list) return;
-    const items = Array.from(list.querySelectorAll('li'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    let activeInput = null, activeHidden = null, activeForm = null;
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); }
-    function position(input) {
-        const r = input.getBoundingClientRect();
-        list.style.top   = (r.bottom + window.scrollY + 2) + 'px';
-        list.style.left  = r.left + 'px';
-        list.style.width = Math.max(r.width, 180) + 'px';
+    const panel  = document.getElementById('axe-panel');
+    if (!panel) return;
+    const rowsEl = document.getElementById('axe-panel-rows');
+    const sumEl  = document.getElementById('axe-panel-sum');
+    const refEl  = document.getElementById('axe-panel-ref');
+    const addBtn = document.getElementById('axe-panel-add');
+    const saveBtn = document.getElementById('axe-panel-save');
+    const cancelBtn = document.getElementById('axe-panel-cancel');
+    const CSRF   = <?= json_encode(csrf_token()) ?>;
+    const AXES   = <?= json_encode(array_map(fn($a) => ['id' => (int)$a['id'], 'label' => ($a['code'] !== '' ? $a['code'] : $a['libelle'])], $axes), JSON_UNESCAPED_UNICODE) ?>;
+
+    let currentCell = null;
+
+    function axeOptions(selectedId) {
+        return '<option value="">— Choisir —</option>' +
+            AXES.map(a => `<option value="${a.id}"${a.id === selectedId ? ' selected' : ''}>${a.label}</option>`).join('');
     }
-    document.querySelectorAll('.row-axe-input').forEach(input => {
-        const form   = input.closest('form');
-        const hidden = form.querySelector('.row-axe-val');
-        input.addEventListener('focus', () => { activeInput = input; activeHidden = hidden; activeForm = form; filter(''); list.hidden = false; position(input); });
-        input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
-        input.addEventListener('blur', () => {
-            setTimeout(() => {
-                list.hidden = true;
-                const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
-                if (activeInput) activeInput.value = cur && cur.dataset.val !== '' ? cur.textContent : '';
-                const inp = input.closest('.row-field-inp');
-                if (inp) { const disp = inp.previousElementSibling; if (disp?.classList.contains('row-field-disp')) { inp.hidden = true; disp.hidden = false; } }
-            }, 150);
+
+    function makeRow(v) {
+        const d = document.createElement('div');
+        d.className = 'axe-panel-row';
+        d.innerHTML = `<select class="vent-axe">${axeOptions(v ? v.axe_id : 0)}</select>`
+            + `<input type="number" class="vent-mont" step="0.01" value="${v ? v.montant : ''}" placeholder="Montant">`
+            + `<button type="button" class="vent-del" title="Supprimer">${<?= json_encode(icon('x')) ?>}</button>`;
+        d.querySelector('.vent-del').addEventListener('click', () => { d.remove(); updateSum(); });
+        d.querySelector('.vent-mont').addEventListener('input', updateSum);
+        return d;
+    }
+
+    function updateSum() {
+        const total = Array.from(rowsEl.querySelectorAll('.vent-mont'))
+            .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+        sumEl.textContent = total.toFixed(2);
+        const ref = parseFloat(currentCell?.dataset.ecrMontant || 0);
+        sumEl.style.color = Math.abs(Math.abs(total) - Math.abs(ref)) < 0.005 ? '' : 'var(--amber)';
+    }
+
+    function openPanel(cell, addNew) {
+        currentCell = cell;
+        rowsEl.innerHTML = '';
+        const vents = JSON.parse(cell.dataset.ventilations || '[]');
+        vents.forEach(v => rowsEl.appendChild(makeRow(v)));
+        if (addNew || vents.length === 0) rowsEl.appendChild(makeRow(null));
+        const ref = parseFloat(cell.dataset.ecrMontant || 0);
+        refEl.textContent = Math.abs(ref).toFixed(2);
+        updateSum();
+        // Position sous la cellule
+        const r = cell.getBoundingClientRect();
+        panel.style.top  = (r.bottom + window.scrollY + 4) + 'px';
+        panel.style.left = Math.min(r.left, window.innerWidth - 340) + 'px';
+        panel.hidden = false;
+        rowsEl.querySelector('select')?.focus();
+    }
+
+    function closePanel() {
+        panel.hidden = true;
+        currentCell = null;
+    }
+
+    async function savePanel() {
+        if (!currentCell) return;
+        const ecrId = currentCell.dataset.ecrId;
+        const rows  = Array.from(rowsEl.querySelectorAll('.axe-panel-row'));
+        const fd = new FormData();
+        fd.append('csrf', CSRF);
+        fd.append('ecriture_id', ecrId);
+        rows.forEach(r => {
+            const aId = r.querySelector('.vent-axe').value;
+            const mt  = r.querySelector('.vent-mont').value;
+            if (aId) { fd.append('axe_id[]', aId); fd.append('montant[]', mt || '0'); }
         });
+        saveBtn.disabled = true;
+        try {
+            const res = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.ok) {
+                currentCell.dataset.ventilations = JSON.stringify(data.ventilations);
+                const codes = data.ventilations.map(v => v.code || v.libelle).join(' / ');
+                const disp = currentCell.querySelector('.axe-disp-txt');
+                disp.textContent = codes;
+                // Afficher/masquer le crayon
+                let editBtn = currentCell.querySelector('.axe-edit-btn');
+                if (data.ventilations.length > 0 && !editBtn) {
+                    editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'row-edit-btn axe-edit-btn';
+                    editBtn.title = 'Modifier la ventilation';
+                    editBtn.innerHTML = <?= json_encode(icon('pencil')) ?>;
+                    currentCell.querySelector('.axe-disp').insertBefore(editBtn, currentCell.querySelector('.axe-add-btn'));
+                } else if (data.ventilations.length === 0 && editBtn) {
+                    editBtn.remove();
+                }
+                closePanel();
+            }
+        } finally {
+            saveBtn.disabled = false;
+        }
+    }
+
+    document.addEventListener('click', e => {
+        if (e.target.closest('.axe-edit-btn')) {
+            openPanel(e.target.closest('.axe-cell'), false);
+        } else if (e.target.closest('.axe-add-btn')) {
+            openPanel(e.target.closest('.axe-cell'), true);
+        } else if (!panel.hidden && !panel.contains(e.target)) {
+            closePanel();
+        }
     });
-    items.forEach(li => {
-        li.addEventListener('mousedown', e => {
-            e.preventDefault();
-            if (!activeHidden || !activeInput || !activeForm) return;
-            activeHidden.value = li.dataset.val;
-            activeInput.value  = li.dataset.val !== '' ? li.textContent : '';
-            list.hidden = true;
-            activeForm.submit();
-        });
-    });
-    document.addEventListener('mousedown', e => {
-        if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
-    });
-    window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
+    addBtn.addEventListener('click', () => { rowsEl.appendChild(makeRow(null)); updateSum(); rowsEl.lastElementChild.querySelector('select')?.focus(); });
+    saveBtn.addEventListener('click', savePanel);
+    cancelBtn.addEventListener('click', closePanel);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
 })();
 </script>
 <?php endif; ?>

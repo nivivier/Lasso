@@ -292,6 +292,7 @@ function run_migrations(PDO $pdo): void
         13 => 'migration_13', // répare FK conditions_lettrage cassé par migration_12 (RENAME side-effect)
         14 => 'migration_14', // comptes_bancaires : colonne solde_initial (solde de départ)
         15 => 'migration_15', // axes_analytiques + ecritures.axe_analytique_id
+        16 => 'migration_16', // ecritures_ventilations (multi-axe)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -634,6 +635,27 @@ function migration_14(PDO $pdo): void
         if ($col['name'] === 'solde_initial') return;
     }
     $pdo->exec('ALTER TABLE comptes_bancaires ADD COLUMN solde_initial REAL NOT NULL DEFAULT 0');
+}
+
+function migration_16(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ecritures_ventilations (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        ecriture_id INTEGER NOT NULL REFERENCES ecritures(id),
+        axe_id      INTEGER NOT NULL REFERENCES axes_analytiques(id),
+        montant     REAL NOT NULL,
+        cree_le     TEXT NOT NULL DEFAULT (datetime('now'))
+    )");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ev_ecriture ON ecritures_ventilations(ecriture_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ev_axe      ON ecritures_ventilations(axe_id)');
+    // Backfill : chaque écriture avec un axe unique → une ligne de ventilation
+    // avec le montant complet de l'écriture.
+    $pdo->exec("INSERT INTO ecritures_ventilations (ecriture_id, axe_id, montant)
+        SELECT id, axe_analytique_id, montant FROM ecritures
+        WHERE axe_analytique_id IS NOT NULL");
+    // L'ancienne colonne n'est plus la source de vérité.
+    // SQLite ne supporte pas DROP COLUMN sans reconstruction, on la met à NULL.
+    $pdo->exec('UPDATE ecritures SET axe_analytique_id = NULL');
 }
 
 function migration_15(PDO $pdo): void

@@ -353,6 +353,41 @@ function appliquer_regles(array $regles, array $ecritures): array
     return $res;
 }
 
+// -------------------------------------------------- Ventilations analytiques
+
+// Renvoie les lignes de ventilation d'une écriture avec les labels d'axe.
+function compta_ventilations_ecriture(int $ecrId): array
+{
+    $stmt = db()->prepare(
+        'SELECT ev.axe_id, ev.montant, a.libelle, a.code
+         FROM ecritures_ventilations ev
+         JOIN axes_analytiques a ON a.id = ev.axe_id
+         WHERE ev.ecriture_id = ? ORDER BY ev.id'
+    );
+    $stmt->execute([$ecrId]);
+    return $stmt->fetchAll();
+}
+
+// Remplace toutes les ventilations d'une écriture (DELETE + INSERT atomique).
+// $lignes = [['axe_id' => int, 'montant' => float], ...]
+function compta_save_ventilations(int $ecrId, array $lignes): void
+{
+    $pdo = db();
+    $pdo->beginTransaction();
+    $pdo->prepare('DELETE FROM ecritures_ventilations WHERE ecriture_id = ?')->execute([$ecrId]);
+    if ($lignes) {
+        $ins = $pdo->prepare('INSERT INTO ecritures_ventilations (ecriture_id, axe_id, montant) VALUES (?, ?, ?)');
+        foreach ($lignes as $l) {
+            $axeId  = (int) $l['axe_id'];
+            $montant = (float) $l['montant'];
+            if ($axeId > 0) {
+                $ins->execute([$ecrId, $axeId, $montant]);
+            }
+        }
+    }
+    $pdo->commit();
+}
+
 // ----------------------------------------------------- Plan comptable (arbre)
 // Normalise un parent_id en int (0 = racine).
 function plan_pid($v): int
