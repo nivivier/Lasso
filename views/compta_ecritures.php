@@ -32,8 +32,6 @@ $showForm = $openNew || $editEcr !== null;
 $isEdit   = $editEcr !== null;
 $qs = '&compte=' . $compteId . '&annee=' . $annee . '&categorie=' . urlencode($categorieFilter) . '&axe=' . urlencode($axeFilter);
 $axeLabel = fn(array $ax): string => ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
-$axeById  = [];
-foreach ($axes as $ax) { $axeById[(int) $ax['id']] = $axeLabel($ax); }
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
 $catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuillesSorted, $cheminById, $catPrefixById): string {
@@ -109,15 +107,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <label>Catégorie <span class="muted label-hint">(optionnel)</span>
             <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…', $isEdit && ($editEcr['origine_lettrage'] ?? '') === 'ignore') ?>
         </label>
-        <?php if ($axes): ?>
+        <?php if ($axes && !$isEdit): ?>
         <label>Axe analytique <span class="muted label-hint">(optionnel)</span>
             <select name="axe_analytique_id">
                 <option value="">— Aucun —</option>
                 <?php foreach ($axes as $ax): ?>
-                    <option value="<?= (int) $ax['id'] ?>"
-                        <?= $isEdit && (int)($editEcr['axe_analytique_id'] ?? 0) === (int) $ax['id'] ? 'selected' : '' ?>>
-                        <?= e($axeLabel($ax)) ?>
-                    </option>
+                    <option value="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
@@ -377,9 +372,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     });
     document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
 
-    // Crayon → passer en mode édition pour catégorie / axe d'une ligne.
+    // Crayon → passer en mode édition catégorie (exclut les boutons du panneau axe).
     document.addEventListener('click', e => {
-        const btn = e.target.closest('.row-edit-btn');
+        const btn = e.target.closest('.row-edit-btn:not(.axe-edit-btn):not(.axe-add-btn)');
         if (!btn) return;
         const disp = btn.closest('.row-field-disp');
         if (!disp) return;
@@ -577,19 +572,31 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
     let currentCell = null;
 
-    function axeOptions(selectedId) {
-        return '<option value="">— Choisir —</option>' +
-            AXES.map(a => `<option value="${a.id}"${a.id === selectedId ? ' selected' : ''}>${a.label}</option>`).join('');
-    }
-
     function makeRow(v) {
         const d = document.createElement('div');
         d.className = 'axe-panel-row';
-        d.innerHTML = `<select class="vent-axe">${axeOptions(v ? v.axe_id : 0)}</select>`
-            + `<input type="number" class="vent-mont" step="0.01" value="${v ? v.montant : ''}" placeholder="Montant">`
-            + `<button type="button" class="vent-del" title="Supprimer">${<?= json_encode(icon('x')) ?>}</button>`;
-        d.querySelector('.vent-del').addEventListener('click', () => { d.remove(); updateSum(); });
-        d.querySelector('.vent-mont').addEventListener('input', updateSum);
+
+        const sel = document.createElement('select');
+        sel.className = 'vent-axe';
+        sel.appendChild(new Option('— Choisir —', ''));
+        AXES.forEach(a => {
+            const o = new Option(a.label, String(a.id));
+            if (v && a.id === v.axe_id) o.selected = true;
+            sel.appendChild(o);
+        });
+
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.className = 'vent-mont'; inp.step = '0.01';
+        inp.placeholder = 'Montant';
+        if (v) inp.value = v.montant;
+        inp.addEventListener('input', updateSum);
+
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'vent-del'; del.title = 'Supprimer';
+        del.innerHTML = <?= json_encode(icon('x')) ?>; // SVG trusted, généré côté serveur
+        del.addEventListener('click', () => { d.remove(); updateSum(); });
+
+        d.append(sel, inp, del);
         return d;
     }
 
@@ -610,11 +617,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         const ref = parseFloat(cell.dataset.ecrMontant || 0);
         refEl.textContent = Math.abs(ref).toFixed(2);
         updateSum();
-        // Position sous la cellule
+        // Positionnement sous la cellule, clamping horizontal + vertical
         const r = cell.getBoundingClientRect();
-        panel.style.top  = (r.bottom + window.scrollY + 4) + 'px';
-        panel.style.left = Math.min(r.left, window.innerWidth - 340) + 'px';
-        panel.hidden = false;
+        panel.hidden = false; // doit être visible avant offsetHeight
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+        let top = r.bottom + window.scrollY + 4;
+        if (r.bottom + ph + 4 > window.innerHeight) {
+            top = r.top + window.scrollY - ph - 4; // positionner au-dessus si manque de place
+        }
+        panel.style.left = left + 'px';
+        panel.style.top  = top + 'px';
         rowsEl.querySelector('select')?.focus();
     }
 
