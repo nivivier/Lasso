@@ -421,22 +421,27 @@ function route_compta_ecritures(): void
                 $planId  = ($planRaw !== '' && $planRaw !== '0') ? (int) $planRaw : null;
                 $origLettrage = $planId !== null ? 'manuel' : '';
             }
-            $axeRaw = $_POST['axe_analytique_id'] ?? '';
-            $axeId  = ($axeRaw !== '' && $axeRaw !== '0') ? (int) $axeRaw : null;
+            $axeRaw = (int) ($_POST['axe_analytique_id'] ?? 0);
             if ($cid && $date_op && $texte) {
                 if ($section === 'create') {
                     $hash = sha1('manual-' . uniqid('', true) . mt_rand());
-                    db()->prepare('INSERT INTO ecritures (compte_bancaire_id, date_op, texte, montant, plan_compte_id, origine_lettrage, axe_analytique_id, hash) VALUES (?,?,?,?,?,?,?,?)')
-                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $axeId, $hash]);
+                    db()->prepare('INSERT INTO ecritures (compte_bancaire_id, date_op, texte, montant, plan_compte_id, origine_lettrage, hash) VALUES (?,?,?,?,?,?,?)')
+                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $hash]);
+                    if ($axeRaw) {
+                        $newId = (int) db()->lastInsertId();
+                        compta_save_ventilations($newId, [['axe_id' => $axeRaw, 'montant' => $montant]]);
+                    }
                 } else {
                     $id = (int) ($_POST['id'] ?? 0);
-                    db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=?, axe_analytique_id=? WHERE id=? AND import_id IS NULL')
-                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $axeId, $id]);
+                    db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=? WHERE id=? AND import_id IS NULL')
+                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $id]);
+                    compta_save_ventilations($id, $axeRaw ? [['axe_id' => $axeRaw, 'montant' => $montant]] : []);
                 }
             }
             redirect('compta_ecritures', $retour);
         } elseif ($section === 'delete_manual') {
             $id = (int) ($_POST['id'] ?? 0);
+            db()->prepare('DELETE FROM ecritures_ventilations WHERE ecriture_id = ?')->execute([$id]);
             db()->prepare('DELETE FROM ecritures WHERE id=? AND import_id IS NULL')->execute([$id]);
             redirect('compta_ecritures', $retour);
         } elseif ($section === 'lettrer') {
@@ -464,17 +469,23 @@ function route_compta_ecritures(): void
             }
             redirect('compta_ecritures', $retour);
         } elseif ($section === 'axer') {
-            // Affectation d'un axe analytique (une ou plusieurs écritures).
-            $ids   = array_filter(array_map('intval', (array) ($_POST['ids'] ?? [])));
-            $axeId = $_POST['axe_analytique_id'] ?? '';
+            // Affectation d'un axe analytique (une ou plusieurs écritures) — remplace toutes
+            // les ventilations existantes par une seule avec le montant total de l'écriture.
+            $ids   = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+            $axeId = (int) ($_POST['axe_analytique_id'] ?? 0);
             if ($ids) {
                 $in = implode(',', array_fill(0, count($ids), '?'));
-                if ($axeId === '' || $axeId === '0') {
-                    db()->prepare("UPDATE ecritures SET axe_analytique_id = NULL WHERE id IN ($in)")
-                        ->execute(array_values($ids));
-                } else {
-                    $stmt = db()->prepare("UPDATE ecritures SET axe_analytique_id = ? WHERE id IN ($in)");
-                    $stmt->execute(array_merge([(int) $axeId], array_values($ids)));
+                db()->prepare("DELETE FROM ecritures_ventilations WHERE ecriture_id IN ($in)")->execute($ids);
+                if ($axeId) {
+                    $stmtMt  = db()->prepare('SELECT id, montant FROM ecritures WHERE id = ?');
+                    $stmtIns = db()->prepare('INSERT INTO ecritures_ventilations (ecriture_id, axe_id, montant) VALUES (?, ?, ?)');
+                    db()->beginTransaction();
+                    foreach ($ids as $eid) {
+                        $stmtMt->execute([$eid]);
+                        $ecr = $stmtMt->fetch();
+                        if ($ecr) $stmtIns->execute([$eid, $axeId, (float) $ecr['montant']]);
+                    }
+                    db()->commit();
                 }
             }
             redirect('compta_ecritures', $retour);
@@ -516,30 +527,47 @@ function route_compta_ecritures(): void
         $params[] = (int) $categorieFilter;
     }
     if (ctype_digit((string) $axeFilter) && $axeFilter !== '') {
-        $sql .= ' AND e.axe_analytique_id = ?';
+        $sql .= ' AND EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id = ?)';
         $params[] = (int) $axeFilter;
     } elseif ($axeFilter === 'sans_axe') {
-        $sql .= ' AND e.axe_analytique_id IS NULL AND e.plan_compte_id IS NOT NULL';
+        $sql .= ' AND e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)';
     }
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
     $ecritures = $stmt->fetchAll();
 
+    // Ventilations par écriture (chargées en une seule requête supplémentaire).
+    $ventilationsParEcr = [];
+    if ($ecritures) {
+        $ecrIds = array_column($ecritures, 'id');
+        $inPlh  = implode(',', array_fill(0, count($ecrIds), '?'));
+        $stmtV  = db()->prepare(
+            "SELECT ev.ecriture_id, ev.axe_id, ev.montant, a.libelle, a.code
+             FROM ecritures_ventilations ev JOIN axes_analytiques a ON a.id = ev.axe_id
+             WHERE ev.ecriture_id IN ($inPlh) ORDER BY ev.id"
+        );
+        $stmtV->execute($ecrIds);
+        foreach ($stmtV as $v) {
+            $ventilationsParEcr[(int) $v['ecriture_id']][] = $v;
+        }
+    }
+
     $feuilles = plan_feuilles(compta_plan_actif());
     $axes     = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
     render('compta_ecritures', [
-        'comptes'         => $comptes,
-        'compteId'        => $compteId,
-        'annee'           => $annee,
-        'annees'          => $annees,
-        'categorieFilter' => $categorieFilter,
-        'axeFilter'       => $axeFilter,
-        'ecritures'       => $ecritures,
-        'feuilles'        => $feuilles,
-        'axes'            => $axes,
-        'rules'           => $_GET['rules'] ?? null,
-        'editEcr'         => $editEcr,
+        'comptes'            => $comptes,
+        'compteId'           => $compteId,
+        'annee'              => $annee,
+        'annees'             => $annees,
+        'categorieFilter'    => $categorieFilter,
+        'axeFilter'          => $axeFilter,
+        'ecritures'          => $ecritures,
+        'ventilationsParEcr' => $ventilationsParEcr,
+        'feuilles'           => $feuilles,
+        'axes'               => $axes,
+        'rules'              => $_GET['rules'] ?? null,
+        'editEcr'            => $editEcr,
         'openNew'         => isset($_GET['new']),
     ], 'Comptabilité — Lettrage');
 }
@@ -716,7 +744,7 @@ function route_compta_axes(): void
         } elseif ($section === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id) {
-                db()->prepare('UPDATE ecritures SET axe_analytique_id = NULL WHERE axe_analytique_id = ?')->execute([$id]);
+                db()->prepare('DELETE FROM ecritures_ventilations WHERE axe_id = ?')->execute([$id]);
                 db()->prepare('DELETE FROM axes_analytiques WHERE id = ?')->execute([$id]);
             }
         } elseif ($section === 'move_up' || $section === 'move_down') {
@@ -751,15 +779,17 @@ function calculer_ventilation_analytique(int $annee, array $plan): array
     // $annee === 0 = toutes les années
     if ($annee) {
         $stmt = db()->prepare(
-            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
-             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
-             GROUP BY plan_compte_id'
+            'SELECT e.plan_compte_id, SUM(ev.montant) s
+             FROM ecritures_ventilations ev JOIN ecritures e ON e.id = ev.ecriture_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
+             GROUP BY e.plan_compte_id'
         );
     } else {
         $stmt = db()->prepare(
-            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
-             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
-             GROUP BY plan_compte_id'
+            'SELECT e.plan_compte_id, SUM(ev.montant) s
+             FROM ecritures_ventilations ev JOIN ecritures e ON e.id = ev.ecriture_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL
+             GROUP BY e.plan_compte_id'
         );
     }
     $rows = [];
@@ -800,18 +830,23 @@ function compta_analyse_data(?int $annee): array
     $ventilation = calculer_ventilation_analytique($annee, $plan);
 
     // Détail par axe : pour chaque axe, toutes les écritures groupées par catégorie.
+    // ev.montant = part ventilée sur cet axe (peut différer de e.montant si multi-axe).
     if ($annee) {
         $stmtLig = db()->prepare(
-            'SELECT e.plan_compte_id, e.date_op, e.texte, e.montant, cb.libelle AS compte
-             FROM ecritures e JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
-             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
+            'SELECT e.plan_compte_id, e.date_op, e.texte, ev.montant, cb.libelle AS compte
+             FROM ecritures_ventilations ev
+             JOIN ecritures e ON e.id = ev.ecriture_id
+             JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
              ORDER BY e.date_op ASC, e.id ASC'
         );
     } else {
         $stmtLig = db()->prepare(
-            'SELECT e.plan_compte_id, e.date_op, e.texte, e.montant, cb.libelle AS compte
-             FROM ecritures e JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
-             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL
+            'SELECT e.plan_compte_id, e.date_op, e.texte, ev.montant, cb.libelle AS compte
+             FROM ecritures_ventilations ev
+             JOIN ecritures e ON e.id = ev.ecriture_id
+             JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL
              ORDER BY e.date_op ASC, e.id ASC'
         );
     }
@@ -876,24 +911,25 @@ function route_compta_analyse_axe(): void
     if ($annee === 0) {
         $sommesParAnnee = [];
         $stmtAll = db()->prepare(
-            'SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s FROM ecritures
-             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
-             GROUP BY y, plan_compte_id'
+            'SELECT substr(e.date_op,1,4) y, e.plan_compte_id, SUM(ev.montant) s
+             FROM ecritures_ventilations ev JOIN ecritures e ON e.id = ev.ecriture_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL
+             GROUP BY y, e.plan_compte_id'
         );
         $stmtAll->execute([$axeId]);
         foreach ($stmtAll as $r) {
             $sommesParAnnee[(int) $r['y']][(int) $r['plan_compte_id']] = (float) $r['s'];
         }
-        // Seulement les années ayant des écritures sur cet axe, triées desc.
         $cols = array_values(array_filter($annees, fn($a) => isset($sommesParAnnee[$a])));
     } else {
         if ($annees && !in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
         $cols = [$annee];
         $sommesParAnnee = [$annee => []];
         $stmtSommes = db()->prepare(
-            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
-             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
-             GROUP BY plan_compte_id'
+            'SELECT e.plan_compte_id, SUM(ev.montant) s
+             FROM ecritures_ventilations ev JOIN ecritures e ON e.id = ev.ecriture_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
+             GROUP BY e.plan_compte_id'
         );
         $stmtSommes->execute([$axeId, (string) $annee]);
         foreach ($stmtSommes as $r) {
@@ -910,32 +946,30 @@ function route_compta_analyse_axe(): void
         $totauxParAnnee[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc];
     }
 
-    // Quand toutes les années : aucune colonne isolée n'est mise en valeur, seul le total l'est.
     $anneeRef = $annee === 0 ? -1 : (int) ($cols[0] ?? $annee);
 
-    // Écritures ventilées sur cet axe.
+    // Écritures ventilées sur cet axe (ev.montant = part de l'écriture imputée à cet axe).
     if ($annee === 0) {
         $stmtEcr = db()->prepare(
-            'SELECT e.id, e.date_op, e.texte, e.montant,
-                    cb.libelle AS compte_libelle,
-                    pc.libelle AS cat_libelle
-             FROM ecritures e
+            'SELECT e.id, e.date_op, e.texte, ev.montant,
+                    cb.libelle AS compte_libelle, pc.libelle AS cat_libelle
+             FROM ecritures_ventilations ev
+             JOIN ecritures e ON e.id = ev.ecriture_id
              JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
              LEFT JOIN plan_comptes pc ON pc.id = e.plan_compte_id
-             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL
              ORDER BY e.date_op DESC, e.id DESC'
         );
         $stmtEcr->execute([$axeId]);
     } else {
         $stmtEcr = db()->prepare(
-            'SELECT e.id, e.date_op, e.texte, e.montant,
-                    cb.libelle AS compte_libelle,
-                    pc.libelle AS cat_libelle
-             FROM ecritures e
+            'SELECT e.id, e.date_op, e.texte, ev.montant,
+                    cb.libelle AS compte_libelle, pc.libelle AS cat_libelle
+             FROM ecritures_ventilations ev
+             JOIN ecritures e ON e.id = ev.ecriture_id
              JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
              LEFT JOIN plan_comptes pc ON pc.id = e.plan_compte_id
-             WHERE e.axe_analytique_id = ? AND e.plan_compte_id IS NOT NULL
-               AND substr(e.date_op,1,4) = ?
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
              ORDER BY e.date_op DESC, e.id DESC'
         );
         $stmtEcr->execute([$axeId, (string) $annee]);
@@ -980,11 +1014,11 @@ function route_compta_analyse_axe_print(): void
     $sommesParAnnee = [];
 
     if ($annee === 0) {
-        // Toutes les années : une colonne par année ayant des écritures sur cet axe.
         $stmtAll = db()->prepare(
-            'SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s FROM ecritures
-             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL
-             GROUP BY y, plan_compte_id'
+            'SELECT substr(e.date_op,1,4) y, e.plan_compte_id, SUM(ev.montant) s
+             FROM ecritures_ventilations ev JOIN ecritures e ON e.id = ev.ecriture_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL
+             GROUP BY y, e.plan_compte_id'
         );
         $stmtAll->execute([$axeId]);
         foreach ($stmtAll as $r) {
@@ -995,9 +1029,10 @@ function route_compta_analyse_axe_print(): void
         if (!in_array($annee, $annees, true)) $annee = (int) ($annees[0] ?? date('Y'));
         $cols = [$annee];
         $stmtSommes = db()->prepare(
-            'SELECT plan_compte_id, SUM(montant) s FROM ecritures
-             WHERE axe_analytique_id = ? AND plan_compte_id IS NOT NULL AND substr(date_op,1,4) = ?
-             GROUP BY plan_compte_id'
+            'SELECT e.plan_compte_id, SUM(ev.montant) s
+             FROM ecritures_ventilations ev JOIN ecritures e ON e.id = ev.ecriture_id
+             WHERE ev.axe_id = ? AND e.plan_compte_id IS NOT NULL AND substr(e.date_op,1,4) = ?
+             GROUP BY e.plan_compte_id'
         );
         $sommesParAnnee = [$annee => []];
         $stmtSommes->execute([$axeId, (string) $annee]);
@@ -1246,4 +1281,39 @@ function route_compta_ecritures_csv(): void
     }
     fclose($out);
     exit;
+}
+
+// Sauvegarde AJAX des ventilations d'une écriture (remplace DELETE + INSERT).
+// Retourne JSON {ok, ventilations[]}.
+function route_compta_ventilation_save(): void
+{
+    require_login();
+    header('Content-Type: application/json; charset=UTF-8');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['ok' => false]); return;
+    }
+    check_csrf();
+    $ecrId = (int) ($_POST['ecriture_id'] ?? 0);
+    if (!$ecrId) { echo json_encode(['ok' => false]); return; }
+    if (!db()->prepare('SELECT id FROM ecritures WHERE id = ?')->execute([$ecrId]) ) {
+        echo json_encode(['ok' => false]); return;
+    }
+
+    $axeIds   = array_map('intval',   (array) ($_POST['axe_id'] ?? []));
+    $montants = array_map('floatval', (array) ($_POST['montant'] ?? []));
+    $lignes = [];
+    foreach ($axeIds as $i => $aId) {
+        if ($aId > 0) {
+            $lignes[] = ['axe_id' => $aId, 'montant' => $montants[$i] ?? 0.0];
+        }
+    }
+    compta_save_ventilations($ecrId, $lignes);
+
+    $stmt = db()->prepare(
+        'SELECT ev.axe_id, ev.montant, a.libelle, a.code
+         FROM ecritures_ventilations ev JOIN axes_analytiques a ON a.id = ev.axe_id
+         WHERE ev.ecriture_id = ? ORDER BY ev.id'
+    );
+    $stmt->execute([$ecrId]);
+    echo json_encode(['ok' => true, 'ventilations' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }

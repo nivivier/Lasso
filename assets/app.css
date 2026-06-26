@@ -216,9 +216,24 @@ h3.sub.no-mt { margin-top: 0; }
 .form-cat-search { position: relative; }
 /* Axe analytique par ligne */
 .axe-cell { width: 1%; white-space: nowrap; }
-.row-axe-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 60px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
-.row-axe-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
-#row-axe-list { position: absolute; z-index: 200; }
+.axe-disp { display: flex; align-items: center; gap: 4px; }
+.axe-disp-txt { display: inline-block; min-width: 24px; }
+.axe-add-btn { opacity: 0; }
+.axe-cell:hover .axe-add-btn,
+.axe-cell:hover .axe-edit-btn { opacity: 1; }
+
+/* Panneau de ventilation multi-axe (flottant, positionné par JS) */
+.axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 300px; }
+.axe-panel-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.axe-panel-row .vent-axe { flex: 1; font: inherit; font-size: 13px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.axe-panel-row .vent-mont { width: 90px; font: inherit; font-size: 13px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: right; }
+.axe-panel-row .vent-axe:focus,
+.axe-panel-row .vent-mont:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.axe-panel-row .vent-del { flex-shrink: 0; color: var(--muted); background: none; border: none; cursor: pointer; padding: 3px; border-radius: var(--radius-sm); display: flex; align-items: center; }
+.axe-panel-row .vent-del:hover { color: var(--danger); background: var(--danger-tint); }
+.axe-panel-row .vent-del .ico { width: 14px; height: 14px; }
+.axe-panel-total { font-size: 12px; color: var(--muted); margin: 4px 0 10px; }
+.axe-panel-btns { display: flex; gap: 6px; }
 /* Grille 2 colonnes pour la section catégorie+axe dans le formulaire manuel */
 .grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
