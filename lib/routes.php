@@ -517,8 +517,26 @@ function route_fiches(): void
     $fiches = $stmt->fetchAll();
     $annees = db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN);
     $employes = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
+
+    // Axes par fiche (une seule requête groupée)
+    $axesParFiche = [];
+    if ($fiches) {
+        $ficheIds = array_column($fiches, 'id');
+        $inPlh = implode(',', array_fill(0, count($ficheIds), '?'));
+        $stmtAx = db()->prepare(
+            "SELECT fl.fiche_id, GROUP_CONCAT(DISTINCT COALESCE(a.code, a.libelle)) AS axes_csv
+             FROM fiche_lignes fl JOIN axes_analytiques a ON a.id = fl.axe_analytique_id
+             WHERE fl.fiche_id IN ($inPlh) AND fl.axe_analytique_id IS NOT NULL
+             GROUP BY fl.fiche_id"
+        );
+        $stmtAx->execute($ficheIds);
+        foreach ($stmtAx as $row) {
+            $axesParFiche[(int) $row['fiche_id']] = $row['axes_csv'];
+        }
+    }
+
     render('fiches', ['fiches' => $fiches, 'annee' => $annee, 'annees' => $annees, 'statut' => $statut,
-        'employes' => $employes, 'employeId' => $employeId], 'Fiches de salaire');
+        'employes' => $employes, 'employeId' => $employeId, 'axesParFiche' => $axesParFiche], 'Fiches de salaire');
 }
 
 // Lit les lignes de prestation postées → [lignes, totalHeures, salaireTravail]
@@ -531,6 +549,7 @@ function lire_lignes_postees(): array
     $qtesPost   = $_POST['l_quantite'] ?? [];
     $choixPost  = $_POST['l_taux_choix'] ?? [];
     $manuelPost = $_POST['l_taux_manuel'] ?? [];
+    $axesPost   = $_POST['l_axe'] ?? [];
     foreach ($unitesPost as $i => $enc) {
         $qte    = (float) str_replace(',', '.', $qtesPost[$i] ?? '0');
         $choix  = (string) ($choixPost[$i] ?? '');
@@ -546,7 +565,8 @@ function lire_lignes_postees(): array
             continue;
         }
         $h = $hu * $qte;
-        $lignes[] = ['libelle' => trim($lib), 'heures_unite' => $hu, 'quantite' => $qte, 'taux_horaire' => $taux_h];
+        $axeId = ($axesPost[$i] ?? '') !== '' ? (int) $axesPost[$i] : null;
+        $lignes[] = ['libelle' => trim($lib), 'heures_unite' => $hu, 'quantite' => $qte, 'taux_horaire' => $taux_h, 'axe_analytique_id' => $axeId];
         $heures += $h;
         $salaireTravail += $h * $taux_h;
     }
@@ -559,8 +579,9 @@ function route_fiche_new(): void
     $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
     $tauxHoraires = db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll();
     $unites       = db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll();
+    $axes         = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
     $renderForm = fn($err) => render('fiche_form', [
-        'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites,
+        'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
         'err' => $err, 'post' => $_POST,
         'edit_mode' => isset($_POST['fiche_id']), 'fiche_id' => (int) ($_POST['fiche_id'] ?? 0),
     ], 'Nouvelle fiche');
@@ -569,7 +590,7 @@ function route_fiche_new(): void
         // Pré-remplissage de l'employé si on arrive depuis sa page
         $pre = isset($_GET['employe_id']) ? ['employe_id' => (int) $_GET['employe_id']] : null;
         render('fiche_form', [
-            'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites,
+            'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
             'err' => null, 'post' => $pre,
         ], 'Nouvelle fiche');
         return;
@@ -657,9 +678,9 @@ function route_fiche_new(): void
             db()->prepare("INSERT INTO fiches ($cols) VALUES ($marks)")->execute($data);
             $ficheId = (int) db()->lastInsertId();
         }
-        $insL = db()->prepare('INSERT INTO fiche_lignes (fiche_id, libelle, heures_unite, quantite, taux_horaire, ordre) VALUES (?, ?, ?, ?, ?, ?)');
+        $insL = db()->prepare('INSERT INTO fiche_lignes (fiche_id, libelle, heures_unite, quantite, taux_horaire, axe_analytique_id, ordre) VALUES (?, ?, ?, ?, ?, ?, ?)');
         foreach ($lignes as $ordre => $l) {
-            $insL->execute([$ficheId, $l['libelle'], $l['heures_unite'], $l['quantite'], $l['taux_horaire'], $ordre]);
+            $insL->execute([$ficheId, $l['libelle'], $l['heures_unite'], $l['quantite'], $l['taux_horaire'], $l['axe_analytique_id'] ?? null, $ordre]);
         }
         db()->commit();
     } catch (PDOException $ex) {
@@ -1016,6 +1037,7 @@ function route_fiche_edit(): void
     $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
     $tauxHoraires = db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll();
     $unites       = db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll();
+    $axes         = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
 
     $stmtLignes = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ? ORDER BY ordre');
     $stmtLignes->execute([$id]);
@@ -1053,10 +1075,11 @@ function route_fiche_edit(): void
             $postData['l_taux_choix'][$i]  = 'autre';
             $postData['l_taux_manuel'][$i] = rtrim(rtrim(number_format($taux_h, 2, '.', ''), '0'), '.');
         }
+        $postData['l_axe'][$i] = (string) ($ligne['axe_analytique_id'] ?? '');
     }
 
     render('fiche_form', [
-        'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites,
+        'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
         'err' => null, 'post' => $postData, 'edit_mode' => true, 'fiche_id' => $id,
     ], 'Modifier la fiche');
 }
