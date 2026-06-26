@@ -4,8 +4,10 @@ $taux = json_decode($f['taux_json'] ?: '{}', true) ?: [];
 $estImpot  = $f['procedure'] === 'Ordinaire avec impôt à la source';
 $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 
-$lignes  = fiche_lignes_de($f);
+$lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
+$hasAxe   = !empty(array_filter($lignes, fn($l) => !empty($l['axe_code'] ?? '') || !empty($l['axe_libelle'] ?? '')));
+$axeTxt   = fn(array $l): string => (string) ($l['axe_code'] ?: ($l['axe_libelle'] ?? ''));
 
 // Seuil mensuel « 8 h/semaine » (jours ÷ 7 × 8) — détermine le taux LAA appliqué.
 $seuilH    = seuil_heures((int) $f['annee'], (int) $f['mois']);
@@ -51,11 +53,17 @@ $deductions = [
     </div>
 
     <table class="ps-table mb-24">
-        <thead><tr><th>Salaire</th><th class="num">Détail</th><th class="num">Montant (CHF)</th></tr></thead>
+        <thead><tr>
+            <th>Salaire</th>
+            <?php if ($hasAxe): ?><th>Axe</th><?php endif; ?>
+            <th class="num">Détail</th>
+            <th class="num">Montant (CHF)</th>
+        </tr></thead>
         <tbody>
             <?php if ($uneSeule):
                 $l = $lignes[0]; ?>
             <tr><td>Salaire du travail</td>
+                <?php if ($hasAxe): ?><td class="muted small"><?= e($axeTxt($l)) ?></td><?php endif; ?>
                 <td class="num"><?= $hnum((float) $f['nombre_heures']) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h
                     <div class="muted small ps-seuil"><?= e($seuilTxt) ?></div></td>
                 <td class="num"><?= chf((float) $f['salaire_travail']) ?></td></tr>
@@ -64,19 +72,25 @@ $deductions = [
                     $sousH = (float) $l['quantite'] * (float) $l['heures_unite'];
                     $montant = $sousH * (float) $l['taux_horaire']; ?>
                 <tr class="ps-sub"><td><?= e($l['libelle']) ?> × <?= $hnum($l['quantite']) ?></td>
+                    <?php if ($hasAxe): ?><td class="muted small"><?= e($axeTxt($l)) ?></td><?php endif; ?>
                     <td class="num"><?= $hnum($sousH) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h</td>
                     <td class="num"><?= chf($montant) ?></td></tr>
                 <?php endforeach; ?>
                 <tr><td>Salaire du travail</td>
+                    <?php if ($hasAxe): ?><td></td><?php endif; ?>
                     <td class="num"><?= $hnum((float) $f['nombre_heures']) ?> h
                         <div class="muted small ps-seuil"><?= e($seuilTxt) ?></div></td>
                     <td class="num"><?= chf((float) $f['salaire_travail']) ?></td></tr>
             <?php endif; ?>
             <?php if ((float) $f['supplement_montant'] > 0): ?>
-            <tr><td>Supplément pour vacances</td><td class="num"><?= pct((float) $f['supplement_taux']) ?></td>
+            <tr><td>Supplément pour vacances</td>
+                <?php if ($hasAxe): ?><td></td><?php endif; ?>
+                <td class="num"><?= pct((float) $f['supplement_taux']) ?></td>
                 <td class="num"><?= chf((float) $f['supplement_montant']) ?></td></tr>
             <?php endif; ?>
-            <tr class="grand-total brut-line"><td>Salaire brut</td><td></td>
+            <tr class="grand-total brut-line"><td>Salaire brut</td>
+                <?php if ($hasAxe): ?><td></td><?php endif; ?>
+                <td></td>
                 <td class="num"><?= chf((float) $f['salaire_brut']) ?> CHF</td></tr>
         </tbody>
     </table>

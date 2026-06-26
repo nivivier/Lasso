@@ -427,15 +427,23 @@ function cout_emp_affiche(array $f): string
 // Lignes de prestation d'une fiche. Repli pour les fiches d'avant les unités.
 function fiche_lignes_de(array $f): array
 {
-    $stmt = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ? ORDER BY ordre, id');
+    $stmt = db()->prepare(
+        'SELECT fl.*, a.code AS axe_code, a.libelle AS axe_libelle
+         FROM fiche_lignes fl
+         LEFT JOIN axes_analytiques a ON a.id = fl.axe_analytique_id
+         WHERE fl.fiche_id = ? ORDER BY fl.ordre, fl.id'
+    );
     $stmt->execute([$f['id']]);
     $rows = $stmt->fetchAll();
     if (!$rows) {
         $rows = [[
-            'libelle'      => 'Heures',
-            'heures_unite' => 1.0,
-            'quantite'     => (float) $f['nombre_heures'],
-            'taux_horaire' => (float) $f['salaire_horaire'],
+            'libelle'       => 'Heures',
+            'heures_unite'  => 1.0,
+            'quantite'      => (float) $f['nombre_heures'],
+            'taux_horaire'  => (float) $f['salaire_horaire'],
+            'axe_analytique_id' => null,
+            'axe_code'      => null,
+            'axe_libelle'   => null,
         ]];
     }
     return $rows;

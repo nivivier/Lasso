@@ -293,6 +293,7 @@ function run_migrations(PDO $pdo): void
         14 => 'migration_14', // comptes_bancaires : colonne solde_initial (solde de départ)
         15 => 'migration_15', // axes_analytiques + ecritures.axe_analytique_id
         16 => 'migration_16', // ecritures_ventilations (multi-axe)
+        17 => 'migration_17', // fiche_lignes.axe_analytique_id
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -635,6 +636,14 @@ function migration_14(PDO $pdo): void
         if ($col['name'] === 'solde_initial') return;
     }
     $pdo->exec('ALTER TABLE comptes_bancaires ADD COLUMN solde_initial REAL NOT NULL DEFAULT 0');
+}
+
+function migration_17(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(fiche_lignes)')->fetchAll(), 'name');
+    if (!in_array('axe_analytique_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE fiche_lignes ADD COLUMN axe_analytique_id INTEGER REFERENCES axes_analytiques(id)');
+    }
 }
 
 function migration_16(PDO $pdo): void
