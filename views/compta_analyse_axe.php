@@ -1,7 +1,7 @@
 <?php
 /** @var array $axe */ /** @var int $annee */ /** @var int $anneeRef */ /** @var array $annees */
 /** @var array $cols */ /** @var array $plan */ /** @var array $sommesParAnnee */
-/** @var array $totauxParAnnee */ /** @var array $ecritures */
+/** @var array $totauxParAnnee */ /** @var array $chargesParAnnee */ /** @var array $ecritures */
 
 $byParent = plan_enfants($plan);
 $nbCols   = count($cols);
@@ -115,6 +115,77 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     </tbody>
 </table>
 </div>
+
+<?php if ($chargesParAnnee):
+    $colsChar    = array_keys($chargesParAnnee);
+    $nbChar      = count($colsChar);
+    $hasAmat     = !empty(array_filter($chargesParAnnee, fn($c) => abs($c['ded_amat']) > 0.001));
+    $hasIs       = !empty(array_filter($chargesParAnnee, fn($c) => abs($c['ded_impot_source']) > 0.001));
+    $cellsChar   = function (string $field) use ($chargesParAnnee, $colsChar, $anneeRef, $nbChar): string {
+        $h = ''; $tot = 0.0;
+        foreach ($colsChar as $a) {
+            $v = (float) ($chargesParAnnee[$a][$field] ?? 0);
+            $tot += $v;
+            $cls = $nbChar > 1 && $a !== $anneeRef ? ' col-prec' : '';
+            $h .= '<td class="num' . $cls . '">' . chf($v) . '</td>';
+        }
+        if ($nbChar > 1) $h .= '<td class="num total-col">' . chf($tot) . '</td>';
+        return $h;
+    };
+    $thChar = function () use ($colsChar, $anneeRef, $nbChar): string {
+        if ($nbChar <= 1) return '';
+        $h = '';
+        foreach ($colsChar as $a) {
+            $h .= '<th class="num' . ($a !== $anneeRef ? ' col-prec' : '') . '">' . (int) $a . '</th>';
+        }
+        return '<thead><tr><th></th>' . $h . '<th class="num total-col">Total</th></tr></thead>';
+    };
+?>
+<div class="section-head"><h2>Charges sociales prévues<?= $annee !== 0 && $nbChar === 1 ? ' ' . (int) $colsChar[0] : '' ?></h2></div>
+<div class="table-scroll">
+<table class="list compta-cr">
+    <?= $thChar() ?>
+    <tbody>
+        <tr class="grand-total brut-line"><td>Salaire brut (prorata)</td><?= $cellsChar('salaire_brut') ?></tr>
+        <tr class="cr-section"><th colspan="<?= $nbChar + 1 + ($nbChar > 1 ? 1 : 0) ?>">Déductions employé</th></tr>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">AVS / AI / APG</td><?= $cellsChar('ded_avs') ?></tr>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">AC</td><?= $cellsChar('ded_ac') ?></tr>
+        <?php if ($hasAmat): ?>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">Assurance maternité</td><?= $cellsChar('ded_amat') ?></tr>
+        <?php endif; ?>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">LAA</td><?= $cellsChar('ded_laa') ?></tr>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">LPP</td><?= $cellsChar('ded_lpp') ?></tr>
+        <?php if ($hasIs): ?>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">Impôt à la source</td><?= $cellsChar('ded_impot_source') ?></tr>
+        <?php endif; ?>
+        <tr class="cr-total"><td>Total déductions</td><?= $cellsChar('total_deductions') ?></tr>
+        <tr><td>Salaire net (prorata)</td><?= $cellsChar('salaire_net') ?></tr>
+        <tr class="cr-section"><th colspan="<?= $nbChar + 1 + ($nbChar > 1 ? 1 : 0) ?>">Charges patronales</th></tr>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">AVS / AI / APG + AC + A.mat + AF</td>
+            <?php
+            $cellsOcasEmp = function () use ($chargesParAnnee, $colsChar, $anneeRef, $nbChar): string {
+                $h = ''; $tot = 0.0;
+                foreach ($colsChar as $a) {
+                    $c = $chargesParAnnee[$a];
+                    $v = $c['emp_avs'] + $c['emp_ac'] + $c['emp_amat'] + $c['emp_af'];
+                    $tot += $v;
+                    $cls = $nbChar > 1 && $a !== $anneeRef ? ' col-prec' : '';
+                    $h .= '<td class="num' . $cls . '">' . chf($v) . '</td>';
+                }
+                if ($nbChar > 1) $h .= '<td class="num total-col">' . chf($tot) . '</td>';
+                return $h;
+            };
+            echo $cellsOcasEmp();
+            ?>
+        </tr>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">LAA patronale</td><?= $cellsChar('emp_laa') ?></tr>
+        <tr class="cr-compte"><td class="bilan-noeud-pad" style="--depth:0">LPP patronale</td><?= $cellsChar('emp_lpp') ?></tr>
+        <tr class="cr-total"><td>Total charges patronales</td><?= $cellsChar('total_charges_emp') ?></tr>
+        <tr class="grand-total"><td>Coût total employeur</td><?= $cellsChar('cout_total_emp') ?></tr>
+    </tbody>
+</table>
+</div>
+<?php endif; ?>
 
 <?php if ($ecritures): ?>
 <div class="section-head">
