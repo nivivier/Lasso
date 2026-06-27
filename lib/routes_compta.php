@@ -110,6 +110,43 @@ function compta_lettrer_par_regles(?int $compteId, ?int $annee): int
     return count($affect);
 }
 
+// Agrège les charges sociales proratisées pour les fiches ayant des lignes sur cet axe.
+// Ratio = montant des lignes de cette fiche sur cet axe / salaire_travail total de la fiche.
+function charges_sociales_axe(int $axeId, int $annee): array
+{
+    $stmt = db()->prepare(
+        'SELECT f.salaire_travail,
+                f.ded_avs, f.ded_ac, f.ded_amat, f.ded_laa, f.ded_lpp, f.ded_impot_source,
+                f.total_deductions, f.salaire_brut, f.salaire_net,
+                f.emp_avs, f.emp_ac, f.emp_amat, f.emp_af, f.emp_laa,
+                f.emp_frais, f.emp_cpe, f.emp_lfp, f.emp_lpp,
+                f.total_charges_emp, f.cout_total_emp,
+                SUM(fl.quantite * fl.heures_unite * fl.taux_horaire) AS montant_axe
+         FROM fiches f
+         JOIN fiche_lignes fl ON fl.fiche_id = f.id AND fl.axe_analytique_id = ?
+         WHERE f.annee = ?
+         GROUP BY f.id'
+    );
+    $stmt->execute([$axeId, $annee]);
+
+    $champs = ['salaire_brut', 'salaire_net', 'total_deductions',
+               'ded_avs', 'ded_ac', 'ded_amat', 'ded_laa', 'ded_lpp', 'ded_impot_source',
+               'emp_avs', 'emp_ac', 'emp_amat', 'emp_af', 'emp_laa',
+               'emp_frais', 'emp_cpe', 'emp_lfp', 'emp_lpp',
+               'total_charges_emp', 'cout_total_emp'];
+    $tot = array_fill_keys($champs, 0.0);
+
+    foreach ($stmt as $r) {
+        $st = (float) $r['salaire_travail'];
+        $ratio = $st > 0 ? (float) $r['montant_axe'] / $st : 0.0;
+        foreach ($champs as $c) {
+            $tot[$c] += (float) $r[$c] * $ratio;
+        }
+    }
+    foreach ($tot as &$v) { $v = round($v, 2); }
+    return $tot;
+}
+
 // ------------------------------------------------------------------- ROUTES
 function route_compta(): void
 {
@@ -948,6 +985,15 @@ function route_compta_analyse_axe(): void
 
     $anneeRef = $annee === 0 ? -1 : (int) ($cols[0] ?? $annee);
 
+    // Charges sociales prévues (fiches avec au moins une ligne sur cet axe, proratisées).
+    $chargesParAnnee = [];
+    foreach (($annee === 0 ? $annees : [$annee]) as $a) {
+        $c = charges_sociales_axe($axeId, (int) $a);
+        if ($c['salaire_brut'] > 0.005) {
+            $chargesParAnnee[(int) $a] = $c;
+        }
+    }
+
     // Écritures ventilées sur cet axe (ev.montant = part de l'écriture imputée à cet axe).
     if ($annee === 0) {
         $stmtEcr = db()->prepare(
@@ -977,15 +1023,16 @@ function route_compta_analyse_axe(): void
     $ecritures = $stmtEcr->fetchAll();
 
     render('compta_analyse_axe', [
-        'axe'            => $axe,
-        'annee'          => $annee,
-        'anneeRef'       => $anneeRef,
-        'annees'         => $annees,
-        'cols'           => $cols,
-        'plan'           => $plan,
-        'sommesParAnnee' => $sommesParAnnee,
-        'totauxParAnnee' => $totauxParAnnee,
-        'ecritures'      => $ecritures,
+        'axe'             => $axe,
+        'annee'           => $annee,
+        'anneeRef'        => $anneeRef,
+        'annees'          => $annees,
+        'cols'            => $cols,
+        'plan'            => $plan,
+        'sommesParAnnee'  => $sommesParAnnee,
+        'totauxParAnnee'  => $totauxParAnnee,
+        'chargesParAnnee' => $chargesParAnnee,
+        'ecritures'       => $ecritures,
     ], 'Analytique — ' . $axe['libelle']);
 }
 
