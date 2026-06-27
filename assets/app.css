@@ -223,6 +223,9 @@ h3.sub.no-mt { margin-top: 0; }
 .axe-cell:hover .axe-edit-btn,
 .axe-add-btn:focus-visible,
 .axe-edit-btn:focus-visible { opacity: 1; pointer-events: auto; }
+/* Select inline (toujours visible quand aucune ventilation) */
+.axe-inline-sel { font: inherit; font-size: 13px; padding: 2px 5px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); max-width: 120px; }
+.axe-inline-sel:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 
 /* Panneau de ventilation multi-axe (flottant, positionné par JS) */
 .axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 300px; }

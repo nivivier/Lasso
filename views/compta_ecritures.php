@@ -256,6 +256,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     $prevMois = null;
     $moisFr = ['01'=>'Janvier','02'=>'Février','03'=>'Mars','04'=>'Avril','05'=>'Mai','06'=>'Juin','07'=>'Juillet','08'=>'Août','09'=>'Septembre','10'=>'Octobre','11'=>'Novembre','12'=>'Décembre'];
     $nbCols = 6 + ($compteId === 0 ? 1 : 0) + ($axes ? 1 : 0);
+    // Options du select inline pour la colonne axe (construit une fois, réutilisé par toutes les lignes)
+    $axeOptsHtml = '';
+    foreach ($axes as $ax) {
+        $axeOptsHtml .= '<option value="' . (int) $ax['id'] . '">' . e($ax['code'] ?: $ax['libelle']) . '</option>';
+    }
     foreach ($ecritures as $ecr): $neg = (float) $ecr['montant'] < 0;
         $moisCle = substr((string) $ecr['date_op'], 0, 7);
         if ($moisCle !== $prevMois):
@@ -301,20 +306,26 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 </form>
             </td>
             <?php if ($axes):
-                $vents  = $ventilationsParEcr[(int) $ecr['id']] ?? [];
-                $codes  = array_filter(array_map(fn($v) => $v['code'] !== '' ? e($v['code']) : e($v['libelle']), $vents));
-                $dispTxt = implode(' / ', $codes);
+                $vents   = $ventilationsParEcr[(int) $ecr['id']] ?? [];
+                $nVents  = count($vents);
+                $dispTxt = implode(' / ', array_map(fn($v) => $v['code'] !== '' ? e($v['code']) : e($v['libelle']), $vents));
             ?>
             <td class="axe-cell"
                 data-ecr-id="<?= (int) $ecr['id'] ?>"
                 data-ecr-montant="<?= (float) $ecr['montant'] ?>"
                 data-ventilations="<?= e(json_encode(array_values($vents), JSON_UNESCAPED_UNICODE)) ?>">
                 <div class="axe-disp">
-                    <span class="axe-disp-txt muted small"><?= $dispTxt !== '' ? $dispTxt : '' ?></span>
-                    <?php if ($vents): ?>
-                    <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier la ventilation"><?= icon('pencil') ?></button>
+                    <?php if ($nVents === 0): ?>
+                        <select class="axe-inline-sel" title="Axe analytique"><option value="">— Axe —</option><?= $axeOptsHtml ?></select>
+                        <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe"><?= icon('plus') ?></button>
+                    <?php elseif ($nVents === 1): ?>
+                        <span class="axe-disp-txt muted small"><?= $dispTxt ?></span>
+                        <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l'axe"><?= icon('pencil') ?></button>
+                        <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe"><?= icon('plus') ?></button>
+                    <?php else: ?>
+                        <span class="axe-disp-txt muted small"><?= $dispTxt ?></span>
+                        <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier la ventilation"><?= icon('pencil') ?></button>
                     <?php endif; ?>
-                    <button type="button" class="row-edit-btn axe-add-btn" title="Ajouter un axe"><?= icon('plus') ?></button>
                 </div>
             </td>
             <?php endif; ?>
@@ -557,25 +568,119 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     });
 })();
 
-// Panneau de ventilation analytique (multi-axe par écriture)
+// Colonne axe analytique : select inline (0 axe), inline edit (1 axe), panneau multi-axe (≥2)
 (function () {
-    const panel  = document.getElementById('axe-panel');
+    const panel     = document.getElementById('axe-panel');
     if (!panel) return;
-    const rowsEl = document.getElementById('axe-panel-rows');
-    const sumEl  = document.getElementById('axe-panel-sum');
-    const refEl  = document.getElementById('axe-panel-ref');
-    const addBtn = document.getElementById('axe-panel-add');
-    const saveBtn = document.getElementById('axe-panel-save');
+    const rowsEl    = document.getElementById('axe-panel-rows');
+    const sumEl     = document.getElementById('axe-panel-sum');
+    const refEl     = document.getElementById('axe-panel-ref');
+    const addBtn    = document.getElementById('axe-panel-add');
+    const saveBtn   = document.getElementById('axe-panel-save');
     const cancelBtn = document.getElementById('axe-panel-cancel');
-    const CSRF   = <?= json_encode(csrf_token()) ?>;
-    const AXES   = <?= json_encode(array_map(fn($a) => ['id' => (int)$a['id'], 'label' => ($a['code'] !== '' ? $a['code'] : $a['libelle'])], $axes), JSON_UNESCAPED_UNICODE) ?>;
+    const CSRF        = <?= json_encode(csrf_token()) ?>;
+    const AXES        = <?= json_encode(array_map(fn($a) => ['id' => (int)$a['id'], 'label' => ($a['code'] !== '' ? $a['code'] : $a['libelle'])], $axes), JSON_UNESCAPED_UNICODE) ?>;
+    const PENCIL_ICON = <?= json_encode(icon('pencil')) ?>;
+    const PLUS_ICON   = <?= json_encode(icon('plus')) ?>;
 
-    let currentCell = null;
+    let currentCell  = null;
+    let inlineSaving = false;
+
+    // ---- Helpers cellule ----
+
+    function buildInlineSel(selectedAxeId) {
+        const sel = document.createElement('select');
+        sel.className = 'axe-inline-sel'; sel.title = 'Axe analytique';
+        sel.appendChild(new Option('— Axe —', ''));
+        AXES.forEach(a => {
+            const o = new Option(a.label, String(a.id));
+            if (selectedAxeId && a.id === selectedAxeId) o.selected = true;
+            sel.appendChild(o);
+        });
+        return sel;
+    }
+
+    function buildPlusBtn(cell) {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'row-edit-btn axe-add-btn';
+        btn.title = 'Ventilation multi-axe'; btn.innerHTML = PLUS_ICON;
+        btn.addEventListener('click', () => openPanel(cell, true));
+        return btn;
+    }
+
+    function buildPencilBtn(cell, mode) {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'row-edit-btn axe-edit-btn';
+        btn.title = mode === 'inline' ? "Modifier l'axe" : 'Modifier la ventilation';
+        btn.innerHTML = PENCIL_ICON;
+        btn.addEventListener('click', () => mode === 'inline' ? startInlineEdit(cell) : openPanel(cell, false));
+        return btn;
+    }
+
+    // Reconstruit le contenu de .axe-disp selon le nombre de ventilations.
+    function updateCellDOM(cell, ventilations) {
+        cell.dataset.ventilations = JSON.stringify(ventilations);
+        const disp = cell.querySelector('.axe-disp');
+        while (disp.firstChild) disp.removeChild(disp.firstChild);
+        const n = ventilations.length;
+        if (n === 0) {
+            const sel = buildInlineSel(null);
+            sel.addEventListener('change', () => { if (sel.value) saveInline(cell, sel.value); });
+            disp.append(sel, buildPlusBtn(cell));
+        } else if (n === 1) {
+            const txt = document.createElement('span');
+            txt.className = 'axe-disp-txt muted small';
+            txt.textContent = ventilations[0].code || ventilations[0].libelle;
+            disp.append(txt, buildPencilBtn(cell, 'inline'), buildPlusBtn(cell));
+        } else {
+            const txt = document.createElement('span');
+            txt.className = 'axe-disp-txt muted small';
+            txt.textContent = ventilations.map(v => v.code || v.libelle).join(' / ');
+            disp.append(txt, buildPencilBtn(cell, 'panel'));
+        }
+    }
+
+    // Passe la cellule 1-axe en mode édition inline.
+    function startInlineEdit(cell) {
+        const vents = JSON.parse(cell.dataset.ventilations || '[]');
+        const currentAxeId = vents.length > 0 ? vents[0].axe_id : null;
+        const disp = cell.querySelector('.axe-disp');
+        while (disp.firstChild) disp.removeChild(disp.firstChild);
+
+        const sel = buildInlineSel(currentAxeId);
+        sel.addEventListener('change', async () => {
+            inlineSaving = true;
+            await saveInline(cell, sel.value);
+            inlineSaving = false;
+        });
+        // Restaure l'état précédent si on quitte sans changer
+        sel.addEventListener('blur', () => {
+            setTimeout(() => { if (!inlineSaving && disp.contains(sel)) updateCellDOM(cell, vents); }, 150);
+        });
+        sel.addEventListener('keydown', e => { if (e.key === 'Escape') updateCellDOM(cell, vents); });
+        disp.appendChild(sel);
+        sel.focus();
+    }
+
+    // Sauvegarde un axe unique via AJAX (montant = abs(écriture)).
+    async function saveInline(cell, axeId) {
+        const prevVents = JSON.parse(cell.dataset.ventilations || '[]');
+        const montant   = Math.abs(parseFloat(cell.dataset.ecrMontant || '0'));
+        const fd = new FormData();
+        fd.append('csrf', CSRF);
+        fd.append('ecriture_id', cell.dataset.ecrId);
+        if (axeId) { fd.append('axe_id[]', axeId); fd.append('montant[]', montant.toFixed(2)); }
+        try {
+            const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd }).then(r => r.json());
+            updateCellDOM(cell, data.ok ? data.ventilations : prevVents);
+        } catch (_) { updateCellDOM(cell, prevVents); }
+    }
+
+    // ---- Panneau multi-axe ----
 
     function makeRow(v) {
         const d = document.createElement('div');
         d.className = 'axe-panel-row';
-
         const sel = document.createElement('select');
         sel.className = 'vent-axe';
         sel.appendChild(new Option('— Choisir —', ''));
@@ -584,18 +689,15 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             if (v && a.id === v.axe_id) o.selected = true;
             sel.appendChild(o);
         });
-
         const inp = document.createElement('input');
         inp.type = 'number'; inp.className = 'vent-mont'; inp.step = '0.01';
         inp.placeholder = 'Montant';
         if (v) inp.value = v.montant;
         inp.addEventListener('input', updateSum);
-
         const del = document.createElement('button');
         del.type = 'button'; del.className = 'vent-del'; del.title = 'Supprimer';
         del.innerHTML = <?= json_encode(icon('x')) ?>; // SVG trusted, généré côté serveur
         del.addEventListener('click', () => { d.remove(); updateSum(); });
-
         d.append(sel, inp, del);
         return d;
     }
@@ -614,77 +716,59 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         const vents = JSON.parse(cell.dataset.ventilations || '[]');
         vents.forEach(v => rowsEl.appendChild(makeRow(v)));
         if (addNew || vents.length === 0) rowsEl.appendChild(makeRow(null));
-        const ref = parseFloat(cell.dataset.ecrMontant || 0);
-        refEl.textContent = Math.abs(ref).toFixed(2);
+        refEl.textContent = Math.abs(parseFloat(cell.dataset.ecrMontant || 0)).toFixed(2);
         updateSum();
-        // Positionnement sous la cellule, clamping horizontal + vertical
         const r = cell.getBoundingClientRect();
         panel.hidden = false; // doit être visible avant offsetHeight
         const pw = panel.offsetWidth, ph = panel.offsetHeight;
         const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
         let top = r.bottom + window.scrollY + 4;
-        if (r.bottom + ph + 4 > window.innerHeight) {
-            top = r.top + window.scrollY - ph - 4; // positionner au-dessus si manque de place
-        }
-        panel.style.left = left + 'px';
-        panel.style.top  = top + 'px';
+        if (r.bottom + ph + 4 > window.innerHeight) top = r.top + window.scrollY - ph - 4;
+        panel.style.left = left + 'px'; panel.style.top = top + 'px';
         rowsEl.querySelector('select')?.focus();
     }
 
-    function closePanel() {
-        panel.hidden = true;
-        currentCell = null;
-    }
+    function closePanel() { panel.hidden = true; currentCell = null; }
 
     async function savePanel() {
         if (!currentCell) return;
-        const ecrId = currentCell.dataset.ecrId;
-        const rows  = Array.from(rowsEl.querySelectorAll('.axe-panel-row'));
         const fd = new FormData();
         fd.append('csrf', CSRF);
-        fd.append('ecriture_id', ecrId);
-        rows.forEach(r => {
+        fd.append('ecriture_id', currentCell.dataset.ecrId);
+        rowsEl.querySelectorAll('.axe-panel-row').forEach(r => {
             const aId = r.querySelector('.vent-axe').value;
             const mt  = r.querySelector('.vent-mont').value;
             if (aId) { fd.append('axe_id[]', aId); fd.append('montant[]', mt || '0'); }
         });
         saveBtn.disabled = true;
         try {
-            const res = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (data.ok) {
-                currentCell.dataset.ventilations = JSON.stringify(data.ventilations);
-                const codes = data.ventilations.map(v => v.code || v.libelle).join(' / ');
-                const disp = currentCell.querySelector('.axe-disp-txt');
-                disp.textContent = codes;
-                // Afficher/masquer le crayon
-                let editBtn = currentCell.querySelector('.axe-edit-btn');
-                if (data.ventilations.length > 0 && !editBtn) {
-                    editBtn = document.createElement('button');
-                    editBtn.type = 'button';
-                    editBtn.className = 'row-edit-btn axe-edit-btn';
-                    editBtn.title = 'Modifier la ventilation';
-                    editBtn.innerHTML = <?= json_encode(icon('pencil')) ?>;
-                    currentCell.querySelector('.axe-disp').insertBefore(editBtn, currentCell.querySelector('.axe-add-btn'));
-                } else if (data.ventilations.length === 0 && editBtn) {
-                    editBtn.remove();
-                }
-                closePanel();
-            }
-        } finally {
-            saveBtn.disabled = false;
-        }
+            const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd }).then(r => r.json());
+            if (data.ok) { updateCellDOM(currentCell, data.ventilations); closePanel(); }
+        } finally { saveBtn.disabled = false; }
     }
 
-    document.addEventListener('click', e => {
-        if (e.target.closest('.axe-edit-btn')) {
-            openPanel(e.target.closest('.axe-cell'), false);
-        } else if (e.target.closest('.axe-add-btn')) {
-            openPanel(e.target.closest('.axe-cell'), true);
-        } else if (!panel.hidden && !panel.contains(e.target)) {
-            closePanel();
-        }
+    // ---- Événements ----
+
+    // Select inline toujours visible (case 0 axe, rendu par PHP)
+    document.addEventListener('change', e => {
+        const sel = e.target.closest('.axe-inline-sel');
+        if (sel?.closest('.axe-cell') && sel.value) saveInline(sel.closest('.axe-cell'), sel.value);
     });
+
+    // Crayon (inline edit si ≤1 axe, panneau si ≥2) + plus (panneau)
+    document.addEventListener('click', e => {
+        const editBtn = e.target.closest('.axe-edit-btn');
+        if (editBtn) {
+            const cell  = editBtn.closest('.axe-cell');
+            const vents = JSON.parse(cell.dataset.ventilations || '[]');
+            vents.length <= 1 ? startInlineEdit(cell) : openPanel(cell, false);
+            return;
+        }
+        const addBtn2 = e.target.closest('.axe-add-btn');
+        if (addBtn2?.closest('.axe-cell')) { openPanel(addBtn2.closest('.axe-cell'), true); return; }
+        if (!panel.hidden && !panel.contains(e.target)) closePanel();
+    });
+
     addBtn.addEventListener('click', () => { rowsEl.appendChild(makeRow(null)); updateSum(); rowsEl.lastElementChild.querySelector('select')?.focus(); });
     saveBtn.addEventListener('click', savePanel);
     cancelBtn.addEventListener('click', closePanel);
