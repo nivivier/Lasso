@@ -625,7 +625,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         const n = ventilations.length;
         if (n === 0) {
             const sel = buildInlineSel(null);
-            sel.addEventListener('change', () => { if (sel.value) saveInline(cell, sel.value); });
+            // Pas de listener direct ici : géré par la délégation document.change.
             disp.append(sel, buildPlusBtn(cell));
         } else if (n === 1) {
             const txt = document.createElement('span');
@@ -749,10 +749,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
     // ---- Événements ----
 
-    // Select inline toujours visible (case 0 axe, rendu par PHP)
+    // Select inline (case 0 axe) — PHP-rendu et JS-recréé après save.
+    // !inlineSaving évite d'intercepter le select d'édition de startInlineEdit.
     document.addEventListener('change', e => {
         const sel = e.target.closest('.axe-inline-sel');
-        if (sel?.closest('.axe-cell') && sel.value) saveInline(sel.closest('.axe-cell'), sel.value);
+        if (sel?.closest('.axe-cell') && sel.value && !inlineSaving) saveInline(sel.closest('.axe-cell'), sel.value);
     });
 
     // Crayon (inline edit si ≤1 axe, panneau si ≥2) + plus (panneau)
