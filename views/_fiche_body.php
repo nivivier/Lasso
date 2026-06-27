@@ -6,7 +6,7 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 
 $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
-$hasAxe   = !empty(array_filter($lignes, fn($l) => !empty($l['axe_code'] ?? '') || !empty($l['axe_libelle'] ?? '')));
+$hasAxe   = empty($impression) && !empty(array_filter($lignes, fn($l) => $l['axe_analytique_id'] !== null));
 $axeTxt   = fn(array $l): string => (string) ($l['axe_code'] ?: ($l['axe_libelle'] ?? ''));
 
 // Seuil mensuel « 8 h/semaine » (jours ÷ 7 × 8) — détermine le taux LAA appliqué.
