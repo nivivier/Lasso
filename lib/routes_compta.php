@@ -144,6 +144,9 @@ function charges_sociales_axe(int $axeId, int $annee): array
         }
     }
     foreach ($tot as &$v) { $v = round($v, 2); }
+    unset($v);
+    // Regroupement OCAS patronale (AVS+AC+Amat+AF) calculé après arrondi des composantes.
+    $tot['emp_ocas'] = round($tot['emp_avs'] + $tot['emp_ac'] + $tot['emp_amat'] + $tot['emp_af'], 2);
     return $tot;
 }
 
