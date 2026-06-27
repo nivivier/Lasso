@@ -49,7 +49,7 @@
 <table class="list list-wide">
     <thead>
         <tr>
-            <th>Mois</th><th>Employé</th><th>Axes</th>
+            <th>Mois</th><th>Employé</th><?php if ($axesParFiche): ?><th>Axes</th><?php endif; ?>
             <th class="num">Brut</th><th class="num">Net</th><th>Paiement</th><th class="num">Coût employeur</th>
             <th class="center">Envoyée</th>
         </tr>
@@ -59,7 +59,7 @@
         <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>">
             <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
             <td><?= e($f['employe_nom']) ?></td>
-            <td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td>
+            <?php if ($axesParFiche): ?><td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td><?php endif; ?>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
             <td class="num strong <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
             <td><?= badge_paiement($f) ?></td>
