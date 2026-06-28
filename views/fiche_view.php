@@ -85,24 +85,26 @@
 <?php if (!empty($axes)): ?>
 <script>
 (function () {
-    const CSRF       = <?= json_encode(csrf_token()) ?>;
-    const SVG_PENCIL = <?= json_encode(icon('pencil')) ?>;
+    const CSRF = <?= json_encode(csrf_token()) ?>;
 
-    // Snapshot avant saisie (pour rollback) — couvre les selects toujours visibles.
+    // Horodatage du dernier change — sert à ignorer les ghost-clicks mobiles qui
+    // surviennent juste après (le picker se ferme, DOM se met à jour, le touch
+    // synthétise un click aux coordonnées initiales qui atterrit sur le crayon).
+    let lastChangedAt = 0;
+
     document.addEventListener('focus', ev => {
         const sel = ev.target.closest('.ligne-axe-sel');
         if (sel && !sel.hidden) sel.dataset.prev = sel.value;
     }, true);
 
-    // Click crayon → bascule en mode édition.
     document.addEventListener('click', ev => {
         const btn = ev.target.closest('.axe-edit-btn');
         if (!btn) return;
+        if (Date.now() - lastChangedAt < 400) return; // ghost-click après change
         const cell = btn.closest('.ligne-axe-cell');
         const sel  = cell.querySelector('.ligne-axe-sel');
         const disp = cell.querySelector('.axe-disp');
-        sel.dataset.prev        = sel.value;
-        sel.dataset.prevHasDisp = '1';
+        sel.dataset.prev = sel.value;
         disp.hidden = true;
         sel.hidden  = false;
         sel.focus();
@@ -111,6 +113,7 @@
     document.addEventListener('change', async ev => {
         const sel = ev.target.closest('.ligne-axe-sel');
         if (!sel) return;
+        lastChangedAt = Date.now();
         const cell = sel.closest('.ligne-axe-cell');
         const fd = new FormData();
         fd.append('csrf', CSRF);
@@ -124,26 +127,15 @@
 
     function applyState(cell, newVal) {
         const sel  = cell.querySelector('.ligne-axe-sel');
-        let   disp = cell.querySelector('.axe-disp');
+        const disp = cell.querySelector('.axe-disp');
         if (newVal) {
             const label = sel.querySelector('option[value="' + newVal + '"]')?.textContent.trim() || '';
-            sel.hidden = true;
-            if (disp) {
-                disp.querySelector('.axe-disp-txt').textContent = label;
-                disp.hidden = false;
-            } else {
-                const span = document.createElement('span');
-                span.className = 'axe-disp-txt'; span.textContent = label;
-                const pencil = document.createElement('button');
-                pencil.type = 'button'; pencil.className = 'row-edit-btn axe-edit-btn';
-                pencil.title = "Modifier l'axe"; pencil.innerHTML = SVG_PENCIL;
-                disp = document.createElement('div');
-                disp.className = 'axe-disp'; disp.append(span, pencil);
-                cell.prepend(disp);
-            }
+            disp.querySelector('.axe-disp-txt').textContent = label;
+            disp.hidden = false;
+            sel.hidden  = true;
         } else {
-            if (disp) disp.remove();
-            sel.hidden = false;
+            disp.hidden = true;
+            sel.hidden  = false;
         }
     }
 
@@ -151,9 +143,9 @@
         const sel  = cell.querySelector('.ligne-axe-sel');
         const disp = cell.querySelector('.axe-disp');
         sel.value = sel.dataset.prev ?? '';
-        if (sel.dataset.prevHasDisp) {
-            if (disp) disp.hidden = false;
-            sel.hidden = true;
+        if (sel.dataset.prev) {
+            disp.hidden = false;
+            sel.hidden  = true;
         }
     }
 })();

@@ -8,23 +8,21 @@ $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
 $hasAxe = empty($impression) && !empty($axes ?? []);
 // Génère le <td> de l'axe analytique pour une ligne.
-// Axe défini → texte + crayon (select caché). Pas d'axe → select visible directement.
+// Le div (texte+crayon) et le select sont TOUJOURS dans le DOM — on bascule hidden
+// pour éviter les insertions DOM qui causent des ghost-clicks sur mobile.
 $axeCellHtml = function (array $l) use ($axes): string {
     $axeId  = (int) ($l['axe_analytique_id'] ?? 0);
     $axeLib = '';
     foreach ($axes as $ax) {
         if ((int) $ax['id'] === $axeId) { $axeLib = $ax['code'] ?: $ax['libelle']; break; }
     }
-    $h = '<td class="ligne-axe-cell" data-ligne-id="' . (int) $l['id'] . '">';
-    if ($axeId && $axeLib !== '') {
-        $h .= '<div class="axe-disp">';
-        $h .= '<span class="axe-disp-txt">' . e($axeLib) . '</span>';
-        $h .= '<button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l\'axe">' . icon('pencil') . '</button>';
-        $h .= '</div>';
-        $h .= '<select class="ligne-axe-sel axe-inline-sel" hidden>';
-    } else {
-        $h .= '<select class="ligne-axe-sel axe-inline-sel">';
-    }
+    $hasAxeSet = $axeId && $axeLib !== '';
+    $h  = '<td class="ligne-axe-cell" data-ligne-id="' . (int) $l['id'] . '">';
+    $h .= '<div class="axe-disp"' . ($hasAxeSet ? '' : ' hidden') . '>';
+    $h .= '<span class="axe-disp-txt">' . e($axeLib) . '</span>';
+    $h .= '<button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l\'axe">' . icon('pencil') . '</button>';
+    $h .= '</div>';
+    $h .= '<select class="ligne-axe-sel axe-inline-sel"' . ($hasAxeSet ? ' hidden' : '') . '>';
     $h .= '<option value="">— Axe —</option>';
     foreach ($axes as $ax) {
         $sel = (int) $ax['id'] === $axeId ? ' selected' : '';
