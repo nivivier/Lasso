@@ -183,55 +183,61 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     </div>
 </div>
 
+<?php
+$_montantEcr = abs((float) $ecrSel['montant']);
+$_axesJson   = json_encode(array_values(array_map(
+    fn($a) => ['id' => (int) $a['id'], 'label' => $a['code'] ?: $a['libelle']], $axes
+)));
+?>
 <script>
 (function () {
-    const MONTANT_ECR = <?= abs((float) $ecrSel[‘montant’]) ?>;
-    const AXES = <?= json_encode(array_values(array_map(fn($a) => [‘id’ => (int)$a[‘id’], ‘label’ => $a[‘code’] ?: $a[‘libelle’]], $axes))) ?>;
+    const MONTANT_ECR = <?= $_montantEcr ?>;
+    const AXES = <?= $_axesJson ?>;
 
     function getType() {
-        return document.getElementById(‘type-val’)?.value || ‘’;
+        return document.getElementById('type-val')?.value || '';
     }
 
-    // Soumission via fetch (l’endpoint retourne du JSON — pas de navigation directe).
-    document.getElementById(‘form-vent-save’).addEventListener(‘submit’, async ev => {
+    // Soumission via fetch (l'endpoint retourne du JSON — pas de navigation directe).
+    document.getElementById('form-vent-save').addEventListener('submit', async ev => {
         ev.preventDefault();
-        const btn = document.getElementById(‘btn-enregistrer’);
+        const btn = document.getElementById('btn-enregistrer');
         btn.disabled = true;
         const fd = new FormData(ev.target);
-        const data = await fetch(‘?p=compta_ventilation_save’, { method: ‘POST’, body: fd })
+        const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd })
             .then(r => r.json()).catch(() => null);
         if (data?.ok) {
-            window.location.href = ‘?p=compta_ecritures’;
+            window.location.href = '?p=compta_ecritures';
         } else {
-            alert(‘Erreur lors de l\’enregistrement. Veuillez réessayer.’);
+            alert('Erreur lors de l\'enregistrement. Veuillez réessayer.');
             btn.disabled = false;
         }
     });
 
     // Raccourcis période
-    document.querySelectorAll(‘.shortcut-btn’).forEach(btn => {
-        btn.addEventListener(‘click’, () => {
-            document.getElementById(‘annee-debut’).value = btn.dataset.ad;
-            document.getElementById(‘mois-debut’).value  = btn.dataset.md;
-            document.getElementById(‘annee-fin’).value   = btn.dataset.af;
-            document.getElementById(‘mois-fin’).value    = btn.dataset.mf;
+    document.querySelectorAll('.shortcut-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('annee-debut').value = btn.dataset.ad;
+            document.getElementById('mois-debut').value  = btn.dataset.md;
+            document.getElementById('annee-fin').value   = btn.dataset.af;
+            document.getElementById('mois-fin').value    = btn.dataset.mf;
         });
     });
 
-    document.getElementById(‘btn-calculer’).addEventListener(‘click’, async () => {
-        const aD = document.getElementById(‘annee-debut’).value;
-        const mD = document.getElementById(‘mois-debut’).value;
-        const aF = document.getElementById(‘annee-fin’).value;
-        const mF = document.getElementById(‘mois-fin’).value;
+    document.getElementById('btn-calculer').addEventListener('click', async () => {
+        const aD = document.getElementById('annee-debut').value;
+        const mD = document.getElementById('mois-debut').value;
+        const aF = document.getElementById('annee-fin').value;
+        const mF = document.getElementById('mois-fin').value;
         const t  = getType();
-        if (!t) { alert(‘Veuillez choisir le type de charge (OCAS, LAA ou LPP).’); return; }
+        if (!t) { alert('Veuillez choisir le type de charge (OCAS, LAA ou LPP).'); return; }
 
-        const btn = document.getElementById(‘btn-calculer’);
+        const btn = document.getElementById('btn-calculer');
         btn.disabled = true;
         try {
             const url = `?p=compta_suggestion_preview&annee_debut=${aD}&mois_debut=${mD}&annee_fin=${aF}&mois_fin=${mF}&type=${t}`;
             const data = await fetch(url).then(r => r.json()).catch(() => null);
-            if (!data?.ok) { alert(‘Erreur lors du calcul. Vérifiez la période.’); return; }
+            if (!data?.ok) { alert('Erreur lors du calcul. Vérifiez la période.'); return; }
             renderSuggestion(data.suggestions);
         } finally {
             btn.disabled = false;
@@ -239,47 +245,47 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     });
 
     function renderSuggestion(suggestions) {
-        const tbody  = document.getElementById(‘suggestion-tbody’);
-        const hidden = document.getElementById(‘vent-hidden-inputs’);
-        tbody.innerHTML = ‘’; hidden.innerHTML = ‘’;
+        const tbody  = document.getElementById('suggestion-tbody');
+        const hidden = document.getElementById('vent-hidden-inputs');
+        tbody.innerHTML = ''; hidden.innerHTML = '';
 
         let totalFiches = 0;
         suggestions.forEach(s => { totalFiches += s.montant; });
         lastTotalFiches = totalFiches;
 
         if (suggestions.length === 0) {
-            tbody.innerHTML = ‘<tr><td colspan="3" class="muted">Aucune ligne de fiche ventilée sur cette période.</td></tr>’;
-            document.getElementById(‘suggestion-result’).hidden = false;
+            tbody.innerHTML = '<tr><td colspan="3" class="muted">Aucune ligne de fiche ventilée sur cette période.</td></tr>';
+            document.getElementById('suggestion-result').hidden = false;
             return;
         }
 
-        const inpStyle = ‘width:100px;text-align:right;font:inherit;font-size:13px;padding:2px 5px;border:1px solid var(--line);border-radius:var(--radius-sm)’;
+        const inpStyle = 'width:100px;text-align:right;font:inherit;font-size:13px;padding:2px 5px;border:1px solid var(--line);border-radius:var(--radius-sm)';
         suggestions.forEach(s => {
-            const tr = document.createElement(‘tr’);
+            const tr = document.createElement('tr');
             const label = s.code ? e(s.code) : e(s.libelle);
             tr.innerHTML =
-                `<td>${label}<span class="muted small" style="margin-left:4px">${s.code ? e(s.libelle) : ‘’}</span></td>` +
+                `<td>${label}<span class="muted small" style="margin-left:4px">${s.code ? e(s.libelle) : ''}</span></td>` +
                 `<td class="num muted">${fmtChf(s.montant)}</td>` +
                 `<td class="num"><input type="number" class="vent-montant-inp" step="0.05" min="0"` +
                 ` value="${s.montant.toFixed(2)}" data-axe-id="${s.axe_id}" style="${inpStyle}"> CHF</td>`;
             tbody.appendChild(tr);
 
-            const iA = document.createElement(‘input’); iA.type=’hidden’; iA.name=’axe_id[]’; iA.value=s.axe_id;
-            const iM = document.createElement(‘input’); iM.type=’hidden’; iM.name=’montant[]’; iM.className=’vent-m’; iM.dataset.axeId=s.axe_id; iM.value=s.montant.toFixed(2);
+            const iA = document.createElement('input'); iA.type='hidden'; iA.name='axe_id[]'; iA.value=s.axe_id;
+            const iM = document.createElement('input'); iM.type='hidden'; iM.name='montant[]'; iM.className='vent-m'; iM.dataset.axeId=s.axe_id; iM.value=s.montant.toFixed(2);
             hidden.append(iA, iM);
         });
 
-        document.getElementById(‘suggestion-result’).hidden = false;
-        document.getElementById(‘suggestion-note’).hidden = true;
+        document.getElementById('suggestion-result').hidden = false;
+        document.getElementById('suggestion-note').hidden = true;
         refreshTotals(); // affiche la ligne écart si nécessaire
     }
 
     // Listener unique sur tbody — gère les inputs des lignes principales.
     let lastTotalFiches = 0;
-    document.getElementById(‘suggestion-tbody’).addEventListener(‘input’, ev => {
-        const inp = ev.target.closest(‘.vent-montant-inp’);
+    document.getElementById('suggestion-tbody').addEventListener('input', ev => {
+        const inp = ev.target.closest('.vent-montant-inp');
         if (!inp) return;
-        const hidden = document.getElementById(‘vent-hidden-inputs’);
+        const hidden = document.getElementById('vent-hidden-inputs');
         const hid = hidden.querySelector(`.vent-m[data-axe-id="${inp.dataset.axeId}"]`);
         if (hid) hid.value = inp.value;
         refreshTotals();
@@ -287,46 +293,46 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
 
     // Recalcule les totaux et met à jour (ou crée/supprime) la ligne écart.
     function refreshTotals() {
-        const mainTotal = Array.from(document.querySelectorAll(‘.vent-montant-inp’))
+        const mainTotal = Array.from(document.querySelectorAll('.vent-montant-inp'))
             .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
         const ecartRestant = MONTANT_ECR - mainTotal;
 
         // Met à jour la ligne écart si elle existe déjà.
-        const ecartInp = document.querySelector(‘.ecart-montant-inp’);
+        const ecartInp = document.querySelector('.ecart-montant-inp');
         if (ecartInp) {
             const newVal = Math.max(0, ecartRestant).toFixed(2);
             ecartInp.value = newVal;
-            const hidM = document.querySelector(‘.ecart-hidden-m’);
+            const hidM = document.querySelector('.ecart-hidden-m');
             if (hidM) hidM.value = newVal;
         }
 
         maybeShowEcartRow(ecartRestant);
 
         // Total saisi = lignes principales + ligne écart si axe choisi
-        const ecartChosen = document.querySelector(‘.ecart-hidden-a’) !== null;
-        const ecartVal    = ecartChosen ? (parseFloat(document.querySelector(‘.ecart-montant-inp’)?.value) || 0) : 0;
+        const ecartChosen = document.querySelector('.ecart-hidden-a') !== null;
+        const ecartVal    = ecartChosen ? (parseFloat(document.querySelector('.ecart-montant-inp')?.value) || 0) : 0;
         updateTotals(lastTotalFiches, mainTotal + ecartVal);
     }
 
-    // Affiche ou masque la ligne "Solde à ventiler" selon l’écart.
+    // Affiche ou masque la ligne "Solde à ventiler" selon l'écart.
     function maybeShowEcartRow(ecartRestant) {
-        const tbody  = document.getElementById(‘suggestion-tbody’);
-        const hidden = document.getElementById(‘vent-hidden-inputs’);
-        let tr = tbody.querySelector(‘.ecart-row-tr’);
+        const tbody  = document.getElementById('suggestion-tbody');
+        const hidden = document.getElementById('vent-hidden-inputs');
+        let tr = tbody.querySelector('.ecart-row-tr');
 
         if (ecartRestant < 0.005) {
             tr?.remove();
-            document.querySelectorAll(‘.ecart-hidden-a, .ecart-hidden-m’).forEach(el => el.remove());
+            document.querySelectorAll('.ecart-hidden-a, .ecart-hidden-m').forEach(el => el.remove());
             return;
         }
 
         if (tr) return; // déjà présente, refreshTotals a déjà mis à jour le montant
 
         // Création de la ligne écart
-        const inpStyle = ‘width:100px;text-align:right;font:inherit;font-size:13px;padding:2px 5px;border:1px solid var(--line);border-radius:var(--radius-sm)’;
-        const selOpts  = AXES.map(a => `<option value="${a.id}">${e(a.label)}</option>`).join(‘’);
-        tr = document.createElement(‘tr’);
-        tr.className = ‘ecart-row-tr’;
+        const inpStyle = 'width:100px;text-align:right;font:inherit;font-size:13px;padding:2px 5px;border:1px solid var(--line);border-radius:var(--radius-sm)';
+        const selOpts  = AXES.map(a => `<option value="${a.id}">${e(a.label)}</option>`).join('');
+        tr = document.createElement('tr');
+        tr.className = 'ecart-row-tr';
         tr.innerHTML =
             `<td><span class="muted small">Solde :</span> ` +
             `<select class="ecart-axe-sel axe-inline-sel"><option value="">— Choisir un axe —</option>${selOpts}</select></td>` +
@@ -335,12 +341,12 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
             ` value="${Math.max(0, ecartRestant).toFixed(2)}" style="${inpStyle}"> CHF</td>`;
         tbody.appendChild(tr);
 
-        const axeSel = tr.querySelector(‘.ecart-axe-sel’);
-        axeSel.addEventListener(‘change’, () => {
-            document.querySelectorAll(‘.ecart-hidden-a, .ecart-hidden-m’).forEach(el => el.remove());
+        const axeSel = tr.querySelector('.ecart-axe-sel');
+        axeSel.addEventListener('change', () => {
+            document.querySelectorAll('.ecart-hidden-a, .ecart-hidden-m').forEach(el => el.remove());
             if (axeSel.value) {
-                const iA = Object.assign(document.createElement(‘input’), { type:’hidden’, name:’axe_id[]’,  className:’ecart-hidden-a’, value: axeSel.value });
-                const iM = Object.assign(document.createElement(‘input’), { type:’hidden’, name:’montant[]’, className:’ecart-hidden-m’, value: tr.querySelector(‘.ecart-montant-inp’).value });
+                const iA = Object.assign(document.createElement('input'), { type:'hidden', name:'axe_id[]',  className:'ecart-hidden-a', value: axeSel.value });
+                const iM = Object.assign(document.createElement('input'), { type:'hidden', name:'montant[]', className:'ecart-hidden-m', value: tr.querySelector('.ecart-montant-inp').value });
                 hidden.append(iA, iM);
             }
             refreshTotals();
@@ -348,20 +354,20 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     }
 
     function updateTotals(fromFiches, saisi) {
-        document.getElementById(‘total-fiches’).textContent = fmtChf(fromFiches) + ‘ CHF’;
-        document.getElementById(‘total-saisi’).textContent  = fmtChf(saisi) + ‘ CHF’;
+        document.getElementById('total-fiches').textContent = fmtChf(fromFiches) + ' CHF';
+        document.getElementById('total-saisi').textContent  = fmtChf(saisi) + ' CHF';
         const ecart = MONTANT_ECR - saisi;
-        const el    = document.getElementById(‘ecart-val’);
-        el.textContent  = (ecart >= 0 ? ‘+’ : ‘’) + fmtChf(ecart) + ‘ CHF’;
-        el.style.color  = Math.abs(ecart) < 0.005 ? ‘var(--primary)’ : Math.abs(ecart) < 5 ? ‘’ : ‘var(--danger)’;
-        el.style.fontWeight = Math.abs(ecart) < 0.005 ? ‘’ : ‘bold’;
+        const el    = document.getElementById('ecart-val');
+        el.textContent  = (ecart >= 0 ? '+' : '') + fmtChf(ecart) + ' CHF';
+        el.style.color  = Math.abs(ecart) < 0.005 ? 'var(--primary)' : Math.abs(ecart) < 5 ? '' : 'var(--danger)';
+        el.style.fontWeight = Math.abs(ecart) < 0.005 ? '' : 'bold';
     }
 
     function fmtChf(n) {
-        return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, "’");
+        return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
     }
     function e(s) {
-        return String(s).replace(/&/g,’&amp;’).replace(/</g,’&lt;’).replace(/>/g,’&gt;’);
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 })();
 </script>
