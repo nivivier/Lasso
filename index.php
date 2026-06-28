@@ -95,7 +95,11 @@ $handlers = [
     'compta_bilan'          => 'route_compta_bilan',
     'compta_bilan_print'    => 'route_compta_bilan_print',
     'compta_ecritures_csv'       => 'route_compta_ecritures_csv',
-    'compta_ventilation_save'    => 'route_compta_ventilation_save',
+    'compta_ventilation_save'         => 'route_compta_ventilation_save',
+    'compta_suggestion_ventilation'   => 'route_compta_suggestion_ventilation',
+    'compta_suggestion_preview'       => 'route_compta_suggestion_preview',
+    // Fiches
+    'fiche_ligne_axe_save'            => 'route_fiche_ligne_axe_save',
 ];
 
 if (isset($handlers[$route])) {

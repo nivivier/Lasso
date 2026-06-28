@@ -714,11 +714,28 @@ function route_fiche(): void
     $stmt->execute([(int) $f['employe_id']]);
     $emailEmploye = trim((string) $stmt->fetchColumn());
     $emailExp     = trim((string) param('employeur_email_expediteur'));
+    $axes = db()->query('SELECT id, code, libelle FROM axes_analytiques WHERE actif = 1 ORDER BY code, libelle')->fetchAll();
     render('fiche_view', [
         'f' => $f, 'modifiable' => $modifiable, 'saved' => $_GET['ok'] ?? null,
         'mail' => $_GET['mail'] ?? null,
         'emailEmploye' => $emailEmploye, 'emailExp' => $emailExp,
+        'axes' => $axes,
     ], 'Fiche ' . mois_nom((int) $f['mois']) . ' ' . $f['annee']);
+}
+
+// Sauvegarde AJAX de l'axe analytique d'une ligne de fiche (modifiable même après paiement).
+function route_fiche_ligne_axe_save(): void
+{
+    require_login();
+    check_csrf();
+    header('Content-Type: application/json; charset=UTF-8');
+    $ligneId = (int) ($_POST['ligne_id'] ?? 0);
+    $axeId   = (int) ($_POST['axe_id'] ?? 0) ?: null;
+    $stmt = db()->prepare('SELECT 1 FROM fiche_lignes WHERE id = ?');
+    $stmt->execute([$ligneId]);
+    if (!$stmt->fetchColumn()) { echo json_encode(['ok' => false]); return; }
+    db()->prepare('UPDATE fiche_lignes SET axe_analytique_id = ? WHERE id = ?')->execute([$axeId, $ligneId]);
+    echo json_encode(['ok' => true]);
 }
 
 // Agrège les fiches d'une année en totaux pour le certificat de salaire.

@@ -6,8 +6,19 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 
 $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
-$hasAxe   = empty($impression) && !empty(array_filter($lignes, fn($l) => $l['axe_analytique_id'] !== null));
-$axeTxt   = fn(array $l): string => (string) ($l['axe_code'] ?: ($l['axe_libelle'] ?? ''));
+$hasAxe = empty($impression) && !empty($axes ?? []);
+// Génère le <td> de l'axe analytique pour une ligne (select éditable en mode écran).
+$axeCellHtml = function (array $l) use ($axes): string {
+    $h  = '<td class="ligne-axe-cell" data-ligne-id="' . (int) $l['id'] . '">';
+    $h .= '<select class="ligne-axe-sel axe-inline-sel">';
+    $h .= '<option value="">— Axe —</option>';
+    foreach ($axes as $ax) {
+        $sel = (int) ($l['axe_analytique_id'] ?? 0) === (int) $ax['id'] ? ' selected' : '';
+        $h  .= '<option value="' . (int) $ax['id'] . '"' . $sel . '>' . e($ax['code'] ?: $ax['libelle']) . '</option>';
+    }
+    $h .= '</select></td>';
+    return $h;
+};
 
 // Seuil mensuel « 8 h/semaine » (jours ÷ 7 × 8) — détermine le taux LAA appliqué.
 $seuilH    = seuil_heures((int) $f['annee'], (int) $f['mois']);
@@ -63,7 +74,7 @@ $deductions = [
             <?php if ($uneSeule):
                 $l = $lignes[0]; ?>
             <tr><td>Salaire du travail</td>
-                <?php if ($hasAxe): ?><td class="muted small"><?= e($axeTxt($l)) ?></td><?php endif; ?>
+                <?php if ($hasAxe): ?><?= $axeCellHtml($l) ?><?php endif; ?>
                 <td class="num"><?= $hnum((float) $f['nombre_heures']) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h
                     <div class="muted small ps-seuil"><?= e($seuilTxt) ?></div></td>
                 <td class="num"><?= chf((float) $f['salaire_travail']) ?></td></tr>
@@ -72,7 +83,7 @@ $deductions = [
                     $sousH = (float) $l['quantite'] * (float) $l['heures_unite'];
                     $montant = $sousH * (float) $l['taux_horaire']; ?>
                 <tr class="ps-sub"><td><?= e($l['libelle']) ?> × <?= $hnum($l['quantite']) ?></td>
-                    <?php if ($hasAxe): ?><td class="muted small"><?= e($axeTxt($l)) ?></td><?php endif; ?>
+                    <?php if ($hasAxe): ?><?= $axeCellHtml($l) ?><?php endif; ?>
                     <td class="num"><?= $hnum($sousH) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h</td>
                     <td class="num"><?= chf($montant) ?></td></tr>
                 <?php endforeach; ?>

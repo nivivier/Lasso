@@ -227,6 +227,16 @@ h3.sub.no-mt { margin-top: 0; }
 .axe-inline-sel { font: inherit; font-size: 13px; padding: 2px 5px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); max-width: 120px; }
 .axe-inline-sel:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 
+/* Ligne de fiche : axe analytique éditable */
+.ligne-axe-cell { white-space: nowrap; }
+/* Page suggestion de ventilation */
+.row-selected { background: var(--primary-tint); }
+.suggestion-config { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.suggestion-ecriture { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.suggestion-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; }
+.suggestion-row select { font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.suggestion-table tfoot tr:last-child td { font-weight: bold; }
+
 /* Panneau de ventilation multi-axe (flottant, positionné par JS) */
 .axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 300px; }
 .axe-panel-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }

@@ -1,4 +1,4 @@
-<?php /** @var array $f */ /** @var ?string $saved */ /** @var ?string $mail */ /** @var string $emailEmploye */ /** @var string $emailExp */ $paye = trim((string) $f['date_paiement']) !== ''; ?>
+<?php /** @var array $f */ /** @var ?string $saved */ /** @var ?string $mail */ /** @var string $emailEmploye */ /** @var string $emailExp */ /** @var array $axes */ $paye = trim((string) $f['date_paiement']) !== ''; ?>
 <?php if (($saved ?? null) === 'date'): ?><p class="ok flash">Date de paiement enregistrée.</p><?php endif; ?>
 <?php if (($saved ?? null) === 'cout'): ?><p class="ok flash">Affichage du coût employeur mis à jour.</p><?php endif; ?>
 <?php switch ($mail ?? null) {
@@ -82,3 +82,27 @@
         </form>
     </aside>
 </div>
+<?php if (!empty($axes)): ?>
+<script>
+(function () {
+    const CSRF = <?= json_encode(csrf_token()) ?>;
+    // Snapshot valeur avant changement pour rollback en cas d'erreur.
+    document.addEventListener('focus', e => {
+        const sel = e.target.closest('.ligne-axe-sel');
+        if (sel) sel.dataset.prev = sel.value;
+    }, true);
+    document.addEventListener('change', async e => {
+        const sel = e.target.closest('.ligne-axe-sel');
+        if (!sel) return;
+        const cell = sel.closest('.ligne-axe-cell');
+        const fd = new FormData();
+        fd.append('csrf', CSRF);
+        fd.append('ligne_id', cell.dataset.ligneId);
+        fd.append('axe_id', sel.value || '0');
+        const data = await fetch('?p=fiche_ligne_axe_save', { method: 'POST', body: fd })
+            .then(r => r.json()).catch(() => ({ ok: false }));
+        if (!data.ok) sel.value = sel.dataset.prev ?? '';
+    });
+})();
+</script>
+<?php endif; ?>
