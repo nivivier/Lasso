@@ -21,7 +21,7 @@
         <a href="?p=compta_suggestion_ventilation&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('wand') ?> Suggérer ventilation charges</a>
         <?php endif; ?>
         <?php if ($ventilation): ?>
-        <a class="btn ghost btn-sm" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
+        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
         <?php endif; ?>
     </div>
 </div>
