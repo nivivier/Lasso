@@ -8,6 +8,7 @@ $tabs = [
     'taux_horaires' => 'Salaires horaires',
     'unites'        => 'Unités de temps',
     'export'        => 'Exporter les données',
+    'import_fiches' => 'Importer',
     'comptes'       => 'Comptes',
 ];
 $curParam = $_GET['p'] ?? '';

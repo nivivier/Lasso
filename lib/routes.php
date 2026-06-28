@@ -461,6 +461,130 @@ function route_export(): void
     render('export', ['annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta], 'Exporter les données');
 }
 
+// Import de fiches de salaire depuis un fichier JSON (format d'export, type
+// « fiches_salaire »). N'insère que les fiches nouvelles : une fiche déjà
+// présente (même employé/année/mois) est ignorée, jamais écrasée (historique figé).
+function route_import_fiches(): void
+{
+    require_login();
+    $err = null; $resultats = null; $resume = null; $simule = true;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $simule = !isset($_POST['appliquer']); // bouton « Simuler » vs « Importer »
+        $up = $_FILES['fichier'] ?? null;
+        if (!$up || ($up['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $err = 'Veuillez choisir un fichier JSON à importer.';
+        } elseif (($up['size'] ?? 0) > 2 * 1024 * 1024) {
+            $err = 'Fichier trop volumineux (2 Mo maximum).';
+        } else {
+            $doc = json_decode((string) file_get_contents($up['tmp_name']), true);
+            if (!is_array($doc) || ($doc['type'] ?? '') !== 'fiches_salaire' || !is_array($doc['fiches'] ?? null)) {
+                $err = 'Fichier non reconnu : un export de fiches de salaire (JSON) est attendu.';
+            } else {
+                try {
+                    [$resultats, $resume] = importer_fiches_salaire($doc['fiches'], $simule);
+                } catch (Throwable $e) {
+                    $err = "Erreur pendant l'import : " . $e->getMessage();
+                }
+            }
+        }
+    }
+    render('import_fiches', compact('err', 'resultats', 'resume', 'simule'), 'Importer des fiches');
+}
+
+// Évalue (et, si !$simule, insère) une liste de fiches. Correspondance employé
+// par numéro AVS. Renvoie [resultats par ligne, résumé chiffré].
+function importer_fiches_salaire(array $fiches, bool $simule): array
+{
+    $findEmp = db()->prepare('SELECT id FROM employes WHERE replace(numero_avs, " ", "") = ?');
+    $existe  = db()->prepare('SELECT id FROM fiches WHERE employe_id = ? AND annee = ? AND mois = ?');
+    $resultats = [];
+    $resume = ['total' => 0, 'nouvelles' => 0, 'existantes' => 0, 'erreurs' => 0];
+
+    if (!$simule) {
+        db()->beginTransaction();
+    }
+    try {
+        foreach ($fiches as $f) {
+            $resume['total']++;
+            $avs   = str_replace(' ', '', (string) ($f['employe_avs'] ?? ($f['employe']['numero_avs'] ?? '')));
+            $annee = (int) ($f['annee'] ?? 0);
+            $mois  = (int) ($f['mois'] ?? 0);
+            $nom   = (string) ($f['employe_nom'] ?? ($f['employe']['nom_complet'] ?? ''));
+            $ligne = ['nom' => $nom, 'annee' => $annee, 'mois' => $mois,
+                      'brut' => (float) ($f['salaire_brut'] ?? 0), 'net' => (float) ($f['salaire_net'] ?? 0)];
+
+            if ($avs === '' || $annee < 2000 || $mois < 1 || $mois > 12) {
+                $ligne['statut'] = 'erreur';
+                $ligne['detail'] = 'Données manquantes (AVS, année ou mois).';
+                $resume['erreurs']++; $resultats[] = $ligne; continue;
+            }
+            $findEmp->execute([$avs]);
+            $empId = $findEmp->fetchColumn();
+            if ($empId === false) {
+                $ligne['statut'] = 'erreur';
+                $ligne['detail'] = "Aucun employé avec le numéro AVS $avs.";
+                $resume['erreurs']++; $resultats[] = $ligne; continue;
+            }
+            $existe->execute([(int) $empId, $annee, $mois]);
+            if ($existe->fetch()) {
+                $ligne['statut'] = 'existante';
+                $ligne['detail'] = 'Fiche déjà présente — ignorée.';
+                $resume['existantes']++; $resultats[] = $ligne; continue;
+            }
+            $ligne['statut'] = 'nouvelle';
+            $resume['nouvelles']++;
+            if (!$simule) {
+                $num = fn(string $k) => (float) ($f[$k] ?? 0);
+                $data = [
+                    'employe_id' => (int) $empId, 'annee' => $annee, 'mois' => $mois,
+                    'date_paiement' => (string) ($f['date_paiement'] ?? ''),
+                    'employe_nom' => $nom,
+                    'employe_rue' => (string) ($f['employe_rue'] ?? ''),
+                    'employe_npa' => (string) ($f['employe_npa'] ?? ''),
+                    'employe_avs' => (string) ($f['employe_avs'] ?? $avs),
+                    'canton' => (string) ($f['canton'] ?? ''),
+                    'procedure' => (string) ($f['procedure'] ?? 'Ordinaire'),
+                    'salaire_horaire' => $num('salaire_horaire'), 'nombre_heures' => $num('nombre_heures'),
+                    'supplement_taux' => $num('supplement_taux'), 'salaire_travail' => $num('salaire_travail'),
+                    'supplement_montant' => $num('supplement_montant'), 'salaire_brut' => $num('salaire_brut'),
+                    'ded_avs' => $num('ded_avs'), 'ded_ac' => $num('ded_ac'), 'ded_amat' => $num('ded_amat'),
+                    'ded_laa' => $num('ded_laa'), 'ded_lpp' => $num('ded_lpp'),
+                    'ded_impot_source' => $num('ded_impot_source'), 'ded_caf' => $num('ded_caf'),
+                    'total_deductions' => $num('total_deductions'), 'salaire_net' => $num('salaire_net'),
+                    'emp_avs' => $num('emp_avs'), 'emp_ac' => $num('emp_ac'), 'emp_amat' => $num('emp_amat'),
+                    'emp_af' => $num('emp_af'), 'emp_laa' => $num('emp_laa'), 'emp_frais' => $num('emp_frais'),
+                    'emp_cpe' => $num('emp_cpe'), 'emp_lfp' => $num('emp_lfp'), 'emp_lpp' => $num('emp_lpp'),
+                    'total_charges_emp' => $num('total_charges_emp'), 'cout_total_emp' => $num('cout_total_emp'),
+                    'afficher_cout_emp' => 0,
+                    'taux_json' => json_encode((object) ($f['taux'] ?? []), JSON_UNESCAPED_UNICODE),
+                ];
+                $ph = ':' . implode(', :', array_keys($data));
+                db()->prepare('INSERT INTO fiches (' . implode(', ', array_keys($data)) . ') VALUES (' . $ph . ')')
+                    ->execute($data);
+                $ficheId = (int) db()->lastInsertId();
+                $insL = db()->prepare('INSERT INTO fiche_lignes (fiche_id, libelle, heures_unite, quantite, taux_horaire, ordre) VALUES (?, ?, ?, ?, ?, ?)');
+                $ordre = 0;
+                foreach ((array) ($f['lignes'] ?? []) as $l) {
+                    $insL->execute([$ficheId, (string) ($l['libelle'] ?? 'Heures de travail'),
+                        (float) ($l['heures_unite'] ?? 1), (float) ($l['quantite'] ?? 0),
+                        (float) ($l['taux_horaire'] ?? 0), $ordre++]);
+                }
+            }
+            $resultats[] = $ligne;
+        }
+        if (!$simule) {
+            db()->commit();
+        }
+    } catch (Throwable $e) {
+        if (!$simule && db()->inTransaction()) {
+            db()->rollBack();
+        }
+        throw $e;
+    }
+    return [$resultats, $resume];
+}
+
 function route_taux(): void
 {
     require_login();

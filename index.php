@@ -61,6 +61,7 @@ $handlers = [
     'taux_horaires' => 'route_taux_horaires',
     'unites'        => 'route_unites',
     'export'        => 'route_export',
+    'import_fiches' => 'route_import_fiches',
     'comptes'       => 'route_comptes',
     'compte_reset'  => 'route_compte_reset',
     'compte_delete' => 'route_compte_delete',
