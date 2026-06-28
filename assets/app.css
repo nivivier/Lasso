@@ -502,11 +502,11 @@ span + .badge.muted-badge { margin-left: 6px; }
 #preview-modal-close {
     position: absolute; top: 10px; right: 10px; z-index: 502;
     width: 30px; height: 30px; border-radius: 50%; padding: 0;
-    background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.35);
+    background: rgba(41,33,80,.6); border: 1px solid rgba(255,255,255,.45);
     color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    box-shadow: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
 }
-#preview-modal-close:hover { background: rgba(255,255,255,.4); border-color: rgba(255,255,255,.55); }
+#preview-modal-close:hover { background: rgba(41,33,80,.85); border-color: rgba(255,255,255,.7); }
 #preview-modal-close .ico { width: 16px; height: 16px; }
 
 /* =================== Print =================== */

@@ -637,8 +637,12 @@ function route_compta_ecritures(): void
     } elseif ($categorieFilter === 'ignore') {
         $sql .= " AND e.origine_lettrage = 'ignore'";
     } elseif (ctype_digit((string) $categorieFilter) && $categorieFilter !== '') {
-        $sql .= ' AND e.plan_compte_id = ?';
-        $params[] = (int) $categorieFilter;
+        // Catégorie choisie : si feuille → cette catégorie ; si sur-catégorie
+        // (parent) → toutes les écritures de son sous-arbre.
+        $ids = plan_descendants((int) $categorieFilter, plan_enfants(compta_plan_actif()));
+        $in  = implode(',', array_fill(0, count($ids), '?'));
+        $sql .= " AND e.plan_compte_id IN ($in)";
+        $params = array_merge($params, array_map('intval', $ids));
     }
     if (ctype_digit((string) $axeFilter) && $axeFilter !== '') {
         $sql .= ' AND EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id = ?)';
@@ -668,6 +672,8 @@ function route_compta_ecritures(): void
     }
 
     $feuilles = plan_feuilles(compta_plan_actif());
+    // Arbre complet (parents + feuilles) pour le filtre par catégorie / sur-catégorie.
+    $categoriesArbre = plan_liste_ordonnee(compta_plan_actif());
     $axes     = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
     render('compta_ecritures', [
         'comptes'            => $comptes,
@@ -675,6 +681,7 @@ function route_compta_ecritures(): void
         'annee'              => $annee,
         'annees'             => $annees,
         'categorieFilter'    => $categorieFilter,
+        'categoriesArbre'    => $categoriesArbre,
         'axeFilter'          => $axeFilter,
         'ecritures'          => $ecritures,
         'ventilationsParEcr' => $ventilationsParEcr,

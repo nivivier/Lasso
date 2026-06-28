@@ -486,6 +486,17 @@ function plan_feuilles(array $plan): array
     return $out;
 }
 
+// Ids d'une catégorie et de tous ses descendants (sous-arbre), pour filtrer par
+// une sur-catégorie. $byParent = plan_enfants($plan).
+function plan_descendants(int $id, array $byParent): array
+{
+    $ids = [$id];
+    foreach ($byParent[$id] ?? [] as $enfant) {
+        $ids = array_merge($ids, plan_descendants((int) $enfant['id'], $byParent));
+    }
+    return $ids;
+}
+
 // Sous-total d'une catégorie : sa somme propre si feuille, sinon la somme de ses
 // descendants. $sommes : [id => montant] (par feuille lettrée).
 function plan_sous_total(int $id, array $byParent, array $sommes): float

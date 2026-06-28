@@ -71,8 +71,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </form>
     </div>
     <div class="head-actions">
-        <a href="?p=compta_regles" class="btn ghost"><?= icon('settings') ?> Lettrage automatique</a>
-        <button type="button" id="btn-new-ecr" class="btn ghost"><?= icon('plus') ?> Écriture manuelle</button>
+        <a href="?p=compta_regles" class="btn ghost btn-sm"><?= icon('settings') ?> Lettrage automatique</a>
+        <button type="button" id="btn-new-ecr" class="btn ghost btn-sm"><?= icon('plus') ?> Écriture manuelle</button>
         <a href="?p=compta_import" class="btn"><?= icon('upload') ?> Importer</a>
     </div>
 </div>
@@ -147,30 +147,16 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </select>
     </label>
     <label>Catégorie
-        <?php
-        $filtreTexte = match($categorieFilter) {
-            'a_lettrer' => '— À lettrer —',
-            'ignore'    => '— Ne pas lettrer —',
-            ''          => '',
-            default     => $cheminById[(int) $categorieFilter] ?? '',
-        };
-        ?>
-        <div class="cat-search filtre-cat-search">
-            <input type="text" class="cat-search-input" placeholder="Toutes" autocomplete="off" value="<?= e($filtreTexte) ?>">
-            <input type="hidden" name="categorie" class="cat-search-val" value="<?= e($categorieFilter) ?>">
-            <ul class="cat-search-list" hidden role="listbox">
-                <li data-val="">Toutes</li>
-                <li data-val="a_lettrer">— À lettrer —</li>
-                <li data-val="ignore">— Ne pas lettrer —</li>
-                <?php $sensCourant = null; $grpCourant = null; foreach ($feuillesSorted as $f): $fid = (int) $f['id']; $grp = $catPrefixById[$fid] ?? ''; ?>
-                <?php if ($f['sens'] !== $sensCourant): $sensCourant = $f['sens']; $grpCourant = null; ?>
-                    <li class="cat-search-sens"><?= $sensCourant === 'produit' ? 'Recettes' : 'Dépenses' ?></li>
-                <?php endif; ?>
-                <?php if ($grp !== $grpCourant): $grpCourant = $grp; if ($grp !== ''): ?><li class="cat-search-group"><?= e($grp) ?></li><?php endif; endif; ?>
-                    <li data-val="<?= $fid ?>"><?= e($f['chemin']) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
+        <select name="categorie" onchange="this.form.submit()">
+            <option value="" <?= $categorieFilter === '' ? 'selected' : '' ?>>Toutes</option>
+            <option value="a_lettrer" <?= $categorieFilter === 'a_lettrer' ? 'selected' : '' ?>>— À lettrer —</option>
+            <option value="ignore" <?= $categorieFilter === 'ignore' ? 'selected' : '' ?>>— Ne pas lettrer —</option>
+            <?php foreach ($categoriesArbre as $c): $cid = (int) $c['id']; ?>
+                <option value="<?= $cid ?>" <?= $categorieFilter === (string) $cid ? 'selected' : '' ?>>
+                    <?= str_repeat("\u{00A0}\u{00A0}", (int) $c['profondeur']) ?><?= e($c['libelle']) ?><?= !empty($c['a_enfants']) ? ' (et sous-catégories)' : '' ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
     </label>
     <?php if ($axes): ?>
     <label>Axe
@@ -777,42 +763,3 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 })();
 </script>
 <?php endif; ?>
-<script>
-// Cat-search — filtre catégorie (soumet le form GET à la sélection)
-// Toujours rendu, même quand la liste d'écritures est vide.
-(function () {
-    const wrap = document.querySelector('.filtre-cat-search');
-    if (!wrap) return;
-    const input  = wrap.querySelector('.cat-search-input');
-    const hidden = wrap.querySelector('.cat-search-val');
-    const list   = wrap.querySelector('.cat-search-list');
-    const items    = Array.from(list.querySelectorAll('li:not(.cat-search-group):not(.cat-search-sens)'));
-    const groups   = Array.from(list.querySelectorAll('.cat-search-group'));
-    const sensHdrs = Array.from(list.querySelectorAll('.cat-search-sens'));
-    const norm     = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    function filter(q) {
-        const nq = norm(q);
-        items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); });
-        groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
-        sensHdrs.forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
-    }
-    input.addEventListener('focus', () => { input.value = ''; filter(''); list.hidden = false; });
-    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
-    input.addEventListener('blur',  () => {
-        setTimeout(() => {
-            list.hidden = true;
-            const cur = items.find(li => li.dataset.val === hidden.value);
-            input.value = cur ? (cur.dataset.val !== '' ? cur.textContent.trim() : '') : '';
-        }, 150);
-    });
-    items.forEach(li => {
-        li.addEventListener('mousedown', e => {
-            e.preventDefault();
-            hidden.value = li.dataset.val;
-            input.value  = li.dataset.val !== '' ? li.textContent : '';
-            list.hidden  = true;
-            wrap.closest('form').submit();
-        });
-    });
-})();
-</script>
