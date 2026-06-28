@@ -85,14 +85,31 @@
 <?php if (!empty($axes)): ?>
 <script>
 (function () {
-    const CSRF = <?= json_encode(csrf_token()) ?>;
-    // Snapshot valeur avant changement pour rollback en cas d'erreur.
-    document.addEventListener('focus', e => {
-        const sel = e.target.closest('.ligne-axe-sel');
-        if (sel) sel.dataset.prev = sel.value;
+    const CSRF       = <?= json_encode(csrf_token()) ?>;
+    const SVG_PENCIL = <?= json_encode(icon('pencil')) ?>;
+
+    // Snapshot avant saisie (pour rollback) — couvre les selects toujours visibles.
+    document.addEventListener('focus', ev => {
+        const sel = ev.target.closest('.ligne-axe-sel');
+        if (sel && !sel.hidden) sel.dataset.prev = sel.value;
     }, true);
-    document.addEventListener('change', async e => {
-        const sel = e.target.closest('.ligne-axe-sel');
+
+    // Click crayon → bascule en mode édition.
+    document.addEventListener('click', ev => {
+        const btn = ev.target.closest('.axe-edit-btn');
+        if (!btn) return;
+        const cell = btn.closest('.ligne-axe-cell');
+        const sel  = cell.querySelector('.ligne-axe-sel');
+        const disp = cell.querySelector('.axe-disp');
+        sel.dataset.prev        = sel.value;
+        sel.dataset.prevHasDisp = '1';
+        disp.hidden = true;
+        sel.hidden  = false;
+        sel.focus();
+    });
+
+    document.addEventListener('change', async ev => {
+        const sel = ev.target.closest('.ligne-axe-sel');
         if (!sel) return;
         const cell = sel.closest('.ligne-axe-cell');
         const fd = new FormData();
@@ -101,8 +118,44 @@
         fd.append('axe_id', sel.value || '0');
         const data = await fetch('?p=fiche_ligne_axe_save', { method: 'POST', body: fd })
             .then(r => r.json()).catch(() => ({ ok: false }));
-        if (!data.ok) sel.value = sel.dataset.prev ?? '';
+        if (data.ok) applyState(cell, sel.value);
+        else rollback(cell);
     });
+
+    function applyState(cell, newVal) {
+        const sel  = cell.querySelector('.ligne-axe-sel');
+        let   disp = cell.querySelector('.axe-disp');
+        if (newVal) {
+            const label = sel.querySelector('option[value="' + newVal + '"]')?.textContent.trim() || '';
+            sel.hidden = true;
+            if (disp) {
+                disp.querySelector('.axe-disp-txt').textContent = label;
+                disp.hidden = false;
+            } else {
+                const span = document.createElement('span');
+                span.className = 'axe-disp-txt'; span.textContent = label;
+                const pencil = document.createElement('button');
+                pencil.type = 'button'; pencil.className = 'row-edit-btn axe-edit-btn';
+                pencil.title = "Modifier l'axe"; pencil.innerHTML = SVG_PENCIL;
+                disp = document.createElement('div');
+                disp.className = 'axe-disp'; disp.append(span, pencil);
+                cell.prepend(disp);
+            }
+        } else {
+            if (disp) disp.remove();
+            sel.hidden = false;
+        }
+    }
+
+    function rollback(cell) {
+        const sel  = cell.querySelector('.ligne-axe-sel');
+        const disp = cell.querySelector('.axe-disp');
+        sel.value = sel.dataset.prev ?? '';
+        if (sel.dataset.prevHasDisp) {
+            if (disp) disp.hidden = false;
+            sel.hidden = true;
+        }
+    }
 })();
 </script>
 <?php endif; ?>

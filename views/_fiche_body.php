@@ -7,13 +7,27 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
 $hasAxe = empty($impression) && !empty($axes ?? []);
-// Génère le <td> de l'axe analytique pour une ligne (select éditable en mode écran).
+// Génère le <td> de l'axe analytique pour une ligne.
+// Axe défini → texte + crayon (select caché). Pas d'axe → select visible directement.
 $axeCellHtml = function (array $l) use ($axes): string {
-    $h  = '<td class="ligne-axe-cell" data-ligne-id="' . (int) $l['id'] . '">';
-    $h .= '<select class="ligne-axe-sel axe-inline-sel">';
+    $axeId  = (int) ($l['axe_analytique_id'] ?? 0);
+    $axeLib = '';
+    foreach ($axes as $ax) {
+        if ((int) $ax['id'] === $axeId) { $axeLib = $ax['code'] ?: $ax['libelle']; break; }
+    }
+    $h = '<td class="ligne-axe-cell" data-ligne-id="' . (int) $l['id'] . '">';
+    if ($axeId && $axeLib !== '') {
+        $h .= '<div class="axe-disp">';
+        $h .= '<span class="axe-disp-txt">' . e($axeLib) . '</span>';
+        $h .= '<button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l\'axe">' . icon('pencil') . '</button>';
+        $h .= '</div>';
+        $h .= '<select class="ligne-axe-sel axe-inline-sel" hidden>';
+    } else {
+        $h .= '<select class="ligne-axe-sel axe-inline-sel">';
+    }
     $h .= '<option value="">— Axe —</option>';
     foreach ($axes as $ax) {
-        $sel = (int) ($l['axe_analytique_id'] ?? 0) === (int) $ax['id'] ? ' selected' : '';
+        $sel = (int) $ax['id'] === $axeId ? ' selected' : '';
         $h  .= '<option value="' . (int) $ax['id'] . '"' . $sel . '>' . e($ax['code'] ?: $ax['libelle']) . '</option>';
     }
     $h .= '</select></td>';
