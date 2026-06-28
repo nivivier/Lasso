@@ -65,40 +65,63 @@ function maj_sha_local(): ?string
     return substr(trim($head), 0, 7) ?: null; // HEAD détaché
 }
 
-// Requête HTTP simple (cURL puis repli allow_url_fopen). Renvoie null si échec.
-function maj_http_get(string $url): ?string
+// Jeton de lecture GitHub (dépôt privé) : constante config.local.php ou paramètre.
+// Laissé vide si le dépôt est public.
+function maj_token(): string
 {
+    if (defined('MAJ_TOKEN') && MAJ_TOKEN !== '') {
+        return (string) MAJ_TOKEN;
+    }
+    return (string) param('maj_token', '');
+}
+
+// Requête HTTP (cURL puis repli allow_url_fopen). $headers = en-têtes supplémentaires.
+// Renvoie null si échec réseau ou code != 200.
+function maj_http_get(string $url, array $headers = []): ?string
+{
+    $headers = array_merge(['User-Agent: Lasso-updater'], $headers);
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 8,
-            CURLOPT_USERAGENT => 'Lasso-updater', CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_FOLLOWLOCATION => true, CURLOPT_HTTPHEADER => $headers,
         ]);
-        $r  = curl_exec($ch);
-        $ok = $r !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200;
-        curl_close($ch);
-        return $ok ? (string) $r : null;
+        $r    = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        return ($r !== false && $code === 200) ? (string) $r : null;
     }
     if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
-        $ctx = stream_context_create(['http' => ['timeout' => 8, 'header' => "User-Agent: Lasso-updater\r\n"]]);
+        $ctx = stream_context_create(['http' => ['timeout' => 8, 'header' => implode("\r\n", $headers)]]);
         $r = @file_get_contents($url, false, $ctx);
         return $r === false ? null : (string) $r;
     }
     return null;
 }
 
-// Version distante : fichier VERSION de la branche du canal (raw GitHub).
+// En-têtes d'authentification GitHub (vides si dépôt public / pas de jeton).
+function maj_gh_headers(string $accept = 'application/vnd.github+json'): array
+{
+    $h = ['Accept: ' . $accept];
+    $t = maj_token();
+    if ($t !== '') {
+        $h[] = 'Authorization: Bearer ' . $t;
+    }
+    return $h;
+}
+
+// Version distante : fichier VERSION de la branche du canal.
+// Via l'API « contents » (Accept: raw) → fonctionne en public ET en privé (avec jeton).
 function maj_version_distante(string $canal): ?string
 {
-    $url = 'https://raw.githubusercontent.com/' . MAJ_REPO . '/' . maj_branche($canal) . '/VERSION';
-    $v = maj_http_get($url);
+    $url = 'https://api.github.com/repos/' . MAJ_REPO . '/contents/VERSION?ref=' . maj_branche($canal);
+    $v = maj_http_get($url, maj_gh_headers('application/vnd.github.raw'));
     return $v === null ? null : (trim($v) ?: null);
 }
 
 // SHA court du dernier commit distant du canal (API GitHub).
 function maj_sha_distant(string $canal): ?string
 {
-    $json = maj_http_get('https://api.github.com/repos/' . MAJ_REPO . '/commits/' . maj_branche($canal));
+    $json = maj_http_get('https://api.github.com/repos/' . MAJ_REPO . '/commits/' . maj_branche($canal), maj_gh_headers());
     if ($json === null) {
         return null;
     }
