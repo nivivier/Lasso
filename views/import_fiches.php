@@ -19,7 +19,20 @@
 
 <?php if ($resume !== null): ?>
     <?php if ($simule): ?>
-        <p class="ok flash">Simulation — rien n'a été enregistré.</p>
+        <div class="card mt-22 import-confirm">
+            <p class="mb-0"><strong>Simulation</strong> — rien n'a été enregistré.
+                <?php if ((int) $resume['nouvelles'] > 0): ?>
+                    <?= (int) $resume['nouvelles'] ?> fiche(s) seraient ajoutée(s).
+                <?php endif; ?>
+            </p>
+            <?php if ((int) $resume['nouvelles'] > 0): ?>
+                <form method="post" action="?p=import_fiches" class="mt-0">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="depuis_session" value="1">
+                    <button type="submit" name="appliquer" value="1" onclick="return confirm('Importer réellement les fiches nouvelles ?');"><?= icon('check') ?> Importer réellement</button>
+                </form>
+            <?php endif; ?>
+        </div>
     <?php else: ?>
         <p class="ok flash">Import effectué : <?= (int) $resume['nouvelles'] ?> fiche(s) ajoutée(s).</p>
     <?php endif; ?>

@@ -376,6 +376,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .btn.ghost:disabled:hover { background: #fff; }
 
 .center { text-align: center; }
+.import-confirm { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.import-confirm form { margin: 0; }
 .mail-sent { display: inline-flex; align-items: center; gap: 4px; color: var(--teal-d); font-weight: 600; font-size: 13px; }
 .mail-sent .ico { width: 16px; height: 16px; }
 .tag-warn { display: inline-block; background: var(--amber-tint); color: var(--amber); padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }

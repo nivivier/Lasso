@@ -471,18 +471,35 @@ function route_import_fiches(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $simule = !isset($_POST['appliquer']); // bouton « Simuler » vs « Importer »
+        // Source du contenu : fichier téléversé, ou contenu mémorisé en session
+        // (permet de cliquer « Importer » après « Simuler » sans re-téléverser).
+        $json = null;
         $up = $_FILES['fichier'] ?? null;
-        if (!$up || ($up['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $err = 'Veuillez choisir un fichier JSON à importer.';
-        } elseif (($up['size'] ?? 0) > 2 * 1024 * 1024) {
-            $err = 'Fichier trop volumineux (2 Mo maximum).';
+        if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            if (($up['size'] ?? 0) > 2 * 1024 * 1024) {
+                $err = 'Fichier trop volumineux (2 Mo maximum).';
+            } else {
+                $json = (string) file_get_contents($up['tmp_name']);
+            }
+        } elseif (!empty($_POST['depuis_session']) && !empty($_SESSION['import_fiches_json'])) {
+            $json = (string) $_SESSION['import_fiches_json'];
         } else {
-            $doc = json_decode((string) file_get_contents($up['tmp_name']), true);
+            $err = 'Veuillez choisir un fichier JSON à importer.';
+        }
+        if ($err === null) {
+            $doc = json_decode((string) $json, true);
             if (!is_array($doc) || ($doc['type'] ?? '') !== 'fiches_salaire' || !is_array($doc['fiches'] ?? null)) {
                 $err = 'Fichier non reconnu : un export de fiches de salaire (JSON) est attendu.';
+                unset($_SESSION['import_fiches_json']);
             } else {
                 try {
                     [$resultats, $resume] = importer_fiches_salaire($doc['fiches'], $simule);
+                    // Mémorise le contenu pour l'étape « Importer » qui suit une simulation.
+                    if ($simule) {
+                        $_SESSION['import_fiches_json'] = $json;
+                    } else {
+                        unset($_SESSION['import_fiches_json']);
+                    }
                 } catch (Throwable $e) {
                     $err = "Erreur pendant l'import : " . $e->getMessage();
                 }
@@ -619,9 +636,26 @@ function route_taux(): void
 function route_fiches(): void
 {
     require_login();
-    $annee     = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
-    $statut    = $_GET['statut'] ?? 'tous'; // tous | apayer | payees
-    $employeId = isset($_GET['employe_id']) ? (int) $_GET['employe_id'] : 0;
+    // Filtres : GET prioritaire, sinon dernière valeur en session (conservée au
+    // retour depuis une fiche), sinon défaut.
+    if (isset($_GET['annee'])) {
+        $annee = (int) $_GET['annee'];
+        $_SESSION['fiches_annee'] = $annee;
+    } else {
+        $annee = (int) ($_SESSION['fiches_annee'] ?? date('Y'));
+    }
+    if (isset($_GET['statut'])) {
+        $statut = $_GET['statut'];
+        $_SESSION['fiches_statut'] = $statut;
+    } else {
+        $statut = $_SESSION['fiches_statut'] ?? 'tous'; // tous | apayer | payees
+    }
+    if (isset($_GET['employe_id'])) {
+        $employeId = (int) $_GET['employe_id'];
+        $_SESSION['fiches_employe'] = $employeId;
+    } else {
+        $employeId = (int) ($_SESSION['fiches_employe'] ?? 0);
+    }
     $sql    = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
                FROM fiches f JOIN employes e ON e.id = f.employe_id
                WHERE f.annee = ?';
