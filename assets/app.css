@@ -127,6 +127,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-powered { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 10px; color: rgba(255,255,255,.4); }
 .side-powered:hover { color: rgba(255,255,255,.7); text-decoration: none; }
 .side-powered-logo { height: 12px; width: auto; opacity: .7; }
+.side-version { opacity: .7; }
 
 .content { flex: 1; min-width: 0; padding: 40px 48px; max-width: 1120px; }
 

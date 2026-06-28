@@ -10,6 +10,7 @@ $tabs = [
     'export'        => 'Exporter',
     'import_fiches' => 'Importer',
     'comptes'       => 'Comptes',
+    'maj'           => 'Mises à jour',
 ];
 $curParam = $_GET['p'] ?? '';
 ?>
