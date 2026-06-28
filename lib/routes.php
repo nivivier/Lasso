@@ -421,36 +421,29 @@ function route_taux_horaires(): void
             }
         } elseif ($section === 'del') {
             db()->prepare('DELETE FROM taux_horaires WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+        } elseif ($section === 'unite_add') {
+            $libelle = trim($_POST['u_libelle'] ?? '');
+            $heures  = (float) str_replace(',', '.', $_POST['u_heures'] ?? '0');
+            if ($libelle !== '' && $heures > 0) {
+                db()->prepare('INSERT INTO unites (libelle, heures) VALUES (?, ?)')->execute([$libelle, $heures]);
+            }
+        } elseif ($section === 'unite_del') {
+            db()->prepare('DELETE FROM unites WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
         }
         redirect('taux_horaires', ['ok' => 1]);
     }
     render('taux_horaires', [
         'saved'        => isset($_GET['ok']),
         'tauxHoraires' => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
-    ], 'Salaires horaires standard');
+        'unites'       => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
+    ], 'Salaires horaires');
 }
 
+// Fusionné dans « Salaires horaires » : on redirige les anciens liens.
 function route_unites(): void
 {
     require_login();
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $section = $_POST['section'] ?? '';
-        if ($section === 'add') {
-            $libelle = trim($_POST['u_libelle'] ?? '');
-            $heures  = (float) str_replace(',', '.', $_POST['u_heures'] ?? '0');
-            if ($libelle !== '' && $heures > 0) {
-                db()->prepare('INSERT INTO unites (libelle, heures) VALUES (?, ?)')->execute([$libelle, $heures]);
-            }
-        } elseif ($section === 'del') {
-            db()->prepare('DELETE FROM unites WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
-        }
-        redirect('unites', ['ok' => 1]);
-    }
-    render('unites', [
-        'saved'  => isset($_GET['ok']),
-        'unites' => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
-    ], 'Unités de temps');
+    redirect('taux_horaires');
 }
 
 function route_export(): void

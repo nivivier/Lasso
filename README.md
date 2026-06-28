@@ -7,7 +7,13 @@ Application web légère de gestion des salaires pour une association (loi suiss
 Le nom et les logos de l'employeur affichés proviennent entièrement de la base de
 données (Paramètres → Employeur). Gestion des employés, fiches de salaire
 mensuelles, tableau de bord, certificat de salaire annuel (formulaire 11 + export
-XML pour l'application « eCertificat de salaire CSI »), envoi des fiches par e-mail.
+XML pour l'application « eCertificat de salaire CSI »), envoi des fiches par e-mail
+(SMTP authentifié, repli sur `mail()`).
+
+Elle inclut aussi un **module de comptabilité** (compta de caisse) : import des
+relevés PostFinance (CSV), lettrage des écritures par catégorie, règles de lettrage
+automatiques, comptabilité analytique par axes, et **comptes annuels** (compte de
+résultat + patrimoine, comparaison pluriannuelle).
 
 **Technologie :** PHP 8 + SQLite. Aucun framework, aucune dépendance externe.
 
@@ -49,6 +55,16 @@ define('SETUP_SECRET', '<longue valeur aléatoire>');        // protège l'écra
 | `FORCE_HTTPS` | Redirection 301 vers HTTPS + en-tête HSTS. | `true` en prod |
 | `SETUP_SECRET` | Si défini, l'écran de création du 1ᵉʳ compte exige `?p=setup&key=<secret>`. | vide (désactivé) |
 
+**Envoi d'e-mails (SMTP)** — beaucoup d'hébergements mutualisés désactivent `mail()`.
+Le serveur d'envoi se règle de préférence dans **Paramètres → E-mails** (stocké en
+base), ou via `lib/config.local.php` (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`,
+`SMTP_USER`, `SMTP_PASS`). Tant que `SMTP_USER` est vide, l'application retombe sur
+`mail()`.
+
+**Mises à jour d'un dépôt privé** — pour que la détection de version fonctionne sans
+rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_TOKEN',
+'<token>');` (sinon, rendez le dépôt public).
+
 ---
 
 ## 3. Premier déploiement sur l'hébergeur (git)
@@ -81,11 +97,23 @@ define('SETUP_SECRET', '<longue valeur aléatoire>');        // protège l'écra
 
 ## 4. Mises à jour (le workflow git)
 
-- **En local** : modifiez, committez, `git push`.
-- **Sur le serveur** : `git pull`. C'est tout.
+- **Sur le serveur** : `git pull` (ou `./deploy.sh`, qui sauvegarde la base, fait un
+  `git pull --ff-only` et vérifie la syntaxe PHP). C'est tout.
   - `lib/config.local.php`, `data/` et `uploads/` sont préservés (non versionnés).
   - Les **migrations de schéma** s'appliquent automatiquement à la première requête
     (versionnement `PRAGMA user_version`).
+
+### Versions et canaux
+
+- La version courante est dans le fichier **`VERSION`** (SemVer), affichée en bas de
+  la barre latérale et dans **Paramètres → Mises à jour**.
+- Deux **canaux** = deux branches git : **test** (`main`, où atterrit tout le travail
+  courant) et **stable** (`stable`, avancée uniquement vers les états validés).
+- Promotion d'une version stable : `./release.sh stable X.Y.Z` (fige `VERSION`, pose
+  le tag `vX.Y.Z`, avance la branche `stable`, pousse).
+- **Paramètres → Mises à jour** affiche la version installée, la version disponible
+  sur le canal choisi, et un diagnostic `exec()`/`git` du serveur. *(La mise à jour
+  en un clic depuis l'interface est prévue mais pas encore active.)*
 
 ---
 
@@ -101,11 +129,21 @@ define('SETUP_SECRET', '<longue valeur aléatoire>');        // protège l'écra
 5. **Certificat de salaire** (page d'un employé) : récapitulatif annuel au format du
    formulaire 11, impression PDF, et **export XML** à importer dans l'application
    officielle *eCertificat de salaire CSI* pour produire les PDF certifiés.
+6. **Comptabilité** : créez vos comptes bancaires, importez les relevés PostFinance
+   (CSV), lettrez les écritures (catégorie du plan comptable), définissez des règles
+   de lettrage automatiques, ventilez par axes analytiques, et consultez les
+   **comptes annuels** (résultat + patrimoine).
+7. **Paramètres → Importer** : import de fiches de salaire depuis un fichier JSON
+   (correspondance par n° AVS ; les fiches déjà présentes sont ignorées, jamais
+   écrasées). Bouton « Simuler » pour prévisualiser sans rien enregistrer.
+
+Les comptes utilisateurs se gèrent dans **Paramètres → Comptes** (création,
+réinitialisation de mot de passe, suppression).
 
 ### Les taux
 
-Les taux (AVS, AC, LAA, LPP, etc.) se règlent dans **Paramètres → Taux des
-déductions**. Ils sont **propres à chaque année**.
+Les taux (AVS, AC, LAA, LPP, etc.) se règlent dans **Paramètres → Taux**. Ils sont
+**propres à chaque année**.
 
 - **Impôt à la source** : prélevé uniquement si la procédure « Ordinaire avec impôt
   à la source » est choisie, au taux défini sur la fiche employé.
@@ -131,9 +169,8 @@ le tableau de bord.
 ## 6. Sauvegarde
 
 Toutes les données tiennent dans **un seul fichier SQLite** (`APP_DB_PATH`).
-Pour sauvegarder : le bouton **Paramètres → Exporter les données** télécharge une
-copie cohérente, ou copiez directement le fichier par SFTP. À conserver régulièrement
-en lieu sûr.
+Pour sauvegarder : le bouton **Paramètres → Exporter** télécharge une copie cohérente,
+ou copiez directement le fichier par SFTP. À conserver régulièrement en lieu sûr.
 
 ---
 
@@ -181,6 +218,6 @@ php tests/calc_test.php
 
 - L'impôt à la source utilise un **taux unique** par employé (pas de barème officiel
   par tranche) — à confirmer avec une fiducaire si nécessaire.
-- Pas de réinitialisation de mot de passe en ligne (gestion du compte via la base si
-  oubli).
+- Un administrateur peut réinitialiser le mot de passe d'un compte (Paramètres →
+  Comptes), mais il n'y a pas de « mot de passe oublié » en libre-service par e-mail.
 - Les sauvegardes ne sont pas chiffrées (le fichier exporté est en clair).

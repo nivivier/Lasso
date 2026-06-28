@@ -4,9 +4,8 @@
 $tabs = [
     'employeur'     => 'Employeur',
     'emails'        => 'E-mails',
-    'taux'          => 'Taux des déductions',
+    'taux'          => 'Taux',
     'taux_horaires' => 'Salaires horaires',
-    'unites'        => 'Unités de temps',
     'export'        => 'Exporter',
     'import_fiches' => 'Importer',
     'comptes'       => 'Comptes',
