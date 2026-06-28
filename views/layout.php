@@ -57,7 +57,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('layers') ?> Analyse
         </a>
         <span class="side-nav-sep"></span>
-        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'comptes', 'parametres']; ?>
+        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>
