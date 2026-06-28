@@ -76,11 +76,17 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </form>
     </div>
     <div class="head-actions">
+        <?php
+        $comparAnnees = array_values(array_filter(array_map('intval', $cols), fn($a) => $a !== $annee));
+        $jusquaEff  = $comparAnnees ? min($comparAnnees) : 0;
+        $anneesPrec = array_values(array_filter(array_map('intval', $annees), fn($a) => $a < $annee));
+        ?>
         <label class="inline">
-            Années précédentes
-            <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&prec='+this.value">
-                <?php foreach ([0,1,2,3] as $n): ?>
-                    <option value="<?= $n ?>" <?= $nbPrec === $n ? 'selected' : '' ?>><?= $n ?></option>
+            Comparer jusqu'à
+            <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&jusqua='+this.value">
+                <option value="aucune" <?= $jusquaEff === 0 ? 'selected' : '' ?>>Ne pas comparer</option>
+                <?php foreach ($anneesPrec as $y): ?>
+                    <option value="<?= $y ?>" <?= $jusquaEff === $y ? 'selected' : '' ?>><?= $y ?></option>
                 <?php endforeach; ?>
             </select>
         </label>

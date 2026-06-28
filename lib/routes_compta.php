@@ -1202,12 +1202,23 @@ function route_compta_analyse_axe_print(): void
 function route_compta_bilan(): void
 {
     require_login();
-    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
-    if (isset($_GET['prec'])) {
-        $nbPrec = max(0, min(3, (int) $_GET['prec']));
-        $_SESSION['bilan_prec'] = $nbPrec;
+    $annees = compta_annees();
+    $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) ($annees[0] ?? date('Y'));
+    // « Comparer jusqu'à » : année la plus ancienne à comparer (0 = ne pas comparer).
+    if (isset($_GET['jusqua'])) {
+        $jusqua = ($_GET['jusqua'] === 'aucune') ? 0 : (int) $_GET['jusqua'];
+        $_SESSION['bilan_jusqua'] = $jusqua;
     } else {
-        $nbPrec = (int) ($_SESSION['bilan_prec'] ?? 2); // défaut : 3 colonnes (année + 2 précédentes)
+        $jusqua = $_SESSION['bilan_jusqua'] ?? ($annee - 2); // défaut : année − 2
+    }
+    // Convertit en nombre d'années précédentes (disponibles) à inclure dans les colonnes.
+    $nbPrec = 0;
+    if ($jusqua > 0) {
+        foreach ($annees as $y) {
+            if ((int) $y < $annee && (int) $y >= $jusqua) {
+                $nbPrec++;
+            }
+        }
     }
     render('compta_bilan', compta_bilan_data($annee, $nbPrec), 'Comptabilité — Bilan & résultat');
 }
