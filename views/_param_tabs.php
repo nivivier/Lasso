@@ -7,7 +7,7 @@ $tabs = [
     'taux'          => 'Taux des déductions',
     'taux_horaires' => 'Salaires horaires',
     'unites'        => 'Unités de temps',
-    'export'        => 'Exporter les données',
+    'export'        => 'Exporter',
     'import_fiches' => 'Importer',
     'comptes'       => 'Comptes',
 ];
