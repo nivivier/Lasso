@@ -1482,6 +1482,7 @@ function route_compta_suggestion_ventilation(): void
     // Années disponibles pour filtre de la liste + sélecteurs de période.
     $anneesEcr  = array_map('intval', db()->query("SELECT DISTINCT substr(date_op,1,4) FROM ecritures ORDER BY 1 DESC")->fetchAll(PDO::FETCH_COLUMN));
     $anneesFich = array_map('intval', db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN));
+    $axes       = db()->query('SELECT id, code, libelle FROM axes_analytiques WHERE actif = 1 ORDER BY code, libelle')->fetchAll();
 
     render('compta_suggestion_ventilation', [
         'ecritures'    => $ecritures,
@@ -1492,6 +1493,7 @@ function route_compta_suggestion_ventilation(): void
         'ecrSel'       => $ecrSel,
         'type'         => $type,
         'periodeDefaut' => $periodeDefaut,
+        'axes'         => $axes,
     ], 'Suggérer ventilation charges');
 }
 
