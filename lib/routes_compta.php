@@ -150,6 +150,79 @@ function charges_sociales_axe(int $axeId, int $annee): array
     return $tot;
 }
 
+// Agrège les charges sociales proratisées PAR AXE sur une période (mois/année de début → fin).
+// Retourne [axe_id => [code, libelle, ded_avs, ..., emp_ocas, ...]].
+function charges_sociales_par_axe(int $aD, int $mD, int $aF, int $mF): array
+{
+    $stmt = db()->prepare(
+        'SELECT a.id AS axe_id, a.code AS axe_code, a.libelle AS axe_libelle,
+                f.salaire_travail,
+                f.ded_avs, f.ded_ac, f.ded_amat, f.ded_laa, f.ded_lpp,
+                f.emp_avs, f.emp_ac, f.emp_amat, f.emp_af, f.emp_laa, f.emp_lpp,
+                SUM(fl.quantite * fl.heures_unite * fl.taux_horaire) AS montant_axe
+         FROM fiches f
+         JOIN fiche_lignes fl ON fl.fiche_id = f.id AND fl.axe_analytique_id IS NOT NULL
+         JOIN axes_analytiques a ON a.id = fl.axe_analytique_id
+         WHERE (f.annee * 12 + f.mois) BETWEEN (? * 12 + ?) AND (? * 12 + ?)
+         GROUP BY f.id, a.id'
+    );
+    $stmt->execute([$aD, $mD, $aF, $mF]);
+
+    $champs = ['ded_avs', 'ded_ac', 'ded_amat', 'ded_laa', 'ded_lpp',
+               'emp_avs', 'emp_ac', 'emp_amat', 'emp_af', 'emp_laa', 'emp_lpp'];
+    $cumul = [];
+    foreach ($stmt as $r) {
+        $id = (int) $r['axe_id'];
+        if (!isset($cumul[$id])) {
+            $cumul[$id] = ['code' => (string) $r['axe_code'], 'libelle' => (string) $r['axe_libelle']]
+                        + array_fill_keys($champs, 0.0);
+        }
+        $st    = (float) $r['salaire_travail'];
+        $ratio = $st > 0 ? (float) $r['montant_axe'] / $st : 0.0;
+        foreach ($champs as $c) { $cumul[$id][$c] += (float) $r[$c] * $ratio; }
+    }
+    foreach ($cumul as &$c) {
+        foreach ($champs as $f2) { $c[$f2] = round($c[$f2], 2); }
+        $c['emp_ocas'] = round($c['emp_avs'] + $c['emp_ac'] + $c['emp_amat'] + $c['emp_af'], 2);
+    }
+    unset($c);
+    return $cumul;
+}
+
+// Détecte le type de charge sociale depuis le libellé/groupe du plan comptable.
+// Retourne 'ocas', 'laa', 'lpp' ou '' si non identifié.
+function detecter_type_charge(string $libelle, string $groupe = ''): string
+{
+    $h = mb_strtolower($libelle . ' ' . $groupe, 'UTF-8');
+    if (str_contains($h, 'ocas') || str_contains($h, 'avs') || str_contains($h, 'social')) return 'ocas';
+    if (str_contains($h, 'laa') || str_contains($h, 'artes') || str_contains($h, 'accident')) return 'laa';
+    if (str_contains($h, 'lpp') || str_contains($h, 'comoedia')
+        || str_contains($h, 'prévoy') || str_contains($h, 'prevoy')) return 'lpp';
+    return '';
+}
+
+// Calcule le montant à ventiler pour un axe selon le type de charge (employé + employeur).
+function montant_axe_pour_type(array $c, string $type): float
+{
+    return match ($type) {
+        'ocas' => $c['ded_avs'] + $c['ded_ac'] + $c['ded_amat'] + $c['emp_ocas'],
+        'laa'  => $c['ded_laa'] + $c['emp_laa'],
+        'lpp'  => $c['ded_lpp'] + $c['emp_lpp'],
+        default => 0.0,
+    };
+}
+
+// Déduit la période de référence par défaut depuis la date d'un versement de charges.
+function periode_defaut_charges(string $dateOp): array
+{
+    $mois  = (int) date('n', strtotime($dateOp));
+    $annee = (int) date('Y', strtotime($dateOp));
+    if ($mois <= 3)  return [$annee - 1, 1, $annee - 1, 12]; // Jan–Mar → année préc.
+    if ($mois <= 6)  return [$annee, 1, $annee, 3];           // Avr–Jun → T1
+    if ($mois <= 9)  return [$annee, 1, $annee, 6];           // Jul–Sep → S1
+    return [$annee, 1, $annee, 9];                             // Oct–Déc → 9 mois
+}
+
 // ------------------------------------------------------------------- ROUTES
 function route_compta(): void
 {
@@ -1359,4 +1432,95 @@ function route_compta_ventilation_save(): void
     }
     compta_save_ventilations($ecrId, $lignes);
     echo json_encode(['ok' => true, 'ventilations' => compta_ventilations_ecriture($ecrId)]);
+}
+
+// Page de suggestion de ventilation pour une écriture de charges sociales.
+function route_compta_suggestion_ventilation(): void
+{
+    require_login();
+
+    $annee = (int) ($_GET['annee'] ?? (int) date('Y'));
+    $ecrId = (int) ($_GET['ecriture_id'] ?? 0);
+
+    // Écritures de charges sociales non ventilées (filtrées par mots-clés plan comptable).
+    $kw = ['%social%', '%ocas%', '%avs%', '%laa%', '%artes%', '%lpp%', '%comoedia%', '%prévoy%', '%accident%'];
+    $likeClause = implode(' OR ', array_map(fn() => 'LOWER(pc.libelle) LIKE ? OR LOWER(pc.groupe) LIKE ?', $kw));
+    $likeParams = [];
+    foreach ($kw as $k) { $likeParams[] = $k; $likeParams[] = $k; }
+
+    $anneeClause = $annee ? " AND substr(e.date_op,1,4) = ?" : '';
+    $params = array_merge($likeParams, $annee ? [$annee] : []);
+
+    $stmt = db()->prepare("
+        SELECT e.id, e.date_op, e.texte, e.montant,
+               pc.libelle AS pc_libelle, pc.groupe AS pc_groupe,
+               cb.libelle AS compte_libelle
+        FROM ecritures e
+        JOIN plan_comptes pc ON pc.id = e.plan_compte_id
+        LEFT JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
+        WHERE pc.sens = 'charge' AND pc.actif = 1
+          AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)
+          AND ($likeClause)
+          $anneeClause
+        ORDER BY e.date_op DESC
+    ");
+    $stmt->execute($params);
+    $ecritures = $stmt->fetchAll();
+
+    // Écriture sélectionnée + type détecté + période par défaut.
+    $ecrSel = null; $type = ''; $periodeDefaut = [null, null, null, null];
+    foreach ($ecritures as $ecr) {
+        if ((int) $ecr['id'] === $ecrId) {
+            $ecrSel       = $ecr;
+            $type         = detecter_type_charge((string) $ecr['pc_libelle'], (string) $ecr['pc_groupe']);
+            $periodeDefaut = periode_defaut_charges((string) $ecr['date_op']);
+            break;
+        }
+    }
+
+    // Années disponibles pour filtre de la liste + sélecteurs de période.
+    $anneesEcr  = array_map('intval', db()->query("SELECT DISTINCT substr(date_op,1,4) FROM ecritures ORDER BY 1 DESC")->fetchAll(PDO::FETCH_COLUMN));
+    $anneesFich = array_map('intval', db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN));
+
+    render('compta_suggestion_ventilation', [
+        'ecritures'    => $ecritures,
+        'annee'        => $annee,
+        'anneesEcr'    => $anneesEcr,
+        'anneesFich'   => $anneesFich,
+        'ecrId'        => $ecrId,
+        'ecrSel'       => $ecrSel,
+        'type'         => $type,
+        'periodeDefaut' => $periodeDefaut,
+    ], 'Suggérer ventilation charges');
+}
+
+// Endpoint AJAX : calcule la ventilation suggérée pour une période donnée (GET, retourne JSON).
+function route_compta_suggestion_preview(): void
+{
+    require_login();
+    header('Content-Type: application/json; charset=UTF-8');
+    $aD   = (int) ($_GET['annee_debut'] ?? 0);
+    $mD   = (int) ($_GET['mois_debut']  ?? 0);
+    $aF   = (int) ($_GET['annee_fin']   ?? 0);
+    $mF   = (int) ($_GET['mois_fin']    ?? 0);
+    $type = preg_replace('/[^a-z]/', '', strtolower($_GET['type'] ?? ''));
+
+    if (!$aD || !$mD || !$aF || !$mF || !in_array($type, ['ocas', 'laa', 'lpp'], true)) {
+        echo json_encode(['ok' => false, 'error' => 'Paramètres invalides']); return;
+    }
+
+    $cumul = charges_sociales_par_axe($aD, $mD, $aF, $mF);
+    $suggestions = [];
+    foreach ($cumul as $axeId => $c) {
+        $montant = montant_axe_pour_type($c, $type);
+        if ($montant > 0.005) {
+            $suggestions[] = [
+                'axe_id'  => $axeId,
+                'code'    => $c['code'],
+                'libelle' => $c['libelle'],
+                'montant' => round($montant, 2),
+            ];
+        }
+    }
+    echo json_encode(['ok' => true, 'suggestions' => $suggestions]);
 }
