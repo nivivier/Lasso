@@ -692,7 +692,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         const inp = document.createElement('input');
         inp.type = 'number'; inp.className = 'vent-mont'; inp.step = '0.01';
         inp.placeholder = 'Montant';
-        if (v) inp.value = v.montant;
+        if (v) inp.value = Math.abs(parseFloat(v.montant)).toFixed(2);
         inp.addEventListener('input', updateSum);
         const del = document.createElement('button');
         del.type = 'button'; del.className = 'vent-del'; del.title = 'Supprimer';

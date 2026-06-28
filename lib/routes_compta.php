@@ -1419,16 +1419,20 @@ function route_compta_ventilation_save(): void
     check_csrf();
     $ecrId = (int) ($_POST['ecriture_id'] ?? 0);
     if (!$ecrId) { echo json_encode(['ok' => false]); return; }
-    $chk = db()->prepare('SELECT id FROM ecritures WHERE id = ?');
-    $chk->execute([$ecrId]);
-    if (!$chk->fetch()) { echo json_encode(['ok' => false]); return; }
+    $ecrStmt = db()->prepare('SELECT montant FROM ecritures WHERE id = ?');
+    $ecrStmt->execute([$ecrId]);
+    $ecrRow  = $ecrStmt->fetch();
+    if (!$ecrRow) { echo json_encode(['ok' => false]); return; }
 
+    // Les UI soumettent des valeurs absolues ; on applique le signe de l'écriture
+    // pour que les charges soient négatives et les recettes positives en base.
+    $sign   = (float) $ecrRow['montant'] < 0 ? -1.0 : 1.0;
     $axeIds   = array_map('intval',   (array) ($_POST['axe_id'] ?? []));
     $montants = array_map('floatval', (array) ($_POST['montant'] ?? []));
     $lignes = [];
     foreach ($axeIds as $i => $aId) {
         if ($aId > 0) {
-            $lignes[] = ['axe_id' => $aId, 'montant' => $montants[$i] ?? 0.0];
+            $lignes[] = ['axe_id' => $aId, 'montant' => abs($montants[$i] ?? 0.0) * $sign];
         }
     }
     compta_save_ventilations($ecrId, $lignes);
