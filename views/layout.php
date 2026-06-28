@@ -57,7 +57,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('layers') ?> Analyse
         </a>
         <span class="side-nav-sep"></span>
-        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres']; ?>
+        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'maj', 'parametres']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>
@@ -91,7 +91,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         </div>
     </div>
     <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-        <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso
+        <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
     </a>
 </aside>
 <main class="content">

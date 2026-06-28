@@ -9,6 +9,7 @@ require_once __DIR__ . '/lib/calc.php';
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
+require_once __DIR__ . '/lib/maj.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
 if (FORCE_HTTPS && !is_https() && PHP_SAPI !== 'cli') {
@@ -62,6 +63,7 @@ $handlers = [
     'unites'        => 'route_unites',
     'export'        => 'route_export',
     'import_fiches' => 'route_import_fiches',
+    'maj'           => 'route_maj',
     'comptes'       => 'route_comptes',
     'compte_reset'  => 'route_compte_reset',
     'compte_delete' => 'route_compte_delete',
