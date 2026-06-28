@@ -229,6 +229,8 @@ h3.sub.no-mt { margin-top: 0; }
 
 /* Ligne de fiche : axe analytique éditable */
 .ligne-axe-cell { white-space: nowrap; }
+.ligne-axe-cell:hover .axe-edit-btn,
+.ligne-axe-cell .axe-edit-btn:focus-visible { opacity: 1; pointer-events: auto; }
 /* Page suggestion de ventilation */
 .row-selected { background: var(--primary-tint); }
 .suggestion-config { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
