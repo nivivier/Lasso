@@ -84,7 +84,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         <label class="inline">
             Comparer jusqu'à
             <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&jusqua='+this.value">
-                <option value="aucune" <?= $jusquaEff === 0 ? 'selected' : '' ?>>Ne pas comparer</option>
+                <option value="aucune" <?= $jusquaEff === 0 ? 'selected' : '' ?>>-</option>
                 <?php foreach ($anneesPrec as $y): ?>
                     <option value="<?= $y ?>" <?= $jusquaEff === $y ? 'selected' : '' ?>><?= $y ?></option>
                 <?php endforeach; ?>
