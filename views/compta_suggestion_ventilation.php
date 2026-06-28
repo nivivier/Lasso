@@ -171,12 +171,12 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
         </table>
         <p class="muted small" id="suggestion-note" hidden></p>
 
-        <form method="post" action="?p=compta_ventilation_save" id="form-vent-save">
+        <form id="form-vent-save">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="ecriture_id" value="<?= (int) $ecrId ?>">
             <div id="vent-hidden-inputs"></div>
             <div class="form-actions" style="margin-top:1rem">
-                <button type="submit" class="btn"><?= icon('save') ?> Enregistrer la ventilation</button>
+                <button type="submit" class="btn" id="btn-enregistrer"><?= icon('save') ?> Enregistrer la ventilation</button>
                 <a href="?p=compta_ecritures" class="btn ghost">Annuler</a>
             </div>
         </form>
@@ -190,6 +190,22 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     function getType() {
         return document.getElementById('type-val')?.value || '';
     }
+
+    // Soumission via fetch (l'endpoint retourne du JSON — pas de navigation directe).
+    document.getElementById('form-vent-save').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const btn = document.getElementById('btn-enregistrer');
+        btn.disabled = true;
+        const fd = new FormData(ev.target);
+        const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd })
+            .then(r => r.json()).catch(() => null);
+        if (data?.ok) {
+            window.location.href = '?p=compta_ecritures';
+        } else {
+            alert('Erreur lors de l\'enregistrement. Veuillez réessayer.');
+            btn.disabled = false;
+        }
+    });
 
     // Raccourcis période
     document.querySelectorAll('.shortcut-btn').forEach(btn => {
