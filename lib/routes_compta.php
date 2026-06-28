@@ -191,13 +191,14 @@ function charges_sociales_par_axe(int $aD, int $mD, int $aF, int $mF): array
 
 // Détecte le type de charge sociale depuis le libellé/groupe du plan comptable.
 // Retourne 'ocas', 'laa', 'lpp' ou '' si non identifié.
+// Les mots-clés explicites ont priorité : Artes et Comoedia fournissent les deux
+// types (LAA et LPP), donc les noms d'entreprises seuls sont ambigus.
 function detecter_type_charge(string $libelle, string $groupe = ''): string
 {
     $h = mb_strtolower($libelle . ' ' . $groupe, 'UTF-8');
     if (str_contains($h, 'ocas') || str_contains($h, 'avs') || str_contains($h, 'social')) return 'ocas';
-    if (str_contains($h, 'laa') || str_contains($h, 'artes') || str_contains($h, 'accident')) return 'laa';
-    if (str_contains($h, 'lpp') || str_contains($h, 'comoedia')
-        || str_contains($h, 'prévoy') || str_contains($h, 'prevoy')) return 'lpp';
+    if (str_contains($h, 'laa') || str_contains($h, 'accident')) return 'laa';
+    if (str_contains($h, 'lpp') || str_contains($h, 'prévoy') || str_contains($h, 'prevoy')) return 'lpp';
     return '';
 }
 
