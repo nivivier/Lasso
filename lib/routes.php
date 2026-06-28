@@ -734,6 +734,11 @@ function route_fiche_ligne_axe_save(): void
     $stmt = db()->prepare('SELECT 1 FROM fiche_lignes WHERE id = ?');
     $stmt->execute([$ligneId]);
     if (!$stmt->fetchColumn()) { echo json_encode(['ok' => false]); return; }
+    if ($axeId !== null) {
+        $stmt2 = db()->prepare('SELECT 1 FROM axes_analytiques WHERE id = ? AND actif = 1');
+        $stmt2->execute([$axeId]);
+        if (!$stmt2->fetchColumn()) { echo json_encode(['ok' => false]); return; }
+    }
     db()->prepare('UPDATE fiche_lignes SET axe_analytique_id = ? WHERE id = ?')->execute([$axeId, $ligneId]);
     echo json_encode(['ok' => true]);
 }

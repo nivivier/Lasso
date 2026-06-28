@@ -188,7 +188,7 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     const MONTANT_ECR = <?= abs((float) $ecrSel['montant']) ?>;
 
     function getType() {
-        return (document.getElementById('type-val') || document.getElementById('type-sel'))?.value || '';
+        return document.getElementById('type-val')?.value || '';
     }
 
     // Raccourcis période
@@ -228,6 +228,7 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
 
         let totalFiches = 0;
         suggestions.forEach(s => { totalFiches += s.montant; });
+        lastTotalFiches = totalFiches;
 
         if (suggestions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="muted">Aucune ligne de fiche ventilée sur cette période.</td></tr>';
@@ -262,18 +263,21 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
         } else {
             note.hidden = true;
         }
-
-        // Sync inputs → hidden fields + totaux
-        tbody.addEventListener('input', ev => {
-            const inp = ev.target.closest('.vent-montant-inp');
-            if (!inp) return;
-            const hid = hidden.querySelector(`.vent-m[data-axe-id="${inp.dataset.axeId}"]`);
-            if (hid) hid.value = inp.value;
-            const totalSaisi = Array.from(tbody.querySelectorAll('.vent-montant-inp'))
-                .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
-            updateTotals(totalFiches, totalSaisi);
-        });
     }
+
+    // Listener unique sur tbody (survit aux re-renders car tbody.innerHTML est remplacé,
+    // pas le tbody lui-même — le listener reste attaché au même nœud DOM).
+    let lastTotalFiches = 0;
+    document.getElementById('suggestion-tbody').addEventListener('input', ev => {
+        const inp = ev.target.closest('.vent-montant-inp');
+        if (!inp) return;
+        const hidden = document.getElementById('vent-hidden-inputs');
+        const hid = hidden.querySelector(`.vent-m[data-axe-id="${inp.dataset.axeId}"]`);
+        if (hid) hid.value = inp.value;
+        const totalSaisi = Array.from(document.querySelectorAll('.vent-montant-inp'))
+            .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+        updateTotals(lastTotalFiches, totalSaisi);
+    });
 
     function updateTotals(fromFiches, saisi) {
         document.getElementById('total-fiches').textContent = fmtChf(fromFiches) + ' CHF';
