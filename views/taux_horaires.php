@@ -4,7 +4,7 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Modifications enregistrées.</p><?php endif; ?>
 
-<div class="card form">
+<div class="card form mb-22">
 <h2 class="mt-0">Salaires horaires</h2>
     <p class="muted small">Proposés lors de la création d'une fiche de salaire. Un taux manuel reste toujours possible.</p>
     <?php if ($tauxHoraires): ?>
