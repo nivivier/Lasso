@@ -152,6 +152,47 @@ function maj_version_distante(string $canal): ?string
     return $v === null ? null : (trim($v) ?: null);
 }
 
+// SHA complet du commit local (lecture .git, gère packed-refs).
+function maj_sha_local_full(): ?string
+{
+    $base = maj_app_dir();
+    $head = @file_get_contents("$base/.git/HEAD");
+    if ($head === false) {
+        return null;
+    }
+    if (preg_match('/ref:\s*(\S+)/', $head, $m)) {
+        $ref = @file_get_contents("$base/.git/" . $m[1]);
+        if ($ref !== false && trim($ref) !== '') {
+            return trim($ref);
+        }
+        $packed = @file_get_contents("$base/.git/packed-refs");
+        if ($packed !== false && preg_match('/^([0-9a-f]{40})\s+' . preg_quote($m[1], '/') . '$/m', $packed, $pm)) {
+            return $pm[1];
+        }
+        return null;
+    }
+    return trim($head) ?: null;
+}
+
+// Position du commit local vis-à-vis du canal (API GitHub compare) :
+// 'identical' | 'behind' (retard → MAJ dispo) | 'ahead' (avance → recul) | 'diverged'.
+function maj_position(string $canal): ?string
+{
+    $sha = maj_sha_local_full();
+    if ($sha === null) {
+        return null;
+    }
+    $json = maj_http_get(
+        'https://api.github.com/repos/' . MAJ_REPO . '/compare/' . maj_branche($canal) . '...' . $sha,
+        maj_gh_headers()
+    );
+    if ($json === null) {
+        return null;
+    }
+    $d = json_decode($json, true);
+    return $d['status'] ?? null;
+}
+
 // SHA court du dernier commit distant du canal (API GitHub).
 function maj_sha_distant(string $canal): ?string
 {
@@ -332,16 +373,20 @@ function route_maj(): void
     $shaLocal  = maj_sha_local();
     $shaDist   = maj_sha_distant($canal);
 
-    // « À jour » : comparaison par SHA si disponible (précis), sinon par version.
-    if ($shaLocal !== null && $shaDist !== null) {
-        $aJour = ($shaLocal === $shaDist);
+    // État du local vis-à-vis du canal — au niveau commit (précis), avec replis.
+    $pos = maj_position($canal);
+    if ($pos !== null) {
+        $etat = ['identical' => 'a_jour', 'behind' => 'retard', 'ahead' => 'avance', 'diverged' => 'diverge'][$pos] ?? 'inconnu';
+    } elseif ($shaLocal !== null && $shaDist !== null) {
+        $etat = ($shaLocal === $shaDist) ? 'a_jour' : 'retard';
     } elseif ($distante !== null) {
-        $aJour = version_compare($distante, $locale, '<=');
+        $etat = version_compare($distante, $locale, '<') ? 'avance' : (version_compare($distante, $locale, '>') ? 'retard' : 'a_jour');
     } else {
-        $aJour = null; // indéterminé (réseau)
+        $etat = 'inconnu';
     }
-    // Downgrade : la version distante est antérieure à l'installée (canal stable plus ancien).
-    $downgrade = ($distante !== null && version_compare($distante, $locale, '<'));
+    // Downgrade : installer le canal ferait reculer (local en avance / divergent, ou version distante antérieure).
+    $downgrade = in_array($etat, ['avance', 'diverge'], true)
+        || ($distante !== null && version_compare($distante, $locale, '<'));
 
     $resultat = $_SESSION['maj_resultat'] ?? null;
     unset($_SESSION['maj_resultat']);
@@ -352,7 +397,7 @@ function route_maj(): void
         'distante'  => $distante,
         'shaLocal'  => $shaLocal,
         'shaDist'   => $shaDist,
-        'aJour'     => $aJour,
+        'etat'      => $etat,
         'downgrade' => $downgrade,
         'resultat'  => $resultat,
         'webActive' => maj_web_active(),

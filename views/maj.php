@@ -1,6 +1,6 @@
 <?php
 /** @var string $canal */ /** @var string $locale */ /** @var ?string $distante */
-/** @var ?string $shaLocal */ /** @var ?string $shaDist */ /** @var ?bool $aJour */
+/** @var ?string $shaLocal */ /** @var ?string $shaDist */ /** @var string $etat */
 /** @var bool $execDispo */ /** @var bool $gitDispo */
 /** @var bool $dlDispo */ /** @var bool $zipDispo */ /** @var bool $targzDispo */
 /** @var bool $appWritable */ /** @var bool $archivePossible */
@@ -32,13 +32,12 @@ $oui = fn(bool $b) => $b
             <?php endif; ?>
         </dd></div>
         <div><dt>État</dt><dd>
-            <?php if ($aJour === null): ?>
-                <span class="badge warn-badge">Vérification impossible</span>
-            <?php elseif ($aJour): ?>
-                <span class="badge ok-badge">À jour</span>
-            <?php else: ?>
-                <span class="badge warn-badge">Mise à jour disponible</span>
-            <?php endif; ?>
+            <?php switch ($etat):
+                case 'a_jour': ?><span class="badge ok-badge">À jour</span><?php break; ?>
+            <?php case 'retard': ?><span class="badge warn-badge">Mise à jour disponible</span><?php break; ?>
+            <?php case 'avance': ?><span class="badge warn-badge">Installée plus récente que ce canal</span><?php break; ?>
+            <?php case 'diverge': ?><span class="badge warn-badge">Historique divergent</span><?php break; ?>
+            <?php default: ?><span class="badge warn-badge">Vérification impossible</span><?php endswitch; ?>
         </dd></div>
     </dl>
     <p class="muted small"><a href="https://github.com/nivivier/Lasso/blob/<?= $canal === 'stable' ? 'stable' : 'main' ?>/CHANGELOG.md" target="_blank" rel="noopener">Voir le journal des versions ↗</a></p>
@@ -57,7 +56,7 @@ $oui = fn(bool $b) => $b
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="maj_go" value="1">
             <button type="submit" onclick="return confirm(<?= e(json_encode($confirm, JSON_UNESCAPED_UNICODE)) ?>);">
-                <?= icon('download') ?> <?= $aJour ? 'Réinstaller la dernière version' : 'Mettre à jour maintenant' ?>
+                <?= icon('download') ?> <?= $etat === 'a_jour' ? 'Réinstaller la dernière version' : ($downgrade ? 'Installer la version du canal (retour en arrière)' : 'Mettre à jour maintenant') ?>
             </button>
             <?php if ($downgrade): ?><span class="muted small">⚠️ Cette installation serait un retour en arrière.</span><?php endif; ?>
         </form>
