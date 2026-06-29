@@ -50,6 +50,40 @@ function maj_git_dispo(): bool
     return $code === 0 && !empty($out);
 }
 
+// --- Capacités pour la mise à jour par archive (Cas B, sans exec/git) ---
+function maj_zip_dispo(): bool
+{
+    return class_exists('ZipArchive');
+}
+function maj_targz_dispo(): bool
+{
+    return class_exists('PharData');
+}
+function maj_download_dispo(): bool
+{
+    return function_exists('curl_init') || filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN);
+}
+function maj_app_dir(): string
+{
+    return dirname(__DIR__);
+}
+// Le process PHP peut-il écrire dans les dossiers de code (indispensable au swap) ?
+function maj_app_writable(): bool
+{
+    $base = maj_app_dir();
+    foreach ([$base, "$base/lib", "$base/views", "$base/assets"] as $d) {
+        if (!is_dir($d) || !is_writable($d)) {
+            return false;
+        }
+    }
+    return true;
+}
+// Mise à jour web faisable par archive ?
+function maj_archive_possible(): bool
+{
+    return maj_download_dispo() && (maj_zip_dispo() || maj_targz_dispo()) && maj_app_writable();
+}
+
 // SHA court du commit local — lu directement dans .git (sans binaire git).
 function maj_sha_local(): ?string
 {
@@ -165,7 +199,12 @@ function route_maj(): void
         'shaLocal'  => $shaLocal,
         'shaDist'   => $shaDist,
         'aJour'     => $aJour,
-        'execDispo' => maj_exec_dispo(),
-        'gitDispo'  => maj_git_dispo(),
+        'execDispo'       => maj_exec_dispo(),
+        'gitDispo'        => maj_git_dispo(),
+        'dlDispo'         => maj_download_dispo(),
+        'zipDispo'        => maj_zip_dispo(),
+        'targzDispo'      => maj_targz_dispo(),
+        'appWritable'     => maj_app_writable(),
+        'archivePossible' => maj_archive_possible(),
     ], 'Mises à jour');
 }
