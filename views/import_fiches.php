@@ -3,6 +3,7 @@
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
 <div class="card form">
+<h2 class="mt-0">Importer des fiches de salaire</h2>
     <p class="muted small">Importez des fiches de salaire depuis un fichier <strong>JSON</strong> (format d'export « fiches_salaire »). La correspondance des employés se fait par <strong>numéro AVS</strong>. Une fiche déjà présente (même employé, année et mois) est <strong>ignorée</strong> — jamais écrasée.</p>
     <form method="post" action="?p=import_fiches" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

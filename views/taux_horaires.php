@@ -4,8 +4,8 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Modifications enregistrées.</p><?php endif; ?>
 
-<h2 class="mt-0">Salaires horaires</h2>
 <div class="card form">
+<h2 class="mt-0">Salaires horaires</h2>
     <p class="muted small">Proposés lors de la création d'une fiche de salaire. Un taux manuel reste toujours possible.</p>
     <?php if ($tauxHoraires): ?>
     <table class="list mb-16">
@@ -41,8 +41,8 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
     </form>
 </div>
 
-<h2>Unités de temps</h2>
 <div class="card form">
+<h2 class="mt-0">Unités de temps</h2>
     <p class="muted small">Utilisées dans les fiches de salaire. Chaque unité vaut un nombre d'heures (le calcul du salaire se fait toujours sur le total d'heures). Supprimer une unité ne modifie pas les fiches déjà créées.</p>
     <?php if ($unites): ?>
     <table class="list mb-16">
