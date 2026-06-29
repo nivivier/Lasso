@@ -41,6 +41,7 @@ $oui = fn(bool $b) => $b
             <?php endif; ?>
         </dd></div>
     </dl>
+    <p class="muted small"><a href="https://github.com/nivivier/Lasso/blob/<?= $canal === 'stable' ? 'stable' : 'main' ?>/CHANGELOG.md" target="_blank" rel="noopener">Voir le journal des versions ↗</a></p>
 
     <?php if (!$webActive): ?>
         <p class="muted small">La mise à jour en un clic est désactivée sur ce serveur (<code>ALLOW_WEB_UPDATE</code>).</p>
