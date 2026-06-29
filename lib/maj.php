@@ -84,19 +84,23 @@ function maj_archive_possible(): bool
     return maj_download_dispo() && (maj_zip_dispo() || maj_targz_dispo()) && maj_app_writable();
 }
 
-// SHA court du commit local — lu directement dans .git (sans binaire git).
+// État d'installation (commit réellement installé) — écrit par la MAJ par archive,
+// car celle-ci ne met PAS à jour .git. Source de vérité prioritaire sur .git.
+function maj_etat_path(): string
+{
+    return dirname(APP_DB_PATH) . '/maj_etat.json';
+}
+function maj_etat_lire(): array
+{
+    $d = is_file(maj_etat_path()) ? json_decode((string) @file_get_contents(maj_etat_path()), true) : null;
+    return is_array($d) ? $d : [];
+}
+
+// SHA court du commit installé : état de MAJ si présent, sinon .git.
 function maj_sha_local(): ?string
 {
-    $base = __DIR__ . '/..';
-    $head = @file_get_contents("$base/.git/HEAD");
-    if ($head === false) {
-        return null;
-    }
-    if (preg_match('/ref:\s*(\S+)/', $head, $m)) {
-        $ref = @file_get_contents("$base/.git/" . $m[1]);
-        return ($ref !== false && trim($ref) !== '') ? substr(trim($ref), 0, 7) : null;
-    }
-    return substr(trim($head), 0, 7) ?: null; // HEAD détaché
+    $full = maj_sha_local_full();
+    return $full !== null ? substr($full, 0, 7) : null;
 }
 
 // Jeton de lecture GitHub (dépôt privé) : constante config.local.php ou paramètre.
@@ -155,6 +159,10 @@ function maj_version_distante(string $canal): ?string
 // SHA complet du commit local (lecture .git, gère packed-refs).
 function maj_sha_local_full(): ?string
 {
+    $etat = maj_etat_lire();
+    if (!empty($etat['sha'])) {
+        return (string) $etat['sha']; // installé par archive : .git n'est pas à jour
+    }
     $base = maj_app_dir();
     $head = @file_get_contents("$base/.git/HEAD");
     if ($head === false) {
@@ -286,9 +294,10 @@ function maj_copier_arbre(string $src, string $dst): void
 // Met à jour l'application vers le dernier état du canal. Renvoie un tableau résultat.
 function maj_executer(string $canal): array
 {
-    $ancienne = maj_version_locale();
-    $branche  = maj_branche($canal);
-    $app      = maj_app_dir();
+    $ancienne    = maj_version_locale();
+    $shaAvant    = maj_sha_local();
+    $branche     = maj_branche($canal);
+    $app         = maj_app_dir();
     $base     = dirname(APP_DB_PATH) . '/maj_tmp_' . bin2hex(random_bytes(4));
     $zip      = $base . '.zip';
     $ext      = $base . '_x';
@@ -328,10 +337,21 @@ function maj_executer(string $canal): array
         // 6) Remplacement des fichiers de code.
         maj_copier_arbre($racine, $app);
         $nouvelle = trim((string) @file_get_contents("$app/VERSION")) ?: '?';
-        // 7) Canal mémorisé + journal.
+        // 7) État installé : l'archive ne met pas .git à jour, on enregistre le
+        //    commit réellement installé (= tête du canal) pour la détection.
+        $shaApres = maj_sha_distant($canal);
+        @file_put_contents(maj_etat_path(), json_encode(
+            ['sha' => $shaApres, 'version' => $nouvelle, 'canal' => $canal, 'date' => date('c')],
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+        ));
+        // 8) Canal mémorisé + journal + purge OPcache (sinon l'ancien bytecode persiste).
         db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')->execute(['maj_canal', $canal]);
-        maj_log("OK canal=$canal $ancienne -> $nouvelle (" . (current_user()['email'] ?? '?') . ')');
-        return ['ok' => true, 'ancienne' => $ancienne, 'nouvelle' => $nouvelle, 'canal' => $canal];
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
+        maj_log("OK canal=$canal $ancienne ($shaAvant) -> $nouvelle ($shaApres) (" . (current_user()['email'] ?? '?') . ')');
+        return ['ok' => true, 'ancienne' => $ancienne, 'nouvelle' => $nouvelle, 'canal' => $canal,
+                'sha_avant' => $shaAvant, 'sha_apres' => $shaApres !== null ? substr($shaApres, 0, 7) : null];
     } catch (Throwable $e) {
         maj_log("ECHEC canal=$canal : " . $e->getMessage());
         return ['ok' => false, 'message' => $e->getMessage()];

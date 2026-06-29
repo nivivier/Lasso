@@ -13,7 +13,10 @@ $oui = fn(bool $b) => $b
 
 <?php if ($resultat !== null): ?>
     <?php if ($resultat['ok']): ?>
-        <p class="ok flash">Mise à jour effectuée : <?= e($resultat['ancienne']) ?> → <strong><?= e($resultat['nouvelle']) ?></strong>.</p>
+        <p class="ok flash">Mise à jour effectuée : <?= e($resultat['ancienne']) ?>
+            <?= !empty($resultat['sha_avant']) ? '(' . e($resultat['sha_avant']) . ')' : '' ?>
+            → <strong><?= e($resultat['nouvelle']) ?>
+            <?= !empty($resultat['sha_apres']) ? '(' . e($resultat['sha_apres']) . ')' : '' ?></strong>.</p>
     <?php else: ?>
         <p class="err">Échec de la mise à jour : <?= e($resultat['message']) ?></p>
     <?php endif; ?>
