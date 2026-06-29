@@ -163,12 +163,161 @@ function maj_sha_distant(string $canal): ?string
     return isset($d['sha']) ? substr((string) $d['sha'], 0, 7) : null;
 }
 
+// --- Exécution de la mise à jour par archive (Cas B) ---
+
+// Interrupteur : la MAJ web est active sauf si explicitement désactivée en config.
+function maj_web_active(): bool
+{
+    return !defined('ALLOW_WEB_UPDATE') || ALLOW_WEB_UPDATE === true;
+}
+
+function maj_log_path(): string
+{
+    return dirname(APP_DB_PATH) . '/maj.log';
+}
+function maj_log(string $msg): void
+{
+    @file_put_contents(maj_log_path(), '[' . date('c') . '] ' . $msg . "\n", FILE_APPEND);
+}
+
+// Téléchargement binaire vers un fichier. true si OK (HTTP 200, non vide).
+function maj_telecharger(string $url, string $dest): bool
+{
+    if (function_exists('curl_init')) {
+        $fp = @fopen($dest, 'wb');
+        if (!$fp) {
+            return false;
+        }
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_FILE => $fp, CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 120, CURLOPT_USERAGENT => 'Lasso-updater',
+        ]);
+        $ok   = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        fclose($fp);
+        return $ok !== false && $code === 200 && @filesize($dest) > 0;
+    }
+    if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
+        $data = @file_get_contents($url);
+        return $data !== false && @file_put_contents($dest, $data) !== false;
+    }
+    return false;
+}
+
+function maj_rmdir_recursif(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    foreach (scandir($dir) as $it) {
+        if ($it === '.' || $it === '..') {
+            continue;
+        }
+        $p = "$dir/$it";
+        is_dir($p) ? maj_rmdir_recursif($p) : @unlink($p);
+    }
+    @rmdir($dir);
+}
+
+// Copie récursive de $src sur $dst (écrase les fichiers, crée les dossiers manquants).
+// Les fichiers non versionnés (data/, uploads/, config.local.php) n'étant pas dans
+// l'archive, ils ne sont jamais touchés.
+function maj_copier_arbre(string $src, string $dst): void
+{
+    foreach (scandir($src) as $it) {
+        if ($it === '.' || $it === '..') {
+            continue;
+        }
+        $s = "$src/$it";
+        $d = "$dst/$it";
+        if (is_dir($s)) {
+            if (!is_dir($d) && !@mkdir($d, 0775, true) && !is_dir($d)) {
+                throw new RuntimeException("Dossier non créable : $it");
+            }
+            maj_copier_arbre($s, $d);
+        } elseif (!@copy($s, $d)) {
+            throw new RuntimeException("Copie impossible : $it");
+        }
+    }
+}
+
+// Met à jour l'application vers le dernier état du canal. Renvoie un tableau résultat.
+function maj_executer(string $canal): array
+{
+    $ancienne = maj_version_locale();
+    $branche  = maj_branche($canal);
+    $app      = maj_app_dir();
+    $base     = dirname(APP_DB_PATH) . '/maj_tmp_' . bin2hex(random_bytes(4));
+    $zip      = $base . '.zip';
+    $ext      = $base . '_x';
+    try {
+        // 1) Sauvegarde de la base.
+        if (is_file(APP_DB_PATH)) {
+            @copy(APP_DB_PATH, preg_replace('/\.sqlite$/', '', APP_DB_PATH) . '_maj_' . date('Ymd_His') . '.sqlite.bak');
+        }
+        // 2) Téléchargement de l'archive du canal (dépôt public).
+        if (!@mkdir($ext, 0775, true) && !is_dir($ext)) {
+            throw new RuntimeException('Dossier temporaire non créable.');
+        }
+        $url = 'https://github.com/' . MAJ_REPO . '/archive/refs/heads/' . $branche . '.zip';
+        if (!maj_telecharger($url, $zip)) {
+            throw new RuntimeException("Téléchargement de l'archive échoué.");
+        }
+        // 3) Extraction.
+        if (!class_exists('ZipArchive')) {
+            throw new RuntimeException('ZipArchive indisponible.');
+        }
+        $za = new ZipArchive();
+        if ($za->open($zip) !== true) {
+            throw new RuntimeException('Archive illisible.');
+        }
+        $za->extractTo($ext);
+        $za->close();
+        // 4) Dossier racine de l'archive (Lasso-<branche>).
+        $tops = array_values(array_filter(scandir($ext), fn($x) => $x !== '.' && $x !== '..' && is_dir("$ext/$x")));
+        if (count($tops) !== 1) {
+            throw new RuntimeException("Structure d'archive inattendue.");
+        }
+        $racine = "$ext/" . $tops[0];
+        // 5) Validation minimale avant tout remplacement.
+        if (!is_file("$racine/VERSION") || !is_file("$racine/index.php")) {
+            throw new RuntimeException('Archive incomplète (VERSION/index.php absents).');
+        }
+        // 6) Remplacement des fichiers de code.
+        maj_copier_arbre($racine, $app);
+        $nouvelle = trim((string) @file_get_contents("$app/VERSION")) ?: '?';
+        // 7) Canal mémorisé + journal.
+        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')->execute(['maj_canal', $canal]);
+        maj_log("OK canal=$canal $ancienne -> $nouvelle (" . (current_user()['email'] ?? '?') . ')');
+        return ['ok' => true, 'ancienne' => $ancienne, 'nouvelle' => $nouvelle, 'canal' => $canal];
+    } catch (Throwable $e) {
+        maj_log("ECHEC canal=$canal : " . $e->getMessage());
+        return ['ok' => false, 'message' => $e->getMessage()];
+    } finally {
+        @unlink($zip);
+        maj_rmdir_recursif($ext);
+    }
+}
+
 // -------------------------------------------------------------- ROUTE
 function route_maj(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
+        if (isset($_POST['maj_go'])) {
+            // Lancement de la mise à jour vers le canal suivi.
+            if (!maj_web_active()) {
+                $_SESSION['maj_resultat'] = ['ok' => false, 'message' => 'Mise à jour web désactivée (ALLOW_WEB_UPDATE).'];
+            } elseif (!maj_archive_possible()) {
+                $_SESSION['maj_resultat'] = ['ok' => false, 'message' => 'Mise à jour automatique non supportée par ce serveur.'];
+            } else {
+                $_SESSION['maj_resultat'] = maj_executer(maj_canal());
+            }
+            redirect('maj');
+        }
+        // Sinon : changement de canal (préférence).
         $c = (string) ($_POST['canal'] ?? 'test');
         if (isset(MAJ_CANAUX[$c])) {
             db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
@@ -191,6 +340,11 @@ function route_maj(): void
     } else {
         $aJour = null; // indéterminé (réseau)
     }
+    // Downgrade : la version distante est antérieure à l'installée (canal stable plus ancien).
+    $downgrade = ($distante !== null && version_compare($distante, $locale, '<'));
+
+    $resultat = $_SESSION['maj_resultat'] ?? null;
+    unset($_SESSION['maj_resultat']);
 
     render('maj', [
         'canal'     => $canal,
@@ -199,6 +353,9 @@ function route_maj(): void
         'shaLocal'  => $shaLocal,
         'shaDist'   => $shaDist,
         'aJour'     => $aJour,
+        'downgrade' => $downgrade,
+        'resultat'  => $resultat,
+        'webActive' => maj_web_active(),
         'execDispo'       => maj_exec_dispo(),
         'gitDispo'        => maj_git_dispo(),
         'dlDispo'         => maj_download_dispo(),

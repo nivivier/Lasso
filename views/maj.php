@@ -4,11 +4,20 @@
 /** @var bool $execDispo */ /** @var bool $gitDispo */
 /** @var bool $dlDispo */ /** @var bool $zipDispo */ /** @var bool $targzDispo */
 /** @var bool $appWritable */ /** @var bool $archivePossible */
+/** @var bool $downgrade */ /** @var ?array $resultat */ /** @var bool $webActive */
 $oui = fn(bool $b) => $b
     ? '<span class="badge ok-badge">disponible</span>'
     : '<span class="badge warn-badge">non</span>';
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
+
+<?php if ($resultat !== null): ?>
+    <?php if ($resultat['ok']): ?>
+        <p class="ok flash">Mise à jour effectuée : <?= e($resultat['ancienne']) ?> → <strong><?= e($resultat['nouvelle']) ?></strong>.</p>
+    <?php else: ?>
+        <p class="err">Échec de la mise à jour : <?= e($resultat['message']) ?></p>
+    <?php endif; ?>
+<?php endif; ?>
 
 <div class="card">
     <h2 class="mt-0">Version installée</h2>
@@ -32,6 +41,27 @@ $oui = fn(bool $b) => $b
             <?php endif; ?>
         </dd></div>
     </dl>
+
+    <?php if (!$webActive): ?>
+        <p class="muted small">La mise à jour en un clic est désactivée sur ce serveur (<code>ALLOW_WEB_UPDATE</code>).</p>
+    <?php elseif (!$archivePossible): ?>
+        <p class="muted small">Ce serveur ne supporte pas la mise à jour automatique (voir diagnostic ci-dessous) — mise à jour par SSH / <code>deploy.sh</code>.</p>
+    <?php else: ?>
+        <?php
+        $confirm = $downgrade
+            ? "Attention : la version du canal $canal (" . $distante . ") est ANTÉRIEURE à la version installée ($locale). Un retour en arrière peut être incompatible avec la base déjà migrée. Continuer ?"
+            : 'Télécharger et installer la dernière version du canal ' . $canal . ' ?';
+        ?>
+        <form method="post" action="?p=maj" class="mt-18">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="maj_go" value="1">
+            <button type="submit" onclick="return confirm(<?= e(json_encode($confirm, JSON_UNESCAPED_UNICODE)) ?>);">
+                <?= icon('download') ?> <?= $aJour ? 'Réinstaller la dernière version' : 'Mettre à jour maintenant' ?>
+            </button>
+            <?php if ($downgrade): ?><span class="muted small">⚠️ Cette installation serait un retour en arrière.</span><?php endif; ?>
+        </form>
+        <p class="muted small mt-18">Une sauvegarde de la base est faite automatiquement avant chaque mise à jour. Vos données et votre configuration sont préservées.</p>
+    <?php endif; ?>
 </div>
 
 <div class="card form mt-22">
@@ -69,5 +99,5 @@ $oui = fn(bool $b) => $b
             — la mise à jour reste manuelle (SSH / <code>deploy.sh</code>).
         <?php endif; ?>
     </p>
-    <p class="muted small">La mise à jour en un clic depuis cette page n'est pas encore active (à venir).</p>
+    <p class="muted small">Astuce : pour désactiver la mise à jour en un clic, ajoutez <code>define('ALLOW_WEB_UPDATE', false);</code> dans <code>lib/config.local.php</code>.</p>
 </div>
