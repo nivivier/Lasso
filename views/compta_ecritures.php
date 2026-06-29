@@ -224,6 +224,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php endif; ?>
 </div>
 
+<div class="table-scroll">
 <table class="list compta-lettrage">
     <thead>
         <tr>
@@ -328,6 +329,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php endforeach; ?>
     </tbody>
 </table>
+</div>
 
 
 <!-- Panneau de ventilation analytique (singleton, positionné par JS) -->
