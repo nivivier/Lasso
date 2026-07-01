@@ -9,6 +9,7 @@
     </div>
 </div>
 
+<?php if (module_actif('compta')): ?>
 <div class="card form mb-22">
     <h2 class="mt-0">Écritures comptables — CSV</h2>
     <p class="muted small mb-0">Exporte toutes les écritures d'une année au format CSV (séparateur « ; », encodage UTF-8). Chaque ligne contient la date, le texte, le tiers, le montant, le compte bancaire et la catégorie de lettrage.</p>
@@ -29,7 +30,9 @@
     </form>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if (module_actif('salaires')): ?>
 <div class="card form">
     <h2 class="mt-0">Certificats de salaire — XML (eCS CSI)</h2>
     <p class="muted small mb-0">
@@ -53,3 +56,4 @@
     </form>
     <?php endif; ?>
 </div>
+<?php endif; ?>

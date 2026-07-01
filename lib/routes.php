@@ -338,6 +338,27 @@ function route_parametres(): void
     redirect('employeur');
 }
 
+// Activation/désactivation des modules optionnels (salaires, compta, analytique).
+// Un module à la fois (interrupteur à bascule immédiate, comme les règles de
+// lettrage et les axes analytiques) : POST { module, actif? }.
+function route_parametres_modules(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $module = (string) ($_POST['module'] ?? '');
+        if (array_key_exists($module, MODULES)) {
+            $actifs = modules_actifs();
+            $actifs = isset($_POST['actif'])
+                ? array_unique([...$actifs, $module])
+                : array_diff($actifs, [$module]);
+            set_modules_actifs($actifs);
+        }
+        redirect('parametres_modules');
+    }
+    render('parametres_modules', ['actifs' => modules_actifs()], 'Modules');
+}
+
 function route_employeur(): void
 {
     require_login();
@@ -671,7 +692,7 @@ function route_fiches(): void
 
     // Axes par fiche (une seule requête groupée)
     $axesParFiche = [];
-    if ($fiches) {
+    if ($fiches && module_actif('analytique')) {
         $ficheIds = array_column($fiches, 'id');
         $inPlh = implode(',', array_fill(0, count($ficheIds), '?'));
         $stmtAx = db()->prepare(
@@ -730,7 +751,9 @@ function route_fiche_new(): void
     $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
     $tauxHoraires = db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll();
     $unites       = db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll();
-    $axes         = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
+    $axes         = module_actif('analytique')
+        ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
+        : [];
     $renderForm = fn($err) => render('fiche_form', [
         'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
         'err' => $err, 'post' => $_POST,
@@ -865,7 +888,9 @@ function route_fiche(): void
     $stmt->execute([(int) $f['employe_id']]);
     $emailEmploye = trim((string) $stmt->fetchColumn());
     $emailExp     = trim((string) param('employeur_email_expediteur'));
-    $axes = db()->query('SELECT id, code, libelle FROM axes_analytiques WHERE actif = 1 ORDER BY code, libelle')->fetchAll();
+    $axes = module_actif('analytique')
+        ? db()->query('SELECT id, code, libelle FROM axes_analytiques WHERE actif = 1 ORDER BY code, libelle')->fetchAll()
+        : [];
     render('fiche_view', [
         'f' => $f, 'modifiable' => $modifiable, 'saved' => $_GET['ok'] ?? null,
         'mail' => $_GET['mail'] ?? null,
@@ -1210,7 +1235,9 @@ function route_fiche_edit(): void
     $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
     $tauxHoraires = db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll();
     $unites       = db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll();
-    $axes         = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
+    $axes         = module_actif('analytique')
+        ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
+        : [];
 
     $stmtLignes = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ? ORDER BY ordre');
     $stmtLignes->execute([$id]);

@@ -29,6 +29,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <nav class="side-nav">
+        <?php if (module_actif('salaires')): ?>
         <a href="?p=resumes" class="<?= $cur === 'resumes' ? 'on' : '' ?>">
             <?= icon('bar-chart') ?> Tableau de bord
         </a>
@@ -41,6 +42,8 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('file-text') ?> Fiches de salaire
             <?php if ($nbFiches > 0): ?><span class="nav-badge"><?= $nbFiches ?></span><?php endif; ?>
         </a>
+        <?php endif; ?>
+        <?php if (module_actif('compta')): ?>
         <span class="side-nav-sep">Comptabilité</span>
         <?php $ecrituresPages = ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles']; ?>
         <?php $nbEcr = nb_ecritures_a_lettrer(); ?>
@@ -52,12 +55,15 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
             <?= icon('book-open') ?> Comptes annuels
         </a>
+        <?php if (module_actif('analytique')): ?>
         <?php $analysePages = ['compta_analyse', 'compta_analyse_axe', 'compta_axes']; ?>
         <a href="?p=compta_analyse" class="<?= in_array($cur, $analysePages, true) ? 'on' : '' ?>">
             <?= icon('layers') ?> Analyse
         </a>
+        <?php endif; ?>
+        <?php endif; ?>
         <span class="side-nav-sep"></span>
-        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'maj', 'parametres']; ?>
+        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres_modules', 'maj', 'parametres']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>
@@ -195,7 +201,9 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
 <main class="auth-wrap">
     <?php if ($logoClair !== ''): ?><img src="<?= e($logoClair) ?>" alt="<?= e($nomEmployeur) ?>" class="auth-logo"><?php else: ?><div class="auth-name"><?= e($nomEmployeur) ?></div><?php endif; ?>
     <?php require $contentView; ?>
-    <p class="auth-foot">Gestion des salaires<?= $nomEmployeur !== 'Fiches de salaire' ? ' · ' . e($nomEmployeur) : '' ?></p>
+    <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
+        <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+    </a>
 </main>
 <?php endif; ?>
 </body>

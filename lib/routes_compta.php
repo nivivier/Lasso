@@ -644,10 +644,10 @@ function route_compta_ecritures(): void
         $sql .= " AND e.plan_compte_id IN ($in)";
         $params = array_merge($params, array_map('intval', $ids));
     }
-    if (ctype_digit((string) $axeFilter) && $axeFilter !== '') {
+    if (module_actif('analytique') && ctype_digit((string) $axeFilter) && $axeFilter !== '') {
         $sql .= ' AND EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id = ?)';
         $params[] = (int) $axeFilter;
-    } elseif ($axeFilter === 'sans_axe') {
+    } elseif (module_actif('analytique') && $axeFilter === 'sans_axe') {
         $sql .= ' AND e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)';
     }
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
@@ -657,7 +657,7 @@ function route_compta_ecritures(): void
 
     // Ventilations par écriture (chargées en une seule requête supplémentaire).
     $ventilationsParEcr = [];
-    if ($ecritures) {
+    if ($ecritures && module_actif('analytique')) {
         $ecrIds = array_column($ecritures, 'id');
         $inPlh  = implode(',', array_fill(0, count($ecrIds), '?'));
         $stmtV  = db()->prepare(
@@ -674,7 +674,9 @@ function route_compta_ecritures(): void
     $feuilles = plan_feuilles(compta_plan_actif());
     // Arbre complet (parents + feuilles) pour le filtre par catégorie / sur-catégorie.
     $categoriesArbre = plan_liste_ordonnee(compta_plan_actif());
-    $axes     = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
+    $axes     = module_actif('analytique')
+        ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
+        : [];
     render('compta_ecritures', [
         'comptes'            => $comptes,
         'compteId'           => $compteId,

@@ -7,6 +7,7 @@ require_once __DIR__ . '/lib/config.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calc.php';
 require_once __DIR__ . '/lib/helpers.php';
+require_once __DIR__ . '/lib/modules.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/maj.php';
@@ -39,75 +40,96 @@ send_security_headers();
 start_session();
 db(); // initialise le schéma au premier appel
 
-$route = $_GET['p'] ?? 'resumes';
+$route = $_GET['p'] ?? null;
 
 // Première installation : forcer la création du compte admin.
 if (!has_users() && $route !== 'setup') {
     redirect('setup');
 }
 
-// Table de routage : route → handler
+// Table de routage : route → handler. Cœur (toujours actif), puis modules
+// optionnels ajoutés seulement s'ils sont activés (lib/modules.php).
 $handlers = [
     'setup'        => 'route_setup',
     'login'        => 'route_login',
     'logout'       => 'route_logout',
     'compte'       => 'route_compte',
-    'employes'     => 'route_employes',
-    'employe_voir' => 'route_employe_voir',
-    'employe'      => 'route_employe',
-    'employe_delete' => 'route_employe_delete',
-    'parametres'    => 'route_parametres',
-    'employeur'     => 'route_employeur',
-    'emails'        => 'route_emails',
-    'taux_horaires' => 'route_taux_horaires',
-    'unites'        => 'route_unites',
-    'export'        => 'route_export',
-    'import_fiches' => 'route_import_fiches',
-    'maj'           => 'route_maj',
-    'comptes'       => 'route_comptes',
+    'comptes'      => 'route_comptes',
     'compte_reset'  => 'route_compte_reset',
     'compte_delete' => 'route_compte_delete',
-    'taux'          => 'route_taux',
-    'fiches'       => 'route_fiches',
-    'fiche_new'    => 'route_fiche_new',
-    'fiche'        => 'route_fiche',
-    'fiche_print'  => 'route_fiche_print',
-    'fiche_delete' => 'route_fiche_delete',
-    'fiche_edit'   => 'route_fiche_edit',
-    'fiche_date'   => 'route_fiche_date',
-    'fiche_cout'   => 'route_fiche_cout',
-    'fiche_email'  => 'route_fiche_email',
-    'certificat'       => 'route_certificat',
-    'certificat_print' => 'route_certificat_print',
-    'certificat_xml'   => 'route_certificat_xml',
-    'resumes'      => 'route_resumes',
-    'backup'       => 'route_backup',
-    // Comptabilité
-    'compta'           => 'route_compta',
-    'compta_plan'      => 'route_compta_plan',
-    'compta_comptes'   => 'route_compta_comptes',
-    'compta_import'    => 'route_compta_import',
-    'compta_ecritures' => 'route_compta_ecritures',
-    'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
-    'compta_regles'    => 'route_compta_regles',
-    'compta_axes'           => 'route_compta_axes',
-    'compta_analyse'        => 'route_compta_analyse',
-    'compta_analyse_print'      => 'route_compta_analyse_print',
-    'compta_analyse_axe'        => 'route_compta_analyse_axe',
-    'compta_analyse_axe_print'  => 'route_compta_analyse_axe_print',
-    'compta_bilan'          => 'route_compta_bilan',
-    'compta_bilan_print'    => 'route_compta_bilan_print',
-    'compta_ecritures_csv'       => 'route_compta_ecritures_csv',
-    'compta_ventilation_save'         => 'route_compta_ventilation_save',
-    'compta_suggestion_ventilation'   => 'route_compta_suggestion_ventilation',
-    'compta_suggestion_preview'       => 'route_compta_suggestion_preview',
-    // Fiches
-    'fiche_ligne_axe_save'            => 'route_fiche_ligne_axe_save',
+    'parametres'         => 'route_parametres',
+    'parametres_modules' => 'route_parametres_modules',
+    'employeur'     => 'route_employeur',
+    'emails'        => 'route_emails',
+    'export'        => 'route_export',
+    'maj'           => 'route_maj',
+    'backup'        => 'route_backup',
 ];
+
+if (module_actif('salaires')) {
+    $handlers += [
+        'resumes'      => 'route_resumes',
+        'employes'     => 'route_employes',
+        'employe_voir' => 'route_employe_voir',
+        'employe'      => 'route_employe',
+        'employe_delete' => 'route_employe_delete',
+        'taux_horaires' => 'route_taux_horaires',
+        'unites'        => 'route_unites',
+        'taux'          => 'route_taux',
+        'import_fiches' => 'route_import_fiches',
+        'fiches'       => 'route_fiches',
+        'fiche_new'    => 'route_fiche_new',
+        'fiche'        => 'route_fiche',
+        'fiche_print'  => 'route_fiche_print',
+        'fiche_delete' => 'route_fiche_delete',
+        'fiche_edit'   => 'route_fiche_edit',
+        'fiche_date'   => 'route_fiche_date',
+        'fiche_cout'   => 'route_fiche_cout',
+        'fiche_email'  => 'route_fiche_email',
+        'certificat'       => 'route_certificat',
+        'certificat_print' => 'route_certificat_print',
+        'certificat_xml'   => 'route_certificat_xml',
+    ];
+}
+
+if (module_actif('compta')) {
+    $handlers += [
+        'compta'           => 'route_compta',
+        'compta_plan'      => 'route_compta_plan',
+        'compta_comptes'   => 'route_compta_comptes',
+        'compta_import'    => 'route_compta_import',
+        'compta_ecritures' => 'route_compta_ecritures',
+        'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
+        'compta_regles'    => 'route_compta_regles',
+        'compta_bilan'          => 'route_compta_bilan',
+        'compta_bilan_print'    => 'route_compta_bilan_print',
+        'compta_ecritures_csv'  => 'route_compta_ecritures_csv',
+    ];
+}
+
+if (module_actif('analytique')) {
+    $handlers += [
+        'compta_axes'           => 'route_compta_axes',
+        'compta_analyse'        => 'route_compta_analyse',
+        'compta_analyse_print'      => 'route_compta_analyse_print',
+        'compta_analyse_axe'        => 'route_compta_analyse_axe',
+        'compta_analyse_axe_print'  => 'route_compta_analyse_axe_print',
+        'compta_ventilation_save'         => 'route_compta_ventilation_save',
+        'compta_suggestion_ventilation'   => 'route_compta_suggestion_ventilation',
+        'compta_suggestion_preview'       => 'route_compta_suggestion_preview',
+    ];
+    if (module_actif('salaires')) {
+        $handlers['fiche_ligne_axe_save'] = 'route_fiche_ligne_axe_save';
+    }
+}
+
+if ($route === null) {
+    $route = route_defaut();
+}
 
 if (isset($handlers[$route])) {
     $handlers[$route]();
 } else {
     require_login();
-    redirect('resumes');
+    redirect(route_defaut());
 }

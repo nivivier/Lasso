@@ -1,16 +1,22 @@
 <?php
 // Barre d'onglets commune aux pages de paramètres.
-// L'onglet actif est déduit de la route courante (?p=…).
+// L'onglet actif est déduit de la route courante (?p=…). Onglets propres à un
+// module masqués si celui-ci est désactivé (lib/modules.php).
 $tabs = [
     'employeur'     => 'Employeur',
     'emails'        => 'E-mails',
-    'taux'          => 'Taux',
-    'taux_horaires' => 'Salaires horaires',
-    'export'        => 'Exporter',
-    'import_fiches' => 'Importer',
-    'comptes'       => 'Comptes',
-    'maj'           => 'Mises à jour',
 ];
+if (module_actif('salaires')) {
+    $tabs['taux']          = 'Taux';
+    $tabs['taux_horaires'] = 'Salaires horaires';
+}
+$tabs['export'] = 'Exporter';
+if (module_actif('salaires')) {
+    $tabs['import_fiches'] = 'Importer';
+}
+$tabs['comptes']             = 'Comptes';
+$tabs['parametres_modules']  = 'Modules';
+$tabs['maj']                 = 'Mises à jour';
 $curParam = $_GET['p'] ?? '';
 ?>
 <div class="page-head"><h1>Paramètres</h1></div>
