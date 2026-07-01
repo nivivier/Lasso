@@ -21,6 +21,9 @@
 *.csv
 *.ods
 
+# === Notes de spécification locales (pas encore implémentées) ===
+/SPEC_FACTURATION.md
+
 # === Outils locaux & OS ===
 .claude/settings.local.json
 .DS_Store

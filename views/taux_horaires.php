@@ -1,6 +1,4 @@
-<?php /** @var bool $saved */ /** @var array $tauxHoraires */ /** @var array $unites */
-$hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
-?>
+<?php /** @var bool $saved */ /** @var array $tauxHoraires */ /** @var array $unites */ ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Modifications enregistrées.</p><?php endif; ?>
 
@@ -51,7 +49,7 @@ $hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
         <?php foreach ($unites as $u): ?>
             <tr>
                 <td><?= e($u['libelle']) ?></td>
-                <td class="num"><?= $hnum($u['heures']) ?> h</td>
+                <td class="num"><?= nombre_court($u['heures']) ?> h</td>
                 <td class="actions">
                     <form method="post" action="?p=taux_horaires" onsubmit="return confirm('Supprimer cette unité ?');" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

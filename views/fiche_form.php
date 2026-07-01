@@ -3,7 +3,6 @@
 /** @var ?string $err */ /** @var ?array $post */
 /** @var bool $edit_mode */ /** @var int $fiche_id */
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
-$hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 $edit = !empty($edit_mode);
 $axes = $axes ?? [];
 
@@ -12,7 +11,7 @@ $opts = '';
 foreach ($unites as $u) {
     $val = $u['heures'] . '|' . $u['libelle'];
     $opts .= '<option value="' . e($val) . '" data-h="' . e((string) $u['heures']) . '">'
-        . e($u['libelle']) . ' (' . $hnum($u['heures']) . ' h)</option>';
+        . e($u['libelle']) . ' (' . nombre_court($u['heures']) . ' h)</option>';
 }
 
 // Options de taux horaire (standard) + « Autre »

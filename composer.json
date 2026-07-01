@@ -1,0 +1,17 @@
+{
+    "name": "lasso/facturation",
+    "description": "Module facturation Lasso",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "sprain/swiss-qr-bill": "^5.3",
+        "tecnickcom/tcpdf": "^6.7"
+    },
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "nivivier",
+            "email": "it@nvivier.com"
+        }
+    ]
+}

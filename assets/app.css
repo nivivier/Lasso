@@ -73,7 +73,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 /* La pastille : carré arrondi derrière l'icône */
 .side-nav a .ico {
-    width: 36px; height: 36px; padding: 7px; box-sizing: border-box; flex-shrink: 0;
+    width: 26px; height: 26px; padding: 7px; box-sizing: border-box; flex-shrink: 0;
     border-radius: 9px; background: rgba(255,255,255,.07);
     transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
@@ -175,13 +175,17 @@ h3.sub.no-mt { margin-top: 0; }
 .card.auth h1 { margin: 0 0 18px; font-size: 22px; }
 
 .form label, .filters label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--muted); margin-bottom: 16px; }
-.form input, .form select, .filters select, .filters input,
+/* :not(checkbox/radio) — sinon les cases à cocher héritent du style « champ texte »
+   (bordure, fond, largeur 100%) et de appearance:none, qui les rend invisibles/inertes. */
+.form input:not([type="checkbox"]):not([type="radio"]), .form select, .filters select,
+.filters input:not([type="checkbox"]):not([type="radio"]),
 .cat-cell select, .bulk-bar select {
     font: inherit; font-size: 14.5px; color: var(--ink); width: 100%;
     padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
     transition: border-color .15s, box-shadow .15s;
 }
-.form input, .filters input { appearance: none; -webkit-appearance: none; }
+.form input:not([type="checkbox"]):not([type="radio"]),
+.filters input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
 .row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 140px;
@@ -276,7 +280,8 @@ h3.sub.no-mt { margin-top: 0; }
 .filters select:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
 .auth-form { margin-top: 4px; }
 .auth-form button { width: 100%; margin-top: 6px; padding: 11px; }
-.form input:focus, .form select:focus, .filters select:focus, .filters input:focus,
+.form input:not([type="checkbox"]):not([type="radio"]):focus, .form select:focus, .filters select:focus,
+.filters input:not([type="checkbox"]):not([type="radio"]):focus,
 .cat-cell select:focus, .bulk-bar select:focus {
     outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint);
 }
@@ -295,6 +300,7 @@ h3.sub.no-mt { margin-top: 0; }
 .pct-suffix { display: flex; align-items: center; padding: 0 11px 0 8px; background: var(--surface);
     border-left: 1px solid var(--line); color: var(--muted); font-size: 13.5px; font-weight: 600; }
 .check { flex-direction: row !important; align-items: center; gap: 9px; font-weight: 500; color: var(--ink); }
+.check input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .form-actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
 .form-actions label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
 

@@ -15,7 +15,7 @@
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="add-row">
             <label>Fichier CSV <input type="file" name="fichier" accept=".csv,text/csv" required></label>
-            <button type="submit"><?= icon('upload') ?> Importer</button>
+            <button type="submit"><?= icon('import') ?> Importer</button>
         </div>
     </form>
 </div>

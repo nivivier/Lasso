@@ -1,0 +1,23 @@
+{
+    "type": "factures_historique",
+    "factures": [
+        {
+            "numero": "2025-014",
+            "debiteur_nom": "Théâtre du Loup",
+            "debiteur_adresse_rue": "Rue du Loup 1",
+            "debiteur_adresse_npa": "1200",
+            "debiteur_adresse_localite": "Genève",
+            "debiteur_adresse_pays": "Suisse",
+            "debiteur_email": "compta@theatreduloup.ch",
+            "date_emission": "2025-03-12",
+            "date_echeance": "2025-04-11",
+            "statut": "payee",
+            "payee_le": "2025-04-02",
+            "communication": "Cession du spectacle X, 2 représentations",
+            "lignes": [
+                { "description": "Cachet représentation", "quantite": 1, "prix_unitaire": 1200 },
+                { "description": "Frais de déplacement", "quantite": 1, "prix_unitaire": 150 }
+            ]
+        }
+    ]
+}

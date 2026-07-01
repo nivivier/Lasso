@@ -404,7 +404,9 @@ function route_compta_comptes(): void
             $id = (int) ($_POST['id'] ?? 0);
             $stmt = db()->prepare('SELECT COUNT(*) FROM ecritures WHERE compte_bancaire_id = ?');
             $stmt->execute([$id]);
-            if ((int) $stmt->fetchColumn() === 0) {
+            $stmtF = db()->prepare('SELECT COUNT(*) FROM factures WHERE compte_bancaire_id = ?');
+            $stmtF->execute([$id]);
+            if ((int) $stmt->fetchColumn() === 0 && (int) $stmtF->fetchColumn() === 0) {
                 db()->prepare('DELETE FROM comptes_bancaires WHERE id = ?')->execute([$id]);
                 redirect('compta_comptes', ['ok' => 1]);
             }
@@ -417,6 +419,56 @@ function route_compta_comptes(): void
         'saved'   => isset($_GET['ok']),
         'flagErr' => $_GET['err'] ?? null,
     ], 'Comptabilité — Comptes bancaires');
+}
+
+// Traite un fichier d'export bancaire téléversé (CSV PostFinance) : parse,
+// retrouve/crée le compte par IBAN, insère les écritures (dédoublonnées),
+// applique les règles de lettrage, tente le rapprochement facturation.
+// Ne fait ni redirect ni render — juste ['ok'|'err', message]. Partagée entre
+// route_compta_import() (Comptabilité → Importer) et route_import_ecritures()
+// (Paramètres → Importer), pour ne pas dupliquer cette logique.
+function compta_traiter_fichier_importe(?array $fichier): array
+{
+    if (!$fichier || ($fichier['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return ['err', 'Aucun fichier reçu ou téléversement échoué.'];
+    }
+    if (($fichier['size'] ?? 0) > 5 * 1024 * 1024) {
+        return ['err', 'Fichier trop volumineux (max 5 Mo).'];
+    }
+    $contenu = file_get_contents($fichier['tmp_name']);
+    $parse = parse_postfinance_csv($contenu);
+    $iban = $parse['iban'];
+    $compte = null;
+    $compteCree = false;
+    if ($iban !== '') {
+        $stmt = db()->prepare('SELECT * FROM comptes_bancaires WHERE iban = ?');
+        $stmt->execute([$iban]);
+        $compte = $stmt->fetch();
+        // Compte inconnu → création automatique à partir de l'IBAN vérifié.
+        if (!$compte) {
+            $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM comptes_bancaires')->fetchColumn();
+            db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, ordre) VALUES (?, ?, ?)')
+                ->execute(['Compte PostFinance ' . substr($iban, -4), $iban, $ordre]);
+            $stmt->execute([$iban]);
+            $compte = $stmt->fetch();
+            $compteCree = true;
+        }
+    }
+    if (!$compte) {
+        return ['err', "IBAN introuvable dans le fichier : ce n'est peut-être pas un export PostFinance."];
+    }
+    if (!$parse['lignes']) {
+        return ['err', 'Aucune écriture trouvée dans ce fichier.'];
+    }
+    [$ins, $dup, $importId] = compta_inserer_ecritures($compte, $parse, $fichier['name']);
+    compta_lettrer_par_regles((int) $compte['id'], null);
+    if (module_actif('facturation')) {
+        facturation_suggerer_rapprochements(db(), $importId);
+    }
+    $prefixe = $compteCree
+        ? "Compte « " . $compte['libelle'] . " » créé (IBAN $iban). "
+        : "Import « " . $compte['libelle'] . " » : ";
+    return ['ok', $prefixe . "$ins écriture(s) ajoutée(s), $dup doublon(s) ignoré(s)."];
 }
 
 // --- Import d'un export PostFinance -----------------------------------------
@@ -434,44 +486,7 @@ function route_compta_import(): void
                 redirect('compta_import', ['ok' => 'del']);
             }
         }
-        $f = $_FILES['fichier'] ?? null;
-        if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $msg = ['err', 'Aucun fichier reçu ou téléversement échoué.'];
-        } elseif (($f['size'] ?? 0) > 5 * 1024 * 1024) {
-            $msg = ['err', 'Fichier trop volumineux (max 5 Mo).'];
-        } else {
-            $contenu = file_get_contents($f['tmp_name']);
-            $parse = parse_postfinance_csv($contenu);
-            $iban = $parse['iban'];
-            $compte = null;
-            $compteCree = false;
-            if ($iban !== '') {
-                $stmt = db()->prepare('SELECT * FROM comptes_bancaires WHERE iban = ?');
-                $stmt->execute([$iban]);
-                $compte = $stmt->fetch();
-                // Compte inconnu → création automatique à partir de l'IBAN vérifié.
-                if (!$compte) {
-                    $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM comptes_bancaires')->fetchColumn();
-                    db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, ordre) VALUES (?, ?, ?)')
-                        ->execute(['Compte PostFinance ' . substr($iban, -4), $iban, $ordre]);
-                    $stmt->execute([$iban]);
-                    $compte = $stmt->fetch();
-                    $compteCree = true;
-                }
-            }
-            if (!$compte) {
-                $msg = ['err', "IBAN introuvable dans le fichier : ce n'est peut-être pas un export PostFinance."];
-            } elseif (!$parse['lignes']) {
-                $msg = ['err', 'Aucune écriture trouvée dans ce fichier.'];
-            } else {
-                [$ins, $dup] = compta_inserer_ecritures($compte, $parse, $f['name']);
-                compta_lettrer_par_regles((int) $compte['id'], null);
-                $prefixe = $compteCree
-                    ? "Compte « " . $compte['libelle'] . " » créé (IBAN $iban). "
-                    : "Import « " . $compte['libelle'] . " » : ";
-                $msg = ['ok', $prefixe . "$ins écriture(s) ajoutée(s), $dup doublon(s) ignoré(s)."];
-            }
-        }
+        $msg = compta_traiter_fichier_importe($_FILES['fichier'] ?? null);
     }
     render('compta_import', [
         'comptes' => compta_comptes(),
@@ -485,6 +500,24 @@ function route_compta_import(): void
     ], 'Comptabilité — Importer');
 }
 
+// Import d'écritures depuis Paramètres → Importer (même traitement que
+// route_compta_import(), sans l'historique des imports/suppression — dupliqué
+// pour l'instant comme point d'entrée, mais le code reste factorisé).
+function route_import_ecritures(): void
+{
+    require_login();
+    $msg = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $msg = compta_traiter_fichier_importe($_FILES['fichier'] ?? null);
+    }
+    render('import_fiches', [
+        'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
+        'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
+        'msgEcritures' => $msg,
+    ], 'Importer');
+}
+
 // --- Lettrage (écran principal) --------------------------------------------
 function route_compta_ecritures(): void
 {
@@ -492,31 +525,11 @@ function route_compta_ecritures(): void
     $comptes = compta_comptes();
 
     // Filtres : GET prioritaire, sinon dernière valeur en session, sinon défaut.
-    if (isset($_GET['compte'])) {
-        $compteId = (int) $_GET['compte'];
-        $_SESSION['ecr_compte'] = $compteId;
-    } else {
-        $compteId = (int) ($_SESSION['ecr_compte'] ?? 0);
-    }
-    $annees = compta_annees();
-    if (isset($_GET['annee'])) {
-        $annee = (int) $_GET['annee'];
-        $_SESSION['ecr_annee'] = $annee;
-    } else {
-        $annee = (int) ($_SESSION['ecr_annee'] ?? ($annees[0] ?? date('Y')));
-    }
-    if (isset($_GET['categorie'])) {
-        $categorieFilter = $_GET['categorie'];
-        $_SESSION['ecr_categorie'] = $categorieFilter;
-    } else {
-        $categorieFilter = $_SESSION['ecr_categorie'] ?? '';
-    }
-    if (isset($_GET['axe'])) {
-        $axeFilter = $_GET['axe'];
-        $_SESSION['ecr_axe'] = $axeFilter;
-    } else {
-        $axeFilter = $_SESSION['ecr_axe'] ?? '';
-    }
+    $compteId = (int) filtre_persistant('compte', 'ecr_compte', 0);
+    $annees   = compta_annees();
+    $annee    = (int) filtre_persistant('annee', 'ecr_annee', $annees[0] ?? date('Y'));
+    $categorieFilter = filtre_persistant('categorie', 'ecr_categorie', '');
+    $axeFilter        = filtre_persistant('axe', 'ecr_axe', '');
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();

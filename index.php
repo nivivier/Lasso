@@ -10,6 +10,7 @@ require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/modules.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
+require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/maj.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
@@ -104,6 +105,7 @@ if (module_actif('compta')) {
         'compta_bilan'          => 'route_compta_bilan',
         'compta_bilan_print'    => 'route_compta_bilan_print',
         'compta_ecritures_csv'  => 'route_compta_ecritures_csv',
+        'import_ecritures'      => 'route_import_ecritures',
     ];
 }
 
@@ -121,6 +123,25 @@ if (module_actif('analytique')) {
     if (module_actif('salaires')) {
         $handlers['fiche_ligne_axe_save'] = 'route_fiche_ligne_axe_save';
     }
+}
+
+if (module_actif('facturation')) {
+    $handlers += [
+        'facturation'           => 'route_facturation',
+        'facturation_liste'     => 'route_facturation_liste',
+        'facturation_form'      => 'route_facturation_form',
+        'facturation_debiteurs' => 'route_facturation_debiteurs',
+        'debiteur'              => 'route_debiteur',
+        'debiteur_delete'       => 'route_debiteur_delete',
+        'facture'               => 'route_facture',
+        'facture_emettre'       => 'route_facture_emettre',
+        'facture_annuler'       => 'route_facture_annuler',
+        'facture_delete'        => 'route_facture_delete',
+        'facture_pdf'           => 'route_facture_pdf',
+        'facture_email'         => 'route_facture_email',
+        'facture_rappel'        => 'route_facture_rappel',
+        'import_factures'       => 'route_import_factures',
+    ];
 }
 
 if ($route === null) {

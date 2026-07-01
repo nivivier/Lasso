@@ -7,6 +7,13 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
 - **PHP 8 + SQLite (PDO)**, **aucune dépendance**, aucun framework, pas de build.
   Ne pas introduire Composer/npm ni de bibliothèque externe sans raison forte.
 - Tout en français (UI, commentaires, messages).
+- **Exception actée** : le module facturation utilise Composer pour
+  `sprain/swiss-qr-bill` + `tecnickcom/tcpdf` (^6.7 — la 7.x casse la police core
+  Helvetica) afin de générer une QR-facture suisse conforme (zone de paiement
+  normée + code QR), ce qui serait déraisonnable à réimplémenter en PHP pur.
+  `vendor/` est **commité dans le dépôt** ; aucune commande Composer n'est
+  nécessaire en production (déploiement reste `git pull`). Cette dérogation est
+  scopée à ce module (PDF + QR-facture), pas un blanc-seing général.
 
 ## Lancer / tester
 ```bash

@@ -25,6 +25,11 @@ const MODULES = [
         'description' => "Axes, ventilation des écritures, des charges sociales et des fiches de salaire",
         'requires'    => ['compta'],
     ],
+    'facturation' => [
+        'label'       => 'Facturation',
+        'description' => 'Débiteurs, factures (QR-facture suisse), rapprochement automatique des paiements',
+        'requires'    => ['compta'],
+    ],
 ];
 
 // Cœur de l'application : jamais désactivable, listé à titre indicatif dans

@@ -34,13 +34,13 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('bar-chart') ?> Tableau de bord
         </a>
         <span class="side-nav-sep">Salaires</span>
-        <a href="?p=employes" class="<?= in_array($cur, ['employes', 'employe', 'employe_voir']) ? 'on' : '' ?>">
-            <?= icon('users') ?> Employés
-        </a>
         <?php $nbFiches = nb_fiches_a_payer(); ?>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
             <?= icon('file-text') ?> Fiches de salaire
             <?php if ($nbFiches > 0): ?><span class="nav-badge"><?= $nbFiches ?></span><?php endif; ?>
+        </a>
+        <a href="?p=employes" class="<?= in_array($cur, ['employes', 'employe', 'employe_voir']) ? 'on' : '' ?>">
+            <?= icon('users') ?> Employés
         </a>
         <?php endif; ?>
         <?php if (module_actif('compta')): ?>
@@ -59,6 +59,18 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <?php $analysePages = ['compta_analyse', 'compta_analyse_axe', 'compta_axes']; ?>
         <a href="?p=compta_analyse" class="<?= in_array($cur, $analysePages, true) ? 'on' : '' ?>">
             <?= icon('layers') ?> Analyse
+        </a>
+        <?php endif; ?>
+        <?php if (module_actif('facturation')): ?>
+        <span class="side-nav-sep">Facturation</span>
+        <?php $facturationPages = ['facturation', 'facturation_liste', 'facturation_form', 'facture']; ?>
+        <?php $nbRetard = nb_factures_en_retard(); ?>
+        <a href="?p=facturation_liste" class="<?= in_array($cur, $facturationPages, true) ? 'on' : '' ?>">
+            <?= icon('file-text') ?> Factures
+            <?php if ($nbRetard > 0): ?><span class="nav-badge"><?= $nbRetard ?></span><?php endif; ?>
+        </a>
+        <a href="?p=facturation_debiteurs" class="<?= in_array($cur, ['facturation_debiteurs', 'debiteur'], true) ? 'on' : '' ?>">
+            <?= icon('users') ?> Débiteurs
         </a>
         <?php endif; ?>
         <?php endif; ?>

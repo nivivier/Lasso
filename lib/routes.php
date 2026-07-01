@@ -318,11 +318,7 @@ function route_employe_delete(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
-        $stmt = db()->prepare('SELECT COUNT(*) FROM fiches WHERE employe_id = ?');
-        $stmt->execute([$id]);
-        $nb = (int) $stmt->fetchColumn();
-        if ($nb === 0) {
-            db()->prepare('DELETE FROM employes WHERE id = ?')->execute([$id]);
+        if (supprimer_si_non_reference('employes', $id, 'fiches', 'employe_id')) {
             redirect('employes');
         }
         // A des fiches → suppression refusée
@@ -520,7 +516,11 @@ function route_import_fiches(): void
             }
         }
     }
-    render('import_fiches', compact('err', 'resultats', 'resume', 'simule'), 'Importer des fiches');
+    render('import_fiches', [
+        'errFiches' => $err, 'resultatsFiches' => $resultats, 'resumeFiches' => $resume, 'simuleFiches' => $simule,
+        'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
+        'msgEcritures' => null,
+    ], 'Importer');
 }
 
 // Évalue (et, si !$simule, insère) une liste de fiches. Correspondance employé
@@ -652,24 +652,9 @@ function route_fiches(): void
     require_login();
     // Filtres : GET prioritaire, sinon dernière valeur en session (conservée au
     // retour depuis une fiche), sinon défaut.
-    if (isset($_GET['annee'])) {
-        $annee = (int) $_GET['annee'];
-        $_SESSION['fiches_annee'] = $annee;
-    } else {
-        $annee = (int) ($_SESSION['fiches_annee'] ?? date('Y'));
-    }
-    if (isset($_GET['statut'])) {
-        $statut = $_GET['statut'];
-        $_SESSION['fiches_statut'] = $statut;
-    } else {
-        $statut = $_SESSION['fiches_statut'] ?? 'tous'; // tous | apayer | payees
-    }
-    if (isset($_GET['employe_id'])) {
-        $employeId = (int) $_GET['employe_id'];
-        $_SESSION['fiches_employe'] = $employeId;
-    } else {
-        $employeId = (int) ($_SESSION['fiches_employe'] ?? 0);
-    }
+    $annee     = (int) filtre_persistant('annee', 'fiches_annee', date('Y'));
+    $statut    = filtre_persistant('statut', 'fiches_statut', 'tous'); // tous | apayer | payees
+    $employeId = (int) filtre_persistant('employe_id', 'fiches_employe', 0);
     $sql    = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
                FROM fiches f JOIN employes e ON e.id = f.employe_id
                WHERE f.annee = ?';
@@ -1248,13 +1233,13 @@ function route_fiche_edit(): void
         'annee'             => $f['annee'],
         'mois'              => $f['mois'],
         'date_paiement'     => $f['date_paiement'],
-        'supplement_vacances' => rtrim(rtrim(number_format((float) $f['supplement_taux'] * 100, 4, '.', ''), '0'), '.'),
+        'supplement_vacances' => nombre_court((float) $f['supplement_taux'] * 100, 4),
         'afficher_cout_emp' => $f['afficher_cout_emp'],
     ];
     // Impôt source : pas stocké en colonne dédiée → repris du JSON figé
     $tj = json_decode($f['taux_json'] ?: '{}', true) ?: [];
     if (!empty($tj['impot_source'])) {
-        $postData['impot_source_taux'] = rtrim(rtrim(number_format((float) $tj['impot_source'] * 100, 4, '.', ''), '0'), '.');
+        $postData['impot_source_taux'] = nombre_court((float) $tj['impot_source'] * 100, 4);
     }
 
     foreach ($lignes as $i => $ligne) {
@@ -1273,7 +1258,7 @@ function route_fiche_edit(): void
             $postData['l_taux_manuel'][$i] = '';
         } else {
             $postData['l_taux_choix'][$i]  = 'autre';
-            $postData['l_taux_manuel'][$i] = rtrim(rtrim(number_format($taux_h, 2, '.', ''), '0'), '.');
+            $postData['l_taux_manuel'][$i] = nombre_court($taux_h);
         }
         $postData['l_axe'][$i] = (string) ($ligne['axe_analytique_id'] ?? '');
     }

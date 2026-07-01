@@ -148,9 +148,39 @@ function redirect(string $route, array $params = []): void
     exit;
 }
 
+// Supprime la ligne $id de $table, sauf si des lignes de $tableRef y font
+// encore référence via $colonneRef (ex. un employé qui a des fiches, un
+// débiteur qui a des factures) — la suppression est alors refusée. Noms de
+// tables/colonnes toujours des constantes internes, jamais une valeur utilisateur.
+// Retourne true si la suppression a eu lieu, false si elle a été refusée.
+function supprimer_si_non_reference(string $table, int $id, string $tableRef, string $colonneRef): bool
+{
+    $stmt = db()->prepare("SELECT COUNT(*) FROM $tableRef WHERE $colonneRef = ?");
+    $stmt->execute([$id]);
+    if ((int) $stmt->fetchColumn() > 0) {
+        return false;
+    }
+    db()->prepare("DELETE FROM $table WHERE id = ?")->execute([$id]);
+    return true;
+}
+
 function e(?string $s): string
 {
     return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+}
+
+// Filtre persistant entre requêtes (listes avec filtres : fiches, écritures,
+// factures…) : priorité au paramètre GET (et mémorisé en session pour les
+// navigations suivantes, ex. retour depuis une fiche), sinon dernière valeur
+// en session, sinon défaut. $cleSession est généralement préfixée par l'écran
+// (« fiches_annee », « ecr_annee »…) pour ne pas mélanger les filtres entre
+// pages qui partagent un même nom de paramètre GET (ex. « annee »).
+function filtre_persistant(string $cleGet, string $cleSession, $defaut)
+{
+    if (isset($_GET[$cleGet])) {
+        $_SESSION[$cleSession] = $_GET[$cleGet];
+    }
+    return $_SESSION[$cleSession] ?? $defaut;
 }
 
 // Montant CHF : "1 234.55"
@@ -159,10 +189,17 @@ function chf(float $v): string
     return number_format($v, 2, '.', "\u{202F}");
 }
 
+// Nombre sans zéros ni point superflus : 3.50 -> "3.5", 4.00 -> "4".
+// Utilisé pour les quantités/heures/taux affichés (formulaires, PDF, pct()).
+function nombre_court(float $v, int $decimales = 2): string
+{
+    return rtrim(rtrim(number_format($v, $decimales, '.', ''), '0'), '.');
+}
+
 // Pourcentage lisible : 0.053 -> "5.3 %"
 function pct(float $v): string
 {
-    return rtrim(rtrim(number_format($v * 100, 4, '.', ''), '0'), '.') . ' %';
+    return nombre_court($v * 100, 4) . ' %';
 }
 
 const MOIS_FR = [
@@ -270,10 +307,21 @@ function envoyer_fiche_email(array $f, string $destinataire, string $expediteur)
         'Reply-To: ' . $expediteur,
     ]);
     $sujetEnc = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
+    return envoyer_email($destinataire, $expediteur, $sujetEnc, $entetes, $html, $sujet);
+}
 
+// Transport commun à tout envoi d'e-mail applicatif (fiches, factures…) : en
+// dev, journalisé dans data/emails_envoyes.log au lieu d'être envoyé ; en
+// prod, SMTP authentifié si configuré, sinon repli sur mail(). $entetesMime =
+// en-têtes hors To/Subject (From/Reply-To/Content-Type…) ; $corps = corps déjà
+// encodé (HTML simple ou MIME multipart avec pièce jointe) ; $resumeLog =
+// ligne de résumé journalisée en dev (pas le corps complet).
+// Retourne [bool succès, string mode ('local'|'smtp'|'mail')].
+function envoyer_email(string $destinataire, string $expediteur, string $sujetEnc, string $entetesMime, string $corps, string $resumeLog): array
+{
     if (APP_ENV === 'dev') {
         $log = dirname(APP_DB_PATH) . '/emails_envoyes.log';
-        @file_put_contents($log, '[' . date('c') . "] To: $destinataire | De: $expediteur | $sujet\n", FILE_APPEND);
+        @file_put_contents($log, '[' . date('c') . "] To: $destinataire | De: $expediteur | $resumeLog\n", FILE_APPEND);
         return [true, 'local'];
     }
 
@@ -281,15 +329,14 @@ function envoyer_fiche_email(array $f, string $destinataire, string $expediteur)
     // sinon repli sur mail() pour les hébergeurs qui l'autorisent.
     $cfg = smtp_config();
     if ($cfg['user'] !== '') {
-        $ok = smtp_envoyer($cfg, $destinataire, $sujetEnc, $html, $entetes);
-        return [$ok, 'smtp'];
+        $message = 'To: ' . $destinataire . "\r\n" . 'Subject: ' . $sujetEnc . "\r\n" . $entetesMime . "\r\n\r\n" . $corps;
+        return [smtp_transmettre($cfg, $destinataire, $message), 'smtp'];
     }
     if (!function_exists('mail')) {
         error_log('[app] mail() indisponible et SMTP non configuré (écran Employeur ou config.local.php).');
         return [false, 'mail'];
     }
-    $ok = @mail($destinataire, $sujetEnc, $html, $entetes);
-    return [(bool) $ok, 'mail'];
+    return [(bool) @mail($destinataire, $sujetEnc, $corps, $entetesMime), 'mail'];
 }
 
 // Réglages SMTP effectifs : priorité à la base (écran Employeur), repli sur les
@@ -309,10 +356,11 @@ function smtp_config(): array
     ];
 }
 
-// Envoi d'un e-mail par SMTP authentifié, en PHP pur (aucune dépendance).
-// Gère SSL implicite (port 465) ou STARTTLS (port 587), AUTH LOGIN.
-// Retourne true si le serveur a accepté le message, false sinon (cause journalisée).
-function smtp_envoyer(array $cfg, string $to, string $sujetEnc, string $html, string $entetes): bool
+// Transmet un message brut déjà complet (en-têtes To/Subject/… + ligne vide + corps)
+// par SMTP authentifié, en PHP pur (aucune dépendance). Gère SSL implicite
+// (port 465) ou STARTTLS (port 587), AUTH LOGIN. Appelé par envoyer_email(),
+// commun à tous les e-mails applicatifs (fiches simples, factures avec pièce jointe).
+function smtp_transmettre(array $cfg, string $to, string $message): bool
 {
     $echec = function (string $msg): bool {
         error_log('[app] SMTP : ' . $msg);
@@ -373,11 +421,6 @@ function smtp_envoyer(array $cfg, string $to, string $sujetEnc, string $html, st
     if ($cmd('RCPT TO:<' . $to . '>', '250') !== true) return false;
     if ($cmd('DATA', '354') !== true) return false;
 
-    // En-têtes To/Subject (le From est déjà dans $entetes) puis corps.
-    $message = 'To: ' . $to . "\r\n"
-        . 'Subject: ' . $sujetEnc . "\r\n"
-        . $entetes . "\r\n\r\n"
-        . $html;
     // Point-stuffing : une ligne « . » seule terminerait prématurément les données.
     $message = preg_replace('/^\./m', '..', $message);
     fwrite($fp, $message . "\r\n.\r\n");
@@ -477,6 +520,7 @@ function icon(string $name): string
         'user-plus' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
         'file-plus' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/>',
         'upload'    => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+        'import'    => '<path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4"/>',
         'tag'       => '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
         'chevron-up'   => '<path d="m18 15-6-6-6 6"/>',
         'chevron-down' => '<path d="m6 9 6 6 6-6"/>',

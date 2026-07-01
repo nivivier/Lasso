@@ -294,6 +294,9 @@ function run_migrations(PDO $pdo): void
         15 => 'migration_15', // axes_analytiques + ecritures.axe_analytique_id
         16 => 'migration_16', // ecritures_ventilations (multi-axe)
         17 => 'migration_17', // fiche_lignes.axe_analytique_id
+        18 => 'migration_18', // module facturation : debiteurs, factures, facture_lignes
+        19 => 'migration_19', // ecritures.facture_id (rapprochement facture ↔ écriture bancaire)
+        20 => 'migration_20', // index manquants sur factures.statut / ecritures.facture_id
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -681,6 +684,88 @@ function migration_15(PDO $pdo): void
         if ($col['name'] === 'axe_analytique_id') return;
     }
     $pdo->exec('ALTER TABLE ecritures ADD COLUMN axe_analytique_id INTEGER REFERENCES axes_analytiques(id) ON DELETE SET NULL');
+}
+
+// Migration 18 : module facturation — débiteurs, factures, lignes de facture.
+// Axe analytique par ligne (comme fiche_lignes), réutilise axes_analytiques existant.
+function migration_18(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS debiteurs (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            type            TEXT NOT NULL DEFAULT 'organisation', -- 'organisation' | 'particulier'
+            nom             TEXT NOT NULL,
+            adresse_rue     TEXT NOT NULL DEFAULT '',
+            adresse_npa     TEXT NOT NULL DEFAULT '',
+            adresse_localite TEXT NOT NULL DEFAULT '',
+            adresse_pays    TEXT NOT NULL DEFAULT 'Suisse',
+            email           TEXT NOT NULL DEFAULT '',
+            notes           TEXT NOT NULL DEFAULT '',
+            actif           INTEGER NOT NULL DEFAULT 1,
+            cree_le         TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- statut : 'brouillon' | 'emise' | 'payee' | 'annulee'. « En retard » est dérivé
+        -- (statut = emise, date_echeance dépassée), jamais stocké.
+        CREATE TABLE IF NOT EXISTS factures (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            debiteur_id        INTEGER NOT NULL REFERENCES debiteurs(id),
+            compte_bancaire_id INTEGER REFERENCES comptes_bancaires(id),
+            numero             TEXT NOT NULL DEFAULT '' UNIQUE,
+            reference_paiement TEXT NOT NULL DEFAULT '', -- référence structurée SCOR (ISO 11649)
+            date_emission      TEXT NOT NULL DEFAULT '',
+            date_echeance      TEXT NOT NULL DEFAULT '',
+            delai_jours        INTEGER NOT NULL DEFAULT 30,
+            statut             TEXT NOT NULL DEFAULT 'brouillon',
+            montant_total      REAL NOT NULL DEFAULT 0,
+            communication      TEXT NOT NULL DEFAULT '',
+            ecriture_id        INTEGER REFERENCES ecritures(id) ON DELETE SET NULL,
+            envoyee_le         TEXT NOT NULL DEFAULT '',
+            payee_le           TEXT NOT NULL DEFAULT '',
+            cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS facture_lignes (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            facture_id         INTEGER NOT NULL REFERENCES factures(id) ON DELETE CASCADE,
+            description        TEXT NOT NULL DEFAULT '',
+            quantite           REAL NOT NULL DEFAULT 1,
+            prix_unitaire      REAL NOT NULL DEFAULT 0,
+            montant            REAL NOT NULL DEFAULT 0,
+            axe_analytique_id  INTEGER REFERENCES axes_analytiques(id),
+            ordre              INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_factures_debiteur ON factures(debiteur_id);
+        CREATE INDEX IF NOT EXISTS idx_factures_statut ON factures(statut);
+        CREATE INDEX IF NOT EXISTS idx_facture_lignes_facture ON facture_lignes(facture_id);
+    ");
+
+    $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)')
+        ->execute(['facturation_delai_jours_defaut', '30']);
+}
+
+// Migration 19 : colonne facture_id sur les écritures, pour le rapprochement
+// automatique (import compta) d'un paiement reçu avec une facture émise.
+function migration_19(PDO $pdo): void
+{
+    $existe = false;
+    foreach ($pdo->query('PRAGMA table_info(ecritures)') as $col) {
+        if ($col['name'] === 'facture_id') { $existe = true; break; }
+    }
+    if (!$existe) {
+        $pdo->exec('ALTER TABLE ecritures ADD COLUMN facture_id INTEGER REFERENCES factures(id) ON DELETE SET NULL');
+    }
+}
+
+// Migration 20 : index manquants sur factures.statut (filtré à chaque requête —
+// liste, badge « en retard » dans le menu sur toutes les pages, rapprochement à
+// l'import) et ecritures.facture_id (rapprochement automatique). Séparée des
+// migrations 18/19 : celles-ci ne se rejouent pas sur une base déjà migrée.
+function migration_20(PDO $pdo): void
+{
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_factures_statut ON factures(statut)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ecritures_facture ON ecritures(facture_id)');
 }
 
 function seed_parametres(PDO $pdo): void

@@ -1,0 +1,46 @@
+{
+    "type": "fiches_salaire",
+    "fiches": [
+        {
+            "employe_avs": "756.1234.5678.90",
+            "employe_nom": "Jean Dupont",
+            "employe_rue": "Rue du Lac 12",
+            "employe_npa": "1200 Genève",
+            "canton": "Genève",
+            "procedure": "Ordinaire",
+            "annee": 2025,
+            "mois": 3,
+            "date_paiement": "2025-03-25",
+            "salaire_horaire": 30,
+            "nombre_heures": 40,
+            "supplement_taux": 0.0833,
+            "salaire_travail": 1200,
+            "supplement_montant": 100,
+            "salaire_brut": 1300,
+            "ded_avs": 68.9,
+            "ded_ac": 14.3,
+            "ded_amat": 3.9,
+            "ded_laa": 5.85,
+            "ded_lpp": 91,
+            "ded_impot_source": 0,
+            "ded_caf": 0,
+            "total_deductions": 183.95,
+            "salaire_net": 1116.05,
+            "emp_avs": 68.9,
+            "emp_ac": 14.3,
+            "emp_amat": 3.9,
+            "emp_af": 19.5,
+            "emp_laa": 5.85,
+            "emp_frais": 0,
+            "emp_cpe": 0.91,
+            "emp_lfp": 1.07,
+            "emp_lpp": 91,
+            "total_charges_emp": 205.43,
+            "cout_total_emp": 1505.43,
+            "taux": { "avs": 0.053, "ac": 0.011, "amat": 0.003, "laa": 0.0045, "lpp": 0.07 },
+            "lignes": [
+                { "libelle": "Heures de travail", "heures_unite": 1, "quantite": 40, "taux_horaire": 30 }
+            ]
+        }
+    ]
+}

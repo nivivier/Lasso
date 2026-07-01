@@ -2,7 +2,6 @@
 // Corps du décompte de salaire, réutilisé à l'écran et à l'impression.
 $taux = json_decode($f['taux_json'] ?: '{}', true) ?: [];
 $estImpot  = $f['procedure'] === 'Ordinaire avec impôt à la source';
-$hnum = fn($h) => rtrim(rtrim(number_format((float) $h, 2, '.', ''), '0'), '.');
 
 $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
@@ -87,21 +86,21 @@ $deductions = [
                 $l = $lignes[0]; ?>
             <tr><td>Salaire du travail</td>
                 <?php if ($hasAxe): ?><?= $axeCellHtml($l) ?><?php endif; ?>
-                <td class="num"><?= $hnum((float) $f['nombre_heures']) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h
+                <td class="num"><?= nombre_court((float) $f['nombre_heures']) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h
                     <div class="muted small ps-seuil"><?= e($seuilTxt) ?></div></td>
                 <td class="num"><?= chf((float) $f['salaire_travail']) ?></td></tr>
             <?php else: ?>
                 <?php foreach ($lignes as $l):
                     $sousH = (float) $l['quantite'] * (float) $l['heures_unite'];
                     $montant = $sousH * (float) $l['taux_horaire']; ?>
-                <tr class="ps-sub"><td><?= e($l['libelle']) ?> × <?= $hnum($l['quantite']) ?></td>
+                <tr class="ps-sub"><td><?= e($l['libelle']) ?> × <?= nombre_court($l['quantite']) ?></td>
                     <?php if ($hasAxe): ?><?= $axeCellHtml($l) ?><?php endif; ?>
-                    <td class="num"><?= $hnum($sousH) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h</td>
+                    <td class="num"><?= nombre_court($sousH) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h</td>
                     <td class="num"><?= chf($montant) ?></td></tr>
                 <?php endforeach; ?>
                 <tr><td>Salaire du travail</td>
                     <?php if ($hasAxe): ?><td></td><?php endif; ?>
-                    <td class="num"><?= $hnum((float) $f['nombre_heures']) ?> h
+                    <td class="num"><?= nombre_court((float) $f['nombre_heures']) ?> h
                         <div class="muted small ps-seuil"><?= e($seuilTxt) ?></div></td>
                     <td class="num"><?= chf((float) $f['salaire_travail']) ?></td></tr>
             <?php endif; ?>

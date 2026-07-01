@@ -625,7 +625,7 @@ function resumer_texte_postfinance(string $texte): string
 }
 
 // Insère les écritures parsées dans la base (dédoublonnage par hash).
-// Renvoie [nb_inserees, nb_doublons].
+// Renvoie [nb_inserees, nb_doublons, import_id].
 function compta_inserer_ecritures(array $compte, array $parse, string $nomFichier): array
 {
     $compteId = (int) $compte['id'];
@@ -650,5 +650,5 @@ function compta_inserer_ecritures(array $compte, array $parse, string $nomFichie
     db()->prepare('UPDATE imports SET nb_importees = ?, nb_doublons = ? WHERE id = ?')
         ->execute([$nbIns, $nbDup, $importId]);
     db()->commit();
-    return [$nbIns, $nbDup];
+    return [$nbIns, $nbDup, $importId];
 }
