@@ -394,7 +394,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     const texteLigne = r => {
         const date = r.querySelector('td.nowrap')?.textContent || '';
         const cpt  = r.querySelector('.compte-cell')?.textContent || '';
-        const txt  = r.querySelector('.texte-cell')?.textContent || '';
+        const txt  = r.querySelector('.texte-cell')?.getAttribute('title') || r.querySelector('.texte-cell')?.textContent || '';
         const mt   = r.querySelector('td.num')?.textContent || '';
         const cat  = r.querySelector('.row-cat-input')?.value || '';
         return norm(date + ' ' + cpt + ' ' + txt + ' ' + mt + ' ' + cat);
