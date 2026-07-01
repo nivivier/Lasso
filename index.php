@@ -135,6 +135,7 @@ if (module_actif('facturation')) {
         'debiteur_delete'       => 'route_debiteur_delete',
         'facture'               => 'route_facture',
         'facture_emettre'       => 'route_facture_emettre',
+        'facture_payee'         => 'route_facture_payee',
         'facture_annuler'       => 'route_facture_annuler',
         'facture_delete'        => 'route_facture_delete',
         'facture_pdf'           => 'route_facture_pdf',

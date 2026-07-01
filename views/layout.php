@@ -165,9 +165,11 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     // Clic sur le texte résumé → bascule résumé ↔ texte brut complet (toutes pages).
     document.addEventListener('click', e => {
         const td = e.target.closest('.compta-lettrage .texte-cell');
-        if (!td) return;
+        if (!td || e.target.closest('a,button')) return;
+        const txt = td.querySelector('.texte-cell-txt');
+        if (!txt) return;
         const expanded = td.classList.toggle('expanded');
-        td.textContent = expanded ? td.title : td.dataset.summary;
+        txt.textContent = expanded ? td.title : txt.dataset.summary;
     });
 
     // Modal plein écran pour les aperçus d'impression (liens [data-preview]).

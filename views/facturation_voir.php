@@ -1,12 +1,22 @@
 <?php
 /** @var array $facture */ /** @var array $lignes */ /** @var string $statutEffectif */ /** @var ?string $saved */
+/** @var array $ecrituresLibres */
 $f = $facture;
 $brouillon = $f['statut'] === 'brouillon';
 $peutAnnuler = !in_array($f['statut'], ['payee', 'annulee'], true);
 $peutEmail = !$brouillon && filter_var($f['debiteur_email'] ?? '', FILTER_VALIDATE_EMAIL);
 $aDesAxes = (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
+$numeroAffiche = $f['numero'] !== '' ? e($f['numero']) : '(brouillon)';
+
+// Paiement manuel : écriture bancaire à lier (voir route_facture_payee()).
+$peutPayer = in_array($f['statut'], ['emise', 'payee'], true);
+$libelleEcr = fn(array $e): string => date('d.m.Y', strtotime($e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' CHF — ' . mb_substr((string) $e['texte'], 0, 50);
+$ecritureActuelleId = (int) ($f['ecriture_id'] ?? 0);
+$ecritureActuelle = array_values(array_filter($ecrituresLibres, fn($e) => (int) $e['id'] === $ecritureActuelleId));
+$ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) : '';
 ?>
 <?php if (($saved ?? null) === 'emise'): ?><p class="ok flash">Facture émise.</p><?php endif; ?>
+<?php if (($saved ?? null) === 'payee'): ?><p class="ok flash">Facture marquée comme payée.</p><?php endif; ?>
 <?php switch ($_GET['mail'] ?? null) {
     case 'ok':  echo '<p class="ok flash">Facture envoyée par e-mail.</p>'; break;
     case 'err': echo '<p class="err flash">L\'envoi de l\'e-mail a échoué. Réessayez plus tard.</p>'; break;
@@ -19,7 +29,7 @@ $aDesAxes = (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
 } ?>
 <?= lien_retour('?p=facturation_liste', 'Facturation') ?>
 <div class="page-head">
-    <h1>Facture <?= $f['numero'] !== '' ? e($f['numero']) : '(brouillon)' ?></h1>
+    <h1>Facture <?= $numeroAffiche ?></h1>
     <div class="head-actions">
         <?php if ($brouillon): ?>
             <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
@@ -56,7 +66,20 @@ $aDesAxes = (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
     </div>
 </div>
 
+<div class="fiche-wrapper">
+<div class="fiche-main">
 <div class="card">
+    <?php $logoFacture = param_logo('clair'); ?>
+    <?php if ($logoFacture !== ''): ?>
+        <div class="ps-head"><img src="<?= e($logoFacture) ?>" alt="" class="ps-logo"></div>
+    <?php endif; ?>
+    <p class="mb-24"><strong><?= e(param('employeur_nom')) ?></strong><br>
+        <?= e(param('employeur_rue')) ?><br>
+        <?= e(param('employeur_npa')) ?></p>
+    <div class="ps-title">
+        <h2>Facture</h2>
+        <div class="ps-period"><?= $numeroAffiche ?></div>
+    </div>
     <p><?= facturation_badge($f) ?>
         <?php if (trim((string) ($f['envoyee_le'] ?? '')) !== ''): ?>
             <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime($f['envoyee_le']))) ?>"><?= icon('check') ?> Envoyée</span>
@@ -102,3 +125,85 @@ $aDesAxes = (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
         <tfoot><tr><td colspan="3" class="num strong">Total</td><td class="num strong"><?= chf((float) $f['montant_total']) ?></td><?php if ($aDesAxes): ?><td></td><?php endif; ?></tr></tfoot>
     </table>
 </div>
+</div>
+<?php if ($peutPayer): ?>
+<aside class="fiche-aside facture-aside">
+    <form method="post" action="?p=facture_payee" class="paiement-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+        <h2>Paiement</h2>
+        <input type="date" name="payee_le" value="<?= e($f['payee_le'] ?: date('Y-m-d')) ?>" class="paiement-date">
+        <?php if ($ecrituresLibres): ?>
+            <div class="ecr-liee-box">
+                <h3 class="sub no-mt">Écriture liée</h3>
+                <div class="cat-search ecr-search">
+                    <input type="text" class="cat-search-input" id="ecriture-recherche" placeholder="— aucune, juste marquer payée —" autocomplete="off" value="<?= e($ecritureActuelleLabel) ?>">
+                    <input type="hidden" name="ecriture_id" id="ecriture-select" value="<?= $ecritureActuelleId ?: '' ?>">
+                    <ul class="cat-search-list" hidden role="listbox">
+                        <li data-val="">— aucune, juste marquer payée —</li>
+                        <?php foreach ($ecrituresLibres as $e): $libelle = $libelleEcr($e); ?>
+                            <li data-val="<?= (int) $e['id'] ?>"
+                                data-montant="<?= (float) $e['montant'] ?>"
+                                data-label="<?= e($libelle) ?>"
+                                data-recherche="<?= e(mb_strtolower($libelle, 'UTF-8')) ?>"><?= e($libelle) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <label class="check small">
+                    <input type="checkbox" id="ecriture-meme-montant" checked>
+                    Montant exact (<?= chf((float) $f['montant_total']) ?> CHF)
+                </label>
+                <p class="muted small" id="ecriture-compte"></p>
+            </div>
+        <?php endif; ?>
+        <button type="submit" class="btn"><?= icon('check') ?> <?= $f['statut'] === 'payee' ? 'Enregistrer' : 'Marquer comme payée' ?></button>
+    </form>
+</aside>
+<?php endif; ?>
+</div>
+<?php if ($peutPayer && $ecrituresLibres): ?>
+<script>
+(function () {
+    const wrap = document.querySelector('.ecr-search');
+    const input = wrap.querySelector('.cat-search-input');
+    const hidden = document.getElementById('ecriture-select');
+    const list = wrap.querySelector('.cat-search-list');
+    const items = Array.from(list.querySelectorAll('li'));
+    const memeMontant = document.getElementById('ecriture-meme-montant');
+    const compteur = document.getElementById('ecriture-compte');
+    const montantFacture = <?= json_encode(round((float) $f['montant_total'], 2)) ?>;
+
+    function filtrer(q) {
+        if (q === undefined) { q = input.value.trim().toLowerCase(); }
+        let visibles = 0;
+        items.forEach(li => {
+            if (li.dataset.val === '') { return; } // « aucune » toujours visible
+            const okTexte = !q || li.dataset.recherche.includes(q);
+            const okMontant = !memeMontant.checked || Math.abs(parseFloat(li.dataset.montant) - montantFacture) < 0.01;
+            li.hidden = !(okTexte && okMontant);
+            if (!li.hidden) visibles++;
+        });
+        compteur.textContent = visibles + ' écriture(s) correspondante(s) sur ' + (items.length - 1) + '.';
+    }
+    input.addEventListener('focus', () => { input.value = ''; filtrer(''); list.hidden = false; });
+    input.addEventListener('input',  () => { filtrer(); list.hidden = false; });
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            list.hidden = true;
+            const cur = items.find(li => li.dataset.val === hidden.value);
+            input.value = cur && cur.dataset.val !== '' ? cur.dataset.label : '';
+        }, 150);
+    });
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            hidden.value = li.dataset.val;
+            input.value = li.dataset.val !== '' ? li.dataset.label : '';
+            list.hidden = true;
+        });
+    });
+    memeMontant.addEventListener('change', () => filtrer());
+    filtrer(''); // état initial : reflète la case « Montant exact » sans tenir compte du libellé pré-rempli
+})();
+</script>
+<?php endif; ?>

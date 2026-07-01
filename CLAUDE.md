@@ -33,10 +33,15 @@ Avant de conclure une tâche qui touche au code : `php -l` sur les fichiers modi
   **Migrations versionnées** via `PRAGMA user_version` + `$steps` → `migration_N()`
   (idempotentes : `ALTER` après vérif d'existence de colonne). Pour faire évoluer le
   schéma : ajouter une entrée `$steps` + une fonction `migration_N()`.
-  ⚠️ Toute migration qui fait `ALTER TABLE … RENAME TO` doit encadrer les opérations
-  avec `PRAGMA foreign_keys = OFF` / `ON` : SQLite ≥ 3.26 met à jour automatiquement
-  les FK des autres tables pour pointer sur le nouveau nom, ce qui casse ces FK si la
-  table intermédiaire est ensuite droppée.
+  ⚠️ Pour recréer une table avec un schéma modifié (ex. retirer une contrainte
+  inline), **ne pas** faire `ALTER TABLE x RENAME TO x_old` puis recréer `x` :
+  testé empiriquement (SQLite 3.53), `PRAGMA foreign_keys = OFF` **ne suffit pas**
+  à empêcher SQLite de réécrire la clause `REFERENCES` des autres tables vers
+  `x_old`, qui devient une FK cassée une fois `x_old` droppée (voir migration_21
+  pour un exemple vérifié). À la place : créer la nouvelle table sous un nom
+  temporaire (`x_new`), y copier les données, `DROP TABLE x` (une suppression,
+  pas un renommage — ne déclenche aucune réécriture ailleurs), puis
+  `ALTER TABLE x_new RENAME TO x`. Vérifier ensuite avec `PRAGMA foreign_key_check`.
 - **Calcul** `lib/calc.php` : `calculer_fiche()`, `r2()` (arrondi 2 déc.),
   `seuil_heures()`, `laa_effectif()`, `taux_pour_annee()`, `taux_stockes()`, `TAUX_DEFAUT`.
 - **Helpers** `lib/helpers.php` : `e()` (échappement), `param()` (paramètres, cachés),

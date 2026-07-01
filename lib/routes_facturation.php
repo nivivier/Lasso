@@ -183,12 +183,71 @@ function route_facture(): void
     if (!$facture) {
         redirect('facturation_liste');
     }
+    // Écritures créditrices pas encore liées à une facture (+ celle déjà liée
+    // à cette facture, le cas échéant) : proposées pour un rapprochement
+    // manuel (l'automatique n'a pas matché — nom du débiteur absent du texte
+    // bancaire, montant fractionné, etc.), modifiable tant que la facture
+    // n'est pas annulée.
+    $ecrituresLibres = [];
+    if (in_array($facture['statut'], ['emise', 'payee'], true) && module_actif('compta')) {
+        $stmt = db()->prepare(
+            "SELECT id, date_op, texte, montant FROM ecritures
+             WHERE (facture_id IS NULL OR facture_id = ?) AND montant > 0 ORDER BY date_op DESC"
+        );
+        $stmt->execute([$id]);
+        $ecrituresLibres = $stmt->fetchAll();
+    }
     render('facturation_voir', [
         'facture' => $facture,
         'lignes'  => facturation_lignes_de($id),
         'statutEffectif' => facturation_statut_effectif($facture),
+        'ecrituresLibres' => $ecrituresLibres,
         'saved'   => $_GET['ok'] ?? null,
     ], 'Facture ' . ($facture['numero'] ?: '(brouillon)'));
+}
+
+// Marquage manuel « payée » : pour les cas où le rapprochement automatique
+// (au moment de l'import bancaire) n'a pas trouvé de correspondance, alors
+// que l'utilisateur voit l'écriture correspondante dans Écritures. $ecriture_id
+// optionnel : lie l'écriture choisie (si encore libre, ou déjà liée à cette
+// facture) en plus de marquer payée. Rejouable tant que la facture est déjà
+// « payée » : permet de corriger la date ou l'écriture liée après coup.
+function route_facture_payee(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('facturation_liste');
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $facture = facturation_charger($id);
+    if (!$facture || !in_array($facture['statut'], ['emise', 'payee'], true)) {
+        redirect('facturation_liste');
+    }
+    $payeeLe = trim($_POST['payee_le'] ?? '') ?: date('Y-m-d');
+
+    $ecritureId = null;
+    $ecritureRaw = (int) ($_POST['ecriture_id'] ?? 0);
+    if ($ecritureRaw) {
+        $stmt = db()->prepare('SELECT 1 FROM ecritures WHERE id = ? AND (facture_id IS NULL OR facture_id = ?)');
+        $stmt->execute([$ecritureRaw, $id]);
+        if ($stmt->fetchColumn()) {
+            $ecritureId = $ecritureRaw;
+        }
+    }
+
+    db()->beginTransaction();
+    $ancienEcritureId = (int) ($facture['ecriture_id'] ?? 0);
+    if ($ancienEcritureId && $ancienEcritureId !== $ecritureId) {
+        db()->prepare('UPDATE ecritures SET facture_id = NULL WHERE id = ? AND facture_id = ?')->execute([$ancienEcritureId, $id]);
+    }
+    db()->prepare("UPDATE factures SET statut='payee', payee_le=?, ecriture_id=? WHERE id=?")
+        ->execute([$payeeLe, $ecritureId, $id]);
+    if ($ecritureId) {
+        db()->prepare('UPDATE ecritures SET facture_id = ? WHERE id = ?')->execute([$id, $ecritureId]);
+    }
+    db()->commit();
+    redirect('facture', ['id' => $id, 'ok' => 'payee']);
 }
 
 // Émission : fige numéro, référence de paiement, dates et statut.

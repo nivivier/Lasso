@@ -270,7 +270,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteId === 0): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
-            <td class="texte-cell" title="<?= e($ecr['texte']) ?>" data-summary="<?= e(resumer_texte_postfinance($ecr['texte'])) ?>"><?= e(resumer_texte_postfinance($ecr['texte'])) ?></td>
+            <td class="texte-cell" title="<?= e($ecr['texte']) ?>">
+                <?php if (!empty($ecr['facture_id'])): ?>
+                    <a class="ecr-facture-lien" href="?p=facture&id=<?= (int) $ecr['facture_id'] ?>" title="Voir la facture liée"><?= icon('file-text') ?></a>
+                <?php endif; ?>
+                <span class="texte-cell-txt" data-summary="<?= e(resumer_texte_postfinance($ecr['texte'])) ?>"><?= e(resumer_texte_postfinance($ecr['texte'])) ?></span>
+            </td>
             <td class="num <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
             <td class="cat-cell">
                 <form method="post" action="?p=compta_ecritures<?= $qs ?>">

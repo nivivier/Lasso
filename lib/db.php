@@ -297,6 +297,7 @@ function run_migrations(PDO $pdo): void
         18 => 'migration_18', // module facturation : debiteurs, factures, facture_lignes
         19 => 'migration_19', // ecritures.facture_id (rapprochement facture ↔ écriture bancaire)
         20 => 'migration_20', // index manquants sur factures.statut / ecritures.facture_id
+        21 => 'migration_21', // factures.numero : UNIQUE inline → index unique partiel (autorise plusieurs brouillons)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -711,7 +712,7 @@ function migration_18(PDO $pdo): void
             id                 INTEGER PRIMARY KEY AUTOINCREMENT,
             debiteur_id        INTEGER NOT NULL REFERENCES debiteurs(id),
             compte_bancaire_id INTEGER REFERENCES comptes_bancaires(id),
-            numero             TEXT NOT NULL DEFAULT '' UNIQUE,
+            numero             TEXT NOT NULL DEFAULT '', -- unicité : index partiel plus bas (brouillons = '' à volonté)
             reference_paiement TEXT NOT NULL DEFAULT '', -- référence structurée SCOR (ISO 11649)
             date_emission      TEXT NOT NULL DEFAULT '',
             date_echeance      TEXT NOT NULL DEFAULT '',
@@ -739,6 +740,10 @@ function migration_18(PDO $pdo): void
         CREATE INDEX IF NOT EXISTS idx_factures_debiteur ON factures(debiteur_id);
         CREATE INDEX IF NOT EXISTS idx_factures_statut ON factures(statut);
         CREATE INDEX IF NOT EXISTS idx_facture_lignes_facture ON facture_lignes(facture_id);
+        -- Unicité du numéro, mais seulement une fois attribué : plusieurs brouillons
+        -- (numero = '') doivent pouvoir coexister (SQLite traite '' comme une valeur
+        -- comme une autre pour un UNIQUE inline, contrairement à NULL).
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_factures_numero_unique ON factures(numero) WHERE numero <> '';
     ");
 
     $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)')
@@ -766,6 +771,67 @@ function migration_20(PDO $pdo): void
 {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_factures_statut ON factures(statut)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ecritures_facture ON ecritures(facture_id)');
+}
+
+// Migration 21 : la contrainte UNIQUE inline sur factures.numero (migration_18)
+// empêche plusieurs brouillons à la fois — SQLite traite '' comme une valeur
+// comme une autre pour un UNIQUE inline, contrairement à NULL. Remplacée par un
+// index unique partiel (numero <> '').
+// ⚠️ Ne PAS utiliser le pattern « RENAME vers un nom temporaire » habituel ici :
+// testé empiriquement (SQLite 3.53), PRAGMA foreign_keys=OFF ne suffit PAS à
+// empêcher SQLite de réécrire la clause REFERENCES de facture_lignes/ecritures
+// vers ce nom temporaire — qui devient une FK cassée une fois la table
+// temporaire droppée (le correctif documenté plus haut dans ce fichier pour
+// migration_12/13 est insuffisant sur les versions récentes de SQLite). À la
+// place : créer la nouvelle table sous un nom temporaire, y copier les
+// données, DROP l'ancienne « factures » (une suppression, pas un renommage —
+// ne déclenche aucune réécriture de schéma ailleurs), puis RENAME le nom
+// temporaire vers « factures ». À ce moment-là, aucune autre table ne
+// référence le nom temporaire, donc rien à réécrire.
+function migration_21(PDO $pdo): void
+{
+    $sql = (string) $pdo->query(
+        "SELECT COALESCE(sql,'') FROM sqlite_master WHERE type='table' AND name='factures'"
+    )->fetchColumn();
+    if (!str_contains($sql, 'UNIQUE')) {
+        return; // déjà corrigé (nouvelle installation via migration_18 mise à jour)
+    }
+
+    $pdo->exec('PRAGMA foreign_keys = OFF');
+    $pdo->exec("
+        CREATE TABLE factures_v21 (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            debiteur_id        INTEGER NOT NULL REFERENCES debiteurs(id),
+            compte_bancaire_id INTEGER REFERENCES comptes_bancaires(id),
+            numero             TEXT NOT NULL DEFAULT '',
+            reference_paiement TEXT NOT NULL DEFAULT '',
+            date_emission      TEXT NOT NULL DEFAULT '',
+            date_echeance      TEXT NOT NULL DEFAULT '',
+            delai_jours        INTEGER NOT NULL DEFAULT 30,
+            statut             TEXT NOT NULL DEFAULT 'brouillon',
+            montant_total      REAL NOT NULL DEFAULT 0,
+            communication      TEXT NOT NULL DEFAULT '',
+            ecriture_id        INTEGER REFERENCES ecritures(id) ON DELETE SET NULL,
+            envoyee_le         TEXT NOT NULL DEFAULT '',
+            payee_le           TEXT NOT NULL DEFAULT '',
+            cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ");
+    $pdo->exec('INSERT INTO factures_v21 SELECT * FROM factures');
+    $pdo->exec('DROP TABLE factures');
+    $pdo->exec('ALTER TABLE factures_v21 RENAME TO factures');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_factures_debiteur ON factures(debiteur_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_factures_statut ON factures(statut)');
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_factures_numero_unique ON factures(numero) WHERE numero <> ''");
+    $pdo->exec('PRAGMA foreign_keys = ON');
+
+    // Vérification : si une FK d'une autre table a quand même été cassée par
+    // cette migration, on préfère planter bruyamment ici plutôt que de laisser
+    // une base incohérente en silence.
+    $casse = $pdo->query('PRAGMA foreign_key_check')->fetchAll();
+    if ($casse) {
+        throw new RuntimeException('migration_21 : clé étrangère cassée après migration — ' . json_encode($casse));
+    }
 }
 
 function seed_parametres(PDO $pdo): void
