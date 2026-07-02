@@ -144,7 +144,7 @@ dates « à faire » ou « manquantes ».
 Depuis la fiche d'un événement, bouton « Créer une facture liée » (visible seulement si
 le module `facturation` est actif) : crée une facture en brouillon avec
 `evenement_id` renseigné. Pas de pré-remplissage automatique des lignes en v1 (le
-cachet/les conditions varient trop d'un événement à l'autre) — voir §8.
+cachet/les conditions varient trop d'un événement à l'autre) — voir §10.
 
 **Plusieurs factures par événement autorisées** : pas de contrainte d'unicité sur
 `evenement_id` dans `factures` — couvre le cas d'une facture complémentaire ou d'une
@@ -158,23 +158,73 @@ module `salaires`). Route `route_parametres_evenements()` dans `lib/routes.php`,
 `views/parametres_evenements.php`. Contenu :
 
 - **Délai de décompte SUISA** (`suisa_delai_decompte_mois`, défaut `12`) — cf. §5.
-- **Configuration du lien avec le site web** — *à réfléchir*, réservé dans cet onglet
-  mais non spécifié en détail ici. Le besoin (§4) : le site web externe doit pouvoir
-  récupérer les événements `public`/`prive` à afficher. Pistes possibles à évaluer avant
-  implémentation :
-  - **Endpoint JSON en lecture seule** (ex. `?p=evenements_api&token=…`) protégé par un
-    jeton secret stocké dans `parametres` (généré ici, à coller côté site web) — pas de
-    session/cookie possible entre les deux systèmes.
-  - **Export statique régénéré** (fichier JSON/ICS écrit sur disque à chaque
-    modification, servi directement par le serveur web) — évite d'exposer une route PHP
-    dynamique côté site public.
-  - Dans les deux cas, seuls les champs autorisés par la visibilité (§4) doivent être
-    exposés — jamais les champs internes (SUISA, liens facture/employés/fiches).
-  - Cette section n'est **pas à coder en v1** tant que le choix n'est pas arrêté ; prévoir
-    juste l'emplacement dans l'onglet des paramètres pour ne pas avoir à en créer un
-    nouveau plus tard.
+- **Export public des événements** — l'app expose elle-même les données, réutilisables
+  par le site web associatif ou tout autre système externe (pas l'inverse : ce n'est pas
+  le site web qui pousse de la config vers Lasso). Voir §8 pour le détail.
 
-## 8. Lien avec les employés et les fiches de salaire
+## 8. Export public des événements (JSON + iCal)
+
+Deux **routes publiques en lecture seule**, sans session (ajoutées à `$handlers` dans
+`index.php` en dehors des blocs `require_login()`, sur le modèle de la vérification par
+jeton déjà utilisée pour `route_setup()` — `hash_equals()` contre un secret stocké côté
+serveur, jamais une simple comparaison `===`) :
+
+- **`?p=evenements_json&token=…`** — tableau JSON de tous les événements exposables (voir
+  règles de filtrage ci-dessous), pour un site web ou tout autre export.
+- **`?p=evenements_ical&token=…`** — flux `text/calendar` (`.ics`), un `VEVENT` par
+  événement exposable, pour import direct dans un calendrier (Google Agenda, etc.). Même
+  filtrage/mêmes champs que le JSON, adaptés au format iCal (`SUMMARY`, `DTSTART`,
+  `LOCATION`, `DESCRIPTION`, `URL`).
+
+### Filtre par spectacle
+
+Paramètre optionnel **`spectacle_id`** sur les deux routes (ex.
+`?p=evenements_json&token=…&spectacle_id=3`) : ne renvoie que les événements liés à ce
+spectacle. Permet d'avoir un point d'accès dédié par spectacle (ex. une page web
+spécifique à une tournée qui n'affiche que son propre calendrier), sans exposer les
+événements des autres spectacles. Même **jeton global** pour toutes les URLs (pas de
+jeton par spectacle) — l'onglet « Événements » des paramètres (§7) affiche, en plus des
+deux URLs générales, un lien « Copier l'URL » par spectacle dans la liste des
+spectacles (`spectacle_id` pré-rempli, jeton déjà inclus). Régénérer le jeton global
+invalide donc aussi toutes les URLs par spectacle en une fois.
+
+### Jeton d'accès
+
+- Nouveau paramètre `evenements_export_token` : chaîne aléatoire (ex.
+  `bin2hex(random_bytes(16))`), générée automatiquement au premier accès à l'onglet des
+  paramètres si absente, avec bouton « Régénérer » (invalide l'ancienne URL — utile en
+  cas de fuite).
+- L'onglet « Événements » affiche les deux URLs complètes prêtes à copier-coller
+  (`https://…/?p=evenements_json&token=…` et `…evenements_ical&token=…`).
+- Vérification côté route : `hash_equals($tokenStocke, $_GET['token'] ?? '')` ; jeton
+  absent/incorrect → `403` sans détail (pas de fuite d'info sur la validité partielle).
+
+### Filtrage et champs exposés
+
+Mêmes règles que l'affichage web (§4), appliquées côté serveur avant export — jamais de
+filtrage côté client :
+
+- Exclus : `visibilite = non_repertorie`, et tout événement en `statut = option` (pas
+  encore assez sûr pour être publié).
+- **`public`** : `date`, `ville`, `salle` (si renseignée), `festival` (si renseigné),
+  `lien_infos` (si renseigné), nom du `spectacle` lié, `remarques`, et un indicateur
+  `annule: true/false` (dérivé de `statut`).
+- **`prive`** : uniquement `date` et un indicateur `prive: true` (le JSON/l'iCal ne
+  contiennent alors ni ville, ni salle, ni festival, ni lien, ni spectacle, ni
+  remarques — le site web affiche par exemple « Événement privé » à la place).
+- Jamais exposés, quel que soit le champ : tout ce qui touche SUISA, les liens
+  facture/employés/fiches, les remarques internes non destinées au public (les
+  `remarques` d'un événement `prive` ne sont donc jamais exportées, seulement celles d'un
+  événement `public`).
+
+### Hors périmètre de cet export (v1)
+
+- Pas de pagination/filtre par date dans l'URL (ex. `?depuis=2026-01-01`) — le volume
+  d'événements reste faible ; le site web filtre lui-même côté client si besoin.
+- Pas d'authentification autre que le jeton partagé (pas d'OAuth, pas de rotation
+  automatique) — cohérent avec le volume et le nombre d'utilisateurs du projet.
+
+## 9. Lien avec les employés et les fiches de salaire
 
 - Un événement peut être lié à plusieurs employés (`evenement_employes`) — utile pour
   savoir qui était engagé sur une date, indépendamment de la fiche de salaire déjà émise
@@ -182,7 +232,7 @@ module `salaires`). Route `route_parametres_evenements()` dans `lib/routes.php`,
 - Un événement peut être lié à plusieurs fiches de salaire, et une fiche peut couvrir
   plusieurs événements (`evenement_fiches`) — cas d'un cachet regroupant une tournée.
 
-## 9. Hors périmètre v1 (explicitement écarté ou différé)
+## 10. Hors périmètre v1 (explicitement écarté ou différé)
 
 - **Pré-remplissage automatique des lignes de facture** depuis l'événement (cachet type,
   frais standards) : à considérer plus tard si le besoin se confirme.
@@ -193,36 +243,45 @@ module `salaires`). Route `route_parametres_evenements()` dans `lib/routes.php`,
   l'écran événements (même esprit que les factures en retard).
 - **Import en masse d'événements** (ex. calendrier de tournée externe) : saisie manuelle
   en v1.
-- **Page publique du site web elle-même** (rendu HTML du calendrier public) : cette
-  spec couvre le modèle de données et les règles d'affichage ; l'implémentation de la
-  page publique (route, gabarit) reste à cadrer séparément.
+- **Page publique du site web elle-même** (rendu HTML du calendrier) : Lasso expose les
+  données (JSON/iCal, §8), mais leur mise en forme visuelle sur le site associatif est
+  hors périmètre de cette app — à implémenter côté site web, en consommant l'export.
 
-## 10. Structure de code envisagée (à l'image des modules existants)
+## 11. Structure de code envisagée (à l'image des modules existants)
 
 - `lib/evenements.php` — fonctions pures : statut SUISA dérivé (5 valeurs, §5), règles
-  de visibilité/statut pour l'affichage public (§4).
+  de visibilité/statut pour l'affichage public (§4), et la fonction de filtrage/mise en
+  forme partagée par les deux routes d'export (§8 → JSON et iCal doivent utiliser la
+  même liste filtrée, pas deux implémentations divergentes).
 - `lib/helpers.php` — nouvelle fonction `handle_pdf_upload()` (ou généralisation de
   `handle_logo_upload()` avec un paramètre de type de fichier accepté), pour l'upload de
   la feuille SUISA sur `spectacles`.
-- `lib/routes_evenements.php` — `route_evenements_*`, inclus depuis `index.php` comme
-  `routes_facturation.php`.
+- `lib/routes_evenements.php` — `route_evenements_*` (écrans authentifiés), inclus depuis
+  `index.php` comme `routes_facturation.php`, **plus** `route_evenements_json()` et
+  `route_evenements_ical()` (routes publiques par jeton, sans `require_login()`, cf. §8).
 - `views/evenements_liste.php`, `evenements_form.php`, `evenements_voir.php`,
-  `views/spectacles_liste.php`, `spectacle_form.php`.
+  `views/spectacles_liste.php`, `spectacle_form.php`, `views/parametres_evenements.php`.
 - Migration(s) : nouvelles entrées `$steps` + `migration_N()` pour `spectacles`,
   `evenements`, `evenement_employes`, `evenement_fiches`, et l'ajout de la colonne
   `evenement_id` sur `factures`.
 - Tests : `tests/evenements_test.php` (statut SUISA dérivé sur les 5 valeurs, règles de
-  visibilité/statut) — même esprit que `calc_test.php`/`compta_test.php`.
+  visibilité/statut, filtrage de l'export JSON/iCal — en particulier qu'un événement
+  `prive` ou `non_repertorie` ne fuite jamais un champ interdit) — même esprit que
+  `calc_test.php`/`compta_test.php`.
 
-## 11. Points ouverts restants
+## 12. Points ouverts restants
 
 Les points cadrés lors des itérations précédentes (délai SUISA configurable et son
 emplacement — onglet « Événements » des paramètres, §7 —, statut `option`/`confirme`/
 `annule` séparé de la visibilité, validation URL de `lien_infos`, plusieurs factures par
 événement, upload de la feuille SUISA par spectacle avec validation mime stricte, filtre
-par statut SUISA à 5 valeurs) sont maintenant actés ci-dessus. Reste à trancher :
+par statut SUISA à 5 valeurs, export public JSON/iCal par jeton §8) sont maintenant
+actés ci-dessus. Reste à trancher :
 
-1. **Configuration du lien avec le site web** (§7) : le mécanisme exact (endpoint JSON
-   protégé par jeton, export statique régénéré, ou autre) n'est pas encore choisi —
-   explicitement différé, réservé dans l'onglet des paramètres mais pas à coder en v1
-   tant que le choix n'est pas arrêté.
+1. Format exact des dates/heures dans le JSON exposé (ex. `date` seule au format
+   `AAAA-MM-JJ`, ou faut-il une heure de concert distincte de la date ? — aucune heure
+   n'a été demandée jusqu'ici dans le modèle de données, à confirmer avant de coder
+   l'export).
+2. Nom d'affichage du spectacle dans l'export : le nom brut de `spectacles.nom` suffit-il,
+   ou faut-il un champ distinct (ex. `titre_public`) si le nom interne diffère du nom
+   commercial affiché au public ?
