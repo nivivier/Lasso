@@ -33,20 +33,20 @@
 <?php else: ?>
 <table class="list">
     <thead>
-        <tr><th>Débiteur</th><th>Échéance</th><th></th><th class="num">Montant</th></tr>
+        <tr><th>Échéance</th><th>Débiteur</th><th></th><th class="num">Montant</th></tr>
     </thead>
     <tbody>
     <?php $totEmises = 0; foreach ($facturesEmises as $fac): $totEmises += (float) $fac['montant_total']; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>">
-            <td><?= e($fac['debiteur_nom']) ?></td>
             <td><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
+            <td><?= e($fac['debiteur_nom']) ?></td>
             <td><?= facturation_badge($fac) ?></td>
-            <td class="num strong"><?= chf((float) $fac['montant_total']) ?></td>
+            <td class="num strong net-apayer"><?= chf((float) $fac['montant_total']) ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>
     <tfoot>
-        <tr class="total-row"><td><strong>Total émis</strong></td><td></td><td></td><td class="num strong"><?= chf($totEmises) ?></td></tr>
+        <tr class="total-row apayer-row"><td><strong>Total émis</strong></td><td></td><td></td><td class="num strong net-apayer"><?= chf($totEmises) ?></td></tr>
     </tfoot>
 </table>
 <?php endif; ?>
