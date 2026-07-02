@@ -59,7 +59,7 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
                 <form method="post" action="?p=facture_annuler" class="d-inline" onsubmit="return confirm('Annuler cette facture ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-                    <button type="submit" class="btn ghost">Annuler</button>
+                    <button type="submit" class="btn danger">Annuler</button>
                 </form>
             <?php endif; ?>
         <?php endif; ?>

@@ -1,4 +1,5 @@
 <?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */ ?>
+<div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
         <h1>Facturation</h1>
@@ -6,7 +7,8 @@
             <input type="hidden" name="p" value="facturation_liste">
             <input type="hidden" name="statut" value="<?= e($statut) ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
-                <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); rsort($opts);
+                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
+                <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
                 foreach ($opts as $a): ?>
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
                 <?php endforeach; ?>
@@ -17,19 +19,20 @@
         <a class="btn ghost" href="?p=facturation_debiteurs"><?= icon('users') ?> <span class="lbl">Débiteurs</span></a>
         <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?> Nouvelle facture</a>
     </div>
-</div>
 
-<form method="get" class="filters">
-    <input type="hidden" name="p" value="facturation_liste">
-    <input type="hidden" name="annee" value="<?= (int) $annee ?>">
-    <label>Statut
-        <select name="statut" onchange="this.form.submit()">
-            <?php foreach (['tous' => 'Tous', 'brouillon' => 'Brouillons', 'emise' => 'Émises', 'en_retard' => 'En retard', 'payee' => 'Payées', 'annulee' => 'Annulées'] as $val => $lib): ?>
-                <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-</form>
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="facturation_liste">
+        <input type="hidden" name="annee" value="<?= (int) $annee ?>">
+        <label>Statut
+            <select name="statut" onchange="this.form.submit()">
+                <?php foreach (['tous' => 'Tous', 'brouillon' => 'Brouillons', 'emise' => 'Émises', 'en_retard' => 'En retard', 'payee' => 'Payées', 'annulee' => 'Annulées'] as $val => $lib): ?>
+                    <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    </form>
+</div>
+</div>
 
 <?php if (!$factures): ?>
     <p class="muted">Aucune facture pour cette sélection.</p>

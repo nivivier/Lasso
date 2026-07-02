@@ -1,5 +1,6 @@
 <?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var string $statut */
 /** @var array $employes */ /** @var int $employeId */ /** @var array $axesParFiche */ ?>
+<div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
         <h1>Fiches de salaire</h1>
@@ -18,29 +19,30 @@
         </form>
     </div>
     <a class="btn" href="?p=fiche_new"><?= icon('file-plus') ?> Nouvelle fiche</a>
-</div>
 
-<form method="get" class="filters">
-    <input type="hidden" name="p" value="fiches">
-    <input type="hidden" name="annee" value="<?= (int) $annee ?>">
-    <label>Statut
-        <select name="statut" onchange="this.form.submit()">
-            <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>
-                <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-    <label>Employé
-        <select name="employe_id" onchange="this.form.submit()">
-            <option value="0">Tous</option>
-            <?php foreach ($employes as $emp): ?>
-                <option value="<?= (int) $emp['id'] ?>" <?= $employeId === (int) $emp['id'] ? 'selected' : '' ?>>
-                    <?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-</form>
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="fiches">
+        <input type="hidden" name="annee" value="<?= (int) $annee ?>">
+        <label>Statut
+            <select name="statut" onchange="this.form.submit()">
+                <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>
+                    <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Employé
+            <select name="employe_id" onchange="this.form.submit()">
+                <option value="0">Tous</option>
+                <?php foreach ($employes as $emp): ?>
+                    <option value="<?= (int) $emp['id'] ?>" <?= $employeId === (int) $emp['id'] ? 'selected' : '' ?>>
+                        <?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    </form>
+</div>
+</div>
 
 <?php if (!$fiches): ?>
     <p class="muted">Aucune fiche pour cette sélection.</p>

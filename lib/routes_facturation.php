@@ -70,9 +70,12 @@ function route_facturation_liste(): void
     )->fetchAll(PDO::FETCH_COLUMN));
     $annee = (int) filtre_persistant('annee', 'facturation_annee', $annees[0] ?? date('Y'));
 
-    $sql = "SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id
-            WHERE strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) = ?";
-    $params = [(string) $annee];
+    $sql = 'SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id WHERE 1=1';
+    $params = [];
+    if ($annee) {
+        $sql .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) = ?";
+        $params[] = (string) $annee;
+    }
     if ($statut === 'en_retard') {
         $sql .= ' AND ' . facturation_sql_en_retard('f.');
         $params[] = date('Y-m-d');

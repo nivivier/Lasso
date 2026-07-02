@@ -54,6 +54,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
          . '</div>';
 };
 ?>
+<div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
         <h1>Écritures</h1>
@@ -75,6 +76,46 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <button type="button" id="btn-new-ecr" class="btn ghost btn-sm"><?= icon('plus') ?> Écriture manuelle</button>
         <a href="?p=compta_import" class="btn"><?= icon('upload') ?> Importer</a>
     </div>
+
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="compta_ecritures">
+        <input type="hidden" name="annee" value="<?= $annee ?>">
+        <label>Compte
+            <select name="compte" onchange="this.form.submit()">
+                <option value="0" <?= $compteId === 0 ? 'selected' : '' ?>>Tous les comptes</option>
+                <?php foreach ($comptes as $c): ?>
+                    <option value="<?= (int) $c['id'] ?>" <?= $compteId === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Catégorie
+            <select name="categorie" onchange="this.form.submit()">
+                <option value="" <?= $categorieFilter === '' ? 'selected' : '' ?>>Toutes</option>
+                <option value="a_lettrer" <?= $categorieFilter === 'a_lettrer' ? 'selected' : '' ?>>— À lettrer —</option>
+                <option value="ignore" <?= $categorieFilter === 'ignore' ? 'selected' : '' ?>>— Ne pas lettrer —</option>
+                <?php foreach ($categoriesArbre as $c): $cid = (int) $c['id']; ?>
+                    <option value="<?= $cid ?>" <?= $categorieFilter === (string) $cid ? 'selected' : '' ?>>
+                        <?= str_repeat("\u{00A0}\u{00A0}", (int) $c['profondeur']) ?><?= e($c['libelle']) ?><?= !empty($c['a_enfants']) ? ' (et sous-catégories)' : '' ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <?php if ($axes): ?>
+        <label>Axe
+            <select name="axe" onchange="this.form.submit()">
+                <option value="" <?= $axeFilter === '' ? 'selected' : '' ?>>Tous</option>
+                <option value="sans_axe" <?= $axeFilter === 'sans_axe' ? 'selected' : '' ?>>— Sans axe —</option>
+                <?php foreach ($axes as $ax): ?>
+                    <option value="<?= (int) $ax['id'] ?>" <?= $axeFilter === (string) $ax['id'] ? 'selected' : '' ?>><?= e($axeLabel($ax)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <?php endif; ?>
+        <label class="search-label"><span>Rechercher <span id="search-count" class="muted small"></span></span>
+            <input type="search" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher">
+        </label>
+    </form>
+</div>
 </div>
 <?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
 
@@ -134,45 +175,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     </form>
     <?php endif; ?>
 </div>
-
-<form method="get" class="filters">
-    <input type="hidden" name="p" value="compta_ecritures">
-    <input type="hidden" name="annee" value="<?= $annee ?>">
-    <label>Compte
-        <select name="compte" onchange="this.form.submit()">
-            <option value="0" <?= $compteId === 0 ? 'selected' : '' ?>>Tous les comptes</option>
-            <?php foreach ($comptes as $c): ?>
-                <option value="<?= (int) $c['id'] ?>" <?= $compteId === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-    <label>Catégorie
-        <select name="categorie" onchange="this.form.submit()">
-            <option value="" <?= $categorieFilter === '' ? 'selected' : '' ?>>Toutes</option>
-            <option value="a_lettrer" <?= $categorieFilter === 'a_lettrer' ? 'selected' : '' ?>>— À lettrer —</option>
-            <option value="ignore" <?= $categorieFilter === 'ignore' ? 'selected' : '' ?>>— Ne pas lettrer —</option>
-            <?php foreach ($categoriesArbre as $c): $cid = (int) $c['id']; ?>
-                <option value="<?= $cid ?>" <?= $categorieFilter === (string) $cid ? 'selected' : '' ?>>
-                    <?= str_repeat("\u{00A0}\u{00A0}", (int) $c['profondeur']) ?><?= e($c['libelle']) ?><?= !empty($c['a_enfants']) ? ' (et sous-catégories)' : '' ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-    <?php if ($axes): ?>
-    <label>Axe
-        <select name="axe" onchange="this.form.submit()">
-            <option value="" <?= $axeFilter === '' ? 'selected' : '' ?>>Tous</option>
-            <option value="sans_axe" <?= $axeFilter === 'sans_axe' ? 'selected' : '' ?>>— Sans axe —</option>
-            <?php foreach ($axes as $ax): ?>
-                <option value="<?= (int) $ax['id'] ?>" <?= $axeFilter === (string) $ax['id'] ? 'selected' : '' ?>><?= e($axeLabel($ax)) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-    <?php endif; ?>
-    <label class="search-label"><span>Rechercher <span id="search-count" class="muted small"></span></span>
-        <input type="search" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher">
-    </label>
-</form>
 
 <?php if (!$comptes): ?>
     <p class="muted">Aucun compte bancaire. Commencez par en <a href="?p=compta_comptes">créer un</a> puis <a href="?p=compta_import">importer</a> un export.</p>
@@ -272,7 +274,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php if ($compteId === 0): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <td class="texte-cell" title="<?= e($ecr['texte']) ?>">
                 <?php if (!empty($ecr['facture_id'])): ?>
-                    <a class="ecr-facture-lien" href="?p=facture&id=<?= (int) $ecr['facture_id'] ?>" title="Voir la facture liée"><?= icon('file-text') ?></a>
+                    <a class="ecr-facture-lien" href="?p=facture&id=<?= (int) $ecr['facture_id'] ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
                 <?php endif; ?>
                 <span class="texte-cell-txt" data-summary="<?= e(resumer_texte_postfinance($ecr['texte'])) ?>"><?= e(resumer_texte_postfinance($ecr['texte'])) ?></span>
             </td>

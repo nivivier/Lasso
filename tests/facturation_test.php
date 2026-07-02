@@ -61,21 +61,21 @@ check('préfixe RF', true, str_starts_with($ref1, 'RF'));
 check('référence stable (même numéro → même référence)', $ref1, facturation_generer_reference('2026-001'));
 check('numéros différents → références différentes', true, $ref1 !== facturation_generer_reference('2026-002'));
 
-echo "6) Numérotation annuelle (AAAA-NNN), base en mémoire\n";
+echo "6) Numérotation annuelle (F-AAAA-NNN), base en mémoire\n";
 $pdo = new PDO('sqlite::memory:');
 $pdo->exec('CREATE TABLE factures (id INTEGER PRIMARY KEY, numero TEXT)');
-check('première facture de l\'année', '2026-001', facturation_prochain_numero($pdo, 2026));
-$pdo->exec("INSERT INTO factures (numero) VALUES ('2026-001')");
-check('deuxième facture de l\'année', '2026-002', facturation_prochain_numero($pdo, 2026));
-$pdo->exec("INSERT INTO factures (numero) VALUES ('2026-002')");
-check('nouvelle année → séquence repart à 1', '2027-001', facturation_prochain_numero($pdo, 2027));
+check('première facture de l\'année', 'F-2026-001', facturation_prochain_numero($pdo, 2026));
+$pdo->exec("INSERT INTO factures (numero) VALUES ('F-2026-001')");
+check('deuxième facture de l\'année', 'F-2026-002', facturation_prochain_numero($pdo, 2026));
+$pdo->exec("INSERT INTO factures (numero) VALUES ('F-2026-002')");
+check('nouvelle année → séquence repart à 1', 'F-2027-001', facturation_prochain_numero($pdo, 2027));
 
 // Passage au-delà de 999 : MAX() numérique (CAST), pas un tri texte sur le
-// numéro complet (qui classerait à tort "2026-999" après "2026-1000").
-$pdo->exec("INSERT INTO factures (numero) VALUES ('2026-999')");
-check('999e facture → 1000', '2026-1000', facturation_prochain_numero($pdo, 2026));
-$pdo->exec("INSERT INTO factures (numero) VALUES ('2026-1000')");
-check('1000e facture → 1001 (pas 2026-1000 en boucle)', '2026-1001', facturation_prochain_numero($pdo, 2026));
+// numéro complet (qui classerait à tort "F-2026-999" après "F-2026-1000").
+$pdo->exec("INSERT INTO factures (numero) VALUES ('F-2026-999')");
+check('999e facture → 1000', 'F-2026-1000', facturation_prochain_numero($pdo, 2026));
+$pdo->exec("INSERT INTO factures (numero) VALUES ('F-2026-1000')");
+check('1000e facture → 1001 (pas F-2026-1000 en boucle)', 'F-2026-1001', facturation_prochain_numero($pdo, 2026));
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

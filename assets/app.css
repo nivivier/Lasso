@@ -58,6 +58,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     position: sticky;
     top: 0;
     height: 100vh;
+    z-index: 100; /* passe devant le bandeau d'en-tête (.page-head-band) et son icône */
 }
 .side-brand { padding: 0 4px 18px; text-align: center; }
 .side-logo { width: 100%; max-width: 110px; height: auto; margin: 0 auto; display: block; }
@@ -155,6 +156,38 @@ body.auth-bg {
 .inline-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .td-toggle { padding: 0 0 0 12px; }
 .page-head-title { display: flex; align-items: center; gap: 12px; }
+
+/* Bandeau d'en-tête sticky pleine largeur, sur fond blanc (Fiches de salaire,
+   Écritures, Factures, Paramètres). Le contenu (.page-head à l'intérieur)
+   garde exactement la position/largeur qu'il aurait eue dans .content : seul
+   le fond du bandeau déborde jusqu'aux bords de l'écran, sous la sidebar. */
+.page-head-band {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--card);
+    width: 100vw;
+    margin: -40px 0 24px -208px; /* -208px = largeur sidebar (160) + padding .content (48) */
+    border-bottom: 1px solid var(--line);
+}
+.page-head-band .page-head {
+    max-width: 1120px;
+    margin: 0 0 0 160px; /* replique le décalage de .content après la sidebar */
+    padding: 22px 48px 20px;
+}
+/* Paramètres : les onglets touchent le bas de l'en-tête, pas d'espace en trop. */
+.page-head-band .page-head:has(.param-tabs) { padding-bottom: 0; }
+.page-head-band .filters,
+.page-head-band .param-tabs {
+    flex: 1 1 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
 .inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 .cout-toggle { display: flex; align-items: center; }
@@ -671,6 +704,10 @@ abbr {
     body.nav-open .scrim { opacity: 1; pointer-events: auto; }
 
     .content { padding: 22px 18px; max-width: none; }
+    /* Pas de sidebar en place (tiroir hors écran) : le bandeau n'a plus besoin
+       d'être sticky ni de déborder sous quoi que ce soit. */
+    .page-head-band { position: static; width: auto; margin: 0 -18px 20px; }
+    .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
     .facture-aside { order: 0; }

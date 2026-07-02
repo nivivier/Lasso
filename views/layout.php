@@ -31,7 +31,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     <nav class="side-nav">
         <?php if (module_actif('salaires')): ?>
         <a href="?p=resumes" class="<?= $cur === 'resumes' ? 'on' : '' ?>">
-            <?= icon('bar-chart') ?> Tableau de bord
+            <?= icon('circle-gauge') ?> Tableau de bord
         </a>
         <span class="side-nav-sep">Salaires</span>
         <?php $nbFiches = nb_fiches_a_payer(); ?>
@@ -69,7 +69,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <?php $facturationPages = ['facturation', 'facturation_liste', 'facturation_form', 'facture']; ?>
         <?php $nbRetard = nb_factures_en_retard(); ?>
         <a href="?p=facturation_liste" class="<?= in_array($cur, $facturationPages, true) ? 'on' : '' ?>">
-            <?= icon('file-text') ?> Factures
+            <?= icon('receipt-swiss-franc') ?> Factures
             <?php if ($nbRetard > 0): ?><span class="nav-badge"><?= $nbRetard ?></span><?php endif; ?>
         </a>
         <a href="?p=facturation_debiteurs" class="<?= in_array($cur, ['facturation_debiteurs', 'debiteur'], true) ? 'on' : '' ?>">

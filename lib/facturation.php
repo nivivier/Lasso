@@ -59,7 +59,7 @@ function facturation_sauvegarder_brouillon(
 // donnant le mauvais dernier numéro dès la 1000e facture de l'année.
 function facturation_prochain_numero(PDO $pdo, int $annee): string
 {
-    $prefixe = $annee . '-';
+    $prefixe = 'F-' . $annee . '-';
     $stmt = $pdo->prepare('SELECT MAX(CAST(substr(numero, length(?) + 1) AS INTEGER)) FROM factures WHERE numero LIKE ?');
     $stmt->execute([$prefixe, $prefixe . '%']);
     $dernier = (int) $stmt->fetchColumn();

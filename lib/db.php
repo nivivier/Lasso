@@ -298,6 +298,7 @@ function run_migrations(PDO $pdo): void
         19 => 'migration_19', // ecritures.facture_id (rapprochement facture ↔ écriture bancaire)
         20 => 'migration_20', // index manquants sur factures.statut / ecritures.facture_id
         21 => 'migration_21', // factures.numero : UNIQUE inline → index unique partiel (autorise plusieurs brouillons)
+        22 => 'migration_22', // factures.numero : préfixe "F-" (ex. 2025-001 → F-2025-001)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -832,6 +833,17 @@ function migration_21(PDO $pdo): void
     if ($casse) {
         throw new RuntimeException('migration_21 : clé étrangère cassée après migration — ' . json_encode($casse));
     }
+}
+
+// Migration 22 : préfixe "F-" devant tous les numéros de facture existants
+// (nouveau format F-AAAA-NNN pour les futures factures, voir
+// facturation_prochain_numero()). Ex. 2025-001 → F-2025-001,
+// 2026-H02 → F-2026-H02 (numéros importés depuis l'historique). Idempotente :
+// ignore les brouillons (numero = '') et les numéros déjà préfixés.
+// reference_paiement n'est PAS touchée (historique figé — voir CLAUDE.md).
+function migration_22(PDO $pdo): void
+{
+    $pdo->exec("UPDATE factures SET numero = 'F-' || numero WHERE numero <> '' AND numero NOT LIKE 'F-%'");
 }
 
 function seed_parametres(PDO $pdo): void
