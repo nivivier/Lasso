@@ -214,9 +214,21 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
     if ($logo !== '') {
         $logoPath = realpath(__DIR__ . '/../' . $logo) ?: (__DIR__ . '/../' . $logo);
         $ok = is_file($logoPath) && is_readable($logoPath);
-        if ($ok) {
-            $pdf->Image($logoPath, 15, 15, 0, 18);
-            $logoAffiche = true;
+        $dims = $ok ? @getimagesize($logoPath) : false;
+        $imageResult = null;
+        $imageErreur = '';
+        if ($ok && $dims !== false) {
+            // Largeur/hauteur calculées ici plutôt que laissées à l'auto-détection
+            // de TCPDF (w=0) : élimine une source possible d'échec silencieux côté
+            // TCPDF sur cet hébergeur.
+            $hMm = 18;
+            $wMm = $dims[1] > 0 ? round($hMm * $dims[0] / $dims[1], 2) : $hMm;
+            try {
+                $imageResult = $pdf->Image($logoPath, 15, 15, $wMm, $hMm);
+                $logoAffiche = ($imageResult !== false);
+            } catch (\Throwable $ex) {
+                $imageErreur = $ex->getMessage();
+            }
         }
         // Diagnostic écrit dans data/ (hors webroot, déjà utilisé pour les logs
         // e-mail) plutôt que error_log() : sur hébergement mutualisé, la
@@ -226,10 +238,15 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
         // serveur (droits fichier, open_basedir…) que la lecture disque de TCPDF.
         @file_put_contents(
             dirname(APP_DB_PATH) . '/facturation_pdf_debug.log',
-            '[' . date('c') . '] ' . ($ok ? 'OK' : 'ÉCHEC') . " — param=\"$logo\" chemin_teste=\"$logoPath\""
+            '[' . date('c') . '] ' . ($logoAffiche ? 'OK' : 'ÉCHEC') . " — param=\"$logo\" chemin_teste=\"$logoPath\""
                 . ' file_exists=' . (file_exists($logoPath) ? '1' : '0')
                 . ' is_readable=' . (is_readable($logoPath) ? '1' : '0')
                 . (file_exists($logoPath) ? ' perms=' . substr(sprintf('%o', @fileperms($logoPath)), -4) : '')
+                . ' getimagesize=' . ($dims === false ? 'ECHEC' : ($dims[0] . 'x' . $dims[1] . ' ' . ($dims['mime'] ?? '?')))
+                . ' gd=' . (extension_loaded('gd') ? '1' : '0')
+                . ' imagick=' . (extension_loaded('imagick') ? '1' : '0')
+                . ' Image()_retour=' . var_export($imageResult, true)
+                . ($imageErreur !== '' ? ' exception="' . $imageErreur . '"' : '')
                 . "\n",
             FILE_APPEND
         );
