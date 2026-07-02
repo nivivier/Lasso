@@ -1429,19 +1429,11 @@ function route_resume(): void
 
     $buckets = [];
     $totaux  = $vide;
-    $aPayerListe = []; // fiches encore à payer (pour la section « Salaires à verser »)
     foreach ($fiches as $f) {
         [$cle, $label] = periode_cle($groupe, (int) $f['mois'], (int) $f['annee']);
         if (!isset($buckets[$cle])) {
             $buckets[$cle] = $vide;
             $buckets[$cle]['label'] = $label;
-        }
-        $aPayer     = trim((string) $f['date_paiement']) === '';
-        // Une fiche dont la période commence le mois prochain ou plus tard n'est pas encore « à verser ».
-        $estFutur   = (int) $f['annee'] > (int) date('Y')
-            || ((int) $f['annee'] === (int) date('Y') && (int) $f['mois'] > (int) date('n'));
-        if ($aPayer && !$estFutur) {
-            $aPayerListe[] = $f;
         }
         $chargesSoc = (float) $f['total_deductions'] - (float) $f['ded_impot_source'];
         $vals = [
@@ -1449,7 +1441,6 @@ function route_resume(): void
             'charges_soc' => $chargesSoc,
             'impots'      => (float) $f['ded_impot_source'],
             'net'         => (float) $f['salaire_net'],
-            'reste'       => $aPayer ? (float) $f['salaire_net'] : 0.0,
             'charges_pat' => (float) ($f['total_charges_emp'] ?? 0),
             'cout_emp'    => (float) ($f['cout_total_emp'] ?? 0),
         ];
@@ -1519,14 +1510,6 @@ function route_resume(): void
         ['label' => 'Sous-total S2',    'vals' => $s2,      'type' => 'sous'],
         ['label' => 'Total annuel',     'vals' => $tot,     'type' => 'total'],
     ];
-
-    // Factures émises (dont en retard, un sous-état d'« émise ») restant à encaisser.
-    $facturesEmises = module_actif('facturation')
-        ? db()->query(
-            "SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id
-             WHERE f.statut = 'emise' ORDER BY f.date_echeance"
-        )->fetchAll()
-        : [];
 
     render('resume', [
         'annee'     => $annee,
