@@ -213,15 +213,26 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
     $logoAffiche = false;
     if ($logo !== '') {
         $logoPath = realpath(__DIR__ . '/../' . $logo) ?: (__DIR__ . '/../' . $logo);
-        if (is_file($logoPath) && is_readable($logoPath)) {
+        $ok = is_file($logoPath) && is_readable($logoPath);
+        if ($ok) {
             $pdf->Image($logoPath, 15, 15, 0, 18);
             $logoAffiche = true;
-        } else {
-            // Logo référencé en base mais illisible depuis le PHP-CLI/FPM (droits,
-            // open_basedir…) — la vue HTML l'affiche via une requête HTTP du
-            // navigateur, ce qui ne passe pas par les mêmes restrictions serveur.
-            error_log("[facturation] logo PDF introuvable ou illisible : $logoPath");
         }
+        // Diagnostic écrit dans data/ (hors webroot, déjà utilisé pour les logs
+        // e-mail) plutôt que error_log() : sur hébergement mutualisé, la
+        // destination du journal d'erreurs PHP par défaut est souvent introuvable
+        // depuis le panneau d'hébergement. La vue HTML affiche le logo via une
+        // requête HTTP du navigateur, qui ne passe pas par les mêmes restrictions
+        // serveur (droits fichier, open_basedir…) que la lecture disque de TCPDF.
+        @file_put_contents(
+            dirname(APP_DB_PATH) . '/facturation_pdf_debug.log',
+            '[' . date('c') . '] ' . ($ok ? 'OK' : 'ÉCHEC') . " — param=\"$logo\" chemin_teste=\"$logoPath\""
+                . ' file_exists=' . (file_exists($logoPath) ? '1' : '0')
+                . ' is_readable=' . (is_readable($logoPath) ? '1' : '0')
+                . (file_exists($logoPath) ? ' perms=' . substr(sprintf('%o', @fileperms($logoPath)), -4) : '')
+                . "\n",
+            FILE_APPEND
+        );
     }
     $pdf->SetY($logoAffiche ? 15 + 18 + 4 : 15);
 
