@@ -1370,7 +1370,30 @@ function periode_cle(string $groupe, int $mois, int $annee): array
     };
 }
 
+// Tableau de bord : salaires à verser + factures émises.
 function route_resumes(): void
+{
+    require_login();
+    $aujAnnee = (int) date('Y');
+    $aujMois  = (int) date('n');
+    $aPayer = [];
+    foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
+        $estFutur = (int) $f['annee'] > $aujAnnee || ((int) $f['annee'] === $aujAnnee && (int) $f['mois'] > $aujMois);
+        if (!$estFutur) {
+            $aPayer[] = $f;
+        }
+    }
+    $facturesEmises = module_actif('facturation')
+        ? db()->query(
+            "SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id
+             WHERE f.statut = 'emise' ORDER BY f.date_echeance"
+        )->fetchAll()
+        : [];
+    render('resumes', ['aPayer' => $aPayer, 'facturesEmises' => $facturesEmises], 'Tableau de bord');
+}
+
+// Page « Résumé » : résumé complet (par période) + charges totales.
+function route_resume(): void
 {
     require_login();
     $annee     = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
@@ -1497,7 +1520,15 @@ function route_resumes(): void
         ['label' => 'Total annuel',     'vals' => $tot,     'type' => 'total'],
     ];
 
-    render('resumes', [
+    // Factures émises (dont en retard, un sous-état d'« émise ») restant à encaisser.
+    $facturesEmises = module_actif('facturation')
+        ? db()->query(
+            "SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id
+             WHERE f.statut = 'emise' ORDER BY f.date_echeance"
+        )->fetchAll()
+        : [];
+
+    render('resume', [
         'annee'     => $annee,
         'annees'    => $annees,
         'employes'  => $employes,
@@ -1506,10 +1537,9 @@ function route_resumes(): void
         'buckets'   => $buckets,
         'totaux'    => $totaux,
         'champs'    => $champs,
-        'aPayer'    => $aPayerListe,
         'retenues'  => $retenues,
         'retCols'   => $retCols,
         'retNb'     => $retNb,
         'retAnnee'  => $retAnnee,
-    ], 'Tableau de bord');
+    ], 'Résumé');
 }

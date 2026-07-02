@@ -70,6 +70,7 @@ $handlers = [
 if (module_actif('salaires')) {
     $handlers += [
         'resumes'      => 'route_resumes',
+        'resume'       => 'route_resume',
         'employes'     => 'route_employes',
         'employe_voir' => 'route_employe_voir',
         'employe'      => 'route_employe',

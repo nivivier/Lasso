@@ -42,6 +42,9 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=employes" class="<?= in_array($cur, ['employes', 'employe', 'employe_voir']) ? 'on' : '' ?>">
             <?= icon('users') ?> Employés
         </a>
+        <a href="?p=resume" class="<?= $cur === 'resume' ? 'on' : '' ?>">
+            <?= icon('bar-chart') ?> Résumé
+        </a>
         <?php endif; ?>
         <?php if (module_actif('compta')): ?>
         <span class="side-nav-sep">Comptabilité</span>
