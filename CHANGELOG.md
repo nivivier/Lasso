@@ -9,17 +9,35 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié] — canal test
 
+## [1.1.0] — 2026-07-02
+
 ### Ajouté
+- **Module facturation** : débiteurs, factures **QR-facture suisse** (zone de paiement
+  normée + code QR, `vendor/` committé), imports JSON/CSV, marquage manuel « payée »
+  avec liaison à une écriture bancaire, PDF rapproché de la vue HTML.
+- **Architecture modulaire** : modules activables/désactivables indépendamment
+  (Fiches de salaire, Comptabilité, Comptabilité analytique, Facturation — dépendances
+  gérées, ex. l'analytique nécessite la comptabilité), sans perte de données à la
+  désactivation/réactivation.
 - **Mise à jour en un clic** depuis Paramètres → Mises à jour : téléchargement de
   l'archive du canal et remplacement des fichiers en PHP pur (pour les hébergements
   sans `exec()`/`git`), avec sauvegarde de la base et journal `data/maj.log`.
 - **Diagnostic du serveur** (téléchargement / décompression / écriture) déterminant
-  la méthode de mise à jour possible.
-- Détection de version compatible **dépôt privé** (jeton `MAJ_TOKEN` optionnel).
+  la méthode de mise à jour possible ; détection de version compatible **dépôt privé**
+  (jeton `MAJ_TOKEN` optionnel) et détection du recul de version au niveau commit.
+- Nouvelle page **Résumé** (résumé complet + charges totales) sur le tableau de bord.
 
 ### Modifié
+- **En-têtes** des pages Fiches de salaire, Écritures, Factures et Paramètres :
+  bandeau sticky pleine largeur sur fond blanc (non sticky en mobile) ; titres,
+  boutons et filtres/onglets regroupés dans l'en-tête.
 - Paramètres réorganisés : « Unités de temps » fusionnées dans **Salaires horaires** ;
-  onglet « Taux des déductions » renommé **Taux**.
+  onglet « Taux des déductions » renommé **Taux** ; titres de section déplacés à
+  l'intérieur des cartes.
+- Écritures : recherche sur le texte complet (pas seulement le résumé), tableau
+  scrollable horizontalement sur petit écran.
+- Comptabilité analytique : masque les axes inactifs sur la page principale.
+- Icônes de navigation actualisées (Tableau de bord, Débiteurs).
 
 ## [1.0.0] — 2026-06-29
 
