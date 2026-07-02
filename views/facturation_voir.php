@@ -81,33 +81,33 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
             <?php endif; ?>
         </p>
     </div>
-    <p class="mb-24"><strong><?= e(param('employeur_nom')) ?></strong><br>
-        <?= e(param('employeur_rue')) ?><br>
-        <?= e(param('employeur_npa')) ?></p>
     <div class="ps-title">
         <h2>Facture</h2>
         <div class="ps-period"><?= $numeroAffiche ?></div>
     </div>
-    <div class="grid2">
+    <div class="ps-parties mb-24">
         <div>
-            <h3 class="sub">Débiteur</h3>
-            <p><?= e($f['debiteur_nom']) ?><br>
+            <h3>Émise par</h3>
+            <p><strong><?= e(param('employeur_nom')) ?></strong><br>
+                <?= e(param('employeur_rue')) ?><br>
+                <?= e(param('employeur_npa')) ?></p>
+        </div>
+        <div>
+            <h3>Débiteur</h3>
+            <p><strong><a href="?p=debiteur&id=<?= (int) $f['debiteur_id'] ?>"><?= e($f['debiteur_nom']) ?></a></strong><br>
                 <?= e($f['adresse_rue']) ?><?= $f['adresse_rue'] ? '<br>' : '' ?>
                 <?= e(trim($f['adresse_npa'] . ' ' . $f['adresse_localite'])) ?></p>
         </div>
-        <div>
-            <h3 class="sub">Détails</h3>
-            <p>
-                Émission : <?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?><br>
-                Échéance : <?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?><br>
-                Compte : <?= e($f['compte_libelle'] ?? '—') ?><br>
-                <?php if ($f['reference_paiement'] !== ''): ?>Référence : <?= e($f['reference_paiement']) ?><br><?php endif; ?>
-            </p>
-        </div>
     </div>
+    <p class="muted small">
+        Émission : <?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?><br>
+        Échéance : <?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?><br>
+        Compte : <?= e($f['compte_libelle'] ?? '—') ?><br>
+        <?php if ($f['reference_paiement'] !== ''): ?>Référence : <?= e($f['reference_paiement']) ?><br><?php endif; ?>
+    </p>
 
     <?php if (trim((string) $f['communication']) !== ''): ?>
-        <p class="muted small"><?= nl2br(e($f['communication'])) ?></p>
+        <p><strong><?= nl2br(e($f['communication'])) ?></strong></p>
     <?php endif; ?>
 
     <table class="list">

@@ -240,6 +240,7 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
 {
     $logo = param_logo('clair');
     $logoAffiche = false;
+    $hLogoMm = 9;
     if ($logo !== '') {
         $logoPath = realpath(__DIR__ . '/../' . $logo) ?: (__DIR__ . '/../' . $logo);
         $ok = is_file($logoPath) && is_readable($logoPath);
@@ -253,10 +254,9 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
             // Largeur/hauteur calculées ici plutôt que laissées à l'auto-détection
             // de TCPDF (w=0) : élimine une source possible d'échec silencieux côté
             // TCPDF sur cet hébergeur.
-            $hMm = 18;
-            $wMm = $dims[1] > 0 ? round($hMm * $dims[0] / $dims[1], 2) : $hMm;
+            $wMm = $dims[1] > 0 ? round($hLogoMm * $dims[0] / $dims[1], 2) : $hLogoMm;
             try {
-                $imageResult = $pdf->Image($cheminImage, 15, 15, $wMm, $hMm);
+                $imageResult = $pdf->Image($cheminImage, 15, 15, $wMm, $hLogoMm);
                 $logoAffiche = ($imageResult !== false);
             } catch (\Throwable $ex) {
                 $imageErreur = $ex->getMessage();
@@ -287,33 +287,60 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
             FILE_APPEND
         );
     }
-    $pdf->SetY($logoAffiche ? 15 + 18 + 4 : 15);
+    $pdf->SetY($logoAffiche ? 15 + $hLogoMm + 4 : 15);
 
-    $pdf->SetFont('helvetica', 'B', 14);
-    $pdf->Cell(0, 8, (string) param('employeur_nom'), 0, 1);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(0, 5, (string) param('employeur_rue'), 0, 1);
-    $pdf->Cell(0, 5, (string) param('employeur_npa'), 0, 1);
-    $pdf->Ln(8);
+    // Titre : « Facture » à gauche, numéro à droite, ligne de séparation —
+    // reprend .ps-title de la vue HTML.
+    $numeroAffiche = $facture['numero'] !== '' ? (string) $facture['numero'] : '(brouillon)';
+    $pdf->SetFont('helvetica', 'B', 17);
+    $pdf->SetTextColor(30, 36, 48); // --ink
+    $pdf->Cell(90, 9, 'Facture', 0, 0, 'L');
+    $pdf->Cell(90, 9, $numeroAffiche, 0, 1, 'R');
+    $pdf->SetLineStyle(['width' => 0.4, 'color' => [30, 36, 48]]);
+    $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
+    $pdf->Ln(5);
 
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 8, 'Facture ' . $facture['numero'], 0, 1);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(0, 5, "Date d'émission : " . date('d.m.Y', strtotime((string) $facture['date_emission'])), 0, 1);
-    $pdf->Cell(0, 5, "Échéance : " . date('d.m.Y', strtotime((string) $facture['date_echeance'])), 0, 1);
-    $pdf->Ln(6);
+    // « Émise par » / « Débiteur » sur deux colonnes — reprend .ps-parties
+    // (identique au bloc Employeur/Employé d'un décompte de salaire).
+    $yParties = $pdf->GetY();
+    $pdf->SetFont('helvetica', 'B', 8);
+    $pdf->SetTextColor(107, 114, 128); // --muted
+    $pdf->Cell(85, 4, 'ÉMISE PAR', 0, 0);
+    $pdf->SetX(110);
+    $pdf->Cell(85, 4, 'DÉBITEUR', 0, 1);
+    $pdf->SetTextColor(30, 36, 48);
 
+    $pdf->SetXY(15, $yParties + 5);
     $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->Cell(0, 5, (string) $debiteur['nom'], 0, 1);
+    $pdf->Cell(85, 5, (string) param('employeur_nom'), 0, 2);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(85, 5, (string) param('employeur_rue'), 0, 2);
+    $pdf->Cell(85, 5, (string) param('employeur_npa'), 0, 2);
+    $yGauche = $pdf->GetY();
+
+    $pdf->SetXY(110, $yParties + 5);
+    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->Cell(85, 5, (string) $debiteur['nom'], 0, 2);
     $pdf->SetFont('helvetica', '', 10);
     if (trim((string) $debiteur['adresse_rue']) !== '') {
-        $pdf->Cell(0, 5, (string) $debiteur['adresse_rue'], 0, 1);
+        $pdf->Cell(85, 5, (string) $debiteur['adresse_rue'], 0, 2);
     }
-    $pdf->Cell(0, 5, trim($debiteur['adresse_npa'] . ' ' . $debiteur['adresse_localite']), 0, 1);
-    $pdf->Ln(8);
+    $pdf->Cell(85, 5, trim($debiteur['adresse_npa'] . ' ' . $debiteur['adresse_localite']), 0, 2);
+    $yDroite = $pdf->GetY();
+
+    $pdf->SetXY(15, max($yGauche, $yDroite) + 4);
+
+    // Émission/échéance seulement : compte et référence figurent déjà sur le
+    // talon QR généré plus bas, inutile de les répéter ici.
+    $pdf->SetFont('helvetica', '', 9);
+    $pdf->SetTextColor(107, 114, 128);
+    $pdf->Cell(0, 5, 'Émission : ' . date('d.m.Y', strtotime((string) $facture['date_emission'])), 0, 1);
+    $pdf->Cell(0, 5, 'Échéance : ' . date('d.m.Y', strtotime((string) $facture['date_echeance'])), 0, 1);
+    $pdf->SetTextColor(30, 36, 48);
+    $pdf->Ln(4);
 
     if (trim((string) ($facture['communication'] ?? '')) !== '') {
-        $pdf->SetFont('helvetica', 'I', 10);
+        $pdf->SetFont('helvetica', 'B', 10);
         $pdf->MultiCell(0, 5, (string) $facture['communication'], 0, 'L');
         $pdf->Ln(4);
     }
