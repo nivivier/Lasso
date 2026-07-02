@@ -630,6 +630,11 @@ abbr {
 .ecr-liee-box .check { margin-bottom: 6px; }
 .ecr-liee-box p { margin: 0; }
 
+/* Ligne logo + statut en haut du cadre de la facture */
+.facture-head-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+.facture-head-row .ps-head { margin-bottom: 0; }
+.facture-statut { margin: 0 0 0 auto; }
+
 /* =================== Responsive : tiroir + burger =================== */
 @media (max-width: 800px) {
     .side-brand { justify-content: space-between; display: flex; align-items: center; }

@@ -69,10 +69,18 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
 <div class="fiche-wrapper">
 <div class="fiche-main">
 <div class="card">
-    <?php $logoFacture = param_logo('clair'); ?>
-    <?php if ($logoFacture !== ''): ?>
-        <div class="ps-head"><img src="<?= e($logoFacture) ?>" alt="" class="ps-logo"></div>
-    <?php endif; ?>
+    <div class="facture-head-row">
+        <?php $logoFacture = param_logo('clair'); ?>
+        <?php if ($logoFacture !== ''): ?>
+            <div class="ps-head"><img src="<?= e($logoFacture) ?>" alt="" class="ps-logo"></div>
+        <?php endif; ?>
+        <p class="facture-statut">
+            <?= facturation_badge($f) ?>
+            <?php if (trim((string) ($f['envoyee_le'] ?? '')) !== ''): ?>
+                <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime($f['envoyee_le']))) ?>"><?= icon('check') ?> Envoyée</span>
+            <?php endif; ?>
+        </p>
+    </div>
     <p class="mb-24"><strong><?= e(param('employeur_nom')) ?></strong><br>
         <?= e(param('employeur_rue')) ?><br>
         <?= e(param('employeur_npa')) ?></p>
@@ -80,11 +88,6 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         <h2>Facture</h2>
         <div class="ps-period"><?= $numeroAffiche ?></div>
     </div>
-    <p><?= facturation_badge($f) ?>
-        <?php if (trim((string) ($f['envoyee_le'] ?? '')) !== ''): ?>
-            <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime($f['envoyee_le']))) ?>"><?= icon('check') ?> Envoyée</span>
-        <?php endif; ?>
-    </p>
     <div class="grid2">
         <div>
             <h3 class="sub">Débiteur</h3>
