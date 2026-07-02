@@ -132,7 +132,7 @@ function facturation_badge(array $facture): string
         'payee'     => '<span class="badge ok-badge">Payée</span>',
         'en_retard' => '<span class="badge warn-badge">En retard</span>',
         'annulee'   => '<span class="badge muted-badge">Annulée</span>',
-        'emise'     => '<span class="badge">Émise</span>',
+        'emise'     => '<span class="badge emise-badge">Émise</span>',
         default     => '<span class="badge muted-badge">Brouillon</span>',
     };
 }

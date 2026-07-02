@@ -414,6 +414,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
+.badge.emise-badge { margin-left: 0; }
 .col-icon { width: 36px; }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
 .list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
