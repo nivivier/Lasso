@@ -910,7 +910,7 @@ function route_compta_axes(): void
 // Ventilation du compte de résultat par axe analytique pour une année.
 function calculer_ventilation_analytique(int $annee, array $plan): array
 {
-    $axes = db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll();
+    $axes = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
     if (!$axes) return [];
     // $annee === 0 = toutes les années
     if ($annee) {
@@ -962,7 +962,7 @@ function compta_analyse_data(?int $annee): array
     // null = pas de paramètre → année la plus récente ; 0 = toutes les années
     if ($annee === null) $annee = (int) ($annees[0] ?? date('Y'));
     $plan  = compta_plan_map();
-    $axes  = db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll();
+    $axes  = db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll();
     $ventilation = calculer_ventilation_analytique($annee, $plan);
 
     // Détail par axe : pour chaque axe, toutes les écritures groupées par catégorie.
