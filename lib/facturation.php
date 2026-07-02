@@ -206,6 +206,35 @@ function facturation_construire_qrbill(array $facture, array $debiteur, array $c
     return $qrBill;
 }
 
+// Aplatit un PNG/GIF/WebP avec transparence sur fond blanc dans un fichier
+// temporaire (à supprimer par l'appelant). Contourne un bug d'extraction du
+// canal alpha par TCPDF sur certaines versions de GD côté hébergeur : Image()
+// « réussit » silencieusement (aucune exception, retour non-false) mais rien
+// ne s'affiche — observé en production alors que le même fichier s'affiche
+// normalement en local. Retourne null si le fichier ne peut pas être décodé
+// (repli sur le fichier original par l'appelant).
+function facturation_logo_aplati(string $path, string $mime): ?string
+{
+    $im = match ($mime) {
+        'image/png'  => @imagecreatefrompng($path),
+        'image/gif'  => @imagecreatefromgif($path),
+        'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+        default      => false, // JPEG n'a pas de canal alpha : rien à aplatir
+    };
+    if ($im === false) {
+        return null;
+    }
+    $w = imagesx($im);
+    $h = imagesy($im);
+    $plat = imagecreatetruecolor($w, $h);
+    imagefill($plat, 0, 0, (int) imagecolorallocate($plat, 255, 255, 255));
+    imagealphablending($plat, true);
+    imagecopy($plat, $im, 0, 0, 0, 0, $w, $h);
+    $tmp = (string) tempnam(sys_get_temp_dir(), 'lasso_logo_') . '.png';
+    imagepng($plat, $tmp);
+    return $tmp;
+}
+
 // En-tête de la facture PDF : logo/employeur, titre + dates, débiteur, communication.
 function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): void
 {
@@ -217,17 +246,23 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
         $dims = $ok ? @getimagesize($logoPath) : false;
         $imageResult = null;
         $imageErreur = '';
+        $tmpAplati = null;
         if ($ok && $dims !== false) {
+            $tmpAplati = facturation_logo_aplati($logoPath, (string) ($dims['mime'] ?? ''));
+            $cheminImage = $tmpAplati ?? $logoPath;
             // Largeur/hauteur calculées ici plutôt que laissées à l'auto-détection
             // de TCPDF (w=0) : élimine une source possible d'échec silencieux côté
             // TCPDF sur cet hébergeur.
             $hMm = 18;
             $wMm = $dims[1] > 0 ? round($hMm * $dims[0] / $dims[1], 2) : $hMm;
             try {
-                $imageResult = $pdf->Image($logoPath, 15, 15, $wMm, $hMm);
+                $imageResult = $pdf->Image($cheminImage, 15, 15, $wMm, $hMm);
                 $logoAffiche = ($imageResult !== false);
             } catch (\Throwable $ex) {
                 $imageErreur = $ex->getMessage();
+            }
+            if ($tmpAplati !== null) {
+                @unlink($tmpAplati);
             }
         }
         // Diagnostic écrit dans data/ (hors webroot, déjà utilisé pour les logs
@@ -245,6 +280,7 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
                 . ' getimagesize=' . ($dims === false ? 'ECHEC' : ($dims[0] . 'x' . $dims[1] . ' ' . ($dims['mime'] ?? '?')))
                 . ' gd=' . (extension_loaded('gd') ? '1' : '0')
                 . ' imagick=' . (extension_loaded('imagick') ? '1' : '0')
+                . ' aplati=' . ($tmpAplati !== null ? '1' : '0')
                 . ' Image()_retour=' . var_export($imageResult, true)
                 . ($imageErreur !== '' ? ' exception="' . $imageErreur . '"' : '')
                 . "\n",
