@@ -73,7 +73,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?php if ($nbRetard > 0): ?><span class="nav-badge"><?= $nbRetard ?></span><?php endif; ?>
         </a>
         <a href="?p=facturation_debiteurs" class="<?= in_array($cur, ['facturation_debiteurs', 'debiteur'], true) ? 'on' : '' ?>">
-            <?= icon('users') ?> Débiteurs
+            <?= icon('building-2') ?> Débiteurs
         </a>
         <?php endif; ?>
         <?php endif; ?>
