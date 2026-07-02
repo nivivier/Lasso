@@ -624,6 +624,11 @@ abbr {
 .facture-aside h3.sub { margin-bottom: 4px; }
 .facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 13px; background: #fff; }
 .facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+/* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */
+.ecr-search .cat-search-list { left: auto; right: 0; width: max(100%, 340px); max-width: min(420px, calc(100vw - 32px)); }
+.ecr-search .cat-search-list li { white-space: normal; display: flex; flex-direction: column; gap: 2px; }
+.ecr-opt-top { font-weight: 600; }
+.ecr-opt-texte { font-size: 11.5px; color: var(--muted); }
 /* Regroupe visuellement recherche + filtre montant + compteur, pour bien montrer que ces contrôles sont liés */
 .ecr-liee-box { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; }
 .ecr-liee-box .ecr-search { margin-bottom: 10px; }

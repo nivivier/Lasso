@@ -135,7 +135,7 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
         <h2>Paiement</h2>
-        <input type="date" name="payee_le" value="<?= e($f['payee_le'] ?: date('Y-m-d')) ?>" class="paiement-date">
+        <input type="date" name="payee_le" id="payee-le" value="<?= e($f['payee_le']) ?>" class="paiement-date">
         <?php if ($ecrituresLibres): ?>
             <div class="ecr-liee-box">
                 <h3 class="sub no-mt">Écriture liée</h3>
@@ -144,11 +144,18 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
                     <input type="hidden" name="ecriture_id" id="ecriture-select" value="<?= $ecritureActuelleId ?: '' ?>">
                     <ul class="cat-search-list" hidden role="listbox">
                         <li data-val="">— aucune, juste marquer payée —</li>
-                        <?php foreach ($ecrituresLibres as $e): $libelle = $libelleEcr($e); ?>
+                        <?php foreach ($ecrituresLibres as $e):
+                            $libelle = $libelleEcr($e);
+                            $ligneHaut = date('d.m.Y', strtotime($e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' CHF';
+                        ?>
                             <li data-val="<?= (int) $e['id'] ?>"
                                 data-montant="<?= (float) $e['montant'] ?>"
+                                data-date="<?= e($e['date_op']) ?>"
                                 data-label="<?= e($libelle) ?>"
-                                data-recherche="<?= e(mb_strtolower($libelle, 'UTF-8')) ?>"><?= e($libelle) ?></li>
+                                data-recherche="<?= e(mb_strtolower($libelle, 'UTF-8')) ?>">
+                                <span class="ecr-opt-top"><?= e($ligneHaut) ?></span>
+                                <span class="ecr-opt-texte"><?= e(mb_substr((string) $e['texte'], 0, 90)) ?></span>
+                            </li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
@@ -174,6 +181,7 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
     const items = Array.from(list.querySelectorAll('li'));
     const memeMontant = document.getElementById('ecriture-meme-montant');
     const compteur = document.getElementById('ecriture-compte');
+    const datePaiement = document.getElementById('payee-le');
     const montantFacture = <?= json_encode(round((float) $f['montant_total'], 2)) ?>;
 
     function filtrer(q) {
@@ -202,6 +210,7 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
             e.preventDefault();
             hidden.value = li.dataset.val;
             input.value = li.dataset.val !== '' ? li.dataset.label : '';
+            if (li.dataset.date) { datePaiement.value = li.dataset.date; }
             list.hidden = true;
         });
     });
