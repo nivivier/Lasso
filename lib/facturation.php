@@ -210,13 +210,20 @@ function facturation_construire_qrbill(array $facture, array $debiteur, array $c
 function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): void
 {
     $logo = param_logo('clair');
-    $logoPath = $logo !== '' ? __DIR__ . '/../' . $logo : '';
-    if ($logoPath !== '' && is_file($logoPath)) {
-        $pdf->Image($logoPath, 15, 15, 0, 18);
-        $pdf->SetY(15 + 18 + 4);
-    } else {
-        $pdf->SetY(15);
+    $logoAffiche = false;
+    if ($logo !== '') {
+        $logoPath = realpath(__DIR__ . '/../' . $logo) ?: (__DIR__ . '/../' . $logo);
+        if (is_file($logoPath) && is_readable($logoPath)) {
+            $pdf->Image($logoPath, 15, 15, 0, 18);
+            $logoAffiche = true;
+        } else {
+            // Logo référencé en base mais illisible depuis le PHP-CLI/FPM (droits,
+            // open_basedir…) — la vue HTML l'affiche via une requête HTTP du
+            // navigateur, ce qui ne passe pas par les mêmes restrictions serveur.
+            error_log("[facturation] logo PDF introuvable ou illisible : $logoPath");
+        }
     }
+    $pdf->SetY($logoAffiche ? 15 + 18 + 4 : 15);
 
     $pdf->SetFont('helvetica', 'B', 14);
     $pdf->Cell(0, 8, (string) param('employeur_nom'), 0, 1);
@@ -260,13 +267,19 @@ function facturation_pdf_lignes(TCPDF $pdf, array $lignes, array $facture): void
     $pdf->Cell(35, 7, 'Montant', 1, 1, 'R', true);
     $pdf->SetFont('helvetica', '', 9);
     foreach ($lignes as $l) {
-        if ($pdf->GetY() > 175) {
+        $desc  = (string) $l['description'];
+        $rowH  = max(6, $pdf->getStringHeight(95, $desc));
+        if ($pdf->GetY() + $rowH > 175) {
             $pdf->AddPage();
         }
-        $pdf->Cell(95, 6, (string) $l['description'], 1, 0, 'L');
-        $pdf->Cell(20, 6, nombre_court((float) $l['quantite']), 1, 0, 'R');
-        $pdf->Cell(30, 6, facturation_chf_pdf((float) $l['prix_unitaire']), 1, 0, 'R');
-        $pdf->Cell(35, 6, facturation_chf_pdf((float) $l['montant']), 1, 1, 'R');
+        $x = $pdf->GetX();
+        $y = $pdf->GetY();
+        $pdf->MultiCell(95, $rowH, $desc, 1, 'L', false, 0, $x, $y);
+        $pdf->SetXY($x + 95, $y);
+        $pdf->Cell(20, $rowH, nombre_court((float) $l['quantite']), 1, 0, 'R');
+        $pdf->Cell(30, $rowH, facturation_chf_pdf((float) $l['prix_unitaire']), 1, 0, 'R');
+        $pdf->Cell(35, $rowH, facturation_chf_pdf((float) $l['montant']), 1, 1, 'R');
+        $pdf->SetXY($x, $y + $rowH);
     }
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->Cell(145, 7, 'Total (CHF)', 1, 0, 'R', true);
