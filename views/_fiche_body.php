@@ -5,7 +5,8 @@ $estImpot  = $f['procedure'] === 'Ordinaire avec impôt à la source';
 
 $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
-$hasAxe = empty($impression) && !empty($axes ?? []);
+$axes = $axes ?? []; // non fourni en vue impression/aperçu
+$hasAxe = empty($impression) && !empty($axes);
 // Génère le <td> de l'axe analytique pour une ligne.
 // Le div (texte+crayon) et le select sont TOUJOURS dans le DOM — on bascule hidden
 // pour éviter les insertions DOM qui causent des ghost-clicks sur mobile.
