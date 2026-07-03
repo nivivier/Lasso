@@ -77,8 +77,19 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         </a>
         <?php endif; ?>
         <?php endif; ?>
+        <?php if (module_actif('evenements')): ?>
+        <span class="side-nav-sep">Événements</span>
+        <?php $nbSuisaManquant = nb_evenements_suisa_manquants(); ?>
+        <a href="?p=evenements_liste" class="<?= in_array($cur, ['evenements', 'evenements_liste', 'evenement'], true) ? 'on' : '' ?>">
+            <?= icon('calendar') ?> Événements
+            <?php if ($nbSuisaManquant > 0): ?><span class="nav-badge"><?= $nbSuisaManquant ?></span><?php endif; ?>
+        </a>
+        <a href="?p=spectacles" class="<?= in_array($cur, ['spectacles', 'spectacle'], true) ? 'on' : '' ?>">
+            <?= icon('music') ?> Spectacles
+        </a>
+        <?php endif; ?>
         <span class="side-nav-sep"></span>
-        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres_modules', 'maj', 'parametres']; ?>
+        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>

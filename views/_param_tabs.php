@@ -10,6 +10,9 @@ if (module_actif('salaires')) {
     $tabs['taux']          = 'Taux';
     $tabs['taux_horaires'] = 'Salaires horaires';
 }
+if (module_actif('evenements')) {
+    $tabs['parametres_evenements'] = 'Événements';
+}
 $tabs['export'] = 'Exporter';
 
 // Importer : une seule page couvrant fiches + factures + écritures (selon

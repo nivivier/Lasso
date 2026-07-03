@@ -115,11 +115,17 @@ function route_facturation_form(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
     $delaiDefaut = (int) param('facturation_delai_jours_defaut', '30');
+    // Facture créée depuis un événement (bouton « Créer une facture liée »,
+    // module événements) : evenement_id porté par l'URL à la création, ou déjà
+    // figé sur la facture en modification.
+    $evenementId = ($_GET['evenement_id'] ?? $_POST['evenement_id'] ?? '') !== ''
+        ? (int) ($_GET['evenement_id'] ?? $_POST['evenement_id'])
+        : (isset($facture['evenement_id']) ? (int) $facture['evenement_id'] ?: null : null);
 
-    $renderForm = function (?string $err) use ($facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut) {
+    $renderForm = function (?string $err) use ($facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut, $evenementId) {
         render('facturation_form', [
             'facture' => $facture, 'id' => $id, 'debiteurs' => $debiteurs, 'comptes' => $comptes, 'axes' => $axes,
-            'delaiDefaut' => $delaiDefaut, 'err' => $err, 'post' => $_POST,
+            'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'err' => $err, 'post' => $_POST,
         ], $id ? 'Modifier la facture' : 'Nouvelle facture');
     };
 
@@ -174,7 +180,7 @@ function route_facturation_form(): void
         $debiteurId = (int) db()->lastInsertId();
     }
 
-    $factureId = facturation_sauvegarder_brouillon($id ?: null, $debiteurId, $compteId, $delaiJours, $communication, $lignes);
+    $factureId = facturation_sauvegarder_brouillon($id ?: null, $debiteurId, $compteId, $delaiJours, $communication, $lignes, $evenementId);
     redirect('facture', ['id' => $factureId]);
 }
 
@@ -200,11 +206,15 @@ function route_facture(): void
         $stmt->execute([$id]);
         $ecrituresLibres = $stmt->fetchAll();
     }
+    // Liste des événements pour le picker « Événement lié » (lib/routes_evenements.php,
+    // toujours chargé — voir index.php — mais n'a de sens que si le module est actif).
+    $evenementsListe = module_actif('evenements') ? evenements_pour_selection() : [];
     render('facturation_voir', [
         'facture' => $facture,
         'lignes'  => facturation_lignes_de($id),
         'statutEffectif' => facturation_statut_effectif($facture),
         'ecrituresLibres' => $ecrituresLibres,
+        'evenementsListe' => $evenementsListe,
         'saved'   => $_GET['ok'] ?? null,
     ], 'Facture ' . ($facture['numero'] ?: '(brouillon)'));
 }

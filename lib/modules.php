@@ -30,6 +30,11 @@ const MODULES = [
         'description' => 'Débiteurs, factures (QR-facture suisse), rapprochement automatique des paiements',
         'requires'    => ['compta'],
     ],
+    'evenements' => [
+        'label'       => 'Événements',
+        'description' => 'Dates de concert/spectacle, suivi SUISA, export public JSON/iCal',
+        'requires'    => [],
+    ],
 ];
 
 // Cœur de l'application : jamais désactivable, listé à titre indicatif dans

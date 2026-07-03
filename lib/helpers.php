@@ -251,6 +251,38 @@ function handle_logo_upload(string $field): ?string
     return 'uploads/' . $name;
 }
 
+// Traite l'upload d'un PDF (ex. feuille SUISA pré-remplie d'un spectacle).
+// Même logique que handle_logo_upload() mais validation par mime réel (finfo)
+// plutôt que getimagesize(). Renvoie le chemin web relatif (uploads/…) si un
+// fichier valide a été envoyé, null si aucun fichier, ou lève RuntimeException.
+function handle_pdf_upload(string $field): ?string
+{
+    $f = $_FILES[$field] ?? null;
+    if ($f === null || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null; // aucun fichier → inchangé
+    }
+    if ($f['error'] !== UPLOAD_ERR_OK) {
+        throw new RuntimeException("Échec de l'envoi du fichier (code {$f['error']}).");
+    }
+    if ($f['size'] > 2 * 1024 * 1024) {
+        throw new RuntimeException('Fichier trop lourd (2 Mo maximum).');
+    }
+    $mime = @finfo_file(finfo_open(FILEINFO_MIME_TYPE), $f['tmp_name']);
+    if ($mime !== 'application/pdf') {
+        throw new RuntimeException('Format non supporté (PDF uniquement).');
+    }
+    $dir = __DIR__ . '/../uploads';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+    $name = $field . '_' . bin2hex(random_bytes(6)) . '.pdf';
+    if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
+        throw new RuntimeException("Impossible d'enregistrer le fichier.");
+    }
+    @chmod($dir . '/' . $name, 0644);
+    return 'uploads/' . $name;
+}
+
 // Sépare « 1213 Lancy » en ['1213', 'Lancy'] (NPA + localité).
 function split_npa(string $s): array
 {
@@ -535,6 +567,8 @@ function icon(string $name): string
         'wand'      => '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
         'lock'      => '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
         'circle-gauge' => '<path d="M15.6 2.7a10 10 0 1 0 5.7 5.7"/><circle cx="12" cy="12" r="2"/><path d="M13.4 10.6 19 5"/>',
+        'calendar'  => '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+        'music'     => '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
     ];
     $p = $paths[$name] ?? '';
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '

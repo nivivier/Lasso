@@ -28,20 +28,21 @@ function facturation_calc_total(array $lignes): float
 // + lignes, dans une transaction. $id doit déjà être vérifié statut='brouillon'
 // par l'appelant (une facture émise ne se modifie plus). Retourne l'id de la facture.
 function facturation_sauvegarder_brouillon(
-    ?int $id, int $debiteurId, ?int $compteId, int $delaiJours, string $communication, array $lignes
+    ?int $id, int $debiteurId, ?int $compteId, int $delaiJours, string $communication, array $lignes,
+    ?int $evenementId = null
 ): int {
     $montantTotal = facturation_calc_total($lignes);
 
     db()->beginTransaction();
     if ($id) {
-        db()->prepare("UPDATE factures SET debiteur_id=?, compte_bancaire_id=?, delai_jours=?, communication=?, montant_total=? WHERE id=? AND statut='brouillon'")
-            ->execute([$debiteurId, $compteId, $delaiJours, $communication, $montantTotal, $id]);
+        db()->prepare("UPDATE factures SET debiteur_id=?, compte_bancaire_id=?, delai_jours=?, communication=?, montant_total=?, evenement_id=? WHERE id=? AND statut='brouillon'")
+            ->execute([$debiteurId, $compteId, $delaiJours, $communication, $montantTotal, $evenementId, $id]);
         db()->prepare('DELETE FROM facture_lignes WHERE facture_id = ?')->execute([$id]);
         $factureId = $id;
     } else {
-        db()->prepare("INSERT INTO factures (debiteur_id, compte_bancaire_id, delai_jours, communication, montant_total, statut)
-                        VALUES (?, ?, ?, ?, ?, 'brouillon')")
-            ->execute([$debiteurId, $compteId, $delaiJours, $communication, $montantTotal]);
+        db()->prepare("INSERT INTO factures (debiteur_id, compte_bancaire_id, delai_jours, communication, montant_total, evenement_id, statut)
+                        VALUES (?, ?, ?, ?, ?, ?, 'brouillon')")
+            ->execute([$debiteurId, $compteId, $delaiJours, $communication, $montantTotal, $evenementId]);
         $factureId = (int) db()->lastInsertId();
     }
     $insL = db()->prepare('INSERT INTO facture_lignes (facture_id, description, quantite, prix_unitaire, montant, axe_analytique_id, ordre) VALUES (?,?,?,?,?,?,?)');

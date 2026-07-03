@@ -1,6 +1,6 @@
 <?php
 /** @var ?array $facture */ /** @var int $id */ /** @var array $debiteurs */ /** @var array $comptes */
-/** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?string $err */ /** @var ?array $post */
+/** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?string $err */ /** @var ?array $post */
 $edit = $id > 0;
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 
@@ -73,6 +73,10 @@ $renderRow = function (array $l) use ($axes, $axeOpts, $preselect) {
 <form method="post" action="?p=facturation_form" class="card form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int) $id ?>"><?php endif; ?>
+    <?php if ($evenementId): ?>
+        <input type="hidden" name="evenement_id" value="<?= (int) $evenementId ?>">
+        <p class="muted small">Facture liée à <a href="?p=evenement&id=<?= (int) $evenementId ?>">l'événement</a>.</p>
+    <?php endif; ?>
 
     <div class="grid2">
         <label>Débiteur

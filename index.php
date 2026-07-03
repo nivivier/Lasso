@@ -11,6 +11,7 @@ require_once __DIR__ . '/lib/modules.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/routes_facturation.php';
+require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/maj.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
@@ -143,6 +144,24 @@ if (module_actif('facturation')) {
         'facture_email'         => 'route_facture_email',
         'facture_rappel'        => 'route_facture_rappel',
         'import_factures'       => 'route_import_factures',
+    ];
+}
+
+if (module_actif('evenements')) {
+    $handlers += [
+        'evenements'         => 'route_evenements',
+        'evenements_liste'   => 'route_evenements_liste',
+        'evenement'          => 'route_evenement',
+        'evenement_delete'   => 'route_evenement_delete',
+        'evenement_facture_lier'   => 'route_evenement_facture_lier',
+        'evenement_facture_delier' => 'route_evenement_facture_delier',
+        'facture_evenement_lier'   => 'route_facture_evenement_lier',
+        'spectacles'         => 'route_spectacles',
+        'spectacle'          => 'route_spectacle',
+        'spectacle_delete'   => 'route_spectacle_delete',
+        'parametres_evenements' => 'route_parametres_evenements',
+        'evenements_json'    => 'route_evenements_json',
+        'evenements_ical'    => 'route_evenements_ical',
     ];
 }
 

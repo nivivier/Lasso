@@ -299,6 +299,7 @@ function run_migrations(PDO $pdo): void
         20 => 'migration_20', // index manquants sur factures.statut / ecritures.facture_id
         21 => 'migration_21', // factures.numero : UNIQUE inline → index unique partiel (autorise plusieurs brouillons)
         22 => 'migration_22', // factures.numero : préfixe "F-" (ex. 2025-001 → F-2025-001)
+        23 => 'migration_23', // module événements : spectacles, evenements, liens employés/fiches, factures.evenement_id
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -844,6 +845,67 @@ function migration_21(PDO $pdo): void
 function migration_22(PDO $pdo): void
 {
     $pdo->exec("UPDATE factures SET numero = 'F-' || numero WHERE numero <> '' AND numero NOT LIKE 'F-%'");
+}
+
+// Migration 23 : module événements — spectacles (dont la feuille SUISA
+// pré-remplie en PDF), evenements (statut/visibilité, suivi SUISA), liens
+// many-to-many vers employés et fiches, et colonne evenement_id sur factures
+// (facture créée depuis un événement, cf. SPEC_EVENEMENTS.md).
+function migration_23(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS spectacles (
+            id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom                    TEXT NOT NULL,
+            notes                  TEXT NOT NULL DEFAULT '',
+            suisa_feuille_fichier  TEXT NOT NULL DEFAULT '',
+            cree_le                TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- statut : 'option' | 'confirme' | 'annule' — indépendant de la visibilité
+        -- (une date public peut être annulée : elle reste affichée, marquée « Annulé »).
+        CREATE TABLE IF NOT EXISTS evenements (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            spectacle_id       INTEGER REFERENCES spectacles(id) ON DELETE SET NULL,
+            date               TEXT NOT NULL,
+            statut             TEXT NOT NULL DEFAULT 'option',
+            visibilite         TEXT NOT NULL DEFAULT 'non_repertorie',
+            ville              TEXT NOT NULL DEFAULT '',
+            salle              TEXT NOT NULL DEFAULT '',
+            festival           TEXT NOT NULL DEFAULT '',
+            lien_infos         TEXT NOT NULL DEFAULT '',
+            remarques          TEXT NOT NULL DEFAULT '',
+            suisa_applicable   INTEGER NOT NULL DEFAULT 1,
+            suisa_envoye_a     TEXT NOT NULL DEFAULT '',
+            suisa_envoye_le    TEXT NOT NULL DEFAULT '',
+            suisa_decompte_le  TEXT NOT NULL DEFAULT '',
+            cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS evenement_employes (
+            evenement_id INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+            employe_id   INTEGER NOT NULL REFERENCES employes(id) ON DELETE CASCADE,
+            PRIMARY KEY (evenement_id, employe_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS evenement_fiches (
+            evenement_id INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+            fiche_id     INTEGER NOT NULL REFERENCES fiches(id) ON DELETE CASCADE,
+            PRIMARY KEY (evenement_id, fiche_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_evenements_date ON evenements(date);
+        CREATE INDEX IF NOT EXISTS idx_evenements_spectacle ON evenements(spectacle_id);
+    ");
+
+    $cols = array_column($pdo->query('PRAGMA table_info(factures)')->fetchAll(), 'name');
+    if (!in_array('evenement_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE factures ADD COLUMN evenement_id INTEGER REFERENCES evenements(id) ON DELETE SET NULL');
+    }
+
+    $ins = $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)');
+    $ins->execute(['suisa_delai_decompte_mois', '12']);
+    $ins->execute(['evenements_export_token', '']);
 }
 
 function seed_parametres(PDO $pdo): void

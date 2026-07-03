@@ -1,6 +1,6 @@
 <?php
 /** @var array $facture */ /** @var array $lignes */ /** @var string $statutEffectif */ /** @var ?string $saved */
-/** @var array $ecrituresLibres */
+/** @var array $ecrituresLibres */ /** @var array $evenementsListe */
 $f = $facture;
 $brouillon = $f['statut'] === 'brouillon';
 $peutAnnuler = !in_array($f['statut'], ['payee', 'annulee'], true);
@@ -128,6 +128,29 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         <tfoot><tr><td colspan="3" class="num strong">Total</td><td class="num strong"><?= chf((float) $f['montant_total']) ?></td><?php if ($aDesAxes): ?><td></td><?php endif; ?></tr></tfoot>
     </table>
 </div>
+<?php if (module_actif('evenements')): ?>
+<div class="card">
+    <h3 class="sub no-mt">Événement lié</h3>
+    <?php if ($f['evenement_id']): ?>
+        <p class="muted small"><a href="?p=evenement&id=<?= (int) $f['evenement_id'] ?>">Voir l'événement lié</a></p>
+    <?php else: ?>
+        <p class="muted small">Aucun événement lié.</p>
+    <?php endif; ?>
+    <form method="post" action="?p=facture_evenement_lier" class="linked-add">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
+        <select name="evenement_id">
+            <option value="">— aucun —</option>
+            <?php foreach ($evenementsListe as $ev): ?>
+                <option value="<?= (int) $ev['id'] ?>" <?= (int) $f['evenement_id'] === (int) $ev['id'] ? 'selected' : '' ?>>
+                    <?= e(date('d.m.Y', strtotime($ev['date']))) ?><?= $ev['spectacle_nom'] ? ' — ' . e($ev['spectacle_nom']) : '' ?><?= $ev['ville'] ? ' (' . e($ev['ville']) . ')' : '' ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <button type="submit" class="btn ghost btn-sm">Mettre à jour le lien</button>
+    </form>
+</div>
+<?php endif; ?>
 </div>
 <?php if ($peutPayer): ?>
 <aside class="fiche-aside facture-aside">
