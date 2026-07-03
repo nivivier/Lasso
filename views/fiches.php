@@ -18,8 +18,10 @@
             </select>
         </form>
     </div>
-    <a class="btn ghost" href="?p=employes"><?= icon('users') ?> Employés</a>
-    <a class="btn" href="?p=fiche_new"><?= icon('file-plus') ?> Nouvelle fiche</a>
+    <div class="head-actions">
+        <a class="btn ghost" href="?p=employes"><?= icon('users') ?> Employés</a>
+        <a class="btn" href="?p=fiche_new"><?= icon('file-plus') ?> Nouvelle fiche</a>
+    </div>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="fiches">
