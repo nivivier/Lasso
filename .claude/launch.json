@@ -4,8 +4,8 @@
     {
       "name": "lasso",
       "runtimeExecutable": "php",
-      "runtimeArgs": ["-S", "127.0.0.1:8766", "-t", "."],
-      "port": 8766
+      "runtimeArgs": ["-S", "127.0.0.1:8767", "-t", "."],
+      "port": 8767
     }
   ]
 }

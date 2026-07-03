@@ -63,10 +63,11 @@ $rendre = function (array $row, int $prof) use (&$rendre, $byParent, $sommesParA
 
 $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $rendre, $hasAmount): string {
     $nodesRacine = array_filter($byParent[0] ?? [], fn($r) => $r['sens'] === $sens);
+    $colspan = $nbCols + 1 + ($nbCols > 1 ? 1 : 0);
+    $h = '<tr class="cr-section"><th colspan="' . $colspan . '">' . e($titre) . '</th></tr>';
     $hasAny = false;
     foreach ($nodesRacine as $r) { if ($hasAmount((int) $r['id'])) { $hasAny = true; break; } }
-    if (!$hasAny) return '';
-    $h = '<tr class="cr-section"><th colspan="' . ($nbCols + 1 + ($nbCols > 1 ? 1 : 0)) . '">' . e($titre) . '</th></tr>';
+    if (!$hasAny) return $h . '<tr><td colspan="' . $colspan . '" class="muted small" style="padding-left:16px">—</td></tr>';
     foreach ($nodesRacine as $r) $h .= $rendre($r, 0);
     return $h;
 };
