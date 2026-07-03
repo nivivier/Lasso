@@ -110,6 +110,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     <tbody>
         <?= $blocSens('produit', 'Recettes') ?>
         <?= $ligneTotale('Total des recettes', 'produits', 'cr-total') ?>
+        <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 + ($nbCols > 1 ? 1 : 0) ?>"></td></tr>
         <?= $blocSens('charge', 'Dépenses') ?>
         <?= $ligneTotale('Total des dépenses', 'charges', 'cr-total') ?>
         <?= $ligneTotale('Résultat', 'resultat', 'cr-resultat') ?>

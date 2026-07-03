@@ -215,7 +215,7 @@ h3.sub.no-mt { margin-top: 0; }
 .filters input:not([type="checkbox"]):not([type="radio"]),
 .cat-cell select, .bulk-bar select {
     font: inherit; font-size: 14.5px; color: var(--ink); width: 100%;
-    padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff;
     transition: border-color .15s, box-shadow .15s;
 }
 .form input:not([type="checkbox"]):not([type="radio"]),
@@ -295,7 +295,9 @@ h3.sub.no-mt { margin-top: 0; }
 /* Cat-search dans la barre de filtres — même hauteur que les <select> */
 .filtre-cat-search { position: relative; min-width: 200px; }
 .filtre-cat-search .cat-search-input { padding: 9px 10px; font-size: 13.5px; }
-.filters input[type="search"] { padding: 9px 34px 9px 10px; font-size: 13.5px; }
+/* :not() en plus pour égaler la spécificité de la règle générale .filters input:not(...):not(...)
+   (sinon son padding shorthand écraserait le padding-right réservé à l'icône ci-dessous). */
+.filters input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 9px 34px 9px 10px; font-size: 13.5px; }
 /* Icône loupe de tous les champs de recherche (type=search) : un seul point de
    modification (ce data-URI, repris de l'icône « search » de icon()) pour
    changer l'icône partout dans l'application. */
@@ -794,7 +796,7 @@ abbr {
 .compta-cr td { padding: 5px 12px; }
 .compta-cr.cr-flat td { padding: var(--row-pad); }
 .compta-cr .cr-section th { background: var(--primary-tint); text-transform: uppercase; font-size: 11.5px; letter-spacing: .05em; color: var(--primary-d); text-align: left; padding: 8px 12px; }
-.compta-cr tr.cr-total + tr.cr-section th { padding-top: 22px; }
+.compta-cr tr.cr-spacer td { height: 14px; padding: 0; background: var(--bg); border-top: none; border-bottom: none; }
 .compta-cr .cr-groupe td { font-weight: 600; color: var(--ink); }
 .compta-cr.cr-flat .cr-groupe td { font-weight: 400; }
 .compta-cr.cr-flat .cr-groupe td.num:not(.strong) { font-size: 13px; }
