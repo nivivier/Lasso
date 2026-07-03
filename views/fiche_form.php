@@ -140,11 +140,6 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeO
         si la procédure de l'employé est « Ordinaire avec impôt à la source ».
     </p>
 
-    <div class="grid2">
-        <label>Date de paiement (optionnel)
-            <input name="date_paiement" type="date" value="<?= $pv('date_paiement') ?>">
-        </label>
-    </div>
     <div class="form-actions">
         <button type="submit"><?= $edit ? 'Enregistrer les modifications' : 'Calculer et créer la fiche' ?></button>
         <a class="btn ghost" href="?p=fiches">Annuler</a>

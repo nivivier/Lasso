@@ -9,8 +9,9 @@
             <input type="hidden" name="statut" value="<?= e($statut) ?>">
             <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php
-                $opts = array_unique(array_merge([$annee, (int) date('Y')], array_map('intval', $annees)));
+                $opts = array_filter(array_unique(array_merge([(int) date('Y')], array_map('intval', $annees))), fn($y) => $y > 0);
                 rsort($opts);
                 foreach ($opts as $a): ?>
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>

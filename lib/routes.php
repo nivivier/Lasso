@@ -520,6 +520,7 @@ function route_import_fiches(): void
         'errFiches' => $err, 'resultatsFiches' => $resultats, 'resumeFiches' => $resume, 'simuleFiches' => $simule,
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => null,
+        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
     ], 'Importer');
 }
 
@@ -657,8 +658,12 @@ function route_fiches(): void
     $employeId = (int) filtre_persistant('employe_id', 'fiches_employe', 0);
     $sql    = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
                FROM fiches f JOIN employes e ON e.id = f.employe_id
-               WHERE f.annee = ?';
-    $params = [$annee];
+               WHERE 1=1';
+    $params = [];
+    if ($annee > 0) { // 0 = « Toutes les années »
+        $sql .= ' AND f.annee = ?';
+        $params[] = $annee;
+    }
     if ($statut === 'apayer') {
         $sql .= " AND (f.date_paiement IS NULL OR f.date_paiement = '')";
     } elseif ($statut === 'payees') {
@@ -668,7 +673,7 @@ function route_fiches(): void
         $sql .= ' AND f.employe_id = ?';
         $params[] = $employeId;
     }
-    $sql  .= ' ORDER BY f.mois DESC, e.nom';
+    $sql  .= $annee > 0 ? ' ORDER BY f.mois DESC, e.nom' : ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
     $stmt  = db()->prepare($sql);
     $stmt->execute($params);
     $fiches = $stmt->fetchAll();
@@ -1377,10 +1382,12 @@ function route_resumes(): void
     $aujAnnee = (int) date('Y');
     $aujMois  = (int) date('n');
     $aPayer = [];
-    foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
-        $estFutur = (int) $f['annee'] > $aujAnnee || ((int) $f['annee'] === $aujAnnee && (int) $f['mois'] > $aujMois);
-        if (!$estFutur) {
-            $aPayer[] = $f;
+    if (module_actif('salaires')) {
+        foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
+            $estFutur = (int) $f['annee'] > $aujAnnee || ((int) $f['annee'] === $aujAnnee && (int) $f['mois'] > $aujMois);
+            if (!$estFutur) {
+                $aPayer[] = $f;
+            }
         }
     }
     $facturesEmises = module_actif('facturation')
