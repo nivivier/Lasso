@@ -157,6 +157,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
             <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
             <?= $blocSens('charge', 'Dépenses') ?>
             <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
+            <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
             <?= compta_ligne_total('Résultat de l\'année', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
         </tbody>
     </table>
