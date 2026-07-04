@@ -64,14 +64,14 @@ $dash_svg = function (array $series): string {
         $o  .= '<line x1="' . $ml . '" y1="' . $y . '" x2="' . ($W - $mr) . '" y2="' . $y
              . '" stroke="' . $col . '" stroke-width="' . $w . '"/>';
         $o  .= '<text x="' . ($ml - 6) . '" y="' . ($y + 4) . '" text-anchor="end"'
-             . ' font-size="9" fill="#6b7280" font-family="inherit">' . $fmtY((float) $v) . '</text>';
+             . ' font-size="10" fill="#6b7280" font-family="inherit">' . $fmtY((float) $v) . '</text>';
     }
 
     // Étiquettes X (années)
     foreach ($annees as $i => $a) {
         $x  = round($xOf($i), 1);
         $o .= '<text x="' . $x . '" y="' . ($H - $mb + 16) . '" text-anchor="middle"'
-            . ' font-size="9.5" fill="#6b7280" font-family="inherit">' . (int) $a . '</text>';
+            . ' font-size="10.5" fill="#6b7280" font-family="inherit">' . (int) $a . '</text>';
         // Tick vertical
         $o .= '<line x1="' . $x . '" y1="' . ($mt + $ph) . '" x2="' . $x . '" y2="' . ($mt + $ph + 4)
             . '" stroke="#e8e9f1" stroke-width="1"/>';
@@ -117,7 +117,7 @@ $dash_svg = function (array $series): string {
         $o .= '<line x1="' . ($x - 14) . '" y1="' . $ly . '" x2="' . ($x - 2) . '" y2="' . $ly
             . '" stroke="' . $col . '" stroke-width="2"' . $da . '/>';
         $o .= '<circle cx="' . ($x - 8) . '" cy="' . $ly . '" r="2.5" fill="' . $col . '"/>';
-        $o .= '<text x="' . $x . '" y="' . ($ly + 4) . '" font-size="9" fill="#6b7280"'
+        $o .= '<text x="' . $x . '" y="' . ($ly + 4) . '" font-size="10" fill="#6b7280"'
             . ' font-family="inherit">' . $label . '</text>';
     }
 
