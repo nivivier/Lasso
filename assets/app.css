@@ -335,9 +335,10 @@ input[type="search"] {
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
 /* Grille de taux : autant de colonnes que la largeur le permet (≈150px/champ) */
 .grid-taux { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 22px; }
-/* Tableau de bord : tableaux côte à côte si la largeur le permet, sinon empilés
-   (auto-fit + colonne unique qui s'étire s'il n'y a qu'un seul bloc). */
-.dash-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 32px 40px; align-items: start; }
+/* Tableau de bord : deux colonnes indépendantes via flexbox.
+   Chaque .dash-col empile ses pods verticalement sans attendre la hauteur de l'autre. */
+.dash-cols { display: flex; gap: 40px; align-items: flex-start; }
+.dash-col { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 32px; }
 .dash-chart-card { padding: 16px 20px 12px; }
 .dash-chart { width: 100%; height: auto; display: block; }
 
