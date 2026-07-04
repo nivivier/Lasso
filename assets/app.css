@@ -338,8 +338,7 @@ input[type="search"] {
 /* Tableau de bord : tableaux côte à côte si la largeur le permet, sinon empilés
    (auto-fit + colonne unique qui s'étire s'il n'y a qu'un seul bloc). */
 .dash-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 32px 40px; align-items: start; }
-.dash-chart-card { padding: 20px 24px 16px; margin-bottom: 32px; }
-.dash-chart-card .section-head { margin-bottom: 4px; }
+.dash-chart-card { padding: 16px 20px 12px; }
 .dash-chart { width: 100%; height: auto; display: block; }
 
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
