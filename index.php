@@ -66,11 +66,11 @@ $handlers = [
     'export'        => 'route_export',
     'maj'           => 'route_maj',
     'backup'        => 'route_backup',
+    'resumes'       => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours actif.
 ];
 
 if (module_actif('salaires')) {
     $handlers += [
-        'resumes'      => 'route_resumes',
         'resume'       => 'route_resume',
         'employes'     => 'route_employes',
         'employe_voir' => 'route_employe_voir',
@@ -99,7 +99,6 @@ if (module_actif('compta')) {
     $handlers += [
         'compta'           => 'route_compta',
         'compta_plan'      => 'route_compta_plan',
-        'compta_comptes'   => 'route_compta_comptes',
         'compta_import'    => 'route_compta_import',
         'compta_ecritures' => 'route_compta_ecritures',
         'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
@@ -109,6 +108,13 @@ if (module_actif('compta')) {
         'compta_ecritures_csv'  => 'route_compta_ecritures_csv',
         'import_ecritures'      => 'route_import_ecritures',
     ];
+}
+
+// Comptes bancaires : partagés entre Comptabilité (relevés, lettrage) et
+// Facturation (IBAN créancier de la QR-facture) — accessible dès que l'un des
+// deux modules est actif, pas seulement Comptabilité.
+if (module_actif('compta') || module_actif('facturation')) {
+    $handlers['compta_comptes'] = 'route_compta_comptes';
 }
 
 if (module_actif('analytique')) {
@@ -162,6 +168,7 @@ if (module_actif('evenements')) {
         'parametres_evenements' => 'route_parametres_evenements',
         'evenements_json'    => 'route_evenements_json',
         'evenements_ical'    => 'route_evenements_ical',
+        'import_evenements'  => 'route_import_evenements',
     ];
 }
 

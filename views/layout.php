@@ -29,10 +29,10 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <nav class="side-nav">
-        <?php if (module_actif('salaires')): ?>
         <a href="?p=resumes" class="<?= $cur === 'resumes' ? 'on' : '' ?>">
             <?= icon('circle-gauge') ?> Tableau de bord
         </a>
+        <?php if (module_actif('salaires')): ?>
         <span class="side-nav-sep">Salaires</span>
         <?php $nbFiches = nb_fiches_a_payer(); ?>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
@@ -64,6 +64,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('layers') ?> Analyse
         </a>
         <?php endif; ?>
+        <?php endif; ?>
         <?php if (module_actif('facturation')): ?>
         <span class="side-nav-sep">Facturation</span>
         <?php $facturationPages = ['facturation', 'facturation_liste', 'facturation_form', 'facture']; ?>
@@ -75,7 +76,6 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=facturation_debiteurs" class="<?= in_array($cur, ['facturation_debiteurs', 'debiteur'], true) ? 'on' : '' ?>">
             <?= icon('building-2') ?> Débiteurs
         </a>
-        <?php endif; ?>
         <?php endif; ?>
         <?php if (module_actif('evenements')): ?>
         <span class="side-nav-sep">Événements</span>

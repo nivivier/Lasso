@@ -683,6 +683,9 @@ abbr {
 /* Aside "Marquer comme payée" (facture) : même style que la sidebar fiche, un peu plus large pour le champ écriture */
 .facture-aside { flex-basis: 260px; }
 .facture-aside h3.sub { margin-bottom: 4px; }
+/* Formulaire « Événement lié » : trop étroit pour la ligne select+bouton horizontale par défaut de .linked-add. */
+.facture-aside .linked-add { flex-direction: column; align-items: stretch; gap: 8px; }
+.facture-aside .linked-add select { width: 100%; }
 .facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 13px; background: #fff; }
 .facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 /* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */

@@ -24,7 +24,13 @@
                 <?= !$d['adresse_rue'] && !$d['adresse_npa'] ? '—' : '' ?>
             </td>
             <td class="muted small"><?= $d['email'] ? e($d['email']) : '—' ?></td>
-            <td><?= (int) $d['nb_factures'] ?></td>
+            <td>
+                <?php if ((int) $d['nb_factures'] > 0): ?>
+                    <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>" onclick="event.stopPropagation()"><?= (int) $d['nb_factures'] ?></a>
+                <?php else: ?>
+                    0
+                <?php endif; ?>
+            </td>
             <td>
                 <?php if ((int) $d['nb_factures'] === 0): ?>
                     <form method="post" action="?p=debiteur_delete" onclick="event.stopPropagation()"

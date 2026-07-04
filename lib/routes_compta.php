@@ -413,11 +413,19 @@ function route_compta_comptes(): void
             redirect('compta_comptes', ['err' => 'used']);
         }
     }
+    // Page partagée entre Comptabilité et Facturation (voir index.php) : le
+    // lien de retour pointe vers le module d'où l'on peut raisonnablement
+    // venir, pas vers Comptes annuels si Comptabilité est désactivée.
+    $retour = module_actif('compta')
+        ? ['href' => '?p=compta_bilan', 'label' => 'Comptes annuels']
+        : ['href' => '?p=facturation_liste', 'label' => 'Facturation'];
+
     render('compta_comptes', [
         'comptes' => compta_comptes(),
         'err'     => $err,
         'saved'   => isset($_GET['ok']),
         'flagErr' => $_GET['err'] ?? null,
+        'retour'  => $retour,
     ], 'Comptabilité — Comptes bancaires');
 }
 
@@ -515,6 +523,7 @@ function route_import_ecritures(): void
         'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => $msg,
+        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
     ], 'Importer');
 }
 

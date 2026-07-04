@@ -1,4 +1,5 @@
-<?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */ ?>
+<?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */
+/** @var bool $avecEvenements */ ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -16,7 +17,8 @@
         </form>
     </div>
     <div class="head-actions">
-        <a class="btn ghost" href="?p=facturation_debiteurs"><?= icon('users') ?> <span class="lbl">Débiteurs</span></a>
+        <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
+        <a class="btn ghost btn-sm" href="?p=facturation_debiteurs"><?= icon('users') ?> <span class="lbl">Débiteurs</span></a>
         <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?> Nouvelle facture</a>
     </div>
 
@@ -30,6 +32,9 @@
                 <?php endforeach; ?>
             </select>
         </label>
+        <label class="search-label"><span>Rechercher <span id="facturation-search-count" class="muted small"></span></span>
+            <input type="search" id="facturation-search" placeholder="Numéro, débiteur, montant, statut…" autocomplete="off" aria-label="Rechercher" value="<?= e($_GET['q'] ?? '') ?>">
+        </label>
     </form>
 </div>
 </div>
@@ -39,14 +44,25 @@
 <?php else: ?>
 <div class="table-scroll">
 <table class="list list-wide">
-    <thead><tr><th>Numéro</th><th>Débiteur</th><th>Émission</th><th>Échéance</th><th class="num">Montant</th><th>Statut</th></tr></thead>
+    <thead><tr>
+        <th>Numéro</th><th>Débiteur</th><th>Émission</th><th>Échéance</th>
+        <?php if ($avecEvenements): ?><th>Événement</th><?php endif; ?>
+        <th class="num">Montant</th><th>Statut</th>
+    </tr></thead>
     <tbody>
     <?php foreach ($factures as $f): ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $f['id'] ?>">
             <td><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></td>
-            <td><?= e($f['debiteur_nom']) ?></td>
-            <td><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
-            <td><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
+            <td><strong><?= e($f['debiteur_nom']) ?></strong></td>
+            <td class="muted small"><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
+            <td class="muted small"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
+            <?php if ($avecEvenements): ?>
+                <td class="muted small">
+                    <?php if (!empty($f['evenement_date'])): ?>
+                        <?= e(date('d.m.Y', strtotime($f['evenement_date']))) ?><?= $f['spectacle_nom'] ? ' — ' . e($f['spectacle_nom']) : '' ?>
+                    <?php else: ?>—<?php endif; ?>
+                </td>
+            <?php endif; ?>
             <td class="num strong"><?= chf((float) $f['montant_total']) ?></td>
             <td><?= facturation_badge($f) ?></td>
         </tr>
@@ -54,4 +70,26 @@
     </tbody>
 </table>
 </div>
+<script>
+(function () {
+    const search = document.getElementById('facturation-search');
+    const count  = document.getElementById('facturation-search-count');
+    const rows   = Array.from(document.querySelectorAll('.list-wide tbody tr'));
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (search) {
+        const apply = () => {
+            const q = norm(search.value.trim());
+            let visibles = 0;
+            rows.forEach(r => {
+                const ok = q === '' || norm(r.textContent).includes(q);
+                r.style.display = ok ? '' : 'none';
+                if (ok) visibles++;
+            });
+            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affichée(s)';
+        };
+        search.addEventListener('input', apply);
+        if (search.value.trim() !== '') apply();
+    }
+})();
+</script>
 <?php endif; ?>

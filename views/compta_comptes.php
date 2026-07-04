@@ -1,8 +1,9 @@
 <?php
 /** @var array $comptes */ /** @var ?string $err */ /** @var bool $saved */ /** @var ?string $flagErr */
+/** @var array $retour */
 ?>
 <div class="page-head page-head-sub">
-    <?= lien_retour('?p=compta_bilan', 'Comptes annuels') ?>
+    <?= lien_retour($retour['href'], $retour['label']) ?>
     <h1>Comptes bancaires</h1>
 </div>
 <?php if ($saved): ?><p class="ok flash">Compte bancaire enregistré.</p><?php endif; ?>

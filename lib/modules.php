@@ -27,8 +27,8 @@ const MODULES = [
     ],
     'facturation' => [
         'label'       => 'Facturation',
-        'description' => 'Débiteurs, factures (QR-facture suisse), rapprochement automatique des paiements',
-        'requires'    => ['compta'],
+        'description' => 'Débiteurs, factures (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
+        'requires'    => [],
     ],
     'evenements' => [
         'label'       => 'Événements',
@@ -82,14 +82,9 @@ function set_modules_actifs(array $ids): void
         ->execute(['modules_actifs', implode(',', $ids)]);
 }
 
-// Route d'atterrissage par défaut, selon les modules actifs.
+// Route d'atterrissage par défaut : le tableau de bord fait partie du cœur,
+// toujours accessible quels que soient les modules actifs.
 function route_defaut(): string
 {
-    if (module_actif('salaires')) {
-        return 'resumes';
-    }
-    if (module_actif('compta')) {
-        return 'compta_ecritures';
-    }
-    return 'compte';
+    return 'resumes';
 }

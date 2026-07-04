@@ -128,32 +128,10 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         <tfoot><tr><td colspan="3" class="num strong">Total</td><td class="num strong"><?= chf((float) $f['montant_total']) ?></td><?php if ($aDesAxes): ?><td></td><?php endif; ?></tr></tfoot>
     </table>
 </div>
-<?php if (module_actif('evenements')): ?>
-<div class="card">
-    <h3 class="sub no-mt">Événement lié</h3>
-    <?php if ($f['evenement_id']): ?>
-        <p class="muted small"><a href="?p=evenement&id=<?= (int) $f['evenement_id'] ?>">Voir l'événement lié</a></p>
-    <?php else: ?>
-        <p class="muted small">Aucun événement lié.</p>
-    <?php endif; ?>
-    <form method="post" action="?p=facture_evenement_lier" class="linked-add">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
-        <select name="evenement_id">
-            <option value="">— aucun —</option>
-            <?php foreach ($evenementsListe as $ev): ?>
-                <option value="<?= (int) $ev['id'] ?>" <?= (int) $f['evenement_id'] === (int) $ev['id'] ? 'selected' : '' ?>>
-                    <?= e(date('d.m.Y', strtotime($ev['date']))) ?><?= $ev['spectacle_nom'] ? ' — ' . e($ev['spectacle_nom']) : '' ?><?= $ev['ville'] ? ' (' . e($ev['ville']) . ')' : '' ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit" class="btn ghost btn-sm">Mettre à jour le lien</button>
-    </form>
 </div>
-<?php endif; ?>
-</div>
-<?php if ($peutPayer): ?>
+<?php if ($peutPayer || module_actif('evenements')): ?>
 <aside class="fiche-aside facture-aside">
+    <?php if ($peutPayer): ?>
     <form method="post" action="?p=facture_payee" class="paiement-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
@@ -191,6 +169,28 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         <?php endif; ?>
         <button type="submit" class="btn"><?= icon('check') ?> <?= $f['statut'] === 'payee' ? 'Enregistrer' : 'Marquer comme payée' ?></button>
     </form>
+    <?php endif; ?>
+    <?php if (module_actif('evenements')): ?>
+        <h2>Événement lié</h2>
+        <?php if ($f['evenement_id']): ?>
+            <p class="muted small"><a href="?p=evenement&id=<?= (int) $f['evenement_id'] ?>">Voir l'événement lié</a></p>
+        <?php else: ?>
+            <p class="muted small">Aucun événement lié.</p>
+        <?php endif; ?>
+        <form method="post" action="?p=facture_evenement_lier" class="linked-add">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
+            <select name="evenement_id">
+                <option value="">— aucun —</option>
+                <?php foreach ($evenementsListe as $ev): ?>
+                    <option value="<?= (int) $ev['id'] ?>" <?= (int) $f['evenement_id'] === (int) $ev['id'] ? 'selected' : '' ?>>
+                        <?= e(date('d.m.Y', strtotime($ev['date']))) ?><?= $ev['spectacle_nom'] ? ' — ' . e($ev['spectacle_nom']) : '' ?><?= $ev['ville'] ? ' (' . e($ev['ville']) . ')' : '' ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn ghost btn-sm">Mettre à jour le lien</button>
+        </form>
+    <?php endif; ?>
 </aside>
 <?php endif; ?>
 </div>

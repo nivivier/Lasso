@@ -66,7 +66,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts, $preselect) {
 </div>
 
 <?php if (!$comptes): ?>
-    <p class="muted">Aucun compte bancaire. Ajoutez-en un dans <a href="?p=compta_comptes">Comptabilité → Comptes bancaires</a> d'abord.</p>
+    <p class="muted">Aucun compte bancaire. Ajoutez-en un dans <a href="?p=compta_comptes">Comptes bancaires</a> d'abord.</p>
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
@@ -147,7 +147,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts, $preselect) {
     </label>
 
     <div class="form-actions">
-        <button type="submit">Enregistrer le brouillon</button>
+        <button type="submit"><?= icon('save') ?> Enregistrer le brouillon</button>
         <a class="btn ghost" href="?p=facturation_liste">Annuler</a>
     </div>
 </form>

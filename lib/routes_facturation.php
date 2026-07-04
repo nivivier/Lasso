@@ -70,7 +70,13 @@ function route_facturation_liste(): void
     )->fetchAll(PDO::FETCH_COLUMN));
     $annee = (int) filtre_persistant('annee', 'facturation_annee', $annees[0] ?? date('Y'));
 
-    $sql = 'SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id WHERE 1=1';
+    $avecEvenements = module_actif('evenements');
+    $sql = 'SELECT f.*, d.nom AS debiteur_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '')
+         . ' FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id';
+    if ($avecEvenements) {
+        $sql .= ' LEFT JOIN evenements ev ON ev.id = f.evenement_id LEFT JOIN spectacles sp ON sp.id = ev.spectacle_id';
+    }
+    $sql .= ' WHERE 1=1';
     $params = [];
     if ($annee) {
         $sql .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) = ?";
@@ -89,10 +95,11 @@ function route_facturation_liste(): void
     $factures = $stmt->fetchAll();
 
     render('facturation_liste', [
-        'factures' => $factures,
-        'statut'   => $statut,
-        'annee'    => $annee,
-        'annees'   => $annees ?: [(int) date('Y')],
+        'factures'       => $factures,
+        'statut'         => $statut,
+        'annee'          => $annee,
+        'annees'         => $annees ?: [(int) date('Y')],
+        'avecEvenements' => $avecEvenements,
     ], 'Facturation');
 }
 
@@ -524,5 +531,6 @@ function route_import_factures(): void
         'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
         'errFactures' => $err, 'resultatsFactures' => $resultats, 'resumeFactures' => $resume, 'simuleFactures' => $simule,
         'msgEcritures' => null,
+        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
     ], 'Importer');
 }
