@@ -209,17 +209,16 @@ h3.sub.no-mt { margin-top: 0; }
 .card.auth h1 { margin: 0 0 18px; font-size: 22px; }
 
 .form label, .filters label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--muted); margin-bottom: 16px; }
-/* :not(checkbox/radio) — sinon les cases à cocher héritent du style « champ texte »
-   (bordure, fond, largeur 100%) et de appearance:none, qui les rend invisibles/inertes. */
-.form input:not([type="checkbox"]):not([type="radio"]), .form select, .filters select,
-.filters input:not([type="checkbox"]):not([type="radio"]),
-.cat-cell select, .bulk-bar select {
+/* Style par défaut de tous les champs de saisie du site (pas besoin de le
+   répéter par écran/scope). :not(checkbox/radio) — sinon les cases à cocher
+   héritent du style « champ texte » (bordure, fond, largeur 100%) et de
+   appearance:none, qui les rend invisibles/inertes. */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
     font: inherit; font-size: 14.5px; color: var(--ink); width: 100%;
     padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff;
     transition: border-color .15s, box-shadow .15s;
 }
-.form input:not([type="checkbox"]):not([type="radio"]),
-.filters input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
+input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
 .row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 140px;
@@ -323,12 +322,10 @@ input[type="search"] {
 .compta-lettrage tr.ecr-manuelle:hover td { background: #f1eeff; }
 .filters .search-label input { width: 100%; }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
-.filters select:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
+input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
 .auth-form { margin-top: 4px; }
 .auth-form button { width: 100%; margin-top: 6px; padding: 11px; }
-.form input:not([type="checkbox"]):not([type="radio"]):focus, .form select:focus, .filters select:focus,
-.filters input:not([type="checkbox"]):not([type="radio"]):focus,
-.cat-cell select:focus, .bulk-bar select:focus {
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
     outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint);
 }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
@@ -521,7 +518,6 @@ span + .badge.muted-badge { margin-left: 6px; }
 .section-head h2 { margin: 0; }
 .annee-pick { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
 .annee-pick select { font: inherit; font-size: 14px; color: var(--ink); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
-.annee-pick select:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
 
 /* =================== Payslip =================== */
 .payslip { max-width: 720px; }
