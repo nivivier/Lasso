@@ -333,6 +333,10 @@ input[type="search"] {
 }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 18px; }
+.field-pair { display: flex; gap: 8px; }
+.field-pair input { flex: 2; min-width: 0; }
+.field-pair select { flex: 1; width: auto; min-width: 0; }
 /* Grille de taux : autant de colonnes que la largeur le permet (≈150px/champ) */
 .grid-taux { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 22px; }
 /* Tableau de bord : deux colonnes indépendantes via flexbox.
@@ -750,7 +754,7 @@ abbr {
     .head-actions .mail-sent { gap: 0; }
     /* Sidebar pleine largeur : datepicker compact, pas extensible */
     .fiche-aside .paiement-date { flex: 0 0 auto; width: auto; }
-    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
     .info-grid { grid-template-columns: 1fr; }
     .info-grid > div:nth-last-child(2) { border-bottom: 1px solid var(--line); } /* 1 colonne : seul le dernier perd son trait */
     .page-head h1 { font-size: 21px; }
@@ -796,7 +800,7 @@ abbr {
 .compta-lettrage tr.ecr-ignore td { background: #fafafa; color: var(--muted); }
 .compta-lettrage tr.ecr-ignore:hover td { background: #f3f3f6; }
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
-.compta-lettrage tr.ecr-mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
+.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */
 .compta-cr td { padding: 5px 12px; }

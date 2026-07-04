@@ -32,7 +32,7 @@ $isEdit = !empty($spectacle['id']);
     <?php endif; ?>
 
     <div class="form-actions">
-        <button type="submit">Enregistrer</button>
+        <button type="submit"><?= icon('save') ?> Enregistrer</button>
         <a class="btn ghost" href="?p=spectacles">Annuler</a>
     </div>
 </form>

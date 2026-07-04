@@ -166,11 +166,11 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         setTimeout(() => { el.classList.add('flash-out'); setTimeout(() => el.remove(), 400); }, 3000);
     });
 
-    // Lignes cliquables (souris + clavier). Un clic sur un lien/bouton dans la
-    // ligne garde son comportement propre.
+    // Lignes cliquables (souris + clavier). Un clic sur un lien/bouton/case à
+    // cocher dans la ligne garde son comportement propre.
     function go(el) { const u = el.getAttribute('data-href'); if (u) location.href = u; }
     document.querySelectorAll('tr.row-link[data-href]').forEach(row => {
-        row.addEventListener('click', e => { if (!e.target.closest('a,button')) go(row); });
+        row.addEventListener('click', e => { if (!e.target.closest('a,button,input')) go(row); });
         row.addEventListener('keydown', e => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(row); }
         });

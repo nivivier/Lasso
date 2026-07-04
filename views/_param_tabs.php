@@ -24,6 +24,7 @@ $routesImport = [];
 if (module_actif('salaires'))    $routesImport[] = 'import_fiches';
 if (module_actif('facturation')) $routesImport[] = 'import_factures';
 if (module_actif('compta'))      $routesImport[] = 'import_ecritures';
+if (module_actif('evenements'))  $routesImport[] = 'import_evenements';
 if ($routesImport) {
     $tabs[$routesImport[0]] = ['Importer', $routesImport];
 }

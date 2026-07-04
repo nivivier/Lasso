@@ -52,9 +52,12 @@ depuis chaque événement qui lui est lié, en lecture seule).
 | `statut` | `option` / `confirme` / `annule` — indépendant de la visibilité (ex. une date `public` peut passer `annule` sans changer de visibilité, cf. §4) |
 | `visibilite` | `public` / `prive` / `non_repertorie` |
 | `ville` | texte libre |
+| `region` | optionnel, canton suisse ou département français (ex. « VD », « 25 ») |
+| `pays` | optionnel, champ propre (distinct de `region` : un même code régional se recoupe entre pays, ex. « FR » = canton de Fribourg ou France — les deux champs séparés lèvent l'ambiguïté) |
 | `salle` | texte libre, optionnel |
 | `festival` | texte libre, optionnel |
 | `lien_infos` | URL « plus d'infos », optionnel — validée comme URL à la saisie (doit commencer par `http://`/`https://`) |
+| `lien_texte` | texte du bouton de lien (ex. « Réserver »), optionnel — vide à l'export = texte par défaut configurable (§7), sans effet si `lien_infos` est vide |
 | `remarques` | texte libre |
 | `suisa_applicable` | booléen, défaut `1` — à `0` si la SUISA ne s'applique pas à cette date |
 | `suisa_envoye_a` | `suisa` / `organisateur` / vide (pas encore envoyé) |
@@ -144,7 +147,7 @@ dates « à faire » ou « manquantes ».
 Depuis la fiche d'un événement, bouton « Créer une facture liée » (visible seulement si
 le module `facturation` est actif) : crée une facture en brouillon avec
 `evenement_id` renseigné. Pas de pré-remplissage automatique des lignes en v1 (le
-cachet/les conditions varient trop d'un événement à l'autre) — voir §10.
+cachet/les conditions varient trop d'un événement à l'autre) — voir §11.
 
 **Plusieurs factures par événement autorisées** : pas de contrainte d'unicité sur
 `evenement_id` dans `factures` — couvre le cas d'une facture complémentaire ou d'une
@@ -158,6 +161,9 @@ module `salaires`). Route `route_parametres_evenements()` dans `lib/routes.php`,
 `views/parametres_evenements.php`. Contenu :
 
 - **Délai de décompte SUISA** (`suisa_delai_decompte_mois`, défaut `12`) — cf. §5.
+- **Texte du bouton de lien par défaut** (`evenements_lien_texte_defaut`, défaut « Plus
+  d'informations ») — utilisé à l'export (§8) quand un événement a un `lien_infos` sans
+  `lien_texte` propre (saisie manuelle ou import CSV, cf. §10).
 - **Export public des événements** — l'app expose elle-même les données, réutilisables
   par le site web associatif ou tout autre système externe (pas l'inverse : ce n'est pas
   le site web qui pousse de la config vers Lasso). Voir §8 pour le détail.
@@ -194,8 +200,9 @@ invalide donc aussi toutes les URLs par spectacle en une fois.
   `bin2hex(random_bytes(16))`), générée automatiquement au premier accès à l'onglet des
   paramètres si absente, avec bouton « Régénérer » (invalide l'ancienne URL — utile en
   cas de fuite).
-- L'onglet « Événements » affiche les deux URLs complètes prêtes à copier-coller
-  (`https://…/?p=evenements_json&token=…` et `…evenements_ical&token=…`).
+- Pas d'URL générale affichée dans les paramètres : les liens se copient depuis le
+  tableau des spectacles (colonne « Synchroniser », icônes JSON/iCal — un clic copie
+  l'URL du spectacle concerné dans le presse-papier, jeton déjà inclus).
 - Vérification côté route : `hash_equals($tokenStocke, $_GET['token'] ?? '')` ; jeton
   absent/incorrect → `403` sans détail (pas de fuite d'info sur la validité partielle).
 
@@ -206,9 +213,10 @@ filtrage côté client :
 
 - Exclus : `visibilite = non_repertorie`, et tout événement en `statut = option` (pas
   encore assez sûr pour être publié).
-- **`public`** : `date`, `ville`, `salle` (si renseignée), `festival` (si renseigné),
-  `lien_infos` (si renseigné), nom du `spectacle` lié, `remarques`, et un indicateur
-  `annule: true/false` (dérivé de `statut`).
+- **`public`** : `date`, `ville`, `region` (si renseignée), `pays` (si renseigné),
+  `salle` (si renseignée), `festival` (si renseigné), `lien_infos` + `lien_texte` (si `lien_infos` renseigné —
+  `lien_texte` retombe sur le texte par défaut configurable, §7, si vide), nom du
+  `spectacle` lié, `remarques`, et un indicateur `annule: true/false` (dérivé de `statut`).
 - **`prive`** : uniquement `date` et un indicateur `prive: true` (le JSON/l'iCal ne
   contiennent alors ni ville, ni salle, ni festival, ni lien, ni spectacle, ni
   remarques — le site web affiche par exemple « Événement privé » à la place).
@@ -232,7 +240,37 @@ filtrage côté client :
 - Un événement peut être lié à plusieurs fiches de salaire, et une fiche peut couvrir
   plusieurs événements (`evenement_fiches`) — cas d'un cachet regroupant une tournée.
 
-## 10. Hors périmètre v1 (explicitement écarté ou différé)
+## 10. Import CSV d'un agenda de tournée
+
+Onglet Paramètres → Importer (masqué si le module est désactivé, même page partagée
+que les imports fiches/factures/écritures). Colonnes attendues (n'importe quel ordre,
+seules `date`/`ville` obligatoires) : `date, ville, region, pays, lieu, details, type,
+statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée externe.
+
+- **`date`** au format `JJ/MM/AAAA` (pas `AAAA-MM-JJ`) ; une date invalide ou non
+  reconnue (ex. « TBA/2027 ») est une ligne en erreur, jamais devinée.
+- **`region`** → `region`, **`pays`** → `pays` (champs propres, cf. §3 — plus de repli
+  dans les remarques).
+- **`lieu`** → `salle`, **`details`** → `remarques`, **`lien`** → `lien_infos` (ignoré
+  s'il n'est pas une URL `http(s)://` valide). **`lien_texte`** → `lien_texte`, le texte
+  du bouton de lien (ex. « Réserver ») ; ignoré si `lien` est absent/invalide. Si vide,
+  l'export utilise le texte par défaut configurable (onglet Paramètres → Événements,
+  « Plus d'informations » par défaut — voir `evenements_lien_texte_defaut()`).
+- **`type`** est rapproché d'un spectacle existant par nom normalisé (casse/espaces/
+  ponctuation ignorés, ex. « anticoncert » ↔ « Anti-concert ») ; à défaut de
+  correspondance, un nouveau spectacle est créé à la volée avec le nom brut du CSV.
+- **Déduplication** : un événement déjà présent à la même date/ville/salle (comparaison
+  insensible à la casse) est ignoré, jamais réécrasé — même logique que l'import
+  historique des factures (§ correspondante dans SPEC_FACTURATION.md).
+- **Visibilité toujours `non_repertorie`** à l'import, quel que soit le contenu du CSV —
+  relecture manuelle obligatoire avant de publier une date importée en masse.
+- **Statut par défaut `confirme`** si la colonne `statut` du CSV est vide ou non reconnue
+  (cohérent avec un agenda de tournée déjà engagé — liens de réservation, salles
+  annoncées) ; `option`/`annule` reconnus si présents.
+- Simulation obligatoire avant import réel (bouton « Simuler » vs « Importer »), même
+  ergonomie que les imports fiches/factures existants.
+
+## 11. Hors périmètre v1 (explicitement écarté ou différé)
 
 - **Pré-remplissage automatique des lignes de facture** depuis l'événement (cachet type,
   frais standards) : à considérer plus tard si le besoin se confirme.
@@ -247,7 +285,7 @@ filtrage côté client :
   données (JSON/iCal, §8), mais leur mise en forme visuelle sur le site associatif est
   hors périmètre de cette app — à implémenter côté site web, en consommant l'export.
 
-## 11. Structure de code envisagée (à l'image des modules existants)
+## 12. Structure de code envisagée (à l'image des modules existants)
 
 - `lib/evenements.php` — fonctions pures : statut SUISA dérivé (5 valeurs, §5), règles
   de visibilité/statut pour l'affichage public (§4), et la fonction de filtrage/mise en
@@ -269,7 +307,7 @@ filtrage côté client :
   `prive` ou `non_repertorie` ne fuite jamais un champ interdit) — même esprit que
   `calc_test.php`/`compta_test.php`.
 
-## 12. Points ouverts restants
+## 13. Points ouverts restants
 
 Les points cadrés lors des itérations précédentes (délai SUISA configurable et son
 emplacement — onglet « Événements » des paramètres, §7 —, statut `option`/`confirme`/

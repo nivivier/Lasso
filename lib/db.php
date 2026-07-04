@@ -300,6 +300,9 @@ function run_migrations(PDO $pdo): void
         21 => 'migration_21', // factures.numero : UNIQUE inline → index unique partiel (autorise plusieurs brouillons)
         22 => 'migration_22', // factures.numero : préfixe "F-" (ex. 2025-001 → F-2025-001)
         23 => 'migration_23', // module événements : spectacles, evenements, liens employés/fiches, factures.evenement_id
+        24 => 'migration_24', // evenements.region (canton/département), pour l'import CSV de tournée
+        25 => 'migration_25', // evenements.lien_texte (texte du bouton de lien), pour l'import CSV de tournée
+        26 => 'migration_26', // evenements.pays (champ propre, ne se recoupe plus avec region)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -906,6 +909,37 @@ function migration_23(PDO $pdo): void
     $ins = $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)');
     $ins->execute(['suisa_delai_decompte_mois', '12']);
     $ins->execute(['evenements_export_token', '']);
+}
+
+// Migration 24 : colonne region sur les événements (canton suisse ou
+// département français, ex. « VD », « 25 ») — pas de champ dédié jusqu'ici,
+// nécessaire pour l'import CSV de tournée (voir importer_evenements_csv()).
+function migration_24(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('region', $cols, true)) {
+        $pdo->exec("ALTER TABLE evenements ADD COLUMN region TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Migration 25 : texte du bouton de lien (ex. « Réserver »), propre à chaque
+// événement — vide = texte par défaut configurable (evenements_lien_texte_defaut()).
+function migration_25(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('lien_texte', $cols, true)) {
+        $pdo->exec("ALTER TABLE evenements ADD COLUMN lien_texte TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Migration 26 : colonne pays dédiée (auparavant repliée dans les remarques à
+// l'import CSV faute de champ propre — voir migration_24/région).
+function migration_26(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('pays', $cols, true)) {
+        $pdo->exec("ALTER TABLE evenements ADD COLUMN pays TEXT NOT NULL DEFAULT ''");
+    }
 }
 
 function seed_parametres(PDO $pdo): void

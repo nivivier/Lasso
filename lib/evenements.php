@@ -119,6 +119,23 @@ function evenements_delai_decompte_mois(): int
     return max(1, (int) param('suisa_delai_decompte_mois', '12'));
 }
 
+// Texte par défaut du bouton de lien (« plus d'infos ») quand l'événement n'en
+// précise pas un lui-même. Paramétrable (onglet Événements).
+function evenements_lien_texte_defaut(): string
+{
+    $v = trim((string) param('evenements_lien_texte_defaut', ''));
+    return $v !== '' ? $v : "Plus d'informations";
+}
+
+// Liste des pays proposés dans le champ « Région et pays » du formulaire
+// événement. Paramétrable (onglet Événements) ; défaut CH/FR/BE/CA.
+function evenements_pays_disponibles(): array
+{
+    $v = trim((string) param('evenements_pays_disponibles', ''));
+    $liste = $v !== '' ? array_map('trim', explode(',', $v)) : ['CH', 'FR', 'BE', 'CA'];
+    return array_values(array_filter($liste, fn ($p) => $p !== ''));
+}
+
 // Nombre d'événements SUISA « manquants » (badge de menu).
 function nb_evenements_suisa_manquants(): int
 {
@@ -156,22 +173,6 @@ function spectacle_existe(int $id): bool
     return (bool) $stmt->fetchColumn();
 }
 
-// Remplace tous les liens d'un événement vers une table de jointure
-// (evenement_employes / evenement_fiches) par $ids. $table/$colonne toujours
-// des constantes internes, jamais une valeur utilisateur (même règle que
-// supprimer_si_non_reference(), lib/helpers.php).
-function evenement_sync_liens(int $evenementId, string $table, string $colonne, array $ids): void
-{
-    db()->prepare("DELETE FROM $table WHERE evenement_id = ?")->execute([$evenementId]);
-    if (!$ids) {
-        return;
-    }
-    $ins = db()->prepare("INSERT INTO $table (evenement_id, $colonne) VALUES (?, ?)");
-    foreach ($ids as $id) {
-        $ins->execute([$evenementId, $id]);
-    }
-}
-
 // Validation stricte d'une date « Y-m-d » : DateTime::createFromFormat() seul
 // accepterait silencieusement une date invalide comme "2026-02-30" en la
 // « roulant » au 2 mars — checkdate() la rejette explicitement.
@@ -203,6 +204,12 @@ function evenement_export_donnees(array $ev): array
     $donnees['prive']   = false;
     $donnees['annule']  = (string) $ev['statut'] === 'annule';
     $donnees['ville']   = (string) ($ev['ville'] ?? '');
+    if (trim((string) ($ev['region'] ?? '')) !== '') {
+        $donnees['region'] = (string) $ev['region'];
+    }
+    if (trim((string) ($ev['pays'] ?? '')) !== '') {
+        $donnees['pays'] = (string) $ev['pays'];
+    }
     if (trim((string) ($ev['salle'] ?? '')) !== '') {
         $donnees['salle'] = (string) $ev['salle'];
     }
@@ -211,6 +218,8 @@ function evenement_export_donnees(array $ev): array
     }
     if (trim((string) ($ev['lien_infos'] ?? '')) !== '') {
         $donnees['lien_infos'] = (string) $ev['lien_infos'];
+        $lienTexte = trim((string) ($ev['lien_texte'] ?? ''));
+        $donnees['lien_texte'] = $lienTexte !== '' ? $lienTexte : evenements_lien_texte_defaut();
     }
     if (trim((string) ($ev['spectacle_nom'] ?? '')) !== '') {
         $donnees['spectacle'] = (string) $ev['spectacle_nom'];
@@ -293,7 +302,9 @@ function evenements_generer_ical(array $items): string
         $lignes[] = 'DTSTART;VALUE=DATE:' . $date;
         $lignes[] = 'SUMMARY:' . evenements_ical_echap($summary);
         if (!$it['prive']) {
-            $lieu = trim(($it['salle'] ?? '') !== '' ? ($it['salle'] . ', ' . ($it['ville'] ?? '')) : (string) ($it['ville'] ?? ''));
+            $suffixe = implode(', ', array_filter([$it['region'] ?? '', $it['pays'] ?? '']));
+            $ville = trim((string) ($it['ville'] ?? '')) . ($suffixe !== '' ? ' (' . $suffixe . ')' : '');
+            $lieu = trim(($it['salle'] ?? '') !== '' ? ($it['salle'] . ', ' . $ville) : $ville);
             if ($lieu !== '') {
                 $lignes[] = 'LOCATION:' . evenements_ical_echap($lieu);
             }
@@ -308,4 +319,148 @@ function evenements_generer_ical(array $items): string
     }
     $lignes[] = 'END:VCALENDAR';
     return implode("\r\n", $lignes);
+}
+
+// -------------------------------------------------------- IMPORT CSV (agenda de tournée)
+// Date au format JJ/MM/AAAA (agendas de tournée) → « Y-m-d », ou null si invalide.
+function date_csv_vers_iso(string $s): ?string
+{
+    if (!preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', trim($s), $m)) {
+        return null;
+    }
+    [, $jour, $mois, $annee] = $m;
+    if (!checkdate((int) $mois, (int) $jour, (int) $annee)) {
+        return null;
+    }
+    return sprintf('%04d-%02d-%02d', (int) $annee, (int) $mois, (int) $jour);
+}
+
+// Nom de spectacle normalisé pour un rapprochement insensible à la casse, aux
+// espaces et à la ponctuation (ex. « anticoncert » ↔ « Anti-concert »).
+function normaliser_nom_spectacle(string $s): string
+{
+    return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower(trim($s), 'UTF-8'));
+}
+
+// Importe des événements depuis un CSV d'agenda de tournée (colonnes attendues,
+// dans n'importe quel ordre : date, ville, region, pays, lieu, details, type,
+// statut, lien, lien_texte — seules date/ville sont obligatoires). $simule =
+// true : n'écrit rien, retourne ce qui serait fait. Un événement existant
+// (même date + ville + salle, comparaison insensible à la casse) est ignoré —
+// jamais écrasé, même esprit que importer_factures_historique(). La colonne
+// « type » est recherchée parmi les spectacles existants (nom normalisé) ; à
+// défaut, un nouveau spectacle est créé à la volée. « lien_texte » est le texte du bouton de lien
+// (ex. « Réserver ») ; ignoré si « lien » est absent/invalide, sinon stocké tel
+// quel (une valeur vide utilisera le texte par défaut configurable à l'export,
+// voir evenements_lien_texte_defaut()). Visibilité toujours « non_repertorie »
+// à l'import (relecture manuelle avant publication) ; statut « confirme » par
+// défaut si la colonne est vide ou non reconnue. Renvoie [résultats par ligne, résumé].
+function importer_evenements_csv(string $csv, bool $simule): array
+{
+    $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv); // BOM UTF-8 (export Excel)
+    $lignes = array_values(array_filter(preg_split('/\r\n|\r|\n/', (string) $csv), fn ($l) => trim($l) !== ''));
+    $resume = ['total' => 0, 'nouveaux' => 0, 'existants' => 0, 'erreurs' => 0, 'spectacles_crees' => 0];
+    if (!$lignes) {
+        return [[], $resume];
+    }
+
+    $entete = array_map(fn ($c) => mb_strtolower(trim((string) $c), 'UTF-8'), str_getcsv(array_shift($lignes), ',', '"', ''));
+    $idx = array_flip($entete);
+    $col = fn (array $r, string $nom): string => trim((string) ($r[$idx[$nom] ?? -1] ?? ''));
+
+    // Spectacles existants, indexés par nom normalisé (complété au fil de l'import).
+    $spectaclesParNom = [];
+    foreach (db()->query('SELECT id, nom FROM spectacles') as $s) {
+        $spectaclesParNom[normaliser_nom_spectacle($s['nom'])] = (int) $s['id'];
+    }
+    $spectaclesACreer = []; // nom normalisé → nom original, pour ne compter/annoncer qu'une fois par lot
+
+    $existe = db()->prepare(
+        "SELECT 1 FROM evenements WHERE date = ? AND lower(trim(ville)) = lower(trim(?)) AND lower(trim(salle)) = lower(trim(?))"
+    );
+    $insEv = db()->prepare(
+        "INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, lien_infos, lien_texte, remarques)
+         VALUES (?, ?, ?, 'non_repertorie', ?, ?, ?, ?, ?, ?, ?)"
+    );
+    $insSpec = db()->prepare('INSERT INTO spectacles (nom) VALUES (?)');
+
+    $resultats = [];
+    if (!$simule) {
+        db()->beginTransaction();
+    }
+    try {
+        foreach ($lignes as $ligne) {
+            $r = str_getcsv($ligne, ',', '"', '');
+            $resume['total']++;
+
+            $dateRaw = $col($r, 'date');
+            $ville   = $col($r, 'ville');
+            $region  = $col($r, 'region');
+            $pays    = $col($r, 'pays');
+            $lieu    = $col($r, 'lieu');
+            $details = $col($r, 'details');
+            $type    = $col($r, 'type');
+            $statutRaw = mb_strtolower($col($r, 'statut'), 'UTF-8');
+            $lien    = $col($r, 'lien');
+            $lienTexte = $col($r, 'lien_texte');
+
+            $ligneRes = ['date' => $dateRaw, 'ville' => $ville, 'lieu' => $lieu];
+            $dateIso = date_csv_vers_iso($dateRaw);
+            if ($dateIso === null || $ville === '') {
+                $ligneRes['statut'] = 'erreur';
+                $ligneRes['detail'] = $dateIso === null
+                    ? "Date invalide (attendu JJ/MM/AAAA) : « $dateRaw »."
+                    : 'Ville manquante.';
+                $resume['erreurs']++; $resultats[] = $ligneRes; continue;
+            }
+
+            $existe->execute([$dateIso, $ville, $lieu]);
+            if ($existe->fetchColumn()) {
+                $ligneRes['statut'] = 'existant';
+                $ligneRes['detail'] = 'Un événement à cette date/ville/salle existe déjà — ignoré.';
+                $resume['existants']++; $resultats[] = $ligneRes; continue;
+            }
+
+            $spectacleId = null;
+            if ($type !== '') {
+                $norm = normaliser_nom_spectacle($type);
+                if (isset($spectaclesParNom[$norm])) {
+                    $spectacleId = $spectaclesParNom[$norm];
+                } elseif (!isset($spectaclesACreer[$norm])) {
+                    $spectaclesACreer[$norm] = $type;
+                    $resume['spectacles_crees']++;
+                    if (!$simule) {
+                        $insSpec->execute([$type]);
+                        $spectacleId = (int) db()->lastInsertId();
+                        $spectaclesParNom[$norm] = $spectacleId;
+                    }
+                }
+            }
+
+            $statut = match ($statutRaw) {
+                'annule', 'annulé' => 'annule',
+                'option'           => 'option',
+                default            => 'confirme',
+            };
+            $lienValide = ($lien !== '' && preg_match('#^https?://#i', $lien) && filter_var($lien, FILTER_VALIDATE_URL)) ? $lien : '';
+            // Le texte du bouton n'a de sens que si le lien lui-même est valide.
+            $lienTexte = $lienValide !== '' ? $lienTexte : '';
+
+            $ligneRes['statut'] = 'nouveau';
+            $resume['nouveaux']++;
+            if (!$simule) {
+                $insEv->execute([$spectacleId, $dateIso, $statut, $ville, $region, $pays, $lieu, $lienValide, $lienTexte, $details]);
+            }
+            $resultats[] = $ligneRes;
+        }
+        if (!$simule) {
+            db()->commit();
+        }
+    } catch (Throwable $e) {
+        if (!$simule && db()->inTransaction()) {
+            db()->rollBack();
+        }
+        throw $e;
+    }
+    return [$resultats, $resume];
 }

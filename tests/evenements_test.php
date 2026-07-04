@@ -68,6 +68,15 @@ check('public : salle exposée', 'Salle du Faubourg', $donneesPublic['salle']);
 check('public : annule=true dérivé du statut', true, $donneesPublic['annule']);
 check('public : remarques exposées', 'Note interne', $donneesPublic['remarques']);
 check('public : prive=false', false, $donneesPublic['prive']);
+check('public : lien_texte par défaut si absent', "Plus d'informations", $donneesPublic['lien_texte']);
+
+$evPublicLienTexte = $evPublic;
+$evPublicLienTexte['lien_texte'] = 'Réserver';
+check('public : lien_texte propre à l\'événement prioritaire sur le défaut', 'Réserver', evenement_export_donnees($evPublicLienTexte)['lien_texte']);
+
+$evSansLien = $evPublic;
+$evSansLien['lien_infos'] = '';
+check('public : pas de lien_texte si lien_infos absent', false, array_key_exists('lien_texte', evenement_export_donnees($evSansLien)));
 
 $evPrive = [
     'id' => 2, 'date' => '2026-09-01', 'visibilite' => 'prive', 'statut' => 'confirme',
@@ -86,6 +95,14 @@ check('événement public : résumé annulé + spectacle', true, str_contains($i
 check('événement privé : résumé générique, jamais le nom du spectacle', true,
     str_contains($ics, 'SUMMARY:Événement privé') && !str_contains($ics, 'Spectacle secret'));
 check('événement privé : jamais de LOCATION avec la salle secrète', false, str_contains($ics, 'Secret'));
+
+$evRegionPays = [
+    'id' => 3, 'date' => '2026-10-10', 'visibilite' => 'public', 'statut' => 'confirme',
+    'ville' => 'Besançon', 'region' => '25', 'pays' => 'FR', 'salle' => '', 'festival' => '',
+    'lien_infos' => '', 'spectacle_nom' => '', 'remarques' => '',
+];
+$icsRegionPays = evenements_generer_ical([evenement_export_donnees($evRegionPays)]);
+check('LOCATION combine ville, région et pays', true, str_contains($icsRegionPays, 'LOCATION:Besançon (25\\, FR)'));
 
 echo "5) Validation stricte de date (checkdate, pas de \"roulement\")\n";
 check('date valide', true, date_valide('2026-07-16'));
@@ -129,6 +146,19 @@ foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $statut) {
     sort($idsPhp);
     check("SQL == PHP pour le statut « $statut »", $idsPhp, $idsSql);
 }
+
+echo "7) Import CSV — date JJ/MM/AAAA -> ISO\n";
+check('date valide', '2026-01-30', date_csv_vers_iso('30/01/2026'));
+check('jour/mois sur un chiffre acceptés', '2026-02-01', date_csv_vers_iso('1/2/2026'));
+check('espaces ignorés', '2026-01-30', date_csv_vers_iso(' 30/01/2026 '));
+check('31 avril rejeté', null, date_csv_vers_iso('31/04/2026'));
+check('« TBA/2027 » rejeté (pas une date)', null, date_csv_vers_iso('TBA/2027'));
+check('format ISO refusé ici (JJ/MM/AAAA attendu)', null, date_csv_vers_iso('2026-01-30'));
+
+echo "8) Import CSV — normalisation du nom de spectacle (rapprochement)\n";
+check('« anticoncert » == « Anti-concert »', normaliser_nom_spectacle('Anti-concert'), normaliser_nom_spectacle('anticoncert'));
+check('espaces et casse ignorés', normaliser_nom_spectacle('Le Grand Spectacle'), normaliser_nom_spectacle(' le  grand-spectacle '));
+check('noms réellement différents restent différents', false, normaliser_nom_spectacle('Anti-concert') === normaliser_nom_spectacle('Autre spectacle'));
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);
