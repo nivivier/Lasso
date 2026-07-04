@@ -1,9 +1,9 @@
 :root {
-    --brand: #292150;       /* indigo logo */
-    --brand-2: #392f6b;     /* survol sidebar */
-    --primary: #6d4ade;     /* violet / mauve accent */
-    --primary-d: #5a39c4;
-    --primary-tint: #efeafd;
+    --brand: #292190;       /* indigo logo */
+    --brand-2: #392f8b;     /* survol sidebar */
+    --primary: #6d4aee;     /* violet / mauve accent */
+    --primary-d: #5a39d4;
+    --primary-tint: #efeaff;
     --teal: #0fb6a1;        /* couleur secondaire */
     --teal-d: #0c9486;
     --teal-tint: #e2f7f3;
@@ -338,6 +338,9 @@ input[type="search"] {
 /* Tableau de bord : tableaux côte à côte si la largeur le permet, sinon empilés
    (auto-fit + colonne unique qui s'étire s'il n'y a qu'un seul bloc). */
 .dash-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 32px 40px; align-items: start; }
+.dash-chart-card { padding: 20px 24px 16px; margin-bottom: 32px; }
+.dash-chart-card .section-head { margin-bottom: 4px; }
+.dash-chart { width: 100%; height: auto; display: block; }
 
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
 .pct-input { display: flex; align-items: stretch; max-width: 150px; border: 1px solid var(--line);
@@ -778,7 +781,7 @@ abbr {
 .compta-lettrage { min-width: 760px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
 .compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
 .compta-lettrage td { padding-top: 5px; padding-bottom: 5px; }
-.compta-lettrage .col-check { width: 34px; text-align: center; }
+.compta-lettrage .col-check, .evenements-liste .col-check { width: 34px; text-align: center; }
 .compta-lettrage .texte-cell { max-width: 200px; font-size: 11.5px; color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
 .compta-lettrage .texte-cell:hover { color: var(--primary); }
@@ -793,7 +796,7 @@ abbr {
 .compta-lettrage tr.ecr-ignore td { background: #fafafa; color: var(--muted); }
 .compta-lettrage tr.ecr-ignore:hover td { background: #f3f3f6; }
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
-.compta-lettrage tr.ecr-mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary-d); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
+.compta-lettrage tr.ecr-mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */
 .compta-cr td { padding: 5px 12px; }

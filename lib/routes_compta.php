@@ -1380,6 +1380,50 @@ function compta_bilan_data(int $annee, int $nbPrec = 0): array
     ];
 }
 
+// Série de données pour le graphique du tableau de bord (toutes les années, ordre chrono).
+function compta_dashboard_series(): array
+{
+    $annees = array_reverse(compta_annees());
+    if (!$annees) return [];
+
+    $plan = compta_plan_map();
+
+    $sommesParAnnee = [];
+    foreach (db()->query("SELECT substr(date_op,1,4) y, plan_compte_id, SUM(montant) s
+                          FROM ecritures WHERE plan_compte_id IS NOT NULL
+                          GROUP BY y, plan_compte_id") as $r) {
+        $sommesParAnnee[(int) $r['y']][(int) $r['plan_compte_id']] = (float) $r['s'];
+    }
+
+    $series = [];
+    foreach ($annees as $a) {
+        $tp = 0.0; $tc = 0.0;
+        foreach ($sommesParAnnee[$a] ?? [] as $pid => $m) {
+            if (($plan[$pid]['sens'] ?? 'charge') === 'produit') $tp += $m;
+            else $tc += $m;
+        }
+        $series[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc, 'patrimoine' => 0.0];
+    }
+
+    $stmtSolde  = db()->prepare("SELECT solde FROM ecritures
+        WHERE compte_bancaire_id = ? AND solde IS NOT NULL AND date_op <= ?
+        ORDER BY date_op DESC, id ASC LIMIT 1");
+    $stmtManuel = db()->prepare("SELECT COALESCE(SUM(montant), 0) FROM ecritures
+        WHERE compte_bancaire_id = ? AND import_id IS NULL AND date_op <= ?");
+    foreach (compta_comptes() as $c) {
+        $cid = (int) $c['id'];
+        foreach ($annees as $a) {
+            $stmtSolde->execute([$cid, "$a-12-31"]);
+            $v    = $stmtSolde->fetchColumn();
+            $base = $v === false ? (float) $c['solde_initial'] : (float) $v;
+            $stmtManuel->execute([$cid, "$a-12-31"]);
+            $series[$a]['patrimoine'] += $base + (float) $stmtManuel->fetchColumn();
+        }
+    }
+
+    return $series;
+}
+
 function route_compta_bilan_print(): void
 {
     require_login();

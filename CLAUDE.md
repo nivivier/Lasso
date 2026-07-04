@@ -4,8 +4,10 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
 1–2 utilisateurs, pas de concurrence. Déploiement cible : **hébergement mutualisé** (PHP + SQLite).
 
 ## Stack & contraintes
-- **PHP 8 + SQLite (PDO)**, **aucune dépendance**, aucun framework, pas de build.
-  Ne pas introduire Composer/npm ni de bibliothèque externe sans raison forte.
+- **PHP 8 + SQLite (PDO)**, pas de framework, pas de build.
+  Éviter les bibliothèques externes : **demander la permission avant d'en introduire une**.
+  Si accordée, préférer les bibliothèques légères bundlées dans le dépôt (pas de CDN)
+  plutôt que Composer/npm, sauf justification forte.
 - Tout en français (UI, commentaires, messages).
 - **Exception actée** : le module facturation utilise Composer pour
   `sprain/swiss-qr-bill` + `tecnickcom/tcpdf` (^6.7 — la 7.x casse la police core

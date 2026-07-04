@@ -1396,7 +1396,8 @@ function route_resumes(): void
              WHERE f.statut = 'emise' ORDER BY f.date_echeance"
         )->fetchAll()
         : [];
-    render('resumes', ['aPayer' => $aPayer, 'facturesEmises' => $facturesEmises], 'Tableau de bord');
+    $comptaSeries = module_actif('compta') ? compta_dashboard_series() : [];
+    render('resumes', ['aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries], 'Tableau de bord');
 }
 
 // Page « Résumé » : résumé complet (par période) + charges totales.
