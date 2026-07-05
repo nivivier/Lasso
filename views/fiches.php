@@ -55,15 +55,20 @@
 <table class="list list-wide">
     <thead>
         <tr>
-            <th>Mois</th><th>Employé</th><?php if ($axesParFiche): ?><th>Axes</th><?php endif; ?>
+            <th>Employé</th><?php if ($axesParFiche): ?><th>Axes</th><?php endif; ?>
             <th class="num">Brut</th><th class="num">Net</th><th>Paiement</th><th class="num">Coût employeur</th>
             <th class="center">Envoyée</th>
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($fiches as $f): $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f); ?>
+    <?php $nbCols = 6 + ($axesParFiche ? 1 : 0); $moisPrec = null;
+    foreach ($fiches as $f):
+        $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f);
+        $moisCle = (int) $f['annee'] . '-' . (int) $f['mois'];
+        if ($moisCle !== $moisPrec): $moisPrec = $moisCle; ?>
+        <tr class="fiche-mois-sep"><td colspan="<?= $nbCols ?>"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td></tr>
+    <?php endif; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>">
-            <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
             <td><?= e($f['employe_nom']) ?></td>
             <?php if ($axesParFiche): ?><td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td><?php endif; ?>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>

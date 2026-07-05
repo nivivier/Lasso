@@ -409,6 +409,11 @@ button:active, .btn:active { transform: translateY(1px); }
     .ligne-row .l-unite, .ligne-row .l-qte { flex: 1 1 40%; }
 }
 
+/* Carte « Employés » de la fiche événement : tableau fusionné employé/fiche/prestation. */
+.evenement-employes td { vertical-align: middle; }
+.evenement-ligne-row { margin-bottom: 0; flex-wrap: wrap; }
+.evenement-ligne-row .fiche-select { flex: 1 1 200px; width: auto; }
+
 /* =================== Messages =================== */
 .err { background: var(--danger-tint); color: var(--danger); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
 .ok  { background: var(--teal-tint); color: var(--ok); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
@@ -482,6 +487,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 .col-icon { width: 36px; }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
 .list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
+.list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
    plusieurs lignes, pour éviter des colonnes larges sous un petit contenu.
    En-têtes : coupure aux espaces (jamais au milieu d'un mot) ; les nombres
