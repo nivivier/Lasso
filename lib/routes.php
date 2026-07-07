@@ -712,6 +712,7 @@ function lire_lignes_postees(): array
     $choixPost  = $_POST['l_taux_choix'] ?? [];
     $manuelPost = $_POST['l_taux_manuel'] ?? [];
     $axesPost   = $_POST['l_axe'] ?? [];
+    $evenPost   = $_POST['l_evenement'] ?? [];
     foreach ($unitesPost as $i => $enc) {
         $qte    = (float) str_replace(',', '.', $qtesPost[$i] ?? '0');
         $choix  = (string) ($choixPost[$i] ?? '');
@@ -728,11 +729,118 @@ function lire_lignes_postees(): array
         }
         $h = $hu * $qte;
         $axeId = ($axesPost[$i] ?? '') !== '' ? (int) $axesPost[$i] : null;
-        $lignes[] = ['libelle' => trim($lib), 'heures_unite' => $hu, 'quantite' => $qte, 'taux_horaire' => $taux_h, 'axe_analytique_id' => $axeId];
+        $evId  = ($evenPost[$i] ?? '') !== '' ? (int) $evenPost[$i] : null;
+        $lignes[] = ['libelle' => trim($lib), 'heures_unite' => $hu, 'quantite' => $qte, 'taux_horaire' => $taux_h, 'axe_analytique_id' => $axeId, 'evenement_id' => $evId];
         $heures += $h;
         $salaireTravail += $h * $taux_h;
     }
     return [$lignes, $heures, $salaireTravail];
+}
+
+// Recalcule et sauvegarde une fiche (création ou mise à jour) à partir d'une
+// liste de lignes de prestation déjà normalisées (libelle/heures_unite/quantite/
+// taux_horaire, plus axe_analytique_id/evenement_id optionnels). $emp doit déjà
+// porter les éventuelles surcharges figées (supplement_vacances/impot_source_taux)
+// — cette fonction ne fait que recalculer et écrire, pas de valeurs par défaut.
+// Partagée entre le formulaire de fiche complet (route_fiche_new) et l'ajout
+// rapide d'une ligne de prestation depuis un événement (route_evenement_ligne_ajouter).
+function sauvegarder_fiche(array $emp, int $annee, int $mois, string $datePaiement, array $lignes, ?int $ficheId, int $afficherCoutEmp = 0): int
+{
+    $heures = 0.0;
+    $salaireTravail = 0.0;
+    foreach ($lignes as $l) {
+        $h = (float) $l['heures_unite'] * (float) $l['quantite'];
+        $heures += $h;
+        $salaireTravail += $h * (float) $l['taux_horaire'];
+    }
+
+    $taux = taux_pour_annee($annee); // taux figés selon l'année de la fiche
+    $taux = array_merge($taux, laa_effectif($taux, $heures, $annee, $mois));
+    $c    = calculer_fiche($emp, $salaireTravail, $taux);
+
+    $data = [
+        'employe_id'     => (int) $emp['id'],
+        'annee'          => $annee,
+        'mois'           => $mois,
+        'date_paiement'  => $datePaiement,
+        'employe_nom'    => $emp['prenom'] . ' ' . $emp['nom'],
+        'employe_rue'    => $emp['rue'],
+        'employe_npa'    => $emp['npa_localite'],
+        'employe_avs'    => $emp['numero_avs'],
+        'canton'         => $emp['canton'],
+        'procedure'      => $emp['procedure'],
+        'salaire_horaire'=> $heures > 0 ? round($salaireTravail / $heures, 2) : 0, // taux moyen (référence)
+        'nombre_heures'  => $heures,
+        'supplement_taux'=> $emp['supplement_vacances'],
+        'afficher_cout_emp' => $afficherCoutEmp,
+        'taux_json'      => json_encode($taux + ['impot_source' => (float) $emp['impot_source_taux']]),
+    ] + $c;
+
+    $cols  = implode(',', array_keys($data));
+    $marks = ':' . implode(',:', array_keys($data));
+
+    db()->beginTransaction();
+    try {
+        if ($ficheId) {
+            $stmt = db()->prepare('SELECT date_paiement FROM fiches WHERE id = ?');
+            $stmt->execute([$ficheId]);
+            $existing = $stmt->fetch();
+            if (!$existing) {
+                throw new RuntimeException('Fiche introuvable.');
+            }
+            if (trim((string) $existing['date_paiement']) !== '') {
+                throw new RuntimeException('La fiche ne peut pas être modifiée car elle a déjà été payée.');
+            }
+            $updateQuery = 'UPDATE fiches SET ' . implode(',', array_map(fn($k) => "$k = :$k", array_keys($data))) . ' WHERE id = :id';
+            $data['id'] = $ficheId;
+            db()->prepare($updateQuery)->execute($data);
+            db()->prepare('DELETE FROM fiche_lignes WHERE fiche_id = ?')->execute([$ficheId]);
+        } else {
+            db()->prepare("INSERT INTO fiches ($cols) VALUES ($marks)")->execute($data);
+            $ficheId = (int) db()->lastInsertId();
+        }
+        $insL = db()->prepare('INSERT INTO fiche_lignes (fiche_id, libelle, heures_unite, quantite, taux_horaire, axe_analytique_id, evenement_id, ordre) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        foreach ($lignes as $ordre => $l) {
+            $insL->execute([$ficheId, $l['libelle'], $l['heures_unite'], $l['quantite'], $l['taux_horaire'], $l['axe_analytique_id'] ?? null, $l['evenement_id'] ?? null, $ordre]);
+        }
+
+        // Synchronise evenement_fiches avec les evenement_id désormais présents
+        // dans les lignes — une prestation peut être ajoutée/retirée/réattribuée
+        // à un autre événement aussi bien depuis la fiche événement que depuis
+        // ce formulaire de fiche.
+        $evenementIds = array_values(array_unique(array_filter(
+            array_map(fn ($l) => (int) ($l['evenement_id'] ?? 0), $lignes)
+        )));
+        if ($evenementIds) {
+            $in = implode(',', array_fill(0, count($evenementIds), '?'));
+            db()->prepare("DELETE FROM evenement_fiches WHERE fiche_id = ? AND evenement_id NOT IN ($in)")
+                ->execute(array_merge([$ficheId], $evenementIds));
+            $insEf = db()->prepare('INSERT OR IGNORE INTO evenement_fiches (evenement_id, fiche_id) VALUES (?, ?)');
+            foreach ($evenementIds as $evId) {
+                $insEf->execute([$evId, $ficheId]);
+            }
+        } else {
+            db()->prepare('DELETE FROM evenement_fiches WHERE fiche_id = ?')->execute([$ficheId]);
+        }
+        db()->commit();
+    } catch (Throwable $ex) {
+        db()->rollBack();
+        throw $ex;
+    }
+    return $ficheId;
+}
+
+// Événements disponibles pour associer une ligne de prestation (module événements).
+function evenements_pour_ligne(): array
+{
+    if (!module_actif('evenements')) {
+        return [];
+    }
+    return db()->query(
+        "SELECT e.id, e.date, e.ville, e.salle, e.festival, s.nom AS spectacle
+         FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id
+         ORDER BY e.date DESC"
+    )->fetchAll();
 }
 
 function route_fiche_new(): void
@@ -744,9 +852,10 @@ function route_fiche_new(): void
     $axes         = module_actif('analytique')
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
+    $evenements   = evenements_pour_ligne();
     $renderForm = fn($err) => render('fiche_form', [
         'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
-        'err' => $err, 'post' => $_POST,
+        'evenements' => $evenements, 'err' => $err, 'post' => $_POST,
         'edit_mode' => isset($_POST['fiche_id']), 'fiche_id' => (int) ($_POST['fiche_id'] ?? 0),
     ], 'Nouvelle fiche');
 
@@ -755,7 +864,7 @@ function route_fiche_new(): void
         $pre = isset($_GET['employe_id']) ? ['employe_id' => (int) $_GET['employe_id']] : null;
         render('fiche_form', [
             'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
-            'err' => null, 'post' => $pre,
+            'evenements' => $evenements, 'err' => null, 'post' => $pre,
         ], 'Nouvelle fiche');
         return;
     }
@@ -796,70 +905,26 @@ function route_fiche_new(): void
         $emp['impot_source_taux'] = (float) str_replace(',', '.', $impotInput) / 100;
     }
 
-    $taux = taux_pour_annee($annee); // taux figés selon l'année de la fiche
-    // LAA : taux réduit ou plein selon le total d'heures du mois (seuil = jours/7×8)
-    $taux = array_merge($taux, laa_effectif($taux, $heures, $annee, $mois));
-    $c    = calculer_fiche($emp, $salaireTravail, $taux);
-
-    $data = [
-        'employe_id'     => $empId,
-        'annee'          => $annee,
-        'mois'           => $mois,
-        'date_paiement'  => $datePaiement,
-        'employe_nom'    => $emp['prenom'] . ' ' . $emp['nom'],
-        'employe_rue'    => $emp['rue'],
-        'employe_npa'    => $emp['npa_localite'],
-        'employe_avs'    => $emp['numero_avs'],
-        'canton'         => $emp['canton'],
-        'procedure'      => $emp['procedure'],
-        'salaire_horaire'=> $heures > 0 ? round($salaireTravail / $heures, 2) : 0, // taux moyen (référence)
-        'nombre_heures'  => $heures,
-        'supplement_taux'=> $emp['supplement_vacances'],
-        'afficher_cout_emp' => isset($_POST['afficher_cout_emp']) ? 1 : 0,
-        'taux_json'      => json_encode($taux + ['impot_source' => (float) $emp['impot_source_taux']]),
-    ] + $c;
-
-    $cols  = implode(',', array_keys($data));
-    $marks = ':' . implode(',:', array_keys($data));
+    $ficheIdPoste = isset($_POST['fiche_id']) ? (int) $_POST['fiche_id'] : null;
+    $afficherCoutEmp = isset($_POST['afficher_cout_emp']) ? 1 : 0;
     try {
-        db()->beginTransaction();
-        if (isset($_POST['fiche_id'])) {
-            $ficheId = (int) $_POST['fiche_id'];
-            $stmt = db()->prepare('SELECT * FROM fiches WHERE id = ?');
-            $stmt->execute([$ficheId]);
-            $existing = $stmt->fetch();
-            if (!$existing) {
-                throw new RuntimeException('Fiche introuvable.');
-            }
-            if (trim((string) $existing['date_paiement']) !== '') {
-                throw new RuntimeException('La fiche ne peut pas être modifiée car elle a déjà été payée.');
-            }
-            $updateQuery = 'UPDATE fiches SET ' . implode(',', array_map(fn($k) => "$k = :$k", array_keys($data))) . ' WHERE id = :id';
-            $data['id'] = $ficheId;
-            db()->prepare($updateQuery)->execute($data);
-            db()->prepare('DELETE FROM fiche_lignes WHERE fiche_id = ?')->execute([$ficheId]);
-        } else {
-            db()->prepare("INSERT INTO fiches ($cols) VALUES ($marks)")->execute($data);
-            $ficheId = (int) db()->lastInsertId();
-        }
-        $insL = db()->prepare('INSERT INTO fiche_lignes (fiche_id, libelle, heures_unite, quantite, taux_horaire, axe_analytique_id, ordre) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        foreach ($lignes as $ordre => $l) {
-            $insL->execute([$ficheId, $l['libelle'], $l['heures_unite'], $l['quantite'], $l['taux_horaire'], $l['axe_analytique_id'] ?? null, $ordre]);
-        }
-        db()->commit();
+        $ficheId = sauvegarder_fiche($emp, $annee, $mois, $datePaiement, $lignes, $ficheIdPoste, $afficherCoutEmp);
     } catch (PDOException $ex) {
-        db()->rollBack();
         if (str_contains($ex->getMessage(), 'UNIQUE')) {
             $renderForm('Une fiche existe déjà pour cet employé sur ' . mois_nom($mois) . ' ' . $annee . '.');
             return;
         }
         throw $ex;
     } catch (RuntimeException $ex) {
-        db()->rollBack();
         $renderForm($ex->getMessage());
         return;
     }
-    redirect('fiche', ['id' => $ficheId, 'success' => '1']);
+
+    if ($ficheIdPoste) {
+        redirect('fiche_edit', ['id' => $ficheId, 'success' => '1']); // reste sur la page de modification
+    } else {
+        redirect('fiche', ['id' => $ficheId, 'success' => '1']);
+    }
 }
 
 function route_fiche(): void
@@ -1228,6 +1293,7 @@ function route_fiche_edit(): void
     $axes         = module_actif('analytique')
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
+    $evenements   = evenements_pour_ligne();
 
     $stmtLignes = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ? ORDER BY ordre');
     $stmtLignes->execute([$id]);
@@ -1266,11 +1332,13 @@ function route_fiche_edit(): void
             $postData['l_taux_manuel'][$i] = nombre_court($taux_h);
         }
         $postData['l_axe'][$i] = (string) ($ligne['axe_analytique_id'] ?? '');
+        $postData['l_evenement'][$i] = (string) ($ligne['evenement_id'] ?? '');
     }
 
     render('fiche_form', [
         'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
-        'err' => null, 'post' => $postData, 'edit_mode' => true, 'fiche_id' => $id,
+        'evenements' => $evenements, 'err' => null, 'post' => $postData, 'edit_mode' => true, 'fiche_id' => $id,
+        'saved' => isset($_GET['success']), // reste sur la page de modification après Enregistrer
     ], 'Modifier la fiche');
 }
 

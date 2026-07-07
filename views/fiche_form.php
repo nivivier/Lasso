@@ -1,32 +1,35 @@
 <?php
 /** @var array $employes */ /** @var array $tauxHoraires */ /** @var array $unites */ /** @var array $axes */
-/** @var ?string $err */ /** @var ?array $post */
-/** @var bool $edit_mode */ /** @var int $fiche_id */
+/** @var array $evenements */ /** @var ?string $err */ /** @var ?array $post */
+/** @var bool $edit_mode */ /** @var int $fiche_id */ /** @var ?bool $saved */
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 $edit = !empty($edit_mode);
 $axes = $axes ?? [];
+$evenements = $evenements ?? [];
 
 // Options d'unités, encodées "heures|libellé"
-$opts = '';
-foreach ($unites as $u) {
-    $val = $u['heures'] . '|' . $u['libelle'];
-    $opts .= '<option value="' . e($val) . '" data-h="' . e((string) $u['heures']) . '">'
-        . e($u['libelle']) . ' (' . nombre_court($u['heures']) . ' h)</option>';
-}
+$opts = options_unites($unites);
 
 // Options de taux horaire (standard) + « Autre »
-$rateOpts = '';
-foreach ($tauxHoraires as $th) {
-    $rateOpts .= '<option value="' . e((string) $th['montant']) . '" data-rate="' . e((string) $th['montant']) . '">'
-        . e($th['libelle'] . ' — ' . chf((float) $th['montant']) . ' CHF/h') . '</option>';
-}
-$rateOpts .= '<option value="autre">Autre…</option>';
+$rateOpts = options_taux_horaires($tauxHoraires);
 
 // Options de l'axe analytique (select par ligne de prestation)
 $axeOpts = '<option value="">—</option>';
 foreach ($axes as $ax) {
     $axeLabel = ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
     $axeOpts .= '<option value="' . (int) $ax['id'] . '">' . e($axeLabel) . '</option>';
+}
+
+// Options d'événement (select par ligne, affiché seulement pour les lignes déjà liées)
+$evLabel = function (array $ev): string {
+    $d    = $ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '';
+    $lieu = $ev['spectacle'] ?: ($ev['festival'] ?: ($ev['salle'] ?: $ev['ville']));
+    $s    = trim($d . ($lieu !== '' ? ' — ' . $lieu : ''));
+    return $s !== '' ? $s : ('Événement #' . (int) $ev['id']);
+};
+$evenOpts = '<option value="">— aucun —</option>';
+foreach ($evenements as $ev) {
+    $evenOpts .= '<option value="' . (int) $ev['id'] . '">' . e($evLabel($ev)) . '</option>';
 }
 
 // Lignes initiales (repli sur une ligne vide, ou repopulation après erreur / édition)
@@ -39,11 +42,12 @@ if (!empty($post['l_unite'])) {
             'choix'  => (string) ($post['l_taux_choix'][$i] ?? ''),
             'manuel' => (string) ($post['l_taux_manuel'][$i] ?? ''),
             'axe'    => (string) ($post['l_axe'][$i] ?? ''),
+            'evenement' => (string) ($post['l_evenement'][$i] ?? ''),
         ];
     }
 }
 if (!$lignesInit) {
-    $lignesInit[] = ['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => ''];
+    $lignesInit[] = ['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '', 'evenement' => ''];
 }
 
 $preselect = function (string $optionsHtml, string $value): string {
@@ -55,16 +59,26 @@ $preselect = function (string $optionsHtml, string $value): string {
     }, $optionsHtml);
 };
 
-$renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeOpts) {
+$renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeOpts, $evenements, $evenOpts) {
     $axeSel = $axes
         ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . $preselect($axeOpts, (string) ($l['axe'] ?? '')) . '</select>'
         : '';
+    // Événement : select (visible + modifiable) si la ligne est déjà liée, sinon
+    // champ caché pour préserver l'absence de lien et garder l'alignement des index.
+    $evId  = (string) ($l['evenement'] ?? '');
+    $evSel = '';
+    if ($evenements) {
+        $evSel = $evId !== ''
+            ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé" style="flex:0 0 200px;width:auto">' . $preselect($evenOpts, $evId) . '</select>'
+            : '<input type="hidden" name="l_evenement[]" value="">';
+    }
     return '<div class="ligne-row">'
         . '<select name="l_unite[]" class="l-unite">' . $preselect($opts, $l['enc']) . '</select>'
         . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" value="' . e($l['qte']) . '">'
         . '<select name="l_taux_choix[]" class="l-taux-choix">' . $preselect($rateOpts, $l['choix']) . '</select>'
         . '<input name="l_taux_manuel[]" class="l-taux-manuel" type="text" inputmode="decimal" placeholder="CHF/h" value="' . e($l['manuel']) . '">'
         . $axeSel
+        . $evSel
         . '<span class="l-sub muted"></span>'
         . '<button type="button" class="btn ghost btn-sm l-del" aria-label="Supprimer la ligne">✕</button>'
         . '</div>';
@@ -74,6 +88,8 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeO
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la fiche de salaire' : 'Nouvelle fiche de salaire' ?></h1>
 </div>
+
+<?php if (!empty($saved)): ?><p class="ok flash">✓ Fiche enregistrée avec succès.</p><?php endif; ?>
 
 <?php if (!$employes): ?>
     <p class="muted">Aucun employé actif. <a href="?p=employe">Ajoutez un employé</a> d'abord.</p>
@@ -141,12 +157,12 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeO
     </p>
 
     <div class="form-actions">
-        <button type="submit"><?= $edit ? 'Enregistrer les modifications' : 'Calculer et créer la fiche' ?></button>
+        <button type="submit"><?= $edit ? icon('save') . ' Enregistrer les modifications' : 'Calculer et créer la fiche' ?></button>
         <a class="btn ghost" href="?p=fiches">Annuler</a>
     </div>
 </form>
 
-<template id="ligne-tpl"><?= $renderRow(['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '']) ?></template>
+<template id="ligne-tpl"><?= $renderRow(['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '', 'evenement' => '']) ?></template>
 
 <script>
 (function () {
