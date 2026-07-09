@@ -612,7 +612,7 @@ function badge_paiement(array $f): string
 {
     $date = trim((string) ($f['date_paiement'] ?? ''));
     if ($date !== '') {
-        return '<span class="badge ok-badge">Payé le ' . e(date('d.m.Y', strtotime($date))) . '</span>';
+        return '<span class="badge ok-badge">' . e(date('d.m.Y', strtotime($date))) . '</span>';
     }
     $annee = (int) ($f['annee'] ?? 0);
     $mois  = (int) ($f['mois'] ?? 0);

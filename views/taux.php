@@ -20,7 +20,7 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
         </label>
     </div>
     <?php if (!$configuree): ?>
-        <p class="muted small"><span class="tag-warn">Année <?= $annee ?> non encore configurée</span> — valeurs reprises de l'année précédente (ou par défaut). Enregistrez pour les fixer.</p>
+        <p class="muted small"><span class="badge warn-badge">Année <?= $annee ?> non encore configurée</span> — valeurs reprises de l'année précédente (ou par défaut). Enregistrez pour les fixer.</p>
     <?php endif; ?>
 
     <form method="post" action="?p=taux">

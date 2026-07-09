@@ -141,9 +141,11 @@ function route_evenements_liste(): void
     $spectacleId  = (int) filtre_persistant('spectacle_id', 'evenements_spectacle_id', 0);
     $statut       = filtre_persistant('statut', 'evenements_statut', 'tous');
     $visibilite   = filtre_persistant('visibilite', 'evenements_visibilite', 'tous');
+    $pays         = filtre_persistant('pays', 'evenements_pays_filtre', 'tous');
+    $salaries     = filtre_persistant('salaries', 'evenements_salaries', 'tous'); // tous | oui | non
     $retourFiltres = [
         'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
-        'statut' => $statut, 'visibilite' => $visibilite,
+        'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
     ];
 
     // Modification groupée (sélection de lignes + barre flottante, même esprit que
@@ -227,6 +229,15 @@ function route_evenements_liste(): void
             $params[] = evenements_delai_decompte_mois();
         }
     }
+    if ($pays !== 'tous' && in_array($pays, evenements_pays_disponibles(), true)) {
+        $sql .= ' AND e.pays = ?';
+        $params[] = $pays;
+    }
+    if ($salaries === 'oui') {
+        $sql .= ' AND EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
+    } elseif ($salaries === 'non') {
+        $sql .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
+    }
     $sql .= ' ORDER BY e.date DESC, e.id DESC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
@@ -244,6 +255,8 @@ function route_evenements_liste(): void
         'visibilite'      => $visibilite,
         'spectacles'      => $spectacles,
         'paysDisponibles' => evenements_pays_disponibles(),
+        'pays'            => $pays,
+        'salaries'        => $salaries,
     ], 'Événements');
 }
 

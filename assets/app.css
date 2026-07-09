@@ -124,10 +124,6 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 .param-tabs a:hover { color: var(--ink); text-decoration: none; }
 .param-tabs a.on { color: var(--primary); border-bottom-color: var(--primary); }
-.tab-badge { display: inline-flex; align-items: center; justify-content: center;
-    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-    font-size: 11px; font-weight: 700; line-height: 1;
-    background: var(--danger); color: #fff; margin-left: 6px; vertical-align: middle; }
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
@@ -311,9 +307,6 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 /* Grille 2 colonnes pour la section catégorie+axe dans le formulaire manuel */
 .grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
-/* Cat-search dans la barre de filtres — même hauteur que les <select> */
-.filtre-cat-search { position: relative; min-width: 200px; }
-.filtre-cat-search .cat-search-input { padding: 9px 10px; font-size: 13.5px; }
 /* :not() en plus pour égaler la spécificité de la règle générale .filters input:not(...):not(...)
    (sinon son padding shorthand écraserait le padding-right réservé à l'icône ci-dessous). */
 .filters input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 9px 34px 9px 10px; font-size: 13.5px; }
@@ -386,11 +379,6 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .check { display: flex; flex-direction: row !important; align-items: center; gap: 9px; font-weight: 500; color: var(--ink); }
 .check input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .form-actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
-.check-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px 0; margin-bottom: 16px; }
-.linked-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.linked-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: var(--surface); border-radius: var(--radius-sm); }
-.linked-item span { flex: 1; font-size: 13.5px; }
-.linked-item .linked-remove { flex: 0 0 auto; padding: 4px 9px; line-height: 1; }
 .linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
 .linked-add select { width: auto; flex: 1; }
 .linked-add .cat-search { flex: 1; }
@@ -439,25 +427,30 @@ button:active, .btn:active { transform: translateY(1px); }
 .ligne-row-presta .l-unite,
 .ligne-row-presta .l-taux-choix,
 .ligne-row-presta .l-axe { min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-.ligne-row-presta .l-unite { flex: 0 0 130px; }
-.ligne-row-presta .l-qte { flex: 0 0 30px; }
-.ligne-row-presta .l-taux-choix { flex: 0 0 90px; }
-.ligne-row-presta .l-axe { flex: 0 0 90px; width: auto; }
+.ligne-row-presta .l-taux-choix,
+.ligne-row-presta .l-axe,
+.ligne-row-presta .l-evenement,
+.evenement-employes .epf-col-sm { font-size: 12.5px; }
+/* Quantité : largeur doublée et fixe, y compris en mobile (spécificité 3 classes
+   pour l'emporter sur la règle mobile générique .ligne-row .l-qte). */
+.ligne-row.ligne-row-presta .l-qte { flex: 0 0 60px; width: auto; min-width: 0; }
+/* Les autres champs ne gardent qu'une largeur minimale : ils s'agrandissent
+   si la ligne a de la place, sans jamais dépasser la largeur de la carte
+   (flex-grow réparti dans l'espace restant du conteneur, pas au-delà). */
+.ligne-row-presta .l-unite { flex: 1 1 130px; }
+.ligne-row-presta .l-taux-choix { flex: 1 1 90px; }
+.ligne-row-presta .l-taux-manuel { flex: 1 1 90px; width: auto; }
+.ligne-row-presta .l-axe { flex: 1 1 90px; width: auto; }
 .ligne-row-presta .l-evenement { flex: 1 1 200px; width: auto; max-width: 200px; }
 .lignes-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 4px; }
 .total-h { font-size: 14px; color: var(--muted); }
 .total-h strong { color: var(--brand); font-size: 15px; }
-@media (max-width: 800px) {
-    .ligne-row { flex-wrap: wrap; }
-    .ligne-row .l-unite, .ligne-row .l-qte { flex: 1 1 40%; }
-}
 
 /* Carte « Employés » de la fiche événement : une colonne par donnée (fiche,
    axe, durée, taux, total) — même ligne partagée via l'attribut form="…" sur
    les champs, qui vivent dans des <td> séparés. Dropdowns étroits pour éviter
    tout débordement horizontal une fois la ligne en mode édition. */
 .evenement-employes td { vertical-align: middle; }
-.evenement-employes .epf-col-sm { font-size: 12.5px; }
 .evenement-employes .fiche-select-sm { width: 120px; }
 .evenement-employes .l-axe { width: 90px; }
 /* Le flex vit sur un <div> interne, jamais sur le <td> lui-même : sinon
@@ -515,7 +508,6 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .import-confirm form { margin: 0; }
 .mail-sent { display: inline-flex; align-items: center; gap: 4px; color: var(--teal-d); font-weight: 600; font-size: 13px; }
 .mail-sent .ico { width: 16px; height: 16px; }
-.tag-warn { display: inline-block; background: var(--amber-tint); color: var(--amber); padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
 /* =================== Filters =================== */
 .filters { display: flex; gap: 16px; align-items: center; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
@@ -534,8 +526,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .list tbody tr:last-child td { border-bottom: none; }
 .list .num { text-align: right; font-variant-numeric: tabular-nums; }
 .list .strong { font-weight: 700; color: var(--teal-d); }
-.list td.col-brut { color: var(--primary); font-weight: 700; }   /* brut en mauve */
-.list td.col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
+.col-brut { color: var(--primary); font-weight: 700; }   /* brut en mauve */
+.col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
 .badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
@@ -562,17 +554,15 @@ span + .badge.muted-badge { margin-left: 6px; }
 .resume tbody td.num, .resume tfoot td.num { white-space: nowrap; }
 .resume tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--brand); }
 .list .reste-du { color: var(--amber); }
-.resume .col-brut { color: var(--primary); font-weight: 700; }
-.resume .col-cout { font-weight: 700; }
-.resume .col-petit { font-size: 11px; color: var(--muted); }
+.col-petit { font-size: 11px; color: var(--muted); }
 .resume tfoot .col-petit { color: var(--brand); }
 .resume tfoot td.col-cout { color: var(--ink); } /* total coût employeur en noir */
 .list td.net-apayer { color: var(--amber); }      /* net en jaune quand à payer */
 .list td.net-avenir { color: var(--muted); }  /* net en gris quand à venir */
 .list .apayer-row td { background: var(--amber-tint); } /* ligne « Total à verser » sur fond jaune */
+.list tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--ink); }
 
 /* Mini-fiches dans la liste employés */
-.mini-fiches { display: flex; flex-direction: column; gap: 3px; }
 .mini-fiche { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; }
 .mini-fiche .mf-mois { font-weight: 600; color: var(--ink); min-width: 56px; }
 .mini-fiche .mf-mont { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -601,9 +591,6 @@ span + .badge.muted-badge { margin-left: 6px; }
 .ps-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 13px; }
 .ps-parties h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 3px; }
 .ps-parties p { margin: 0; }
-.ps-refs { width: 100%; border-collapse: collapse; margin-bottom: 13px; font-size: 13.5px; }
-.ps-refs td { padding: 4px 8px; border-bottom: 1px solid var(--line); }
-.ps-refs td:nth-child(odd) { color: var(--muted); width: 22%; }
 /* Fiche d'identité employé : grille label/valeur (s'adapte au mobile, pas de table). */
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; margin: 0; }
 .info-grid > div { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--line); min-width: 0; }
@@ -667,8 +654,6 @@ body.print-page { background: #e9e9f2; }
     .ps-title { margin-bottom: 9px; padding-bottom: 5px; }
     .ps-title h2 { font-size: 16px; }
     .ps-parties { margin-bottom: 9px; gap: 14px; }
-    .ps-refs { margin-bottom: 9px; font-size: 11px; }
-    .ps-refs td { padding: 2.5px 7px; }
     .ps-table { margin-bottom: 7px; page-break-inside: avoid; }
     .ps-table th { padding: 3px 7px; font-size: 10px; }
     .ps-table td { padding: 3px 7px; }
@@ -787,6 +772,8 @@ abbr {
 
 /* =================== Responsive : tiroir + burger =================== */
 @media (max-width: 800px) {
+    .ligne-row { flex-wrap: wrap; }
+    .ligne-row .l-unite, .ligne-row .l-qte { flex: 1 1 40%; }
     .side-brand { justify-content: space-between; display: flex; align-items: center; }
     .side-close { display: inline-flex; }
 
@@ -835,15 +822,12 @@ abbr {
 }
 
 /* ===================================================== COMPTABILITÉ */
-.filters-spacer { flex: 1 1 auto; }
-
 /* Édition « en place » : champs + bouton d'enregistrement sur la même ligne */
 .inline-edit { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
 .inline-edit input { margin-bottom: 0; }
 .inline-edit .grow { flex: 1 1 auto; min-width: 8rem; }
 .inline-edit .w-iban { flex: 0 0 auto; width: 17rem; max-width: 40vw; }
 .inline-edit button { flex: 0 0 auto; }
-.add-row-wrap { align-items: flex-end; }
 
 /* Montants */
 .montant-neg { color: var(--danger); font-weight: 600; }
@@ -886,10 +870,10 @@ abbr {
 .compta-cr .cr-compte td:first-child { padding-left: 34px; color: var(--muted); }
 .compta-cr .cr-clic { cursor: pointer; }
 /* Colonnes des années précédentes en gris (écran uniquement) */
-.compta-cr td.col-prec, .bilan-card td.col-prec { color: var(--muted); }
+.compta-cr td.col-prec { color: var(--muted); }
 .compta-cr td.total-col, .compta-cr th.total-col { border-left: 1px solid var(--line); font-weight: 600; }
 .compta-cr .cr-groupe td.col-prec { color: var(--muted); }
-.compta-cr th.col-prec, .bilan-card th.col-prec { color: var(--muted); font-weight: 500; }
+.compta-cr th.col-prec { color: var(--muted); font-weight: 500; }
 .compta-cr .cr-clic:hover td { background: var(--primary-tint); color: var(--ink); }
 .compta-cr .cr-clic td:first-child { padding-left: 16px; }
 .cr-toggle { display: inline-flex; vertical-align: middle; margin-right: 4px; color: var(--muted); transition: transform .15s; }
@@ -897,8 +881,6 @@ abbr {
 .cr-clic.open .cr-toggle { transform: rotate(180deg); }
 .cr-count { display: inline-block; min-width: 18px; text-align: center; font-size: 11px; font-weight: 700; color: var(--primary-d); background: var(--primary-tint); border-radius: 20px; padding: 1px 7px; margin-left: 6px; }
 .cr-detail > td { padding: 0 16px 10px 34px; background: var(--surface); }
-.cr-axe-cat { margin-bottom: 8px; }
-.cr-axe-cat-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 13px; padding: 4px 0 2px; border-bottom: 1px solid var(--line); margin-bottom: 2px; }
 .cr-det-row { display: grid; grid-template-columns: 78px 1fr 2fr auto; gap: 12px; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
 .cr-det-row:last-child { border-bottom: none; }
 .cr-det-row .dt { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -1012,13 +994,7 @@ abbr {
 .cat-search-list li:hover { background: var(--primary-tint); }
 .cat-search-list li[hidden] { display: none; }
 
-/* Bilan écran : padding réduit en haut des sections */
-.bilan-card { padding-top: 14px; }
-.bilan-card .list,
 .compta-print .list { table-layout: fixed; }
-.bilan-card .list { min-width: 420px; } /* défile horizontalement sur mobile plutôt que de se comprimer */
-.bilan-card .list th, .bilan-card .list td { padding: 6px 12px; }
-.bilan-card .list th.num,
 .compta-print .list th.num { width: 110px; }
 
 /* Version imprimable du bilan — style typographique commun écran + impression */

@@ -27,7 +27,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
 <div class="page-head"><h1>Cotisations</h1></div>
 
 <div class="section-head">
-    <h2 class="mt-0">Résumé complet</h2>
+    <h2 class="mt-0">Résumé</h2>
     <form method="get" class="annee-pick">
         <input type="hidden" name="p" value="resume">
         <select name="groupe" aria-label="Regroupement" onchange="this.form.submit()">

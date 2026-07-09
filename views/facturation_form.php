@@ -6,19 +6,7 @@ $edit = $id > 0;
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 
 // Options de l'axe analytique (select par ligne)
-$axeOpts = '<option value="">—</option>';
-foreach ($axes as $ax) {
-    $label = ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
-    $axeOpts .= '<option value="' . (int) $ax['id'] . '">' . e($label) . '</option>';
-}
-$preselect = function (string $optionsHtml, string $value): string {
-    if ($value === '') {
-        return $optionsHtml;
-    }
-    return preg_replace_callback('/<option value="([^"]*)"/', function ($m) use ($value) {
-        return $m[0] . (html_entity_decode($m[1], ENT_QUOTES) === $value ? ' selected' : '');
-    }, $optionsHtml);
-};
+$axeOpts = options_axes($axes);
 
 // Lignes initiales : depuis la facture existante, ou repopulation après erreur, ou une ligne vide.
 $lignesInit = [];
@@ -47,9 +35,9 @@ if (!$lignesInit) {
     $lignesInit[] = ['description' => '', 'quantite' => '1', 'prix' => '', 'axe' => (string) ($axeDefautEvenement ?? '')];
 }
 
-$renderRow = function (array $l) use ($axes, $axeOpts, $preselect) {
+$renderRow = function (array $l) use ($axes, $axeOpts) {
     $axeSel = $axes
-        ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . $preselect($axeOpts, $l['axe']) . '</select>'
+        ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . preselectionner_option($axeOpts, $l['axe']) . '</select>'
         : '';
     return '<div class="ligne-row">'
         . '<input name="l_description[]" class="l-desc" type="text" placeholder="Description" value="' . e($l['description']) . '">'

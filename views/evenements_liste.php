@@ -2,6 +2,7 @@
 /** @var array $evenements */ /** @var int $annee */ /** @var array $annees */
 /** @var string $statutSuisa */ /** @var int $spectacleId */ /** @var string $statut */
 /** @var string $visibilite */ /** @var array $spectacles */
+/** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */
 $statutsSuisa = [
     'tous' => 'Tous', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
     'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
@@ -19,6 +20,8 @@ $termeSingulier = evenements_terme_spectacle(false);
             <input type="hidden" name="spectacle_id" value="<?= (int) $spectacleId ?>">
             <input type="hidden" name="statut" value="<?= e($statut) ?>">
             <input type="hidden" name="visibilite" value="<?= e($visibilite) ?>">
+            <input type="hidden" name="pays" value="<?= e($pays) ?>">
+            <input type="hidden" name="salaries" value="<?= e($salaries) ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
@@ -67,6 +70,24 @@ $termeSingulier = evenements_terme_spectacle(false);
                     <option value="<?= (int) $s['id'] ?>" <?= $spectacleId === (int) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
+        </label>
+        <label>Pays
+            <select name="pays" onchange="this.form.submit()">
+                <option value="tous" <?= $pays === 'tous' ? 'selected' : '' ?>>Tous</option>
+                <?php foreach ($paysDisponibles as $p): ?>
+                    <option value="<?= e($p) ?>" <?= $pays === $p ? 'selected' : '' ?>><?= e($p) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Salariés
+            <select name="salaries" onchange="this.form.submit()">
+                <option value="tous" <?= $salaries === 'tous' ? 'selected' : '' ?>>Tous</option>
+                <option value="oui" <?= $salaries === 'oui' ? 'selected' : '' ?>>Oui</option>
+                <option value="non" <?= $salaries === 'non' ? 'selected' : '' ?>>Non</option>
+            </select>
+        </label>
+        <label class="search-label"><span>Rechercher <span id="evenements-search-count" class="muted small"></span></span>
+            <input type="search" id="evenements-search" placeholder="Ville, salle, festival, <?= mb_strtolower(e($termeSingulier)) ?>…" autocomplete="off" aria-label="Rechercher">
         </label>
     </form>
 </div>
@@ -224,6 +245,39 @@ $termeSingulier = evenements_terme_spectacle(false);
             e.preventDefault();
         }
     });
+
+    // Recherche instantanée (insensible à la casse et aux accents) sur
+    // spectacle, ville, salle et festival — colonnes déjà à l'écran.
+    const search  = document.getElementById('evenements-search');
+    const count   = document.getElementById('evenements-search-count');
+    const allRows = Array.from(document.querySelectorAll('.evenements-liste tbody tr'));
+    const rows    = allRows.filter(r => !r.classList.contains('mois-sep'));
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const texteLigne = r => norm((r.children[2]?.textContent || '') + ' ' + (r.children[3]?.textContent || ''));
+    if (search) {
+        const apply = () => {
+            const q = norm(search.value.trim());
+            let visibles = 0;
+            rows.forEach(r => {
+                const ok = q === '' || texteLigne(r).includes(q);
+                r.style.display = ok ? '' : 'none';
+                if (ok) visibles++;
+            });
+            // Un séparateur de mois ne s'affiche que s'il précède au moins une ligne visible.
+            let sep = null, sepVisible = false;
+            allRows.forEach(r => {
+                if (r.classList.contains('mois-sep')) {
+                    if (sep) sep.style.display = sepVisible ? '' : 'none';
+                    sep = r; sepVisible = false;
+                } else if (r.style.display !== 'none') {
+                    sepVisible = true;
+                }
+            });
+            if (sep) sep.style.display = sepVisible ? '' : 'none';
+            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affiché(e)s';
+        };
+        search.addEventListener('input', apply);
+    }
 })();
 </script>
 <?php endif; ?>

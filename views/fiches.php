@@ -56,8 +56,8 @@
     <thead>
         <tr>
             <th>Employé</th><?php if ($axesParFiche): ?><th>Axes</th><?php endif; ?>
-            <th class="num">Brut</th><th class="num">Charges sociales</th><th class="num">Impôt à la source</th>
-            <th class="num">Net</th><th>Paiement</th><th class="num">Charges patronales</th><th class="num">Coût employeur</th>
+            <th class="num">Brut</th><th class="num col-petit">Charges sociales</th><th class="num col-petit">Impôt à la source</th>
+            <th class="num">Net</th><th>Paiement</th><th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
             <th class="center">Envoyée</th>
         </tr>
     </thead>
@@ -73,16 +73,41 @@
             <td><?= e($f['employe_nom']) ?></td>
             <?php if ($axesParFiche): ?><td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td><?php endif; ?>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
-            <td class="num"><?= chf((float) $f['total_deductions']) ?></td>
-            <td class="num"><?= chf((float) $f['ded_impot_source']) ?></td>
+            <td class="num col-petit"><?= chf((float) $f['total_deductions']) ?></td>
+            <td class="num col-petit"><?= chf((float) $f['ded_impot_source']) ?></td>
             <td class="num strong <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
             <td><?= badge_paiement($f) ?></td>
-            <td class="num"><?= chf((float) $f['total_charges_emp']) ?></td>
+            <td class="num col-petit"><?= chf((float) $f['total_charges_emp']) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
             <td class="center"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>
+    <tfoot>
+        <?php
+            $totBrut = $totDed = $totImpot = $totNet = $totChargesEmp = $totCoutEmp = 0.0;
+            foreach ($fiches as $f) {
+                $totBrut        += (float) $f['salaire_brut'];
+                $totDed         += (float) $f['total_deductions'];
+                $totImpot       += (float) $f['ded_impot_source'];
+                $totNet         += (float) $f['salaire_net'];
+                $totChargesEmp  += (float) $f['total_charges_emp'];
+                $totCoutEmp     += (float) $f['cout_total_emp'];
+            }
+        ?>
+        <tr>
+            <td>Total</td>
+            <?php if ($axesParFiche): ?><td></td><?php endif; ?>
+            <td class="num"><?= chf($totBrut) ?></td>
+            <td class="num col-petit"><?= chf($totDed) ?></td>
+            <td class="num col-petit"><?= chf($totImpot) ?></td>
+            <td class="num"><?= chf($totNet) ?></td>
+            <td></td>
+            <td class="num col-petit"><?= chf($totChargesEmp) ?></td>
+            <td class="num"><?= $totChargesEmp > 0 ? chf($totCoutEmp) : '—' ?></td>
+            <td></td>
+        </tr>
+    </tfoot>
 </table>
 </div>
 <?php endif; ?>

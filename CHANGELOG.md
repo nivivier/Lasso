@@ -22,6 +22,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 - Infobulles (icône **i**) remplaçant plusieurs textes d'aide statiques (fiche de
   salaire, employé, Cotisations, employeur, salaires horaires, e-mails, facture,
   spectacle, taux).
+- Liste des fiches de salaire : ligne de totaux en fin de tableau.
+- Liste des événements : filtres **Pays** et **Salariés** (oui/non), champ de
+  recherche instantané (ville, salle, festival, spectacle) — les séparateurs de
+  mois sans résultat se masquent automatiquement pendant la recherche.
 
 ### Modifié
 - Dégradé du menu latéral et de la page de connexion plus vibrant.
@@ -30,9 +34,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 - Écritures : couleur de survol des lignes alignée sur celle utilisée ailleurs dans
   l'application (dérivée de la couleur de marque, plus une couleur fixe).
 - Fiche de salaire : ligne de prestation resserrée (unité/quantité/taux/axe plus
-  étroits) ; select d'événement lié toujours visible pour permettre la liaison
-  directement depuis la fiche, plus seulement son édition.
+  étroits, quantité doublée et fixe) ; select d'événement lié toujours visible pour
+  permettre la liaison directement depuis la fiche, plus seulement son édition.
 - Page « Résumé » renommée en **Cotisations**.
+- Badge de paiement : n'affiche plus que la date (« Payé le » retiré, texte redondant
+  avec le tag vert).
+- Nettoyage interne (CSS/PHP) : suppression de règles CSS orphelines et de
+  doublons (couleurs de colonnes, focus, media queries), réutilisation des
+  helpers partagés (`options_axes()`, `preselectionner_option()`, `mois_nom()`)
+  à la place de code dupliqué localement.
 
 ## [1.2.0] — 2026-07-09
 

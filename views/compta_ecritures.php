@@ -242,7 +242,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <tbody>
     <?php
     $prevMois = null;
-    $moisFr = ['01'=>'Janvier','02'=>'Février','03'=>'Mars','04'=>'Avril','05'=>'Mai','06'=>'Juin','07'=>'Juillet','08'=>'Août','09'=>'Septembre','10'=>'Octobre','11'=>'Novembre','12'=>'Décembre'];
     $nbCols = 6 + ($compteId === 0 ? 1 : 0) + ($axes ? 1 : 0);
     // Options du select inline pour la colonne axe (construit une fois, réutilisé par toutes les lignes)
     $axeOptsHtml = '';
@@ -255,7 +254,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             $prevMois = $moisCle;
     ?>
         <tr class="ecr-mois-sep"><td colspan="<?= $nbCols ?>">
-            <?= e($moisFr[substr($moisCle, 5, 2)] ?? substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4) ?>
+            <?= e(mois_nom((int) substr($moisCle, 5, 2))) . ' ' . substr($moisCle, 0, 4) ?>
         </td></tr>
     <?php endif; ?>
         <?php
