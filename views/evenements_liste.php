@@ -62,6 +62,7 @@ $termeSingulier = evenements_terme_spectacle(false);
         <label><?= e($termeSingulier) ?>
             <select name="spectacle_id" onchange="this.form.submit()">
                 <option value="0">Tous</option>
+                <option value="-1" <?= $spectacleId === -1 ? 'selected' : '' ?>>Sans <?= mb_strtolower(e($termeSingulier)) ?></option>
                 <?php foreach ($spectacles as $s): ?>
                     <option value="<?= (int) $s['id'] ?>" <?= $spectacleId === (int) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
                 <?php endforeach; ?>
@@ -75,46 +76,74 @@ $termeSingulier = evenements_terme_spectacle(false);
     <p class="muted">Aucun événement pour cette sélection.</p>
 <?php else: ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
-    <div class="bulk-group">
-        <span class="bulk-titre"><?= e($termeSingulier) ?> :</span>
-        <form method="post" id="bulk-spectacle-form" action="?p=evenements_liste">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="spectacle">
+    <form method="post" id="bulkform" action="?p=evenements_liste">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <select name="section" id="bulk-action" class="inline-year-select">
+            <option value="">— Choisir une action —</option>
+            <option value="delete">Supprimer</option>
+            <option value="statut">Modifier le statut</option>
+            <option value="visibilite">Modifier le type d'audience</option>
+            <option value="spectacle">Modifier <?= mb_strtolower(e($termeSingulier)) ?></option>
+            <option value="region">Modifier la région</option>
+            <option value="pays">Modifier le pays</option>
+            <option value="suisa_applicable">Modifier si la SUISA s'applique</option>
+            <option value="suisa_envoi">Modifier l'envoi SUISA</option>
+            <option value="suisa_decompte">Modifier la date du décompte SUISA</option>
+        </select>
+
+        <span class="bulk-field" data-for="statut" hidden>
+            <select name="bulk_statut" class="inline-year-select">
+                <?php foreach (EVENEMENTS_STATUTS as $s): ?>
+                    <option value="<?= $s ?>"><?= e(evenement_statut_libelle($s)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </span>
+        <span class="bulk-field" data-for="visibilite" hidden>
+            <select name="bulk_visibilite" class="inline-year-select">
+                <?php foreach (EVENEMENTS_VISIBILITES as $vi): ?>
+                    <option value="<?= $vi ?>"><?= e(evenement_visibilite_libelle($vi)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </span>
+        <span class="bulk-field" data-for="spectacle" hidden>
             <select name="bulk_spectacle_id" class="inline-year-select">
                 <option value="">— Aucun —</option>
                 <?php foreach ($spectacles as $s): ?>
                     <option value="<?= (int) $s['id'] ?>"><?= e($s['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit">Appliquer</button>
-        </form>
-    </div>
-    <div class="bulk-group">
-        <span class="bulk-titre">Type d'audience :</span>
-        <form method="post" id="bulk-visibilite-form" action="?p=evenements_liste">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="visibilite">
-            <select name="bulk_visibilite" class="inline-year-select">
-                <?php foreach (EVENEMENTS_VISIBILITES as $vi): ?>
-                    <option value="<?= $vi ?>"><?= e(evenement_visibilite_libelle($vi)) ?></option>
+        </span>
+        <span class="bulk-field" data-for="region" hidden>
+            <input type="text" name="bulk_region" class="inline-year-select" placeholder="canton ou département">
+        </span>
+        <span class="bulk-field" data-for="pays" hidden>
+            <select name="bulk_pays" class="inline-year-select">
+                <option value="">—</option>
+                <?php foreach ($paysDisponibles as $p): ?>
+                    <option value="<?= e($p) ?>"><?= e($p) ?></option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit">Appliquer</button>
-        </form>
-    </div>
-    <div class="bulk-group">
-        <span class="bulk-titre">Statut :</span>
-        <form method="post" id="bulk-statut-form" action="?p=evenements_liste">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="statut">
-            <select name="bulk_statut" class="inline-year-select">
-                <?php foreach (EVENEMENTS_STATUTS as $s): ?>
-                    <option value="<?= $s ?>"><?= e(evenement_statut_libelle($s)) ?></option>
-                <?php endforeach; ?>
+        </span>
+        <span class="bulk-field" data-for="suisa_applicable" hidden>
+            <select name="bulk_suisa_applicable" class="inline-year-select">
+                <option value="1">S'applique</option>
+                <option value="0">Ne s'applique pas</option>
             </select>
-            <button type="submit">Appliquer</button>
-        </form>
-    </div>
+        </span>
+        <span class="bulk-field" data-for="suisa_envoi" hidden>
+            <select name="bulk_suisa_envoye_a" class="inline-year-select">
+                <option value="">—</option>
+                <option value="suisa">Directement à la SUISA</option>
+                <option value="organisateur">À l'organisateur</option>
+            </select>
+            <input type="date" name="bulk_suisa_envoye_le" class="inline-year-select">
+        </span>
+        <span class="bulk-field" data-for="suisa_decompte" hidden>
+            <input type="date" name="bulk_suisa_decompte_le" class="inline-year-select">
+        </span>
+
+        <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
+    </form>
 </div>
 <div class="table-scroll">
 <table class="list list-wide evenements-liste">
@@ -138,7 +167,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             $festivalSalle = implode(', ', array_filter([$ev['festival'], $ev['salle']], fn ($v) => $v !== ''));
         ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?>">
-            <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulk-spectacle-form" class="row-check"></td>
+            <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td>
             <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
             <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
             <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
@@ -169,20 +198,30 @@ $termeSingulier = evenements_terme_spectacle(false);
     });
     document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
 
-    // Les cases ne sont natively liées qu'au formulaire « Spectacle » (attribut form) —
-    // on injecte les mêmes ids dans les deux autres formulaires juste avant l'envoi.
-    ['bulk-visibilite-form', 'bulk-statut-form'].forEach(formId => {
-        const form = document.getElementById(formId);
-        form.addEventListener('submit', e => {
-            form.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
-            const checked = document.querySelectorAll('.row-check:checked');
-            checked.forEach(cb => {
-                const inp = document.createElement('input');
-                inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = cb.value;
-                form.appendChild(inp);
-            });
-            if (!checked.length) e.preventDefault();
-        });
+    // Action choisie → affiche le champ correspondant (s'il y en a un) et adapte
+    // le libellé du bouton (suppression = destructif, le reste = modification).
+    const action = document.getElementById('bulk-action');
+    const submit = document.getElementById('bulk-submit');
+    const fields = document.querySelectorAll('.bulk-field');
+    function syncAction() {
+        fields.forEach(f => { f.hidden = f.dataset.for !== action.value; });
+        submit.disabled = action.value === '';
+        if (action.value === 'delete') {
+            submit.textContent = 'Supprimer la sélection';
+            submit.classList.add('danger');
+        } else {
+            submit.textContent = 'Modifier la sélection';
+            submit.classList.remove('danger');
+        }
+    }
+    action.addEventListener('change', syncAction);
+    syncAction();
+
+    document.getElementById('bulkform').addEventListener('submit', e => {
+        const n = document.querySelectorAll('.row-check:checked').length;
+        if (action.value === 'delete' && !confirm('Supprimer ' + n + ' événement(s) ? Cette action est irréversible.')) {
+            e.preventDefault();
+        }
     });
 })();
 </script>

@@ -137,6 +137,7 @@ function route_evenements_liste(): void
     )->fetchAll(PDO::FETCH_COLUMN));
     $annee        = (int) filtre_persistant('annee', 'evenements_annee', $annees[0] ?? date('Y'));
     $statutSuisa  = filtre_persistant('statut_suisa', 'evenements_statut_suisa', 'tous');
+    // spectacle_id : 0 = tous, -1 = sans spectacle (spectacle_id NULL), > 0 = un spectacle précis.
     $spectacleId  = (int) filtre_persistant('spectacle_id', 'evenements_spectacle_id', 0);
     $statut       = filtre_persistant('statut', 'evenements_statut', 'tous');
     $visibilite   = filtre_persistant('visibilite', 'evenements_visibilite', 'tous');
@@ -153,7 +154,11 @@ function route_evenements_liste(): void
         if ($ids) {
             $in = implode(',', array_fill(0, count($ids), '?'));
             $section = $_POST['section'] ?? '';
-            if ($section === 'spectacle') {
+            if ($section === 'delete') {
+                // FK ON DELETE CASCADE/SET NULL (evenement_employes, evenement_fiches,
+                // factures, fiche_lignes) : pas de nettoyage manuel nécessaire.
+                db()->prepare("DELETE FROM evenements WHERE id IN ($in)")->execute($ids);
+            } elseif ($section === 'spectacle') {
                 $spId = ($_POST['bulk_spectacle_id'] ?? '') !== '' ? (int) $_POST['bulk_spectacle_id'] : null;
                 if ($spId === null || spectacle_existe($spId)) {
                     db()->prepare("UPDATE evenements SET spectacle_id = ? WHERE id IN ($in)")
@@ -165,6 +170,29 @@ function route_evenements_liste(): void
             } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', EVENEMENTS_STATUTS, true)) {
                 db()->prepare("UPDATE evenements SET statut = ? WHERE id IN ($in)")
                     ->execute(array_merge([$_POST['bulk_statut']], $ids));
+            } elseif ($section === 'region') {
+                $region = trim((string) ($_POST['bulk_region'] ?? ''));
+                db()->prepare("UPDATE evenements SET region = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$region], $ids));
+            } elseif ($section === 'pays') {
+                $pays = (string) ($_POST['bulk_pays'] ?? '');
+                $pays = in_array($pays, evenements_pays_disponibles(), true) ? $pays : '';
+                db()->prepare("UPDATE evenements SET pays = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$pays], $ids));
+            } elseif ($section === 'suisa_applicable') {
+                $applicable = ($_POST['bulk_suisa_applicable'] ?? '') === '1' ? 1 : 0;
+                db()->prepare("UPDATE evenements SET suisa_applicable = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$applicable], $ids));
+            } elseif ($section === 'suisa_envoi') {
+                $envoyeA = (string) ($_POST['bulk_suisa_envoye_a'] ?? '');
+                $envoyeA = in_array($envoyeA, EVENEMENTS_SUISA_ENVOYE_A, true) ? $envoyeA : '';
+                $envoyeLe = trim((string) ($_POST['bulk_suisa_envoye_le'] ?? ''));
+                db()->prepare("UPDATE evenements SET suisa_envoye_a = ?, suisa_envoye_le = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$envoyeA, $envoyeLe], $ids));
+            } elseif ($section === 'suisa_decompte') {
+                $decompteLe = trim((string) ($_POST['bulk_suisa_decompte_le'] ?? ''));
+                db()->prepare("UPDATE evenements SET suisa_decompte_le = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$decompteLe], $ids));
             }
         }
         redirect('evenements_liste', $retourFiltres);
@@ -177,7 +205,9 @@ function route_evenements_liste(): void
         $sql .= " AND strftime('%Y', e.date) = ?";
         $params[] = (string) $annee;
     }
-    if ($spectacleId) {
+    if ($spectacleId === -1) {
+        $sql .= ' AND e.spectacle_id IS NULL';
+    } elseif ($spectacleId) {
         $sql .= ' AND e.spectacle_id = ?';
         $params[] = $spectacleId;
     }
@@ -203,14 +233,15 @@ function route_evenements_liste(): void
     $spectacles = spectacles_pour_selection();
 
     render('evenements_liste', [
-        'evenements'   => $evenements,
-        'annee'        => $annee,
-        'annees'       => $annees ?: [(int) date('Y')],
-        'statutSuisa'  => $statutSuisa,
-        'spectacleId'  => $spectacleId,
-        'statut'       => $statut,
-        'visibilite'   => $visibilite,
-        'spectacles'   => $spectacles,
+        'evenements'      => $evenements,
+        'annee'           => $annee,
+        'annees'          => $annees ?: [(int) date('Y')],
+        'statutSuisa'     => $statutSuisa,
+        'spectacleId'     => $spectacleId,
+        'statut'          => $statut,
+        'visibilite'      => $visibilite,
+        'spectacles'      => $spectacles,
+        'paysDisponibles' => evenements_pays_disponibles(),
     ], 'Événements');
 }
 
