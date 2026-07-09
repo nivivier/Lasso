@@ -7,7 +7,59 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié] — canal test
+## [1.2.1] — 2026-07-10
+
+### Ajouté
+- Modification groupée (bulk change) unifiée sur les listes Écritures et Événements :
+  un seul sélecteur d'action (au lieu de plusieurs formulaires séparés) ; nouvelles
+  actions Événements — suppression, région, pays, SUISA (applicable, envoi, décompte).
+- Liste des événements : filtre « sans spectacle », colonne **Salariés** (nombre de
+  salariés liés).
+- Liste des fiches de salaire : colonnes **Charges sociales**, **Impôt à la source**,
+  **Charges patronales** (même apparence que la page Cotisations).
+- Comptabilité analytique par axe : ligne **Total des charges (salariales + patronales)**
+  en fin de tableau des charges sociales prévues.
+- Infobulles (icône **i**) remplaçant plusieurs textes d'aide statiques (fiche de
+  salaire, employé, Cotisations, employeur, salaires horaires, e-mails, facture,
+  spectacle, taux).
+
+### Modifié
+- Dégradé du menu latéral et de la page de connexion plus vibrant.
+- Tableau de bord : les widgets s'empilent en pleine largeur dès que la fenêtre ne
+  permet plus deux colonnes confortables, pas seulement en mode mobile strict.
+- Écritures : couleur de survol des lignes alignée sur celle utilisée ailleurs dans
+  l'application (dérivée de la couleur de marque, plus une couleur fixe).
+- Fiche de salaire : ligne de prestation resserrée (unité/quantité/taux/axe plus
+  étroits) ; select d'événement lié toujours visible pour permettre la liaison
+  directement depuis la fiche, plus seulement son édition.
+- Page « Résumé » renommée en **Cotisations**.
+
+## [1.2.0] — 2026-07-09
+
+### Ajouté
+- **Nouveau module Événements** : dates, statut (option/confirmé/annulé), audience,
+  région/pays, suivi SUISA (applicabilité, envoi, décompte), export public, import
+  CSV, spectacles (photo, notes).
+- Liens croisés événement ↔ prestation de fiche de salaire ↔ facture (association,
+  détachement, affichage croisé dans les trois sens).
+- Tableau de bord : graphique SVG « Évolution financière » (recettes, dépenses,
+  résultat, patrimoine) et deux colonnes de widgets indépendantes.
+- Page Résumé : filtres (regroupement / année / employé) alignés horizontalement.
+
+### Modifié
+- Facturation : indépendance vis-à-vis du module Comptabilité (activable seul) ;
+  événement lié affiché en sidebar de la facture.
+- Fiches de salaire : séparateurs de mois/année dans la liste, option « Toutes les
+  années », boutons d'en-tête regroupés.
+- Style des champs de formulaire harmonisé sur l'ensemble du site.
+
+### Corrigé
+- Requêtes N+1 sur le tableau de bord comptable et sur la fiche événement (regroupées
+  en requêtes préparées).
+- Garde de module manquante sur la liaison facture ↔ événement.
+- Import CSV événements : validation du pays contre la liste autorisée.
+- Suppression d'un événement lié à une facture n'empêche plus l'enregistrement de la
+  facture (clé étrangère gérée proprement).
 
 ## [1.1.0] — 2026-07-02
 

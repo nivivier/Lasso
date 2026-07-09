@@ -18,8 +18,7 @@ $flashErr = [
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
 <div class="card">
-    <h2 class="mt-0">Comptes existants</h2>
-    <p class="muted small">Tous les comptes ont les mêmes droits d'accès à l'application.</p>
+    <h2 class="mt-0">Comptes existants <?= info_tip("Tous les comptes ont les mêmes droits d'accès à l'application.") ?></h2>
     <div class="table-scroll">
     <table class="list">
         <thead>

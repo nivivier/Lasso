@@ -150,7 +150,7 @@ $termeSingulier = evenements_terme_spectacle(false);
     <thead>
         <tr>
             <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-            <th>Date</th><th><?= e($termeSingulier) ?></th><th>Ville / salle</th><th>Audience</th><th>Statut</th><th>SUISA</th>
+            <th>Date</th><th><?= e($termeSingulier) ?></th><th>Ville / salle</th><th>Audience</th><th>Statut</th><th>SUISA</th><th class="num">Salariés</th>
         </tr>
     </thead>
     <tbody>
@@ -159,7 +159,7 @@ $termeSingulier = evenements_terme_spectacle(false);
         if ($moisCle !== $moisPrecedent):
             $moisPrecedent = $moisCle;
     ?>
-        <tr class="mois-sep"><td colspan="7"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>
+        <tr class="mois-sep"><td colspan="8"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>
     <?php endif; ?>
         <?php
             $estAnnule = $ev['statut'] === 'annule';
@@ -180,6 +180,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             <td><?= evenement_badge_visibilite($ev) ?></td>
             <td><?= evenement_badge_statut($ev) ?></td>
             <td><?= evenement_suisa_badge($ev) ?></td>
+            <td class="num"><?= (int) $ev['nb_salaries'] ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>

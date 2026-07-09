@@ -14,11 +14,11 @@
     <div class="head-actions">
 
         <?php if (!empty($modifiable)): ?>
-            <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+            <a class="btn ghost btn-sm" href="?p=fiche_edit&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
         <?php else: ?>
-            <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
+            <button class="btn ghost btn-sm" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
         <?php endif; ?>
-        <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
+        <a class="btn ghost btn-sm" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
         <?php
         $envoyee = trim((string) ($f['email_envoye_le'] ?? '')) !== '';
         $peutEnvoyer = filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) && filter_var($emailExp, FILTER_VALIDATE_EMAIL);
@@ -57,7 +57,7 @@
         <form method="post" action="?p=fiche_date" class="paiement-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-            <h2>Date de paiement</h2>
+            <h2>Date de paiement <?= info_tip('Laissez la date vide pour marquer la fiche « à payer ».') ?></h2>
             <div class="paiement-date-row">
                 <input type="date" name="date_paiement" value="<?= e($f['date_paiement']) ?>" class="paiement-date">
                 <?php if (!empty($f['date_paiement'])): ?>
@@ -65,7 +65,6 @@
                 <?php endif; ?>
                 <button type="submit" class="btn paiement-save" title="Enregistrer"><?= icon('save') ?><span class="lbl">Enregistrer</span></button>
             </div>
-            <p class="muted small">Laissez la date vide pour marquer la fiche « à payer ».</p>
 
         </form>
         

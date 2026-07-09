@@ -44,7 +44,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('users') ?> Employés
         </a>
         <a href="?p=resume" class="<?= $cur === 'resume' ? 'on' : '' ?>">
-            <?= icon('bar-chart') ?> Résumé
+            <?= icon('bar-chart') ?> Cotisations
         </a>
         <?php endif; ?>
         <?php if (module_actif('compta')): ?>

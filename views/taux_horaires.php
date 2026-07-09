@@ -3,8 +3,9 @@
 <?php if ($saved): ?><p class="ok flash">Modifications enregistrées.</p><?php endif; ?>
 
 <div class="card form mb-22">
-<h2 class="mt-0">Salaires horaires</h2>
-    <p class="muted small">Proposés lors de la création d'une fiche de salaire. Un taux manuel reste toujours possible.</p>
+<h2 class="mt-0">Salaires horaires <?= info_tip(
+        "Proposés lors de la création d'une fiche de salaire. Un taux manuel reste toujours possible."
+    ) ?></h2>
     <?php if ($tauxHoraires): ?>
     <table class="list mb-16">
         <thead><tr><th>Libellé</th><th class="num">Montant</th><th></th></tr></thead>
@@ -40,8 +41,10 @@
 </div>
 
 <div class="card form">
-<h2 class="mt-0">Unités de temps</h2>
-    <p class="muted small">Utilisées dans les fiches de salaire. Chaque unité vaut un nombre d'heures (le calcul du salaire se fait toujours sur le total d'heures). Supprimer une unité ne modifie pas les fiches déjà créées.</p>
+<h2 class="mt-0">Unités de temps <?= info_tip(
+        "Utilisées dans les fiches de salaire. Chaque unité vaut un nombre d'heures (le calcul du salaire se fait "
+        . "toujours sur le total d'heures). Supprimer une unité ne modifie pas les fiches déjà créées."
+    ) ?></h2>
     <?php if ($unites): ?>
     <table class="list mb-16">
         <thead><tr><th>Libellé</th><th class="num">Équivaut à</th><th></th></tr></thead>

@@ -1477,7 +1477,7 @@ function route_resumes(): void
     ], 'Tableau de bord');
 }
 
-// Page « Résumé » : résumé complet (par période) + charges totales.
+// Page « Cotisations » : résumé complet (par période) + charges totales.
 function route_resume(): void
 {
     require_login();
@@ -1609,5 +1609,5 @@ function route_resume(): void
         'retCols'   => $retCols,
         'retNb'     => $retNb,
         'retAnnee'  => $retAnnee,
-    ], 'Résumé');
+    ], 'Cotisations');
 }

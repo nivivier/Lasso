@@ -24,7 +24,7 @@ $cls = function (string $c) use ($petits) {
 };
 $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trimestre', 'mois' => 'Mois'];
 ?>
-<div class="page-head"><h1>Résumé</h1></div>
+<div class="page-head"><h1>Cotisations</h1></div>
 
 <div class="section-head">
     <h2 class="mt-0">Résumé complet</h2>
@@ -97,7 +97,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
 <?php endif; ?>
 
 <div class="section-head">
-    <h2>Charges totales</h2>
+    <h2>Charges totales <?= info_tip('Montants en CHF, part employé + part patronale.') ?></h2>
     <form method="get" class="annee-pick">
         <input type="hidden" name="p" value="resume">
         <input type="hidden" name="groupe" value="<?= e($groupe) ?>">
@@ -126,7 +126,10 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
     <thead>
         <tr>
             <th>Période</th>
-            <?php foreach ($retCols as $c): ?><th class="num"><?= e($retLabels[$c]) ?></th><?php endforeach; ?>
+            <?php foreach ($retCols as $c): ?><th class="num"><?= e($retLabels[$c]) ?><?php
+                if ($c === 'ocas') echo info_tip('AVS/AI/APG, AC, A.mat, allocations familiales, frais, CPE, LFP.');
+                elseif ($c === 'impot') echo info_tip('Retenue employé.');
+            ?></th><?php endforeach; ?>
             <th class="num">Total</th>
         </tr>
     </thead>
@@ -143,8 +146,4 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
     </tbody>
 </table>
 </div>
-<p class="muted small">
-    Montants en CHF, part employé + part patronale. <strong>OCAS</strong> = AVS/AI/APG, AC, A.mat,
-    allocations familiales, frais, CPE, LFP. <strong>Impôt à la source</strong> = retenue employé.
-</p>
 <?php endif; ?>

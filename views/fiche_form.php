@@ -50,16 +50,12 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
     $axeSel = $axes
         ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . preselectionner_option($axeOpts, (string) ($l['axe'] ?? '')) . '</select>'
         : '';
-    // Événement : select (visible + modifiable) si la ligne est déjà liée, sinon
-    // champ caché pour préserver l'absence de lien et garder l'alignement des index.
-    $evId  = (string) ($l['evenement'] ?? '');
-    $evSel = '';
-    if ($evenements) {
-        $evSel = $evId !== ''
-            ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé" style="flex:0 0 200px;width:auto">' . preselectionner_option($evenOpts, $evId) . '</select>'
-            : '<input type="hidden" name="l_evenement[]" value="">';
-    }
-    return '<div class="ligne-row">'
+    // Événement : toujours un select (vide par défaut) pour permettre de lier
+    // une ligne non encore rattachée, pas seulement d'éditer un lien existant.
+    $evSel = $evenements
+        ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé">' . preselectionner_option($evenOpts, (string) ($l['evenement'] ?? '')) . '</select>'
+        : '';
+    return '<div class="ligne-row ligne-row-presta">'
         . '<select name="l_unite[]" class="l-unite">' . preselectionner_option($opts, $l['enc']) . '</select>'
         . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" value="' . e($l['qte']) . '">'
         . '<select name="l_taux_choix[]" class="l-taux-choix">' . preselectionner_option($rateOpts, $l['choix']) . '</select>'
@@ -120,8 +116,10 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         </label>
     </div>
 
-    <h3 class="sub">Prestations</h3>
-    <p class="muted small">Une ou plusieurs lignes : unité (heures, jours, services…), quantité et taux horaire (un taux standard ou « Autre » pour saisir manuellement).</p>
+    <h3 class="sub">Prestations <?= info_tip(
+        'Une ou plusieurs lignes : unité (heures, jours, services…), quantité et taux horaire '
+        . '(un taux standard ou « Autre » pour saisir manuellement).'
+    ) ?></h3>
     <div id="lignes">
         <?php foreach ($lignesInit as $l) echo $renderRow($l); ?>
     </div>
@@ -131,17 +129,16 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
     </div>
 
     <div class="grid2 mt-18">
-        <label id="supp-field">Supplément vacances (%)
+        <label id="supp-field"><span>Supplément vacances (%) <?= info_tip("Laissez vide pour reprendre la valeur par défaut de l'employé.") ?></span>
             <input name="supplement_vacances" type="text" inputmode="decimal" value="<?= $pv('supplement_vacances') ?>" placeholder="défaut employé">
         </label>
-        <label id="impot-field">Taux impôt à la source (%)
+        <label id="impot-field"><span>Taux impôt à la source (%) <?= info_tip(
+            "Laissez vide pour reprendre la valeur par défaut de l'employé. N'est prélevé que si la procédure de "
+            . "l'employé est « Ordinaire avec impôt à la source »."
+        ) ?></span>
             <input name="impot_source_taux" type="text" inputmode="decimal" value="<?= $pv('impot_source_taux') ?>" placeholder="défaut employé">
         </label>
     </div>
-    <p class="muted small">
-        Laissez vide pour reprendre les valeurs par défaut de l'employé. L'impôt à la source n'est prélevé que
-        si la procédure de l'employé est « Ordinaire avec impôt à la source ».
-    </p>
 
     <div class="form-actions">
         <button type="submit"><?= $edit ? icon('save') . ' Enregistrer les modifications' : 'Calculer et créer la fiche' ?></button>

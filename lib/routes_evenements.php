@@ -198,7 +198,9 @@ function route_evenements_liste(): void
         redirect('evenements_liste', $retourFiltres);
     }
 
-    $sql = "SELECT e.*, s.nom AS spectacle_nom FROM evenements e
+    $sql = "SELECT e.*, s.nom AS spectacle_nom,
+                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries
+            FROM evenements e
             LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE 1=1";
     $params = [];
     if ($annee) {

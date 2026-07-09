@@ -170,14 +170,25 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         <button type="submit" class="btn"><?= icon('check') ?> <?= $f['statut'] === 'payee' ? 'Enregistrer' : 'Marquer comme payée' ?></button>
     </form>
     <?php endif; ?>
-    <?php if (module_actif('evenements')): ?>
+    <?php if (module_actif('evenements')):
+        $evenementActuel = null;
+        foreach ($evenementsListe as $ev) {
+            if ((int) $ev['id'] === (int) $f['evenement_id']) { $evenementActuel = $ev; break; }
+        }
+        $evenementLabel = $evenementActuel
+            ? date('d.m.Y', strtotime($evenementActuel['date'])) . ($evenementActuel['spectacle_nom'] ? ' — ' . $evenementActuel['spectacle_nom'] : '') . ($evenementActuel['ville'] ? ' (' . $evenementActuel['ville'] . ')' : '')
+            : '';
+    ?>
         <h2>Événement lié</h2>
-        <?php if ($f['evenement_id']): ?>
-            <p class="muted small"><a href="?p=evenement&id=<?= (int) $f['evenement_id'] ?>">Voir l'événement lié</a></p>
-        <?php else: ?>
-            <p class="muted small">Aucun événement lié.</p>
-        <?php endif; ?>
-        <form method="post" action="?p=facture_evenement_lier" class="linked-add">
+        <div class="evenement-lie-disp">
+            <?php if ($evenementActuel): ?>
+                <a class="muted small" href="?p=evenement&id=<?= (int) $f['evenement_id'] ?>"><?= e($evenementLabel) ?></a>
+            <?php else: ?>
+                <span class="muted small">Aucun événement lié.</span>
+            <?php endif; ?>
+            <button type="button" class="row-edit-btn evenement-edit-btn" title="Modifier le lien"><?= icon('pencil') ?></button>
+        </div>
+        <form method="post" action="?p=facture_evenement_lier" class="linked-add evenement-lie-form" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
             <select name="evenement_id">
@@ -188,7 +199,7 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
                     </option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit" class="btn ghost btn-sm">Mettre à jour le lien</button>
+            <button type="submit" class="btn ghost btn-sm"><?= icon('save') ?> Enregistrer</button>
         </form>
     <?php endif; ?>
 </aside>
@@ -239,6 +250,20 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
     });
     memeMontant.addEventListener('change', () => filtrer());
     filtrer(''); // état initial : reflète la case « Montant exact » sans tenir compte du libellé pré-rempli
+})();
+</script>
+<?php endif; ?>
+<?php if (module_actif('evenements')): ?>
+<script>
+(function () {
+    const btn = document.querySelector('.evenement-edit-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        document.querySelector('.evenement-lie-disp').hidden = true;
+        const form = document.querySelector('.evenement-lie-form');
+        form.hidden = false;
+        form.querySelector('select').focus();
+    });
 })();
 </script>
 <?php endif; ?>

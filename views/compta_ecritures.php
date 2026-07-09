@@ -187,11 +187,15 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 
 <div class="bulk-bar" id="bulk-bar" hidden>
-    <div class="bulk-group">
-        <span class="bulk-titre">Catégorie :</span>
-        <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="lettrer">
+    <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <select name="section" id="bulk-action" class="inline-year-select">
+            <option value="">— Choisir une action —</option>
+            <option value="lettrer">Modifier la catégorie</option>
+            <?php if ($axes): ?><option value="axer">Modifier l'axe</option><?php endif; ?>
+        </select>
+
+        <span class="bulk-field" data-for="lettrer" hidden>
             <div class="cat-search bulk-cat-search">
                 <input type="text" class="cat-search-input" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
                 <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
@@ -205,25 +209,20 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <?php endforeach; ?>
                 </ul>
             </div>
-            <button type="submit">Appliquer</button>
-        </form>
-    </div>
-    <?php if ($axes): ?>
-    <div class="bulk-group">
-        <span class="bulk-titre">Axe :</span>
-        <form method="post" id="axe-bulkform" action="?p=compta_ecritures<?= $qs ?>">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="axer">
+        </span>
+        <?php if ($axes): ?>
+        <span class="bulk-field" data-for="axer" hidden>
             <select name="axe_analytique_id" class="inline-year-select">
                 <option value="">— Retirer —</option>
                 <?php foreach ($axes as $ax): ?>
                     <option value="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit">Appliquer</button>
-        </form>
-    </div>
-    <?php endif; ?>
+        </span>
+        <?php endif; ?>
+
+        <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
+    </form>
 </div>
 
 <div class="table-scroll">
@@ -377,6 +376,16 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         updateBulkBar();
     });
     document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
+
+    // Action choisie → affiche le champ correspondant et adapte le libellé du bouton.
+    const bulkAction = document.getElementById('bulk-action');
+    const bulkSubmit = document.getElementById('bulk-submit');
+    const bulkFields = document.querySelectorAll('.bulk-field');
+    function syncBulkAction() {
+        bulkFields.forEach(f => { f.hidden = f.dataset.for !== bulkAction.value; });
+        bulkSubmit.disabled = bulkAction.value === '';
+    }
+    if (bulkAction) { bulkAction.addEventListener('change', syncBulkAction); syncBulkAction(); }
 
     // Crayon → passer en mode édition catégorie (exclut les boutons du panneau axe).
     document.addEventListener('click', e => {
@@ -544,23 +553,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
     });
     window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
-})();
-
-// Bulk axe — injecte les IDs cochés dans le formulaire axe avant soumission
-(function () {
-    const axeForm = document.getElementById('axe-bulkform');
-    if (!axeForm) return;
-    axeForm.addEventListener('submit', e => {
-        axeForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
-        document.querySelectorAll('.row-check:checked').forEach(cb => {
-            const inp = document.createElement('input');
-            inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = cb.value;
-            axeForm.appendChild(inp);
-        });
-        if (!document.querySelectorAll('.row-check:checked').length) {
-            e.preventDefault();
-        }
-    });
 })();
 
 // Colonne axe analytique : select inline (0 axe), inline edit (1 axe), panneau multi-axe (≥2)

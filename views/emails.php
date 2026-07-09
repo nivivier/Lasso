@@ -14,8 +14,10 @@
             <label>E-mail de contact (reply-to) <input name="employeur_email_contact" type="email" value="<?= e(param('employeur_email_contact')) ?>" placeholder="contact@exemple.ch"></label>
         </div>
 
-        <h3 class="sub">Serveur d'envoi (SMTP)</h3>
-        <p class="muted small">L'envoi passe par un serveur SMTP authentifié. Indiquez une boîte e-mail réelle (idéalement la même que l'expéditeur ci-dessus). Laissez vide pour utiliser la fonction <code>mail()</code> de l'hébergeur si elle est disponible.</p>
+        <h3 class="sub">Serveur d'envoi (SMTP) <?= info_tip(
+            "L'envoi passe par un serveur SMTP authentifié. Indiquez une boîte e-mail réelle (idéalement la même que "
+            . "l'expéditeur ci-dessus). Laissez vide pour utiliser la fonction mail() de l'hébergeur si elle est disponible."
+        ) ?></h3>
         <?php $secure = param('smtp_secure') ?: 'ssl'; ?>
         <?php $hasPass = ((string) param('smtp_pass', '') !== '') || (defined('SMTP_PASS') && SMTP_PASS !== ''); ?>
         <div class="grid2">

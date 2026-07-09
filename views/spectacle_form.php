@@ -18,10 +18,9 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
         <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
     </label>
 
-    <label>Feuille SUISA pré-remplie (PDF, optionnel)
+    <label><span>Feuille SUISA pré-remplie (PDF, optionnel) <?= info_tip('2 Mo maximum.') ?></span>
         <input type="file" name="suisa_feuille" accept="application/pdf">
     </label>
-    <p class="muted small">2 Mo maximum.</p>
     <?php if (!empty($spectacle['suisa_feuille_fichier'])): ?>
         <p class="muted small">
             Fichier actuel : <a href="<?= e($spectacle['suisa_feuille_fichier']) ?>" target="_blank" rel="noopener">le PDF déjà déposé</a>.

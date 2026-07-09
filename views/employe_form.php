@@ -40,7 +40,10 @@ $isEdit = !empty($emp['id']);
                 <?php endforeach; ?>
             </select>
         </label>
-        <label>Supplément vacances
+        <label><span>Supplément vacances <?= info_tip(
+            "Le supplément vacances et l'impôt à la source sont des valeurs par défaut : elles peuvent être ajustées "
+            . "sur chaque fiche de salaire. Le salaire horaire, lui, se définit ligne par ligne sur la fiche."
+        ) ?></span>
             <select name="supplement_vacances">
                 <?php foreach (SUPPLEMENTS_VACANCES as $val => $lib):
                     $sel = (string) ($emp['supplement_vacances'] ?? '0.0833') === $val
@@ -49,13 +52,14 @@ $isEdit = !empty($emp['id']);
                 <?php endforeach; ?>
             </select>
         </label>
-        <label>Impôt à la source (%)
+        <label><span>Impôt à la source (%) <?= info_tip(
+            "Le supplément vacances et l'impôt à la source sont des valeurs par défaut : elles peuvent être ajustées "
+            . "sur chaque fiche de salaire. Le salaire horaire, lui, se définit ligne par ligne sur la fiche."
+        ) ?></span>
             <input name="impot_source_taux" type="text" inputmode="decimal"
                    value="<?= e(number_format((float) ($emp['impot_source_taux'] ?? 0) * 100, 2, '.', '')) ?>">
         </label>
     </div>
-    
-    <p class="muted small">Le supplément vacances et l'impôt à la source sont des <strong>valeurs par défaut</strong> : elles peuvent être ajustées sur chaque fiche de salaire. Le salaire horaire, lui, se définit ligne par ligne sur la fiche.</p>
 
     <label class="check">
         <input type="checkbox" name="actif" value="1" <?= (!$isEdit || $emp['actif']) ? 'checked' : '' ?>>

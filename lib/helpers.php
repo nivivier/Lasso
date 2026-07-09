@@ -267,13 +267,21 @@ function couleurs_derivees(string $hexPrincipale): array
     [$h, $s, $l] = hex_vers_hsl($hexPrincipale);
     $primary = hsl_vers_hex($h, $s, $l);
     $rgb     = sscanf($primary, '#%02x%02x%02x');
+    
+    // Si la couleur principale est trop claire, on l'assombrit légèrement
+if ($l > 75) {
+    $l = max(75, $l - (($l - 75) * 0.75));
+    $primary = hsl_vers_hex($h, $s, $l);
+
+}
+    
     return [
         'primary'      => $primary,
         'primary_d'    => hsl_vers_hex($h, $s, max($l - 12, 15)),
         'primary_tint' => hsl_vers_hex($h, min($s + 10, 90), 95),
         'primary_rgb'  => implode(' ', $rgb),
-        'brand'        => hsl_vers_hex($h, min($s + 5, 70), 16),
-        'brand_2'      => hsl_vers_hex($h, min($s, 55), 26),
+        'brand'        => hsl_vers_hex($h, min($s + 10, 78), 20),
+        'brand_2'      => hsl_vers_hex($h, min($s + 8, 78), 35),
     ];
 }
 

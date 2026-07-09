@@ -129,8 +129,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts, $preselect) {
         </div>
     </div>
 
-    <h3 class="sub">Lignes</h3>
-    <p class="muted small">Description, quantité et prix unitaire. Axe analytique optionnel, par ligne.</p>
+    <h3 class="sub">Lignes <?= info_tip('Description, quantité et prix unitaire. Axe analytique optionnel, par ligne.') ?></h3>
     <div id="lignes">
         <?php foreach ($lignesInit as $l) echo $renderRow($l); ?>
     </div>

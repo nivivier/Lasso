@@ -8,7 +8,9 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
 
 <div class="card form">
     <div class="year-bar">
-        <h2>Grille de taux</h2>
+        <h2>Grille de taux <?= info_tip(
+            "Les taux sont propres à chaque année. Une fiche déjà créée conserve les taux figés à sa création."
+        ) ?></h2>
         <label class="inline">
             <select onchange="location.href='?p=taux&annee='+this.value">
                 <?php foreach ($annees as $a): ?>
@@ -17,12 +19,9 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
             </select>
         </label>
     </div>
-    <p class="muted small">
-        Les taux sont <strong>propres à chaque année</strong>. Une fiche déjà créée conserve les taux figés à sa création.
-        <?php if (!$configuree): ?>
-            <br><span class="tag-warn">Année <?= $annee ?> non encore configurée</span> — valeurs reprises de l'année précédente (ou par défaut). Enregistrez pour les fixer.
-        <?php endif; ?>
-    </p>
+    <?php if (!$configuree): ?>
+        <p class="muted small"><span class="tag-warn">Année <?= $annee ?> non encore configurée</span> — valeurs reprises de l'année précédente (ou par défaut). Enregistrez pour les fixer.</p>
+    <?php endif; ?>
 
     <form method="post" action="?p=taux">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -49,8 +48,9 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
             <?php endforeach; ?>
         </div>
 
-        <h3 class="sub">Part employeur — charges patronales (en %)</h3>
-        <p class="muted small">Cotisations à la charge de l'employeur. À confirmer avec votre affiliation <abbr title="Office Cantonal des Assurances Sociales">OCAS</abbr> et votre caisse de pension.</p>
+        <h3 class="sub">Part employeur — charges patronales (en %) <?= info_tip(
+            "Cotisations à la charge de l'employeur. À confirmer avec votre affiliation OCAS et votre caisse de pension."
+        ) ?></h3>
         <div class="grid-taux">
             <?php
             $partPat = [

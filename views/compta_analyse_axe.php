@@ -135,6 +135,19 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
         if ($nbChar > 1) $h .= '<td class="num total-col">' . chf($tot) . '</td>';
         return $h;
     };
+    // Total déductions employé + charges patronales (distinct du « coût total
+    // employeur », qui part du brut plutôt que des seules charges sociales).
+    $cellsCharTotal = function () use ($chargesParAnnee, $colsChar, $anneeRef, $nbChar): string {
+        $h = ''; $tot = 0.0;
+        foreach ($colsChar as $a) {
+            $v = (float) ($chargesParAnnee[$a]['total_deductions'] ?? 0) + (float) ($chargesParAnnee[$a]['total_charges_emp'] ?? 0);
+            $tot += $v;
+            $cls = $nbChar > 1 && $a !== $anneeRef ? ' col-prec' : '';
+            $h .= '<td class="num' . $cls . '">' . chf($v) . '</td>';
+        }
+        if ($nbChar > 1) $h .= '<td class="num total-col">' . chf($tot) . '</td>';
+        return $h;
+    };
     $thChar = function () use ($colsChar, $anneeRef, $nbChar): string {
         if ($nbChar <= 1) return '';
         $h = '';
@@ -169,6 +182,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
         <tr class="cr-compte"><td>LPP patronale</td><?= $cellsChar('emp_lpp') ?></tr>
         <tr class="cr-total"><td>Total charges patronales</td><?= $cellsChar('total_charges_emp') ?></tr>
         <tr class="grand-total"><td>Coût total employeur</td><?= $cellsChar('cout_total_emp') ?></tr>
+        <tr class="grand-total"><td>Total des charges (salariales + patronales)</td><?= $cellsCharTotal() ?></tr>
     </tbody>
 </table>
 </div>

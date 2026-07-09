@@ -1,6 +1,6 @@
 :root {
-    --brand: #292190;       /* indigo logo */
-    --brand-2: #392f8b;     /* survol sidebar */
+    --brand: #2b0b5b;       /* indigo logo */
+    --brand-2: #421c7d;     /* survol sidebar */
     --primary: #6d4aee;     /* violet / mauve accent */
     --primary-d: #5a39d4;
     --primary-tint: #efeaff;
@@ -17,13 +17,13 @@
     --danger: #e0473c;
     --danger-tint: #fdecea;
     --ok: #0c9486;
-    --radius: 14px;
-    --radius-sm: 9px;
+    --radius: 10px;
+    --radius-sm: 6px;
     --shadow: 0 1px 2px rgba(41,33,80,.04), 0 6px 20px rgba(41,33,80,.06);
     --shadow-sm: 0 1px 3px rgba(41,33,80,.08);
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
-    --row-pad: 13px 16px;              /* padding standard des cellules .list */
+    --row-pad: 10px 12px;              /* padding standard des cellules .list */
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +32,9 @@ body {
     margin: 0;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--ink);
-    background: var(--bg);
+    background: var(--bg) url("test.jpg");
+    background-size:cover;
+    backdrop-filter:brightness(1.11) contrast(0.95);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
@@ -43,6 +45,9 @@ body {
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1, h2, h3 { color: var(--brand); }
+h1 {background: linear-gradient(150deg, var(--brand), var(--brand-2));
+	-webkit-text-fill-color: transparent;
+  background-clip: text;}
 
 /* =================== Sidebar layout =================== */
 body.has-sidebar { display: flex; min-height: 100vh; }
@@ -163,7 +168,7 @@ body.auth-bg {
 .back-link:hover { color: var(--primary-d); text-decoration: none; }
 .back-link .ico { width: 16px; height: 16px; }
 .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
-.page-head h1 { font-size: 28px; margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+.page-head h1 { font-size: 32px; margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
 .page-head-sub { flex-direction: column; align-items: flex-start; gap: 4px; }
 .head-actions { display: flex; gap: 12px; align-items: center; }
 .head-actions label.inline { font-size: 13px; font-weight: 500; color: var(--muted); gap: 6px; }
@@ -204,7 +209,7 @@ body.auth-bg {
     border-radius: 0;
 }
 
-.inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
+.inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 .cout-toggle { display: flex; align-items: center; }
 .cout-toggle .check { flex-direction: row; align-items: center; gap: 7px; margin: 0; font-size: 13.5px; font-weight: 500; color: var(--ink); white-space: nowrap; }
@@ -229,25 +234,25 @@ h3.sub.no-mt { margin-top: 0; }
    héritent du style « champ texte » (bordure, fond, largeur 100%) et de
    appearance:none, qui les rend invisibles/inertes. */
 input:not([type="checkbox"]):not([type="radio"]), select, textarea {
-    font: inherit; font-size: 14.5px; color: var(--ink); width: 100%;
-    padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff;
+    font: inherit; font-size: 14px; color: var(--ink); width: 100%;
+    padding: 10px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff;
     transition: border-color .15s, box-shadow .15s;
 }
 input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
 .row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 140px;
-    padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
-    cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+    padding: 4px 8px !important ; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s;}
 .row-cat-input::placeholder { color: var(--muted); }
 .row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
 /* Préfixe (catégorie parente) affiché au-dessus de l'input — absent si pas de parent */
 .cat-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); margin-bottom: 1px; }
 /* Mode affichage statique (catégorie / axe déjà remplis) */
 .row-field-disp { display: flex; align-items: center; gap: 3px; min-height: 28px; }
-.row-field-txt { flex: 1; display: flex; flex-direction: column; min-width: 0; font-size: 13px; overflow: hidden; }
-.row-field-txt > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-field-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); }
+.row-field-txt { flex: 1; display: flex; line-height: 1.1; flex-direction: column; min-width: 0; font-size: 13px; overflow: hidden; }
+.row-field-txt > span { overflow: visible; text-overflow: ellipsis; white-space: nowrap; }
+.row-field-prefix { font-size: 10px; color: var(--muted); }
 .row-edit-btn { background: none; border: none; padding: 2px 3px; cursor: pointer; color: var(--muted);
     opacity: 0; flex-shrink: 0; line-height: 0; border-radius: var(--radius-sm); transition: opacity .12s; }
 .cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn { opacity: 1; }
@@ -334,7 +339,10 @@ input[type="search"] {
 .ecr-manuel-form h3.form-subtitle { margin: 0 0 16px; font-size: 15px; font-weight: 700; }
 /* Ligne écriture manuelle : légère teinte pour la distinguer des imports */
 .compta-lettrage tr.ecr-manuelle td { background: #f9f8ff; }
-.compta-lettrage tr.ecr-manuelle:hover td { background: #f1eeff; }
+/* Survol des lignes : même teinte calculée (dérivée de la couleur de marque)
+   que .row-link:hover ailleurs (tableau de bord, listes…), pas une couleur
+   fixe indépendante du thème. */
+.compta-lettrage tbody tr:hover td { background: var(--primary-tint); }
 .filters .search-label input { width: 100%; }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
 input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
@@ -357,6 +365,14 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .dash-col { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 32px; }
 .dash-chart-card { padding: 16px 20px 12px; }
 .dash-chart { width: 100%; height: auto; display: block; }
+/* Entre le plein desktop et le tiroir mobile (@media 800px plus bas), les deux
+   colonnes n'ont plus la place de rester côte à côte sans se comprimer trop
+   (le tableau « Salaires à verser » force un retour à la ligne du texte qui
+   déséquilibre les hauteurs face au graphique) : on passe en pile plus tôt,
+   avant que ça ne devienne inconfortable, plutôt que d'attendre le tiroir. */
+@media (max-width: 1120px) {
+    .dash-cols { flex-direction: column; align-items: stretch; gap: 32px; }
+}
 
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
 .pct-input { display: flex; align-items: stretch; max-width: 150px; border: 1px solid var(--line);
@@ -404,7 +420,7 @@ button:active, .btn:active { transform: translateY(1px); }
 .btn.danger:hover, .btn.btn-danger:hover { background: #c63b31; border-color: #c63b31; }
 .btn.icon-only { padding: 9px 11px; }
 .btn.icon-only .ico { width: 17px; height: 17px; }
-.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-sm { padding: 4px 8px; font-size: 13px; }
 .add-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
 .add-row label { flex: 1; min-width: 160px; margin-bottom: 0; }
 .add-row button { white-space: nowrap; }
@@ -417,6 +433,17 @@ button:active, .btn:active { transform: translateY(1px); }
 .ligne-row .l-taux-manuel { flex: 0 0 90px; width: auto; }
 .ligne-row .l-sub { flex: 1; font-size: 13px; min-width: 110px; }
 .ligne-row .l-del { flex: 0 0 auto; padding: 8px 12px; line-height: 1; }
+/* Prestations (fiche de salaire) : plus de colonnes sur la ligne (axe +
+   événement toujours visibles) → chaque champ ne garde que la largeur dont
+   il a vraiment besoin. */
+.ligne-row-presta .l-unite,
+.ligne-row-presta .l-taux-choix,
+.ligne-row-presta .l-axe { min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.ligne-row-presta .l-unite { flex: 0 0 130px; }
+.ligne-row-presta .l-qte { flex: 0 0 30px; }
+.ligne-row-presta .l-taux-choix { flex: 0 0 90px; }
+.ligne-row-presta .l-axe { flex: 0 0 90px; width: auto; }
+.ligne-row-presta .l-evenement { flex: 1 1 200px; width: auto; max-width: 200px; }
 .lignes-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 4px; }
 .total-h { font-size: 14px; color: var(--muted); }
 .total-h strong { color: var(--brand); font-size: 15px; }
