@@ -1,13 +1,16 @@
-<?php /** @var array $spectacles */ /** @var string $token */ ?>
-<?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des événements sont rattachés à ce spectacle.</p><?php endif; ?>
+<?php /** @var array $spectacles */ /** @var string $token */
+$termePluriel = evenements_terme_spectacle();
+$termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
+?>
+<?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des événements sont rattachés à ce <?= e($termeSingulier) ?>.</p><?php endif; ?>
 <?= lien_retour('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
-    <h1>Spectacles</h1>
-    <a class="btn" href="?p=spectacle"><?= icon('file-plus') ?> Nouveau spectacle</a>
+    <h1><?= e($termePluriel) ?></h1>
+    <a class="btn" href="?p=spectacle"><?= icon('file-plus') ?> Nouveau <?= e($termeSingulier) ?></a>
 </div>
 
 <?php if (!$spectacles): ?>
-    <p class="muted">Aucun spectacle pour l'instant. Commencez par en ajouter un.</p>
+    <p class="muted">Aucun <?= e($termeSingulier) ?> pour l'instant. Commencez par en ajouter un.</p>
 <?php else: ?>
 <div class="table-scroll">
 <table class="list list-wide">
@@ -39,7 +42,7 @@
             <td>
                 <?php if ((int) $s['nb_evenements'] === 0): ?>
                     <form method="post" action="?p=spectacle_delete" onclick="event.stopPropagation()"
-                          onsubmit="return confirm('Supprimer ce spectacle ?');" class="d-inline">
+                          onsubmit="return confirm(<?= e(json_encode('Supprimer ce ' . $termeSingulier . ' ?', JSON_UNESCAPED_UNICODE)) ?>);" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>

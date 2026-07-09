@@ -128,11 +128,27 @@ function route_facturation_form(): void
     $evenementId = ($_GET['evenement_id'] ?? $_POST['evenement_id'] ?? '') !== ''
         ? (int) ($_GET['evenement_id'] ?? $_POST['evenement_id'])
         : (isset($facture['evenement_id']) ? (int) $facture['evenement_id'] ?: null : null);
+    // Lien resté ouvert vers un événement supprimé depuis (ex. onglet oublié) :
+    // on ignore le lien plutôt que de laisser échouer l'enregistrement sur la
+    // contrainte de clé étrangère factures.evenement_id.
+    if ($evenementId && !evenement_charger($evenementId)) {
+        $evenementId = null;
+    }
+    // Axe par défaut de l'événement lié (carte « Comptabilité analytique »),
+    // présélectionné sur la première ligne d'une facture nouvellement créée
+    // depuis cet événement — sans jamais toucher les lignes d'une facture existante.
+    $axeDefautEvenement = null;
+    if ($evenementId && !$facture && $axes) {
+        $stmt = db()->prepare('SELECT axe_analytique_id_defaut FROM evenements WHERE id = ?');
+        $stmt->execute([$evenementId]);
+        $axeDefautEvenement = (int) $stmt->fetchColumn() ?: null;
+    }
 
-    $renderForm = function (?string $err) use ($facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut, $evenementId) {
+    $renderForm = function (?string $err) use ($facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut, $evenementId, $axeDefautEvenement) {
         render('facturation_form', [
             'facture' => $facture, 'id' => $id, 'debiteurs' => $debiteurs, 'comptes' => $comptes, 'axes' => $axes,
-            'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'err' => $err, 'post' => $_POST,
+            'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'axeDefautEvenement' => $axeDefautEvenement,
+            'err' => $err, 'post' => $_POST,
         ], $id ? 'Modifier la facture' : 'Nouvelle facture');
     };
 
@@ -187,7 +203,13 @@ function route_facturation_form(): void
         $debiteurId = (int) db()->lastInsertId();
     }
 
-    $factureId = facturation_sauvegarder_brouillon($id ?: null, $debiteurId, $compteId, $delaiJours, $communication, $lignes, $evenementId);
+    try {
+        $factureId = facturation_sauvegarder_brouillon($id ?: null, $debiteurId, $compteId, $delaiJours, $communication, $lignes, $evenementId);
+    } catch (PDOException $ex) {
+        $renderForm('Enregistrement impossible : ' . (str_contains($ex->getMessage(), 'FOREIGN KEY')
+            ? "l'événement lié n'existe plus." : 'erreur inattendue.'));
+        return;
+    }
     redirect('facture', ['id' => $factureId]);
 }
 

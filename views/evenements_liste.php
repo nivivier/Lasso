@@ -6,6 +6,8 @@ $statutsSuisa = [
     'tous' => 'Tous', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
     'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
 ];
+$termePluriel = evenements_terme_spectacle();
+$termeSingulier = evenements_terme_spectacle(false);
 ?>
 <div class="page-head-band">
 <div class="page-head">
@@ -27,7 +29,7 @@ $statutsSuisa = [
         </form>
     </div>
     <div class="head-actions">
-        <a class="btn ghost btn-sm" href="?p=spectacles"><?= icon('music') ?> <span class="lbl">Spectacles</span></a>
+        <a class="btn ghost btn-sm" href="?p=spectacles"><?= icon('music') ?> <span class="lbl"><?= e($termePluriel) ?></span></a>
         <a class="btn" href="?p=evenement"><?= icon('file-plus') ?> Nouvel événement</a>
     </div>
 
@@ -57,7 +59,7 @@ $statutsSuisa = [
                 <?php endforeach; ?>
             </select>
         </label>
-        <label>Spectacle
+        <label><?= e($termeSingulier) ?>
             <select name="spectacle_id" onchange="this.form.submit()">
                 <option value="0">Tous</option>
                 <?php foreach ($spectacles as $s): ?>
@@ -74,7 +76,7 @@ $statutsSuisa = [
 <?php else: ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <div class="bulk-group">
-        <span class="bulk-titre">Spectacle :</span>
+        <span class="bulk-titre"><?= e($termeSingulier) ?> :</span>
         <form method="post" id="bulk-spectacle-form" action="?p=evenements_liste">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="spectacle">
@@ -119,7 +121,7 @@ $statutsSuisa = [
     <thead>
         <tr>
             <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-            <th>Date</th><th>Spectacle</th><th>Ville / salle</th><th>Type d'audience</th><th>Statut</th><th>SUISA</th>
+            <th>Date</th><th><?= e($termeSingulier) ?></th><th>Ville / salle</th><th>Audience</th><th>Statut</th><th>SUISA</th>
         </tr>
     </thead>
     <tbody>
@@ -130,11 +132,22 @@ $statutsSuisa = [
     ?>
         <tr class="mois-sep"><td colspan="7"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>
     <?php endif; ?>
+        <?php
+            $estAnnule = $ev['statut'] === 'annule';
+            $drapeau = pays_drapeau((string) $ev['pays']);
+            $festivalSalle = implode(', ', array_filter([$ev['festival'], $ev['salle']], fn ($v) => $v !== ''));
+        ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulk-spectacle-form" class="row-check"></td>
-            <td><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
-            <td><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
-            <td class="muted small"><?= e(trim(($ev['salle'] ? $ev['salle'] . ', ' : '') . $ev['ville'] . ($ev['region'] ? ' (' . $ev['region'] . ')' : ''))) ?: '—' ?></td>
+            <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
+            <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
+            <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
+                <?php if ($ev['ville'] !== ''): ?><strong><?= e($ev['ville']) ?></strong><?php endif; ?>
+                <?php if ($drapeau !== ''): ?> <span class="tiny"><?= $drapeau ?></span><?php endif; ?>
+                <?php if ($ev['region'] !== ''): ?> <span class="tiny muted">(<?= e($ev['region']) ?>)</span><?php endif; ?>
+                <?php if ($festivalSalle !== ''): ?> <span class="muted small"><?= e($festivalSalle) ?></span><?php endif; ?>
+                <?php if ($ev['ville'] === '' && $festivalSalle === ''): ?>—<?php endif; ?>
+            </td>
             <td><?= evenement_badge_visibilite($ev) ?></td>
             <td><?= evenement_badge_statut($ev) ?></td>
             <td><?= evenement_suisa_badge($ev) ?></td>

@@ -50,7 +50,16 @@
         <th class="num">Montant</th><th>Statut</th>
     </tr></thead>
     <tbody>
-    <?php foreach ($factures as $f): ?>
+    <?php
+    $prevMois = null;
+    $nbCols = 6 + ($avecEvenements ? 1 : 0);
+    foreach ($factures as $f):
+        $moisCle = substr((string) ($f['date_emission'] ?: $f['cree_le']), 0, 7);
+        if ($moisCle !== $prevMois):
+            $prevMois = $moisCle;
+    ?>
+        <tr class="mois-sep"><td colspan="<?= $nbCols ?>"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>
+    <?php endif; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $f['id'] ?>">
             <td><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></td>
             <td><strong><?= e($f['debiteur_nom']) ?></strong></td>

@@ -1,4 +1,6 @@
-<?php /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */ ?>
+<?php /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */
+$termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
+?>
 <?php if ($errEvenements): ?><p class="err"><?= e($errEvenements) ?></p><?php endif; ?>
 
 <div class="card form mt-22">
@@ -6,7 +8,7 @@
     <p class="muted small">Importez un agenda de tournée depuis un fichier <strong>CSV</strong> (colonnes :
         <code>date, ville, region, pays, lieu, details, type, statut, lien, lien_texte</code> — dans n'importe quel
         ordre, seules <code>date</code> et <code>ville</code> sont obligatoires ; date au format JJ/MM/AAAA).
-        La colonne <code>type</code> est rapprochée d'un spectacle existant du même nom (créé automatiquement sinon).
+        La colonne <code>type</code> est rapprochée d'un <?= e($termeSingulier) ?> existant du même nom (créé automatiquement sinon).
         Un événement à la même date/ville/salle qu'un événement déjà présent est <strong>ignoré</strong> — jamais
         écrasé. Les événements importés sont créés en visibilité <strong>non répertoriée</strong>, à relire avant
         de les publier. <a href="assets/exemples/evenements.csv" target="_blank">Voir un exemple de fichier</a>.</p>
@@ -31,7 +33,7 @@
                     <?= (int) $resumeEvenements['nouveaux'] ?> événement(s) seraient ajouté(s).
                 <?php endif; ?>
                 <?php if ((int) $resumeEvenements['spectacles_crees'] > 0): ?>
-                    <?= (int) $resumeEvenements['spectacles_crees'] ?> nouveau(x) spectacle(s) seraient créé(s).
+                    <?= (int) $resumeEvenements['spectacles_crees'] ?> nouveau(x) <?= e($termeSingulier) ?>(s) seraient créé(s).
                 <?php endif; ?>
             </p>
             <?php if ((int) $resumeEvenements['nouveaux'] > 0): ?>
@@ -43,7 +45,7 @@
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <p class="ok flash">Import effectué : <?= (int) $resumeEvenements['nouveaux'] ?> événement(s) ajouté(s), <?= (int) $resumeEvenements['spectacles_crees'] ?> spectacle(s) créé(s).</p>
+        <p class="ok flash">Import effectué : <?= (int) $resumeEvenements['nouveaux'] ?> événement(s) ajouté(s), <?= (int) $resumeEvenements['spectacles_crees'] ?> <?= e($termeSingulier) ?>(s) créé(s).</p>
     <?php endif; ?>
 
     <div class="card mt-22">

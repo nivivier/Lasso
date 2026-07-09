@@ -6,10 +6,24 @@ $estImpot  = $f['procedure'] === 'Ordinaire avec impôt à la source';
 $lignes   = fiche_lignes_de($f);
 $uneSeule = count($lignes) === 1;
 $axes = $axes ?? []; // non fourni en vue impression/aperçu
+$impression = $impression ?? false;
 $hasAxe = empty($impression) && !empty($axes);
 // Génère le <td> de l'axe analytique pour une ligne.
 // Le div (texte+crayon) et le select sont TOUJOURS dans le DOM — on bascule hidden
 // pour éviter les insertions DOM qui causent des ghost-clicks sur mobile.
+// Petit lien vers l'événement d'origine d'une ligne de prestation (ajoutée
+// depuis la carte « Employés » de la fiche événement) — jamais à l'impression.
+$evenementLienHtml = function (array $l) use ($impression): string {
+    if (empty($l['evenement_id']) || !empty($impression) || !module_actif('evenements')) {
+        return '';
+    }
+    $label = trim((string) ($l['evenement_spectacle_nom'] ?? ''));
+    if ($label === '') {
+        $label = date('d.m.Y', strtotime((string) $l['evenement_date']));
+    }
+    return ' <a class="muted small" href="?p=evenement&id=' . (int) $l['evenement_id'] . '">(' . e($label) . ')</a>';
+};
+
 $axeCellHtml = function (array $l) use ($axes): string {
     $axeId  = (int) ($l['axe_analytique_id'] ?? 0);
     $axeLib = '';
@@ -85,7 +99,7 @@ $deductions = [
         <tbody>
             <?php if ($uneSeule):
                 $l = $lignes[0]; ?>
-            <tr><td>Salaire du travail</td>
+            <tr><td>Salaire du travail<?= $evenementLienHtml($l) ?></td>
                 <?php if ($hasAxe): ?><?= $axeCellHtml($l) ?><?php endif; ?>
                 <td class="num"><?= nombre_court((float) $f['nombre_heures']) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h
                     <div class="muted small ps-seuil"><?= e($seuilTxt) ?></div></td>
@@ -94,7 +108,7 @@ $deductions = [
                 <?php foreach ($lignes as $l):
                     $sousH = (float) $l['quantite'] * (float) $l['heures_unite'];
                     $montant = $sousH * (float) $l['taux_horaire']; ?>
-                <tr class="ps-sub"><td><?= e($l['libelle']) ?> × <?= nombre_court($l['quantite']) ?></td>
+                <tr class="ps-sub"><td><?= e($l['libelle']) ?> × <?= nombre_court($l['quantite']) ?><?= $evenementLienHtml($l) ?></td>
                     <?php if ($hasAxe): ?><?= $axeCellHtml($l) ?><?php endif; ?>
                     <td class="num"><?= nombre_court($sousH) ?> h × <?= chf((float) $l['taux_horaire']) ?>/h</td>
                     <td class="num"><?= chf($montant) ?></td></tr>

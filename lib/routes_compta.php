@@ -1405,19 +1405,42 @@ function compta_dashboard_series(): array
         $series[$a] = ['produits' => $tp, 'charges' => $tc, 'resultat' => $tp + $tc, 'patrimoine' => 0.0];
     }
 
-    $stmtSolde  = db()->prepare("SELECT solde FROM ecritures
-        WHERE compte_bancaire_id = ? AND solde IS NOT NULL AND date_op <= ?
-        ORDER BY date_op DESC, id ASC LIMIT 1");
-    $stmtManuel = db()->prepare("SELECT COALESCE(SUM(montant), 0) FROM ecritures
-        WHERE compte_bancaire_id = ? AND import_id IS NULL AND date_op <= ?");
+    // Une seule passe chronologique par compte (au lieu d'une requête par
+    // couple compte × année) : on avance un pointeur pendant que les années
+    // (déjà triées) et les dates lues (triées côté SQL) progressent toutes
+    // les deux dans le même sens.
+    $soldesParCompte = [];
+    foreach (db()->query(
+        'SELECT compte_bancaire_id, date_op, solde FROM ecritures
+         WHERE solde IS NOT NULL ORDER BY compte_bancaire_id, date_op ASC, id ASC'
+    ) as $r) {
+        $soldesParCompte[(int) $r['compte_bancaire_id']][] = ['date' => $r['date_op'], 'solde' => (float) $r['solde']];
+    }
+    $manuelsParCompte = [];
+    foreach (db()->query(
+        'SELECT compte_bancaire_id, date_op, montant FROM ecritures
+         WHERE import_id IS NULL ORDER BY compte_bancaire_id, date_op ASC, id ASC'
+    ) as $r) {
+        $manuelsParCompte[(int) $r['compte_bancaire_id']][] = ['date' => $r['date_op'], 'montant' => (float) $r['montant']];
+    }
+
     foreach (compta_comptes() as $c) {
-        $cid = (int) $c['id'];
+        $cid     = (int) $c['id'];
+        $soldes  = $soldesParCompte[$cid] ?? [];
+        $manuels = $manuelsParCompte[$cid] ?? [];
+        $iSolde = 0; $iManuel = 0; $dernierSolde = null; $sommeManuel = 0.0;
         foreach ($annees as $a) {
-            $stmtSolde->execute([$cid, "$a-12-31"]);
-            $v    = $stmtSolde->fetchColumn();
-            $base = $v === false ? (float) $c['solde_initial'] : (float) $v;
-            $stmtManuel->execute([$cid, "$a-12-31"]);
-            $series[$a]['patrimoine'] += $base + (float) $stmtManuel->fetchColumn();
+            $cutoff = "$a-12-31";
+            while ($iSolde < count($soldes) && $soldes[$iSolde]['date'] <= $cutoff) {
+                $dernierSolde = $soldes[$iSolde]['solde'];
+                $iSolde++;
+            }
+            while ($iManuel < count($manuels) && $manuels[$iManuel]['date'] <= $cutoff) {
+                $sommeManuel += $manuels[$iManuel]['montant'];
+                $iManuel++;
+            }
+            $base = $dernierSolde ?? (float) $c['solde_initial'];
+            $series[$a]['patrimoine'] += $base + $sommeManuel;
         }
     }
 

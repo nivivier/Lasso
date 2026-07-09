@@ -29,6 +29,69 @@ function evenement_fiche_ids(int $evenementId): array
     return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 }
 
+// Ligne de prestation (fiche_lignes) déjà ajoutée pour cet événement + cet
+// employé, avec les infos de la fiche porteuse — une seule ligne par événement
+// (voir migration_27). Null si aucune prestation n'a encore été ajoutée : la
+// carte « Employés » propose alors de choisir/créer une fiche.
+function evenement_ligne_pour(int $evenementId, int $employeId): ?array
+{
+    $stmt = db()->prepare(
+        'SELECT fl.*, f.annee, f.mois, f.date_paiement, f.supplement_taux, f.afficher_cout_emp, f.taux_json
+         FROM fiche_lignes fl JOIN fiches f ON f.id = fl.fiche_id
+         WHERE fl.evenement_id = ? AND f.employe_id = ?'
+    );
+    $stmt->execute([$evenementId, $employeId]);
+    return $stmt->fetch() ?: null;
+}
+
+// Fiches non payées d'un employé, pour proposer où rattacher une prestation
+// depuis un événement (les plus récentes d'abord) — une fiche payée est figée,
+// jamais proposée ici.
+function fiches_modifiables_pour_employe(int $employeId): array
+{
+    $stmt = db()->prepare(
+        "SELECT id, annee, mois FROM fiches WHERE employe_id = ? AND date_paiement = ''
+         ORDER BY annee DESC, mois DESC"
+    );
+    $stmt->execute([$employeId]);
+    return $stmt->fetchAll();
+}
+
+// Retire la prestation (et donc le lien de fiche) associée à cet événement pour
+// cet employé — invariant : jamais de fiche liée à un événement sans que son
+// employé le soit aussi. No-op si la fiche est déjà payée (historique figé :
+// on ne touche plus à ses lignes ni à ses montants une fois payée).
+function evenement_detacher_prestation(int $evenementId, int $employeId): void
+{
+    $ligne = evenement_ligne_pour($evenementId, $employeId);
+    if (!$ligne || trim((string) $ligne['date_paiement']) !== '') {
+        return;
+    }
+    $ficheId = (int) $ligne['fiche_id'];
+    db()->prepare('DELETE FROM fiche_lignes WHERE id = ?')->execute([(int) $ligne['id']]);
+    // sauvegarder_fiche() ci-dessous synchronise evenement_fiches à partir des
+    // lignes restantes — cet événement n'y figurera plus.
+
+    $stmt = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ? ORDER BY ordre');
+    $stmt->execute([$ficheId]);
+    $lignesRestantes = $stmt->fetchAll();
+
+    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt->execute([$employeId]);
+    $emp = $stmt->fetch();
+    if (!$emp) {
+        return;
+    }
+    $tj = json_decode($ligne['taux_json'] ?: '{}', true) ?: [];
+    if (isset($tj['impot_source'])) {
+        $emp['impot_source_taux'] = (float) $tj['impot_source'];
+    }
+    $emp['supplement_vacances'] = (float) $ligne['supplement_taux'];
+    // Fiche vidée de sa dernière prestation : reste (montants à 0) plutôt que
+    // supprimée automatiquement — suppression manuelle si vraiment inutile.
+    sauvegarder_fiche($emp, (int) $ligne['annee'], (int) $ligne['mois'], '', $lignesRestantes, $ficheId, (int) $ligne['afficher_cout_emp']);
+}
+
 function evenement_factures_liees(int $evenementId): array
 {
     $stmt = db()->prepare('SELECT f.*, d.nom AS debiteur_nom FROM factures f
@@ -162,23 +225,46 @@ function route_evenement(): void
 
     $spectacles = spectacles_pour_selection();
     $employesTous = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
-    $fichesTous = db()->query(
-        "SELECT f.id, f.annee, f.mois, e.prenom, e.nom FROM fiches f
-         JOIN employes e ON e.id = f.employe_id ORDER BY f.annee DESC, f.mois DESC, e.nom"
-    )->fetchAll();
 
     // Sépare « déjà liés » / « disponibles » pour le picker (select + bouton
     // Ajouter, cf. views/evenement_form.php) — évite d'afficher une case à
-    // cocher par employé/fiche, peu lisible dès que la liste grossit.
+    // cocher par employé, peu lisible dès que la liste grossit.
     $employeIds = $id ? evenement_employe_ids($id) : [];
     $employesLies  = array_values(array_filter($employesTous, fn ($e) => in_array((int) $e['id'], $employeIds, true)));
     $employesDispo = array_values(array_filter($employesTous, fn ($e) => !in_array((int) $e['id'], $employeIds, true)));
-    $ficheIds = $id ? evenement_fiche_ids($id) : [];
-    $fichesLiees  = array_values(array_filter($fichesTous, fn ($f) => in_array((int) $f['id'], $ficheIds, true)));
-    $fichesDispo  = array_values(array_filter($fichesTous, fn ($f) => !in_array((int) $f['id'], $ficheIds, true)));
+
+    // Pour chaque employé lié : la prestation déjà ajoutée (le cas échéant) et
+    // ses fiches non payées, pour la carte « Employés » (tableau fusionné
+    // employé/fiche — impossible d'avoir une fiche liée sans employé lié).
+    // Deux requêtes groupées (pas une par employé) : evenement_ligne_pour() et
+    // fiches_modifiables_pour_employe() restent utiles ailleurs pour un seul
+    // employé (ex. evenement_detacher_prestation()), mais ici on veut tous les
+    // employés liés en une fois.
+    $prestations = array_fill_keys($employeIds, null);
+    $fichesParEmploye = array_fill_keys($employeIds, []);
+    if ($id && $employeIds) {
+        foreach (db()->query(
+            'SELECT fl.*, f.annee, f.mois, f.date_paiement, f.supplement_taux, f.afficher_cout_emp, f.taux_json, f.employe_id
+             FROM fiche_lignes fl JOIN fiches f ON f.id = fl.fiche_id
+             WHERE fl.evenement_id = ' . (int) $id
+        ) as $ligne) {
+            $prestations[(int) $ligne['employe_id']] = $ligne;
+        }
+        $in = implode(',', $employeIds);
+        foreach (db()->query(
+            "SELECT id, annee, mois, employe_id FROM fiches WHERE employe_id IN ($in) AND date_paiement = ''
+             ORDER BY annee DESC, mois DESC"
+        ) as $fiche) {
+            $fichesParEmploye[(int) $fiche['employe_id']][] = $fiche;
+        }
+    }
+
+    $axes = module_actif('analytique')
+        ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
+        : [];
 
     $renderForm = function (?string $err) use (
-        $evenement, $id, $spectacles, $employesLies, $employesDispo, $fichesLiees, $fichesDispo
+        $evenement, $id, $spectacles, $employesLies, $employesDispo, $prestations, $fichesParEmploye, $axes
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -186,11 +272,14 @@ function route_evenement(): void
             'spectacles'     => $spectacles,
             'employesLies'   => $employesLies,
             'employesDispo'  => $employesDispo,
-            'fichesLiees'    => $fichesLiees,
-            'fichesDispo'    => $fichesDispo,
+            'prestations'    => $prestations,
+            'fichesParEmploye' => $fichesParEmploye,
+            'unites'         => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
+            'tauxHoraires'   => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
             'factures'       => $id ? evenement_factures_liees($id) : [],
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
             'paysDisponibles' => evenements_pays_disponibles(),
+            'axes'           => $axes,
             'err'            => $err,
             'post'           => $_POST,
         ], $id ? "Modifier l'événement" : 'Nouvel événement');
@@ -280,6 +369,33 @@ function route_evenement_suisa(): void
     redirect('evenement', ['id' => $id, 'ok' => 'suisa']);
 }
 
+// Carte « Comptabilité analytique » — axe par défaut de l'événement, présélectionné
+// pour les nouvelles prestations (route_evenement_ligne_ajouter) et pour les lignes
+// d'une facture créée depuis cet événement (route_facturation_form), modifiable
+// au cas par cas ensuite sans jamais toucher les lignes déjà enregistrées.
+function route_evenement_axe_defaut(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('analytique')) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!evenement_charger($id)) {
+        redirect('evenements_liste');
+    }
+    $axeId = (int) ($_POST['axe_analytique_id_defaut'] ?? 0) ?: null;
+    if ($axeId !== null) {
+        $stmt = db()->prepare('SELECT 1 FROM axes_analytiques WHERE id = ? AND actif = 1');
+        $stmt->execute([$axeId]);
+        if (!$stmt->fetchColumn()) {
+            $axeId = null;
+        }
+    }
+    db()->prepare('UPDATE evenements SET axe_analytique_id_defaut = ? WHERE id = ?')->execute([$axeId, $id]);
+    redirect('evenement', ['id' => $id, 'ok' => 'axe']);
+}
+
 // Carte « Employés » — lien/délien immédiat (pas de bouton Enregistrer), même
 // esprit que route_evenement_facture_lier()/delier().
 function route_evenement_employe_lier(): void
@@ -302,6 +418,10 @@ function route_evenement_employe_lier(): void
     redirect('evenement', ['id' => $id]);
 }
 
+// Retire l'employé — et, avec lui, toute prestation/lien de fiche associé à cet
+// événement pour cet employé (invariant : pas de fiche liée sans employé lié).
+// Refuse (no-op) si cette prestation a déjà été payée : on ne délie jamais un
+// employé « en douce » d'une fiche figée, il faut d'abord la corriger à la main.
 function route_evenement_employe_delier(): void
 {
     require_login();
@@ -311,41 +431,134 @@ function route_evenement_employe_delier(): void
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $employeId = (int) ($_POST['employe_id'] ?? 0);
+    $ligne = evenement_ligne_pour($id, $employeId);
+    if ($ligne && trim((string) $ligne['date_paiement']) !== '') {
+        redirect('evenement', ['id' => $id, 'errEmploye' => 'paye']);
+    }
+    evenement_detacher_prestation($id, $employeId);
     db()->prepare('DELETE FROM evenement_employes WHERE evenement_id = ? AND employe_id = ?')->execute([$id, $employeId]);
     redirect('evenement', ['id' => $id]);
 }
 
-function route_evenement_fiche_lier(): void
+// Carte « Employés » — ajoute (ou met à jour) la ligne de prestation d'un
+// employé déjà lié à l'événement, sur une fiche existante non payée ou une
+// fiche à créer pour le mois de l'événement. Une seule ligne par événement
+// (voir evenement_ligne_pour()) ; établit aussi le lien evenement_fiches. Si la
+// fiche choisie diffère de celle déjà utilisée pour cet événement/employé, on
+// déplace la prestation (détache d'abord l'ancienne, recalculée sans elle).
+function route_evenement_ligne_ajouter(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         redirect('evenements_liste');
     }
     check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    $ficheId = (int) ($_POST['fiche_id'] ?? 0);
-    if ($ficheId && evenement_charger($id)) {
-        $stmt = db()->prepare('SELECT 1 FROM fiches WHERE id = ?');
-        $stmt->execute([$ficheId]);
-        if ($stmt->fetchColumn()) {
-            db()->prepare('INSERT OR IGNORE INTO evenement_fiches (evenement_id, fiche_id) VALUES (?, ?)')
-                ->execute([$id, $ficheId]);
+    $evenementId = (int) ($_POST['id'] ?? 0);
+    $employeId   = (int) ($_POST['employe_id'] ?? 0);
+    $ev = evenement_charger($evenementId);
+    if (!$ev || !$employeId || !in_array($employeId, evenement_employe_ids($evenementId), true)) {
+        redirect('evenement', ['id' => $evenementId]);
+    }
+
+    $enc    = (string) ($_POST['l_unite'] ?? '');
+    $qte    = (float) str_replace(',', '.', $_POST['l_quantite'] ?? '0');
+    $choix  = (string) ($_POST['l_taux_choix'] ?? '');
+    $manuel = (string) ($_POST['l_taux_manuel'] ?? '');
+    $tauxH  = ($choix === 'autre' || $choix === '')
+        ? (float) str_replace(',', '.', $manuel)
+        : (float) str_replace(',', '.', $choix);
+    if ($qte <= 0 || $tauxH <= 0 || !str_contains($enc, '|')) {
+        redirect('evenement', ['id' => $evenementId, 'errLigne' => '1']);
+    }
+    [$hu, $lib] = explode('|', $enc, 2);
+    $hu = (float) str_replace(',', '.', $hu);
+    if ($hu <= 0 || trim($lib) === '') {
+        redirect('evenement', ['id' => $evenementId, 'errLigne' => '1']);
+    }
+    $axeId = (int) ($_POST['l_axe'] ?? 0) ?: null;
+    if ($axeId !== null) {
+        $stmt = db()->prepare('SELECT 1 FROM axes_analytiques WHERE id = ? AND actif = 1');
+        $stmt->execute([$axeId]);
+        if (!$stmt->fetchColumn()) {
+            $axeId = null;
         }
     }
-    redirect('evenement', ['id' => $id]);
-}
+    $nouvelleLigne = [
+        'libelle' => trim($lib), 'heures_unite' => $hu, 'quantite' => $qte, 'taux_horaire' => $tauxH,
+        'axe_analytique_id' => $axeId, 'evenement_id' => $evenementId,
+    ];
 
-function route_evenement_fiche_delier(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt->execute([$employeId]);
+    $emp = $stmt->fetch();
+    if (!$emp) {
+        redirect('evenement', ['id' => $evenementId]);
     }
-    check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    $ficheId = (int) ($_POST['fiche_id'] ?? 0);
-    db()->prepare('DELETE FROM evenement_fiches WHERE evenement_id = ? AND fiche_id = ?')->execute([$id, $ficheId]);
-    redirect('evenement', ['id' => $id]);
+
+    // Prestation déjà présente pour cet événement/employé : si la fiche choisie
+    // change, on détache d'abord l'ancienne (recalcule l'ancienne fiche sans
+    // elle) et on repart comme un ajout normal sur la fiche cible.
+    $ligneExistante = evenement_ligne_pour($evenementId, $employeId);
+    if ($ligneExistante && trim((string) $ligneExistante['date_paiement']) !== '') {
+        redirect('evenement', ['id' => $evenementId]); // fiche déjà payée : figée
+    }
+    $ficheIdPoste = (int) ($_POST['fiche_id'] ?? 0);
+    if ($ligneExistante && (int) $ligneExistante['fiche_id'] !== $ficheIdPoste) {
+        evenement_detacher_prestation($evenementId, $employeId);
+        $ligneExistante = null;
+    }
+
+    $ficheId = $ligneExistante ? (int) $ligneExistante['fiche_id'] : $ficheIdPoste;
+    $extra = [];
+    if ($ficheId) {
+        $stmt = db()->prepare('SELECT * FROM fiches WHERE id = ? AND employe_id = ?');
+        $stmt->execute([$ficheId, $employeId]);
+        $fiche = $stmt->fetch();
+        if (!$fiche || trim((string) $fiche['date_paiement']) !== '') {
+            redirect('evenement', ['id' => $evenementId]);
+        }
+        $annee = (int) $fiche['annee'];
+        $mois  = (int) $fiche['mois'];
+    } else {
+        $annee = (int) substr((string) $ev['date'], 0, 4);
+        $mois  = (int) substr((string) $ev['date'], 5, 2);
+        $stmt = db()->prepare('SELECT * FROM fiches WHERE employe_id = ? AND annee = ? AND mois = ?');
+        $stmt->execute([$employeId, $annee, $mois]);
+        $fiche = $stmt->fetch();
+        if ($fiche && trim((string) $fiche['date_paiement']) !== '') {
+            redirect('evenement', ['id' => $evenementId, 'errLigne' => 'payee']);
+        }
+        $ficheId = $fiche ? (int) $fiche['id'] : null;
+    }
+
+    $lignesExistantes = [];
+    if ($ficheId) {
+        $stmt = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ? ORDER BY ordre');
+        $stmt->execute([$ficheId]);
+        $lignesExistantes = $stmt->fetchAll();
+        // La fiche existe déjà : on préserve ses éventuelles surcharges figées
+        // (supplément vacances / impôt à la source) plutôt que de revenir aux
+        // valeurs courantes de l'employé.
+        $tj = json_decode($fiche['taux_json'] ?: '{}', true) ?: [];
+        if (isset($tj['impot_source'])) {
+            $emp['impot_source_taux'] = (float) $tj['impot_source'];
+        }
+        $emp['supplement_vacances'] = (float) $fiche['supplement_taux'];
+        $extra['afficher_cout_emp'] = (int) $fiche['afficher_cout_emp'];
+    }
+
+    // Remplace l'éventuelle ligne déjà tagguée pour cet événement (mise à jour)
+    // plutôt que d'en ajouter une deuxième.
+    $lignesExistantes = array_values(array_filter(
+        $lignesExistantes,
+        fn ($l) => (int) ($l['evenement_id'] ?? 0) !== $evenementId
+    ));
+    $lignesExistantes[] = $nouvelleLigne;
+
+    // sauvegarder_fiche() synchronise déjà evenement_fiches à partir des
+    // evenement_id présents dans $lignesExistantes (dont la nouvelle ligne).
+    sauvegarder_fiche($emp, $annee, $mois, '', $lignesExistantes, $ficheId ?: null, $extra['afficher_cout_emp'] ?? 0);
+    redirect('evenement', ['id' => $evenementId]);
 }
 
 function route_evenement_delete(): void
@@ -399,7 +612,7 @@ function route_evenement_facture_delier(): void
 function route_facture_evenement_lier(): void
 {
     require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('facturation')) {
         redirect('facturation_liste');
     }
     check_csrf();
@@ -421,7 +634,7 @@ function route_spectacles(): void
         'SELECT s.*, (SELECT COUNT(*) FROM evenements e WHERE e.spectacle_id = s.id) AS nb_evenements
          FROM spectacles s ORDER BY s.nom'
     )->fetchAll();
-    render('spectacles', ['spectacles' => $spectacles, 'token' => evenements_export_token()], 'Spectacles');
+    render('spectacles', ['spectacles' => $spectacles, 'token' => evenements_export_token()], evenements_terme_spectacle());
 }
 
 function route_spectacle(): void
@@ -461,7 +674,7 @@ function route_spectacle(): void
         }
         if ($err) {
             $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes]);
-            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err], 'Spectacle');
+            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err], evenements_terme_spectacle(false));
             return;
         }
         if ($id) {
@@ -473,7 +686,7 @@ function route_spectacle(): void
         }
         redirect('spectacles');
     }
-    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null], $id ? 'Modifier le spectacle' : 'Nouveau spectacle');
+    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
 }
 
 function route_spectacle_delete(): void
@@ -500,6 +713,7 @@ function route_parametres_evenements(): void
         } else {
             $delai = max(1, (int) ($_POST['suisa_delai_decompte_mois'] ?? 12));
             $lienTexteDefaut = trim($_POST['evenements_lien_texte_defaut'] ?? '');
+            $termeSpectacle = trim($_POST['evenements_terme_spectacle'] ?? '');
             $paysListe = array_values(array_filter(array_map(
                 fn ($p) => mb_strtoupper(trim($p), 'UTF-8'),
                 explode(',', (string) ($_POST['evenements_pays_disponibles'] ?? ''))
@@ -507,6 +721,7 @@ function route_parametres_evenements(): void
             $ins = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
             $ins->execute(['suisa_delai_decompte_mois', (string) $delai]);
             $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
+            $ins->execute(['evenements_terme_spectacle', $termeSpectacle]);
             $ins->execute(['evenements_pays_disponibles', implode(',', $paysListe)]);
         }
         redirect('parametres_evenements', ['ok' => 1]);
@@ -515,6 +730,7 @@ function route_parametres_evenements(): void
     render('parametres_evenements', [
         'delai' => evenements_delai_decompte_mois(),
         'lienTexteDefaut' => evenements_lien_texte_defaut(),
+        'termeSpectacle' => evenements_terme_spectacle(),
         'paysDisponibles' => evenements_pays_disponibles(),
         'saved' => $_GET['ok'] ?? null,
     ], 'Paramètres — Événements');

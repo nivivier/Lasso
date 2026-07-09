@@ -78,7 +78,7 @@ $oui = fn(bool $b) => $b
                 <option value="stable" <?= $canal === 'stable' ? 'selected' : '' ?>>Stable (versions validées)</option>
             </select>
         </label>
-        <noscript><div class="form-actions"><button type="submit">Enregistrer</button></div></noscript>
+        <noscript><div class="form-actions"><button type="submit"><?= icon('save') ?> Enregistrer</button></div></noscript>
     </form>
 </div>
 

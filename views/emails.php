@@ -34,7 +34,7 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit">Enregistrer</button>
+            <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
 </div>

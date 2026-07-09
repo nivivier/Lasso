@@ -303,6 +303,8 @@ function run_migrations(PDO $pdo): void
         24 => 'migration_24', // evenements.region (canton/département), pour l'import CSV de tournée
         25 => 'migration_25', // evenements.lien_texte (texte du bouton de lien), pour l'import CSV de tournée
         26 => 'migration_26', // evenements.pays (champ propre, ne se recoupe plus avec region)
+        27 => 'migration_27', // fiche_lignes.evenement_id : ligne de prestation ajoutée depuis un événement
+        28 => 'migration_28', // evenements.axe_analytique_id_defaut : axe analytique par défaut
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -942,6 +944,30 @@ function migration_26(PDO $pdo): void
     }
 }
 
+// Migration 27 : rattache une ligne de prestation à l'événement qui l'a générée
+// (ajout depuis la carte « Employés » de la fiche événement) — une seule ligne
+// par événement/employé ; NULL pour les lignes créées via le formulaire de
+// fiche classique. Voir evenement_ligne_pour()/route_evenement_ligne_ajouter().
+function migration_27(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(fiche_lignes)')->fetchAll(), 'name');
+    if (!in_array('evenement_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE fiche_lignes ADD COLUMN evenement_id INTEGER REFERENCES evenements(id) ON DELETE SET NULL');
+    }
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_fiche_lignes_evenement ON fiche_lignes(evenement_id)');
+}
+
+// Migration 28 : axe analytique par défaut d'un événement (carte « Comptabilité
+// analytique ») — présélectionné pour les nouvelles prestations et pour les
+// lignes d'une facture créée depuis cet événement, modifiable au cas par cas.
+function migration_28(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('axe_analytique_id_defaut', $cols, true)) {
+        $pdo->exec('ALTER TABLE evenements ADD COLUMN axe_analytique_id_defaut INTEGER REFERENCES axes_analytiques(id)');
+    }
+}
+
 function seed_parametres(PDO $pdo): void
 {
     $defauts = [
@@ -957,6 +983,7 @@ function seed_parametres(PDO $pdo): void
         'employeur_contact_tel'         => '',
         'employeur_logo_clair'          => '', // logo sur fond clair (auth, fiches, e-mail)
         'employeur_logo_sombre'         => '', // logo sur fond sombre (barre latérale)
+        'employeur_couleur_principale'  => '#6d4ade', // couleur d'accent ; teintes dérivées via couleurs_derivees()
     ];
     $stmt = $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)');
     foreach ($defauts as $cle => $valeur) {

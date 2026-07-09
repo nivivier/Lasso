@@ -1,6 +1,7 @@
 <?php
 /** @var ?array $facture */ /** @var int $id */ /** @var array $debiteurs */ /** @var array $comptes */
-/** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?string $err */ /** @var ?array $post */
+/** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?int $axeDefautEvenement */
+/** @var ?string $err */ /** @var ?array $post */
 $edit = $id > 0;
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 
@@ -41,7 +42,9 @@ if (!empty($post['l_description'])) {
     }
 }
 if (!$lignesInit) {
-    $lignesInit[] = ['description' => '', 'quantite' => '1', 'prix' => '', 'axe' => ''];
+    // Facture créée depuis un événement : axe de la carte « Comptabilité
+    // analytique » présélectionné, modifiable comme n'importe quelle ligne.
+    $lignesInit[] = ['description' => '', 'quantite' => '1', 'prix' => '', 'axe' => (string) ($axeDefautEvenement ?? '')];
 }
 
 $renderRow = function (array $l) use ($axes, $axeOpts, $preselect) {

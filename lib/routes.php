@@ -381,6 +381,11 @@ function route_employeur(): void
         foreach ($champs as $k) {
             $stmt->execute([$k, trim($_POST[$k] ?? '')]);
         }
+        // Couleur principale : ignore une valeur invalide plutôt que de casser la palette.
+        $couleur = trim($_POST['employeur_couleur_principale'] ?? '');
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $couleur)) {
+            $stmt->execute(['employeur_couleur_principale', strtolower($couleur)]);
+        }
         foreach ($logos as $cle => $path) {
             $ancien = param($cle); // ancien fichier à supprimer s'il était uploadé
             $stmt->execute([$cle, $path]);
@@ -1465,7 +1470,11 @@ function route_resumes(): void
         )->fetchAll()
         : [];
     $comptaSeries = module_actif('compta') ? compta_dashboard_series() : [];
-    render('resumes', ['aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries], 'Tableau de bord');
+    $prochainsEvenements = module_actif('evenements') ? evenements_a_venir(5) : [];
+    render('resumes', [
+        'aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
+        'prochainsEvenements' => $prochainsEvenements,
+    ], 'Tableau de bord');
 }
 
 // Page « Résumé » : résumé complet (par période) + charges totales.

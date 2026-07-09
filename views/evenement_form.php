@@ -1,22 +1,36 @@
 <?php
 /** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */
-/** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $fichesLiees */
-/** @var array $fichesDispo */ /** @var array $factures */ /** @var array $facturesDispo */
-/** @var array $paysDisponibles */ /** @var ?string $err */ /** @var array $post */
+/** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
+/** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
+/** @var array $factures */ /** @var array $facturesDispo */
+/** @var array $paysDisponibles */ /** @var array $axes */ /** @var ?string $err */ /** @var array $post */
 $isEdit = $id > 0;
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
 $vRaw = fn (string $k, $d = '') => (string) ($post[$k] ?? $evenement[$k] ?? $d);
 $retour = $isEdit ? '?p=evenement&id=' . (int) $id : '?p=evenements_liste';
 $ok = $_GET['ok'] ?? null;
+$errLigne = $_GET['errLigne'] ?? null;
+$errEmploye = $_GET['errEmploye'] ?? null;
 
 $confirmSuppr = null;
 if ($isEdit) {
+    $nbFiches = count(evenement_fiche_ids($id));
     $impacts = [];
     if ($employesLies) $impacts[] = count($employesLies) . ' employé(s) lié(s)';
-    if ($fichesLiees) $impacts[] = count($fichesLiees) . ' fiche(s) de salaire liée(s)';
+    if ($nbFiches) $impacts[] = $nbFiches . ' fiche(s) de salaire liée(s)';
     if ($factures) $impacts[] = count($factures) . ' facture(s) qui perdront ce lien';
     $confirmSuppr = 'Supprimer cet événement ?' . ($impacts ? ' ' . implode(', ', $impacts) . '.' : '');
 }
+$uniteOpts = options_unites($unites);
+$tauxOpts  = options_taux_horaires($tauxHoraires);
+
+// Options de l'axe analytique par défaut (carte « Comptabilité analytique ») et
+// pour la ligne d'ajout de prestation — même présentation que fiche_form.php.
+$axeOpts = options_axes($axes);
+$axeSelect = function (string $name, string $class, int $selected, bool $hidden = false) use ($axeOpts): string {
+    $html = preselectionner_option($axeOpts, $selected ? (string) $selected : '');
+    return '<select name="' . e($name) . '" class="' . e($class) . '"' . ($hidden ? ' hidden' : '') . '>' . $html . '</select>';
+};
 ?>
 <?= lien_retour('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
@@ -43,7 +57,7 @@ if ($isEdit) {
 
         <div class="grid4">
             <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
-            <label>Spectacle
+            <label><?= e(evenements_terme_spectacle(false)) ?>
                 <select name="spectacle_id">
                     <option value="">—</option>
                     <?php foreach ($spectacles as $s): ?>
@@ -58,7 +72,11 @@ if ($isEdit) {
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>Type d'audience
+            <label><span>Type d'audience <?= info_tip(
+                "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
+                . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
+                . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
+            ) ?></span>
                 <select name="visibilite">
                     <?php foreach (EVENEMENTS_VISIBILITES as $vi): ?>
                         <option value="<?= $vi ?>" <?= $vRaw('visibilite', 'non_repertorie') === $vi ? 'selected' : '' ?>><?= e(evenement_visibilite_libelle($vi)) ?></option>
@@ -66,11 +84,6 @@ if ($isEdit) {
                 </select>
             </label>
         </div>
-        <p class="muted small">
-            Public : affiché sur le site avec ville, salle, festival, lien, spectacle et remarques.
-            Privé : seule la date apparaît, avec la mention « Événement privé ».
-            Non répertorié : n'apparaît jamais sur le site (usage interne).
-        </p>
 
         <div class="grid4">
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
@@ -103,7 +116,10 @@ if ($isEdit) {
 
 <?php if ($isEdit): ?>
 <div class="card mt-22">
-    <h2 class="mt-0">Suivi SUISA</h2>
+    <div class="page-head">
+        <h2 class="mt-0">Suivi SUISA</h2>
+        <?= evenement_suisa_badge($evenement) ?>
+    </div>
     <?php if ($ok === 'suisa'): ?><p class="ok flash">Suivi SUISA enregistré.</p><?php endif; ?>
     <form method="post" action="?p=evenement_suisa" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -124,7 +140,6 @@ if ($isEdit) {
             <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
             <label>Date du décompte <input type="date" name="suisa_decompte_le" value="<?= $v('suisa_decompte_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
         </div>
-        <p><?= evenement_suisa_badge($evenement) ?></p>
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
             <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
@@ -132,69 +147,143 @@ if ($isEdit) {
     </form>
 </div>
 
+<?php if ($axes): ?>
 <div class="card mt-22">
-    <h2 class="mt-0">Employés</h2>
-    <h3 class="sub no-mt">Employés liés</h3>
+    <h2 class="mt-0">Comptabilité analytique</h2>
+    <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
+    <form method="post" action="?p=evenement_axe_defaut" class="form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <label><span>Axe par défaut <?= info_tip(
+            "Présélectionné pour les nouvelles prestations ajoutées ci-dessous et pour les lignes "
+            . "d'une facture créée depuis cet événement. Modifiable au cas par cas ensuite, sans "
+            . "effet rétroactif sur les prestations ou factures déjà enregistrées."
+        ) ?></span>
+            <?= $axeSelect('axe_analytique_id_defaut', '', (int) ($evenement['axe_analytique_id_defaut'] ?? 0)) ?>
+        </label>
+        <div class="form-actions">
+            <button type="submit"><?= icon('save') ?> Enregistrer</button>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
+
+<div class="card mt-22" id="carte-employes">
+    <div class="page-head">
+        <h2 class="mt-0">Employés <?= info_tip(
+            "Une fiche de salaire ne peut être liée que via un employé lié — une seule ligne de "
+            . "prestation par événement. Pour un cachet couvrant plusieurs dates, ajoutez la "
+            . "prestation depuis un seul des événements de la tournée et liez les autres depuis "
+            . "la fiche elle-même."
+        ) ?></h2>
+        <?php if ($employesDispo): ?>
+            <form method="post" action="?p=evenement_employe_lier" class="linked-add">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="id" value="<?= (int) $id ?>">
+                <select name="employe_id">
+                    <?php foreach ($employesDispo as $emp): ?>
+                        <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn ghost"><?= icon('user-plus') ?> Ajouter un employé</button>
+            </form>
+        <?php endif; ?>
+    </div>
+    <?php if ($errLigne === '1'): ?><p class="err">Prestation invalide : vérifiez l'unité, la quantité et le taux horaire.</p><?php endif; ?>
+    <?php if ($errLigne === 'payee'): ?><p class="err">La fiche de ce mois a déjà été payée : créez plutôt une fiche complémentaire depuis « Fiches de salaire ».</p><?php endif; ?>
+    <?php if ($errEmploye === 'paye'): ?><p class="err">Impossible de retirer cet employé : sa prestation pour cet événement a déjà été payée.</p><?php endif; ?>
+
     <?php if (!$employesLies): ?>
         <p class="muted small">Aucun employé lié.</p>
     <?php else: ?>
-        <div class="linked-list">
-            <?php foreach ($employesLies as $emp): ?>
-                <div class="linked-item">
-                    <span><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></span>
-                    <form method="post" action="?p=evenement_employe_delier" class="d-inline">
-                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="id" value="<?= (int) $id ?>">
-                        <input type="hidden" name="employe_id" value="<?= (int) $emp['id'] ?>">
-                        <button type="submit" class="btn ghost btn-sm linked-remove" aria-label="Retirer">✕</button>
-                    </form>
-                </div>
+        <?php $colspanMsg = 4 + ($axes ? 1 : 0); ?>
+        <div class="table-scroll">
+        <table class="list evenement-employes">
+            <thead><tr>
+                <th>Employé</th><th>Fiche de salaire</th><?php if ($axes): ?><th>Axe</th><?php endif; ?>
+                <th>Durée et taux horaire</th><th class="num">Total brut</th><th></th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($employesLies as $emp):
+                $eid = (int) $emp['id'];
+                $ligne = $prestations[$eid] ?? null;
+                $fichesEmp = $fichesParEmploye[$eid] ?? [];
+                $moisEvenement = $vRaw('date') !== '' ? $vRaw('date') : ($evenement['date'] ?? date('Y-m-d'));
+                $formId = 'pf-' . $eid;
+                $axeLabel = '';
+                if ($ligne) {
+                    foreach ($axes as $ax) {
+                        if ((int) $ax['id'] === (int) ($ligne['axe_analytique_id'] ?? 0)) { $axeLabel = $ax['code'] ?: $ax['libelle']; break; }
+                    }
+                }
+                $totalBrut = $ligne ? (float) $ligne['heures_unite'] * (float) $ligne['quantite'] * (float) $ligne['taux_horaire'] : 0;
+            ?>
+                <tr>
+                    <td><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
+                    <?php if (!$unites || !$tauxHoraires): ?>
+                        <td colspan="<?= $colspanMsg ?>" class="muted small">
+                            Configurez au moins une unité de temps et un taux horaire (Paramètres &gt; Employeur) pour ajouter une prestation.
+                        </td>
+                    <?php else:
+                        $huSel = $ligne ? $ligne['heures_unite'] . '|' . $ligne['libelle'] : '';
+                        $tauxSel = '';
+                        if ($ligne) {
+                            $match = null;
+                            foreach ($tauxHoraires as $th) {
+                                if ((float) $th['montant'] === (float) $ligne['taux_horaire']) { $match = (string) $th['montant']; break; }
+                            }
+                            $tauxSel = $match ?? 'autre';
+                        }
+                    ?>
+                        <td class="epf-col-sm">
+                            <?php if ($ligne): ?>
+                                <span class="epf-disp"><a href="?p=fiche&id=<?= (int) $ligne['fiche_id'] ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a></span>
+                            <?php endif; ?>
+                            <select form="<?= e($formId) ?>" name="fiche_id" class="fiche-select-sm epf-editable"<?= $ligne ? ' hidden' : '' ?>>
+                                <option value="">— Créer une fiche (<?= e(mois_nom((int) substr($moisEvenement, 5, 2)) . ' ' . substr($moisEvenement, 0, 4)) ?>) —</option>
+                                <?php foreach ($fichesEmp as $f): ?>
+                                    <option value="<?= (int) $f['id'] ?>" <?= $ligne && (int) $ligne['fiche_id'] === (int) $f['id'] ? 'selected' : '' ?>><?= e(mois_nom((int) $f['mois']) . ' ' . $f['annee']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <?php if ($axes): ?>
+                        <td class="epf-col-sm">
+                            <?php if ($ligne): ?>
+                                <span class="epf-disp"><?= e($axeLabel !== '' ? $axeLabel : '—') ?></span>
+                            <?php endif; ?>
+                            <?= str_replace('name="l_axe"', 'form="' . e($formId) . '" name="l_axe"', $axeSelect('l_axe', 'l-axe epf-editable', (int) ($ligne['axe_analytique_id'] ?? ($evenement['axe_analytique_id_defaut'] ?? 0)), (bool) $ligne)) ?>
+                        </td>
+                        <?php endif; ?>
+                        <td class="epf-col-sm">
+                            <div class="epf-duree">
+                                <?php if ($ligne): ?>
+                                    <span class="epf-disp"><?= e($ligne['libelle'] . ' × ' . nombre_court((float) $ligne['quantite']) . ' — ' . chf((float) $ligne['taux_horaire']) . ' CHF/h') ?></span>
+                                <?php endif; ?>
+                                <select form="<?= e($formId) ?>" name="l_unite" class="l-unite epf-editable"<?= $ligne ? ' hidden' : '' ?>><?= preselectionner_option($uniteOpts, $huSel) ?></select>
+                                <input form="<?= e($formId) ?>" name="l_quantite" class="l-qte epf-editable" type="text" inputmode="decimal" placeholder="qté" value="<?= $ligne ? e(nombre_court((float) $ligne['quantite'])) : '' ?>"<?= $ligne ? ' hidden' : '' ?>>
+                                <select form="<?= e($formId) ?>" name="l_taux_choix" class="l-taux-choix epf-editable"<?= $ligne ? ' hidden' : '' ?>><?= preselectionner_option($tauxOpts, $tauxSel) ?></select>
+                                <input form="<?= e($formId) ?>" name="l_taux_manuel" class="l-taux-manuel epf-editable" type="text" inputmode="decimal" placeholder="CHF/h" value="<?= ($ligne && $tauxSel === 'autre') ? e(nombre_court((float) $ligne['taux_horaire'])) : '' ?>"<?= $ligne ? ' hidden' : '' ?>>
+                            </div>
+                        </td>
+                        <td class="num"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
+                        <td class="epf-actions-cell">
+                            <form id="<?= e($formId) ?>" method="post" action="?p=evenement_ligne_ajouter">
+                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="id" value="<?= (int) $id ?>">
+                                <input type="hidden" name="employe_id" value="<?= $eid ?>">
+                            </form>
+                            <div class="epf-actions">
+                                <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"<?= $ligne ? '' : ' hidden' ?>><?= icon('pencil') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation"<?= $ligne ? ' hidden' : '' ?>><?= icon('save') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier" class="btn ghost btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
+                            </div>
+                        </td>
+                    <?php endif; ?>
+                </tr>
             <?php endforeach; ?>
+            </tbody>
+        </table>
         </div>
-    <?php endif; ?>
-    <?php if ($employesDispo): ?>
-        <form method="post" action="?p=evenement_employe_lier" class="linked-add">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="id" value="<?= (int) $id ?>">
-            <select name="employe_id">
-                <?php foreach ($employesDispo as $emp): ?>
-                    <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="btn ghost btn-sm">+ Ajouter</button>
-        </form>
-    <?php endif; ?>
-
-    <h3 class="sub">Fiches de salaire liées</h3>
-    <p class="muted small">Une fiche peut couvrir plusieurs événements (ex. cachet regroupant une tournée).</p>
-    <?php if (!$fichesLiees): ?>
-        <p class="muted small">Aucune fiche liée.</p>
-    <?php else: ?>
-        <div class="linked-list">
-            <?php foreach ($fichesLiees as $f): ?>
-                <div class="linked-item">
-                    <span><?= e($f['prenom'] . ' ' . $f['nom'] . ' — ' . mois_nom((int) $f['mois']) . ' ' . $f['annee']) ?></span>
-                    <form method="post" action="?p=evenement_fiche_delier" class="d-inline">
-                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="id" value="<?= (int) $id ?>">
-                        <input type="hidden" name="fiche_id" value="<?= (int) $f['id'] ?>">
-                        <button type="submit" class="btn ghost btn-sm linked-remove" aria-label="Retirer">✕</button>
-                    </form>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-    <?php if ($fichesDispo): ?>
-        <form method="post" action="?p=evenement_fiche_lier" class="linked-add">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="id" value="<?= (int) $id ?>">
-            <select name="fiche_id">
-                <?php foreach ($fichesDispo as $f): ?>
-                    <option value="<?= (int) $f['id'] ?>"><?= e($f['prenom'] . ' ' . $f['nom'] . ' — ' . mois_nom((int) $f['mois']) . ' ' . $f['annee']) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="btn ghost btn-sm">+ Ajouter</button>
-        </form>
     <?php endif; ?>
 </div>
 
@@ -260,6 +349,66 @@ if ($isEdit) {
             suisaChamps.hidden = !suisaCheck.checked;
             suisaChamps.querySelectorAll('select, input').forEach(el => { el.disabled = !suisaCheck.checked; });
         });
+    }
+
+    // Ligne de prestation (carte Employés) : les champs vivent dans des <td>
+    // séparés (colonnes) mais partagent un même <form> via l'attribut form="…" —
+    // on les manipule donc via la <tr> commune plutôt que via le <form>.
+    document.querySelectorAll('.evenement-employes tbody tr').forEach(tr => {
+        const unite  = tr.querySelector('.l-unite');
+        const qte    = tr.querySelector('.l-qte');
+        const choix  = tr.querySelector('.l-taux-choix');
+        const manuel = tr.querySelector('.l-taux-manuel');
+        const total  = tr.querySelector('.epf-total-live');
+        if (!unite || !qte || !choix || !manuel) return; // ligne "configurez une unité…"
+
+        const num = v => parseFloat((v || '').toString().replace(',', '.')) || 0;
+        const sync = () => {
+            manuel.style.display = choix.value === 'autre' ? '' : 'none';
+            if (total) {
+                const opt = unite.selectedOptions[0];
+                const hu = opt ? num(opt.dataset.h) : 0;
+                const t  = choix.value === 'autre' ? num(manuel.value) : num(choix.value);
+                const montant = hu * num(qte.value) * t;
+                total.textContent = montant > 0 ? (Math.round(montant * 100) / 100).toFixed(2) + ' CHF' : '—';
+            }
+        };
+        [unite, choix].forEach(el => el.addEventListener('change', sync));
+        [qte, manuel].forEach(el => el.addEventListener('input', sync));
+        sync();
+    });
+
+    // Ligne de prestation : mode lecture (texte + crayon) tant que rien n'est
+    // modifié, mode édition (tous les champs + disquette/corbeille) après un
+    // clic sur le crayon — soumis en un seul formulaire, pas d'action séparée.
+    document.addEventListener('click', ev => {
+        const btn = ev.target.closest('.epf-edit-btn');
+        if (!btn) return;
+        const tr = btn.closest('tr');
+        tr.querySelectorAll('.epf-disp').forEach(el => { el.hidden = true; });
+        tr.querySelectorAll('.epf-editable').forEach(el => { el.hidden = false; });
+        btn.hidden = true;
+        const choix = tr.querySelector('.l-taux-choix');
+        if (choix) choix.dispatchEvent(new Event('change'));
+        const sel = tr.querySelector('.fiche-select-sm');
+        if (sel) sel.focus();
+    });
+
+    // Ne pas revenir en haut de la page après Ajouter un employé / Enregistrer /
+    // Retirer (carte Employés) — on restaure la position de défilement au retour.
+    const carteEmployes = document.getElementById('carte-employes');
+    if (carteEmployes) {
+        const scrollKey = 'evenement-scroll-<?= (int) $id ?>';
+        carteEmployes.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                sessionStorage.setItem(scrollKey, String(window.scrollY));
+            });
+        });
+        const savedScroll = sessionStorage.getItem(scrollKey);
+        if (savedScroll !== null) {
+            sessionStorage.removeItem(scrollKey);
+            window.addEventListener('load', () => window.scrollTo(0, parseInt(savedScroll, 10)));
+        }
     }
 
     // Recherche de facture à lier (même widget que le rapprochement d'écriture/catégorie).

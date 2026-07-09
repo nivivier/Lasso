@@ -1,4 +1,5 @@
-<?php /** @var int $delai */ /** @var string $lienTexteDefaut */ /** @var array $paysDisponibles */ /** @var ?bool $saved */ ?>
+<?php /** @var int $delai */ /** @var string $lienTexteDefaut */ /** @var string $termeSpectacle */
+/** @var array $paysDisponibles */ /** @var ?bool $saved */ ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Paramètres enregistrés.</p><?php endif; ?>
 
@@ -12,6 +13,12 @@
         <label>Texte du bouton de lien par défaut (si un événement n'en précise pas un)
             <input name="evenements_lien_texte_defaut" type="text" value="<?= e($lienTexteDefaut) ?>" placeholder="Plus d'informations">
         </label>
+        <label>Terme utilisé pour désigner une série d'événements <?= info_tip(
+            "Change l'affichage dans toute l'interface (menu, listes, formulaires) — "
+            . "ex. « Spectacles », « Concerts », « Tournées »."
+        ) ?>
+            <input name="evenements_terme_spectacle" type="text" value="<?= e($termeSpectacle) ?>" placeholder="Spectacles">
+        </label>
         <label>Pays disponibles pour le champ « Région et pays » (séparés par des virgules)
             <input name="evenements_pays_disponibles" type="text" value="<?= e(implode(', ', $paysDisponibles)) ?>" placeholder="CH, FR, BE, CA">
         </label>
@@ -24,7 +31,7 @@
 <div class="card form mt-22">
     <h2 class="mt-0">Synchronisation</h2>
     <p class="muted small">
-        Les liens d'export (JSON/iCal) protégés par jeton se copient depuis la fiche de chaque spectacle.
+        Les liens d'export (JSON/iCal) protégés par jeton se copient depuis la fiche de chaque <?= mb_strtolower(evenements_terme_spectacle(false)) ?>.
         Ils exposent en lecture seule les événements publics/privés (jamais les non répertoriés, jamais
         les informations SUISA/facturation/employés) — voir <code>SPEC_EVENEMENTS.md</code> §8.
     </p>

@@ -10,6 +10,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
+    <?= couleurs_css_vars() ?>
 </head>
 <body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">
 <?php if ($u): ?>
@@ -85,7 +86,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?php if ($nbSuisaManquant > 0): ?><span class="nav-badge"><?= $nbSuisaManquant ?></span><?php endif; ?>
         </a>
         <a href="?p=spectacles" class="<?= in_array($cur, ['spectacles', 'spectacle'], true) ? 'on' : '' ?>">
-            <?= icon('music') ?> Spectacles
+            <?= icon('music') ?> <?= e(evenements_terme_spectacle()) ?>
         </a>
         <?php endif; ?>
         <span class="side-nav-sep"></span>
@@ -159,6 +160,24 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     document.addEventListener('click', () => {
         avatarMenu.setAttribute('hidden', '');
         avatarBtn.setAttribute('aria-expanded', 'false');
+    });
+
+    // Infobulles « i » (.info-tip) : tap pour basculer — indispensable sur
+    // mobile où :hover ne s'applique pas. Une seule ouverte à la fois, fermeture
+    // au clic dehors ou à Echap.
+    document.addEventListener('click', e => {
+        const tip = e.target.closest('.info-tip');
+        document.querySelectorAll('.info-tip.open').forEach(t => { if (t !== tip) t.classList.remove('open'); });
+        if (tip) {
+            // Empêche le <label> englobant de transférer le clic à son champ
+            // (sinon ce clic « fantôme » referme aussitôt la bulle qu'on ouvre).
+            e.preventDefault();
+            e.stopPropagation();
+            tip.classList.toggle('open');
+        }
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') document.querySelectorAll('.info-tip.open').forEach(t => t.classList.remove('open'));
     });
 
     // Messages flottants : disparition automatique après 3 s

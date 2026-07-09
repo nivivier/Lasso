@@ -63,7 +63,7 @@ $isEdit = !empty($emp['id']);
     </label>
 
     <div class="form-actions">
-        <button type="submit">Enregistrer</button>
+        <button type="submit"><?= icon('save') ?> Enregistrer</button>
         <a class="btn ghost" href="?p=employes">Annuler</a>
     </div>
 </form>

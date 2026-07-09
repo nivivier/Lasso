@@ -202,6 +202,142 @@ function pct(float $v): string
     return nombre_court($v * 100, 4) . ' %';
 }
 
+// --- Couleurs : dérive la palette de l'appli depuis la couleur principale
+// choisie (Paramètres > Employeur) — un seul réglage, tout le reste suit. ---
+
+// Hex (#rrggbb, # optionnel) → [teinte 0-360, saturation 0-100, luminosité 0-100].
+// Hex invalide → repli sur la couleur principale par défaut de l'appli.
+function hex_vers_hsl(string $hex): array
+{
+    $hex = ltrim($hex, '#');
+    if (!preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+        $hex = '6d4ade';
+    }
+    $r = hexdec(substr($hex, 0, 2)) / 255;
+    $g = hexdec(substr($hex, 2, 2)) / 255;
+    $b = hexdec(substr($hex, 4, 2)) / 255;
+    $max = max($r, $g, $b);
+    $min = min($r, $g, $b);
+    $l = ($max + $min) / 2;
+    if ($max === $min) {
+        return [0.0, 0.0, round($l * 100, 1)];
+    }
+    $d = $max - $min;
+    $s = $l > 0.5 ? $d / (2 - $max - $min) : $d / ($max + $min);
+    $h = match ($max) {
+        $r      => fmod(($g - $b) / $d, 6),
+        $g      => ($b - $r) / $d + 2,
+        default => ($r - $g) / $d + 4,
+    };
+    $h *= 60;
+    if ($h < 0) {
+        $h += 360;
+    }
+    return [round($h, 1), round($s * 100, 1), round($l * 100, 1)];
+}
+
+// [teinte 0-360, saturation 0-100, luminosité 0-100] → hex (#rrggbb).
+function hsl_vers_hex(float $h, float $s, float $l): string
+{
+    $s = max(0.0, min(100.0, $s)) / 100;
+    $l = max(0.0, min(100.0, $l)) / 100;
+    $h = fmod($h, 360);
+    if ($h < 0) {
+        $h += 360;
+    }
+    $c = (1 - abs(2 * $l - 1)) * $s;
+    $x = $c * (1 - abs(fmod($h / 60, 2) - 1));
+    $m = $l - $c / 2;
+    [$r, $g, $b] = match (true) {
+        $h < 60  => [$c, $x, 0],
+        $h < 120 => [$x, $c, 0],
+        $h < 180 => [0, $c, $x],
+        $h < 240 => [0, $x, $c],
+        $h < 300 => [$x, 0, $c],
+        default  => [$c, 0, $x],
+    };
+    return sprintf('#%02x%02x%02x', round(($r + $m) * 255), round(($g + $m) * 255), round(($b + $m) * 255));
+}
+
+// Teintes dérivées de la couleur principale : boutons (primary/primary-d),
+// fond teinté (primary-tint), et teintes sombres pour les titres et la barre
+// latérale (brand/brand-2). Voir couleurs_css_vars() pour l'injection en CSS.
+function couleurs_derivees(string $hexPrincipale): array
+{
+    [$h, $s, $l] = hex_vers_hsl($hexPrincipale);
+    $primary = hsl_vers_hex($h, $s, $l);
+    $rgb     = sscanf($primary, '#%02x%02x%02x');
+    return [
+        'primary'      => $primary,
+        'primary_d'    => hsl_vers_hex($h, $s, max($l - 12, 15)),
+        'primary_tint' => hsl_vers_hex($h, min($s + 10, 90), 95),
+        'primary_rgb'  => implode(' ', $rgb),
+        'brand'        => hsl_vers_hex($h, min($s + 5, 70), 16),
+        'brand_2'      => hsl_vers_hex($h, min($s, 55), 26),
+    ];
+}
+
+// Bloc <style> qui redéfinit les variables CSS de couleur d'après la couleur
+// principale choisie — injecté dans <head> (views/layout.php), après app.css.
+function couleurs_css_vars(): string
+{
+    $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
+    return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
+        . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
+        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}</style>';
+}
+
+// Options d'unité de temps pour un <select> de ligne de prestation, encodées
+// "heures|libellé" (valeur) — partagées entre le formulaire de fiche de salaire
+// et l'ajout rapide de prestation depuis un événement.
+function options_unites(array $unites): string
+{
+    $opts = '';
+    foreach ($unites as $u) {
+        $val = $u['heures'] . '|' . $u['libelle'];
+        $opts .= '<option value="' . e($val) . '" data-h="' . e((string) $u['heures']) . '">'
+            . e($u['libelle']) . ' (' . nombre_court($u['heures']) . ' h)</option>';
+    }
+    return $opts;
+}
+
+// Options de taux horaire standard + « Autre » pour un <select> de ligne de prestation.
+function options_taux_horaires(array $tauxHoraires): string
+{
+    $opts = '';
+    foreach ($tauxHoraires as $th) {
+        $opts .= '<option value="' . e((string) $th['montant']) . '" data-rate="' . e((string) $th['montant']) . '">'
+            . e($th['libelle'] . ' — ' . chf((float) $th['montant']) . ' CHF/h') . '</option>';
+    }
+    $opts .= '<option value="autre">Autre…</option>';
+    return $opts;
+}
+
+// Options d'axe analytique pour un <select> de ligne de prestation (fiche de
+// salaire ou événement) — un « — » en tête pour l'absence d'axe.
+function options_axes(array $axes): string
+{
+    $opts = '<option value="">—</option>';
+    foreach ($axes as $ax) {
+        $label = ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
+        $opts .= '<option value="' . (int) $ax['id'] . '">' . e($label) . '</option>';
+    }
+    return $opts;
+}
+
+// Pré-sélectionne une <option> dans un bloc d'options déjà généré (unité, taux
+// horaire, axe…) — une ligne éditée en place est ainsi pré-remplie avec sa
+// valeur déjà enregistrée.
+function preselectionner_option(string $optionsHtml, string $value): string
+{
+    if ($value === '') {
+        return $optionsHtml;
+    }
+    return preg_replace_callback('/<option value="([^"]*)"/', function ($m) use ($value) {
+        return $m[0] . (html_entity_decode($m[1], ENT_QUOTES) === $value ? ' selected' : '');
+    }, $optionsHtml);
+}
+
 const MOIS_FR = [
     1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
     5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
@@ -503,9 +639,12 @@ function cout_emp_affiche(array $f): string
 function fiche_lignes_de(array $f): array
 {
     $stmt = db()->prepare(
-        'SELECT fl.*, a.code AS axe_code, a.libelle AS axe_libelle
+        'SELECT fl.*, a.code AS axe_code, a.libelle AS axe_libelle,
+                e.date AS evenement_date, s.nom AS evenement_spectacle_nom
          FROM fiche_lignes fl
          LEFT JOIN axes_analytiques a ON a.id = fl.axe_analytique_id
+         LEFT JOIN evenements e ON e.id = fl.evenement_id
+         LEFT JOIN spectacles s ON s.id = e.spectacle_id
          WHERE fl.fiche_id = ? ORDER BY fl.ordre, fl.id'
     );
     $stmt->execute([$f['id']]);
@@ -519,6 +658,9 @@ function fiche_lignes_de(array $f): array
             'axe_analytique_id' => null,
             'axe_code'      => null,
             'axe_libelle'   => null,
+            'evenement_id'  => null,
+            'evenement_date' => null,
+            'evenement_spectacle_nom' => null,
         ]];
     }
     return $rows;
@@ -572,10 +714,21 @@ function icon(string $name): string
         'music'     => '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
         'file-braces' => '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1"/><path d="M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1"/>',
         'calendar-sync' => '<path d="M11 10v4h4"/><path d="m11 14 1.535-1.605a5 5 0 0 1 8 1.5"/><path d="M16 2v4"/><path d="m21 18-1.535 1.605a5 5 0 0 1-8-1.5"/><path d="M21 22v-4h-4"/><path d="M21 8.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4.3"/><path d="M3 10h4"/><path d="M8 2v4"/>',
+        'info'      => '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
     ];
     $p = $paths[$name] ?? '';
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
         . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $p . '</svg>';
+}
+
+// Icône « i » avec infobulle : survol/focus sur ordinateur, tap sur mobile
+// (voir le script dans views/layout.php). Un seul endroit pour changer
+// l'icône/le comportement partout où une infobulle est utilisée sur le site.
+function info_tip(string $texte): string
+{
+    return '<span class="info-tip" tabindex="0" role="button" aria-label="Plus d\'informations">'
+        . icon('info')
+        . '<span class="info-tip-bulle" role="tooltip">' . e($texte) . '</span></span>';
 }
 
 // Nombre de fiches non payées (date_paiement vide) du mois courant ou avant.

@@ -70,14 +70,22 @@ function evenement_suisa_badge(array $ev): string
     return '<span class="badge ' . $classe . '">' . e(evenement_statut_suisa_libelle($statut)) . '</span>';
 }
 
+// Couleur associée au statut d'un événement (confirmé = ok/vert, option =
+// warn/jaune, annulé = muted/gris) — source unique réutilisée par le badge,
+// la puce et la date colorée du tableau de bord.
+function evenement_statut_couleur(array $ev): string
+{
+    return match ($ev['statut']) {
+        'confirme' => 'ok',
+        'annule'   => 'muted',
+        default    => 'warn', // option
+    };
+}
+
 function evenement_badge_statut(array $ev): string
 {
-    $classe = match ($ev['statut']) {
-        'confirme' => 'ok-badge',
-        'annule'   => 'muted-badge',
-        default    => 'warn-badge', // option
-    };
-    return '<span class="badge ' . $classe . '">' . e(evenement_statut_libelle((string) $ev['statut'])) . '</span>';
+    return '<span class="badge ' . evenement_statut_couleur($ev) . '-badge">'
+        . e(evenement_statut_libelle((string) $ev['statut'])) . '</span>';
 }
 
 function evenement_badge_visibilite(array $ev): string
@@ -134,6 +142,53 @@ function evenements_pays_disponibles(): array
     $v = trim((string) param('evenements_pays_disponibles', ''));
     $liste = $v !== '' ? array_map('trim', explode(',', $v)) : ['CH', 'FR', 'BE', 'CA'];
     return array_values(array_filter($liste, fn ($p) => $p !== ''));
+}
+
+// Terme utilisé dans l'interface pour désigner une série d'événements (le
+// regroupement sous un même nom, ex. une pièce jouée à plusieurs dates) —
+// paramétrable (onglet Événements), par défaut « Spectacles ». La table et les
+// routes internes restent nommées « spectacle(s) », seul l'affichage change.
+function evenements_terme_spectacle(bool $pluriel = true): string
+{
+    $terme = trim((string) param('evenements_terme_spectacle', ''));
+    if ($terme === '') {
+        $terme = 'Spectacles';
+    }
+    if ($pluriel) {
+        return $terme;
+    }
+    // Singulier dérivé (règle française courante : le pluriel ajoute un « s »).
+    $singulier = rtrim($terme, 's');
+    return $singulier !== '' ? $singulier : $terme;
+}
+
+// Émoji drapeau à partir d'un code pays ISO 3166-1 alpha-2 (ex. « CH » → 🇨🇭),
+// pour l'affichage du lieu d'un événement. Vide si le code n'a pas ce format.
+function pays_drapeau(string $code): string
+{
+    $code = strtoupper(trim($code));
+    if (!preg_match('/^[A-Z]{2}$/', $code)) {
+        return '';
+    }
+    $drapeau = '';
+    foreach (str_split($code) as $lettre) {
+        $drapeau .= mb_chr(127397 + ord($lettre), 'UTF-8');
+    }
+    return $drapeau;
+}
+
+// Les prochains événements (date ≥ aujourd'hui), pour le widget du tableau de
+// bord — tous statuts/visibilités confondus (vue interne, pas l'export public).
+function evenements_a_venir(int $limite = 5): array
+{
+    $stmt = db()->prepare(
+        "SELECT e.*, s.nom AS spectacle_nom FROM evenements e
+         LEFT JOIN spectacles s ON s.id = e.spectacle_id
+         WHERE e.date >= date('now') ORDER BY e.date ASC LIMIT ?"
+    );
+    $stmt->bindValue(1, $limite, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll();
 }
 
 // Nombre d'événements SUISA « manquants » (badge de menu).
@@ -383,6 +438,11 @@ function importer_evenements_csv(string $csv, bool $simule): array
          VALUES (?, ?, ?, 'non_repertorie', ?, ?, ?, ?, ?, ?, ?)"
     );
     $insSpec = db()->prepare('INSERT INTO spectacles (nom) VALUES (?)');
+    // Même liste blanche que le formulaire d'édition (route_evenement()) : un
+    // pays hors liste stocké tel quel serait silencieusement effacé à la
+    // première réouverture/sauvegarde de l'événement (le <select> ne peut pas
+    // le présélectionner) — on normalise donc dès l'import.
+    $paysDisponibles = evenements_pays_disponibles();
 
     $resultats = [];
     if (!$simule) {
@@ -397,6 +457,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
             $ville   = $col($r, 'ville');
             $region  = $col($r, 'region');
             $pays    = $col($r, 'pays');
+            $pays    = in_array($pays, $paysDisponibles, true) ? $pays : '';
             $lieu    = $col($r, 'lieu');
             $details = $col($r, 'details');
             $type    = $col($r, 'type');

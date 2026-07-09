@@ -1,10 +1,11 @@
 <?php /** @var ?array $spectacle */ /** @var ?string $err */
 $v = fn (string $k, $d = '') => e((string) ($spectacle[$k] ?? $d));
 $isEdit = !empty($spectacle['id']);
+$termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
 ?>
-<?= lien_retour('?p=spectacles', 'Spectacles') ?>
+<?= lien_retour('?p=spectacles', evenements_terme_spectacle()) ?>
 <div class="page-head">
-    <h1><?= $isEdit ? 'Modifier le spectacle' : 'Nouveau spectacle' ?></h1>
+    <h1><?= $isEdit ? 'Modifier le ' . e($termeSingulier) : 'Nouveau ' . e($termeSingulier) ?></h1>
 </div>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>

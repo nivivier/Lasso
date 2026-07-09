@@ -80,7 +80,7 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
         </p>
 
         <div class="form-actions">
-            <button type="submit">Enregistrer les taux <?= $annee ?></button>
+            <button type="submit"><?= icon('save') ?> Enregistrer les taux <?= $annee ?></button>
         </div>
     </form>
 </div>

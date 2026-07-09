@@ -17,3 +17,21 @@
 <?php if (module_actif('evenements')): ?>
     <?php require __DIR__ . '/_import_evenements_section.php'; ?>
 <?php endif; ?>
+
+<script>
+(function () {
+    // Ne pas revenir en haut de la page après Simuler/Importer (n'importe
+    // laquelle des sections) — on restaure la position de défilement au retour.
+    const scrollKey = 'import-scroll';
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+            sessionStorage.setItem(scrollKey, String(window.scrollY));
+        });
+    });
+    const savedScroll = sessionStorage.getItem(scrollKey);
+    if (savedScroll !== null) {
+        sessionStorage.removeItem(scrollKey);
+        window.addEventListener('load', () => window.scrollTo(0, parseInt(savedScroll, 10)));
+    }
+})();
+</script>

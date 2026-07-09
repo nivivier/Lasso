@@ -97,14 +97,13 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .info-tip .ico { width: 15px; height: 15px; }
 .info-tip:hover, .info-tip:focus { color: var(--primary); outline: none; }
 .info-tip-bulle {
-    position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 60;
-    display: none; width: max-content; max-width: 280px;
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 60;
+    display: none; width: max-content; max-width: min(280px, calc(100vw - 32px));
     background: var(--brand); color: #fff; font-size: 12.5px; font-weight: 400;
     text-transform: none; letter-spacing: normal; line-height: 1.5;
     padding: 10px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
 }
 .info-tip:hover .info-tip-bulle, .info-tip:focus .info-tip-bulle, .info-tip.open .info-tip-bulle { display: block; }
-@media (max-width: 480px) { .info-tip-bulle { max-width: calc(100vw - 48px); } }
 
 /* Réinitialisation de mot de passe : champ + bouton sur une ligne */
 .reset-form { display: flex; align-items: center; gap: 8px; }
@@ -380,6 +379,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .linked-add select { width: auto; flex: 1; }
 .linked-add .cat-search { flex: 1; }
 .linked-add button { flex: 0 0 auto; }
+.page-head .linked-add { margin-bottom: 0; }
 .facture-search .cat-search-input { font: inherit; font-size: 14.5px; color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
 .facture-search .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 .form-actions label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
@@ -425,10 +425,25 @@ button:active, .btn:active { transform: translateY(1px); }
     .ligne-row .l-unite, .ligne-row .l-qte { flex: 1 1 40%; }
 }
 
-/* Carte « Employés » de la fiche événement : tableau fusionné employé/fiche/prestation. */
+/* Carte « Employés » de la fiche événement : une colonne par donnée (fiche,
+   axe, durée, taux, total) — même ligne partagée via l'attribut form="…" sur
+   les champs, qui vivent dans des <td> séparés. Dropdowns étroits pour éviter
+   tout débordement horizontal une fois la ligne en mode édition. */
 .evenement-employes td { vertical-align: middle; }
-.evenement-ligne-row { margin-bottom: 0; flex-wrap: wrap; }
-.evenement-ligne-row .fiche-select { flex: 1 1 200px; width: auto; }
+.evenement-employes .epf-col-sm { font-size: 12.5px; }
+.evenement-employes .fiche-select-sm { width: 120px; }
+.evenement-employes .l-axe { width: 90px; }
+/* Le flex vit sur un <div> interne, jamais sur le <td> lui-même : sinon
+   display:flex écrase display:table-cell et casse vertical-align du <td>. */
+.evenement-employes .epf-duree { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 150px; }
+.evenement-employes .epf-duree select,
+.evenement-employes .epf-duree input { min-width: 0; } /* sinon un <input> flex ne rétrécit jamais sous sa taille de contenu */
+.evenement-employes .l-unite { width: 90px; }
+.evenement-employes .l-qte { width: 34px; flex: 0 0 34px; }
+.evenement-employes .l-taux-choix { width: 110px; }
+.evenement-employes .l-taux-manuel { width: 60px; }
+.epf-actions-cell { width: 1%; white-space: nowrap; }
+.epf-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
 
 /* =================== Messages =================== */
 .err { background: var(--danger-tint); color: var(--danger); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
@@ -445,6 +460,8 @@ button:active, .btn:active { transform: translateY(1px); }
 @media print { .flash { display: none; } }
 .muted { color: var(--muted); }
 .small { font-size: 12.8px; }
+.tiny { font-size: 10.5px; }
+.text-strike { text-decoration: line-through; }
 
 /* Utilitaires d'espacement / disposition (remplacent les styles inline) */
 .mt-0 { margin-top: 0; }
@@ -494,16 +511,20 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .list td.col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
-.badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; }
+.badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
 .badge.emise-badge { margin-left: 0; }
+/* Date colorée par statut, ex. widget « Prochains événements » du tableau de
+   bord — pas de colonne dédiée. */
+.statut-date-ok { color: var(--teal-d); font-weight: 600; }
+.statut-date-warn { color: var(--amber); font-weight: 600; }
+.statut-date-muted { color: var(--muted); font-weight: 600; }
 .col-icon { width: 36px; }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
 .list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
-.list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
    plusieurs lignes, pour éviter des colonnes larges sous un petit contenu.
    En-têtes : coupure aux espaces (jamais au milieu d'un mot) ; les nombres
@@ -671,6 +692,14 @@ body.print-page { background: #e9e9f2; }
 .logo-preview img { max-height: 40px; max-width: 200px; width: auto; display: block; }
 .logo-preview.clair { background: #fff; border: 1px solid var(--line); }
 .logo-preview.sombre { background: var(--brand); }
+/* Sélecteur de couleur principale (Paramètres > Employeur) : :not() en plus pour
+   égaler la spécificité de la règle générale .form input:not(...):not(...) et
+   ne pas hériter de sa largeur/padding pensés pour les champs texte. */
+.color-field { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.form input[type="color"]:not([type="checkbox"]):not([type="radio"]) {
+    width: 56px; height: 40px; padding: 4px; cursor: pointer; flex-shrink: 0;
+}
+.color-field code { font-size: 13px; color: var(--muted); }
 /* Repli texte quand aucun logo n'est configuré */
 .side-name { color: #fff; font-weight: 800; font-size: 19px; }
 .mbar-name { color: #fff; font-weight: 800; font-size: 17px; }
@@ -818,7 +847,7 @@ abbr {
 .compta-lettrage tr.ecr-ignore td { background: #fafafa; color: var(--muted); }
 .compta-lettrage tr.ecr-ignore:hover td { background: #f3f3f6; }
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
-.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
+.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */
 .compta-cr td { padding: 5px 12px; }

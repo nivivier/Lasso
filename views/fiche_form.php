@@ -14,11 +14,7 @@ $opts = options_unites($unites);
 $rateOpts = options_taux_horaires($tauxHoraires);
 
 // Options de l'axe analytique (select par ligne de prestation)
-$axeOpts = '<option value="">—</option>';
-foreach ($axes as $ax) {
-    $axeLabel = ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
-    $axeOpts .= '<option value="' . (int) $ax['id'] . '">' . e($axeLabel) . '</option>';
-}
+$axeOpts = options_axes($axes);
 
 // Options d'événement (select par ligne, affiché seulement pour les lignes déjà liées)
 $evLabel = function (array $ev): string {
@@ -50,18 +46,9 @@ if (!$lignesInit) {
     $lignesInit[] = ['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '', 'evenement' => ''];
 }
 
-$preselect = function (string $optionsHtml, string $value): string {
-    if ($value === '') {
-        return $optionsHtml;
-    }
-    return preg_replace_callback('/<option value="([^"]*)"/', function ($m) use ($value) {
-        return $m[0] . (html_entity_decode($m[1], ENT_QUOTES) === $value ? ' selected' : '');
-    }, $optionsHtml);
-};
-
-$renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeOpts, $evenements, $evenOpts) {
+$renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenements, $evenOpts) {
     $axeSel = $axes
-        ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . $preselect($axeOpts, (string) ($l['axe'] ?? '')) . '</select>'
+        ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . preselectionner_option($axeOpts, (string) ($l['axe'] ?? '')) . '</select>'
         : '';
     // Événement : select (visible + modifiable) si la ligne est déjà liée, sinon
     // champ caché pour préserver l'absence de lien et garder l'alignement des index.
@@ -69,13 +56,13 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $preselect, $axes, $axeO
     $evSel = '';
     if ($evenements) {
         $evSel = $evId !== ''
-            ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé" style="flex:0 0 200px;width:auto">' . $preselect($evenOpts, $evId) . '</select>'
+            ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé" style="flex:0 0 200px;width:auto">' . preselectionner_option($evenOpts, $evId) . '</select>'
             : '<input type="hidden" name="l_evenement[]" value="">';
     }
     return '<div class="ligne-row">'
-        . '<select name="l_unite[]" class="l-unite">' . $preselect($opts, $l['enc']) . '</select>'
+        . '<select name="l_unite[]" class="l-unite">' . preselectionner_option($opts, $l['enc']) . '</select>'
         . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" value="' . e($l['qte']) . '">'
-        . '<select name="l_taux_choix[]" class="l-taux-choix">' . $preselect($rateOpts, $l['choix']) . '</select>'
+        . '<select name="l_taux_choix[]" class="l-taux-choix">' . preselectionner_option($rateOpts, $l['choix']) . '</select>'
         . '<input name="l_taux_manuel[]" class="l-taux-manuel" type="text" inputmode="decimal" placeholder="CHF/h" value="' . e($l['manuel']) . '">'
         . $axeSel
         . $evSel

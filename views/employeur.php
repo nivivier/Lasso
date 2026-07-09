@@ -26,6 +26,20 @@
             </label>
         </div>
 
+        <h3 class="sub">Couleur principale</h3>
+        <p class="muted small">Utilisée pour les boutons, liens et accents dans toute l'application ;
+        les autres teintes (survols, fonds, en-têtes) sont calculées automatiquement à partir de celle-ci.</p>
+        <div class="color-field">
+            <input type="color" name="employeur_couleur_principale" id="couleur-principale"
+                   value="<?= e(param('employeur_couleur_principale', '#6d4ade')) ?>">
+            <code id="couleur-principale-hex"><?= e(param('employeur_couleur_principale', '#6d4ade')) ?></code>
+        </div>
+        <script>
+            document.getElementById('couleur-principale').addEventListener('input', function () {
+                document.getElementById('couleur-principale-hex').textContent = this.value;
+            });
+        </script>
+
         <h3 class="sub">Coordonnées</h3>
         <p class="muted small">Ces coordonnées seront affichées sur les fiches de salaire</p>
         <div class="grid3">
@@ -46,7 +60,7 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit">Enregistrer</button>
+            <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
 </div>
