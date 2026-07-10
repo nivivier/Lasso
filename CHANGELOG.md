@@ -7,6 +7,21 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.2.2] — 2026-07-10
+
+### Modifié
+- Tableau de bord : « Prochains événements » affiché en premier.
+- Menu mobile : le tiroir s'ouvre depuis la **droite** (au même endroit que le
+  bouton burger, la croix de fermeture reprend exactement sa position) ; le
+  logo n'est plus répété en haut du tiroir (déjà visible dans la barre du haut).
+- Dégradé de la page de connexion : la teinte centrale du dégradé venait d'une
+  couleur fixe non dérivée de la marque, remplacée par une couleur calculée
+  (cohérente avec n'importe quelle couleur principale choisie).
+- Boutons d'en-tête (Comptes bancaires, Lettrage automatique, Analyse,
+  Événements, Fiches, Employés…) : libellé masqué en mobile, icône seule,
+  alignement harmonisé avec le standard `page-head`.
+- Image de fond renommée `test.jpg` → `fond.jpg`.
+
 ## [1.2.1] — 2026-07-10
 
 ### Ajouté
