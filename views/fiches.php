@@ -20,8 +20,8 @@
         </form>
     </div>
     <div class="head-actions">
-        <a class="btn ghost btn-sm" href="?p=employes"><?= icon('users') ?> Employés</a>
-        <a class="btn" href="?p=fiche_new"><?= icon('file-plus') ?> Nouvelle fiche</a>
+        <a class="btn ghost btn-sm" href="?p=employes" title="Employés"><?= icon('users') ?> <span class="lbl">Employés</span></a>
+        <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
     </div>
 
     <form method="get" class="filters">
