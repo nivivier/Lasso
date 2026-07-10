@@ -75,6 +75,14 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 <div class="page-head page-head-sub">
     <?= lien_retour('?p=compta_ecritures', 'Écritures') ?>
     <h1>Lettrage automatique</h1>
+    <div class="head-actions">
+        <form method="post" action="?p=compta_ecritures">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="section" value="apply_rules">
+            <button type="submit" class="btn ghost btn-sm btn-compact"><?= icon('tag') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
+        </form>
+        <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?><span class="lbl"> Nouvelle règle</span></button>
+    </div>
 </div>
 <?php if ($saved): ?><p class="ok flash">Règles mises à jour.</p><?php endif; ?>
 <?php if ($test !== null): ?>
@@ -111,17 +119,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 </template>
 
 <div class="card form">
-    <div class="card-head">
-        <p class="muted small mb-0">Chaque règle associe automatiquement une catégorie aux écritures qui satisfont toutes ses conditions (ET) ou l'une d'elles (OU). Évaluées par <strong>priorité croissante</strong> (première correspondance gagnante) ; à priorité égale, une règle ciblant un compte précis l'emporte sur une règle globale. Insensible à la casse et aux accents. <strong>Touche</strong> = écritures non lettrées concernées.</p>
-        <div class="inline-actions">
-            <form method="post" action="?p=compta_ecritures">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="section" value="apply_rules">
-                <button type="submit" class="btn ghost"><?= icon('tag') ?> Appliquer les règles</button>
-            </form>
-            <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?> Nouvelle règle</button>
-        </div>
-    </div>
 
     <!-- Nouvelle règle -->
     <div id="new-rule-card" class="regle-card regle-new <?= $ouvrirNew ? '' : 'hidden' ?>">
