@@ -818,7 +818,7 @@ abbr {
     .head-actions .lbl { display: none; }
     .head-actions .btn { padding: 9px 11px; gap: 0; }
     .head-actions .mail-sent { gap: 0; }
-    .btn.btn-compact { font-size: 12px; line-height: 1.15; gap: 5px; padding: 7px 10px; }
+    .btn.btn-compact { font-size: 12px; line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; }
     /* Sidebar pleine largeur : datepicker compact, pas extensible */
     .fiche-aside .paiement-date { flex: 0 0 auto; width: auto; }
     .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
