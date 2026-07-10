@@ -167,6 +167,7 @@ body.auth-bg {
 .page-head h1 { font-size: 32px; margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
 .page-head-sub { flex-direction: column; align-items: flex-start; gap: 4px; }
 .head-actions { display: flex; gap: 12px; align-items: center; }
+.lbl-m { display: none; } /* texte mobile uniquement (inverse de .lbl) */
 .head-actions label.inline { font-size: 13px; font-weight: 500; color: var(--muted); gap: 6px; }
 .label-hint { font-weight: 400; }
 .input-code { max-width: 120px; }
@@ -816,6 +817,7 @@ abbr {
     .facture-aside { order: 0; }
     /* Boutons d'action : icônes seules par défaut ; .btn-compact garde un texte court */
     .head-actions .lbl { display: none; }
+    .lbl-m { display: inline; }
     .head-actions .btn { padding: 9px 11px; gap: 0; }
     .head-actions .mail-sent { gap: 0; }
     .btn.btn-compact { font-size: 12px; line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; text-align: left; }

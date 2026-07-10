@@ -16,12 +16,12 @@
         </form>
     </div>
     <div class="head-actions">
-        <a href="?p=compta_axes" class="btn ghost btn-sm"><?= icon('settings') ?> Gérer les axes</a>
+        <a href="?p=compta_axes" class="btn ghost btn-sm btn-compact"><?= icon('settings') ?> <span><span class="lbl">Gérer les axes</span><span class="lbl-m">Axe</span></span></a>
         <?php if ($axes): ?>
-        <a href="?p=compta_suggestion_ventilation&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('wand') ?> Ventilation charges</a>
+        <a href="?p=compta_suggestion_ventilation&annee=<?= (int) $annee ?>" class="btn ghost btn-sm btn-compact"><?= icon('wand') ?> <span><span class="lbl">Ventilation charges</span><span class="lbl-m">Charges</span></span></a>
         <?php endif; ?>
         <?php if ($ventilation): ?>
-        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
+        <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
         <?php endif; ?>
     </div>
 </div>
