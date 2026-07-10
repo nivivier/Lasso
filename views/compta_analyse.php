@@ -1,6 +1,6 @@
 <?php
 /** @var int $annee */ /** @var array $annees */ /** @var array $axes */
-/** @var array $ventilation */ /** @var array $detailParAxe */
+/** @var array $ventilation */ /** @var array $detailParAxe */ /** @var array $nonVentile */
 ?>
 <div class="page-head">
     <div class="page-head-title">
@@ -94,11 +94,15 @@
                 <td class="num"><?= chf($totChg) ?></td>
                 <td class="num"><?= chf($totProd + $totChg) ?></td>
             </tr>
+            <?php $nvRes = $nonVentile['resultat']; ?>
+            <tr class="cr-compte row-link small muted" data-href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">
+                <td>Écritures non ventilées</td>
+                <td></td>
+                <td class="num <?= $nonVentile['produits'] > 0 ? 'montant-pos' : '' ?>"><?= $nonVentile['produits'] != 0 ? chf($nonVentile['produits']) : '<span class="muted">—</span>' ?></td>
+                <td class="num <?= $nonVentile['charges'] < 0 ? 'montant-neg' : '' ?>"><?= $nonVentile['charges'] != 0 ? chf($nonVentile['charges']) : '<span class="muted">—</span>' ?></td>
+                <td class="num <?= $nvRes > 0 ? 'montant-pos' : ($nvRes < 0 ? 'montant-neg' : '') ?>"><?= $nvRes != 0 ? chf($nvRes) : '<span class="muted">—</span>' ?></td>
+            </tr>
         </tfoot>
     </table>
     </div>
-    <p class="muted small compta-cr-foot">
-        Les écritures non ventilées ne sont pas incluses.
-        <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">Voir les écritures lettrées sans axe.</a>
-    </p>
 <?php endif; ?>

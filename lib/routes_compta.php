@@ -1018,6 +1018,20 @@ function compta_analyse_data(?int $annee): array
         $detailParAxe[$aid] = $catMap;
     }
 
+    // Totaux des écritures lettrées sans axe.
+    $sqlNv = 'SELECT e.plan_compte_id, SUM(e.montant) s FROM ecritures e
+              WHERE e.plan_compte_id IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)'
+           . ($annee ? ' AND substr(e.date_op,1,4) = ?' : '')
+           . ' GROUP BY e.plan_compte_id';
+    $stmtNv = db()->prepare($sqlNv);
+    $stmtNv->execute($annee ? [(string) $annee] : []);
+    $nvProd = 0.0; $nvChg = 0.0;
+    foreach ($stmtNv as $r) {
+        if (($plan[(int) $r['plan_compte_id']]['sens'] ?? 'charge') === 'produit') $nvProd += (float) $r['s'];
+        else $nvChg += (float) $r['s'];
+    }
+
     return [
         'annee'        => $annee,
         'annees'       => $annees,
@@ -1025,6 +1039,7 @@ function compta_analyse_data(?int $annee): array
         'ventilation'  => $ventilation,
         'detailParAxe' => $detailParAxe,
         'nomEmployeur' => (string) param('employeur_nom'),
+        'nonVentile'   => ['produits' => $nvProd, 'charges' => $nvChg, 'resultat' => $nvProd + $nvChg],
     ];
 }
 
