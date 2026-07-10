@@ -95,7 +95,7 @@
                 <td class="num"><?= chf($totProd + $totChg) ?></td>
             </tr>
             <?php $nvRes = $nonVentile['resultat']; ?>
-            <tr class="cr-compte row-link small muted" data-href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">
+            <tr class="cr-note row-link" data-href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">
                 <td>Écritures non ventilées</td>
                 <td></td>
                 <td class="num <?= $nonVentile['produits'] > 0 ? 'montant-pos' : '' ?>"><?= $nonVentile['produits'] != 0 ? chf($nonVentile['produits']) : '<span class="muted">—</span>' ?></td>

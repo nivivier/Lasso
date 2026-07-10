@@ -903,6 +903,7 @@ abbr {
 .compta-cr .cr-resultat td { font-weight: 800; color: var(--primary); border-top: 2px solid var(--primary); font-size: 15px; }
 .compta-cr .cr-resultat td.col-prec { color: var(--muted); border-top-color: var(--line); }
 .list tr.cr-total td { font-weight: 700; background: var(--surface); }
+.compta-cr tfoot .cr-note td { font-weight: 400; font-size: 12px; color: var(--muted); background: transparent; border-top: none; }
 
 /* Plan comptable hiérarchique */
 .plan-table td { vertical-align: middle; padding: 2px 10px; }
