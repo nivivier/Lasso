@@ -6,7 +6,9 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
 <?= lien_retour('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
     <h1><?= e($termePluriel) ?></h1>
-    <a class="btn" href="?p=spectacle"><?= icon('file-plus') ?> Nouveau <?= e($termeSingulier) ?></a>
+    <div class="head-actions">
+	    <a class="btn" href="?p=spectacle"><?= icon('file-plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></a>
+	</div>
 </div>
 
 <?php if (!$spectacles): ?>

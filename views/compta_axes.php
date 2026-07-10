@@ -1,17 +1,17 @@
 <?php
 /** @var array $axes */ /** @var bool $saved */
 ?>
-<div class="page-head page-head-sub">
-    <?= lien_retour('?p=compta_analyse', 'Analyse') ?>
-    <h1>Axes analytiques</h1>
+<div class="page-head">
+    <div>
+        <?= lien_retour('?p=compta_analyse', 'Analyse') ?>
+        <h1>Axes analytiques</h1>
+    </div>
+    <div class="head-actions">
+        <button type="button" id="btn-new-axe" class="btn"><?= icon('plus') ?><span class="lbl"> Ajouter un axe</span></button>
+    </div>
 </div>
 <?php if ($saved): ?><p class="ok flash">Axe enregistré.</p><?php endif; ?>
 
-
-    <div class="card-head">
-        <p class="muted small mb-0">Un axe analytique permet de ventiler les écritures selon un critère transversal (projet, secteur, activité…). Associez un axe à chaque écriture pour obtenir le résultat par axe dans les comptes annuels.</p>
-        <button type="button" id="btn-new-axe" class="btn btn-sm"><?= icon('plus') ?> Ajouter un axe</button>
-    </div>
     <table class="list mt-10">
         <thead><tr><th class="col-icon"></th><th>Axe analytique</th><th></th></tr></thead>
         <tbody>

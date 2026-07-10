@@ -33,7 +33,7 @@ $termeSingulier = evenements_terme_spectacle(false);
     </div>
     <div class="head-actions">
         <a class="btn ghost btn-sm" href="?p=spectacles"><?= icon('music') ?> <span class="lbl"><?= e($termePluriel) ?></span></a>
-        <a class="btn" href="?p=evenement"><?= icon('file-plus') ?> Nouvel événement</a>
+        <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
     </div>
 
     <form method="get" class="filters">

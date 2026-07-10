@@ -15,7 +15,7 @@
 <?php if ($flagErr === 'used'): ?><p class="err flash">Suppression impossible : des écritures sont rattachées à ce compte.</p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<div class="card form">
+<div class="table-scroll">
     <table class="list mt-10">
         <thead><tr><th>Compte bancaire</th><th></th></tr></thead>
         <tbody>

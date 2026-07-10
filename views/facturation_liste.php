@@ -19,7 +19,7 @@
     <div class="head-actions">
         <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
         <a class="btn ghost btn-sm" href="?p=facturation_debiteurs"><?= icon('users') ?> <span class="lbl">Débiteurs</span></a>
-        <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?> Nouvelle facture</a>
+        <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
     </div>
 
     <form method="get" class="filters">

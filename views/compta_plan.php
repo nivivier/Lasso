@@ -38,8 +38,6 @@ $flashErr = [
 </form>
 
 <div class="card form" id="plan-card">
-    <p class="muted small">Les catégories classent chaque écriture. Une catégorie peut en contenir d'autres : elle devient alors un <strong>regroupement</strong> (sous-total dans le compte de résultat) et n'est plus assignable. Seules les catégories <strong>sans sous-catégorie</strong> reçoivent les écritures. Réorganisez par <strong>glisser-déposer</strong> (poignée ⠿) : la position <strong>verticale</strong> choisit l'emplacement, le décalage <strong>horizontal</strong> le niveau — tirez vers la <strong>gauche</strong> pour remonter d'un niveau (jusqu'à catégorie principale), vers la <strong>droite</strong> pour ranger dans la catégorie du dessus. Le libellé s'enregistre automatiquement.</p>
-
     <?php foreach (['produit' => 'Produits (recettes)', 'charge' => 'Charges (dépenses)'] as $sens => $titre):
         $rows = array_values(array_filter($lignes, fn($l) => $l['sens'] === $sens)); ?>
     <div class="section-head <?= $sens === 'produit' ? 'mt-0' : '' ?>">

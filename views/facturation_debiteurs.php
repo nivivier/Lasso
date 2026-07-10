@@ -2,7 +2,9 @@
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à ce débiteur.</p><?php endif; ?>
 <div class="page-head">
     <h1>Débiteurs</h1>
-    <a class="btn" href="?p=debiteur"><?= icon('user-plus') ?> Nouveau débiteur</a>
+    <div class="head-actions">
+	    <a class="btn" href="?p=debiteur"><?= icon('user-plus') ?><span class="lbl"> Nouveau débiteur</span></a>
+	</div>
 </div>
 
 <?php if (!$debiteurs): ?>
