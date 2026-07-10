@@ -72,9 +72,11 @@ $condRow = function (array $cond): string {
 $condVide  = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
 $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new']);
 ?>
-<div class="page-head page-head-sub">
-    <?= lien_retour('?p=compta_ecritures', 'Écritures') ?>
-    <h1>Lettrage automatique</h1>
+<div class="page-head">
+    <div>
+        <?= lien_retour('?p=compta_ecritures', 'Écritures') ?>
+        <h1>Lettrage automatique</h1>
+    </div>
     <div class="head-actions">
         <form method="post" action="?p=compta_ecritures">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
