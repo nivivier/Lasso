@@ -72,9 +72,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </form>
     </div>
     <div class="head-actions">
-        <a href="?p=compta_regles" class="btn ghost btn-sm"><?= icon('settings') ?> Lettrage automatique</a>
-        <button type="button" id="btn-new-ecr" class="btn ghost btn-sm"><?= icon('plus') ?> Écriture manuelle</button>
-        <a href="?p=compta_import" class="btn"><?= icon('upload') ?> Importer</a>
+        <a href="?p=compta_regles" class="btn ghost btn-sm btn-compact"><?= icon('settings') ?> Lettrage auto<span class="lbl">matique</span></a>
+        <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
+        <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
     </div>
 
     <form method="get" class="filters">
