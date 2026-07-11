@@ -775,6 +775,9 @@ abbr {
 @media (max-width: 800px) {
     .ligne-row { flex-wrap: wrap; }
     .ligne-row .l-unite, .ligne-row .l-qte { flex: 1 1 40%; }
+    /* Tableau de bord, widget « Prochains événements » : la date prend moins
+       de place pour laisser le reste de la ligne respirer. */
+    .statut-date-ok, .statut-date-warn, .statut-date-muted { font-size: 12.8px; }
     /* Logo déjà affiché dans .mobile-bar : pas besoin de le répéter en haut du
        tiroir, seul le bouton de fermeture reste — au même endroit que le burger
        (même padding que .mobile-bar, même taille d'icône). */

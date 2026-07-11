@@ -412,38 +412,14 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
     }
 
     // Recherche de facture à lier (même widget que le rapprochement d'écriture/catégorie).
-    function initCatSearch(wrap) {
-        const input  = wrap.querySelector('.cat-search-input');
-        const hidden = wrap.querySelector('.cat-search-val');
-        const list   = wrap.querySelector('.cat-search-list');
-        const items  = Array.from(list.querySelectorAll('li'));
-        const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-
-        function filter(q) {
-            const nq = norm(q);
-            items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); });
-        }
-
-        input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
-        input.addEventListener('input', () => { filter(input.value); list.hidden = false; hidden.value = ''; });
-        input.addEventListener('blur', () => {
-            setTimeout(() => {
-                list.hidden = true;
-                const cur = items.find(li => li.dataset.val === hidden.value);
-                input.value = cur ? cur.textContent : '';
-            }, 150);
+    document.querySelectorAll('.facture-search').forEach(wrap => {
+        const input = wrap.querySelector('.cat-search-input');
+        lassoInitCatSearch(wrap, {
+            showPlaceholderText: true,
+            clearHiddenOnInput: true,
+            onSelect: () => input.setCustomValidity(''),
         });
-        items.forEach(li => {
-            li.addEventListener('mousedown', e => {
-                e.preventDefault();
-                hidden.value = li.dataset.val;
-                input.value = li.textContent;
-                list.hidden = true;
-                input.setCustomValidity('');
-            });
-        });
-    }
-    document.querySelectorAll('.facture-search').forEach(initCatSearch);
+    });
     document.querySelectorAll('.facture-search').forEach(wrap => {
         wrap.closest('form').addEventListener('submit', e => {
             const hidden = wrap.querySelector('.cat-search-val');

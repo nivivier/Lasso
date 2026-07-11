@@ -177,8 +177,7 @@ function route_evenements_liste(): void
                 db()->prepare("UPDATE evenements SET region = ? WHERE id IN ($in)")
                     ->execute(array_merge([$region], $ids));
             } elseif ($section === 'pays') {
-                $pays = (string) ($_POST['bulk_pays'] ?? '');
-                $pays = in_array($pays, evenements_pays_disponibles(), true) ? $pays : '';
+                $pays = valeur_autorisee($_POST['bulk_pays'] ?? '', evenements_pays_disponibles());
                 db()->prepare("UPDATE evenements SET pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([$pays], $ids));
             } elseif ($section === 'suisa_applicable') {
@@ -186,8 +185,7 @@ function route_evenements_liste(): void
                 db()->prepare("UPDATE evenements SET suisa_applicable = ? WHERE id IN ($in)")
                     ->execute(array_merge([$applicable], $ids));
             } elseif ($section === 'suisa_envoi') {
-                $envoyeA = (string) ($_POST['bulk_suisa_envoye_a'] ?? '');
-                $envoyeA = in_array($envoyeA, EVENEMENTS_SUISA_ENVOYE_A, true) ? $envoyeA : '';
+                $envoyeA = valeur_autorisee($_POST['bulk_suisa_envoye_a'] ?? '', EVENEMENTS_SUISA_ENVOYE_A);
                 $envoyeLe = trim((string) ($_POST['bulk_suisa_envoye_le'] ?? ''));
                 db()->prepare("UPDATE evenements SET suisa_envoye_a = ?, suisa_envoye_le = ? WHERE id IN ($in)")
                     ->execute(array_merge([$envoyeA, $envoyeLe], $ids));
@@ -340,12 +338,12 @@ function route_evenement(): void
     // Carte « Informations » uniquement — SUISA (route_evenement_suisa) et les
     // liens employés/fiches/factures (routes dédiées) se sauvegardent séparément.
     $date = trim($_POST['date'] ?? '');
-    $statut = in_array($_POST['statut'] ?? '', EVENEMENTS_STATUTS, true) ? $_POST['statut'] : 'option';
-    $visibilite = in_array($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, true) ? $_POST['visibilite'] : 'non_repertorie';
+    $statut = valeur_autorisee($_POST['statut'] ?? '', EVENEMENTS_STATUTS, 'option');
+    $visibilite = valeur_autorisee($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, 'non_repertorie');
     $spectacleId = ($_POST['spectacle_id'] ?? '') !== '' ? (int) $_POST['spectacle_id'] : null;
     $ville = trim($_POST['ville'] ?? '');
     $region = trim($_POST['region'] ?? '');
-    $pays = in_array($_POST['pays'] ?? '', evenements_pays_disponibles(), true) ? $_POST['pays'] : '';
+    $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
     $salle = trim($_POST['salle'] ?? '');
     $festival = trim($_POST['festival'] ?? '');
     $lienInfos = trim($_POST['lien_infos'] ?? '');
@@ -407,7 +405,7 @@ function route_evenement_suisa(): void
         redirect('evenements_liste');
     }
     $suisaApplicable = isset($_POST['suisa_applicable']) ? 1 : 0;
-    $suisaEnvoyeA = in_array($_POST['suisa_envoye_a'] ?? '', EVENEMENTS_SUISA_ENVOYE_A, true) ? $_POST['suisa_envoye_a'] : '';
+    $suisaEnvoyeA = valeur_autorisee($_POST['suisa_envoye_a'] ?? '', EVENEMENTS_SUISA_ENVOYE_A);
     $suisaEnvoyeLe = trim($_POST['suisa_envoye_le'] ?? '');
     $suisaDecompteLe = trim($_POST['suisa_decompte_le'] ?? '');
     db()->prepare('UPDATE evenements SET suisa_applicable=?, suisa_envoye_a=?, suisa_envoye_le=?, suisa_decompte_le=? WHERE id=?')

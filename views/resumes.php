@@ -10,7 +10,7 @@ $dash_svg = function (array $series): string {
     $n      = count($annees);
 
     // Dimensions SVG
-    $W = 600; $H = 312;
+    $W = 600; $H = 390;
     $ml = 62; $mr = 16; $mt = 16; $mb = 42;
     $pw = $W - $ml - $mr;
     $ph = $H - $mt - $mb;

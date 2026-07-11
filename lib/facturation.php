@@ -127,10 +127,17 @@ function nb_factures_en_retard(): int
 }
 
 // Badge de statut affiché dans les listes (statut effectif, « en retard » inclus).
+// Payée : la date de paiement plutôt qu'un texte fixe (même principe que
+// badge_paiement() pour les fiches de salaire).
 function facturation_badge(array $facture): string
 {
+    if (facturation_statut_effectif($facture) === 'payee') {
+        $payeeLe = trim((string) ($facture['payee_le'] ?? ''));
+        return $payeeLe !== ''
+            ? '<span class="badge ok-badge">' . e(date('d.m.Y', strtotime($payeeLe))) . '</span>'
+            : '<span class="badge ok-badge">Payée</span>';
+    }
     return match (facturation_statut_effectif($facture)) {
-        'payee'     => '<span class="badge ok-badge">Payée</span>',
         'en_retard' => '<span class="badge warn-badge">En retard</span>',
         'annulee'   => '<span class="badge muted-badge">Annulée</span>',
         'emise'     => '<span class="badge emise-badge">Émise</span>',

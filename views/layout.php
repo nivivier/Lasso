@@ -10,6 +10,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
+    <script src="assets/app.js?v=<?= @filemtime(__DIR__ . '/../assets/app.js') ?: '1' ?>"></script>
     <?= couleurs_css_vars() ?>
 </head>
 <body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">

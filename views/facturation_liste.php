@@ -47,7 +47,7 @@
     <thead><tr>
         <th>Numéro</th><th>Débiteur</th><th>Émission</th><th>Échéance</th>
         <?php if ($avecEvenements): ?><th>Événement</th><?php endif; ?>
-        <th class="num">Montant</th><th>Statut</th>
+        <th class="num">Montant</th><th>Paiement</th>
     </tr></thead>
     <tbody>
     <?php
@@ -84,13 +84,12 @@
     const search = document.getElementById('facturation-search');
     const count  = document.getElementById('facturation-search-count');
     const rows   = Array.from(document.querySelectorAll('.list-wide tbody tr'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     if (search) {
         const apply = () => {
-            const q = norm(search.value.trim());
+            const q = lassoNorm(search.value.trim());
             let visibles = 0;
             rows.forEach(r => {
-                const ok = q === '' || norm(r.textContent).includes(q);
+                const ok = q === '' || lassoNorm(r.textContent).includes(q);
                 r.style.display = ok ? '' : 'none';
                 if (ok) visibles++;
             });

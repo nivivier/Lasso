@@ -405,18 +405,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     const search = document.getElementById('compta-search');
     const count  = document.getElementById('search-count');
     const rows   = Array.from(document.querySelectorAll('.compta-lettrage tbody tr'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const texteLigne = r => {
         const date = r.querySelector('td.nowrap')?.textContent || '';
         const cpt  = r.querySelector('.compte-cell')?.textContent || '';
         const txt  = r.querySelector('.texte-cell')?.getAttribute('title') || r.querySelector('.texte-cell')?.textContent || '';
         const mt   = r.querySelector('td.num')?.textContent || '';
         const cat  = r.querySelector('.row-cat-input')?.value || '';
-        return norm(date + ' ' + cpt + ' ' + txt + ' ' + mt + ' ' + cat);
+        return lassoNorm(date + ' ' + cpt + ' ' + txt + ' ' + mt + ' ' + cat);
     };
     if (search) {
         const apply = () => {
-            const q = norm(search.value.trim());
+            const q = lassoNorm(search.value.trim());
             let visibles = 0;
             rows.forEach(r => {
                 const ok = q === '' || texteLigne(r).includes(q);
@@ -442,50 +441,16 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     });
 })();
 
-// Cat-search — formulaire écriture manuelle
+// Cat-search — formulaire écriture manuelle (texte déjà pré-rempli côté serveur)
 (function () {
     const wrap = document.querySelector('.form-cat-search');
-    if (!wrap) return;
-    const input    = wrap.querySelector('.cat-search-input');
-    const hidden   = wrap.querySelector('.cat-search-val');
-    const list     = wrap.querySelector('.cat-search-list');
-    const items    = Array.from(list.querySelectorAll('li:not(.cat-search-group):not(.cat-search-sens)'));
-    const groups   = Array.from(list.querySelectorAll('.cat-search-group'));
-    const sensHdrs = Array.from(list.querySelectorAll('.cat-search-sens'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    function filterGroups() {
-        groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
-        sensHdrs.forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
-    }
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); filterGroups(); }
-    input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
-    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
-    input.addEventListener('blur',  () => { setTimeout(() => { list.hidden = true; const cur = items.find(li => li.dataset.val === hidden.value); input.value = cur && cur.dataset.val !== '' ? cur.textContent : ''; }, 150); });
-    items.forEach(li => { li.addEventListener('mousedown', e => { e.preventDefault(); hidden.value = li.dataset.val; input.value = li.dataset.val !== '' ? li.textContent : ''; list.hidden = true; }); });
+    if (wrap) lassoInitCatSearch(wrap, { groupsFilter: true });
 })();
 
 // Dropdown cherchable — bulk-lettrage (dropdown propre à la barre)
 (function () {
     const wrap = document.querySelector('.bulk-cat-search');
-    if (!wrap) return;
-    const input    = wrap.querySelector('.cat-search-input');
-    const hidden   = wrap.querySelector('.cat-search-val');
-    const list     = wrap.querySelector('.cat-search-list');
-    const items    = Array.from(list.querySelectorAll('li:not(.cat-search-group):not(.cat-search-sens)'));
-    const groups   = Array.from(list.querySelectorAll('.cat-search-group'));
-    const sensHdrs = Array.from(list.querySelectorAll('.cat-search-sens'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const initItem = items.find(li => li.dataset.val === hidden.value);
-    if (initItem) input.value = initItem.textContent;
-    function filterGroups() {
-        groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
-        sensHdrs.forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
-    }
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); filterGroups(); }
-    input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
-    input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
-    input.addEventListener('blur',  () => { setTimeout(() => { list.hidden = true; const cur = items.find(li => li.dataset.val === hidden.value); input.value = cur ? cur.textContent : ''; }, 150); });
-    items.forEach(li => { li.addEventListener('mousedown', e => { e.preventDefault(); hidden.value = li.dataset.val; input.value = li.textContent; list.hidden = true; }); });
+    if (wrap) lassoInitCatSearch(wrap, { groupsFilter: true, hydrateInitial: true, showPlaceholderText: true });
 })();
 
 // Dropdown partagé — lettrage individuel par ligne
@@ -495,14 +460,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     const items    = Array.from(list.querySelectorAll('li:not(.cat-search-group):not(.cat-search-sens)'));
     const groups   = Array.from(list.querySelectorAll('.cat-search-group'));
     const sensHdrs = Array.from(list.querySelectorAll('.cat-search-sens'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     let activeInput = null, activeHidden = null, activeForm = null, activePrefix = null;
 
     function filterGroups() {
         groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
         sensHdrs.forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
     }
-    function filter(q) { const nq = norm(q); items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); }); filterGroups(); }
+    function filter(q) { const nq = lassoNorm(q); items.forEach(li => { li.hidden = nq !== '' && !lassoNorm(li.textContent).includes(nq); }); filterGroups(); }
     function position(input) {
         const r = input.getBoundingClientRect();
         list.style.top    = (r.bottom + window.scrollY + 2) + 'px';

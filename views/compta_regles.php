@@ -291,42 +291,14 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
     });
 
     // Catégorie cherchable.
-    function initCatSearch(wrap) {
-        const input  = wrap.querySelector('.cat-search-input');
-        const hidden = wrap.querySelector('.cat-search-val');
-        const list   = wrap.querySelector('.cat-search-list');
-        const items  = Array.from(list.querySelectorAll('li'));
-
-        const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-
-        const initItem = items.find(li => li.dataset.val === hidden.value);
-        if (initItem) input.value = initItem.textContent;
-
-        function filter(q) {
-            const nq = norm(q);
-            items.forEach(li => { li.hidden = nq !== '' && !norm(li.textContent).includes(nq); });
-        }
-
-        input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
-        input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
-        input.addEventListener('blur',  () => {
-            setTimeout(() => {
-                list.hidden = true;
-                const cur = items.find(li => li.dataset.val === hidden.value);
-                input.value = cur ? cur.textContent : '';
-            }, 150);
+    document.querySelectorAll('.cat-search').forEach(wrap => {
+        const input = wrap.querySelector('.cat-search-input');
+        lassoInitCatSearch(wrap, {
+            hydrateInitial: true,
+            showPlaceholderText: true,
+            onSelect: () => input.setCustomValidity(''),
         });
-        items.forEach(li => {
-            li.addEventListener('mousedown', e => {
-                e.preventDefault();
-                hidden.value = li.dataset.val;
-                input.value  = li.textContent;
-                list.hidden  = true;
-                input.setCustomValidity('');
-            });
-        });
-    }
-    document.querySelectorAll('.cat-search').forEach(initCatSearch);
+    });
 
     // Validation catégorie avant envoi.
     document.querySelectorAll('.regle-card form').forEach(form => {

@@ -252,11 +252,10 @@ $termeSingulier = evenements_terme_spectacle(false);
     const count   = document.getElementById('evenements-search-count');
     const allRows = Array.from(document.querySelectorAll('.evenements-liste tbody tr'));
     const rows    = allRows.filter(r => !r.classList.contains('mois-sep'));
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const texteLigne = r => norm((r.children[2]?.textContent || '') + ' ' + (r.children[3]?.textContent || ''));
+    const texteLigne = r => lassoNorm((r.children[2]?.textContent || '') + ' ' + (r.children[3]?.textContent || ''));
     if (search) {
         const apply = () => {
-            const q = norm(search.value.trim());
+            const q = lassoNorm(search.value.trim());
             let visibles = 0;
             rows.forEach(r => {
                 const ok = q === '' || texteLigne(r).includes(q);

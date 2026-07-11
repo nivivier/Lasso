@@ -321,6 +321,15 @@ function options_taux_horaires(array $tauxHoraires): string
     return $opts;
 }
 
+// Valide une valeur contre une liste blanche, avec repli sur une valeur par
+// défaut si absente/invalide — un seul point de contrôle plutôt que de
+// recopier le in_array(...) ? ... : défaut à chaque nouveau champ validé
+// (notamment le dispatcher de modification groupée des événements).
+function valeur_autorisee(?string $valeur, array $whitelist, string $defaut = ''): string
+{
+    return in_array($valeur, $whitelist, true) ? $valeur : $defaut;
+}
+
 // Options d'axe analytique pour un <select> de ligne de prestation (fiche de
 // salaire ou événement) — un « — » en tête pour l'absence d'axe.
 function options_axes(array $axes): string

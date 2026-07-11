@@ -194,6 +194,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Modifier</a>
 </div>
 
+<div class="table-scroll">
 <table class="list compta-lettrage">
     <thead>
         <tr>
@@ -218,4 +219,5 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     <?php endforeach; ?>
     </tbody>
 </table>
+</div>
 <?php endif; ?>
