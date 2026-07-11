@@ -7,6 +7,25 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.2.3] — 2026-07-11
+
+### Corrigé
+- Comptabilité analytique par axe : le tableau des écritures ne défilait pas
+  horizontalement sur petit écran.
+
+### Modifié
+- Facturation : colonne **Statut** renommée **Paiement**, le tag « Payée »
+  affiche désormais la date de paiement plutôt qu'un texte fixe.
+- Tableau de bord : graphique Évolution financière agrandi de 25%
+  supplémentaires ; dates du widget « Prochains événements » plus petites en
+  mode mobile.
+- Nettoyage interne : nouveau `assets/app.js` (chargé une fois depuis
+  `layout.php`) — `lassoNorm()` remplace 8 définitions dupliquées de la
+  recherche insensible aux accents/casse ; `lassoInitCatSearch()` unifie 4
+  des 5 widgets de dropdown catégorie/axe cherchable. Helper
+  `valeur_autorisee()` centralisant la validation whitelist du dispatcher de
+  modification groupée des événements (6 occurrences remplacées).
+
 ## [1.2.2] — 2026-07-10
 
 ### Modifié
