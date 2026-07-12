@@ -2,7 +2,7 @@
 $v = fn(string $k, $d = '') => e((string) ($debiteur[$k] ?? $d));
 $isEdit = !empty($debiteur['id']);
 ?>
-<?= lien_retour('?p=facturation_debiteurs', 'Débiteurs') ?>
+<?= lien_retour_contextuel('?p=facturation_debiteurs', 'Débiteurs') ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier le débiteur' : 'Nouveau débiteur' ?></h1>
 </div>

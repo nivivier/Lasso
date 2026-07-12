@@ -1,5 +1,5 @@
 <?php /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $actionUrl */ ?>
-<?php if ($okAnnule): ?><p class="ok flash">Modification annulée.</p><?php endif; ?>
+<?php if ($okAnnule): ?><p class="warn flash">Modification annulée.</p><?php endif; ?>
 <?php if ($bulkCount): ?>
 <div class="bulk-undo-flash" id="bulk-undo-flash">
     <span><?= icon('check') ?> <?= (int) $bulkCount ?> ligne(s) modifiée(s).</span>

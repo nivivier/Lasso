@@ -672,6 +672,8 @@ function route_compta_ecritures(): void
             $ids   = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
             $axeId = (int) ($_POST['axe_analytique_id'] ?? 0);
             if ($ids) {
+                unset($_SESSION['bulk_undo']); // évite de reprendre par erreur un état d'une requête précédente
+                bulk_undo_memoriser_ventilations($ids, 'compta_ecritures', $retour);
                 $in = implode(',', array_fill(0, count($ids), '?'));
                 db()->prepare("DELETE FROM ecritures_ventilations WHERE ecriture_id IN ($in)")->execute($ids);
                 if ($axeId) {
@@ -684,6 +686,9 @@ function route_compta_ecritures(): void
                         if ($ecr) $stmtIns->execute([$eid, $axeId, (float) $ecr['montant']]);
                     }
                     db()->commit();
+                }
+                if (isset($_SESSION['bulk_undo'])) {
+                    $retour['bulk'] = count($ids);
                 }
             }
             redirect('compta_ecritures', $retour);

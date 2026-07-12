@@ -82,7 +82,7 @@ $deductions = [
         </div>
         <div>
             <h3>Employé</h3>
-            <p><strong><?php if (empty($impression) && !empty($f['employe_id'])): ?><a href="?p=employe_voir&id=<?= (int) $f['employe_id'] ?>"><?= e($f['employe_nom']) ?></a><?php else: ?><?= e($f['employe_nom']) ?><?php endif; ?></strong><br>
+            <p><strong><?php if (empty($impression) && !empty($f['employe_id'])): ?><a href="<?= e(url_avec_retour('?p=employe_voir&id=' . (int) $f['employe_id'], 'fiche', (int) $f['id'])) ?>"><?= e($f['employe_nom']) ?></a><?php else: ?><?= e($f['employe_nom']) ?><?php endif; ?></strong><br>
             <?= e($f['employe_rue']) ?><br>
             <?= e($f['employe_npa']) ?><br>
             <?php if ($f['employe_avs']): ?>N° AVS : <?= e($f['employe_avs']) ?><?php endif; ?></p>

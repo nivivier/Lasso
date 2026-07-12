@@ -566,7 +566,8 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
 // pour permettre une annulation en un clic (lien « Annuler » affiché 10 s + raccourci
 // Ctrl-Z/Cmd+Z). Portée volontairement limitée aux modifications de colonnes (UPDATE) —
 // les suppressions en masse ne sont pas couvertes (état bien plus lourd à restaurer
-// fidèlement : lignes filles, contraintes, etc.).
+// fidèlement : lignes filles, contraintes, etc.). Pour un remplacement de lignes filles
+// (ex. ventilations), voir bulk_undo_memoriser_ventilations().
 function bulk_undo_memoriser(string $table, array $ids, array $colonnes, string $route, array $retour = []): void
 {
     if (!$ids) {
@@ -582,14 +583,49 @@ function bulk_undo_memoriser(string $table, array $ids, array $colonnes, string 
     ];
 }
 
-// Restaure l'état mémorisé par bulk_undo_memoriser(), si présent et pas expiré.
-// Renvoie [route, retour] pour la redirection vers la page d'origine, ou null si
-// rien à annuler (déjà utilisé, expiré, ou aucune action en attente).
+// Variante de bulk_undo_memoriser() pour l'affectation d'axe analytique en masse : cette
+// action remplace les ventilations existantes (DELETE puis INSERT) au lieu de modifier des
+// colonnes, donc rien à restaurer via un simple UPDATE — on mémorise les lignes
+// ecriture_id/axe_id/montant à la place (éventuellement aucune, si les écritures n'avaient
+// pas encore de ventilation).
+function bulk_undo_memoriser_ventilations(array $ecritureIds, string $route, array $retour = []): void
+{
+    if (!$ecritureIds) {
+        return;
+    }
+    $in   = implode(',', array_fill(0, count($ecritureIds), '?'));
+    $stmt = db()->prepare("SELECT ecriture_id, axe_id, montant FROM ecritures_ventilations WHERE ecriture_id IN ($in)");
+    $stmt->execute($ecritureIds);
+    $_SESSION['bulk_undo'] = [
+        'kind' => 'ventilations', 'ecriture_ids' => $ecritureIds, 'rows' => $stmt->fetchAll(),
+        'route' => $route, 'retour' => $retour, 'expire' => time() + 300,
+    ];
+}
+
+// Restaure l'état mémorisé par bulk_undo_memoriser()/bulk_undo_memoriser_ventilations(),
+// si présent et pas expiré. Renvoie [route, retour] pour la redirection vers la page
+// d'origine, ou null si rien à annuler (déjà utilisé, expiré, ou aucune action en attente).
 function bulk_undo_appliquer(): ?array
 {
     $u = $_SESSION['bulk_undo'] ?? null;
     unset($_SESSION['bulk_undo']);
-    if (!$u || $u['expire'] < time() || !$u['rows']) {
+    if (!$u || $u['expire'] < time()) {
+        return null;
+    }
+    if (($u['kind'] ?? null) === 'ventilations') {
+        $ids = $u['ecriture_ids'];
+        if (!$ids) {
+            return null;
+        }
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        db()->prepare("DELETE FROM ecritures_ventilations WHERE ecriture_id IN ($in)")->execute($ids);
+        $ins = db()->prepare('INSERT INTO ecritures_ventilations (ecriture_id, axe_id, montant) VALUES (?, ?, ?)');
+        foreach ($u['rows'] as $row) {
+            $ins->execute([$row['ecriture_id'], $row['axe_id'], $row['montant']]);
+        }
+        return ['route' => $u['route'], 'retour' => $u['retour']];
+    }
+    if (!$u['rows']) {
         return null;
     }
     $sets = implode(',', array_map(fn(string $c) => "\"$c\" = ?", $u['colonnes']));

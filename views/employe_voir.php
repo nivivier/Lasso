@@ -1,5 +1,5 @@
 <?php /** @var array $emp */ /** @var array $fiches */ ?>
-<?= lien_retour('?p=employes', 'Employés') ?>
+<?= lien_retour_contextuel('?p=employes', 'Employés') ?>
 <?php if (($_GET['err'] ?? '') === 'fiches'): ?><p class="err">Impossible de supprimer : cet employé a des fiches de salaire.</p><?php endif; ?>
 <div class="page-head">
     <h1><?= e($emp['prenom'] . ' ' . $emp['nom']) ?>

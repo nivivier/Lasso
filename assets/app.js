@@ -4,20 +4,23 @@
 
 // Bandeau « X ligne(s) modifiée(s) — Annuler » affiché après une modification
 // groupée (voir bulk_undo_memoriser()/bulk_undo_appliquer() dans lib/helpers.php,
-// inséré par views/_bulk_undo_flash.php). Se masque après 10 s ; Ctrl-Z/Cmd+Z
-// déclenche la même annulation tant qu'il reste visible.
-(function () {
+// inséré par views/_bulk_undo_flash.php). Le bandeau se masque après 10 s, mais
+// Ctrl-Z/Cmd+Z reste actif au-delà (jusqu'à l'expiration côté serveur, 5 min,
+// ou tant que la page n'a pas été rechargée) : l'utilisateur ne devrait pas
+// perdre la possibilité d'annuler juste parce qu'il a mis quelques secondes à
+// réagir. Ce script est chargé dans <head>, avant que le bandeau n'existe
+// dans le DOM : on attend le chargement de la page avant de le chercher.
+window.addEventListener('DOMContentLoaded', () => {
     const flash = document.getElementById('bulk-undo-flash');
     if (!flash) return;
-    const timer = setTimeout(() => { flash.hidden = true; }, 10000);
+    setTimeout(() => { flash.hidden = true; }, 10000);
     document.addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !flash.hidden) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
             e.preventDefault();
-            clearTimeout(timer);
             flash.querySelector('form').requestSubmit();
         }
     });
-})();
+});
 
 // Normalise une chaîne pour une recherche insensible à la casse et aux accents.
 function lassoNorm(s) {

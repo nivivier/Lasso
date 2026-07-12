@@ -97,7 +97,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         </div>
         <div>
             <h3>Débiteur</h3>
-            <p><strong><a href="?p=debiteur&id=<?= (int) $f['debiteur_id'] ?>"><?= e($f['debiteur_nom']) ?></a></strong><br>
+            <p><strong><a href="<?= e(url_avec_retour('?p=debiteur&id=' . (int) $f['debiteur_id'], 'facture', (int) $f['id'])) ?>"><?= e($f['debiteur_nom']) ?></a></strong><br>
                 <?= e($f['adresse_rue']) ?><?= $f['adresse_rue'] ? '<br>' : '' ?>
                 <?= e(trim($f['adresse_npa'] . ' ' . $f['adresse_localite'])) ?></p>
         </div>

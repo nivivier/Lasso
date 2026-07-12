@@ -474,14 +474,17 @@ button:active, .btn:active { transform: translateY(1px); }
 .epf-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
 
 /* =================== Messages =================== */
-.err { background: var(--danger-tint); color: var(--danger); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
-.ok  { background: var(--teal-tint); color: var(--ok); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
+.err  { background: var(--danger-tint); color: var(--danger); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
+.ok   { background: var(--teal-tint); color: var(--ok); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
+.warn { background: var(--amber-tint); color: var(--amber); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 14px; }
 
-/* Toast flottant (messages de succès) — disparaît après 3 s via JS */
+/* Toast flottant (messages de succès/erreur/avertissement) — disparaît après
+   3 s via JS. Bordure en currentColor : reprend la couleur de .ok/.err/.warn
+   combinée sur le même élément, plutôt qu'une couleur fixe. */
 .flash {
     position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
     z-index: 200; margin: 0; box-shadow: var(--shadow);
-    border: 1px solid var(--teal); animation: flash-in .22s ease-out;
+    border: 1px solid currentColor; animation: flash-in .22s ease-out;
 }
 .flash.flash-out { opacity: 0; transition: opacity .4s ease; }
 @keyframes flash-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
