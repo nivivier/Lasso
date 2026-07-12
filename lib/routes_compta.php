@@ -435,48 +435,99 @@ function route_compta_comptes(): void
 // Ne fait ni redirect ni render — juste ['ok'|'err', message]. Partagée entre
 // route_compta_import() (Comptabilité → Importer) et route_import_ecritures()
 // (Paramètres → Importer), pour ne pas dupliquer cette logique.
-function compta_traiter_fichier_importe(?array $fichier): array
+// Détecte le format d'un export bancaire (extension + contenu, l'un ou
+// l'autre pouvant manquer/mentir) et le parse en conséquence — CSV PostFinance
+// ou XML camt.053, même format de sortie dans les deux cas (voir parse_postfinance_csv()).
+function compta_parser_export_bancaire(string $contenu, string $nomFichier): array
 {
-    if (!$fichier || ($fichier['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        return ['err', 'Aucun fichier reçu ou téléversement échoué.'];
-    }
-    if (($fichier['size'] ?? 0) > 5 * 1024 * 1024) {
-        return ['err', 'Fichier trop volumineux (max 5 Mo).'];
-    }
-    $contenu = file_get_contents($fichier['tmp_name']);
-    $parse = parse_postfinance_csv($contenu);
-    $iban = $parse['iban'];
-    $compte = null;
-    $compteCree = false;
-    if ($iban !== '') {
-        $stmt = db()->prepare('SELECT * FROM comptes_bancaires WHERE iban = ?');
-        $stmt->execute([$iban]);
-        $compte = $stmt->fetch();
-        // Compte inconnu → création automatique à partir de l'IBAN vérifié.
-        if (!$compte) {
-            $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM comptes_bancaires')->fetchColumn();
-            db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, ordre) VALUES (?, ?, ?)')
-                ->execute(['Compte PostFinance ' . substr($iban, -4), $iban, $ordre]);
-            $stmt->execute([$iban]);
-            $compte = $stmt->fetch();
-            $compteCree = true;
-        }
-    }
-    if (!$compte) {
-        return ['err', "IBAN introuvable dans le fichier : ce n'est peut-être pas un export PostFinance."];
+    // La détection par contenu ne regarde que le tout début du fichier — un
+    // CSV PostFinance dont une ligne de texte contiendrait par hasard la
+    // sous-chaîne « <Document » (ex. un mémo de virement) ne doit pas être
+    // mal aiguillé vers le parseur XML.
+    $debut = ltrim(substr($contenu, 0, 500));
+    $estXml = str_ends_with(strtolower($nomFichier), '.xml')
+        || str_starts_with($debut, '<?xml')
+        || str_starts_with($debut, '<Document');
+    return $estXml ? parse_camt053($contenu) : parse_postfinance_csv($contenu);
+}
+
+// Simule ou applique un import d'écritures déjà lu en mémoire. En simulation,
+// aucune écriture en base (lecture seule via compta_previsualiser_import()) —
+// permet de nommer un compte inconnu avant sa création réelle.
+function compta_traiter_fichier_importe(string $contenu, string $nomFichier, bool $simule, string $nomCompteChoisi = ''): array
+{
+    $vide = ['err' => null, 'simule' => $simule, 'preview' => null, 'ok' => null];
+    $parse = compta_parser_export_bancaire($contenu, $nomFichier);
+    if ($parse['iban'] === '') {
+        return ['err' => "IBAN introuvable dans le fichier : format non reconnu (CSV PostFinance ou XML camt.053 attendu)."] + $vide;
     }
     if (!$parse['lignes']) {
-        return ['err', 'Aucune écriture trouvée dans ce fichier.'];
+        return ['err' => 'Aucune écriture trouvée dans ce fichier.'] + $vide;
     }
-    [$ins, $dup, $importId] = compta_inserer_ecritures($compte, $parse, $fichier['name']);
+
+    if ($simule) {
+        return ['preview' => compta_previsualiser_import($parse)] + $vide;
+    }
+
+    $stmt = db()->prepare('SELECT * FROM comptes_bancaires WHERE iban = ?');
+    $stmt->execute([$parse['iban']]);
+    $compte = $stmt->fetch();
+    $compteCree = false;
+    // Compte inconnu → création à partir du nom choisi (ou d'un nom par défaut).
+    if (!$compte) {
+        $nom = trim($nomCompteChoisi) !== '' ? trim($nomCompteChoisi) : ('Compte PostFinance ' . substr($parse['iban'], -4));
+        $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM comptes_bancaires')->fetchColumn();
+        db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, ordre) VALUES (?, ?, ?)')
+            ->execute([$nom, $parse['iban'], $ordre]);
+        $stmt->execute([$parse['iban']]);
+        $compte = $stmt->fetch();
+        $compteCree = true;
+    }
+    [$ins, $dup, $importId] = compta_inserer_ecritures($compte, $parse, $nomFichier);
     compta_lettrer_par_regles((int) $compte['id'], null);
     if (module_actif('facturation')) {
         facturation_suggerer_rapprochements(db(), $importId);
     }
     $prefixe = $compteCree
-        ? "Compte « " . $compte['libelle'] . " » créé (IBAN $iban). "
+        ? "Compte « " . $compte['libelle'] . " » créé (IBAN " . $parse['iban'] . "). "
         : "Import « " . $compte['libelle'] . " » : ";
-    return ['ok', $prefixe . "$ins écriture(s) ajoutée(s), $dup doublon(s) ignoré(s)."];
+    return ['ok' => $prefixe . "$ins écriture(s) ajoutée(s), $dup doublon(s) ignoré(s)."] + $vide;
+}
+
+// Résout la simulation ou l'application d'un import d'écritures depuis
+// $_POST/$_FILES : fichier fraîchement téléversé, ou contenu mémorisé en
+// session après une simulation (bouton « Importer réellement », sans
+// re-téléversement). Partagé par route_compta_import() et route_import_ecritures().
+function compta_import_ecritures_requete(): array
+{
+    $simule = !isset($_POST['appliquer']);
+    $vide = ['err' => null, 'simule' => $simule, 'preview' => null, 'ok' => null];
+
+    $contenu = null;
+    $nomFichier = '';
+    $up = $_FILES['fichier'] ?? null;
+    if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        if (($up['size'] ?? 0) > 5 * 1024 * 1024) {
+            return ['err' => 'Fichier trop volumineux (max 5 Mo).'] + $vide;
+        }
+        $contenu = (string) file_get_contents($up['tmp_name']);
+        $nomFichier = (string) $up['name'];
+    } elseif (!empty($_POST['depuis_session']) && !empty($_SESSION['import_ecritures_csv'])) {
+        $contenu = (string) $_SESSION['import_ecritures_csv'];
+        $nomFichier = (string) ($_SESSION['import_ecritures_nom'] ?? 'import');
+    } else {
+        return ['err' => 'Veuillez choisir un fichier à importer (CSV PostFinance ou XML camt.053).'] + $vide;
+    }
+
+    $res = compta_traiter_fichier_importe($contenu, $nomFichier, $simule, trim($_POST['nom_compte'] ?? ''));
+
+    if ($simule && $res['err'] === null) {
+        $_SESSION['import_ecritures_csv'] = $contenu;
+        $_SESSION['import_ecritures_nom'] = $nomFichier;
+    } else {
+        unset($_SESSION['import_ecritures_csv'], $_SESSION['import_ecritures_nom']);
+    }
+    return $res;
 }
 
 // --- Import d'un export PostFinance -----------------------------------------
@@ -494,7 +545,7 @@ function route_compta_import(): void
                 redirect('compta_import', ['ok' => 'del']);
             }
         }
-        $msg = compta_traiter_fichier_importe($_FILES['fichier'] ?? null);
+        $msg = compta_import_ecritures_requete();
     }
     render('compta_import', [
         'comptes' => compta_comptes(),
@@ -517,7 +568,7 @@ function route_import_ecritures(): void
     $msg = null;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
-        $msg = compta_traiter_fichier_importe($_FILES['fichier'] ?? null);
+        $msg = compta_import_ecritures_requete();
     }
     render('import_fiches', [
         'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
@@ -544,6 +595,10 @@ function route_compta_ecritures(): void
         check_csrf();
         $section = $_POST['section'] ?? '';
         $retour  = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter];
+        if ($section === 'bulk_undo') {
+            $r = bulk_undo_appliquer();
+            redirect($r['route'] ?? 'compta_ecritures', ($r['retour'] ?? $retour) + ($r ? ['ok' => 'annule'] : []));
+        }
         if ($section === 'create' || $section === 'update') {
             $cid     = (int) ($_POST['compte_bancaire_id'] ?? 0);
             $date_op = trim($_POST['date_op'] ?? '');
@@ -584,23 +639,30 @@ function route_compta_ecritures(): void
             // Affectation manuelle (une ou plusieurs écritures) à une catégorie.
             $ids = array_map('intval', (array) ($_POST['ids'] ?? []));
             $planId = $_POST['plan_compte_id'] ?? '';
-            $ids = array_filter($ids);
+            $ids = array_values(array_filter($ids));
             if ($ids) {
+                unset($_SESSION['bulk_undo']); // évite de reprendre par erreur un état d'une requête précédente
                 if ($planId === '' || $planId === '0') {
                     // Délettrage : remet à NULL (annule aussi un « Ne pas lettrer »).
                     $in = implode(',', array_fill(0, count($ids), '?'));
+                    bulk_undo_memoriser('ecritures', $ids, ['plan_compte_id', 'origine_lettrage'], 'compta_ecritures', $retour);
                     db()->prepare("UPDATE ecritures SET plan_compte_id = NULL, origine_lettrage = '' WHERE id IN ($in)")
-                        ->execute(array_values($ids));
+                        ->execute($ids);
                 } elseif ($planId === 'ignore') {
                     // Marquage « Ne pas lettrer » : sans catégorie, mais exclue des non-lettrées.
                     $in = implode(',', array_fill(0, count($ids), '?'));
+                    bulk_undo_memoriser('ecritures', $ids, ['plan_compte_id', 'origine_lettrage'], 'compta_ecritures', $retour);
                     db()->prepare("UPDATE ecritures SET plan_compte_id = NULL, origine_lettrage = 'ignore' WHERE id IN ($in)")
-                        ->execute(array_values($ids));
+                        ->execute($ids);
                 } elseif (plan_est_feuille((int) $planId, compta_plan_map())) {
                     // Seules les catégories feuilles (sans enfant) sont assignables.
                     $in = implode(',', array_fill(0, count($ids), '?'));
+                    bulk_undo_memoriser('ecritures', $ids, ['plan_compte_id', 'origine_lettrage'], 'compta_ecritures', $retour);
                     $stmt = db()->prepare("UPDATE ecritures SET plan_compte_id = ?, origine_lettrage = 'manuel' WHERE id IN ($in)");
-                    $stmt->execute(array_merge([(int) $planId], array_values($ids)));
+                    $stmt->execute(array_merge([(int) $planId], $ids));
+                }
+                if (isset($_SESSION['bulk_undo'])) {
+                    $retour['bulk'] = count($ids);
                 }
             }
             redirect('compta_ecritures', $retour);
@@ -714,6 +776,8 @@ function route_compta_ecritures(): void
         'rules'              => $_GET['rules'] ?? null,
         'editEcr'            => $editEcr,
         'openNew'         => isset($_GET['new']),
+        'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
+        'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
     ], 'Comptabilité — Lettrage');
 }
 
@@ -1529,6 +1593,50 @@ function route_compta_ecritures_csv(): void
     }
     fclose($out);
     exit;
+}
+
+// Export d'un relevé ISO 20022 camt.053 (XML) pour UN compte bancaire — le
+// format porte une seule IBAN par relevé, contrairement à l'export CSV
+// (route_compta_ecritures_csv()) qui combine tous les comptes.
+function route_compta_ecritures_camt053(): void
+{
+    require_login();
+    $compteId = (int) ($_GET['compte'] ?? 0);
+    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
+
+    $stmt = db()->prepare('SELECT * FROM comptes_bancaires WHERE id = ?');
+    $stmt->execute([$compteId]);
+    $compte = $stmt->fetch();
+    if (!$compte || trim((string) $compte['iban']) === '') {
+        redirect('export', ['err' => 'camt_compte']);
+    }
+
+    if ($annee === 0) {
+        $soldeOuverture = (float) $compte['solde_initial'];
+        $rows = db()->prepare('SELECT date_op, texte, montant FROM ecritures WHERE compte_bancaire_id = ? ORDER BY date_op ASC, id ASC');
+        $rows->execute([$compteId]);
+    } else {
+        $stmtAvant = db()->prepare('SELECT COALESCE(SUM(montant),0) FROM ecritures WHERE compte_bancaire_id = ? AND substr(date_op,1,4) < ?');
+        $stmtAvant->execute([$compteId, (string) $annee]);
+        $soldeOuverture = (float) $compte['solde_initial'] + (float) $stmtAvant->fetchColumn();
+
+        $rows = db()->prepare('SELECT date_op, texte, montant FROM ecritures WHERE compte_bancaire_id = ? AND substr(date_op,1,4) = ? ORDER BY date_op ASC, id ASC');
+        $rows->execute([$compteId, (string) $annee]);
+    }
+    $lignes = $rows->fetchAll();
+
+    $dateDebut = $lignes ? $lignes[0]['date_op'] : ($annee ? $annee . '-01-01' : date('Y-m-d'));
+    $dateFin   = $lignes ? end($lignes)['date_op'] : ($annee ? $annee . '-12-31' : date('Y-m-d'));
+
+    $xml = compta_generer_camt053($compte, $lignes, $dateDebut, $dateFin, $soldeOuverture);
+
+    $anneeLabel = $annee === 0 ? 'toutes-annees' : (string) $annee;
+    $filename = 'camt053-' . preg_replace('/[^a-z0-9]/i', '-', $compte['libelle']) . '-' . $anneeLabel . '.xml';
+
+    header('Content-Type: application/xml; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+    echo $xml;
 }
 
 // Sauvegarde AJAX des ventilations d'une écriture (remplace DELETE + INSERT).

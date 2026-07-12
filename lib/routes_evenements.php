@@ -152,47 +152,66 @@ function route_evenements_liste(): void
     // le lettrage/l'axe analytique en masse sur les écritures comptables).
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'bulk_undo') {
+            $r = bulk_undo_appliquer();
+            redirect($r['route'] ?? 'evenements_liste', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
+        }
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if ($ids) {
             $in = implode(',', array_fill(0, count($ids), '?'));
-            $section = $_POST['section'] ?? '';
+            // Modifications simples (UPDATE) : état « avant » mémorisé pour permettre
+            // l'annulation en un clic (voir bulk_undo_memoriser()). La suppression n'est
+            // pas couverte (état bien plus lourd à restaurer fidèlement).
+            unset($_SESSION['bulk_undo']); // évite de reprendre par erreur un état d'une requête précédente
             if ($section === 'delete') {
                 // FK ON DELETE CASCADE/SET NULL (evenement_employes, evenement_fiches,
                 // factures, fiche_lignes) : pas de nettoyage manuel nécessaire.
                 db()->prepare("DELETE FROM evenements WHERE id IN ($in)")->execute($ids);
             } elseif ($section === 'spectacle') {
                 $spId = ($_POST['bulk_spectacle_id'] ?? '') !== '' ? (int) $_POST['bulk_spectacle_id'] : null;
-                if ($spId === null || spectacle_existe($spId)) {
+                if ($spId === null || spectacle_assignable($spId)) {
+                    bulk_undo_memoriser('evenements', $ids, ['spectacle_id'], 'evenements_liste', $retourFiltres);
                     db()->prepare("UPDATE evenements SET spectacle_id = ? WHERE id IN ($in)")
                         ->execute(array_merge([$spId], $ids));
                 }
             } elseif ($section === 'visibilite' && in_array($_POST['bulk_visibilite'] ?? '', EVENEMENTS_VISIBILITES, true)) {
+                bulk_undo_memoriser('evenements', $ids, ['visibilite'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET visibilite = ? WHERE id IN ($in)")
                     ->execute(array_merge([$_POST['bulk_visibilite']], $ids));
             } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', EVENEMENTS_STATUTS, true)) {
+                bulk_undo_memoriser('evenements', $ids, ['statut'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET statut = ? WHERE id IN ($in)")
                     ->execute(array_merge([$_POST['bulk_statut']], $ids));
             } elseif ($section === 'region') {
                 $region = trim((string) ($_POST['bulk_region'] ?? ''));
+                bulk_undo_memoriser('evenements', $ids, ['region'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET region = ? WHERE id IN ($in)")
                     ->execute(array_merge([$region], $ids));
             } elseif ($section === 'pays') {
                 $pays = valeur_autorisee($_POST['bulk_pays'] ?? '', evenements_pays_disponibles());
+                bulk_undo_memoriser('evenements', $ids, ['pays'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([$pays], $ids));
             } elseif ($section === 'suisa_applicable') {
                 $applicable = ($_POST['bulk_suisa_applicable'] ?? '') === '1' ? 1 : 0;
+                bulk_undo_memoriser('evenements', $ids, ['suisa_applicable'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_applicable = ? WHERE id IN ($in)")
                     ->execute(array_merge([$applicable], $ids));
             } elseif ($section === 'suisa_envoi') {
                 $envoyeA = valeur_autorisee($_POST['bulk_suisa_envoye_a'] ?? '', EVENEMENTS_SUISA_ENVOYE_A);
                 $envoyeLe = trim((string) ($_POST['bulk_suisa_envoye_le'] ?? ''));
+                bulk_undo_memoriser('evenements', $ids, ['suisa_envoye_a', 'suisa_envoye_le'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_envoye_a = ?, suisa_envoye_le = ? WHERE id IN ($in)")
                     ->execute(array_merge([$envoyeA, $envoyeLe], $ids));
             } elseif ($section === 'suisa_decompte') {
                 $decompteLe = trim((string) ($_POST['bulk_suisa_decompte_le'] ?? ''));
+                bulk_undo_memoriser('evenements', $ids, ['suisa_decompte_le'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_decompte_le = ? WHERE id IN ($in)")
                     ->execute(array_merge([$decompteLe], $ids));
+            }
+            if ($section !== '' && $section !== 'delete' && isset($_SESSION['bulk_undo'])) {
+                $retourFiltres['bulk'] = count($ids);
             }
         }
         redirect('evenements_liste', $retourFiltres);
@@ -241,7 +260,8 @@ function route_evenements_liste(): void
     $stmt->execute($params);
     $evenements = $stmt->fetchAll();
 
-    $spectacles = spectacles_pour_selection();
+    $spectacleMap = spectacle_map();
+    $spectacles = spectacles_pour_selection($spectacleMap);
 
     render('evenements_liste', [
         'evenements'      => $evenements,
@@ -252,9 +272,12 @@ function route_evenements_liste(): void
         'statut'          => $statut,
         'visibilite'      => $visibilite,
         'spectacles'      => $spectacles,
+        'spectacleMap'    => $spectacleMap,
         'paysDisponibles' => evenements_pays_disponibles(),
         'pays'            => $pays,
         'salaries'        => $salaries,
+        'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
+        'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
     ], 'Événements');
 }
 
@@ -267,7 +290,8 @@ function route_evenement(): void
         redirect('evenements_liste');
     }
 
-    $spectacles = spectacles_pour_selection();
+    $spectacleMap = spectacle_map();
+    $spectacles = spectacles_pour_selection($spectacleMap);
     $employesTous = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
 
     // Sépare « déjà liés » / « disponibles » pour le picker (select + bouton
@@ -308,12 +332,13 @@ function route_evenement(): void
         : [];
 
     $renderForm = function (?string $err) use (
-        $evenement, $id, $spectacles, $employesLies, $employesDispo, $prestations, $fichesParEmploye, $axes
+        $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye, $axes
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
             'id'             => $id,
             'spectacles'     => $spectacles,
+            'spectacleMap'   => $spectacleMap,
             'employesLies'   => $employesLies,
             'employesDispo'  => $employesDispo,
             'prestations'    => $prestations,
@@ -350,10 +375,14 @@ function route_evenement(): void
     $lienTexte = trim($_POST['lien_texte'] ?? '');
     $remarques = trim($_POST['remarques'] ?? '');
 
+    // Un spectacle-parent (groupe/artiste) n'est jamais assignable — sauf s'il
+    // s'agit du spectacle déjà en place (édition d'un autre champ sans y toucher :
+    // le <select> le réaffiche tel quel, marqué « non réassignable »).
+    $spectacleInchange = $evenement && $spectacleId === (int) $evenement['spectacle_id'];
     $err = null;
     if (!date_valide($date)) {
         $err = 'La date est invalide.';
-    } elseif ($spectacleId !== null && !spectacle_existe($spectacleId)) {
+    } elseif ($spectacleId !== null && !$spectacleInchange && !spectacle_assignable($spectacleId)) {
         $err = 'Spectacle invalide.';
     } elseif ($lienInfos !== '' && !preg_match('#^https?://#i', $lienInfos)) {
         $err = "Le lien doit être une URL valide (commençant par http:// ou https://).";
@@ -671,14 +700,115 @@ function route_facture_evenement_lier(): void
 }
 
 // --- Spectacles ---------------------------------------------------------------
+// Modification groupée en arbre (renommage/ajout/déplacement/glisser-déposer),
+// même esprit que le plan comptable (route_compta_plan()) — voir spectacle_map()/
+// spectacle_descendants() dans lib/evenements.php. Un spectacle-parent (nœud
+// non-feuille) représente un artiste ; « trier par artiste » = l'ordre de l'arbre.
 function route_spectacles(): void
 {
     require_login();
-    $spectacles = db()->query(
-        'SELECT s.*, (SELECT COUNT(*) FROM evenements e WHERE e.spectacle_id = s.id) AS nb_evenements
-         FROM spectacles s ORDER BY s.nom'
-    )->fetchAll();
-    render('spectacles', ['spectacles' => $spectacles, 'token' => evenements_export_token()], evenements_terme_spectacle());
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        $map = spectacle_map();
+        if ($section === 'add') {
+            $nom = trim($_POST['nom'] ?? '');
+            $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
+            if ($nom !== '' && ($parent === null || isset($map[$parent]))) {
+                $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM spectacles')->fetchColumn();
+                db()->prepare('INSERT INTO spectacles (nom, parent_id, ordre) VALUES (?, ?, ?)')
+                    ->execute([$nom, $parent, $ordre]);
+            }
+        } elseif ($section === 'rename') {
+            // Renommage seul (crayon inline) : le formulaire ne porte pas de
+            // parent_id — le rattachement se change via le glisser-déposer
+            // ('reorder') ou le formulaire complet, jamais ici.
+            $id  = (int) ($_POST['id'] ?? 0);
+            $nom = trim($_POST['nom'] ?? '');
+            if ($nom !== '' && isset($map[$id])) {
+                db()->prepare('UPDATE spectacles SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+            }
+        } elseif ($section === 'move') {
+            $id  = (int) ($_POST['id'] ?? 0);
+            $dir = ($_POST['dir'] ?? '') === 'up' ? 'up' : 'down';
+            if (isset($map[$id])) {
+                $pidParent = plan_pid($map[$id]['parent_id'] ?? null);
+                $freres = plan_enfants($map)[$pidParent] ?? [];
+                $ids = array_map(fn($r) => (int) $r['id'], $freres);
+                $pos  = array_search($id, $ids, true);
+                $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
+                if ($pos !== false && $swap >= 0 && $swap < count($ids)) {
+                    [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
+                    $upd = db()->prepare('UPDATE spectacles SET ordre = ? WHERE id = ?');
+                    db()->beginTransaction();
+                    foreach ($ids as $i => $sid) {
+                        $upd->execute([$i, $sid]);
+                    }
+                    db()->commit();
+                }
+            }
+        } elseif ($section === 'reorder') {
+            // Glisser-déposer : rattache un spectacle à $parent (vide = racine) et
+            // renumérote les frères selon l'ordre fourni (déplacé inclus).
+            $id     = (int) ($_POST['id'] ?? 0);
+            $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
+            $order  = array_values(array_filter(array_map('intval', explode(',', $_POST['order'] ?? ''))));
+            if (isset($map[$id]) && $order) {
+                $interdits = array_merge([$id], spectacle_descendants($id, $map));
+                $okParent = $parent === null || (isset($map[$parent]) && !in_array($parent, $interdits, true));
+                if ($okParent) {
+                    db()->beginTransaction();
+                    db()->prepare('UPDATE spectacles SET parent_id = ? WHERE id = ?')->execute([$parent, $id]);
+                    $upd = db()->prepare('UPDATE spectacles SET ordre = ? WHERE id = ?');
+                    $i = 0;
+                    foreach ($order as $sid) {
+                        if ($sid === $id || (isset($map[$sid]) && plan_pid($map[$sid]['parent_id'] ?? null) === plan_pid($parent))) {
+                            $upd->execute([$i++, $sid]);
+                        }
+                    }
+                    db()->commit();
+                }
+            }
+        }
+        redirect('spectacles');
+    }
+
+    $map = [];
+    foreach (db()->query('SELECT * FROM spectacles ORDER BY ordre, id') as $r) {
+        $map[(int) $r['id']] = $r;
+    }
+
+    // Compte par statut (confirmé/option/annulé), propre à chaque spectacle —
+    // un spectacle-groupe (artiste) n'a jamais d'événement lié directement,
+    // son total est la somme de ses feuilles descendantes.
+    $comptesPropres = [];
+    foreach (db()->query(
+        'SELECT spectacle_id, statut, COUNT(*) AS n FROM evenements
+         WHERE spectacle_id IS NOT NULL GROUP BY spectacle_id, statut'
+    ) as $r) {
+        $comptesPropres[(int) $r['spectacle_id']][(string) $r['statut']] = (int) $r['n'];
+    }
+    $comptes = [];
+    foreach (array_keys($map) as $id) {
+        $sousArbre = array_merge([$id], spectacle_descendants($id, $map));
+        $c = ['confirme' => 0, 'option' => 0, 'annule' => 0];
+        foreach ($sousArbre as $sid) {
+            foreach ($comptesPropres[$sid] ?? [] as $statut => $n) {
+                if (isset($c[$statut])) {
+                    $c[$statut] += $n;
+                }
+            }
+        }
+        $comptes[$id] = $c;
+    }
+
+    render('spectacles', [
+        'lignes' => plan_liste_ordonnee($map),
+        'map'    => $map,
+        'comptes' => $comptes,
+        'token'  => evenements_export_token(),
+        'flagErr' => $_GET['err'] ?? null,
+    ], evenements_terme_spectacle());
 }
 
 function route_spectacle(): void
@@ -694,14 +824,21 @@ function route_spectacle(): void
             redirect('spectacles');
         }
     }
+    $map = spectacle_map();
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $nom = trim($_POST['nom'] ?? '');
         $notes = trim($_POST['notes'] ?? '');
+        $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
         $err = null;
         if ($nom === '') {
             $err = 'Le nom est obligatoire.';
+        }
+        // Rattachement invalide (cycle, parent inexistant) → racine.
+        $interdits = $id ? array_merge([$id], spectacle_descendants($id, $map)) : [];
+        if ($parent !== null && (in_array($parent, $interdits, true) || !isset($map[$parent]))) {
+            $parent = null;
         }
         $fichier = $spectacle['suisa_feuille_fichier'] ?? '';
         if (!$err) {
@@ -717,20 +854,21 @@ function route_spectacle(): void
             }
         }
         if ($err) {
-            $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes]);
-            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err], evenements_terme_spectacle(false));
+            $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent]);
+            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err, 'map' => $map], evenements_terme_spectacle(false));
             return;
         }
         if ($id) {
-            db()->prepare('UPDATE spectacles SET nom=?, notes=?, suisa_feuille_fichier=? WHERE id=?')
-                ->execute([$nom, $notes, $fichier, $id]);
+            db()->prepare('UPDATE spectacles SET nom=?, notes=?, suisa_feuille_fichier=?, parent_id=? WHERE id=?')
+                ->execute([$nom, $notes, $fichier, $parent, $id]);
         } else {
-            db()->prepare('INSERT INTO spectacles (nom, notes, suisa_feuille_fichier) VALUES (?, ?, ?)')
-                ->execute([$nom, $notes, $fichier]);
+            $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM spectacles')->fetchColumn();
+            db()->prepare('INSERT INTO spectacles (nom, notes, suisa_feuille_fichier, parent_id, ordre) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$nom, $notes, $fichier, $parent, $ordre]);
         }
         redirect('spectacles');
     }
-    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
+    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null, 'map' => $map], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
 }
 
 function route_spectacle_delete(): void
@@ -739,6 +877,10 @@ function route_spectacle_delete(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
+        $map = spectacle_map();
+        if (isset($map[$id]) && !plan_est_feuille($id, $map)) {
+            redirect('spectacles', ['err' => 'children']); // groupe (artiste) → on refuse
+        }
         if (!supprimer_si_non_reference('spectacles', $id, 'evenements', 'spectacle_id')) {
             redirect('spectacles', ['err' => 'used']);
         }

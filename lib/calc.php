@@ -167,6 +167,20 @@ function taux_stockes(int $annee): array
     return $rows;
 }
 
+// Taux de toutes les années configurées + repli par défaut, au format attendu
+// par le port JS de calculer_fiche() (aperçu « Coûts estimés » en direct dans
+// fiche_form.php) — même logique de repli que taux_stockes() (année antérieure
+// la plus récente), reproduite côté client sur ce petit jeu de données.
+function taux_pour_annee_js(): array
+{
+    $annees = array_map('intval', db()->query('SELECT DISTINCT annee FROM taux_par_annee ORDER BY annee')->fetchAll(PDO::FETCH_COLUMN));
+    $parAnnee = [];
+    foreach ($annees as $an) {
+        $parAnnee[$an] = taux_pour_annee($an);
+    }
+    return ['parAnnee' => $parAnnee, 'defaut' => taux_pour_annee(0)];
+}
+
 // Taux d'une année au format attendu par calculer_fiche().
 function taux_pour_annee(int $annee): array
 {

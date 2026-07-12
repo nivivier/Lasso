@@ -105,8 +105,9 @@ if (module_actif('compta')) {
         'compta_regles'    => 'route_compta_regles',
         'compta_bilan'          => 'route_compta_bilan',
         'compta_bilan_print'    => 'route_compta_bilan_print',
-        'compta_ecritures_csv'  => 'route_compta_ecritures_csv',
-        'import_ecritures'      => 'route_import_ecritures',
+        'compta_ecritures_csv'     => 'route_compta_ecritures_csv',
+        'compta_ecritures_camt053' => 'route_compta_ecritures_camt053',
+        'import_ecritures'         => 'route_import_ecritures',
     ];
 }
 

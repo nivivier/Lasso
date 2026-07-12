@@ -158,22 +158,6 @@ $flashErr = [
     const saveScroll = () => sessionStorage.setItem(SCROLL_KEY, window.scrollY);
     document.querySelectorAll('form[action="?p=compta_plan"]').forEach(f => f.addEventListener('submit', saveScroll));
 
-    // Boutons « Nouveau » / « Annuler » des pieds de tableau.
-    document.querySelectorAll('[data-show]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const t = document.getElementById(btn.dataset.show);
-            if (!t) return;
-            t.hidden = false;
-            t.querySelector('input[name="libelle"]')?.focus();
-        });
-    });
-    document.querySelectorAll('[data-hide]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const t = document.getElementById(btn.dataset.hide);
-            if (t) t.hidden = true;
-        });
-    });
-
     // JS actif : lecture seule par défaut, contrôles de repli masqués.
     document.getElementById('plan-card').classList.add('dnd-on');
     // Crayon → passe la ligne en édition ; le libellé s'enregistre à la validation.

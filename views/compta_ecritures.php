@@ -3,6 +3,7 @@
 /** @var string $categorieFilter */ /** @var string $axeFilter */ /** @var array $ecritures */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */
 
 // Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
 $cheminById    = [];
@@ -54,6 +55,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
          . '</div>';
 };
 ?>
+<?php $actionUrl = '?p=compta_ecritures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -272,7 +274,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php if ($compteId === 0): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <td class="texte-cell" title="<?= e($ecr['texte']) ?>">
                 <?php if (!empty($ecr['facture_id'])): ?>
-                    <a class="ecr-facture-lien" href="?p=facture&id=<?= (int) $ecr['facture_id'] ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
+                    <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
                 <?php endif; ?>
                 <span class="texte-cell-txt" data-summary="<?= e(resumer_texte_postfinance($ecr['texte'])) ?>"><?= e(resumer_texte_postfinance($ecr['texte'])) ?></span>
             </td>

@@ -1,7 +1,7 @@
 <?php
 /** @var array $employes */ /** @var array $tauxHoraires */ /** @var array $unites */ /** @var array $axes */
 /** @var array $evenements */ /** @var ?string $err */ /** @var ?array $post */
-/** @var bool $edit_mode */ /** @var int $fiche_id */ /** @var ?bool $saved */
+/** @var bool $edit_mode */ /** @var int $fiche_id */ /** @var ?bool $saved */ /** @var array $tauxData */
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 $edit = !empty($edit_mode);
 $axes = $axes ?? [];
@@ -140,6 +140,16 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         </label>
     </div>
 
+    <h3 class="sub">Coûts estimés <?= info_tip(
+        "Estimation en direct à partir des lignes de prestation ci-dessus. Les montants définitifs "
+        . "(et les taux effectivement appliqués) sont figés à l'enregistrement."
+    ) ?></h3>
+    <div class="couts-estimes" id="couts-estimes">
+        <div class="ce-item"><span class="ce-label">Salaire net</span><strong class="ce-val ce-net" id="est-net">0.00 CHF</strong></div>
+        <div class="ce-item"><span class="ce-label">Salaire brut</span><strong class="ce-val ce-brut" id="est-brut">0.00 CHF</strong></div>
+        <div class="ce-item"><span class="ce-label">Coût employeur</span><strong class="ce-val ce-cout" id="est-cout">0.00 CHF</strong></div>
+    </div>
+
     <div class="form-actions">
         <button type="submit"><?= $edit ? icon('save') . ' Enregistrer les modifications' : 'Calculer et créer la fiche' ?></button>
         <a class="btn ghost" href="?p=fiches">Annuler</a>
@@ -149,6 +159,7 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
 <template id="ligne-tpl"><?= $renderRow(['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '', 'evenement' => '']) ?></template>
 
 <script>
+const LASSO_TAUX_DATA = <?= json_encode($tauxData, JSON_UNESCAPED_UNICODE) ?>;
 (function () {
     // Valeurs par défaut selon l'employé (impôt + supplément vacances)
     const sel = document.getElementById('employe-select');
@@ -177,6 +188,56 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         manuel.required = isAutre;
         return isAutre ? num(manuel.value) : num(choix.value);
     }
+    // Coûts estimés (port JS de calculer_fiche(), voir lib/calc.php) : aperçu en
+    // direct, non contractuel — les montants réels sont figés à l'enregistrement.
+    const moisSelect = document.querySelector('select[name="mois"]');
+    const anneeInput = document.querySelector('input[name="annee"]');
+    const suppInput  = document.querySelector('input[name="supplement_vacances"]');
+    const impotInput = document.querySelector('input[name="impot_source_taux"]');
+    const estNet  = document.getElementById('est-net');
+    const estBrut = document.getElementById('est-brut');
+    const estCout = document.getElementById('est-cout');
+    function r2(v) { return Math.round(v * 100) / 100; }
+    function seuilHeures(annee, mois) {
+        return new Date(annee, mois, 0).getDate() / 7 * 8; // jours du mois ÷ 7 × 8
+    }
+    function tauxPourAnnee(annee) {
+        const years = Object.keys(LASSO_TAUX_DATA.parAnnee).map(Number).sort((a, b) => a - b);
+        let choisie = null;
+        years.forEach(y => { if (y <= annee) choisie = y; });
+        return choisie !== null ? LASSO_TAUX_DATA.parAnnee[choisie] : LASSO_TAUX_DATA.defaut;
+    }
+    function calculerFiche(salaireTravail, heures, annee, mois, estSource, tauxImpot, tauxSupp) {
+        const taux = Object.assign({}, tauxPourAnnee(annee));
+        const plein = heures > seuilHeures(annee, mois);
+        taux.laa = plein ? (taux.laa_plein || 0) : (taux.laa_reduit || 0);
+        taux.emp_laa = plein ? (taux.emp_laa_plein || 0) : (taux.emp_laa_reduit || 0);
+
+        salaireTravail = r2(salaireTravail);
+        const suppMontant = r2(salaireTravail * tauxSupp);
+        const brut = r2(salaireTravail + suppMontant);
+
+        const dedAvs = r2(brut * taux.avs), dedAc = r2(brut * taux.ac), dedAmat = r2(brut * taux.amat);
+        const dedLaa = r2(brut * taux.laa), dedLpp = r2(brut * taux.lpp);
+        const dedImpot = estSource ? r2(brut * tauxImpot) : 0;
+        const net = r2(brut - r2(dedAvs + dedAc + dedAmat + dedLaa + dedLpp + dedImpot));
+
+        const empCles = ['emp_avs', 'emp_ac', 'emp_amat', 'emp_af', 'emp_laa', 'emp_frais', 'emp_cpe', 'emp_lfp', 'emp_lpp'];
+        const empTotal = r2(empCles.reduce((s, k) => s + r2(brut * (taux[k] || 0)), 0));
+        return { net, brut, cout: r2(brut + empTotal) };
+    }
+    function recalcCouts(heures, salaireTravail) {
+        const opt = sel.options[sel.selectedIndex];
+        const estSource = !!opt && opt.dataset.source === '1';
+        const annee = num(anneeInput.value) || new Date().getFullYear();
+        const mois  = num(moisSelect.value) || (new Date().getMonth() + 1);
+        const tauxSupp  = suppInput.value.trim() !== '' ? num(suppInput.value) / 100 : (opt ? num(opt.dataset.supp) / 100 : 0);
+        const tauxImpot = impotInput.value.trim() !== '' ? num(impotInput.value) / 100 : (opt ? num(opt.dataset.impot) / 100 : 0);
+        const c = calculerFiche(salaireTravail, heures, annee, mois, estSource, tauxImpot, tauxSupp);
+        estNet.textContent  = c.net.toFixed(2) + ' CHF';
+        estBrut.textContent = c.brut.toFixed(2) + ' CHF';
+        estCout.textContent = c.cout.toFixed(2) + ' CHF';
+    }
     function recalc() {
         let h = 0, chf = 0;
         lignes.querySelectorAll('.ligne-row').forEach(row => {
@@ -190,6 +251,7 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         });
         totH.textContent = Math.round(h * 100) / 100;
         totC.textContent = (Math.round(chf * 100) / 100).toFixed(2);
+        recalcCouts(h, chf);
     }
     lignes.addEventListener('input', recalc);
     lignes.addEventListener('change', recalc);
@@ -204,6 +266,9 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         lignes.appendChild(tpl.content.cloneNode(true));
         recalc();
     });
+    sel.addEventListener('change', recalc);
+    moisSelect.addEventListener('change', recalc);
+    [anneeInput, suppInput, impotInput].forEach(i => i.addEventListener('input', recalc));
     recalc();
 })();
 </script>

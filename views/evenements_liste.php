@@ -1,15 +1,25 @@
 <?php
 /** @var array $evenements */ /** @var int $annee */ /** @var array $annees */
 /** @var string $statutSuisa */ /** @var int $spectacleId */ /** @var string $statut */
-/** @var string $visibilite */ /** @var array $spectacles */
+/** @var string $visibilite */ /** @var array $spectacles */ /** @var array $spectacleMap */
 /** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */
 $statutsSuisa = [
     'tous' => 'Tous', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
     'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
 ];
 $termePluriel = evenements_terme_spectacle();
 $termeSingulier = evenements_terme_spectacle(false);
+// Le spectacle filtré peut avoir gagné des enfants depuis (devenu un groupe
+// « artiste », non assignable) : on le garde visible dans le select — sinon
+// le filtre semble se réinitialiser sur « Tous » alors qu'il reste actif.
+if ($spectacleId > 0 && !array_filter($spectacles, fn($s) => (int) $s['id'] === $spectacleId)) {
+    if (isset($spectacleMap[$spectacleId])) {
+        $spectacles[] = ['id' => $spectacleId, 'nom' => spectacle_chemin($spectacleId, $spectacleMap) . ' (groupe)'];
+    }
+}
 ?>
+<?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">

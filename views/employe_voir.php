@@ -51,7 +51,7 @@
     </thead>
     <tbody>
     <?php foreach ($fiches as $f): $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f); ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>">
+        <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=employe:<?= (int) $emp['id'] ?>">
             <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
             <td class="num strong <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>

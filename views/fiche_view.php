@@ -8,7 +8,12 @@
     case 'no_exp':  echo '<p class="err flash">Aucun e-mail d\'expéditeur valide n\'est configuré (Paramètres → Employeur).</p>'; break;
 } ?>
 <?php if (isset($_GET['success'])): ?><p class="ok flash">✓ Fiche enregistrée avec succès.</p><?php endif; ?>
-<?= lien_retour('?p=fiches', 'Fiches de salaire') ?>
+<?= lien_retour_contextuel('?p=fiches', 'Fiches de salaire') ?>
+<?php
+// Reporté sur les formulaires de cette page qui redirigent vers elle-même,
+// pour que le lien de retour contextuel survive à un enregistrement.
+$depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
+?>
 <div class="page-head">
     <h1>Fiche · <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></h1>
     <div class="head-actions">
@@ -24,7 +29,7 @@
         $peutEnvoyer = filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) && filter_var($emailExp, FILTER_VALIDATE_EMAIL);
         ?>
         <?php if ($peutEnvoyer): ?>
-            <form method="post" action="?p=fiche_email" class="d-inline"
+            <form method="post" action="?p=fiche_email<?= $depuisQs ?>" class="d-inline"
                   onsubmit="return confirm('Envoyer cette fiche par e-mail à <?= e($emailEmploye) ?> ?');">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
@@ -54,7 +59,7 @@
         </div>
     </div>
     <aside class="fiche-aside">
-        <form method="post" action="?p=fiche_date" class="paiement-form">
+        <form method="post" action="?p=fiche_date<?= $depuisQs ?>" class="paiement-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <h2>Date de paiement <?= info_tip('Laissez la date vide pour marquer la fiche « à payer ».') ?></h2>
@@ -69,7 +74,7 @@
         </form>
         
                     <h2>Affichage avancé</h2>
-                <form method="post" action="?p=fiche_cout" id="cout-form" class="cout-toggle">
+                <form method="post" action="?p=fiche_cout<?= $depuisQs ?>" id="cout-form" class="cout-toggle">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <label class="check">

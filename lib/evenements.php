@@ -211,11 +211,23 @@ function nb_evenements_suisa_manquants(): int
     }
 }
 
-// Liste des spectacles pour un <select> — réutilisée par la liste des
-// événements, le formulaire événement et l'onglet des paramètres.
-function spectacles_pour_selection(): array
+// Liste des spectacles assignables (feuilles uniquement — un spectacle-parent
+// représente un artiste, pure groupement, jamais assigné directement à un
+// événement) pour un <select> — réutilisée par la liste des événements, le
+// formulaire événement et l'onglet des paramètres. 'nom' porte le chemin
+// complet (« Artiste › Spectacle ») pour lever l'ambiguïté dans l'arbre.
+function spectacles_pour_selection(?array $map = null): array
 {
-    return db()->query('SELECT id, nom FROM spectacles ORDER BY nom')->fetchAll();
+    $map ??= spectacle_map();
+    $out = [];
+    foreach (plan_liste_ordonnee($map) as $r) {
+        $id = (int) $r['id'];
+        if (!plan_est_feuille($id, $map)) {
+            continue;
+        }
+        $out[] = ['id' => $id, 'nom' => spectacle_chemin($id, $map)];
+    }
+    return $out;
 }
 
 // Vrai si $id correspond à un spectacle existant — validé avant tout
@@ -228,14 +240,77 @@ function spectacle_existe(int $id): bool
     return (bool) $stmt->fetchColumn();
 }
 
-// Validation stricte d'une date « Y-m-d » : DateTime::createFromFormat() seul
-// accepterait silencieusement une date invalide comme "2026-02-30" en la
-// « roulant » au 2 mars — checkdate() la rejette explicitement.
-function date_valide(string $s): bool
+// Vrai si $id correspond à un spectacle existant ET assignable (feuille) —
+// un spectacle-parent (groupe/artiste) ne peut jamais être lié directement à
+// un événement. Utilisé côté serveur partout où evenements.spectacle_id est
+// écrit (le <select> ne propose déjà que des feuilles, mais un POST forgé ou
+// une resoumission ne doit pas pouvoir contourner cette règle).
+function spectacle_assignable(int $id): bool
 {
-    return (bool) preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $s, $m)
-        && checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
+    $map = spectacle_map();
+    return isset($map[$id]) && plan_est_feuille($id, $map);
 }
+
+// ------------------------------------------------ Hiérarchie des spectacles
+// Même esprit que le plan comptable (lib/compta.php) : un spectacle-parent
+// (nœud non-feuille) représente un artiste, ses enfants ses dates/tournées —
+// pas de champ « artiste » séparé, le tri par artiste se fait via l'arbre.
+// plan_pid()/plan_enfants()/plan_parents_set()/plan_est_feuille()/
+// plan_liste_ordonnee() sont génériques (id/parent_id/ordre uniquement) et
+// donc réutilisées telles quelles.
+
+// Spectacles indexés par id (pour l'agrégation et l'affichage de l'arbre).
+function spectacle_map(): array
+{
+    $map = [];
+    foreach (db()->query('SELECT * FROM spectacles ORDER BY ordre, id') as $r) {
+        $map[(int) $r['id']] = $r;
+    }
+    return $map;
+}
+
+// Chemin lisible « Artiste › Spectacle » d'un spectacle.
+function spectacle_chemin(int $id, array $map, string $sep = ' › '): string
+{
+    $parts = [];
+    $cur = $id;
+    $garde = 0;
+    while (isset($map[$cur]) && $garde++ < 50) {
+        array_unshift($parts, (string) $map[$cur]['nom']);
+        $cur = plan_pid($map[$cur]['parent_id'] ?? null);
+        if ($cur === 0) {
+            break;
+        }
+    }
+    return implode($sep, $parts);
+}
+
+// Ids de tous les descendants d'un spectacle (pour empêcher les cycles lors
+// d'un rattachement à un autre parent). $vus protège contre une récursion
+// sans fin si parent_id contenait déjà un cycle (donnée corrompue) — chaque
+// id n'est parcouru qu'une fois.
+function spectacle_descendants(int $id, array $map): array
+{
+    $byParent = plan_enfants($map);
+    $out = [];
+    $vus = [$id => true];
+    $walk = function (int $pid) use (&$walk, &$out, &$vus, $byParent) {
+        foreach ($byParent[$pid] ?? [] as $child) {
+            $cid = (int) $child['id'];
+            if (isset($vus[$cid])) {
+                continue;
+            }
+            $vus[$cid] = true;
+            $out[] = $cid;
+            $walk($cid);
+        }
+    };
+    $walk($id);
+    return $out;
+}
+
+// date_valide() : déplacée dans lib/helpers.php (partagée avec lib/compta.php,
+// qui en avait besoin pour camt.053 sans dépendre de ce fichier).
 
 // --------------------------------------------------------- EXPORT PUBLIC
 // Un événement est exposable (site web / JSON / iCal) si sa visibilité n'est

@@ -305,6 +305,7 @@ function run_migrations(PDO $pdo): void
         26 => 'migration_26', // evenements.pays (champ propre, ne se recoupe plus avec region)
         27 => 'migration_27', // fiche_lignes.evenement_id : ligne de prestation ajoutée depuis un événement
         28 => 'migration_28', // evenements.axe_analytique_id_defaut : axe analytique par défaut
+        29 => 'migration_29', // spectacles.parent_id / ordre : hiérarchie (imbrication façon plan comptable)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -864,8 +865,11 @@ function migration_23(PDO $pdo): void
             nom                    TEXT NOT NULL,
             notes                  TEXT NOT NULL DEFAULT '',
             suisa_feuille_fichier  TEXT NOT NULL DEFAULT '',
+            parent_id              INTEGER REFERENCES spectacles(id) ON DELETE SET NULL,
+            ordre                  INTEGER NOT NULL DEFAULT 0,
             cree_le                TEXT NOT NULL DEFAULT (datetime('now'))
         );
+        CREATE INDEX IF NOT EXISTS idx_spectacles_parent ON spectacles(parent_id);
 
         -- statut : 'option' | 'confirme' | 'annule' — indépendant de la visibilité
         -- (une date public peut être annulée : elle reste affichée, marquée « Annulé »).
@@ -966,6 +970,28 @@ function migration_28(PDO $pdo): void
     if (!in_array('axe_analytique_id_defaut', $cols, true)) {
         $pdo->exec('ALTER TABLE evenements ADD COLUMN axe_analytique_id_defaut INTEGER REFERENCES axes_analytiques(id)');
     }
+}
+
+// Migration 29 : hiérarchie des spectacles (imbrication façon plan comptable —
+// un spectacle-parent représente un artiste, ses enfants ses dates/tournées).
+function migration_29(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(spectacles)')->fetchAll(), 'name');
+    if (!in_array('parent_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE spectacles ADD COLUMN parent_id INTEGER REFERENCES spectacles(id) ON DELETE SET NULL');
+    }
+    if (!in_array('ordre', $cols, true)) {
+        $pdo->exec('ALTER TABLE spectacles ADD COLUMN ordre INTEGER NOT NULL DEFAULT 0');
+        // Comble l'ordre à partir de l'ancien tri alphabétique (ORDER BY nom),
+        // sinon toutes les lignes existantes se retrouvent à ordre=0 et
+        // retombent sur l'ordre de création (id) — perte silencieuse du tri.
+        $upd = $pdo->prepare('UPDATE spectacles SET ordre = ? WHERE id = ?');
+        $i = 0;
+        foreach ($pdo->query('SELECT id FROM spectacles ORDER BY nom') as $row) {
+            $upd->execute([$i++, (int) $row['id']]);
+        }
+    }
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_spectacles_parent ON spectacles(parent_id)');
 }
 
 function seed_parametres(PDO $pdo): void

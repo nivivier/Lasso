@@ -4,6 +4,7 @@
 // agrégation du compte de résultat. Aucune dépendance externe.
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/helpers.php'; // date_valide(), dom_el()
 
 // Convertit un montant texte (« 1'234.55 », « -5 ») en float. Tolère les
 // séparateurs de milliers suisses (apostrophe, espaces fines) ; décimale « . ».
@@ -110,6 +111,229 @@ function parse_postfinance_csv(string $contenu): array
     }
 
     return $meta + ['lignes' => $lignes];
+}
+
+// Lit un relevé bancaire au format ISO 20022 camt.053 (XML), toutes versions
+// de schéma courantes (001.02 à 001.08 — le préfixe de namespace est détecté
+// dynamiquement, jamais supposé fixe). Renvoie le même format que
+// parse_postfinance_csv() : ['iban','monnaie','date_debut','date_fin',
+// 'lignes'=>[['date_op','texte','montant','solde'], …]] — branchable tel
+// quel sur le même flux d'import/dédoublonnage.
+// Un seul relevé (<Stmt>) traité : le premier du document (cas normal pour
+// un export mono-compte ; un fichier multi-comptes serait hors d'usage ici).
+function parse_camt053(string $contenu): array
+{
+    $vide = ['iban' => '', 'monnaie' => '', 'date_debut' => '', 'date_fin' => '', 'lignes' => []];
+
+    $precedent = libxml_use_internal_errors(true);
+    // NONET : pas de résolution réseau (DTD/entités externes) — le parseur
+    // libxml2 moderne n'étend déjà pas les entités externes sans LIBXML_NOENT
+    // (jamais passé ici), mais NONET ferme aussi la porte à toute requête
+    // réseau déclenchée par un DOCTYPE malveillant.
+    $xml = simplexml_load_string($contenu, 'SimpleXMLElement', LIBXML_NONET);
+    libxml_clear_errors();
+    libxml_use_internal_errors($precedent);
+    if ($xml === false) {
+        return $vide;
+    }
+
+    // Namespace par défaut (urn:iso:std:iso:20022:tech:xsd:camt.053.001.0X) —
+    // détecté plutôt que supposé, pour rester compatible entre banques/versions.
+    // registerXPathNamespace() est PAR OBJET SimpleXMLElement (ne se propage
+    // pas aux nœuds enfants renvoyés par xpath()) : chaque sous-élément
+    // interrogé doit donc réenregistrer le préfixe avant sa propre requête —
+    // d'où le passage systématique par $reg() ci-dessous plutôt qu'un seul
+    // registerXPathNamespace() sur la racine.
+    $namespaces = $xml->getNamespaces(true);
+    $ns = $namespaces[''] ?? '';
+    $reg = function (SimpleXMLElement $node) use ($ns): SimpleXMLElement {
+        if ($ns !== '') {
+            $node->registerXPathNamespace('c', $ns);
+        }
+        return $node;
+    };
+    $path = fn(string $p): string => $ns !== '' ? $p : str_replace('c:', '', $p);
+
+    $stmts = $reg($xml)->xpath($path('//c:Stmt'));
+    if (!$stmts) {
+        return $vide;
+    }
+    $stmt = $reg($stmts[0]);
+    $get = function (string $p) use ($stmt, $path): string {
+        $r = $stmt->xpath($path('.' . $p));
+        return $r ? trim((string) $r[0]) : '';
+    };
+
+    $iban = $get('/c:Acct/c:Id/c:IBAN');
+    $monnaie = $get('/c:Acct/c:Ccy');
+
+    // Solde d'ouverture : point de départ du solde courant recalculé ligne à
+    // ligne (camt.053 ne porte pas de solde après chaque écriture). Code OPBD
+    // (solde d'ouverture) ou, sur un relevé de continuation, PRCD (solde de
+    // clôture précédent) — les deux jouent le même rôle ici.
+    $soldeCourant = null;
+    foreach ($stmt->xpath($path('./c:Bal')) as $bal) {
+        $bal = $reg($bal);
+        $code = $bal->xpath($path('.//c:Tp/c:CdOrPrtry/c:Cd'));
+        if ($code && in_array((string) $code[0], ['OPBD', 'PRCD'], true)) {
+            $amt = $bal->xpath($path('.//c:Amt'));
+            $ind = $bal->xpath($path('.//c:CdtDbtInd'));
+            if ($amt) {
+                $v = montant_float((string) $amt[0]);
+                $soldeCourant = ($ind && (string) $ind[0] === 'DBIT') ? -$v : $v;
+            }
+            break;
+        }
+    }
+
+    $lignes = [];
+    foreach ($stmt->xpath($path('.//c:Ntry')) as $entry) {
+        $entry = $reg($entry);
+        $xp = fn(string $p) => $entry->xpath($path('.' . $p));
+
+        $amtNode = $xp('/c:Amt');
+        if (!$amtNode) {
+            continue;
+        }
+        $montant = montant_float((string) $amtNode[0]);
+        $indNode = $xp('/c:CdtDbtInd');
+        $estDebit = $indNode && (string) $indNode[0] === 'DBIT';
+        if ($estDebit) {
+            $montant = -$montant;
+        }
+
+        // Contre-partie structurée (Débiteur si crédit reçu, Créancier si débit
+        // envoyé) — bien plus fiable que la reconnaissance par expression
+        // régulière utilisée pour le CSV PostFinance (extraire_tiers(), non
+        // pertinente ici : le texte libre Ustrd/AddtlNtryInf n'a pas le
+        // vocabulaire fixe de PostFinance).
+        $partieNode = $estDebit ? $xp('//c:RltdPties/c:Cdtr/c:Nm') : $xp('//c:RltdPties/c:Dbtr/c:Nm');
+        $tiers = $partieNode ? trim((string) $partieNode[0]) : '';
+
+        // Dt (date seule) ou DtTm (horodatage) : les deux formes sont légales
+        // pour BookgDt/ValDt en ISO 20022 (DateAndDateTimeChoice) — repli sur
+        // chacune, dans cet ordre, avant de tronquer aux 10 premiers caractères
+        // (YYYY-MM-DD, communs aux deux formats).
+        $dateNode = $xp('/c:BookgDt//c:Dt') ?: $xp('/c:BookgDt//c:DtTm')
+            ?: $xp('/c:ValDt//c:Dt') ?: $xp('/c:ValDt//c:DtTm');
+        $dateOp = $dateNode ? substr((string) $dateNode[0], 0, 10) : '';
+        if ($dateOp === '' || !date_valide($dateOp)) {
+            continue; // ligne non datée/invalide → ignorée (même politique que le CSV PostFinance)
+        }
+
+        $ustrd = $xp('//c:RmtInf/c:Ustrd');
+        $texte = $ustrd ? implode(' ', array_map(fn($u) => trim((string) $u), $ustrd)) : '';
+        if ($texte === '') {
+            $addtl = $xp('/c:AddtlNtryInf');
+            $texte = $addtl ? trim((string) $addtl[0]) : '';
+        }
+
+        if ($soldeCourant !== null) {
+            $soldeCourant = r2($soldeCourant + $montant);
+        }
+
+        $lignes[] = ['date_op' => $dateOp, 'texte' => $texte, 'montant' => $montant, 'solde' => $soldeCourant, 'tiers' => $tiers];
+    }
+
+    $dates = array_column($lignes, 'date_op');
+    return [
+        'iban' => $iban, 'monnaie' => $monnaie,
+        'date_debut' => $dates ? min($dates) : '', 'date_fin' => $dates ? max($dates) : '',
+        'lignes' => $lignes,
+    ];
+}
+
+
+// Génère un relevé ISO 20022 camt.053 (XML) à partir des écritures d'un seul
+// compte bancaire — pour ré-importer ailleurs (autre logiciel comptable) ou
+// archiver dans un format normalisé. $lignes : mêmes lignes que retournées
+// par une requête sur `ecritures` (date_op, texte, montant), triées par date.
+function compta_generer_camt053(array $compte, array $lignes, string $dateDebut, string $dateFin, float $soldeOuverture): string
+{
+    $NS = 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02';
+    $doc = new DOMDocument('1.0', 'UTF-8');
+    $doc->formatOutput = true;
+
+    $el = fn(string $name, ?string $text = null): DOMElement => dom_el($doc, $NS, $name, $text);
+    // <Amt Ccy="CHF">montant</Amt> — seul élément à porter un attribut.
+    $amtEl = function (float $montant) use ($el): DOMElement {
+        $n = $el('Amt', number_format(abs($montant), 2, '.', ''));
+        $n->setAttribute('Ccy', 'CHF');
+        return $n;
+    };
+
+    $root = $el('Document');
+    $doc->appendChild($root);
+    $stmtMsg = $el('BkToCstmrStmt');
+    $root->appendChild($stmtMsg);
+
+    $hdr = $el('GrpHdr');
+    $stmtMsg->appendChild($hdr);
+    $hdr->appendChild($el('MsgId', 'LASSO-' . date('YmdHis')));
+    $hdr->appendChild($el('CreDtTm', date('c')));
+
+    $stmt = $el('Stmt');
+    $stmtMsg->appendChild($stmt);
+    $stmt->appendChild($el('Id', 'STMT-' . date('YmdHis')));
+    $stmt->appendChild($el('CreDtTm', date('c')));
+
+    $acct = $el('Acct');
+    $stmt->appendChild($acct);
+    $acctId = $el('Id');
+    $acct->appendChild($acctId);
+    $acctId->appendChild($el('IBAN', (string) $compte['iban']));
+    $acct->appendChild($el('Ccy', 'CHF'));
+    $ownr = $el('Ownr');
+    $ownr->appendChild($el('Nm', (string) param('employeur_nom')));
+    $acct->appendChild($ownr);
+
+    $soldeCourant = r2($soldeOuverture);
+    $totalMontant = 0.0;
+    foreach ($lignes as $l) {
+        $totalMontant += (float) $l['montant'];
+    }
+    $soldeCloture = r2($soldeCourant + $totalMontant);
+
+    $bal = function (string $code, float $montant, string $date) use ($el, $amtEl): DOMElement {
+        $b = $el('Bal');
+        $tp = $el('Tp');
+        $b->appendChild($tp);
+        $cdOrPrtry = $el('CdOrPrtry');
+        $tp->appendChild($cdOrPrtry);
+        $cdOrPrtry->appendChild($el('Cd', $code));
+        $b->appendChild($amtEl($montant));
+        $b->appendChild($el('CdtDbtInd', $montant < 0 ? 'DBIT' : 'CRDT'));
+        $dt = $el('Dt');
+        $b->appendChild($dt);
+        $dt->appendChild($el('Dt', $date));
+        return $b;
+    };
+    $stmt->appendChild($bal('OPBD', $soldeCourant, $dateDebut ?: date('Y-m-d')));
+    $stmt->appendChild($bal('CLBD', $soldeCloture, $dateFin ?: date('Y-m-d')));
+
+    foreach ($lignes as $l) {
+        $montant = (float) $l['montant'];
+        $ntry = $el('Ntry');
+        $stmt->appendChild($ntry);
+        $ntry->appendChild($amtEl($montant));
+        $ntry->appendChild($el('CdtDbtInd', $montant < 0 ? 'DBIT' : 'CRDT'));
+        $ntry->appendChild($el('Sts', 'BOOK'));
+        $bookgDt = $el('BookgDt');
+        $ntry->appendChild($bookgDt);
+        $bookgDt->appendChild($el('Dt', (string) $l['date_op']));
+        $valDt = $el('ValDt');
+        $ntry->appendChild($valDt);
+        $valDt->appendChild($el('Dt', (string) $l['date_op']));
+        $ntryDtls = $el('NtryDtls');
+        $ntry->appendChild($ntryDtls);
+        $txDtls = $el('TxDtls');
+        $ntryDtls->appendChild($txDtls);
+        $rmtInf = $el('RmtInf');
+        $txDtls->appendChild($rmtInf);
+        $rmtInf->appendChild($el('Ustrd', mb_substr((string) $l['texte'], 0, 140)));
+    }
+
+    return $doc->saveXML();
 }
 
 // Clé de dédoublonnage d'une écriture. $occ = rang d'occurrence des lignes
@@ -641,8 +865,20 @@ function compta_inserer_ecritures(array $compte, array $parse, string $nomFichie
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $nbIns = 0;
     foreach ($parse['lignes'] as $i => $l) {
-        $ex = extraire_tiers((string) $l['texte']);
-        $ins->execute([$compteId, $importId, $l['date_op'], $l['texte'], $ex['tiers'], $ex['communication'],
+        // camt.053 fournit directement la contre-partie (champ structuré
+        // Débiteur/Créancier, voir parse_camt053()) — plus fiable que la
+        // reconnaissance par expression régulière ci-dessous, taillée pour le
+        // vocabulaire fixe du CSV PostFinance et non pertinente sur un texte
+        // libre bancaire quelconque.
+        if (!empty($l['tiers'])) {
+            $tiers = $l['tiers'];
+            $communication = '';
+        } else {
+            $ex = extraire_tiers((string) $l['texte']);
+            $tiers = $ex['tiers'];
+            $communication = $ex['communication'];
+        }
+        $ins->execute([$compteId, $importId, $l['date_op'], $l['texte'], $tiers, $communication,
             $l['montant'], $l['solde'], $hashes[$i]]);
         $nbIns += $ins->rowCount();
     }
@@ -651,4 +887,35 @@ function compta_inserer_ecritures(array $compte, array $parse, string $nomFichie
         ->execute([$nbIns, $nbDup, $importId]);
     db()->commit();
     return [$nbIns, $nbDup, $importId];
+}
+
+// Aperçu en lecture seule d'un import (dry-run) : compte reconnu ou non,
+// et décompte nouvelles/doublons par hash — sans rien écrire en base.
+function compta_previsualiser_import(array $parse): array
+{
+    $iban = $parse['iban'];
+    $compte = null;
+    if ($iban !== '') {
+        $stmt = db()->prepare('SELECT * FROM comptes_bancaires WHERE iban = ?');
+        $stmt->execute([$iban]);
+        $compte = $stmt->fetch() ?: null;
+    }
+    $total = count($parse['lignes']);
+    $nbDoublons = 0;
+    if ($compte && $total > 0) {
+        // hash encode déjà le compte (voir ligne_hash) : UNIQUE global sur ecritures.hash.
+        $hashes = hash_lignes((int) $compte['id'], $parse['lignes']);
+        $in = implode(',', array_fill(0, count($hashes), '?'));
+        $stmt = db()->prepare("SELECT COUNT(*) FROM ecritures WHERE hash IN ($in)");
+        $stmt->execute($hashes);
+        $nbDoublons = (int) $stmt->fetchColumn();
+    }
+    return [
+        'iban'         => $iban,
+        'compte'       => $compte,
+        'nomSuggere'   => $iban !== '' ? ('Compte PostFinance ' . substr($iban, -4)) : '',
+        'total'        => $total,
+        'nouvelles'    => $total - $nbDoublons,
+        'doublons'     => $nbDoublons,
+    ];
 }

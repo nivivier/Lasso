@@ -1,5 +1,5 @@
 <?php
-/** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */
+/** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */ /** @var array $spectacleMap */
 /** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
 /** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
 /** @var array $factures */ /** @var array $facturesDispo */
@@ -8,6 +8,10 @@ $isEdit = $id > 0;
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
 $vRaw = fn (string $k, $d = '') => (string) ($post[$k] ?? $evenement[$k] ?? $d);
 $retour = $isEdit ? '?p=evenement&id=' . (int) $id : '?p=evenements_liste';
+// Reporté sur les formulaires de cette page qui redirigent vers elle-même,
+// pour que le lien de retour contextuel (lien_retour_contextuel()) survive à
+// un enregistrement (voir redirect() dans lib/helpers.php).
+$depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 $ok = $_GET['ok'] ?? null;
 $errLigne = $_GET['errLigne'] ?? null;
 $errEmploye = $_GET['errEmploye'] ?? null;
@@ -31,8 +35,17 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
     $html = preselectionner_option($axeOpts, $selected ? (string) $selected : '');
     return '<select name="' . e($name) . '" class="' . e($class) . '"' . ($hidden ? ' hidden' : '') . '>' . $html . '</select>';
 };
+// Le spectacle déjà lié peut avoir gagné des enfants depuis (devenu un groupe
+// « artiste », non assignable) : on le garde visible dans le select pour ne pas
+// changer silencieusement l'événement au prochain enregistrement.
+$spectacleActuelId = (int) $vRaw('spectacle_id', '0');
+if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] === $spectacleActuelId)) {
+    if (isset($spectacleMap[$spectacleActuelId])) {
+        $spectacles[] = ['id' => $spectacleActuelId, 'nom' => spectacle_chemin($spectacleActuelId, $spectacleMap) . ' (groupe, non réassignable)'];
+    }
+}
 ?>
-<?= lien_retour('?p=evenements_liste', 'Événements') ?>
+<?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
     <h1><?= $isEdit ? "Modifier l'événement" : 'Nouvel événement' ?></h1>
     <?php if ($isEdit): ?>
@@ -51,7 +64,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
 <div class="card">
     <h2 class="mt-0">Informations</h2>
     <?php if ($ok === 'infos'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
-    <form method="post" action="?p=evenement<?= $isEdit ? '&id=' . (int) $id : '' ?>" class="form">
+    <form method="post" action="?p=evenement<?= $isEdit ? '&id=' . (int) $id : '' ?><?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= (int) $id ?>"><?php endif; ?>
 
@@ -121,7 +134,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
         <?= evenement_suisa_badge($evenement) ?>
     </div>
     <?php if ($ok === 'suisa'): ?><p class="ok flash">Suivi SUISA enregistré.</p><?php endif; ?>
-    <form method="post" action="?p=evenement_suisa" class="form">
+    <form method="post" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
@@ -151,7 +164,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
 <div class="card mt-22">
     <h2 class="mt-0">Comptabilité analytique</h2>
     <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
-    <form method="post" action="?p=evenement_axe_defaut" class="form">
+    <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <label><span>Axe par défaut <?= info_tip(
@@ -177,7 +190,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
             . "la fiche elle-même."
         ) ?></h2>
         <?php if ($employesDispo): ?>
-            <form method="post" action="?p=evenement_employe_lier" class="linked-add">
+            <form method="post" action="?p=evenement_employe_lier<?= $depuisQs ?>" class="linked-add">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $id ?>">
                 <select name="employe_id">
@@ -237,7 +250,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
                     ?>
                         <td class="epf-col-sm">
                             <?php if ($ligne): ?>
-                                <span class="epf-disp"><a href="?p=fiche&id=<?= (int) $ligne['fiche_id'] ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a></span>
+                                <span class="epf-disp"><a href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ligne['fiche_id'], 'evenement', $id)) ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a></span>
                             <?php endif; ?>
                             <select form="<?= e($formId) ?>" name="fiche_id" class="fiche-select-sm epf-editable"<?= $ligne ? ' hidden' : '' ?>>
                                 <option value="">— Créer une fiche (<?= e(mois_nom((int) substr($moisEvenement, 5, 2)) . ' ' . substr($moisEvenement, 0, 4)) ?>) —</option>
@@ -267,7 +280,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
                         </td>
                         <td class="num"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
                         <td class="epf-actions-cell">
-                            <form id="<?= e($formId) ?>" method="post" action="?p=evenement_ligne_ajouter">
+                            <form id="<?= e($formId) ?>" method="post" action="?p=evenement_ligne_ajouter<?= $depuisQs ?>">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="id" value="<?= (int) $id ?>">
                                 <input type="hidden" name="employe_id" value="<?= $eid ?>">
@@ -275,7 +288,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
                             <div class="epf-actions">
                                 <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"<?= $ligne ? '' : ' hidden' ?>><?= icon('pencil') ?></button>
                                 <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation"<?= $ligne ? ' hidden' : '' ?>><?= icon('save') ?></button>
-                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier" class="btn ghost btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier<?= $depuisQs ?>" class="btn ghost btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
                             </div>
                         </td>
                     <?php endif; ?>
@@ -302,12 +315,12 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
             <tbody>
             <?php foreach ($factures as $fa): ?>
                 <tr>
-                    <td><a href="?p=facture&id=<?= (int) $fa['id'] ?>"><?= $fa['numero'] !== '' ? e($fa['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
+                    <td><a href="<?= e(url_avec_retour('?p=facture&id=' . (int) $fa['id'], 'evenement', $id)) ?>"><?= $fa['numero'] !== '' ? e($fa['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
                     <td><?= e($fa['debiteur_nom']) ?></td>
                     <td class="num strong"><?= chf((float) $fa['montant_total']) ?></td>
                     <td><?= facturation_badge($fa) ?></td>
                     <td>
-                        <form method="post" action="?p=evenement_facture_delier" onsubmit="return confirm('Délier cette facture de l\'événement ?');">
+                        <form method="post" action="?p=evenement_facture_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cette facture de l\'événement ?');">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="facture_id" value="<?= (int) $fa['id'] ?>">
@@ -320,7 +333,7 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
         </table>
     <?php endif; ?>
     <?php if (module_actif('facturation') && $facturesDispo): ?>
-        <form method="post" action="?p=evenement_facture_lier" class="linked-add mt-18">
+        <form method="post" action="?p=evenement_facture_lier<?= $depuisQs ?>" class="linked-add mt-18">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
             <div class="cat-search facture-search">

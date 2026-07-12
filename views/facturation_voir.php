@@ -14,6 +14,9 @@ $libelleEcr = fn(array $e): string => date('d.m.Y', strtotime($e['date_op'])) . 
 $ecritureActuelleId = (int) ($f['ecriture_id'] ?? 0);
 $ecritureActuelle = array_values(array_filter($ecrituresLibres, fn($e) => (int) $e['id'] === $ecritureActuelleId));
 $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) : '';
+// Reporté sur les formulaires de cette page qui redirigent vers elle-même,
+// pour que le lien de retour contextuel survive à un enregistrement.
+$depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 ?>
 <?php if (($saved ?? null) === 'emise'): ?><p class="ok flash">Facture émise.</p><?php endif; ?>
 <?php if (($saved ?? null) === 'payee'): ?><p class="ok flash">Facture marquée comme payée.</p><?php endif; ?>
@@ -27,13 +30,13 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
     case 'emission': echo '<p class="err flash">L\'émission a échoué (numéro ou référence de paiement invalide). Réessayez.</p>'; break;
     case 'pdf':      echo '<p class="err flash">La génération du PDF a échoué (vérifiez l\'IBAN et l\'adresse du débiteur).</p>'; break;
 } ?>
-<?= lien_retour('?p=facturation_liste', 'Facturation') ?>
+<?= lien_retour_contextuel('?p=facturation_liste', 'Facturation') ?>
 <div class="page-head">
     <h1>Facture <?= $numeroAffiche ?></h1>
     <div class="head-actions">
         <?php if ($brouillon): ?>
             <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
-            <form method="post" action="?p=facture_emettre" class="d-inline" onsubmit="return confirm('Émettre cette facture ? Le numéro et la référence de paiement seront figés.');">
+            <form method="post" action="?p=facture_emettre<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Émettre cette facture ? Le numéro et la référence de paiement seront figés.');">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                 <button type="submit" class="btn"><?= icon('check') ?> <span class="lbl">Émettre</span></button>
@@ -49,14 +52,14 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
                 <a class="btn ghost" href="?p=facture_rappel&id=<?= (int) $f['id'] ?>" data-preview target="_blank"><?= icon('mail') ?> <span class="lbl">Lettre de rappel</span></a>
             <?php endif; ?>
             <?php if ($peutEmail): ?>
-                <form method="post" action="?p=facture_email" class="d-inline" onsubmit="return confirm('Envoyer cette facture par e-mail à <?= e($f['debiteur_email']) ?> ?');">
+                <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Envoyer cette facture par e-mail à <?= e($f['debiteur_email']) ?> ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
                 </form>
             <?php endif; ?>
             <?php if ($peutAnnuler): ?>
-                <form method="post" action="?p=facture_annuler" class="d-inline" onsubmit="return confirm('Annuler cette facture ?');">
+                <form method="post" action="?p=facture_annuler<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Annuler cette facture ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn danger">Annuler</button>
@@ -132,7 +135,7 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
 <?php if ($peutPayer || module_actif('evenements')): ?>
 <aside class="fiche-aside facture-aside">
     <?php if ($peutPayer): ?>
-    <form method="post" action="?p=facture_payee" class="paiement-form">
+    <form method="post" action="?p=facture_payee<?= $depuisQs ?>" class="paiement-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
         <h2>Paiement</h2>
@@ -175,27 +178,25 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
         foreach ($evenementsListe as $ev) {
             if ((int) $ev['id'] === (int) $f['evenement_id']) { $evenementActuel = $ev; break; }
         }
-        $evenementLabel = $evenementActuel
-            ? date('d.m.Y', strtotime($evenementActuel['date'])) . ($evenementActuel['spectacle_nom'] ? ' — ' . $evenementActuel['spectacle_nom'] : '') . ($evenementActuel['ville'] ? ' (' . $evenementActuel['ville'] . ')' : '')
-            : '';
+        $evenementLabel = $evenementActuel ? evenement_label_court($evenementActuel) : '';
     ?>
         <h2>Événement lié</h2>
         <div class="evenement-lie-disp">
             <?php if ($evenementActuel): ?>
-                <a class="muted small" href="?p=evenement&id=<?= (int) $f['evenement_id'] ?>"><?= e($evenementLabel) ?></a>
+                <a class="muted small" href="<?= e(url_avec_retour('?p=evenement&id=' . (int) $f['evenement_id'], 'facture', (int) $f['id'])) ?>"><?= e($evenementLabel) ?></a>
             <?php else: ?>
                 <span class="muted small">Aucun événement lié.</span>
             <?php endif; ?>
             <button type="button" class="row-edit-btn evenement-edit-btn" title="Modifier le lien"><?= icon('pencil') ?></button>
         </div>
-        <form method="post" action="?p=facture_evenement_lier" class="linked-add evenement-lie-form" hidden>
+        <form method="post" action="?p=facture_evenement_lier<?= $depuisQs ?>" class="linked-add evenement-lie-form" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
             <select name="evenement_id">
                 <option value="">— aucun —</option>
                 <?php foreach ($evenementsListe as $ev): ?>
                     <option value="<?= (int) $ev['id'] ?>" <?= (int) $f['evenement_id'] === (int) $ev['id'] ? 'selected' : '' ?>>
-                        <?= e(date('d.m.Y', strtotime($ev['date']))) ?><?= $ev['spectacle_nom'] ? ' — ' . e($ev['spectacle_nom']) : '' ?><?= $ev['ville'] ? ' (' . e($ev['ville']) . ')' : '' ?>
+                        <?= e(evenement_label_court($ev)) ?>
                     </option>
                 <?php endforeach; ?>
             </select>

@@ -34,9 +34,16 @@ body {
     color: var(--ink);
     background: var(--bg) url("fond.jpg");
     background-size:cover;
-    backdrop-filter:brightness(1.11) contrast(0.95);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    /* Pas de filter/backdrop-filter/transform ici : ces propriétés font de
+       <body> le containing block de tous ses descendants position:fixed
+       (barre de modification groupée, toasts .flash, .modal-overlay…),
+       qui se retrouvent alors positionnés par rapport à la hauteur totale
+       du document au lieu du viewport — invisibles hors écran sur toute
+       page plus haute que la fenêtre. Vérifié empiriquement : ce filtre
+       n'apportait de toute façon aucun effet visuel utile (il s'applique à
+       ce qui est *derrière* <body>, pas à son propre fond). */
 }
 
 /* Garantit que l'attribut HTML hidden fonctionne même sur les éléments avec display:flex/grid. */
@@ -252,7 +259,7 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 .row-field-prefix { font-size: 10px; color: var(--muted); }
 .row-edit-btn { background: none; border: none; padding: 2px 3px; cursor: pointer; color: var(--muted);
     opacity: 0; flex-shrink: 0; line-height: 0; border-radius: var(--radius-sm); transition: opacity .12s; }
-.cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn { opacity: 1; }
+.cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn, .row-field-disp:hover .row-edit-btn { opacity: 1; }
 .row-edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--primary); outline-offset: 1px; }
 .row-edit-btn svg { width: 12px; height: 12px; }
 /* Texte plus compact pour Date et Compte */
@@ -479,6 +486,22 @@ button:active, .btn:active { transform: translateY(1px); }
 .flash.flash-out { opacity: 0; transition: opacity .4s ease; }
 @keyframes flash-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 @media print { .flash { display: none; } }
+
+/* Bandeau « X ligne(s) modifiée(s) — Annuler » après une modification groupée
+   (voir _bulk_undo_flash.php) — même esprit visuel que .flash, mais reste
+   affiché 10 s (géré en JS, app.js) et porte un bouton interactif. */
+.bulk-undo-flash {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 200; display: flex; align-items: center; gap: 14px;
+    background: var(--teal-tint); color: var(--ok); border: 1px solid var(--teal);
+    padding: 10px 16px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
+    font-size: 14px; animation: flash-in .22s ease-out;
+}
+.bulk-undo-flash .link-btn {
+    background: none; border: none; padding: 0; color: var(--ok); font-weight: 700;
+    text-decoration: underline; cursor: pointer; font-size: 14px;
+}
+@media print { .bulk-undo-flash { display: none; } }
 .muted { color: var(--muted); }
 .small { font-size: 12.8px; }
 .tiny { font-size: 10.5px; }
@@ -529,6 +552,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .list .strong { font-weight: 700; color: var(--teal-d); }
 .col-brut { color: var(--primary); font-weight: 700; }   /* brut en mauve */
 .col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
+
+/* Fiche de salaire : aperçu « Coûts estimés » en direct (même code couleur que ci-dessus). */
+.couts-estimes { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 18px; }
+.ce-item { display: flex; flex-direction: column; gap: 2px; }
+.ce-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.ce-val { font-size: 20px; }
+.ce-net  { color: var(--teal-d); }
+.ce-brut { color: var(--primary); }
+.ce-cout { color: var(--ink); }
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
 .badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
@@ -924,7 +956,8 @@ abbr {
 .dnd-on .plan-row.editing .plan-edit { display: flex; }
 .dnd-on .plan-row.editing .plan-nom,
 .dnd-on .plan-row.editing .plan-edit-btn { display: none; }
-.plan-table tr.plan-groupe input[name="libelle"] { font-weight: 700; color: var(--ink); }
+.plan-table tr.plan-groupe input[name="libelle"],
+.plan-table tr.plan-groupe input[name="nom"] { font-weight: 700; color: var(--ink); }
 .plan-parent { flex: 0 0 auto; flex-direction: row !important; align-items: center; gap: 5px; margin-bottom: 0 !important; font-size: 12px; color: var(--muted); font-weight: 500; }
 .plan-parent select { margin-bottom: 0; max-width: 15rem; }
 .plan-edit { flex: 1 1 auto; gap: 8px; }

@@ -1,7 +1,20 @@
-<?php /** @var ?array $spectacle */ /** @var ?string $err */
+<?php /** @var ?array $spectacle */ /** @var ?string $err */ /** @var array $map */
 $v = fn (string $k, $d = '') => e((string) ($spectacle[$k] ?? $d));
 $isEdit = !empty($spectacle['id']);
 $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
+
+// Options de parent (artiste) : tous les spectacles sauf soi-même et ses descendants.
+$exclus = $isEdit ? array_merge([(int) $spectacle['id']], spectacle_descendants((int) $spectacle['id'], $map)) : [];
+$parentActuel = plan_pid($spectacle['parent_id'] ?? null) ?: null;
+$parentOptions = '<option value="">— Aucun (spectacle racine) —</option>';
+foreach (plan_liste_ordonnee($map) as $r) {
+    $rid = (int) $r['id'];
+    if (in_array($rid, $exclus, true)) {
+        continue;
+    }
+    $parentOptions .= '<option value="' . $rid . '"' . ($parentActuel === $rid ? ' selected' : '') . '>'
+        . e(spectacle_chemin($rid, $map)) . '</option>';
+}
 ?>
 <?= lien_retour('?p=spectacles', evenements_terme_spectacle()) ?>
 <div class="page-head">
@@ -14,6 +27,12 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
     <label>Nom <input name="nom" value="<?= $v('nom') ?>" required></label>
+    <label><span>Spectacle parent (artiste) <?= info_tip(
+        "Optionnel : rattacher ce spectacle sous un autre (par ex. un artiste) pour l'imbriquer dans l'arbre. "
+        . "Un spectacle qui a des enfants n'est plus assignable directement à un événement."
+    ) ?></span>
+        <select name="parent_id"><?= $parentOptions ?></select>
+    </label>
     <label>Notes (optionnel)
         <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
     </label>

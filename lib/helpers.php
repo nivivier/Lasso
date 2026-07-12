@@ -1,6 +1,31 @@
 <?php
 // Fonctions utilitaires : session, auth, CSRF, formatage, rendu.
 
+// Validation stricte d'une date « Y-m-d » : DateTime::createFromFormat() seul
+// accepterait silencieusement une date invalide comme "2026-02-30" en la
+// « roulant » au 2 mars — checkdate() la rejette explicitement. Partagée entre
+// lib/evenements.php (dates d'événement) et lib/compta.php (dates camt.053).
+function date_valide(string $s): bool
+{
+    return (bool) preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $s, $m)
+        && checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
+}
+
+// Crée un élément DOM namespacé avec texte optionnel — factorise le patron
+// répété par les deux générateurs XML du dépôt (build_certificat_xml() pour
+// l'eCS CSI, compta_generer_camt053() pour le relevé bancaire). $prefix est
+// préfixé devant $name si fourni (ex. 'sd' → <sd:Nom>), sinon l'élément est
+// créé dans le namespace par défaut (sans préfixe).
+function dom_el(DOMDocument $doc, string $ns, string $name, ?string $text = null, ?string $prefix = null): DOMElement
+{
+    $qname = $prefix !== null ? $prefix . ':' . $name : $name;
+    $n = $doc->createElementNS($ns, $qname);
+    if ($text !== null && $text !== '') {
+        $n->appendChild($doc->createTextNode($text));
+    }
+    return $n;
+}
+
 function is_https(): bool
 {
     return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -140,6 +165,13 @@ function login_clear_failures(string $ip): void
 
 function redirect(string $route, array $params = []): void
 {
+    // Propage ?depuis=type:id (lien de retour contextuel, voir lien_retour_contextuel())
+    // s'il était présent sur la requête courante et que l'appelant ne l'a pas déjà
+    // explicitement fourni — pour qu'il survive à un POST-puis-redirection vers la
+    // même page (ex. enregistrer la carte « Informations » d'un événement).
+    if (!isset($params['depuis']) && ($_GET['depuis'] ?? '') !== '') {
+        $params['depuis'] = $_GET['depuis'];
+    }
     $url = '?p=' . urlencode($route);
     foreach ($params as $k => $v) {
         $url .= '&' . urlencode($k) . '=' . urlencode((string) $v);
@@ -456,6 +488,118 @@ function avs_valide(string $avs): bool
 function lien_retour(string $href, string $label): string
 {
     return '<a class="back-link" href="' . e($href) . '">' . icon('arrow-left') . ' ' . e($label) . '</a>';
+}
+
+// Libellé court d'un événement (date + spectacle + ville), utilisé partout
+// où l'on affiche un lien vers un événement sans reprendre toute la fiche.
+function evenement_label_court(array $ev): string
+{
+    $l = date('d.m.Y', strtotime((string) $ev['date']));
+    if (!empty($ev['spectacle_nom'])) $l .= ' — ' . $ev['spectacle_nom'];
+    if (!empty($ev['ville']))         $l .= ' (' . $ev['ville'] . ')';
+    return $l;
+}
+
+// Ajoute (ou complète) le paramètre ?depuis=type:id (ou ?depuis=type seul
+// pour une cible statique sans id, ex. 'dashboard'/'compta_ecritures') à une
+// URL, pour que la page cible affiche un lien de retour contextuel (voir
+// lien_retour_contextuel()).
+function url_avec_retour(string $href, string $type, ?int $id = null): string
+{
+    $sep = str_contains($href, '?') ? '&' : '?';
+    return $href . $sep . 'depuis=' . rawurlencode($id !== null ? $type . ':' . $id : $type);
+}
+
+// Lien « retour » contextuel : si la page a été atteinte via un lien croisé
+// inter-module portant ?depuis=type:id (voir url_avec_retour()), pointe vers
+// cet objet précis avec son libellé actuel plutôt que vers la liste générique.
+function lien_retour_contextuel(string $defautHref, string $defautLabel): string
+{
+    $depuis = (string) ($_GET['depuis'] ?? '');
+    // Cibles sans id propre (page/liste, pas un objet précis) — le filtrage
+    // actif (compte/année/catégorie…) est repris automatiquement au retour
+    // via filtre_persistant() (session), pas besoin de l'encoder dans l'URL.
+    $statiques = [
+        'dashboard'        => ['?p=resumes', 'Tableau de bord'],
+        'compta_ecritures' => ['?p=compta_ecritures', 'Écritures'],
+    ];
+    if (isset($statiques[$depuis])) {
+        return lien_retour($statiques[$depuis][0], $statiques[$depuis][1]);
+    }
+    if (preg_match('/^(facture|evenement|fiche|employe):(\d+)$/', $depuis, $m)) {
+        $id = (int) $m[2];
+        if ($m[1] === 'employe') {
+            $stmt = db()->prepare('SELECT prenom, nom FROM employes WHERE id = ?');
+            $stmt->execute([$id]);
+            $emp = $stmt->fetch();
+            if ($emp) {
+                return lien_retour('?p=employe_voir&id=' . $id, $emp['prenom'] . ' ' . $emp['nom']);
+            }
+        } elseif ($m[1] === 'facture') {
+            $stmt = db()->prepare('SELECT numero FROM factures WHERE id = ?');
+            $stmt->execute([$id]);
+            $numero = $stmt->fetchColumn();
+            if ($numero !== false) {
+                return lien_retour('?p=facture&id=' . $id, $numero !== '' ? 'Facture ' . $numero : 'Facture (brouillon)');
+            }
+        } elseif ($m[1] === 'evenement') {
+            $stmt = db()->prepare('SELECT e.*, s.nom AS spectacle_nom FROM evenements e
+                                    LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
+            $stmt->execute([$id]);
+            $ev = $stmt->fetch();
+            if ($ev) {
+                return lien_retour('?p=evenement&id=' . $id, evenement_label_court($ev));
+            }
+        } elseif ($m[1] === 'fiche') {
+            $stmt = db()->prepare('SELECT mois, annee, employe_nom FROM fiches WHERE id = ?');
+            $stmt->execute([$id]);
+            $f = $stmt->fetch();
+            if ($f) {
+                return lien_retour('?p=fiche&id=' . $id, 'Fiche ' . mois_nom((int) $f['mois']) . ' ' . $f['annee'] . ' — ' . $f['employe_nom']);
+            }
+        }
+    }
+    return lien_retour($defautHref, $defautLabel);
+}
+
+// Mémorise l'état « avant » de lignes modifiées en masse (voir bulk_undo_appliquer()),
+// pour permettre une annulation en un clic (lien « Annuler » affiché 10 s + raccourci
+// Ctrl-Z/Cmd+Z). Portée volontairement limitée aux modifications de colonnes (UPDATE) —
+// les suppressions en masse ne sont pas couvertes (état bien plus lourd à restaurer
+// fidèlement : lignes filles, contraintes, etc.).
+function bulk_undo_memoriser(string $table, array $ids, array $colonnes, string $route, array $retour = []): void
+{
+    if (!$ids) {
+        return;
+    }
+    $in   = implode(',', array_fill(0, count($ids), '?'));
+    $cols = implode(',', array_map(fn(string $c) => "\"$c\"", $colonnes));
+    $stmt = db()->prepare("SELECT id, $cols FROM \"$table\" WHERE id IN ($in)");
+    $stmt->execute($ids);
+    $_SESSION['bulk_undo'] = [
+        'table' => $table, 'colonnes' => $colonnes, 'rows' => $stmt->fetchAll(),
+        'route' => $route, 'retour' => $retour, 'expire' => time() + 300,
+    ];
+}
+
+// Restaure l'état mémorisé par bulk_undo_memoriser(), si présent et pas expiré.
+// Renvoie [route, retour] pour la redirection vers la page d'origine, ou null si
+// rien à annuler (déjà utilisé, expiré, ou aucune action en attente).
+function bulk_undo_appliquer(): ?array
+{
+    $u = $_SESSION['bulk_undo'] ?? null;
+    unset($_SESSION['bulk_undo']);
+    if (!$u || $u['expire'] < time() || !$u['rows']) {
+        return null;
+    }
+    $sets = implode(',', array_map(fn(string $c) => "\"$c\" = ?", $u['colonnes']));
+    $stmt = db()->prepare("UPDATE \"{$u['table']}\" SET $sets WHERE id = ?");
+    foreach ($u['rows'] as $row) {
+        $vals = array_map(fn(string $c) => $row[$c], $u['colonnes']);
+        $vals[] = $row['id'];
+        $stmt->execute($vals);
+    }
+    return ['route' => $u['route'], 'retour' => $u['retour']];
 }
 
 // Génère le HTML autonome d'une fiche pour un envoi par e-mail (CSS embarqué).

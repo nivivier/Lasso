@@ -1,5 +1,6 @@
-<?php /** @var array $annees */ /** @var array $anneesCompta */ ?>
+<?php /** @var array $annees */ /** @var array $anneesCompta */ /** @var array $comptesCamt */ /** @var bool $errCamt */ ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
+<?php if ($errCamt): ?><p class="err flash">Choisissez un compte bancaire avec IBAN renseignée.</p><?php endif; ?>
 
 <div class="card form mb-22">
     <h2 class="mt-0">Sauvegarde complète</h2>
@@ -27,6 +28,34 @@
             </select>
         </label>
         <button type="submit"><?= icon('download') ?> Télécharger le CSV</button>
+    </form>
+    <?php endif; ?>
+</div>
+
+<div class="card form mb-22">
+    <h2 class="mt-0">Écritures comptables — CAMT.053</h2>
+    <p class="muted small mb-0">Exporte le relevé d'un compte bancaire au format bancaire normalisé <strong>ISO 20022 camt.053</strong> (XML), pour le réimporter dans un autre logiciel comptable (ou dans Lasso lui-même, voir Importer). Une seule IBAN par relevé : choisissez le compte.</p>
+    <?php if (!$comptesCamt): ?>
+        <div class="form-actions"><p class="muted mb-0">Aucun compte bancaire avec IBAN renseignée.</p></div>
+    <?php else: ?>
+    <form method="get" action="index.php" class="form-actions">
+        <input type="hidden" name="p" value="compta_ecritures_camt053">
+        <label class="inline">Compte
+            <select name="compte">
+                <?php foreach ($comptesCamt as $c): ?>
+                    <option value="<?= (int) $c['id'] ?>"><?= e($c['libelle']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label class="inline">Année
+            <select name="annee">
+                <option value="0">Toutes les années</option>
+                <?php foreach ($anneesCompta as $a): ?>
+                    <option value="<?= $a ?>"><?= $a ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <button type="submit"><?= icon('download') ?> Télécharger le XML</button>
     </form>
     <?php endif; ?>
 </div>

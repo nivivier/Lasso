@@ -162,7 +162,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                     $estAnnule = $ev['statut'] === 'annule';
                     $dateClasse = 'statut-date-' . evenement_statut_couleur($ev) . ($estAnnule ? ' text-strike' : '');
                 ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?>" title="<?= e(evenement_statut_libelle((string) $ev['statut'])) ?>">
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?>&depuis=dashboard" title="<?= e(evenement_statut_libelle((string) $ev['statut'])) ?>">
                         <td class="<?= $dateClasse ?>"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
                         <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
                         <td class="muted small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $lieu !== '' ? e($lieu) : '—' ?><?= $drapeau !== '' ? ' ' . $drapeau : '' ?></td>
@@ -198,7 +198,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                 </thead>
                 <tbody>
                 <?php $totAPayer = 0; foreach ($aPayer as $f): $totAPayer += (float) $f['salaire_net']; ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>">
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
                         <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
                         <td><?= e($f['employe_nom']) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
@@ -225,7 +225,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                 </thead>
                 <tbody>
                 <?php $totEmises = 0; foreach ($facturesEmises as $fac): $totEmises += (float) $fac['montant_total']; ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>">
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard">
                         <td><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
                         <td><?= e($fac['debiteur_nom']) ?></td>
                         <td><?= facturation_badge($fac) ?></td>

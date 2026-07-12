@@ -2,6 +2,23 @@
 // views/layout.php. Garder ce fichier minimal : une fonction ici doit être
 // utilisée par au moins deux vues, sinon elle reste locale à sa vue.
 
+// Bandeau « X ligne(s) modifiée(s) — Annuler » affiché après une modification
+// groupée (voir bulk_undo_memoriser()/bulk_undo_appliquer() dans lib/helpers.php,
+// inséré par views/_bulk_undo_flash.php). Se masque après 10 s ; Ctrl-Z/Cmd+Z
+// déclenche la même annulation tant qu'il reste visible.
+(function () {
+    const flash = document.getElementById('bulk-undo-flash');
+    if (!flash) return;
+    const timer = setTimeout(() => { flash.hidden = true; }, 10000);
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !flash.hidden) {
+            e.preventDefault();
+            clearTimeout(timer);
+            flash.querySelector('form').requestSubmit();
+        }
+    });
+})();
+
 // Normalise une chaîne pour une recherche insensible à la casse et aux accents.
 function lassoNorm(s) {
     return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -70,3 +87,25 @@ function lassoInitCatSearch(wrap, opts = {}) {
         });
     });
 }
+
+// Boutons « Nouveau »/« Annuler » qui affichent/masquent une ligne d'ajout
+// (id ciblé par data-show/data-hide). Couvre compta_plan.php, spectacles.php
+// et taux_horaires.php. data-focus (optionnel, sur le bouton data-show) donne
+// le sélecteur du champ à focaliser à l'ouverture ; défaut : premier champ
+// texte non caché. Délégué sur document : ce script est chargé dans <head>,
+// avant que ces boutons n'existent dans le DOM.
+document.addEventListener('click', e => {
+    const show = e.target.closest('[data-show]');
+    if (show) {
+        const t = document.getElementById(show.dataset.show);
+        if (!t) return;
+        t.hidden = false;
+        t.querySelector(show.dataset.focus || 'input:not([type=hidden])')?.focus();
+        return;
+    }
+    const hide = e.target.closest('[data-hide]');
+    if (hide) {
+        const t = document.getElementById(hide.dataset.hide);
+        if (t) t.hidden = true;
+    }
+});

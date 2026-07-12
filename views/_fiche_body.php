@@ -13,7 +13,7 @@ $hasAxe = empty($impression) && !empty($axes);
 // pour éviter les insertions DOM qui causent des ghost-clicks sur mobile.
 // Petit lien vers l'événement d'origine d'une ligne de prestation (ajoutée
 // depuis la carte « Employés » de la fiche événement) — jamais à l'impression.
-$evenementLienHtml = function (array $l) use ($impression): string {
+$evenementLienHtml = function (array $l) use ($impression, $f): string {
     if (empty($l['evenement_id']) || !empty($impression) || !module_actif('evenements')) {
         return '';
     }
@@ -21,7 +21,7 @@ $evenementLienHtml = function (array $l) use ($impression): string {
     if ($label === '') {
         $label = date('d.m.Y', strtotime((string) $l['evenement_date']));
     }
-    return ' <a class="muted small" href="?p=evenement&id=' . (int) $l['evenement_id'] . '">(' . e($label) . ')</a>';
+    return ' <a class="muted small" href="' . e(url_avec_retour('?p=evenement&id=' . (int) $l['evenement_id'], 'fiche', (int) $f['id'])) . '">(' . e($label) . ')</a>';
 };
 
 $axeCellHtml = function (array $l) use ($axes): string {

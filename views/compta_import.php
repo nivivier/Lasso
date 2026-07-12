@@ -6,19 +6,24 @@
     <h1>Importer</h1>
 </div>
 <?php if ($okDel): ?><p class="ok flash">Import supprimé.</p><?php endif; ?>
-<?php if ($msg): ?><p class="<?= $msg[0] === 'ok' ? 'ok' : 'err' ?>"><?= e($msg[1]) ?></p><?php endif; ?>
 
 <div class="card form">
-    <h2>Importer un export PostFinance</h2>
-    <p class="muted small">Téléversez un fichier CSV de mouvements PostFinance. Le compte bancaire est reconnu automatiquement par son IBAN — <strong>s'il n'existe pas encore, il est créé automatiquement</strong> (vous pourrez le renommer dans « Comptes bancaires »). Les doublons sont ignorés : vous pouvez réimporter ou ajouter des périodes qui se chevauchent sans risque. Les règles de lettrage sont appliquées automatiquement après l'import.</p>
+    <h2>Importer un relevé bancaire</h2>
+    <p class="muted small">Téléversez un export PostFinance (CSV) ou un relevé <strong>ISO 20022 camt.053</strong> (XML). Le compte bancaire est reconnu automatiquement par son IBAN — <strong>s'il n'existe pas encore, vous pourrez lui donner un nom</strong> après avoir simulé l'import. Les doublons sont ignorés : vous pouvez réimporter ou ajouter des périodes qui se chevauchent sans risque. Les règles de lettrage sont appliquées automatiquement après l'import.</p>
     <form method="post" action="?p=compta_import" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="add-row">
-            <label>Fichier CSV <input type="file" name="fichier" accept=".csv,text/csv" required></label>
-            <button type="submit"><?= icon('import') ?> Importer</button>
+            <label>Fichier (CSV ou XML) <input type="file" name="fichier" accept=".csv,text/csv,.xml,application/xml,text/xml" required></label>
         </div>
+        <div class="form-actions">
+            <button type="submit" name="simuler" value="1" class="btn ghost"><?= icon('bar-chart') ?> Simuler</button>
+            <button type="submit" name="appliquer" value="1" onclick="return confirm('Importer réellement ces écritures ?');"><?= icon('import') ?> Importer directement</button>
+        </div>
+        <p class="muted small">« Simuler » montre ce qui serait importé (et permet de nommer un nouveau compte) sans rien enregistrer.</p>
     </form>
 </div>
+
+<?php $actionUrl = '?p=compta_import'; require __DIR__ . '/_import_ecritures_preview.php'; ?>
 
 <?php if ($imports): ?>
 <div class="card">

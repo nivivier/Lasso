@@ -443,11 +443,23 @@ function route_taux_horaires(): void
             }
         } elseif ($section === 'del') {
             db()->prepare('DELETE FROM taux_horaires WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+        } elseif ($section === 'th_rename') {
+            $libelle = trim($_POST['th_libelle'] ?? '');
+            if ($libelle !== '') {
+                db()->prepare('UPDATE taux_horaires SET libelle = ? WHERE id = ?')
+                    ->execute([$libelle, (int) ($_POST['id'] ?? 0)]);
+            }
         } elseif ($section === 'unite_add') {
             $libelle = trim($_POST['u_libelle'] ?? '');
             $heures  = (float) str_replace(',', '.', $_POST['u_heures'] ?? '0');
             if ($libelle !== '' && $heures > 0) {
                 db()->prepare('INSERT INTO unites (libelle, heures) VALUES (?, ?)')->execute([$libelle, $heures]);
+            }
+        } elseif ($section === 'unite_rename') {
+            $libelle = trim($_POST['u_libelle'] ?? '');
+            if ($libelle !== '') {
+                db()->prepare('UPDATE unites SET libelle = ? WHERE id = ?')
+                    ->execute([$libelle, (int) ($_POST['id'] ?? 0)]);
             }
         } elseif ($section === 'unite_del') {
             db()->prepare('DELETE FROM unites WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
@@ -473,7 +485,15 @@ function route_export(): void
     require_login();
     $annees = db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN);
     $anneesCompta = array_map('intval', db()->query("SELECT DISTINCT substr(date_op,1,4) FROM ecritures ORDER BY 1 DESC")->fetchAll(PDO::FETCH_COLUMN));
-    render('export', ['annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta], 'Exporter les données');
+    // camt.053 est un format mono-compte (une IBAN par relevé) — seuls les
+    // comptes avec IBAN renseignée sont proposés.
+    $comptesCamt = module_actif('compta')
+        ? db()->query("SELECT id, libelle FROM comptes_bancaires WHERE trim(iban) <> '' ORDER BY ordre, libelle")->fetchAll()
+        : [];
+    render('export', [
+        'annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta, 'comptesCamt' => $comptesCamt,
+        'errCamt' => ($_GET['err'] ?? '') === 'camt_compte',
+    ], 'Exporter les données');
 }
 
 // Import de fiches de salaire depuis un fichier JSON (format d'export, type
@@ -858,9 +878,10 @@ function route_fiche_new(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
     $evenements   = evenements_pour_ligne();
+    $tauxData     = taux_pour_annee_js();
     $renderForm = fn($err) => render('fiche_form', [
         'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
-        'evenements' => $evenements, 'err' => $err, 'post' => $_POST,
+        'evenements' => $evenements, 'err' => $err, 'post' => $_POST, 'tauxData' => $tauxData,
         'edit_mode' => isset($_POST['fiche_id']), 'fiche_id' => (int) ($_POST['fiche_id'] ?? 0),
     ], 'Nouvelle fiche');
 
@@ -869,7 +890,7 @@ function route_fiche_new(): void
         $pre = isset($_GET['employe_id']) ? ['employe_id' => (int) $_GET['employe_id']] : null;
         render('fiche_form', [
             'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
-            'evenements' => $evenements, 'err' => null, 'post' => $pre,
+            'evenements' => $evenements, 'err' => null, 'post' => $pre, 'tauxData' => $tauxData,
         ], 'Nouvelle fiche');
         return;
     }
@@ -1048,14 +1069,7 @@ function build_certificat_xml(int $annee, ?int $employeId): string
     $NS  = 'https://www.elohnausweis-ssk.ch/de/assets/documents/SalaryDeclarationElohnOnline.xsd';
     $doc = new DOMDocument('1.0', 'UTF-8');
 
-    // Crée un élément <sd:Nom> avec texte optionnel.
-    $el = function (string $name, ?string $text = null) use ($doc, $NS): DOMElement {
-        $n = $doc->createElementNS($NS, 'sd:' . $name);
-        if ($text !== null && $text !== '') {
-            $n->appendChild($doc->createTextNode($text));
-        }
-        return $n;
-    };
+    $el = fn(string $name, ?string $text = null): DOMElement => dom_el($doc, $NS, $name, $text, 'sd');
 
     $root = $el('SalaryDeclaration');
     $root->setAttribute('schemaVersion', '0.0');
@@ -1343,6 +1357,7 @@ function route_fiche_edit(): void
     render('fiche_form', [
         'employes' => $employes, 'tauxHoraires' => $tauxHoraires, 'unites' => $unites, 'axes' => $axes,
         'evenements' => $evenements, 'err' => null, 'post' => $postData, 'edit_mode' => true, 'fiche_id' => $id,
+        'tauxData' => taux_pour_annee_js(),
         'saved' => isset($_GET['success']), // reste sur la page de modification après Enregistrer
     ], 'Modifier la fiche');
 }
