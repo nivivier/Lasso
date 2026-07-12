@@ -30,6 +30,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   reconnu comme solde d'ouverture sur un relevé qui n'est pas le premier.
 - Plusieurs corrections identifiées lors d'une revue de code du diff depuis
   1.2.3 (dates, formats, cas limites) ainsi qu'un nettoyage de code mort.
+- Modification groupée « Modifier l'axe » (Écritures) : n'affichait aucun
+  message de confirmation ni possibilité d'annuler, contrairement aux autres
+  actions groupées — annulation désormais prise en charge pour ce cas aussi.
+- Ctrl+Z/Cmd+Z (annulation d'une modification groupée) cessait de fonctionner
+  dès la disparition du bandeau de confirmation (10 s), alors que l'annulation
+  reste possible côté serveur pendant 5 minutes.
+- Lien de retour contextuel manquant sur deux parcours croisés : facture →
+  débiteur et fiche de salaire → employé (revenaient toujours à la liste
+  générique plutôt qu'à la page d'origine).
 
 ### Modifié
 - Nettoyage interne : `dom_el()` (helpers.php) factorise la création
@@ -40,6 +49,8 @@ puis sont promues sur le canal **stable** en figeant une version.
   comptable, spectacles, salaires horaires), avec délégation d'événements
   sur `document` (le script étant chargé dans `<head>`, avant les boutons
   concernés).
+- Message « Modification annulée » (après un Ctrl+Z) affiché dans un bandeau
+  orange, distinct du bandeau vert de confirmation initiale.
 
 ## [1.2.3] — 2026-07-11
 
