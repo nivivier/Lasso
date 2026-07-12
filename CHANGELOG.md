@@ -7,6 +7,40 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.2.4] — 2026-07-12
+
+### Ajouté
+- Salaires horaires : renommage inline (crayon).
+- Import de compte bancaire : IBAN inconnu → demande le nom du compte plutôt
+  que de bloquer l'import.
+- Import d'écritures : étape « Simuler » (dry-run) affichant un aperçu avant
+  import définitif.
+- Navigation : lien de retour contextuel (revient à la page d'origine, pas
+  systématiquement à la liste).
+- Fiche de salaire : coûts estimés recalculés en direct pendant la saisie.
+- Modification groupée : annulation de la dernière action (bulk undo).
+- Spectacles : hiérarchie artiste › spectacle, tri par artiste.
+- Comptabilité : export et import CAMT.053 (relevé bancaire ISO 20022).
+
+### Corrigé
+- Import CAMT.053 : `registerXPathNamespace()` ne se propageant pas aux
+  nœuds enfants retournés par `xpath()`, le préfixe devait être ré-enregistré
+  sur chaque nœud avant une requête XPath relative.
+- Import CAMT.053 : le solde de continuation (code `PRCD`) n'était pas
+  reconnu comme solde d'ouverture sur un relevé qui n'est pas le premier.
+- Plusieurs corrections identifiées lors d'une revue de code du diff depuis
+  1.2.3 (dates, formats, cas limites) ainsi qu'un nettoyage de code mort.
+
+### Modifié
+- Nettoyage interne : `dom_el()` (helpers.php) factorise la création
+  d'éléments DOM namespacés, remplaçant les closures dupliquées des
+  générateurs XML eLohnausweis et camt.053. `date_valide()` unifié entre
+  `evenements.php` et `compta.php`. Motif JS d'affichage/masquage des lignes
+  d'ajout (`data-show`/`data-hide`) factorisé dans `assets/app.js` (compte
+  comptable, spectacles, salaires horaires), avec délégation d'événements
+  sur `document` (le script étant chargé dans `<head>`, avant les boutons
+  concernés).
+
 ## [1.2.3] — 2026-07-11
 
 ### Corrigé
