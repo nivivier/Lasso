@@ -7,6 +7,17 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.2.5] — 2026-07-12
+
+### Corrigé
+- Export public JSON/iCal filtré par `spectacle_id` : un spectacle-groupe
+  (artiste) n'étant jamais assigné directement à un événement, l'URL
+  d'export d'un artiste était toujours vide. Inclut désormais les
+  événements de ses feuilles (sous-spectacles).
+
+### Modifié
+- Page Spectacles : suppression de la card autour du tableau.
+
 ## [1.2.4] — 2026-07-12
 
 ### Ajouté
