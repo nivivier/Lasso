@@ -47,7 +47,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <button type="button" class="btn ghost btn-sm" data-hide="spectacle-add"><?= icon('x') ?> Annuler</button>
     </form>
 <?php else: ?>
-<div class="card form" id="spectacles-card">
+<div class="form" id="spectacles-card">
     <table class="list mb-16 plan-table spectacles-table">
         <thead>
             <tr><th></th><th class="num">Confirmés</th><th class="num">En option</th><th class="num">Annulés</th><th></th></tr>

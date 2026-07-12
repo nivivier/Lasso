@@ -194,6 +194,12 @@ deux URLs générales, un lien « Copier l'URL » par spectacle dans la liste de
 spectacles (`spectacle_id` pré-rempli, jeton déjà inclus). Régénérer le jeton global
 invalide donc aussi toutes les URLs par spectacle en une fois.
 
+Si `spectacle_id` désigne un **spectacle-groupe** (artiste — voir §hiérarchie des
+spectacles), l'export inclut aussi les événements de ses **feuilles** (sous-spectacles) :
+un groupe n'est jamais assigné directement à un événement, donc sans cette agrégation
+l'URL d'un artiste serait toujours vide. Chaque événement conserve son propre nom de
+spectacle (`spectacle`/`SUMMARY`), pas celui du groupe.
+
 ### Jeton d'accès
 
 - Nouveau paramètre `evenements_export_token` : chaîne aléatoire (ex.

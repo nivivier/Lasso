@@ -359,7 +359,11 @@ function evenement_export_donnees(array $ev): array
 }
 
 // Liste filtrée/formatée des événements exposables, triée par date. $spectacleId
-// optionnel restreint l'export à un seul spectacle (point d'accès dédié, §8).
+// optionnel restreint l'export à un spectacle (point d'accès dédié, §8) — s'il
+// s'agit d'un spectacle-groupe (artiste), inclut aussi les événements de ses
+// feuilles (un groupe n'est jamais assigné directement à un événement, voir
+// spectacle_assignable()) : sans ça, l'URL d'export d'un artiste serait toujours
+// vide.
 function evenements_a_exporter(?int $spectacleId = null): array
 {
     $sql = "SELECT e.*, s.nom AS spectacle_nom FROM evenements e
@@ -367,8 +371,10 @@ function evenements_a_exporter(?int $spectacleId = null): array
             WHERE e.visibilite <> 'non_repertorie' AND e.statut <> 'option'";
     $params = [];
     if ($spectacleId) {
-        $sql .= ' AND e.spectacle_id = ?';
-        $params[] = $spectacleId;
+        $ids = array_merge([$spectacleId], spectacle_descendants($spectacleId, spectacle_map()));
+        $in  = implode(',', array_fill(0, count($ids), '?'));
+        $sql .= " AND e.spectacle_id IN ($in)";
+        $params = array_merge($params, $ids);
     }
     $sql .= ' ORDER BY e.date';
     $stmt = db()->prepare($sql);
