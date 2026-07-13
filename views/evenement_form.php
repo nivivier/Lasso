@@ -319,6 +319,8 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                 <strong><?= e($organisateur['nom']) ?></strong>
                 <?php if ($adrOrg !== ''): ?><span class="muted small"> — <?= e($adrOrg) ?></span><?php endif; ?>
                 <?php if ($organisateur['email']): ?><span class="muted small"> — <?= e($organisateur['email']) ?></span><?php endif; ?>
+                <?php if ($organisateur['telephone']): ?><span class="muted small"> — <?= e($organisateur['telephone']) ?></span><?php endif; ?>
+                <?php if ($organisateur['personne_contact']): ?><span class="muted small"> — <?= e($organisateur['personne_contact']) ?></span><?php endif; ?>
             </span>
             <a class="btn ghost btn-sm" href="?p=debiteur&id=<?= (int) $organisateur['id'] ?>">Voir la fiche</a>
             <form method="post" action="?p=evenement_organisateur_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cet organisateur ?');">
@@ -359,6 +361,8 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             <label>Localité <input name="org_adresse_localite"></label>
             <label>Pays <input name="org_adresse_pays" value="Suisse"></label>
             <label>E-mail (optionnel) <input name="org_email" type="email"></label>
+            <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
+            <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
         </div>
     </form>
 </div>

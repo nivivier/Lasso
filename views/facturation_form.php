@@ -115,6 +115,10 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
             <label>Pays <input name="nd_adresse_pays" value="<?= $pv('nd_adresse_pays', 'Suisse') ?>"></label>
             <label>E-mail (optionnel) <input name="nd_email" type="email" value="<?= $pv('nd_email') ?>"></label>
         </div>
+        <div class="grid2">
+            <label>Téléphone (optionnel) <input name="nd_telephone" type="tel" value="<?= $pv('nd_telephone') ?>"></label>
+            <label>Personne de contact (optionnel) <input name="nd_personne_contact" value="<?= $pv('nd_personne_contact') ?>"></label>
+        </div>
     </div>
 
     <h3 class="sub">Lignes <?= info_tip('Description, quantité et prix unitaire. Axe analytique optionnel, par ligne.') ?></h3>

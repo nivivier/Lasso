@@ -308,6 +308,7 @@ function run_migrations(PDO $pdo): void
         29 => 'migration_29', // spectacles.parent_id / ordre : hiérarchie (imbrication façon plan comptable)
         30 => 'migration_30', // paramètre suisa_delai_abandon_mois (statut SUISA « abandonné »)
         31 => 'migration_31', // evenements.organisateur_debiteur_id : lien vers le débiteur organisateur
+        32 => 'migration_32', // debiteurs.telephone / personne_contact
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1013,6 +1014,17 @@ function migration_31(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
     if (!in_array('organisateur_debiteur_id', $cols, true)) {
         $pdo->exec('ALTER TABLE evenements ADD COLUMN organisateur_debiteur_id INTEGER REFERENCES debiteurs(id) ON DELETE SET NULL');
+    }
+}
+
+function migration_32(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(debiteurs)')->fetchAll(), 'name');
+    if (!in_array('telephone', $cols, true)) {
+        $pdo->exec("ALTER TABLE debiteurs ADD COLUMN telephone TEXT NOT NULL DEFAULT ''");
+    }
+    if (!in_array('personne_contact', $cols, true)) {
+        $pdo->exec("ALTER TABLE debiteurs ADD COLUMN personne_contact TEXT NOT NULL DEFAULT ''");
     }
 }
 

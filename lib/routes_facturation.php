@@ -508,6 +508,8 @@ function route_debiteur(): void
             'adresse_localite' => trim($_POST['adresse_localite'] ?? ''),
             'adresse_pays'     => trim($_POST['adresse_pays'] ?? '') ?: 'Suisse',
             'email'            => trim($_POST['email'] ?? ''),
+            'telephone'        => trim($_POST['telephone'] ?? ''),
+            'personne_contact' => trim($_POST['personne_contact'] ?? ''),
             'notes'            => trim($_POST['notes'] ?? ''),
             'actif'            => isset($_POST['actif']) ? 1 : 0,
         ];
@@ -524,11 +526,14 @@ function route_debiteur(): void
         if ($id) {
             $champs['id'] = $id;
             db()->prepare('UPDATE debiteurs SET type=:type, nom=:nom, adresse_rue=:adresse_rue, adresse_npa=:adresse_npa,
-                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, email=:email, notes=:notes, actif=:actif
+                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, email=:email, telephone=:telephone,
+                            personne_contact=:personne_contact, notes=:notes, actif=:actif
                             WHERE id=:id')->execute($champs);
         } else {
-            db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, notes, actif)
-                            VALUES (:type, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays, :email, :notes, :actif)')
+            db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
+                            telephone, personne_contact, notes, actif)
+                            VALUES (:type, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays, :email,
+                            :telephone, :personne_contact, :notes, :actif)')
                 ->execute($champs);
         }
         redirect('facturation_debiteurs');

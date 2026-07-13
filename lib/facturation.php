@@ -14,8 +14,9 @@ const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];
 // $prefixe : préfixe des noms de champs POST (ex. 'nd_', 'org_'). Retourne l'id créé.
 function debiteur_creer_depuis_post(string $prefixe): int
 {
-    db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, actif)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)')
+    db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
+                    telephone, personne_contact, actif)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)')
         ->execute([
             ($_POST[$prefixe . 'type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
             trim($_POST[$prefixe . 'nom'] ?? ''),
@@ -24,6 +25,8 @@ function debiteur_creer_depuis_post(string $prefixe): int
             trim($_POST[$prefixe . 'adresse_localite'] ?? ''),
             trim($_POST[$prefixe . 'adresse_pays'] ?? '') ?: 'Suisse',
             trim($_POST[$prefixe . 'email'] ?? ''),
+            trim($_POST[$prefixe . 'telephone'] ?? ''),
+            trim($_POST[$prefixe . 'personne_contact'] ?? ''),
         ]);
     return (int) db()->lastInsertId();
 }

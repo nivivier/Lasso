@@ -30,6 +30,10 @@ $isEdit = !empty($debiteur['id']);
         <label>Pays <input name="adresse_pays" value="<?= $v('adresse_pays', 'Suisse') ?>"></label>
         <label>E-mail (optionnel) <input name="email" type="email" value="<?= $v('email') ?>"></label>
     </div>
+    <div class="grid2">
+        <label>Téléphone (optionnel) <input name="telephone" type="tel" value="<?= $v('telephone') ?>"></label>
+        <label>Personne de contact (optionnel) <input name="personne_contact" value="<?= $v('personne_contact') ?>"></label>
+    </div>
     <label>Notes (optionnel)
         <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
     </label>
