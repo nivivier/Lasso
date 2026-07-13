@@ -3,7 +3,7 @@
 <?php if (($_GET['err'] ?? '') === 'fiches'): ?><p class="err">Impossible de supprimer : cet employé a des fiches de salaire.</p><?php endif; ?>
 <div class="page-head">
     <h1><?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
-        <?php if (!$emp['actif']): ?><span class="badge">inactif</span><?php endif; ?>
+        <?php if (!$emp['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
     </h1>
     <div class="head-actions">
         <a class="btn ghost" href="?p=employe&id=<?= (int) $emp['id'] ?>"><?= icon('pencil') ?> Modifier l'employé</a>

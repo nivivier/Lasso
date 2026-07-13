@@ -12,6 +12,7 @@
 </div>
 <?php if ($saved): ?><p class="ok flash">Axe enregistré.</p><?php endif; ?>
 
+    <div class="table-scroll">
     <table class="list mt-10">
         <thead><tr><th class="col-icon"></th><th>Axe analytique</th><th></th></tr></thead>
         <tbody>
@@ -42,8 +43,8 @@
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="update">
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
-                        <input name="libelle" value="<?= e($a['libelle']) ?>" class="grow" required placeholder="Libellé">
-                        <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban input-code" title="Code court optionnel (ex. LAB, TOU, STA)">
+                        <input name="libelle" value="<?= e($a['libelle']) ?>" class="grow" required placeholder="Libellé" aria-label="Libellé de l'axe">
+                        <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban input-code" title="Code court optionnel (ex. LAB, TOU, STA)" aria-label="Code court">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
@@ -78,8 +79,8 @@
                     <form method="post" action="?p=compta_axes" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="create">
-                        <input name="libelle" placeholder="ex. Label, Tour, Stages, Local" required class="grow">
-                        <input name="code" placeholder="Code court" class="w-iban input-code" title="Code court optionnel">
+                        <input name="libelle" placeholder="ex. Label, Tour, Stages, Local" required class="grow" aria-label="Libellé de l'axe">
+                        <input name="code" placeholder="Code court" class="w-iban input-code" title="Code court optionnel" aria-label="Code court">
                         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                         <button type="button" class="btn ghost btn-sm" id="cancel-new-axe"><?= icon('x') ?> Annuler</button>
                     </form>
@@ -88,6 +89,7 @@
             </tr>
         </tfoot>
     </table>
+    </div>
 
 <script>
 (function () {

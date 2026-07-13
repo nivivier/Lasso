@@ -4,6 +4,7 @@
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */
+/** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 
 // Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
 $cheminById    = [];
@@ -165,12 +166,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <button type="submit" class="btn"><?= icon('check') ?> <?= $isEdit ? 'Enregistrer' : 'Créer l\'écriture' ?></button>
             <a href="?p=compta_ecritures<?= $qs ?>" class="btn ghost">Annuler</a>
             <?php if ($isEdit): ?>
-                <button type="submit" form="del-ecr-form" class="btn danger" onclick="return confirm('Supprimer cette écriture ?')"><?= icon('trash') ?> Supprimer</button>
+                <button type="submit" form="del-ecr-form" class="btn danger"><?= icon('trash') ?> Supprimer</button>
             <?php endif; ?>
         </div>
     </form>
     <?php if ($isEdit): ?>
-    <form id="del-ecr-form" method="post" action="?p=compta_ecritures<?= $qs ?>" hidden>
+    <form id="del-ecr-form" method="post" action="?p=compta_ecritures<?= $qs ?>" onsubmit="return confirm('Supprimer cette écriture ?');" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="delete_manual">
         <input type="hidden" name="id" value="<?= (int) $editEcr['id'] ?>">
@@ -325,10 +326,10 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php endif; ?>
             <td class="actions">
                 <?php if ($isManuel): ?>
-                    <a class="btn ghost btn-sm icon-only" title="Modifier cette écriture"
+                    <a class="btn ghost btn-sm icon-only" title="Modifier cette écriture" aria-label="Modifier cette écriture"
                        href="?p=compta_ecritures<?= $qs ?>&edit=<?= (int) $ecr['id'] ?>"><?= icon('pencil') ?></a>
                 <?php else: ?>
-                    <a class="btn ghost btn-sm icon-only" title="Créer une règle depuis cette écriture"
+                    <a class="btn ghost btn-sm icon-only" title="Créer une règle depuis cette écriture" aria-label="Créer une règle depuis cette écriture"
                        href="?p=compta_regles&motif=<?= urlencode($ecr['texte']) ?>&compte=<?= (int) $ecr['compte_bancaire_id'] ?>"><?= icon('tag') ?></a>
                 <?php endif; ?>
             </td>
@@ -337,6 +338,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     </tbody>
 </table>
 </div>
+<?php require __DIR__ . '/_pagination.php'; ?>
 
 
 <!-- Panneau de ventilation analytique (singleton, positionné par JS) -->

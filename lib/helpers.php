@@ -215,6 +215,37 @@ function filtre_persistant(string $cleGet, string $cleSession, $defaut)
     return $_SESSION[$cleSession] ?? $defaut;
 }
 
+// --- Pagination générique (listes potentiellement longues : fiches, écritures,
+// factures, débiteurs, employés, événements) -------------------------------
+
+const PAGINATION_TAILLES = [25, 50, 100, 200];
+const PAGINATION_TAILLE_DEFAUT = 100;
+
+// Nombre de lignes par page : GET prioritaire (et mémorisé en session, comme
+// filtre_persistant()) sinon 100 par défaut. Bornée à PAGINATION_TAILLES pour
+// qu'une valeur arbitraire dans l'URL ne force pas une requête énorme.
+function pagination_taille(string $cleSession): int
+{
+    $t = (int) filtre_persistant('taille', $cleSession, PAGINATION_TAILLE_DEFAUT);
+    return in_array($t, PAGINATION_TAILLES, true) ? $t : PAGINATION_TAILLE_DEFAUT;
+}
+
+// Page courante (1-based). Jamais mémorisée en session (contrairement aux
+// filtres) : sinon, changer d'année/statut pourrait rouvrir sur une page qui
+// n'existe plus pour le nouveau résultat filtré.
+function pagination_page(): int
+{
+    $p = (int) ($_GET['page'] ?? 1);
+    return $p > 0 ? $p : 1;
+}
+
+// Clause SQL " LIMIT ? OFFSET ?" + les deux valeurs à ajouter à $params, dans
+// l'ordre — évite de recalculer l'offset à chaque route.
+function pagination_sql(int $page, int $taille): array
+{
+    return [' LIMIT ? OFFSET ?', [$taille, ($page - 1) * $taille]];
+}
+
 // Montant CHF : "1 234.55"
 function chf(float $v): string
 {
@@ -232,6 +263,17 @@ function nombre_court(float $v, int $decimales = 2): string
 function pct(float $v): string
 {
     return nombre_court($v * 100, 4) . ' %';
+}
+
+// Badge <span> générique (statuts, indicateurs) — factorise le motif répété
+// dans evenement_suisa_badge()/evenement_badge_statut()/evenement_badge_visibilite()
+// (lib/evenements.php) et facturation_badge() (lib/facturation.php). $classe :
+// suffixe de couleur ('ok'|'warn'|'muted'|'emise', voir .badge dans
+// assets/app.css) ou '' pour le badge neutre par défaut (mauve).
+function badge(string $texte, string $classe = ''): string
+{
+    $cls = $classe !== '' ? ' ' . $classe . '-badge' : '';
+    return '<span class="badge' . $cls . '">' . e($texte) . '</span>';
 }
 
 // --- Couleurs : dérive la palette de l'appli depuis la couleur principale
@@ -466,6 +508,34 @@ function handle_pdf_upload(string $field): ?string
     }
     @chmod($dir . '/' . $name, 0644);
     return 'uploads/' . $name;
+}
+
+// Lit le fichier téléversé sous le champ "fichier" (import fiches/écritures/
+// événements/factures), avec repli sur un contenu déjà mémorisé en session
+// (permet de cliquer « Importer » après « Simuler » sans re-téléverser) —
+// factorise le motif dupliqué dans les 4 routes d'import. $sessionNomKey
+// optionnel : nom du fichier original à relire depuis la session avec le
+// contenu (sinon 'nom' reste vide au repli session).
+// Retourne ['contenu' => ?string, 'nom' => string, 'err' => ?string].
+function lire_fichier_importe(
+    int $maxOctets,
+    string $msgTropGros,
+    string $sessionKey,
+    string $msgAucunFichier,
+    ?string $sessionNomKey = null
+): array {
+    $up = $_FILES['fichier'] ?? null;
+    if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        if (($up['size'] ?? 0) > $maxOctets) {
+            return ['contenu' => null, 'nom' => '', 'err' => $msgTropGros];
+        }
+        return ['contenu' => (string) file_get_contents($up['tmp_name']), 'nom' => (string) $up['name'], 'err' => null];
+    }
+    if (!empty($_POST['depuis_session']) && !empty($_SESSION[$sessionKey])) {
+        $nom = $sessionNomKey !== null ? (string) ($_SESSION[$sessionNomKey] ?? 'import') : '';
+        return ['contenu' => (string) $_SESSION[$sessionKey], 'nom' => $nom, 'err' => null];
+    }
+    return ['contenu' => null, 'nom' => '', 'err' => $msgAucunFichier];
 }
 
 // Sépare « 1213 Lancy » en ['1213', 'Lancy'] (NPA + localité).

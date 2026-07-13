@@ -36,6 +36,9 @@ check('ne s\'applique pas (prioritaire sur tout le reste)', 'ne_sapplique_pas', 
 check('décompte reçu', 'decompte_recu', evenement_statut_suisa([
     'suisa_applicable' => 1, 'suisa_envoye_le' => '2020-01-01', 'suisa_decompte_le' => '2020-03-01',
 ]));
+check('décompte reçu même sans date d\'envoi enregistrée', 'decompte_recu', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '2020-05-01',
+]));
 check('à faire (jamais envoyée)', 'a_faire', evenement_statut_suisa([
     'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
 ]));
@@ -48,6 +51,10 @@ check('envoyé il y a plus de 12 mois, sans décompte → manquant', 'manquant',
 check('envoyé il y a exactement 11 mois → pas encore manquant', 'envoye', evenement_statut_suisa([
     'suisa_applicable' => 1, 'suisa_envoye_le' => date('Y-m-d', strtotime('-11 months')), 'suisa_decompte_le' => '',
 ]));
+
+$evDecompte = ['suisa_applicable' => 1, 'suisa_envoye_le' => '2020-01-01', 'suisa_decompte_le' => '2020-03-15'];
+check('badge SUISA : libellé par défaut', true, str_contains(evenement_suisa_badge($evDecompte), 'Décompte reçu'));
+check('badge SUISA : date du décompte si demandée (liste événements)', true, str_contains(evenement_suisa_badge($evDecompte, true), '15.03.2020'));
 
 echo "2) Exportabilité (visibilité + statut)\n";
 check('non répertorié → jamais exportable', false, evenement_exportable(['visibilite' => 'non_repertorie', 'statut' => 'confirme']));
@@ -124,21 +131,25 @@ $cas = [
     3 => ['applicable' => 1, 'envoye' => '', 'decompte' => ''],                                               // a_faire
     4 => ['applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-2 months')), 'decompte' => ''],            // envoye
     5 => ['applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-13 months')), 'decompte' => ''],           // manquant
+    6 => ['applicable' => 1, 'envoye' => '', 'decompte' => '2020-05-01'],                                     // decompte_recu (saisie manuelle sans date d'envoi)
 ];
 foreach ($cas as $id => $c) {
     $ins->execute([$id, $c['applicable'], $c['envoye'], $c['decompte']]);
 }
 foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $statut) {
     $sql = 'SELECT id FROM evenements WHERE ' . evenement_sql_statut_suisa($statut);
-    $needsDelai = in_array($statut, ['envoye', 'manquant'], true);
+    $needsDelai = $statut === 'manquant';
     $stmt = $pdo->prepare($sql);
     $stmt->execute($needsDelai ? [12] : []);
     $idsSql = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-    // Référence : la même règle appliquée en PHP (evenement_statut_suisa()) sur les mêmes cas.
+    // Référence : la même règle appliquée en PHP (evenement_statut_suisa()) sur les mêmes cas —
+    // sauf le filtre 'envoye', qui englobe volontairement aussi 'manquant' (voir
+    // evenement_sql_statut_suisa()).
+    $statutsPhpAttendus = $statut === 'envoye' ? ['envoye', 'manquant'] : [$statut];
     $idsPhp = [];
     foreach ($cas as $id => $c) {
         $ev = ['suisa_applicable' => $c['applicable'], 'suisa_envoye_le' => $c['envoye'], 'suisa_decompte_le' => $c['decompte']];
-        if (evenement_statut_suisa($ev) === $statut) {
+        if (in_array(evenement_statut_suisa($ev), $statutsPhpAttendus, true)) {
             $idsPhp[] = $id;
         }
     }

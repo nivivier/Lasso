@@ -17,12 +17,12 @@
         <div class="grid2">
             <label>Logo sur fond clair (fiches de salaire, e-mail)
                 <?php $lc = param_logo('clair'); ?>
-                <?php if ($lc !== ''): ?><span class="logo-preview clair"><img src="<?= e($lc) ?>" alt=""></span><?php endif; ?>
+                <?php if ($lc !== ''): ?><span class="logo-preview clair"><img src="<?= e($lc) ?>" alt="<?= e(param('employeur_nom')) ?>"></span><?php endif; ?>
                 <input type="file" name="logo_clair" accept="image/png,image/jpeg,image/gif,image/webp">
             </label>
             <label>Logo sur fond sombre (connexion, barre latérale)
                 <?php $ls = param_logo('sombre'); ?>
-                <?php if ($ls !== ''): ?><span class="logo-preview sombre"><img src="<?= e($ls) ?>" alt=""></span><?php endif; ?>
+                <?php if ($ls !== ''): ?><span class="logo-preview sombre"><img src="<?= e($ls) ?>" alt="<?= e(param('employeur_nom')) ?>"></span><?php endif; ?>
                 <input type="file" name="logo_sombre" accept="image/png,image/jpeg,image/gif,image/webp">
             </label>
         </div>

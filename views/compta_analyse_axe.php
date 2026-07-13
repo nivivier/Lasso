@@ -191,7 +191,10 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 <?php if ($ecritures): ?>
 <div class="section-head">
     <h2>Écritures</h2>
-    <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Modifier</a>
+    <label class="search-label ml-auto"><span>Rechercher <span id="axe-ecritures-search-count" class="muted small"></span></span>
+        <input type="search" id="axe-ecritures-search" placeholder="Compte, texte, catégorie…" autocomplete="off" aria-label="Rechercher">
+    </label>
+    <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('pencil') ?> Modifier</a>
 </div>
 
 <div class="table-scroll">
@@ -220,4 +223,24 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     </tbody>
 </table>
 </div>
+<script>
+(function () {
+    const search = document.getElementById('axe-ecritures-search');
+    const count  = document.getElementById('axe-ecritures-search-count');
+    const rows   = Array.from(document.querySelectorAll('.compta-lettrage tbody tr'));
+    if (search) {
+        const apply = () => {
+            const q = lassoNorm(search.value.trim());
+            let visibles = 0;
+            rows.forEach(r => {
+                const ok = q === '' || lassoNorm(r.textContent).includes(q);
+                r.style.display = ok ? '' : 'none';
+                if (ok) visibles++;
+            });
+            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affichée(s)';
+        };
+        search.addEventListener('input', apply);
+    }
+})();
+</script>
 <?php endif; ?>

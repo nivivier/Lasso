@@ -178,7 +178,6 @@ body.auth-bg {
 .head-actions label.inline { font-size: 13px; font-weight: 500; color: var(--muted); gap: 6px; }
 .label-hint { font-weight: 400; }
 .input-code { max-width: 120px; }
-.inline-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .td-toggle { padding: 0 0 0 12px; }
 .page-head-title { display: flex; align-items: center; gap: 12px; }
 
@@ -317,7 +316,7 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 @media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
 /* :not() en plus pour égaler la spécificité de la règle générale .filters input:not(...):not(...)
    (sinon son padding shorthand écraserait le padding-right réservé à l'icône ci-dessous). */
-.filters input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 9px 34px 9px 10px; font-size: 13.5px; }
+input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 9px 34px 9px 10px; font-size: 13.5px; }
 /* Icône loupe de tous les champs de recherche (type=search) : un seul point de
    modification (ce data-URI, repris de l'icône « search » de icon()) pour
    changer l'icône partout dans l'application. */
@@ -331,8 +330,7 @@ input[type="search"] {
 /* En-têtes de groupe dans les listes cat-search */
 /* Propriétés partagées par les labels en petites capitales (sections, règles, cat-search) */
 .cat-search-sens,
-.regle-sub,
-.cr-sens-label { font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.regle-sub { font-weight: 700; text-transform: uppercase; color: var(--muted); }
 .cat-search-sens  { padding: 6px 12px 2px; font-size: 10.5px; letter-spacing: .06em; cursor: default; pointer-events: none; }
 .cat-search-group { padding: 2px 12px 1px 22px; font-size: 10.5px; font-weight: 600; color: var(--muted); cursor: default; pointer-events: none; }
 /* Formulaire écriture manuelle */
@@ -344,7 +342,7 @@ input[type="search"] {
    que .row-link:hover ailleurs (tableau de bord, listes…), pas une couleur
    fixe indépendante du thème. */
 .compta-lettrage tbody tr:hover td { background: var(--primary-tint); }
-.filters .search-label input { width: 100%; }
+.search-label input { width: 100%; }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
 input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
 .auth-form { margin-top: 4px; }
@@ -519,11 +517,7 @@ button:active, .btn:active { transform: translateY(1px); }
 .mt-16 { margin-top: 16px; }
 .mb-22 { margin-bottom: 22px; }
 .mb-24 { margin-bottom: 24px; }
-.mt-8  { margin-top: 8px; }
 .mt-10 { margin-top: 10px; }
-.mt-24 { margin-top: 24px; }
-.mt-28 { margin-top: 28px; }
-.mb-8  { margin-bottom: 8px; }
 .ml-auto { margin-left: auto; }
 .d-inline { display: inline; }
 button:disabled, .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
@@ -539,7 +533,45 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 /* =================== Filters =================== */
 .filters { display: flex; gap: 16px; align-items: center; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .filters label { margin-bottom: 0; }
-.filters .search-label { flex: 1 1 200px; }
+/* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
+   quel dans un .section-head (ex. compta_analyse_axe.php). */
+.search-label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--muted); flex: 1 1 200px; }
+/* Filtres secondaires repliés (ex. evenements_liste.php : Statut SUISA, Type
+   d'audience, Salariés) — <details> natif, sans JS. .filters-more-body est en
+   position:absolute : sinon, en flux normal, son apparition agrandit la
+   boîte de .filters-more, donc la hauteur de toute la ligne flex, et pousse
+   le déclencheur vers le bas (constaté : le simple flux normal fait bouger
+   le texte même avec une position horizontale fixe). En absolute, il n'a
+   aucun effet sur la taille de .filters-more ni sur la ligne — le
+   déclencheur ne bouge donc plus jamais, ni horizontalement ni
+   verticalement. .filters:has(...) réserve la place en dessous (margin-
+   bottom) pour ne pas chevaucher le tableau, puisque l'absolute ne pousse
+   plus rien dans le flux normal. */
+.filters-more { margin-left: auto; flex-shrink: 0; align-self: flex-end; position: relative; }
+.filters-more summary {
+    cursor: pointer; color: var(--muted); font-size: 13.5px; font-weight: 500; white-space: nowrap;
+    text-align: right; list-style: none;
+}
+.filters-more summary::-webkit-details-marker { display: none; }
+.filters-more summary::before { content: '▸'; display: inline-block; width: 10px; }
+.filters-more[open] summary::before { content: '▾'; }
+.filters-more-body {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 12px; width: max-content;
+    gap: 16px; flex-wrap: wrap;
+}
+.filters-more[open] .filters-more-body { display: flex; }
+.filters-more-body label { margin-bottom: 0; }
+
+/* Pagination des listes longues (fiches, employés, écritures, factures,
+   débiteurs, événements) — voir views/_pagination.php. */
+.pagination { display: flex; align-items: center; gap: 16px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+.pagination-taille { display: flex; }
+.pagination-taille label { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: 13px; color: var(--muted); }
+.pagination-taille select { font: inherit; font-size: 13.5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
+.pagination-info { font-size: 13px; color: var(--muted); }
+.pagination-nav { display: flex; align-items: center; gap: 8px; }
+.pagination-nav [aria-disabled="true"] { opacity: .4; cursor: default; }
+.filters:has(.filters-more[open]) { margin-bottom: 78px; }
 
 /* =================== Tables =================== */
 /* border-collapse:separate + border-spacing:0 permet à overflow:hidden + border-radius de fonctionner sur <table>. */
@@ -578,6 +610,10 @@ span + .badge.muted-badge { margin-left: 6px; }
 .statut-date-warn { color: var(--amber); font-weight: 600; }
 .statut-date-muted { color: var(--muted); font-weight: 600; }
 .col-icon { width: 36px; }
+/* fiches.php : colonne Employé assez large pour ne pas tronquer les noms —
+   seulement en desktop (au-delà du seuil tiroir/burger @media 800px
+   ci-dessous), .table-scroll gère déjà le débordement horizontal en mobile. */
+@media (min-width: 801px) { .col-employe { min-width: 150px; } }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
 .list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
@@ -586,11 +622,14 @@ span + .badge.muted-badge { margin-left: 6px; }
    restent insécables ; sur écran étroit, le conteneur défile horizontalement. */
 .resume { table-layout: fixed; min-width: 720px; }
 .resume th, .resume td { padding-left: 11px; padding-right: 11px; }
-.resume thead th { white-space: normal; line-height: 1.2; vertical-align: bottom; }
+.resume thead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
 .resume tbody td.num, .resume tfoot td.num { white-space: nowrap; }
 .resume tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--brand); }
-.list .reste-du { color: var(--amber); }
 .col-petit { font-size: 11px; color: var(--muted); }
+/* Sur un <th>, .list thead th (font-size 11.5px) est plus spécifique que
+   .col-petit seul et l'emporterait sinon — titre de colonne secondaire
+   plus petit que les autres (ex. fiches.php : Axes, Charges sociales…). */
+.list thead th.col-petit { font-size: 9px; }
 .resume tfoot .col-petit { color: var(--brand); }
 .resume tfoot td.col-cout { color: var(--ink); } /* total coût employeur en noir */
 .list td.net-apayer { color: var(--amber); }      /* net en jaune quand à payer */
@@ -874,6 +913,12 @@ abbr {
 .inline-edit .grow { flex: 1 1 auto; min-width: 8rem; }
 .inline-edit .w-iban { flex: 0 0 auto; width: 17rem; max-width: 40vw; }
 .inline-edit button { flex: 0 0 auto; }
+/* Sous ~480px, plusieurs champs côte à côte en nowrap débordent ou s'écrasent
+   (ex. taux_horaires.php, compta_axes.php) — repli en colonne. */
+@media (max-width: 480px) {
+    .inline-edit { flex-wrap: wrap; }
+    .inline-edit .grow { min-width: 100%; }
+}
 
 /* Montants */
 .montant-neg { color: var(--danger); font-weight: 600; }
@@ -986,10 +1031,6 @@ abbr {
 .del-opt input { margin-top: 3px; }
 .del-opt select { margin: 6px 0 0; max-width: 100%; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-/* En-tête de carte avec action à droite (ex. + Nouvelle règle) */
-.card-head { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-.card-head > p { flex: 1 1 auto; }
-.card-head .btn { flex: 0 0 auto; white-space: nowrap; }
 
 /* Règles : disposition en cartes (une carte par règle) */
 .regle-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 8px; margin-bottom: 10px; background: var(--card); }
@@ -1073,9 +1114,7 @@ abbr {
 .cr-noeud-pad    { padding-left: calc(16px + var(--depth, 0) * 18px); }
 
 /* Labels de section et notes dans les cartes comptabilité */
-.cr-sens-label  { padding: 8px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .05em; }
 .card-note      { padding: 4px 0 12px; }
-.compta-cr-foot { padding: 8px 12px 4px; }
 .cr-detail td > .muted.small { padding: 8px 0; }
 
 

@@ -1,5 +1,6 @@
 <?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var string $statut */
-/** @var array $employes */ /** @var int $employeId */ /** @var array $axesParFiche */ ?>
+/** @var array $employes */ /** @var int $employeId */ /** @var array $axesParFiche */ /** @var array $totaux */
+/** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -55,10 +56,10 @@
 <table class="list list-wide">
     <thead>
         <tr>
-            <th>Employé</th><?php if ($axesParFiche): ?><th>Axes</th><?php endif; ?>
+            <th class="col-employe">Employé</th><?php if ($axesParFiche): ?><th class="col-petit">Axes</th><?php endif; ?>
             <th class="num">Brut</th><th class="num col-petit">Charges sociales</th><th class="num col-petit">Impôt à la source</th>
             <th class="num">Net</th><th>Paiement</th><th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
-            <th class="center">Envoyée</th>
+            <th class="center col-petit">Envoyée</th>
         </tr>
     </thead>
     <tbody>
@@ -85,15 +86,12 @@
     </tbody>
     <tfoot>
         <?php
-            $totBrut = $totDed = $totImpot = $totNet = $totChargesEmp = $totCoutEmp = 0.0;
-            foreach ($fiches as $f) {
-                $totBrut        += (float) $f['salaire_brut'];
-                $totDed         += (float) $f['total_deductions'];
-                $totImpot       += (float) $f['ded_impot_source'];
-                $totNet         += (float) $f['salaire_net'];
-                $totChargesEmp  += (float) $f['total_charges_emp'];
-                $totCoutEmp     += (float) $f['cout_total_emp'];
-            }
+            $totBrut       = (float) $totaux['brut'];
+            $totDed        = (float) $totaux['ded'];
+            $totImpot      = (float) $totaux['impot'];
+            $totNet        = (float) $totaux['net'];
+            $totChargesEmp = (float) $totaux['charges_emp'];
+            $totCoutEmp    = (float) $totaux['cout_emp'];
         ?>
         <tr>
             <td>Total</td>
@@ -110,4 +108,5 @@
     </tfoot>
 </table>
 </div>
+<?php require __DIR__ . '/_pagination.php'; ?>
 <?php endif; ?>

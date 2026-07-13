@@ -135,7 +135,7 @@ function route_evenements_liste(): void
     $annees = array_map('intval', db()->query(
         "SELECT DISTINCT strftime('%Y', date) FROM evenements ORDER BY 1 DESC"
     )->fetchAll(PDO::FETCH_COLUMN));
-    $annee        = (int) filtre_persistant('annee', 'evenements_annee', $annees[0] ?? date('Y'));
+    $annee        = (int) filtre_persistant('annee', 'evenements_annee', 0); // 0 = « Toutes les années » par défaut
     $statutSuisa  = filtre_persistant('statut_suisa', 'evenements_statut_suisa', 'tous');
     // spectacle_id : 0 = tous, -1 = sans spectacle (spectacle_id NULL), > 0 = un spectacle précis.
     $spectacleId  = (int) filtre_persistant('spectacle_id', 'evenements_spectacle_id', 0);
@@ -217,51 +217,70 @@ function route_evenements_liste(): void
         redirect('evenements_liste', $retourFiltres);
     }
 
-    $sql = "SELECT e.*, s.nom AS spectacle_nom,
-                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries
-            FROM evenements e
-            LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE 1=1";
+    $spectacleMap = spectacle_map();
+
+    $where = ' WHERE 1=1';
     $params = [];
     if ($annee) {
-        $sql .= " AND strftime('%Y', e.date) = ?";
+        $where .= " AND strftime('%Y', e.date) = ?";
         $params[] = (string) $annee;
     }
     if ($spectacleId === -1) {
-        $sql .= ' AND e.spectacle_id IS NULL';
+        $where .= ' AND e.spectacle_id IS NULL';
     } elseif ($spectacleId) {
-        $sql .= ' AND e.spectacle_id = ?';
-        $params[] = $spectacleId;
+        // Un spectacle-groupe (artiste) filtre sur lui-même + toutes ses feuilles
+        // (même principe que l'export public, voir evenements_a_exporter()).
+        $ids = array_merge([$spectacleId], spectacle_descendants($spectacleId, $spectacleMap));
+        $in  = implode(',', array_fill(0, count($ids), '?'));
+        $where .= " AND e.spectacle_id IN ($in)";
+        $params = array_merge($params, $ids);
     }
     if (in_array($statut, EVENEMENTS_STATUTS, true)) {
-        $sql .= ' AND e.statut = ?';
+        $where .= ' AND e.statut = ?';
         $params[] = $statut;
     }
     if (in_array($visibilite, EVENEMENTS_VISIBILITES, true)) {
-        $sql .= ' AND e.visibilite = ?';
+        $where .= ' AND e.visibilite = ?';
         $params[] = $visibilite;
     }
     if (in_array($statutSuisa, EVENEMENTS_STATUTS_SUISA_FILTRE, true)) {
-        $sql .= ' AND (' . evenement_sql_statut_suisa($statutSuisa, 'e.') . ')';
-        if (in_array($statutSuisa, ['envoye', 'manquant'], true)) {
+        $where .= ' AND (' . evenement_sql_statut_suisa($statutSuisa, 'e.') . ')';
+        if ($statutSuisa === 'manquant') {
             $params[] = evenements_delai_decompte_mois();
         }
     }
     if ($pays !== 'tous' && in_array($pays, evenements_pays_disponibles(), true)) {
-        $sql .= ' AND e.pays = ?';
+        $where .= ' AND e.pays = ?';
         $params[] = $pays;
     }
     if ($salaries === 'oui') {
-        $sql .= ' AND EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
+        $where .= ' AND EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
     } elseif ($salaries === 'non') {
-        $sql .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
+        $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
     }
-    $sql .= ' ORDER BY e.date DESC, e.id DESC';
+
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM evenements e' . $where);
+    $stmtTot->execute($params);
+    $pgTotal = (int) $stmtTot->fetchColumn();
+
+    $pgPage   = pagination_page();
+    $pgTaille = pagination_taille('evenements_taille');
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+    $sql = "SELECT e.*, s.nom AS spectacle_nom,
+                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries
+            FROM evenements e
+            LEFT JOIN spectacles s ON s.id = e.spectacle_id" . $where . ' ORDER BY e.date DESC, e.id DESC' . $limitSql;
     $stmt = db()->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, $limitParams));
     $evenements = $stmt->fetchAll();
 
-    $spectacleMap = spectacle_map();
+    // $spectacles : feuilles assignables uniquement (select « Modifier spectacle »
+    // de la barre de modification groupée — un groupe n'y est jamais valide, voir
+    // spectacle_assignable()). $spectaclesFiltre : groupes + feuilles (filtre en
+    // haut de page, où un groupe est un filtre valide — voir spectacles_pour_filtre()).
     $spectacles = spectacles_pour_selection($spectacleMap);
+    $spectaclesFiltre = spectacles_pour_filtre($spectacleMap);
 
     render('evenements_liste', [
         'evenements'      => $evenements,
@@ -272,12 +291,17 @@ function route_evenements_liste(): void
         'statut'          => $statut,
         'visibilite'      => $visibilite,
         'spectacles'      => $spectacles,
-        'spectacleMap'    => $spectacleMap,
+        'spectaclesFiltre' => $spectaclesFiltre,
         'paysDisponibles' => evenements_pays_disponibles(),
         'pays'            => $pays,
         'salaries'        => $salaries,
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
+        'pgRoute'         => 'evenements_liste',
+        'pgParams'        => $retourFiltres,
+        'pgPage'          => $pgPage,
+        'pgTaille'        => $pgTaille,
+        'pgTotal'         => $pgTotal,
     ], 'Événements');
 }
 
@@ -962,19 +986,9 @@ function route_import_evenements(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $simule = !isset($_POST['appliquer']);
-        $csv = null;
-        $up = $_FILES['fichier'] ?? null;
-        if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            if (($up['size'] ?? 0) > 2 * 1024 * 1024) {
-                $err = 'Fichier trop volumineux (2 Mo maximum).';
-            } else {
-                $csv = (string) file_get_contents($up['tmp_name']);
-            }
-        } elseif (!empty($_POST['depuis_session']) && !empty($_SESSION['import_evenements_csv'])) {
-            $csv = (string) $_SESSION['import_evenements_csv'];
-        } else {
-            $err = 'Veuillez choisir un fichier CSV à importer.';
-        }
+        $r = lire_fichier_importe(2 * 1024 * 1024, 'Fichier trop volumineux (2 Mo maximum).', 'import_evenements_csv', 'Veuillez choisir un fichier CSV à importer.');
+        $err = $r['err'];
+        $csv = $r['contenu'];
         if ($err === null) {
             try {
                 [$resultats, $resume] = importer_evenements_csv((string) $csv, $simule);

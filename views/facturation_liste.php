@@ -1,5 +1,6 @@
 <?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */
-/** @var bool $avecEvenements */ ?>
+/** @var bool $avecEvenements */
+/** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -79,6 +80,7 @@
     </tbody>
 </table>
 </div>
+<?php require __DIR__ . '/_pagination.php'; ?>
 <script>
 (function () {
     const search = document.getElementById('facturation-search');

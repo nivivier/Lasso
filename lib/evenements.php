@@ -58,16 +58,23 @@ function evenement_statut_suisa_libelle(string $statut): string
     };
 }
 
-function evenement_suisa_badge(array $ev): string
+// $avecDate : sur la liste des événements, affiche la date du décompte plutôt
+// que le libellé « Décompte reçu » (déjà explicite via la couleur du badge) —
+// non utilisé sur la fiche événement, où le champ date est juste en dessous.
+function evenement_suisa_badge(array $ev, bool $avecDate = false): string
 {
-    $statut  = evenement_statut_suisa($ev);
-    $classe  = match ($statut) {
-        'decompte_recu' => 'ok-badge',
-        'manquant'      => 'warn-badge',
-        'envoye'        => 'emise-badge',
-        default         => 'muted-badge', // a_faire, ne_sapplique_pas
+    $statut = evenement_statut_suisa($ev);
+    $classe = match ($statut) {
+        'decompte_recu' => 'ok',
+        'manquant'      => 'warn',
+        'envoye'        => 'emise',
+        default         => 'muted', // a_faire, ne_sapplique_pas
     };
-    return '<span class="badge ' . $classe . '">' . e(evenement_statut_suisa_libelle($statut)) . '</span>';
+    $decompteLe = trim((string) ($ev['suisa_decompte_le'] ?? ''));
+    $texte = ($statut === 'decompte_recu' && $avecDate && $decompteLe !== '')
+        ? date('d.m.Y', strtotime($decompteLe))
+        : evenement_statut_suisa_libelle($statut);
+    return badge($texte, $classe);
 }
 
 // Couleur associée au statut d'un événement (confirmé = ok/vert, option =
@@ -84,27 +91,30 @@ function evenement_statut_couleur(array $ev): string
 
 function evenement_badge_statut(array $ev): string
 {
-    return '<span class="badge ' . evenement_statut_couleur($ev) . '-badge">'
-        . e(evenement_statut_libelle((string) $ev['statut'])) . '</span>';
+    return badge(evenement_statut_libelle((string) $ev['statut']), evenement_statut_couleur($ev));
 }
 
 function evenement_badge_visibilite(array $ev): string
 {
     $classe = match ($ev['visibilite']) {
-        'public' => 'ok-badge',
-        'prive'  => 'emise-badge',
-        default  => 'muted-badge', // non_repertorie
+        'public' => 'ok',
+        'prive'  => 'emise',
+        default  => 'muted', // non_repertorie
     };
-    return '<span class="badge ' . $classe . '">' . e(evenement_visibilite_libelle((string) $ev['visibilite'])) . '</span>';
+    return badge(evenement_visibilite_libelle((string) $ev['visibilite']), $classe);
 }
 
 // Prédicat SQL du statut SUISA dérivé, même règles que evenement_statut_suisa()
 // (à tenir synchronisées) — pour filtrer côté base plutôt que de recharger tous
 // les événements en PHP à chaque affichage de la liste. $prefixe : alias de
-// table éventuel (ex. "e." si la requête utilise "FROM evenements e"). Les
-// statuts 'envoye'/'manquant' comparent à la date du jour + délai configurable
-// (mois) : l'appelant doit lier ce délai (evenements_delai_decompte_mois()) en
-// tant que paramètre supplémentaire pour ces deux statuts uniquement.
+// table éventuel (ex. "e." si la requête utilise "FROM evenements e"). Filtre
+// 'envoye' : englobe aussi 'manquant' (un décompte en retard reste, avant tout,
+// un événement envoyé — l'utilisateur veut voir « tout ce qui a été envoyé »
+// sans avoir à cocher les deux statuts séparément) ; 'manquant' reste un filtre
+// à part pour ne voir que les décomptes effectivement en retard. Seul 'manquant'
+// compare à la date du jour + délai configurable (mois) : l'appelant doit lier
+// ce délai (evenements_delai_decompte_mois()) en tant que paramètre supplémentaire
+// pour ce statut uniquement.
 function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): string
 {
     $applicable   = "{$prefixe}suisa_applicable = 1";
@@ -113,8 +123,11 @@ function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): strin
     $limite       = "date({$prefixe}suisa_envoye_le, '+' || ? || ' months')";
     return match ($statut) {
         'decompte_recu' => "$applicable AND {$prefixe}suisa_decompte_le <> ''",
-        'a_faire'       => "$applicable AND $nonEnvoyee",
-        'envoye'        => "$applicable AND $envoyeeSansDecompte AND $limite >= date('now')",
+        // Exclut un décompte reçu sans date d'envoi enregistrée (saisie manuelle
+        // incomplète) : evenement_statut_suisa() le classe 'decompte_recu' en
+        // priorité (voir plus haut), le prédicat SQL doit rester synchronisé.
+        'a_faire'       => "$applicable AND $nonEnvoyee AND {$prefixe}suisa_decompte_le = ''",
+        'envoye'        => "$applicable AND $envoyeeSansDecompte",
         'manquant'      => "$applicable AND $envoyeeSansDecompte AND $limite < date('now')",
         default         => "{$prefixe}suisa_applicable = 0", // ne_sapplique_pas
     };
@@ -213,9 +226,9 @@ function nb_evenements_suisa_manquants(): int
 
 // Liste des spectacles assignables (feuilles uniquement — un spectacle-parent
 // représente un artiste, pure groupement, jamais assigné directement à un
-// événement) pour un <select> — réutilisée par la liste des événements, le
-// formulaire événement et l'onglet des paramètres. 'nom' porte le chemin
-// complet (« Artiste › Spectacle ») pour lever l'ambiguïté dans l'arbre.
+// événement) pour un <select> — formulaire événement. 'nom' porte le chemin
+// complet (« Artiste › Spectacle ») pour lever l'ambiguïté dans l'arbre
+// (plusieurs artistes peuvent avoir des feuilles au nom proche).
 function spectacles_pour_selection(?array $map = null): array
 {
     $map ??= spectacle_map();
@@ -226,6 +239,27 @@ function spectacles_pour_selection(?array $map = null): array
             continue;
         }
         $out[] = ['id' => $id, 'nom' => spectacle_chemin($id, $map)];
+    }
+    return $out;
+}
+
+// Liste combinée groupes+feuilles pour le filtre « Spectacle » de la liste des
+// événements — contrairement à spectacles_pour_selection() (assignation à un
+// événement, feuilles uniquement), un spectacle-groupe (artiste) y est un
+// filtre valide : il élargit la recherche à tous ses descendants (même
+// principe que l'export public, voir evenements_a_exporter()). Les feuilles
+// gardent leur nom seul (pas de préfixe groupe, sinon le select devient vite
+// très large) ; les groupes portent leur chemin + suffixe « (groupe) ».
+// Ordre de l'arbre (plan_liste_ordonnee) : un groupe est suivi de ses propres
+// feuilles.
+function spectacles_pour_filtre(?array $map = null): array
+{
+    $map ??= spectacle_map();
+    $out = [];
+    foreach (plan_liste_ordonnee($map) as $r) {
+        $id = (int) $r['id'];
+        $feuille = plan_est_feuille($id, $map);
+        $out[] = ['id' => $id, 'nom' => $feuille ? (string) $r['nom'] : spectacle_chemin($id, $map) . ' (groupe)'];
     }
     return $out;
 }

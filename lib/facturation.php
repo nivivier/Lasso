@@ -133,15 +133,13 @@ function facturation_badge(array $facture): string
 {
     if (facturation_statut_effectif($facture) === 'payee') {
         $payeeLe = trim((string) ($facture['payee_le'] ?? ''));
-        return $payeeLe !== ''
-            ? '<span class="badge ok-badge">' . e(date('d.m.Y', strtotime($payeeLe))) . '</span>'
-            : '<span class="badge ok-badge">Payée</span>';
+        return badge($payeeLe !== '' ? date('d.m.Y', strtotime($payeeLe)) : 'Payée', 'ok');
     }
     return match (facturation_statut_effectif($facture)) {
-        'en_retard' => '<span class="badge warn-badge">En retard</span>',
-        'annulee'   => '<span class="badge muted-badge">Annulée</span>',
-        'emise'     => '<span class="badge emise-badge">Émise</span>',
-        default     => '<span class="badge muted-badge">Brouillon</span>',
+        'en_retard' => badge('En retard', 'warn'),
+        'annulee'   => badge('Annulée', 'muted'),
+        'emise'     => badge('Émise', 'emise'),
+        default     => badge('Brouillon', 'muted'),
     };
 }
 

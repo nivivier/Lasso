@@ -19,11 +19,15 @@ $parentOptions = function (int $excludeId) use ($map): string {
     return $h;
 };
 ?>
-<?= lien_retour('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
     <h1><?= e($termePluriel) ?></h1>
     <div class="head-actions">
-        <button type="button" class="btn btn-sm" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
+        <?php if ($lignes): ?>
+        <label class="search-label"><span>Rechercher <span id="spectacles-search-count" class="muted small"></span></span>
+            <input type="search" id="spectacles-search" placeholder="<?= e(mb_strtolower($termeSingulier)) ?>…" autocomplete="off" aria-label="Rechercher">
+        </label>
+        <?php endif; ?>
+        <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
     </div>
 </div>
 <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
@@ -42,12 +46,12 @@ $parentOptions = function (int $excludeId) use ($map): string {
     <form method="post" action="?p=spectacles" class="inline-edit card form" id="spectacle-add" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="add">
-        <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow">
+        <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow" aria-label="Nom du spectacle">
         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
         <button type="button" class="btn ghost btn-sm" data-hide="spectacle-add"><?= icon('x') ?> Annuler</button>
     </form>
 <?php else: ?>
-<div class="form" id="spectacles-card">
+<div class="form table-scroll" id="spectacles-card">
     <table class="list mb-16 plan-table spectacles-table">
         <thead>
             <tr><th></th><th class="num">Confirmés</th><th class="num">En option</th><th class="num">Annulés</th><th></th></tr>
@@ -77,7 +81,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="section" value="rename">
                             <input type="hidden" name="id" value="<?= $sid ?>">
-                            <input name="nom" value="<?= e($s['nom']) ?>" class="grow plan-libelle" required>
+                            <input name="nom" value="<?= e($s['nom']) ?>" class="grow plan-libelle" required aria-label="Nom du spectacle">
                             <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                         </form>
                         <?php if ($s['suisa_feuille_fichier']): ?>
@@ -114,7 +118,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <form method="post" action="?p=spectacles" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="add">
-                        <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow">
+                        <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow" aria-label="Nom du spectacle">
                         <select name="parent_id" title="Spectacle parent (artiste)"><?= $parentOptions(0) ?></select>
                         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                         <button type="button" class="btn ghost btn-sm" data-hide="spectacle-add"><?= icon('x') ?> Annuler</button>
@@ -151,6 +155,24 @@ $parentOptions = function (int $excludeId) use ($map): string {
             });
         });
     });
+
+    // Recherche instantanée (insensible à la casse et aux accents).
+    const search = document.getElementById('spectacles-search');
+    const count  = document.getElementById('spectacles-search-count');
+    const rows   = Array.from(document.querySelectorAll('.spectacles-table tbody tr'));
+    if (search) {
+        const apply = () => {
+            const q = lassoNorm(search.value.trim());
+            let visibles = 0;
+            rows.forEach(r => {
+                const ok = q === '' || lassoNorm(r.textContent).includes(q);
+                r.style.display = ok ? '' : 'none';
+                if (ok) visibles++;
+            });
+            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affiché(e)s';
+        };
+        search.addEventListener('input', apply);
+    }
 
     document.querySelectorAll('.plan-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {

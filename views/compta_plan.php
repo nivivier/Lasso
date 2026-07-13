@@ -45,6 +45,7 @@ $flashErr = [
         <button type="button" class="btn btn-sm ml-auto"
                 data-show="plan-add-<?= $sens ?>"><?= icon('plus') ?> Nouveau</button>
     </div>
+    <div class="table-scroll">
     <table class="list mb-16 plan-table" data-sens="<?= $sens ?>">
         <tbody>
         <?php if (!$rows): ?>
@@ -119,6 +120,7 @@ $flashErr = [
             </tr>
         </tfoot>
     </table>
+    </div>
     <?php endforeach; ?>
 </div>
 

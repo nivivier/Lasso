@@ -10,6 +10,7 @@
     <button type="button" class="btn btn-sm ml-auto" data-show="th-add"><?= icon('plus') ?> Nouveau</button>
 </div>
     <?php if ($tauxHoraires): ?>
+    <div class="table-scroll">
     <table class="list mb-16">
         <thead><tr><th>Libellé</th><th class="num">Montant</th><th></th></tr></thead>
         <tbody>
@@ -24,7 +25,7 @@
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="th_rename">
                         <input type="hidden" name="id" value="<?= (int) $th['id'] ?>">
-                        <input type="text" name="th_libelle" value="<?= e($th['libelle']) ?>" required class="grow">
+                        <input type="text" name="th_libelle" value="<?= e($th['libelle']) ?>" required class="grow" aria-label="Libellé du taux horaire">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
@@ -46,8 +47,8 @@
                     <form method="post" action="?p=taux_horaires" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="add">
-                        <input name="th_libelle" placeholder="ex. Standard, Animation, Direction" required class="grow">
-                        <input name="th_montant" type="text" inputmode="decimal" placeholder="30.00 CHF/h" required>
+                        <input name="th_libelle" placeholder="ex. Standard, Animation, Direction" required class="grow" aria-label="Libellé du taux horaire">
+                        <input name="th_montant" type="text" inputmode="decimal" placeholder="30.00 CHF/h" required aria-label="Montant">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                         <button type="button" class="btn ghost btn-sm icon-only" data-hide="th-add" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     </form>
@@ -55,13 +56,14 @@
             </tr>
         </tfoot>
     </table>
+    </div>
     <?php else: ?>
         <p class="muted small mb-16">Aucun taux prédéfini pour l'instant.</p>
         <form method="post" action="?p=taux_horaires" class="inline-edit" id="th-add" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="add">
-            <input name="th_libelle" placeholder="ex. Standard, Animation, Direction" required class="grow">
-            <input name="th_montant" type="text" inputmode="decimal" placeholder="30.00 CHF/h" required>
+            <input name="th_libelle" placeholder="ex. Standard, Animation, Direction" required class="grow" aria-label="Libellé du taux horaire">
+            <input name="th_montant" type="text" inputmode="decimal" placeholder="30.00 CHF/h" required aria-label="Montant">
             <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
             <button type="button" class="btn ghost btn-sm icon-only" data-hide="th-add" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>
@@ -77,6 +79,7 @@
     <button type="button" class="btn btn-sm ml-auto" data-show="u-add"><?= icon('plus') ?> Nouveau</button>
 </div>
     <?php if ($unites): ?>
+    <div class="table-scroll">
     <table class="list mb-16">
         <thead><tr><th>Libellé</th><th class="num">Équivaut à</th><th></th></tr></thead>
         <tbody>
@@ -91,7 +94,7 @@
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="unite_rename">
                         <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-                        <input type="text" name="u_libelle" value="<?= e($u['libelle']) ?>" required class="grow">
+                        <input type="text" name="u_libelle" value="<?= e($u['libelle']) ?>" required class="grow" aria-label="Libellé de l'unité">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
@@ -113,8 +116,8 @@
                     <form method="post" action="?p=taux_horaires" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="unite_add">
-                        <input name="u_libelle" placeholder="ex. Jour, Demi-journée, Service" required class="grow">
-                        <input name="u_heures" type="text" inputmode="decimal" placeholder="8 h" required>
+                        <input name="u_libelle" placeholder="ex. Jour, Demi-journée, Service" required class="grow" aria-label="Libellé de l'unité">
+                        <input name="u_heures" type="text" inputmode="decimal" placeholder="8 h" required aria-label="Équivaut à (heures)">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                         <button type="button" class="btn ghost btn-sm icon-only" data-hide="u-add" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     </form>
@@ -122,13 +125,14 @@
             </tr>
         </tfoot>
     </table>
+    </div>
     <?php else: ?>
         <p class="muted small mb-16">Aucune unité définie. Ajoutez au moins « Heure » (1 h).</p>
         <form method="post" action="?p=taux_horaires" class="inline-edit" id="u-add" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="unite_add">
-            <input name="u_libelle" placeholder="ex. Jour, Demi-journée, Service" required class="grow">
-            <input name="u_heures" type="text" inputmode="decimal" placeholder="8 h" required>
+            <input name="u_libelle" placeholder="ex. Jour, Demi-journée, Service" required class="grow" aria-label="Libellé de l'unité">
+            <input name="u_heures" type="text" inputmode="decimal" placeholder="8 h" required aria-label="Équivaut à (heures)">
             <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
             <button type="button" class="btn ghost btn-sm icon-only" data-hide="u-add" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>

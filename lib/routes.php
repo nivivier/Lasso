@@ -214,18 +214,33 @@ function route_compte_delete(): void
 function route_employes(): void
 {
     require_login();
-    $employes = db()->query('SELECT * FROM employes ORDER BY actif DESC, nom, prenom')->fetchAll();
-    // Dernière fiche de salaire par employé
+    $pgPage   = pagination_page();
+    $pgTaille = pagination_taille('employes_taille');
+    $pgTotal  = (int) db()->query('SELECT COUNT(*) FROM employes')->fetchColumn();
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+    $stmt = db()->prepare('SELECT * FROM employes ORDER BY actif DESC, nom, prenom' . $limitSql);
+    $stmt->execute($limitParams);
+    $employes = $stmt->fetchAll();
+
+    // Dernière fiche de salaire par employé (seulement pour les employés de la page affichée).
     $derniere = [];
-    $q = db()->query('SELECT employe_id, annee, mois, salaire_brut, salaire_net
-                      FROM fiches ORDER BY annee DESC, mois DESC');
-    foreach ($q as $r) {
-        $eid = (int) $r['employe_id'];
-        if (!isset($derniere[$eid])) {
-            $derniere[$eid] = $r;
+    if ($employes) {
+        $empIds = array_column($employes, 'id');
+        $inPlh  = implode(',', array_fill(0, count($empIds), '?'));
+        $q = db()->prepare(
+            "SELECT employe_id, annee, mois, salaire_brut, salaire_net
+             FROM fiches WHERE employe_id IN ($inPlh) ORDER BY annee DESC, mois DESC"
+        );
+        $q->execute($empIds);
+        foreach ($q as $r) {
+            $eid = (int) $r['employe_id'];
+            if (!isset($derniere[$eid])) {
+                $derniere[$eid] = $r;
+            }
         }
     }
-    render('employes', ['employes' => $employes, 'derniere' => $derniere], 'Employés');
+    render('employes', ['employes' => $employes, 'derniere' => $derniere,
+        'pgRoute' => 'employes', 'pgParams' => [], 'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
 }
 
 function route_employe_voir(): void
@@ -508,19 +523,9 @@ function route_import_fiches(): void
         $simule = !isset($_POST['appliquer']); // bouton « Simuler » vs « Importer »
         // Source du contenu : fichier téléversé, ou contenu mémorisé en session
         // (permet de cliquer « Importer » après « Simuler » sans re-téléverser).
-        $json = null;
-        $up = $_FILES['fichier'] ?? null;
-        if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            if (($up['size'] ?? 0) > 2 * 1024 * 1024) {
-                $err = 'Fichier trop volumineux (2 Mo maximum).';
-            } else {
-                $json = (string) file_get_contents($up['tmp_name']);
-            }
-        } elseif (!empty($_POST['depuis_session']) && !empty($_SESSION['import_fiches_json'])) {
-            $json = (string) $_SESSION['import_fiches_json'];
-        } else {
-            $err = 'Veuillez choisir un fichier JSON à importer.';
-        }
+        $r = lire_fichier_importe(2 * 1024 * 1024, 'Fichier trop volumineux (2 Mo maximum).', 'import_fiches_json', 'Veuillez choisir un fichier JSON à importer.');
+        $err  = $r['err'];
+        $json = $r['contenu'];
         if ($err === null) {
             $doc = json_decode((string) $json, true);
             if (!is_array($doc) || ($doc['type'] ?? '') !== 'fiches_salaire' || !is_array($doc['fiches'] ?? null)) {
@@ -678,29 +683,51 @@ function route_fiches(): void
     require_login();
     // Filtres : GET prioritaire, sinon dernière valeur en session (conservée au
     // retour depuis une fiche), sinon défaut.
-    $annee     = (int) filtre_persistant('annee', 'fiches_annee', date('Y'));
+    $annee     = (int) filtre_persistant('annee', 'fiches_annee', 0); // 0 = « Toutes les années » par défaut
     $statut    = filtre_persistant('statut', 'fiches_statut', 'tous'); // tous | apayer | payees
     $employeId = (int) filtre_persistant('employe_id', 'fiches_employe', 0);
-    $sql    = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
-               FROM fiches f JOIN employes e ON e.id = f.employe_id
-               WHERE 1=1';
+    $where  = ' WHERE 1=1';
     $params = [];
     if ($annee > 0) { // 0 = « Toutes les années »
-        $sql .= ' AND f.annee = ?';
+        $where .= ' AND f.annee = ?';
         $params[] = $annee;
     }
     if ($statut === 'apayer') {
-        $sql .= " AND (f.date_paiement IS NULL OR f.date_paiement = '')";
+        $where .= " AND (f.date_paiement IS NULL OR f.date_paiement = '')";
     } elseif ($statut === 'payees') {
-        $sql .= " AND f.date_paiement <> ''";
+        $where .= " AND f.date_paiement <> ''";
     }
     if ($employeId) {
-        $sql .= ' AND f.employe_id = ?';
+        $where .= ' AND f.employe_id = ?';
         $params[] = $employeId;
     }
+
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM fiches f' . $where);
+    $stmtTot->execute($params);
+    $pgTotal = (int) $stmtTot->fetchColumn();
+
+    // Totaux calculés en base sur tout le résultat filtré (pas seulement la
+    // page affichée) — la ligne « Total » du tableau doit rester exacte même
+    // paginée.
+    $stmtSum = db()->prepare(
+        'SELECT COALESCE(SUM(f.salaire_brut),0) AS brut, COALESCE(SUM(f.total_deductions),0) AS ded,
+                COALESCE(SUM(f.ded_impot_source),0) AS impot, COALESCE(SUM(f.salaire_net),0) AS net,
+                COALESCE(SUM(f.total_charges_emp),0) AS charges_emp, COALESCE(SUM(f.cout_total_emp),0) AS cout_emp
+         FROM fiches f' . $where
+    );
+    $stmtSum->execute($params);
+    $totaux = $stmtSum->fetch();
+
+    $pgPage   = pagination_page();
+    $pgTaille = pagination_taille('fiches_taille');
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+    $sql = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
+            FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where;
     $sql  .= $annee > 0 ? ' ORDER BY f.mois DESC, e.nom' : ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
+    $sql  .= $limitSql;
     $stmt  = db()->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, $limitParams));
     $fiches = $stmt->fetchAll();
     $annees = db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN);
     $employes = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
@@ -723,7 +750,9 @@ function route_fiches(): void
     }
 
     render('fiches', ['fiches' => $fiches, 'annee' => $annee, 'annees' => $annees, 'statut' => $statut,
-        'employes' => $employes, 'employeId' => $employeId, 'axesParFiche' => $axesParFiche], 'Fiches de salaire');
+        'employes' => $employes, 'employeId' => $employeId, 'axesParFiche' => $axesParFiche, 'totaux' => $totaux,
+        'pgRoute' => 'fiches', 'pgParams' => ['annee' => $annee, 'statut' => $statut, 'employe_id' => $employeId],
+        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Fiches de salaire');
 }
 
 // Lit les lignes de prestation postées → [lignes, totalHeures, salaireTravail]

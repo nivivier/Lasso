@@ -68,30 +68,40 @@ function route_facturation_liste(): void
     $annees = array_map('intval', db()->query(
         "SELECT DISTINCT strftime('%Y', COALESCE(NULLIF(date_emission,''), cree_le)) FROM factures ORDER BY 1 DESC"
     )->fetchAll(PDO::FETCH_COLUMN));
-    $annee = (int) filtre_persistant('annee', 'facturation_annee', $annees[0] ?? date('Y'));
+    $annee = (int) filtre_persistant('annee', 'facturation_annee', 0); // 0 = « Toutes les années » par défaut
 
     $avecEvenements = module_actif('evenements');
-    $sql = 'SELECT f.*, d.nom AS debiteur_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '')
-         . ' FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id';
+    $from = ' FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id';
     if ($avecEvenements) {
-        $sql .= ' LEFT JOIN evenements ev ON ev.id = f.evenement_id LEFT JOIN spectacles sp ON sp.id = ev.spectacle_id';
+        $from .= ' LEFT JOIN evenements ev ON ev.id = f.evenement_id LEFT JOIN spectacles sp ON sp.id = ev.spectacle_id';
     }
-    $sql .= ' WHERE 1=1';
+    $where = ' WHERE 1=1';
     $params = [];
     if ($annee) {
-        $sql .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) = ?";
+        $where .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) = ?";
         $params[] = (string) $annee;
     }
     if ($statut === 'en_retard') {
-        $sql .= ' AND ' . facturation_sql_en_retard('f.');
+        $where .= ' AND ' . facturation_sql_en_retard('f.');
         $params[] = date('Y-m-d');
     } elseif (in_array($statut, FACTURATION_STATUTS, true)) {
-        $sql .= ' AND f.statut = ?';
+        $where .= ' AND f.statut = ?';
         $params[] = $statut;
     }
-    $sql .= ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC';
+
+    $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
+    $stmtTot->execute($params);
+    $pgTotal = (int) $stmtTot->fetchColumn();
+
+    $pgPage   = pagination_page();
+    $pgTaille = pagination_taille('facturation_taille');
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+    $sql = 'SELECT f.*, d.nom AS debiteur_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '')
+         . $from . $where
+         . ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC' . $limitSql;
     $stmt = db()->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, $limitParams));
     $factures = $stmt->fetchAll();
 
     render('facturation_liste', [
@@ -100,6 +110,11 @@ function route_facturation_liste(): void
         'annee'          => $annee,
         'annees'         => $annees ?: [(int) date('Y')],
         'avecEvenements' => $avecEvenements,
+        'pgRoute'        => 'facturation_liste',
+        'pgParams'       => ['statut' => $statut, 'annee' => $annee],
+        'pgPage'         => $pgPage,
+        'pgTaille'       => $pgTaille,
+        'pgTotal'        => $pgTotal,
     ], 'Facturation');
 }
 
@@ -440,9 +455,24 @@ function route_facture_rappel(): void
 function route_facturation_debiteurs(): void
 {
     require_login();
-    $debiteurs = db()->query('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
-                               FROM debiteurs d ORDER BY d.actif DESC, d.nom')->fetchAll();
-    render('facturation_debiteurs', ['debiteurs' => $debiteurs], 'Facturation — Débiteurs');
+    $pgTotal  = (int) db()->query('SELECT COUNT(*) FROM debiteurs')->fetchColumn();
+    $pgPage   = pagination_page();
+    $pgTaille = pagination_taille('debiteurs_taille');
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+    $stmt = db()->prepare('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
+                            FROM debiteurs d ORDER BY d.actif DESC, d.nom' . $limitSql);
+    $stmt->execute($limitParams);
+    $debiteurs = $stmt->fetchAll();
+
+    render('facturation_debiteurs', [
+        'debiteurs' => $debiteurs,
+        'pgRoute'   => 'facturation_debiteurs',
+        'pgParams'  => [],
+        'pgPage'    => $pgPage,
+        'pgTaille'  => $pgTaille,
+        'pgTotal'   => $pgTotal,
+    ], 'Facturation — Débiteurs');
 }
 
 function route_debiteur(): void
@@ -517,19 +547,9 @@ function route_import_factures(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $simule = !isset($_POST['appliquer']);
-        $json = null;
-        $up = $_FILES['fichier'] ?? null;
-        if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            if (($up['size'] ?? 0) > 2 * 1024 * 1024) {
-                $err = 'Fichier trop volumineux (2 Mo maximum).';
-            } else {
-                $json = (string) file_get_contents($up['tmp_name']);
-            }
-        } elseif (!empty($_POST['depuis_session']) && !empty($_SESSION['import_factures_json'])) {
-            $json = (string) $_SESSION['import_factures_json'];
-        } else {
-            $err = 'Veuillez choisir un fichier JSON à importer.';
-        }
+        $r = lire_fichier_importe(2 * 1024 * 1024, 'Fichier trop volumineux (2 Mo maximum).', 'import_factures_json', 'Veuillez choisir un fichier JSON à importer.');
+        $err  = $r['err'];
+        $json = $r['contenu'];
         if ($err === null) {
             $doc = json_decode((string) $json, true);
             if (!is_array($doc) || ($doc['type'] ?? '') !== 'factures_historique' || !is_array($doc['factures'] ?? null)) {

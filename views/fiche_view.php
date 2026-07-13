@@ -19,7 +19,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <div class="head-actions">
 
         <?php if (!empty($modifiable)): ?>
-            <a class="btn ghost btn-sm" href="?p=fiche_edit&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+            <a class="btn ghost btn-sm" href="?p=fiche_edit&id=<?= (int) $f['id'] ?><?= $depuisQs ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
         <?php else: ?>
             <button class="btn ghost btn-sm" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
         <?php endif; ?>

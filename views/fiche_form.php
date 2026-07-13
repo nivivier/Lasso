@@ -66,8 +66,12 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         . '<button type="button" class="btn ghost btn-sm l-del" aria-label="Supprimer la ligne">✕</button>'
         . '</div>';
 };
+// Reporté sur le formulaire (redirige vers ?p=fiche_new même en édition),
+// pour que le lien de retour contextuel survive à une erreur de validation
+// qui réaffiche cette page (voir lien_retour_contextuel() dans lib/helpers.php).
+$depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 ?>
-<?= lien_retour('?p=fiches', 'Fiches de salaire') ?>
+<?= lien_retour_contextuel('?p=fiches', 'Fiches de salaire') ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la fiche de salaire' : 'Nouvelle fiche de salaire' ?></h1>
 </div>
@@ -81,7 +85,7 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=fiche_new" class="card form">
+<form method="post" action="?p=fiche_new<?= $depuisQs ?>" class="card form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($edit && isset($fiche_id)): ?>
         <input type="hidden" name="fiche_id" value="<?= (int) $fiche_id ?>">

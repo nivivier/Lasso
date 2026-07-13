@@ -7,6 +7,51 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.3.0] — 2026-07-13
+
+### Ajouté
+- Pagination sur les listes potentiellement longues (fiches, employés,
+  écritures, factures, débiteurs, événements) : 25/50/100/200 lignes par
+  page (100 par défaut), taille mémorisée par page, navigation
+  précédent/suivant préservant les filtres actifs.
+- Recherche instantanée (insensible casse/accents) sur Employés, Analyse
+  par axe, Débiteurs et Spectacles — même mécanisme que sur les listes qui
+  l'avaient déjà (Écritures, Factures, Événements).
+- Filtre « année » par défaut sur « Toutes les années » (Salaires,
+  Écritures, Factures, Événements), plutôt que l'année courante.
+
+### Corrigé
+- Événements — statut SUISA « À faire » : excluait mal un événement dont le
+  décompte avait été reçu sans date d'envoi enregistrée (saisie manuelle
+  incomplète), qui apparaissait alors dans les deux filtres à la fois.
+- Événements — statut SUISA « Envoyé » : n'incluait pas les événements
+  « Manquant » (décompte en retard), alors qu'un décompte en retard reste
+  avant tout un événement envoyé.
+- Événements — liste : le badge SUISA affiche désormais la date du
+  décompte plutôt que le texte générique « Décompte reçu ».
+- Badge employé inactif : texte invisible sur fond clair.
+- Tableaux sans défilement horizontal sur petit écran (plusieurs pages de
+  comptabilité, facturation et salaires horaires).
+- Lien de retour contextuel du formulaire de fiche de salaire : perdu en
+  cas d'erreur de validation réaffichant la page.
+- `alt=""` des logos employeur en aperçu (paramètres) : manquait le nom de
+  l'employeur.
+- Largeur de colonne `.col-petit` sur les en-têtes de tableau manquante
+  dans la page « Cotisations ».
+
+### Modifié
+- Accessibilité : `aria-label` ajouté aux champs d'édition en ligne et aux
+  boutons icône-seule restants.
+- Confirmations de suppression/annulation (`confirm()`) harmonisées sur
+  tous les formulaires concernés.
+- Factorisation : validation d'upload centralisée dans un helper commun
+  (`lire_fichier_importe()`), génération des badges de statut centralisée
+  (`badge()`), réutilisées par les modules paie/comptabilité/facturation/
+  événements.
+- Nettoyage de règles CSS mortes ; généralisation de `.search-label` et du
+  style des champs de recherche pour fonctionner hors du conteneur
+  `.filters`.
+
 ## [1.2.5] — 2026-07-12
 
 ### Corrigé

@@ -36,9 +36,9 @@
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                        <input name="libelle" value="<?= e($c['libelle']) ?>" class="grow" required placeholder="Libellé">
-                        <input name="iban" value="<?= e($c['iban']) ?>" placeholder="CH…" class="w-iban">
-                        <input name="solde_initial" type="number" step="0.01" value="<?= (float) $c['solde_initial'] ?>" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)">
+                        <input name="libelle" value="<?= e($c['libelle']) ?>" class="grow" required placeholder="Libellé" aria-label="Libellé du compte">
+                        <input name="iban" value="<?= e($c['iban']) ?>" placeholder="CH…" class="w-iban" aria-label="IBAN">
+                        <input name="solde_initial" type="number" step="0.01" value="<?= (float) $c['solde_initial'] ?>" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)" aria-label="Solde initial">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                 </td>
@@ -61,9 +61,9 @@
                     <form method="post" action="?p=compta_comptes" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="add">
-                        <input name="libelle" placeholder="ex. Compte PostFinance — Local" required class="grow">
-                        <input name="iban" placeholder="CH86 0900 0000 1587 1688 5" class="w-iban">
-                        <input name="solde_initial" type="number" step="0.01" value="0" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)">
+                        <input name="libelle" placeholder="ex. Compte PostFinance — Local" required class="grow" aria-label="Libellé du compte">
+                        <input name="iban" placeholder="CH86 0900 0000 1587 1688 5" class="w-iban" aria-label="IBAN">
+                        <input name="solde_initial" type="number" step="0.01" value="0" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)" aria-label="Solde initial">
                         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                         <button type="button" class="btn ghost btn-sm" id="cancel-new-compte"><?= icon('x') ?> Annuler</button>
                     </form>

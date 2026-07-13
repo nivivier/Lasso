@@ -503,21 +503,18 @@ function compta_import_ecritures_requete(): array
     $simule = !isset($_POST['appliquer']);
     $vide = ['err' => null, 'simule' => $simule, 'preview' => null, 'ok' => null];
 
-    $contenu = null;
-    $nomFichier = '';
-    $up = $_FILES['fichier'] ?? null;
-    if ($up && ($up['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-        if (($up['size'] ?? 0) > 5 * 1024 * 1024) {
-            return ['err' => 'Fichier trop volumineux (max 5 Mo).'] + $vide;
-        }
-        $contenu = (string) file_get_contents($up['tmp_name']);
-        $nomFichier = (string) $up['name'];
-    } elseif (!empty($_POST['depuis_session']) && !empty($_SESSION['import_ecritures_csv'])) {
-        $contenu = (string) $_SESSION['import_ecritures_csv'];
-        $nomFichier = (string) ($_SESSION['import_ecritures_nom'] ?? 'import');
-    } else {
-        return ['err' => 'Veuillez choisir un fichier à importer (CSV PostFinance ou XML camt.053).'] + $vide;
+    $r = lire_fichier_importe(
+        5 * 1024 * 1024,
+        'Fichier trop volumineux (max 5 Mo).',
+        'import_ecritures_csv',
+        'Veuillez choisir un fichier à importer (CSV PostFinance ou XML camt.053).',
+        'import_ecritures_nom'
+    );
+    if ($r['err'] !== null) {
+        return ['err' => $r['err']] + $vide;
     }
+    $contenu    = $r['contenu'];
+    $nomFichier = $r['nom'];
 
     $res = compta_traiter_fichier_importe($contenu, $nomFichier, $simule, trim($_POST['nom_compte'] ?? ''));
 
@@ -587,7 +584,7 @@ function route_compta_ecritures(): void
     // Filtres : GET prioritaire, sinon dernière valeur en session, sinon défaut.
     $compteId = (int) filtre_persistant('compte', 'ecr_compte', 0);
     $annees   = compta_annees();
-    $annee    = (int) filtre_persistant('annee', 'ecr_annee', $annees[0] ?? date('Y'));
+    $annee    = (int) filtre_persistant('annee', 'ecr_annee', 0); // 0 = « Toutes les années » par défaut
     $categorieFilter = filtre_persistant('categorie', 'ecr_categorie', '');
     $axeFilter        = filtre_persistant('axe', 'ecr_axe', '');
 
@@ -709,39 +706,50 @@ function route_compta_ecritures(): void
     }
 
     // Construction de la requête filtrée.
-    $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle FROM ecritures e
-            LEFT JOIN plan_comptes p ON p.id = e.plan_compte_id
-            JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id WHERE 1=1';
+    $where  = ' WHERE 1=1';
     $params = [];
     if ($compteId) {
-        $sql .= ' AND e.compte_bancaire_id = ?';
+        $where .= ' AND e.compte_bancaire_id = ?';
         $params[] = $compteId;
     }
     if ($annee) {
-        $sql .= ' AND substr(e.date_op,1,4) = ?';
+        $where .= ' AND substr(e.date_op,1,4) = ?';
         $params[] = (string) $annee;
     }
     if ($categorieFilter === 'a_lettrer') {
-        $sql .= " AND e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore'";
+        $where .= " AND e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore'";
     } elseif ($categorieFilter === 'ignore') {
-        $sql .= " AND e.origine_lettrage = 'ignore'";
+        $where .= " AND e.origine_lettrage = 'ignore'";
     } elseif (ctype_digit((string) $categorieFilter) && $categorieFilter !== '') {
         // Catégorie choisie : si feuille → cette catégorie ; si sur-catégorie
         // (parent) → toutes les écritures de son sous-arbre.
         $ids = plan_descendants((int) $categorieFilter, plan_enfants(compta_plan_actif()));
         $in  = implode(',', array_fill(0, count($ids), '?'));
-        $sql .= " AND e.plan_compte_id IN ($in)";
+        $where .= " AND e.plan_compte_id IN ($in)";
         $params = array_merge($params, array_map('intval', $ids));
     }
     if (module_actif('analytique') && ctype_digit((string) $axeFilter) && $axeFilter !== '') {
-        $sql .= ' AND EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id = ?)';
+        $where .= ' AND EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id = ?)';
         $params[] = (int) $axeFilter;
     } elseif (module_actif('analytique') && $axeFilter === 'sans_axe') {
-        $sql .= ' AND e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)';
+        $where .= ' AND e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)';
     }
+
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM ecritures e' . $where);
+    $stmtTot->execute($params);
+    $pgTotal = (int) $stmtTot->fetchColumn();
+
+    $pgPage   = pagination_page();
+    $pgTaille = pagination_taille('ecr_taille');
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+    $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle FROM ecritures e
+            LEFT JOIN plan_comptes p ON p.id = e.plan_compte_id
+            JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id' . $where;
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
+    $sql .= $limitSql;
     $stmt = db()->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, $limitParams));
     $ecritures = $stmt->fetchAll();
 
     // Ventilations par écriture (chargées en une seule requête supplémentaire).
@@ -783,6 +791,9 @@ function route_compta_ecritures(): void
         'openNew'         => isset($_GET['new']),
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
+        'pgRoute' => 'compta_ecritures',
+        'pgParams' => ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter],
+        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
     ], 'Comptabilité — Lettrage');
 }
 

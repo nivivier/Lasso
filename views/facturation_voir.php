@@ -113,6 +113,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <p><strong><?= nl2br(e($f['communication'])) ?></strong></p>
     <?php endif; ?>
 
+    <div class="table-scroll">
     <table class="list">
         <thead><tr><th>Description</th><th class="num">Qté</th><th class="num">Prix unit.</th><th class="num">Montant</th><?php if ($aDesAxes): ?><th>Axe</th><?php endif; ?></tr></thead>
         <tbody>
@@ -130,6 +131,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         </tbody>
         <tfoot><tr><td colspan="3" class="num strong">Total</td><td class="num strong"><?= chf((float) $f['montant_total']) ?></td><?php if ($aDesAxes): ?><td></td><?php endif; ?></tr></tfoot>
     </table>
+    </div>
 </div>
 </div>
 <?php if ($peutPayer || module_actif('evenements')): ?>

@@ -136,7 +136,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Conditions</span>
                     <div class="regle-cond-row">
-                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-new" title="Ajouter une condition"><?= icon('plus') ?></button>
+                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-new" title="Ajouter une condition" aria-label="Ajouter une condition"><?= icon('plus') ?></button>
                         <select name="operateur" class="regle-op-select" hidden>
                             <option value="ET">ET</option>
                             <option value="OU">OU</option>
@@ -182,8 +182,8 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                 </label>
                 <!-- Flèches de réordonnancement -->
                 <div class="regle-arrows">
-                    <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter"><?= icon('chevron-up') ?></button>
-                    <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre"><?= icon('chevron-down') ?></button>
+                    <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter" aria-label="Monter"><?= icon('chevron-up') ?></button>
+                    <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
                 </div>
                 <!-- Compte -->
                 <div class="regle-cond-ctrl">
@@ -194,7 +194,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Conditions</span>
                     <div class="regle-cond-row">
-                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition"><?= icon('plus') ?></button>
+                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition" aria-label="Ajouter une condition"><?= icon('plus') ?></button>
                         <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?>>
                             <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET</option>
                             <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU</option>
