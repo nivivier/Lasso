@@ -17,7 +17,7 @@ $lien    = fn(int $p): string => e('?p=' . $pgRoute . '&' . http_build_query($pg
     <form method="get" class="pagination-taille">
         <input type="hidden" name="p" value="<?= e($pgRoute) ?>">
         <?php foreach ($pgParams as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e((string) $v) ?>"><?php endforeach; ?>
-        <label>Par page
+        <label>Par&nbsp;page
             <select name="taille" onchange="this.form.submit()">
                 <?php foreach (PAGINATION_TAILLES as $t): ?>
                     <option value="<?= $t ?>" <?= $pgTaille === $t ? 'selected' : '' ?>><?= $t ?></option>

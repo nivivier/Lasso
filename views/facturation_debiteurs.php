@@ -5,8 +5,8 @@
     <h1>Débiteurs</h1>
     <div class="head-actions">
 	    <?php if ($debiteurs): ?>
-	    <label class="search-label"><span>Rechercher <span id="debiteurs-search-count" class="muted small"></span></span>
-	        <input type="search" id="debiteurs-search" placeholder="Nom, adresse, e-mail…" autocomplete="off" aria-label="Rechercher">
+	    <label class="search-label">
+	        <input type="search" id="debiteurs-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
 	    </label>
 	    <?php endif; ?>
 	    <a class="btn" href="?p=debiteur"><?= icon('user-plus') ?><span class="lbl"> Nouveau débiteur</span></a>
@@ -58,18 +58,13 @@
 <script>
 (function () {
     const search = document.getElementById('debiteurs-search');
-    const count  = document.getElementById('debiteurs-search-count');
     const rows   = Array.from(document.querySelectorAll('.list-wide tbody tr'));
     if (search) {
         const apply = () => {
             const q = lassoNorm(search.value.trim());
-            let visibles = 0;
             rows.forEach(r => {
-                const ok = q === '' || lassoNorm(r.textContent).includes(q);
-                r.style.display = ok ? '' : 'none';
-                if (ok) visibles++;
+                r.style.display = (q === '' || lassoNorm(r.textContent).includes(q)) ? '' : 'none';
             });
-            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affiché(e)s';
         };
         search.addEventListener('input', apply);
     }
