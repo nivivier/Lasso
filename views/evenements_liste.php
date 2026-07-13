@@ -210,7 +210,10 @@ $termeSingulier = evenements_terme_spectacle(false);
             <td><?= evenement_icone_visibilite($ev) ?></td>
             <td><?= evenement_badge_statut($ev) ?></td>
             <td><?= evenement_suisa_badge($ev, true) ?></td>
-            <td class="num"><?= (int) $ev['nb_salaries'] ?></td>
+            <td class="num salaries-cell">
+                <?php if ((int) $ev['production_externe']): ?><span title="Production externe" aria-label="Production externe"><?= icon('handshake') ?></span><?php endif; ?>
+                <?= (int) $ev['nb_salaries'] ?>
+            </td>
         </tr>
     <?php endforeach; ?>
     </tbody>

@@ -543,6 +543,9 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .visibilite-icone.visibilite-prive { color: var(--muted); }
 .visibilite-icone.visibilite-non-repertorie { color: var(--muted); opacity: .35; }
 
+/* Icône « production externe » (handshake) devant le nombre de salariés. */
+.salaries-cell .ico { width: 15px; height: 15px; color: var(--muted); vertical-align: middle; margin-right: 5px; }
+
 /* =================== Filters =================== */
 .filters { display: flex; gap: 16px; align-items: center; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .filters label { margin-bottom: 0; }
