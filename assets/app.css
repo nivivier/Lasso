@@ -7,8 +7,10 @@
     --teal: #0fb6a1;        /* couleur secondaire */
     --teal-d: #0c9486;
     --teal-tint: #e2f7f3;
-    --amber: #9a6700;       /* « à payer » */
+    --amber: #9a6700;       /* « à payer », statut SUISA « à faire » */
     --amber-tint: #fff4e0;
+    --orange: #c2410c;      /* statut SUISA « manquant » */
+    --orange-tint: #fdece1;
     --ink: #1e2430;
     --muted: #6b7280;
     --line: #e8e9f1;
@@ -605,6 +607,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
+.badge.orange-badge { background: var(--orange-tint); color: var(--orange); margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
 .badge.emise-badge { margin-left: 0; }

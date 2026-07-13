@@ -85,9 +85,10 @@ function evenement_suisa_badge(array $ev, bool $avecDate = false): string
     $statut = evenement_statut_suisa($ev);
     $classe = match ($statut) {
         'decompte_recu' => 'ok',
-        'manquant'      => 'warn',
+        'a_faire'       => 'warn',   // jaune
+        'manquant'      => 'orange',
         'envoye'        => 'emise',
-        default         => 'muted', // a_faire, a_venir, abandonne, ne_sapplique_pas
+        default         => 'muted', // a_venir, abandonne, ne_sapplique_pas
     };
     $decompteLe = trim((string) ($ev['suisa_decompte_le'] ?? ''));
     $texte = ($statut === 'decompte_recu' && $avecDate && $decompteLe !== '')
