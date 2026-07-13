@@ -366,8 +366,21 @@ function route_evenement(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
 
+    // Carte « Organisateur » : débiteur à facturer pour cet événement (optionnel,
+    // un seul à la fois — voir route_evenement_organisateur_lier()).
+    $organisateur = null;
+    if ($id && module_actif('facturation') && !empty($evenement['organisateur_debiteur_id'])) {
+        $stmtOrg = db()->prepare('SELECT * FROM debiteurs WHERE id = ?');
+        $stmtOrg->execute([(int) $evenement['organisateur_debiteur_id']]);
+        $organisateur = $stmtOrg->fetch() ?: null;
+    }
+    $debiteursDispo = ($id && module_actif('facturation'))
+        ? db()->query('SELECT * FROM debiteurs WHERE actif = 1 ORDER BY nom')->fetchAll()
+        : [];
+
     $renderForm = function (?string $err) use (
-        $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye, $axes
+        $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
+        $axes, $organisateur, $debiteursDispo
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -382,6 +395,8 @@ function route_evenement(): void
             'tauxHoraires'   => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
             'factures'       => $id ? evenement_factures_liees($id) : [],
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
+            'organisateur'   => $organisateur,
+            'debiteursDispo' => $debiteursDispo,
             'paysDisponibles' => evenements_pays_disponibles(),
             'axes'           => $axes,
             'err'            => $err,
@@ -678,6 +693,55 @@ function route_evenement_delete(): void
         db()->prepare('DELETE FROM evenements WHERE id = ?')->execute([$id]);
     }
     redirect('evenements_liste');
+}
+
+// Lie le débiteur « organisateur » d'un événement (carte du même nom) — un
+// débiteur existant choisi via la recherche, ou un nouveau créé à la volée
+// (mêmes champs que la création rapide depuis une facture, préfixés « org_ »,
+// voir debiteur_creer_depuis_post()). Un seul organisateur à la fois : relier
+// remplace simplement l'ancien (pas d'historique à préserver, contrairement
+// aux fiches de salaire).
+function route_evenement_organisateur_lier(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('facturation')) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    $evenementId = (int) ($_POST['id'] ?? 0);
+    if (!evenement_charger($evenementId)) {
+        redirect('evenements_liste');
+    }
+    $debiteurRaw = (string) ($_POST['debiteur_id'] ?? '');
+    if ($debiteurRaw === '__new__') {
+        if (trim($_POST['org_nom'] ?? '') === '') {
+            redirect('evenement', ['id' => $evenementId, 'errOrganisateur' => '1']);
+        }
+        $debiteurId = debiteur_creer_depuis_post('org_');
+    } else {
+        $debiteurId = (int) $debiteurRaw;
+        $stmtD = db()->prepare('SELECT 1 FROM debiteurs WHERE id = ?');
+        $stmtD->execute([$debiteurId]);
+        if (!$stmtD->fetchColumn()) {
+            redirect('evenement', ['id' => $evenementId]);
+        }
+    }
+    db()->prepare('UPDATE evenements SET organisateur_debiteur_id = ? WHERE id = ?')->execute([$debiteurId, $evenementId]);
+    redirect('evenement', ['id' => $evenementId, 'ok' => 'organisateur']);
+}
+
+// Détache l'organisateur d'un événement (le débiteur lui-même n'est jamais
+// supprimé, seul le lien l'est).
+function route_evenement_organisateur_delier(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    $evenementId = (int) ($_POST['id'] ?? 0);
+    db()->prepare('UPDATE evenements SET organisateur_debiteur_id = NULL WHERE id = ?')->execute([$evenementId]);
+    redirect('evenement', ['id' => $evenementId]);
 }
 
 // Lie une facture existante (pas encore liée) à cet événement, depuis la fiche

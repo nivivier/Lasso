@@ -158,16 +158,25 @@ function route_facturation_form(): void
     // présélectionné sur la première ligne d'une facture nouvellement créée
     // depuis cet événement — sans jamais toucher les lignes d'une facture existante.
     $axeDefautEvenement = null;
-    if ($evenementId && !$facture && $axes) {
-        $stmt = db()->prepare('SELECT axe_analytique_id_defaut FROM evenements WHERE id = ?');
+    // Organisateur lié à l'événement (carte du même nom) : présélectionné comme
+    // débiteur d'une facture nouvellement créée depuis cet événement — sans
+    // effet sur une facture déjà enregistrée.
+    $debiteurDefautEvenement = null;
+    if ($evenementId && !$facture) {
+        $stmt = db()->prepare('SELECT axe_analytique_id_defaut, organisateur_debiteur_id FROM evenements WHERE id = ?');
         $stmt->execute([$evenementId]);
-        $axeDefautEvenement = (int) $stmt->fetchColumn() ?: null;
+        $evRow = $stmt->fetch();
+        $axeDefautEvenement = $axes ? ((int) ($evRow['axe_analytique_id_defaut'] ?? 0) ?: null) : null;
+        $debiteurDefautEvenement = (int) ($evRow['organisateur_debiteur_id'] ?? 0) ?: null;
     }
 
-    $renderForm = function (?string $err) use ($facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut, $evenementId, $axeDefautEvenement) {
+    $renderForm = function (?string $err) use (
+        $facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut, $evenementId, $axeDefautEvenement, $debiteurDefautEvenement
+    ) {
         render('facturation_form', [
             'facture' => $facture, 'id' => $id, 'debiteurs' => $debiteurs, 'comptes' => $comptes, 'axes' => $axes,
             'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'axeDefautEvenement' => $axeDefautEvenement,
+            'debiteurDefautEvenement' => $debiteurDefautEvenement,
             'err' => $err, 'post' => $_POST,
         ], $id ? 'Modifier la facture' : 'Nouvelle facture');
     };
@@ -209,18 +218,7 @@ function route_facturation_form(): void
     }
 
     if ($nouveauDebiteur) {
-        db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, actif)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 1)')
-            ->execute([
-                ($_POST['nd_type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
-                $ndNom,
-                trim($_POST['nd_adresse_rue'] ?? ''),
-                trim($_POST['nd_adresse_npa'] ?? ''),
-                trim($_POST['nd_adresse_localite'] ?? ''),
-                trim($_POST['nd_adresse_pays'] ?? '') ?: 'Suisse',
-                trim($_POST['nd_email'] ?? ''),
-            ]);
-        $debiteurId = (int) db()->lastInsertId();
+        $debiteurId = debiteur_creer_depuis_post('nd_');
     }
 
     try {

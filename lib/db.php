@@ -307,6 +307,7 @@ function run_migrations(PDO $pdo): void
         28 => 'migration_28', // evenements.axe_analytique_id_defaut : axe analytique par défaut
         29 => 'migration_29', // spectacles.parent_id / ordre : hiérarchie (imbrication façon plan comptable)
         30 => 'migration_30', // paramètre suisa_delai_abandon_mois (statut SUISA « abandonné »)
+        31 => 'migration_31', // evenements.organisateur_debiteur_id : lien vers le débiteur organisateur
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1002,6 +1003,17 @@ function migration_30(PDO $pdo): void
 {
     $ins = $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)');
     $ins->execute(['suisa_delai_abandon_mois', '60']);
+}
+
+// Carte « Organisateur » (fiche événement) : lien optionnel vers le débiteur à
+// facturer pour cet événement (recherche d'un débiteur existant ou création
+// rapide) — voir route_evenement_organisateur_lier().
+function migration_31(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('organisateur_debiteur_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE evenements ADD COLUMN organisateur_debiteur_id INTEGER REFERENCES debiteurs(id) ON DELETE SET NULL');
+    }
 }
 
 function seed_parametres(PDO $pdo): void

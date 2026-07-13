@@ -8,6 +8,26 @@
 
 const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];
 
+// Crée un débiteur depuis des champs POST déjà validés (nom non vide, requis
+// par l'appelant) — factorise la création rapide dupliquée entre le formulaire
+// de facture et la carte « Organisateur » d'un événement (lib/routes_evenements.php).
+// $prefixe : préfixe des noms de champs POST (ex. 'nd_', 'org_'). Retourne l'id créé.
+function debiteur_creer_depuis_post(string $prefixe): int
+{
+    db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, actif)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)')
+        ->execute([
+            ($_POST[$prefixe . 'type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
+            trim($_POST[$prefixe . 'nom'] ?? ''),
+            trim($_POST[$prefixe . 'adresse_rue'] ?? ''),
+            trim($_POST[$prefixe . 'adresse_npa'] ?? ''),
+            trim($_POST[$prefixe . 'adresse_localite'] ?? ''),
+            trim($_POST[$prefixe . 'adresse_pays'] ?? '') ?: 'Suisse',
+            trim($_POST[$prefixe . 'email'] ?? ''),
+        ]);
+    return (int) db()->lastInsertId();
+}
+
 // Montant d'une ligne (quantité × prix unitaire), arrondi à 2 décimales.
 function facturation_calc_ligne(float $quantite, float $prixUnitaire): float
 {

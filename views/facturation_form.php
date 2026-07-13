@@ -1,7 +1,7 @@
 <?php
 /** @var ?array $facture */ /** @var int $id */ /** @var array $debiteurs */ /** @var array $comptes */
 /** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?int $axeDefautEvenement */
-/** @var ?string $err */ /** @var ?array $post */
+/** @var ?int $debiteurDefautEvenement */ /** @var ?string $err */ /** @var ?array $post */
 $edit = $id > 0;
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 
@@ -49,7 +49,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
         . '</div>';
 };
 ?>
-<?php $debiteurCourant = (string) ($post['debiteur_id'] ?? ($facture['debiteur_id'] ?? '')); ?>
+<?php $debiteurCourant = (string) ($post['debiteur_id'] ?? ($facture['debiteur_id'] ?? ($debiteurDefautEvenement ?: ''))); ?>
 <?php $nouveauDebiteur = $debiteurCourant === '__new__'; ?>
 <?= lien_retour('?p=facturation_liste', 'Facturation') ?>
 <div class="page-head">

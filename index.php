@@ -165,6 +165,8 @@ if (module_actif('evenements')) {
         'evenement_employe_lier'   => 'route_evenement_employe_lier',
         'evenement_employe_delier' => 'route_evenement_employe_delier',
         'evenement_ligne_ajouter'     => 'route_evenement_ligne_ajouter',
+        'evenement_organisateur_lier'   => 'route_evenement_organisateur_lier',
+        'evenement_organisateur_delier' => 'route_evenement_organisateur_delier',
         'evenement_facture_lier'   => 'route_evenement_facture_lier',
         'evenement_facture_delier' => 'route_evenement_facture_delier',
         'facture_evenement_lier'   => 'route_facture_evenement_lier',

@@ -2,7 +2,7 @@
 /** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */ /** @var array $spectacleMap */
 /** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
 /** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
-/** @var array $factures */ /** @var array $facturesDispo */
+/** @var array $factures */ /** @var array $facturesDispo */ /** @var ?array $organisateur */ /** @var array $debiteursDispo */
 /** @var array $paysDisponibles */ /** @var array $axes */ /** @var ?string $err */ /** @var array $post */
 $isEdit = $id > 0;
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
@@ -15,6 +15,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 $ok = $_GET['ok'] ?? null;
 $errLigne = $_GET['errLigne'] ?? null;
 $errEmploye = $_GET['errEmploye'] ?? null;
+$errOrganisateur = $_GET['errOrganisateur'] ?? null;
 
 $confirmSuppr = null;
 if ($isEdit) {
@@ -300,6 +301,69 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     <?php endif; ?>
 </div>
 
+<?php if (module_actif('facturation')): ?>
+<div class="card mt-22">
+    <h2 class="mt-0">Organisateur <?= info_tip(
+        "Débiteur à facturer pour cet événement (recherché parmi les débiteurs existants, ou créé "
+        . "à la volée). Présélectionné à la création d'une facture liée. Un seul organisateur à la "
+        . "fois : relier un autre débiteur remplace le précédent."
+    ) ?></h2>
+    <?php if ($ok === 'organisateur'): ?><p class="ok flash">Organisateur enregistré.</p><?php endif; ?>
+    <?php if ($errOrganisateur === '1'): ?><p class="err">Le nom du nouveau débiteur est obligatoire.</p><?php endif; ?>
+
+    <?php if ($organisateur):
+        $adrOrg = trim($organisateur['adresse_rue'] . ' ' . trim($organisateur['adresse_npa'] . ' ' . $organisateur['adresse_localite']));
+    ?>
+        <div class="linked-add">
+            <span>
+                <strong><?= e($organisateur['nom']) ?></strong>
+                <?php if ($adrOrg !== ''): ?><span class="muted small"> — <?= e($adrOrg) ?></span><?php endif; ?>
+                <?php if ($organisateur['email']): ?><span class="muted small"> — <?= e($organisateur['email']) ?></span><?php endif; ?>
+            </span>
+            <a class="btn ghost btn-sm" href="?p=debiteur&id=<?= (int) $organisateur['id'] ?>">Voir la fiche</a>
+            <form method="post" action="?p=evenement_organisateur_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cet organisateur ?');">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="id" value="<?= (int) $id ?>">
+                <button type="submit" class="btn ghost btn-sm icon-only" title="Délier" aria-label="Délier"><?= icon('x') ?></button>
+            </form>
+        </div>
+    <?php else: ?>
+        <p class="muted small">Aucun organisateur lié.</p>
+    <?php endif; ?>
+
+    <form method="post" action="?p=evenement_organisateur_lier<?= $depuisQs ?>" class="linked-add" id="organisateur-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <div class="cat-search organisateur-search">
+            <input type="text" class="cat-search-input" placeholder="Rechercher un débiteur…" autocomplete="off">
+            <input type="hidden" name="debiteur_id" class="cat-search-val" value="">
+            <ul class="cat-search-list" hidden role="listbox">
+                <li data-val="__new__">+ Nouveau débiteur</li>
+                <?php foreach ($debiteursDispo as $d): ?>
+                    <li data-val="<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <button type="submit" class="btn ghost btn-sm"><?= $organisateur ? 'Changer' : 'Lier' ?> l'organisateur</button>
+
+        <div id="organisateur-nouveau" class="grid2" hidden>
+            <label>Nom / raison sociale <input name="org_nom"></label>
+            <label>Type
+                <select name="org_type">
+                    <option value="organisation">Organisation</option>
+                    <option value="particulier">Particulier</option>
+                </select>
+            </label>
+            <label>Rue et numéro <input name="org_adresse_rue"></label>
+            <label>NPA <input name="org_adresse_npa"></label>
+            <label>Localité <input name="org_adresse_localite"></label>
+            <label>Pays <input name="org_adresse_pays" value="Suisse"></label>
+            <label>E-mail (optionnel) <input name="org_email" type="email"></label>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
+
 <div class="card mt-22">
     <div class="page-head">
         <h2 class="mt-0">Factures liées</h2>
@@ -444,5 +508,29 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             }
         });
     });
+
+    // Organisateur (carte du même nom) : même widget de recherche, avec en plus
+    // une option « + Nouveau débiteur » qui révèle les champs de création rapide.
+    const organisateurWrap = document.querySelector('.organisateur-search');
+    if (organisateurWrap) {
+        const orgInput   = organisateurWrap.querySelector('.cat-search-input');
+        const orgHidden  = organisateurWrap.querySelector('.cat-search-val');
+        const orgNouveau = document.getElementById('organisateur-nouveau');
+        lassoInitCatSearch(organisateurWrap, {
+            showPlaceholderText: true,
+            clearHiddenOnInput: true,
+            onSelect: li => {
+                orgInput.setCustomValidity('');
+                orgNouveau.hidden = li.dataset.val !== '__new__';
+            },
+        });
+        document.getElementById('organisateur-form').addEventListener('submit', e => {
+            if (!orgHidden.value) {
+                orgInput.setCustomValidity('Veuillez choisir un débiteur dans la liste, ou « + Nouveau débiteur »');
+                orgInput.reportValidity();
+                e.preventDefault();
+            }
+        });
+    }
 })();
 </script>
