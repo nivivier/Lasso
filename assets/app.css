@@ -55,6 +55,10 @@ h1, h2, h3 { color: var(--brand); }
 h1 {background: linear-gradient(150deg, var(--brand), var(--brand-2));
 	-webkit-text-fill-color: transparent;
   background-clip: text;}
+/* -webkit-text-fill-color est hérité : sans ce reset, tout élément niché dans
+   un h1 (badge, span .muted, etc.) hérite du "transparent" du dégradé et
+   devient invisible (texte présent, sélectionnable, mais non affiché). */
+h1 * { -webkit-text-fill-color: currentColor; }
 
 /* =================== Sidebar layout =================== */
 body.has-sidebar { display: flex; min-height: 100vh; }
