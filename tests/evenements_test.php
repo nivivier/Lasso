@@ -33,7 +33,7 @@ function check(string $label, $attendu, $obtenu): void
     }
 }
 
-echo "1) Statut SUISA dérivé (6 valeurs)\n";
+echo "1) Statut SUISA dérivé (7 valeurs)\n";
 check('ne s\'applique pas (prioritaire sur tout le reste)', 'ne_sapplique_pas', evenement_statut_suisa([
     'suisa_applicable' => 0, 'suisa_envoye_le' => '2020-01-01', 'suisa_decompte_le' => '',
 ]));
@@ -73,6 +73,22 @@ check('décompte reçu prioritaire même sur un événement très ancien', 'deco
 ]));
 check('sans date d\'événement (champ absent) : jamais abandonné', 'a_faire', evenement_statut_suisa([
     'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
+]));
+check('date future, jamais envoyée → à venir (pas « à faire »)', 'a_venir', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
+    'date' => date('Y-m-d', strtotime('+3 months')),
+]));
+check('date future, envoyée en avance → à venir (prioritaire sur envoyé)', 'a_venir', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => date('Y-m-d'), 'suisa_decompte_le' => '',
+    'date' => date('Y-m-d', strtotime('+1 months')),
+]));
+check('décompte reçu prioritaire même sur une date future', 'decompte_recu', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => date('Y-m-d'),
+    'date' => date('Y-m-d', strtotime('+2 months')),
+]));
+check('date d\'aujourd\'hui : pas encore « à venir »', 'a_faire', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
+    'date' => date('Y-m-d'),
 ]));
 
 $evDecompte = ['suisa_applicable' => 1, 'suisa_envoye_le' => '2020-01-01', 'suisa_decompte_le' => '2020-03-15'];
@@ -158,6 +174,8 @@ $cas = [
     6 => ['date' => $aujourdhui, 'applicable' => 1, 'envoye' => '', 'decompte' => '2020-05-01'],                                           // decompte_recu (saisie manuelle sans date d'envoi)
     7 => ['date' => date('Y-m-d', strtotime('-61 months')), 'applicable' => 1, 'envoye' => '', 'decompte' => ''],                          // abandonne (jamais envoyée)
     8 => ['date' => date('Y-m-d', strtotime('-71 months')), 'applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-70 months')), 'decompte' => ''], // abandonne (aurait été manquant)
+    9 => ['date' => date('Y-m-d', strtotime('+3 months')), 'applicable' => 1, 'envoye' => '', 'decompte' => ''],                           // a_venir (jamais envoyée)
+    10 => ['date' => date('Y-m-d', strtotime('+1 months')), 'applicable' => 1, 'envoye' => date('Y-m-d'), 'decompte' => ''],               // a_venir (envoyée en avance)
 ];
 foreach ($cas as $id => $c) {
     $ins->execute([$id, $c['date'], $c['applicable'], $c['envoye'], $c['decompte']]);

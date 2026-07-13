@@ -5,9 +5,9 @@
 const EVENEMENTS_STATUTS     = ['option', 'confirme', 'annule'];
 const EVENEMENTS_VISIBILITES = ['public', 'prive', 'non_repertorie'];
 const EVENEMENTS_SUISA_ENVOYE_A = ['suisa', 'organisateur'];
-// Les 6 valeurs du statut SUISA dérivé (evenement_statut_suisa()), pour valider
+// Les 7 valeurs du statut SUISA dérivé (evenement_statut_suisa()), pour valider
 // le filtre de la liste des événements.
-const EVENEMENTS_STATUTS_SUISA_FILTRE = ['a_faire', 'envoye', 'manquant', 'abandonne', 'decompte_recu', 'ne_sapplique_pas'];
+const EVENEMENTS_STATUTS_SUISA_FILTRE = ['a_venir', 'a_faire', 'envoye', 'manquant', 'abandonne', 'decompte_recu', 'ne_sapplique_pas'];
 
 function evenement_statut_libelle(string $statut): string
 {
@@ -28,8 +28,10 @@ function evenement_visibilite_libelle(string $visibilite): string
 }
 
 // Statut SUISA dérivé (jamais stocké), voir SPEC_EVENEMENTS.md §5. Calculé par
-// ordre de priorité : ne s'applique pas > décompte reçu > abandonné > manquant
-// > envoyé > à faire. « Abandonné » : sans décompte, et la date de l'événement
+// ordre de priorité : ne s'applique pas > décompte reçu > à venir > abandonné
+// > manquant > envoyé > à faire. « À venir » : sans décompte, et la date de
+// l'événement n'est pas encore passée — inutile de suivre un envoi/décompte
+// avant que l'événement ait eu lieu. « Abandonné » : sans décompte, et la date
 // dépasse le délai configurable evenements_delai_abandon_mois() (ex. 5 ans) —
 // on cesse de le compter comme à relancer, qu'il ait été envoyé ou non.
 function evenement_statut_suisa(array $ev): string
@@ -42,6 +44,9 @@ function evenement_statut_suisa(array $ev): string
     }
     $dateEv = trim((string) ($ev['date'] ?? ''));
     if ($dateEv !== '') {
+        if ($dateEv > date('Y-m-d')) {
+            return 'a_venir';
+        }
         $limiteAbandon = (new DateTimeImmutable($dateEv))
             ->modify('+' . evenements_delai_abandon_mois() . ' months')
             ->format('Y-m-d');
@@ -66,6 +71,7 @@ function evenement_statut_suisa_libelle(string $statut): string
         'manquant'         => 'Manquant',
         'envoye'           => 'Envoyé',
         'abandonne'        => 'Abandonné',
+        'a_venir'          => 'À venir',
         'ne_sapplique_pas' => "Ne s'applique pas",
         default            => 'À faire',
     };
@@ -81,7 +87,7 @@ function evenement_suisa_badge(array $ev, bool $avecDate = false): string
         'decompte_recu' => 'ok',
         'manquant'      => 'warn',
         'envoye'        => 'emise',
-        default         => 'muted', // a_faire, abandonne, ne_sapplique_pas
+        default         => 'muted', // a_faire, a_venir, abandonne, ne_sapplique_pas
     };
     $decompteLe = trim((string) ($ev['suisa_decompte_le'] ?? ''));
     $texte = ($statut === 'decompte_recu' && $avecDate && $decompteLe !== '')
@@ -124,11 +130,14 @@ function evenement_badge_visibilite(array $ev): string
 // 'envoye' : englobe aussi 'manquant' (un décompte en retard reste, avant tout,
 // un événement envoyé — l'utilisateur veut voir « tout ce qui a été envoyé »
 // sans avoir à cocher les deux statuts séparément) ; 'manquant' reste un filtre
-// à part pour ne voir que les décomptes effectivement en retard. Tous excluent
-// 'abandonne' (priorité plus haute, voir evenement_statut_suisa()). Paramètres
-// à lier par l'appelant, dans l'ordre où ils apparaissent dans la chaîne :
-// 'manquant' → [delai_decompte_mois, delai_abandon_mois] ; 'a_faire'/'envoye'/
-// 'abandonne' → [delai_abandon_mois] ; 'decompte_recu'/'ne_sapplique_pas' → aucun.
+// à part pour ne voir que les décomptes effectivement en retard. Tous (sauf
+// 'decompte_recu'/'ne_sapplique_pas') excluent 'a_venir' et 'abandonne'
+// (priorité plus haute, voir evenement_statut_suisa()) — mutuellement exclusifs
+// entre eux (l'un exige une date future, l'autre une date passée depuis
+// longtemps). Paramètres à lier par l'appelant, dans l'ordre où ils
+// apparaissent dans la chaîne : 'manquant' → [delai_decompte_mois,
+// delai_abandon_mois] ; 'a_faire'/'envoye'/'abandonne' → [delai_abandon_mois] ;
+// 'a_venir'/'decompte_recu'/'ne_sapplique_pas' → aucun.
 function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): string
 {
     $applicable   = "{$prefixe}suisa_applicable = 1";
@@ -136,16 +145,18 @@ function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): strin
     $envoyeeSansDecompte = "{$prefixe}suisa_envoye_le <> '' AND {$prefixe}suisa_decompte_le = ''";
     $sansDecompte = "{$prefixe}suisa_decompte_le = ''";
     $limite       = "date({$prefixe}suisa_envoye_le, '+' || ? || ' months')";
+    $aVenir       = "date({$prefixe}date) > date('now')";
     $abandonne    = "date({$prefixe}date, '+' || ? || ' months') < date('now')";
     return match ($statut) {
         'decompte_recu' => "$applicable AND {$prefixe}suisa_decompte_le <> ''",
-        'abandonne'     => "$applicable AND $sansDecompte AND $abandonne",
+        'a_venir'       => "$applicable AND $sansDecompte AND $aVenir",
+        'abandonne'     => "$applicable AND $sansDecompte AND $abandonne", // exclut déjà 'a_venir' (délai positif)
         // Exclut un décompte reçu sans date d'envoi enregistrée (saisie manuelle
         // incomplète) : evenement_statut_suisa() le classe 'decompte_recu' en
         // priorité (voir plus haut), le prédicat SQL doit rester synchronisé.
-        'a_faire'       => "$applicable AND $nonEnvoyee AND $sansDecompte AND NOT ($abandonne)",
-        'envoye'        => "$applicable AND $envoyeeSansDecompte AND NOT ($abandonne)",
-        'manquant'      => "$applicable AND $envoyeeSansDecompte AND $limite < date('now') AND NOT ($abandonne)",
+        'a_faire'       => "$applicable AND $nonEnvoyee AND $sansDecompte AND NOT ($abandonne) AND NOT ($aVenir)",
+        'envoye'        => "$applicable AND $envoyeeSansDecompte AND NOT ($abandonne) AND NOT ($aVenir)",
+        'manquant'      => "$applicable AND $envoyeeSansDecompte AND $limite < date('now') AND NOT ($abandonne) AND NOT ($aVenir)",
         default         => "{$prefixe}suisa_applicable = 0", // ne_sapplique_pas
     };
 }
