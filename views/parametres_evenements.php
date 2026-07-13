@@ -1,4 +1,4 @@
-<?php /** @var int $delai */ /** @var string $lienTexteDefaut */ /** @var string $termeSpectacle */
+<?php /** @var int $delai */ /** @var int $delaiAbandon */ /** @var string $lienTexteDefaut */ /** @var string $termeSpectacle */
 /** @var array $paysDisponibles */ /** @var ?bool $saved */ ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Paramètres enregistrés.</p><?php endif; ?>
@@ -9,6 +9,9 @@
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>Délai avant qu'une date envoyée sans décompte soit marquée « manquante » (mois)
             <input name="suisa_delai_decompte_mois" type="text" inputmode="numeric" value="<?= (int) $delai ?>" style="max-width:120px">
+        </label>
+        <label>Délai avant qu'un événement sans décompte soit marqué « abandonné » (mois, depuis la date de l'événement)
+            <input name="suisa_delai_abandon_mois" type="text" inputmode="numeric" value="<?= (int) $delaiAbandon ?>" style="max-width:120px">
         </label>
         <label>Texte du bouton de lien par défaut (si un événement n'en précise pas un)
             <input name="evenements_lien_texte_defaut" type="text" value="<?= e($lienTexteDefaut) ?>" placeholder="Plus d'informations">

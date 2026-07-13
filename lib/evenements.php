@@ -5,9 +5,9 @@
 const EVENEMENTS_STATUTS     = ['option', 'confirme', 'annule'];
 const EVENEMENTS_VISIBILITES = ['public', 'prive', 'non_repertorie'];
 const EVENEMENTS_SUISA_ENVOYE_A = ['suisa', 'organisateur'];
-// Les 5 valeurs du statut SUISA dérivé (evenement_statut_suisa()), pour valider
+// Les 6 valeurs du statut SUISA dérivé (evenement_statut_suisa()), pour valider
 // le filtre de la liste des événements.
-const EVENEMENTS_STATUTS_SUISA_FILTRE = ['a_faire', 'envoye', 'manquant', 'decompte_recu', 'ne_sapplique_pas'];
+const EVENEMENTS_STATUTS_SUISA_FILTRE = ['a_faire', 'envoye', 'manquant', 'abandonne', 'decompte_recu', 'ne_sapplique_pas'];
 
 function evenement_statut_libelle(string $statut): string
 {
@@ -28,7 +28,10 @@ function evenement_visibilite_libelle(string $visibilite): string
 }
 
 // Statut SUISA dérivé (jamais stocké), voir SPEC_EVENEMENTS.md §5. Calculé par
-// ordre de priorité : ne s'applique pas > décompte reçu > manquant > envoyé > à faire.
+// ordre de priorité : ne s'applique pas > décompte reçu > abandonné > manquant
+// > envoyé > à faire. « Abandonné » : sans décompte, et la date de l'événement
+// dépasse le délai configurable evenements_delai_abandon_mois() (ex. 5 ans) —
+// on cesse de le compter comme à relancer, qu'il ait été envoyé ou non.
 function evenement_statut_suisa(array $ev): string
 {
     if (!(int) ($ev['suisa_applicable'] ?? 1)) {
@@ -36,6 +39,15 @@ function evenement_statut_suisa(array $ev): string
     }
     if (trim((string) ($ev['suisa_decompte_le'] ?? '')) !== '') {
         return 'decompte_recu';
+    }
+    $dateEv = trim((string) ($ev['date'] ?? ''));
+    if ($dateEv !== '') {
+        $limiteAbandon = (new DateTimeImmutable($dateEv))
+            ->modify('+' . evenements_delai_abandon_mois() . ' months')
+            ->format('Y-m-d');
+        if ($limiteAbandon < date('Y-m-d')) {
+            return 'abandonne';
+        }
     }
     $envoyeLe = trim((string) ($ev['suisa_envoye_le'] ?? ''));
     if ($envoyeLe === '') {
@@ -53,6 +65,7 @@ function evenement_statut_suisa_libelle(string $statut): string
         'decompte_recu'    => 'Décompte reçu',
         'manquant'         => 'Manquant',
         'envoye'           => 'Envoyé',
+        'abandonne'        => 'Abandonné',
         'ne_sapplique_pas' => "Ne s'applique pas",
         default            => 'À faire',
     };
@@ -68,7 +81,7 @@ function evenement_suisa_badge(array $ev, bool $avecDate = false): string
         'decompte_recu' => 'ok',
         'manquant'      => 'warn',
         'envoye'        => 'emise',
-        default         => 'muted', // a_faire, ne_sapplique_pas
+        default         => 'muted', // a_faire, abandonne, ne_sapplique_pas
     };
     $decompteLe = trim((string) ($ev['suisa_decompte_le'] ?? ''));
     $texte = ($statut === 'decompte_recu' && $avecDate && $decompteLe !== '')
@@ -111,24 +124,28 @@ function evenement_badge_visibilite(array $ev): string
 // 'envoye' : englobe aussi 'manquant' (un décompte en retard reste, avant tout,
 // un événement envoyé — l'utilisateur veut voir « tout ce qui a été envoyé »
 // sans avoir à cocher les deux statuts séparément) ; 'manquant' reste un filtre
-// à part pour ne voir que les décomptes effectivement en retard. Seul 'manquant'
-// compare à la date du jour + délai configurable (mois) : l'appelant doit lier
-// ce délai (evenements_delai_decompte_mois()) en tant que paramètre supplémentaire
-// pour ce statut uniquement.
+// à part pour ne voir que les décomptes effectivement en retard. Tous excluent
+// 'abandonne' (priorité plus haute, voir evenement_statut_suisa()). Paramètres
+// à lier par l'appelant, dans l'ordre où ils apparaissent dans la chaîne :
+// 'manquant' → [delai_decompte_mois, delai_abandon_mois] ; 'a_faire'/'envoye'/
+// 'abandonne' → [delai_abandon_mois] ; 'decompte_recu'/'ne_sapplique_pas' → aucun.
 function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): string
 {
     $applicable   = "{$prefixe}suisa_applicable = 1";
     $nonEnvoyee   = "{$prefixe}suisa_envoye_le = ''";
     $envoyeeSansDecompte = "{$prefixe}suisa_envoye_le <> '' AND {$prefixe}suisa_decompte_le = ''";
+    $sansDecompte = "{$prefixe}suisa_decompte_le = ''";
     $limite       = "date({$prefixe}suisa_envoye_le, '+' || ? || ' months')";
+    $abandonne    = "date({$prefixe}date, '+' || ? || ' months') < date('now')";
     return match ($statut) {
         'decompte_recu' => "$applicable AND {$prefixe}suisa_decompte_le <> ''",
+        'abandonne'     => "$applicable AND $sansDecompte AND $abandonne",
         // Exclut un décompte reçu sans date d'envoi enregistrée (saisie manuelle
         // incomplète) : evenement_statut_suisa() le classe 'decompte_recu' en
         // priorité (voir plus haut), le prédicat SQL doit rester synchronisé.
-        'a_faire'       => "$applicable AND $nonEnvoyee AND {$prefixe}suisa_decompte_le = ''",
-        'envoye'        => "$applicable AND $envoyeeSansDecompte",
-        'manquant'      => "$applicable AND $envoyeeSansDecompte AND $limite < date('now')",
+        'a_faire'       => "$applicable AND $nonEnvoyee AND $sansDecompte AND NOT ($abandonne)",
+        'envoye'        => "$applicable AND $envoyeeSansDecompte AND NOT ($abandonne)",
+        'manquant'      => "$applicable AND $envoyeeSansDecompte AND $limite < date('now') AND NOT ($abandonne)",
         default         => "{$prefixe}suisa_applicable = 0", // ne_sapplique_pas
     };
 }
@@ -138,6 +155,14 @@ function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): strin
 function evenements_delai_decompte_mois(): int
 {
     return max(1, (int) param('suisa_delai_decompte_mois', '12'));
+}
+
+// Délai (en mois, depuis la date de l'événement) au-delà duquel un événement
+// toujours sans décompte est considéré « abandonné » plutôt que relancé
+// indéfiniment. Paramètre configurable (onglet Événements).
+function evenements_delai_abandon_mois(): int
+{
+    return max(1, (int) param('suisa_delai_abandon_mois', '60'));
 }
 
 // Texte par défaut du bouton de lien (« plus d'infos ») quand l'événement n'en
@@ -210,7 +235,7 @@ function nb_evenements_suisa_manquants(): int
     try {
         $n = 0;
         $stmt = db()->query(
-            "SELECT suisa_applicable, suisa_envoye_le, suisa_decompte_le FROM evenements
+            "SELECT date, suisa_applicable, suisa_envoye_le, suisa_decompte_le FROM evenements
              WHERE suisa_applicable = 1 AND suisa_envoye_le <> '' AND suisa_decompte_le = ''"
         );
         foreach ($stmt as $ev) {

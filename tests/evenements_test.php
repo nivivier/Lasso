@@ -6,10 +6,14 @@
 
 require_once __DIR__ . '/../lib/helpers.php'; // e()
 
-// Stub minimal de param() pour evenement_statut_suisa() (délai SUISA).
+// Stub minimal de param() pour evenement_statut_suisa() (délais SUISA).
 function param(string $cle, $defaut = null)
 {
-    return $cle === 'suisa_delai_decompte_mois' ? '12' : $defaut;
+    return match ($cle) {
+        'suisa_delai_decompte_mois' => '12',
+        'suisa_delai_abandon_mois'  => '60',
+        default => $defaut,
+    };
 }
 
 require_once __DIR__ . '/../lib/evenements.php';
@@ -29,7 +33,7 @@ function check(string $label, $attendu, $obtenu): void
     }
 }
 
-echo "1) Statut SUISA dérivé (5 valeurs)\n";
+echo "1) Statut SUISA dérivé (6 valeurs)\n";
 check('ne s\'applique pas (prioritaire sur tout le reste)', 'ne_sapplique_pas', evenement_statut_suisa([
     'suisa_applicable' => 0, 'suisa_envoye_le' => '2020-01-01', 'suisa_decompte_le' => '',
 ]));
@@ -50,6 +54,25 @@ check('envoyé il y a plus de 12 mois, sans décompte → manquant', 'manquant',
 ]));
 check('envoyé il y a exactement 11 mois → pas encore manquant', 'envoye', evenement_statut_suisa([
     'suisa_applicable' => 1, 'suisa_envoye_le' => date('Y-m-d', strtotime('-11 months')), 'suisa_decompte_le' => '',
+]));
+check('événement très ancien, jamais envoyé, sans décompte → abandonné (prioritaire sur à faire)', 'abandonne', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
+    'date' => date('Y-m-d', strtotime('-61 months')),
+]));
+check('événement très ancien, envoyé en retard, sans décompte → abandonné (prioritaire sur manquant)', 'abandonne', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => date('Y-m-d', strtotime('-70 months')), 'suisa_decompte_le' => '',
+    'date' => date('Y-m-d', strtotime('-71 months')),
+]));
+check('événement ancien mais dans le délai d\'abandon → pas encore abandonné', 'a_faire', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
+    'date' => date('Y-m-d', strtotime('-59 months')),
+]));
+check('décompte reçu prioritaire même sur un événement très ancien', 'decompte_recu', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => date('Y-m-d', strtotime('-1 months')),
+    'date' => date('Y-m-d', strtotime('-100 months')),
+]));
+check('sans date d\'événement (champ absent) : jamais abandonné', 'a_faire', evenement_statut_suisa([
+    'suisa_applicable' => 1, 'suisa_envoye_le' => '', 'suisa_decompte_le' => '',
 ]));
 
 $evDecompte = ['suisa_applicable' => 1, 'suisa_envoye_le' => '2020-01-01', 'suisa_decompte_le' => '2020-03-15'];
@@ -122,25 +145,33 @@ check('chaîne vide rejetée', false, date_valide(''));
 echo "6) Prédicat SQL du statut SUISA (synchronisé avec evenement_statut_suisa())\n";
 $pdo = new PDO('sqlite::memory:');
 $pdo->exec("CREATE TABLE evenements (
-    id INTEGER PRIMARY KEY, suisa_applicable INTEGER, suisa_envoye_le TEXT, suisa_decompte_le TEXT
+    id INTEGER PRIMARY KEY, date TEXT, suisa_applicable INTEGER, suisa_envoye_le TEXT, suisa_decompte_le TEXT
 )");
-$ins = $pdo->prepare('INSERT INTO evenements (id, suisa_applicable, suisa_envoye_le, suisa_decompte_le) VALUES (?, ?, ?, ?)');
+$ins = $pdo->prepare('INSERT INTO evenements (id, date, suisa_applicable, suisa_envoye_le, suisa_decompte_le) VALUES (?, ?, ?, ?, ?)');
+$aujourdhui = date('Y-m-d');
 $cas = [
-    1 => ['applicable' => 0, 'envoye' => '2020-01-01', 'decompte' => ''],                                    // ne_sapplique_pas
-    2 => ['applicable' => 1, 'envoye' => '2020-01-01', 'decompte' => '2020-03-01'],                           // decompte_recu
-    3 => ['applicable' => 1, 'envoye' => '', 'decompte' => ''],                                               // a_faire
-    4 => ['applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-2 months')), 'decompte' => ''],            // envoye
-    5 => ['applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-13 months')), 'decompte' => ''],           // manquant
-    6 => ['applicable' => 1, 'envoye' => '', 'decompte' => '2020-05-01'],                                     // decompte_recu (saisie manuelle sans date d'envoi)
+    1 => ['date' => $aujourdhui, 'applicable' => 0, 'envoye' => '2020-01-01', 'decompte' => ''],                                          // ne_sapplique_pas
+    2 => ['date' => $aujourdhui, 'applicable' => 1, 'envoye' => '2020-01-01', 'decompte' => '2020-03-01'],                                 // decompte_recu
+    3 => ['date' => $aujourdhui, 'applicable' => 1, 'envoye' => '', 'decompte' => ''],                                                     // a_faire
+    4 => ['date' => $aujourdhui, 'applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-2 months')), 'decompte' => ''],                  // envoye
+    5 => ['date' => $aujourdhui, 'applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-13 months')), 'decompte' => ''],                 // manquant
+    6 => ['date' => $aujourdhui, 'applicable' => 1, 'envoye' => '', 'decompte' => '2020-05-01'],                                           // decompte_recu (saisie manuelle sans date d'envoi)
+    7 => ['date' => date('Y-m-d', strtotime('-61 months')), 'applicable' => 1, 'envoye' => '', 'decompte' => ''],                          // abandonne (jamais envoyée)
+    8 => ['date' => date('Y-m-d', strtotime('-71 months')), 'applicable' => 1, 'envoye' => date('Y-m-d', strtotime('-70 months')), 'decompte' => ''], // abandonne (aurait été manquant)
 ];
 foreach ($cas as $id => $c) {
-    $ins->execute([$id, $c['applicable'], $c['envoye'], $c['decompte']]);
+    $ins->execute([$id, $c['date'], $c['applicable'], $c['envoye'], $c['decompte']]);
 }
 foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $statut) {
     $sql = 'SELECT id FROM evenements WHERE ' . evenement_sql_statut_suisa($statut);
-    $needsDelai = $statut === 'manquant';
+    // Même correspondance statut → paramètres liés que route_evenements_liste().
+    $liaisonParams = match ($statut) {
+        'manquant' => [12, 60],
+        'a_faire', 'envoye', 'abandonne' => [60],
+        default => [],
+    };
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($needsDelai ? [12] : []);
+    $stmt->execute($liaisonParams);
     $idsSql = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     // Référence : la même règle appliquée en PHP (evenement_statut_suisa()) sur les mêmes cas —
     // sauf le filtre 'envoye', qui englobe volontairement aussi 'manquant' (voir
@@ -148,7 +179,7 @@ foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $statut) {
     $statutsPhpAttendus = $statut === 'envoye' ? ['envoye', 'manquant'] : [$statut];
     $idsPhp = [];
     foreach ($cas as $id => $c) {
-        $ev = ['suisa_applicable' => $c['applicable'], 'suisa_envoye_le' => $c['envoye'], 'suisa_decompte_le' => $c['decompte']];
+        $ev = ['date' => $c['date'], 'suisa_applicable' => $c['applicable'], 'suisa_envoye_le' => $c['envoye'], 'suisa_decompte_le' => $c['decompte']];
         if (in_array(evenement_statut_suisa($ev), $statutsPhpAttendus, true)) {
             $idsPhp[] = $id;
         }

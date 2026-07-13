@@ -306,6 +306,7 @@ function run_migrations(PDO $pdo): void
         27 => 'migration_27', // fiche_lignes.evenement_id : ligne de prestation ajoutée depuis un événement
         28 => 'migration_28', // evenements.axe_analytique_id_defaut : axe analytique par défaut
         29 => 'migration_29', // spectacles.parent_id / ordre : hiérarchie (imbrication façon plan comptable)
+        30 => 'migration_30', // paramètre suisa_delai_abandon_mois (statut SUISA « abandonné »)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -992,6 +993,15 @@ function migration_29(PDO $pdo): void
         }
     }
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_spectacles_parent ON spectacles(parent_id)');
+}
+
+// Statut SUISA « abandonné » : délai (mois, depuis la date de l'événement)
+// au-delà duquel un événement sans décompte cesse d'être compté « à faire »/
+// « manquant » — voir evenements_delai_abandon_mois().
+function migration_30(PDO $pdo): void
+{
+    $ins = $pdo->prepare('INSERT OR IGNORE INTO parametres (cle, valeur) VALUES (?, ?)');
+    $ins->execute(['suisa_delai_abandon_mois', '60']);
 }
 
 function seed_parametres(PDO $pdo): void

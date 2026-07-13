@@ -247,8 +247,12 @@ function route_evenements_liste(): void
     }
     if (in_array($statutSuisa, EVENEMENTS_STATUTS_SUISA_FILTRE, true)) {
         $where .= ' AND (' . evenement_sql_statut_suisa($statutSuisa, 'e.') . ')';
+        // Ordre des paramètres = ordre des '?' dans evenement_sql_statut_suisa().
         if ($statutSuisa === 'manquant') {
             $params[] = evenements_delai_decompte_mois();
+            $params[] = evenements_delai_abandon_mois();
+        } elseif (in_array($statutSuisa, ['a_faire', 'envoye', 'abandonne'], true)) {
+            $params[] = evenements_delai_abandon_mois();
         }
     }
     if ($pays !== 'tous' && in_array($pays, evenements_pays_disponibles(), true)) {
@@ -929,6 +933,7 @@ function route_parametres_evenements(): void
             evenements_regenerer_token();
         } else {
             $delai = max(1, (int) ($_POST['suisa_delai_decompte_mois'] ?? 12));
+            $delaiAbandon = max(1, (int) ($_POST['suisa_delai_abandon_mois'] ?? 60));
             $lienTexteDefaut = trim($_POST['evenements_lien_texte_defaut'] ?? '');
             $termeSpectacle = trim($_POST['evenements_terme_spectacle'] ?? '');
             $paysListe = array_values(array_filter(array_map(
@@ -937,6 +942,7 @@ function route_parametres_evenements(): void
             ), fn ($p) => $p !== ''));
             $ins = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
             $ins->execute(['suisa_delai_decompte_mois', (string) $delai]);
+            $ins->execute(['suisa_delai_abandon_mois', (string) $delaiAbandon]);
             $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
             $ins->execute(['evenements_terme_spectacle', $termeSpectacle]);
             $ins->execute(['evenements_pays_disponibles', implode(',', $paysListe)]);
@@ -946,6 +952,7 @@ function route_parametres_evenements(): void
 
     render('parametres_evenements', [
         'delai' => evenements_delai_decompte_mois(),
+        'delaiAbandon' => evenements_delai_abandon_mois(),
         'lienTexteDefaut' => evenements_lien_texte_defaut(),
         'termeSpectacle' => evenements_terme_spectacle(),
         'paysDisponibles' => evenements_pays_disponibles(),
