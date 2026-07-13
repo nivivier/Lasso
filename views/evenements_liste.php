@@ -207,7 +207,7 @@ $termeSingulier = evenements_terme_spectacle(false);
                 <?php if ($festivalSalle !== ''): ?> <span class="muted small"><?= e($festivalSalle) ?></span><?php endif; ?>
                 <?php if ($ev['ville'] === '' && $festivalSalle === ''): ?>—<?php endif; ?>
             </td>
-            <td><?= evenement_badge_visibilite($ev) ?></td>
+            <td><?= evenement_icone_visibilite($ev) ?></td>
             <td><?= evenement_badge_statut($ev) ?></td>
             <td><?= evenement_suisa_badge($ev, true) ?></td>
             <td class="num"><?= (int) $ev['nb_salaries'] ?></td>

@@ -114,14 +114,20 @@ function evenement_badge_statut(array $ev): string
     return badge(evenement_statut_libelle((string) $ev['statut']), evenement_statut_couleur($ev));
 }
 
-function evenement_badge_visibilite(array $ev): string
+// Icône de visibilité (earth/earth-lock/globe-off, lucide.dev) pour le tableau
+// des événements — plus compacte qu'un badge texte. Noir (public) > gris
+// (privé) > gris très atténué (non répertorié, le statut le moins visible du
+// site public l'est aussi le moins ici).
+function evenement_icone_visibilite(array $ev): string
 {
-    $classe = match ($ev['visibilite']) {
-        'public' => 'ok',
-        'prive'  => 'emise',
-        default  => 'muted', // non_repertorie
+    [$nom, $classe] = match ($ev['visibilite']) {
+        'public' => ['earth', 'visibilite-public'],
+        'prive'  => ['earth-lock', 'visibilite-prive'],
+        default  => ['globe-off', 'visibilite-non-repertorie'], // non_repertorie
     };
-    return badge(evenement_visibilite_libelle((string) $ev['visibilite']), $classe);
+    $libelle = evenement_visibilite_libelle((string) $ev['visibilite']);
+    return '<span class="visibilite-icone ' . $classe . '" title="' . e($libelle) . '" aria-label="' . e($libelle) . '">'
+        . icon($nom) . '</span>';
 }
 
 // Prédicat SQL du statut SUISA dérivé, même règles que evenement_statut_suisa()
