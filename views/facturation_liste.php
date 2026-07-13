@@ -1,5 +1,5 @@
 <?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */
-/** @var bool $avecEvenements */
+/** @var bool $avecEvenements */ /** @var string $recherche */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <div class="page-head-band">
 <div class="page-head">
@@ -33,15 +33,19 @@
                 <?php endforeach; ?>
             </select>
         </label>
-        <label class="search-label"><span>Rechercher <span id="facturation-search-count" class="muted small"></span></span>
-            <input type="search" id="facturation-search" placeholder="Numéro, débiteur, montant, statut…" autocomplete="off" aria-label="Rechercher" value="<?= e($_GET['q'] ?? '') ?>">
+        <label class="search-label">
+            <input type="search" name="q" id="facturation-search" placeholder="Numéro, débiteur, montant…" autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
 </div>
 </div>
 
 <?php if (!$factures): ?>
-    <p class="muted">Aucune facture pour cette sélection.</p>
+    <?php if ($recherche !== ''): ?>
+        <p class="muted">Aucune facture ne correspond à « <?= e($recherche) ?> ».</p>
+    <?php else: ?>
+        <p class="muted">Aucune facture pour cette sélection.</p>
+    <?php endif; ?>
 <?php else: ?>
 <div class="table-scroll">
 <table class="list list-wide">
@@ -81,25 +85,5 @@
 </table>
 </div>
 <?php require __DIR__ . '/_pagination.php'; ?>
-<script>
-(function () {
-    const search = document.getElementById('facturation-search');
-    const count  = document.getElementById('facturation-search-count');
-    const rows   = Array.from(document.querySelectorAll('.list-wide tbody tr'));
-    if (search) {
-        const apply = () => {
-            const q = lassoNorm(search.value.trim());
-            let visibles = 0;
-            rows.forEach(r => {
-                const ok = q === '' || lassoNorm(r.textContent).includes(q);
-                r.style.display = ok ? '' : 'none';
-                if (ok) visibles++;
-            });
-            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affichée(s)';
-        };
-        search.addEventListener('input', apply);
-        if (search.value.trim() !== '') apply();
-    }
-})();
-</script>
 <?php endif; ?>
+<script>lassoRechercheServeur(document.getElementById('facturation-search'));</script>

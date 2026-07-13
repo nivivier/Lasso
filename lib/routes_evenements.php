@@ -143,9 +143,11 @@ function route_evenements_liste(): void
     $visibilite   = filtre_persistant('visibilite', 'evenements_visibilite', 'tous');
     $pays         = filtre_persistant('pays', 'evenements_pays_filtre', 'tous');
     $salaries     = filtre_persistant('salaries', 'evenements_salaries', 'tous'); // tous | oui | non
+    $recherche    = trim((string) ($_GET['q'] ?? '')); // jamais mémorisée en session, comme pagination_page()
     $retourFiltres = [
         'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
         'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
+        'q' => $recherche,
     ];
 
     // Modification groupée (sélection de lignes + barre flottante, même esprit que
@@ -258,8 +260,13 @@ function route_evenements_liste(): void
     } elseif ($salaries === 'non') {
         $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
     }
+    [$rechSql, $rechParams] = recherche_sql(['e.ville', 'e.salle', 'e.festival', 's.nom']);
+    $where .= $rechSql;
+    $params = array_merge($params, $rechParams);
 
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM evenements e' . $where);
+    $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
+
+    $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
     $stmtTot->execute($params);
     $pgTotal = (int) $stmtTot->fetchColumn();
 
@@ -268,9 +275,8 @@ function route_evenements_liste(): void
     [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
     $sql = "SELECT e.*, s.nom AS spectacle_nom,
-                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries
-            FROM evenements e
-            LEFT JOIN spectacles s ON s.id = e.spectacle_id" . $where . ' ORDER BY e.date DESC, e.id DESC' . $limitSql;
+                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries"
+            . $from . $where . ' ORDER BY e.date DESC, e.id DESC' . $limitSql;
     $stmt = db()->prepare($sql);
     $stmt->execute(array_merge($params, $limitParams));
     $evenements = $stmt->fetchAll();
@@ -295,6 +301,7 @@ function route_evenements_liste(): void
         'paysDisponibles' => evenements_pays_disponibles(),
         'pays'            => $pays,
         'salaries'        => $salaries,
+        'recherche'       => $recherche,
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
         'pgRoute'         => 'evenements_liste',

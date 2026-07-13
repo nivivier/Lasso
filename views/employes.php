@@ -1,11 +1,11 @@
-<?php /** @var array $employes */ /** @var array $derniere */
+<?php /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <div class="page-head">
     <h1>Employés</h1>
     <div class="head-actions">
-        <?php if ($employes): ?>
+        <?php if ($employes || $recherche !== ''): ?>
         <label class="search-label">
-            <input type="search" id="employes-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
+            <input type="search" id="employes-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <?php endif; ?>
         <a class="btn" href="?p=employe" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
@@ -13,7 +13,11 @@
 </div>
 
 <?php if (!$employes): ?>
-    <p class="muted">Aucun employé pour l'instant. Commencez par en ajouter un.</p>
+    <?php if ($recherche !== ''): ?>
+        <p class="muted">Aucun employé ne correspond à « <?= e($recherche) ?> ».</p>
+    <?php else: ?>
+        <p class="muted">Aucun employé pour l'instant. Commencez par en ajouter un.</p>
+    <?php endif; ?>
 <?php else: ?>
 <div class="table-scroll">
 <table class="list list-wide">
@@ -51,19 +55,5 @@
 </table>
 </div>
 <?php require __DIR__ . '/_pagination.php'; ?>
-<script>
-(function () {
-    const search = document.getElementById('employes-search');
-    const rows   = Array.from(document.querySelectorAll('.list-wide tbody tr'));
-    if (search) {
-        const apply = () => {
-            const q = lassoNorm(search.value.trim());
-            rows.forEach(r => {
-                r.style.display = (q === '' || lassoNorm(r.textContent).includes(q)) ? '' : 'none';
-            });
-        };
-        search.addEventListener('input', apply);
-    }
-})();
-</script>
 <?php endif; ?>
+<script>lassoRechercheServeur(document.getElementById('employes-search'));</script>

@@ -214,12 +214,18 @@ function route_compte_delete(): void
 function route_employes(): void
 {
     require_login();
+    $recherche = trim((string) ($_GET['q'] ?? ''));
+    [$rechSql, $rechParams] = recherche_sql(['nom', 'prenom', 'rue', 'npa_localite', 'email']);
+
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes WHERE 1=1' . $rechSql);
+    $stmtTot->execute($rechParams);
+    $pgTotal = (int) $stmtTot->fetchColumn();
+
     $pgPage   = pagination_page();
     $pgTaille = pagination_taille('employes_taille');
-    $pgTotal  = (int) db()->query('SELECT COUNT(*) FROM employes')->fetchColumn();
     [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-    $stmt = db()->prepare('SELECT * FROM employes ORDER BY actif DESC, nom, prenom' . $limitSql);
-    $stmt->execute($limitParams);
+    $stmt = db()->prepare('SELECT * FROM employes WHERE 1=1' . $rechSql . ' ORDER BY actif DESC, nom, prenom' . $limitSql);
+    $stmt->execute(array_merge($rechParams, $limitParams));
     $employes = $stmt->fetchAll();
 
     // Dernière fiche de salaire par employé (seulement pour les employés de la page affichée).
@@ -239,8 +245,9 @@ function route_employes(): void
             }
         }
     }
-    render('employes', ['employes' => $employes, 'derniere' => $derniere,
-        'pgRoute' => 'employes', 'pgParams' => [], 'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
+    render('employes', ['employes' => $employes, 'derniere' => $derniere, 'recherche' => $recherche,
+        'pgRoute' => 'employes', 'pgParams' => $recherche !== '' ? ['q' => $recherche] : [],
+        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
 }
 
 function route_employe_voir(): void

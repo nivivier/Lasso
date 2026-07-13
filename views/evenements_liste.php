@@ -2,7 +2,7 @@
 /** @var array $evenements */ /** @var int $annee */ /** @var array $annees */
 /** @var string $statutSuisa */ /** @var int $spectacleId */ /** @var string $statut */
 /** @var string $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
-/** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */
+/** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */ /** @var string $recherche */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 $statutsSuisa = [
@@ -25,6 +25,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             <input type="hidden" name="visibilite" value="<?= e($visibilite) ?>">
             <input type="hidden" name="pays" value="<?= e($pays) ?>">
             <input type="hidden" name="salaries" value="<?= e($salaries) ?>">
+            <input type="hidden" name="q" value="<?= e($recherche) ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
@@ -67,8 +68,8 @@ $termeSingulier = evenements_terme_spectacle(false);
                 <?php endforeach; ?>
             </select>
         </label>
-        <label class="search-label"><span>Rechercher <span id="evenements-search-count" class="muted small"></span></span>
-            <input type="search" id="evenements-search" placeholder="Ville, salle, festival, <?= mb_strtolower(e($termeSingulier)) ?>…" autocomplete="off" aria-label="Rechercher">
+        <label class="search-label">
+            <input type="search" name="q" id="evenements-search" placeholder="Ville, salle, festival, <?= mb_strtolower(e($termeSingulier)) ?>…" autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <details class="filters-more" <?= ($statutSuisa !== 'tous' || $visibilite !== 'tous' || $salaries !== 'tous') ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>
@@ -255,37 +256,9 @@ $termeSingulier = evenements_terme_spectacle(false);
         }
     });
 
-    // Recherche instantanée (insensible à la casse et aux accents) sur
-    // spectacle, ville, salle et festival — colonnes déjà à l'écran.
-    const search  = document.getElementById('evenements-search');
-    const count   = document.getElementById('evenements-search-count');
-    const allRows = Array.from(document.querySelectorAll('.evenements-liste tbody tr'));
-    const rows    = allRows.filter(r => !r.classList.contains('mois-sep'));
-    const texteLigne = r => lassoNorm((r.children[2]?.textContent || '') + ' ' + (r.children[3]?.textContent || ''));
-    if (search) {
-        const apply = () => {
-            const q = lassoNorm(search.value.trim());
-            let visibles = 0;
-            rows.forEach(r => {
-                const ok = q === '' || texteLigne(r).includes(q);
-                r.style.display = ok ? '' : 'none';
-                if (ok) visibles++;
-            });
-            // Un séparateur de mois ne s'affiche que s'il précède au moins une ligne visible.
-            let sep = null, sepVisible = false;
-            allRows.forEach(r => {
-                if (r.classList.contains('mois-sep')) {
-                    if (sep) sep.style.display = sepVisible ? '' : 'none';
-                    sep = r; sepVisible = false;
-                } else if (r.style.display !== 'none') {
-                    sepVisible = true;
-                }
-            });
-            if (sep) sep.style.display = sepVisible ? '' : 'none';
-            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affiché(e)s';
-        };
-        search.addEventListener('input', apply);
-    }
+    // Recherche : voir lassoRechercheServeur() (assets/app.js) — paginée côté
+    // serveur, sinon une recherche ne porterait que sur la page déjà chargée.
+    lassoRechercheServeur(document.getElementById('evenements-search'));
 })();
 </script>
 <?php endif; ?>

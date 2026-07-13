@@ -734,8 +734,17 @@ function route_compta_ecritures(): void
     } elseif (module_actif('analytique') && $axeFilter === 'sans_axe') {
         $where .= ' AND e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)';
     }
+    $recherche = trim((string) ($_GET['q'] ?? ''));
+    [$rechSql, $rechParams] = recherche_sql(['e.texte', 'cb.libelle', 'p.libelle', 'e.date_op', 'CAST(e.montant AS TEXT)']);
+    $where .= $rechSql;
+    $params = array_merge($params, $rechParams);
 
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM ecritures e' . $where);
+    // Jointures nécessaires y compris pour le COMPTE (recherche sur compte/catégorie).
+    $from = ' FROM ecritures e
+            LEFT JOIN plan_comptes p ON p.id = e.plan_compte_id
+            JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id';
+
+    $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
     $stmtTot->execute($params);
     $pgTotal = (int) $stmtTot->fetchColumn();
 
@@ -743,9 +752,7 @@ function route_compta_ecritures(): void
     $pgTaille = pagination_taille('ecr_taille');
     [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
-    $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle FROM ecritures e
-            LEFT JOIN plan_comptes p ON p.id = e.plan_compte_id
-            JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id' . $where;
+    $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . $from . $where;
     $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
     $sql .= $limitSql;
     $stmt = db()->prepare($sql);
@@ -791,8 +798,9 @@ function route_compta_ecritures(): void
         'openNew'         => isset($_GET['new']),
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
+        'recherche'       => $recherche,
         'pgRoute' => 'compta_ecritures',
-        'pgParams' => ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter],
+        'pgParams' => ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche],
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
     ], 'Comptabilité — Lettrage');
 }

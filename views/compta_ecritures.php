@@ -3,7 +3,7 @@
 /** @var string $categorieFilter */ /** @var string $axeFilter */ /** @var array $ecritures */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
-/** @var ?int $bulkCount */ /** @var bool $okAnnule */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 
 // Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
@@ -114,8 +114,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </select>
         </label>
         <?php endif; ?>
-        <label class="search-label"><span>Rechercher <span id="search-count" class="muted small"></span></span>
-            <input type="search" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher">
+        <label class="search-label">
+            <input type="search" name="q" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
 </div>
@@ -405,33 +405,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 
 
-    // Recherche instantanée (insensible à la casse et aux accents).
-    const search = document.getElementById('compta-search');
-    const count  = document.getElementById('search-count');
-    const rows   = Array.from(document.querySelectorAll('.compta-lettrage tbody tr'));
-    const texteLigne = r => {
-        const date = r.querySelector('td.nowrap')?.textContent || '';
-        const cpt  = r.querySelector('.compte-cell')?.textContent || '';
-        const txt  = r.querySelector('.texte-cell')?.getAttribute('title') || r.querySelector('.texte-cell')?.textContent || '';
-        const mt   = r.querySelector('td.num')?.textContent || '';
-        const cat  = r.querySelector('.row-cat-input')?.value || '';
-        return lassoNorm(date + ' ' + cpt + ' ' + txt + ' ' + mt + ' ' + cat);
-    };
-    if (search) {
-        const apply = () => {
-            const q = lassoNorm(search.value.trim());
-            let visibles = 0;
-            rows.forEach(r => {
-                const ok = q === '' || texteLigne(r).includes(q);
-                r.style.display = ok ? '' : 'none';
-                const cb = r.querySelector('.row-check');
-                if (cb) cb.classList.toggle('is-hidden', !ok);
-                if (ok) visibles++;
-            });
-            count.textContent = q === '' ? '' : visibles + ' / ' + rows.length + ' affichée(s)';
-        };
-        search.addEventListener('input', apply);
-    }
+    // Recherche : voir lassoRechercheServeur() (assets/app.js) — paginée côté
+    // serveur, sinon une recherche ne porterait que sur la page déjà chargée.
+    lassoRechercheServeur(document.getElementById('compta-search'));
 })();
 
 // Bouton "Nouvelle écriture manuelle" — affiche/masque le formulaire

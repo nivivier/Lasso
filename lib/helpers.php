@@ -246,6 +246,31 @@ function pagination_sql(int $page, int $taille): array
     return [' LIMIT ? OFFSET ?', [$taille, ($page - 1) * $taille]];
 }
 
+// Échappe % / _ / \ pour un motif LIKE sûr (à utiliser avec ESCAPE '\\') —
+// sinon un utilisateur tapant "%" ou "_" dans une recherche déclencherait un
+// joker SQL au lieu d'un caractère littéral. $terme : déjà sans les % de
+// bordure, ajoutés par l'appelant ('%' . like_echappe($terme) . '%').
+function like_echappe(string $terme): string
+{
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $terme);
+}
+
+// Recherche texte serveur (paginée) : lit ?q=, jamais mémorisée en session
+// (comme pagination_page() — une recherche laissée dans la session surprendrait
+// à la prochaine visite). $colonnes : expressions SQL (déjà qualifiées si besoin,
+// ex. 'e.nom') unies en OR ... LIKE. Retourne [$sqlFragment, $params] à ajouter
+// au WHERE ; $sqlFragment est '' si aucune recherche (rien à ajouter).
+function recherche_sql(array $colonnes): array
+{
+    $q = trim((string) ($_GET['q'] ?? ''));
+    if ($q === '') {
+        return ['', []];
+    }
+    $motif = '%' . like_echappe($q) . '%';
+    $sql = ' AND (' . implode(' OR ', array_map(fn($c) => "$c LIKE ? ESCAPE '\\'", $colonnes)) . ')';
+    return [$sql, array_fill(0, count($colonnes), $motif)];
+}
+
 // Montant CHF : "1 234.55"
 function chf(float $v): string
 {

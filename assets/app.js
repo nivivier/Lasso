@@ -22,6 +22,26 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Recherche texte adossée au serveur (?q=), pour les listes paginées : filtrer
+// seulement les lignes déjà chargées dans le DOM laisserait de côté tout ce
+// qui est sur une autre page. Débounce après la dernière frappe puis recharge
+// avec ?q=... en repartant en page 1 ; Entrée déclenche immédiatement. Les
+// autres paramètres déjà dans l'URL (filtres, taille) sont préservés tels quels.
+function lassoRechercheServeur(input) {
+    if (!input) return;
+    let timer = null;
+    const aller = () => {
+        clearTimeout(timer);
+        const params = new URLSearchParams(location.search);
+        const q = input.value.trim();
+        if (q === '') { params.delete('q'); } else { params.set('q', q); }
+        params.set('page', '1');
+        location.href = '?' + params.toString();
+    };
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(aller, 400); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); aller(); } });
+}
+
 // Normalise une chaîne pour une recherche insensible à la casse et aux accents.
 function lassoNorm(s) {
     return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
