@@ -135,20 +135,11 @@ function route_evenements_liste(): void
     $annees = array_map('intval', db()->query(
         "SELECT DISTINCT strftime('%Y', date) FROM evenements ORDER BY 1 DESC"
     )->fetchAll(PDO::FETCH_COLUMN));
-    $annee        = (int) filtre_persistant('annee', 'evenements_annee', 0); // 0 = « Toutes les années » par défaut
-    $statutSuisa  = filtre_persistant('statut_suisa', 'evenements_statut_suisa', 'tous');
-    // spectacle_id : 0 = tous, -1 = sans spectacle (spectacle_id NULL), > 0 = un spectacle précis.
-    $spectacleId  = (int) filtre_persistant('spectacle_id', 'evenements_spectacle_id', 0);
-    $statut       = filtre_persistant('statut', 'evenements_statut', 'tous');
-    $visibilite   = filtre_persistant('visibilite', 'evenements_visibilite', 'tous');
-    $pays         = filtre_persistant('pays', 'evenements_pays_filtre', 'tous');
-    $salaries     = filtre_persistant('salaries', 'evenements_salaries', 'tous'); // tous | oui | non
-    $recherche    = trim((string) ($_GET['q'] ?? '')); // jamais mémorisée en session, comme pagination_page()
-    $retourFiltres = [
-        'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
-        'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
-        'q' => $recherche,
-    ];
+    $f = evenements_lire_filtres();
+    $annee = $f['annee']; $statutSuisa = $f['statut_suisa']; $spectacleId = $f['spectacle_id'];
+    $statut = $f['statut']; $visibilite = $f['visibilite']; $pays = $f['pays']; $salaries = $f['salaries'];
+    $recherche = $f['q'];
+    $retourFiltres = $f;
 
     // Modification groupée (sélection de lignes + barre flottante, même esprit que
     // le lettrage/l'axe analytique en masse sur les écritures comptables).
@@ -220,54 +211,7 @@ function route_evenements_liste(): void
     }
 
     $spectacleMap = spectacle_map();
-
-    $where = ' WHERE 1=1';
-    $params = [];
-    if ($annee) {
-        $where .= " AND strftime('%Y', e.date) = ?";
-        $params[] = (string) $annee;
-    }
-    if ($spectacleId === -1) {
-        $where .= ' AND e.spectacle_id IS NULL';
-    } elseif ($spectacleId) {
-        // Un spectacle-groupe (artiste) filtre sur lui-même + toutes ses feuilles
-        // (même principe que l'export public, voir evenements_a_exporter()).
-        $ids = array_merge([$spectacleId], spectacle_descendants($spectacleId, $spectacleMap));
-        $in  = implode(',', array_fill(0, count($ids), '?'));
-        $where .= " AND e.spectacle_id IN ($in)";
-        $params = array_merge($params, $ids);
-    }
-    if (in_array($statut, EVENEMENTS_STATUTS, true)) {
-        $where .= ' AND e.statut = ?';
-        $params[] = $statut;
-    }
-    if (in_array($visibilite, EVENEMENTS_VISIBILITES, true)) {
-        $where .= ' AND e.visibilite = ?';
-        $params[] = $visibilite;
-    }
-    if (in_array($statutSuisa, EVENEMENTS_STATUTS_SUISA_FILTRE, true)) {
-        $where .= ' AND (' . evenement_sql_statut_suisa($statutSuisa, 'e.') . ')';
-        // Ordre des paramètres = ordre des '?' dans evenement_sql_statut_suisa().
-        if ($statutSuisa === 'manquant') {
-            $params[] = evenements_delai_decompte_mois();
-            $params[] = evenements_delai_abandon_mois();
-        } elseif (in_array($statutSuisa, ['a_faire', 'envoye', 'abandonne'], true)) {
-            $params[] = evenements_delai_abandon_mois();
-        }
-    }
-    if ($pays !== 'tous' && in_array($pays, evenements_pays_disponibles(), true)) {
-        $where .= ' AND e.pays = ?';
-        $params[] = $pays;
-    }
-    if ($salaries === 'oui') {
-        $where .= ' AND EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
-    } elseif ($salaries === 'non') {
-        $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
-    }
-    [$rechSql, $rechParams] = recherche_sql(['e.ville', 'e.salle', 'e.festival', 's.nom']);
-    $where .= $rechSql;
-    $params = array_merge($params, $rechParams);
-
+    [$where, $params] = evenements_where_filtres($f, $spectacleMap);
     $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
 
     $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
@@ -314,6 +258,75 @@ function route_evenements_liste(): void
         'pgTaille'        => $pgTaille,
         'pgTotal'         => $pgTotal,
     ], 'Événements');
+}
+
+// Export CSV (« Excel ») des événements filtrés actuellement — mêmes filtres
+// que route_evenements_liste() (evenements_lire_filtres()/evenements_where_filtres()),
+// sans pagination : date, spectacle, ville, région/canton, pays, salle, festival,
+// suivi SUISA (envoyé à/date d'envoi/date du décompte), et tous les champs de
+// l'organisateur lié le cas échéant.
+function route_evenements_export_suisa(): void
+{
+    require_login();
+    $spectacleMap = spectacle_map();
+    $f = evenements_lire_filtres();
+    [$where, $params] = evenements_where_filtres($f, $spectacleMap);
+    $from = ' FROM evenements e
+              LEFT JOIN spectacles s ON s.id = e.spectacle_id
+              LEFT JOIN debiteurs d ON d.id = e.organisateur_debiteur_id';
+    $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.region, e.pays, e.salle, e.festival,
+                   e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
+                   d.nom AS org_nom, d.type AS org_type, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
+                   d.adresse_localite AS org_localite, d.adresse_pays AS org_pays, d.email AS org_email,
+                   d.telephone AS org_telephone, d.personne_contact AS org_contact'
+         . $from . $where . ' ORDER BY e.date DESC, e.id DESC';
+    $stmt = db()->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll();
+
+    $nomEmployeur = (string) param('employeur_nom');
+    $filename = 'export-suisa-' . date('Y-m-d')
+        . ($nomEmployeur !== '' ? '-' . preg_replace('/[^a-z0-9]/i', '-', $nomEmployeur) : '') . '.csv';
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour compatibilité Excel
+    $dateAffichee = fn (string $d): string => $d !== '' ? date('d.m.Y', strtotime($d)) : '';
+    fputcsv($out, [
+        'Date', 'Spectacle', 'Ville', 'Région/canton', 'Pays', 'Salle', 'Festival',
+        'SUISA envoyée à', "SUISA date d'envoi", 'SUISA date du décompte',
+        'Organisateur — Nom', 'Organisateur — Type', 'Organisateur — Rue', 'Organisateur — NPA',
+        'Organisateur — Localité', 'Organisateur — Pays', 'Organisateur — E-mail',
+        'Organisateur — Téléphone', 'Organisateur — Personne de contact',
+    ], ';', '"', '\\');
+    foreach ($rows as $r) {
+        fputcsv($out, [
+            $dateAffichee((string) $r['date']),
+            $r['spectacle_nom'] ?? '',
+            $r['ville'],
+            $r['region'],
+            $r['pays'],
+            $r['salle'],
+            $r['festival'],
+            evenement_suisa_envoye_a_libelle((string) $r['suisa_envoye_a']),
+            $dateAffichee((string) $r['suisa_envoye_le']),
+            $dateAffichee((string) $r['suisa_decompte_le']),
+            $r['org_nom'] ?? '',
+            $r['org_type'] === null ? '' : ($r['org_type'] === 'particulier' ? 'Particulier' : 'Organisation'),
+            $r['org_rue'] ?? '',
+            $r['org_npa'] ?? '',
+            $r['org_localite'] ?? '',
+            $r['org_pays'] ?? '',
+            $r['org_email'] ?? '',
+            $r['org_telephone'] ?? '',
+            $r['org_contact'] ?? '',
+        ], ';', '"', '\\');
+    }
+    fclose($out);
+    exit;
 }
 
 function route_evenement(): void

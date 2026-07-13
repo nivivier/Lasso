@@ -149,8 +149,9 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             <label>Envoyée à
                 <select name="suisa_envoye_a" <?= $suisaApplicable ? '' : 'disabled' ?>>
                     <option value="">—</option>
-                    <option value="suisa" <?= $vRaw('suisa_envoye_a') === 'suisa' ? 'selected' : '' ?>>Directement à la SUISA</option>
-                    <option value="organisateur" <?= $vRaw('suisa_envoye_a') === 'organisateur' ? 'selected' : '' ?>>À l'organisateur</option>
+                    <?php foreach (EVENEMENTS_SUISA_ENVOYE_A as $ea): ?>
+                        <option value="<?= e($ea) ?>" <?= $vRaw('suisa_envoye_a') === $ea ? 'selected' : '' ?>><?= e(evenement_suisa_envoye_a_libelle($ea)) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </label>
             <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>

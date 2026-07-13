@@ -158,6 +158,7 @@ if (module_actif('evenements')) {
     $handlers += [
         'evenements'         => 'route_evenements',
         'evenements_liste'   => 'route_evenements_liste',
+        'evenements_export_suisa' => 'route_evenements_export_suisa',
         'evenement'          => 'route_evenement',
         'evenement_delete'   => 'route_evenement_delete',
         'evenement_suisa'    => 'route_evenement_suisa',

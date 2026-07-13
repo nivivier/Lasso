@@ -36,6 +36,14 @@ $termeSingulier = evenements_terme_spectacle(false);
         </form>
     </div>
     <div class="head-actions">
+        <?php $exportQs = http_build_query([
+            'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+            'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
+            'q' => $recherche,
+        ]); ?>
+        <a class="btn ghost btn-sm" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
+            <?= icon('download') ?> <span class="lbl">Export SUISA</span>
+        </a>
         <a class="btn ghost btn-sm" href="?p=spectacles"><?= icon('music') ?> <span class="lbl"><?= e($termePluriel) ?></span></a>
         <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
     </div>

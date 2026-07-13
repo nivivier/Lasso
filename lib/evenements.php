@@ -168,6 +168,90 @@ function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): strin
     };
 }
 
+// Filtres actifs de la liste des événements (GET prioritaire, sinon session —
+// voir filtre_persistant()). Lu tôt par route_evenements_liste() (avant que
+// spectacle_map() soit nécessaire, pour le retour après une action groupée) et
+// par route_evenements_export_suisa() (même filtres, sans pagination).
+function evenements_lire_filtres(): array
+{
+    return [
+        'annee'        => (int) filtre_persistant('annee', 'evenements_annee', 0),
+        'statut_suisa' => filtre_persistant('statut_suisa', 'evenements_statut_suisa', 'tous'),
+        // spectacle_id : 0 = tous, -1 = sans spectacle (spectacle_id NULL), > 0 = un spectacle précis.
+        'spectacle_id' => (int) filtre_persistant('spectacle_id', 'evenements_spectacle_id', 0),
+        'statut'       => filtre_persistant('statut', 'evenements_statut', 'tous'),
+        'visibilite'   => filtre_persistant('visibilite', 'evenements_visibilite', 'tous'),
+        'pays'         => filtre_persistant('pays', 'evenements_pays_filtre', 'tous'),
+        'salaries'     => filtre_persistant('salaries', 'evenements_salaries', 'tous'), // tous | oui | non
+        'q'            => trim((string) ($_GET['q'] ?? '')), // jamais mémorisée en session, comme pagination_page()
+    ];
+}
+
+// Clause SQL (WHERE + params, alias "e." attendu depuis "FROM evenements e")
+// correspondant aux filtres de evenements_lire_filtres() — réutilisée par
+// route_evenements_liste() (liste + pagination) et route_evenements_export_suisa()
+// (mêmes filtres, sans pagination). $spectacleMap : requis pour résoudre un
+// spectacle-groupe (artiste) en lui-même + ses feuilles descendantes.
+function evenements_where_filtres(array $f, array $spectacleMap): array
+{
+    $where = ' WHERE 1=1';
+    $params = [];
+    if ($f['annee']) {
+        $where .= " AND strftime('%Y', e.date) = ?";
+        $params[] = (string) $f['annee'];
+    }
+    if ($f['spectacle_id'] === -1) {
+        $where .= ' AND e.spectacle_id IS NULL';
+    } elseif ($f['spectacle_id']) {
+        $ids = array_merge([$f['spectacle_id']], spectacle_descendants($f['spectacle_id'], $spectacleMap));
+        $in  = implode(',', array_fill(0, count($ids), '?'));
+        $where .= " AND e.spectacle_id IN ($in)";
+        $params = array_merge($params, $ids);
+    }
+    if (in_array($f['statut'], EVENEMENTS_STATUTS, true)) {
+        $where .= ' AND e.statut = ?';
+        $params[] = $f['statut'];
+    }
+    if (in_array($f['visibilite'], EVENEMENTS_VISIBILITES, true)) {
+        $where .= ' AND e.visibilite = ?';
+        $params[] = $f['visibilite'];
+    }
+    if (in_array($f['statut_suisa'], EVENEMENTS_STATUTS_SUISA_FILTRE, true)) {
+        $where .= ' AND (' . evenement_sql_statut_suisa($f['statut_suisa'], 'e.') . ')';
+        // Ordre des paramètres = ordre des '?' dans evenement_sql_statut_suisa().
+        if ($f['statut_suisa'] === 'manquant') {
+            $params[] = evenements_delai_decompte_mois();
+            $params[] = evenements_delai_abandon_mois();
+        } elseif (in_array($f['statut_suisa'], ['a_faire', 'envoye', 'abandonne'], true)) {
+            $params[] = evenements_delai_abandon_mois();
+        }
+    }
+    if ($f['pays'] !== 'tous' && in_array($f['pays'], evenements_pays_disponibles(), true)) {
+        $where .= ' AND e.pays = ?';
+        $params[] = $f['pays'];
+    }
+    if ($f['salaries'] === 'oui') {
+        $where .= ' AND EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
+    } elseif ($f['salaries'] === 'non') {
+        $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
+    }
+    [$rechSql, $rechParams] = recherche_sql(['e.ville', 'e.salle', 'e.festival', 's.nom']);
+    $where .= $rechSql;
+    $params = array_merge($params, $rechParams);
+    return [$where, $params];
+}
+
+// Libellé du canal d'envoi SUISA (suisa_envoye_a) — utilisé par le formulaire
+// événement et l'export SUISA (route_evenements_export_suisa()).
+function evenement_suisa_envoye_a_libelle(string $envoyeA): string
+{
+    return match ($envoyeA) {
+        'suisa'        => 'Directement à la SUISA',
+        'organisateur' => "À l'organisateur",
+        default        => '',
+    };
+}
+
 // Délai (en mois) avant qu'une date SUISA envoyée mais jamais décomptée soit
 // considérée « manquante ». Paramètre configurable (onglet Événements).
 function evenements_delai_decompte_mois(): int
