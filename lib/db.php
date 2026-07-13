@@ -309,6 +309,7 @@ function run_migrations(PDO $pdo): void
         30 => 'migration_30', // paramètre suisa_delai_abandon_mois (statut SUISA « abandonné »)
         31 => 'migration_31', // evenements.organisateur_debiteur_id : lien vers le débiteur organisateur
         32 => 'migration_32', // debiteurs.telephone / personne_contact
+        33 => 'migration_33', // evenements.production_externe
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1025,6 +1026,18 @@ function migration_32(PDO $pdo): void
     }
     if (!in_array('personne_contact', $cols, true)) {
         $pdo->exec("ALTER TABLE debiteurs ADD COLUMN personne_contact TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Carte « Employés » (fiche événement) : bascule « production externe » — les
+// employés liés n'ont alors pas de prestation/fiche de salaire (cachet géré
+// par l'organisateur externe) ; cocher détache les prestations déjà liées,
+// voir route_evenement_production_externe().
+function migration_33(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('production_externe', $cols, true)) {
+        $pdo->exec('ALTER TABLE evenements ADD COLUMN production_externe INTEGER NOT NULL DEFAULT 0');
     }
 }
 

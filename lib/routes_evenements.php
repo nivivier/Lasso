@@ -519,6 +519,40 @@ function route_evenement_axe_defaut(): void
     redirect('evenement', ['id' => $id, 'ok' => 'axe']);
 }
 
+// Carte « Employés » — bascule « production externe » (cachet géré par un tiers,
+// pas de prestation/fiche de salaire liée). Cocher détache toutes les
+// prestations déjà liées (evenement_detacher_prestation(), même mécanisme que
+// route_evenement_employe_delier()) ; refuse si l'une d'elles est sur une fiche
+// déjà payée (historique figé, jamais touché). Décocher n'a besoin d'aucune
+// confirmation : ça ne supprime rien, juste réaffiche les colonnes de prestation.
+function route_evenement_production_externe(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!evenement_charger($id)) {
+        redirect('evenements_liste');
+    }
+    $active = isset($_POST['production_externe']) ? 1 : 0;
+    if ($active) {
+        $employeIds = evenement_employe_ids($id);
+        foreach ($employeIds as $employeId) {
+            $ligne = evenement_ligne_pour($id, $employeId);
+            if ($ligne && trim((string) $ligne['date_paiement']) !== '') {
+                redirect('evenement', ['id' => $id, 'errProdExterne' => 'paye']);
+            }
+        }
+        foreach ($employeIds as $employeId) {
+            evenement_detacher_prestation($id, $employeId);
+        }
+    }
+    db()->prepare('UPDATE evenements SET production_externe = ? WHERE id = ?')->execute([$active, $id]);
+    redirect('evenement', ['id' => $id]);
+}
+
 // Carte « Employés » — lien/délien immédiat (pas de bouton Enregistrer), même
 // esprit que route_evenement_facture_lier()/delier().
 function route_evenement_employe_lier(): void

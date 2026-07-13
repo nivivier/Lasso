@@ -16,6 +16,8 @@ $ok = $_GET['ok'] ?? null;
 $errLigne = $_GET['errLigne'] ?? null;
 $errEmploye = $_GET['errEmploye'] ?? null;
 $errOrganisateur = $_GET['errOrganisateur'] ?? null;
+$errProdExterne = $_GET['errProdExterne'] ?? null;
+$prodExterne = (bool) ($evenement['production_externe'] ?? false);
 
 $confirmSuppr = null;
 if ($isEdit) {
@@ -190,25 +192,59 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             . "prestation depuis un seul des événements de la tournée et liez les autres depuis "
             . "la fiche elle-même."
         ) ?></h2>
-        <?php if ($employesDispo): ?>
-            <form method="post" action="?p=evenement_employe_lier<?= $depuisQs ?>" class="linked-add">
+        <div class="head-actions">
+            <form method="post" action="?p=evenement_production_externe<?= $depuisQs ?>" id="prod-externe-form">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $id ?>">
-                <select name="employe_id">
-                    <?php foreach ($employesDispo as $emp): ?>
-                        <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" class="btn ghost"><?= icon('user-plus') ?> Ajouter un employé</button>
+                <label class="check">
+                    <input type="checkbox" name="production_externe" id="prod-externe-check" value="1" <?= $prodExterne ? 'checked' : '' ?>>
+                    Production externe
+                </label>
             </form>
-        <?php endif; ?>
+            <?php if ($employesDispo): ?>
+                <form method="post" action="?p=evenement_employe_lier<?= $depuisQs ?>" class="linked-add">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="id" value="<?= (int) $id ?>">
+                    <select name="employe_id">
+                        <?php foreach ($employesDispo as $emp): ?>
+                            <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="btn ghost"><?= icon('user-plus') ?> Ajouter un employé</button>
+                </form>
+            <?php endif; ?>
+        </div>
     </div>
     <?php if ($errLigne === '1'): ?><p class="err">Prestation invalide : vérifiez l'unité, la quantité et le taux horaire.</p><?php endif; ?>
     <?php if ($errLigne === 'payee'): ?><p class="err">La fiche de ce mois a déjà été payée : créez plutôt une fiche complémentaire depuis « Fiches de salaire ».</p><?php endif; ?>
     <?php if ($errEmploye === 'paye'): ?><p class="err">Impossible de retirer cet employé : sa prestation pour cet événement a déjà été payée.</p><?php endif; ?>
+    <?php if ($errProdExterne === 'paye'): ?><p class="err">Impossible d'activer « Production externe » : une prestation liée est déjà sur une fiche payée (figée, jamais modifiée). Retirez-la manuellement d'abord.</p><?php endif; ?>
 
     <?php if (!$employesLies): ?>
         <p class="muted small">Aucun employé lié.</p>
+    <?php elseif ($prodExterne): ?>
+        <!-- Production externe : pas de prestation/fiche de salaire à gérer ici,
+             juste la liste des employés (cachet géré par l'organisateur externe). -->
+        <div class="table-scroll">
+        <table class="list evenement-employes">
+            <thead><tr><th>Employé</th><th></th></tr></thead>
+            <tbody>
+            <?php foreach ($employesLies as $emp): ?>
+                <tr>
+                    <td><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
+                    <td class="epf-actions-cell">
+                        <form method="post" action="?p=evenement_employe_delier<?= $depuisQs ?>" onsubmit="return confirm('Retirer cet employé de l\'événement ?');">
+                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="id" value="<?= (int) $id ?>">
+                            <input type="hidden" name="employe_id" value="<?= (int) $emp['id'] ?>">
+                            <button type="submit" class="btn ghost btn-sm icon-only" title="Retirer l'employé" aria-label="Retirer l'employé"><?= icon('trash') ?></button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
     <?php else: ?>
         <?php $colspanMsg = 4 + ($axes ? 1 : 0); ?>
         <div class="table-scroll">
@@ -429,6 +465,22 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         suisaCheck.addEventListener('change', () => {
             suisaChamps.hidden = !suisaCheck.checked;
             suisaChamps.querySelectorAll('select, input').forEach(el => { el.disabled = !suisaCheck.checked; });
+        });
+    }
+
+    // Case « Production externe » : cocher détache les prestations déjà liées
+    // (côté serveur, route_evenement_production_externe()) — confirmation avant
+    // de soumettre si des prestations existent. Décocher ne supprime rien.
+    const prodCheck = document.getElementById('prod-externe-check');
+    if (prodCheck) {
+        const aDesPrestations = <?= json_encode((bool) array_filter($prestations)) ?>;
+        prodCheck.addEventListener('change', () => {
+            if (prodCheck.checked && aDesPrestations
+                && !confirm('Cocher « Production externe » va supprimer les prestations déjà liées sur les fiches de salaire des employés de cet événement. Continuer ?')) {
+                prodCheck.checked = false;
+                return;
+            }
+            document.getElementById('prod-externe-form').requestSubmit();
         });
     }
 
