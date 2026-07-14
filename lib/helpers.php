@@ -402,13 +402,19 @@ if ($l > 75) {
 }
 
 // Bloc <style> qui redéfinit les variables CSS de couleur d'après la couleur
-// principale choisie — injecté dans <head> (views/layout.php), après app.css.
+// principale et la couleur de mise en évidence choisies — injecté dans <head>
+// (views/layout.php), après app.css. Cette dernière remplace la couleur
+// principale à certains endroits (boutons principaux, sommes de brut, liens,
+// tags) ; voir --highlight* dans app.css pour la liste des règles concernées.
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
+    $h = couleurs_derivees((string) param('employeur_couleur_evidence', '#2563eb'));
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
-        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}</style>';
+        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
+        . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
+        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}</style>';
 }
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées

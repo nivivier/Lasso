@@ -4,6 +4,15 @@
     --primary: #6d4aee;     /* violet / mauve accent */
     --primary-d: #5a39d4;
     --primary-tint: #efeaff;
+    /* Couleur de mise en évidence (paramétrable, Paramètres > Employeur) :
+       remplace --primary à certains endroits seulement — boutons principaux,
+       sommes de brut, liens, tags. Voir couleurs_css_vars() (lib/helpers.php)
+       pour l'injection dynamique ; ces valeurs par défaut ne s'appliquent que
+       si ce bloc n'a pas encore été écrasé (ex. avant chargement de <head>). */
+    --highlight: #2563eb;   /* bleu, défaut */
+    --highlight-d: #1249c1;
+    --highlight-tint: #e7eefe;
+    --highlight-rgb: 37 99 235;
     --teal: #0fb6a1;        /* couleur secondaire */
     --teal-d: #0c9486;
     --teal-tint: #e2f7f3;
@@ -51,7 +60,7 @@ body {
 /* Garantit que l'attribut HTML hidden fonctionne même sur les éléments avec display:flex/grid. */
 [hidden] { display: none !important; }
 
-a { color: var(--primary); text-decoration: none; }
+a { color: var(--highlight); text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1, h2, h3 { color: var(--brand); }
 h1 {background: linear-gradient(150deg, var(--brand), var(--brand-2));
@@ -174,7 +183,7 @@ body.auth-bg {
 
 /* =================== Headings / page head =================== */
 .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; font-weight: 500; margin-bottom: 12px; }
-.back-link:hover { color: var(--primary-d); text-decoration: none; }
+.back-link:hover { color: var(--highlight-d); text-decoration: none; }
 .back-link .ico { width: 16px; height: 16px; }
 .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
 .page-head h1 { font-size: 32px; margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
@@ -411,11 +420,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 /* =================== Buttons =================== */
 button, .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 7px; font: inherit; font-size: 14.5px; cursor: pointer;
-    background: var(--primary); color: #fff; border: 1px solid var(--primary);
+    background: var(--highlight); color: #fff; border: 1px solid var(--highlight);
     padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600;
     transition: background .15s, border-color .15s, transform .05s; box-shadow: var(--shadow-sm);
 }
-button:hover, .btn:hover { background: var(--primary-d); border-color: var(--primary-d); text-decoration: none; }
+button:hover, .btn:hover { background: var(--highlight-d); border-color: var(--highlight-d); text-decoration: none; }
 button:active, .btn:active { transform: translateY(1px); }
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); font-weight: 500; box-shadow: none; }
 .btn.ghost:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
@@ -530,7 +539,7 @@ button:active, .btn:active { transform: translateY(1px); }
 .ml-auto { margin-left: auto; }
 .d-inline { display: inline; }
 button:disabled, .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
-button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-color: var(--primary); }
+button:disabled:hover, .btn:disabled:hover { background: var(--highlight); border-color: var(--highlight); }
 .btn.ghost:disabled:hover { background: #fff; }
 
 .center { text-align: center; }
@@ -618,7 +627,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .list tbody tr:last-child td { border-bottom: none; }
 .list .num { text-align: right; font-variant-numeric: tabular-nums; }
 .list .strong { font-weight: 700; color: var(--teal-d); }
-.col-brut { color: var(--primary); font-weight: 700; }   /* brut en mauve */
+.col-brut { color: var(--highlight); font-weight: 700; }   /* somme brut : couleur de mise en évidence */
 .col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
 
 /* Fiche de salaire : aperçu « Coûts estimés » en direct (même code couleur que ci-dessus). */
@@ -627,11 +636,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .ce-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 .ce-val { font-size: 20px; }
 .ce-net  { color: var(--teal-d); }
-.ce-brut { color: var(--primary); }
+.ce-brut { color: var(--highlight); }
 .ce-cout { color: var(--ink); }
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
-.badge { font-size: 11px; background: var(--primary-tint); color: var(--primary-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
+.badge { font-size: 11px; background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
 .badge.orange-badge { background: var(--orange-tint); color: var(--orange); margin-left: 0; }
@@ -713,7 +722,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 .ps-table tr.ps-sub td { color: var(--muted); font-size: .92em; padding-top: 3px; padding-bottom: 3px; }
 .ps-seuil { font-weight: 400; font-size: 11.5px; margin-top: 2px; }
 .ps-table tr.total td { font-weight: 700; border-top: 1px solid var(--brand); border-bottom: none; }
-.ps-table tr.brut-line td { background: var(--primary-tint); color: var(--brand); border-top: none; padding-top: 8px; padding-bottom: 8px; }
+.ps-table tr.brut-line td { background: var(--primary-tint); color: var(--highlight-d); border-top: none; padding-top: 8px; padding-bottom: 8px; }
 .ps-table.net { margin-top: -2px; margin-bottom: 14px; }
 .ps-table .grand-total td { font-size: 16px; font-weight: 800; background: var(--teal-tint); color: var(--teal-d); padding: 10px 10px; border: none; }
 .ps-table .grand-total.apayer td { background: var(--amber-tint); color: var(--amber); } /* à payer → jaune */
@@ -748,7 +757,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 /* =================== Print =================== */
 .print-toolbar { padding: 13px 18px; background: var(--brand); color: #fff; display: flex; gap: 16px; align-items: center; }
 
-.print-toolbar button { background: var(--primary); border-color: var(--primary); }
+.print-toolbar button { background: var(--highlight); border-color: var(--highlight); }
 .sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: 6px; }
 body.print-page { background: #e9e9f2; }
 
@@ -970,7 +979,7 @@ abbr {
 .compta-lettrage .texte-cell { max-width: 200px; font-size: 11.5px; color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
 .compta-lettrage .texte-cell:hover { color: var(--primary); }
-.ecr-facture-lien { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--primary); }
+.ecr-facture-lien { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--highlight); }
 .ecr-facture-lien .ico { width: 14px; height: 14px; }
 
 .compta-lettrage .cat-cell select { margin-bottom: 0; width: 200px; max-width: 200px; padding-top: 5px; padding-bottom: 5px; }

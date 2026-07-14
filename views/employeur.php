@@ -28,8 +28,8 @@
         </div>
 
         <h3 class="sub">Couleur principale <?= info_tip(
-            "Utilisée pour les boutons, liens et accents dans toute l'application ; les autres teintes "
-            . '(survols, fonds, en-têtes) sont calculées automatiquement à partir de celle-ci.'
+            "Utilisée pour les accents dans toute l'application (barre latérale, survols, fonds, "
+            . 'en-têtes) ; les autres teintes sont calculées automatiquement à partir de celle-ci.'
         ) ?></h3>
         <div class="color-field">
             <input type="color" name="employeur_couleur_principale" id="couleur-principale"
@@ -39,6 +39,21 @@
         <script>
             document.getElementById('couleur-principale').addEventListener('input', function () {
                 document.getElementById('couleur-principale-hex').textContent = this.value;
+            });
+        </script>
+
+        <h3 class="sub">Couleur de mise en évidence <?= info_tip(
+            'Remplace la couleur principale à certains endroits : boutons principaux, sommes de '
+            . 'salaire brut, liens et tags.'
+        ) ?></h3>
+        <div class="color-field">
+            <input type="color" name="employeur_couleur_evidence" id="couleur-evidence"
+                   value="<?= e(param('employeur_couleur_evidence', '#2563eb')) ?>">
+            <code id="couleur-evidence-hex"><?= e(param('employeur_couleur_evidence', '#2563eb')) ?></code>
+        </div>
+        <script>
+            document.getElementById('couleur-evidence').addEventListener('input', function () {
+                document.getElementById('couleur-evidence-hex').textContent = this.value;
             });
         </script>
 

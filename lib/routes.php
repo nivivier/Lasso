@@ -418,10 +418,12 @@ function route_employeur(): void
         foreach ($champs as $k) {
             $stmt->execute([$k, trim($_POST[$k] ?? '')]);
         }
-        // Couleur principale : ignore une valeur invalide plutôt que de casser la palette.
-        $couleur = trim($_POST['employeur_couleur_principale'] ?? '');
-        if (preg_match('/^#[0-9a-fA-F]{6}$/', $couleur)) {
-            $stmt->execute(['employeur_couleur_principale', strtolower($couleur)]);
+        // Couleurs : ignore une valeur invalide plutôt que de casser la palette.
+        foreach (['employeur_couleur_principale', 'employeur_couleur_evidence'] as $cleCouleur) {
+            $couleur = trim($_POST[$cleCouleur] ?? '');
+            if (preg_match('/^#[0-9a-fA-F]{6}$/', $couleur)) {
+                $stmt->execute([$cleCouleur, strtolower($couleur)]);
+            }
         }
         foreach ($logos as $cle => $path) {
             $ancien = param($cle); // ancien fichier à supprimer s'il était uploadé
