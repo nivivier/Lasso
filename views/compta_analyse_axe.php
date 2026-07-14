@@ -191,8 +191,8 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 <?php if ($ecritures): ?>
 <div class="section-head">
     <h2>Écritures</h2>
-    <label class="search-label ml-auto"><span>Rechercher <span id="axe-ecritures-search-count" class="muted small"></span></span>
-        <input type="search" id="axe-ecritures-search" placeholder="Compte, texte, catégorie…" autocomplete="off" aria-label="Rechercher">
+    <label class="search-label ml-auto">
+        <input type="search" id="axe-ecritures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
     </label>
     <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('pencil') ?> Modifier</a>
 </div>
@@ -222,6 +222,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
     <?php endforeach; ?>
     </tbody>
 </table>
+<span id="axe-ecritures-search-count" class="muted small"></span>
 </div>
 <script>
 (function () {
