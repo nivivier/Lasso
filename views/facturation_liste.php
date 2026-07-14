@@ -34,7 +34,7 @@
             </select>
         </label>
         <label class="search-label">
-            <input type="search" name="q" id="facturation-search" placeholder="Numéro, débiteur, montant…" autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
 </div>

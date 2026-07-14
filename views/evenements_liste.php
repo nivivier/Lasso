@@ -80,7 +80,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             </select>
         </label>
         <label class="search-label">
-            <input type="search" name="q" id="evenements-search" placeholder="Ville, salle, festival, <?= mb_strtolower(e($termeSingulier)) ?>…" autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            <input type="search" name="q" id="evenements-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <details class="filters-more" <?= ($statutSuisa !== 'tous' || $visibilite !== 'tous' || $salaries !== 'tous') ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>

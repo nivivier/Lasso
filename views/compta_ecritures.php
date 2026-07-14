@@ -115,7 +115,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </label>
         <?php endif; ?>
         <label class="search-label">
-            <input type="search" name="q" id="compta-search" placeholder="Texte, montant, catégorie…" autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
 </div>
