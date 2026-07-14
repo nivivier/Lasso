@@ -559,7 +559,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 /* Même boîte (padding/font-size) que .search-label input[type=search] ci-dessous,
    pour une hauteur identique — sinon les <select> (padding 10px, 14px de
    base) dépassent le champ de recherche. */
-.filters select { padding: 8px 10px; font-size: 13.5px; }
+.filters select { padding: 9px 10px; font-size: 13.5px; }
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
    quel dans un .section-head (ex. compta_analyse_axe.php). */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--muted); flex: 1 1 200px; }
