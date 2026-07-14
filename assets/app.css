@@ -220,6 +220,9 @@ body.auth-bg {
 
 .inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+/* Sélecteur d'année à côté du titre (Événements, Écritures, etc.) : même
+   hauteur que les .btn.ghost.btn-sm du bandeau (ex. « Export SUISA »). */
+.page-head-title .inline-year-select { padding: 5px 8px; }
 .cout-toggle { display: flex; align-items: center; }
 .cout-toggle .check { flex-direction: row; align-items: center; gap: 7px; margin: 0; font-size: 13.5px; font-weight: 500; color: var(--ink); white-space: nowrap; }
 h2 { font-size: 18px; margin: 36px 0 16px; font-weight: 700; line-height: 1.3; }
