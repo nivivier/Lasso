@@ -547,7 +547,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .salaries-cell .ico { width: 15px; height: 15px; color: var(--muted); vertical-align: middle; margin-right: 5px; }
 
 /* =================== Filters =================== */
-.filters { display: flex; gap: 16px; align-items: center; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+/* align-items: flex-end (pas center) : le champ de recherche (.search-label,
+   sans texte de label visible) doit rester aligné avec les <select> des
+   autres filtres, qui ont eux un texte de label au-dessus — seul le bas des
+   colonnes flex (donc les champs eux-mêmes) coïncide alors. */
+.filters { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .filters label { margin-bottom: 0; }
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
    quel dans un .section-head (ex. compta_analyse_axe.php). */
@@ -564,12 +568,17 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
    bottom) pour ne pas chevaucher le tableau, puisque l'absolute ne pousse
    plus rien dans le flux normal. */
 .filters-more { margin-left: auto; flex-shrink: 0; align-self: flex-end; position: relative; }
+/* Le déclencheur (<summary>) reprend l'aspect d'un .btn.ghost.btn-sm, sans
+   dépendre de ces classes sur la balise (list-style/marker natifs à retirer
+   en plus). */
 .filters-more summary {
-    cursor: pointer; color: var(--muted); font-size: 13.5px; font-weight: 500; white-space: nowrap;
-    text-align: right; list-style: none;
+    cursor: pointer; display: inline-flex; align-items: center; color: var(--ink); font-size: 13px; font-weight: 500;
+    white-space: nowrap; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 4px 10px; transition: background .15s, border-color .15s;
 }
+.filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
-.filters-more summary::before { content: '▸'; display: inline-block; width: 10px; }
+.filters-more summary::before { content: '▸'; display: inline-block; margin-right: 6px; }
 .filters-more[open] summary::before { content: '▾'; }
 .filters-more-body {
     display: none; position: absolute; top: 100%; right: 0; margin-top: 12px; width: max-content;
