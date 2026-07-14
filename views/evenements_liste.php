@@ -4,6 +4,7 @@
 /** @var string $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
 /** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */ /** @var string $recherche */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */
+/** @var ?int $prodExterneOk */ /** @var ?int $prodExterneBloques */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 $statutsSuisa = [
     'tous' => 'Tous', 'a_venir' => 'À venir', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
@@ -13,6 +14,8 @@ $termePluriel = evenements_terme_spectacle();
 $termeSingulier = evenements_terme_spectacle(false);
 ?>
 <?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?php if ($prodExterneOk): ?><p class="flash"><?= (int) $prodExterneOk ?> événement(s) passé(s) en « Production externe ».</p><?php endif; ?>
+<?php if ($prodExterneBloques): ?><p class="err flash"><?= (int) $prodExterneBloques ?> événement(s) non modifié(s) : une prestation liée est déjà sur une fiche payée (figée, jamais modifiée).</p><?php endif; ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -127,6 +130,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             <option value="suisa_applicable">Modifier si la SUISA s'applique</option>
             <option value="suisa_envoi">Modifier l'envoi SUISA</option>
             <option value="suisa_decompte">Modifier la date du décompte SUISA</option>
+            <option value="production_externe">Modifier « Production externe »</option>
         </select>
 
         <span class="bulk-field" data-for="statut" hidden>
@@ -178,6 +182,12 @@ $termeSingulier = evenements_terme_spectacle(false);
         </span>
         <span class="bulk-field" data-for="suisa_decompte" hidden>
             <input type="date" name="bulk_suisa_decompte_le" class="inline-year-select">
+        </span>
+        <span class="bulk-field" data-for="production_externe" hidden>
+            <select name="bulk_production_externe" class="inline-year-select" id="bulk-production-externe">
+                <option value="1">Activer</option>
+                <option value="0">Désactiver</option>
+            </select>
         </span>
 
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
@@ -268,6 +278,9 @@ $termeSingulier = evenements_terme_spectacle(false);
     document.getElementById('bulkform').addEventListener('submit', e => {
         const n = document.querySelectorAll('.row-check:checked').length;
         if (action.value === 'delete' && !confirm('Supprimer ' + n + ' événement(s) ? Cette action est irréversible.')) {
+            e.preventDefault();
+        } else if (action.value === 'production_externe' && document.getElementById('bulk-production-externe').value === '1'
+            && !confirm('Activer « Production externe » va supprimer les prestations déjà liées (non payées) sur les fiches de salaire des employés des ' + n + ' événement(s) sélectionné(s). Continuer ?')) {
             e.preventDefault();
         }
     });

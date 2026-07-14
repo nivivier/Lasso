@@ -202,6 +202,45 @@ function route_evenements_liste(): void
                 bulk_undo_memoriser('evenements', $ids, ['suisa_decompte_le'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_decompte_le = ? WHERE id IN ($in)")
                     ->execute(array_merge([$decompteLe], $ids));
+            } elseif ($section === 'production_externe') {
+                $active = ($_POST['bulk_production_externe'] ?? '') === '1' ? 1 : 0;
+                if ($active) {
+                    // Comme pour l'activation individuelle (route_evenement_production_externe) :
+                    // un événement dont un employé a déjà une prestation payée est ignoré (fiche
+                    // figée, jamais modifiée) plutôt que de bloquer toute la sélection.
+                    $idsActivables = [];
+                    foreach ($ids as $eid) {
+                        $bloque = false;
+                        foreach (evenement_employe_ids($eid) as $employeId) {
+                            $ligne = evenement_ligne_pour($eid, $employeId);
+                            if ($ligne && trim((string) $ligne['date_paiement']) !== '') {
+                                $bloque = true;
+                                break;
+                            }
+                        }
+                        if ($bloque) {
+                            continue;
+                        }
+                        $idsActivables[] = $eid;
+                    }
+                    foreach ($idsActivables as $eid) {
+                        foreach (evenement_employe_ids($eid) as $employeId) {
+                            evenement_detacher_prestation($eid, $employeId);
+                        }
+                    }
+                    if ($idsActivables) {
+                        $inAct = implode(',', array_fill(0, count($idsActivables), '?'));
+                        db()->prepare("UPDATE evenements SET production_externe = 1 WHERE id IN ($inAct)")->execute($idsActivables);
+                        $retourFiltres['prodExterneOk'] = count($idsActivables);
+                    }
+                    $nBloques = count($ids) - count($idsActivables);
+                    if ($nBloques > 0) {
+                        $retourFiltres['prodExterneBloques'] = $nBloques;
+                    }
+                } else {
+                    bulk_undo_memoriser('evenements', $ids, ['production_externe'], 'evenements_liste', $retourFiltres);
+                    db()->prepare("UPDATE evenements SET production_externe = 0 WHERE id IN ($in)")->execute($ids);
+                }
             }
             if ($section !== '' && $section !== 'delete' && isset($_SESSION['bulk_undo'])) {
                 $retourFiltres['bulk'] = count($ids);
@@ -272,6 +311,8 @@ function route_evenements_liste(): void
         'modeClient'      => $modeClient,
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
+        'prodExterneOk'      => isset($_GET['prodExterneOk']) ? (int) $_GET['prodExterneOk'] : null,
+        'prodExterneBloques' => isset($_GET['prodExterneBloques']) ? (int) $_GET['prodExterneBloques'] : null,
         'pgRoute'         => 'evenements_liste',
         'pgParams'        => $retourFiltres,
         'pgPage'          => $pgPage,
