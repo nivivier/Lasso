@@ -192,7 +192,7 @@ function evenements_lire_filtres(): array
 // route_evenements_liste() (liste + pagination) et route_evenements_export_suisa()
 // (mêmes filtres, sans pagination). $spectacleMap : requis pour résoudre un
 // spectacle-groupe (artiste) en lui-même + ses feuilles descendantes.
-function evenements_where_filtres(array $f, array $spectacleMap): array
+function evenements_where_filtres(array $f, array $spectacleMap, bool $avecRecherche = true): array
 {
     $where = ' WHERE 1=1';
     $params = [];
@@ -235,9 +235,11 @@ function evenements_where_filtres(array $f, array $spectacleMap): array
     } elseif ($f['salaries'] === 'non') {
         $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
     }
-    [$rechSql, $rechParams] = recherche_sql(['e.ville', 'e.salle', 'e.festival', 's.nom']);
-    $where .= $rechSql;
-    $params = array_merge($params, $rechParams);
+    if ($avecRecherche) {
+        [$rechSql, $rechParams] = recherche_sql(['e.ville', 'e.salle', 'e.festival', 's.nom']);
+        $where .= $rechSql;
+        $params = array_merge($params, $rechParams);
+    }
     return [$where, $params];
 }
 

@@ -586,7 +586,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
 .pagination-taille select { font: inherit; font-size: 13.5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .pagination-info { font-size: 13px; color: var(--muted); }
 .pagination-nav { display: flex; align-items: center; gap: 8px; }
-.pagination-nav [aria-disabled="true"] { opacity: .4; cursor: default; }
+.pagination-nav [aria-disabled="true"], .pagination-nav button:disabled { opacity: .4; cursor: default; }
+.pagination[data-pg-client] [data-pg-nav][hidden] { display: none; }
 .filters:has(.filters-more[open]) { margin-bottom: 78px; }
 
 /* =================== Tables =================== */

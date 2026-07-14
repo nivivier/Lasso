@@ -3,7 +3,7 @@
 /** @var string $statutSuisa */ /** @var int $spectacleId */ /** @var string $statut */
 /** @var string $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
 /** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */ /** @var string $recherche */
-/** @var ?int $bulkCount */ /** @var bool $okAnnule */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 $statutsSuisa = [
     'tous' => 'Tous', 'a_venir' => 'À venir', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
@@ -227,7 +227,7 @@ $termeSingulier = evenements_terme_spectacle(false);
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/_pagination.php'; ?>
+<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <script>
 (function () {
     const bulkBar = document.getElementById('bulk-bar');
@@ -236,7 +236,12 @@ $termeSingulier = evenements_terme_spectacle(false);
     }
     const all = document.getElementById('check-all');
     all.addEventListener('change', () => {
-        document.querySelectorAll('.row-check').forEach(c => { c.checked = all.checked; });
+        // Ne coche que les lignes visibles : en mode client (lassoListeClient()),
+        // les lignes des autres pages restent dans le DOM mais display:none —
+        // « Tout cocher » ne doit porter que sur la page actuellement affichée.
+        document.querySelectorAll('.row-check').forEach(c => {
+            if (c.closest('tr').style.display !== 'none') c.checked = all.checked;
+        });
         updateBulkBar();
     });
     document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
@@ -269,7 +274,17 @@ $termeSingulier = evenements_terme_spectacle(false);
 
     // Recherche : voir lassoRechercheServeur() (assets/app.js) — paginée côté
     // serveur, sinon une recherche ne porterait que sur la page déjà chargée.
+    // En dessous du seuil client (lib/helpers.php), lassoListeClient() prend
+    // le relais entièrement en JS.
+    <?php if ($modeClient): ?>
+    lassoListeClient({
+        tableSelector: '.evenements-liste',
+        searchInputSelector: '#evenements-search',
+        separatorSelector: '.mois-sep',
+    });
+    <?php else: ?>
     lassoRechercheServeur(document.getElementById('evenements-search'));
+    <?php endif; ?>
 })();
 </script>
 <?php endif; ?>

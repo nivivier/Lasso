@@ -3,7 +3,7 @@
 /** @var string $categorieFilter */ /** @var string $axeFilter */ /** @var array $ecritures */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
-/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 
 // Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
@@ -338,7 +338,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/_pagination.php'; ?>
+<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 
 
 <!-- Panneau de ventilation analytique (singleton, positionné par JS) -->
@@ -407,7 +407,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
     // Recherche : voir lassoRechercheServeur() (assets/app.js) — paginée côté
     // serveur, sinon une recherche ne porterait que sur la page déjà chargée.
+    // En dessous du seuil client (lib/helpers.php), lassoListeClient() prend
+    // le relais entièrement en JS (voir aussi employes.php pour le même motif).
+    <?php if ($modeClient): ?>
+    lassoListeClient({
+        tableSelector: '.compta-lettrage',
+        searchInputSelector: '#compta-search',
+        separatorSelector: '.ecr-mois-sep',
+    });
+    <?php else: ?>
     lassoRechercheServeur(document.getElementById('compta-search'));
+    <?php endif; ?>
 })();
 
 // Bouton "Nouvelle écriture manuelle" — affiche/masque le formulaire

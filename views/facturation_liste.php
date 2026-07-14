@@ -1,5 +1,5 @@
 <?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */
-/** @var bool $avecEvenements */ /** @var string $recherche */
+/** @var bool $avecEvenements */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <div class="page-head-band">
 <div class="page-head">
@@ -84,6 +84,16 @@
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/_pagination.php'; ?>
+<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
-<script>lassoRechercheServeur(document.getElementById('facturation-search'));</script>
+<script>
+<?php if ($modeClient): ?>
+lassoListeClient({
+    tableSelector: '.list-wide',
+    searchInputSelector: '#facturation-search',
+    separatorSelector: '.mois-sep',
+});
+<?php else: ?>
+lassoRechercheServeur(document.getElementById('facturation-search'));
+<?php endif; ?>
+</script>

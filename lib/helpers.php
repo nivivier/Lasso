@@ -221,6 +221,23 @@ function filtre_persistant(string $cleGet, string $cleSession, $defaut)
 const PAGINATION_TAILLES = [25, 50, 100, 200];
 const PAGINATION_TAILLE_DEFAUT = 100;
 
+// Seuil (nombre total d'éléments, filtres structurés déjà appliqués mais
+// recherche texte exclue) en dessous duquel une liste passe en mode "client" :
+// toutes les lignes sont chargées d'un coup et la pagination + la recherche se
+// font entièrement en JS (lassoListeClient(), assets/app.js + _pagination_client.php),
+// sans aller-retour serveur — pour du texte pur, un aller-retour par frappe est
+// inutile en dessous de ce volume. Au-delà, voir lassoRechercheServeur() +
+// _pagination.php (aller-retour serveur, pagination + LIMIT SQL).
+const PAGINATION_SEUIL_CLIENT = 100;
+
+// true si le total (filtres structurés, hors recherche texte) tient sous le
+// seuil client — décide, pour chaque route de liste, si elle doit charger
+// toutes les lignes (mode client) ou paginer/rechercher côté serveur.
+function pagination_mode_client(int $totalSansRecherche): bool
+{
+    return $totalSansRecherche <= PAGINATION_SEUIL_CLIENT;
+}
+
 // Nombre de lignes par page : GET prioritaire (et mémorisé en session, comme
 // filtre_persistant()) sinon 100 par défaut. Bornée à PAGINATION_TAILLES pour
 // qu'une valeur arbitraire dans l'URL ne force pas une requête énorme.

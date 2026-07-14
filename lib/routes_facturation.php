@@ -89,24 +89,41 @@ function route_facturation_liste(): void
         $params[] = $statut;
     }
     $recherche = trim((string) ($_GET['q'] ?? ''));
-    [$rechSql, $rechParams] = recherche_sql(['f.numero', 'd.nom', 'CAST(f.montant_total AS TEXT)']);
-    $where .= $rechSql;
-    $params = array_merge($params, $rechParams);
 
-    $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
-    $stmtTot->execute($params);
-    $pgTotal = (int) $stmtTot->fetchColumn();
+    // Total avec les seuls filtres structurés (hors recherche texte) : décide du
+    // mode client vs serveur, voir pagination_mode_client() dans lib/helpers.php.
+    $stmtTotStruct = db()->prepare('SELECT COUNT(*)' . $from . $where);
+    $stmtTotStruct->execute($params);
+    $totalSansRecherche = (int) $stmtTotStruct->fetchColumn();
+    $modeClient = pagination_mode_client($totalSansRecherche);
 
-    $pgPage   = pagination_page();
     $pgTaille = pagination_taille('facturation_taille');
-    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+    $selectCols = 'f.*, d.nom AS debiteur_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '');
+    $orderBy = ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC';
 
-    $sql = 'SELECT f.*, d.nom AS debiteur_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '')
-         . $from . $where
-         . ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC' . $limitSql;
-    $stmt = db()->prepare($sql);
-    $stmt->execute(array_merge($params, $limitParams));
-    $factures = $stmt->fetchAll();
+    if ($modeClient) {
+        $stmt = db()->prepare('SELECT ' . $selectCols . $from . $where . $orderBy);
+        $stmt->execute($params);
+        $factures = $stmt->fetchAll();
+        $pgPage  = 1;
+        $pgTotal = $totalSansRecherche;
+    } else {
+        [$rechSql, $rechParams] = recherche_sql(['f.numero', 'd.nom', 'CAST(f.montant_total AS TEXT)']);
+        $where .= $rechSql;
+        $params = array_merge($params, $rechParams);
+
+        $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
+        $stmtTot->execute($params);
+        $pgTotal = (int) $stmtTot->fetchColumn();
+
+        $pgPage = pagination_page();
+        [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+        $sql = 'SELECT ' . $selectCols . $from . $where . $orderBy . $limitSql;
+        $stmt = db()->prepare($sql);
+        $stmt->execute(array_merge($params, $limitParams));
+        $factures = $stmt->fetchAll();
+    }
 
     render('facturation_liste', [
         'factures'       => $factures,
@@ -115,6 +132,7 @@ function route_facturation_liste(): void
         'annees'         => $annees ?: [(int) date('Y')],
         'avecEvenements' => $avecEvenements,
         'recherche'      => $recherche,
+        'modeClient'     => $modeClient,
         'pgRoute'        => 'facturation_liste',
         'pgParams'       => ['statut' => $statut, 'annee' => $annee, 'q' => $recherche],
         'pgPage'         => $pgPage,
@@ -459,24 +477,36 @@ function route_facturation_debiteurs(): void
 {
     require_login();
     $recherche = trim((string) ($_GET['q'] ?? ''));
-    [$rechSql, $rechParams] = recherche_sql(['d.nom', 'd.adresse_rue', 'd.adresse_npa', 'd.adresse_localite', 'd.email']);
-
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM debiteurs d WHERE 1=1' . $rechSql);
-    $stmtTot->execute($rechParams);
-    $pgTotal = (int) $stmtTot->fetchColumn();
-
-    $pgPage   = pagination_page();
     $pgTaille = pagination_taille('debiteurs_taille');
-    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
-    $stmt = db()->prepare('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
-                            FROM debiteurs d WHERE 1=1' . $rechSql . ' ORDER BY d.actif DESC, d.nom' . $limitSql);
-    $stmt->execute(array_merge($rechParams, $limitParams));
-    $debiteurs = $stmt->fetchAll();
+    $totalSansRecherche = (int) db()->query('SELECT COUNT(*) FROM debiteurs')->fetchColumn();
+    $modeClient = pagination_mode_client($totalSansRecherche);
+
+    if ($modeClient) {
+        $debiteurs = db()->query('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
+                                   FROM debiteurs d ORDER BY d.actif DESC, d.nom')->fetchAll();
+        $pgPage  = 1;
+        $pgTotal = $totalSansRecherche;
+    } else {
+        [$rechSql, $rechParams] = recherche_sql(['d.nom', 'd.adresse_rue', 'd.adresse_npa', 'd.adresse_localite', 'd.email']);
+
+        $stmtTot = db()->prepare('SELECT COUNT(*) FROM debiteurs d WHERE 1=1' . $rechSql);
+        $stmtTot->execute($rechParams);
+        $pgTotal = (int) $stmtTot->fetchColumn();
+
+        $pgPage = pagination_page();
+        [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+        $stmt = db()->prepare('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
+                                FROM debiteurs d WHERE 1=1' . $rechSql . ' ORDER BY d.actif DESC, d.nom' . $limitSql);
+        $stmt->execute(array_merge($rechParams, $limitParams));
+        $debiteurs = $stmt->fetchAll();
+    }
 
     render('facturation_debiteurs', [
         'debiteurs' => $debiteurs,
         'recherche' => $recherche,
+        'modeClient' => $modeClient,
         'pgRoute'   => 'facturation_debiteurs',
         'pgParams'  => $recherche !== '' ? ['q' => $recherche] : [],
         'pgPage'    => $pgPage,

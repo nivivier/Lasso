@@ -211,23 +211,42 @@ function route_evenements_liste(): void
     }
 
     $spectacleMap = spectacle_map();
-    [$where, $params] = evenements_where_filtres($f, $spectacleMap);
     $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
+    $selectCols = "e.*, s.nom AS spectacle_nom,
+                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries";
+    $orderBy = ' ORDER BY e.date DESC, e.id DESC';
 
-    $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
-    $stmtTot->execute($params);
-    $pgTotal = (int) $stmtTot->fetchColumn();
+    // Total avec les seuls filtres structurés (hors recherche texte) : décide du
+    // mode client vs serveur, voir pagination_mode_client() dans lib/helpers.php.
+    [$whereStruct, $paramsStruct] = evenements_where_filtres($f, $spectacleMap, false);
+    $stmtTotStruct = db()->prepare('SELECT COUNT(*)' . $from . $whereStruct);
+    $stmtTotStruct->execute($paramsStruct);
+    $totalSansRecherche = (int) $stmtTotStruct->fetchColumn();
+    $modeClient = pagination_mode_client($totalSansRecherche);
 
-    $pgPage   = pagination_page();
     $pgTaille = pagination_taille('evenements_taille');
-    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
-    $sql = "SELECT e.*, s.nom AS spectacle_nom,
-                   (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries"
-            . $from . $where . ' ORDER BY e.date DESC, e.id DESC' . $limitSql;
-    $stmt = db()->prepare($sql);
-    $stmt->execute(array_merge($params, $limitParams));
-    $evenements = $stmt->fetchAll();
+    if ($modeClient) {
+        $stmt = db()->prepare('SELECT ' . $selectCols . $from . $whereStruct . $orderBy);
+        $stmt->execute($paramsStruct);
+        $evenements = $stmt->fetchAll();
+        $pgPage  = 1;
+        $pgTotal = $totalSansRecherche;
+    } else {
+        [$where, $params] = evenements_where_filtres($f, $spectacleMap);
+
+        $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
+        $stmtTot->execute($params);
+        $pgTotal = (int) $stmtTot->fetchColumn();
+
+        $pgPage = pagination_page();
+        [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+
+        $sql = 'SELECT ' . $selectCols . $from . $where . $orderBy . $limitSql;
+        $stmt = db()->prepare($sql);
+        $stmt->execute(array_merge($params, $limitParams));
+        $evenements = $stmt->fetchAll();
+    }
 
     // $spectacles : feuilles assignables uniquement (select « Modifier spectacle »
     // de la barre de modification groupée — un groupe n'y est jamais valide, voir
@@ -250,6 +269,7 @@ function route_evenements_liste(): void
         'pays'            => $pays,
         'salaries'        => $salaries,
         'recherche'       => $recherche,
+        'modeClient'      => $modeClient,
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
         'pgRoute'         => 'evenements_liste',

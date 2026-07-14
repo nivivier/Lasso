@@ -1,4 +1,4 @@
-<?php /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */
+<?php /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <div class="page-head">
     <h1>Employés</h1>
@@ -54,6 +54,15 @@
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/_pagination.php'; ?>
+<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
-<script>lassoRechercheServeur(document.getElementById('employes-search'));</script>
+<script>
+<?php if ($modeClient): ?>
+lassoListeClient({
+    tableSelector: '.list-wide',
+    searchInputSelector: '#employes-search',
+});
+<?php else: ?>
+lassoRechercheServeur(document.getElementById('employes-search'));
+<?php endif; ?>
+</script>

@@ -47,6 +47,91 @@ function lassoNorm(s) {
     return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+// Liste "petite" (≤ PAGINATION_SEUIL_CLIENT côté serveur, voir lib/helpers.php) :
+// pagination + recherche 100% en JS, sans aller-retour serveur — toutes les
+// lignes sont déjà dans le DOM. Au-delà du seuil, voir lassoRechercheServeur()
+// (recherche) + views/_pagination.php (pagination, LIMIT SQL côté serveur) ;
+// en dessous, views/_pagination_client.php fournit le rendu ci-dessous.
+// config : { tableSelector, searchInputSelector, searchCountSelector,
+// separatorSelector } — tous optionnels sauf tableSelector.
+function lassoListeClient(config) {
+    const table = document.querySelector(config.tableSelector);
+    const pag = document.querySelector('[data-pg-client]');
+    if (!table) return;
+    const allRows = Array.from(table.querySelectorAll('tbody tr'));
+    const rows = config.separatorSelector
+        ? allRows.filter(r => !r.matches(config.separatorSelector))
+        : allRows;
+    const search = config.searchInputSelector ? document.querySelector(config.searchInputSelector) : null;
+    const searchCount = config.searchCountSelector ? document.querySelector(config.searchCountSelector) : null;
+
+    let page = 1;
+    let taille = (pag && parseInt(pag.dataset.pgTailleDefaut, 10)) || 100;
+    let matched = rows;
+
+    function syncSeparators() {
+        if (!config.separatorSelector) return;
+        let sep = null, sepVisible = false;
+        allRows.forEach(r => {
+            if (r.matches(config.separatorSelector)) {
+                if (sep) sep.style.display = sepVisible ? '' : 'none';
+                sep = r; sepVisible = false;
+            } else if (r.style.display !== 'none') {
+                sepVisible = true;
+            }
+        });
+        if (sep) sep.style.display = sepVisible ? '' : 'none';
+    }
+
+    function render() {
+        const total = matched.length;
+        const nbPages = Math.max(1, Math.ceil(total / taille));
+        page = Math.min(Math.max(page, 1), nbPages);
+        const debut = (page - 1) * taille;
+        const fin = Math.min(debut + taille, total);
+        rows.forEach(r => { r.style.display = 'none'; });
+        matched.slice(debut, fin).forEach(r => { r.style.display = ''; });
+        syncSeparators();
+
+        if (!pag) return;
+        const info = pag.querySelector('[data-pg-info]');
+        const pageSpan = pag.querySelector('[data-pg-page]');
+        const nav = pag.querySelector('[data-pg-nav]');
+        if (total > taille) {
+            info.textContent = (total === 0 ? 0 : debut + 1) + '–' + fin + ' sur ' + total;
+            pageSpan.textContent = 'Page ' + page + ' / ' + nbPages;
+            nav.hidden = false;
+            nav.querySelector('[data-pg-prev]').disabled = page <= 1;
+            nav.querySelector('[data-pg-next]').disabled = page >= nbPages;
+        } else {
+            info.textContent = total + (total > 1 ? ' résultats' : ' résultat');
+            nav.hidden = true;
+        }
+    }
+
+    function filtrer() {
+        const q = search ? lassoNorm(search.value.trim()) : '';
+        matched = q === '' ? rows : rows.filter(r => lassoNorm(r.textContent).includes(q));
+        page = 1;
+        if (searchCount) {
+            searchCount.textContent = q === '' ? '' : matched.length + ' / ' + rows.length + ' affiché(e)s';
+        }
+        render();
+    }
+
+    if (search) search.addEventListener('input', filtrer);
+    if (pag) {
+        pag.querySelector('[data-pg-taille]').addEventListener('change', e => {
+            taille = parseInt(e.target.value, 10);
+            page = 1;
+            render();
+        });
+        pag.querySelector('[data-pg-prev]').addEventListener('click', () => { page--; render(); });
+        pag.querySelector('[data-pg-next]').addEventListener('click', () => { page++; render(); });
+    }
+    filtrer(); // applique tout de suite une valeur de recherche déjà présente (lien profond ?q=...)
+}
+
 // Dropdown « catégorie/axe cherchable » (texte + valeur cachée + liste
 // filtrée au clavier). Couvre les variantes utilisées dans compta_ecritures.php
 // (formulaire manuel, barre de modification groupée), compta_regles.php et

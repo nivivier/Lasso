@@ -215,20 +215,34 @@ function route_employes(): void
 {
     require_login();
     $recherche = trim((string) ($_GET['q'] ?? ''));
-    [$rechSql, $rechParams] = recherche_sql(['nom', 'prenom', 'rue', 'npa_localite', 'email']);
-
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes WHERE 1=1' . $rechSql);
-    $stmtTot->execute($rechParams);
-    $pgTotal = (int) $stmtTot->fetchColumn();
-
-    $pgPage   = pagination_page();
     $pgTaille = pagination_taille('employes_taille');
-    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-    $stmt = db()->prepare('SELECT * FROM employes WHERE 1=1' . $rechSql . ' ORDER BY actif DESC, nom, prenom' . $limitSql);
-    $stmt->execute(array_merge($rechParams, $limitParams));
-    $employes = $stmt->fetchAll();
 
-    // Dernière fiche de salaire par employé (seulement pour les employés de la page affichée).
+    // Aucun filtre structuré sur cette page (juste la recherche texte) : le
+    // total "sans recherche" est simplement le total de la table.
+    $totalSansRecherche = (int) db()->query('SELECT COUNT(*) FROM employes')->fetchColumn();
+    $modeClient = pagination_mode_client($totalSansRecherche);
+
+    if ($modeClient) {
+        // Mode client (voir pagination_mode_client()) : toutes les lignes,
+        // recherche/pagination 100% en JS (lassoListeClient()) — pas de
+        // requête LIKE ni de LIMIT ici.
+        $employes = db()->query('SELECT * FROM employes ORDER BY actif DESC, nom, prenom')->fetchAll();
+        $pgPage  = 1;
+        $pgTotal = $totalSansRecherche;
+    } else {
+        [$rechSql, $rechParams] = recherche_sql(['nom', 'prenom', 'rue', 'npa_localite', 'email']);
+        $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes WHERE 1=1' . $rechSql);
+        $stmtTot->execute($rechParams);
+        $pgTotal = (int) $stmtTot->fetchColumn();
+
+        $pgPage = pagination_page();
+        [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+        $stmt = db()->prepare('SELECT * FROM employes WHERE 1=1' . $rechSql . ' ORDER BY actif DESC, nom, prenom' . $limitSql);
+        $stmt->execute(array_merge($rechParams, $limitParams));
+        $employes = $stmt->fetchAll();
+    }
+
+    // Dernière fiche de salaire par employé (seulement pour les employés affichés).
     $derniere = [];
     if ($employes) {
         $empIds = array_column($employes, 'id');
@@ -246,6 +260,7 @@ function route_employes(): void
         }
     }
     render('employes', ['employes' => $employes, 'derniere' => $derniere, 'recherche' => $recherche,
+        'modeClient' => $modeClient,
         'pgRoute' => 'employes', 'pgParams' => $recherche !== '' ? ['q' => $recherche] : [],
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
 }

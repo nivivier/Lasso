@@ -1,4 +1,4 @@
-<?php /** @var array $debiteurs */ /** @var string $recherche */
+<?php /** @var array $debiteurs */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à ce débiteur.</p><?php endif; ?>
 <div class="page-head">
@@ -58,6 +58,15 @@
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/_pagination.php'; ?>
+<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
-<script>lassoRechercheServeur(document.getElementById('debiteurs-search'));</script>
+<script>
+<?php if ($modeClient): ?>
+lassoListeClient({
+    tableSelector: '.list-wide',
+    searchInputSelector: '#debiteurs-search',
+});
+<?php else: ?>
+lassoRechercheServeur(document.getElementById('debiteurs-search'));
+<?php endif; ?>
+</script>
