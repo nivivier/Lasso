@@ -7,6 +7,47 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.3.1] — 2026-07-14
+
+### Ajouté
+- Événements — nouveaux statuts SUISA « À venir » (date pas encore passée)
+  et « Abandonné ».
+- Événements — carte « Organisateur » : lien vers un débiteur existant ou
+  création rapide depuis la fiche événement.
+- Débiteurs — champs téléphone et personne de contact.
+- Événements — icônes de visibilité (earth / earth-lock / globe-off) dans
+  la liste, à la place des badges texte.
+- Événements — case « Production externe » (détache les prestations liées
+  sur les fiches de salaire), icône dédiée dans la liste, et action groupée
+  pour l'activer/désactiver sur plusieurs événements à la fois.
+- Événements — bouton d'export SUISA (CSV), respectant les filtres actifs.
+- Pagination et recherche 100% en JavaScript (sans aller-retour serveur)
+  pour les listes de moins de 100 éléments (Employés, Débiteurs, Écritures,
+  Factures, Événements) — au-delà, le comportement serveur existant est
+  inchangé.
+- Couleur de mise en évidence paramétrable (Paramètres > Employeur, bleu
+  par défaut), indépendante de la couleur principale — remplace celle-ci
+  sur les boutons principaux, les sommes de salaire brut, les liens et les
+  tags.
+
+### Corrigé
+- Recherche instantanée : passée côté serveur pour porter sur toute la
+  liste, pas seulement la page déjà chargée.
+- Texte invisible des éléments nichés dans un `<h1>` (badge inactif, code
+  d'axe).
+- Flèches de pagination invisibles (icônes chevron-left/right manquantes).
+- Tags SUISA « à faire » (jaune) et « manquant » (orange), pour mieux les
+  distinguer visuellement des autres statuts.
+- Filtres : le champ de recherche (sans label visible) n'était pas aligné
+  avec les `<select>` voisins (qui ont un label) ; hauteurs harmonisées.
+  Le déclencheur « Plus de filtres » a maintenant l'apparence d'un bouton.
+
+### Modifié
+- Labels de formulaire : taille et interligne distincts entre `.form`
+  (plus lisible) et `.filters` (compact), auparavant partagés.
+- Recherche : placeholder générique « Rechercher... », sans compteur, sur
+  toutes les listes.
+
 ## [1.3.0] — 2026-07-13
 
 ### Ajouté
