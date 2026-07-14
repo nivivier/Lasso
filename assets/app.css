@@ -249,7 +249,10 @@ h3.sub.no-mt { margin-top: 0; }
 .card.auth { width: 100%; padding: 30px; }
 .card.auth h1 { margin: 0 0 18px; font-size: 22px; }
 
-.form label, .filters label { display: flex; flex-direction: column; gap: 6px; font-size: 10px; font-weight: 500; color: var(--muted); margin-bottom: 6px; line-height:0.8;}
+.form label, .filters label { display: flex; flex-direction: column; gap: 6px; font-weight: 500; color: var(--muted); }
+.form label { margin-bottom: 16px; font-size: 13.5px; }
+.filters label { margin-bottom: 6px; line-height:0.8; font-size: 10px; }
+
 /* Style par défaut de tous les champs de saisie du site (pas besoin de le
    répéter par écran/scope). :not(checkbox/radio) — sinon les cases à cocher
    héritent du style « champ texte » (bordure, fond, largeur 100%) et de
@@ -613,7 +616,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .pagination-nav { display: flex; align-items: center; gap: 8px; }
 .pagination-nav [aria-disabled="true"], .pagination-nav button:disabled { opacity: .4; cursor: default; }
 .pagination[data-pg-client] [data-pg-nav][hidden] { display: none; }
-.filters:has(.filters-more[open]) { margin-bottom: 78px; }
+.filters:has(.filters-more[open]) { margin-bottom: 65px; }
 
 /* =================== Tables =================== */
 /* border-collapse:separate + border-spacing:0 permet à overflow:hidden + border-radius de fonctionner sur <table>. */
