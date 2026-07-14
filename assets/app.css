@@ -553,6 +553,10 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
    colonnes flex (donc les champs eux-mêmes) coïncide alors. */
 .filters { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .filters label { margin-bottom: 0; }
+/* Même boîte (padding/font-size) que .search-label input[type=search] ci-dessous,
+   pour une hauteur identique — sinon les <select> (padding 10px, 14px de
+   base) dépassent le champ de recherche. */
+.filters select { padding: 8px 10px; font-size: 13.5px; }
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
    quel dans un .section-head (ex. compta_analyse_axe.php). */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--muted); flex: 1 1 200px; }
@@ -572,9 +576,9 @@ button:disabled:hover, .btn:disabled:hover { background: var(--primary); border-
    dépendre de ces classes sur la balise (list-style/marker natifs à retirer
    en plus). */
 .filters-more summary {
-    cursor: pointer; display: inline-flex; align-items: center; color: var(--ink); font-size: 13px; font-weight: 500;
+    cursor: pointer; display: inline-flex; align-items: center; color: var(--ink); font-size: 13.5px; font-weight: 500;
     white-space: nowrap; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
-    padding: 4px 10px; transition: background .15s, border-color .15s;
+    padding: 6.5px 12px; transition: background .15s, border-color .15s;
 }
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
