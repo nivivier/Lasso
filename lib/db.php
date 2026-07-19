@@ -310,6 +310,7 @@ function run_migrations(PDO $pdo): void
         31 => 'migration_31', // evenements.organisateur_debiteur_id : lien vers le débiteur organisateur
         32 => 'migration_32', // debiteurs.telephone / personne_contact
         33 => 'migration_33', // evenements.production_externe
+        34 => 'migration_34', // utilisateur_permissions (droits par module, lecture/écriture)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1038,6 +1039,38 @@ function migration_33(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
     if (!in_array('production_externe', $cols, true)) {
         $pdo->exec('ALTER TABLE evenements ADD COLUMN production_externe INTEGER NOT NULL DEFAULT 0');
+    }
+}
+
+// Droits par module (lecture/écriture) par utilisateur — voir SPEC_PERMISSIONS.md
+// et lib/modules.php (peut_lire()/peut_ecrire()). Absence de ligne pour une paire
+// (utilisateur, module) = aucun accès. « coeur » est un module à part (jamais dans
+// MODULES, voir modules.php) qui recouvre paramètres/apparence/gestion des comptes ;
+// écriture sur coeur = administrateur.
+//
+// Backfill : liste de modules figée ici (pas de référence à la constante MODULES,
+// qui peut évoluer) — tous les comptes déjà créés à cette date gardent l'accès
+// complet dont ils disposaient avant l'introduction des permissions, aucune
+// régression au déploiement. Les comptes créés après coup démarrent sans aucun
+// droit (principe du moindre privilège), à attribuer explicitement par un admin.
+function migration_34(PDO $pdo): void
+{
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS utilisateur_permissions (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+            module         TEXT NOT NULL,
+            niveau         TEXT NOT NULL CHECK (niveau IN ('lecture','ecriture')),
+            UNIQUE (utilisateur_id, module)
+        )
+        SQL);
+    $modules = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements'];
+    $ids = $pdo->query('SELECT id FROM utilisateurs')->fetchAll(PDO::FETCH_COLUMN);
+    $stmt = $pdo->prepare('INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau) VALUES (?, ?, ?)');
+    foreach ($ids as $uid) {
+        foreach ($modules as $module) {
+            $stmt->execute([$uid, $module, 'ecriture']);
+        }
     }
 }
 

@@ -49,136 +49,160 @@ if (!has_users() && $route !== 'setup') {
     redirect('setup');
 }
 
-// Table de routage : route → handler. Cœur (toujours actif), puis modules
-// optionnels ajoutés seulement s'ils sont activés (lib/modules.php).
+// Table de routage : route → handler, + route → module(s) dont dépend le
+// droit d'accès (lecture pour un GET, écriture pour un POST — convention
+// stricte du projet : toute mutation passe par un POST protégé par
+// check_csrf(), cf. CLAUDE.md). Une route absente de $routeModules n'a pas
+// de contrôle de droits au-delà de require_login() (routes du cœur toujours
+// universelles : tableau de bord, mon compte).
 $handlers = [
-    'setup'        => 'route_setup',
-    'login'        => 'route_login',
-    'logout'       => 'route_logout',
-    'compte'       => 'route_compte',
-    'comptes'      => 'route_comptes',
-    'compte_reset'  => 'route_compte_reset',
-    'compte_delete' => 'route_compte_delete',
-    'parametres'         => 'route_parametres',
-    'parametres_modules' => 'route_parametres_modules',
-    'employeur'     => 'route_employeur',
-    'emails'        => 'route_emails',
-    'export'        => 'route_export',
-    'maj'           => 'route_maj',
-    'backup'        => 'route_backup',
-    'resumes'       => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours actif.
+    'setup'  => 'route_setup',
+    'login'  => 'route_login',
+    'logout' => 'route_logout',
+    'compte' => 'route_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
+    'resumes' => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours accessible.
 ];
+$routeModules = [];
 
-if (module_actif('salaires')) {
-    $handlers += [
-        'resume'       => 'route_resume',
-        'employes'     => 'route_employes',
-        'employe_voir' => 'route_employe_voir',
-        'employe'      => 'route_employe',
-        'employe_delete' => 'route_employe_delete',
-        'taux_horaires' => 'route_taux_horaires',
-        'unites'        => 'route_unites',
-        'taux'          => 'route_taux',
-        'import_fiches' => 'route_import_fiches',
-        'fiches'       => 'route_fiches',
-        'fiche_new'    => 'route_fiche_new',
-        'fiche'        => 'route_fiche',
-        'fiche_print'  => 'route_fiche_print',
-        'fiche_delete' => 'route_fiche_delete',
-        'fiche_edit'   => 'route_fiche_edit',
-        'fiche_date'   => 'route_fiche_date',
-        'fiche_cout'   => 'route_fiche_cout',
-        'fiche_email'  => 'route_fiche_email',
-        'certificat'       => 'route_certificat',
-        'certificat_print' => 'route_certificat_print',
-        'certificat_xml'   => 'route_certificat_xml',
-    ];
-}
+ajouter_routes_module($handlers, $routeModules, 'salaires', [
+    'resume'       => 'route_resume',
+    'employes'     => 'route_employes',
+    'employe_voir' => 'route_employe_voir',
+    'employe'      => 'route_employe',
+    'employe_delete' => 'route_employe_delete',
+    'taux_horaires' => 'route_taux_horaires',
+    'unites'        => 'route_unites',
+    'taux'          => 'route_taux',
+    'import_fiches' => 'route_import_fiches',
+    'fiches'       => 'route_fiches',
+    'fiche_new'    => 'route_fiche_new',
+    'fiche'        => 'route_fiche',
+    'fiche_print'  => 'route_fiche_print',
+    'fiche_delete' => 'route_fiche_delete',
+    'fiche_edit'   => 'route_fiche_edit',
+    'fiche_date'   => 'route_fiche_date',
+    'fiche_cout'   => 'route_fiche_cout',
+    'fiche_email'  => 'route_fiche_email',
+    'certificat'       => 'route_certificat',
+    'certificat_print' => 'route_certificat_print',
+    'certificat_xml'   => 'route_certificat_xml',
+]);
 
-if (module_actif('compta')) {
-    $handlers += [
-        'compta'           => 'route_compta',
-        'compta_plan'      => 'route_compta_plan',
-        'compta_import'    => 'route_compta_import',
-        'compta_ecritures' => 'route_compta_ecritures',
-        'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
-        'compta_regles'    => 'route_compta_regles',
-        'compta_bilan'          => 'route_compta_bilan',
-        'compta_bilan_print'    => 'route_compta_bilan_print',
-        'compta_ecritures_csv'     => 'route_compta_ecritures_csv',
-        'compta_ecritures_camt053' => 'route_compta_ecritures_camt053',
-        'import_ecritures'         => 'route_import_ecritures',
-    ];
-}
+ajouter_routes_module($handlers, $routeModules, 'compta', [
+    'compta'           => 'route_compta',
+    'compta_plan'      => 'route_compta_plan',
+    'compta_import'    => 'route_compta_import',
+    'compta_ecritures' => 'route_compta_ecritures',
+    'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
+    'compta_regles'    => 'route_compta_regles',
+    'compta_bilan'          => 'route_compta_bilan',
+    'compta_bilan_print'    => 'route_compta_bilan_print',
+    'compta_ecritures_csv'     => 'route_compta_ecritures_csv',
+    'compta_ecritures_camt053' => 'route_compta_ecritures_camt053',
+    'import_ecritures'         => 'route_import_ecritures',
+]);
 
 // Comptes bancaires : partagés entre Comptabilité (relevés, lettrage) et
 // Facturation (IBAN créancier de la QR-facture) — accessible dès que l'un des
-// deux modules est actif, pas seulement Comptabilité.
+// deux modules est actif, pas seulement Comptabilité ; le droit d'accès suit
+// la même logique « OU » (lecture/écriture sur l'un des deux suffit).
 if (module_actif('compta') || module_actif('facturation')) {
     $handlers['compta_comptes'] = 'route_compta_comptes';
+    $routeModules['compta_comptes'] = ['compta', 'facturation'];
 }
 
-if (module_actif('analytique')) {
+ajouter_routes_module($handlers, $routeModules, 'analytique', [
+    'compta_axes'           => 'route_compta_axes',
+    'compta_analyse'        => 'route_compta_analyse',
+    'compta_analyse_print'      => 'route_compta_analyse_print',
+    'compta_analyse_axe'        => 'route_compta_analyse_axe',
+    'compta_analyse_axe_print'  => 'route_compta_analyse_axe_print',
+    'compta_ventilation_save'         => 'route_compta_ventilation_save',
+    'compta_suggestion_ventilation'   => 'route_compta_suggestion_ventilation',
+    'compta_suggestion_preview'       => 'route_compta_suggestion_preview',
+]);
+if (module_actif('analytique') && module_actif('salaires')) {
+    $handlers['fiche_ligne_axe_save'] = 'route_fiche_ligne_axe_save';
+    $routeModules['fiche_ligne_axe_save'] = ['analytique'];
+}
+
+ajouter_routes_module($handlers, $routeModules, 'facturation', [
+    'facturation'           => 'route_facturation',
+    'facturation_liste'     => 'route_facturation_liste',
+    'facturation_form'      => 'route_facturation_form',
+    'facturation_debiteurs' => 'route_facturation_debiteurs',
+    'debiteur'              => 'route_debiteur',
+    'debiteur_delete'       => 'route_debiteur_delete',
+    'facture'               => 'route_facture',
+    'facture_emettre'       => 'route_facture_emettre',
+    'facture_payee'         => 'route_facture_payee',
+    'facture_annuler'       => 'route_facture_annuler',
+    'facture_delete'        => 'route_facture_delete',
+    'facture_pdf'           => 'route_facture_pdf',
+    'facture_email'         => 'route_facture_email',
+    'facture_rappel'        => 'route_facture_rappel',
+    'import_factures'       => 'route_import_factures',
+]);
+
+ajouter_routes_module($handlers, $routeModules, 'evenements', [
+    'evenements'         => 'route_evenements',
+    'evenements_liste'   => 'route_evenements_liste',
+    'evenements_export_suisa' => 'route_evenements_export_suisa',
+    'evenement'          => 'route_evenement',
+    'evenement_delete'   => 'route_evenement_delete',
+    'evenement_suisa'    => 'route_evenement_suisa',
+    'evenement_axe_defaut' => 'route_evenement_axe_defaut',
+    'evenement_production_externe' => 'route_evenement_production_externe',
+    'evenement_employe_lier'   => 'route_evenement_employe_lier',
+    'evenement_employe_delier' => 'route_evenement_employe_delier',
+    'evenement_ligne_ajouter'     => 'route_evenement_ligne_ajouter',
+    'evenement_organisateur_lier'   => 'route_evenement_organisateur_lier',
+    'evenement_organisateur_delier' => 'route_evenement_organisateur_delier',
+    'evenement_facture_lier'   => 'route_evenement_facture_lier',
+    'evenement_facture_delier' => 'route_evenement_facture_delier',
+    'facture_evenement_lier'   => 'route_facture_evenement_lier',
+    'spectacles'         => 'route_spectacles',
+    'spectacle'          => 'route_spectacle',
+    'spectacle_delete'   => 'route_spectacle_delete',
+    'parametres_evenements' => 'route_parametres_evenements',
+    'import_evenements'  => 'route_import_evenements',
+]);
+// Export public (site web / agenda externe) : protégé par un jeton dédié
+// (evenements_verifier_token()), pas par une session utilisateur — reste
+// accessible même à un visiteur non connecté, donc jamais soumis à
+// peut_lire()/peut_ecrire() comme le reste du module.
+if (module_actif('evenements')) {
+    $handlers['evenements_json'] = 'route_evenements_json';
+    $handlers['evenements_ical'] = 'route_evenements_ical';
+}
+
+// Cœur : lecture pour consulter les pages de contenu (informations
+// employeur, e-mails, exports), écriture réservée à l'administration au
+// sens strict (comptes, permissions, modules actifs, mises à jour,
+// sauvegarde complète de la base) — voir SPEC_PERMISSIONS.md §7.
+if (peut_lire('coeur')) {
     $handlers += [
-        'compta_axes'           => 'route_compta_axes',
-        'compta_analyse'        => 'route_compta_analyse',
-        'compta_analyse_print'      => 'route_compta_analyse_print',
-        'compta_analyse_axe'        => 'route_compta_analyse_axe',
-        'compta_analyse_axe_print'  => 'route_compta_analyse_axe_print',
-        'compta_ventilation_save'         => 'route_compta_ventilation_save',
-        'compta_suggestion_ventilation'   => 'route_compta_suggestion_ventilation',
-        'compta_suggestion_preview'       => 'route_compta_suggestion_preview',
+        'parametres' => 'route_parametres',
+        'employeur'  => 'route_employeur',
+        'emails'     => 'route_emails',
+        'export'     => 'route_export',
     ];
-    if (module_actif('salaires')) {
-        $handlers['fiche_ligne_axe_save'] = 'route_fiche_ligne_axe_save';
+    foreach (['parametres', 'employeur', 'emails', 'export'] as $r) {
+        $routeModules[$r] = ['coeur'];
     }
 }
-
-if (module_actif('facturation')) {
+if (peut_ecrire('coeur')) {
+    // Pas d'entrée dans $routeModules : ces routes n'ont pas de mode lecture
+    // seule, elles sont entièrement réservées à l'écriture cœur (déjà
+    // conditionnées par leur présence même dans $handlers, ci-dessus).
     $handlers += [
-        'facturation'           => 'route_facturation',
-        'facturation_liste'     => 'route_facturation_liste',
-        'facturation_form'      => 'route_facturation_form',
-        'facturation_debiteurs' => 'route_facturation_debiteurs',
-        'debiteur'              => 'route_debiteur',
-        'debiteur_delete'       => 'route_debiteur_delete',
-        'facture'               => 'route_facture',
-        'facture_emettre'       => 'route_facture_emettre',
-        'facture_payee'         => 'route_facture_payee',
-        'facture_annuler'       => 'route_facture_annuler',
-        'facture_delete'        => 'route_facture_delete',
-        'facture_pdf'           => 'route_facture_pdf',
-        'facture_email'         => 'route_facture_email',
-        'facture_rappel'        => 'route_facture_rappel',
-        'import_factures'       => 'route_import_factures',
-    ];
-}
-
-if (module_actif('evenements')) {
-    $handlers += [
-        'evenements'         => 'route_evenements',
-        'evenements_liste'   => 'route_evenements_liste',
-        'evenements_export_suisa' => 'route_evenements_export_suisa',
-        'evenement'          => 'route_evenement',
-        'evenement_delete'   => 'route_evenement_delete',
-        'evenement_suisa'    => 'route_evenement_suisa',
-        'evenement_axe_defaut' => 'route_evenement_axe_defaut',
-        'evenement_production_externe' => 'route_evenement_production_externe',
-        'evenement_employe_lier'   => 'route_evenement_employe_lier',
-        'evenement_employe_delier' => 'route_evenement_employe_delier',
-        'evenement_ligne_ajouter'     => 'route_evenement_ligne_ajouter',
-        'evenement_organisateur_lier'   => 'route_evenement_organisateur_lier',
-        'evenement_organisateur_delier' => 'route_evenement_organisateur_delier',
-        'evenement_facture_lier'   => 'route_evenement_facture_lier',
-        'evenement_facture_delier' => 'route_evenement_facture_delier',
-        'facture_evenement_lier'   => 'route_facture_evenement_lier',
-        'spectacles'         => 'route_spectacles',
-        'spectacle'          => 'route_spectacle',
-        'spectacle_delete'   => 'route_spectacle_delete',
-        'parametres_evenements' => 'route_parametres_evenements',
-        'evenements_json'    => 'route_evenements_json',
-        'evenements_ical'    => 'route_evenements_ical',
-        'import_evenements'  => 'route_import_evenements',
+        'comptes'             => 'route_comptes',
+        'compte_reset'        => 'route_compte_reset',
+        'compte_delete'       => 'route_compte_delete',
+        'compte_permissions'  => 'route_compte_permissions',
+        'parametres_modules'  => 'route_parametres_modules',
+        'maj'                 => 'route_maj',
+        'backup'              => 'route_backup',
     ];
 }
 
@@ -187,6 +211,10 @@ if ($route === null) {
 }
 
 if (isset($handlers[$route])) {
+    if (isset($routeModules[$route]) && !route_autorisee($routeModules[$route])) {
+        require_login();
+        redirect(route_defaut(), ['refuse' => 1]);
+    }
     $handlers[$route]();
 } else {
     require_login();

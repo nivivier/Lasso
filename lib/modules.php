@@ -88,3 +88,186 @@ function route_defaut(): string
 {
     return 'resumes';
 }
+
+// --------------------------------------------------------------------------
+// Droits par module (lecture/écriture) — voir SPEC_PERMISSIONS.md.
+//
+// « coeur » n'est pas dans MODULES (jamais désactivable globalement, cf.
+// MODULE_COEUR ci-dessus) mais c'est un module comme un autre du point de
+// vue des droits : écriture sur coeur = administrateur (gestion des
+// comptes/permissions, modules actifs, mises à jour, sauvegarde — voir
+// index.php). Une table de permissions vide pour un utilisateur = aucun
+// accès nulle part ; c'est le premier compte créé (route_setup) qui reçoit
+// tout par défaut, pas les comptes suivants.
+const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements'];
+
+// --- Fonctions pures (testées sans base de données, tests/permissions_test.php) ---
+
+// Présence d'une ligne (quel que soit son niveau) = accès en lecture — une
+// ligne « ecriture » donne donc aussi la lecture, pas besoin d'une deuxième ligne.
+function permission_donne_lecture(array $niveaux, string $module): bool
+{
+    return isset($niveaux[$module]);
+}
+
+function permission_donne_ecriture(array $niveaux, string $module): bool
+{
+    return ($niveaux[$module] ?? null) === 'ecriture';
+}
+
+// Un module dépendant (ex. analytique) ne peut jamais dépasser le niveau de
+// sa dépendance (ex. compta) — même principe que la résolution en cascade de
+// set_modules_actifs() pour l'activation globale. $niveaux : module =>
+// 'lecture'|'ecriture' (absence de clé = aucun droit sur ce module).
+function clamp_permissions_dependantes(array $niveaux): array
+{
+    $rang = ['lecture' => 1, 'ecriture' => 2];
+    foreach (MODULES as $id => $def) {
+        foreach ($def['requires'] as $req) {
+            $niveauModule = $niveaux[$id] ?? null;
+            if ($niveauModule === null) {
+                continue;
+            }
+            $niveauReq = $niveaux[$req] ?? null;
+            if ($niveauReq === null) {
+                unset($niveaux[$id]);
+            } elseif ($rang[$niveauModule] > $rang[$niveauReq]) {
+                $niveaux[$id] = $niveauReq;
+            }
+        }
+    }
+    return $niveaux;
+}
+
+// --- Base de données --------------------------------------------------------
+
+function permissions_utilisateur(int $utilisateurId): array
+{
+    $stmt = db()->prepare('SELECT module, niveau FROM utilisateur_permissions WHERE utilisateur_id = ?');
+    $stmt->execute([$utilisateurId]);
+    $out = [];
+    foreach ($stmt as $r) {
+        $out[$r['module']] = $r['niveau'];
+    }
+    return $out;
+}
+
+// Droits de l'utilisateur courant. Mémoïsé (même esprit que current_user()) :
+// appelé plusieurs fois par requête (dispatch, sidebar, vues).
+function permissions_utilisateur_courant(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $u = current_user();
+    return $cache = $u ? permissions_utilisateur((int) $u['id']) : [];
+}
+
+function peut_lire(string $module): bool
+{
+    return permission_donne_lecture(permissions_utilisateur_courant(), $module);
+}
+
+function peut_ecrire(string $module): bool
+{
+    return permission_donne_ecriture(permissions_utilisateur_courant(), $module);
+}
+
+// Administrateur = écriture sur le module coeur (voir commentaire PERMISSION_MODULES).
+function est_admin(): bool
+{
+    return peut_ecrire('coeur');
+}
+
+function require_lecture(string $module): void
+{
+    require_login();
+    if (!peut_lire($module)) {
+        redirect(route_defaut(), ['refuse' => 1]);
+    }
+}
+
+function require_ecriture(string $module): void
+{
+    require_login();
+    if (!peut_ecrire($module)) {
+        redirect(route_defaut(), ['refuse' => 1]);
+    }
+}
+
+// Nombre de comptes ayant l'écriture sur coeur (administrateurs) — garde-fou :
+// il doit toujours en rester au moins un (voir enregistrer_permissions_utilisateur()
+// et route_compte_delete()).
+function nb_admins(): int
+{
+    return (int) db()
+        ->query("SELECT COUNT(DISTINCT utilisateur_id) FROM utilisateur_permissions WHERE module = 'coeur' AND niveau = 'ecriture'")
+        ->fetchColumn();
+}
+
+// Enregistre la matrice de droits d'un utilisateur (POST de l'écran Comptes).
+// $niveauxBruts : module => valeur brute d'un <select> HTML ('', 'lecture'
+// ou 'ecriture' ; '' = aucun droit). Refuse silencieusement (retourne false)
+// si l'opération viderait le dernier compte administrateur.
+function enregistrer_permissions_utilisateur(int $utilisateurId, array $niveauxBruts): bool
+{
+    $niveaux = [];
+    foreach (PERMISSION_MODULES as $module) {
+        $v = (string) ($niveauxBruts[$module] ?? '');
+        if (in_array($v, ['lecture', 'ecriture'], true)) {
+            $niveaux[$module] = $v;
+        }
+    }
+    $niveaux = clamp_permissions_dependantes($niveaux);
+
+    $etaitAdmin = permission_donne_ecriture(permissions_utilisateur($utilisateurId), 'coeur');
+    $resteAdmin = permission_donne_ecriture($niveaux, 'coeur');
+    if ($etaitAdmin && !$resteAdmin && nb_admins() <= 1) {
+        return false;
+    }
+
+    db()->beginTransaction();
+    db()->prepare('DELETE FROM utilisateur_permissions WHERE utilisateur_id = ?')->execute([$utilisateurId]);
+    $stmt = db()->prepare('INSERT INTO utilisateur_permissions (utilisateur_id, module, niveau) VALUES (?, ?, ?)');
+    foreach ($niveaux as $module => $niveau) {
+        $stmt->execute([$utilisateurId, $module, $niveau]);
+    }
+    db()->commit();
+    return true;
+}
+
+// --- Support du dispatch (index.php) ---------------------------------------
+
+// Ajoute un bloc de routes propres à un module optionnel, seulement s'il est
+// actif — et mémorise pour chacune le module dont dépend le droit d'accès
+// (route_autorisee(), ci-dessous).
+function ajouter_routes_module(array &$handlers, array &$routeModules, string $module, array $routes): void
+{
+    if (!module_actif($module)) {
+        return;
+    }
+    $handlers += $routes;
+    foreach (array_keys($routes) as $r) {
+        $routeModules[$r] = [$module];
+    }
+}
+
+// Vrai si l'utilisateur courant a le droit d'accéder à la route associée à
+// ces module(s) — lecture pour un affichage (GET), écriture pour une
+// mutation (POST ; convention stricte du projet, voir index.php). Plusieurs
+// modules = accès si l'un d'eux suffit (ex. comptes bancaires, partagés
+// compta/facturation).
+function route_autorisee(array $modules): bool
+{
+    $lecture  = false;
+    $ecriture = false;
+    foreach ($modules as $m) {
+        $lecture  = $lecture || peut_lire($m);
+        $ecriture = $ecriture || peut_ecrire($m);
+    }
+    if (!$lecture) {
+        return false;
+    }
+    return $_SERVER['REQUEST_METHOD'] !== 'POST' || $ecriture;
+}

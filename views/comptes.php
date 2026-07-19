@@ -1,15 +1,17 @@
 <?php
-/** @var array $comptes */ /** @var ?string $err */ /** @var string $emailSaisi */
+/** @var array $comptes */ /** @var array $permissions */ /** @var ?string $err */ /** @var string $emailSaisi */
 /** @var ?string $ok */ /** @var ?string $flagErr */ /** @var int $moi */
 $flash = [
-    'created' => 'Compte créé.',
-    'reset'   => 'Mot de passe réinitialisé.',
-    'deleted' => 'Compte supprimé.',
+    'created'     => 'Compte créé.',
+    'reset'       => 'Mot de passe réinitialisé.',
+    'deleted'     => 'Compte supprimé.',
+    'permissions' => 'Droits mis à jour.',
 ];
 $flashErr = [
-    'short' => 'Le mot de passe doit faire au moins ' . PASSWORD_MIN . ' caractères.',
-    'self'  => 'Vous ne pouvez pas supprimer votre propre compte (utilisez « Mon compte »).',
-    'last'  => 'Impossible de supprimer le dernier compte.',
+    'short'      => 'Le mot de passe doit faire au moins ' . PASSWORD_MIN . ' caractères.',
+    'self'       => 'Vous ne pouvez pas supprimer votre propre compte (utilisez « Mon compte »).',
+    'last'       => 'Impossible de supprimer le dernier compte.',
+    'last_admin' => "Impossible : il doit toujours rester au moins un administrateur (écriture sur « Cœur »).",
 ];
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
@@ -17,18 +19,56 @@ $flashErr = [
 <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
+<?php foreach ($comptes as $c): ?>
+<form method="post" action="?p=compte_permissions" id="perm-form-<?= (int) $c['id'] ?>">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+    <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+</form>
+<?php endforeach; ?>
+
 <div class="card">
-    <h2 class="mt-0">Comptes existants <?= info_tip("Tous les comptes ont les mêmes droits d'accès à l'application.") ?></h2>
+    <h2 class="mt-0">Comptes existants <?= info_tip(
+        "Droits d'accès par module : lecture (consultation) ou écriture (modification complète). "
+        . 'Un compte avec écriture sur « Cœur » est administrateur (gestion des comptes et des '
+        . 'permissions comprise) — il doit toujours en rester au moins un.'
+    ) ?></h2>
     <div class="table-scroll">
-    <table class="list">
+    <table class="list perm-table">
         <thead>
-            <tr><th>E-mail</th><th>Créé le</th><th>Réinitialiser le mot de passe</th><th class="actions"></th></tr>
+            <tr>
+                <th>E-mail</th>
+                <?php foreach (PERMISSION_MODULES as $m): ?>
+                    <th><?= e($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) ?></th>
+                <?php endforeach; ?>
+                <th>Créé le</th>
+                <th>Réinitialiser le mot de passe</th>
+                <th class="actions"></th>
+            </tr>
         </thead>
         <tbody>
-        <?php foreach ($comptes as $c): $estMoi = (int) $c['id'] === $moi; ?>
+        <?php foreach ($comptes as $c):
+            $estMoi  = (int) $c['id'] === $moi;
+            $niveaux = $permissions[(int) $c['id']];
+            $formId  = 'perm-form-' . (int) $c['id'];
+        ?>
             <tr>
-                <td><?= e($c['email']) ?><?php if ($estMoi): ?> <span class="badge">vous</span><?php endif; ?></td>
-                <td><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
+                <td>
+                    <?= e($c['email']) ?>
+                    <?php if ($estMoi): ?> <span class="badge muted-badge">vous</span><?php endif; ?>
+                    <?php if (($niveaux['coeur'] ?? null) === 'ecriture'): ?> <span class="badge ok-badge">admin</span><?php endif; ?>
+                </td>
+                <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; ?>
+                <td>
+                    <select name="niveaux[<?= e($m) ?>]" form="<?= $formId ?>" class="perm-select"
+                            aria-label="<?= e(($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) . ' — ' . $c['email']) ?>"
+                            onchange="this.form.requestSubmit()">
+                        <option value="" <?= $val === '' ? 'selected' : '' ?>>—</option>
+                        <option value="lecture" <?= $val === 'lecture' ? 'selected' : '' ?>>Lecture</option>
+                        <option value="ecriture" <?= $val === 'ecriture' ? 'selected' : '' ?>>Écriture</option>
+                    </select>
+                </td>
+                <?php endforeach; ?>
+                <td class="muted small nowrap"><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
                 <td>
                     <form method="post" action="?p=compte_reset" class="reset-form"
                           onsubmit="return confirm('Réinitialiser le mot de passe de <?= e($c['email']) ?> ?');">
@@ -57,7 +97,9 @@ $flashErr = [
 </div>
 
 <div class="card form mt-22">
-    <h2 class="mt-0">Ajouter un compte</h2>
+    <h2 class="mt-0">Ajouter un compte <?= info_tip(
+        "Le nouveau compte n'a aucun droit par défaut — attribuez-lui des droits ci-dessus une fois créé."
+    ) ?></h2>
     <form method="post" action="?p=comptes" autocomplete="off">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="grid2">

@@ -34,7 +34,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=resumes" class="<?= $cur === 'resumes' ? 'on' : '' ?>">
             <?= icon('circle-gauge') ?> Tableau de bord
         </a>
-        <?php if (module_actif('salaires')): ?>
+        <?php if (module_actif('salaires') && peut_lire('salaires')): ?>
         <span class="side-nav-sep">Salaires</span>
         <?php $nbFiches = nb_fiches_a_payer(); ?>
         <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
@@ -48,7 +48,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('bar-chart') ?> Cotisations
         </a>
         <?php endif; ?>
-        <?php if (module_actif('compta')): ?>
+        <?php if (module_actif('compta') && peut_lire('compta')): ?>
         <span class="side-nav-sep">Comptabilité</span>
         <?php $ecrituresPages = ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles']; ?>
         <?php $nbEcr = nb_ecritures_a_lettrer(); ?>
@@ -60,14 +60,14 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
             <?= icon('book-open') ?> Comptes annuels
         </a>
-        <?php if (module_actif('analytique')): ?>
+        <?php if (module_actif('analytique') && peut_lire('analytique')): ?>
         <?php $analysePages = ['compta_analyse', 'compta_analyse_axe', 'compta_axes']; ?>
         <a href="?p=compta_analyse" class="<?= in_array($cur, $analysePages, true) ? 'on' : '' ?>">
             <?= icon('layers') ?> Analyse
         </a>
         <?php endif; ?>
         <?php endif; ?>
-        <?php if (module_actif('facturation')): ?>
+        <?php if (module_actif('facturation') && peut_lire('facturation')): ?>
         <span class="side-nav-sep">Facturation</span>
         <?php $facturationPages = ['facturation', 'facturation_liste', 'facturation_form', 'facture']; ?>
         <?php $nbRetard = nb_factures_en_retard(); ?>
@@ -79,7 +79,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('building-2') ?> Débiteurs
         </a>
         <?php endif; ?>
-        <?php if (module_actif('evenements')): ?>
+        <?php if (module_actif('evenements') && peut_lire('evenements')): ?>
         <span class="side-nav-sep">Événements</span>
         <?php $nbSuisaManquant = nb_evenements_suisa_manquants(); ?>
         <a href="?p=evenements_liste" class="<?= in_array($cur, ['evenements', 'evenements_liste', 'evenement'], true) ? 'on' : '' ?>">
@@ -90,11 +90,13 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('music') ?> <?= e(evenements_terme_spectacle()) ?>
         </a>
         <?php endif; ?>
+        <?php if (peut_lire('coeur')): ?>
         <span class="side-nav-sep"></span>
         <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>
+        <?php endif; ?>
     </nav>
     <?php
     $prenom = trim((string)($u['prenom'] ?? ''));

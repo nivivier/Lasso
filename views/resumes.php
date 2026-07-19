@@ -129,6 +129,7 @@ $dash_svg = function (array $series): string {
     return $o;
 };
 ?>
+<?php if (($_GET['refuse'] ?? null) === '1'): ?><p class="err flash">Accès refusé : vous n'avez pas les droits nécessaires pour cette page.</p><?php endif; ?>
 <div class="page-head"><h1>Tableau de bord</h1></div>
 
 <?php

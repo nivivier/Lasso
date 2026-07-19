@@ -40,8 +40,13 @@ function route_setup(): void
         }
         $stmt = db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)');
         $stmt->execute([$email, password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST])]);
+        $uid = (int) db()->lastInsertId();
+        // Premier compte : accès complet (administrateur) pour pouvoir
+        // configurer l'application dès l'installation — les comptes créés
+        // ensuite démarrent sans aucun droit (voir route_comptes()).
+        enregistrer_permissions_utilisateur($uid, array_fill_keys(PERMISSION_MODULES, 'ecriture'));
         session_regenerate_id(true);
-        $_SESSION['uid']           = (int) db()->lastInsertId();
+        $_SESSION['uid']           = $uid;
         $_SESSION['login_time']    = time();
         $_SESSION['last_activity'] = time();
         redirect('resumes');
@@ -133,8 +138,10 @@ function route_compte(): void
 }
 
 // -------------------------------------------------------------- COMPTES (admin)
-// Gestion des comptes utilisateurs : liste, création, réinitialisation, suppression.
-// Tous les comptes ont les mêmes droits (pas de rôles) ; usage 1–2 personnes.
+// Gestion des comptes utilisateurs : liste, création, réinitialisation,
+// suppression, droits par module (voir SPEC_PERMISSIONS.md). Réservé à
+// l'écriture cœur (index.php) : un compte avec accès en lecture seule au
+// cœur ne voit même pas cette page.
 function route_comptes(): void
 {
     require_login();
@@ -157,19 +164,27 @@ function route_comptes(): void
             }
         }
         if (!$err) {
+            // Aucun droit par défaut (principe du moindre privilège) : à
+            // l'inverse du tout premier compte (route_setup), qui reçoit
+            // tout pour pouvoir configurer l'application dès l'installation.
             db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)')
                 ->execute([$email, password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST])]);
             redirect('comptes', ['ok' => 'created']);
         }
     }
     $comptes = db()->query('SELECT id, email, cree_le FROM utilisateurs ORDER BY cree_le, id')->fetchAll();
+    $permissions = [];
+    foreach ($comptes as $c) {
+        $permissions[(int) $c['id']] = permissions_utilisateur((int) $c['id']);
+    }
     render('comptes', [
-        'comptes'    => $comptes,
-        'err'        => $err,
-        'emailSaisi' => $emailSaisi,
-        'ok'         => $_GET['ok'] ?? null,
-        'flagErr'    => $_GET['err'] ?? null,
-        'moi'        => (int) current_user()['id'],
+        'comptes'     => $comptes,
+        'permissions' => $permissions,
+        'err'         => $err,
+        'emailSaisi'  => $emailSaisi,
+        'ok'          => $_GET['ok'] ?? null,
+        'flagErr'     => $_GET['err'] ?? null,
+        'moi'         => (int) current_user()['id'],
     ], 'Paramètres — Comptes');
 }
 
@@ -206,8 +221,30 @@ function route_compte_delete(): void
     if ($total <= 1) {
         redirect('comptes', ['err' => 'last']);      // ne jamais vider la table
     }
+    // Ne jamais supprimer le dernier administrateur (écriture cœur), même
+    // s'il reste d'autres comptes non-admin.
+    if (permission_donne_ecriture(permissions_utilisateur($id), 'coeur') && nb_admins() <= 1) {
+        redirect('comptes', ['err' => 'last_admin']);
+    }
     db()->prepare('DELETE FROM utilisateurs WHERE id = ?')->execute([$id]);
     redirect('comptes', ['ok' => 'deleted']);
+}
+
+// Met à jour la matrice de droits (lecture/écriture par module) d'un compte.
+// POST { id, niveaux[module] = ''|'lecture'|'ecriture' }. Refuse (message
+// d'erreur dédié) si l'opération viderait le dernier compte administrateur —
+// voir enregistrer_permissions_utilisateur().
+function route_compte_permissions(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('comptes');
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $niveaux = is_array($_POST['niveaux'] ?? null) ? $_POST['niveaux'] : [];
+    $ok = enregistrer_permissions_utilisateur($id, $niveaux);
+    redirect('comptes', $ok ? ['ok' => 'permissions'] : ['err' => 'last_admin']);
 }
 
 // -------------------------------------------------------------- EMPLOYÉS

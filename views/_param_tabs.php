@@ -6,11 +6,11 @@ $tabs = [
     'employeur'     => 'Employeur',
     'emails'        => 'E-mails',
 ];
-if (module_actif('salaires')) {
+if (module_actif('salaires') && peut_lire('salaires')) {
     $tabs['taux']          = 'Taux';
     $tabs['taux_horaires'] = 'Salaires horaires';
 }
-if (module_actif('evenements')) {
+if (module_actif('evenements') && peut_lire('evenements')) {
     $tabs['parametres_evenements'] = 'Événements';
 }
 $tabs['export'] = 'Exporter';
@@ -21,17 +21,21 @@ $tabs['export'] = 'Exporter';
 // propre résultat). Le lien pointe vers la première route existante ; toutes
 // comptent comme le même onglet.
 $routesImport = [];
-if (module_actif('salaires'))    $routesImport[] = 'import_fiches';
-if (module_actif('facturation')) $routesImport[] = 'import_factures';
-if (module_actif('compta'))      $routesImport[] = 'import_ecritures';
-if (module_actif('evenements'))  $routesImport[] = 'import_evenements';
+if (module_actif('salaires')    && peut_lire('salaires'))    $routesImport[] = 'import_fiches';
+if (module_actif('facturation') && peut_lire('facturation')) $routesImport[] = 'import_factures';
+if (module_actif('compta')      && peut_lire('compta'))      $routesImport[] = 'import_ecritures';
+if (module_actif('evenements')  && peut_lire('evenements'))  $routesImport[] = 'import_evenements';
 if ($routesImport) {
     $tabs[$routesImport[0]] = ['Importer', $routesImport];
 }
 
-$tabs['comptes']             = 'Comptes';
-$tabs['parametres_modules']  = 'Modules';
-$tabs['maj']                 = 'Mises à jour';
+// Comptes/Modules/Mises à jour : réservés à l'écriture cœur (administrateur),
+// voir index.php — un compte en lecture seule sur le cœur ne voit pas ces onglets.
+if (peut_ecrire('coeur')) {
+    $tabs['comptes']             = 'Comptes';
+    $tabs['parametres_modules']  = 'Modules';
+    $tabs['maj']                 = 'Mises à jour';
+}
 $curParam = $_GET['p'] ?? '';
 ?>
 <div class="page-head-band">

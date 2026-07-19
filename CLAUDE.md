@@ -52,6 +52,26 @@ Avant de conclure une tâche qui touche au code : `php -l` sur les fichiers modi
 - **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non versionné) ;
   constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
+- **Modules & droits** `lib/modules.php` (voir `SPEC_PERMISSIONS.md`) :
+  - `MODULES`/`module_actif()` : activation globale par module (salaires/compta/
+    analytique/facturation/evenements), indépendante des droits ci-dessous.
+  - Droits par utilisateur, table `utilisateur_permissions` (module → lecture/
+    écriture, absence de ligne = aucun accès) : `peut_lire()`/`peut_ecrire()`
+    (utilisateur courant), `require_lecture()`/`require_ecriture()`.
+    `coeur` est un module à part (jamais dans `MODULES`) qui recouvre
+    paramètres/comptes/modules/mises à jour/sauvegarde ; **écriture sur `coeur`
+    = administrateur**, `est_admin()`. Il doit toujours en rester au moins un
+    (garde-fou dans `enregistrer_permissions_utilisateur()` et
+    `route_compte_delete()`).
+  - Dispatch (`index.php`) : chaque route est associée au(x) module(s) dont
+    dépend son accès (`ajouter_routes_module()`) ; `route_autorisee()` exige la
+    lecture pour un GET, l'écriture pour un POST (convention stricte : toute
+    mutation passe par un POST protégé par `check_csrf()`, aucune route
+    n'écrit sur un GET **sauf `route_backup()`**, gardée à part car elle
+    exporte toute la base). Ajouter une route mutante en GET casserait ce
+    contrôle — ne pas le faire.
+  - Un nouveau compte (`route_comptes()`) démarre **sans aucun droit** ; seul
+    le tout premier compte (`route_setup()`) reçoit tout par défaut.
 
 ## Domaine (paie suisse) — à respecter
 - Déductions employé : AVS/AI/APG, AC, A.mat (GE), **LAA** (deux taux : *réduit* si
