@@ -132,15 +132,18 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 .info-tip:hover .info-tip-bulle, .info-tip:focus .info-tip-bulle, .info-tip.open .info-tip-bulle { display: block; }
 
-/* Réinitialisation de mot de passe : champ + bouton sur une ligne */
-.reset-form { display: flex; align-items: center; gap: 8px; }
+/* Réinitialisation de mot de passe : champ, bouton en dessous */
+.reset-form { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .reset-form input { flex: 1 1 auto; min-width: 0; max-width: 240px; }
 .reset-form .btn-sm { flex: 0 0 auto; }
 
 /* Matrice de permissions (écran Utilisateurs) : colonnes de module réduites
-   au strict nécessaire — l'en-tête peut passer sur deux lignes, la cellule
-   n'est qu'un petit groupe de 3 boutons (aucun/lecture/écriture). */
-.perm-col { width: 1%; white-space: normal; text-align: center; }
+   au strict nécessaire et de largeur identique — l'en-tête peut passer sur
+   deux lignes, la cellule n'est qu'un petit groupe de 3 boutons (aucun/
+   lecture/écriture). Largeur fixe (pas juste width:1%) : sinon un en-tête
+   plus long (« Comptabilité analytique ») élargit sa colonne malgré un
+   contenu de cellule identique aux autres. */
+.perm-col { width: 60px; white-space: normal; text-align: center; }
 .list thead th.perm-col { font-size: 9px; }
 .perm-toggle { display: inline-flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .perm-btn {
