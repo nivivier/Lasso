@@ -151,7 +151,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 160px; }
 .perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 46px; }
 .perm-col {
-    width: 60px; white-space: normal; overflow-wrap: break-word; text-align: center;
+    width: 70px; white-space: normal; overflow-wrap: break-word; text-align: center;
     -webkit-hyphens: auto; hyphens: auto; /* coupure avec trait d'union plutôt qu'en plein milieu d'un mot */
 }
 .list thead th.perm-col { font-size: 9px; }
