@@ -32,7 +32,7 @@ if ($routesImport) {
 // Comptes/Modules/Mises à jour : réservés à l'écriture cœur (administrateur),
 // voir index.php — un compte en lecture seule sur le cœur ne voit pas ces onglets.
 if (peut_ecrire('coeur')) {
-    $tabs['comptes']             = 'Comptes';
+    $tabs['comptes']             = 'Utilisateurs';
     $tabs['parametres_modules']  = 'Modules';
     $tabs['maj']                 = 'Mises à jour';
 }

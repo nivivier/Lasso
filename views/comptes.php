@@ -38,7 +38,7 @@ $flashErr = [
             <tr>
                 <th>E-mail</th>
                 <?php foreach (PERMISSION_MODULES as $m): ?>
-                    <th><?= e($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) ?></th>
+                    <th class="perm-col"><?= e($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) ?></th>
                 <?php endforeach; ?>
                 <th>Créé le</th>
                 <th>Réinitialiser le mot de passe</th>
@@ -57,15 +57,14 @@ $flashErr = [
                     <?php if ($estMoi): ?> <span class="badge muted-badge">vous</span><?php endif; ?>
                     <?php if (($niveaux['coeur'] ?? null) === 'ecriture'): ?> <span class="badge ok-badge">admin</span><?php endif; ?>
                 </td>
-                <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; ?>
-                <td>
-                    <select name="niveaux[<?= e($m) ?>]" form="<?= $formId ?>" class="perm-select"
-                            aria-label="<?= e(($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) . ' — ' . $c['email']) ?>"
-                            onchange="this.form.requestSubmit()">
-                        <option value="" <?= $val === '' ? 'selected' : '' ?>>—</option>
-                        <option value="lecture" <?= $val === 'lecture' ? 'selected' : '' ?>>Lecture</option>
-                        <option value="ecriture" <?= $val === 'ecriture' ? 'selected' : '' ?>>Écriture</option>
-                    </select>
+                <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; $lib = $m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']; ?>
+                <td class="perm-col">
+                    <div class="perm-toggle" role="group" aria-label="<?= e($lib . ' — ' . $c['email']) ?>">
+                        <button type="button" class="perm-btn <?= $val === '' ? 'on' : '' ?>" data-val="" title="Aucun accès (<?= e($lib) ?>)" aria-label="Aucun accès">—</button>
+                        <button type="button" class="perm-btn <?= $val === 'lecture' ? 'on' : '' ?>" data-val="lecture" title="Lecture (<?= e($lib) ?>)" aria-label="Lecture"><?= icon('eye') ?></button>
+                        <button type="button" class="perm-btn <?= $val === 'ecriture' ? 'on' : '' ?>" data-val="ecriture" title="Écriture (<?= e($lib) ?>)" aria-label="Écriture"><?= icon('pencil') ?></button>
+                        <input type="hidden" name="niveaux[<?= e($m) ?>]" form="<?= $formId ?>" value="<?= e($val) ?>">
+                    </div>
                 </td>
                 <?php endforeach; ?>
                 <td class="muted small nowrap"><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
@@ -110,3 +109,17 @@ $flashErr = [
         <div class="form-actions"><button type="submit"><?= icon('user-plus') ?> Créer le compte</button></div>
     </form>
 </div>
+<script>
+document.querySelectorAll('.perm-toggle').forEach(group => {
+    const hidden = group.querySelector('input[type=hidden]');
+    group.querySelectorAll('.perm-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.classList.contains('on')) return;
+            group.querySelectorAll('.perm-btn').forEach(b => b.classList.remove('on'));
+            btn.classList.add('on');
+            hidden.value = btn.dataset.val;
+            hidden.form.requestSubmit();
+        });
+    });
+});
+</script>

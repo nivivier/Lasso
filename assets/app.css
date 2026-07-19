@@ -137,6 +137,21 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .reset-form input { flex: 1 1 auto; min-width: 0; max-width: 240px; }
 .reset-form .btn-sm { flex: 0 0 auto; }
 
+/* Matrice de permissions (écran Utilisateurs) : colonnes de module réduites
+   au strict nécessaire — l'en-tête peut passer sur deux lignes, la cellule
+   n'est qu'un petit groupe de 3 boutons (aucun/lecture/écriture). */
+.perm-col { width: 1%; white-space: normal; text-align: center; }
+.perm-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.perm-btn {
+    display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
+    background: #fff; border: none; border-right: 1px solid var(--line); border-radius: 0; color: var(--muted);
+    cursor: pointer; font-weight: 700; padding: 0; box-shadow: none;
+}
+.perm-btn:last-child { border-right: none; }
+.perm-btn .ico { width: 14px; height: 14px; }
+.perm-btn:hover { background: var(--surface); }
+.perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
+
 /* === Page Paramètres : barre d'onglets === */
 .param-tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--line); margin: 0 0 26px; }
 .param-tabs a {
