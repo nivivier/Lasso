@@ -41,7 +41,7 @@ $flashErr = [
                     <th class="perm-col"><?= e($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) ?></th>
                 <?php endforeach; ?>
                 <th>Créé le</th>
-                <th>Réinitialiser le mot de passe</th>
+                <th class="col-petit">Réinitialiser le mot de passe</th>
                 <th class="actions"></th>
             </tr>
         </thead>
