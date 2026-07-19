@@ -138,12 +138,22 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .reset-form .btn-sm { flex: 0 0 auto; }
 
 /* Matrice de permissions (écran Utilisateurs) : colonnes de module réduites
-   au strict nécessaire et de largeur identique — l'en-tête peut passer sur
-   deux lignes, la cellule n'est qu'un petit groupe de 3 boutons (aucun/
-   lecture/écriture). Largeur fixe (pas juste width:1%) : sinon un en-tête
-   plus long (« Comptabilité analytique ») élargit sa colonne malgré un
-   contenu de cellule identique aux autres. */
-.perm-col { width: 60px; white-space: normal; text-align: center; }
+   au strict nécessaire et de largeur strictement identique. table-layout:
+   fixed est nécessaire — en layout auto, un mot non coupable comme
+   « COMPTABILITÉ » dépasse 60px et élargit sa seule colonne malgré une
+   largeur déclarée identique aux autres ; fixed + overflow-wrap force le
+   respect de la largeur (l'en-tête passe sur plusieurs lignes si besoin).
+   Les colonnes non-module reçoivent donc aussi une largeur explicite
+   (E-mail prend le reste de la place, seule colonne sans largeur fixée). */
+.perm-table { table-layout: fixed; }
+.perm-table th:first-child, .perm-table td:first-child { width: auto; }
+.perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 90px; }
+.perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 160px; }
+.perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 46px; }
+.perm-col {
+    width: 60px; white-space: normal; overflow-wrap: break-word; text-align: center;
+    -webkit-hyphens: auto; hyphens: auto; /* coupure avec trait d'union plutôt qu'en plein milieu d'un mot */
+}
 .list thead th.perm-col { font-size: 9px; }
 .perm-toggle { display: inline-flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .perm-btn {
