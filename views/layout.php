@@ -112,7 +112,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <?php if (peut_lire('coeur')): ?>
         <span class="side-nav-sep"></span>
         <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
-        <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
+        <a href="?p=maj" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>
         <?php endif; ?>
