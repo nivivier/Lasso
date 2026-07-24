@@ -8,6 +8,7 @@
 
 const MAJ_REPO   = 'nivivier/Lasso';
 const MAJ_CANAUX = ['stable' => 'stable', 'test' => 'main']; // canal => branche git
+const MAJ_CACHE_TTL = 86400; // 24h — voir maj_cache_lire()/maj_cache_ecrire()
 
 // Version locale : lue dans le fichier VERSION (aucune dépendance à git).
 function maj_version_locale(): string
@@ -212,6 +213,40 @@ function maj_sha_distant(string $canal): ?string
     return isset($d['sha']) ? substr((string) $d['sha'], 0, 7) : null;
 }
 
+// --- Cache de la vérification distante (évite de solliciter l'API GitHub à
+// chaque chargement de l'onglet Mises à jour) ---------------------------------
+
+// Résultat mis en cache pour ce canal s'il a moins de MAJ_CACHE_TTL, sinon
+// null (première visite, cache expiré, ou canal changé depuis la dernière
+// vérification — jamais réutilisé d'un canal à l'autre).
+function maj_cache_lire(string $canal): ?array
+{
+    $le = (string) param('maj_cache_le', '');
+    if ($le === '' || param('maj_cache_canal', '') !== $canal) {
+        return null;
+    }
+    $age = time() - (int) strtotime($le);
+    if ($age < 0 || $age > MAJ_CACHE_TTL) {
+        return null;
+    }
+    return [
+        'distante' => param('maj_cache_distante', '') ?: null,
+        'sha_dist' => param('maj_cache_sha_dist', '') ?: null,
+        'position' => param('maj_cache_position', '') ?: null,
+        'le'       => $le,
+    ];
+}
+
+function maj_cache_ecrire(string $canal, ?string $distante, ?string $shaDist, ?string $position): void
+{
+    $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+    $stmt->execute(['maj_cache_canal', $canal]);
+    $stmt->execute(['maj_cache_le', date('c')]);
+    $stmt->execute(['maj_cache_distante', (string) $distante]);
+    $stmt->execute(['maj_cache_sha_dist', (string) $shaDist]);
+    $stmt->execute(['maj_cache_position', (string) $position]);
+}
+
 // --- Exécution de la mise à jour par archive (Cas B) ---
 
 // Interrupteur : la MAJ web est active sauf si explicitement désactivée en config.
@@ -376,7 +411,7 @@ function route_maj(): void
             } else {
                 $_SESSION['maj_resultat'] = maj_executer(maj_canal());
             }
-            redirect('maj');
+            redirect('maj', ['verifier' => 1]); // la version locale vient de changer : re-vérifier tout de suite
         }
         // Sinon : changement de canal (préférence).
         $c = (string) ($_POST['canal'] ?? 'test');
@@ -389,12 +424,27 @@ function route_maj(): void
 
     $canal     = maj_canal();
     $locale    = maj_version_locale();
-    $distante  = maj_version_distante($canal);
     $shaLocal  = maj_sha_local();
-    $shaDist   = maj_sha_distant($canal);
+
+    // Vérification distante mise en cache MAJ_CACHE_TTL (24h) : évite de
+    // solliciter l'API GitHub à chaque chargement de la page. Bouton
+    // « Vérifier maintenant » (?verifier=1) pour forcer une vérification
+    // immédiate, aussi utilisé juste après une mise à jour effectuée.
+    $cache = isset($_GET['verifier']) ? null : maj_cache_lire($canal);
+    if ($cache !== null) {
+        $distante = $cache['distante'];
+        $shaDist  = $cache['sha_dist'];
+        $pos      = $cache['position'];
+        $derniereVerif = $cache['le'];
+    } else {
+        $distante = maj_version_distante($canal);
+        $shaDist  = maj_sha_distant($canal);
+        $pos      = maj_position($canal);
+        maj_cache_ecrire($canal, $distante, $shaDist, $pos);
+        $derniereVerif = date('c');
+    }
 
     // État du local vis-à-vis du canal — au niveau commit (précis), avec replis.
-    $pos = maj_position($canal);
     if ($pos !== null) {
         $etat = ['identical' => 'a_jour', 'behind' => 'retard', 'ahead' => 'avance', 'diverged' => 'diverge'][$pos] ?? 'inconnu';
     } elseif ($shaLocal !== null && $shaDist !== null) {
@@ -420,6 +470,7 @@ function route_maj(): void
         'etat'      => $etat,
         'downgrade' => $downgrade,
         'resultat'  => $resultat,
+        'derniereVerif' => $derniereVerif,
         'webActive' => maj_web_active(),
         'execDispo'       => maj_exec_dispo(),
         'gitDispo'        => maj_git_dispo(),

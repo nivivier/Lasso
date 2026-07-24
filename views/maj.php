@@ -4,7 +4,7 @@
 /** @var bool $execDispo */ /** @var bool $gitDispo */
 /** @var bool $dlDispo */ /** @var bool $zipDispo */ /** @var bool $targzDispo */
 /** @var bool $appWritable */ /** @var bool $archivePossible */
-/** @var bool $downgrade */ /** @var ?array $resultat */ /** @var bool $webActive */
+/** @var bool $downgrade */ /** @var ?array $resultat */ /** @var bool $webActive */ /** @var string $derniereVerif */
 $oui = fn(bool $b) => $b
     ? '<span class="badge ok-badge">disponible</span>'
     : '<span class="badge warn-badge">non</span>';
@@ -43,7 +43,11 @@ $oui = fn(bool $b) => $b
             <?php default: ?><span class="badge warn-badge">Vérification impossible</span><?php endswitch; ?>
         </dd></div>
     </dl>
-    <p class="muted small"><a href="https://github.com/nivivier/Lasso/blob/<?= $canal === 'stable' ? 'stable' : 'main' ?>/CHANGELOG.md" target="_blank" rel="noopener">Voir le journal des versions ↗</a></p>
+    <p class="muted small">
+        Dernière vérification : <?= e(date('d.m.Y à H:i', strtotime($derniereVerif))) ?>
+        (<a href="?p=maj&verifier=1">vérifier maintenant</a>) —
+        <a href="https://github.com/nivivier/Lasso/blob/<?= $canal === 'stable' ? 'stable' : 'main' ?>/CHANGELOG.md" target="_blank" rel="noopener">voir le journal des versions ↗</a>
+    </p>
 
     <?php if (!$webActive): ?>
         <p class="muted small">La mise à jour en un clic est désactivée sur ce serveur (<code>ALLOW_WEB_UPDATE</code>).</p>
