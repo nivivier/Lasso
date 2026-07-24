@@ -410,7 +410,7 @@ function route_lieux(): void
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'region']);
+        [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'region', 'grande_region', 'type']);
         $whereRech = $where . $rechSql;
         $paramsRech = array_merge($params, $rechParams);
 

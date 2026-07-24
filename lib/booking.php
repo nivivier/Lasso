@@ -1415,8 +1415,11 @@ function structure_import_rattacher_lieu_membre(int $orgId, array $d, string $no
 // (« festival » dans le nom → Festival, à défaut Salle).
 function structure_import_type_lieu(string $nom, string $typeLieu): string
 {
-    if ($typeLieu !== '') {
-        return $typeLieu;
+    if (trim($typeLieu) !== '') {
+        // Normalise vers l'intitulé canonique de la taxonomie (tolère casse et
+        // accents, ex. « salle de location » → « Salle de location ») ; conserve
+        // la valeur nettoyée si elle n'y figure pas (type libre).
+        return lieu_categorie_normaliser($typeLieu) ?? trim($typeLieu);
     }
     return str_contains(mb_strtolower($nom, 'UTF-8'), 'festival') ? 'Festival' : 'Salle';
 }
