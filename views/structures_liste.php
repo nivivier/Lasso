@@ -130,7 +130,7 @@
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>E-mail</th><th>Dernier contact</th><th>Salles / festivals</th><th>Factures</th><?php if (module_actif('evenements')): ?><th>Événements</th><?php endif; ?>
+        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>E-mail</th><th>Dernier contact</th><th>Lieux</th><th>Factures</th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>

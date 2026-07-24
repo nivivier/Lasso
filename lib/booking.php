@@ -355,7 +355,7 @@ function journaliser_lien_structure_lieu(int $structureId, int $lieuId, bool $li
 {
     $sNom = nom_entite('structures', $structureId);
     $lNom = nom_entite('lieux', $lieuId);
-    journaliser('structure', $structureId, 'edition', ($lie ? 'Salle / festival lié : ' : 'Salle / festival délié : ') . $lNom);
+    journaliser('structure', $structureId, 'edition', ($lie ? 'Lieu lié : ' : 'Lieu délié : ') . $lNom);
     journaliser('lieu', $lieuId, 'edition', ($lie ? 'Organisateur lié : ' : 'Organisateur délié : ') . $sNom);
 }
 

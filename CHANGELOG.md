@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.2] — 2026-07-24
+
+### Modifié
+- « Salles & festivals » renommé en **« Lieux »** (menu, titres, colonnes).
+- Supprimer un lieu rattaché à une ou plusieurs structures est désormais
+  possible : les liens sont retirés (et journalisés côté structure) avant la
+  suppression, au lieu d'être bloqués.
+
 ## [1.5.1] — 2026-07-24
 
 ### Corrigé

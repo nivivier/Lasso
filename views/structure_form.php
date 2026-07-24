@@ -219,7 +219,7 @@ $sid = (int) ($structure['id'] ?? 0);
 
 <section class="aside-block section-editable">
     <div class="card-head-row">
-        <h2 class="mt-0">Salles &amp; festivals liés</h2>
+        <h2 class="mt-0">Lieux liés</h2>
         <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les salles &amp; festivals"><?= icon('pencil') ?></button>
     </div>
     <?php foreach ($lieuxLies as $l): ?>

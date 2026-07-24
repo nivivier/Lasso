@@ -13,7 +13,7 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Salles &amp; festivals</h1>
+        <h1>Lieux</h1>
     </div>
     <div class="head-actions">
         <a class="btn" href="?p=lieu"><?= icon('plus') ?><span class="lbl"> Nouveau lieu</span></a>

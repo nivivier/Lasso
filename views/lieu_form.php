@@ -12,7 +12,7 @@ $typeOptions = function () use ($lieu, $categoriesLieu): string {
     return $h;
 };
 ?>
-<?= lien_retour_contextuel('?p=lieux', 'Salles & festivals') ?>
+<?= lien_retour_contextuel('?p=lieux', 'Lieux') ?>
 <div class="page-head">
     <?php if ($isEdit): ?>
     <div class="titre-row">
@@ -58,8 +58,6 @@ $typeOptions = function () use ($lieu, $categoriesLieu): string {
 </div>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
-<?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : une structure est liée à ce lieu.</p><?php endif; ?>
-
 <?php $structuresLiees = $structuresLiees ?? []; $avecAside = $isEdit; ?>
 <?php
 // Formulaire réutilisable : crayon → recherche de structure + save, pour

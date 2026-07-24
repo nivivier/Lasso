@@ -98,7 +98,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         </a>
         <?php endif; ?>
         <a href="?p=lieux" class="<?= in_array($cur, ['lieux', 'lieu'], true) ? 'on' : '' ?>">
-            <?= icon('map-pin') ?> Salles &amp; festivals
+            <?= icon('map-pin') ?> Lieux
         </a>
         <?php /* Mailing masqué temporairement du menu (fonctionnalité en cours de
                  test) — la page reste accessible via ?p=mailing. Retirer le

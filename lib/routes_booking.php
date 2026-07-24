@@ -488,7 +488,7 @@ function route_lieux(): void
         'pgTotal'   => $pgTotal,
         'bulkCount' => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'  => ($_GET['ok'] ?? '') === 'annule',
-    ], 'Salles & festivals');
+    ], 'Lieux');
 }
 
 // Structure(s) rattachée(s) à un lieu, avec leur contexte CRM (contacts,
@@ -718,8 +718,22 @@ function route_lieu_delete(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
-        if (!supprimer_si_non_reference('lieux', $id, 'structure_lieux', 'lieu_id')) {
-            redirect('lieu', ['id' => $id, 'err' => 'used']);
+        if ($id) {
+            // Un lieu lié à des structures est tout de même supprimable : on
+            // retire d'abord les liens (journalisés côté structure) et
+            // l'historique du lieu, puis le lieu lui-même (les événements liés
+            // sont dénoués par la clé étrangère ON DELETE SET NULL).
+            $lNom = nom_entite('lieux', $id);
+            $stmt = db()->prepare('SELECT structure_id FROM structure_lieux WHERE lieu_id = ?');
+            $stmt->execute([$id]);
+            db()->beginTransaction();
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $structureId) {
+                journaliser('structure', (int) $structureId, 'edition', 'Lieu supprimé : ' . ($lNom !== '' ? $lNom : '#' . $id));
+            }
+            db()->prepare('DELETE FROM structure_lieux WHERE lieu_id = ?')->execute([$id]);
+            db()->prepare("DELETE FROM historique WHERE entite_type = 'lieu' AND entite_id = ?")->execute([$id]);
+            db()->prepare('DELETE FROM lieux WHERE id = ?')->execute([$id]);
+            db()->commit();
         }
     }
     redirect('lieux');
