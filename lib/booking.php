@@ -983,6 +983,12 @@ function structures_analyser_import(array $lignes, array $mapping): array
         if ($typeSous !== '') {
             $donnees['sous_categorie'] = '';
         }
+        // La catégorie a-t-elle été RÉELLEMENT fournie par l'import ? (avant
+        // résolution, qui applique sinon une catégorie par défaut). Sert à la
+        // fusion : sans catégorie fournie, on ne doit pas la compter comme un
+        // conflit face à la catégorie existante (on garde celle de la base).
+        $donnees['categorie_fournie'] = trim((string) $donnees['categorie']) !== ''
+            || trim((string) $donnees['sous_categorie']) !== '';
         // Catégorie de structure : racine, sinon sous-catégorie remontée à son
         // parent, sinon défaut (insensible casse + accents) — voir le helper.
         $res = structure_import_resoudre_categorie(
@@ -1095,6 +1101,92 @@ function structures_taxonomie_synchroniser(): int
     return structures_taxonomie_assurer($paires);
 }
 
+// Champs d'une structure fusionnés à l'import (colonne DB => libellé). Le nom
+// est inclus (une correspondance par e-mail peut avoir un nom différent). Clé =
+// nom de colonne réel (whitelist : sûr à interpoler dans l'UPDATE dynamique).
+const STRUCTURE_IMPORT_FUSION_CHAMPS = [
+    'nom'              => 'Nom',
+    'categorie'        => 'Catégorie',
+    'sous_categorie'   => 'Sous-catégorie',
+    'adresse_rue'      => 'Rue',
+    'adresse_npa'      => 'NPA',
+    'adresse_localite' => 'Localité',
+    'region'           => 'Département / canton',
+    'grande_region'    => 'Région',
+    'adresse_pays'     => 'Pays',
+    'site_web'         => 'Site web',
+    'via'              => 'Via',
+    'notes'            => 'Remarques',
+];
+
+// Compare une fiche existante (ligne DB) aux données importées, champ par champ.
+// Renvoie ['remplissages' => [colonne => valeur], 'conflits' => [colonne =>
+// ['label','actuel','importe']]] :
+//   • import vide           → ignoré (on garde la base) ;
+//   • base vide, import plein → remplissage (à appliquer d'office) ;
+//   • égaux                 → ignoré ;
+//   • les deux pleins, différents → conflit (choix utilisateur).
+// La colonne DB adresse_pays correspond à la clé 'pays' des données importées.
+function structure_import_fusion(array $existante, array $donnees): array
+{
+    $imp = [
+        'nom'              => (string) ($donnees['nom'] ?? ''),
+        'categorie'        => (string) ($donnees['categorie'] ?? ''),
+        'sous_categorie'   => (string) ($donnees['sous_categorie'] ?? ''),
+        'adresse_rue'      => (string) ($donnees['adresse_rue'] ?? ''),
+        'adresse_npa'      => (string) ($donnees['adresse_npa'] ?? ''),
+        'adresse_localite' => (string) ($donnees['adresse_localite'] ?? ''),
+        'region'           => (string) ($donnees['region'] ?? ''),
+        'grande_region'    => (string) ($donnees['grande_region'] ?? ''),
+        'adresse_pays'     => (string) ($donnees['pays'] ?? ''),
+        'site_web'         => (string) ($donnees['site_web'] ?? ''),
+        'via'              => (string) ($donnees['via'] ?? ''),
+        'notes'            => (string) ($donnees['notes'] ?? ''),
+    ];
+    // Catégorie/sous-catégorie non fournies par l'import → à traiter comme vides
+    // (garder la base), sinon la catégorie par défaut créerait un faux conflit.
+    if (empty($donnees['categorie_fournie'])) {
+        $imp['categorie'] = '';
+        $imp['sous_categorie'] = '';
+    }
+    $remplissages = [];
+    $conflits = [];
+    foreach (STRUCTURE_IMPORT_FUSION_CHAMPS as $col => $label) {
+        $db = trim((string) ($existante[$col] ?? ''));
+        $iv = trim($imp[$col]);
+        if ($iv === '' || $iv === $db) {
+            continue;
+        }
+        if ($db === '') {
+            $remplissages[$col] = $iv;
+        } else {
+            $conflits[$col] = ['label' => $label, 'actuel' => $db, 'importe' => $iv];
+        }
+    }
+    return ['remplissages' => $remplissages, 'conflits' => $conflits];
+}
+
+// Parmi les lignes analysées, celles qui correspondent à une fiche existante ET
+// présentent au moins un conflit de champ (à trancher par l'utilisateur). Les
+// lignes déjà consommées par un regroupement ($exclus : index => true) sont
+// écartées. Chaque entrée = la ligne + 'conflits' (cf. structure_import_fusion).
+function structures_import_conflits(array $analyse, array $exclus = []): array
+{
+    $out = [];
+    foreach ($analyse as $l) {
+        if ($l['correspondance_id'] === null || isset($exclus[$l['index']])) {
+            continue;
+        }
+        $existante = is_array($l['structure_existante'] ?? null) ? $l['structure_existante'] : [];
+        $fusion = structure_import_fusion($existante, $l['donnees']);
+        if ($fusion['conflits']) {
+            $l['conflits'] = $fusion['conflits'];
+            $out[] = $l;
+        }
+    }
+    return $out;
+}
+
 // Applique l'import. Deux régimes cohabitent :
 //   • Regroupements confirmés ($groupesConfirmes = clés normalisées d'orga-
 //     nisateur, cf. structures_grouper()) : l'organisateur devient/reste UNE
@@ -1102,10 +1194,11 @@ function structures_taxonomie_synchroniser(): int
 //     qui lui sont rattachés (leurs contacts/notes/étiquettes vont à
 //     l'organisateur, comme la transformation a posteriori — SPEC_BOOKING.md).
 //   • Lignes hors regroupement : logique par ligne habituelle — insérées si
-//     sans correspondance, sinon selon $resolutions (index → 'ignorer'|'maj',
-//     absence = 'ignorer', jamais d'écrasement silencieux).
+//     sans correspondance, sinon FUSIONNÉES champ par champ avec la fiche
+//     existante ($choix : index → [colonne => true] = prendre l'import pour un
+//     champ en conflit ; défaut = garder l'actuel ; jamais d'écrasement global).
 // Retourne un résumé.
-function structures_appliquer_import(array $analyse, array $resolutions, array $groupesConfirmes = [], string $decisionDefaut = 'ignorer'): array
+function structures_appliquer_import(array $analyse, array $choix, array $groupesConfirmes = []): array
 {
     $resume = ['nouvelles' => 0, 'mises_a_jour' => 0, 'ignorees' => 0, 'lieux' => 0, 'sous_categories' => 0];
 
@@ -1128,10 +1221,10 @@ function structures_appliquer_import(array $analyse, array $resolutions, array $
         // 1. L'organisateur : sa propre ligne si présente dans l'import,
         //    sinon une structure minimale créée/retrouvée par le nom.
         if ($g['self_index'] !== null && isset($parIndex[$g['self_index']])) {
-            $orgId = structure_import_appliquer_structure($parIndex[$g['self_index']], $resolutions, $resume, false, $decisionDefaut);
+            $orgId = structure_import_appliquer_structure($parIndex[$g['self_index']], $choix, $resume, false);
             $consommes[$g['self_index']] = true;
             if ($orgId === null) {
-                continue; // ligne organisateur ignorée (conflit non résolu) → on laisse le reste tel quel
+                continue; // sécurité : organisateur non appliqué → on laisse le reste tel quel
             }
         } else {
             [$orgId, $creee] = structure_import_trouver_ou_creer_organisateur($g['organisateur']);
@@ -1156,17 +1249,19 @@ function structures_appliquer_import(array $analyse, array $resolutions, array $
         if (isset($consommes[$ligne['index']])) {
             continue;
         }
-        structure_import_appliquer_structure($ligne, $resolutions, $resume, true, $decisionDefaut);
+        structure_import_appliquer_structure($ligne, $choix, $resume, true);
     }
     return $resume;
 }
 
-// Insère ou met à jour la structure d'une ligne d'import, puis y rattache
-// contact/étiquettes/note (et, si $autoLieu, crée le lieu auto des catégories
-// « organisateur »). Renvoie l'id de la structure, ou null si la ligne était un
-// conflit non résolu (ignorée). Facteur commun aux lignes normales et aux
-// lignes « organisateur » d'un regroupement.
-function structure_import_appliquer_structure(array $ligne, array $resolutions, array &$resume, bool $autoLieu, string $decisionDefaut = 'ignorer'): ?int
+// Insère (si nouvelle) ou FUSIONNE champ par champ (si déjà présente) la
+// structure d'une ligne d'import, puis y rattache contact/étiquettes/note (et,
+// si $autoLieu, crée le lieu auto des catégories « organisateur »). Pour une
+// fiche existante : remplissage des champs vides + application des choix de
+// conflit ($choix[index][colonne] = prendre l'import), défaut = garder
+// l'actuel. Renvoie l'id de la structure. Facteur commun aux lignes normales et
+// aux lignes « organisateur » d'un regroupement.
+function structure_import_appliquer_structure(array $ligne, array $choix, array &$resume, bool $autoLieu): ?int
 {
     $d = $ligne['donnees'];
     $pays = $d['pays'] !== '' ? $d['pays'] : 'Suisse';
@@ -1183,25 +1278,43 @@ function structure_import_appliquer_structure(array $ligne, array $resolutions, 
         $structureId = (int) db()->lastInsertId();
         $resume['nouvelles']++;
     } else {
-        // Absence de décision explicite → décision globale par défaut. Cette
-        // valeur par défaut est essentielle : sur un gros import, le formulaire
-        // ne peut pas envoyer une décision par ligne (PHP max_input_vars ~1000
-        // tronque silencieusement decision[]), donc seules les EXCEPTIONS sont
-        // transmises, tout le reste suit le défaut.
-        $decision = $resolutions[$ligne['index']] ?? $decisionDefaut;
-        if ($decision !== 'maj') {
-            $resume['ignorees']++;
-            return null;
-        }
+        // Fiche déjà présente : FUSION champ par champ (jamais d'écrasement
+        // global). Remplissage des champs vides côté base + application des
+        // choix de conflit ($choix[index][colonne] présent = prendre l'import),
+        // défaut = garder l'actuel. Seuls les « prendre l'import » sont postés
+        // (cases cochées) → borne PHP max_input_vars. Si rien ne change, la
+        // fiche est comptée « ignorée » (aucune écriture).
         $structureId = (int) $ligne['correspondance_id'];
-        db()->prepare(
-            'UPDATE structures SET nom=?, categorie=?, sous_categorie=?, adresse_rue=?, adresse_npa=?, adresse_localite=?,
-                                    region=?, grande_region=?, adresse_pays=?, site_web=?, via=?, notes=?, mise_a_jour_le=? WHERE id=?'
-        )->execute([
-            $d['nom'], $d['categorie'], $d['sous_categorie'], $d['adresse_rue'], $d['adresse_npa'], $d['adresse_localite'],
-            $d['region'], $d['grande_region'], $pays, $d['site_web'], $d['via'], $d['notes'], $majLe, $structureId,
-        ]);
-        $resume['mises_a_jour']++;
+        $existante = is_array($ligne['structure_existante'] ?? null) ? $ligne['structure_existante'] : [];
+        $fusion = structure_import_fusion($existante, $d);
+        $maj = $fusion['remplissages'];
+        foreach ($fusion['conflits'] as $col => $info) {
+            if (!empty($choix[$ligne['index']][$col])) {
+                $maj[$col] = $info['importe'];
+            }
+        }
+        // Le pays effectif de la fiche (pour la taxonomie des régions) : import
+        // s'il est renseigné, sinon celui déjà en base.
+        $pays = $d['pays'] !== '' ? $d['pays'] : (string) ($existante['adresse_pays'] ?? '');
+        if ($maj) {
+            // Colonnes issues d'une whitelist (STRUCTURE_IMPORT_FUSION_CHAMPS) →
+            // interpolation sûre.
+            $sets = [];
+            $vals = [];
+            foreach ($maj as $col => $v) {
+                $sets[] = "$col = ?";
+                $vals[] = $v;
+            }
+            if ($majLe !== '') {
+                $sets[] = 'mise_a_jour_le = ?';
+                $vals[] = $majLe;
+            }
+            $vals[] = $structureId;
+            db()->prepare('UPDATE structures SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($vals);
+            $resume['mises_a_jour']++;
+        } else {
+            $resume['ignorees']++;
+        }
     }
 
     // La région importée (grande_region) rejoint la taxonomie sous le pays de la

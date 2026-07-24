@@ -1276,7 +1276,7 @@ function route_import_structures(): void
     // (render() ne fournit aucun défaut pour une clé absente, cf. extract()).
     $vars = [
         'etape' => 'upload', 'err' => null, 'entete' => [], 'conflits' => [],
-        'nNouvelles' => 0, 'resume' => [], 'nExclusion' => 0,
+        'nNouvelles' => 0, 'nFusion' => 0, 'resume' => [], 'nExclusion' => 0,
         'groupes' => [], 'groupesConfirmes' => [], 'mappingSuggere' => [],
     ];
 
@@ -1370,31 +1370,34 @@ function route_import_structures(): void
         }
 
         if ($etape !== 'appliquer') {
-            // analyser (sans groupe) ou grouper → écran de résolution des conflits.
-            $conflits = array_values(array_filter(
-                $analyse,
-                fn ($l) => $l['correspondance_id'] !== null && !isset($exclus[$l['index']])
-            ));
+            // analyser (sans groupe) ou grouper → écran de résolution. On ne
+            // présente QUE les fiches existantes ayant un vrai conflit de champ
+            // (deux valeurs remplies et différentes) ; le reste (nouvelles +
+            // fusions sans conflit) s'applique tout seul.
+            $conflits = structures_import_conflits($analyse, $exclus);
             $restants = array_filter($analyse, fn ($l) => !isset($exclus[$l['index']]));
+            $nCorrespondances = count(array_filter($restants, fn ($l) => $l['correspondance_id'] !== null));
             $vars['etape'] = 'resoudre';
             $vars['conflits'] = $conflits;
-            $vars['nNouvelles'] = count($restants) - count($conflits);
+            $vars['nNouvelles'] = count($restants) - $nCorrespondances;
+            $vars['nFusion'] = $nCorrespondances - count($conflits); // fusionnées sans conflit
             $vars['groupesConfirmes'] = $confirmes;
             render('import_structures', $vars, 'Importer');
             return;
         }
 
         // etape === 'appliquer'
-        // Décision globale (un seul champ) + exceptions par ligne : le formulaire
-        // n'envoie que les lignes qui diffèrent du défaut, pour ne pas dépasser
-        // PHP max_input_vars (~1000) sur un import de plusieurs milliers de lignes.
-        $decisionDefaut = (($_POST['decision_globale'] ?? '') === 'maj') ? 'maj' : 'ignorer';
-        $resolutions = [];
-        foreach ((array) ($_POST['decision'] ?? []) as $index => $decision) {
-            $resolutions[(int) $index] = $decision === 'maj' ? 'maj' : 'ignorer';
+        // Fusion champ par champ : le formulaire n'envoie que les cases cochées
+        // (« prendre l'import » pour un champ en conflit) → borne PHP
+        // max_input_vars. Défaut (case absente) = garder la valeur actuelle.
+        $choix = [];
+        foreach ((array) ($_POST['prendre'] ?? []) as $index => $champs) {
+            foreach ((array) $champs as $col => $v) {
+                $choix[(int) $index][(string) $col] = true;
+            }
         }
         $vars['etape'] = 'resume';
-        $vars['resume'] = structures_appliquer_import($analyse, $resolutions, $confirmes, $decisionDefaut);
+        $vars['resume'] = structures_appliquer_import($analyse, $choix, $confirmes);
         unset($_SESSION['import_structures_csv'], $_SESSION['import_structures_nom'], $_SESSION['import_structures_mapping']);
         render('import_structures', $vars, 'Importer');
         return;

@@ -1,5 +1,5 @@
 <?php /** @var string $etape */ /** @var ?string $err */
-/** @var array $entete */ /** @var array $conflits */ /** @var int $nNouvelles */
+/** @var array $entete */ /** @var array $conflits */ /** @var int $nNouvelles */ /** @var int $nFusion */
 /** @var array $resume */ /** @var int $nExclusion */
 /** @var array $groupes */ /** @var array $groupesConfirmes */ /** @var array $mappingSuggere */
 ?>
@@ -98,38 +98,40 @@
 
 <?php elseif ($etape === 'resoudre'): ?>
 <div class="card form">
-    <p><strong><?= $nNouvelles ?></strong> nouvelle(s) structure(s) seront ajoutée(s) directement.
-       <strong><?= count($conflits) ?></strong> correspondance(s) trouvée(s) avec l'existant.</p>
+    <p><strong><?= $nNouvelles ?></strong> nouvelle(s) structure(s) ajoutée(s)<?php if ($nFusion > 0): ?>,
+       <strong><?= $nFusion ?></strong> fiche(s) existante(s) fusionnée(s) automatiquement (champs vides complétés, sans conflit)<?php endif; ?>.</p>
     <?php if ($conflits): ?>
-    <p class="muted small">Choisissez pour toutes les correspondances à la fois, ou décidez une par une ci-dessous.</p>
+    <p class="muted small"><strong><?= count($conflits) ?></strong> fiche(s) ont des champs remplis <strong>des deux côtés</strong> avec des valeurs différentes. Pour chaque champ, cochez « prendre l'importé », ou laissez décoché pour conserver la valeur actuelle.</p>
     <div class="form-actions mb-16">
-        <button type="button" class="btn ghost btn-sm" id="btn-tout-ignorer">Tout ignorer</button>
-        <button type="button" class="btn ghost btn-sm" id="btn-tout-maj">Tout mettre à jour</button>
-        <span class="muted small">Par défaut : <strong id="decision-defaut-label">Ignorer</strong></span>
+        <button type="button" class="btn ghost btn-sm" id="btn-tout-actuel">Tout garder l'actuel</button>
+        <button type="button" class="btn ghost btn-sm" id="btn-tout-importe">Tout prendre l'importé</button>
     </div>
+    <?php else: ?>
+    <p class="muted small">Aucun conflit à trancher : l'import peut être appliqué directement.</p>
     <?php endif; ?>
     <form method="post" action="?p=import_structures" id="form-resoudre">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="appliquer">
         <input type="hidden" name="depuis_session" value="1">
-        <input type="hidden" name="decision_globale" id="decision-globale" value="ignorer">
         <?php foreach ($groupesConfirmes as $gc): ?><input type="hidden" name="groupes[]" value="<?= e($gc) ?>"><?php endforeach; ?>
-        <?php foreach ($conflits as $c): $d = $c['donnees']; $ex = $c['structure_existante']; ?>
+        <?php foreach ($conflits as $c): $i = (int) $c['index']; $titre = (string) ($c['structure_existante']['nom'] ?? $c['donnees']['nom']); ?>
             <div class="card mt-16 conflit-row">
-                <h3 class="sub no-mt"><?= e($d['nom']) ?></h3>
+                <h3 class="sub no-mt"><?= e($titre) ?></h3>
                 <div class="table-scroll">
                 <table class="list">
-                    <thead><tr><th></th><th>Actuel</th><th>Importé</th></tr></thead>
+                    <thead><tr><th>Champ</th><th>Actuel (conservé)</th><th>Importé</th><th class="nowrap">Prendre l'importé</th></tr></thead>
                     <tbody>
-                        <tr><td class="muted small">Catégorie</td><td><?= e($ex['categorie']) ?></td><td><?= e($d['categorie']) ?></td></tr>
-                        <tr><td class="muted small">Adresse</td><td><?= e(trim($ex['adresse_rue'] . ' ' . $ex['adresse_npa'] . ' ' . $ex['adresse_localite'])) ?: '—' ?></td><td><?= e(trim($d['adresse_rue'] . ' ' . $d['adresse_npa'] . ' ' . $d['adresse_localite'])) ?: '—' ?></td></tr>
-                        <tr><td class="muted small">Région</td><td><?= e($ex['region']) ?: '—' ?></td><td><?= e($d['region']) ?: '—' ?></td></tr>
-                        <tr><td class="muted small">Site web</td><td><?= e($ex['site_web']) ?: '—' ?></td><td><?= e($d['site_web']) ?: '—' ?></td></tr>
+                        <?php foreach ($c['conflits'] as $col => $info): ?>
+                        <tr>
+                            <td class="muted small"><?= e($info['label']) ?></td>
+                            <td><?= e($info['actuel']) ?></td>
+                            <td><?= e($info['importe']) ?></td>
+                            <td style="text-align:center"><input type="checkbox" class="prendre-box" name="prendre[<?= $i ?>][<?= e((string) $col) ?>]" value="1" aria-label="Prendre la valeur importée pour <?= e($info['label']) ?>"></td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
                 </div>
-                <label class="check"><input type="radio" name="decision[<?= $c['index'] ?>]" value="ignorer" checked> Ignorer (garder l'existant)</label>
-                <label class="check"><input type="radio" name="decision[<?= $c['index'] ?>]" value="maj"> Mettre à jour avec les valeurs importées</label>
             </div>
         <?php endforeach; ?>
         <div class="form-actions mt-16">
@@ -139,34 +141,12 @@
     <script>
     (function () {
         var form = document.getElementById('form-resoudre');
-        var globale = document.getElementById('decision-globale');
-        var lbl = document.getElementById('decision-defaut-label');
-        function refreshLabel() {
-            if (lbl) lbl.textContent = globale.value === 'maj' ? 'Mettre à jour' : 'Ignorer';
-        }
-        function toutRegler(valeur) {
-            globale.value = valeur;
-            form.querySelectorAll('.conflit-row input[type=radio][value="' + valeur + '"]').forEach(function (r) { r.checked = true; });
-            refreshLabel();
-        }
-        var btnIgnorer = document.getElementById('btn-tout-ignorer');
-        var btnMaj = document.getElementById('btn-tout-maj');
-        if (btnIgnorer) btnIgnorer.addEventListener('click', function () { toutRegler('ignorer'); });
-        if (btnMaj) btnMaj.addEventListener('click', function () { toutRegler('maj'); });
-        refreshLabel();
-        // Au submit, on ne transmet QUE les lignes qui diffèrent du défaut global
-        // (les radios conformes au défaut sont désactivées → non postées). Sans
-        // ça, un import de plusieurs milliers de conflits dépasserait PHP
-        // max_input_vars (~1000) et la plupart des décisions seraient perdues.
-        form.addEventListener('submit', function () {
-            var def = globale.value;
-            form.querySelectorAll('.conflit-row').forEach(function (row) {
-                var checked = row.querySelector('input[type=radio]:checked');
-                if (checked && checked.value === def) {
-                    row.querySelectorAll('input[type=radio]').forEach(function (r) { r.disabled = true; });
-                }
-            });
-        });
+        if (!form) { return; }
+        var boxes = form.querySelectorAll('.prendre-box');
+        var a = document.getElementById('btn-tout-actuel');
+        var b = document.getElementById('btn-tout-importe');
+        if (a) a.addEventListener('click', function () { boxes.forEach(function (x) { x.checked = false; }); });
+        if (b) b.addEventListener('click', function () { boxes.forEach(function (x) { x.checked = true; }); });
     })();
     </script>
 </div>
