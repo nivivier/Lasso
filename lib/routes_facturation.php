@@ -673,9 +673,9 @@ function structure_donnees_crm(int $id): array
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
 
-    // Historique typé de la fiche (table historique, migr. 52) — remplace la
-    // lecture de structure_notes (editions, notes, mailings, derniers concerts).
-    $notesHistorique = historique_entite('structure', $id);
+    // Historique typé FUSIONNÉ (fiche + ses lieux, table historique migr. 52) —
+    // remplace la lecture de structure_notes.
+    $notesHistorique = historique_fusionne('structure', $id);
 
     $stmtTags = db()->prepare(
         'SELECT t.* FROM structure_tags t JOIN structure_tag_liens l ON l.tag_id = t.id
@@ -806,7 +806,16 @@ function route_structure_statut(): void
     $actif = isset($_POST['actif']) ? 1 : 0;
     $desinscrit = isset($_POST['desinscrit']) ? 1 : 0;
     if (!$actif) { $desinscrit = 1; }
+    $av = db()->prepare('SELECT actif, desinscrit FROM structures WHERE id = ?');
+    $av->execute([$id]);
+    $avant = $av->fetch() ?: ['actif' => $actif, 'desinscrit' => $desinscrit];
     db()->prepare('UPDATE structures SET actif = ?, desinscrit = ? WHERE id = ?')->execute([$actif, $desinscrit, $id]);
+    if (module_actif('booking')) {
+        $lignes = [];
+        if ((int) $avant['actif'] !== $actif) { $lignes[] = 'Statut : ' . ($actif ? 'active' : 'inactive'); }
+        if ((int) $avant['desinscrit'] !== $desinscrit) { $lignes[] = 'Désinscrite du mailing : ' . ($desinscrit ? 'oui' : 'non'); }
+        if ($lignes) { journaliser('structure', $id, 'edition', implode("\n", $lignes)); }
+    }
     redirect('structure', ['id' => $id]);
 }
 
@@ -818,7 +827,11 @@ function route_structure_renommer(): void
     $id  = (int) ($_POST['id'] ?? 0);
     $nom = trim($_POST['nom'] ?? '');
     if ($id && $nom !== '') {
+        $ancien = nom_entite('structures', $id);
         db()->prepare('UPDATE structures SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+        if (module_actif('booking') && $ancien !== $nom) {
+            journaliser('structure', $id, 'edition', 'Nom : ' . ($ancien !== '' ? $ancien : '(vide)') . ' → ' . $nom);
+        }
     }
     redirect('structure', ['id' => $id]);
 }

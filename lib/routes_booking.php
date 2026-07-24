@@ -46,6 +46,9 @@ function route_structure_contact_ajouter(): void
                         VALUES (:structure_id, :prenom, :nom, :role, :email, :telephone, :formulaire_url, :langue, :est_administration, :est_booking)')
             ->execute($champs);
     }
+    $nomContact = trim($champs['prenom'] . ' ' . $champs['nom']);
+    $nomContact = $nomContact !== '' ? $nomContact : ($champs['email'] !== '' ? $champs['email'] : 'contact');
+    journaliser('structure', $structureId, 'edition', ($contactId ? 'Contact modifié : ' : 'Contact ajouté : ') . $nomContact);
     redirect('structure', ['id' => $structureId]);
 }
 
@@ -56,7 +59,15 @@ function route_structure_contact_delete(): void
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
         $structureId = (int) ($_POST['structure_id'] ?? 0);
+        $stmtC = db()->prepare('SELECT prenom, nom, email FROM structure_contacts WHERE id = ? AND structure_id = ?');
+        $stmtC->execute([$id, $structureId]);
+        $row = $stmtC->fetch();
         db()->prepare('DELETE FROM structure_contacts WHERE id = ? AND structure_id = ?')->execute([$id, $structureId]);
+        if ($row) {
+            $n = trim((string) $row['prenom'] . ' ' . (string) $row['nom']);
+            $n = $n !== '' ? $n : ((string) $row['email'] !== '' ? (string) $row['email'] : 'contact');
+            journaliser('structure', $structureId, 'edition', 'Contact supprimé : ' . $n);
+        }
         redirect('structure', ['id' => $structureId]);
     }
     redirect('structures');
@@ -102,6 +113,7 @@ function route_structure_tag_ajouter(): void
         }
         db()->prepare('INSERT OR IGNORE INTO structure_tag_liens (structure_id, tag_id) VALUES (?, ?)')
             ->execute([$structureId, (int) $tagId]);
+        journaliser('structure', $structureId, 'edition', 'Étiquette ajoutée : ' . $nom);
     }
     redirect('structure', ['id' => $structureId]);
 }
@@ -113,7 +125,13 @@ function route_structure_tag_retirer(): void
         check_csrf();
         $structureId = (int) ($_POST['structure_id'] ?? 0);
         $tagId = (int) ($_POST['tag_id'] ?? 0);
+        $stmtT = db()->prepare('SELECT nom FROM structure_tags WHERE id = ?');
+        $stmtT->execute([$tagId]);
+        $nomTag = (string) ($stmtT->fetchColumn() ?: '');
         db()->prepare('DELETE FROM structure_tag_liens WHERE structure_id = ? AND tag_id = ?')->execute([$structureId, $tagId]);
+        if ($nomTag !== '') {
+            journaliser('structure', $structureId, 'edition', 'Étiquette retirée : ' . $nomTag);
+        }
         redirect('structure', ['id' => $structureId]);
     }
     redirect('structures');
@@ -268,6 +286,7 @@ function route_structure_lieu_lier(): void
     }
     db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
         ->execute([$structureId, $lieuId]);
+    journaliser_lien_structure_lieu($structureId, $lieuId, true);
     redirect('structure', ['id' => $structureId]);
 }
 
@@ -278,6 +297,7 @@ function route_structure_lieu_delier(): void
         check_csrf();
         $structureId = (int) ($_POST['structure_id'] ?? 0);
         $lieuId = (int) ($_POST['lieu_id'] ?? 0);
+        journaliser_lien_structure_lieu($structureId, $lieuId, false);
         db()->prepare('DELETE FROM structure_lieux WHERE structure_id = ? AND lieu_id = ?')->execute([$structureId, $lieuId]);
         redirect('structure', ['id' => $structureId]);
     }
@@ -585,7 +605,7 @@ function route_lieu(): void
         'lieu' => $lieu,
         'err' => null,
         'evenementsLies' => $id ? lieu_evenements($id) : [],
-        'historique' => $id ? historique_entite('lieu', $id) : [],
+        'historique' => $id ? historique_fusionne('lieu', $id) : [],
         'structuresLiees' => $id ? lieu_structures_liees($id) : [],
         // La liste des structures (potentiellement des milliers) n'est plus
         // injectée dans la page : le sélecteur d'organisateur la charge à la
@@ -647,8 +667,12 @@ function route_lieu_organisateur(): void
     db()->beginTransaction();
     if ($ancien && $ancien !== $nouveau) {
         db()->prepare('DELETE FROM structure_lieux WHERE lieu_id = ? AND structure_id = ?')->execute([$lieuId, $ancien]);
+        journaliser_lien_structure_lieu($ancien, $lieuId, false);
     }
     db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')->execute([$nouveau, $lieuId]);
+    if ($ancien !== $nouveau) {
+        journaliser_lien_structure_lieu($nouveau, $lieuId, true);
+    }
     db()->commit();
     redirect('lieu', ['id' => $lieuId]);
 }
@@ -663,7 +687,11 @@ function route_lieu_statut(): void
     $id = (int) ($_POST['id'] ?? 0);
     if (!$id) { redirect('lieux'); }
     $actif = isset($_POST['actif']) ? 1 : 0;
+    $avant = (int) (db()->query('SELECT actif FROM lieux WHERE id = ' . $id)->fetchColumn());
     db()->prepare('UPDATE lieux SET actif = ? WHERE id = ?')->execute([$actif, $id]);
+    if ($avant !== $actif) {
+        journaliser('lieu', $id, 'edition', 'Statut : ' . ($actif ? 'actif' : 'inactif'));
+    }
     redirect('lieu', ['id' => $id]);
 }
 
@@ -675,7 +703,11 @@ function route_lieu_renommer(): void
     $id  = (int) ($_POST['id'] ?? 0);
     $nom = trim($_POST['nom'] ?? '');
     if ($id && $nom !== '') {
+        $ancien = nom_entite('lieux', $id);
         db()->prepare('UPDATE lieux SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+        if ($ancien !== $nom) {
+            journaliser('lieu', $id, 'edition', 'Nom : ' . ($ancien !== '' ? $ancien : '(vide)') . ' → ' . $nom);
+        }
     }
     redirect('lieu', ['id' => $id]);
 }

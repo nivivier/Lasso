@@ -340,6 +340,25 @@ function journaliser_diff(string $entiteType, int $id, array $avant, array $apre
     }
 }
 
+// Nom d'une structure ou d'un lieu (table en liste blanche). '' si introuvable.
+function nom_entite(string $table, int $id): string
+{
+    $t = $table === 'lieux' ? 'lieux' : 'structures';
+    $s = db()->prepare("SELECT nom FROM $t WHERE id = ?");
+    $s->execute([$id]);
+    return (string) ($s->fetchColumn() ?: '');
+}
+
+// Journalise, DES DEUX CÔTÉS, la liaison/déliaison entre une structure et un
+// lieu (l'un est l'organisateur de l'autre).
+function journaliser_lien_structure_lieu(int $structureId, int $lieuId, bool $lie): void
+{
+    $sNom = nom_entite('structures', $structureId);
+    $lNom = nom_entite('lieux', $lieuId);
+    journaliser('structure', $structureId, 'edition', ($lie ? 'Salle / festival lié : ' : 'Salle / festival délié : ') . $lNom);
+    journaliser('lieu', $lieuId, 'edition', ($lie ? 'Organisateur lié : ' : 'Organisateur délié : ') . $sNom);
+}
+
 // Historique d'une fiche, plus récent d'abord, avec l'auteur.
 function historique_entite(string $entiteType, int $id): array
 {
@@ -354,6 +373,40 @@ function historique_entite(string $entiteType, int $id): array
     );
     $stmt->execute([$entiteType, $id]);
     return $stmt->fetchAll();
+}
+
+// Historique FUSIONNÉ pour l'affichage : celui de la fiche + celui des entités
+// liées (les lieux d'une organisation, ou l'organisation d'un lieu), trié dans
+// le temps. Chaque entrée porte 'source_label' (vide = la fiche elle-même,
+// sinon « Lieu « X » » / « Organisateur « Y » »).
+function historique_fusionne(string $entiteType, int $id): array
+{
+    $entrees = [];
+    foreach (historique_entite($entiteType, $id) as $e) {
+        $e['source_label'] = '';
+        $entrees[] = $e;
+    }
+    if ($entiteType === 'structure') {
+        $stmt = db()->prepare('SELECT l.id, l.nom FROM lieux l JOIN structure_lieux sl ON sl.lieu_id = l.id WHERE sl.structure_id = ?');
+        $stmt->execute([$id]);
+        foreach ($stmt->fetchAll() as $l) {
+            foreach (historique_entite('lieu', (int) $l['id']) as $e) {
+                $e['source_label'] = 'Lieu « ' . (string) $l['nom'] . ' »';
+                $entrees[] = $e;
+            }
+        }
+    } elseif ($entiteType === 'lieu') {
+        $stmt = db()->prepare('SELECT s.id, s.nom FROM structures s JOIN structure_lieux sl ON sl.structure_id = s.id WHERE sl.lieu_id = ?');
+        $stmt->execute([$id]);
+        foreach ($stmt->fetchAll() as $s) {
+            foreach (historique_entite('structure', (int) $s['id']) as $e) {
+                $e['source_label'] = 'Organisateur « ' . (string) $s['nom'] . ' »';
+                $entrees[] = $e;
+            }
+        }
+    }
+    usort($entrees, fn ($a, $b) => [(string) $b['cree_le'], (int) $b['id']] <=> [(string) $a['cree_le'], (int) $a['id']]);
+    return $entrees;
 }
 
 // Fusionne $autres dans $idGarde : le profil (nom, adresse, catégorie…) de

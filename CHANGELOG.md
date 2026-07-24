@@ -7,6 +7,20 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.1] — 2026-07-24
+
+### Corrigé
+- **Historique** : les changements de statut (actif/inactif, désinscription),
+  l'ajout/la modification/la suppression d'un contact, les étiquettes et les
+  liaisons organisateur↔lieu sont désormais journalisés (ils manquaient).
+- **Historique** : les lieux tiennent aussi leur journal (renommage, statut,
+  organisateur, dernier concert).
+
+### Modifié
+- **Historique** : affichage fusionné — la fiche d'une organisation montre aussi
+  l'historique de ses lieux, et la fiche d'un lieu celui de son organisateur,
+  chaque entrée « rapportée » étant étiquetée de sa source.
+
 ## [1.5.0] — 2026-07-24
 
 ### Ajouté

@@ -16,6 +16,7 @@ $histoEntrees = $histoEntrees ?? [];
                     <?php $auteur = trim((string) ($he['u_prenom'] ?? '') . ' ' . (string) ($he['u_nom'] ?? '')); ?>
                     <?php if ($auteur !== ''): ?> · <?= e($auteur) ?><?php endif; ?>
                     · <?= e($hi[0]) ?>
+                    <?php if (($he['source_label'] ?? '') !== ''): ?> <span class="badge muted-badge"><?= e((string) $he['source_label']) ?></span><?php endif; ?>
                 </div>
                 <?php if ((string) $he['contenu'] !== ''): ?><div class="small"><?= nl2br(e((string) $he['contenu'])) ?></div><?php endif; ?>
             </div>
