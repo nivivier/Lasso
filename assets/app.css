@@ -136,6 +136,13 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     padding: 10px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
 }
 .info-tip:hover .info-tip-bulle, .info-tip:focus .info-tip-bulle, .info-tip.open .info-tip-bulle { display: block; }
+/* Un label de formulaire est en flex colonne (.form label) : un info_tip placé
+   directement dans le label (ex. « <label>Région <?= info_tip() ?><select> »)
+   deviendrait un item flex à part → renvoyé à la ligne. On l'ancre en haut à
+   droite du label, hors du flux, pour qu'il ne casse jamais la ligne du libellé.
+   Les tips imbriqués dans un <span> (donc pas enfants directs) restent inline. */
+.form label { position: relative; }
+.form label > .info-tip { position: absolute; top: 0; right: 0; margin-left: 0; }
 
 /* Réinitialisation de mot de passe : champ, bouton en dessous */
 .reset-form { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }

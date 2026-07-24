@@ -7,6 +7,18 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.3] — 2026-07-24
+
+### Corrigé
+- **Info-bulles (ⓘ)** : une info-bulle placée directement dans un libellé de
+  formulaire ne repart plus à la ligne — elle est ancrée en haut à droite du
+  champ (correctif CSS général, plus besoin de le régler au cas par cas).
+
+### Ajouté
+- **Import → historique** : les dates importées de « dernier contact »
+  (structures) et de « dernier concert / diffusion » (lieux) génèrent une entrée
+  d'historique datée du jour concerné.
+
 ## [1.5.2] — 2026-07-24
 
 ### Modifié

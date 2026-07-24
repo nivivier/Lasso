@@ -1671,6 +1671,14 @@ function structure_import_creer_lieu(int $structureId, string $nom, string $type
     $prog = mois_plage_depuis_liste($d['periode_programmation'] ?? '');
     $grande = (string) ($d['grande_region'] ?? '');
     $dernierConcert = structure_date_csv_vers_iso($d['dernier_concert'] ?? '') ?? '';
+    // Date de dernier concert déjà en base (lieu existant) — pour ne journaliser
+    // que les changements réels et éviter les doublons au ré-import.
+    $ancienDC = '';
+    if ($lieuId !== null) {
+        $q = db()->prepare('SELECT dernier_concert_le FROM lieux WHERE id = ?');
+        $q->execute([$lieuId]);
+        $ancienDC = (string) ($q->fetchColumn() ?: '');
+    }
     if ($lieuId === null) {
         db()->prepare(
             'INSERT INTO lieux (type, nom, ville, region, grande_region, pays, jauge_min, jauge_max,
@@ -1700,6 +1708,9 @@ function structure_import_creer_lieu(int $structureId, string $nom, string $type
             $jaugeMin, $jaugeMax, $prog['debut'], $prog['fin'], $evt['debut'], $evt['fin'],
             $grande, $grande, $dernierConcert, $dernierConcert, $lieuId,
         ]);
+    }
+    if ($dernierConcert !== '' && $dernierConcert !== $ancienDC) {
+        journaliser('lieu', $lieuId, 'dernier_concert', 'Dernier concert / diffusion (import) : ' . $dernierConcert, $dernierConcert);
     }
     db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
         ->execute([$structureId, $lieuId]);
