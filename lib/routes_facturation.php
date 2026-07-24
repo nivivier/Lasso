@@ -641,6 +641,7 @@ function route_structures(): void
 
     render('structures_liste', [
         'structures' => $structures,
+        'nbEvenements' => structures_nb_evenements(array_column($structures, 'id')),
         'recherche' => $recherche,
         'categorieId' => $categorieId,
         'pays' => $pays,
@@ -667,7 +668,7 @@ function route_structures(): void
 function structure_donnees_crm(int $id): array
 {
     if (!$id || !module_actif('booking')) {
-        return ['contacts' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [], 'categoriesLieu' => []];
+        return ['contacts' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
@@ -699,6 +700,7 @@ function structure_donnees_crm(int $id): array
         'lieuxLies' => $stmtLieuxLies->fetchAll(),
         'lieuxDispo' => db()->query('SELECT * FROM lieux ORDER BY type, nom')->fetchAll(),
         'categoriesLieu' => lieu_categories_liste(),
+        'evenementsLies' => structure_evenements($id),
     ];
 }
 

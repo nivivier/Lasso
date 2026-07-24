@@ -130,7 +130,7 @@
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>E-mail</th><th>Dernier contact</th><th>Salles / festivals</th><th>Factures</th>
+        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>E-mail</th><th>Dernier contact</th><th>Salles / festivals</th><th>Factures</th><?php if (module_actif('evenements')): ?><th>Événements</th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
@@ -156,6 +156,9 @@
                     0
                 <?php endif; ?>
             </td>
+            <?php if (module_actif('evenements')): ?>
+            <td class="muted small"><?php $ne = (int) ($nbEvenements[(int) $d['id']] ?? 0); echo $ne > 0 ? $ne : '—'; ?></td>
+            <?php endif; ?>
         </tr>
     <?php endforeach; ?>
     </tbody>

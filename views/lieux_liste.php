@@ -132,7 +132,7 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Organisateur</th><th>Ville</th><th>Type</th><th>Jauge</th><th>Événement</th><th>Programmation</th>
+        <th>Nom</th><th>Organisateur</th><th>Ville</th><th>Type</th><th>Jauge</th><th>Événement</th><th>Programmation</th><?php if (module_actif('evenements')): ?><th>Événements</th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($lieux as $l): ?>
@@ -159,6 +159,9 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
             <td class="muted small">
                 <?= $l['mois_debut'] && $l['mois_fin'] ? e(mois_nom((int) $l['mois_debut']) . ' – ' . mois_nom((int) $l['mois_fin'])) : '—' ?>
             </td>
+            <?php if (module_actif('evenements')): ?>
+            <td class="muted small"><?php $ne = (int) ($nbEvenements[(int) $l['id']] ?? 0); echo $ne > 0 ? $ne : '—'; ?></td>
+            <?php endif; ?>
         </tr>
     <?php endforeach; ?>
     </tbody>

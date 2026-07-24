@@ -178,10 +178,7 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <label>Dernier concert ou diffusion <input name="dernier_concert_le" type="date" value="<?= $v('dernier_concert_le') ?>"></label>
     </div>
 
-    <div class="grid2">
-        <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
-        <label class="check"><input type="checkbox" name="actif" value="1" <?= (int) ($lieu['actif'] ?? 1) === 1 ? 'checked' : '' ?>> Lieu actif</label>
-    </div>
+    <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
 
     <label>Notes (optionnel)
         <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
@@ -196,6 +193,38 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
 <?php if ($avecAside): ?>
 </div>
 <aside class="struct-aside">
+    <section class="aside-block">
+        <h3 class="sub mt-0">Statut</h3>
+        <form method="post" action="?p=lieu_statut" id="lieu-statut-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= (int) ($lieu['id'] ?? 0) ?>">
+            <label class="check">
+                <input type="checkbox" name="actif" id="lieu-actif" value="1" <?= (int) ($lieu['actif'] ?? 1) === 1 ? 'checked' : '' ?>>
+                Lieu actif
+            </label>
+        </form>
+        <script>
+        (function () {
+            var a = document.getElementById('lieu-actif');
+            var f = document.getElementById('lieu-statut-form');
+            if (a && f) { a.addEventListener('change', function () { (f.requestSubmit ? f.requestSubmit() : f.submit()); }); }
+        })();
+        </script>
+    </section>
+    <?php if (module_actif('evenements') && $evenementsLies): ?>
+    <section class="aside-block">
+        <h3 class="sub mt-0"><?= icon('calendar') ?> Événements (<?= count($evenementsLies) ?>)</h3>
+        <ul class="clean-list small">
+            <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
+            <li>
+                <a href="?p=evenement&id=<?= (int) $ev['id'] ?>" onclick="event.stopPropagation()"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
+                — <?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?><?php if ($ev['ville']): ?> <span class="muted">· <?= e((string) $ev['ville']) ?></span><?php endif; ?>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
+    </section>
+    <?php endif; ?>
     <?php if (!$structuresLiees): ?>
     <section class="aside-block">
         <div class="card-head-row">

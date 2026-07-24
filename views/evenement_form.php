@@ -115,6 +115,15 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             </label>
             <label>Salle <input name="salle" value="<?= $v('salle') ?>"></label>
             <label>Festival <input name="festival" value="<?= $v('festival') ?>"></label>
+            <?php if ($peutLierLieu): ?>
+            <label>Lieu (base) <?= info_tip("Rattacher l'événement à un lieu de la base (booking) : il apparaîtra dans l'historique du lieu et de sa structure. Laisser vide pour ne pas lier.") ?>
+                <div class="cat-search" id="evt-lieu-search">
+                    <input type="text" class="cat-search-input" placeholder="Rechercher un lieu…" autocomplete="off" value="<?= $lieuActuel ? e((string) $lieuActuel['nom'] . ((string) $lieuActuel['ville'] !== '' ? ' — ' . (string) $lieuActuel['ville'] : '')) : '' ?>">
+                    <input type="hidden" name="lieu_id" class="cat-search-val" value="<?= $lieuActuel ? (int) $lieuActuel['id'] : '' ?>">
+                    <ul class="cat-search-list" hidden role="listbox"></ul>
+                </div>
+            </label>
+            <?php endif; ?>
         </div>
         <div class="grid3">
             <label>Lien <input type="url" name="lien_infos" value="<?= $v('lien_infos') ?>" placeholder="https://…"></label>
@@ -586,6 +595,34 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                 orgInput.reportValidity();
                 e.preventDefault();
             }
+        });
+    }
+
+    // Lieu (base) : widget de recherche alimenté à la demande via ?p=lieux_options
+    // au premier focus (potentiellement des milliers de lieux → pas d'injection
+    // dans la page). Effacer le champ vide le lien (clearHiddenOnInput).
+    const lieuWrap = document.getElementById('evt-lieu-search');
+    if (lieuWrap && window.lassoInitCatSearch) {
+        const lieuList = lieuWrap.querySelector('.cat-search-list');
+        const lieuInput = lieuWrap.querySelector('.cat-search-input');
+        let lieuCharge = false;
+        lieuInput.addEventListener('focus', function () {
+            if (lieuCharge) { return; }
+            lieuCharge = true;
+            fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(function (opts) {
+                    const frag = document.createDocumentFragment();
+                    opts.forEach(function (o) {
+                        const li = document.createElement('li');
+                        li.dataset.val = o.id;
+                        li.textContent = o.nom;
+                        frag.appendChild(li);
+                    });
+                    lieuList.appendChild(frag);
+                    lassoInitCatSearch(lieuWrap, { clearHiddenOnInput: true });
+                })
+                .catch(function () { lieuCharge = false; });
         });
     }
 })();

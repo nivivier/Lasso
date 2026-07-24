@@ -449,6 +449,7 @@ function route_lieux(): void
     render('lieux_liste', [
         'lieux' => $lieux,
         'organisateurs' => $organisateurs,
+        'nbEvenements' => lieux_nb_evenements(array_column($lieux, 'id')),
         'recherche' => $recherche,
         'type' => $type,
         'categoriesLieu' => lieu_categories_liste(),
@@ -569,6 +570,7 @@ function route_lieu(): void
     render('lieu_form', [
         'lieu' => $lieu,
         'err' => null,
+        'evenementsLies' => $id ? lieu_evenements($id) : [],
         'structuresLiees' => $id ? lieu_structures_liees($id) : [],
         // La liste des structures (potentiellement des milliers) n'est plus
         // injectée dans la page : le sélecteur d'organisateur la charge à la
@@ -587,6 +589,24 @@ function route_structures_options(): void
     $rows = db()->query('SELECT id, nom FROM structures ORDER BY nom')->fetchAll();
     echo json_encode(
         array_map(fn ($r) => ['id' => (int) $r['id'], 'nom' => (string) $r['nom']], $rows),
+        JSON_UNESCAPED_UNICODE
+    );
+    exit;
+}
+
+// Liste JSON { id, nom } des lieux (nom suffixé de la ville pour distinguer les
+// homonymes), pour alimenter à la demande le sélecteur de lieu d'un événement.
+// Lecture seule, GET.
+function route_lieux_options(): void
+{
+    require_login();
+    header('Content-Type: application/json; charset=utf-8');
+    $rows = db()->query('SELECT id, nom, ville FROM lieux ORDER BY nom, ville')->fetchAll();
+    echo json_encode(
+        array_map(fn ($r) => [
+            'id'  => (int) $r['id'],
+            'nom' => (string) $r['nom'] . ((string) $r['ville'] !== '' ? ' — ' . (string) $r['ville'] : ''),
+        ], $rows),
         JSON_UNESCAPED_UNICODE
     );
     exit;
@@ -616,6 +636,20 @@ function route_lieu_organisateur(): void
     db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')->execute([$nouveau, $lieuId]);
     db()->commit();
     redirect('lieu', ['id' => $lieuId]);
+}
+
+// Bascule immédiate actif/inactif d'un lieu (bloc « Statut » de la sidebar),
+// sans passer par le bouton Enregistrer de la fiche (cf. route_structure_statut).
+function route_lieu_statut(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux'); }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!$id) { redirect('lieux'); }
+    $actif = isset($_POST['actif']) ? 1 : 0;
+    db()->prepare('UPDATE lieux SET actif = ? WHERE id = ?')->execute([$actif, $id]);
+    redirect('lieu', ['id' => $id]);
 }
 
 function route_lieu_renommer(): void

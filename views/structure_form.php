@@ -211,6 +211,21 @@ $sid = (int) ($structure['id'] ?? 0);
     </script>
 </section>
 
+<?php if (module_actif('evenements') && $evenementsLies): ?>
+<section class="aside-block">
+    <h2 class="mt-0"><?= icon('calendar') ?> Événements (<?= count($evenementsLies) ?>)</h2>
+    <ul class="clean-list small">
+        <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
+        <li>
+            <a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
+            — <?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?><?php if ($ev['ville']): ?> <span class="muted">· <?= e((string) $ev['ville']) ?></span><?php endif; ?>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
+</section>
+<?php endif; ?>
+
 <section class="aside-block section-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Salles &amp; festivals liés</h2>

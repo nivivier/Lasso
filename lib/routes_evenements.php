@@ -452,9 +452,19 @@ function route_evenement(): void
         ? db()->query('SELECT * FROM structures WHERE actif = 1 ORDER BY nom')->fetchAll()
         : [];
 
+    // Lien vers un lieu de la base (module booking) — le lieu déjà rattaché, pour
+    // pré-remplir le sélecteur (chargé à la demande via ?p=lieux_options).
+    $peutLierLieu = module_actif('booking') && peut_lire('booking');
+    $lieuActuel = null;
+    if ($peutLierLieu && !empty($evenement['lieu_id'])) {
+        $stmtL = db()->prepare('SELECT id, nom, ville FROM lieux WHERE id = ?');
+        $stmtL->execute([(int) $evenement['lieu_id']]);
+        $lieuActuel = $stmtL->fetch() ?: null;
+    }
+
     $renderForm = function (?string $err) use (
         $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
-        $axes, $organisateur, $structuresDispo
+        $axes, $organisateur, $structuresDispo, $peutLierLieu, $lieuActuel
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -471,6 +481,8 @@ function route_evenement(): void
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
             'organisateur'   => $organisateur,
             'structuresDispo' => $structuresDispo,
+            'peutLierLieu'   => $peutLierLieu,
+            'lieuActuel'     => $lieuActuel,
             'paysDisponibles' => evenements_pays_disponibles(),
             'axes'           => $axes,
             'err'            => $err,
@@ -495,6 +507,15 @@ function route_evenement(): void
     $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
     $salle = trim($_POST['salle'] ?? '');
     $festival = trim($_POST['festival'] ?? '');
+    // Lien vers un lieu de la base (facultatif) — validé s'il existe encore.
+    $lieuId = ($_POST['lieu_id'] ?? '') !== '' ? (int) $_POST['lieu_id'] : null;
+    if ($lieuId !== null) {
+        $okLieu = db()->prepare('SELECT 1 FROM lieux WHERE id = ?');
+        $okLieu->execute([$lieuId]);
+        if (!$okLieu->fetchColumn()) {
+            $lieuId = null;
+        }
+    }
     $lienInfos = trim($_POST['lien_infos'] ?? '');
     $lienTexte = trim($_POST['lien_texte'] ?? '');
     $remarques = trim($_POST['remarques'] ?? '');
@@ -521,6 +542,7 @@ function route_evenement(): void
     $champs = [
         'spectacle_id' => $spectacleId, 'date' => $date, 'statut' => $statut, 'visibilite' => $visibilite,
         'ville' => $ville, 'region' => $region, 'pays' => $pays, 'salle' => $salle, 'festival' => $festival,
+        'lieu_id' => $lieuId,
         'lien_infos' => $lienInfos, 'lien_texte' => $lienTexte, 'remarques' => $remarques,
     ];
 
@@ -528,15 +550,15 @@ function route_evenement(): void
         $champs['id'] = $id;
         db()->prepare('UPDATE evenements SET spectacle_id=:spectacle_id, date=:date, statut=:statut,
                         visibilite=:visibilite, ville=:ville, region=:region, pays=:pays, salle=:salle, festival=:festival,
-                        lien_infos=:lien_infos, lien_texte=:lien_texte, remarques=:remarques WHERE id=:id')->execute($champs);
+                        lieu_id=:lieu_id, lien_infos=:lien_infos, lien_texte=:lien_texte, remarques=:remarques WHERE id=:id')->execute($champs);
         $evenementId = $id;
     } else {
         // suisa_applicable/suisa_envoye_*/suisa_decompte_le gardent leurs valeurs
         // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
         // depuis la carte « Suivi SUISA », visible une fois l'événement créé.
         db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, festival,
-                        lien_infos, lien_texte, remarques)
-                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :region, :pays, :salle, :festival, :lien_infos,
+                        lieu_id, lien_infos, lien_texte, remarques)
+                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :region, :pays, :salle, :festival, :lieu_id, :lien_infos,
                         :lien_texte, :remarques)')
             ->execute($champs);
         $evenementId = (int) db()->lastInsertId();

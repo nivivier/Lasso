@@ -346,6 +346,7 @@ function run_migrations(PDO $pdo): void
         48 => 'migration_48', // module booking : campagnes (historique) + modèles de message + campagne_id sur file/envois
         49 => 'migration_49', // module booking : régions (grandes régions) = taxonomie imbriquée sous les pays (pays_liste devient un arbre à 2 niveaux)
         50 => 'migration_50', // module booking : lieux.actif (actif/inactif) + lieux.site_web
+        51 => 'migration_51', // module booking : evenements.lieu_id (lien vers un lieu de la base)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1770,6 +1771,16 @@ function migration_50(PDO $pdo): void
     }
     if (!in_array('site_web', $cols, true)) {
         $pdo->exec("ALTER TABLE lieux ADD COLUMN site_web TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Migration 51 : un événement peut être rattaché à un LIEU de la base (en plus
+// des champs texte historiques salle/festival, conservés pour l'affichage).
+function migration_51(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('lieu_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE evenements ADD COLUMN lieu_id INTEGER REFERENCES lieux(id) ON DELETE SET NULL');
     }
 }
 

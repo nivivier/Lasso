@@ -174,6 +174,81 @@ function lieu_categories_liste(): array
     return db()->query('SELECT nom FROM lieu_categories ORDER BY ordre, nom')->fetchAll(PDO::FETCH_COLUMN);
 }
 
+// --- Événements liés (lien evenements.lieu_id, voir migration_51) ------------
+
+// Événements rattachés à un LIEU, plus récents d'abord (module événements requis).
+function lieu_evenements(int $lieuId): array
+{
+    if (!module_actif('evenements')) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle
+         FROM evenements e LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
+         WHERE e.lieu_id = ? ORDER BY e.date DESC, e.id DESC'
+    );
+    $stmt->execute([$lieuId]);
+    return $stmt->fetchAll();
+}
+
+// Événements rattachés à une STRUCTURE : soit elle en est l'organisateur
+// (organisateur_structure_id), soit via l'un de ses lieux liés (structure_lieux
+// → evenements.lieu_id). Dédoublonné, plus récents d'abord.
+function structure_evenements(int $structureId): array
+{
+    if (!module_actif('evenements')) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT DISTINCT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle
+         FROM evenements e LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
+         WHERE e.organisateur_structure_id = :sid
+            OR e.lieu_id IN (SELECT lieu_id FROM structure_lieux WHERE structure_id = :sid)
+         ORDER BY e.date DESC, e.id DESC'
+    );
+    $stmt->execute([':sid' => $structureId]);
+    return $stmt->fetchAll();
+}
+
+// Nombre d'événements par lieu (colonne « Événements » de ?p=lieux). [id => n].
+function lieux_nb_evenements(array $lieuIds): array
+{
+    $ids = array_values(array_filter(array_map('intval', $lieuIds)));
+    if (!$ids || !module_actif('evenements')) {
+        return [];
+    }
+    $in = implode(',', $ids);
+    $out = [];
+    foreach (db()->query("SELECT lieu_id, COUNT(*) n FROM evenements WHERE lieu_id IN ($in) GROUP BY lieu_id") as $r) {
+        $out[(int) $r['lieu_id']] = (int) $r['n'];
+    }
+    return $out;
+}
+
+// Nombre d'événements par structure (organisateur OU via un de ses lieux),
+// dédoublonné. Colonne « Événements » de ?p=structures. [id => n].
+function structures_nb_evenements(array $structureIds): array
+{
+    $ids = array_values(array_filter(array_map('intval', $structureIds)));
+    if (!$ids || !module_actif('evenements')) {
+        return [];
+    }
+    $in = implode(',', $ids);
+    $out = [];
+    $sql = "SELECT sid, COUNT(DISTINCT eid) n FROM (
+                SELECT organisateur_structure_id AS sid, id AS eid FROM evenements
+                 WHERE organisateur_structure_id IN ($in)
+                UNION
+                SELECT sl.structure_id AS sid, e.id AS eid
+                  FROM structure_lieux sl JOIN evenements e ON e.lieu_id = sl.lieu_id
+                 WHERE sl.structure_id IN ($in)
+            ) GROUP BY sid";
+    foreach (db()->query($sql) as $r) {
+        $out[(int) $r['sid']] = (int) $r['n'];
+    }
+    return $out;
+}
+
 // Première catégorie de la liste — valeur de repli (jamais vide : au moins une
 // catégorie existe, garantie par la migration et la garde de suppression).
 function lieu_categorie_defaut(): string
