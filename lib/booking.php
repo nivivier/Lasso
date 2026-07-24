@@ -1497,9 +1497,15 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
     // éventuelle) dans deux cas :
     //   • catégorie marquée « organisateur » (Paramètres → Catégories : la ligne
     //     décrit une salle/un festival — SPEC_BOOKING.md §9) ;
-    //   • une colonne « type de lieu » est renseignée (ex. « Salle de
-    //     location ») — la ligne EST un lieu, quelle que soit sa catégorie.
-    if ($autoLieu && (structure_categorie_est_organisateur($d['categorie']) || trim((string) ($d['type_lieu'] ?? '')) !== '')) {
+    //   • le type de lieu résolu est un VRAI type de la taxonomie lieu_categories
+    //     (ex. « Salle de location ») — la ligne est un lieu, y compris hors
+    //     catégorie organisateur (ex. « Autres »).
+    // Les médias et l'entourage ne créent JAMAIS de lieu : ni organisateurs, ni
+    // porteurs d'un type de lieu reconnu (« Radio », « Journaliste »… n'en sont
+    // pas).
+    $creerLieu = structure_categorie_est_organisateur($d['categorie'])
+        || lieu_categorie_normaliser((string) ($d['type_lieu'] ?? '')) !== null;
+    if ($autoLieu && $creerLieu) {
         structure_lier_lieu_importe($structureId, $d);
     }
 
