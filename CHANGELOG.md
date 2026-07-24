@@ -39,6 +39,9 @@ puis sont promues sur le canal **stable** en figeant une version.
 - Import : la mise à jour de masse était ignorée au-delà de ~1000 lignes
   (limite PHP `max_input_vars`) — les décisions suivent désormais un défaut
   global, seules les exceptions sont transmises.
+- Import : l'étape de revue des regroupements plantait (`Undefined array key
+  "lieux"`) à cause d'une collision de variable `$groupes` entre la vue et la
+  barre d'onglets des Paramètres — variables du partiel `_param_tabs` préfixées.
 
 ## [1.3.1] — 2026-07-14
 
