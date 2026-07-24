@@ -918,12 +918,15 @@ function structures_analyser_import(array $lignes, array $mapping): array
     // sur potentiellement des milliers de lignes) : sans ces index, chaque ligne
     // re-scannait toute la table structures et relançait plusieurs requêtes de
     // catégorie — coût quadratique. Ici : deux requêtes groupées + des tableaux.
-    $indexNom = [];   // nom normalisé → id de structure existante (1re gagnante)
+    $indexNom = [];   // nom normalisé → [ ['id'=>…, 'ville'=>ville normalisée], … ]
     $indexEmail = []; // e-mail (minuscule) → id de structure existante (1er gagnant)
-    foreach (db()->query('SELECT id, nom FROM structures') as $s) {
+    foreach (db()->query('SELECT id, nom, adresse_localite FROM structures') as $s) {
         $cle = normaliser_nom_structure((string) $s['nom']);
-        if ($cle !== '' && !isset($indexNom[$cle])) {
-            $indexNom[$cle] = (int) $s['id'];
+        if ($cle !== '') {
+            $indexNom[$cle][] = [
+                'id'    => (int) $s['id'],
+                'ville' => normaliser_nom_structure((string) ($s['adresse_localite'] ?? '')),
+            ];
         }
     }
     foreach (db()->query("SELECT email, structure_id FROM structure_contacts WHERE email <> ''") as $c) {
@@ -1004,15 +1007,31 @@ function structures_analyser_import(array $lignes, array $mapping): array
         $donnees['categorie'] = $res['categorie'];
         $donnees['sous_categorie'] = $res['sous_categorie'];
 
-        // Correspondance avec l'existant : e-mail exact (prioritaire) sinon nom
-        // normalisé — via les index préchargés, sans requête par ligne.
+        // Correspondance avec l'existant : e-mail exact (prioritaire, identifiant
+        // fort) sinon nom normalisé — MAIS discriminé par la VILLE : deux
+        // structures homonymes de villes différentes ne doivent JAMAIS être
+        // rapprochées (sinon on fusionne à tort deux lieux distincts). Règle sur
+        // le nom : ville renseignée → seule une homonyme de la même ville matche ;
+        // ville absente → on ne rapproche que s'il n'y a aucune ambiguïté (un
+        // seul homonyme). Via les index préchargés, sans requête par ligne.
         $correspondanceId = null;
         $email = mb_strtolower(trim($donnees['email_contact']), 'UTF-8');
         if ($email !== '' && isset($indexEmail[$email])) {
             $correspondanceId = $indexEmail[$email];
         } else {
             $nomNorm = normaliser_nom_structure($donnees['nom']);
-            $correspondanceId = ($nomNorm !== '' && isset($indexNom[$nomNorm])) ? $indexNom[$nomNorm] : null;
+            $villeNorm = normaliser_nom_structure((string) ($donnees['adresse_localite'] ?? ''));
+            $candidats = ($nomNorm !== '') ? ($indexNom[$nomNorm] ?? []) : [];
+            if ($villeNorm !== '') {
+                foreach ($candidats as $cand) {
+                    if ($cand['ville'] === $villeNorm) {
+                        $correspondanceId = $cand['id'];
+                        break;
+                    }
+                }
+            } elseif (count($candidats) === 1) {
+                $correspondanceId = $candidats[0]['id'];
+            }
         }
         $structureExistante = null;
         if ($correspondanceId) {

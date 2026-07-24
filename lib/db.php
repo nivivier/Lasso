@@ -28,6 +28,25 @@ function db(): PDO
     return $pdo;
 }
 
+// Sauvegarde horodatée de la base dans le dossier data/, snapshot cohérent via
+// VACUUM INTO (indépendant du WAL). À appeler AVANT une opération de masse
+// risquée (import…) pour pouvoir revenir en arrière. Renvoie le chemin du
+// fichier créé, ou null en cas d'échec (sans interrompre l'opération). Les
+// fichiers .bak sont exclus du versionnement (.gitignore).
+function sauvegarder_base(string $etiquette): ?string
+{
+    $etiquette = preg_replace('/[^a-z0-9]+/i', '_', $etiquette);
+    $etiquette = trim((string) $etiquette, '_') ?: 'sauvegarde';
+    $chemin = dirname(APP_DB_PATH) . '/' . basename(APP_DB_PATH, '.sqlite')
+        . '_' . $etiquette . '_' . date('Ymd_His') . '.sqlite.bak';
+    try {
+        db()->exec('VACUUM INTO ' . db()->quote($chemin));
+        return is_file($chemin) ? $chemin : null;
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+
 function init_schema(PDO $pdo): void
 {
     $pdo->exec(<<<SQL

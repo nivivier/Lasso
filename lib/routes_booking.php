@@ -1398,6 +1398,9 @@ function route_import_structures(): void
                 $choix[(int) $index][(string) $col] = true;
             }
         }
+        // Filet de sécurité : snapshot de la base AVANT d'écrire, pour pouvoir
+        // revenir en arrière si l'import se passe mal (data/…_avant_import_*.bak).
+        sauvegarder_base('avant_import_structures');
         $vars['etape'] = 'resume';
         $vars['resume'] = structures_appliquer_import($analyse, $choix, $confirmes);
         unset($_SESSION['import_structures_csv'], $_SESSION['import_structures_nom'], $_SESSION['import_structures_mapping']);
