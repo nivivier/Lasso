@@ -325,6 +325,7 @@ function run_migrations(PDO $pdo): void
         46 => 'migration_46', // module booking : table mailing_exclusions (liste « ne pas contacter » sans structures fantômes) + reprise des placeholders
         47 => 'migration_47', // module booking : table mailing_ciblages (ciblages types réutilisables du mailing)
         48 => 'migration_48', // module booking : campagnes (historique) + modèles de message + campagne_id sur file/envois
+        49 => 'migration_49', // module booking : régions (grandes régions) = taxonomie imbriquée sous les pays (pays_liste devient un arbre à 2 niveaux)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1684,6 +1685,59 @@ function migration_48(PDO $pdo): void
             $pdo->exec("ALTER TABLE $t ADD COLUMN campagne_id INTEGER");
         }
     }
+}
+
+// Migration 49 : les « grandes régions » (Normandie, Romandie, Acadie…)
+// deviennent une taxonomie imbriquée sous les pays. pays_liste devient un arbre
+// à DEUX niveaux (parent_id NULL = pays ; sinon = région d'un pays) et
+// code_iso2 passe nullable (les régions n'en ont pas). Les couples
+// (pays, grande_region) déjà présents dans structures/lieux sont amorcés comme
+// régions du bon pays. Les fiches continuent de stocker la région en TEXTE
+// (grande_region) : la taxonomie ne pilote que les listes déroulantes et la
+// propagation des renommages — comme categorie/sous_categorie/pays.
+function migration_49(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(pays_liste)')->fetchAll(), 'name');
+    if (in_array('parent_id', $cols, true)) {
+        return; // déjà migré
+    }
+    // Aucune autre table ne référence pays_liste (valeurs stockées en texte) :
+    // recréation directe (nouvelle table → copie des pays → drop → renommage),
+    // pas de RENAME de l'ancienne (cf. avertissement CLAUDE.md sur la réécriture
+    // des clauses REFERENCES). code_iso2 devient nullable (régions sans code).
+    $pdo->exec('
+        CREATE TABLE pays_liste_new (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            parent_id INTEGER REFERENCES pays_liste_new(id) ON DELETE CASCADE,
+            nom       TEXT NOT NULL,
+            code_iso2 TEXT,
+            ordre     INTEGER NOT NULL DEFAULT 0
+        )
+    ');
+    $pdo->exec('INSERT INTO pays_liste_new (id, parent_id, nom, code_iso2, ordre)
+                SELECT id, NULL, nom, code_iso2, ordre FROM pays_liste');
+    $pdo->exec('DROP TABLE pays_liste');
+    $pdo->exec('ALTER TABLE pays_liste_new RENAME TO pays_liste');
+    // Index d'unicité partiels : nom de pays unique (parent NULL), nom de région
+    // unique dans son pays, code ISO2 unique parmi les pays qui en ont un.
+    $pdo->exec('CREATE UNIQUE INDEX pays_uniq_pays   ON pays_liste(nom)             WHERE parent_id IS NULL');
+    $pdo->exec('CREATE UNIQUE INDEX pays_uniq_region ON pays_liste(parent_id, nom)  WHERE parent_id IS NOT NULL');
+    $pdo->exec('CREATE UNIQUE INDEX pays_uniq_code   ON pays_liste(code_iso2)       WHERE code_iso2 IS NOT NULL');
+
+    // Amorçage : chaque (pays, grande_region) distinct des fiches → région du pays.
+    $pdo->exec("
+        INSERT INTO pays_liste (parent_id, nom, code_iso2, ordre)
+        SELECT p.id, r.gr, NULL, 0
+        FROM (
+            SELECT DISTINCT adresse_pays AS pays, grande_region AS gr FROM structures WHERE grande_region <> ''
+            UNION
+            SELECT DISTINCT pays          AS pays, grande_region AS gr FROM lieux      WHERE grande_region <> ''
+        ) r
+        JOIN pays_liste p ON p.nom = r.pays AND p.parent_id IS NULL
+        WHERE NOT EXISTS (
+            SELECT 1 FROM pays_liste x WHERE x.parent_id = p.id AND x.nom = r.gr
+        )
+    ");
 }
 
 // Migration 44 : le champ « region » existant devient le « département / canton » ;

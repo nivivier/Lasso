@@ -97,9 +97,14 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
            <div class="grid3">
             <label>Département / canton <input name="region" value="<?= $v('region') ?>"></label>
-            <label>Région <?= info_tip("Grande région : Normandie, Romandie, Acadie…") ?> <input name="grande_region" value="<?= $v('grande_region') ?>"></label>
+            <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
+                <select name="grande_region" class="region-select">
+                    <option value="">— Région —</option>
+                    <?= region_options_nom((string) ($lieu['pays'] ?? ''), (string) ($lieu['grande_region'] ?? '')) ?>
+                </select>
+            </label>
             <label>Pays
-                <select name="pays">
+                <select name="pays" class="pays-select">
                     <option value="">—</option>
                     <?= pays_options_nom((string) ($lieu['pays'] ?? '')) ?>
                 </select>
@@ -116,9 +121,14 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <div class="grid4">
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
             <label>Département / canton <input name="region" value="<?= $v('region') ?>"></label>
-            <label>Région <?= info_tip("Grande région : Normandie, Romandie, Acadie…") ?> <input name="grande_region" value="<?= $v('grande_region') ?>"></label>
+            <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
+                <select name="grande_region" class="region-select">
+                    <option value="">— Région —</option>
+                    <?= region_options_nom((string) ($lieu['pays'] ?? ''), (string) ($lieu['grande_region'] ?? '')) ?>
+                </select>
+            </label>
             <label>Pays
-                <select name="pays">
+                <select name="pays" class="pays-select">
                     <option value="">—</option>
                     <?= pays_options_nom((string) ($lieu['pays'] ?? '')) ?>
                 </select>
@@ -315,3 +325,4 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
 })();
 </script>
 <?php endif; ?>
+<?php require __DIR__ . '/_region_select_js.php'; ?>

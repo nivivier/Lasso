@@ -444,7 +444,7 @@ function route_lieux(): void
     }
 
     $villesDispo = db()->query("SELECT DISTINCT ville FROM lieux WHERE ville <> '' ORDER BY ville")->fetchAll(PDO::FETCH_COLUMN);
-    $grandesRegionsDispo = db()->query("SELECT DISTINCT grande_region FROM lieux WHERE grande_region <> '' ORDER BY grande_region")->fetchAll(PDO::FETCH_COLUMN);
+    $grandesRegionsDispo = pays_regions_map(); // régions groupées par pays (taxonomie, migration_49)
 
     render('lieux_liste', [
         'lieux' => $lieux,
@@ -1028,7 +1028,7 @@ function route_mailing_campagne(): void
     render('mailing_campagne', [
         'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
         'regions' => db()->query("SELECT DISTINCT region FROM structures WHERE region <> '' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN),
-        'grandesRegions' => db()->query("SELECT DISTINCT grande_region FROM structures WHERE grande_region <> '' ORDER BY grande_region")->fetchAll(PDO::FETCH_COLUMN),
+        'grandesRegions' => pays_regions_map(), // régions groupées par pays (taxonomie, migration_49)
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
         'typesLieu' => lieu_categories_liste(),
         'categoriesPourSelect' => structure_categories_pour_select(),

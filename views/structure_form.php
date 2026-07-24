@@ -103,8 +103,11 @@ $sid = (int) ($structure['id'] ?? 0);
             </div>
             <div class="grid3 mt-16">
                 <input name="region" value="<?= $v('region') ?>" placeholder="Département / canton" aria-label="Département / canton">
-                <input name="grande_region" value="<?= $v('grande_region') ?>" placeholder="Région (Normandie, Romandie…)" aria-label="Région">
-                <select name="adresse_pays" aria-label="Pays"><?= pays_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse')) ?></select>
+                <select name="grande_region" class="region-select" aria-label="Région" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
+                    <option value="">— Région —</option>
+                    <?= region_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse'), (string) ($structure['grande_region'] ?? '')) ?>
+                </select>
+                <select name="adresse_pays" class="pays-select" aria-label="Pays"><?= pays_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse')) ?></select>
             </div>
             <label class="mt-22">Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
         </fieldset>
@@ -386,3 +389,4 @@ $sid = (int) ($structure['id'] ?? 0);
 </div>
 
 <?php endif; ?>
+<?php require __DIR__ . '/_region_select_js.php'; ?>

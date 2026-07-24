@@ -86,11 +86,15 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
                 <?= pays_options_nom($criteres['pays']) ?>
             </select>
         </label>
-        <label>Région <?= info_tip("Grande région : Normandie, Romandie, Acadie…") ?>
+        <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
             <select name="grande_region">
                 <option value="">Toutes</option>
-                <?php foreach ($grandesRegions as $r): ?>
-                    <option value="<?= e($r) ?>" <?= $criteres['grande_region'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
+                <?php foreach ($grandesRegions as $paysNom => $regions): ?>
+                    <optgroup label="<?= e($paysNom) ?>">
+                        <?php foreach ($regions as $r): ?>
+                            <option value="<?= e($r) ?>" <?= $criteres['grande_region'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
+                        <?php endforeach; ?>
+                    </optgroup>
                 <?php endforeach; ?>
             </select>
         </label>

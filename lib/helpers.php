@@ -313,9 +313,80 @@ function pct(float $v): string
 // facturation) — un seul point de configuration au lieu d'une saisie libre par
 // module. Chaque entrée porte un nom affiché et un code ISO 3166-1 alpha-2
 // (pour le drapeau et, côté événements, la valeur stockée).
+// Liste des PAYS (racines de la taxonomie pays_liste, voir migration_49) —
+// hors régions. Utilisée partout où l'on choisit/affiche un pays (structures,
+// lieux, employeur, événements, facturation, drapeaux).
 function pays_liste(): array
 {
+    return db()->query('SELECT * FROM pays_liste WHERE parent_id IS NULL ORDER BY ordre, nom')->fetchAll();
+}
+
+// Arbre complet pays + régions (toutes les lignes de pays_liste), pour la page
+// de gestion Paramètres → Pays (glisser-déposer à 2 niveaux).
+function pays_liste_arbre(): array
+{
     return db()->query('SELECT * FROM pays_liste ORDER BY ordre, nom')->fetchAll();
+}
+
+// Régions (grandes régions) groupées par NOM de pays parent, ordonnées.
+// ['France' => ['Bretagne', 'Normandie', …], 'Suisse' => […], …]. Sert à
+// construire les listes déroulantes dépendantes (formulaires) et les optgroups
+// des filtres.
+function pays_regions_map(): array
+{
+    $rows = db()->query(
+        'SELECT p.nom AS pays, r.nom AS region
+         FROM pays_liste r JOIN pays_liste p ON p.id = r.parent_id
+         WHERE r.parent_id IS NOT NULL
+         ORDER BY p.ordre, p.nom, r.ordre, r.nom'
+    )->fetchAll();
+    $map = [];
+    foreach ($rows as $x) {
+        $map[(string) $x['pays']][] = (string) $x['region'];
+    }
+    return $map;
+}
+
+// Garantit qu'une région existe dans la taxonomie sous son pays, la créant au
+// besoin (utilisé par l'import : la liste est stricte dans les formulaires, mais
+// l'import peut l'enrichir). Sans effet si le pays est inconnu de la liste ou si
+// l'un des noms est vide. Cache statique pour éviter les requêtes répétées.
+function pays_region_assurer(string $paysNom, string $regionNom): void
+{
+    $paysNom = trim($paysNom);
+    $regionNom = trim($regionNom);
+    if ($paysNom === '' || $regionNom === '') { return; }
+    static $vues = [];
+    $k = $paysNom . "\0" . $regionNom;
+    if (isset($vues[$k])) { return; }
+    $vues[$k] = true;
+    $stmt = db()->prepare('SELECT id FROM pays_liste WHERE nom = ? AND parent_id IS NULL');
+    $stmt->execute([$paysNom]);
+    $paysId = $stmt->fetchColumn();
+    if ($paysId === false) { return; } // pays hors taxonomie : on n'invente pas de pays
+    $ex = db()->prepare('SELECT 1 FROM pays_liste WHERE parent_id = ? AND nom = ?');
+    $ex->execute([$paysId, $regionNom]);
+    if ($ex->fetchColumn()) { return; }
+    $ord = db()->prepare('SELECT COALESCE(MAX(ordre),0)+1 FROM pays_liste WHERE parent_id = ?');
+    $ord->execute([$paysId]);
+    db()->prepare('INSERT OR IGNORE INTO pays_liste (parent_id, nom, code_iso2, ordre) VALUES (?, ?, NULL, ?)')
+        ->execute([(int) $paysId, $regionNom, (int) $ord->fetchColumn()]);
+}
+
+// Options <option> de régions pour un pays donné (valeur = nom de région).
+// Filet de sécurité : une valeur actuelle absente de la taxonomie est ajoutée
+// en tête (« non reconnu ») pour ne jamais l'écraser silencieusement.
+function region_options_nom(string $paysNom, string $selected): string
+{
+    $regions = pays_regions_map()[$paysNom] ?? [];
+    $h = '';
+    if ($selected !== '' && !in_array($selected, $regions, true)) {
+        $h .= '<option value="' . e($selected) . '" selected>' . e($selected) . ' (non reconnu)</option>';
+    }
+    foreach ($regions as $r) {
+        $h .= '<option value="' . e($r) . '"' . ($selected === $r ? ' selected' : '') . '>' . e($r) . '</option>';
+    }
+    return $h;
 }
 
 // Émoji drapeau à partir d'un code pays ISO 3166-1 alpha-2 (ex. « CH » → 🇨🇭).

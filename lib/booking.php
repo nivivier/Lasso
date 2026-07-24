@@ -1204,6 +1204,11 @@ function structure_import_appliquer_structure(array $ligne, array $resolutions, 
         $resume['mises_a_jour']++;
     }
 
+    // La région importée (grande_region) rejoint la taxonomie sous le pays de la
+    // fiche si elle en est absente — la liste reste stricte dans les formulaires,
+    // mais l'import peut l'enrichir (le lieu auto éventuel réutilise la même).
+    pays_region_assurer($pays, (string) $d['grande_region']);
+
     structure_import_attacher_contact($structureId, $d);
     foreach (structure_tags_depuis_statut($d['tags_statut']) as $nomTag) {
         structure_attacher_tag($structureId, $nomTag);

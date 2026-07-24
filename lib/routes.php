@@ -438,35 +438,73 @@ function route_parametres_modules(): void
 function route_parametres_pays(): void
 {
     require_login();
+    // Carte id → ligne (pays + régions) pour raisonner sur la hiérarchie.
+    $paysMap = function (): array {
+        $m = [];
+        foreach (pays_liste_arbre() as $r) { $m[(int) $r['id']] = $r; }
+        return $m;
+    };
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $section = $_POST['section'] ?? '';
+        $map = $paysMap();
         if ($section === 'add') {
             $nom = trim($_POST['nom'] ?? '');
-            $code = strtoupper(trim($_POST['code_iso2'] ?? ''));
-            if ($nom !== '' && preg_match('/^[A-Z]{2}$/', $code)) {
-                $existe = db()->prepare('SELECT 1 FROM pays_liste WHERE nom = ? OR code_iso2 = ?');
-                $existe->execute([$nom, $code]);
-                if (!$existe->fetchColumn()) {
-                    $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM pays_liste')->fetchColumn();
-                    db()->prepare('INSERT INTO pays_liste (nom, code_iso2, ordre) VALUES (?, ?, ?)')->execute([$nom, $code, $ordre]);
+            $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
+            if ($parent === null) {
+                // Nouveau PAYS : code ISO2 obligatoire, nom + code uniques.
+                $code = strtoupper(trim($_POST['code_iso2'] ?? ''));
+                if ($nom !== '' && preg_match('/^[A-Z]{2}$/', $code)) {
+                    $existe = db()->prepare('SELECT 1 FROM pays_liste WHERE parent_id IS NULL AND (nom = ? OR code_iso2 = ?)');
+                    $existe->execute([$nom, $code]);
+                    if (!$existe->fetchColumn()) {
+                        $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM pays_liste WHERE parent_id IS NULL')->fetchColumn();
+                        db()->prepare('INSERT INTO pays_liste (nom, code_iso2, ordre) VALUES (?, ?, ?)')->execute([$nom, $code, $ordre]);
+                    }
+                }
+            } else {
+                // Nouvelle RÉGION sous un pays (sans code), nom unique dans le pays.
+                $parentValide = isset($map[$parent]) && plan_pid($map[$parent]['parent_id'] ?? null) === 0;
+                if ($nom !== '' && $parentValide) {
+                    $existe = db()->prepare('SELECT 1 FROM pays_liste WHERE parent_id = ? AND nom = ?');
+                    $existe->execute([$parent, $nom]);
+                    if (!$existe->fetchColumn()) {
+                        $stmtOrdre = db()->prepare('SELECT COALESCE(MAX(ordre),0)+1 FROM pays_liste WHERE parent_id = ?');
+                        $stmtOrdre->execute([$parent]);
+                        db()->prepare('INSERT INTO pays_liste (parent_id, nom, code_iso2, ordre) VALUES (?, ?, NULL, ?)')
+                            ->execute([$parent, $nom, (int) $stmtOrdre->fetchColumn()]);
+                    }
                 }
             }
         } elseif ($section === 'edit') {
             $id = (int) ($_POST['id'] ?? 0);
             $nom = trim($_POST['nom'] ?? '');
-            $code = strtoupper(trim($_POST['code_iso2'] ?? ''));
-            if ($nom !== '' && preg_match('/^[A-Z]{2}$/', $code)) {
-                $stmt = db()->prepare('SELECT nom FROM pays_liste WHERE id = ?');
-                $stmt->execute([$id]);
-                $ancien = $stmt->fetchColumn();
-                if ($ancien !== false) {
+            if ($nom !== '' && isset($map[$id])) {
+                $estPays = plan_pid($map[$id]['parent_id'] ?? null) === 0;
+                $ancien = (string) $map[$id]['nom'];
+                if ($estPays) {
+                    // Renommage d'un pays : propage à adresse_pays/pays/employeur_pays.
+                    $code = strtoupper(trim($_POST['code_iso2'] ?? ''));
+                    if (preg_match('/^[A-Z]{2}$/', $code)) {
+                        db()->beginTransaction();
+                        db()->prepare('UPDATE pays_liste SET nom=?, code_iso2=? WHERE id=?')->execute([$nom, $code, $id]);
+                        if ($ancien !== $nom) {
+                            db()->prepare('UPDATE structures SET adresse_pays=? WHERE adresse_pays=?')->execute([$nom, $ancien]);
+                            db()->prepare('UPDATE lieux SET pays=? WHERE pays=?')->execute([$nom, $ancien]);
+                            db()->prepare("UPDATE parametres SET valeur=? WHERE cle='employeur_pays' AND valeur=?")->execute([$nom, $ancien]);
+                        }
+                        db()->commit();
+                    }
+                } else {
+                    // Renommage d'une région : propage à grande_region des fiches du
+                    // même pays (scopé pour ne pas toucher une région homonyme d'un
+                    // autre pays).
+                    $paysNom = (string) ($map[plan_pid($map[$id]['parent_id'] ?? null)]['nom'] ?? '');
                     db()->beginTransaction();
-                    db()->prepare('UPDATE pays_liste SET nom=?, code_iso2=? WHERE id=?')->execute([$nom, $code, $id]);
-                    if ($ancien !== $nom) {
-                        db()->prepare('UPDATE structures SET adresse_pays=? WHERE adresse_pays=?')->execute([$nom, $ancien]);
-                        db()->prepare('UPDATE lieux SET pays=? WHERE pays=?')->execute([$nom, $ancien]);
-                        db()->prepare("UPDATE parametres SET valeur=? WHERE cle='employeur_pays' AND valeur=?")->execute([$nom, $ancien]);
+                    db()->prepare('UPDATE pays_liste SET nom=? WHERE id=?')->execute([$nom, $id]);
+                    if ($ancien !== $nom && $paysNom !== '') {
+                        db()->prepare('UPDATE structures SET grande_region=? WHERE grande_region=? AND adresse_pays=?')->execute([$nom, $ancien, $paysNom]);
+                        db()->prepare('UPDATE lieux SET grande_region=? WHERE grande_region=? AND pays=?')->execute([$nom, $ancien, $paysNom]);
                     }
                     db()->commit();
                 }
@@ -474,56 +512,147 @@ function route_parametres_pays(): void
         } elseif ($section === 'move') {
             $id = (int) ($_POST['id'] ?? 0);
             $dir = ($_POST['dir'] ?? '') === 'up' ? 'up' : 'down';
-            $ids = array_column(db()->query('SELECT id FROM pays_liste ORDER BY ordre, nom')->fetchAll(), 'id');
-            $ids = array_map('intval', $ids);
-            $pos = array_search($id, $ids, true);
-            $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
-            if ($pos !== false && $swap >= 0 && $swap < count($ids)) {
-                [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
-                $upd = db()->prepare('UPDATE pays_liste SET ordre = ? WHERE id = ?');
-                db()->beginTransaction();
-                foreach ($ids as $i => $pid) {
-                    $upd->execute([$i, $pid]);
+            if (isset($map[$id])) {
+                $pidParent = plan_pid($map[$id]['parent_id'] ?? null);
+                $freres = plan_enfants($map)[$pidParent] ?? [];
+                $ids = array_map(fn ($r) => (int) $r['id'], $freres);
+                $pos = array_search($id, $ids, true);
+                $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
+                if ($pos !== false && $swap >= 0 && $swap < count($ids)) {
+                    [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
+                    $upd = db()->prepare('UPDATE pays_liste SET ordre = ? WHERE id = ?');
+                    db()->beginTransaction();
+                    foreach ($ids as $i => $pid) { $upd->execute([$i, $pid]); }
+                    db()->commit();
                 }
-                db()->commit();
             }
         } elseif ($section === 'reorder') {
+            $id = (int) ($_POST['id'] ?? 0);
+            $parentPost = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
             $order = array_values(array_filter(array_map('intval', explode(',', $_POST['order'] ?? ''))));
-            if ($order) {
-                $upd = db()->prepare('UPDATE pays_liste SET ordre = ? WHERE id = ?');
-                db()->beginTransaction();
-                foreach ($order as $i => $pid) {
-                    $upd->execute([$i, $pid]);
+            if (isset($map[$id]) && $order) {
+                $estPays = plan_pid($map[$id]['parent_id'] ?? null) === 0;
+                if ($estPays) {
+                    // Un pays reste racine : simple réordonnancement entre pays.
+                    $parent = null;
+                    $parentValide = true;
+                } else {
+                    // Une région reste sous un pays (jamais promue racine ni nichée
+                    // sous une autre région).
+                    $parentValide = $parentPost !== null && isset($map[$parentPost]) && plan_pid($map[$parentPost]['parent_id'] ?? null) === 0;
+                    $parent = $parentPost;
                 }
-                db()->commit();
+                if ($parentValide) {
+                    db()->beginTransaction();
+                    // Reparent (déplacement d'une région d'un pays à l'autre) + propage
+                    // le pays des fiches concernées pour rester cohérent avec le texte.
+                    if (!$estPays) {
+                        $ancienParent = plan_pid($map[$id]['parent_id'] ?? null);
+                        if ($ancienParent !== (int) $parent) {
+                            $ancienPays = (string) ($map[$ancienParent]['nom'] ?? '');
+                            $nouveauPays = (string) ($map[(int) $parent]['nom'] ?? '');
+                            $regionNom = (string) $map[$id]['nom'];
+                            if ($ancienPays !== '' && $nouveauPays !== '') {
+                                db()->prepare('UPDATE structures SET adresse_pays=? WHERE grande_region=? AND adresse_pays=?')->execute([$nouveauPays, $regionNom, $ancienPays]);
+                                db()->prepare('UPDATE lieux SET pays=? WHERE grande_region=? AND pays=?')->execute([$nouveauPays, $regionNom, $ancienPays]);
+                            }
+                        }
+                    }
+                    db()->prepare('UPDATE pays_liste SET parent_id = ? WHERE id = ?')->execute([$parent, $id]);
+                    $upd = db()->prepare('UPDATE pays_liste SET ordre = ? WHERE id = ?');
+                    $i = 0;
+                    foreach ($order as $oid) {
+                        if ($oid === $id || (isset($map[$oid]) && plan_pid($map[$oid]['parent_id'] ?? null) === plan_pid($parent))) {
+                            $upd->execute([$i++, $oid]);
+                        }
+                    }
+                    db()->commit();
+                }
             }
         } elseif ($section === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
-            $stmt = db()->prepare('SELECT nom FROM pays_liste WHERE id = ?');
-            $stmt->execute([$id]);
-            $nom = $stmt->fetchColumn();
-            if ($nom !== false) {
-                $stmtRefS = db()->prepare('SELECT COUNT(*) FROM structures WHERE adresse_pays = ?');
-                $stmtRefS->execute([$nom]);
-                $stmtRefL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE pays = ?');
-                $stmtRefL->execute([$nom]);
-                $stmtRefE = db()->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'employeur_pays' AND valeur = ?");
-                $stmtRefE->execute([$nom]);
-                $total = (int) db()->query('SELECT COUNT(*) FROM pays_liste')->fetchColumn();
-                if ((int) $stmtRefS->fetchColumn() === 0 && (int) $stmtRefL->fetchColumn() === 0 && (int) $stmtRefE->fetchColumn() === 0 && $total > 1) {
-                    db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
+            $cible = trim($_POST['reaffecter_vers'] ?? '');
+            if (isset($map[$id])) {
+                $estPays = plan_pid($map[$id]['parent_id'] ?? null) === 0;
+                $nom = (string) $map[$id]['nom'];
+                if ($estPays) {
+                    // Un pays encore utilisé, ayant des régions, ou dernier pays : refus.
+                    $stmtEnf = db()->prepare('SELECT COUNT(*) FROM pays_liste WHERE parent_id = ?');
+                    $stmtEnf->execute([$id]);
+                    $stmtRefS = db()->prepare('SELECT COUNT(*) FROM structures WHERE adresse_pays = ?');
+                    $stmtRefS->execute([$nom]);
+                    $stmtRefL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE pays = ?');
+                    $stmtRefL->execute([$nom]);
+                    $stmtRefE = db()->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'employeur_pays' AND valeur = ?");
+                    $stmtRefE->execute([$nom]);
+                    $total = (int) db()->query('SELECT COUNT(*) FROM pays_liste WHERE parent_id IS NULL')->fetchColumn();
+                    if ((int) $stmtEnf->fetchColumn() === 0 && (int) $stmtRefS->fetchColumn() === 0 && (int) $stmtRefL->fetchColumn() === 0 && (int) $stmtRefE->fetchColumn() === 0 && $total > 1) {
+                        db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
+                    } else {
+                        redirect('parametres_pays', ['err' => 'used']);
+                        return;
+                    }
                 } else {
-                    redirect('parametres_pays', ['err' => 'used']);
+                    // Région : réaffecter grande_region des fiches (du même pays) vers
+                    // une autre région du pays, ou '' (vider), puis supprimer.
+                    $parentId = plan_pid($map[$id]['parent_id'] ?? null);
+                    $paysNom = (string) ($map[$parentId]['nom'] ?? '');
+                    $stmtRefS = db()->prepare('SELECT COUNT(*) FROM structures WHERE grande_region = ? AND adresse_pays = ?');
+                    $stmtRefS->execute([$nom, $paysNom]);
+                    $stmtRefL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE grande_region = ? AND pays = ?');
+                    $stmtRefL->execute([$nom, $paysNom]);
+                    $utilisee = (int) $stmtRefS->fetchColumn() > 0 || (int) $stmtRefL->fetchColumn() > 0;
+                    if (!$utilisee) {
+                        db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
+                    } else {
+                        // Cible validée par IDENTIFIANT (une AUTRE région du même pays),
+                        // pas par nom : deux régions peuvent ne différer que par la
+                        // casse (variantes d'import « Hauts-De-France » /
+                        // « Hauts-de-France »), et une comparaison de noms les
+                        // rejetterait à tort. '' = vider le champ.
+                        $cibleValide = $cible === '';
+                        if (!$cibleValide) {
+                            $ok = db()->prepare('SELECT id FROM pays_liste WHERE nom = ? AND parent_id = ?');
+                            $ok->execute([$cible, $parentId]);
+                            $cibleId = $ok->fetchColumn();
+                            $cibleValide = $cibleId !== false && (int) $cibleId !== $id;
+                        }
+                        if ($cibleValide) {
+                            db()->beginTransaction();
+                            db()->prepare('UPDATE structures SET grande_region = ? WHERE grande_region = ? AND adresse_pays = ?')->execute([$cible, $nom, $paysNom]);
+                            db()->prepare('UPDATE lieux SET grande_region = ? WHERE grande_region = ? AND pays = ?')->execute([$cible, $nom, $paysNom]);
+                            db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
+                            db()->commit();
+                        } else {
+                            redirect('parametres_pays', ['err' => 'region_used']);
+                            return;
+                        }
+                    }
                 }
             }
         }
         redirect('parametres_pays', ['ok' => 1]);
     }
 
+    // Usage de chaque région (pour la réaffectation à la suppression), indexé par
+    // id : nombre de fiches (structures + lieux) du même pays portant ce nom.
+    $map = $paysMap();
+    $usageRegion = [];
+    foreach ($map as $id => $r) {
+        if (plan_pid($r['parent_id'] ?? null) === 0) { continue; }
+        $paysNom = (string) ($map[plan_pid($r['parent_id'] ?? null)]['nom'] ?? '');
+        $sS = db()->prepare('SELECT COUNT(*) FROM structures WHERE grande_region = ? AND adresse_pays = ?');
+        $sS->execute([$r['nom'], $paysNom]);
+        $sL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE grande_region = ? AND pays = ?');
+        $sL->execute([$r['nom'], $paysNom]);
+        $usageRegion[(int) $id] = (int) $sS->fetchColumn() + (int) $sL->fetchColumn();
+    }
     render('parametres_pays', [
         'saved' => isset($_GET['ok']),
         'err' => $_GET['err'] ?? null,
-        'lignes' => pays_liste(),
+        'lignes' => plan_liste_ordonnee($map),
+        'map' => $map,
+        'usageRegion' => $usageRegion,
     ], 'Paramètres — Pays');
 }
 

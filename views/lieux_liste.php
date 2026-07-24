@@ -53,8 +53,12 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
                 <label>Région
                     <select name="grande_region" onchange="this.form.submit()">
                         <option value="">Toutes</option>
-                        <?php foreach ($grandesRegionsDispo as $gr): ?>
-                            <option value="<?= e($gr) ?>" <?= $grandeRegion === $gr ? 'selected' : '' ?>><?= e($gr) ?></option>
+                        <?php foreach ($grandesRegionsDispo as $paysNom => $regions): ?>
+                            <optgroup label="<?= e($paysNom) ?>">
+                                <?php foreach ($regions as $gr): ?>
+                                    <option value="<?= e($gr) ?>" <?= $grandeRegion === $gr ? 'selected' : '' ?>><?= e($gr) ?></option>
+                                <?php endforeach; ?>
+                            </optgroup>
                         <?php endforeach; ?>
                     </select>
                 </label>
