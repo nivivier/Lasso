@@ -1,5 +1,5 @@
 <?php /** @var int $delai */ /** @var int $delaiAbandon */ /** @var string $lienTexteDefaut */ /** @var string $termeSpectacle */
-/** @var array $paysDisponibles */ /** @var ?bool $saved */ ?>
+/** @var ?bool $saved */ ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Paramètres enregistrés.</p><?php endif; ?>
 
@@ -16,15 +16,13 @@
         <label>Texte du bouton de lien par défaut (si un événement n'en précise pas un)
             <input name="evenements_lien_texte_defaut" type="text" value="<?= e($lienTexteDefaut) ?>" placeholder="Plus d'informations">
         </label>
-        <label>Terme utilisé pour désigner une série d'événements <?= info_tip(
+        <label><span>Terme utilisé pour désigner une série d'événements <?= info_tip(
             "Change l'affichage dans toute l'interface (menu, listes, formulaires) — "
             . "ex. « Spectacles », « Concerts », « Tournées »."
-        ) ?>
+        ) ?></span>
             <input name="evenements_terme_spectacle" type="text" value="<?= e($termeSpectacle) ?>" placeholder="Spectacles">
         </label>
-        <label>Pays disponibles pour le champ « Région et pays » (séparés par des virgules)
-            <input name="evenements_pays_disponibles" type="text" value="<?= e(implode(', ', $paysDisponibles)) ?>" placeholder="CH, FR, BE, CA">
-        </label>
+        <p class="muted small">Les pays proposés dans le champ « Région et pays » se règlent dans l'onglet <a href="?p=parametres_pays">Pays</a>.</p>
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>

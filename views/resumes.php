@@ -162,12 +162,14 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                     $salleFestival = implode(', ', array_filter([$ev['salle'], $ev['festival']], fn ($v) => $v !== ''));
                     $estAnnule = $ev['statut'] === 'annule';
                     $dateClasse = 'statut-date-' . evenement_statut_couleur($ev) . ($estAnnule ? ' text-strike' : '');
+    
                 ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?>&depuis=dashboard" title="<?= e(evenement_statut_libelle((string) $ev['statut'])) ?>">
-                        <td class="<?= $dateClasse ?>"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
-                        <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
-                        <td class="muted small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $lieu !== '' ? e($lieu) : '—' ?><?= $drapeau !== '' ? ' ' . $drapeau : '' ?></td>
-                        <td class="muted small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $salleFestival !== '' ? e($salleFestival) : '—' ?></td>
+                        <td class="small <?= $dateClasse ?>"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
+                        <td class="muted col-petit small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
+                        <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?php $villeHtml = ville_region_html((string) $ev['ville'], pays_drapeau((string) $ev['pays']), (string) $ev['pays'], (string) $ev['region']); ?>
+                	<?= $villeHtml !== '' ? $villeHtml : '—' ?></td>
+                        <td class="muted col-petit small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $salleFestival !== '' ? e($salleFestival) : '—' ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -200,7 +202,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                 <tbody>
                 <?php $totAPayer = 0; foreach ($aPayer as $f): $totAPayer += (float) $f['salaire_net']; ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
-                        <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
+                        <td class="small"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
                         <td><?= e($f['employe_nom']) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
                     </tr>
@@ -222,13 +224,13 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
             <?php else: ?>
             <table class="list">
                 <thead>
-                    <tr><th>Échéance</th><th>Débiteur</th><th></th><th class="num">Montant</th></tr>
+                    <tr><th>Échéance</th><th>Structure</th><th></th><th class="num">Montant</th></tr>
                 </thead>
                 <tbody>
                 <?php $totEmises = 0; foreach ($facturesEmises as $fac): $totEmises += (float) $fac['montant_total']; ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard">
-                        <td><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
-                        <td><?= e($fac['debiteur_nom']) ?></td>
+                        <td class="small"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
+                        <td><?= e($fac['structure_nom']) ?></td>
                         <td><?= facturation_badge($fac) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $fac['montant_total']) ?></td>
                     </tr>

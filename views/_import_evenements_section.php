@@ -1,29 +1,9 @@
 <?php /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */
+// Résultats de l'import d'événements — le formulaire d'upload est désormais
+// unique (voir import_fiches.php, « Importer des données »).
 $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
 ?>
 <?php if ($errEvenements): ?><p class="err"><?= e($errEvenements) ?></p><?php endif; ?>
-
-<div class="card form mt-22">
-<h2 class="mt-0">Importer des événements</h2>
-    <p class="muted small">Importez un agenda de tournée depuis un fichier <strong>CSV</strong> (colonnes :
-        <code>date, ville, region, pays, lieu, details, type, statut, lien, lien_texte</code> — dans n'importe quel
-        ordre, seules <code>date</code> et <code>ville</code> sont obligatoires ; date au format JJ/MM/AAAA).
-        La colonne <code>type</code> est rapprochée d'un <?= e($termeSingulier) ?> existant du même nom (créé automatiquement sinon).
-        Un événement à la même date/ville/salle qu'un événement déjà présent est <strong>ignoré</strong> — jamais
-        écrasé. Les événements importés sont créés en visibilité <strong>non répertoriée</strong>, à relire avant
-        de les publier. <a href="assets/exemples/evenements.csv" target="_blank">Voir un exemple de fichier</a>.</p>
-    <form method="post" action="?p=import_evenements" enctype="multipart/form-data">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <label>Fichier à importer
-            <input type="file" name="fichier" accept="text/csv,.csv" required>
-        </label>
-        <div class="form-actions">
-            <button type="submit" name="simuler" value="1" class="btn ghost"><?= icon('bar-chart') ?> Simuler</button>
-            <button type="submit" name="appliquer" value="1" onclick="return confirm('Importer réellement les événements nouveaux ?');"><?= icon('import') ?> Importer</button>
-        </div>
-        <p class="muted small">« Simuler » montre ce qui serait importé sans rien enregistrer. « Importer » insère les événements nouveaux.</p>
-    </form>
-</div>
 
 <?php if ($resumeEvenements !== null): ?>
     <?php if ($simuleEvenements): ?>

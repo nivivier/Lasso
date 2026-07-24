@@ -15,7 +15,7 @@
             <?= e((string) param('employeur_rue')) ?><br>
             <?= e((string) param('employeur_npa')) ?></p>
 
-        <p style="margin-top:2em"><?= e($f['debiteur_nom']) ?><br>
+        <p style="margin-top:2em"><?= e($f['structure_nom']) ?><br>
             <?= e($f['adresse_rue']) ?><br>
             <?= e(trim($f['adresse_npa'] . ' ' . $f['adresse_localite'])) ?></p>
 

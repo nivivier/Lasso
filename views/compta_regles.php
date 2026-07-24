@@ -213,7 +213,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                 <span class="test-result muted small"></span>
                 <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
                 <button type="submit" name="section" value="edit" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
-                <button type="submit" name="section" value="del" class="btn ghost btn-sm btn-danger"
+                <button type="submit" name="section" value="del" class="btn ghost btn-sm danger"
                         onclick="return confirm('Supprimer cette règle ?')"><?= icon('trash') ?></button>
             </div>
             <div class="regle-conds" id="conds-<?= $rid ?>">

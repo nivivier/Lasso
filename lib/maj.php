@@ -430,3 +430,18 @@ function route_maj(): void
         'archivePossible' => maj_archive_possible(),
     ], 'Mises à jour');
 }
+
+// Diagnostic du serveur (section propre de l'onglet « Application ») : indique
+// quelles méthodes de mise à jour automatique sont disponibles. Lecture seule.
+function route_diagnostic(): void
+{
+    require_login();
+    render('diagnostic', [
+        'gitDispo'        => maj_git_dispo(),
+        'dlDispo'         => maj_download_dispo(),
+        'zipDispo'        => maj_zip_dispo(),
+        'targzDispo'      => maj_targz_dispo(),
+        'appWritable'     => maj_app_writable(),
+        'archivePossible' => maj_archive_possible(),
+    ], 'Diagnostic du serveur');
+}

@@ -4,7 +4,7 @@
 $f = $facture;
 $brouillon = $f['statut'] === 'brouillon';
 $peutAnnuler = !in_array($f['statut'], ['payee', 'annulee'], true);
-$peutEmail = !$brouillon && filter_var($f['debiteur_email'] ?? '', FILTER_VALIDATE_EMAIL);
+$peutEmail = !$brouillon && filter_var($f['structure_email'] ?? '', FILTER_VALIDATE_EMAIL);
 $aDesAxes = (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
 $numeroAffiche = $f['numero'] !== '' ? e($f['numero']) : '(brouillon)';
 
@@ -28,7 +28,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     case 'compte':   echo '<p class="err flash">Choisissez un compte bancaire créancier avant d\'émettre.</p>'; break;
     case 'lignes':   echo '<p class="err flash">La facture doit avoir au moins une ligne.</p>'; break;
     case 'emission': echo '<p class="err flash">L\'émission a échoué (numéro ou référence de paiement invalide). Réessayez.</p>'; break;
-    case 'pdf':      echo '<p class="err flash">La génération du PDF a échoué (vérifiez l\'IBAN et l\'adresse du débiteur).</p>'; break;
+    case 'pdf':      echo '<p class="err flash">La génération du PDF a échoué (vérifiez l\'IBAN et l\'adresse de la structure).</p>'; break;
 } ?>
 <?= lien_retour_contextuel('?p=facturation_liste', 'Facturation') ?>
 <div class="page-head">
@@ -52,7 +52,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 <a class="btn ghost" href="?p=facture_rappel&id=<?= (int) $f['id'] ?>" data-preview target="_blank"><?= icon('mail') ?> <span class="lbl">Lettre de rappel</span></a>
             <?php endif; ?>
             <?php if ($peutEmail): ?>
-                <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Envoyer cette facture par e-mail à <?= e($f['debiteur_email']) ?> ?');">
+                <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
@@ -96,8 +96,8 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 <?= e(param('employeur_npa')) ?></p>
         </div>
         <div>
-            <h3>Débiteur</h3>
-            <p><strong><a href="<?= e(url_avec_retour('?p=debiteur&id=' . (int) $f['debiteur_id'], 'facture', (int) $f['id'])) ?>"><?= e($f['debiteur_nom']) ?></a></strong><br>
+            <h3>Structure</h3>
+            <p><strong><a href="<?= e(url_avec_retour('?p=structure&id=' . (int) $f['structure_id'], 'facture', (int) $f['id'])) ?>"><?= e($f['structure_nom']) ?></a></strong><br>
                 <?= e($f['adresse_rue']) ?><?= $f['adresse_rue'] ? '<br>' : '' ?>
                 <?= e(trim($f['adresse_npa'] . ' ' . $f['adresse_localite'])) ?></p>
         </div>

@@ -35,6 +35,36 @@
             </label>
         </div>
 
+        <?php if (module_actif('booking')): ?>
+        <div class="section-head">
+            <h3 class="sub">Mailing booking <?= info_tip(
+                "Boîte d'envoi et débit distincts pour le mailing ciblé du module booking. Les champs SMTP "
+                . "laissés vides retombent sur le serveur d'envoi général ci-dessus."
+            ) ?></h3>
+            <a class="btn ghost btn-sm ml-auto" href="?p=mailing_exclusions"><?= icon('list-x') ?> Liste d'exclusion</a>
+        </div>
+        <?php $secureBooking = param('smtp_booking_secure') ?: 'ssl'; ?>
+        <?php $hasPassBooking = (string) param('smtp_booking_pass', '') !== ''; ?>
+        <div class="grid2">
+            <label>Identifiant (optionnel) <input name="smtp_booking_user" type="email" value="<?= e(param('smtp_booking_user')) ?>" placeholder="booking@exemple.ch" autocomplete="off"></label>
+            <label>Mot de passe <input name="smtp_booking_pass" type="password" value="" placeholder="<?= $hasPassBooking ? '•••••••• (inchangé)' : 'mot de passe de la boîte' ?>" autocomplete="new-password"></label>
+        </div>
+        <div class="grid3">
+            <label>Serveur SMTP <input name="smtp_booking_host" value="<?= e(param('smtp_booking_host')) ?>" placeholder="mail.votre-hebergeur.ch"></label>
+            <label>Port <input name="smtp_booking_port" type="text" inputmode="numeric" value="<?= e(param('smtp_booking_port')) ?>" placeholder="465"></label>
+            <label>Sécurité
+                <select name="smtp_booking_secure">
+                    <option value="ssl" <?= $secureBooking === 'ssl' ? 'selected' : '' ?>>SSL (port 465)</option>
+                    <option value="tls" <?= $secureBooking === 'tls' ? 'selected' : '' ?>>STARTTLS (port 587)</option>
+                </select>
+            </label>
+        </div>
+        <div class="grid2">
+            <label>Délai entre deux e-mails (secondes) <input name="mailing_delai_secondes" type="number" min="0" value="<?= e(param('mailing_delai_secondes', '10')) ?>"></label>
+            <label>Plafond d'envoi par 24h <input name="mailing_max_par_jour" type="number" min="1" value="<?= e(param('mailing_max_par_jour', '200')) ?>"></label>
+        </div>
+        <?php endif; ?>
+
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>

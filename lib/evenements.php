@@ -277,13 +277,12 @@ function evenements_lien_texte_defaut(): string
     return $v !== '' ? $v : "Plus d'informations";
 }
 
-// Liste des pays proposés dans le champ « Région et pays » du formulaire
-// événement. Paramétrable (onglet Événements) ; défaut CH/FR/BE/CA.
+// Codes ISO2 proposés dans le champ « Région et pays » du formulaire événement
+// — dérivés de la liste de pays configurable (Paramètres → Pays, voir
+// pays_liste() dans lib/helpers.php), commune à tous les champs pays de l'app.
 function evenements_pays_disponibles(): array
 {
-    $v = trim((string) param('evenements_pays_disponibles', ''));
-    $liste = $v !== '' ? array_map('trim', explode(',', $v)) : ['CH', 'FR', 'BE', 'CA'];
-    return array_values(array_filter($liste, fn ($p) => $p !== ''));
+    return array_column(pays_liste(), 'code_iso2');
 }
 
 // Terme utilisé dans l'interface pour désigner une série d'événements (le
@@ -302,21 +301,6 @@ function evenements_terme_spectacle(bool $pluriel = true): string
     // Singulier dérivé (règle française courante : le pluriel ajoute un « s »).
     $singulier = rtrim($terme, 's');
     return $singulier !== '' ? $singulier : $terme;
-}
-
-// Émoji drapeau à partir d'un code pays ISO 3166-1 alpha-2 (ex. « CH » → 🇨🇭),
-// pour l'affichage du lieu d'un événement. Vide si le code n'a pas ce format.
-function pays_drapeau(string $code): string
-{
-    $code = strtoupper(trim($code));
-    if (!preg_match('/^[A-Z]{2}$/', $code)) {
-        return '';
-    }
-    $drapeau = '';
-    foreach (str_split($code) as $lettre) {
-        $drapeau .= mb_chr(127397 + ord($lettre), 'UTF-8');
-    }
-    return $drapeau;
 }
 
 // Les prochains événements (date ≥ aujourd'hui), pour le widget du tableau de

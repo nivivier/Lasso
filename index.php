@@ -12,6 +12,7 @@ require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
+require_once __DIR__ . '/lib/routes_booking.php';
 require_once __DIR__ . '/lib/maj.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
@@ -130,9 +131,6 @@ ajouter_routes_module($handlers, $routeModules, 'facturation', [
     'facturation'           => 'route_facturation',
     'facturation_liste'     => 'route_facturation_liste',
     'facturation_form'      => 'route_facturation_form',
-    'facturation_debiteurs' => 'route_facturation_debiteurs',
-    'debiteur'              => 'route_debiteur',
-    'debiteur_delete'       => 'route_debiteur_delete',
     'facture'               => 'route_facture',
     'facture_emettre'       => 'route_facture_emettre',
     'facture_payee'         => 'route_facture_payee',
@@ -143,6 +141,57 @@ ajouter_routes_module($handlers, $routeModules, 'facturation', [
     'facture_rappel'        => 'route_facture_rappel',
     'import_factures'       => 'route_import_factures',
 ]);
+
+// Structures (ex-débiteurs) : liste/fiche/suppression partagées entre
+// Facturation et Booking — accessible dès que l'un des deux modules est actif
+// (même logique « OU » que les comptes bancaires ci-dessus), voir
+// SPEC_BOOKING.md §3. Les écrans propres au CRM (notes, tags, lieux, mailing,
+// import) restent réservés au module booking, ci-dessous.
+if (module_actif('facturation') || module_actif('booking')) {
+    $handlers['structures']      = 'route_structures';
+    $handlers['structure']       = 'route_structure';
+    $handlers['structure_renommer'] = 'route_structure_renommer';
+    $handlers['structure_statut'] = 'route_structure_statut';
+    $handlers['structure_delete'] = 'route_structure_delete';
+    $handlers['structure_fusion'] = 'route_structure_fusion';
+    $handlers['structure_transformer'] = 'route_structure_transformer';
+    foreach (['structures', 'structure', 'structure_renommer', 'structure_statut', 'structure_delete', 'structure_fusion', 'structure_transformer'] as $r) {
+        $routeModules[$r] = ['facturation', 'booking'];
+    }
+}
+
+ajouter_routes_module($handlers, $routeModules, 'booking', [
+    'structure_contact_ajouter' => 'route_structure_contact_ajouter',
+    'structure_contact_delete'  => 'route_structure_contact_delete',
+    'structure_note_ajouter' => 'route_structure_note_ajouter',
+    'structure_tag_ajouter'  => 'route_structure_tag_ajouter',
+    'structure_tag_retirer'  => 'route_structure_tag_retirer',
+    'structure_lieu_lier'    => 'route_structure_lieu_lier',
+    'structure_lieu_delier'  => 'route_structure_lieu_delier',
+    'lieux'                  => 'route_lieux',
+    'lieu'                   => 'route_lieu',
+    'lieu_renommer'          => 'route_lieu_renommer',
+    'lieu_organisateur'      => 'route_lieu_organisateur',
+    'structures_options'     => 'route_structures_options',
+    'lieu_delete'            => 'route_lieu_delete',
+    'mailing'                => 'route_mailing',
+    'mailing_campagne'       => 'route_mailing_campagne',
+    'mailing_modeles'        => 'route_mailing_modeles',
+    'mailing_exclusions'     => 'route_mailing_exclusions',
+    'mailing_envoyer'        => 'route_mailing_envoyer',
+    'import_structures'      => 'route_import_structures',
+    'parametres_structures'  => 'route_parametres_structures',
+    'parametres_lieux_categories' => 'route_parametres_lieux_categories',
+]);
+// Traitement de la file d'attente mailing + désinscription : protégés par un
+// jeton dédié (mailing_verifier_token()), pas par une session utilisateur —
+// déclenchés par le planificateur de tâches de l'hébergeur ou par un lien
+// dans l'e-mail, jamais soumis à peut_lire()/peut_ecrire() (même logique que
+// l'export public du module événements).
+if (module_actif('booking')) {
+    $handlers['mailing_traiter']  = 'route_mailing_traiter';
+    $handlers['desinscription']   = 'route_desinscription';
+}
 
 ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenements'         => 'route_evenements',
@@ -182,12 +231,13 @@ if (module_actif('evenements')) {
 // sauvegarde complète de la base) — voir SPEC_PERMISSIONS.md §7.
 if (peut_lire('coeur')) {
     $handlers += [
-        'parametres' => 'route_parametres',
-        'employeur'  => 'route_employeur',
-        'emails'     => 'route_emails',
-        'export'     => 'route_export',
+        'parametres'      => 'route_parametres',
+        'employeur'       => 'route_employeur',
+        'emails'          => 'route_emails',
+        'export'          => 'route_export',
+        'parametres_pays' => 'route_parametres_pays',
     ];
-    foreach (['parametres', 'employeur', 'emails', 'export'] as $r) {
+    foreach (['parametres', 'employeur', 'emails', 'export', 'parametres_pays'] as $r) {
         $routeModules[$r] = ['coeur'];
     }
 }
@@ -202,6 +252,8 @@ if (peut_ecrire('coeur')) {
         'compte_permissions'  => 'route_compte_permissions',
         'parametres_modules'  => 'route_parametres_modules',
         'maj'                 => 'route_maj',
+        'diagnostic'          => 'route_diagnostic',
+        'apparence'           => 'route_apparence',
         'backup'              => 'route_backup',
     ];
 }

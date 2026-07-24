@@ -75,8 +75,8 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('receipt-swiss-franc') ?> Factures
             <?php if ($nbRetard > 0): ?><span class="nav-badge"><?= $nbRetard ?></span><?php endif; ?>
         </a>
-        <a href="?p=facturation_debiteurs" class="<?= in_array($cur, ['facturation_debiteurs', 'debiteur'], true) ? 'on' : '' ?>">
-            <?= icon('building-2') ?> Débiteurs
+        <a href="?p=structures" class="<?= in_array($cur, ['structures', 'structure'], true) ? 'on' : '' ?>">
+            <?= icon('building-2') ?> Structures
         </a>
         <?php endif; ?>
         <?php if (module_actif('evenements') && peut_lire('evenements')): ?>
@@ -90,9 +90,23 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('music') ?> <?= e(evenements_terme_spectacle()) ?>
         </a>
         <?php endif; ?>
+        <?php if (module_actif('booking') && peut_lire('booking')): ?>
+        <span class="side-nav-sep">Booking</span>
+        <?php if (!(module_actif('facturation') && peut_lire('facturation'))): ?>
+        <a href="?p=structures" class="<?= in_array($cur, ['structures', 'structure'], true) ? 'on' : '' ?>">
+            <?= icon('building-2') ?> Structures
+        </a>
+        <?php endif; ?>
+        <a href="?p=lieux" class="<?= in_array($cur, ['lieux', 'lieu'], true) ? 'on' : '' ?>">
+            <?= icon('map-pin') ?> Salles &amp; festivals
+        </a>
+        <a href="?p=mailing" class="<?= $cur === 'mailing' ? 'on' : '' ?>">
+            <?= icon('mail') ?> Mailing
+        </a>
+        <?php endif; ?>
         <?php if (peut_lire('coeur')): ?>
         <span class="side-nav-sep"></span>
-        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements']; ?>
+        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
         <a href="?p=employeur" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
             <?= icon('settings') ?> Paramètres
         </a>

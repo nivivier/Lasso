@@ -94,8 +94,8 @@ function evenement_detacher_prestation(int $evenementId, int $employeId): void
 
 function evenement_factures_liees(int $evenementId): array
 {
-    $stmt = db()->prepare('SELECT f.*, d.nom AS debiteur_nom FROM factures f
-                            JOIN debiteurs d ON d.id = f.debiteur_id
+    $stmt = db()->prepare('SELECT f.*, d.nom AS structure_nom FROM factures f
+                            JOIN structures d ON d.id = f.structure_id
                             WHERE f.evenement_id = ? ORDER BY f.cree_le DESC');
     $stmt->execute([$evenementId]);
     return $stmt->fetchAll();
@@ -106,8 +106,8 @@ function evenement_factures_liees(int $evenementId): array
 function factures_sans_evenement(): array
 {
     return db()->query(
-        "SELECT f.*, d.nom AS debiteur_nom FROM factures f
-         JOIN debiteurs d ON d.id = f.debiteur_id
+        "SELECT f.*, d.nom AS structure_nom FROM factures f
+         JOIN structures d ON d.id = f.structure_id
          WHERE f.evenement_id IS NULL ORDER BY f.cree_le DESC"
     )->fetchAll();
 }
@@ -334,7 +334,7 @@ function route_evenements_export_suisa(): void
     [$where, $params] = evenements_where_filtres($f, $spectacleMap);
     $from = ' FROM evenements e
               LEFT JOIN spectacles s ON s.id = e.spectacle_id
-              LEFT JOIN debiteurs d ON d.id = e.organisateur_debiteur_id';
+              LEFT JOIN structures d ON d.id = e.organisateur_structure_id';
     $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.region, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
                    d.nom AS org_nom, d.type AS org_type, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
@@ -440,21 +440,21 @@ function route_evenement(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
 
-    // Carte « Organisateur » : débiteur à facturer pour cet événement (optionnel,
+    // Carte « Organisateur » : structure à facturer pour cet événement (optionnel,
     // un seul à la fois — voir route_evenement_organisateur_lier()).
     $organisateur = null;
-    if ($id && module_actif('facturation') && !empty($evenement['organisateur_debiteur_id'])) {
-        $stmtOrg = db()->prepare('SELECT * FROM debiteurs WHERE id = ?');
-        $stmtOrg->execute([(int) $evenement['organisateur_debiteur_id']]);
+    if ($id && module_actif('facturation') && !empty($evenement['organisateur_structure_id'])) {
+        $stmtOrg = db()->prepare('SELECT * FROM structures WHERE id = ?');
+        $stmtOrg->execute([(int) $evenement['organisateur_structure_id']]);
         $organisateur = $stmtOrg->fetch() ?: null;
     }
-    $debiteursDispo = ($id && module_actif('facturation'))
-        ? db()->query('SELECT * FROM debiteurs WHERE actif = 1 ORDER BY nom')->fetchAll()
+    $structuresDispo = ($id && module_actif('facturation'))
+        ? db()->query('SELECT * FROM structures WHERE actif = 1 ORDER BY nom')->fetchAll()
         : [];
 
     $renderForm = function (?string $err) use (
         $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
-        $axes, $organisateur, $debiteursDispo
+        $axes, $organisateur, $structuresDispo
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -470,7 +470,7 @@ function route_evenement(): void
             'factures'       => $id ? evenement_factures_liees($id) : [],
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
             'organisateur'   => $organisateur,
-            'debiteursDispo' => $debiteursDispo,
+            'structuresDispo' => $structuresDispo,
             'paysDisponibles' => evenements_pays_disponibles(),
             'axes'           => $axes,
             'err'            => $err,
@@ -803,10 +803,10 @@ function route_evenement_delete(): void
     redirect('evenements_liste');
 }
 
-// Lie le débiteur « organisateur » d'un événement (carte du même nom) — un
-// débiteur existant choisi via la recherche, ou un nouveau créé à la volée
+// Lie la structure « organisateur » d'un événement (carte du même nom) — une
+// structure existante choisie via la recherche, ou une nouvelle créée à la volée
 // (mêmes champs que la création rapide depuis une facture, préfixés « org_ »,
-// voir debiteur_creer_depuis_post()). Un seul organisateur à la fois : relier
+// voir structure_creer_depuis_post()). Un seul organisateur à la fois : relier
 // remplace simplement l'ancien (pas d'historique à préserver, contrairement
 // aux fiches de salaire).
 function route_evenement_organisateur_lier(): void
@@ -820,26 +820,26 @@ function route_evenement_organisateur_lier(): void
     if (!evenement_charger($evenementId)) {
         redirect('evenements_liste');
     }
-    $debiteurRaw = (string) ($_POST['debiteur_id'] ?? '');
-    if ($debiteurRaw === '__new__') {
+    $structureRaw = (string) ($_POST['structure_id'] ?? '');
+    if ($structureRaw === '__new__') {
         if (trim($_POST['org_nom'] ?? '') === '') {
             redirect('evenement', ['id' => $evenementId, 'errOrganisateur' => '1']);
         }
-        $debiteurId = debiteur_creer_depuis_post('org_');
+        $structureId = structure_creer_depuis_post('org_');
     } else {
-        $debiteurId = (int) $debiteurRaw;
-        $stmtD = db()->prepare('SELECT 1 FROM debiteurs WHERE id = ?');
-        $stmtD->execute([$debiteurId]);
+        $structureId = (int) $structureRaw;
+        $stmtD = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
+        $stmtD->execute([$structureId]);
         if (!$stmtD->fetchColumn()) {
             redirect('evenement', ['id' => $evenementId]);
         }
     }
-    db()->prepare('UPDATE evenements SET organisateur_debiteur_id = ? WHERE id = ?')->execute([$debiteurId, $evenementId]);
+    db()->prepare('UPDATE evenements SET organisateur_structure_id = ? WHERE id = ?')->execute([$structureId, $evenementId]);
     redirect('evenement', ['id' => $evenementId, 'ok' => 'organisateur']);
 }
 
-// Détache l'organisateur d'un événement (le débiteur lui-même n'est jamais
-// supprimé, seul le lien l'est).
+// Détache l'organisateur d'un événement (la structure elle-même n'est jamais
+// supprimée, seul le lien l'est).
 function route_evenement_organisateur_delier(): void
 {
     require_login();
@@ -848,7 +848,7 @@ function route_evenement_organisateur_delier(): void
     }
     check_csrf();
     $evenementId = (int) ($_POST['id'] ?? 0);
-    db()->prepare('UPDATE evenements SET organisateur_debiteur_id = NULL WHERE id = ?')->execute([$evenementId]);
+    db()->prepare('UPDATE evenements SET organisateur_structure_id = NULL WHERE id = ?')->execute([$evenementId]);
     redirect('evenement', ['id' => $evenementId]);
 }
 
@@ -1108,16 +1108,11 @@ function route_parametres_evenements(): void
             $delaiAbandon = max(1, (int) ($_POST['suisa_delai_abandon_mois'] ?? 60));
             $lienTexteDefaut = trim($_POST['evenements_lien_texte_defaut'] ?? '');
             $termeSpectacle = trim($_POST['evenements_terme_spectacle'] ?? '');
-            $paysListe = array_values(array_filter(array_map(
-                fn ($p) => mb_strtoupper(trim($p), 'UTF-8'),
-                explode(',', (string) ($_POST['evenements_pays_disponibles'] ?? ''))
-            ), fn ($p) => $p !== ''));
             $ins = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
             $ins->execute(['suisa_delai_decompte_mois', (string) $delai]);
             $ins->execute(['suisa_delai_abandon_mois', (string) $delaiAbandon]);
             $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
             $ins->execute(['evenements_terme_spectacle', $termeSpectacle]);
-            $ins->execute(['evenements_pays_disponibles', implode(',', $paysListe)]);
         }
         redirect('parametres_evenements', ['ok' => 1]);
     }
@@ -1127,7 +1122,6 @@ function route_parametres_evenements(): void
         'delaiAbandon' => evenements_delai_abandon_mois(),
         'lienTexteDefaut' => evenements_lien_texte_defaut(),
         'termeSpectacle' => evenements_terme_spectacle(),
-        'paysDisponibles' => evenements_pays_disponibles(),
         'saved' => $_GET['ok'] ?? null,
     ], 'Paramètres — Événements');
 }

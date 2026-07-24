@@ -27,41 +27,11 @@
             </label>
         </div>
 
-        <h3 class="sub">Couleur principale <?= info_tip(
-            "Utilisée pour les accents dans toute l'application (barre latérale, survols, fonds, "
-            . 'en-têtes) ; les autres teintes sont calculées automatiquement à partir de celle-ci.'
-        ) ?></h3>
-        <div class="color-field">
-            <input type="color" name="employeur_couleur_principale" id="couleur-principale"
-                   value="<?= e(param('employeur_couleur_principale', '#6d4ade')) ?>">
-            <code id="couleur-principale-hex"><?= e(param('employeur_couleur_principale', '#6d4ade')) ?></code>
-        </div>
-        <script>
-            document.getElementById('couleur-principale').addEventListener('input', function () {
-                document.getElementById('couleur-principale-hex').textContent = this.value;
-            });
-        </script>
-
-        <h3 class="sub">Couleur de mise en évidence <?= info_tip(
-            'Remplace la couleur principale à certains endroits : boutons principaux, sommes de '
-            . 'salaire brut, liens et tags.'
-        ) ?></h3>
-        <div class="color-field">
-            <input type="color" name="employeur_couleur_evidence" id="couleur-evidence"
-                   value="<?= e(param('employeur_couleur_evidence', '#2563eb')) ?>">
-            <code id="couleur-evidence-hex"><?= e(param('employeur_couleur_evidence', '#2563eb')) ?></code>
-        </div>
-        <script>
-            document.getElementById('couleur-evidence').addEventListener('input', function () {
-                document.getElementById('couleur-evidence-hex').textContent = this.value;
-            });
-        </script>
-
         <h3 class="sub">Coordonnées <?= info_tip('Ces coordonnées seront affichées sur les fiches de salaire.') ?></h3>
         <div class="grid3">
             <label>Rue <input name="employeur_rue" value="<?= e(param('employeur_rue')) ?>"></label>
             <label>NPA, localité <input name="employeur_npa" value="<?= e(param('employeur_npa')) ?>"></label>
-            <label>Pays <input name="employeur_pays" value="<?= e(param('employeur_pays')) ?>"></label>
+            <label>Pays <select name="employeur_pays"><?= pays_options_nom(param('employeur_pays')) ?></select></label>
         </div>
 
         <h3 class="sub">Certificat de salaire (eCS CSI) <?= info_tip(

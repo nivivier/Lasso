@@ -307,6 +307,81 @@ function pct(float $v): string
     return nombre_court($v * 100, 4) . ' %';
 }
 
+// ------------------------------------------------------------------- PAYS
+// Liste de pays configurable (Paramètres → Pays, voir migration_43), partagée
+// par tous les champs pays de l'app (structures, lieux, employeur, événements,
+// facturation) — un seul point de configuration au lieu d'une saisie libre par
+// module. Chaque entrée porte un nom affiché et un code ISO 3166-1 alpha-2
+// (pour le drapeau et, côté événements, la valeur stockée).
+function pays_liste(): array
+{
+    return db()->query('SELECT * FROM pays_liste ORDER BY ordre, nom')->fetchAll();
+}
+
+// Émoji drapeau à partir d'un code pays ISO 3166-1 alpha-2 (ex. « CH » → 🇨🇭).
+// Vide si le code n'a pas ce format (ex. valeur vide ou non reconnue).
+function pays_drapeau(string $code): string
+{
+    $code = strtoupper(trim($code));
+    if (!preg_match('/^[A-Z]{2}$/', $code)) {
+        return '';
+    }
+    $drapeau = '';
+    foreach (str_split($code) as $lettre) {
+        $drapeau .= mb_chr(127397 + ord($lettre), 'UTF-8');
+    }
+    return $drapeau;
+}
+
+// Drapeau à partir d'un NOM de pays stocké tel quel (structures.adresse_pays,
+// lieux.pays, employeur_pays — texte libre historique) — vide si le nom ne
+// correspond à aucun pays de la liste configurée (ex. donnée erronée d'un
+// import), à l'appelant de retomber sur le texte brut dans ce cas.
+function pays_drapeau_nom(string $nom): string
+{
+    static $map = null;
+    if ($map === null) {
+        $map = [];
+        foreach (pays_liste() as $p) {
+            $map[$p['nom']] = $p['code_iso2'];
+        }
+    }
+    return isset($map[$nom]) ? pays_drapeau($map[$nom]) : '';
+}
+
+// Options <option> pour un <select> de pays dont la valeur stockée est le NOM
+// (structures/lieux/employeur/facturation) — si la valeur actuelle ne
+// correspond à aucun pays configuré (donnée libre historique), elle est
+// ajoutée en tête pour ne jamais l'écraser silencieusement à l'enregistrement.
+function pays_options_nom(string $selected): string
+{
+    $liste = pays_liste();
+    $h = '';
+    if ($selected !== '' && !in_array($selected, array_column($liste, 'nom'), true)) {
+        $h .= '<option value="' . e($selected) . '" selected>' . e($selected) . ' (non reconnu)</option>';
+    }
+    foreach ($liste as $p) {
+        $h .= '<option value="' . e($p['nom']) . '"' . ($selected === $p['nom'] ? ' selected' : '') . '>' . e($p['nom']) . '</option>';
+    }
+    return $h;
+}
+
+// Options <option> pour un <select> de pays dont la valeur stockée est le CODE
+// ISO2 (evenements.pays) — libellé "Nom", valeur "CODE". Même filet de
+// sécurité que pays_options_nom() pour un code non reconnu.
+function pays_options_code(string $selected): string
+{
+    $liste = pays_liste();
+    $h = '';
+    if ($selected !== '' && !in_array($selected, array_column($liste, 'code_iso2'), true)) {
+        $h .= '<option value="' . e($selected) . '" selected>' . e($selected) . ' (non reconnu)</option>';
+    }
+    foreach ($liste as $p) {
+        $h .= '<option value="' . e($p['code_iso2']) . '"' . ($selected === $p['code_iso2'] ? ' selected' : '') . '>' . e($p['nom']) . '</option>';
+    }
+    return $h;
+}
+
 // Badge <span> générique (statuts, indicateurs) — factorise le motif répété
 // dans evenement_suisa_badge()/evenement_badge_statut() (lib/evenements.php)
 // et facturation_badge() (lib/facturation.php). $classe :
@@ -644,9 +719,23 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     if (isset($statiques[$depuis])) {
         return lien_retour($statiques[$depuis][0], $statiques[$depuis][1]);
     }
-    if (preg_match('/^(facture|evenement|fiche|employe):(\d+)$/', $depuis, $m)) {
+    if (preg_match('/^(facture|evenement|fiche|employe|structure|lieu):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];
-        if ($m[1] === 'employe') {
+        if ($m[1] === 'structure') {
+            $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
+            $stmt->execute([$id]);
+            $nom = $stmt->fetchColumn();
+            if ($nom !== false) {
+                return lien_retour('?p=structure&id=' . $id, (string) $nom);
+            }
+        } elseif ($m[1] === 'lieu') {
+            $stmt = db()->prepare('SELECT nom FROM lieux WHERE id = ?');
+            $stmt->execute([$id]);
+            $nom = $stmt->fetchColumn();
+            if ($nom !== false) {
+                return lien_retour('?p=lieu&id=' . $id, (string) $nom);
+            }
+        } elseif ($m[1] === 'employe') {
             $stmt = db()->prepare('SELECT prenom, nom FROM employes WHERE id = ?');
             $stmt->execute([$id]);
             $emp = $stmt->fetch();
@@ -839,6 +928,53 @@ function smtp_config(): array
     ];
 }
 
+// Profil SMTP dédié au mailing booking (onglet Paramètres → E-mails), facultatif :
+// tout champ laissé vide retombe sur le profil SMTP général (smtp_config()) —
+// permet une boîte d'envoi distincte pour le booking sans y être obligé, voir
+// SPEC_BOOKING.md §7.
+function smtp_config_booking(): array
+{
+    $general = smtp_config();
+    $val = function (string $cle, string $defaut): string {
+        $v = (string) param($cle, '');
+        return $v !== '' ? $v : $defaut;
+    };
+    return [
+        'host'   => $val('smtp_booking_host', $general['host']),
+        'port'   => (int) $val('smtp_booking_port', (string) $general['port']),
+        'secure' => $val('smtp_booking_secure', $general['secure']) === 'tls' ? 'tls' : 'ssl',
+        'user'   => $val('smtp_booking_user', $general['user']),
+        'pass'   => $val('smtp_booking_pass', $general['pass']),
+    ];
+}
+
+// Envoi d'un mailing booking : contrairement à envoyer_email(), **jamais** de
+// repli sur mail() — le débit d'envoi (délai/plafond configurés) ne peut être
+// maîtrisé que via SMTP, cf. SPEC_BOOKING.md §7. En dev, journalisé comme les
+// autres e-mails plutôt qu'expédié. Retourne [bool succès, string mode].
+function envoyer_mailing_email(string $destinataire, string $expediteur, string $sujet, string $corps): array
+{
+    if (APP_ENV === 'dev') {
+        $log = dirname(APP_DB_PATH) . '/emails_envoyes.log';
+        @file_put_contents($log, '[' . date('c') . "] Mailing To: $destinataire | De: $expediteur | $sujet\n", FILE_APPEND);
+        return [true, 'local'];
+    }
+    $cfg = smtp_config_booking();
+    if ($cfg['user'] === '') {
+        error_log('[app] Mailing : SMTP non configuré (écran E-mails, profil booking ou général).');
+        return [false, 'smtp'];
+    }
+    $sujetEnc = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
+    $entetes = implode("\r\n", [
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: ' . $expediteur,
+        'Reply-To: ' . $expediteur,
+    ]);
+    $message = 'To: ' . $destinataire . "\r\n" . 'Subject: ' . $sujetEnc . "\r\n" . $entetes . "\r\n\r\n" . $corps;
+    return [smtp_transmettre($cfg, $destinataire, $message), 'smtp'];
+}
+
 // Transmet un message brut déjà complet (en-têtes To/Subject/… + ligne vide + corps)
 // par SMTP authentifié, en PHP pur (aucune dépendance). Gère SSL implicite
 // (port 465) ou STARTTLS (port 587), AUTH LOGIN. Appelé par envoyer_email(),
@@ -995,7 +1131,9 @@ function icon(string $name): string
         'settings'  => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
         'menu'      => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
         'x'         => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+        'list-x'    => '<path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="m19 10-4 4"/><path d="m15 10 4 4"/>',
         'building'  => '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
+        'user'      => '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
         'percent'   => '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
         'printer'   => '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
         'eye'       => '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
@@ -1037,6 +1175,10 @@ function icon(string $name): string
         'earth-lock' => '<path d="M7 3.34V5a3 3 0 0 0 3 3"/><path d="M11 21.95V18a2 2 0 0 0-2-2 2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05"/><path d="M21.54 15H17a2 2 0 0 0-2 2v4.54"/><path d="M12 2a10 10 0 1 0 9.54 13"/><path d="M20 6V4a2 2 0 1 0-4 0v2"/><rect width="8" height="5" x="14" y="6" rx="1"/>',
         'globe-off'  => '<path d="M10.114 4.462A14.5 14.5 0 0 1 12 2a10 10 0 0 1 9.313 13.643"/><path d="M15.557 15.556A14.5 14.5 0 0 1 12 22 10 10 0 0 1 4.929 4.929"/><path d="M15.892 10.234A14.5 14.5 0 0 0 12 2a10 10 0 0 0-3.643.687"/><path d="M17.656 12H22"/><path d="M19.071 19.071A10 10 0 0 1 12 22 14.5 14.5 0 0 1 8.44 8.45"/><path d="M2 12h10"/><path d="m2 2 20 20"/>',
         'handshake'  => '<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>',
+        'map-pin'    => '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+        'tag'        => '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+        'message-square' => '<path d="M22 17a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2z"/>',
+        'send'       => '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
     ];
     $p = $paths[$name] ?? '';
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
@@ -1051,6 +1193,59 @@ function info_tip(string $texte): string
     return '<span class="info-tip" tabindex="0" role="button" aria-label="Plus d\'informations">'
         . icon('info')
         . '<span class="info-tip-bulle" role="tooltip">' . e($texte) . '</span></span>';
+}
+
+// Sélecteur segmenté à icônes (ex. type de structure, visibilité d'un
+// événement) — remplace un <select> par des boutons-icônes connectés dont un
+// seul est actif, exactement le format des droits par module de ?p=comptes
+// (.perm-toggle), mais horizontal. Radios cachés : la valeur est soumise
+// naturellement dans le formulaire, sans JS. $options : [valeur => ['icone' =>
+// nom pour icon(), 'label' => texte accessible/tooltip]], dans l'ordre voulu.
+function icon_picker(string $name, array $options, string $selected, string $ariaLabel = ''): string
+{
+    $h = '<div class="seg-picker" role="radiogroup"' . ($ariaLabel !== '' ? ' aria-label="' . e($ariaLabel) . '"' : '') . '>';
+    foreach ($options as $valeur => $opt) {
+        $checked = $selected === $valeur ? ' checked' : '';
+        $h .= '<label class="seg-btn" title="' . e($opt['label']) . '">'
+            . '<input type="radio" name="' . e($name) . '" value="' . e($valeur) . '" aria-label="' . e($opt['label']) . '"' . $checked . '>'
+            . icon($opt['icone'])
+            . '</label>';
+    }
+    return $h . '</div>';
+}
+
+// Affichage combiné « Ville 🇫🇷 (Région) » — factorisé entre les listes
+// structures et événements (ville en gras, drapeau du pays, région entre
+// parenthèses en muted). $drapeau : émoji déjà résolu par l'appelant
+// (pays_drapeau() si le pays est stocké en code ISO2, pays_drapeau_nom() s'il
+// est stocké en nom) ; $paysBrut : texte affiché en repli si aucun drapeau n'a
+// pu être résolu (ex. valeur non reconnue). Chaîne vide si rien à afficher —
+// à l'appelant de décider son propre repli (« — », combiné à d'autres champs).
+function ville_region_html(string $ville, string $drapeau, string $paysBrut, string $region): string
+{
+    $h = '';
+    if ($ville !== '') {
+        $h .= '<strong>' . e($ville) . '</strong>';
+    }
+    if ($drapeau !== '') {
+        $h .= ' <span class="tiny">' . $drapeau . '</span>';
+    } elseif ($paysBrut !== '') {
+        $h .= ' <span class="tiny muted">' . e($paysBrut) . '</span>';
+    }
+    if ($region !== '') {
+        $h .= ' <span class="tiny muted">' . e($region) . '</span>';
+    }
+    return $h;
+}
+
+// Affichage catégorie/sous-catégorie sur deux lignes (catégorie en petit et
+// muted au-dessus, sous-catégorie en dessous) — même style que le rappel de
+// catégorie de compta_ecritures.php (.row-field-txt/.row-field-prefix).
+function categorie_sous_categorie_html(string $categorie, string $sousCategorie): string
+{
+    $prefixe = $sousCategorie !== '' ? '<span class="row-field-prefix">' . e($categorie) . '</span>' : '';
+    $feuille = $sousCategorie !== '' ? $sousCategorie : $categorie;
+    return '<span class="row-field-txt">' . $prefixe . '<span>' . e($feuille) . '</span></span>';
 }
 
 // Nombre de fiches non payées (date_paiement vide) du mois courant ou avant.

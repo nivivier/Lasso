@@ -132,19 +132,12 @@ $parentOptions = function (int $excludeId) use ($map): string {
 
 <script>
 (function () {
-    // Conserve la position de défilement à travers les rechargements (drag-and-drop,
-    // renommage…) pour ne pas « remonter en haut » à chaque action.
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    const SCROLL_KEY = 'spectaclesScroll';
-    const sc = sessionStorage.getItem(SCROLL_KEY);
-    if (sc !== null) { sessionStorage.removeItem(SCROLL_KEY); window.scrollTo(0, parseInt(sc, 10) || 0); }
-    const saveScroll = () => sessionStorage.setItem(SCROLL_KEY, window.scrollY);
-    document.querySelectorAll('form[action="?p=spectacles"]').forEach(f => f.addEventListener('submit', saveScroll));
-
-    // JS actif : lecture seule par défaut (nom + crayon), formulaire de
-    // renommage masqué jusqu'au clic (voir .dnd-on dans app.css). Absent si
-    // la liste est vide (aucun tableau à afficher).
-    document.getElementById('spectacles-card')?.classList.add('dnd-on');
+    lassoPlanArbre({
+        containerSelector: '#spectacles-card',
+        rowsSelector: '.spectacles-table .plan-row',
+        scrollKey: 'spectaclesScroll',
+        formAction: '?p=spectacles',
+    });
 
     document.querySelectorAll('.export-copy').forEach(btn => {
         const original = btn.innerHTML;
@@ -168,121 +161,5 @@ $parentOptions = function (int $excludeId) use ($map): string {
         };
         search.addEventListener('input', apply);
     }
-
-    document.querySelectorAll('.plan-edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest('.plan-row');
-            row.classList.add('editing');
-            const inp = row.querySelector('.plan-libelle');
-            inp.dataset.orig = inp.value;
-            inp.focus(); inp.select();
-        });
-    });
-    document.querySelectorAll('.plan-libelle').forEach(inp => {
-        const finir = () => inp.closest('.plan-row').classList.remove('editing');
-        inp.addEventListener('change', () => {
-            const f = inp.closest('form');
-            (f.requestSubmit ? f.requestSubmit() : f.submit());
-        });
-        inp.addEventListener('blur', finir);
-        inp.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { inp.value = inp.dataset.orig ?? inp.value; finir(); inp.blur(); }
-            else if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
-        });
-    });
-
-    const INDENT = 22; // px par niveau
-    let dragId = null, startX = 0, indic = null;
-    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-    document.querySelectorAll('.plan-grip').forEach(g => {
-        g.addEventListener('dragstart', e => {
-            const row = g.closest('.plan-row');
-            dragId = row.dataset.id; startX = e.clientX;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', dragId);
-        });
-    });
-
-    function visibles() {
-        const all = [...document.querySelectorAll('.spectacles-table .plan-row')]
-            .map(r => ({ id: r.dataset.id, parent: r.dataset.parent || '0', depth: +r.dataset.depth, el: r }));
-        const byId = {}; all.forEach(i => byId[i.id] = i);
-        const estDescendant = id => { let c = byId[id]; while (c) { if (c.id === dragId) return true; c = byId[c.parent]; } return false; };
-        return { liste: all.filter(i => i.id !== dragId && !estDescendant(i.id)), byId };
-    }
-
-    function projeter(e) {
-        if (!dragId) return null;
-        const over = e.target.closest('.plan-row');
-        if (!over) return null;
-        const { liste, byId } = visibles();
-        const idx = liste.findIndex(i => i.id === over.dataset.id);
-        if (idx < 0) return null;
-
-        const rOver = over.getBoundingClientRect();
-        const avantPremier = idx === 0 && e.clientY < rOver.top + rOver.height * 0.38;
-
-        let prev, next, depth, parent, anchor;
-        if (avantPremier) {
-            depth = 0; parent = '0'; anchor = null;
-            next = liste[0];
-        } else {
-            prev = liste[idx]; next = liste[idx + 1];
-            const dragDepth = Math.round((e.clientX - startX) / INDENT);
-            const maxDepth = prev.depth + 1;
-            const minDepth = next ? next.depth : 0;
-            depth = clamp(prev.depth + dragDepth, minDepth, maxDepth);
-            if (depth === prev.depth + 1) {
-                parent = prev.id; anchor = null;
-            } else {
-                let cur = prev;
-                while (cur && cur.depth > depth) cur = byId[cur.parent];
-                parent = cur ? cur.parent : '0'; anchor = cur ? cur.id : null;
-            }
-        }
-
-        const freres = liste.filter(i => i.parent === parent).map(i => i.id);
-        let order;
-        if (anchor === null) order = [dragId, ...freres];
-        else { const k = freres.indexOf(anchor); order = [...freres.slice(0, k + 1), dragId, ...freres.slice(k + 1)]; }
-        return { parent: parent === '0' ? '' : parent, order, depth, afterEl: over, avantPremier };
-    }
-
-    function showIndic(p) {
-        if (!indic) {
-            indic = document.createElement('div');
-            indic.className = 'plan-indic';
-            document.body.appendChild(indic);
-        }
-        const r = p.afterEl.getBoundingClientRect();
-        const off = p.depth * INDENT;
-        const y = p.avantPremier ? r.top : r.bottom;
-        indic.style.display = 'block';
-        indic.style.top = (y - 1) + 'px';
-        indic.style.left = (r.left + off) + 'px';
-        indic.style.width = Math.max(40, r.right - r.left - off - 12) + 'px';
-    }
-    function hideIndic() { if (indic) indic.style.display = 'none'; }
-
-    document.addEventListener('dragover', e => {
-        const p = projeter(e);
-        if (!p) { hideIndic(); return; }
-        e.preventDefault();
-        showIndic(p);
-    });
-    document.addEventListener('drop', e => {
-        const p = projeter(e);
-        hideIndic();
-        if (!p) return;
-        e.preventDefault();
-        const f = document.getElementById('reorder-form');
-        f.querySelector('[name=id]').value = dragId;
-        f.querySelector('[name=parent_id]').value = p.parent;
-        f.querySelector('[name=order]').value = p.order.join(',');
-        saveScroll();
-        f.submit();
-    });
-    document.addEventListener('dragend', hideIndic);
 })();
 </script>

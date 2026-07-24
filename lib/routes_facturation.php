@@ -1,9 +1,12 @@
 <?php
-// Handlers de routes du module facturation (préfixes « facturation_ »/« facture_ »
-// « debiteur »). Inclus depuis index.php après lib/routes.php. S'appuie sur
-// lib/facturation.php.
+// Handlers de routes du module facturation (préfixes « facturation_ »/« facture_ »)
+// + des structures (ex-débiteurs, partagées avec le module booking, voir
+// SPEC_BOOKING.md §3). Inclus depuis index.php après lib/routes.php. S'appuie
+// sur lib/facturation.php + lib/booking.php (catégories configurables, fiche
+// structure partagée).
 
 require_once __DIR__ . '/facturation.php';
+require_once __DIR__ . '/booking.php';
 
 // ----------------------------------------------------------- Helpers internes
 // Lit les lignes de facture postées (description, quantité, prix unitaire, axe).
@@ -35,12 +38,17 @@ function facturation_lire_lignes_postees(): array
 
 function facturation_charger(int $id): ?array
 {
-    $stmt = db()->prepare('SELECT f.*, d.nom AS debiteur_nom, d.adresse_rue, d.adresse_npa, d.adresse_localite,
-                                   d.adresse_pays, d.email AS debiteur_email, c.libelle AS compte_libelle, c.iban
+    $stmt = db()->prepare("SELECT f.*, d.nom AS structure_nom, d.adresse_rue, d.adresse_npa, d.adresse_localite,
+                                   d.adresse_pays,
+                                   COALESCE(
+                                       (SELECT email FROM structure_contacts WHERE structure_id = d.id AND est_administration = 1 LIMIT 1),
+                                       NULLIF(d.email, '')
+                                   ) AS structure_email,
+                                   c.libelle AS compte_libelle, c.iban
                             FROM factures f
-                            JOIN debiteurs d ON d.id = f.debiteur_id
+                            JOIN structures d ON d.id = f.structure_id
                             LEFT JOIN comptes_bancaires c ON c.id = f.compte_bancaire_id
-                            WHERE f.id = ?');
+                            WHERE f.id = ?");
     $stmt->execute([$id]);
     return $stmt->fetch() ?: null;
 }
@@ -71,7 +79,7 @@ function route_facturation_liste(): void
     $annee = (int) filtre_persistant('annee', 'facturation_annee', 0); // 0 = « Toutes les années » par défaut
 
     $avecEvenements = module_actif('evenements');
-    $from = ' FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id';
+    $from = ' FROM factures f JOIN structures d ON d.id = f.structure_id';
     if ($avecEvenements) {
         $from .= ' LEFT JOIN evenements ev ON ev.id = f.evenement_id LEFT JOIN spectacles sp ON sp.id = ev.spectacle_id';
     }
@@ -98,7 +106,7 @@ function route_facturation_liste(): void
     $modeClient = pagination_mode_client($totalSansRecherche);
 
     $pgTaille = pagination_taille('facturation_taille');
-    $selectCols = 'f.*, d.nom AS debiteur_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '');
+    $selectCols = 'f.*, d.nom AS structure_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '');
     $orderBy = ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC';
 
     if ($modeClient) {
@@ -154,7 +162,7 @@ function route_facturation_form(): void
         redirect('facture', ['id' => $id]);
     }
 
-    $debiteurs = db()->query("SELECT * FROM debiteurs WHERE actif = 1 ORDER BY nom")->fetchAll();
+    $structures = db()->query("SELECT * FROM structures WHERE actif = 1 ORDER BY nom")->fetchAll();
     $comptes   = compta_comptes();
     $axes      = module_actif('analytique')
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
@@ -177,24 +185,24 @@ function route_facturation_form(): void
     // depuis cet événement — sans jamais toucher les lignes d'une facture existante.
     $axeDefautEvenement = null;
     // Organisateur lié à l'événement (carte du même nom) : présélectionné comme
-    // débiteur d'une facture nouvellement créée depuis cet événement — sans
+    // structure d'une facture nouvellement créée depuis cet événement — sans
     // effet sur une facture déjà enregistrée.
-    $debiteurDefautEvenement = null;
+    $structureDefautEvenement = null;
     if ($evenementId && !$facture) {
-        $stmt = db()->prepare('SELECT axe_analytique_id_defaut, organisateur_debiteur_id FROM evenements WHERE id = ?');
+        $stmt = db()->prepare('SELECT axe_analytique_id_defaut, organisateur_structure_id FROM evenements WHERE id = ?');
         $stmt->execute([$evenementId]);
         $evRow = $stmt->fetch();
         $axeDefautEvenement = $axes ? ((int) ($evRow['axe_analytique_id_defaut'] ?? 0) ?: null) : null;
-        $debiteurDefautEvenement = (int) ($evRow['organisateur_debiteur_id'] ?? 0) ?: null;
+        $structureDefautEvenement = (int) ($evRow['organisateur_structure_id'] ?? 0) ?: null;
     }
 
     $renderForm = function (?string $err) use (
-        $facture, $id, $debiteurs, $comptes, $axes, $delaiDefaut, $evenementId, $axeDefautEvenement, $debiteurDefautEvenement
+        $facture, $id, $structures, $comptes, $axes, $delaiDefaut, $evenementId, $axeDefautEvenement, $structureDefautEvenement
     ) {
         render('facturation_form', [
-            'facture' => $facture, 'id' => $id, 'debiteurs' => $debiteurs, 'comptes' => $comptes, 'axes' => $axes,
+            'facture' => $facture, 'id' => $id, 'structures' => $structures, 'comptes' => $comptes, 'axes' => $axes,
             'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'axeDefautEvenement' => $axeDefautEvenement,
-            'debiteurDefautEvenement' => $debiteurDefautEvenement,
+            'structureDefautEvenement' => $structureDefautEvenement,
             'err' => $err, 'post' => $_POST,
         ], $id ? 'Modifier la facture' : 'Nouvelle facture');
     };
@@ -205,26 +213,26 @@ function route_facturation_form(): void
     }
 
     check_csrf();
-    $debiteurRaw     = (string) ($_POST['debiteur_id'] ?? '');
-    $nouveauDebiteur = $debiteurRaw === '__new__';
+    $structureRaw     = (string) ($_POST['structure_id'] ?? '');
+    $nouveauStructure = $structureRaw === '__new__';
     $compteId   = ($_POST['compte_bancaire_id'] ?? '') !== '' ? (int) $_POST['compte_bancaire_id'] : null;
     $delaiJours = max(1, (int) ($_POST['delai_jours'] ?? $delaiDefaut));
     $communication = trim($_POST['communication'] ?? '');
     $lignes = facturation_lire_lignes_postees();
 
     $err = null;
-    $debiteurId = null;
+    $structureId = null;
     $ndNom = trim($_POST['nd_nom'] ?? '');
-    if ($nouveauDebiteur) {
+    if ($nouveauStructure) {
         if ($ndNom === '') {
-            $err = 'Le nom du nouveau débiteur est obligatoire.';
+            $err = 'Le nom de la nouvelle structure est obligatoire.';
         }
     } else {
-        $debiteurId = (int) $debiteurRaw;
-        $stmtD = db()->prepare('SELECT 1 FROM debiteurs WHERE id = ?');
-        $stmtD->execute([$debiteurId]);
+        $structureId = (int) $structureRaw;
+        $stmtD = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
+        $stmtD->execute([$structureId]);
         if (!$stmtD->fetchColumn()) {
-            $err = 'Choisissez un débiteur.';
+            $err = 'Choisissez une structure.';
         }
     }
     if (!$err && !$lignes) {
@@ -235,12 +243,12 @@ function route_facturation_form(): void
         return;
     }
 
-    if ($nouveauDebiteur) {
-        $debiteurId = debiteur_creer_depuis_post('nd_');
+    if ($nouveauStructure) {
+        $structureId = structure_creer_depuis_post('nd_');
     }
 
     try {
-        $factureId = facturation_sauvegarder_brouillon($id ?: null, $debiteurId, $compteId, $delaiJours, $communication, $lignes, $evenementId);
+        $factureId = facturation_sauvegarder_brouillon($id ?: null, $structureId, $compteId, $delaiJours, $communication, $lignes, $evenementId);
     } catch (PDOException $ex) {
         $renderForm('Enregistrement impossible : ' . (str_contains($ex->getMessage(), 'FOREIGN KEY')
             ? "l'événement lié n'existe plus." : 'erreur inattendue.'));
@@ -259,7 +267,7 @@ function route_facture(): void
     }
     // Écritures créditrices pas encore liées à une facture (+ celle déjà liée
     // à cette facture, le cas échéant) : proposées pour un rapprochement
-    // manuel (l'automatique n'a pas matché — nom du débiteur absent du texte
+    // manuel (l'automatique n'a pas matché — nom de la structure absent du texte
     // bancaire, montant fractionné, etc.), modifiable tant que la facture
     // n'est pas annulée.
     $ecrituresLibres = [];
@@ -403,12 +411,12 @@ function facturation_pdf_de(array $facture): string
     if (!$compte) {
         throw new RuntimeException('Compte bancaire créancier introuvable.');
     }
-    $debiteur = [
-        'nom' => $facture['debiteur_nom'], 'adresse_rue' => $facture['adresse_rue'],
+    $structure = [
+        'nom' => $facture['structure_nom'], 'adresse_rue' => $facture['adresse_rue'],
         'adresse_npa' => $facture['adresse_npa'], 'adresse_localite' => $facture['adresse_localite'],
         'adresse_pays' => $facture['adresse_pays'],
     ];
-    return facturation_generer_pdf($facture, $lignes, $debiteur, $compte);
+    return facturation_generer_pdf($facture, $lignes, $structure, $compte);
 }
 
 function route_facture_pdf(): void
@@ -443,7 +451,7 @@ function route_facture_email(): void
     if (!$facture || $facture['statut'] === 'brouillon') {
         redirect('facturation_liste');
     }
-    $destinataire = trim((string) ($_POST['destinataire'] ?? $facture['debiteur_email']));
+    $destinataire = trim((string) ($_POST['destinataire'] ?? $facture['structure_email']));
     if (!filter_var($destinataire, FILTER_VALIDATE_EMAIL)) {
         redirect('facture', ['id' => $id, 'mail' => 'err']);
     }
@@ -472,116 +480,454 @@ function route_facture_rappel(): void
     render_bare('facturation_rappel_print', ['facture' => $facture]);
 }
 
-// --- Débiteurs ---------------------------------------------------------------
-function route_facturation_debiteurs(): void
+// --- Structures (ex-débiteurs) : liste/fiche partagées entre les modules
+// facturation et booking (voir SPEC_BOOKING.md §3) --------------------------
+function route_structures(): void
 {
     require_login();
     $recherche = trim((string) ($_GET['q'] ?? ''));
-    $pgTaille = pagination_taille('debiteurs_taille');
+    $categorieId = (int) ($_GET['categorie_id'] ?? 0);
+    $categorieChamps = structure_categorie_champs($categorieId);
+    $categorie = $categorieChamps['categorie'];
+    $sousCategorie = $categorieChamps['sous_categorie'];
+    $pays = trim((string) ($_GET['pays'] ?? ''));
+    $region = trim((string) ($_GET['region'] ?? ''));
+    $tagId = (int) ($_GET['tag_id'] ?? 0);
+    $pgTaille = pagination_taille('structures_taille');
+    $retourFiltres = ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId];
 
-    $totalSansRecherche = (int) db()->query('SELECT COUNT(*) FROM debiteurs')->fetchColumn();
+    // Modification groupée (sélection de lignes + barre flottante), même esprit que
+    // le lettrage/l'axe analytique en masse sur les écritures ou les événements.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'bulk_undo') {
+            $r = bulk_undo_appliquer();
+            redirect($r['route'] ?? 'structures', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
+        }
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        if ($ids) {
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            unset($_SESSION['bulk_undo']);
+            if ($section === 'delete') {
+                // Une structure référencée par une facture est ignorée (jamais supprimée
+                // en masse par erreur) plutôt que de bloquer toute la sélection.
+                $stmtRef = db()->prepare("SELECT DISTINCT structure_id FROM factures WHERE structure_id IN ($in)");
+                $stmtRef->execute($ids);
+                $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
+                $idsSupprimables = array_values(array_diff($ids, $refs));
+                if ($idsSupprimables) {
+                    $inSup = implode(',', array_fill(0, count($idsSupprimables), '?'));
+                    db()->prepare("DELETE FROM structures WHERE id IN ($inSup)")->execute($idsSupprimables);
+                }
+                if ($refs) {
+                    $retourFiltres['structBloquees'] = count($refs);
+                }
+            } elseif ($section === 'categorie') {
+                $bulkCategorieChamps = structure_categorie_champs((int) ($_POST['bulk_categorie_id'] ?? 0));
+                if ($bulkCategorieChamps['categorie'] !== '') {
+                    bulk_undo_memoriser('structures', $ids, ['categorie', 'sous_categorie'], 'structures', $retourFiltres);
+                    db()->prepare("UPDATE structures SET categorie = ?, sous_categorie = ? WHERE id IN ($in)")
+                        ->execute(array_merge([$bulkCategorieChamps['categorie'], $bulkCategorieChamps['sous_categorie']], $ids));
+                }
+            } elseif ($section === 'actif') {
+                $actif = ($_POST['bulk_actif'] ?? '') === '1' ? 1 : 0;
+                bulk_undo_memoriser('structures', $ids, ['actif', 'desinscrit'], 'structures', $retourFiltres);
+                if ($actif) {
+                    db()->prepare("UPDATE structures SET actif = ? WHERE id IN ($in)")->execute(array_merge([$actif], $ids));
+                } else {
+                    db()->prepare("UPDATE structures SET actif = 0, desinscrit = 1 WHERE id IN ($in)")->execute($ids);
+                }
+            } elseif ($section === 'desinscrit') {
+                $desinscrit = ($_POST['bulk_desinscrit'] ?? '') === '1' ? 1 : 0;
+                bulk_undo_memoriser('structures', $ids, ['desinscrit'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET desinscrit = ? WHERE id IN ($in)")->execute(array_merge([$desinscrit], $ids));
+            } elseif ($section === 'type' && in_array($_POST['bulk_type'] ?? '', ['organisation', 'particulier'], true)) {
+                bulk_undo_memoriser('structures', $ids, ['type'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET type = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$_POST['bulk_type']], $ids));
+            } elseif ($section === 'ville') {
+                bulk_undo_memoriser('structures', $ids, ['adresse_localite'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET adresse_localite = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
+            } elseif ($section === 'region') {
+                bulk_undo_memoriser('structures', $ids, ['region'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET region = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_region'] ?? '')], $ids));
+            } elseif ($section === 'pays') {
+                bulk_undo_memoriser('structures', $ids, ['adresse_pays'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+            } elseif ($section === 'via') {
+                bulk_undo_memoriser('structures', $ids, ['via'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET via = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_via'] ?? '')], $ids));
+            } elseif ($section === 'fusionner' && count($ids) >= 2) {
+                $_SESSION['fusion_ids'] = $ids;
+                redirect('structure_fusion');
+            } elseif ($section === 'transformer_lieu' && count($ids) >= 2) {
+                $_SESSION['transformer_ids'] = $ids;
+                redirect('structure_transformer');
+            }
+            if ($section !== '' && $section !== 'delete' && $section !== 'fusionner' && $section !== 'transformer_lieu' && isset($_SESSION['bulk_undo'])) {
+                $retourFiltres['bulk'] = count($ids);
+            }
+        }
+        redirect('structures', $retourFiltres);
+    }
+
+    $where = ' WHERE 1=1';
+    $params = [];
+    if ($categorie !== '') {
+        $where .= ' AND s.categorie = ?';
+        $params[] = $categorie;
+    }
+    if ($sousCategorie !== '') {
+        $where .= ' AND s.sous_categorie = ?';
+        $params[] = $sousCategorie;
+    }
+    if ($pays !== '') {
+        $where .= ' AND s.adresse_pays = ?';
+        $params[] = $pays;
+    }
+    if ($region !== '') {
+        $where .= ' AND s.region = ?';
+        $params[] = $region;
+    }
+    if ($tagId) {
+        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
+        $params[] = $tagId;
+    }
+
+    $stmtTotStruct = db()->prepare('SELECT COUNT(*) FROM structures s' . $where);
+    $stmtTotStruct->execute($params);
+    $totalSansRecherche = (int) $stmtTotStruct->fetchColumn();
     $modeClient = pagination_mode_client($totalSansRecherche);
 
+    $selectCols = "s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures,
+        (SELECT GROUP_CONCAT(l.nom, ', ') FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id WHERE sl.structure_id = s.id) AS lieux_noms,
+        COALESCE(
+            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
+            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1),
+            NULLIF(s.email, '')
+        ) AS email_affiche";
+    $orderBy = ' ORDER BY s.actif DESC, s.nom';
+
     if ($modeClient) {
-        $debiteurs = db()->query('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
-                                   FROM debiteurs d ORDER BY d.actif DESC, d.nom')->fetchAll();
+        $stmt = db()->prepare('SELECT ' . $selectCols . ' FROM structures s' . $where . $orderBy);
+        $stmt->execute($params);
+        $structures = $stmt->fetchAll();
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$rechSql, $rechParams] = recherche_sql(['d.nom', 'd.adresse_rue', 'd.adresse_npa', 'd.adresse_localite', 'd.email']);
+        [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email']);
+        $where .= $rechSql;
+        $params = array_merge($params, $rechParams);
 
-        $stmtTot = db()->prepare('SELECT COUNT(*) FROM debiteurs d WHERE 1=1' . $rechSql);
-        $stmtTot->execute($rechParams);
+        $stmtTot = db()->prepare('SELECT COUNT(*) FROM structures s' . $where);
+        $stmtTot->execute($params);
         $pgTotal = (int) $stmtTot->fetchColumn();
 
         $pgPage = pagination_page();
         [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
-        $stmt = db()->prepare('SELECT d.*, (SELECT COUNT(*) FROM factures f WHERE f.debiteur_id = d.id) AS nb_factures
-                                FROM debiteurs d WHERE 1=1' . $rechSql . ' ORDER BY d.actif DESC, d.nom' . $limitSql);
-        $stmt->execute(array_merge($rechParams, $limitParams));
-        $debiteurs = $stmt->fetchAll();
+        $stmt = db()->prepare('SELECT ' . $selectCols . ' FROM structures s' . $where . $orderBy . $limitSql);
+        $stmt->execute(array_merge($params, $limitParams));
+        $structures = $stmt->fetchAll();
     }
 
-    render('facturation_debiteurs', [
-        'debiteurs' => $debiteurs,
+    $regionsDispo = db()->query("SELECT DISTINCT region FROM structures WHERE region <> '' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
+    $tagsDispo = module_actif('booking') ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [];
+
+    render('structures_liste', [
+        'structures' => $structures,
         'recherche' => $recherche,
+        'categorieId' => $categorieId,
+        'pays' => $pays,
+        'region' => $region,
+        'tagId' => $tagId,
+        'categoriesPourSelect' => structure_categories_pour_select(),
+        'regionsDispo' => $regionsDispo,
+        'tagsDispo' => $tagsDispo,
         'modeClient' => $modeClient,
-        'pgRoute'   => 'facturation_debiteurs',
-        'pgParams'  => $recherche !== '' ? ['q' => $recherche] : [],
+        'pgRoute'   => 'structures',
+        'pgParams'  => ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,
-    ], 'Facturation — Débiteurs');
+        'bulkCount' => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
+        'okAnnule'  => ($_GET['ok'] ?? '') === 'annule',
+        'structBloquees' => isset($_GET['structBloquees']) ? (int) $_GET['structBloquees'] : 0,
+    ], 'Structures');
 }
 
-function route_debiteur(): void
+// Données CRM de la fiche (booking) : contacts, flux de notes, tags, lieux
+// liés — chargées seulement en modification (pas de sens sur une création) et
+// seulement si le module est actif.
+function structure_donnees_crm(int $id): array
+{
+    if (!$id || !module_actif('booking')) {
+        return ['contacts' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [], 'categoriesLieu' => []];
+    }
+    $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
+    $stmtContacts->execute([$id]);
+
+    $stmtNotes = db()->prepare(
+        "SELECT n.*, u.prenom AS u_prenom, u.nom AS u_nom FROM structure_notes n
+         LEFT JOIN utilisateurs u ON u.id = n.utilisateur_id
+         WHERE n.structure_id = ? ORDER BY n.cree_le DESC, n.id DESC"
+    );
+    $stmtNotes->execute([$id]);
+
+    $stmtTags = db()->prepare(
+        'SELECT t.* FROM structure_tags t JOIN structure_tag_liens l ON l.tag_id = t.id
+         WHERE l.structure_id = ? ORDER BY t.nom'
+    );
+    $stmtTags->execute([$id]);
+
+    $stmtLieuxLies = db()->prepare(
+        'SELECT l.* FROM lieux l JOIN structure_lieux sl ON sl.lieu_id = l.id
+         WHERE sl.structure_id = ? ORDER BY l.type, l.nom'
+    );
+    $stmtLieuxLies->execute([$id]);
+
+    return [
+        'contacts'  => $stmtContacts->fetchAll(),
+        'notes'     => $stmtNotes->fetchAll(),
+        'tags'      => $stmtTags->fetchAll(),
+        'tagsDispo' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
+        'lieuxLies' => $stmtLieuxLies->fetchAll(),
+        'lieuxDispo' => db()->query('SELECT * FROM lieux ORDER BY type, nom')->fetchAll(),
+        'categoriesLieu' => lieu_categories_liste(),
+    ];
+}
+
+function route_structure(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? 0);
-    $debiteur = null;
+    $structure = null;
     if ($id) {
-        $stmt = db()->prepare('SELECT * FROM debiteurs WHERE id = ?');
+        $stmt = db()->prepare(
+            'SELECT s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures
+             FROM structures s WHERE s.id = ?'
+        );
         $stmt->execute([$id]);
-        $debiteur = $stmt->fetch();
-        if (!$debiteur) {
-            redirect('facturation_debiteurs');
+        $structure = $stmt->fetch();
+        if (!$structure) {
+            redirect('structures');
         }
     }
+    $renderForm = function (?string $err, array $structureAffichee) use ($id) {
+        $map = structure_categorie_map();
+        render('structure_form', array_merge(
+            ['structure' => $structureAffichee, 'err' => $err,
+             'categoriesPourSelect' => structure_categories_pour_select($map),
+             'categorieIdSelectionnee' => structure_categorie_id_pour(
+                 (string) ($structureAffichee['categorie'] ?? ''),
+                 (string) ($structureAffichee['sous_categorie'] ?? ''),
+                 $map
+             )],
+            structure_donnees_crm($id)
+        ), $id ? 'Modifier la structure' : 'Nouvelle structure');
+    };
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
+        $categorieChamps = structure_categorie_champs((int) ($_POST['categorie_id'] ?? 0));
+        if ($categorieChamps['categorie'] === '') {
+            $categorieChamps = ['categorie' => structure_categorie_par_defaut(), 'sous_categorie' => ''];
+        }
         $champs = [
             'type'             => ($_POST['type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
+            'categorie'        => $categorieChamps['categorie'],
+            'sous_categorie'   => $categorieChamps['sous_categorie'],
             'nom'              => trim($_POST['nom'] ?? ''),
             'adresse_rue'      => trim($_POST['adresse_rue'] ?? ''),
             'adresse_npa'      => trim($_POST['adresse_npa'] ?? ''),
             'adresse_localite' => trim($_POST['adresse_localite'] ?? ''),
             'adresse_pays'     => trim($_POST['adresse_pays'] ?? '') ?: 'Suisse',
-            'email'            => trim($_POST['email'] ?? ''),
-            'telephone'        => trim($_POST['telephone'] ?? ''),
-            'personne_contact' => trim($_POST['personne_contact'] ?? ''),
+            'region'           => trim($_POST['region'] ?? ''),
+            'grande_region'    => trim($_POST['grande_region'] ?? ''),
+            'site_web'         => trim($_POST['site_web'] ?? ''),
+            'via'              => trim($_POST['via'] ?? ''),
             'notes'            => trim($_POST['notes'] ?? ''),
-            'actif'            => isset($_POST['actif']) ? 1 : 0,
         ];
-        $err = null;
-        if ($champs['nom'] === '') {
-            $err = 'Le nom est obligatoire.';
-        } elseif ($champs['email'] !== '' && !filter_var($champs['email'], FILTER_VALIDATE_EMAIL)) {
-            $err = 'Adresse e-mail invalide.';
-        }
+        // actif/desinscrit : gérés à part (bloc « Statut » de la sidebar, bascule
+        // immédiate via route_structure_statut()) — jamais touchés par cet
+        // enregistrement, sinon toute sauvegarde de la fiche les réinitialiserait.
+        // email/telephone/personne_contact : plus dans ce formulaire (remplacés par
+        // la card Contacts) — colonnes conservées mais volontairement absentes des
+        // requêtes ci-dessous, pour ne jamais écraser une valeur historique.
+        $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
         if ($err) {
-            render('facturation_debiteur_form', ['debiteur' => array_merge((array) $debiteur, $champs, ['id' => $id]), 'err' => $err], 'Débiteur');
+            $renderForm($err, array_merge((array) $structure, $champs, ['id' => $id]));
             return;
         }
         if ($id) {
             $champs['id'] = $id;
-            db()->prepare('UPDATE debiteurs SET type=:type, nom=:nom, adresse_rue=:adresse_rue, adresse_npa=:adresse_npa,
-                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, email=:email, telephone=:telephone,
-                            personne_contact=:personne_contact, notes=:notes, actif=:actif
+            db()->prepare('UPDATE structures SET type=:type, categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom,
+                            adresse_rue=:adresse_rue, adresse_npa=:adresse_npa,
+                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, region=:region, grande_region=:grande_region, site_web=:site_web,
+                            via=:via, notes=:notes
                             WHERE id=:id')->execute($champs);
         } else {
-            db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
-                            telephone, personne_contact, notes, actif)
-                            VALUES (:type, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays, :email,
-                            :telephone, :personne_contact, :notes, :actif)')
+            // Création : active et non désinscrite par défaut.
+            db()->prepare('INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
+                            region, grande_region, site_web, via, notes, actif, desinscrit)
+                            VALUES (:type, :categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
+                            :region, :grande_region, :site_web, :via, :notes, 1, 0)')
                 ->execute($champs);
         }
-        redirect('facturation_debiteurs');
+        redirect('structures');
     }
-    render('facturation_debiteur_form', ['debiteur' => $debiteur, 'err' => null], $id ? 'Modifier le débiteur' : 'Nouveau débiteur');
+    $renderForm(($_GET['err'] ?? '') === 'used' ? 'Suppression impossible : des factures sont rattachées à cette structure.' : null, (array) $structure);
 }
 
-function route_debiteur_delete(): void
+// Bascule immédiate du statut (active / désinscrite du mailing) depuis le bloc
+// « Statut » de la sidebar — enregistrée à chaque coche sans passer par le
+// bouton Enregistrer de la fiche. Règle métier : une structure inactive est
+// toujours désinscrite du mailing (comme le bulk change et l'ancien formulaire).
+function route_structure_statut(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures'); }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!$id) { redirect('structures'); }
+    $actif = isset($_POST['actif']) ? 1 : 0;
+    $desinscrit = isset($_POST['desinscrit']) ? 1 : 0;
+    if (!$actif) { $desinscrit = 1; }
+    db()->prepare('UPDATE structures SET actif = ?, desinscrit = ? WHERE id = ?')->execute([$actif, $desinscrit, $id]);
+    redirect('structure', ['id' => $id]);
+}
+
+function route_structure_renommer(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures'); }
+    check_csrf();
+    $id  = (int) ($_POST['id'] ?? 0);
+    $nom = trim($_POST['nom'] ?? '');
+    if ($id && $nom !== '') {
+        db()->prepare('UPDATE structures SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+    }
+    redirect('structure', ['id' => $id]);
+}
+
+function route_structure_delete(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
-        if (!supprimer_si_non_reference('debiteurs', $id, 'factures', 'debiteur_id')) {
-            redirect('facturation_debiteurs', ['err' => 'used']);
+        if (!supprimer_si_non_reference('structures', $id, 'factures', 'structure_id')) {
+            redirect('structure', ['id' => $id, 'err' => 'used']);
         }
     }
-    redirect('facturation_debiteurs');
+    redirect('structures');
+}
+
+// Fusion de structures (action groupée « Fusionner ») : candidats mémorisés en
+// session par route_structures() ($_SESSION['fusion_ids'], ≥ 2 ids). Choix de
+// la structure à garder (ses propres champs restent tels quels), puis
+// structures_fusionner() réaffecte contacts/notes/mailing/factures/tags/lieux
+// des autres avant de les supprimer — voir lib/booking.php.
+function route_structure_fusion(): void
+{
+    require_login();
+    $ids = array_values(array_unique(array_map('intval', (array) ($_SESSION['fusion_ids'] ?? []))));
+    if (count($ids) < 2) {
+        redirect('structures');
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $garderId = (int) ($_POST['garder_id'] ?? 0);
+        if (!in_array($garderId, $ids, true)) {
+            redirect('structure_fusion');
+        }
+        $autres = array_values(array_diff($ids, [$garderId]));
+        structures_fusionner($garderId, $autres);
+        unset($_SESSION['fusion_ids']);
+        redirect('structure', ['id' => $garderId, 'ok' => 'fusion']);
+    }
+
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare(
+        "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
+                (SELECT COUNT(*) FROM structure_notes WHERE structure_id = s.id) AS nb_notes,
+                (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures,
+                (SELECT COUNT(*) FROM structure_tag_liens WHERE structure_id = s.id) AS nb_tags,
+                (SELECT COUNT(*) FROM structure_lieux WHERE structure_id = s.id) AS nb_lieux
+         FROM structures s WHERE s.id IN ($in) ORDER BY s.nom"
+    );
+    $stmt->execute($ids);
+    $candidats = $stmt->fetchAll();
+    if (count($candidats) < 2) {
+        unset($_SESSION['fusion_ids']);
+        redirect('structures');
+    }
+
+    render('structure_fusion', ['candidats' => $candidats], 'Fusionner des structures');
+}
+
+// Transformation en salle/festival (action groupée « Transformer en lieu d'une
+// structure ») : ids mémorisés en session ($_SESSION['transformer_ids'], ≥ 2).
+// L'utilisateur désigne l'organisateur parmi la sélection ; les autres structures
+// deviennent des lieux liés à lui (structure_transformer_en_lieu(), lib/booking.php,
+// qui reprend leurs contacts/notes/factures/étiquettes puis les supprime). Type du
+// lieu : déduit du nom (« festival » → festival, sinon salle) ou imposé globalement.
+function route_structure_transformer(): void
+{
+    require_login();
+    $ids = array_values(array_unique(array_map('intval', (array) ($_SESSION['transformer_ids'] ?? []))));
+    if (count($ids) < 2) {
+        redirect('structures');
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $orgId = (int) ($_POST['organisateur_id'] ?? 0);
+        // 'deduire' = déduire du nom ; sinon une catégorie de lieu explicite.
+        $typeChoix = ($_POST['type'] ?? '') === 'deduire' ? 'deduire' : lieu_categorie_normaliser((string) ($_POST['type'] ?? ''));
+        if ($typeChoix === null) { $typeChoix = 'deduire'; }
+        if (!in_array($orgId, $ids, true)) {
+            redirect('structure_transformer');
+        }
+        foreach (array_diff($ids, [$orgId]) as $structureId) {
+            $stmt = db()->prepare('SELECT nom, sous_categorie FROM structures WHERE id = ?');
+            $stmt->execute([$structureId]);
+            $s = $stmt->fetch();
+            if (!$s) { continue; }
+            if ($typeChoix === 'deduire') {
+                // Déduction festival/salle depuis le nom + la sous-catégorie
+                // (même règle que l'import — helper partagé).
+                $type = structure_import_type_lieu($s['nom'] . ' ' . $s['sous_categorie'], '');
+            } else {
+                $type = $typeChoix;
+            }
+            structure_transformer_en_lieu((int) $structureId, $orgId, $type);
+        }
+        unset($_SESSION['transformer_ids']);
+        redirect('structure', ['id' => $orgId, 'ok' => 'transforme']);
+    }
+
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare(
+        "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
+                (SELECT COUNT(*) FROM structure_notes WHERE structure_id = s.id) AS nb_notes,
+                (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures
+         FROM structures s WHERE s.id IN ($in) ORDER BY s.nom"
+    );
+    $stmt->execute($ids);
+    $candidats = $stmt->fetchAll();
+    if (count($candidats) < 2) {
+        unset($_SESSION['transformer_ids']);
+        redirect('structures');
+    }
+
+    render('structure_transformer', ['candidats' => $candidats, 'categoriesLieu' => lieu_categories_liste()], 'Transformer en salles/festivals');
 }
 
 // --- Import de factures historiques (JSON) ----------------------------------

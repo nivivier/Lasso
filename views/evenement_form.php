@@ -2,7 +2,7 @@
 /** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */ /** @var array $spectacleMap */
 /** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
 /** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
-/** @var array $factures */ /** @var array $facturesDispo */ /** @var ?array $organisateur */ /** @var array $debiteursDispo */
+/** @var array $factures */ /** @var array $facturesDispo */ /** @var ?array $organisateur */ /** @var array $structuresDispo */
 /** @var array $paysDisponibles */ /** @var array $axes */ /** @var ?string $err */ /** @var array $post */
 $isEdit = $id > 0;
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
@@ -88,17 +88,18 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label><span>Type d'audience <?= info_tip(
-                "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
-                . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
-                . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
-            ) ?></span>
-                <select name="visibilite">
-                    <?php foreach (EVENEMENTS_VISIBILITES as $vi): ?>
-                        <option value="<?= $vi ?>" <?= $vRaw('visibilite', 'non_repertorie') === $vi ? 'selected' : '' ?>><?= e(evenement_visibilite_libelle($vi)) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
+            <div class="field-group">
+                <span>Type d'audience <?= info_tip(
+                    "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
+                    . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
+                    . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
+                ) ?></span>
+                <?= icon_picker('visibilite', [
+                    'public'         => ['icone' => 'earth', 'label' => evenement_visibilite_libelle('public')],
+                    'prive'          => ['icone' => 'earth-lock', 'label' => evenement_visibilite_libelle('prive')],
+                    'non_repertorie' => ['icone' => 'globe-off', 'label' => evenement_visibilite_libelle('non_repertorie')],
+                ], $vRaw('visibilite', 'non_repertorie'), "Type d'audience") ?>
+            </div>
         </div>
 
         <div class="grid4">
@@ -108,9 +109,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                     <input name="region" value="<?= $v('region') ?>" placeholder="canton ou département">
                     <select name="pays">
                         <option value="">—</option>
-                        <?php foreach ($paysDisponibles as $p): ?>
-                            <option value="<?= e($p) ?>" <?= $vRaw('pays') === $p ? 'selected' : '' ?>><?= e($p) ?></option>
-                        <?php endforeach; ?>
+                        <?= pays_options_code($vRaw('pays')) ?>
                     </select>
                 </div>
             </label>
@@ -341,12 +340,12 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 <?php if (module_actif('facturation')): ?>
 <div class="card mt-22">
     <h2 class="mt-0">Organisateur <?= info_tip(
-        "Débiteur à facturer pour cet événement (recherché parmi les débiteurs existants, ou créé "
-        . "à la volée). Présélectionné à la création d'une facture liée. Un seul organisateur à la "
-        . "fois : relier un autre débiteur remplace le précédent."
+        "Structure à facturer pour cet événement (recherchée parmi les structures existantes, ou créée "
+        . "à la volée). Présélectionnée à la création d'une facture liée. Un seul organisateur à la "
+        . "fois : relier une autre structure remplace la précédente."
     ) ?></h2>
     <?php if ($ok === 'organisateur'): ?><p class="ok flash">Organisateur enregistré.</p><?php endif; ?>
-    <?php if ($errOrganisateur === '1'): ?><p class="err">Le nom du nouveau débiteur est obligatoire.</p><?php endif; ?>
+    <?php if ($errOrganisateur === '1'): ?><p class="err">Le nom de la nouvelle structure est obligatoire.</p><?php endif; ?>
 
     <?php if ($organisateur):
         $adrOrg = trim($organisateur['adresse_rue'] . ' ' . trim($organisateur['adresse_npa'] . ' ' . $organisateur['adresse_localite']));
@@ -359,7 +358,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                 <?php if ($organisateur['telephone']): ?><span class="muted small"> — <?= e($organisateur['telephone']) ?></span><?php endif; ?>
                 <?php if ($organisateur['personne_contact']): ?><span class="muted small"> — <?= e($organisateur['personne_contact']) ?></span><?php endif; ?>
             </span>
-            <a class="btn ghost btn-sm" href="?p=debiteur&id=<?= (int) $organisateur['id'] ?>">Voir la fiche</a>
+            <a class="btn ghost btn-sm" href="?p=structure&id=<?= (int) $organisateur['id'] ?>">Voir la fiche</a>
             <form method="post" action="?p=evenement_organisateur_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cet organisateur ?');">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $id ?>">
@@ -374,11 +373,11 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <div class="cat-search organisateur-search">
-            <input type="text" class="cat-search-input" placeholder="Rechercher un débiteur…" autocomplete="off">
-            <input type="hidden" name="debiteur_id" class="cat-search-val" value="">
+            <input type="text" class="cat-search-input" placeholder="Rechercher une structure…" autocomplete="off">
+            <input type="hidden" name="structure_id" class="cat-search-val" value="">
             <ul class="cat-search-list" hidden role="listbox">
-                <li data-val="__new__">+ Nouveau débiteur</li>
-                <?php foreach ($debiteursDispo as $d): ?>
+                <li data-val="__new__">+ Nouvelle structure</li>
+                <?php foreach ($structuresDispo as $d): ?>
                     <li data-val="<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></li>
                 <?php endforeach; ?>
             </ul>
@@ -396,7 +395,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             <label>Rue et numéro <input name="org_adresse_rue"></label>
             <label>NPA <input name="org_adresse_npa"></label>
             <label>Localité <input name="org_adresse_localite"></label>
-            <label>Pays <input name="org_adresse_pays" value="Suisse"></label>
+            <label>Pays <select name="org_adresse_pays"><?= pays_options_nom('Suisse') ?></select></label>
             <label>E-mail (optionnel) <input name="org_email" type="email"></label>
             <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
             <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
@@ -416,12 +415,12 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         <p class="muted small">Aucune facture liée à cet événement.</p>
     <?php else: ?>
         <table class="list">
-            <thead><tr><th>Numéro</th><th>Débiteur</th><th class="num">Montant</th><th>Statut</th><th></th></tr></thead>
+            <thead><tr><th>Numéro</th><th>Structure</th><th class="num">Montant</th><th>Statut</th><th></th></tr></thead>
             <tbody>
             <?php foreach ($factures as $fa): ?>
                 <tr>
                     <td><a href="<?= e(url_avec_retour('?p=facture&id=' . (int) $fa['id'], 'evenement', $id)) ?>"><?= $fa['numero'] !== '' ? e($fa['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
-                    <td><?= e($fa['debiteur_nom']) ?></td>
+                    <td><?= e($fa['structure_nom']) ?></td>
                     <td class="num strong"><?= chf((float) $fa['montant_total']) ?></td>
                     <td><?= facturation_badge($fa) ?></td>
                     <td>
@@ -446,7 +445,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                 <input type="hidden" name="facture_id" class="cat-search-val" value="">
                 <ul class="cat-search-list" hidden role="listbox">
                     <?php foreach ($facturesDispo as $fa):
-                        $label = ($fa['numero'] !== '' ? $fa['numero'] : '(brouillon)') . ' — ' . $fa['debiteur_nom'] . ' — ' . chf((float) $fa['montant_total']) . ' CHF';
+                        $label = ($fa['numero'] !== '' ? $fa['numero'] : '(brouillon)') . ' — ' . $fa['structure_nom'] . ' — ' . chf((float) $fa['montant_total']) . ' CHF';
                     ?>
                         <li data-val="<?= (int) $fa['id'] ?>"><?= e($label) ?></li>
                     <?php endforeach; ?>
@@ -567,7 +566,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     });
 
     // Organisateur (carte du même nom) : même widget de recherche, avec en plus
-    // une option « + Nouveau débiteur » qui révèle les champs de création rapide.
+    // une option « + Nouvelle structure » qui révèle les champs de création rapide.
     const organisateurWrap = document.querySelector('.organisateur-search');
     if (organisateurWrap) {
         const orgInput   = organisateurWrap.querySelector('.cat-search-input');
@@ -583,7 +582,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         });
         document.getElementById('organisateur-form').addEventListener('submit', e => {
             if (!orgHidden.value) {
-                orgInput.setCustomValidity('Veuillez choisir un débiteur dans la liste, ou « + Nouveau débiteur »');
+                orgInput.setCustomValidity('Veuillez choisir une structure dans la liste, ou « + Nouvelle structure »');
                 orgInput.reportValidity();
                 e.preventDefault();
             }

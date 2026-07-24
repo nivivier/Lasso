@@ -429,6 +429,104 @@ function route_parametres_modules(): void
     render('parametres_modules', ['actifs' => modules_actifs()], 'Modules');
 }
 
+// Liste de pays configurable (Paramètres → Pays, voir migration_43 et
+// pays_liste()/pays_drapeau()/pays_options_*() dans lib/helpers.php) — partagée
+// par tous les champs pays de l'app (structures, lieux, employeur, événements,
+// facturation). Liste à plat (pas de hiérarchie) : même interface de
+// glisser-déposer que spectacles.php/compta_plan.php/parametres_structures.php
+// (lassoPlanArbre()), sans reparent puisqu'il n'y a qu'un seul niveau.
+function route_parametres_pays(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'add') {
+            $nom = trim($_POST['nom'] ?? '');
+            $code = strtoupper(trim($_POST['code_iso2'] ?? ''));
+            if ($nom !== '' && preg_match('/^[A-Z]{2}$/', $code)) {
+                $existe = db()->prepare('SELECT 1 FROM pays_liste WHERE nom = ? OR code_iso2 = ?');
+                $existe->execute([$nom, $code]);
+                if (!$existe->fetchColumn()) {
+                    $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM pays_liste')->fetchColumn();
+                    db()->prepare('INSERT INTO pays_liste (nom, code_iso2, ordre) VALUES (?, ?, ?)')->execute([$nom, $code, $ordre]);
+                }
+            }
+        } elseif ($section === 'edit') {
+            $id = (int) ($_POST['id'] ?? 0);
+            $nom = trim($_POST['nom'] ?? '');
+            $code = strtoupper(trim($_POST['code_iso2'] ?? ''));
+            if ($nom !== '' && preg_match('/^[A-Z]{2}$/', $code)) {
+                $stmt = db()->prepare('SELECT nom FROM pays_liste WHERE id = ?');
+                $stmt->execute([$id]);
+                $ancien = $stmt->fetchColumn();
+                if ($ancien !== false) {
+                    db()->beginTransaction();
+                    db()->prepare('UPDATE pays_liste SET nom=?, code_iso2=? WHERE id=?')->execute([$nom, $code, $id]);
+                    if ($ancien !== $nom) {
+                        db()->prepare('UPDATE structures SET adresse_pays=? WHERE adresse_pays=?')->execute([$nom, $ancien]);
+                        db()->prepare('UPDATE lieux SET pays=? WHERE pays=?')->execute([$nom, $ancien]);
+                        db()->prepare("UPDATE parametres SET valeur=? WHERE cle='employeur_pays' AND valeur=?")->execute([$nom, $ancien]);
+                    }
+                    db()->commit();
+                }
+            }
+        } elseif ($section === 'move') {
+            $id = (int) ($_POST['id'] ?? 0);
+            $dir = ($_POST['dir'] ?? '') === 'up' ? 'up' : 'down';
+            $ids = array_column(db()->query('SELECT id FROM pays_liste ORDER BY ordre, nom')->fetchAll(), 'id');
+            $ids = array_map('intval', $ids);
+            $pos = array_search($id, $ids, true);
+            $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
+            if ($pos !== false && $swap >= 0 && $swap < count($ids)) {
+                [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
+                $upd = db()->prepare('UPDATE pays_liste SET ordre = ? WHERE id = ?');
+                db()->beginTransaction();
+                foreach ($ids as $i => $pid) {
+                    $upd->execute([$i, $pid]);
+                }
+                db()->commit();
+            }
+        } elseif ($section === 'reorder') {
+            $order = array_values(array_filter(array_map('intval', explode(',', $_POST['order'] ?? ''))));
+            if ($order) {
+                $upd = db()->prepare('UPDATE pays_liste SET ordre = ? WHERE id = ?');
+                db()->beginTransaction();
+                foreach ($order as $i => $pid) {
+                    $upd->execute([$i, $pid]);
+                }
+                db()->commit();
+            }
+        } elseif ($section === 'delete') {
+            $id = (int) ($_POST['id'] ?? 0);
+            $stmt = db()->prepare('SELECT nom FROM pays_liste WHERE id = ?');
+            $stmt->execute([$id]);
+            $nom = $stmt->fetchColumn();
+            if ($nom !== false) {
+                $stmtRefS = db()->prepare('SELECT COUNT(*) FROM structures WHERE adresse_pays = ?');
+                $stmtRefS->execute([$nom]);
+                $stmtRefL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE pays = ?');
+                $stmtRefL->execute([$nom]);
+                $stmtRefE = db()->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'employeur_pays' AND valeur = ?");
+                $stmtRefE->execute([$nom]);
+                $total = (int) db()->query('SELECT COUNT(*) FROM pays_liste')->fetchColumn();
+                if ((int) $stmtRefS->fetchColumn() === 0 && (int) $stmtRefL->fetchColumn() === 0 && (int) $stmtRefE->fetchColumn() === 0 && $total > 1) {
+                    db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
+                } else {
+                    redirect('parametres_pays', ['err' => 'used']);
+                }
+            }
+        }
+        redirect('parametres_pays', ['ok' => 1]);
+    }
+
+    render('parametres_pays', [
+        'saved' => isset($_GET['ok']),
+        'err' => $_GET['err'] ?? null,
+        'lignes' => pays_liste(),
+    ], 'Paramètres — Pays');
+}
+
 function route_employeur(): void
 {
     require_login();
@@ -455,13 +553,7 @@ function route_employeur(): void
         foreach ($champs as $k) {
             $stmt->execute([$k, trim($_POST[$k] ?? '')]);
         }
-        // Couleurs : ignore une valeur invalide plutôt que de casser la palette.
-        foreach (['employeur_couleur_principale', 'employeur_couleur_evidence'] as $cleCouleur) {
-            $couleur = trim($_POST[$cleCouleur] ?? '');
-            if (preg_match('/^#[0-9a-fA-F]{6}$/', $couleur)) {
-                $stmt->execute([$cleCouleur, strtolower($couleur)]);
-            }
-        }
+        // Couleurs : déplacées vers l'onglet Application → Apparence (route_apparence).
         foreach ($logos as $cle => $path) {
             $ancien = param($cle); // ancien fichier à supprimer s'il était uploadé
             $stmt->execute([$cle, $path]);
@@ -472,6 +564,26 @@ function route_employeur(): void
         redirect('employeur', ['ok' => 1]);
     }
     render('employeur', ['saved' => isset($_GET['ok']), 'err' => null], 'Employeur');
+}
+
+// Apparence (section de l'onglet Application) : couleurs de l'application. Les
+// teintes dérivées sont recalculées au rendu (couleurs_css_vars), il suffit donc
+// d'enregistrer les deux couleurs de base. Valeur invalide ignorée.
+function route_apparence(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+        foreach (['employeur_couleur_principale', 'employeur_couleur_evidence'] as $cleCouleur) {
+            $couleur = trim($_POST[$cleCouleur] ?? '');
+            if (preg_match('/^#[0-9a-fA-F]{6}$/', $couleur)) {
+                $stmt->execute([$cleCouleur, strtolower($couleur)]);
+            }
+        }
+        redirect('apparence', ['ok' => 1]);
+    }
+    render('apparence', ['saved' => isset($_GET['ok'])], 'Apparence');
 }
 
 // Paramètres d'envoi des e-mails (expéditeur, contact, SMTP authentifié).
@@ -485,9 +597,11 @@ function route_emails(): void
         $emailContact = trim($_POST['employeur_email_contact'] ?? '');
         $emailExp     = trim($_POST['employeur_email_expediteur'] ?? '');
         $smtpUser     = trim($_POST['smtp_user'] ?? '');
+        $smtpBookingUser = trim($_POST['smtp_booking_user'] ?? '');
         if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
             || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))
-            || ($smtpUser !== '' && !filter_var($smtpUser, FILTER_VALIDATE_EMAIL))) {
+            || ($smtpUser !== '' && !filter_var($smtpUser, FILTER_VALIDATE_EMAIL))
+            || ($smtpBookingUser !== '' && !filter_var($smtpBookingUser, FILTER_VALIDATE_EMAIL))) {
             render('emails', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'E-mails');
             return;
         }
@@ -499,6 +613,17 @@ function route_emails(): void
         $smtpPass = (string) ($_POST['smtp_pass'] ?? '');
         if ($smtpPass !== '') {
             $stmt->execute(['smtp_pass', $smtpPass]);
+        }
+        if (module_actif('booking')) {
+            foreach (['smtp_booking_host', 'smtp_booking_port', 'smtp_booking_secure', 'smtp_booking_user'] as $k) {
+                $stmt->execute([$k, trim($_POST[$k] ?? '')]);
+            }
+            $smtpBookingPass = (string) ($_POST['smtp_booking_pass'] ?? '');
+            if ($smtpBookingPass !== '') {
+                $stmt->execute(['smtp_booking_pass', $smtpBookingPass]);
+            }
+            $stmt->execute(['mailing_delai_secondes', (string) max(0, (int) ($_POST['mailing_delai_secondes'] ?? 10))]);
+            $stmt->execute(['mailing_max_par_jour', (string) max(1, (int) ($_POST['mailing_max_par_jour'] ?? 200))]);
         }
         redirect('emails', ['ok' => 1]);
     }
@@ -1570,7 +1695,7 @@ function route_resumes(): void
     }
     $facturesEmises = module_actif('facturation')
         ? db()->query(
-            "SELECT f.*, d.nom AS debiteur_nom FROM factures f JOIN debiteurs d ON d.id = f.debiteur_id
+            "SELECT f.*, d.nom AS structure_nom FROM factures f JOIN structures d ON d.id = f.structure_id
              WHERE f.statut = 'emise' ORDER BY f.date_echeance"
         )->fetchAll()
         : [];

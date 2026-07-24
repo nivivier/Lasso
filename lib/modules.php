@@ -27,12 +27,17 @@ const MODULES = [
     ],
     'facturation' => [
         'label'       => 'Facturation',
-        'description' => 'Débiteurs, factures (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
+        'description' => 'Structures, factures (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
         'requires'    => [],
     ],
     'evenements' => [
         'label'       => 'Événements',
         'description' => 'Dates de concert/spectacle, suivi SUISA, export public JSON/iCal',
+        'requires'    => [],
+    ],
+    'booking' => [
+        'label'       => 'Booking',
+        'description' => 'CRM des structures (salles, festivals, médias) : catégorie, contacts, notes, lieux, mailing ciblé, import CSV. Réutilise les structures (ex-débiteurs) de la Facturation, sans en dépendre.',
         'requires'    => [],
     ],
 ];
@@ -99,7 +104,7 @@ function route_defaut(): string
 // index.php). Une table de permissions vide pour un utilisateur = aucun
 // accès nulle part ; c'est le premier compte créé (route_setup) qui reçoit
 // tout par défaut, pas les comptes suivants.
-const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements'];
+const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking'];
 
 // --- Fonctions pures (testées sans base de données, tests/permissions_test.php) ---
 

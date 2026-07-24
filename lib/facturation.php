@@ -8,13 +8,13 @@
 
 const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];
 
-// Crée un débiteur depuis des champs POST déjà validés (nom non vide, requis
+// Crée une structure depuis des champs POST déjà validés (nom non vide, requis
 // par l'appelant) — factorise la création rapide dupliquée entre le formulaire
 // de facture et la carte « Organisateur » d'un événement (lib/routes_evenements.php).
 // $prefixe : préfixe des noms de champs POST (ex. 'nd_', 'org_'). Retourne l'id créé.
-function debiteur_creer_depuis_post(string $prefixe): int
+function structure_creer_depuis_post(string $prefixe): int
 {
-    db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
+    db()->prepare('INSERT INTO structures (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
                     telephone, personne_contact, actif)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)')
         ->execute([
@@ -51,21 +51,21 @@ function facturation_calc_total(array $lignes): float
 // + lignes, dans une transaction. $id doit déjà être vérifié statut='brouillon'
 // par l'appelant (une facture émise ne se modifie plus). Retourne l'id de la facture.
 function facturation_sauvegarder_brouillon(
-    ?int $id, int $debiteurId, ?int $compteId, int $delaiJours, string $communication, array $lignes,
+    ?int $id, int $structureId, ?int $compteId, int $delaiJours, string $communication, array $lignes,
     ?int $evenementId = null
 ): int {
     $montantTotal = facturation_calc_total($lignes);
 
     db()->beginTransaction();
     if ($id) {
-        db()->prepare("UPDATE factures SET debiteur_id=?, compte_bancaire_id=?, delai_jours=?, communication=?, montant_total=?, evenement_id=? WHERE id=? AND statut='brouillon'")
-            ->execute([$debiteurId, $compteId, $delaiJours, $communication, $montantTotal, $evenementId, $id]);
+        db()->prepare("UPDATE factures SET structure_id=?, compte_bancaire_id=?, delai_jours=?, communication=?, montant_total=?, evenement_id=? WHERE id=? AND statut='brouillon'")
+            ->execute([$structureId, $compteId, $delaiJours, $communication, $montantTotal, $evenementId, $id]);
         db()->prepare('DELETE FROM facture_lignes WHERE facture_id = ?')->execute([$id]);
         $factureId = $id;
     } else {
-        db()->prepare("INSERT INTO factures (debiteur_id, compte_bancaire_id, delai_jours, communication, montant_total, evenement_id, statut)
+        db()->prepare("INSERT INTO factures (structure_id, compte_bancaire_id, delai_jours, communication, montant_total, evenement_id, statut)
                         VALUES (?, ?, ?, ?, ?, ?, 'brouillon')")
-            ->execute([$debiteurId, $compteId, $delaiJours, $communication, $montantTotal, $evenementId]);
+            ->execute([$structureId, $compteId, $delaiJours, $communication, $montantTotal, $evenementId]);
         $factureId = (int) db()->lastInsertId();
     }
     $insL = db()->prepare('INSERT INTO facture_lignes (facture_id, description, quantite, prix_unitaire, montant, axe_analytique_id, ordre) VALUES (?,?,?,?,?,?,?)');
@@ -167,7 +167,10 @@ function facturation_badge(array $facture): string
 }
 
 // Code pays ISO 3166-1 alpha-2, requis par la QR-facture (StructuredAddress).
-// Repli sur CH : la quasi-totalité des débiteurs de l'association sont suisses.
+// Table de correspondance figée (noms fréquents/traductions) servant de repli à
+// la liste de pays configurable (Paramètres → Pays, pays_liste()), qui porte le
+// code ISO2 exact de chaque pays. Repli final sur CH : la quasi-totalité des
+// structures de l'association sont suisses.
 const FACTURATION_PAYS_ISO2 = [
     'suisse' => 'CH', 'schweiz' => 'CH', 'svizzera' => 'CH', 'switzerland' => 'CH',
     'france' => 'FR', 'allemagne' => 'DE', 'deutschland' => 'DE',
@@ -181,14 +184,23 @@ function facturation_pays_iso2(string $pays): string
     if (preg_match('/^[A-Za-z]{2}$/', $p)) {
         return strtoupper($p);
     }
-    return FACTURATION_PAYS_ISO2[mb_strtolower($p, 'UTF-8')] ?? 'CH';
+    $pNorm = mb_strtolower($p, 'UTF-8');
+    // Priorité à la liste configurable : un pays ajouté par l'utilisateur (ex.
+    // Belgique, Espagne, Canada…) y a son code ISO2 exact, absent de la table
+    // figée ci-dessous — sans quoi la QR-facture retomberait à tort sur « CH ».
+    foreach (pays_liste() as $entry) {
+        if (mb_strtolower((string) $entry['nom'], 'UTF-8') === $pNorm) {
+            return (string) $entry['code_iso2'];
+        }
+    }
+    return FACTURATION_PAYS_ISO2[$pNorm] ?? 'CH';
 }
 
 // --------------------------------------------------------------- QR-FACTURE
 // Construit l'objet QrBill (sprain/swiss-qr-bill) à partir d'une facture, ses
-// lignes, son débiteur et le compte bancaire créancier. Lève une exception si
+// lignes, son structure et le compte bancaire créancier. Lève une exception si
 // les données sont invalides (IBAN, adresse…) — appelant : capturer et afficher.
-function facturation_construire_qrbill(array $facture, array $debiteur, array $compte): \Sprain\SwissQrBill\QrBill
+function facturation_construire_qrbill(array $facture, array $structure, array $compte): \Sprain\SwissQrBill\QrBill
 {
     require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -211,12 +223,12 @@ function facturation_construire_qrbill(array $facture, array $debiteur, array $c
     );
     $qrBill->setUltimateDebtor(
         \Sprain\SwissQrBill\DataGroup\Element\StructuredAddress::createWithStreet(
-            (string) $debiteur['nom'],
-            (string) $debiteur['adresse_rue'],
+            (string) $structure['nom'],
+            (string) $structure['adresse_rue'],
             null,
-            (string) $debiteur['adresse_npa'],
-            (string) $debiteur['adresse_localite'],
-            facturation_pays_iso2((string) $debiteur['adresse_pays'])
+            (string) $structure['adresse_npa'],
+            (string) $structure['adresse_localite'],
+            facturation_pays_iso2((string) $structure['adresse_pays'])
         )
     );
     $qrBill->setPaymentAmountInformation(
@@ -264,8 +276,8 @@ function facturation_logo_aplati(string $path, string $mime): ?string
     return $tmp;
 }
 
-// En-tête de la facture PDF : logo/employeur, titre + dates, débiteur, communication.
-function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): void
+// En-tête de la facture PDF : logo/employeur, titre + dates, structure, communication.
+function facturation_pdf_entete(TCPDF $pdf, array $facture, array $structure): void
 {
     $logo = param_logo('clair');
     $logoAffiche = false;
@@ -329,14 +341,14 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
     $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
     $pdf->Ln(5);
 
-    // « Émise par » / « Débiteur » sur deux colonnes — reprend .ps-parties
+    // « Émise par » / « Structure » sur deux colonnes — reprend .ps-parties
     // (identique au bloc Employeur/Employé d'un décompte de salaire).
     $yParties = $pdf->GetY();
     $pdf->SetFont('helvetica', 'B', 8);
     $pdf->SetTextColor(107, 114, 128); // --muted
     $pdf->Cell(85, 4, 'ÉMISE PAR', 0, 0);
     $pdf->SetX(110);
-    $pdf->Cell(85, 4, 'DÉBITEUR', 0, 1);
+    $pdf->Cell(85, 4, 'STRUCTURE', 0, 1);
     $pdf->SetTextColor(30, 36, 48);
 
     $pdf->SetXY(15, $yParties + 5);
@@ -349,12 +361,12 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $debiteur): vo
 
     $pdf->SetXY(110, $yParties + 5);
     $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->Cell(85, 5, (string) $debiteur['nom'], 0, 2);
+    $pdf->Cell(85, 5, (string) $structure['nom'], 0, 2);
     $pdf->SetFont('helvetica', '', 10);
-    if (trim((string) $debiteur['adresse_rue']) !== '') {
-        $pdf->Cell(85, 5, (string) $debiteur['adresse_rue'], 0, 2);
+    if (trim((string) $structure['adresse_rue']) !== '') {
+        $pdf->Cell(85, 5, (string) $structure['adresse_rue'], 0, 2);
     }
-    $pdf->Cell(85, 5, trim($debiteur['adresse_npa'] . ' ' . $debiteur['adresse_localite']), 0, 2);
+    $pdf->Cell(85, 5, trim($structure['adresse_npa'] . ' ' . $structure['adresse_localite']), 0, 2);
     $yDroite = $pdf->GetY();
 
     $pdf->SetXY(15, max($yGauche, $yDroite) + 4);
@@ -409,11 +421,11 @@ function facturation_pdf_lignes(TCPDF $pdf, array $lignes, array $facture): void
 // Génère le PDF complet de la facture (contenu + zone de paiement QR normée),
 // en octets. $facture doit contenir montant_total/numero/reference_paiement
 // figés ; $lignes triées par ordre ; $compte = ligne comptes_bancaires (IBAN).
-function facturation_generer_pdf(array $facture, array $lignes, array $debiteur, array $compte): string
+function facturation_generer_pdf(array $facture, array $lignes, array $structure, array $compte): string
 {
     require_once __DIR__ . '/../vendor/autoload.php';
 
-    $qrBill = facturation_construire_qrbill($facture, $debiteur, $compte);
+    $qrBill = facturation_construire_qrbill($facture, $structure, $compte);
     if (!$qrBill->isValid()) {
         $messages = array_map(fn($v) => $v->getMessage(), iterator_to_array($qrBill->getViolations()));
         throw new RuntimeException("QR-facture invalide : " . implode(' ; ', $messages));
@@ -426,7 +438,7 @@ function facturation_generer_pdf(array $facture, array $lignes, array $debiteur,
     $pdf->SetAutoPageBreak(false);
     $pdf->AddPage();
 
-    facturation_pdf_entete($pdf, $facture, $debiteur);
+    facturation_pdf_entete($pdf, $facture, $structure);
     facturation_pdf_lignes($pdf, $lignes, $facture);
 
     // La zone de paiement QR doit occuper les 105 derniers mm d'une page A4 :
@@ -481,13 +493,13 @@ function envoyer_facture_email(array $facture, string $pdfContenu, string $desti
 // ------------------------------------------------------- RAPPROCHEMENT COMPTA
 // Tente d'associer automatiquement les écritures bancaires d'UN IMPORT donné
 // (pas tout l'historique du compte, qui ne fait que grossir au fil des années)
-// à des factures émises non payées : montant exact + nom du débiteur retrouvé
+// à des factures émises non payées : montant exact + nom de la structure retrouvé
 // dans le texte/tiers de l'écriture. Ne réaffecte jamais une écriture déjà
 // lettrée à une facture ni une facture déjà payée.
 function facturation_suggerer_rapprochements(PDO $pdo, int $importId): int
 {
-    $sqlFactures = "SELECT f.*, d.nom AS debiteur_nom FROM factures f
-                     JOIN debiteurs d ON d.id = f.debiteur_id
+    $sqlFactures = "SELECT f.*, d.nom AS structure_nom FROM factures f
+                     JOIN structures d ON d.id = f.structure_id
                      WHERE f.statut = 'emise'";
     $factures = $pdo->query($sqlFactures)->fetchAll();
     if (!$factures) {
@@ -507,14 +519,14 @@ function facturation_suggerer_rapprochements(PDO $pdo, int $importId): int
     $n = 0;
     foreach ($factures as $f) {
         $montant = (float) $f['montant_total'];
-        $nomDebiteur = mb_strtolower((string) $f['debiteur_nom'], 'UTF-8');
+        $nomStructure = mb_strtolower((string) $f['structure_nom'], 'UTF-8');
         foreach ($ecritures as $e) {
             $eid = (int) $e['id'];
             if (isset($utilisees[$eid]) || abs((float) $e['montant'] - $montant) > 0.01) {
                 continue;
             }
             $texte = mb_strtolower((string) $e['texte'] . ' ' . $e['tiers'] . ' ' . $e['communication'], 'UTF-8');
-            if ($nomDebiteur === '' || !str_contains($texte, $nomDebiteur)) {
+            if ($nomStructure === '' || !str_contains($texte, $nomStructure)) {
                 continue;
             }
             $updEcr->execute([(int) $f['id'], $eid]);
@@ -529,14 +541,14 @@ function facturation_suggerer_rapprochements(PDO $pdo, int $importId): int
 
 // -------------------------------------------------------- IMPORT HISTORIQUE
 // Importe des factures déjà émises avant l'utilisation de Lasso (JSON, format
-// « factures_historique »). Débiteur retrouvé par nom exact, créé sinon (avec
+// « factures_historique »). Structure retrouvé par nom exact, créé sinon (avec
 // l'adresse/e-mail fournis). Statut/numéro/dates imposés directement (pas de
 // passage par le brouillon → émission normal). Une facture dont le numéro
 // existe déjà est ignorée — jamais écrasée (historique figé). $simule = true :
 // n'écrit rien, retourne ce qui serait fait. Renvoie [résultats par ligne, résumé].
 function importer_factures_historique(array $facturesData, bool $simule): array
 {
-    $findDeb = db()->prepare('SELECT id FROM debiteurs WHERE nom = ?');
+    $findDeb = db()->prepare('SELECT id FROM structures WHERE nom = ?');
     $existe  = db()->prepare('SELECT 1 FROM factures WHERE numero = ?');
     $resultats = [];
     $resume = ['total' => 0, 'nouvelles' => 0, 'existantes' => 0, 'erreurs' => 0];
@@ -548,7 +560,10 @@ function importer_factures_historique(array $facturesData, bool $simule): array
         foreach ($facturesData as $f) {
             $resume['total']++;
             $numero        = trim((string) ($f['numero'] ?? ''));
-            $debiteurNom   = trim((string) ($f['debiteur_nom'] ?? ''));
+            // Clé JSON 'debiteur_nom' : format externe du fichier d'import historique,
+            // inchangé malgré le renommage interne debiteurs → structures (compatibilité
+            // avec les fichiers déjà préparés).
+            $structureNom   = trim((string) ($f['debiteur_nom'] ?? ''));
             $dateEmission  = trim((string) ($f['date_emission'] ?? ''));
             $statutFacture = in_array($f['statut'] ?? '', ['emise', 'payee', 'annulee'], true) ? $f['statut'] : 'emise';
 
@@ -565,12 +580,12 @@ function importer_factures_historique(array $facturesData, bool $simule): array
             }
             $montantTotal = facturation_calc_total($lignes);
 
-            $ligne = ['numero' => $numero, 'debiteur' => $debiteurNom, 'date_emission' => $dateEmission,
+            $ligne = ['numero' => $numero, 'structure' => $structureNom, 'date_emission' => $dateEmission,
                 'montant' => $montantTotal, 'statut_facture' => $statutFacture];
 
-            if ($numero === '' || $debiteurNom === '' || $dateEmission === '' || !$lignes) {
+            if ($numero === '' || $structureNom === '' || $dateEmission === '' || !$lignes) {
                 $ligne['statut'] = 'erreur';
-                $ligne['detail'] = "Champs obligatoires manquants (numéro, débiteur, date d'émission, au moins une ligne valide).";
+                $ligne['detail'] = "Champs obligatoires manquants (numéro, structure, date d'émission, au moins une ligne valide).";
                 $resume['erreurs']++; $resultats[] = $ligne; continue;
             }
             $existe->execute([$numero]);
@@ -584,22 +599,22 @@ function importer_factures_historique(array $facturesData, bool $simule): array
             $resume['nouvelles']++;
 
             if (!$simule) {
-                $findDeb->execute([$debiteurNom]);
-                $debiteurId = $findDeb->fetchColumn();
-                if ($debiteurId === false) {
-                    db()->prepare('INSERT INTO debiteurs (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, actif)
+                $findDeb->execute([$structureNom]);
+                $structureId = $findDeb->fetchColumn();
+                if ($structureId === false) {
+                    db()->prepare('INSERT INTO structures (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, actif)
                                     VALUES (?, ?, ?, ?, ?, ?, ?, 1)')
                         ->execute([
-                            'organisation', $debiteurNom,
+                            'organisation', $structureNom,
                             trim((string) ($f['debiteur_adresse_rue'] ?? '')),
                             trim((string) ($f['debiteur_adresse_npa'] ?? '')),
                             trim((string) ($f['debiteur_adresse_localite'] ?? '')),
                             trim((string) ($f['debiteur_adresse_pays'] ?? '')) ?: 'Suisse',
                             trim((string) ($f['debiteur_email'] ?? '')),
                         ]);
-                    $debiteurId = (int) db()->lastInsertId();
+                    $structureId = (int) db()->lastInsertId();
                 } else {
-                    $debiteurId = (int) $debiteurId;
+                    $structureId = (int) $structureId;
                 }
 
                 $compteId  = null;
@@ -628,10 +643,10 @@ function importer_factures_historique(array $facturesData, bool $simule): array
                 $communication = trim((string) ($f['communication'] ?? ''));
 
                 db()->prepare('INSERT INTO factures
-                    (debiteur_id, compte_bancaire_id, numero, reference_paiement, date_emission, date_echeance,
+                    (structure_id, compte_bancaire_id, numero, reference_paiement, date_emission, date_echeance,
                      delai_jours, statut, montant_total, communication, payee_le)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                    ->execute([$debiteurId, $compteId, $numero, $reference, $dateEmission, $dateEcheance,
+                    ->execute([$structureId, $compteId, $numero, $reference, $dateEmission, $dateEcheance,
                         $delaiJours, $statutFacture, $montantTotal, $communication, $payeeLe]);
                 $factureId = (int) db()->lastInsertId();
 

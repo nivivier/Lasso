@@ -26,12 +26,17 @@
     --bg: #f4f4fb;
     --card: #ffffff;
     --danger: #e0473c;
+    --danger-d: #c63b31;    /* survol des boutons danger (même convention -d que --highlight-d, --primary-d…) */
     --danger-tint: #fdecea;
     --ok: #0c9486;
     --radius: 10px;
     --radius-sm: 6px;
+    --radius-pill: 20px;    /* badges / compteurs en pilule */
     --shadow: 0 1px 2px rgba(41,33,80,.04), 0 6px 20px rgba(41,33,80,.06);
     --shadow-sm: 0 1px 3px rgba(41,33,80,.08);
+    /* Anneau de focus unique de tout le site (champs, boutons segmentés, etc.) —
+       point de style unique plutôt que répété à l'identique partout. */
+    --focus-ring: 0 0 0 3px var(--primary-tint);
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
     --row-pad: 10px 12px;              /* padding standard des cellules .list */
@@ -175,6 +180,15 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 .param-tabs a:hover { color: var(--ink); text-decoration: none; }
 .param-tabs a.on { color: var(--primary); border-bottom-color: var(--primary); }
+/* Sous-onglets (sections du groupe actif) : rangée de pastilles sous le bandeau. */
+.param-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 24px; }
+.param-subtabs a {
+    padding: 6px 13px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill);
+    transition: color .15s, background .15s, border-color .15s;
+}
+.param-subtabs a:hover { color: var(--primary-d); background: var(--primary-tint); border-color: var(--primary-tint); text-decoration: none; }
+.param-subtabs a.on { color: #fff; background: var(--primary); border-color: var(--primary); }
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
@@ -188,7 +202,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.18); border: none; cursor: pointer; color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0 auto; transition: background .15s; }
 .side-avatar:hover { background: rgba(255,255,255,.28); }
 .side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: #fff; border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
-.side-avatar-id { padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+.side-avatar-id { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
 .side-avatar-id strong { display: block; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-avatar-id span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .side-avatar-menu a { display: block; padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none; }
@@ -225,6 +239,11 @@ body.auth-bg {
 .td-toggle { padding: 0 0 0 12px; }
 .page-head-title { display: flex; align-items: center; gap: 12px; }
 
+.titre-read { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.titre-read h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titre-edit-form { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 480px; }
+.titre-edit-form .input-titre { flex: 1; }
+
 /* Bandeau d'en-tête sticky pleine largeur, sur fond blanc (Fiches de salaire,
    Écritures, Factures, Paramètres). Le contenu (.page-head à l'intérieur)
    garde exactement la position/largeur qu'il aurait eue dans .content : seul
@@ -257,7 +276,7 @@ body.auth-bg {
 }
 
 .inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
-.inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Sélecteur d'année à côté du titre (Événements, Écritures, etc.) : même
    hauteur que les .btn.ghost.btn-sm du bandeau (ex. « Export SUISA »). */
 .page-head-title .inline-year-select { padding: 5px 8px; }
@@ -277,10 +296,69 @@ h3.sub.no-mt { margin-top: 0; }
 }
 .card.auth { width: 100%; padding: 30px; }
 .card.auth h1 { margin: 0 0 18px; font-size: 22px; }
+.fieldset-groupe { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 16px 16px; margin: 0 0 18px; }
+.fieldset-groupe legend { padding: 0 8px; font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fieldset-groupe .grid2, .fieldset-groupe .grid3 { margin-bottom: 14px; }
+.fieldset-groupe .grid2:last-child, .fieldset-groupe .grid3:last-child { margin-bottom: 0; }
 
-.form label, .filters label { display: flex; flex-direction: column; gap: 6px; font-weight: 500; color: var(--muted); }
-.form label { margin-bottom: 16px; font-size: 13.5px; }
+.form-split { display: grid; grid-template-columns: 2fr 1fr; gap: 0 24px; align-items: start; }
+.form-split-main { min-width: 0; }
+.form-split-side { margin: 0; min-width: 0; }
+/* La colonne latérale reste étroite quelle que soit la largeur d'écran — les
+   grilles à colonnes fixes (formulaires d'édition en ligne) y seraient trop
+   à l'étroit, on les repasse donc en une seule colonne. */
+.form-split-side .grid2, .form-split-side .grid3, .form-split-side .grid4 { grid-template-columns: 1fr; }
+@media (max-width: 800px) { .form-split { grid-template-columns: 1fr; } }
+
+/* Fiche structure : contenu principal (édition, étiquettes, historique) à
+   gauche, sidebar SANS card (contacts, salles/festivals liés) à droite — même
+   esprit que la sidebar d'une fiche de salaire (.fiche-aside : pas de card,
+   juste des titres + du contenu), mais plus large pour les formulaires de
+   contact. */
+.struct-wrapper { display: flex; gap: 24px; align-items: flex-start; }
+.struct-main { flex: 1; min-width: 0; }
+/* La sidebar réduit la colonne principale : le formulaire d'édition y passe ses
+   coordonnées SOUS les champs généraux (au lieu d'une colonne latérale interne),
+   pour ne pas s'y trouver à l'étroit. */
+.struct-main .form-split { grid-template-columns: 1fr; }
+.struct-aside { flex: 0 0 340px; min-width: 0; }
+.struct-aside .aside-block + .aside-block { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.struct-aside h2 { font-size: 16px; margin: 0 0 12px; font-weight: 700; }
+.struct-aside .grid2, .struct-aside .grid3, .struct-aside .grid4 { grid-template-columns: 1fr; }
+@media (max-width: 900px) { .struct-wrapper { flex-direction: column; } .struct-aside { flex-basis: auto; width: 100%; } }
+/* Sections éditables de la sidebar structure (Salles & festivals, Contacts) :
+   les commandes ajouter/lier/modifier/supprimer (.edit-only) restent masquées
+   tant que le crayon d'en-tête n'a pas basculé la section en mode édition. */
+.section-editable:not(.editing) .edit-only { display: none; }
+.edit-toggle-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
+/* Le bouton « + » (nouveau contact) reste sur la même ligne que le crayon. */
+.card-head-row .edit-only { flex: 0 0 auto; }
+.fusion-candidat { display: block; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.fusion-candidat:has(input:checked) { border-color: var(--primary); box-shadow: var(--focus-ring); }
+.card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.card-head-row h2 { margin: 0; }
+
+input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: 19px; font-weight: 800; padding: 2px 14px; color: var(--primary)}
+
+.form label, .filters label, .form .field-group { display: flex; flex-direction: column; gap: 6px; font-weight: 500; color: var(--muted); }
+.form label, .form .field-group { margin-bottom: 16px; font-size: 13.5px; }
 .filters label { margin-bottom: 6px; line-height:0.8; font-size: 10px; }
+
+/* Sélecteur segmenté à icônes (icon_picker(), lib/helpers.php) : boutons
+   connectés dont un seul est actif — même format que les droits par module de
+   ?p=comptes (.perm-toggle), mais horizontal. */
+.seg-picker { display: inline-flex; flex-direction: row !important; width: max-content; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.seg-picker .seg-btn {
+    display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
+    width: 46px; height: 38px; margin: 0; background: #fff; border-right: 1px solid var(--line); color: var(--muted);
+    cursor: pointer; transition: background .15s, color .15s;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn .ico { width: 17px; height: 17px; }
+.seg-btn input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.seg-btn:hover { background: var(--surface); }
+.seg-btn:has(input:checked) { background: var(--highlight-tint); color: var(--highlight-d); }
+.seg-btn:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 /* Style par défaut de tous les champs de saisie du site (pas besoin de le
    répéter par écran/scope). :not(checkbox/radio) — sinon les cases à cocher
@@ -298,7 +376,7 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
     padding: 4px 8px !important ; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
     cursor: pointer; transition: border-color .15s, box-shadow .15s;}
 .row-cat-input::placeholder { color: var(--muted); }
-.row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); cursor: text; }
+.row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; }
 /* Préfixe (catégorie parente) affiché au-dessus de l'input — absent si pas de parent */
 .cat-prefix { font-size: 10.5px; line-height: 1.1; color: var(--muted); margin-bottom: 1px; }
 /* Mode affichage statique (catégorie / axe déjà remplis) */
@@ -318,8 +396,12 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 #row-cat-list { position: absolute; z-index: 200; }
 /* Bulk cat-search : largeur fixe pour tenir dans la barre flottante */
 .bulk-cat-search { width: 280px; flex-shrink: 0; position: relative; }
-.bulk-cat-search .cat-search-input { font: inherit; font-size: 14.5px; color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
-.bulk-cat-search .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+/* Champ cat-search « pleine boîte » (barre groupée + recherche de facture liée) :
+   même style, une seule déclaration. */
+.bulk-cat-search .cat-search-input,
+.facture-search .cat-search-input { font: inherit; font-size: 14.5px; color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.bulk-cat-search .cat-search-input:focus,
+.facture-search .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Ouvre vers le haut (barre fixée en bas de l'écran) */
 .bulk-cat-search .cat-search-list { top: auto; bottom: 100%; margin: 0 0 2px; }
 /* Cat-search dans le formulaire écriture manuelle */
@@ -335,7 +417,7 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 .axe-edit-btn:focus-visible { opacity: 1; pointer-events: auto; }
 /* Select inline (toujours visible quand aucune ventilation) */
 .axe-inline-sel { font: inherit; font-size: 13px; padding: 2px 5px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); max-width: 120px; }
-.axe-inline-sel:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.axe-inline-sel:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 
 /* Ligne de fiche : axe analytique éditable */
 .ligne-axe-cell { white-space: nowrap; }
@@ -355,7 +437,7 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 .axe-panel-row .vent-axe { flex: 1; font: inherit; font-size: 13px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
 .axe-panel-row .vent-mont { width: 90px; font: inherit; font-size: 13px; padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: right; }
 .axe-panel-row .vent-axe:focus,
-.axe-panel-row .vent-mont:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.axe-panel-row .vent-mont:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 .axe-panel-row .vent-del { flex-shrink: 0; color: var(--muted); background: none; border: none; cursor: pointer; padding: 3px; border-radius: var(--radius-sm); display: flex; align-items: center; }
 .axe-panel-row .vent-del:hover { color: var(--danger); background: var(--danger-tint); }
 .axe-panel-row .vent-del .ico { width: 14px; height: 14px; }
@@ -398,11 +480,12 @@ input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacit
 .auth-form { margin-top: 4px; }
 .auth-form button { width: 100%; margin-top: 6px; padding: 11px; }
 input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
-    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint);
+    outline: none; border-color: var(--primary); box-shadow: var(--focus-ring);
 }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 18px; }
+.grid3-full { grid-column: 1 / -1; }
 .field-pair { display: flex; gap: 8px; }
 .field-pair input { flex: 2; min-width: 0; }
 .field-pair select { flex: 1; width: auto; min-width: 0; }
@@ -426,7 +509,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
 .pct-input { display: flex; align-items: stretch; max-width: 150px; border: 1px solid var(--line);
     border-radius: var(--radius-sm); background: #fff; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
-.pct-input:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.pct-input:focus-within { border-color: var(--primary); box-shadow: var(--focus-ring); }
 .form .pct-input input { border: none; border-radius: 0; background: transparent; text-align: right;
     font-variant-numeric: tabular-nums; padding-right: 6px; }
 .form .pct-input input:focus { box-shadow: none; }
@@ -438,10 +521,15 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
 .linked-add select { width: auto; flex: 1; }
 .linked-add .cat-search { flex: 1; }
+/* Le champ occupe toute la largeur disponible → le bouton reste collé à droite. */
+.linked-add input[type="text"], .linked-add input[type="search"] { flex: 1; min-width: 0; }
 .linked-add button { flex: 0 0 auto; }
 .page-head .linked-add { margin-bottom: 0; }
-.facture-search .cat-search-input { font: inherit; font-size: 14.5px; color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
-.facture-search .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.souscat-liste { margin: 6px 0 18px 28px; padding-left: 14px; border-left: 2px solid var(--line); }
+.souscat-liste .souscat-row.linked-add,
+.souscat-liste .cat-row.souscat-row { margin-bottom: 8px; }
+.souscat-liste .souscat-row .linked-add { margin-bottom: 0; }
+/* .facture-search .cat-search-input : mutualisé avec .bulk-cat-search plus haut. */
 .form-actions label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
 
 .year-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; flex-wrap: wrap; }
@@ -460,8 +548,8 @@ button:hover, .btn:hover { background: var(--highlight-d); border-color: var(--h
 button:active, .btn:active { transform: translateY(1px); }
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); font-weight: 500; box-shadow: none; }
 .btn.ghost:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
-.btn.danger, .btn.btn-danger { background: var(--danger); border-color: var(--danger); }
-.btn.danger:hover, .btn.btn-danger:hover { background: #c63b31; border-color: #c63b31; }
+.btn.danger { background: var(--danger); border-color: var(--danger); }
+.btn.danger:hover { background: var(--danger-d); border-color: var(--danger-d); }
 .btn.icon-only { padding: 9px 11px; }
 .btn.icon-only .ico { width: 17px; height: 17px; }
 .btn-sm { padding: 4px 8px; font-size: 13px; }
@@ -563,6 +651,7 @@ button:active, .btn:active { transform: translateY(1px); }
 .mt-18 { margin-top: 18px; }
 .mt-22 { margin-top: 22px; }
 .mb-0 { margin-bottom: 0; }
+.mb-8 { margin-bottom: 8px; }
 .mb-16 { margin-bottom: 16px; }
 .mt-16 { margin-top: 16px; }
 .mb-22 { margin-bottom: 22px; }
@@ -634,6 +723,9 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .filters-more[open] .filters-more-body { display: flex; }
 .filters-more-body label { margin-bottom: 0; }
+/* Filtres de jauge (?p=lieux) : champs numériques deux fois plus étroits que les
+   autres filtres — une capacité tient sur quelques chiffres. */
+.filters-more-body .jauge-filtre input { width: 5rem; }
 
 /* Pagination des listes longues (fiches, employés, écritures, factures,
    débiteurs, événements) — voir views/_pagination.php. */
@@ -672,13 +764,19 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .ce-cout { color: var(--ink); }
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
-.badge { font-size: 11px; background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: 20px; margin-left: 6px; font-weight: 600; white-space: nowrap; }
+.badge { font-size: 11px; background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-weight: 600; white-space: nowrap; }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
 .badge.orange-badge { background: var(--orange-tint); color: var(--orange); margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
-.badge.emise-badge { margin-left: 0; }
+/* Étiquettes de structure (booking) : badge + petit bouton de retrait intégré. */
+.tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.tags-liste .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 0; }
+.btn-tag-x { border: none; background: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+/* Flux de notes (fiche structure, booking) : liste chronologique inversée. */
+.notes-flux { display: flex; flex-direction: column; gap: 14px; }
+.note-item { padding: 10px 14px; background: var(--surface); border-radius: var(--radius-sm); }
 /* Date colorée par statut, ex. widget « Prochains événements » du tableau de
    bord — pas de colonne dédiée. */
 .statut-date-ok { color: var(--teal-d); font-weight: 600; }
@@ -725,7 +823,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 .section-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 26px 0 12px; }
 .card > h2:first-child,
 .card > .section-head:first-child { margin-top: 0; }
-.section-head h2 { margin: 0; }
+.section-head h2, .section-head h3.sub { margin: 0; }
 .annee-pick { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
 .annee-pick select { width: auto; font: inherit; font-size: 14px; color: var(--ink); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
 
@@ -770,7 +868,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 #preview-modal[hidden] { display: none !important; }
 #preview-modal-inner {
     position: relative;
-    border-radius: 10px;
+    border-radius: var(--radius);
     box-shadow: 0 28px 80px rgba(0,0,0,.35);
     overflow: hidden;
     display: flex; flex-direction: column;
@@ -790,7 +888,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 .print-toolbar { padding: 13px 18px; background: var(--brand); color: #fff; display: flex; gap: 16px; align-items: center; }
 
 .print-toolbar button { background: var(--highlight); border-color: var(--highlight); }
-.sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: 6px; }
+.sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: var(--radius-sm); }
 body.print-page { background: #e9e9f2; }
 
 @media print {
@@ -903,7 +1001,7 @@ abbr {
 .facture-aside .linked-add { flex-direction: column; align-items: stretch; gap: 8px; }
 .facture-aside .linked-add select { width: 100%; }
 .facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 13px; background: #fff; }
-.facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */
 .ecr-search .cat-search-list { left: auto; right: 0; width: max(100%, 340px); max-width: min(420px, calc(100vw - 32px)); }
 .ecr-search .cat-search-list li { white-space: normal; display: flex; flex-direction: column; gap: 2px; }
@@ -1007,7 +1105,7 @@ abbr {
 .compta-lettrage { min-width: 760px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
 .compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
 .compta-lettrage td { padding-top: 5px; padding-bottom: 5px; }
-.compta-lettrage .col-check, .evenements-liste .col-check { width: 34px; text-align: center; }
+.list .col-check { width: 34px; text-align: center; }
 .compta-lettrage .texte-cell { max-width: 200px; font-size: 11.5px; color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
 .compta-lettrage .texte-cell:hover { color: var(--primary); }
@@ -1045,7 +1143,7 @@ abbr {
 .cr-toggle { display: inline-flex; vertical-align: middle; margin-right: 4px; color: var(--muted); transition: transform .15s; }
 .cr-toggle .ico { width: 15px; height: 15px; }
 .cr-clic.open .cr-toggle { transform: rotate(180deg); }
-.cr-count { display: inline-block; min-width: 18px; text-align: center; font-size: 11px; font-weight: 700; color: var(--primary-d); background: var(--primary-tint); border-radius: 20px; padding: 1px 7px; margin-left: 6px; }
+.cr-count { display: inline-block; min-width: 18px; text-align: center; font-size: 11px; font-weight: 700; color: var(--primary-d); background: var(--primary-tint); border-radius: var(--radius-pill); padding: 1px 7px; margin-left: 6px; }
 .cr-detail > td { padding: 0 16px 10px 34px; background: var(--surface); }
 .cr-det-row { display: grid; grid-template-columns: 78px 1fr 2fr auto; gap: 12px; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
 .cr-det-row:last-child { border-bottom: none; }

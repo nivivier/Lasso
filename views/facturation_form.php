@@ -1,7 +1,7 @@
 <?php
-/** @var ?array $facture */ /** @var int $id */ /** @var array $debiteurs */ /** @var array $comptes */
+/** @var ?array $facture */ /** @var int $id */ /** @var array $structures */ /** @var array $comptes */
 /** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?int $axeDefautEvenement */
-/** @var ?int $debiteurDefautEvenement */ /** @var ?string $err */ /** @var ?array $post */
+/** @var ?int $structureDefautEvenement */ /** @var ?string $err */ /** @var ?array $post */
 $edit = $id > 0;
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 
@@ -49,8 +49,8 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
         . '</div>';
 };
 ?>
-<?php $debiteurCourant = (string) ($post['debiteur_id'] ?? ($facture['debiteur_id'] ?? ($debiteurDefautEvenement ?: ''))); ?>
-<?php $nouveauDebiteur = $debiteurCourant === '__new__'; ?>
+<?php $structureCourant = (string) ($post['structure_id'] ?? ($facture['structure_id'] ?? ($structureDefautEvenement ?: ''))); ?>
+<?php $nouveauStructure = $structureCourant === '__new__'; ?>
 <?= lien_retour('?p=facturation_liste', 'Facturation') ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la facture' : 'Nouvelle facture' ?></h1>
@@ -70,13 +70,13 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <?php endif; ?>
 
     <div class="grid2">
-        <label>Débiteur
-            <select name="debiteur_id" id="debiteur-select" required>
+        <label>Structure
+            <select name="structure_id" id="structure-select" required>
                 <option value="">— choisir —</option>
-                <option value="__new__" <?= $nouveauDebiteur ? 'selected' : '' ?>>+ Nouveau débiteur</option>
-                <?php foreach ($debiteurs as $d): ?>
+                <option value="__new__" <?= $nouveauStructure ? 'selected' : '' ?>>+ Nouvelle structure</option>
+                <?php foreach ($structures as $d): ?>
                     <option value="<?= (int) $d['id'] ?>"
-                        <?= $debiteurCourant === (string) $d['id'] ? 'selected' : '' ?>>
+                        <?= $structureCourant === (string) $d['id'] ? 'selected' : '' ?>>
                         <?= e($d['nom']) ?>
                     </option>
                 <?php endforeach; ?>
@@ -95,8 +95,8 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
         </label>
     </div>
 
-    <div id="nouveau-debiteur" <?= $nouveauDebiteur ? '' : 'hidden' ?>>
-        <h3 class="sub">Nouveau débiteur</h3>
+    <div id="nouveau-structure" <?= $nouveauStructure ? '' : 'hidden' ?>>
+        <h3 class="sub">Nouvelle structure</h3>
         <div class="grid2">
             <label>Nom / raison sociale <input name="nd_nom" value="<?= $pv('nd_nom') ?>"></label>
             <label>Type
@@ -112,7 +112,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
             <label>Localité <input name="nd_adresse_localite" value="<?= $pv('nd_adresse_localite') ?>"></label>
         </div>
         <div class="grid2">
-            <label>Pays <input name="nd_adresse_pays" value="<?= $pv('nd_adresse_pays', 'Suisse') ?>"></label>
+            <label>Pays <select name="nd_adresse_pays"><?= pays_options_nom((string) ($post['nd_adresse_pays'] ?? 'Suisse')) ?></select></label>
             <label>E-mail (optionnel) <input name="nd_email" type="email" value="<?= $pv('nd_email') ?>"></label>
         </div>
         <div class="grid2">
@@ -150,10 +150,10 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 
 <script>
 (function () {
-    const debiteurSelect = document.getElementById('debiteur-select');
-    const nouveauDebiteur = document.getElementById('nouveau-debiteur');
-    debiteurSelect.addEventListener('change', () => {
-        nouveauDebiteur.hidden = debiteurSelect.value !== '__new__';
+    const structureSelect = document.getElementById('structure-select');
+    const nouveauStructure = document.getElementById('nouveau-structure');
+    structureSelect.addEventListener('change', () => {
+        nouveauStructure.hidden = structureSelect.value !== '__new__';
     });
 
     const lignes = document.getElementById('lignes');

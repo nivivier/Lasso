@@ -74,9 +74,7 @@ $termeSingulier = evenements_terme_spectacle(false);
         <label>Pays
             <select name="pays" onchange="this.form.submit()">
                 <option value="tous" <?= $pays === 'tous' ? 'selected' : '' ?>>Tous</option>
-                <?php foreach ($paysDisponibles as $p): ?>
-                    <option value="<?= e($p) ?>" <?= $pays === $p ? 'selected' : '' ?>><?= e($p) ?></option>
-                <?php endforeach; ?>
+                <?= pays_options_code($pays === 'tous' ? '' : $pays) ?>
             </select>
         </label>
         <label class="search-label">
@@ -161,9 +159,7 @@ $termeSingulier = evenements_terme_spectacle(false);
         <span class="bulk-field" data-for="pays" hidden>
             <select name="bulk_pays" class="inline-year-select">
                 <option value="">—</option>
-                <?php foreach ($paysDisponibles as $p): ?>
-                    <option value="<?= e($p) ?>"><?= e($p) ?></option>
-                <?php endforeach; ?>
+                <?= pays_options_code('') ?>
             </select>
         </span>
         <span class="bulk-field" data-for="suisa_applicable" hidden>
@@ -219,9 +215,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
             <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
             <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
-                <?php if ($ev['ville'] !== ''): ?><strong><?= e($ev['ville']) ?></strong><?php endif; ?>
-                <?php if ($drapeau !== ''): ?> <span class="tiny"><?= $drapeau ?></span><?php endif; ?>
-                <?php if ($ev['region'] !== ''): ?> <span class="tiny muted">(<?= e($ev['region']) ?>)</span><?php endif; ?>
+                <?= ville_region_html((string) $ev['ville'], $drapeau, (string) $ev['pays'], (string) $ev['region']) ?>
                 <?php if ($festivalSalle !== ''): ?> <span class="muted small"><?= e($festivalSalle) ?></span><?php endif; ?>
                 <?php if ($ev['ville'] === '' && $festivalSalle === ''): ?>—<?php endif; ?>
             </td>

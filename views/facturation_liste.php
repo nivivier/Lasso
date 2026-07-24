@@ -19,7 +19,7 @@
     </div>
     <div class="head-actions">
         <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
-        <a class="btn ghost btn-sm" href="?p=facturation_debiteurs"><?= icon('users') ?> <span class="lbl">Débiteurs</span></a>
+        <a class="btn ghost btn-sm" href="?p=structures"><?= icon('users') ?> <span class="lbl">Structures</span></a>
         <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
     </div>
 
@@ -50,7 +50,7 @@
 <div class="table-scroll">
 <table class="list list-wide">
     <thead><tr>
-        <th>Numéro</th><th>Débiteur</th><th>Émission</th><th>Échéance</th>
+        <th>Numéro</th><th>Structure</th><th>Émission</th><th>Échéance</th>
         <?php if ($avecEvenements): ?><th>Événement</th><?php endif; ?>
         <th class="num">Montant</th><th>Paiement</th>
     </tr></thead>
@@ -67,7 +67,7 @@
     <?php endif; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $f['id'] ?>">
             <td><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></td>
-            <td><strong><?= e($f['debiteur_nom']) ?></strong></td>
+            <td><strong><?= e($f['structure_nom']) ?></strong></td>
             <td class="muted small"><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
             <td class="muted small"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
             <?php if ($avecEvenements): ?>
