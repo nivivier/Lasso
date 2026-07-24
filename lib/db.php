@@ -326,6 +326,7 @@ function run_migrations(PDO $pdo): void
         47 => 'migration_47', // module booking : table mailing_ciblages (ciblages types réutilisables du mailing)
         48 => 'migration_48', // module booking : campagnes (historique) + modèles de message + campagne_id sur file/envois
         49 => 'migration_49', // module booking : régions (grandes régions) = taxonomie imbriquée sous les pays (pays_liste devient un arbre à 2 niveaux)
+        50 => 'migration_50', // module booking : lieux.actif (actif/inactif) + lieux.site_web
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1738,6 +1739,19 @@ function migration_49(PDO $pdo): void
             SELECT 1 FROM pays_liste x WHERE x.parent_id = p.id AND x.nom = r.gr
         )
     ");
+}
+
+// Migration 50 : module booking — un lieu peut être actif/inactif (comme les
+// structures) et porter un site web propre.
+function migration_50(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(lieux)')->fetchAll(), 'name');
+    if (!in_array('actif', $cols, true)) {
+        $pdo->exec("ALTER TABLE lieux ADD COLUMN actif INTEGER NOT NULL DEFAULT 1");
+    }
+    if (!in_array('site_web', $cols, true)) {
+        $pdo->exec("ALTER TABLE lieux ADD COLUMN site_web TEXT NOT NULL DEFAULT ''");
+    }
 }
 
 // Migration 44 : le champ « region » existant devient le « département / canton » ;

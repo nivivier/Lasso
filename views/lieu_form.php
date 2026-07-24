@@ -178,6 +178,11 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <label>Dernier concert ou diffusion <input name="dernier_concert_le" type="date" value="<?= $v('dernier_concert_le') ?>"></label>
     </div>
 
+    <div class="grid2">
+        <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
+        <label class="check"><input type="checkbox" name="actif" value="1" <?= (int) ($lieu['actif'] ?? 1) === 1 ? 'checked' : '' ?>> Lieu actif</label>
+    </div>
+
     <label>Notes (optionnel)
         <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
     </label>

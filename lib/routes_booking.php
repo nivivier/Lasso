@@ -540,7 +540,9 @@ function route_lieu(): void
             'jauge_min'  => ($_POST['jauge_min'] ?? '') !== '' ? (int) $_POST['jauge_min'] : null,
             'jauge_max'  => ($_POST['jauge_max'] ?? '') !== '' ? (int) $_POST['jauge_max'] : null,
             'dernier_concert_le' => trim($_POST['dernier_concert_le'] ?? ''),
+            'site_web'   => trim($_POST['site_web'] ?? ''),
             'notes'      => trim($_POST['notes'] ?? ''),
+            'actif'      => isset($_POST['actif']) ? 1 : 0,
         ];
         $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
         if ($err) {
@@ -555,12 +557,12 @@ function route_lieu(): void
                             mois_debut=:mois_debut, mois_fin=:mois_fin,
                             mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
                             jauge_min=:jauge_min, jauge_max=:jauge_max, dernier_concert_le=:dernier_concert_le,
-                            notes=:notes WHERE id=:id')->execute($champs);
+                            site_web=:site_web, actif=:actif, notes=:notes WHERE id=:id')->execute($champs);
         } else {
             db()->prepare('INSERT INTO lieux (type, nom, ville, region, grande_region, pays, mois_debut, mois_fin,
-                            mois_evenement_debut, mois_evenement_fin, jauge_min, jauge_max, dernier_concert_le, notes)
+                            mois_evenement_debut, mois_evenement_fin, jauge_min, jauge_max, dernier_concert_le, site_web, actif, notes)
                             VALUES (:type, :nom, :ville, :region, :grande_region, :pays, :mois_debut, :mois_fin,
-                            :mois_evenement_debut, :mois_evenement_fin, :jauge_min, :jauge_max, :dernier_concert_le, :notes)')->execute($champs);
+                            :mois_evenement_debut, :mois_evenement_fin, :jauge_min, :jauge_max, :dernier_concert_le, :site_web, :actif, :notes)')->execute($champs);
         }
         redirect('lieux');
     }

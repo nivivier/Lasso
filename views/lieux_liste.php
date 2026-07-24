@@ -136,9 +136,9 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
     </tr></thead>
     <tbody>
     <?php foreach ($lieux as $l): ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="?p=lieu&id=<?= (int) $l['id'] ?>">
+        <tr class="row-link <?= (int) ($l['actif'] ?? 1) ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=lieu&id=<?= (int) $l['id'] ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $l['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
-            <td><strong><?= e($l['nom']) ?></strong></td>
+            <td><strong><?= e($l['nom']) ?></strong><?php if (!(int) ($l['actif'] ?? 1)): ?> <span class="badge muted-badge">inactif</span><?php endif; ?></td>
             <td class="small">
                 <?php $orgs = $organisateurs[(int) $l['id']] ?? []; ?>
                 <?php if ($orgs): ?>
