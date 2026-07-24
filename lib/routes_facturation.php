@@ -673,12 +673,9 @@ function structure_donnees_crm(int $id): array
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
 
-    $stmtNotes = db()->prepare(
-        "SELECT n.*, u.prenom AS u_prenom, u.nom AS u_nom FROM structure_notes n
-         LEFT JOIN utilisateurs u ON u.id = n.utilisateur_id
-         WHERE n.structure_id = ? ORDER BY n.cree_le DESC, n.id DESC"
-    );
-    $stmtNotes->execute([$id]);
+    // Historique typé de la fiche (table historique, migr. 52) — remplace la
+    // lecture de structure_notes (editions, notes, mailings, derniers concerts).
+    $notesHistorique = historique_entite('structure', $id);
 
     $stmtTags = db()->prepare(
         'SELECT t.* FROM structure_tags t JOIN structure_tag_liens l ON l.tag_id = t.id
@@ -694,7 +691,7 @@ function structure_donnees_crm(int $id): array
 
     return [
         'contacts'  => $stmtContacts->fetchAll(),
-        'notes'     => $stmtNotes->fetchAll(),
+        'notes'     => $notesHistorique,
         'tags'      => $stmtTags->fetchAll(),
         'tagsDispo' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
         'lieuxLies' => $stmtLieuxLies->fetchAll(),
@@ -773,6 +770,15 @@ function route_structure(): void
                             adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, region=:region, grande_region=:grande_region, site_web=:site_web,
                             via=:via, notes=:notes
                             WHERE id=:id')->execute($champs);
+            // Historique : diff des champs modifiés (module booking).
+            if (module_actif('booking')) {
+                journaliser_diff('structure', $id, (array) $structure, $champs, [
+                    'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
+                    'adresse_rue' => 'Rue', 'adresse_npa' => 'NPA', 'adresse_localite' => 'Localité',
+                    'adresse_pays' => 'Pays', 'region' => 'Département / canton', 'grande_region' => 'Région',
+                    'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
+                ]);
+            }
         } else {
             // Création : active et non désinscrite par défaut.
             db()->prepare('INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
@@ -858,7 +864,7 @@ function route_structure_fusion(): void
     $in = implode(',', array_fill(0, count($ids), '?'));
     $stmt = db()->prepare(
         "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
-                (SELECT COUNT(*) FROM structure_notes WHERE structure_id = s.id) AS nb_notes,
+                (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,
                 (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures,
                 (SELECT COUNT(*) FROM structure_tag_liens WHERE structure_id = s.id) AS nb_tags,
                 (SELECT COUNT(*) FROM structure_lieux WHERE structure_id = s.id) AS nb_lieux
@@ -918,7 +924,7 @@ function route_structure_transformer(): void
     $in = implode(',', array_fill(0, count($ids), '?'));
     $stmt = db()->prepare(
         "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
-                (SELECT COUNT(*) FROM structure_notes WHERE structure_id = s.id) AS nb_notes,
+                (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,
                 (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures
          FROM structures s WHERE s.id IN ($in) ORDER BY s.nom"
     );

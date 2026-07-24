@@ -347,6 +347,7 @@ function run_migrations(PDO $pdo): void
         49 => 'migration_49', // module booking : régions (grandes régions) = taxonomie imbriquée sous les pays (pays_liste devient un arbre à 2 niveaux)
         50 => 'migration_50', // module booking : lieux.actif (actif/inactif) + lieux.site_web
         51 => 'migration_51', // module booking : evenements.lieu_id (lien vers un lieu de la base)
+        52 => 'migration_52', // module booking : table historique unifiée (structures + lieux), migration des structure_notes
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1781,6 +1782,40 @@ function migration_51(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
     if (!in_array('lieu_id', $cols, true)) {
         $pdo->exec('ALTER TABLE evenements ADD COLUMN lieu_id INTEGER REFERENCES lieux(id) ON DELETE SET NULL');
+    }
+}
+
+// Migration 52 : historique typé unifié des fiches (structures ET lieux). Chaque
+// entrée porte un type ('edition' = modif de champ avec diff, 'note' = note
+// manuelle, 'mailing' = contact/envoi, 'dernier_concert' = date de dernier
+// concert). Les structure_notes existantes y sont recopiées (est_contact=1 →
+// 'mailing', sinon 'note') ; la table structure_notes reste en place (legacy),
+// mais toutes les lectures/écritures passent désormais par historique.
+function migration_52(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS historique (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            entite_type    TEXT NOT NULL,
+            entite_id      INTEGER NOT NULL,
+            type           TEXT NOT NULL,
+            contenu        TEXT NOT NULL DEFAULT '',
+            utilisateur_id INTEGER REFERENCES utilisateurs(id) ON DELETE SET NULL,
+            cree_le        TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_historique_entite ON historique(entite_type, entite_id, cree_le)");
+    // Recopie unique des notes de structure existantes (idempotent : ne recopie
+    // pas si des entrées de structure existent déjà dans historique).
+    $deja = (int) $pdo->query("SELECT COUNT(*) FROM historique WHERE entite_type = 'structure'")->fetchColumn();
+    if ($deja === 0) {
+        $pdo->exec("
+            INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id, cree_le)
+            SELECT 'structure', structure_id,
+                   CASE WHEN est_contact = 1 THEN 'mailing' ELSE 'note' END,
+                   contenu, utilisateur_id, cree_le
+            FROM structure_notes
+        ");
     }
 }
 

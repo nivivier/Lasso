@@ -225,6 +225,12 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
     </section>
     <?php endif; ?>
+    <?php if ($historique): ?>
+    <section class="aside-block">
+        <h3 class="sub mt-0">Historique</h3>
+        <?php $histoEntrees = $historique; require __DIR__ . '/_historique.php'; ?>
+    </section>
+    <?php endif; ?>
     <?php if (!$structuresLiees): ?>
     <section class="aside-block">
         <div class="card-head-row">
@@ -283,7 +289,8 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
                     <div class="note-item">
                         <div class="muted small">
                             <?= e(date('d.m.Y', strtotime($n['cree_le']))) ?>
-                            <?php if ($n['est_contact']): ?><span class="badge">contact</span><?php endif; ?>
+                            <?php $hl = HISTORIQUE_TYPES[$n['type']] ?? null; ?>
+                            <?php if ($hl && $n['type'] !== 'note'): ?><span class="badge muted-badge"><?= e($hl[0]) ?></span><?php endif; ?>
                         </div>
                         <div class="small"><?= nl2br(e($n['contenu'])) ?></div>
                     </div>

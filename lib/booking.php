@@ -285,7 +285,7 @@ function structure_recalculer_dernier_contact(int $structureId): void
 {
     $stmt = db()->prepare(
         "SELECT MAX(d) FROM (
-            SELECT MAX(cree_le) AS d FROM structure_notes WHERE structure_id = ? AND est_contact = 1
+            SELECT MAX(cree_le) AS d FROM historique WHERE entite_type = 'structure' AND entite_id = ? AND type = 'mailing'
             UNION ALL
             SELECT MAX(envoye_le) AS d FROM mailing_envois WHERE structure_id = ? AND succes = 1
         )"
@@ -293,6 +293,67 @@ function structure_recalculer_dernier_contact(int $structureId): void
     $stmt->execute([$structureId, $structureId]);
     $date = (string) ($stmt->fetchColumn() ?: '');
     db()->prepare('UPDATE structures SET dernier_contact_le = ? WHERE id = ?')->execute([$date, $structureId]);
+}
+
+// --- Historique typé unifié (structures + lieux, table historique, migr. 52) --
+
+// Types d'entrées d'historique → libellé + icône Lucide (pour l'affichage).
+const HISTORIQUE_TYPES = [
+    'edition'         => ['Modification', 'pencil'],
+    'note'            => ['Note', 'message-square'],
+    'mailing'         => ['Contact / mailing', 'mail'],
+    'dernier_concert' => ['Dernier concert', 'music'],
+];
+
+// Ajoute une entrée d'historique pour une fiche ($entiteType : 'structure' |
+// 'lieu'). $creeLe permet de dater l'entrée (import) ; sinon = maintenant.
+function journaliser(string $entiteType, int $id, string $type, string $contenu = '', ?string $creeLe = null): void
+{
+    if ($id <= 0) {
+        return;
+    }
+    $u = current_user();
+    if ($creeLe !== null && $creeLe !== '') {
+        db()->prepare('INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id, cree_le) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$entiteType, $id, $type, $contenu, $u ? (int) $u['id'] : null, $creeLe]);
+    } else {
+        db()->prepare('INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$entiteType, $id, $type, $contenu, $u ? (int) $u['id'] : null]);
+    }
+}
+
+// Journalise une entrée « edition » avec le diff des champs modifiés
+// ($champs : [colonne => libellé]). Ne fait rien si aucun champ n'a changé.
+// Les valeurs vides sont affichées « (vide) ».
+function journaliser_diff(string $entiteType, int $id, array $avant, array $apres, array $champs): void
+{
+    $lignes = [];
+    foreach ($champs as $col => $label) {
+        $a = trim((string) ($avant[$col] ?? ''));
+        $b = trim((string) ($apres[$col] ?? ''));
+        if ($a !== $b) {
+            $lignes[] = $label . ' : ' . ($a !== '' ? $a : '(vide)') . ' → ' . ($b !== '' ? $b : '(vide)');
+        }
+    }
+    if ($lignes) {
+        journaliser($entiteType, $id, 'edition', implode("\n", $lignes));
+    }
+}
+
+// Historique d'une fiche, plus récent d'abord, avec l'auteur.
+function historique_entite(string $entiteType, int $id): array
+{
+    if ($id <= 0) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        "SELECT h.*, u.prenom AS u_prenom, u.nom AS u_nom
+         FROM historique h LEFT JOIN utilisateurs u ON u.id = h.utilisateur_id
+         WHERE h.entite_type = ? AND h.entite_id = ?
+         ORDER BY h.cree_le DESC, h.id DESC"
+    );
+    $stmt->execute([$entiteType, $id]);
+    return $stmt->fetchAll();
 }
 
 // Fusionne $autres dans $idGarde : le profil (nom, adresse, catégorie…) de
@@ -316,10 +377,14 @@ function structures_fusionner(int $idGarde, array $autres): void
     // moitié reprises et des structures fusionnées non supprimées, sans retour
     // arrière possible.
     db()->beginTransaction();
-    foreach (['structure_contacts', 'structure_notes', 'mailing_envois', 'mailing_file_attente', 'factures'] as $table) {
+    foreach (['structure_contacts', 'mailing_envois', 'mailing_file_attente', 'factures'] as $table) {
         db()->prepare("UPDATE $table SET structure_id = ? WHERE structure_id IN ($in)")
             ->execute(array_merge([$idGarde], $autres));
     }
+    // Historique unifié (schéma entite_type/entite_id, migr. 52) — reprend les
+    // entrées des structures fusionnées vers celle conservée.
+    db()->prepare("UPDATE historique SET entite_id = ? WHERE entite_type = 'structure' AND entite_id IN ($in)")
+        ->execute(array_merge([$idGarde], $autres));
 
     $stmtTags = db()->prepare("SELECT DISTINCT tag_id FROM structure_tag_liens WHERE structure_id IN ($in)");
     $stmtTags->execute($autres);
@@ -1440,8 +1505,7 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
 
     $dateContact = structure_date_csv_vers_iso($d['dernier_contact']);
     if ($dateContact !== null) {
-        db()->prepare('INSERT INTO structure_notes (structure_id, contenu, est_contact, cree_le) VALUES (?, ?, 1, ?)')
-            ->execute([$structureId, 'Import CSV — dernier contact connu.', $dateContact]);
+        journaliser('structure', $structureId, 'mailing', 'Import CSV — dernier contact connu.', $dateContact);
     }
     structure_recalculer_dernier_contact($structureId);
     return $structureId;
@@ -1508,8 +1572,7 @@ function structure_import_rattacher_lieu_membre(int $orgId, array $d, string $no
     }
     $dateContact = structure_date_csv_vers_iso($d['dernier_contact']);
     if ($dateContact !== null) {
-        db()->prepare('INSERT INTO structure_notes (structure_id, contenu, est_contact, cree_le) VALUES (?, ?, 1, ?)')
-            ->execute([$orgId, 'Import CSV — dernier contact connu (' . $nomLieu . ').', $dateContact]);
+        journaliser('structure', $orgId, 'mailing', 'Import CSV — dernier contact connu (' . $nomLieu . ').', $dateContact);
     }
 }
 

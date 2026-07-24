@@ -1291,3 +1291,13 @@ abbr {
 .cr-detail td > .muted.small { padding: 8px 0; }
 
 
+
+/* Historique typé des fiches (structures/lieux) — voir views/_historique.php */
+.hist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.hist-item { display: flex; gap: 8px; align-items: flex-start; }
+.hist-item .hist-ico { flex: 0 0 auto; margin-top: 1px; color: var(--muted); display: inline-flex; }
+.hist-item .hist-ico svg { width: 15px; height: 15px; }
+.hist-item.hist-edition .hist-ico { color: var(--evidence, #6b7280); }
+.hist-item.hist-mailing .hist-ico { color: #2b8a5b; }
+.hist-item.hist-note .hist-ico { color: #6b7280; }
+.hist-item.hist-dernier_concert .hist-ico { color: #9b5bb0; }

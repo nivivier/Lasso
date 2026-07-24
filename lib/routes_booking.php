@@ -74,9 +74,7 @@ function route_structure_note_ajouter(): void
     $contenu = trim($_POST['contenu'] ?? '');
     $estContact = isset($_POST['est_contact']) ? 1 : 0;
     if ($contenu !== '') {
-        $u = current_user();
-        db()->prepare('INSERT INTO structure_notes (structure_id, contenu, est_contact, utilisateur_id) VALUES (?, ?, ?, ?)')
-            ->execute([$structureId, $contenu, $estContact, $u ? (int) $u['id'] : null]);
+        journaliser('structure', $structureId, $estContact ? 'mailing' : 'note', $contenu);
         if ($estContact) {
             structure_recalculer_dernier_contact($structureId);
         }
@@ -489,9 +487,9 @@ function lieu_structures_liees(int $lieuId): array
         $contacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
         $contacts->execute([$sid]);
         $notes = db()->prepare(
-            "SELECT n.*, u.prenom AS u_prenom, u.nom AS u_nom FROM structure_notes n
-             LEFT JOIN utilisateurs u ON u.id = n.utilisateur_id
-             WHERE n.structure_id = ? ORDER BY n.cree_le DESC, n.id DESC LIMIT 8"
+            "SELECT h.*, u.prenom AS u_prenom, u.nom AS u_nom FROM historique h
+             LEFT JOIN utilisateurs u ON u.id = h.utilisateur_id
+             WHERE h.entite_type = 'structure' AND h.entite_id = ? ORDER BY h.cree_le DESC, h.id DESC LIMIT 8"
         );
         $notes->execute([$sid]);
         $autresLieux = db()->prepare(
@@ -543,7 +541,6 @@ function route_lieu(): void
             'dernier_concert_le' => trim($_POST['dernier_concert_le'] ?? ''),
             'site_web'   => trim($_POST['site_web'] ?? ''),
             'notes'      => trim($_POST['notes'] ?? ''),
-            'actif'      => isset($_POST['actif']) ? 1 : 0,
         ];
         $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
         if ($err) {
@@ -554,16 +551,33 @@ function route_lieu(): void
         }
         if ($id) {
             $champs['id'] = $id;
+            // actif n'est PAS touché ici : il est géré à part par le bloc « Statut »
+            // de la sidebar (route_lieu_statut), sinon chaque enregistrement de la
+            // fiche le réinitialiserait.
             db()->prepare('UPDATE lieux SET type=:type, nom=:nom, ville=:ville, region=:region, grande_region=:grande_region, pays=:pays,
                             mois_debut=:mois_debut, mois_fin=:mois_fin,
                             mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
                             jauge_min=:jauge_min, jauge_max=:jauge_max, dernier_concert_le=:dernier_concert_le,
-                            site_web=:site_web, actif=:actif, notes=:notes WHERE id=:id')->execute($champs);
+                            site_web=:site_web, notes=:notes WHERE id=:id')->execute($champs);
+            // Historique (module booking) : diff des champs + « dernier concert »
+            // à part si sa date a changé pour une valeur non vide.
+            if (module_actif('booking')) {
+                journaliser_diff('lieu', $id, (array) $lieu, $champs, [
+                    'nom' => 'Nom', 'type' => 'Type', 'ville' => 'Ville',
+                    'region' => 'Département / canton', 'grande_region' => 'Région', 'pays' => 'Pays',
+                    'jauge_min' => 'Jauge min', 'jauge_max' => 'Jauge max',
+                    'site_web' => 'Site web', 'notes' => 'Notes',
+                ]);
+                $ancienDC = trim((string) ($lieu['dernier_concert_le'] ?? ''));
+                if ($champs['dernier_concert_le'] !== '' && $champs['dernier_concert_le'] !== $ancienDC) {
+                    journaliser('lieu', $id, 'dernier_concert', 'Dernier concert / diffusion : ' . $champs['dernier_concert_le']);
+                }
+            }
         } else {
             db()->prepare('INSERT INTO lieux (type, nom, ville, region, grande_region, pays, mois_debut, mois_fin,
-                            mois_evenement_debut, mois_evenement_fin, jauge_min, jauge_max, dernier_concert_le, site_web, actif, notes)
+                            mois_evenement_debut, mois_evenement_fin, jauge_min, jauge_max, dernier_concert_le, site_web, notes)
                             VALUES (:type, :nom, :ville, :region, :grande_region, :pays, :mois_debut, :mois_fin,
-                            :mois_evenement_debut, :mois_evenement_fin, :jauge_min, :jauge_max, :dernier_concert_le, :site_web, :actif, :notes)')->execute($champs);
+                            :mois_evenement_debut, :mois_evenement_fin, :jauge_min, :jauge_max, :dernier_concert_le, :site_web, :notes)')->execute($champs);
         }
         redirect('lieux');
     }
@@ -571,6 +585,7 @@ function route_lieu(): void
         'lieu' => $lieu,
         'err' => null,
         'evenementsLies' => $id ? lieu_evenements($id) : [],
+        'historique' => $id ? historique_entite('lieu', $id) : [],
         'structuresLiees' => $id ? lieu_structures_liees($id) : [],
         // La liste des structures (potentiellement des milliers) n'est plus
         // injectée dans la page : le sélecteur d'organisateur la charge à la

@@ -136,18 +136,9 @@ $sid = (int) ($structure['id'] ?? 0);
             <button type="submit" class="btn ghost btn-sm"><?= icon('message-square') ?> Ajouter</button>
         </div>
     </form>
-    <div class="notes-flux mt-16">
-        <?php foreach ($notes as $n): ?>
-            <div class="note-item">
-                <div class="muted small">
-                    <?= e(date('d.m.Y H:i', strtotime($n['cree_le']))) ?>
-                    <?php if ($n['u_prenom'] || $n['u_nom']): ?> — <?= e(trim($n['u_prenom'] . ' ' . $n['u_nom'])) ?><?php endif; ?>
-                    <?php if ($n['est_contact']): ?><span class="badge">contact</span><?php endif; ?>
-                </div>
-                <div><?= nl2br(e($n['contenu'])) ?></div>
-            </div>
-        <?php endforeach; ?>
-        <?php if (!$notes): ?><p class="muted small">Aucune note pour l'instant.</p><?php endif; ?>
+    <div class="mt-16">
+        <?php $histoEntrees = $notes; require __DIR__ . '/_historique.php'; ?>
+        <?php if (!$notes): ?><p class="muted small">Aucune entrée pour l'instant.</p><?php endif; ?>
     </div>
 </div>
 
