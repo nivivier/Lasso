@@ -501,6 +501,7 @@ const STRUCTURE_IMPORT_CHAMPS = [
     'organisateur'     => 'Organisateur (asso mère — regroupe ses salles/festivals)',
     'categorie'        => 'Catégorie (organisateur/média/autres/entourage)',
     'sous_categorie'   => 'Sous-catégorie (ex. Journaliste, Salle de concert…)',
+    'type_lieu'        => 'Type de lieu (salle, festival, salle de location…)',
     'adresse_rue'      => 'Adresse (rue)',
     'adresse_npa'      => 'NPA',
     'adresse_localite' => 'Localité',
@@ -972,14 +973,20 @@ function structures_analyser_import(array $lignes, array $mapping): array
         if ($donnees['nom'] === '') {
             continue; // ligne sans nom : ignorée silencieusement (pas assez d'information)
         }
-        // Type de lieu (salle de concert, festival, saison culturelle…) : détecté
-        // sur les valeurs BRUTES de catégorie / sous-catégorie AVANT normalisation.
-        // C'est une taxonomie propre au lieu (lieu_categories) : la valeur part sur
-        // le lieu (lieux.type) et n'encombre plus la structure. La sous-catégorie
-        // qui n'était qu'un type de lieu est donc vidée côté structure.
+        // Type de lieu (salle de concert, festival, saison culturelle…). Priorité
+        // à la colonne dédiée « type_lieu » si elle est mappée (normalisée sur la
+        // taxonomie lieu_categories, valeur libre conservée sinon) ; à défaut,
+        // détecté sur les valeurs BRUTES de catégorie / sous-catégorie AVANT
+        // normalisation. La valeur part sur le lieu (lieux.type) et n'encombre pas
+        // la structure ; la sous-catégorie qui n'était qu'un type de lieu est vidée.
+        $typeMappeRaw = trim((string) ($donnees['type_lieu'] ?? ''));
         $typeSous = $normLieuCat($donnees['sous_categorie']);
         $typeCat  = $normLieuCat($donnees['categorie']);
-        $donnees['type_lieu'] = $typeSous !== '' ? $typeSous : $typeCat;
+        if ($typeMappeRaw !== '') {
+            $donnees['type_lieu'] = lieu_categorie_normaliser($typeMappeRaw) ?? $typeMappeRaw;
+        } else {
+            $donnees['type_lieu'] = $typeSous !== '' ? $typeSous : $typeCat;
+        }
         if ($typeSous !== '') {
             $donnees['sous_categorie'] = '';
         }
@@ -1327,11 +1334,13 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         structure_attacher_tag($structureId, $nomTag);
     }
 
-    // Catégorie marquée « organisateur » (Paramètres → Catégories) : la ligne
-    // décrit une salle ou un festival — création/liaison automatique d'un lieu
-    // du même nom, avec la même adresse et la jauge éventuellement mappée
-    // (SPEC_BOOKING.md §9).
-    if ($autoLieu && structure_categorie_est_organisateur($d['categorie'])) {
+    // Création/liaison automatique d'un lieu du même nom (même adresse, jauge
+    // éventuelle) dans deux cas :
+    //   • catégorie marquée « organisateur » (Paramètres → Catégories : la ligne
+    //     décrit une salle/un festival — SPEC_BOOKING.md §9) ;
+    //   • une colonne « type de lieu » est renseignée (ex. « Salle de
+    //     location ») — la ligne EST un lieu, quelle que soit sa catégorie.
+    if ($autoLieu && (structure_categorie_est_organisateur($d['categorie']) || trim((string) ($d['type_lieu'] ?? '')) !== '')) {
         structure_lier_lieu_importe($structureId, $d);
     }
 
