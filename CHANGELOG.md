@@ -7,6 +7,39 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.4.0] — 2026-07-24
+
+### Ajouté
+- Module **Booking** (CRM des contacts de tournée) : gestion des structures
+  (salles, festivals, médias, associations…), contacts, notes, étiquettes et
+  salles/festivals liés — réutilise les structures de la Facturation sans en
+  dépendre.
+- **Salles & festivals** : type de lieu configurable (taxonomie propre),
+  région / grande région / département-canton, périodes d'événement et de
+  programmation, jauge, date de dernier concert, changement d'organisateur.
+- **Catégories & sous-catégories** de structures imbriquées et configurables,
+  avec réaffectation des entrées lors de la suppression d'une catégorie ;
+  synchronisation de la taxonomie depuis les structures existantes.
+- **Import CSV** d'un carnet d'adresses : correspondance des colonnes
+  mémorisée d'un import à l'autre, détection d'organisateur, regroupements,
+  résolution des conflits, périodes saisies en mois (numéros ou noms FR/EN).
+- Page **Importer** unifiée : un seul formulaire « type de données → fichier →
+  Simuler / Importer », au lieu d'une section par type.
+
+### Modifié
+- Les « Débiteurs » deviennent des **Structures**, partagées entre la
+  Facturation et le Booking.
+- **Paramètres** réorganisés en navigation à deux niveaux, avec un onglet
+  **Application** (Mises à jour, Apparence, Modules, Utilisateurs, Diagnostic)
+  et des catégories regroupées (Pays, Structures, Lieux).
+
+### Corrigé
+- Import : une catégorie contenant en fait une sous-catégorie (ou un accent)
+  était versée à tort dans « Organisateur ».
+- Import : la mise à jour de masse était ignorée au-delà de ~1000 lignes
+  (limite PHP `max_input_vars`) — les décisions suivent désormais un défaut
+  global, seules les exceptions sont transmises.
+
 ## [1.3.1] — 2026-07-14
 
 ### Ajouté

@@ -100,9 +100,14 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=lieux" class="<?= in_array($cur, ['lieux', 'lieu'], true) ? 'on' : '' ?>">
             <?= icon('map-pin') ?> Salles &amp; festivals
         </a>
+        <?php /* Mailing masqué temporairement du menu (fonctionnalité en cours de
+                 test) — la page reste accessible via ?p=mailing. Retirer le
+                 « && false » ci-dessous pour la réafficher. */ ?>
+        <?php if (peut_lire('booking') && false): ?>
         <a href="?p=mailing" class="<?= $cur === 'mailing' ? 'on' : '' ?>">
             <?= icon('mail') ?> Mailing
         </a>
+        <?php endif; ?>
         <?php endif; ?>
         <?php if (peut_lire('coeur')): ?>
         <span class="side-nav-sep"></span>
