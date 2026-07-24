@@ -7,6 +7,38 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.0] — 2026-07-24
+
+### Ajouté
+- **Régions** : les grandes régions (Normandie, Romandie, Acadie…) deviennent
+  une taxonomie imbriquée sous les pays (Paramètres → Pays), au lieu d'un champ
+  texte libre. Listes déroulantes dépendantes du pays dans les fiches, filtres
+  groupés par pays, réaffectation à la suppression.
+- **Lien Événement ↔ Lieu** : un événement peut être rattaché à un lieu de la
+  base ; les fiches Lieu et Structure listent leurs événements (« Historique »),
+  et les listes ?p=lieux / ?p=structures affichent une colonne « Événements ».
+- **Historique typé des fiches** : chaque structure et chaque lieu tient un
+  journal (table `historique`) distinguant modifications (avec le diff des
+  champs), notes, contacts/mailings et derniers concerts.
+- **Lieux** : actif/inactif (bloc « Statut » de la sidebar) et site web.
+- **Import** : colonne « Type de lieu » mappable — une venue (ex. salle de
+  location) dans une catégorie non-organisateur crée désormais un lieu du bon
+  type ; recherche des lieux par type ; sauvegarde automatique de la base avant
+  chaque import.
+
+### Modifié
+- **Import — fusion champ par champ** : une structure déjà présente n'est plus
+  écrasée en bloc. Les champs vides sont complétés, et seuls les champs remplis
+  des deux côtés avec des valeurs différentes demandent un choix (valeur
+  actuelle vs importée), champ par champ.
+
+### Corrigé
+- **Import — correspondance par la ville** : deux structures homonymes de villes
+  différentes ne sont plus fusionnées à tort (l'e-mail reste prioritaire).
+- **Import** : les médias et l'entourage ne créent plus de lieu.
+- **Paramètres** : collision de variable `$groupes` entre l'écran d'import et la
+  barre d'onglets, qui plantait la revue des regroupements.
+
 ## [1.4.0] — 2026-07-24
 
 ### Ajouté
