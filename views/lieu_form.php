@@ -100,13 +100,13 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
             <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
                 <select name="grande_region" class="region-select">
                     <option value="">— Région —</option>
-                    <?= region_options_nom((string) ($lieu['pays'] ?? ''), (string) ($lieu['grande_region'] ?? '')) ?>
+                    <?= region_options_nom((string) ($lieu['pays'] ?? 'Suisse'), (string) ($lieu['grande_region'] ?? '')) ?>
                 </select>
             </label>
             <label>Pays
                 <select name="pays" class="pays-select">
                     <option value="">—</option>
-                    <?= pays_options_nom((string) ($lieu['pays'] ?? '')) ?>
+                    <?= pays_options_nom((string) ($lieu['pays'] ?? 'Suisse')) ?>
                 </select>
             </label>
             </div>
@@ -124,13 +124,13 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
             <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
                 <select name="grande_region" class="region-select">
                     <option value="">— Région —</option>
-                    <?= region_options_nom((string) ($lieu['pays'] ?? ''), (string) ($lieu['grande_region'] ?? '')) ?>
+                    <?= region_options_nom((string) ($lieu['pays'] ?? 'Suisse'), (string) ($lieu['grande_region'] ?? '')) ?>
                 </select>
             </label>
             <label>Pays
                 <select name="pays" class="pays-select">
                     <option value="">—</option>
-                    <?= pays_options_nom((string) ($lieu['pays'] ?? '')) ?>
+                    <?= pays_options_nom((string) ($lieu['pays'] ?? 'Suisse')) ?>
                 </select>
             </label>
         </div>
