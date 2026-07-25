@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.10] — 2026-07-25
+
+### Corrigé
+- **Sous-catégories homonymes** : un même nom de sous-catégorie peut exister
+  sous plusieurs catégories (« Lieu de création » sous Organisateur et sous
+  Autres). Le décompte affiché dans les paramètres cumulait les deux (7 au lieu
+  de 1), et surtout le renommage comme la réaffectation à la suppression
+  touchaient les fiches de l'autre catégorie. Ces trois opérations sont
+  désormais limitées à la catégorie parente concernée.
+
 ## [1.5.9] — 2026-07-25
 
 ### Ajouté

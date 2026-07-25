@@ -915,7 +915,14 @@ function route_parametres_structures(): void
                     if ($estRacine) {
                         db()->prepare('UPDATE structures SET categorie=? WHERE categorie=?')->execute([$nom, $ancien]);
                     } else {
-                        db()->prepare('UPDATE structures SET sous_categorie=? WHERE sous_categorie=?')->execute([$nom, $ancien]);
+                        // Les noms de sous-catégorie ne sont uniques QUE dans leur
+                        // catégorie parente (UNIQUE(parent_id, nom)) : deux parents
+                        // peuvent avoir une « Lieu de création ». Le renommage doit
+                        // donc être limité aux structures de la catégorie parente,
+                        // sinon il renommerait aussi l'homonyme d'une autre catégorie.
+                        $parentNom = (string) ($map[plan_pid($map[$id]['parent_id'] ?? null)]['nom'] ?? '');
+                        db()->prepare('UPDATE structures SET sous_categorie=? WHERE sous_categorie=? AND categorie=?')
+                            ->execute([$nom, $ancien, $parentNom]);
                     }
                 }
                 db()->commit();
@@ -1007,22 +1014,28 @@ function route_parametres_structures(): void
                         }
                     }
                 } else {
-                    $stmtRef = db()->prepare('SELECT COUNT(*) FROM structures WHERE sous_categorie = ?');
-                    $stmtRef->execute([$nom]);
+                    // Sous-catégorie : les noms ne sont uniques que dans leur
+                    // catégorie parente — comptage et réaffectation sont donc
+                    // limités aux structures de CETTE catégorie, sinon on
+                    // toucherait les fiches d'une sous-catégorie homonyme.
+                    $parentNom = (string) ($map[plan_pid($map[$id]['parent_id'] ?? null)]['nom'] ?? '');
+                    $stmtRef = db()->prepare('SELECT COUNT(*) FROM structures WHERE sous_categorie = ? AND categorie = ?');
+                    $stmtRef->execute([$nom, $parentNom]);
                     if ((int) $stmtRef->fetchColumn() === 0) {
                         db()->prepare('DELETE FROM structure_categories WHERE id = ?')->execute([$id]);
                     } else {
                         // Réaffecter la sous-catégorie : '' = aucune, sinon une autre
-                        // sous-catégorie existante.
+                        // sous-catégorie de la MÊME catégorie parente.
                         $cibleValide = $cible === '';
                         if (!$cibleValide) {
-                            $ok = db()->prepare('SELECT 1 FROM structure_categories WHERE nom = ? AND parent_id IS NOT NULL');
-                            $ok->execute([$cible]);
+                            $ok = db()->prepare('SELECT 1 FROM structure_categories WHERE nom = ? AND parent_id = ?');
+                            $ok->execute([$cible, plan_pid($map[$id]['parent_id'] ?? null)]);
                             $cibleValide = (bool) $ok->fetchColumn();
                         }
                         if ($cibleValide && strcasecmp($cible, $nom) !== 0) {
                             db()->beginTransaction();
-                            db()->prepare('UPDATE structures SET sous_categorie = ? WHERE sous_categorie = ?')->execute([$cible, $nom]);
+                            db()->prepare('UPDATE structures SET sous_categorie = ? WHERE sous_categorie = ? AND categorie = ?')
+                                ->execute([$cible, $nom, $parentNom]);
                             db()->prepare('DELETE FROM structure_categories WHERE id = ?')->execute([$id]);
                             db()->commit();
                         } else {
@@ -1049,14 +1062,22 @@ function route_parametres_structures(): void
     foreach (db()->query("SELECT categorie AS nom, COUNT(*) n FROM structures GROUP BY categorie") as $r) {
         $usageCat[(string) $r['nom']] = (int) $r['n'];
     }
+    // Sous-catégories : indexées par « catégorie parente \0 nom », car un même
+    // nom peut exister sous plusieurs catégories (UNIQUE(parent_id, nom)) —
+    // compter par nom seul cumulerait les homonymes de catégories différentes.
     $usageSous = [];
-    foreach (db()->query("SELECT sous_categorie AS nom, COUNT(*) n FROM structures WHERE sous_categorie <> '' GROUP BY sous_categorie") as $r) {
-        $usageSous[(string) $r['nom']] = (int) $r['n'];
+    foreach (db()->query("SELECT categorie, sous_categorie AS nom, COUNT(*) n FROM structures WHERE sous_categorie <> '' GROUP BY categorie, sous_categorie") as $r) {
+        $usageSous[(string) $r['categorie'] . "\0" . (string) $r['nom']] = (int) $r['n'];
     }
     $usage = [];
     foreach ($map as $cid => $r) {
         $estRacine = plan_pid($r['parent_id'] ?? null) === 0;
-        $usage[(int) $cid] = $estRacine ? ($usageCat[(string) $r['nom']] ?? 0) : ($usageSous[(string) $r['nom']] ?? 0);
+        if ($estRacine) {
+            $usage[(int) $cid] = $usageCat[(string) $r['nom']] ?? 0;
+        } else {
+            $parentNom = (string) ($map[plan_pid($r['parent_id'] ?? null)]['nom'] ?? '');
+            $usage[(int) $cid] = $usageSous[$parentNom . "\0" . (string) $r['nom']] ?? 0;
+        }
     }
     render('parametres_structures', [
         'saved' => isset($_GET['ok']),
