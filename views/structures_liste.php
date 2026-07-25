@@ -130,7 +130,7 @@
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>E-mail</th><th>Dernier contact</th><th>Lieux</th><th>Factures</th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
+        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>Lieux</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
@@ -146,9 +146,14 @@
                 <?= $villeHtml !== '' ? $villeHtml : '—' ?>
             </td>
             <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
-            <td class="muted small col-petit"><?= $d['email_affiche'] ? e($d['email_affiche']) : '—' ?></td>
-            <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td class="muted small"><?= $d['lieux_noms'] ? e($d['lieux_noms']) : '—' ?></td>
+            <td class="small">
+                <?php $tagsNoms = array_filter(array_map('trim', explode(',', (string) ($d['tags_noms'] ?? '')))); ?>
+                <?php if ($tagsNoms): ?>
+                    <?php foreach ($tagsNoms as $tn): ?><span class="badge"><?= e($tn) ?></span> <?php endforeach; ?>
+                <?php else: ?><span class="muted">—</span><?php endif; ?>
+            </td>
+            <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td>
                 <?php if ((int) $d['nb_factures'] > 0): ?>
                     <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>" onclick="event.stopPropagation()"><?= (int) $d['nb_factures'] ?></a>

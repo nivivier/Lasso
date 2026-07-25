@@ -53,10 +53,16 @@ check(
     mailing_personnaliser('Bonjour {{prenom}}, ici {{nom_structure}}.', ['nom' => 'La Tannerie'], null)
 );
 
-echo "4) structure_date_csv_vers_iso() — JJ/MM/AAAA → AAAA-MM-JJ\n";
-check('date valide', '2019-06-07', structure_date_csv_vers_iso('07/06/2019'));
+echo "4) structure_date_csv_vers_iso() — JJ/MM/AAAA, JJ.MM.AA, ISO → AAAA-MM-JJ\n";
+check('JJ/MM/AAAA', '2019-06-07', structure_date_csv_vers_iso('07/06/2019'));
+check('JJ.MM.AA (points, année 2 chiffres)', '2022-11-21', structure_date_csv_vers_iso('21.11.22'));
+check('JJ-MM-AAAA (tirets)', '2024-03-05', structure_date_csv_vers_iso('5-3-2024'));
+check('ISO AAAA-MM-JJ accepté tel quel', '2019-06-07', structure_date_csv_vers_iso('2019-06-07'));
+check('numéro de série Excel', '2022-11-21', structure_date_csv_vers_iso('44886'));
+check('numéro de série Excel avec fraction horaire', '2022-11-21', structure_date_csv_vers_iso('44886.5'));
+check('nombre hors plage de dates (ex. jauge)', null, structure_date_csv_vers_iso('12345'));
 check('date invalide (jour hors calendrier)', null, structure_date_csv_vers_iso('31/02/2019'));
-check('format non reconnu (AAAA-MM-JJ)', null, structure_date_csv_vers_iso('2019-06-07'));
+check('format non reconnu (texte)', null, structure_date_csv_vers_iso('hier'));
 check('vide', null, structure_date_csv_vers_iso(''));
 
 echo "5) structures_detecter_delimiteur() / structures_lire_csv()\n";

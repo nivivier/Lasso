@@ -606,6 +606,7 @@ function route_structures(): void
 
     $selectCols = "s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures,
         (SELECT GROUP_CONCAT(l.nom, ', ') FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id WHERE sl.structure_id = s.id) AS lieux_noms,
+        (SELECT GROUP_CONCAT(t.nom, ', ') FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
         COALESCE(
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1),

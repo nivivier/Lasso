@@ -116,7 +116,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             <label>Salle <input name="salle" value="<?= $v('salle') ?>"></label>
             <label>Festival <input name="festival" value="<?= $v('festival') ?>"></label>
             <?php if ($peutLierLieu): ?>
-            <label>Lieu (base) <?= info_tip("Rattacher l'événement à un lieu de la base (booking) : il apparaîtra dans l'historique du lieu et de sa structure. Laisser vide pour ne pas lier.") ?>
+            <label><span>Lieu (base) <?= info_tip("Rattacher l'événement à un lieu de la base (booking) : il apparaîtra dans l'historique du lieu et de sa structure. Laisser vide pour ne pas lier.") ?></span>
                 <div class="cat-search" id="evt-lieu-search">
                     <input type="text" class="cat-search-input" placeholder="Rechercher un lieu…" autocomplete="off" value="<?= $lieuActuel ? e((string) $lieuActuel['nom'] . ((string) $lieuActuel['ville'] !== '' ? ' — ' . (string) $lieuActuel['ville'] : '')) : '' ?>">
                     <input type="hidden" name="lieu_id" class="cat-search-val" value="<?= $lieuActuel ? (int) $lieuActuel['id'] : '' ?>">

@@ -72,7 +72,7 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
                 <?php endforeach; ?>
             </select>
         </label>
-        <label>Type de lieu <?= info_tip("Structures ayant au moins un lieu lié de ce type (Festival, Salle de concert, Saison culturelle…).") ?>
+        <label><span>Type de lieu <?= info_tip("Structures ayant au moins un lieu lié de ce type (Festival, Salle de concert, Saison culturelle…).") ?></span>
             <select name="type_lieu">
                 <option value="">Tous</option>
                 <?php foreach ($typesLieu as $tl): ?>
@@ -86,7 +86,7 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
                 <?= pays_options_nom($criteres['pays']) ?>
             </select>
         </label>
-        <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
+        <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
             <select name="grande_region">
                 <option value="">Toutes</option>
                 <?php foreach ($grandesRegions as $paysNom => $regions): ?>
@@ -134,7 +134,7 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
         <label>… à
             <?php $moisSelect('mois_fin', $criteres['mois_fin']); ?>
         </label>
-        <label>Pas contactées depuis le <?= info_tip("Structures jamais contactées ou dont le dernier contact est antérieur à cette date. Ignoré si « Jamais contactées » est coché.") ?>
+        <label><span>Pas contactées depuis le <?= info_tip("Structures jamais contactées ou dont le dernier contact est antérieur à cette date. Ignoré si « Jamais contactées » est coché.") ?></span>
             <input type="date" name="contact_avant" value="<?= e($criteres['contact_avant']) ?>">
         </label>
         <label class="check"><input type="checkbox" name="contact_jamais" value="1" <?= $criteres['contact_jamais'] ? 'checked' : '' ?>> Jamais contactées</label>

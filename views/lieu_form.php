@@ -88,14 +88,16 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
 
     <?php if ($isEdit): ?>
         <input type="hidden" name="nom" value="<?= $v('nom') ?>">
-        <div class="grid4">
+
             <label>Type
                 <select name="type"><?= $typeOptions() ?></select>
             </label>
-            <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
-           <div class="grid3">
-            <label>Département / canton <input name="region" value="<?= $v('region') ?>"></label>
-            <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
+            
+        <div class="grid4">
+
+            <label>Ville <input name="ville" class="input-titre" value="<?= $v('ville') ?>"></label>
+            <label>Dép. / canton <input name="region" value="<?= $v('region') ?>"></label>
+            <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
                 <select name="grande_region" class="region-select">
                     <option value="">— Région —</option>
                     <?= region_options_nom((string) ($lieu['pays'] ?? 'Suisse'), (string) ($lieu['grande_region'] ?? '')) ?>
@@ -107,7 +109,6 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
                     <?= pays_options_nom((string) ($lieu['pays'] ?? 'Suisse')) ?>
                 </select>
             </label>
-            </div>
         </div>
     <?php else: ?>
         <div class="grid2">
@@ -119,7 +120,7 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <div class="grid4">
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
             <label>Département / canton <input name="region" value="<?= $v('region') ?>"></label>
-            <label>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?>
+            <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
                 <select name="grande_region" class="region-select">
                     <option value="">— Région —</option>
                     <?= region_options_nom((string) ($lieu['pays'] ?? 'Suisse'), (string) ($lieu['grande_region'] ?? '')) ?>

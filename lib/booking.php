@@ -322,6 +322,21 @@ function journaliser(string $entiteType, int $id, string $type, string $contenu 
     }
 }
 
+// Journalise un « dernier contact » importé (entrée mailing datée du jour du
+// contact), sans doublon : au ré-import, on ne réempile pas une entrée d'import
+// de même date pour la même structure.
+function journaliser_contact_import(int $structureId, string $dateIso, string $contenu): void
+{
+    if ($structureId <= 0 || $dateIso === '') {
+        return;
+    }
+    $s = db()->prepare("SELECT 1 FROM historique WHERE entite_type = 'structure' AND entite_id = ? AND type = 'mailing' AND cree_le = ? AND contenu LIKE 'Import CSV — dernier contact%' LIMIT 1");
+    $s->execute([$structureId, $dateIso]);
+    if (!$s->fetchColumn()) {
+        journaliser('structure', $structureId, 'mailing', $contenu, $dateIso);
+    }
+}
+
 // Journalise une entrée « edition » avec le diff des champs modifiés
 // ($champs : [colonne => libellé]). Ne fait rien si aucun champ n'a changé.
 // Les valeurs vides sont affichées « (vide) ».
@@ -800,10 +815,33 @@ function structures_lire_csv(string $csv): array
 // Date CSV JJ/MM/AAAA → ISO AAAA-MM-JJ, ou null si absente/invalide (jamais devinée).
 function structure_date_csv_vers_iso(string $s): ?string
 {
-    if (!preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', trim($s), $m)) {
+    $s = trim($s);
+    if ($s === '') {
         return null;
     }
-    [, $jour, $mois, $annee] = $m;
+    // Numéro de série Excel/LibreOffice (date exportée « brute » : nombre de jours
+    // depuis le 30/12/1899, éventuellement avec une fraction horaire). Plage
+    // prudente [15000, 60000] ≈ 1941–2064 pour ne pas confondre avec un autre
+    // nombre (ex. une jauge). 25569 = décalage entre l'époque Excel et Unix.
+    if (preg_match('#^(\d{5})(?:\.\d+)?$#', $s, $m)) {
+        $serial = (int) $m[1];
+        if ($serial >= 15000 && $serial <= 60000) {
+            return gmdate('Y-m-d', ($serial - 25569) * 86400);
+        }
+    }
+    if (preg_match('#^(\d{4})-(\d{1,2})-(\d{1,2})$#', $s, $m)) {
+        // Déjà au format ISO (AAAA-MM-JJ).
+        [, $annee, $mois, $jour] = $m;
+    } elseif (preg_match('#^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2}|\d{4})$#', $s, $m)) {
+        // JJ/MM/AAAA, JJ.MM.AA, JJ-MM-AAAA… (séparateurs / . -, année sur 2 ou 4
+        // chiffres). Année sur 2 chiffres : pivot à 70 (00–69 → 20xx, 70–99 → 19xx).
+        [, $jour, $mois, $annee] = $m;
+        if (strlen($annee) === 2) {
+            $annee = ((int) $annee <= 69 ? 2000 : 1900) + (int) $annee;
+        }
+    } else {
+        return null;
+    }
     if (!checkdate((int) $mois, (int) $jour, (int) $annee)) {
         return null;
     }
@@ -1564,7 +1602,7 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
 
     $dateContact = structure_date_csv_vers_iso($d['dernier_contact']);
     if ($dateContact !== null) {
-        journaliser('structure', $structureId, 'mailing', 'Import CSV — dernier contact connu.', $dateContact);
+        journaliser_contact_import($structureId, $dateContact, 'Import CSV — dernier contact connu.');
     }
     structure_recalculer_dernier_contact($structureId);
     return $structureId;
@@ -1631,7 +1669,7 @@ function structure_import_rattacher_lieu_membre(int $orgId, array $d, string $no
     }
     $dateContact = structure_date_csv_vers_iso($d['dernier_contact']);
     if ($dateContact !== null) {
-        journaliser('structure', $orgId, 'mailing', 'Import CSV — dernier contact connu (' . $nomLieu . ').', $dateContact);
+        journaliser_contact_import($orgId, $dateContact, 'Import CSV — dernier contact connu (' . $nomLieu . ').');
     }
 }
 

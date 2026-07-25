@@ -7,6 +7,20 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.4] — 2026-07-24
+
+### Corrigé
+- **Import — dates** : les dates exportées par Excel/LibreOffice en numéro de
+  série brut (ex. `44886`) ainsi que les formats `JJ.MM.AA`, `JJ-MM-AAAA` et
+  ISO sont désormais reconnus (seul `JJ/MM/AAAA` l'était). Les « dernier
+  contact » et « dernier concert » importés apparaissent donc bien dans
+  l'historique, à leur date réelle.
+- **Info-bulles (ⓘ)** : dans un libellé de formulaire, l'icône reste sur la même
+  ligne que le texte, juste après lui.
+
+### Ajouté
+- **Structures** : colonne « Tags » (étiquettes) dans la liste.
+
 ## [1.5.3] — 2026-07-24
 
 ### Corrigé
