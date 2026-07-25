@@ -2,8 +2,18 @@
 /** @var string $pays */ /** @var string $region */ /** @var int $tagId */ /** @var string $statut */
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
-/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */ ?>
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
+/** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */ ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?php if ($tagBulk !== null): ?>
+<p class="ok flash">
+    <?php if ($tagBulk > 0): ?>
+        Étiquette « <?= e($tagBulkNom) ?> » <?= $tagBulkAction === 'retrait' ? 'retirée de' : 'ajoutée à' ?> <strong><?= (int) $tagBulk ?></strong> structure(s).
+    <?php else: ?>
+        Aucune structure modifiée (étiquette <?= $tagBulkAction === 'retrait' ? 'déjà absente' : 'déjà présente' ?>).
+    <?php endif; ?>
+</p>
+<?php endif; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
 <div class="page-head-band">
 <div class="page-head">
@@ -85,6 +95,10 @@
             <option value="region">Modifier la région</option>
             <option value="pays">Modifier le pays</option>
             <option value="via">Modifier le « via »</option>
+            <?php if ($tagsDispo || module_actif('booking')): ?>
+            <option value="tag_ajouter">Ajouter une étiquette</option>
+            <option value="tag_retirer">Retirer une étiquette</option>
+            <?php endif; ?>
             <option value="actif">Modifier « active »</option>
             <option value="desinscrit">Modifier « désinscrite »</option>
             <option value="fusionner">Fusionner (2 sélections ou plus)</option>
@@ -117,6 +131,22 @@
         <span class="bulk-field" data-for="via" hidden>
             <input type="text" name="bulk_via" class="inline-year-select" placeholder="Nouveau « via »">
         </span>
+        <?php if ($tagsDispo || module_actif('booking')): ?>
+        <span class="bulk-field" data-for="tag_ajouter" hidden>
+            <input type="text" name="bulk_tag_ajouter" class="inline-year-select" list="bulk-tags-dispo"
+                   placeholder="Étiquette à ajouter" autocomplete="off">
+            <datalist id="bulk-tags-dispo">
+                <?php foreach ($tagsDispo as $t): ?><option value="<?= e($t['nom']) ?>"><?php endforeach; ?>
+            </datalist>
+        </span>
+        <span class="bulk-field" data-for="tag_retirer" hidden>
+            <select name="bulk_tag_retirer" class="inline-year-select">
+                <?php foreach ($tagsDispo as $t): ?>
+                    <option value="<?= (int) $t['id'] ?>"><?= e($t['nom']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </span>
+        <?php endif; ?>
         <span class="bulk-field" data-for="actif" hidden>
             <select name="bulk_actif" class="inline-year-select">
                 <option value="1">Active</option>

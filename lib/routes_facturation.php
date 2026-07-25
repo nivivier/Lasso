@@ -565,6 +565,54 @@ function route_structures(): void
                 bulk_undo_memoriser('structures', $ids, ['via'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET via = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_via'] ?? '')], $ids));
+            } elseif ($section === 'tag_ajouter' && trim($_POST['bulk_tag_ajouter'] ?? '') !== '') {
+                // Étiquette posée sur toute la sélection : créée si elle n'existe
+                // pas encore (comme depuis une fiche). Pas d'annulation groupée
+                // (les liens ne sont pas des colonnes de structures) — le retrait
+                // groupé fait l'inverse ; chaque fiche garde une trace en historique.
+                $nomTag = trim($_POST['bulk_tag_ajouter']);
+                $stmtT = db()->prepare('SELECT id FROM structure_tags WHERE nom = ? COLLATE NOCASE');
+                $stmtT->execute([$nomTag]);
+                $tagId = $stmtT->fetchColumn();
+                if ($tagId === false) {
+                    db()->prepare('INSERT INTO structure_tags (nom) VALUES (?)')->execute([$nomTag]);
+                    $tagId = (int) db()->lastInsertId();
+                }
+                $ins = db()->prepare('INSERT OR IGNORE INTO structure_tag_liens (structure_id, tag_id) VALUES (?, ?)');
+                $n = 0;
+                db()->beginTransaction();
+                foreach ($ids as $sid) {
+                    $ins->execute([$sid, (int) $tagId]);
+                    if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
+                        journaliser('structure', (int) $sid, 'edition', 'Étiquette ajoutée : ' . $nomTag);
+                        $n++;
+                    }
+                }
+                db()->commit();
+                $retourFiltres['tagbulk'] = $n;
+                $retourFiltres['tagact'] = 'ajout';
+                $retourFiltres['tagnom'] = $nomTag;
+            } elseif ($section === 'tag_retirer' && (int) ($_POST['bulk_tag_retirer'] ?? 0) > 0) {
+                $tagId = (int) $_POST['bulk_tag_retirer'];
+                $stmtT = db()->prepare('SELECT nom FROM structure_tags WHERE id = ?');
+                $stmtT->execute([$tagId]);
+                $nomTag = (string) ($stmtT->fetchColumn() ?: '');
+                $del = db()->prepare('DELETE FROM structure_tag_liens WHERE structure_id = ? AND tag_id = ?');
+                $n = 0;
+                db()->beginTransaction();
+                foreach ($ids as $sid) {
+                    $del->execute([$sid, $tagId]);
+                    if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
+                        if ($nomTag !== '') {
+                            journaliser('structure', (int) $sid, 'edition', 'Étiquette retirée : ' . $nomTag);
+                        }
+                        $n++;
+                    }
+                }
+                db()->commit();
+                $retourFiltres['tagbulk'] = $n;
+                $retourFiltres['tagact'] = 'retrait';
+                $retourFiltres['tagnom'] = $nomTag;
             } elseif ($section === 'fusionner' && count($ids) >= 2) {
                 $_SESSION['fusion_ids'] = $ids;
                 redirect('structure_fusion');
@@ -657,6 +705,9 @@ function route_structures(): void
         'region' => $region,
         'tagId' => $tagId,
         'statut' => $statut,
+        'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
+        'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
+        'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
         'categoriesPourSelect' => structure_categories_pour_select(),
         'regionsDispo' => $regionsDispo,
         'tagsDispo' => $tagsDispo,

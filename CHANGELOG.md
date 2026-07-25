@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.8] — 2026-07-25
+
+### Ajouté
+- **Modification groupée** des structures : « Ajouter une étiquette » et
+  « Retirer une étiquette ». L'ajout accepte une étiquette existante
+  (suggestions) ou un nouveau nom, créé à la volée. Le résultat annonce le
+  nombre de fiches réellement modifiées, et chaque fiche en garde une trace
+  dans son historique.
+
 ## [1.5.7] — 2026-07-25
 
 ### Ajouté
