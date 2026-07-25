@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.7] — 2026-07-25
+
+### Ajouté
+- **Paramètres → Catégories → Étiquettes** : nouvelle page pour ajouter,
+  renommer et supprimer les étiquettes de structures, avec le nombre de fiches
+  qui portent chacune. Supprimer une étiquette la retire des structures
+  concernées (les fiches ne sont pas touchées) ; les doublons sont refusés.
+
 ## [1.5.6] — 2026-07-25
 
 ### Ajouté

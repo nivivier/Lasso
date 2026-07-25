@@ -137,6 +137,60 @@ function route_structure_tag_retirer(): void
     redirect('structures');
 }
 
+// ------------------------------------------------------------- ÉTIQUETTES
+// Gestion des étiquettes de structures (Paramètres → Catégories → Étiquettes) :
+// ajout, renommage, suppression. Liste plate triée par nom (pas d'ordre manuel).
+// Les liens structure↔étiquette tombent en cascade à la suppression
+// (structure_tag_liens ON DELETE CASCADE) : l'écran annonce le nombre de fiches
+// concernées avant de confirmer.
+function route_parametres_tags(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'add') {
+            $nom = trim($_POST['nom'] ?? '');
+            if ($nom !== '') {
+                // Nom unique (insensible à la casse) : on ne crée pas de doublon.
+                $existe = db()->prepare('SELECT 1 FROM structure_tags WHERE nom = ? COLLATE NOCASE');
+                $existe->execute([$nom]);
+                if (!$existe->fetchColumn()) {
+                    db()->prepare('INSERT INTO structure_tags (nom) VALUES (?)')->execute([$nom]);
+                }
+            }
+        } elseif ($section === 'edit') {
+            $id = (int) ($_POST['id'] ?? 0);
+            $nom = trim($_POST['nom'] ?? '');
+            if ($nom !== '' && $id) {
+                $conflit = db()->prepare('SELECT 1 FROM structure_tags WHERE nom = ? COLLATE NOCASE AND id <> ?');
+                $conflit->execute([$nom, $id]);
+                if (!$conflit->fetchColumn()) {
+                    // Le lien porte l'id : renommer suffit, rien à propager.
+                    db()->prepare('UPDATE structure_tags SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+                }
+            }
+        } elseif ($section === 'delete') {
+            $id = (int) ($_POST['id'] ?? 0);
+            if ($id) {
+                db()->prepare('DELETE FROM structure_tags WHERE id = ?')->execute([$id]);
+            }
+        }
+        redirect('parametres_tags', ['ok' => 1]);
+    }
+
+    // Étiquettes + nombre de structures qui les portent (une seule requête).
+    $lignes = db()->query(
+        'SELECT t.id, t.nom, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb
+         FROM structure_tags t ORDER BY t.nom COLLATE NOCASE'
+    )->fetchAll();
+
+    render('parametres_tags', [
+        'saved'  => isset($_GET['ok']),
+        'lignes' => $lignes,
+    ], 'Paramètres — Étiquettes');
+}
+
 // ------------------------------------------------------- CATÉGORIES DE LIEU (taxonomie)
 // Gestion de la liste « catégories de lieu » (lieux.type) : ajout, renommage
 // (met à jour les lieux qui l'utilisent), suppression (bloquée si utilisée ou si

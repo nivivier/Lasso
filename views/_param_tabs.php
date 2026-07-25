@@ -41,6 +41,7 @@ $ptCatSections = ['parametres_pays' => 'Pays'];
 if (module_actif('booking') && peut_lire('booking')) {
     $ptCatSections['parametres_structures']       = 'Structures';
     $ptCatSections['parametres_lieux_categories'] = 'Lieux';
+    $ptCatSections['parametres_tags']             = 'Étiquettes';
 }
 $ptGroupes['categories'] = ['Catégories', $ptCatSections];
 

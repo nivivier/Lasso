@@ -184,6 +184,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'import_structures'      => 'route_import_structures',
     'parametres_structures'  => 'route_parametres_structures',
     'parametres_lieux_categories' => 'route_parametres_lieux_categories',
+    'parametres_tags'        => 'route_parametres_tags',
 ]);
 // Traitement de la file d'attente mailing + désinscription : protégés par un
 // jeton dédié (mailing_verifier_token()), pas par une session utilisateur —
