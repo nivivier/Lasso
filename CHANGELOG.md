@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.5] — 2026-07-25
+
+### Ajouté
+- **Script `scripts/maj_dates_import.php`** : met à jour depuis un CSV
+  UNIQUEMENT les dates (mise à jour, dernier contact, dernier concert) sans
+  toucher au reste des fiches — utile quand un ré-import complet écraserait des
+  saisies manuelles. Simulation par défaut, `--appliquer` pour écrire (avec
+  sauvegarde automatique), `--db=` pour essayer sur une copie. Les entrées
+  d'historique correspondantes sont créées, datées du jour concerné.
+
 ## [1.5.4] — 2026-07-24
 
 ### Corrigé
