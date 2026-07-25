@@ -1,5 +1,5 @@
 <?php /** @var array $structures */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var int $categorieId */
-/** @var string $pays */ /** @var string $region */ /** @var int $tagId */
+/** @var string $pays */ /** @var string $region */ /** @var int $tagId */ /** @var string $statut */
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */ ?>
@@ -22,6 +22,13 @@
                 <?php foreach ($categoriesPourSelect as $cat): ?>
                     <option value="<?= (int) $cat['id'] ?>" <?= $categorieId === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
                 <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Statut
+            <select name="statut" onchange="this.form.submit()">
+                <option value="actif" <?= $statut === 'actif' ? 'selected' : '' ?>>Actives</option>
+                <option value="inactif" <?= $statut === 'inactif' ? 'selected' : '' ?>>Inactives</option>
+                <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Toutes</option>
             </select>
         </label>
         <label class="search-label">

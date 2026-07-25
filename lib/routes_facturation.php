@@ -493,8 +493,11 @@ function route_structures(): void
     $pays = trim((string) ($_GET['pays'] ?? ''));
     $region = trim((string) ($_GET['region'] ?? ''));
     $tagId = (int) ($_GET['tag_id'] ?? 0);
+    // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
+    // travail courant) ; 'inactif' ou 'tous' pour les voir.
+    $statut = valeur_autorisee((string) ($_GET['statut'] ?? ''), ['actif', 'inactif', 'tous'], 'actif');
     $pgTaille = pagination_taille('structures_taille');
-    $retourFiltres = ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId];
+    $retourFiltres = ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
     // le lettrage/l'axe analytique en masse sur les écritures ou les événements.
@@ -598,6 +601,11 @@ function route_structures(): void
         $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
         $params[] = $tagId;
     }
+    if ($statut === 'actif') {
+        $where .= ' AND s.actif = 1';
+    } elseif ($statut === 'inactif') {
+        $where .= ' AND s.actif = 0';
+    }
 
     $stmtTotStruct = db()->prepare('SELECT COUNT(*) FROM structures s' . $where);
     $stmtTotStruct->execute($params);
@@ -648,12 +656,13 @@ function route_structures(): void
         'pays' => $pays,
         'region' => $region,
         'tagId' => $tagId,
+        'statut' => $statut,
         'categoriesPourSelect' => structure_categories_pour_select(),
         'regionsDispo' => $regionsDispo,
         'tagsDispo' => $tagsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
-        'pgParams'  => ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId],
+        'pgParams'  => ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,

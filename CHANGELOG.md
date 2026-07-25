@@ -7,6 +7,13 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.6] — 2026-07-25
+
+### Ajouté
+- **Filtre « Statut »** sur les listes Structures et Lieux (Actifs / Inactifs /
+  Tous), avec **« Actifs » sélectionné par défaut** : les fiches désactivées
+  n'encombrent plus le travail courant, un choix suffit pour les retrouver.
+
 ## [1.5.5] — 2026-07-25
 
 ### Ajouté

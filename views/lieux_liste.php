@@ -1,12 +1,12 @@
 <?php /** @var array $lieux */ /** @var array $organisateurs */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $type */ /** @var string $ville */ /** @var ?int $jaugeMin */ /** @var ?int $jaugeMax */
 /** @var int $moisEvenement */ /** @var int $moisProg */ /** @var array $villesDispo */
-/** @var string $pays */ /** @var string $grandeRegion */ /** @var array $grandesRegionsDispo */
+/** @var string $pays */ /** @var string $grandeRegion */ /** @var array $grandesRegionsDispo */ /** @var string $statut */
 /** @var array $categoriesLieu */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */
 $plusFiltres = $ville !== '' || $pays !== '' || $grandeRegion !== '' || $jaugeMin !== null || $jaugeMax !== null || $moisEvenement || $moisProg;
-$filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
+$filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !== 'actif';
 ?>
 <?php $actionUrl = '?p=lieux'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ((int) ($_GET['lieuxBloquees'] ?? 0) > 0): ?><p class="err flash"><?= (int) $_GET['lieuxBloquees'] ?> lieu(x) non supprimé(s) : une structure y est liée.</p><?php endif; ?>
@@ -27,6 +27,13 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres;
                 <?php foreach ($categoriesLieu as $c): ?>
                     <option value="<?= e($c) ?>" <?= $type === $c ? 'selected' : '' ?>><?= e($c) ?></option>
                 <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Statut
+            <select name="statut" onchange="this.form.submit()">
+                <option value="actif" <?= $statut === 'actif' ? 'selected' : '' ?>>Actifs</option>
+                <option value="inactif" <?= $statut === 'inactif' ? 'selected' : '' ?>>Inactifs</option>
+                <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Tous</option>
             </select>
         </label>
         <label class="search-label">

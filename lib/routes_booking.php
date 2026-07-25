@@ -375,9 +375,17 @@ function route_lieux(): void
     $moisProg = (int) ($_GET['mois_prog'] ?? 0);
     if ($moisEvenement < 1 || $moisEvenement > 12) { $moisEvenement = 0; }
     if ($moisProg < 1 || $moisProg > 12) { $moisProg = 0; }
+    // Statut : « actif » par défaut (les lieux inactifs sont du bruit dans le
+    // travail courant) ; 'inactif' ou 'tous' pour les voir.
+    $statut = valeur_autorisee((string) ($_GET['statut'] ?? ''), ['actif', 'inactif', 'tous'], 'actif');
 
     $where = '';
     $params = [];
+    if ($statut === 'actif') {
+        $where .= ' AND actif = 1';
+    } elseif ($statut === 'inactif') {
+        $where .= ' AND actif = 0';
+    }
     if ($type !== '') {
         $where .= ' AND type = ?';
         $params[] = $type;
@@ -474,6 +482,7 @@ function route_lieux(): void
         'ville' => $ville,
         'pays' => $pays,
         'grandeRegion' => $grandeRegion,
+        'statut' => $statut,
         'jaugeMin' => $jaugeMin,
         'jaugeMax' => $jaugeMax,
         'moisEvenement' => $moisEvenement,
@@ -482,7 +491,7 @@ function route_lieux(): void
         'grandesRegionsDispo' => $grandesRegionsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'lieux',
-        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: ''],
+        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: ''],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,
