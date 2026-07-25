@@ -7,6 +7,18 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.9] — 2026-07-25
+
+### Ajouté
+- **Script `scripts/doublons.php`** : détecte et fusionne les doublons exacts
+  de structures (nom + localité), de lieux (nom + ville + type) et de contacts
+  (même structure + e-mail, ou identité + téléphone). La fiche la plus ancienne
+  est conservée et récupère les rattachements (contacts, étiquettes, lieux,
+  événements, historique, factures, mailings) ainsi que les champs qui lui
+  manquaient. Simulation par défaut, `--detail` pour lister les groupes,
+  `--appliquer` pour fusionner (avec sauvegarde automatique), `--db=` pour
+  essayer sur une copie, `--type=` pour se limiter à une entité.
+
 ## [1.5.8] — 2026-07-25
 
 ### Ajouté
