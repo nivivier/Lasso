@@ -142,13 +142,13 @@ check('événement privé : résumé générique, jamais le nom du spectacle', t
     str_contains($ics, 'SUMMARY:Événement privé') && !str_contains($ics, 'Spectacle secret'));
 check('événement privé : jamais de LOCATION avec la salle secrète', false, str_contains($ics, 'Secret'));
 
-$evRegionPays = [
+$evDepartementCantonPays = [
     'id' => 3, 'date' => '2026-10-10', 'visibilite' => 'public', 'statut' => 'confirme',
-    'ville' => 'Besançon', 'region' => '25', 'pays' => 'FR', 'salle' => '', 'festival' => '',
+    'ville' => 'Besançon', 'departement_canton' => '25', 'pays' => 'FR', 'salle' => '', 'festival' => '',
     'lien_infos' => '', 'spectacle_nom' => '', 'remarques' => '',
 ];
-$icsRegionPays = evenements_generer_ical([evenement_export_donnees($evRegionPays)]);
-check('LOCATION combine ville, région et pays', true, str_contains($icsRegionPays, 'LOCATION:Besançon (25\\, FR)'));
+$icsDepartementCantonPays = evenements_generer_ical([evenement_export_donnees($evDepartementCantonPays)]);
+check('LOCATION combine ville, département/canton et pays', true, str_contains($icsDepartementCantonPays, 'LOCATION:Besançon (25\\, FR)'));
 
 echo "5) Validation stricte de date (checkdate, pas de \"roulement\")\n";
 check('date valide', true, date_valide('2026-07-16'));

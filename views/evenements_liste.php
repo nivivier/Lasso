@@ -137,7 +137,7 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
             <option value="statut">Modifier le statut</option>
             <option value="visibilite">Modifier le type d'audience</option>
             <option value="spectacle">Modifier <?= mb_strtolower(e($termeSingulier)) ?></option>
-            <option value="region">Modifier la région</option>
+            <option value="departement_canton">Modifier le département / canton</option>
             <option value="pays">Modifier le pays</option>
             <option value="suisa_applicable">Modifier si la SUISA s'applique</option>
             <option value="suisa_envoi">Modifier l'envoi SUISA</option>
@@ -167,8 +167,8 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
                 <?php endforeach; ?>
             </select>
         </span>
-        <span class="bulk-field" data-for="region" hidden>
-            <input type="text" name="bulk_region" class="inline-year-select" placeholder="canton ou département">
+        <span class="bulk-field" data-for="departement_canton" hidden>
+            <input type="text" name="bulk_departement_canton" class="inline-year-select" placeholder="canton ou département">
         </span>
         <span class="bulk-field" data-for="pays" hidden>
             <select name="bulk_pays" class="inline-year-select">
@@ -229,7 +229,7 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
             <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
             <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
             <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
-                <?= ville_region_html((string) $ev['ville'], $drapeau, (string) $ev['pays'], (string) $ev['region']) ?>
+                <?= ville_departement_canton_html((string) $ev['ville'], $drapeau, (string) $ev['pays'], (string) $ev['departement_canton']) ?>
                 <?php if ($festivalSalle !== ''): ?> <span class="muted small"><?= e($festivalSalle) ?></span><?php endif; ?>
                 <?php if ($ev['ville'] === '' && $festivalSalle === ''): ?>—<?php endif; ?>
             </td>

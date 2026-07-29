@@ -104,7 +104,7 @@ $sid = (int) ($structure['id'] ?? 0);
                 <input name="adresse_localite" value="<?= $v('adresse_localite') ?>" placeholder="Localité" aria-label="Localité" class="input-titre">
             </div>
             <div class="grid3 mt-16">
-                <input name="region" value="<?= $v('region') ?>" placeholder="Département / canton" aria-label="Département / canton">
+                <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="Département / canton" aria-label="Département / canton">
                 <select name="grande_region" class="region-select" aria-label="Région" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
                     <option value="">— Région —</option>
                     <?= region_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse'), (string) ($structure['grande_region'] ?? '')) ?>

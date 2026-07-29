@@ -423,21 +423,21 @@ const CANTONS_SUISSES_BILINGUES = ['FR' => 'Romandie', 'VS' => 'Romandie', 'BE' 
 // pré-rempli mais toujours modifiable pour ces 3 cantons). Null si le pays
 // n'a pas de règle de déduction, ou si le département/canton n'est pas
 // reconnu (jamais de devinette : le champ reste alors saisi à la main).
-function grande_region_deduite(string $pays, string $region, bool $strict = true): ?string
+function grande_region_deduite(string $pays, string $departementCanton, bool $strict = true): ?string
 {
     $pays = trim($pays);
-    $region = trim($region);
-    if ($region === '') {
+    $departementCanton = trim($departementCanton);
+    if ($departementCanton === '') {
         return null;
     }
     if ($pays === 'France' || $pays === 'FR') {
         $stmt = db()->prepare('SELECT region FROM departements_regions WHERE code = ?');
-        $stmt->execute([$region]);
+        $stmt->execute([$departementCanton]);
         $r = $stmt->fetchColumn();
         return $r !== false ? (string) $r : null;
     }
     if ($pays === 'Suisse' || $pays === 'CH') {
-        $code = mb_strtoupper($region, 'UTF-8');
+        $code = mb_strtoupper($departementCanton, 'UTF-8');
         if (isset(CANTONS_SUISSES_REGIONS[$code])) {
             return CANTONS_SUISSES_REGIONS[$code];
         }
@@ -450,7 +450,7 @@ function grande_region_deduite(string $pays, string $region, bool $strict = true
 }
 
 // Référentiel départements français → région (code => région), pour l'auto-
-// remplissage JS de grande_region dans les formulaires (voir _geo_region_js.php) —
+// remplissage JS de grande_region dans les formulaires (voir _region_select_js.php) —
 // même source que grande_region_deduite().
 function departements_regions_map(): array
 {
@@ -1394,14 +1394,15 @@ function flag_toggle_html(string $table, int $id, string $flag): string
         . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
 }
 
-// Affichage combiné « Ville 🇫🇷 (Région) » — factorisé entre les listes
-// structures et événements (ville en gras, drapeau du pays, région entre
-// parenthèses en muted). $drapeau : émoji déjà résolu par l'appelant
-// (pays_drapeau() si le pays est stocké en code ISO2, pays_drapeau_nom() s'il
-// est stocké en nom) ; $paysBrut : texte affiché en repli si aucun drapeau n'a
-// pu être résolu (ex. valeur non reconnue). Chaîne vide si rien à afficher —
+// Affichage combiné « Ville 🇫🇷 (canton/département) » — factorisé entre les
+// listes structures et événements (ville en gras, drapeau du pays, canton/
+// département entre parenthèses en muted — jamais la grande région, voir
+// migration_56). $drapeau : émoji déjà résolu par l'appelant (pays_drapeau()
+// si le pays est stocké en code ISO2, pays_drapeau_nom() s'il est stocké en
+// nom) ; $paysBrut : texte affiché en repli si aucun drapeau n'a pu être
+// résolu (ex. valeur non reconnue). Chaîne vide si rien à afficher —
 // à l'appelant de décider son propre repli (« — », combiné à d'autres champs).
-function ville_region_html(string $ville, string $drapeau, string $paysBrut, string $region): string
+function ville_departement_canton_html(string $ville, string $drapeau, string $paysBrut, string $departementCanton): string
 {
     $h = '';
     if ($ville !== '') {
@@ -1412,8 +1413,8 @@ function ville_region_html(string $ville, string $drapeau, string $paysBrut, str
     } elseif ($paysBrut !== '') {
         $h .= ' <span class="tiny muted">' . e($paysBrut) . '</span>';
     }
-    if ($region !== '') {
-        $h .= ' <span class="tiny muted">' . e($region) . '</span>';
+    if ($departementCanton !== '') {
+        $h .= ' <span class="tiny muted">' . e($departementCanton) . '</span>';
     }
     return $h;
 }

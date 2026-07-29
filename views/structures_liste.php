@@ -1,5 +1,5 @@
 <?php /** @var array $structures */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var int $categorieId */
-/** @var string $pays */ /** @var string $region */ /** @var int $tagId */ /** @var string $statut */
+/** @var string $pays */ /** @var string $departementCanton */ /** @var int $tagId */ /** @var string $statut */
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
@@ -59,7 +59,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
             <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <?php $lieuFiltresActifs = $lieuType !== '' || $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
-        <details class="filters-more" <?= ($pays !== '' || $region !== '' || $tagId || $lieuFiltresActifs || $flag !== '') ? 'open' : '' ?>>
+        <details class="filters-more" <?= ($pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '') ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>
             <div class="filters-more-body">
                 <label>Pays
@@ -69,10 +69,10 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
                     </select>
                 </label>
                 <label>Département / canton
-                    <select name="region" onchange="this.form.submit()">
+                    <select name="departement_canton" onchange="this.form.submit()">
                         <option value="">Tous</option>
                         <?php foreach ($regionsDispo as $r): ?>
-                            <option value="<?= e($r) ?>" <?= $region === $r ? 'selected' : '' ?>><?= e($r) ?></option>
+                            <option value="<?= e($r) ?>" <?= $departementCanton === $r ? 'selected' : '' ?>><?= e($r) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </label>
@@ -133,7 +133,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php elseif (!$structures): ?>
-    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $region !== '' || $tagId || $lieuFiltresActifs || $flag !== ''): ?>
+    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== ''): ?>
         <p class="muted">Aucune structure ne correspond à cette recherche.</p>
     <?php else: ?>
         <p class="muted">Aucune structure pour l'instant. Commencez par en ajouter une.</p>
@@ -147,7 +147,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
             <option value="categorie">Modifier la catégorie</option>
             <option value="type">Modifier le type</option>
             <option value="ville">Modifier la ville</option>
-            <option value="region">Modifier la région</option>
+            <option value="departement_canton">Modifier le département / canton</option>
             <option value="pays">Modifier le pays</option>
             <option value="via">Modifier le « via »</option>
             <option value="flag">Modifier le flag</option>
@@ -178,8 +178,8 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
         <span class="bulk-field" data-for="ville" hidden>
             <input type="text" name="bulk_ville" class="inline-year-select" placeholder="Nouvelle ville">
         </span>
-        <span class="bulk-field" data-for="region" hidden>
-            <input type="text" name="bulk_region" class="inline-year-select" placeholder="Nouvelle région">
+        <span class="bulk-field" data-for="departement_canton" hidden>
+            <input type="text" name="bulk_departement_canton" class="inline-year-select" placeholder="Nouveau département / canton">
         </span>
         <span class="bulk-field" data-for="pays" hidden>
             <select name="bulk_pays" class="inline-year-select"><?= pays_options_nom('') ?></select>
@@ -243,7 +243,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
                 <?php if ($d['desinscrit']): ?><span class="badge muted-badge">désinscrit</span><?php endif; ?>
             </td>
             <td class="small">
-                <?php $villeHtml = ville_region_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['region']); ?>
+                <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
                 <?= $villeHtml !== '' ? $villeHtml : '—' ?>
             </td>
             <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>

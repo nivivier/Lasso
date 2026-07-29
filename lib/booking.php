@@ -516,8 +516,8 @@ function structure_transformer_en_lieu(int $structureId, int $orgId, string $typ
     }
     if ($lieuId === null) {
         db()->prepare(
-            'INSERT INTO lieux (type, nom, ville, region, pays) VALUES (?, ?, ?, ?, ?)'
-        )->execute([$type, (string) $s['nom'], (string) $s['adresse_localite'], (string) $s['region'], (string) $s['adresse_pays']]);
+            'INSERT INTO lieux (type, nom, ville, departement_canton, pays) VALUES (?, ?, ?, ?, ?)'
+        )->execute([$type, (string) $s['nom'], (string) $s['adresse_localite'], (string) $s['departement_canton'], (string) $s['adresse_pays']]);
         $lieuId = (int) db()->lastInsertId();
     } else {
         db()->prepare('UPDATE lieux SET type = ? WHERE id = ?')->execute([$type, $lieuId]);
@@ -556,7 +556,7 @@ function periode_chevauche(int $debut, int $fin, int $filtreDebut, int $filtreFi
 // de la file d'attente doivent utiliser cette même fonction, cf. §7 — jamais
 // deux implémentations divergentes). $criteres : categorie + sous_categorie
 // (string|'', mêmes clés que le filtre de ?p=structures), pays (string|''),
-// grande_region (Région, string|''), region (Département/canton, string|''),
+// grande_region (Région, string|''), departement_canton (string|''),
 // ville (string|''), type_lieu (catégorie de lieu, string|''), tag_id (int|0),
 // mois_debut/mois_fin (int|null, période de
 // programmation des lieux liés), mois_evenement_debut/fin (int|null, période
@@ -581,14 +581,14 @@ function mailing_structures_eligibles(array $criteres): array
         $where[] = 's.adresse_pays = ?';
         $params[] = $criteres['pays'];
     }
-    // grande_region = « Région » (Normandie, Romandie…) ; region = « Département / canton ».
+    // grande_region = « Région » (Normandie, Romandie…) ; departement_canton = « Département / canton ».
     if (!empty($criteres['grande_region'])) {
         $where[] = 's.grande_region = ?';
         $params[] = $criteres['grande_region'];
     }
-    if (!empty($criteres['region'])) {
-        $where[] = 's.region = ?';
-        $params[] = $criteres['region'];
+    if (!empty($criteres['departement_canton'])) {
+        $where[] = 's.departement_canton = ?';
+        $params[] = $criteres['departement_canton'];
     }
     if (!empty($criteres['ville'])) {
         $where[] = 's.adresse_localite = ?';
@@ -713,7 +713,7 @@ const STRUCTURE_IMPORT_CHAMPS = [
     'adresse_rue'      => 'Adresse (rue)',
     'adresse_npa'      => 'NPA',
     'adresse_localite' => 'Localité',
-    'region'           => 'Département / canton',
+    'departement_canton' => 'Département / canton',
     'grande_region'    => 'Région (Normandie, Romandie, Acadie…)',
     'pays'             => 'Pays',
     'periode_evenement'     => 'Période de l\'événement (mois, ex. « 6 7 8 » ou « jun jul aug »)',
@@ -1368,7 +1368,7 @@ const STRUCTURE_IMPORT_FUSION_CHAMPS = [
     'adresse_rue'      => 'Rue',
     'adresse_npa'      => 'NPA',
     'adresse_localite' => 'Localité',
-    'region'           => 'Département / canton',
+    'departement_canton' => 'Département / canton',
     'grande_region'    => 'Région',
     'adresse_pays'     => 'Pays',
     'site_web'         => 'Site web',
@@ -1393,7 +1393,7 @@ function structure_import_fusion(array $existante, array $donnees): array
         'adresse_rue'      => (string) ($donnees['adresse_rue'] ?? ''),
         'adresse_npa'      => (string) ($donnees['adresse_npa'] ?? ''),
         'adresse_localite' => (string) ($donnees['adresse_localite'] ?? ''),
-        'region'           => (string) ($donnees['region'] ?? ''),
+        'departement_canton' => (string) ($donnees['departement_canton'] ?? ''),
         'grande_region'    => (string) ($donnees['grande_region'] ?? ''),
         'adresse_pays'     => (string) ($donnees['pays'] ?? ''),
         'site_web'         => (string) ($donnees['site_web'] ?? ''),
@@ -1528,17 +1528,17 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         // hors cantons bilingues) : remplace toute valeur CSV mappée sur
         // grande_region quand le département/canton est reconnu ; sinon
         // comportement actuel (valeur CSV acceptée telle quelle).
-        $grandeRegionDeduite = grande_region_deduite($pays, $d['region']);
+        $grandeRegionDeduite = grande_region_deduite($pays, $d['departement_canton']);
         if ($grandeRegionDeduite !== null) {
             $d['grande_region'] = $grandeRegionDeduite;
         }
         db()->prepare(
-            'INSERT INTO structures (nom, categorie, sous_categorie, adresse_rue, adresse_npa, adresse_localite, region, grande_region, adresse_pays,
+            'INSERT INTO structures (nom, categorie, sous_categorie, adresse_rue, adresse_npa, adresse_localite, departement_canton, grande_region, adresse_pays,
                                       site_web, via, notes, mise_a_jour_le, actif)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)'
         )->execute([
             $d['nom'], $d['categorie'], $d['sous_categorie'], $d['adresse_rue'], $d['adresse_npa'], $d['adresse_localite'],
-            $d['region'], $d['grande_region'], $pays, $d['site_web'], $d['via'], $d['notes'], $majLe,
+            $d['departement_canton'], $d['grande_region'], $pays, $d['site_web'], $d['via'], $d['notes'], $majLe,
         ]);
         $structureId = (int) db()->lastInsertId();
         $resume['nouvelles']++;
@@ -1566,8 +1566,8 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         // par la fusion, pas forcément celui du CSV) — seulement si elle
         // diffère de la valeur déjà en base, pour ne pas ajouter une écriture
         // inutile quand tout est déjà cohérent.
-        $regionEffective = array_key_exists('region', $maj) ? $maj['region'] : (string) ($existante['region'] ?? '');
-        $grandeRegionDeduite = grande_region_deduite($pays, $regionEffective);
+        $departementCantonEffectif = array_key_exists('departement_canton', $maj) ? $maj['departement_canton'] : (string) ($existante['departement_canton'] ?? '');
+        $grandeRegionDeduite = grande_region_deduite($pays, $departementCantonEffectif);
         if ($grandeRegionDeduite !== null && $grandeRegionDeduite !== (string) ($existante['grande_region'] ?? '')) {
             $maj['grande_region'] = $grandeRegionDeduite;
         }
@@ -1742,11 +1742,11 @@ function structure_import_creer_lieu(int $structureId, string $nom, string $type
     }
     if ($lieuId === null) {
         db()->prepare(
-            'INSERT INTO lieux (type, nom, ville, region, grande_region, pays, jauge_min, jauge_max,
+            'INSERT INTO lieux (type, nom, ville, departement_canton, grande_region, pays, jauge_min, jauge_max,
                                 mois_debut, mois_fin, mois_evenement_debut, mois_evenement_fin, dernier_concert_le)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
-            $type, $nom, $d['adresse_localite'], $d['region'], $grande, $d['pays'], $jaugeMin, $jaugeMax,
+            $type, $nom, $d['adresse_localite'], $d['departement_canton'], $grande, $d['pays'], $jaugeMin, $jaugeMax,
             $prog['debut'], $prog['fin'], $evt['debut'], $evt['fin'], $dernierConcert,
         ]);
         $lieuId = (int) db()->lastInsertId();

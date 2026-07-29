@@ -107,7 +107,7 @@ function doublons_fusionner_lieux(array $groupes): int
         $garde = array_shift($ids);
         foreach ($ids as $autre) {
             db()->beginTransaction();
-            doublons_completer_champs_vides('lieux', $garde, $autre, ['region', 'grande_region', 'pays', 'site_web', 'notes', 'dernier_concert_le']);
+            doublons_completer_champs_vides('lieux', $garde, $autre, ['departement_canton', 'grande_region', 'pays', 'site_web', 'notes', 'dernier_concert_le']);
             db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) SELECT structure_id, ? FROM structure_lieux WHERE lieu_id = ?')
                 ->execute([$garde, $autre]);
             db()->prepare('DELETE FROM structure_lieux WHERE lieu_id = ?')->execute([$autre]);
@@ -334,8 +334,8 @@ function maj_dates_appliquer(array $aEcrire): void
 // aujourd'hui le département/canton déjà renseigné (variantes de la
 // taxonomie, saisie manuelle antérieure…). Jamais les cantons bilingues
 // (Fribourg/Valais/Berne) : la déduction y est volontairement non fiable
-// (grande_region_deduite($pays, $region) en mode strict), donc jamais
-// proposée en écart ici.
+// (grande_region_deduite($pays, $departementCanton) en mode strict), donc
+// jamais proposée en écart ici.
 // ===========================================================================
 
 const GRANDE_REGION_TABLES = [
@@ -345,19 +345,19 @@ const GRANDE_REGION_TABLES = [
 ];
 
 // Détecte les écarts entre grande_region actuelle et déduite. Retourne
-// [ ['table'=>, 'id'=>, 'nom'=>, 'pays'=>, 'region'=>, 'actuelle'=>, 'deduite'=>], … ].
+// [ ['table'=>, 'id'=>, 'nom'=>, 'pays'=>, 'departement_canton'=>, 'actuelle'=>, 'deduite'=>], … ].
 function grande_regions_detecter(): array
 {
     $out = [];
     foreach (GRANDE_REGION_TABLES as $table => $def) {
-        $sql = "SELECT id, ({$def['nom_sql']}) AS nom, {$def['pays_col']} AS pays, region, grande_region
-                FROM $table WHERE TRIM(region) <> ''";
+        $sql = "SELECT id, ({$def['nom_sql']}) AS nom, {$def['pays_col']} AS pays, departement_canton, grande_region
+                FROM $table WHERE TRIM(departement_canton) <> ''";
         foreach (db()->query($sql)->fetchAll() as $r) {
-            $deduite = grande_region_deduite((string) $r['pays'], (string) $r['region']);
+            $deduite = grande_region_deduite((string) $r['pays'], (string) $r['departement_canton']);
             if ($deduite !== null && $deduite !== (string) $r['grande_region']) {
                 $out[] = [
                     'table' => $table, 'id' => (int) $r['id'], 'nom' => (string) $r['nom'],
-                    'pays' => (string) $r['pays'], 'region' => (string) $r['region'],
+                    'pays' => (string) $r['pays'], 'departement_canton' => (string) $r['departement_canton'],
                     'actuelle' => (string) $r['grande_region'], 'deduite' => $deduite,
                 ];
             }

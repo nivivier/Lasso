@@ -2,7 +2,7 @@
 // Câblage des listes déroulantes Région dépendantes du Pays (taxonomie
 // pays_liste, voir migration_49). À inclure une fois par formulaire contenant
 // un <select class="region-select"> (grande région), un <select class="pays-select">
-// et un <input name="region"> (département/canton) : quand le pays change,
+// et un <input name="departement_canton"> : quand le pays change,
 // les options de région sont reconstruites depuis la carte régions-par-pays ;
 // la valeur courante est conservée si elle appartient encore au pays choisi,
 // sinon vidée. Le select pays a pour valeur soit le NOM du pays
@@ -30,7 +30,7 @@
     document.querySelectorAll('select.region-select').forEach(function (regionSel) {
         var form = regionSel.closest('form');
         var paysSel = form && form.querySelector('select.pays-select');
-        var deptInput = form && form.querySelector('input[name="region"]');
+        var deptInput = form && form.querySelector('input[name="departement_canton"]');
         if (!paysSel) { return; }
 
         paysSel.addEventListener('change', function () {

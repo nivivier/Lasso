@@ -98,7 +98,7 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <div class="grid4">
 
             <label>Ville <input name="ville" class="input-titre" value="<?= $v('ville') ?>"></label>
-            <label>Dép. / canton <input name="region" value="<?= $v('region') ?>"></label>
+            <label>Dép. / canton <input name="departement_canton" value="<?= $v('departement_canton') ?>"></label>
             <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
                 <select name="grande_region" class="region-select">
                     <option value="">— Région —</option>
@@ -121,7 +121,7 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         </div>
         <div class="grid4">
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
-            <label>Département / canton <input name="region" value="<?= $v('region') ?>"></label>
+            <label>Département / canton <input name="departement_canton" value="<?= $v('departement_canton') ?>"></label>
             <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
                 <select name="grande_region" class="region-select">
                     <option value="">— Région —</option>
@@ -264,7 +264,7 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
             <?php if (!$s['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
         </h2>
         <?= $orgaEditeur((int) $lieu['id'], $ssid) ?>
-        <?php $villeHtml = ville_region_html((string) $s['adresse_localite'], pays_drapeau_nom((string) $s['adresse_pays']), (string) $s['adresse_pays'], (string) $s['region']); ?>
+        <?php $villeHtml = ville_departement_canton_html((string) $s['adresse_localite'], pays_drapeau_nom((string) $s['adresse_pays']), (string) $s['adresse_pays'], (string) $s['departement_canton']); ?>
         <?php if ($villeHtml !== ''): ?><div class="small mb-8"><?= $villeHtml ?></div><?php endif; ?>
         <div class="muted small mb-8"><?= categorie_sous_categorie_html((string) $s['categorie'], (string) $s['sous_categorie']) ?></div>
         <?php if ($s['notes'] !== ''): ?><div class="muted small mb-8"><?= e((string) $s['notes']) ?></div><?php endif; ?>

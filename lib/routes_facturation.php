@@ -496,7 +496,7 @@ function structures_filtres(): array
     $categorie = $categorieChamps['categorie'];
     $sousCategorie = $categorieChamps['sous_categorie'];
     $pays = trim((string) filtre_persistant('pays', 'structures_pays', ''));
-    $region = trim((string) filtre_persistant('region', 'structures_region', ''));
+    $departementCanton = trim((string) filtre_persistant('departement_canton', 'structures_departement_canton', ''));
     $tagId = (int) filtre_persistant('tag_id', 'structures_tag_id', 0);
     // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
     // travail courant) ; 'inactif' ou 'tous' pour les voir.
@@ -531,9 +531,9 @@ function structures_filtres(): array
         $where .= ' AND s.adresse_pays = ?';
         $params[] = $pays;
     }
-    if ($region !== '') {
-        $where .= ' AND s.region = ?';
-        $params[] = $region;
+    if ($departementCanton !== '') {
+        $where .= ' AND s.departement_canton = ?';
+        $params[] = $departementCanton;
     }
     if ($tagId) {
         $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
@@ -580,7 +580,7 @@ function structures_filtres(): array
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
-        'pays' => $pays, 'region' => $region, 'tagId' => $tagId, 'statut' => $statut, 'flag' => $flag,
+        'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'flag' => $flag,
         'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
     ];
@@ -617,7 +617,7 @@ function route_structures(): void
     $params = $f['params'];
     $categorieId = $f['categorieId'];
     $pays = $f['pays'];
-    $region = $f['region'];
+    $departementCanton = $f['departementCanton'];
     $tagId = $f['tagId'];
     $statut = $f['statut'];
     $lieuType = $f['lieuType'];
@@ -627,7 +627,7 @@ function route_structures(): void
     $lieuMoisProg = $f['lieuMoisProg'];
     $flag = $f['flag'];
     $retourFiltres = [
-        'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut,
+        'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
     ];
@@ -686,10 +686,10 @@ function route_structures(): void
                 bulk_undo_memoriser('structures', $ids, ['adresse_localite'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET adresse_localite = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
-            } elseif ($section === 'region') {
-                bulk_undo_memoriser('structures', $ids, ['region'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET region = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_region'] ?? '')], $ids));
+            } elseif ($section === 'departement_canton') {
+                bulk_undo_memoriser('structures', $ids, ['departement_canton'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET departement_canton = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_departement_canton'] ?? '')], $ids));
             } elseif ($section === 'pays') {
                 bulk_undo_memoriser('structures', $ids, ['adresse_pays'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
@@ -769,7 +769,7 @@ function route_structures(): void
         render('structures_liste', [
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'structures' => [], 'nbEvenements' => [],
-            'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'region' => $region,
+            'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'departementCanton' => $departementCanton,
             'tagId' => $tagId, 'statut' => $statut,
             'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
@@ -820,7 +820,7 @@ function route_structures(): void
         $structures = $stmt->fetchAll();
     }
 
-    $regionsDispo = db()->query("SELECT DISTINCT region FROM structures WHERE region <> '' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
+    $regionsDispo = db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN);
     $tagsDispo = module_actif('booking') ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [];
 
     render('structures_liste', [
@@ -832,7 +832,7 @@ function route_structures(): void
         'recherche' => $recherche,
         'categorieId' => $categorieId,
         'pays' => $pays,
-        'region' => $region,
+        'departementCanton' => $departementCanton,
         'tagId' => $tagId,
         'statut' => $statut,
         'lieuType' => $lieuType,
@@ -851,7 +851,7 @@ function route_structures(): void
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
         'pgParams'  => [
-            'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut,
+            'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
         ],
@@ -872,7 +872,7 @@ function route_structures_geocoder(): void
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures', ['vue' => 'carte']); }
     check_csrf();
     $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('structures', 'adresse_localite', 'adresse_pays'));
-    $retour = array_intersect_key($_POST, array_flip(['q', 'categorie_id', 'pays', 'region', 'tag_id', 'statut']));
+    $retour = array_intersect_key($_POST, array_flip(['q', 'categorie_id', 'pays', 'departement_canton', 'tag_id', 'statut']));
     redirect('structures', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
@@ -960,7 +960,7 @@ function route_structure(): void
             'adresse_npa'      => trim($_POST['adresse_npa'] ?? ''),
             'adresse_localite' => trim($_POST['adresse_localite'] ?? ''),
             'adresse_pays'     => trim($_POST['adresse_pays'] ?? '') ?: 'Suisse',
-            'region'           => trim($_POST['region'] ?? ''),
+            'departement_canton' => trim($_POST['departement_canton'] ?? ''),
             'grande_region'    => trim($_POST['grande_region'] ?? ''),
             'site_web'         => trim($_POST['site_web'] ?? ''),
             'via'              => trim($_POST['via'] ?? ''),
@@ -969,7 +969,7 @@ function route_structure(): void
         // Grande région déduite du département/canton quand c'est possible
         // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
         // manuelle dans ce cas, quoi que le formulaire ait envoyé.
-        $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['region']);
+        $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['departement_canton']);
         if ($grandeRegionDeduite !== null) {
             $champs['grande_region'] = $grandeRegionDeduite;
         }
@@ -989,7 +989,7 @@ function route_structure(): void
             $champs['id'] = $id;
             db()->prepare('UPDATE structures SET type=:type, categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom,
                             adresse_rue=:adresse_rue, adresse_npa=:adresse_npa,
-                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, region=:region, grande_region=:grande_region, site_web=:site_web,
+                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, departement_canton=:departement_canton, grande_region=:grande_region, site_web=:site_web,
                             via=:via, notes=:notes
                             WHERE id=:id')->execute($champs);
             // Historique : diff des champs modifiés (module booking).
@@ -997,16 +997,16 @@ function route_structure(): void
                 journaliser_diff('structure', $id, (array) $structure, $champs, [
                     'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
                     'adresse_rue' => 'Rue', 'adresse_npa' => 'NPA', 'adresse_localite' => 'Localité',
-                    'adresse_pays' => 'Pays', 'region' => 'Département / canton', 'grande_region' => 'Région',
+                    'adresse_pays' => 'Pays', 'departement_canton' => 'Département / canton', 'grande_region' => 'Région',
                     'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
                 ]);
             }
         } else {
             // Création : active et non désinscrite par défaut.
             db()->prepare('INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
-                            region, grande_region, site_web, via, notes, actif, desinscrit)
+                            departement_canton, grande_region, site_web, via, notes, actif, desinscrit)
                             VALUES (:type, :categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
-                            :region, :grande_region, :site_web, :via, :notes, 1, 0)')
+                            :departement_canton, :grande_region, :site_web, :via, :notes, 1, 0)')
                 ->execute($champs);
         }
         redirect('structures');

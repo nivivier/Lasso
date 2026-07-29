@@ -158,7 +158,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                 <tbody>
                 <?php foreach ($prochainsEvenements as $ev):
                     $drapeau = pays_drapeau((string) $ev['pays']);
-                    $lieu = trim($ev['ville'] . ($ev['region'] !== '' ? ' (' . $ev['region'] . ')' : ''));
+                    $lieu = trim($ev['ville'] . ($ev['departement_canton'] !== '' ? ' (' . $ev['departement_canton'] . ')' : ''));
                     $salleFestival = implode(', ', array_filter([$ev['salle'], $ev['festival']], fn ($v) => $v !== ''));
                     $estAnnule = $ev['statut'] === 'annule';
                     $dateClasse = 'statut-date-' . evenement_statut_couleur($ev) . ($estAnnule ? ' text-strike' : '');
@@ -167,7 +167,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?>&depuis=dashboard" title="<?= e(evenement_statut_libelle((string) $ev['statut'])) ?>">
                         <td class="small <?= $dateClasse ?>"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
                         <td class="muted col-petit small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
-                        <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?php $villeHtml = ville_region_html((string) $ev['ville'], pays_drapeau((string) $ev['pays']), (string) $ev['pays'], (string) $ev['region']); ?>
+                        <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?php $villeHtml = ville_departement_canton_html((string) $ev['ville'], pays_drapeau((string) $ev['pays']), (string) $ev['pays'], (string) $ev['departement_canton']); ?>
                 	<?= $villeHtml !== '' ? $villeHtml : '—' ?></td>
                         <td class="muted col-petit small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $salleFestival !== '' ? e($salleFestival) : '—' ?></td>
                     </tr>

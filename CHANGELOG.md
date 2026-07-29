@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.11.0] — 2026-07-29
+
+### Modifié
+- **Renommage complet : « region » (canton/département) devient `departement_canton`** — colonnes `evenements`/`structures`/`lieux` (migration_56, `ALTER TABLE ... RENAME COLUMN`, sûr ici : aucune FK ne référence la colonne, pas de vue/trigger), code PHP, champs de formulaire, filtres (URL et session mémorisée), en-tête CSV de l'import/export événements, mapping de colonnes de l'import structures, logs d'historique. Corrige la confusion avec `grande_region` (Romandie, Normandie…) signalée par un utilisateur et confirmée par 122 événements anciens mal renseignés (voir 1.10.3). **Changement de contrat sur l'export public JSON/iCal des événements** : la clé `region` devient `departement_canton` — à adapter côté consommateurs externes du flux le cas échéant.
+- En passant : un bug de variable masquée dans `views/mailing_campagne.php` faisait que le filtre « Département / canton » du mailing affichait en réalité la liste des grandes régions du dernier pays listé, jamais la vraie liste de départements/cantons — corrigé (renommage de la variable de boucle en conflit).
+
 ## [1.10.3] — 2026-07-29
 
 ### Corrigé

@@ -351,6 +351,7 @@ function run_migrations(PDO $pdo): void
         53 => 'migration_53', // module booking : table lieux_geocodage (cache ville+pays → latitude/longitude, vue carte)
         54 => 'migration_54', // module booking : evenements.grande_region (déduite du département/canton, voir grande_region_deduite())
         55 => 'migration_55', // module booking : structures.flag / lieux.flag (marquage rapide étoile/cœur)
+        56 => 'migration_56', // renomme evenements/structures/lieux.region → departement_canton (clarté vs grande_region)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1861,6 +1862,23 @@ function migration_55(PDO $pdo): void
         $cols = array_column($pdo->query("PRAGMA table_info($table)")->fetchAll(), 'name');
         if (!in_array('flag', $cols, true)) {
             $pdo->exec("ALTER TABLE $table ADD COLUMN flag TEXT NOT NULL DEFAULT ''");
+        }
+    }
+}
+
+// Migration 56 : renomme « region » (canton/département) en
+// « departement_canton » sur evenements/structures/lieux — nom sans
+// ambiguïté avec grande_region (Romandie, Normandie…). ALTER TABLE ...
+// RENAME COLUMN est sûr ici (contrairement à RENAME TABLE, voir le gotcha
+// documenté plus haut dans ce fichier) : aucune FK ne référence `region`,
+// pas de vue/trigger dans le schéma — déjà utilisé sans souci par
+// migration_35 (debiteur_id → structure_id).
+function migration_56(PDO $pdo): void
+{
+    foreach (['evenements', 'structures', 'lieux'] as $table) {
+        $cols = array_column($pdo->query("PRAGMA table_info($table)")->fetchAll(), 'name');
+        if (in_array('region', $cols, true) && !in_array('departement_canton', $cols, true)) {
+            $pdo->exec("ALTER TABLE $table RENAME COLUMN region TO departement_canton");
         }
     }
 }

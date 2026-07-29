@@ -144,7 +144,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
             <option value="">— Choisir une action —</option>
             <option value="type">Modifier le type</option>
             <option value="ville">Modifier la ville</option>
-            <option value="region">Modifier la région</option>
+            <option value="departement_canton">Modifier le département / canton</option>
             <option value="pays">Modifier le pays</option>
             <option value="flag">Modifier le flag</option>
             <option value="delete">Supprimer</option>
@@ -158,8 +158,8 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
         <span class="bulk-field" data-for="ville" hidden>
             <input type="text" name="bulk_ville" class="inline-year-select" placeholder="Nouvelle ville">
         </span>
-        <span class="bulk-field" data-for="region" hidden>
-            <input type="text" name="bulk_region" class="inline-year-select" placeholder="Nouvelle région">
+        <span class="bulk-field" data-for="departement_canton" hidden>
+            <input type="text" name="bulk_departement_canton" class="inline-year-select" placeholder="Nouveau département / canton">
         </span>
         <span class="bulk-field" data-for="pays" hidden>
             <select name="bulk_pays" class="inline-year-select"><?= pays_options_nom('') ?></select>
@@ -193,7 +193,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
                 <?php else: ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="small">
-                <?php $villeHtml = ville_region_html((string) $l['ville'], pays_drapeau_nom((string) $l['pays']), (string) $l['pays'], (string) $l['region']); ?>
+                <?php $villeHtml = ville_departement_canton_html((string) $l['ville'], pays_drapeau_nom((string) $l['pays']), (string) $l['pays'], (string) $l['departement_canton']); ?>
                 <?= $villeHtml !== '' ? $villeHtml : '—' ?>
             </td>
             <td class="muted small col-petit"><?= e((string) $l['type']) ?></td>

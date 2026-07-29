@@ -52,8 +52,8 @@ depuis chaque événement qui lui est lié, en lecture seule).
 | `statut` | `option` / `confirme` / `annule` — indépendant de la visibilité (ex. une date `public` peut passer `annule` sans changer de visibilité, cf. §4) |
 | `visibilite` | `public` / `prive` / `non_repertorie` |
 | `ville` | texte libre |
-| `region` | optionnel, canton suisse ou département français (ex. « VD », « 25 ») |
-| `pays` | optionnel, champ propre (distinct de `region` : un même code régional se recoupe entre pays, ex. « FR » = canton de Fribourg ou France — les deux champs séparés lèvent l'ambiguïté) |
+| `departement_canton` | optionnel, canton suisse ou département français (ex. « VD », « 25 ») — renommé depuis `region` (voir CHANGELOG 1.11.0), jamais confondu avec `grande_region` (Romandie, Normandie…) |
+| `pays` | optionnel, champ propre (distinct de `departement_canton` : un même code régional se recoupe entre pays, ex. « FR » = canton de Fribourg ou France — les deux champs séparés lèvent l'ambiguïté) |
 | `salle` | texte libre, optionnel |
 | `festival` | texte libre, optionnel |
 | `lien_infos` | URL « plus d'infos », optionnel — validée comme URL à la saisie (doit commencer par `http://`/`https://`) |
@@ -219,7 +219,7 @@ filtrage côté client :
 
 - Exclus : `visibilite = non_repertorie`, et tout événement en `statut = option` (pas
   encore assez sûr pour être publié).
-- **`public`** : `date`, `ville`, `region` (si renseignée), `pays` (si renseigné),
+- **`public`** : `date`, `ville`, `departement_canton` (si renseigné), `pays` (si renseigné),
   `salle` (si renseignée), `festival` (si renseigné), `lien_infos` + `lien_texte` (si `lien_infos` renseigné —
   `lien_texte` retombe sur le texte par défaut configurable, §7, si vide), nom du
   `spectacle` lié, `remarques`, et un indicateur `annule: true/false` (dérivé de `statut`).
@@ -250,12 +250,12 @@ filtrage côté client :
 
 Onglet Paramètres → Importer (masqué si le module est désactivé, même page partagée
 que les imports fiches/factures/écritures). Colonnes attendues (n'importe quel ordre,
-seules `date`/`ville` obligatoires) : `date, ville, region, pays, lieu, details, type,
+seules `date`/`ville` obligatoires) : `date, ville, departement_canton, pays, lieu, details, type,
 statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée externe.
 
 - **`date`** au format `JJ/MM/AAAA` (pas `AAAA-MM-JJ`) ; une date invalide ou non
   reconnue (ex. « TBA/2027 ») est une ligne en erreur, jamais devinée.
-- **`region`** → `region`, **`pays`** → `pays` (champs propres, cf. §3 — plus de repli
+- **`departement_canton`** → `departement_canton`, **`pays`** → `pays` (champs propres, cf. §3 — plus de repli
   dans les remarques).
 - **`lieu`** → `salle`, **`details`** → `remarques`, **`lien`** → `lien_infos` (ignoré
   s'il n'est pas une URL `http(s)://` valide). **`lien_texte`** → `lien_texte`, le texte

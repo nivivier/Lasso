@@ -170,7 +170,7 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
                     <td class="muted small"><?= e($libellesTable[$l['table']] ?? $l['table']) ?></td>
                     <td><?= e($l['nom']) ?></td>
                     <td class="muted small"><?= e($l['pays']) ?></td>
-                    <td class="muted small"><?= e($l['region']) ?></td>
+                    <td class="muted small"><?= e($l['departement_canton']) ?></td>
                     <td class="muted small"><?= $l['actuelle'] !== '' ? e($l['actuelle']) : '—' ?></td>
                     <td><?= e($l['deduite']) ?></td>
                 </tr>

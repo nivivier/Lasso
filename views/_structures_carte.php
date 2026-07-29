@@ -1,7 +1,7 @@
 <?php
 /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var string $recherche */ /** @var int $categorieId */ /** @var string $pays */
-/** @var string $region */ /** @var int $tagId */ /** @var string $statut */
+/** @var string $departementCanton */ /** @var int $tagId */ /** @var string $statut */
 
 // Popup construit côté serveur (échappement e() habituel) : le JS se contente
 // de l'injecter tel quel, jamais de HTML assemblé côté client.
@@ -27,7 +27,7 @@ $points = array_map(function (array $p): array {
             <input type="hidden" name="q" value="<?= e($recherche) ?>">
             <input type="hidden" name="categorie_id" value="<?= (int) $categorieId ?>">
             <input type="hidden" name="pays" value="<?= e($pays) ?>">
-            <input type="hidden" name="region" value="<?= e($region) ?>">
+            <input type="hidden" name="departement_canton" value="<?= e($departementCanton) ?>">
             <input type="hidden" name="tag_id" value="<?= (int) $tagId ?>">
             <input type="hidden" name="statut" value="<?= e($statut) ?>">
             <button type="submit" id="geocoder-btn"><?= icon('map-pin') ?> Géocoder (par lots, ≈1 seconde par ville)</button>

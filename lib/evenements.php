@@ -509,8 +509,8 @@ function evenement_export_donnees(array $ev): array
     $donnees['prive']   = false;
     $donnees['annule']  = (string) $ev['statut'] === 'annule';
     $donnees['ville']   = (string) ($ev['ville'] ?? '');
-    if (trim((string) ($ev['region'] ?? '')) !== '') {
-        $donnees['region'] = (string) $ev['region'];
+    if (trim((string) ($ev['departement_canton'] ?? '')) !== '') {
+        $donnees['departement_canton'] = (string) $ev['departement_canton'];
     }
     if (trim((string) ($ev['pays'] ?? '')) !== '') {
         $donnees['pays'] = (string) $ev['pays'];
@@ -613,7 +613,7 @@ function evenements_generer_ical(array $items): string
         $lignes[] = 'DTSTART;VALUE=DATE:' . $date;
         $lignes[] = 'SUMMARY:' . evenements_ical_echap($summary);
         if (!$it['prive']) {
-            $suffixe = implode(', ', array_filter([$it['region'] ?? '', $it['pays'] ?? '']));
+            $suffixe = implode(', ', array_filter([$it['departement_canton'] ?? '', $it['pays'] ?? '']));
             $ville = trim((string) ($it['ville'] ?? '')) . ($suffixe !== '' ? ' (' . $suffixe . ')' : '');
             $lieu = trim(($it['salle'] ?? '') !== '' ? ($it['salle'] . ', ' . $ville) : $ville);
             if ($lieu !== '') {
@@ -654,8 +654,8 @@ function normaliser_nom_spectacle(string $s): string
 }
 
 // Importe des événements depuis un CSV d'agenda de tournée (colonnes attendues,
-// dans n'importe quel ordre : date, ville, region, pays, lieu, festival,
-// details, type, statut, lien, lien_texte — seules date/ville sont
+// dans n'importe quel ordre : date, ville, departement_canton, pays, lieu,
+// festival, details, type, statut, lien, lien_texte — seules date/ville sont
 // obligatoires). $simule = true : n'écrit rien, retourne ce qui serait fait.
 // Un événement existant (même date + ville + salle, comparaison insensible à
 // la casse) est ignoré — jamais écrasé, même esprit que
@@ -667,10 +667,10 @@ function normaliser_nom_spectacle(string $s): string
 // voir evenements_lien_texte_defaut()). Visibilité toujours « non_repertorie »
 // à l'import (relecture manuelle avant publication) ; statut « confirme » par
 // défaut si la colonne est vide ou non reconnue. « grande_region » n'est pas
-// une colonne CSV : déduite du couple pays/région importé quand c'est possible
-// (France/Suisse hors cantons bilingues, voir grande_region_deduite()),
-// laissée vide sinon (modifiable ensuite sur la fiche). Renvoie [résultats
-// par ligne, résumé].
+// une colonne CSV : déduite du couple pays/departement_canton importé quand
+// c'est possible (France/Suisse hors cantons bilingues, voir
+// grande_region_deduite()), laissée vide sinon (modifiable ensuite sur la
+// fiche). Renvoie [résultats par ligne, résumé].
 function importer_evenements_csv(string $csv, bool $simule): array
 {
     $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv); // BOM UTF-8 (export Excel)
@@ -695,7 +695,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
         "SELECT 1 FROM evenements WHERE date = ? AND lower(trim(ville)) = lower(trim(?)) AND lower(trim(salle)) = lower(trim(?))"
     );
     $insEv = db()->prepare(
-        "INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, festival, grande_region, lien_infos, lien_texte, remarques)
+        "INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival, grande_region, lien_infos, lien_texte, remarques)
          VALUES (?, ?, ?, 'non_repertorie', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     $insSpec = db()->prepare('INSERT INTO spectacles (nom) VALUES (?)');
@@ -716,7 +716,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
 
             $dateRaw = $col($r, 'date');
             $ville   = $col($r, 'ville');
-            $region  = $col($r, 'region');
+            $departementCanton = $col($r, 'departement_canton');
             $pays    = $col($r, 'pays');
             $pays    = in_array($pays, $paysDisponibles, true) ? $pays : '';
             $lieu    = $col($r, 'lieu');
@@ -768,12 +768,12 @@ function importer_evenements_csv(string $csv, bool $simule): array
             $lienValide = ($lien !== '' && preg_match('#^https?://#i', $lien) && filter_var($lien, FILTER_VALIDATE_URL)) ? $lien : '';
             // Le texte du bouton n'a de sens que si le lien lui-même est valide.
             $lienTexte = $lienValide !== '' ? $lienTexte : '';
-            $grandeRegion = (string) grande_region_deduite($pays, $region);
+            $grandeRegion = (string) grande_region_deduite($pays, $departementCanton);
 
             $ligneRes['statut'] = 'nouveau';
             $resume['nouveaux']++;
             if (!$simule) {
-                $insEv->execute([$spectacleId, $dateIso, $statut, $ville, $region, $pays, $lieu, $festival, $grandeRegion, $lienValide, $lienTexte, $details]);
+                $insEv->execute([$spectacleId, $dateIso, $statut, $ville, $departementCanton, $pays, $lieu, $festival, $grandeRegion, $lienValide, $lienTexte, $details]);
             }
             $resultats[] = $ligneRes;
         }

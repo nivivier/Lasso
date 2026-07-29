@@ -74,7 +74,7 @@ dans tout le schéma — pas de colonne `debiteur_id` résiduelle pointant vers 
 |---|---|
 | *(colonnes existantes inchangées)* | `type` (`organisation`/`particulier`), `nom`, `adresse_*`, `email`, `telephone`, `personne_contact`, `notes`, `actif`, `cree_le` |
 | `categorie` | **nouvelle** — `organisateur` / `media` / `autres` / `entourage`, catégorie à part entière (voir §5, décidé — pas de fusion `entourage`/`autres`). Nom délibérément différent de `type` (collision évitée) |
-| `region` | **nouvelle** — texte libre (ex. « Bretagne », canton suisse), sert de critère de filtre mailing (§7) ; alimentée par l'import (§9, référentiel départements→région) |
+| `departement_canton` | **nouvelle** (renommée depuis `region`, voir CHANGELOG 1.11.0) — texte libre (ex. « 35 », « GE »), sert de critère de filtre mailing (§7) ; alimentée par l'import (§9, référentiel départements→région) |
 | `site_web` | **nouvelle** — URL du site de la structure (champ dédié, voir §9 mapping `Site`) |
 | `dernier_contact_le` | **nouvelle**, dérivée — voir §6, jamais éditée directement en formulaire |
 | `desinscrit` | **nouvelle**, booléen — exclusion mailing (opt-out, §7) |
@@ -114,7 +114,7 @@ simple champ sur `structures`.
 | `id` | |
 | `type` | `salle` / `festival` |
 | `nom` | |
-| `ville` / `region` / `pays` | optionnels, mêmes conventions que `evenements` |
+| `ville` / `departement_canton` / `pays` | optionnels, mêmes conventions que `evenements` |
 | `mois_debut` / `mois_fin` | optionnels, entiers 1–12 — période de programmation pour un festival (ex. avril→septembre), sert de critère de filtre mailing (§7) ; sans objet pour une `salle` |
 | `notes` | libre |
 | `cree_le` | |
@@ -204,10 +204,10 @@ l'historique CRM (visible dans le flux d'une structure) et `dernier_contact_le`.
   d'attente (§7), généré automatiquement au premier accès comme
   `evenements_export_token`, avec bouton « Régénérer ».
 
-### Référentiel régions (optionnel, alimente `region`)
+### Référentiel régions (optionnel, alimente `departement_canton`)
 Petite table statique `departements_regions` (`code`, `departement`, `region`), reprise
 de l'onglet « Régions » du fichier fourni (102 lignes, France) — sert à normaliser le
-champ `region` d'une structure à partir d'un code département lors de l'import (§9),
+champ `departement_canton` d'une structure à partir d'un code département lors de l'import (§9),
 pour que le filtre mailing par région administrative (ex. « Bretagne ») fonctionne même
 si la source n'indique qu'un département ou un code postal. Peuplée une fois à la
 migration, comme `TAUX_DEFAUT` pour les taux de calcul.
@@ -250,7 +250,7 @@ sous une seule liste).
 Combinables (ET logique) :
 - `categorie` (organisateur / media / autres) ;
 - tag(s) (`structure_tags`) — ex. « intéressant pour premières parties » ;
-- région (`structures.region`) ;
+- département/canton (`structures.departement_canton`) ;
 - période de festival : `lieux.mois_debut`/`mois_fin` (via `structure_lieux`, `type =
   festival`) chevauchant une plage de mois donnée (ex. avril→septembre) ;
 - dernier contact (jamais / avant telle date) ;
@@ -393,7 +393,7 @@ le modèle ci-dessus.
     une colonne fermée, correspond exactement au rôle des tags libres du §4. Pour les
     sous-types clairement `Festival`/`Salle de concert`, création simultanée d'un
     `lieux` lié (§4) plutôt qu'un simple tag.
-  - `Ville`, `Dpt Canton`, `Adresse`, `CP`, `Région`, `Pays` → adresse + `region` de la
+  - `Ville`, `Dpt Canton`, `Adresse`, `CP`, `Région`, `Pays` → adresse + `departement_canton` de la
     structure ; `Dpt Canton` (code département) normalisé en région administrative via
     le référentiel `departements_regions` (§4) quand `Région` est vide.
   - `Site` → `structures.site_web` (nouveau champ dédié, décidé, §4).

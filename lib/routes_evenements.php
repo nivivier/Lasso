@@ -179,11 +179,11 @@ function route_evenements_liste(): void
                 bulk_undo_memoriser('evenements', $ids, ['statut'], 'evenements_liste', $retourFiltres);
                 db()->prepare("UPDATE evenements SET statut = ? WHERE id IN ($in)")
                     ->execute(array_merge([$_POST['bulk_statut']], $ids));
-            } elseif ($section === 'region') {
-                $region = trim((string) ($_POST['bulk_region'] ?? ''));
-                bulk_undo_memoriser('evenements', $ids, ['region'], 'evenements_liste', $retourFiltres);
-                db()->prepare("UPDATE evenements SET region = ? WHERE id IN ($in)")
-                    ->execute(array_merge([$region], $ids));
+            } elseif ($section === 'departement_canton') {
+                $departementCanton = trim((string) ($_POST['bulk_departement_canton'] ?? ''));
+                bulk_undo_memoriser('evenements', $ids, ['departement_canton'], 'evenements_liste', $retourFiltres);
+                db()->prepare("UPDATE evenements SET departement_canton = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$departementCanton], $ids));
             } elseif ($section === 'pays') {
                 $pays = valeur_autorisee($_POST['bulk_pays'] ?? '', evenements_pays_disponibles());
                 bulk_undo_memoriser('evenements', $ids, ['pays'], 'evenements_liste', $retourFiltres);
@@ -372,7 +372,7 @@ function route_evenements_export_suisa(): void
     $from = ' FROM evenements e
               LEFT JOIN spectacles s ON s.id = e.spectacle_id
               LEFT JOIN structures d ON d.id = e.organisateur_structure_id';
-    $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.region, e.pays, e.salle, e.festival,
+    $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
                    d.nom AS org_nom, d.type AS org_type, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
                    d.adresse_localite AS org_localite, d.adresse_pays AS org_pays, d.email AS org_email,
@@ -405,7 +405,7 @@ function route_evenements_export_suisa(): void
             $dateAffichee((string) $r['date']),
             $r['spectacle_nom'] ?? '',
             $r['ville'],
-            $r['region'],
+            $r['departement_canton'],
             $r['pays'],
             $r['salle'],
             $r['festival'],
@@ -540,7 +540,7 @@ function route_evenement(): void
     $visibilite = valeur_autorisee($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, 'non_repertorie');
     $spectacleId = ($_POST['spectacle_id'] ?? '') !== '' ? (int) $_POST['spectacle_id'] : null;
     $ville = trim($_POST['ville'] ?? '');
-    $region = trim($_POST['region'] ?? '');
+    $departementCanton = trim($_POST['departement_canton'] ?? '');
     $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
     $salle = trim($_POST['salle'] ?? '');
     $festival = trim($_POST['festival'] ?? '');
@@ -582,14 +582,14 @@ function route_evenement(): void
     // manuelle dans ce cas, quoi que le formulaire ait envoyé. $pays est un
     // code ISO2 ici (evenements_pays_disponibles()) — grande_region_deduite()
     // l'accepte directement, pas de conversion nécessaire.
-    $grandeRegionDeduite = grande_region_deduite($pays, $region);
+    $grandeRegionDeduite = grande_region_deduite($pays, $departementCanton);
     if ($grandeRegionDeduite !== null) {
         $grandeRegion = $grandeRegionDeduite;
     }
 
     $champs = [
         'spectacle_id' => $spectacleId, 'date' => $date, 'statut' => $statut, 'visibilite' => $visibilite,
-        'ville' => $ville, 'region' => $region, 'pays' => $pays, 'salle' => $salle, 'festival' => $festival,
+        'ville' => $ville, 'departement_canton' => $departementCanton, 'pays' => $pays, 'salle' => $salle, 'festival' => $festival,
         'grande_region' => $grandeRegion, 'lieu_id' => $lieuId,
         'lien_infos' => $lienInfos, 'lien_texte' => $lienTexte, 'remarques' => $remarques,
     ];
@@ -601,7 +601,7 @@ function route_evenement(): void
     if ($id) {
         $champs['id'] = $id;
         db()->prepare('UPDATE evenements SET spectacle_id=:spectacle_id, date=:date, statut=:statut,
-                        visibilite=:visibilite, ville=:ville, region=:region, pays=:pays, salle=:salle, festival=:festival,
+                        visibilite=:visibilite, ville=:ville, departement_canton=:departement_canton, pays=:pays, salle=:salle, festival=:festival,
                         grande_region=:grande_region,
                         lieu_id=:lieu_id, lien_infos=:lien_infos, lien_texte=:lien_texte, remarques=:remarques WHERE id=:id')->execute($champs);
         $evenementId = $id;
@@ -609,9 +609,9 @@ function route_evenement(): void
         // suisa_applicable/suisa_envoye_*/suisa_decompte_le gardent leurs valeurs
         // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
         // depuis la carte « Suivi SUISA », visible une fois l'événement créé.
-        db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, festival,
+        db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
                         grande_region, lieu_id, lien_infos, lien_texte, remarques)
-                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :region, :pays, :salle, :festival,
+                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
                         :grande_region, :lieu_id, :lien_infos, :lien_texte, :remarques)')
             ->execute($champs);
         $evenementId = (int) db()->lastInsertId();

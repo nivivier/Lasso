@@ -15,7 +15,7 @@ if ($criteres['tag_id']) {
         if ((int) $t['id'] === (int) $criteres['tag_id']) { $resumeCiblage[] = 'Étiquette : ' . $t['nom']; break; }
     }
 }
-foreach (['pays' => 'Pays', 'grande_region' => 'Région', 'region' => 'Dépt/canton', 'ville' => 'Ville', 'type_lieu' => 'Type de lieu'] as $k => $lib) {
+foreach (['pays' => 'Pays', 'grande_region' => 'Région', 'departement_canton' => 'Dépt/canton', 'ville' => 'Ville', 'type_lieu' => 'Type de lieu'] as $k => $lib) {
     if ($criteres[$k] !== '') { $resumeCiblage[] = $lib . ' : ' . $criteres[$k]; }
 }
 if ($criteres['mois_evenement_debut'] !== '' && $criteres['mois_evenement_fin'] !== '') {
@@ -89,9 +89,9 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
         <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
             <select name="grande_region">
                 <option value="">Toutes</option>
-                <?php foreach ($grandesRegions as $paysNom => $regions): ?>
+                <?php foreach ($grandesRegions as $paysNom => $regionsDuPays): ?>
                     <optgroup label="<?= e($paysNom) ?>">
-                        <?php foreach ($regions as $r): ?>
+                        <?php foreach ($regionsDuPays as $r): ?>
                             <option value="<?= e($r) ?>" <?= $criteres['grande_region'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
                         <?php endforeach; ?>
                     </optgroup>
@@ -99,10 +99,10 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
             </select>
         </label>
         <label>Département / canton
-            <select name="region">
+            <select name="departement_canton">
                 <option value="">Tous</option>
                 <?php foreach ($regions as $r): ?>
-                    <option value="<?= e($r) ?>" <?= $criteres['region'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
+                    <option value="<?= e($r) ?>" <?= $criteres['departement_canton'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
@@ -172,7 +172,7 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
                         <?php if (!$d['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
                     </td>
                     <td class="small">
-                        <?php $villeHtml = ville_region_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['region']); ?>
+                        <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
                         <?= $villeHtml !== '' ? $villeHtml : '—' ?>
                     </td>
                     <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>

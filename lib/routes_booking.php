@@ -301,13 +301,13 @@ function route_parametres_lieux_categories(): void
 // ------------------------------------------------------------- LIEUX (salles/festivals)
 function lieu_creer_depuis_post(string $prefixe): int
 {
-    db()->prepare("INSERT INTO lieux (type, nom, ville, region, pays, mois_debut, mois_fin, notes)
+    db()->prepare("INSERT INTO lieux (type, nom, ville, departement_canton, pays, mois_debut, mois_fin, notes)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
         ->execute([
             lieu_categorie_valide((string) ($_POST[$prefixe . 'type'] ?? '')),
             trim($_POST[$prefixe . 'nom'] ?? ''),
             trim($_POST[$prefixe . 'ville'] ?? ''),
-            trim($_POST[$prefixe . 'region'] ?? ''),
+            trim($_POST[$prefixe . 'departement_canton'] ?? ''),
             trim($_POST[$prefixe . 'pays'] ?? ''),
             ($_POST[$prefixe . 'mois_debut'] ?? '') !== '' ? (int) $_POST[$prefixe . 'mois_debut'] : null,
             ($_POST[$prefixe . 'mois_fin'] ?? '') !== '' ? (int) $_POST[$prefixe . 'mois_fin'] : null,
@@ -467,7 +467,7 @@ function lieux_filtres(): array
 // Retourne [points, nbLieuxNonGeolocalises].
 function lieux_carte_points(string $where, array $params): array
 {
-    [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'region', 'grande_region', 'type']);
+    [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'departement_canton', 'grande_region', 'type']);
     $stmt = db()->prepare("SELECT id, nom, type, ville, pays FROM lieux WHERE ville <> ''" . $where . $rechSql . ' ORDER BY ville, nom');
     $stmt->execute(array_merge($params, $rechParams));
 
@@ -534,10 +534,10 @@ function route_lieux(): void
                 bulk_undo_memoriser('lieux', $ids, ['ville'], 'lieux', $retourFiltres);
                 db()->prepare("UPDATE lieux SET ville = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
-            } elseif ($section === 'region') {
-                bulk_undo_memoriser('lieux', $ids, ['region'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET region = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_region'] ?? '')], $ids));
+            } elseif ($section === 'departement_canton') {
+                bulk_undo_memoriser('lieux', $ids, ['departement_canton'], 'lieux', $retourFiltres);
+                db()->prepare("UPDATE lieux SET departement_canton = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_departement_canton'] ?? '')], $ids));
             } elseif ($section === 'pays') {
                 bulk_undo_memoriser('lieux', $ids, ['pays'], 'lieux', $retourFiltres);
                 db()->prepare("UPDATE lieux SET pays = ? WHERE id IN ($in)")
@@ -598,7 +598,7 @@ function route_lieux(): void
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'region', 'grande_region', 'type']);
+        [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'departement_canton', 'grande_region', 'type']);
         $whereRech = $where . $rechSql;
         $paramsRech = array_merge($params, $rechParams);
 
@@ -725,7 +725,7 @@ function route_lieu(): void
             'type'       => lieu_categorie_valide((string) ($_POST['type'] ?? '')),
             'nom'        => trim($_POST['nom'] ?? ''),
             'ville'      => trim($_POST['ville'] ?? ''),
-            'region'     => trim($_POST['region'] ?? ''),
+            'departement_canton' => trim($_POST['departement_canton'] ?? ''),
             'grande_region' => trim($_POST['grande_region'] ?? ''),
             'pays'       => trim($_POST['pays'] ?? ''),
             'mois_debut' => ($_POST['mois_debut'] ?? '') !== '' ? (int) $_POST['mois_debut'] : null,
@@ -741,7 +741,7 @@ function route_lieu(): void
         // Grande région déduite du département/canton quand c'est possible
         // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
         // manuelle dans ce cas, quoi que le formulaire ait envoyé.
-        $grandeRegionDeduite = grande_region_deduite($champs['pays'], $champs['region']);
+        $grandeRegionDeduite = grande_region_deduite($champs['pays'], $champs['departement_canton']);
         if ($grandeRegionDeduite !== null) {
             $champs['grande_region'] = $grandeRegionDeduite;
         }
@@ -758,7 +758,7 @@ function route_lieu(): void
             // actif n'est PAS touché ici : il est géré à part par le bloc « Statut »
             // de la sidebar (route_lieu_statut), sinon chaque enregistrement de la
             // fiche le réinitialiserait.
-            db()->prepare('UPDATE lieux SET type=:type, nom=:nom, ville=:ville, region=:region, grande_region=:grande_region, pays=:pays,
+            db()->prepare('UPDATE lieux SET type=:type, nom=:nom, ville=:ville, departement_canton=:departement_canton, grande_region=:grande_region, pays=:pays,
                             mois_debut=:mois_debut, mois_fin=:mois_fin,
                             mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
                             jauge_min=:jauge_min, jauge_max=:jauge_max, dernier_concert_le=:dernier_concert_le,
@@ -768,7 +768,7 @@ function route_lieu(): void
             if (module_actif('booking')) {
                 journaliser_diff('lieu', $id, (array) $lieu, $champs, [
                     'nom' => 'Nom', 'type' => 'Type', 'ville' => 'Ville',
-                    'region' => 'Département / canton', 'grande_region' => 'Région', 'pays' => 'Pays',
+                    'departement_canton' => 'Département / canton', 'grande_region' => 'Région', 'pays' => 'Pays',
                     'jauge_min' => 'Jauge min', 'jauge_max' => 'Jauge max',
                     'site_web' => 'Site web', 'notes' => 'Notes',
                 ]);
@@ -778,9 +778,9 @@ function route_lieu(): void
                 }
             }
         } else {
-            db()->prepare('INSERT INTO lieux (type, nom, ville, region, grande_region, pays, mois_debut, mois_fin,
+            db()->prepare('INSERT INTO lieux (type, nom, ville, departement_canton, grande_region, pays, mois_debut, mois_fin,
                             mois_evenement_debut, mois_evenement_fin, jauge_min, jauge_max, dernier_concert_le, site_web, notes)
-                            VALUES (:type, :nom, :ville, :region, :grande_region, :pays, :mois_debut, :mois_fin,
+                            VALUES (:type, :nom, :ville, :departement_canton, :grande_region, :pays, :mois_debut, :mois_fin,
                             :mois_evenement_debut, :mois_evenement_fin, :jauge_min, :jauge_max, :dernier_concert_le, :site_web, :notes)')->execute($champs);
         }
         redirect('lieux');
@@ -1400,7 +1400,7 @@ function route_mailing_campagne(): void
 
     render('mailing_campagne', [
         'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
-        'regions' => db()->query("SELECT DISTINCT region FROM structures WHERE region <> '' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN),
+        'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
         'grandesRegions' => pays_regions_map(), // régions groupées par pays (taxonomie, migration_49)
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
         'typesLieu' => lieu_categories_liste(),
@@ -1458,7 +1458,7 @@ function mailing_criteres_depuis(array $src): array
         'tag_id'         => (int) ($src['tag_id'] ?? 0),
         'pays'           => trim((string) ($src['pays'] ?? '')),
         'grande_region'  => trim((string) ($src['grande_region'] ?? '')),
-        'region'         => trim((string) ($src['region'] ?? '')),
+        'departement_canton' => trim((string) ($src['departement_canton'] ?? '')),
         'ville'          => trim((string) ($src['ville'] ?? '')),
         'type_lieu'      => trim((string) ($src['type_lieu'] ?? '')),
         'mois_debut'     => $src['mois_debut'] ?? '',
@@ -1476,7 +1476,7 @@ function mailing_criteres_depuis(array $src): array
 function mailing_criteres_vers_url(array $criteres): array
 {
     $url = [];
-    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'region', 'ville', 'type_lieu',
+    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'departement_canton', 'ville', 'type_lieu',
               'mois_debut', 'mois_fin', 'mois_evenement_debut', 'mois_evenement_fin', 'contact_avant'] as $k) {
         if (!empty($criteres[$k])) {
             $url[$k] = (string) $criteres[$k];

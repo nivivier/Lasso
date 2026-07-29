@@ -106,7 +106,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
             <label>Département/canton, région et pays
                 <div class="field-pair">
-                    <input name="region" value="<?= $v('region') ?>" placeholder="canton ou département">
+                    <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="canton ou département">
                     <select name="grande_region" class="region-select" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
                         <option value="">— Région —</option>
                         <?= region_options_nom(pays_nom_depuis_code($vRaw('pays')), $v('grande_region')) ?>

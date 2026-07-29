@@ -1,4 +1,4 @@
-date,ville,region,pays,lieu,festival,details,type,statut,lien,lien_texte
+date,ville,departement_canton,pays,lieu,festival,details,type,statut,lien,lien_texte
 30/01/2026,La Chaux-du-Milieu,NE,CH,Moultipass,,,anticoncert,,https://www.moultipass.ch/reservation/,Réserver
 20/04/2026,Carouge,GE,CH,Vibe room,,"émission avec session live, en quatuor",,,,
 25/04/2026,Besançon,25,FR,Espace Culturel Jean Popelin,Festival Faites Moins de Bruit,en acoustique,,,,
