@@ -15,7 +15,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ($v !==
 ?>
 <?php $actionUrl = '?p=lieux'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ((int) ($_GET['lieuxBloquees'] ?? 0) > 0): ?><p class="err flash"><?= (int) $_GET['lieuxBloquees'] ?> lieu(x) non supprimé(s) : une structure y est liée.</p><?php endif; ?>
-<div class="page-head-band">
+<div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
         <h1>Lieux</h1>

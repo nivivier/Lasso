@@ -192,10 +192,24 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 
 /* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. Bascule
    Liste/Carte : .seg-picker (icon_picker(), lib/helpers.php) en liens de
-   navigation plutôt qu'en radios de formulaire — voir views/lieux_liste.php. */
-.carte-lieux { height: 600px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+   navigation plutôt qu'en radios de formulaire — voir views/lieux_liste.php.
+   La carte occupe tout l'espace disponible à droite de la sidebar (position:
+   fixed, hors du flux normal — .content n'a donc plus besoin de hauteur en
+   dessous du bandeau) ; le bandeau d'en-tête flotte par-dessus, fond
+   semi-transparent (.carte-header) plutôt que le fond plein habituel. */
+.page-head-band.carte-header { background: rgba(255, 255, 255, .85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 160px; z-index: 1; }
+.carte-lieux { width: 100%; height: 100%; }
+.carte-banner {
+    position: absolute; bottom: 16px; right: 16px; z-index: 1001; max-width: 340px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 14px 16px;
+}
 .carte-popup-liste { margin: 4px 0 0; padding-left: 18px; max-height: 180px; overflow-y: auto; }
 .carte-popup-liste li { margin-bottom: 2px; }
+@media (max-width: 800px) {
+    .carte-lieux-wrap { left: 0; }
+}
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
