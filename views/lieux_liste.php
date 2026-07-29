@@ -19,15 +19,14 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ($v !==
 <div class="page-head">
     <div class="page-head-title">
         <h1>Lieux</h1>
+        <div class="seg-picker" role="radiogroup" aria-label="Affichage">
+            <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
+            <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
+        </div>
     </div>
     <div class="head-actions">
         <a class="btn" href="?p=lieu"><?= icon('plus') ?><span class="lbl"> Nouveau lieu</span></a>
     </div>
-
-    <nav class="view-tabs">
-        <a href="<?= e($lienVue('liste')) ?>" class="<?= $vue === 'liste' ? 'on' : '' ?>">Liste</a>
-        <a href="<?= e($lienVue('carte')) ?>" class="<?= $vue === 'carte' ? 'on' : '' ?>">Carte</a>
-    </nav>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="lieux">

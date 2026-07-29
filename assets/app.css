@@ -190,17 +190,9 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .param-subtabs a:hover { color: var(--primary-d); background: var(--primary-tint); border-color: var(--primary-tint); text-decoration: none; }
 .param-subtabs a.on { color: #fff; background: var(--primary); border-color: var(--primary); }
 
-/* Bascule Liste / Carte (page Lieux) — même pastille que les sous-onglets Paramètres. */
-.view-tabs { display: flex; gap: 6px; margin: 0 0 14px; flex-basis: 100%; }
-.view-tabs a {
-    padding: 6px 13px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;
-    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill);
-    transition: color .15s, background .15s, border-color .15s;
-}
-.view-tabs a:hover { color: var(--primary-d); background: var(--primary-tint); border-color: var(--primary-tint); text-decoration: none; }
-.view-tabs a.on { color: #fff; background: var(--primary); border-color: var(--primary); }
-
-/* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. */
+/* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. Bascule
+   Liste/Carte : .seg-picker (icon_picker(), lib/helpers.php) en liens de
+   navigation plutôt qu'en radios de formulaire — voir views/lieux_liste.php. */
 .carte-lieux { height: 600px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
 .carte-popup-liste { margin: 4px 0 0; padding-left: 18px; max-height: 180px; overflow-y: auto; }
 .carte-popup-liste li { margin-bottom: 2px; }
@@ -289,16 +281,6 @@ body.auth-bg {
     box-shadow: none;
     border-radius: 0;
 }
-.page-head-band .view-tabs {
-    flex: 1 1 100%;
-    margin: 0 0 12px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    border-radius: 0;
-}
-
 .inline-year-select { font: inherit; font-size: 14.5px; color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
 .inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Sélecteur d'année à côté du titre (Événements, Écritures, etc.) : même
@@ -375,14 +357,14 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: 19px; 
 .seg-picker .seg-btn {
     display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
     width: 46px; height: 38px; margin: 0; background: #fff; border-right: 1px solid var(--line); color: var(--muted);
-    cursor: pointer; transition: background .15s, color .15s;
+    cursor: pointer; transition: background .15s, color .15s; text-decoration: none;
 }
 .seg-btn:last-child { border-right: none; }
 .seg-btn .ico { width: 17px; height: 17px; }
 .seg-btn input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-.seg-btn:hover { background: var(--surface); }
-.seg-btn:has(input:checked) { background: var(--highlight-tint); color: var(--highlight-d); }
-.seg-btn:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: -2px; }
+.seg-btn:hover { background: var(--surface); text-decoration: none; }
+.seg-btn:has(input:checked), .seg-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
+.seg-btn:has(input:focus-visible), .seg-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 /* Style par défaut de tous les champs de saisie du site (pas besoin de le
    répéter par écran/scope). :not(checkbox/radio) — sinon les cases à cocher
