@@ -119,7 +119,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
                         <option value="">Tous</option>
                         <option value="aucun" <?= $flag === 'aucun' ? 'selected' : '' ?>>Non marqués</option>
                         <option value="star" <?= $flag === 'star' ? 'selected' : '' ?>>Étoile</option>
-                        <option value="heart" <?= $flag === 'heart' ? 'selected' : '' ?>>Cœur</option>
+                        <?php /* Cœur temporairement désactivé (voir route_lieu_flag()) */ ?>
                     </select>
                 </label>
             </div>
@@ -168,7 +168,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
             <select name="bulk_flag" class="inline-year-select">
                 <option value="">Aucun</option>
                 <option value="star">Étoile</option>
-                <option value="heart">Cœur</option>
+                <?php /* Cœur temporairement désactivé (voir route_lieu_flag()) */ ?>
             </select>
         </span>
 

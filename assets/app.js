@@ -22,6 +22,30 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Filtres secondaires (.filters-more, ex. ?p=lieux, ?p=structures) : la
+// réserve d'espace sous la ligne de filtres (margin-bottom, voir
+// .filters:has(.filters-more[open]) dans assets/app.css) est une valeur fixe
+// pensée pour un panneau tenant sur une ligne — insuffisante depuis que
+// certaines listes (lieux, structures) ont assez de champs pour que le
+// panneau (position:absolute, largeur plafonnée) s'étale sur plusieurs
+// lignes, ce qui le faisait chevaucher le tableau. On mesure la hauteur
+// réelle du panneau ouvert (variable aussi selon la largeur d'écran) pour
+// ajuster la réserve en conséquence.
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.filters-more').forEach(details => {
+        const body = details.querySelector('.filters-more-body');
+        const filtres = details.closest('.filters');
+        if (!body || !filtres) return;
+        const ajuster = () => {
+            if (!details.open) { filtres.style.removeProperty('margin-bottom'); return; }
+            filtres.style.marginBottom = (body.offsetHeight + 24) + 'px';
+        };
+        details.addEventListener('toggle', ajuster);
+        window.addEventListener('resize', () => { if (details.open) ajuster(); });
+        if (details.open) ajuster();
+    });
+});
+
 // Recherche texte adossée au serveur (?q=), pour les listes paginées : filtrer
 // seulement les lignes déjà chargées dans le DOM laisserait de côté tout ce
 // qui est sur une autre page. Débounce après la dernière frappe puis recharge
@@ -208,7 +232,7 @@ const LASSO_FLAG_ICONES = {
     heart: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>',
 };
 const LASSO_FLAG_LABELS = {
-    star: 'Marqué (étoile) — cliquer pour passer en cœur',
+    star: 'Marqué (étoile) — cliquer pour retirer le marquage',
     heart: 'Marqué (cœur) — cliquer pour retirer le marquage',
     '': 'Non marqué — cliquer pour marquer',
 };

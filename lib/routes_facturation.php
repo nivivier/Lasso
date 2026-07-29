@@ -1061,9 +1061,11 @@ function route_structure_flag(): void
         echo json_encode(['ok' => false]);
         return;
     }
+    // Cœur temporairement désactivé (cycle à 2 états) : réactiver la ligne
+    // 'star' => 'heart' pour reprendre le cycle à 3 états aucun/étoile/cœur.
     $suivant = match ((string) $actuel) {
         ''      => 'star',
-        'star'  => 'heart',
+        // 'star'  => 'heart',
         default => '',
     };
     db()->prepare('UPDATE structures SET flag = ? WHERE id = ?')->execute([$suivant, $id]);

@@ -121,7 +121,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
                         <option value="">Tous</option>
                         <option value="aucun" <?= $flag === 'aucun' ? 'selected' : '' ?>>Non marquées</option>
                         <option value="star" <?= $flag === 'star' ? 'selected' : '' ?>>Étoile</option>
-                        <option value="heart" <?= $flag === 'heart' ? 'selected' : '' ?>>Cœur</option>
+                        <?php /* Cœur temporairement désactivé (voir route_structure_flag()) */ ?>
                     </select>
                 </label>
             </div>
@@ -191,7 +191,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
             <select name="bulk_flag" class="inline-year-select">
                 <option value="">Aucun</option>
                 <option value="star">Étoile</option>
-                <option value="heart">Cœur</option>
+                <?php /* Cœur temporairement désactivé (voir route_structure_flag()) */ ?>
             </select>
         </span>
         <?php if ($tagsDispo || module_actif('booking')): ?>

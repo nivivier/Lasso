@@ -1385,7 +1385,7 @@ function flag_toggle_html(string $table, int $id, string $flag): string
 {
     $icone = $flag === 'heart' ? 'heart' : 'star';
     $label = match ($flag) {
-        'star'  => 'Marqué (étoile) — cliquer pour passer en cœur',
+        'star'  => 'Marqué (étoile) — cliquer pour retirer le marquage',
         'heart' => 'Marqué (cœur) — cliquer pour retirer le marquage',
         default => 'Non marqué — cliquer pour marquer',
     };

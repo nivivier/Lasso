@@ -742,7 +742,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .filters-more summary::before { content: '▸'; display: inline-block; margin-right: 6px; }
 .filters-more[open] summary::before { content: '▾'; }
 .filters-more-body {
-    display: none; position: absolute; top: 100%; right: 0; margin-top: 12px; width: max-content;
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 12px;
+    width: max-content; max-width: min(640px, calc(100vw - 40px));
     gap: 16px; flex-wrap: wrap;
 }
 .filters-more[open] .filters-more-body { display: flex; }
@@ -798,21 +799,24 @@ span + .badge.muted-badge { margin-left: 6px; }
 .tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .tags-liste .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 0; }
 .btn-tag-x { border: none; background: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
-/* Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton à 3
-   états, voir flag_toggle_html() (lib/helpers.php) et lassoInitFlagToggle()
-   (assets/app.js). Gris = aucun ; couleur de mise en évidence = étoile ;
-   --danger = cœur (fill en plus de la couleur : icônes Lucide en fill="none"
-   par défaut, sinon l'état actif ne se distinguerait pas assez du survol). */
+/* Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton
+   cyclé au clic, voir flag_toggle_html() (lib/helpers.php) et
+   lassoInitFlagToggle() (assets/app.js). Cœur temporairement désactivé côté
+   cycle (voir route_lieu_flag()/route_structure_flag()) : le code (icône,
+   classe .flag-heart) reste en place pour une réactivation ultérieure. Gris
+   clair = aucun ; couleur de mise en évidence = étoile (fill en plus de la
+   couleur : icônes Lucide en fill="none" par défaut, sinon l'état actif ne se
+   distinguerait pas assez du survol) ; --danger = cœur. */
 .flag-toggle {
     background: none; border: none; box-shadow: none; padding: 2px; margin: 0;
-    cursor: pointer; color: var(--muted); display: inline-flex; align-items: center;
+    cursor: pointer; color: var(--muted); opacity: .5; display: inline-flex; align-items: center;
     vertical-align: middle; line-height: 0; flex: 0 0 auto;
 }
 .flag-toggle .ico { width: 16px; height: 16px; }
-.flag-toggle:hover { color: var(--ink); }
-.flag-toggle.flag-star { color: var(--highlight); }
+.flag-toggle:hover { opacity: 1; color: var(--highlight); }
+.flag-toggle.flag-star { opacity: 1; color: var(--highlight); }
 .flag-toggle.flag-star .ico { fill: var(--highlight); }
-.flag-toggle.flag-heart { color: var(--danger); }
+.flag-toggle.flag-heart { opacity: 1; color: var(--danger); }
 .flag-toggle.flag-heart .ico { fill: var(--danger); }
 
 /* Flux de notes (fiche structure, booking) : liste chronologique inversée. */

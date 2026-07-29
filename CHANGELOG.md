@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.10.1] — 2026-07-29
+
+### Modifié
+- **Marquage rapide (flag)** : le cœur est temporairement désactivé (cycle limité à aucun/étoile — le code reste en place, en commentaire, pour une réactivation ultérieure). L'étoile non marquée est plus discrète (gris clair) ; au survol, elle s'affiche en contour (sans fond) dans la couleur de mise en évidence.
+- **Filtres de `?p=lieux`/`?p=structures`** : le panneau « Plus de filtres » revient désormais à la ligne au lieu de déborder de l'écran quand il contient beaucoup de champs ; l'espace réservé sous la ligne de filtres s'ajuste à la hauteur réelle du panneau ouvert (variable selon le nombre de champs et la largeur d'écran).
+
 ## [1.10.0] — 2026-07-29
 
 ### Ajouté
