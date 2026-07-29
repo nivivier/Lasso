@@ -23,6 +23,12 @@ $parentOptions = function (int $excludeId) use ($map): string {
     <h1><?= e($termePluriel) ?></h1>
     <div class="head-actions">
         <?php if ($lignes): ?>
+        <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+                            data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
+                            title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+                            data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
+                            title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
         <label class="search-label">
             <input type="search" id="spectacles-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
         </label>

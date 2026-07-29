@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.13.2] — 2026-07-29
+
+### Ajouté
+- **Liens de copie JSON/iCal sur la page Spectacles** : mêmes boutons de copie (déjà présents sur chaque spectacle) désormais aussi en en-tête de page, pour l'export/synchronisation de la liste complète des événements (tous spectacles confondus).
+
+### Modifié
+- **Bandeau de la vue carte** (lieux/structures/événements) : opacité du fond réduite (`.85` → `.50`) pour laisser plus voir la carte sous le bandeau.
+
 ## [1.13.1] — 2026-07-29
 
 ### Corrigé
