@@ -7,6 +7,21 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.6.0] — 2026-07-29
+
+### Modifié
+- **Vue carte des lieux**, finitions suite à la 1.5.12 :
+  - Bascule Liste/Carte remplacée par deux icônes (`seg-picker`, déjà utilisé
+    pour les droits par module/type de structure) directement à côté du
+    titre, au lieu d'onglets texte sous l'en-tête.
+  - La carte occupe désormais tout l'espace disponible à droite de la
+    sidebar (plein écran, sans marge) ; le bandeau d'en-tête (titre, bouton,
+    filtres) flotte par-dessus avec un fond semi-transparent, le bouton
+    « Géocoder » en overlay flottant plutôt que de pousser le contenu.
+  - La dernière vue consultée (liste ou carte) est mémorisée en session et
+    reproposée par défaut à la prochaine visite (`filtre_persistant()`, déjà
+    utilisé par la taille de pagination).
+
 ## [1.5.12] — 2026-07-29
 
 ### Ajouté
