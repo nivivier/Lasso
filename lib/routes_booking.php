@@ -469,7 +469,9 @@ function route_lieux(): void
 {
     require_login();
     $recherche = trim((string) ($_GET['q'] ?? ''));
-    $vue = ($_GET['vue'] ?? '') === 'carte' ? 'carte' : 'liste';
+    // Mémorise la dernière vue utilisée (comme pagination_taille()) : un lien
+    // « Lieux » sans ?vue= explicite (sidebar) rouvre la dernière consultée.
+    $vue = filtre_persistant('vue', 'lieux_vue', 'liste') === 'carte' ? 'carte' : 'liste';
     $pgTaille = pagination_taille('lieux_taille');
 
     // Modification/suppression groupée (sélection + barre flottante), même esprit

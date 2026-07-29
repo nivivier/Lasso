@@ -9,9 +9,12 @@
 $plusFiltres = $ville !== '' || $pays !== '' || $grandeRegion !== '' || $jaugeMin !== null || $jaugeMax !== null || $moisEvenement || $moisProg;
 $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !== 'actif';
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change.
+// vue toujours explicite dans les deux sens (même « liste ») : c'est ce qui
+// permet à filtre_persistant() (route_lieux()) de mémoriser le choix — un lien
+// omettant vue= au profit du défaut ne mettrait à jour la session que dans un sens.
 $qsSansVue = $_GET;
 unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
-$lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ($v !== 'liste' ? ['vue' => $v] : []));
+$lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' => $v]);
 ?>
 <?php $actionUrl = '?p=lieux'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ((int) ($_GET['lieuxBloquees'] ?? 0) > 0): ?><p class="err flash"><?= (int) $_GET['lieuxBloquees'] ?> lieu(x) non supprimé(s) : une structure y est liée.</p><?php endif; ?>
