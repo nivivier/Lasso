@@ -398,7 +398,7 @@ function region_options_nom(string $paysNom, string $selected): string
 // Cantons suisses non ambigus (français d'un seul côté de la barrière
 // linguistique) → grande région déduite avec certitude.
 const CANTONS_SUISSES_REGIONS = [
-    'GE' => 'Genève',
+    'GE' => 'Romandie',
     'VD' => 'Romandie', 'NE' => 'Romandie', 'JU' => 'Romandie',
     'TI' => 'Tessin',
     'ZH' => 'Alémanique', 'BS' => 'Alémanique', 'BL' => 'Alémanique',

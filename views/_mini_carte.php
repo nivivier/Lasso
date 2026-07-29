@@ -23,7 +23,9 @@ $geo = geocodage_lire($miniCarteVille, $miniCartePays);
         }).addTo(map);
         var pos = [<?= (float) $geo['latitude'] ?>, <?= (float) $geo['longitude'] ?>];
         L.marker(pos).addTo(map);
-        map.setView(pos, 12);
+        // Zoom volontairement large : situer la ville dans le pays, pas la
+        // localiser précisément dans la rue.
+        map.setView(pos, 7);
     })();
     </script>
 <?php else: ?>

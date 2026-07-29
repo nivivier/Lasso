@@ -7,6 +7,17 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.7.2] — 2026-07-29
+
+### Corrigé
+- **Grande région du canton de Genève (GE)** : déduite à tort comme « Genève »
+  (catégorie distincte) au lieu de « Romandie » — confirmé par les données
+  déjà en base, où l'écrasante majorité des fiches en canton GE utilisaient
+  déjà « Romandie » (1 seule fiche sur 178 structures avait « Genève »).
+  Cette erreur avait gonflé le rapport du script Dev (Paramètres → Dev) de
+  ~220 « écarts » qui n'en étaient pas — non appliqués, aucune donnée
+  touchée.
+
 ## [1.7.1] — 2026-07-29
 
 ### Ajouté
