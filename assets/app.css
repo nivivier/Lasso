@@ -211,6 +211,10 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     .carte-lieux-wrap { left: 0; }
 }
 
+/* Mini-carte de localisation (?p=lieu, ?p=structure, ?p=evenement), voir
+   views/_mini_carte.php — un seul marqueur, pas de fond plein écran. */
+.mini-carte { width: 100%; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
 .burger, .side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }

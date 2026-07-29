@@ -844,6 +844,28 @@ function route_lieux_geocoder(): void
     redirect('lieux', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
+// Géocode une seule ville (bouton « Géocoder cette ville », mini-carte de
+// localisation sur ?p=lieu/?p=structure/?p=evenement — voir _mini_carte.php).
+// $retour_route est restreint à une liste blanche : jamais d'URL arbitraire
+// fournie par le POST (redirect() reconstruit l'URL depuis la route + id).
+function route_geocoder_ville_unique(): void
+{
+    require_login();
+    $retourRoute = in_array($_POST['retour_route'] ?? '', ['lieu', 'structure', 'evenement'], true)
+        ? $_POST['retour_route'] : 'resumes';
+    $retourId = (int) ($_POST['retour_id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect($retourRoute, $retourId ? ['id' => $retourId] : []);
+    }
+    check_csrf();
+    $ville = trim($_POST['ville'] ?? '');
+    $pays = trim($_POST['pays'] ?? '');
+    if ($ville !== '') {
+        geocodage_geocoder_ville($ville, $pays);
+    }
+    redirect($retourRoute, $retourId ? ['id' => $retourId] : []);
+}
+
 // Bascule immédiate actif/inactif d'un lieu (bloc « Statut » de la sidebar),
 // sans passer par le bouton Enregistrer de la fiche (cf. route_structure_statut).
 function route_lieu_statut(): void

@@ -142,6 +142,19 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     </form>
 </div>
 
+<?php if ($isEdit && trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
+<div class="card mt-22">
+    <h2 class="mt-0">Localisation</h2>
+    <?php
+    $miniCarteVille = (string) $evenement['ville'];
+    $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
+    $miniCarteRetourRoute = 'evenement';
+    $miniCarteRetourId = (int) $id;
+    require __DIR__ . '/_mini_carte.php';
+    ?>
+</div>
+<?php endif; ?>
+
 <?php if ($isEdit): ?>
 <div class="card mt-22">
     <div class="page-head">

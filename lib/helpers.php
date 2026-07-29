@@ -50,7 +50,12 @@ function send_security_headers(): void
 {
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');
-    header('Referrer-Policy: same-origin');
+    // strict-origin-when-cross-origin (et non same-origin) : les tuiles de la
+    // carte des lieux (tile.openstreetmap.org) exigent un Referer identifiant
+    // le site appelant — same-origin le supprimait entièrement en cross-origin,
+    // ce qui fait échouer leur politique d'usage. Cette politique n'envoie que
+    // l'origine (jamais le chemin/la query) en cross-origin, HTTPS→HTTPS.
+    header('Referrer-Policy: strict-origin-when-cross-origin');
     // HSTS : impose HTTPS au navigateur pendant 1 an (uniquement servi en HTTPS).
     if (is_https()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');

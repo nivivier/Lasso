@@ -7,6 +7,22 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.7.1] — 2026-07-29
+
+### Ajouté
+- **Mini-carte de localisation** sur les fiches lieu, structure et événement
+  (`?p=lieu`, `?p=structure`, `?p=evenement`) : un marqueur sur la ville déjà
+  géolocalisée (même cache `lieux_geocodage` que la vue carte des lieux), ou
+  un bouton « Géocoder cette ville » si elle n'y est pas encore.
+
+### Corrigé
+- **Tuiles de la carte toujours invisibles malgré le fix CSP de la 1.7.0** :
+  l'en-tête `Referrer-Policy: same-origin` supprimait le Referer sur toute
+  requête cross-origin, or la politique d'usage de Nominatim/OpenStreetMap
+  l'exige pour identifier le site appelant. Remplacé par
+  `strict-origin-when-cross-origin` (n'envoie que l'origine en cross-origin,
+  jamais le chemin/la requête — toujours HTTPS→HTTPS uniquement).
+
 ## [1.7.0] — 2026-07-29
 
 ### Ajouté

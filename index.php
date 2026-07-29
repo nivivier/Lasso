@@ -232,6 +232,16 @@ if (module_actif('evenements')) {
     $handlers['evenements_ical'] = 'route_evenements_ical';
 }
 
+// Géocodage d'une seule ville (mini-carte de localisation sur ?p=lieu,
+// ?p=structure, ?p=evenement) : commun aux deux modules, accessible dès que
+// l'un des deux est actif — écriture sur l'un ou l'autre suffit (le
+// géocodage n'écrit que dans le cache partagé lieux_geocodage, jamais dans
+// la fiche lieu/structure/événement elle-même).
+if (module_actif('booking') || module_actif('evenements')) {
+    $handlers['geocoder_ville_unique'] = 'route_geocoder_ville_unique';
+    $routeModules['geocoder_ville_unique'] = ['booking', 'evenements'];
+}
+
 // Cœur : lecture pour consulter les pages de contenu (informations
 // employeur, e-mails, exports), écriture réservée à l'administration au
 // sens strict (comptes, permissions, modules actifs, mises à jour,

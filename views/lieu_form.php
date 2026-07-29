@@ -192,6 +192,18 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
 <?php if ($avecAside): ?>
 </div>
 <aside class="struct-aside">
+    <?php if (trim((string) ($lieu['ville'] ?? '')) !== ''): ?>
+    <section class="aside-block">
+        <h3 class="sub mt-0">Localisation</h3>
+        <?php
+        $miniCarteVille = (string) $lieu['ville'];
+        $miniCartePays = (string) ($lieu['pays'] ?? '');
+        $miniCarteRetourRoute = 'lieu';
+        $miniCarteRetourId = (int) ($lieu['id'] ?? 0);
+        require __DIR__ . '/_mini_carte.php';
+        ?>
+    </section>
+    <?php endif; ?>
     <section class="aside-block">
         <h3 class="sub mt-0">Statut</h3>
         <form method="post" action="?p=lieu_statut" id="lieu-statut-form">

@@ -145,6 +145,19 @@ $sid = (int) ($structure['id'] ?? 0);
 </div>
 <aside class="struct-aside">
 
+<?php if (trim((string) ($structure['adresse_localite'] ?? '')) !== ''): ?>
+<section class="aside-block">
+    <h2 class="mt-0">Localisation</h2>
+    <?php
+    $miniCarteVille = (string) $structure['adresse_localite'];
+    $miniCartePays = (string) ($structure['adresse_pays'] ?? 'Suisse');
+    $miniCarteRetourRoute = 'structure';
+    $miniCarteRetourId = $sid;
+    require __DIR__ . '/_mini_carte.php';
+    ?>
+</section>
+<?php endif; ?>
+
 <section class="aside-block">
     <h2 class="mt-0">Statut</h2>
     <form method="post" action="?p=structure_statut" id="statut-form">
