@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.12.2] — 2026-07-29
+
+### Ajouté
+- **Aperçu de l'import CSV événements complet** : la table de résultats (simulation et import réel) affiche désormais toutes les colonnes lues (département/canton, pays, festival, spectacle, statut CSV brut, détails, lien) au lieu de seulement date/ville/lieu — plus facile à vérifier avant de confirmer un import.
+
+### Sécurité
+- Le lien affiché dans l'aperçu n'est rendu cliquable que s'il passe la même validation `http(s)://` déjà appliquée à l'import réel — sinon affiché en texte brut échappé (« invalide »), pour éviter qu'un CSV malveillant (ex. `javascript:`) ne produise un lien cliquable dans l'aperçu.
+
 ## [1.12.1] — 2026-07-29
 
 ### Corrigé

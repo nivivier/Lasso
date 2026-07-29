@@ -673,7 +673,9 @@ function normaliser_nom_spectacle(string $s): string
 // une colonne CSV : déduite du couple pays/departement_canton importé quand
 // c'est possible (France/Suisse hors cantons bilingues, voir
 // grande_region_deduite()), laissée vide sinon (modifiable ensuite sur la
-// fiche). Renvoie [résultats par ligne, résumé].
+// fiche). Renvoie [résultats par ligne, résumé] — chaque ligne de résultat
+// porte toutes les colonnes lues (voir views/_import_evenements_section.php),
+// pas seulement date/ville/lieu.
 function importer_evenements_csv(string $csv, bool $simule): array
 {
     $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv); // BOM UTF-8 (export Excel)
@@ -730,11 +732,18 @@ function importer_evenements_csv(string $csv, bool $simule): array
             $festival = $col($r, 'festival');
             $details = $col($r, 'details');
             $type    = $col($r, 'type');
-            $statutRaw = mb_strtolower($col($r, 'statut'), 'UTF-8');
+            $statutBrut = $col($r, 'statut');
+            $statutRaw = mb_strtolower($statutBrut, 'UTF-8');
             $lien    = $col($r, 'lien');
             $lienTexte = $col($r, 'lien_texte');
 
-            $ligneRes = ['date' => $dateRaw, 'ville' => $ville, 'lieu' => $lieu];
+            // Toutes les colonnes lues, pour l'aperçu détaillé de l'import
+            // (?p=maj#import, tab Importer) — pas seulement date/ville/lieu.
+            $ligneRes = [
+                'date' => $dateRaw, 'ville' => $ville, 'departement_canton' => $departementCanton,
+                'pays' => $pays, 'lieu' => $lieu, 'festival' => $festival, 'type' => $type,
+                'statut_csv' => $statutBrut, 'details' => $details, 'lien' => $lien, 'lien_texte' => $lienTexte,
+            ];
             $dateIso = date_csv_vers_iso($dateRaw);
             if ($dateIso === null || $ville === '') {
                 $ligneRes['statut'] = 'erreur';

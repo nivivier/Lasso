@@ -39,7 +39,11 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
         <div class="table-scroll">
         <table class="list">
             <thead>
-                <tr><th>Date</th><th>Ville</th><th>Lieu</th><th>Import</th></tr>
+                <tr>
+                    <th>Date</th><th>Ville</th><th>Dép./canton</th><th>Pays</th><th>Lieu</th>
+                    <th>Festival</th><th><?= e(mb_convert_case($termeSingulier, MB_CASE_TITLE, 'UTF-8')) ?></th><th>Statut</th>
+                    <th>Détails</th><th>Lien</th><th>Import</th>
+                </tr>
             </thead>
             <tbody>
             <?php foreach ($resultatsEvenements as $r): ?>
@@ -50,7 +54,21 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
                 <tr class="<?= $r['statut'] === 'erreur' ? 'inactif' : '' ?>">
                     <td><?= e($r['date']) ?: '—' ?></td>
                     <td><?= e($r['ville']) ?: '—' ?></td>
+                    <td class="muted small"><?= e($r['departement_canton']) ?: '—' ?></td>
+                    <td class="muted small"><?= e($r['pays']) ?: '—' ?></td>
                     <td class="muted small"><?= e($r['lieu']) ?: '—' ?></td>
+                    <td class="muted small"><?= e($r['festival']) ?: '—' ?></td>
+                    <td class="muted small"><?= e($r['type']) ?: '—' ?></td>
+                    <td class="muted small"><?= e($r['statut_csv']) ?: '—' ?></td>
+                    <td class="muted small"><?= e($r['details']) ?: '—' ?></td>
+                    <?php $lienValide = ($r['lien'] !== '' && preg_match('#^https?://#i', $r['lien']) && filter_var($r['lien'], FILTER_VALIDATE_URL)) ? $r['lien'] : ''; ?>
+                    <td class="muted small">
+                        <?php if ($lienValide !== ''): ?>
+                            <a href="<?= e($lienValide) ?>" target="_blank" rel="noopener"><?= e($r['lien_texte'] ?: 'lien') ?></a>
+                        <?php elseif ($r['lien'] !== ''): ?>
+                            <?= e($r['lien']) ?> <span class="muted small">(invalide)</span>
+                        <?php else: ?>—<?php endif; ?>
+                    </td>
                     <td>
                         <span class="badge <?= $cls ?>"><?= e($lib) ?></span>
                         <?php if (!empty($r['detail']) && $r['statut'] !== 'nouveau'): ?>
