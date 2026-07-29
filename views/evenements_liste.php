@@ -6,20 +6,30 @@
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */
 /** @var ?int $prodExterneOk */ /** @var ?int $prodExterneBloques */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
+/** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 $statutsSuisa = [
     'tous' => 'Tous', 'a_venir' => 'À venir', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
     'abandonne' => 'Abandonné', 'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
 ];
 $termePluriel = evenements_terme_spectacle();
 $termeSingulier = evenements_terme_spectacle(false);
+// Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
+// (voir views/lieux_liste.php pour le même principe).
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
+$lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVue + ['vue' => $v]);
 ?>
 <?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ($prodExterneOk): ?><p class="flash"><?= (int) $prodExterneOk ?> événement(s) passé(s) en « Production externe ».</p><?php endif; ?>
 <?php if ($prodExterneBloques): ?><p class="err flash"><?= (int) $prodExterneBloques ?> événement(s) non modifié(s) : une prestation liée est déjà sur une fiche payée (figée, jamais modifiée).</p><?php endif; ?>
-<div class="page-head-band">
+<div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
         <h1>Événements</h1>
+        <div class="seg-picker" role="radiogroup" aria-label="Affichage">
+            <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
+            <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
+        </div>
         <form method="get">
             <input type="hidden" name="p" value="evenements_liste">
             <input type="hidden" name="statut_suisa" value="<?= e($statutSuisa) ?>">
@@ -29,6 +39,7 @@ $termeSingulier = evenements_terme_spectacle(false);
             <input type="hidden" name="pays" value="<?= e($pays) ?>">
             <input type="hidden" name="salaries" value="<?= e($salaries) ?>">
             <input type="hidden" name="q" value="<?= e($recherche) ?>">
+            <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
@@ -54,6 +65,7 @@ $termeSingulier = evenements_terme_spectacle(false);
     <form method="get" class="filters">
         <input type="hidden" name="p" value="evenements_liste">
         <input type="hidden" name="annee" value="<?= (int) $annee ?>">
+        <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Tous</option>
@@ -111,7 +123,9 @@ $termeSingulier = evenements_terme_spectacle(false);
 </div>
 </div>
 
-<?php if (!$evenements): ?>
+<?php if ($vue === 'carte'): ?>
+    <?php require __DIR__ . '/_evenements_carte.php'; ?>
+<?php elseif (!$evenements): ?>
     <p class="muted">Aucun événement pour cette sélection.</p>
 <?php else: ?>
 <div class="bulk-bar" id="bulk-bar" hidden>

@@ -835,7 +835,7 @@ function route_lieux_geocoder(): void
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux', ['vue' => 'carte']); }
     check_csrf();
-    $n = geocodage_traiter_lot();
+    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('lieux', 'ville', 'pays'));
     // Reprend les filtres actifs (transmis en champs cachés par la vue carte) pour
     // que le clic « Géocoder » n'en fasse pas perdre le fil.
     $retour = array_intersect_key($_POST, array_flip([

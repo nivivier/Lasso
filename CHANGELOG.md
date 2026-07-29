@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.8.0] — 2026-07-29
+
+### Ajouté
+- **Vue carte pour Structures et Événements** (`?p=structures`, `?p=evenements_liste`), même principe que la carte des lieux (1.5.12) : bascule Liste/Carte (icônes à côté du titre), mêmes filtres actifs, un marqueur par ville géolocalisée (popup listant les fiches), bouton « Géocoder » par lots pour les villes manquantes.
+  - `carte_points_grouper()` (`lib/geocodage.php`) factorise le regroupement par ville géolocalisée, partagé par les 3 modules.
+  - `evenements.pays` (code ISO2) converti en nom avant la clé de cache, cohérent avec structures/lieux qui stockent le nom.
+  - `geocodage_villes_manquantes()`/`geocodage_traiter_lot()` généralisés (table/colonnes ou callable en paramètre) pour servir les 3 modules sans dupliquer la logique de lot.
+
 ## [1.7.2] — 2026-07-29
 
 ### Corrigé

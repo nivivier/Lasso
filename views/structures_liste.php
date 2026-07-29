@@ -3,7 +3,14 @@
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
-/** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */ ?>
+/** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
+/** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
+// Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
+// (voir views/lieux_liste.php pour le même principe).
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
+$lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['vue' => $v]);
+?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ($tagBulk !== null): ?>
 <p class="ok flash">
@@ -15,10 +22,14 @@
 </p>
 <?php endif; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
-<div class="page-head-band">
+<div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
         <h1>Structures</h1>
+        <div class="seg-picker" role="radiogroup" aria-label="Affichage">
+            <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
+            <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
+        </div>
     </div>
     <div class="head-actions">
         <a class="btn" href="?p=structure"><?= icon('user-plus') ?><span class="lbl"> Nouvelle structure</span></a>
@@ -26,6 +37,7 @@
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="structures">
+        <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
         <label>Catégorie
             <select name="categorie_id" onchange="this.form.submit()">
                 <option value="0">Toutes</option>
@@ -77,7 +89,9 @@
 </div>
 </div>
 
-<?php if (!$structures): ?>
+<?php if ($vue === 'carte'): ?>
+    <?php require __DIR__ . '/_structures_carte.php'; ?>
+<?php elseif (!$structures): ?>
     <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $region !== '' || $tagId): ?>
         <p class="muted">Aucune structure ne correspond à cette recherche.</p>
     <?php else: ?>

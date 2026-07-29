@@ -482,10 +482,11 @@ function route_facture_rappel(): void
 
 // --- Structures (ex-débiteurs) : liste/fiche partagées entre les modules
 // facturation et booking (voir SPEC_BOOKING.md §3) --------------------------
-function route_structures(): void
+// Filtres de la liste des structures (?p=structures) — factorisé pour être
+// réutilisé par la vue carte (mêmes critères, résultat non paginé, voir
+// structures_carte_points()).
+function structures_filtres(): array
 {
-    require_login();
-    $recherche = trim((string) ($_GET['q'] ?? ''));
     $categorieId = (int) ($_GET['categorie_id'] ?? 0);
     $categorieChamps = structure_categorie_champs($categorieId);
     $categorie = $categorieChamps['categorie'];
@@ -496,7 +497,75 @@ function route_structures(): void
     // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
     // travail courant) ; 'inactif' ou 'tous' pour les voir.
     $statut = valeur_autorisee((string) ($_GET['statut'] ?? ''), ['actif', 'inactif', 'tous'], 'actif');
+
+    $where = ' WHERE 1=1';
+    $params = [];
+    if ($categorie !== '') {
+        $where .= ' AND s.categorie = ?';
+        $params[] = $categorie;
+    }
+    if ($sousCategorie !== '') {
+        $where .= ' AND s.sous_categorie = ?';
+        $params[] = $sousCategorie;
+    }
+    if ($pays !== '') {
+        $where .= ' AND s.adresse_pays = ?';
+        $params[] = $pays;
+    }
+    if ($region !== '') {
+        $where .= ' AND s.region = ?';
+        $params[] = $region;
+    }
+    if ($tagId) {
+        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
+        $params[] = $tagId;
+    }
+    if ($statut === 'actif') {
+        $where .= ' AND s.actif = 1';
+    } elseif ($statut === 'inactif') {
+        $where .= ' AND s.actif = 0';
+    }
+
+    return [
+        'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
+        'pays' => $pays, 'region' => $region, 'tagId' => $tagId, 'statut' => $statut,
+    ];
+}
+
+// Points de la vue carte (?p=structures&vue=carte) : structures filtrées
+// (mêmes critères que la liste), groupées par ville géolocalisée — jamais
+// paginé (voir carte_points_grouper(), lib/geocodage.php). Retourne
+// [points, nbNonGeolocalises].
+function structures_carte_points(string $where, array $params): array
+{
+    [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email']);
+    $stmt = db()->prepare(
+        "SELECT s.id, s.nom, s.categorie, s.adresse_localite AS ville, s.adresse_pays AS pays
+         FROM structures s" . $where . " AND s.adresse_localite <> ''" . $rechSql . ' ORDER BY s.adresse_localite, s.nom'
+    );
+    $stmt->execute(array_merge($params, $rechParams));
+    return carte_points_grouper(
+        $stmt->fetchAll(),
+        fn ($r) => ['id' => (int) $r['id'], 'nom' => (string) $r['nom'], 'type' => (string) $r['categorie']]
+    );
+}
+
+function route_structures(): void
+{
+    require_login();
+    $recherche = trim((string) ($_GET['q'] ?? ''));
+    // Mémorise la dernière vue utilisée (comme lieux) : un lien « Structures »
+    // sans ?vue= explicite (sidebar) rouvre la dernière consultée.
+    $vue = filtre_persistant('vue', 'structures_vue', 'liste') === 'carte' ? 'carte' : 'liste';
     $pgTaille = pagination_taille('structures_taille');
+    $f = structures_filtres();
+    $where = $f['where'];
+    $params = $f['params'];
+    $categorieId = $f['categorieId'];
+    $pays = $f['pays'];
+    $region = $f['region'];
+    $tagId = $f['tagId'];
+    $statut = $f['statut'];
     $retourFiltres = ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
@@ -627,32 +696,19 @@ function route_structures(): void
         redirect('structures', $retourFiltres);
     }
 
-    $where = ' WHERE 1=1';
-    $params = [];
-    if ($categorie !== '') {
-        $where .= ' AND s.categorie = ?';
-        $params[] = $categorie;
-    }
-    if ($sousCategorie !== '') {
-        $where .= ' AND s.sous_categorie = ?';
-        $params[] = $sousCategorie;
-    }
-    if ($pays !== '') {
-        $where .= ' AND s.adresse_pays = ?';
-        $params[] = $pays;
-    }
-    if ($region !== '') {
-        $where .= ' AND s.region = ?';
-        $params[] = $region;
-    }
-    if ($tagId) {
-        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
-        $params[] = $tagId;
-    }
-    if ($statut === 'actif') {
-        $where .= ' AND s.actif = 1';
-    } elseif ($statut === 'inactif') {
-        $where .= ' AND s.actif = 0';
+    if ($vue === 'carte') {
+        [$cartePoints, $carteVillesManquantes] = structures_carte_points($where, $params);
+        render('structures_liste', [
+            'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
+            'structures' => [], 'nbEvenements' => [],
+            'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'region' => $region,
+            'tagId' => $tagId, 'statut' => $statut,
+            'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
+            'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
+            'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
+            'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
+        ], 'Structures');
+        return;
     }
 
     $stmtTotStruct = db()->prepare('SELECT COUNT(*) FROM structures s' . $where);
@@ -697,6 +753,9 @@ function route_structures(): void
     $tagsDispo = module_actif('booking') ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [];
 
     render('structures_liste', [
+        'vue' => $vue,
+        'cartePoints' => [],
+        'carteVillesManquantes' => 0,
         'structures' => $structures,
         'nbEvenements' => structures_nb_evenements(array_column($structures, 'id')),
         'recherche' => $recherche,
@@ -721,6 +780,18 @@ function route_structures(): void
         'okAnnule'  => ($_GET['ok'] ?? '') === 'annule',
         'structBloquees' => isset($_GET['structBloquees']) ? (int) $_GET['structBloquees'] : 0,
     ], 'Structures');
+}
+
+// Géocode un lot de villes de structures encore manquantes (bouton de la vue
+// carte, ?p=structures&vue=carte) — même principe que route_lieux_geocoder().
+function route_structures_geocoder(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures', ['vue' => 'carte']); }
+    check_csrf();
+    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('structures', 'adresse_localite', 'adresse_pays'));
+    $retour = array_intersect_key($_POST, array_flip(['q', 'categorie_id', 'pays', 'region', 'tag_id', 'statut']));
+    redirect('structures', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
 // Données CRM de la fiche (booking) : contacts, flux de notes, tags, lieux

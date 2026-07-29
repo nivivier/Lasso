@@ -152,13 +152,14 @@ ajouter_routes_module($handlers, $routeModules, 'facturation', [
 // import) restent réservés au module booking, ci-dessous.
 if (module_actif('facturation') || module_actif('booking')) {
     $handlers['structures']      = 'route_structures';
+    $handlers['structures_geocoder'] = 'route_structures_geocoder';
     $handlers['structure']       = 'route_structure';
     $handlers['structure_renommer'] = 'route_structure_renommer';
     $handlers['structure_statut'] = 'route_structure_statut';
     $handlers['structure_delete'] = 'route_structure_delete';
     $handlers['structure_fusion'] = 'route_structure_fusion';
     $handlers['structure_transformer'] = 'route_structure_transformer';
-    foreach (['structures', 'structure', 'structure_renommer', 'structure_statut', 'structure_delete', 'structure_fusion', 'structure_transformer'] as $r) {
+    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_delete', 'structure_fusion', 'structure_transformer'] as $r) {
         $routeModules[$r] = ['facturation', 'booking'];
     }
 }
@@ -203,6 +204,7 @@ if (module_actif('booking')) {
 ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenements'         => 'route_evenements',
     'evenements_liste'   => 'route_evenements_liste',
+    'evenements_geocoder' => 'route_evenements_geocoder',
     'evenements_export_suisa' => 'route_evenements_export_suisa',
     'evenement'          => 'route_evenement',
     'evenement_delete'   => 'route_evenement_delete',

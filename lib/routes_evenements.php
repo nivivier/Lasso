@@ -140,6 +140,9 @@ function route_evenements_liste(): void
     $statut = $f['statut']; $visibilite = $f['visibilite']; $pays = $f['pays']; $salaries = $f['salaries'];
     $recherche = $f['q'];
     $retourFiltres = $f;
+    // Mémorise la dernière vue utilisée (comme lieux/structures) : un lien
+    // « Événements » sans ?vue= explicite (sidebar) rouvre la dernière consultée.
+    $vue = filtre_persistant('vue', 'evenements_vue', 'liste') === 'carte' ? 'carte' : 'liste';
 
     // Modification groupée (sélection de lignes + barre flottante, même esprit que
     // le lettrage/l'axe analytique en masse sur les écritures comptables).
@@ -250,6 +253,23 @@ function route_evenements_liste(): void
     }
 
     $spectacleMap = spectacle_map();
+
+    if ($vue === 'carte') {
+        [$whereCarte, $paramsCarte] = evenements_where_filtres($f, $spectacleMap, true);
+        [$cartePoints, $carteVillesManquantes] = evenements_carte_points($whereCarte, $paramsCarte);
+        render('evenements_liste', [
+            'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
+            'evenements' => [], 'annee' => $annee, 'annees' => $annees ?: [(int) date('Y')],
+            'statutSuisa' => $statutSuisa, 'spectacleId' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
+            'spectacles' => [], 'spectaclesFiltre' => spectacles_pour_filtre($spectacleMap),
+            'paysDisponibles' => evenements_pays_disponibles(), 'pays' => $pays, 'salaries' => $salaries,
+            'recherche' => $recherche, 'modeClient' => true,
+            'bulkCount' => null, 'okAnnule' => false, 'prodExterneOk' => null, 'prodExterneBloques' => null,
+            'pgRoute' => 'evenements_liste', 'pgParams' => $retourFiltres, 'pgPage' => 1, 'pgTaille' => pagination_taille('evenements_taille'), 'pgTotal' => 0,
+        ], 'Événements');
+        return;
+    }
+
     $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
     $selectCols = "e.*, s.nom AS spectacle_nom,
                    (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries";
@@ -295,6 +315,9 @@ function route_evenements_liste(): void
     $spectaclesFiltre = spectacles_pour_filtre($spectacleMap);
 
     render('evenements_liste', [
+        'vue' => $vue,
+        'cartePoints' => [],
+        'carteVillesManquantes' => 0,
         'evenements'      => $evenements,
         'annee'           => $annee,
         'annees'          => $annees ?: [(int) date('Y')],
@@ -319,6 +342,20 @@ function route_evenements_liste(): void
         'pgTaille'        => $pgTaille,
         'pgTotal'         => $pgTotal,
     ], 'Événements');
+}
+
+// Géocode un lot de villes d'événements encore manquantes (bouton de la vue
+// carte, ?p=evenements_liste&vue=carte) — même principe que route_lieux_geocoder().
+function route_evenements_geocoder(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('evenements_liste', ['vue' => 'carte']); }
+    check_csrf();
+    $n = geocodage_traiter_lot('geocodage_villes_manquantes_evenements');
+    $retour = array_intersect_key($_POST, array_flip([
+        'q', 'annee', 'statut_suisa', 'spectacle_id', 'statut', 'visibilite', 'pays', 'salaries',
+    ]));
+    redirect('evenements_liste', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
 // Export CSV (« Excel ») des événements filtrés actuellement — mêmes filtres

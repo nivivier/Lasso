@@ -243,6 +243,34 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
     return [$where, $params];
 }
 
+// Points de la vue carte (?p=evenements_liste&vue=carte) : événements filtrés
+// (mêmes critères que la liste, $where/$params de evenements_where_filtres()),
+// groupés par ville géolocalisée — jamais paginé (voir carte_points_grouper(),
+// lib/geocodage.php). evenements.pays est un code ISO2 : converti en nom
+// (pays_nom_depuis_code()) avant la clé de cache, comme structures/lieux qui
+// stockent directement le nom. Retourne [points, nbNonGeolocalises].
+function evenements_carte_points(string $where, array $params): array
+{
+    $stmt = db()->prepare(
+        "SELECT e.id, e.date, e.ville, e.pays, e.salle, e.festival
+         FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id" . $where
+        . " AND TRIM(e.ville) <> '' ORDER BY e.date DESC"
+    );
+    $stmt->execute($params);
+    $lignes = array_map(function (array $r): array {
+        $r['pays'] = pays_nom_depuis_code((string) $r['pays']);
+        return $r;
+    }, $stmt->fetchAll());
+
+    return carte_points_grouper($lignes, function (array $r): array {
+        $label = trim((string) $r['festival']) !== '' ? (string) $r['festival']
+            : (trim((string) $r['salle']) !== '' ? (string) $r['salle'] : 'Événement');
+        $date = (string) $r['date'];
+        $nom = ($date !== '' ? date('d.m.Y', strtotime($date)) . ' — ' : '') . $label;
+        return ['id' => (int) $r['id'], 'nom' => $nom, 'type' => ''];
+    });
+}
+
 // Libellé du canal d'envoi SUISA (suisa_envoye_a) — utilisé par le formulaire
 // événement et l'export SUISA (route_evenements_export_suisa()).
 function evenement_suisa_envoye_a_libelle(string $envoyeA): string

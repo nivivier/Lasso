@@ -64,23 +64,55 @@ function geocodage_geocoder_ville(string $ville, string $pays): void
     )->execute([$cle, trim($ville), trim($pays), $lat, $lon, $statut]);
 }
 
-// Couples (ville, pays) utilisés par au moins un lieu mais absents du cache.
-function geocodage_villes_manquantes(): array
+// Couples (ville, pays) utilisés par au moins une ligne de $table mais absents
+// du cache. $villeCol/$paysCol doivent stocker le pays en NOM (structures,
+// lieux) — pour une table qui le stocke en code ISO2 (événements), voir
+// geocodage_villes_manquantes_evenements() à la place.
+function geocodage_villes_manquantes(string $table = 'lieux', string $villeCol = 'ville', string $paysCol = 'pays'): array
 {
     return db()->query(
-        "SELECT DISTINCT TRIM(ville) AS ville, TRIM(pays) AS pays
-         FROM lieux
-         WHERE TRIM(ville) <> ''
-           AND LOWER(TRIM(ville)) || '|' || LOWER(TRIM(pays)) NOT IN (SELECT cle FROM lieux_geocodage)
+        "SELECT DISTINCT TRIM($villeCol) AS ville, TRIM($paysCol) AS pays
+         FROM $table
+         WHERE TRIM($villeCol) <> ''
+           AND LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($paysCol)) NOT IN (SELECT cle FROM lieux_geocodage)
          ORDER BY ville"
     )->fetchAll();
 }
 
-// Géocode jusqu'à $max villes manquantes, espacées d'1 seconde (politique
-// Nominatim). Renvoie le nombre de villes traitées.
-function geocodage_traiter_lot(int $max = GEOCODAGE_LOT_TAILLE): int
+// Variante événements : pays stocké en code ISO2 (evenements.pays), converti
+// en nom avant de construire la clé de cache — cohérente avec
+// structures/lieux qui stockent directement le nom. Dédoublonné par couple
+// (ville, pays nom) puisque plusieurs codes ne devraient jamais correspondre
+// au même nom, mais deux lignes peuvent partager exactement la même ville+pays.
+function geocodage_villes_manquantes_evenements(): array
 {
-    $manquantes = array_slice(geocodage_villes_manquantes(), 0, $max);
+    $rows = db()->query("SELECT DISTINCT TRIM(ville) AS ville, TRIM(pays) AS pays_code FROM evenements WHERE TRIM(ville) <> ''")->fetchAll();
+    $vus = [];
+    $manquantes = [];
+    foreach ($rows as $r) {
+        $paysNom = pays_nom_depuis_code((string) $r['pays_code']);
+        if ($paysNom === '') {
+            continue;
+        }
+        $cle = geocodage_cle((string) $r['ville'], $paysNom);
+        if (isset($vus[$cle])) {
+            continue;
+        }
+        $vus[$cle] = true;
+        if (geocodage_lire((string) $r['ville'], $paysNom) === null) {
+            $manquantes[] = ['ville' => (string) $r['ville'], 'pays' => $paysNom];
+        }
+    }
+    usort($manquantes, fn ($a, $b) => strcmp($a['ville'], $b['ville']));
+    return $manquantes;
+}
+
+// Géocode jusqu'à $max villes renvoyées par $villesManquantes (callable sans
+// argument, voir geocodage_villes_manquantes()/_evenements() ci-dessus),
+// espacées d'1 seconde (politique Nominatim). Renvoie le nombre de villes traitées.
+function geocodage_traiter_lot(callable $villesManquantes, int $max = GEOCODAGE_LOT_TAILLE): int
+{
+    $manquantes = array_slice($villesManquantes(), 0, $max);
     foreach ($manquantes as $i => $v) {
         if ($i > 0) {
             usleep(1_100_000);
@@ -88,4 +120,32 @@ function geocodage_traiter_lot(int $max = GEOCODAGE_LOT_TAILLE): int
         geocodage_geocoder_ville((string) $v['ville'], (string) $v['pays']);
     }
     return count($manquantes);
+}
+
+// Regroupe des fiches déjà filtrées (chaque ligne ayant 'ville' et 'pays' —
+// NOM, pas code) par ville géolocalisée, pour une vue carte — factorisé entre
+// lieux/structures/événements (mêmes principes que lieux_carte_points()).
+// $itemBuilder(array $ligne): array construit l'entrée de popup pour cette
+// fiche (ex. ['id'=>, 'nom'=>, 'type'=>]). Retourne [points, nbNonGeolocalises],
+// où chaque point est ['lat'=>, 'lon'=>, 'ville'=>, 'pays'=>, 'items'=>[...]].
+function carte_points_grouper(array $lignes, callable $itemBuilder): array
+{
+    $parCle = [];
+    $nonGeolocalises = 0;
+    foreach ($lignes as $r) {
+        $geo = geocodage_lire((string) $r['ville'], (string) $r['pays']);
+        if (!$geo || $geo['statut'] !== 'ok') {
+            $nonGeolocalises++;
+            continue;
+        }
+        $cle = geocodage_cle((string) $r['ville'], (string) $r['pays']);
+        if (!isset($parCle[$cle])) {
+            $parCle[$cle] = [
+                'lat' => (float) $geo['latitude'], 'lon' => (float) $geo['longitude'],
+                'ville' => (string) $r['ville'], 'pays' => (string) $r['pays'], 'items' => [],
+            ];
+        }
+        $parCle[$cle]['items'][] = $itemBuilder($r);
+    }
+    return [array_values($parCle), $nonGeolocalises];
 }
