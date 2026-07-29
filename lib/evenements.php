@@ -252,7 +252,7 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
 function evenements_carte_points(string $where, array $params): array
 {
     $stmt = db()->prepare(
-        "SELECT e.id, e.date, e.ville, e.pays, e.salle, e.festival
+        "SELECT e.id, e.date, e.ville, e.departement_canton, e.pays, e.salle, e.festival
          FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id" . $where
         . " AND TRIM(e.ville) <> '' ORDER BY e.date DESC"
     );
@@ -781,7 +781,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
                 'option'           => 'option',
                 default            => 'confirme',
             };
-            $lienValide = ($lien !== '' && preg_match('#^https?://#i', $lien) && filter_var($lien, FILTER_VALIDATE_URL)) ? $lien : '';
+            $lienValide = lien_http_valide($lien) ? $lien : '';
             // Le texte du bouton n'a de sens que si le lien lui-même est valide.
             $lienTexte = $lienValide !== '' ? $lienTexte : '';
             $grandeRegion = (string) grande_region_deduite($pays, $departementCanton);

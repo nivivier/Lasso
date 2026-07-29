@@ -1,9 +1,13 @@
 <?php
 // Géocodage des lieux (vue carte, ?p=lieux&vue=carte) : convertit « ville +
-// pays » en latitude/longitude via Nominatim (OpenStreetMap), avec un cache
-// permanent en base (table lieux_geocodage, migration_53) — jamais réinterrogé
-// à l'affichage, une seule fois par couple (ville, pays), pas par lieu (une
-// même ville regroupe généralement plusieurs lieux).
+// département/canton + pays » en latitude/longitude via Nominatim
+// (OpenStreetMap), avec un cache permanent en base (table lieux_geocodage,
+// migration_53) — jamais réinterrogé à l'affichage, une seule fois par
+// couple (ville, département/canton, pays), pas par lieu (une même ville
+// regroupe généralement plusieurs lieux). Le département/canton fait partie
+// de la clé de cache (migration_57) : indispensable pour lever l'ambiguïté
+// des homonymes (ex. plusieurs « Bonneville » en France selon le
+// département) que « ville + pays » seul ne peut pas distinguer.
 //
 // Politique d'usage Nominatim (https://operations.osmfoundation.org/policies/nominatim/) :
 // User-Agent identifiant l'appli, 1 requête/seconde maximum — voir
@@ -17,27 +21,44 @@ declare(strict_types=1);
 // Rester sous le délai d'exécution PHP par défaut, une requête espacée d'1s.
 const GEOCODAGE_LOT_TAILLE = 15;
 
-function geocodage_cle(string $ville, string $pays): string
+function geocodage_cle(string $ville, string $departementCanton, string $pays): string
 {
-    return mb_strtolower(trim($ville), 'UTF-8') . '|' . mb_strtolower(trim($pays), 'UTF-8');
+    return mb_strtolower(trim($ville), 'UTF-8') . '|' . mb_strtolower(trim($departementCanton), 'UTF-8')
+        . '|' . mb_strtolower(trim($pays), 'UTF-8');
 }
 
 // Résultat déjà en cache pour cette ville, ou null si jamais interrogée.
-function geocodage_lire(string $ville, string $pays): ?array
+function geocodage_lire(string $ville, string $departementCanton, string $pays): ?array
 {
     $stmt = db()->prepare('SELECT * FROM lieux_geocodage WHERE cle = ?');
-    $stmt->execute([geocodage_cle($ville, $pays)]);
+    $stmt->execute([geocodage_cle($ville, $departementCanton, $pays)]);
     $r = $stmt->fetch();
     return $r ?: null;
 }
 
 // Interroge Nominatim pour UNE ville et écrit le résultat en cache, succès ou
 // échec (un échec n'est jamais réessayé automatiquement — DELETE FROM
-// lieux_geocodage WHERE cle=… pour forcer une nouvelle tentative).
-function geocodage_geocoder_ville(string $ville, string $pays): void
+// lieux_geocodage WHERE cle=… pour forcer une nouvelle tentative). Le
+// département/canton est ajouté à la requête textuelle quand on le peut
+// (converti en nom de département pour la France via departements_regions,
+// lib/db.php — un code seul, ex. « 74 », n'est pas reconnu par Nominatim ; un
+// canton suisse est passé tel quel, faute de référentiel canton → nom ici) :
+// désambiguïse les homonymes que « ville, pays » seul ne peut pas distinguer.
+function geocodage_geocoder_ville(string $ville, string $departementCanton, string $pays): void
 {
-    $cle = geocodage_cle($ville, $pays);
-    $q = trim($ville . ', ' . $pays);
+    $ville = trim($ville);
+    $departementCanton = trim($departementCanton);
+    $pays = trim($pays);
+    $cle = geocodage_cle($ville, $departementCanton, $pays);
+
+    $lieuTexte = $departementCanton;
+    if (($pays === 'France' || $pays === 'FR') && $lieuTexte !== '') {
+        $nom = departement_nom_depuis_code($lieuTexte);
+        if ($nom !== '') {
+            $lieuTexte = $nom;
+        }
+    }
+    $q = trim(implode(', ', array_filter([$ville, $lieuTexte, $pays], fn (string $s): bool => $s !== '')));
     $lat = null;
     $lon = null;
     $statut = 'echec';
@@ -56,25 +77,26 @@ function geocodage_geocoder_ville(string $ville, string $pays): void
     }
 
     db()->prepare(
-        'INSERT INTO lieux_geocodage (cle, ville, pays, latitude, longitude, statut, maj_le)
-         VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))
+        'INSERT INTO lieux_geocodage (cle, ville, departement_canton, pays, latitude, longitude, statut, maj_le)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))
          ON CONFLICT(cle) DO UPDATE SET
             latitude = excluded.latitude, longitude = excluded.longitude,
             statut = excluded.statut, maj_le = excluded.maj_le'
-    )->execute([$cle, trim($ville), trim($pays), $lat, $lon, $statut]);
+    )->execute([$cle, $ville, $departementCanton, $pays, $lat, $lon, $statut]);
 }
 
-// Couples (ville, pays) utilisés par au moins une ligne de $table mais absents
-// du cache. $villeCol/$paysCol doivent stocker le pays en NOM (structures,
-// lieux) — pour une table qui le stocke en code ISO2 (événements), voir
-// geocodage_villes_manquantes_evenements() à la place.
-function geocodage_villes_manquantes(string $table = 'lieux', string $villeCol = 'ville', string $paysCol = 'pays'): array
+// Triplets (ville, département/canton, pays) utilisés par au moins une ligne
+// de $table mais absents du cache. $villeCol/$paysCol doivent stocker le
+// pays en NOM (structures, lieux) — pour une table qui le stocke en code
+// ISO2 (événements), voir geocodage_villes_manquantes_evenements() à la place.
+function geocodage_villes_manquantes(string $table = 'lieux', string $villeCol = 'ville', string $departementCantonCol = 'departement_canton', string $paysCol = 'pays'): array
 {
     return db()->query(
-        "SELECT DISTINCT TRIM($villeCol) AS ville, TRIM($paysCol) AS pays
+        "SELECT DISTINCT TRIM($villeCol) AS ville, TRIM($departementCantonCol) AS departement_canton, TRIM($paysCol) AS pays
          FROM $table
          WHERE TRIM($villeCol) <> ''
-           AND LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($paysCol)) NOT IN (SELECT cle FROM lieux_geocodage)
+           AND LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($departementCantonCol)) || '|' || LOWER(TRIM($paysCol))
+               NOT IN (SELECT cle FROM lieux_geocodage)
          ORDER BY ville"
     )->fetchAll();
 }
@@ -85,20 +107,21 @@ function geocodage_villes_manquantes(string $table = 'lieux', string $villeCol =
 // traiter les cas où Nominatim ne trouve pas la ville (typo, lieu-dit trop
 // précis…), accessible depuis le lien « Voir la liste » de la vue carte (voir
 // carte_banner_geocodage_html(), lib/helpers.php).
-function geocodage_non_localises_where(string $villeCol, string $paysCol): string
+function geocodage_non_localises_where(string $villeCol, string $departementCantonCol, string $paysCol): string
 {
-    return " AND TRIM($villeCol) <> '' AND (LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($paysCol))) NOT IN "
+    return " AND TRIM($villeCol) <> '' AND (LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($departementCantonCol)) || '|' || LOWER(TRIM($paysCol))) NOT IN "
         . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
 }
 
 // Variante événements : pays stocké en code ISO2 (evenements.pays), converti
 // en nom avant de construire la clé de cache — cohérente avec
-// structures/lieux qui stockent directement le nom. Dédoublonné par couple
-// (ville, pays nom) puisque plusieurs codes ne devraient jamais correspondre
-// au même nom, mais deux lignes peuvent partager exactement la même ville+pays.
+// structures/lieux qui stockent directement le nom. Dédoublonné par triplet
+// (ville, département/canton, pays nom) puisque plusieurs codes ne devraient
+// jamais correspondre au même nom, mais deux lignes peuvent partager
+// exactement le même triplet.
 function geocodage_villes_manquantes_evenements(): array
 {
-    $rows = db()->query("SELECT DISTINCT TRIM(ville) AS ville, TRIM(pays) AS pays_code FROM evenements WHERE TRIM(ville) <> ''")->fetchAll();
+    $rows = db()->query("SELECT DISTINCT TRIM(ville) AS ville, TRIM(departement_canton) AS departement_canton, TRIM(pays) AS pays_code FROM evenements WHERE TRIM(ville) <> ''")->fetchAll();
     $vus = [];
     $manquantes = [];
     foreach ($rows as $r) {
@@ -106,13 +129,13 @@ function geocodage_villes_manquantes_evenements(): array
         if ($paysNom === '') {
             continue;
         }
-        $cle = geocodage_cle((string) $r['ville'], $paysNom);
+        $cle = geocodage_cle((string) $r['ville'], (string) $r['departement_canton'], $paysNom);
         if (isset($vus[$cle])) {
             continue;
         }
         $vus[$cle] = true;
-        if (geocodage_lire((string) $r['ville'], $paysNom) === null) {
-            $manquantes[] = ['ville' => (string) $r['ville'], 'pays' => $paysNom];
+        if (geocodage_lire((string) $r['ville'], (string) $r['departement_canton'], $paysNom) === null) {
+            $manquantes[] = ['ville' => (string) $r['ville'], 'departement_canton' => (string) $r['departement_canton'], 'pays' => $paysNom];
         }
     }
     usort($manquantes, fn ($a, $b) => strcmp($a['ville'], $b['ville']));
@@ -129,28 +152,46 @@ function geocodage_traiter_lot(callable $villesManquantes, int $max = GEOCODAGE_
         if ($i > 0) {
             usleep(1_100_000);
         }
-        geocodage_geocoder_ville((string) $v['ville'], (string) $v['pays']);
+        geocodage_geocoder_ville((string) $v['ville'], (string) ($v['departement_canton'] ?? ''), (string) $v['pays']);
     }
     return count($manquantes);
 }
 
-// Regroupe des fiches déjà filtrées (chaque ligne ayant 'ville' et 'pays' —
-// NOM, pas code) par ville géolocalisée, pour une vue carte — factorisé entre
-// lieux/structures/événements (mêmes principes que lieux_carte_points()).
-// $itemBuilder(array $ligne): array construit l'entrée de popup pour cette
-// fiche (ex. ['id'=>, 'nom'=>, 'type'=>]). Retourne [points, nbNonGeolocalises],
-// où chaque point est ['lat'=>, 'lon'=>, 'ville'=>, 'pays'=>, 'items'=>[...]].
+// Regroupe des fiches déjà filtrées (chaque ligne ayant 'ville', 'departement_canton'
+// et 'pays' — NOM, pas code) par ville géolocalisée, pour une vue carte —
+// factorisé entre lieux/structures/événements (mêmes principes que
+// lieux_carte_points()). $itemBuilder(array $ligne): array construit l'entrée
+// de popup pour cette fiche (ex. ['id'=>, 'nom'=>, 'type'=>]). Retourne
+// [points, nbNonGeolocalises], où chaque point est
+// ['lat'=>, 'lon'=>, 'ville'=>, 'pays'=>, 'items'=>[...]].
 function carte_points_grouper(array $lignes, callable $itemBuilder): array
 {
+    // Une seule requête pour tout le cache utile (au lieu d'un geocodage_lire()
+    // par ligne) : $lignes peut couvrir des dizaines de fiches partageant
+    // souvent la même ville, sur une page chargée à chaque affichage de la carte.
+    $cles = [];
+    foreach ($lignes as $r) {
+        $cles[geocodage_cle((string) $r['ville'], (string) ($r['departement_canton'] ?? ''), (string) $r['pays'])] = true;
+    }
+    $geoParCle = [];
+    if ($cles !== []) {
+        $placeholders = implode(',', array_fill(0, count($cles), '?'));
+        $stmt = db()->prepare("SELECT * FROM lieux_geocodage WHERE cle IN ($placeholders)");
+        $stmt->execute(array_keys($cles));
+        foreach ($stmt->fetchAll() as $g) {
+            $geoParCle[(string) $g['cle']] = $g;
+        }
+    }
+
     $parCle = [];
     $nonGeolocalises = 0;
     foreach ($lignes as $r) {
-        $geo = geocodage_lire((string) $r['ville'], (string) $r['pays']);
+        $cle = geocodage_cle((string) $r['ville'], (string) ($r['departement_canton'] ?? ''), (string) $r['pays']);
+        $geo = $geoParCle[$cle] ?? null;
         if (!$geo || $geo['statut'] !== 'ok') {
             $nonGeolocalises++;
             continue;
         }
-        $cle = geocodage_cle((string) $r['ville'], (string) $r['pays']);
         if (!isset($parCle[$cle])) {
             $parCle[$cle] = [
                 'lat' => (float) $geo['latitude'], 'lon' => (float) $geo['longitude'],

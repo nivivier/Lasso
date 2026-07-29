@@ -18,26 +18,17 @@ $points = array_map(function (array $p): array {
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 
 <div class="carte-lieux-wrap">
-    <?php if ($carteVillesManquantes > 0): ?>
-    <div class="carte-banner">
-        <p><?= $carteVillesManquantes ?> événement(s) dont la ville n'est pas encore localisée sur la carte.</p>
-        <form method="post" action="?p=evenements_geocoder" id="geocoder-form">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="q" value="<?= e($recherche) ?>">
-            <input type="hidden" name="annee" value="<?= (int) $annee ?>">
-            <input type="hidden" name="statut_suisa" value="<?= e($statutSuisa) ?>">
-            <input type="hidden" name="spectacle_id" value="<?= (int) $spectacleId ?>">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
-            <input type="hidden" name="visibilite" value="<?= e($visibilite) ?>">
-            <input type="hidden" name="pays" value="<?= e($pays) ?>">
-            <input type="hidden" name="salaries" value="<?= e($salaries) ?>">
-            <button type="submit" id="geocoder-btn"><?= icon('map-pin') ?> Géocoder (par lots, ≈1 seconde par ville)</button>
-        </form>
-        <p class="muted small" id="geocoder-auto-msg" hidden>Géocodage en cours (service Nominatim/OpenStreetMap, 1 ville par seconde)… vous pouvez quitter la page à tout moment, il reprendra où il s'est arrêté au prochain clic.</p>
-    </div>
-    <?php elseif (isset($_GET['geocode'])): ?>
-    <p class="carte-banner ok flash">Géocodage terminé — toutes les villes des événements affichés sont désormais localisées.</p>
-    <?php endif; ?>
+    <?= carte_banner_geocodage_html(
+        $carteVillesManquantes,
+        'événement(s)', 'événements', 'affichés',
+        '',
+        '?p=evenements_geocoder',
+        [
+            'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+            'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
+        ],
+        isset($_GET['geocode'])
+    ) ?>
 
     <div id="carte-evenements" class="carte-lieux"></div>
 </div>
@@ -48,15 +39,4 @@ $points = array_map(function (array $p): array {
     const points = <?= json_encode($points, JSON_UNESCAPED_UNICODE) ?>;
     lassoInitCarteLieux('carte-evenements', points, 'carte-evenements-vue');
 })();
-
-<?php if (isset($_GET['geocode']) && $carteVillesManquantes > 0): ?>
-(function () {
-    const msg = document.getElementById('geocoder-auto-msg');
-    if (msg) { msg.hidden = false; }
-    setTimeout(() => {
-        const f = document.getElementById('geocoder-form');
-        if (f) { f.requestSubmit(); }
-    }, 400);
-})();
-<?php endif; ?>
 </script>

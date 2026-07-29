@@ -9,7 +9,7 @@
 $points = array_map(function (array $p): array {
     $html = '<strong>' . e($p['ville']) . '</strong>' . ($p['pays'] !== '' ? ' <span class="muted">(' . e($p['pays']) . ')</span>' : '');
     $html .= '<ul class="carte-popup-liste">';
-    foreach ($p['lieux'] as $l) {
+    foreach ($p['items'] as $l) {
         $html .= '<li><a href="?p=lieu&id=' . (int) $l['id'] . '">' . e($l['nom']) . '</a>'
             . ($l['type'] !== '' ? ' <span class="muted small">(' . e($l['type']) . ')</span>' : '') . '</li>';
     }

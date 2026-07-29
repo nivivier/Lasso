@@ -11,6 +11,15 @@ function date_valide(string $s): bool
         && checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
 }
 
+// URL de lien externe affichable comme <a href> cliquable sans risque (schéma
+// http(s) explicite, donc jamais "javascript:" ou autre schéma actif, +
+// FILTER_VALIDATE_URL) — partagé entre l'import événements
+// (lib/evenements.php) et son aperçu (views/_import_evenements_section.php).
+function lien_http_valide(string $lien): bool
+{
+    return $lien !== '' && preg_match('#^https?://#i', $lien) === 1 && filter_var($lien, FILTER_VALIDATE_URL) !== false;
+}
+
 // Détecte le séparateur (virgule ou point-virgule, fréquent dans les exports
 // Excel francophones) à partir de la ligne d'en-tête d'un CSV — partagé entre
 // l'import structures (lib/booking.php) et l'import événements
@@ -432,7 +441,11 @@ const CANTONS_SUISSES_BILINGUES = ['FR' => 'Romandie', 'VS' => 'Romandie', 'BE' 
 // pré-rempli mais toujours modifiable pour ces 3 cantons). Null si le pays
 // n'a pas de règle de déduction, ou si le département/canton n'est pas
 // reconnu (jamais de devinette : le champ reste alors saisi à la main).
-function grande_region_deduite(string $pays, string $departementCanton, bool $strict = true): ?string
+// $departementsFranceCache : passer departements_regions_map() déjà chargée
+// pour éviter une requête SQL par ligne dans une boucle sur plusieurs fiches
+// (voir grande_regions_detecter(), lib/dev.php) ; null = requête normale
+// (cas courant : un seul appel, ex. sauvegarde d'un formulaire).
+function grande_region_deduite(string $pays, string $departementCanton, bool $strict = true, ?array $departementsFranceCache = null): ?string
 {
     $pays = trim($pays);
     $departementCanton = trim($departementCanton);
@@ -440,6 +453,9 @@ function grande_region_deduite(string $pays, string $departementCanton, bool $st
         return null;
     }
     if ($pays === 'France' || $pays === 'FR') {
+        if ($departementsFranceCache !== null) {
+            return $departementsFranceCache[$departementCanton] ?? null;
+        }
         $stmt = db()->prepare('SELECT region FROM departements_regions WHERE code = ?');
         $stmt->execute([$departementCanton]);
         $r = $stmt->fetchColumn();
@@ -464,6 +480,23 @@ function grande_region_deduite(string $pays, string $departementCanton, bool $st
 function departements_regions_map(): array
 {
     return db()->query('SELECT code, region FROM departements_regions')->fetchAll(PDO::FETCH_KEY_PAIR);
+}
+
+// Nom de département français à partir de son code (ex. "74" → "Haute-Savoie")
+// — même référentiel departements_regions que ci-dessus. Utilisé pour
+// enrichir la requête de géocodage (lib/geocodage.php) : un code seul n'est
+// pas reconnu par Nominatim, un nom de département lève l'ambiguïté des
+// villes homonymes (ex. plusieurs « Bonneville »). '' si code inconnu/vide.
+function departement_nom_depuis_code(string $code): string
+{
+    $code = trim($code);
+    if ($code === '') {
+        return '';
+    }
+    $stmt = db()->prepare('SELECT departement FROM departements_regions WHERE code = ?');
+    $stmt->execute([$code]);
+    $r = $stmt->fetchColumn();
+    return $r !== false ? (string) $r : '';
 }
 
 // Nom de pays à partir d'un code ISO2 — inverse de pays_drapeau_nom()/

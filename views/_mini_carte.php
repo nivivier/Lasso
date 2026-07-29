@@ -1,5 +1,5 @@
 <?php
-/** @var string $miniCarteVille */ /** @var string $miniCartePays */
+/** @var string $miniCarteVille */ /** @var string $miniCarteDepartementCanton */ /** @var string $miniCartePays */
 /** @var string $miniCarteRetourRoute */ /** @var int $miniCarteRetourId */
 // Mini-carte de localisation (?p=lieu/?p=structure/?p=evenement) : un seul
 // marqueur sur la ville déjà géolocalisée (cache lieux_geocodage, voir
@@ -8,7 +8,7 @@
 // ville, pas de politique de lot ici — voir route_geocoder_ville_unique()).
 // Rien n'est affiché si la ville est vide (fiche non localisable) : au
 // caller de ne pas inclure ce partiel dans ce cas.
-$geo = geocodage_lire($miniCarteVille, $miniCartePays);
+$geo = geocodage_lire($miniCarteVille, $miniCarteDepartementCanton, $miniCartePays);
 ?>
 <?php if ($geo && $geo['statut'] === 'ok'): ?>
     <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
@@ -33,6 +33,7 @@ $geo = geocodage_lire($miniCarteVille, $miniCartePays);
     <form method="post" action="?p=geocoder_ville_unique">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="ville" value="<?= e($miniCarteVille) ?>">
+        <input type="hidden" name="departement_canton" value="<?= e($miniCarteDepartementCanton) ?>">
         <input type="hidden" name="pays" value="<?= e($miniCartePays) ?>">
         <input type="hidden" name="retour_route" value="<?= e($miniCarteRetourRoute) ?>">
         <input type="hidden" name="retour_id" value="<?= (int) $miniCarteRetourId ?>">

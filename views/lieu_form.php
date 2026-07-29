@@ -199,6 +199,7 @@ $orgaEditeur = function (int $lieuId, int $ancien) {
         <h3 class="sub mt-0">Localisation</h3>
         <?php
         $miniCarteVille = (string) $lieu['ville'];
+        $miniCarteDepartementCanton = (string) ($lieu['departement_canton'] ?? '');
         $miniCartePays = (string) ($lieu['pays'] ?? '');
         $miniCarteRetourRoute = 'lieu';
         $miniCarteRetourId = (int) ($lieu['id'] ?? 0);

@@ -61,7 +61,7 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
                     <td class="muted small"><?= e($r['type']) ?: '—' ?></td>
                     <td class="muted small"><?= e($r['statut_csv']) ?: '—' ?></td>
                     <td class="muted small"><?= e($r['details']) ?: '—' ?></td>
-                    <?php $lienValide = ($r['lien'] !== '' && preg_match('#^https?://#i', $r['lien']) && filter_var($r['lien'], FILTER_VALIDATE_URL)) ? $r['lien'] : ''; ?>
+                    <?php $lienValide = lien_http_valide($r['lien']) ? $r['lien'] : ''; ?>
                     <td class="muted small">
                         <?php if ($lienValide !== ''): ?>
                             <a href="<?= e($lienValide) ?>" target="_blank" rel="noopener"><?= e($r['lien_texte'] ?: 'lien') ?></a>

@@ -348,12 +348,15 @@ const GRANDE_REGION_TABLES = [
 // [ ['table'=>, 'id'=>, 'nom'=>, 'pays'=>, 'departement_canton'=>, 'actuelle'=>, 'deduite'=>], … ].
 function grande_regions_detecter(): array
 {
+    // Chargée une fois pour toute la détection (au lieu d'une requête
+    // départements_regions par ligne France dans grande_region_deduite()).
+    $departementsFranceCache = departements_regions_map();
     $out = [];
     foreach (GRANDE_REGION_TABLES as $table => $def) {
         $sql = "SELECT id, ({$def['nom_sql']}) AS nom, {$def['pays_col']} AS pays, departement_canton, grande_region
                 FROM $table WHERE TRIM(departement_canton) <> ''";
         foreach (db()->query($sql)->fetchAll() as $r) {
-            $deduite = grande_region_deduite((string) $r['pays'], (string) $r['departement_canton']);
+            $deduite = grande_region_deduite((string) $r['pays'], (string) $r['departement_canton'], true, $departementsFranceCache);
             if ($deduite !== null && $deduite !== (string) $r['grande_region']) {
                 $out[] = [
                     'table' => $table, 'id' => (int) $r['id'], 'nom' => (string) $r['nom'],
@@ -371,16 +374,23 @@ function grande_regions_detecter(): array
 function grande_regions_appliquer(array $lignes): int
 {
     $n = 0;
-    foreach ($lignes as $l) {
-        if (!isset(GRANDE_REGION_TABLES[$l['table']])) {
-            continue;
+    db()->beginTransaction();
+    try {
+        foreach ($lignes as $l) {
+            if (!isset(GRANDE_REGION_TABLES[$l['table']])) {
+                continue;
+            }
+            db()->prepare("UPDATE {$l['table']} SET grande_region = ? WHERE id = ?")->execute([$l['deduite'], $l['id']]);
+            $paysNom = GRANDE_REGION_TABLES[$l['table']]['pays_code'] ? pays_nom_depuis_code($l['pays']) : $l['pays'];
+            if ($paysNom !== '') {
+                pays_region_assurer($paysNom, $l['deduite']);
+            }
+            $n++;
         }
-        db()->prepare("UPDATE {$l['table']} SET grande_region = ? WHERE id = ?")->execute([$l['deduite'], $l['id']]);
-        $paysNom = GRANDE_REGION_TABLES[$l['table']]['pays_code'] ? pays_nom_depuis_code($l['pays']) : $l['pays'];
-        if ($paysNom !== '') {
-            pays_region_assurer($paysNom, $l['deduite']);
-        }
-        $n++;
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
     }
     return $n;
 }

@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.14.0] — 2026-07-29
+
+### Corrigé
+- **Géolocalisation des homonymes** (vue carte lieux/structures/événements) : le cache de géocodage n'était indexé que par (ville, pays), donc deux villes de même nom dans des départements différents (ex. plusieurs « Bonneville » en France) partageaient la même entrée — la première interrogée l'emportait pour toutes, plaçant certains lieux au mauvais endroit sur la carte. Le département/canton fait désormais partie de la requête envoyée à Nominatim et de la clé de cache. Vérifié en conditions réelles : sans département, « Bonneville, France » renvoie un hameau de la Somme ; avec le département (« Bonneville, Haute-Savoie, France »), la bonne ville est renvoyée.
+- **Conséquence attendue** : le format de clé change, donc le cache existant est vidé par la migration (aucune perte de données sur les lieux/structures/événements eux-mêmes, uniquement le cache de coordonnées) — les cartes redemanderont un géocodage au fil des visites.
+
 ## [1.13.2] — 2026-07-29
 
 ### Ajouté

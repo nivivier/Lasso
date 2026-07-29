@@ -147,6 +147,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     <h2 class="mt-0">Localisation</h2>
     <?php
     $miniCarteVille = (string) $evenement['ville'];
+    $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
     $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
     $miniCarteRetourRoute = 'evenement';
     $miniCarteRetourId = (int) $id;

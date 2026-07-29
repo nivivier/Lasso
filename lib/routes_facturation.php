@@ -541,7 +541,7 @@ function structures_filtres(): array
         $params[] = $departementCanton;
     }
     if ($nonLocalises) {
-        $where .= geocodage_non_localises_where('s.adresse_localite', 's.adresse_pays');
+        $where .= geocodage_non_localises_where('s.adresse_localite', 's.departement_canton', 's.adresse_pays');
     }
     if ($tagId) {
         $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
@@ -603,7 +603,7 @@ function structures_carte_points(string $where, array $params): array
 {
     [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email']);
     $stmt = db()->prepare(
-        "SELECT s.id, s.nom, s.categorie, s.adresse_localite AS ville, s.adresse_pays AS pays
+        "SELECT s.id, s.nom, s.categorie, s.adresse_localite AS ville, s.departement_canton, s.adresse_pays AS pays
          FROM structures s" . $where . " AND s.adresse_localite <> ''" . $rechSql . ' ORDER BY s.adresse_localite, s.nom'
     );
     $stmt->execute(array_merge($params, $rechParams));
@@ -704,6 +704,9 @@ function route_structures(): void
                 bulk_undo_memoriser('structures', $ids, ['adresse_pays'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+            // 'heart' reste dans la liste bien qu'inatteignable depuis l'UI
+            // (cœur désactivé, voir route_structure_flag()) : simple
+            // validation d'entrée, pas une réactivation de la fonctionnalité.
             } elseif ($section === 'flag' && in_array($_POST['bulk_flag'] ?? '', ['', 'star', 'heart'], true)) {
                 bulk_undo_memoriser('structures', $ids, ['flag'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET flag = ? WHERE id IN ($in)")
@@ -884,7 +887,7 @@ function route_structures_geocoder(): void
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures', ['vue' => 'carte']); }
     check_csrf();
-    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('structures', 'adresse_localite', 'adresse_pays'));
+    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('structures', 'adresse_localite', 'departement_canton', 'adresse_pays'));
     $retour = array_intersect_key($_POST, array_flip(['q', 'categorie_id', 'pays', 'departement_canton', 'tag_id', 'statut']));
     redirect('structures', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }

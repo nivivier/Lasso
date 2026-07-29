@@ -152,6 +152,7 @@ $sid = (int) ($structure['id'] ?? 0);
     <h2 class="mt-0">Localisation</h2>
     <?php
     $miniCarteVille = (string) $structure['adresse_localite'];
+    $miniCarteDepartementCanton = (string) ($structure['departement_canton'] ?? '');
     $miniCartePays = (string) ($structure['adresse_pays'] ?? 'Suisse');
     $miniCarteRetourRoute = 'structure';
     $miniCarteRetourId = $sid;

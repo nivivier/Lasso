@@ -352,6 +352,7 @@ function run_migrations(PDO $pdo): void
         54 => 'migration_54', // module booking : evenements.grande_region (déduite du département/canton, voir grande_region_deduite())
         55 => 'migration_55', // module booking : structures.flag / lieux.flag (marquage rapide étoile/cœur)
         56 => 'migration_56', // renomme evenements/structures/lieux.region → departement_canton (clarté vs grande_region)
+        57 => 'migration_57', // géocodage : departement_canton entre dans la clé de cache (désambiguïse les homonymes, ex. Bonneville)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1880,6 +1881,23 @@ function migration_56(PDO $pdo): void
         if (in_array('region', $cols, true) && !in_array('departement_canton', $cols, true)) {
             $pdo->exec("ALTER TABLE $table RENAME COLUMN region TO departement_canton");
         }
+    }
+}
+
+// Migration 57 : le département/canton entre dans la clé de cache du
+// géocodage (voir geocodage_cle(), lib/geocodage.php) — indispensable pour
+// distinguer les villes homonymes qu'un couple (ville, pays) seul ne peut
+// pas départager (ex. plusieurs « Bonneville » en France selon le
+// département). Le format de la clé change : les entrées existantes
+// (indexées sur l'ancien format ville|pays) ne seront plus jamais relues,
+// on vide donc le cache plutôt que de laisser des lignes mortes — un simple
+// reclic sur « Géocoder » régénère le cache avec la désambiguïsation.
+function migration_57(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(lieux_geocodage)')->fetchAll(), 'name');
+    if (!in_array('departement_canton', $cols, true)) {
+        $pdo->exec("ALTER TABLE lieux_geocodage ADD COLUMN departement_canton TEXT NOT NULL DEFAULT ''");
+        $pdo->exec('DELETE FROM lieux_geocodage');
     }
 }
 

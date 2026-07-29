@@ -398,7 +398,7 @@ function lieux_filtres(): array
     $where = '';
     $params = [];
     if ($nonLocalises) {
-        $where .= geocodage_non_localises_where('ville', 'pays');
+        $where .= geocodage_non_localises_where('ville', 'departement_canton', 'pays');
     }
     if ($statut === 'actif') {
         $where .= ' AND actif = 1';
@@ -467,27 +467,13 @@ function lieux_filtres(): array
 function lieux_carte_points(string $where, array $params): array
 {
     [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'departement_canton', 'grande_region', 'type']);
-    $stmt = db()->prepare("SELECT id, nom, type, ville, pays FROM lieux WHERE ville <> ''" . $where . $rechSql . ' ORDER BY ville, nom');
+    $stmt = db()->prepare("SELECT id, nom, type, ville, departement_canton, pays FROM lieux WHERE ville <> ''" . $where . $rechSql . ' ORDER BY ville, nom');
     $stmt->execute(array_merge($params, $rechParams));
 
-    $parCle = [];
-    $nonGeolocalises = 0;
-    foreach ($stmt->fetchAll() as $r) {
-        $geo = geocodage_lire((string) $r['ville'], (string) $r['pays']);
-        if (!$geo || $geo['statut'] !== 'ok') {
-            $nonGeolocalises++;
-            continue;
-        }
-        $cle = geocodage_cle((string) $r['ville'], (string) $r['pays']);
-        if (!isset($parCle[$cle])) {
-            $parCle[$cle] = [
-                'lat' => (float) $geo['latitude'], 'lon' => (float) $geo['longitude'],
-                'ville' => (string) $r['ville'], 'pays' => (string) $r['pays'], 'lieux' => [],
-            ];
-        }
-        $parCle[$cle]['lieux'][] = ['id' => (int) $r['id'], 'nom' => (string) $r['nom'], 'type' => (string) $r['type']];
-    }
-    return [array_values($parCle), $nonGeolocalises];
+    return carte_points_grouper(
+        $stmt->fetchAll(),
+        fn (array $r): array => ['id' => (int) $r['id'], 'nom' => (string) $r['nom'], 'type' => (string) $r['type']]
+    );
 }
 
 function route_lieux(): void
@@ -541,6 +527,9 @@ function route_lieux(): void
                 bulk_undo_memoriser('lieux', $ids, ['pays'], 'lieux', $retourFiltres);
                 db()->prepare("UPDATE lieux SET pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+            // 'heart' reste dans la liste bien qu'inatteignable depuis l'UI
+            // (cœur désactivé, voir route_lieu_flag()) : simple validation
+            // d'entrée, pas une réactivation de la fonctionnalité.
             } elseif ($section === 'flag' && in_array($_POST['bulk_flag'] ?? '', ['', 'star', 'heart'], true)) {
                 bulk_undo_memoriser('lieux', $ids, ['flag'], 'lieux', $retourFiltres);
                 db()->prepare("UPDATE lieux SET flag = ? WHERE id IN ($in)")
@@ -869,7 +858,7 @@ function route_lieux_geocoder(): void
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux', ['vue' => 'carte']); }
     check_csrf();
-    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('lieux', 'ville', 'pays'));
+    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('lieux', 'ville', 'departement_canton', 'pays'));
     // Reprend les filtres actifs (transmis en champs cachés par la vue carte) pour
     // que le clic « Géocoder » n'en fasse pas perdre le fil.
     $retour = array_intersect_key($_POST, array_flip([
@@ -893,9 +882,10 @@ function route_geocoder_ville_unique(): void
     }
     check_csrf();
     $ville = trim($_POST['ville'] ?? '');
+    $departementCanton = trim($_POST['departement_canton'] ?? '');
     $pays = trim($_POST['pays'] ?? '');
     if ($ville !== '') {
-        geocodage_geocoder_ville($ville, $pays);
+        geocodage_geocoder_ville($ville, $departementCanton, $pays);
     }
     redirect($retourRoute, $retourId ? ['id' => $retourId] : []);
 }
