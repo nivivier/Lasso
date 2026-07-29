@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.11.1] — 2026-07-29
+
+### Ajouté
+- **Import CSV événements : séparateur virgule ou point-virgule détecté automatiquement** (comme l'import structures existant) — utile pour les exports Excel francophones, qui utilisent souvent le point-virgule. Détection factorisée dans `csv_detecter_delimiteur()` (`lib/helpers.php`), reprise depuis `lib/booking.php` (ex-`structures_detecter_delimiteur()`) plutôt que dupliquée.
+
 ## [1.11.0] — 2026-07-29
 
 ### Modifié

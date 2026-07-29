@@ -11,6 +11,15 @@ function date_valide(string $s): bool
         && checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
 }
 
+// Détecte le séparateur (virgule ou point-virgule, fréquent dans les exports
+// Excel francophones) à partir de la ligne d'en-tête d'un CSV — partagé entre
+// l'import structures (lib/booking.php) et l'import événements
+// (lib/evenements.php).
+function csv_detecter_delimiteur(string $ligneEntete): string
+{
+    return substr_count($ligneEntete, ';') > substr_count($ligneEntete, ',') ? ';' : ',';
+}
+
 // Crée un élément DOM namespacé avec texte optionnel — factorise le patron
 // répété par les deux générateurs XML du dépôt (build_certificat_xml() pour
 // l'eCS CSI, compta_generer_camt053() pour le relevé bancaire). $prefix est

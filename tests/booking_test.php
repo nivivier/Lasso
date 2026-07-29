@@ -65,9 +65,9 @@ check('date invalide (jour hors calendrier)', null, structure_date_csv_vers_iso(
 check('format non reconnu (texte)', null, structure_date_csv_vers_iso('hier'));
 check('vide', null, structure_date_csv_vers_iso(''));
 
-echo "5) structures_detecter_delimiteur() / structures_lire_csv()\n";
-check('virgule majoritaire', ',', structures_detecter_delimiteur('nom,ville,email'));
-check('point-virgule majoritaire (export Excel FR)', ';', structures_detecter_delimiteur('nom;ville;email'));
+echo "5) csv_detecter_delimiteur() / structures_lire_csv()\n";
+check('virgule majoritaire', ',', csv_detecter_delimiteur('nom,ville,email'));
+check('point-virgule majoritaire (export Excel FR)', ';', csv_detecter_delimiteur('nom;ville;email'));
 [$entete, $lignes] = structures_lire_csv("nom;ville\nLa Tannerie;Bourg-en-Bresse\nKitsch'n bar;Strasbourg");
 check('en-tête lu', ['nom', 'ville'], $entete);
 check('nombre de lignes de données', 2, count($lignes));

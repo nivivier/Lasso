@@ -656,7 +656,10 @@ function normaliser_nom_spectacle(string $s): string
 // Importe des événements depuis un CSV d'agenda de tournée (colonnes attendues,
 // dans n'importe quel ordre : date, ville, departement_canton, pays, lieu,
 // festival, details, type, statut, lien, lien_texte — seules date/ville sont
-// obligatoires). $simule = true : n'écrit rien, retourne ce qui serait fait.
+// obligatoires). Séparateur virgule ou point-virgule, détecté automatiquement
+// sur l'en-tête (voir csv_detecter_delimiteur(), lib/helpers.php — même
+// logique que l'import structures). $simule = true : n'écrit rien, retourne
+// ce qui serait fait.
 // Un événement existant (même date + ville + salle, comparaison insensible à
 // la casse) est ignoré — jamais écrasé, même esprit que
 // importer_factures_historique(). La colonne « type » est recherchée parmi
@@ -680,7 +683,11 @@ function importer_evenements_csv(string $csv, bool $simule): array
         return [[], $resume];
     }
 
-    $entete = array_map(fn ($c) => mb_strtolower(trim((string) $c), 'UTF-8'), str_getcsv(array_shift($lignes), ',', '"', ''));
+    // Séparateur détecté sur l'en-tête (virgule ou point-virgule, fréquent dans
+    // les exports Excel francophones) — voir csv_detecter_delimiteur(), même
+    // logique que l'import structures (lib/booking.php).
+    $delim = csv_detecter_delimiteur($lignes[0]);
+    $entete = array_map(fn ($c) => mb_strtolower(trim((string) $c), 'UTF-8'), str_getcsv(array_shift($lignes), $delim, '"', ''));
     $idx = array_flip($entete);
     $col = fn (array $r, string $nom): string => trim((string) ($r[$idx[$nom] ?? -1] ?? ''));
 
@@ -711,7 +718,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
     }
     try {
         foreach ($lignes as $ligne) {
-            $r = str_getcsv($ligne, ',', '"', '');
+            $r = str_getcsv($ligne, $delim, '"', '');
             $resume['total']++;
 
             $dateRaw = $col($r, 'date');

@@ -766,13 +766,6 @@ const STRUCTURE_IMPORT_TAGS_LEGENDE = [
     '?'    => 'Info à chercher',
 ];
 
-// Détecte le séparateur (virgule ou point-virgule, fréquent dans les exports
-// Excel francophones) à partir de la ligne d'en-tête.
-function structures_detecter_delimiteur(string $ligneEntete): string
-{
-    return substr_count($ligneEntete, ';') > substr_count($ligneEntete, ',') ? ';' : ',';
-}
-
 // Découpe un CSV brut en [en-tête (noms de colonnes bruts), lignes (tableaux
 // de valeurs brutes)] — sans mapping, juste la structure du fichier (étape 1
 // de l'import, avant correspondance manuelle des colonnes).
@@ -792,7 +785,7 @@ function structures_lire_csv(string $csv): array
     }
     // Délimiteur détecté sur la seule première ligne physique (l'en-tête n'a jamais
     // de guillemets/retours à la ligne à ce stade, contrairement aux lignes de données).
-    $delim = structures_detecter_delimiteur(substr($csv, 0, strcspn($csv, "\r\n")));
+    $delim = csv_detecter_delimiteur(substr($csv, 0, strcspn($csv, "\r\n")));
 
     $flux = fopen('php://memory', 'r+');
     fwrite($flux, $csv);
