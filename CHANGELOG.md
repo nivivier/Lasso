@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.13.0] — 2026-07-29
+
+### Ajouté
+- **Position/zoom de la carte mémorisés** (lieux, structures, événements) : en cliquant un marqueur puis en revenant en arrière depuis la fiche, la carte retrouve désormais la même position et le même niveau de zoom, au lieu de se recentrer sur l'ensemble des points à chaque fois. Mémorisé en `sessionStorage` (par page, pas au-delà de l'onglet). Logique factorisée dans `lassoInitCarteLieux()` (`assets/app.js`), reprise par les 3 vues carte (aucune duplication).
+
 ## [1.12.3] — 2026-07-29
 
 ### Corrigé

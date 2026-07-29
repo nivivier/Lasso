@@ -46,22 +46,7 @@ $points = array_map(function (array $p): array {
 <script>
 (function () {
     const points = <?= json_encode($points, JSON_UNESCAPED_UNICODE) ?>;
-    const map = L.map('carte-evenements');
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-    }).addTo(map);
-
-    if (points.length) {
-        const bounds = [];
-        points.forEach(p => {
-            L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.popup);
-            bounds.push([p.lat, p.lon]);
-        });
-        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
-    } else {
-        map.setView([46.8, 2.5], 5);
-    }
+    lassoInitCarteLieux('carte-evenements', points, 'carte-evenements-vue');
 })();
 
 <?php if (isset($_GET['geocode']) && $carteVillesManquantes > 0): ?>

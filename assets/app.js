@@ -263,6 +263,51 @@ function lassoInitFlagToggle() {
     });
 }
 
+// Carte Leaflet des vues carte (lieux/structures/événements) — factorisé,
+// même init pour les 3 pages (voir views/_lieux_carte.php,
+// _structures_carte.php, _evenements_carte.php). Mémorise position + zoom
+// dans sessionStorage (storageKey distinct par page) pour les restaurer si
+// l'utilisateur revient en arrière depuis la fiche d'un marqueur (clic sur un
+// lieu/structure/événement dans une popup, puis bouton Précédent) — sinon la
+// carte se recentrait systématiquement sur l'ensemble des points, perdant le
+// zoom/la position choisis manuellement. sessionStorage (pas localStorage) :
+// ne doit pas persister au-delà de l'onglet.
+function lassoInitCarteLieux(mapId, points, storageKey) {
+    const map = L.map(mapId);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+    }).addTo(map);
+
+    points.forEach(p => L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.popup));
+
+    let vueRestauree = false;
+    try {
+        const sauvee = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+        if (sauvee && typeof sauvee.lat === 'number' && typeof sauvee.lng === 'number' && typeof sauvee.zoom === 'number') {
+            map.setView([sauvee.lat, sauvee.lng], sauvee.zoom, { animate: false });
+            vueRestauree = true;
+        }
+    } catch (e) { /* sessionStorage indisponible (navigation privée…) : tant pis, pas de restauration */ }
+
+    if (!vueRestauree) {
+        if (points.length) {
+            map.fitBounds(points.map(p => [p.lat, p.lon]), { padding: [30, 30], maxZoom: 12, animate: false });
+        } else {
+            map.setView([46.8, 2.5], 5, { animate: false });
+        }
+    }
+
+    map.on('moveend', () => {
+        try {
+            const c = map.getCenter();
+            sessionStorage.setItem(storageKey, JSON.stringify({ lat: c.lat, lng: c.lng, zoom: map.getZoom() }));
+        } catch (e) {}
+    });
+
+    return map;
+}
+
 // Boutons « Nouveau »/« Annuler » qui affichent/masquent une ligne d'ajout
 // (id ciblé par data-show/data-hide). Couvre compta_plan.php, spectacles.php
 // et taux_horaires.php. data-focus (optionnel, sur le bouton data-show) donne
