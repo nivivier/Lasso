@@ -1335,6 +1335,8 @@ function icon(string $name): string
         'globe-off'  => '<path d="M10.114 4.462A14.5 14.5 0 0 1 12 2a10 10 0 0 1 9.313 13.643"/><path d="M15.557 15.556A14.5 14.5 0 0 1 12 22 10 10 0 0 1 4.929 4.929"/><path d="M15.892 10.234A14.5 14.5 0 0 0 12 2a10 10 0 0 0-3.643.687"/><path d="M17.656 12H22"/><path d="M19.071 19.071A10 10 0 0 1 12 22 14.5 14.5 0 0 1 8.44 8.45"/><path d="M2 12h10"/><path d="m2 2 20 20"/>',
         'handshake'  => '<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>',
         'map-pin'    => '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+        'star'       => '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+        'heart'      => '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>',
         'tag'        => '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
         'message-square' => '<path d="M22 17a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2z"/>',
         'send'       => '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
@@ -1371,6 +1373,25 @@ function icon_picker(string $name, array $options, string $selected, string $ari
             . '</label>';
     }
     return $h . '</div>';
+}
+
+// Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton à 3
+// états cyclés au clic (voir assets/app.js lassoInitFlagToggle() +
+// route_lieu_flag()/route_structure_flag()) : aucun (étoile grise) → étoile
+// (couleur de mise en évidence) → cœur (couleur --danger) → aucun. $table ∈
+// {'lieu', 'structure'} (détermine la route appelée) ; $flag ∈ {'', 'star',
+// 'heart'} — toute autre valeur est traitée comme absente.
+function flag_toggle_html(string $table, int $id, string $flag): string
+{
+    $icone = $flag === 'heart' ? 'heart' : 'star';
+    $label = match ($flag) {
+        'star'  => 'Marqué (étoile) — cliquer pour passer en cœur',
+        'heart' => 'Marqué (cœur) — cliquer pour retirer le marquage',
+        default => 'Non marqué — cliquer pour marquer',
+    };
+    return '<button type="button" class="flag-toggle flag-' . e($flag ?: 'aucun') . '"'
+        . ' data-flag-table="' . e($table) . '" data-flag-id="' . $id . '" data-flag-valeur="' . e($flag) . '"'
+        . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
 }
 
 // Affichage combiné « Ville 🇫🇷 (Région) » — factorisé entre les listes

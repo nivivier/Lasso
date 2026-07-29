@@ -501,6 +501,9 @@ function structures_filtres(): array
     // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
     // travail courant) ; 'inactif' ou 'tous' pour les voir.
     $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), ['actif', 'inactif', 'tous'], 'actif');
+    // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marquées,
+    // 'star'/'heart' = marquées.
+    $flag = valeur_autorisee((string) filtre_persistant('flag', 'structures_flag', ''), ['', 'aucun', 'star', 'heart'], '');
     // Filtres avancés sur le(s) lieu(x) lié(s) (type, jauge, mois — mêmes
     // critères que lieux_filtres()) : une structure matche si AU MOINS UN de
     // ses lieux liés (structure_lieux) satisfait la combinaison demandée.
@@ -541,6 +544,12 @@ function structures_filtres(): array
     } elseif ($statut === 'inactif') {
         $where .= ' AND s.actif = 0';
     }
+    if ($flag === 'aucun') {
+        $where .= " AND s.flag = ''";
+    } elseif ($flag !== '') {
+        $where .= ' AND s.flag = ?';
+        $params[] = $flag;
+    }
     if ($lieuType !== '' || $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg) {
         // Bornes de jauge/mois injectées telles quelles (déjà validées en
         // entiers), même raison qu'ailleurs : un paramètre PDO serait lié en
@@ -571,7 +580,7 @@ function structures_filtres(): array
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
-        'pays' => $pays, 'region' => $region, 'tagId' => $tagId, 'statut' => $statut,
+        'pays' => $pays, 'region' => $region, 'tagId' => $tagId, 'statut' => $statut, 'flag' => $flag,
         'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
     ];
@@ -616,10 +625,11 @@ function route_structures(): void
     $lieuJaugeMax = $f['lieuJaugeMax'];
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
     $lieuMoisProg = $f['lieuMoisProg'];
+    $flag = $f['flag'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
-        'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '',
+        'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
     ];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
@@ -684,6 +694,10 @@ function route_structures(): void
                 bulk_undo_memoriser('structures', $ids, ['adresse_pays'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+            } elseif ($section === 'flag' && in_array($_POST['bulk_flag'] ?? '', ['', 'star', 'heart'], true)) {
+                bulk_undo_memoriser('structures', $ids, ['flag'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET flag = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$_POST['bulk_flag']], $ids));
             } elseif ($section === 'via') {
                 bulk_undo_memoriser('structures', $ids, ['via'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET via = ? WHERE id IN ($in)")
@@ -758,7 +772,7 @@ function route_structures(): void
             'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'region' => $region,
             'tagId' => $tagId, 'statut' => $statut,
             'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
-            'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
+            'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
             'categoriesLieu' => lieu_categories_liste(),
@@ -826,6 +840,7 @@ function route_structures(): void
         'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement,
         'lieuMoisProg' => $lieuMoisProg,
+        'flag' => $flag,
         'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
@@ -838,7 +853,7 @@ function route_structures(): void
         'pgParams'  => [
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
-            'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '',
+            'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
         ],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
@@ -1024,6 +1039,35 @@ function route_structure_statut(): void
         if ($lignes) { journaliser('structure', $id, 'edition', implode("\n", $lignes)); }
     }
     redirect('structure', ['id' => $id]);
+}
+
+// Bascule le marquage rapide (flag) d'une structure — aucun → étoile → cœur →
+// aucun (voir flag_toggle_html(), lib/helpers.php). Appelé en AJAX depuis
+// lassoInitFlagToggle() (assets/app.js) : répond en JSON, pas de redirect.
+function route_structure_flag(): void
+{
+    require_login();
+    header('Content-Type: application/json');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $stmt = db()->prepare('SELECT flag FROM structures WHERE id = ?');
+    $stmt->execute([$id]);
+    $actuel = $stmt->fetchColumn();
+    if ($actuel === false) {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    $suivant = match ((string) $actuel) {
+        ''      => 'star',
+        'star'  => 'heart',
+        default => '',
+    };
+    db()->prepare('UPDATE structures SET flag = ? WHERE id = ?')->execute([$suivant, $id]);
+    echo json_encode(['ok' => true, 'flag' => $suivant]);
 }
 
 function route_structure_renommer(): void

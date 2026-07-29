@@ -798,6 +798,23 @@ span + .badge.muted-badge { margin-left: 6px; }
 .tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .tags-liste .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 0; }
 .btn-tag-x { border: none; background: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+/* Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton à 3
+   états, voir flag_toggle_html() (lib/helpers.php) et lassoInitFlagToggle()
+   (assets/app.js). Gris = aucun ; couleur de mise en évidence = étoile ;
+   --danger = cœur (fill en plus de la couleur : icônes Lucide en fill="none"
+   par défaut, sinon l'état actif ne se distinguerait pas assez du survol). */
+.flag-toggle {
+    background: none; border: none; box-shadow: none; padding: 2px; margin: 0;
+    cursor: pointer; color: var(--muted); display: inline-flex; align-items: center;
+    vertical-align: middle; line-height: 0; flex: 0 0 auto;
+}
+.flag-toggle .ico { width: 16px; height: 16px; }
+.flag-toggle:hover { color: var(--ink); }
+.flag-toggle.flag-star { color: var(--highlight); }
+.flag-toggle.flag-star .ico { fill: var(--highlight); }
+.flag-toggle.flag-heart { color: var(--danger); }
+.flag-toggle.flag-heart .ico { fill: var(--danger); }
+
 /* Flux de notes (fiche structure, booking) : liste chronologique inversée. */
 .notes-flux { display: flex; flex-direction: column; gap: 14px; }
 .note-item { padding: 10px 14px; background: var(--surface); border-radius: var(--radius-sm); }

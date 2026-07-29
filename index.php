@@ -156,10 +156,11 @@ if (module_actif('facturation') || module_actif('booking')) {
     $handlers['structure']       = 'route_structure';
     $handlers['structure_renommer'] = 'route_structure_renommer';
     $handlers['structure_statut'] = 'route_structure_statut';
+    $handlers['structure_flag']  = 'route_structure_flag';
     $handlers['structure_delete'] = 'route_structure_delete';
     $handlers['structure_fusion'] = 'route_structure_fusion';
     $handlers['structure_transformer'] = 'route_structure_transformer';
-    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_delete', 'structure_fusion', 'structure_transformer'] as $r) {
+    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_flag', 'structure_delete', 'structure_fusion', 'structure_transformer'] as $r) {
         $routeModules[$r] = ['facturation', 'booking'];
     }
 }
@@ -177,6 +178,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'lieu'                   => 'route_lieu',
     'lieu_renommer'          => 'route_lieu_renommer',
     'lieu_statut'            => 'route_lieu_statut',
+    'lieu_flag'              => 'route_lieu_flag',
     'lieu_organisateur'      => 'route_lieu_organisateur',
     'structures_options'     => 'route_structures_options',
     'lieux_options'          => 'route_lieux_options',

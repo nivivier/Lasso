@@ -6,7 +6,7 @@
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var string $lieuType */ /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
-/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $categoriesLieu */
+/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $categoriesLieu */ /** @var string $flag */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
@@ -59,7 +59,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
             <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <?php $lieuFiltresActifs = $lieuType !== '' || $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
-        <details class="filters-more" <?= ($pays !== '' || $region !== '' || $tagId || $lieuFiltresActifs) ? 'open' : '' ?>>
+        <details class="filters-more" <?= ($pays !== '' || $region !== '' || $tagId || $lieuFiltresActifs || $flag !== '') ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>
             <div class="filters-more-body">
                 <label>Pays
@@ -116,6 +116,14 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
                         <?php endfor; ?>
                     </select>
                 </label>
+                <label>Flag
+                    <select name="flag" onchange="this.form.submit()">
+                        <option value="">Tous</option>
+                        <option value="aucun" <?= $flag === 'aucun' ? 'selected' : '' ?>>Non marquées</option>
+                        <option value="star" <?= $flag === 'star' ? 'selected' : '' ?>>Étoile</option>
+                        <option value="heart" <?= $flag === 'heart' ? 'selected' : '' ?>>Cœur</option>
+                    </select>
+                </label>
             </div>
         </details>
     </form>
@@ -125,7 +133,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php elseif (!$structures): ?>
-    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $region !== '' || $tagId || $lieuFiltresActifs): ?>
+    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $region !== '' || $tagId || $lieuFiltresActifs || $flag !== ''): ?>
         <p class="muted">Aucune structure ne correspond à cette recherche.</p>
     <?php else: ?>
         <p class="muted">Aucune structure pour l'instant. Commencez par en ajouter une.</p>
@@ -142,6 +150,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
             <option value="region">Modifier la région</option>
             <option value="pays">Modifier le pays</option>
             <option value="via">Modifier le « via »</option>
+            <option value="flag">Modifier le flag</option>
             <?php if ($tagsDispo || module_actif('booking')): ?>
             <option value="tag_ajouter">Ajouter une étiquette</option>
             <option value="tag_retirer">Retirer une étiquette</option>
@@ -177,6 +186,13 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
         </span>
         <span class="bulk-field" data-for="via" hidden>
             <input type="text" name="bulk_via" class="inline-year-select" placeholder="Nouveau « via »">
+        </span>
+        <span class="bulk-field" data-for="flag" hidden>
+            <select name="bulk_flag" class="inline-year-select">
+                <option value="">Aucun</option>
+                <option value="star">Étoile</option>
+                <option value="heart">Cœur</option>
+            </select>
         </span>
         <?php if ($tagsDispo || module_actif('booking')): ?>
         <span class="bulk-field" data-for="tag_ajouter" hidden>
@@ -221,6 +237,7 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
         <tr class="row-link <?= $d['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
             <td>
+                <?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?>
                 <strong><?= e($d['nom']) ?></strong>
                 <?php if (!$d['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
                 <?php if ($d['desinscrit']): ?><span class="badge muted-badge">désinscrit</span><?php endif; ?>
@@ -264,6 +281,7 @@ lassoListeClient({
 <?php else: ?>
 lassoRechercheServeur(document.getElementById('structures-search'));
 <?php endif; ?>
+lassoInitFlagToggle();
 
 (function () {
     const bulkBar = document.getElementById('bulk-bar');

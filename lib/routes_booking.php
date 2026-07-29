@@ -384,6 +384,10 @@ function lieux_filtres(): array
     // Statut : « actif » par défaut (les lieux inactifs sont du bruit dans le
     // travail courant) ; 'inactif' ou 'tous' pour les voir.
     $statut = valeur_autorisee((string) filtre_persistant('statut', 'lieux_statut', 'actif'), ['actif', 'inactif', 'tous'], 'actif');
+    // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marqués,
+    // 'star'/'heart' = marqués. 'aucun' ne peut pas être stocké tel quel dans la
+    // colonne flag (qui vaut '' pour « non marqué ») d'où la traduction ci-dessous.
+    $flag = valeur_autorisee((string) filtre_persistant('flag', 'lieux_flag', ''), ['', 'aucun', 'star', 'heart'], '');
     // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
     // d'appoint pour traiter les cas où Nominatim ne trouve pas la ville
     // (typo, lieu-dit trop précis…), accessible depuis le lien de la vue carte
@@ -418,6 +422,12 @@ function lieux_filtres(): array
         $where .= ' AND grande_region = ?';
         $params[] = $grandeRegion;
     }
+    if ($flag === 'aucun') {
+        $where .= " AND flag = ''";
+    } elseif ($flag !== '') {
+        $where .= ' AND flag = ?';
+        $params[] = $flag;
+    }
     // Capacité = fourchette [jauge_min, jauge_max] du lieu ; un lieu sans jauge
     // est exclu dès qu'un critère de jauge est actif. Chevauchement avec la
     // fourchette demandée. Bornes injectées telles quelles (déjà validées en
@@ -444,7 +454,7 @@ function lieux_filtres(): array
         'where' => $where, 'params' => $params,
         'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion,
         'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
-        'statut' => $statut, 'nonLocalises' => $nonLocalises,
+        'statut' => $statut, 'nonLocalises' => $nonLocalises, 'flag' => $flag,
     ];
 }
 
@@ -532,6 +542,10 @@ function route_lieux(): void
                 bulk_undo_memoriser('lieux', $ids, ['pays'], 'lieux', $retourFiltres);
                 db()->prepare("UPDATE lieux SET pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+            } elseif ($section === 'flag' && in_array($_POST['bulk_flag'] ?? '', ['', 'star', 'heart'], true)) {
+                bulk_undo_memoriser('lieux', $ids, ['flag'], 'lieux', $retourFiltres);
+                db()->prepare("UPDATE lieux SET flag = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$_POST['bulk_flag']], $ids));
             }
             if (!in_array($section, ['delete', ''], true) && isset($_SESSION['bulk_undo'])) {
                 $retourFiltres['bulk'] = count($ids);
@@ -554,6 +568,7 @@ function route_lieux(): void
     $moisProg = $f['moisProg'];
     $statut = $f['statut'];
     $nonLocalises = $f['nonLocalises'];
+    $flag = $f['flag'];
 
     if ($vue === 'carte') {
         [$cartePoints, $carteVillesManquantes] = lieux_carte_points($where, $params);
@@ -563,7 +578,7 @@ function route_lieux(): void
             'recherche' => $recherche, 'type' => $type, 'categoriesLieu' => lieu_categories_liste(),
             'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion, 'statut' => $statut,
             'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
-            'nonLocalises' => $nonLocalises,
+            'nonLocalises' => $nonLocalises, 'flag' => $flag,
             'villesDispo' => [], 'grandesRegionsDispo' => [],
             'modeClient' => true, 'pgRoute' => 'lieux', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false,
@@ -638,11 +653,12 @@ function route_lieux(): void
         'moisEvenement' => $moisEvenement,
         'moisProg' => $moisProg,
         'nonLocalises' => $nonLocalises,
+        'flag' => $flag,
         'villesDispo' => $villesDispo,
         'grandesRegionsDispo' => $grandesRegionsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'lieux',
-        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: '', 'non_localises' => $nonLocalises ? 1 : ''],
+        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: '', 'non_localises' => $nonLocalises ? 1 : '', 'flag' => $flag],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,
@@ -901,6 +917,35 @@ function route_lieu_statut(): void
         journaliser('lieu', $id, 'edition', 'Statut : ' . ($actif ? 'actif' : 'inactif'));
     }
     redirect('lieu', ['id' => $id]);
+}
+
+// Bascule le marquage rapide (flag) d'un lieu — aucun → étoile → cœur →
+// aucun (voir flag_toggle_html(), lib/helpers.php). Appelé en AJAX depuis
+// lassoInitFlagToggle() (assets/app.js) : répond en JSON, pas de redirect.
+function route_lieu_flag(): void
+{
+    require_login();
+    header('Content-Type: application/json');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $stmt = db()->prepare('SELECT flag FROM lieux WHERE id = ?');
+    $stmt->execute([$id]);
+    $actuel = $stmt->fetchColumn();
+    if ($actuel === false) {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    $suivant = match ((string) $actuel) {
+        ''      => 'star',
+        'star'  => 'heart',
+        default => '',
+    };
+    db()->prepare('UPDATE lieux SET flag = ? WHERE id = ?')->execute([$suivant, $id]);
+    echo json_encode(['ok' => true, 'flag' => $suivant]);
 }
 
 function route_lieu_renommer(): void

@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.10.0] — 2026-07-29
+
+### Ajouté
+- **Marquage rapide (flag) sur les lieux et structures** : une étoile grise devant le nom (`?p=lieux`, `?p=structures`, `?p=lieu`, `?p=structure`) se cycle au clic — aucun → étoile (couleur de mise en évidence) → cœur (couleur `--danger`) → aucun — sans recharger la page (AJAX, `route_lieu_flag()`/`route_structure_flag()`). Filtrable (« Plus de filtres » → Flag : tous/non marqués/étoile/cœur) et disponible dans la modification groupée des deux listes (avec annulation, comme les autres actions en masse).
+
 ## [1.9.0] — 2026-07-29
 
 ### Ajouté

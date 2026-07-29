@@ -350,6 +350,7 @@ function run_migrations(PDO $pdo): void
         52 => 'migration_52', // module booking : table historique unifiée (structures + lieux), migration des structure_notes
         53 => 'migration_53', // module booking : table lieux_geocodage (cache ville+pays → latitude/longitude, vue carte)
         54 => 'migration_54', // module booking : evenements.grande_region (déduite du département/canton, voir grande_region_deduite())
+        55 => 'migration_55', // module booking : structures.flag / lieux.flag (marquage rapide étoile/cœur)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1848,6 +1849,19 @@ function migration_54(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
     if (!in_array('grande_region', $cols, true)) {
         $pdo->exec("ALTER TABLE evenements ADD COLUMN grande_region TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Migration 55 : marquage rapide (flag) sur structures et lieux — '' (aucun),
+// 'star' ou 'heart', voir flag_toggle_html() (lib/helpers.php) et
+// route_lieu_flag()/route_structure_flag().
+function migration_55(PDO $pdo): void
+{
+    foreach (['structures', 'lieux'] as $table) {
+        $cols = array_column($pdo->query("PRAGMA table_info($table)")->fetchAll(), 'name');
+        if (!in_array('flag', $cols, true)) {
+            $pdo->exec("ALTER TABLE $table ADD COLUMN flag TEXT NOT NULL DEFAULT ''");
+        }
     }
 }
 

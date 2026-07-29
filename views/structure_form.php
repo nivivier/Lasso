@@ -11,6 +11,7 @@ $sid = (int) ($structure['id'] ?? 0);
     <?php if ($isEdit): ?>
     <div class="titre-row">
         <div class="titre-read">
+            <?= flag_toggle_html('structure', $sid, (string) ($structure['flag'] ?? '')) ?>
             <h1><?= $v('nom') ?></h1>
             <button type="button" class="btn ghost btn-sm icon-only titre-edit-btn" title="Modifier le nom" aria-label="Modifier le nom"><?= icon('pencil') ?></button>
         </div>
@@ -36,6 +37,7 @@ $sid = (int) ($structure['id'] ?? 0);
             row.querySelector('.titre-read').hidden = false;
         });
     })();
+    lassoInitFlagToggle();
     </script>
     <?php else: ?>
     <h1>Nouvelle structure</h1>

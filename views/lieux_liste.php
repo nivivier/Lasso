@@ -6,8 +6,8 @@
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
-/** @var bool $nonLocalises */
-$plusFiltres = $ville !== '' || $pays !== '' || $grandeRegion !== '' || $jaugeMin !== null || $jaugeMax !== null || $moisEvenement || $moisProg;
+/** @var bool $nonLocalises */ /** @var string $flag */
+$plusFiltres = $ville !== '' || $pays !== '' || $grandeRegion !== '' || $jaugeMin !== null || $jaugeMax !== null || $moisEvenement || $moisProg || $flag !== '';
 $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !== 'actif';
 // Lien pour quitter le filtre « non localisés » (venu de la vue carte) sans
 // perdre les autres filtres actifs.
@@ -114,6 +114,14 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
                         <?php endfor; ?>
                     </select>
                 </label>
+                <label>Flag
+                    <select name="flag" onchange="this.form.submit()">
+                        <option value="">Tous</option>
+                        <option value="aucun" <?= $flag === 'aucun' ? 'selected' : '' ?>>Non marqués</option>
+                        <option value="star" <?= $flag === 'star' ? 'selected' : '' ?>>Étoile</option>
+                        <option value="heart" <?= $flag === 'heart' ? 'selected' : '' ?>>Cœur</option>
+                    </select>
+                </label>
             </div>
         </details>
     </form>
@@ -138,6 +146,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
             <option value="ville">Modifier la ville</option>
             <option value="region">Modifier la région</option>
             <option value="pays">Modifier le pays</option>
+            <option value="flag">Modifier le flag</option>
             <option value="delete">Supprimer</option>
         </select>
 
@@ -155,6 +164,13 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
         <span class="bulk-field" data-for="pays" hidden>
             <select name="bulk_pays" class="inline-year-select"><?= pays_options_nom('') ?></select>
         </span>
+        <span class="bulk-field" data-for="flag" hidden>
+            <select name="bulk_flag" class="inline-year-select">
+                <option value="">Aucun</option>
+                <option value="star">Étoile</option>
+                <option value="heart">Cœur</option>
+            </select>
+        </span>
 
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
     </form>
@@ -169,7 +185,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
     <?php foreach ($lieux as $l): ?>
         <tr class="row-link <?= (int) ($l['actif'] ?? 1) ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=lieu&id=<?= (int) $l['id'] ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $l['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
-            <td><strong><?= e($l['nom']) ?></strong><?php if (!(int) ($l['actif'] ?? 1)): ?> <span class="badge muted-badge">inactif</span><?php endif; ?></td>
+            <td><?= flag_toggle_html('lieu', (int) $l['id'], (string) ($l['flag'] ?? '')) ?> <strong><?= e($l['nom']) ?></strong><?php if (!(int) ($l['actif'] ?? 1)): ?> <span class="badge muted-badge">inactif</span><?php endif; ?></td>
             <td class="small">
                 <?php $orgs = $organisateurs[(int) $l['id']] ?? []; ?>
                 <?php if ($orgs): ?>
@@ -209,6 +225,7 @@ lassoListeClient({
 <?php else: ?>
 lassoRechercheServeur(document.getElementById('lieux-search'));
 <?php endif; ?>
+lassoInitFlagToggle();
 
 (function () {
     const bulkBar = document.getElementById('bulk-bar');

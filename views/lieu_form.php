@@ -17,6 +17,7 @@ $typeOptions = function () use ($lieu, $categoriesLieu): string {
     <?php if ($isEdit): ?>
     <div class="titre-row">
         <div class="titre-read">
+            <?= flag_toggle_html('lieu', (int) $lieu['id'], (string) ($lieu['flag'] ?? '')) ?>
             <h1><?= $v('nom') ?></h1>
             <button type="button" class="btn ghost btn-sm icon-only titre-edit-btn" title="Modifier le nom" aria-label="Modifier le nom"><?= icon('pencil') ?></button>
         </div>
@@ -42,6 +43,7 @@ $typeOptions = function () use ($lieu, $categoriesLieu): string {
             row.querySelector('.titre-read').hidden = false;
         });
     })();
+    lassoInitFlagToggle();
     </script>
     <?php else: ?>
     <h1>Nouveau lieu</h1>
