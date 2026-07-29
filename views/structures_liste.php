@@ -46,7 +46,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="structures">
-        <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
+        <input type="hidden" name="vue" value="<?= e($vue) ?>">
         <label>Catégorie
             <select name="categorie_id" onchange="this.form.submit()">
                 <option value="0">Toutes</option>

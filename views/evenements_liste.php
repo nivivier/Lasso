@@ -39,7 +39,7 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
             <input type="hidden" name="pays" value="<?= e($pays) ?>">
             <input type="hidden" name="salaries" value="<?= e($salaries) ?>">
             <input type="hidden" name="q" value="<?= e($recherche) ?>">
-            <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
+            <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <select name="annee" class="inline-year-select" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
@@ -65,7 +65,7 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
     <form method="get" class="filters">
         <input type="hidden" name="p" value="evenements_liste">
         <input type="hidden" name="annee" value="<?= (int) $annee ?>">
-        <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
+        <input type="hidden" name="vue" value="<?= e($vue) ?>">
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Tous</option>

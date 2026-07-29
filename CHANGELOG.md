@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.12.1] — 2026-07-29
+
+### Corrigé
+- **Filtres lieux/structures/événements pouvaient faire basculer silencieusement de liste à carte (ou l'inverse)** : le formulaire de filtres n'incluait le champ caché `vue` que pour la carte, jamais pour la liste. Comme `filtre_persistant()` retombe sur la dernière valeur mémorisée en session quand le paramètre est absent, changer un filtre en vue liste alors que la session avait mémorisé « carte » (lors d'une visite précédente) faisait basculer vers la carte de façon inattendue. `vue` est désormais toujours explicite dans les deux sens, sur les 3 pages (lieux, structures, événements). Les champs de filtre eux-mêmes étaient déjà identiques entre liste et carte (formulaire et requête SQL partagés) — vérifié, aucun changement nécessaire de ce côté.
+
 ## [1.12.0] — 2026-07-29
 
 ### Ajouté

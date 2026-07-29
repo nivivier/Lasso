@@ -40,7 +40,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="lieux">
-        <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
+        <input type="hidden" name="vue" value="<?= e($vue) ?>">
         <label>Type
             <select name="type" onchange="this.form.submit()">
                 <option value="">Tous</option>
