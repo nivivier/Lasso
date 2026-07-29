@@ -114,11 +114,19 @@ function maj_token(): string
     return (string) param('maj_token', '');
 }
 
-// Requête HTTP (cURL puis repli allow_url_fopen). $headers = en-têtes supplémentaires.
+// Requête HTTP (cURL puis repli allow_url_fopen). $headers = en-têtes
+// supplémentaires (un User-Agent y figurant déjà remplace celui par défaut,
+// ex. lib/geocodage.php qui doit s'identifier auprès de Nominatim/OSM).
 // Renvoie null si échec réseau ou code != 200.
 function maj_http_get(string $url, array $headers = []): ?string
 {
-    $headers = array_merge(['User-Agent: Lasso-updater'], $headers);
+    $aUserAgent = false;
+    foreach ($headers as $h) {
+        if (stripos($h, 'User-Agent:') === 0) { $aUserAgent = true; break; }
+    }
+    if (!$aUserAgent) {
+        array_unshift($headers, 'User-Agent: Lasso-updater');
+    }
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [

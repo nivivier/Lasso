@@ -7,6 +7,20 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.12] — 2026-07-29
+
+### Ajouté
+- **Vue carte des lieux** (`?p=lieux`, onglets Liste/Carte, mêmes filtres) :
+  affiche les salles/festivals sur une carte (Leaflet + fonds OpenStreetMap,
+  bundlés localement, pas de CDN). Un marqueur par ville géolocalisée, popup
+  listant les lieux de la ville avec lien vers leur fiche.
+  - Géocodage automatique ville+pays via Nominatim (OSM), mis en cache en
+    base (table `lieux_geocodage`, jamais réinterrogé) — jamais par lieu
+    individuel, une seule fois par ville.
+  - Bouton « Géocoder » qui traite les villes manquantes par lots (politique
+    Nominatim : 1 requête/seconde), avec reprise automatique tant qu'il en
+    reste, interruptible à tout moment en quittant la page.
+
 ## [1.5.11] — 2026-07-29
 
 ### Ajouté

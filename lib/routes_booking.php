@@ -358,67 +358,13 @@ function route_structure_lieu_delier(): void
     redirect('structures');
 }
 
-function route_lieux(): void
+// Filtres de la liste des lieux (?p=lieux) — factorisé pour être réutilisé par
+// la vue carte (mêmes critères, résultat non paginé, voir lieux_carte_points()).
+// Mêmes conventions que ?p=structures : type, ville, jauge (bornes de
+// capacité), mois d'événement / de programmation (le mois choisi doit tomber
+// dans la plage du lieu, en gérant le passage d'année comme periode_chevauche()).
+function lieux_filtres(): array
 {
-    require_login();
-    $recherche = trim((string) ($_GET['q'] ?? ''));
-    $pgTaille = pagination_taille('lieux_taille');
-
-    // Modification/suppression groupée (sélection + barre flottante), même esprit
-    // que les structures ci-dessus — un lieu lié à une structure est ignoré (jamais
-    // supprimé en masse par erreur) plutôt que de bloquer toute la sélection.
-    $retourFiltres = ['q' => $recherche];
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $section = $_POST['section'] ?? '';
-        if ($section === 'bulk_undo') {
-            $r = bulk_undo_appliquer();
-            redirect($r['route'] ?? 'lieux', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
-        }
-        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
-        $lieuxBloques = 0;
-        if ($ids) {
-            $in = implode(',', array_fill(0, count($ids), '?'));
-            unset($_SESSION['bulk_undo']);
-            if ($section === 'delete') {
-                $stmtRef = db()->prepare("SELECT DISTINCT lieu_id FROM structure_lieux WHERE lieu_id IN ($in)");
-                $stmtRef->execute($ids);
-                $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
-                $idsSupprimables = array_values(array_diff($ids, $refs));
-                if ($idsSupprimables) {
-                    $inSup = implode(',', array_fill(0, count($idsSupprimables), '?'));
-                    db()->prepare("DELETE FROM lieux WHERE id IN ($inSup)")->execute($idsSupprimables);
-                }
-                $lieuxBloques = count($refs);
-            } elseif ($section === 'type' && lieu_categorie_normaliser((string) ($_POST['bulk_type'] ?? '')) !== null) {
-                bulk_undo_memoriser('lieux', $ids, ['type'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET type = ? WHERE id IN ($in)")
-                    ->execute(array_merge([lieu_categorie_valide((string) $_POST['bulk_type'])], $ids));
-            } elseif ($section === 'ville') {
-                bulk_undo_memoriser('lieux', $ids, ['ville'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET ville = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
-            } elseif ($section === 'region') {
-                bulk_undo_memoriser('lieux', $ids, ['region'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET region = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_region'] ?? '')], $ids));
-            } elseif ($section === 'pays') {
-                bulk_undo_memoriser('lieux', $ids, ['pays'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET pays = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
-            }
-            if (!in_array($section, ['delete', ''], true) && isset($_SESSION['bulk_undo'])) {
-                $retourFiltres['bulk'] = count($ids);
-            }
-        }
-        $retourFiltres['lieuxBloquees'] = $lieuxBloques;
-        redirect('lieux', $retourFiltres);
-    }
-
-    // Filtres (mêmes conventions que ?p=structures) : type, ville, jauge (bornes
-    // de capacité), mois d'événement / de programmation (le mois choisi doit
-    // tomber dans la plage du lieu, en gérant le passage d'année comme
-    // periode_chevauche()).
     $type = lieu_categorie_normaliser((string) ($_GET['type'] ?? '')) ?? '';
     $ville = trim((string) ($_GET['ville'] ?? ''));
     $pays = trim((string) ($_GET['pays'] ?? ''));
@@ -478,6 +424,133 @@ function route_lieux(): void
     if ($moisEvenement) { $filtreMois('mois_evenement_debut', 'mois_evenement_fin', $moisEvenement); }
     if ($moisProg) { $filtreMois('mois_debut', 'mois_fin', $moisProg); }
 
+    return [
+        'where' => $where, 'params' => $params,
+        'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion,
+        'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
+        'statut' => $statut,
+    ];
+}
+
+// Points de la vue carte (?p=lieux&vue=carte) : lieux filtrés (mêmes critères
+// que la liste, $where/$params de lieux_filtres()), groupés par ville
+// géolocalisée — jamais paginé (un marqueur regroupe déjà tous les lieux d'une
+// même ville, la carte doit montrer la totalité du résultat filtré). Un lieu
+// dont la ville n'est pas encore dans le cache de géocodage (lib/geocodage.php)
+// est compté à part plutôt qu'ignoré silencieusement.
+// Retourne [points, nbLieuxNonGeolocalises].
+function lieux_carte_points(string $where, array $params): array
+{
+    [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'region', 'grande_region', 'type']);
+    $stmt = db()->prepare("SELECT id, nom, type, ville, pays FROM lieux WHERE ville <> ''" . $where . $rechSql . ' ORDER BY ville, nom');
+    $stmt->execute(array_merge($params, $rechParams));
+
+    $parCle = [];
+    $nonGeolocalises = 0;
+    foreach ($stmt->fetchAll() as $r) {
+        $geo = geocodage_lire((string) $r['ville'], (string) $r['pays']);
+        if (!$geo || $geo['statut'] !== 'ok') {
+            $nonGeolocalises++;
+            continue;
+        }
+        $cle = geocodage_cle((string) $r['ville'], (string) $r['pays']);
+        if (!isset($parCle[$cle])) {
+            $parCle[$cle] = [
+                'lat' => (float) $geo['latitude'], 'lon' => (float) $geo['longitude'],
+                'ville' => (string) $r['ville'], 'pays' => (string) $r['pays'], 'lieux' => [],
+            ];
+        }
+        $parCle[$cle]['lieux'][] = ['id' => (int) $r['id'], 'nom' => (string) $r['nom'], 'type' => (string) $r['type']];
+    }
+    return [array_values($parCle), $nonGeolocalises];
+}
+
+function route_lieux(): void
+{
+    require_login();
+    $recherche = trim((string) ($_GET['q'] ?? ''));
+    $vue = ($_GET['vue'] ?? '') === 'carte' ? 'carte' : 'liste';
+    $pgTaille = pagination_taille('lieux_taille');
+
+    // Modification/suppression groupée (sélection + barre flottante), même esprit
+    // que les structures ci-dessus — un lieu lié à une structure est ignoré (jamais
+    // supprimé en masse par erreur) plutôt que de bloquer toute la sélection.
+    $retourFiltres = ['q' => $recherche];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'bulk_undo') {
+            $r = bulk_undo_appliquer();
+            redirect($r['route'] ?? 'lieux', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
+        }
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        $lieuxBloques = 0;
+        if ($ids) {
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            unset($_SESSION['bulk_undo']);
+            if ($section === 'delete') {
+                $stmtRef = db()->prepare("SELECT DISTINCT lieu_id FROM structure_lieux WHERE lieu_id IN ($in)");
+                $stmtRef->execute($ids);
+                $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
+                $idsSupprimables = array_values(array_diff($ids, $refs));
+                if ($idsSupprimables) {
+                    $inSup = implode(',', array_fill(0, count($idsSupprimables), '?'));
+                    db()->prepare("DELETE FROM lieux WHERE id IN ($inSup)")->execute($idsSupprimables);
+                }
+                $lieuxBloques = count($refs);
+            } elseif ($section === 'type' && lieu_categorie_normaliser((string) ($_POST['bulk_type'] ?? '')) !== null) {
+                bulk_undo_memoriser('lieux', $ids, ['type'], 'lieux', $retourFiltres);
+                db()->prepare("UPDATE lieux SET type = ? WHERE id IN ($in)")
+                    ->execute(array_merge([lieu_categorie_valide((string) $_POST['bulk_type'])], $ids));
+            } elseif ($section === 'ville') {
+                bulk_undo_memoriser('lieux', $ids, ['ville'], 'lieux', $retourFiltres);
+                db()->prepare("UPDATE lieux SET ville = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
+            } elseif ($section === 'region') {
+                bulk_undo_memoriser('lieux', $ids, ['region'], 'lieux', $retourFiltres);
+                db()->prepare("UPDATE lieux SET region = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_region'] ?? '')], $ids));
+            } elseif ($section === 'pays') {
+                bulk_undo_memoriser('lieux', $ids, ['pays'], 'lieux', $retourFiltres);
+                db()->prepare("UPDATE lieux SET pays = ? WHERE id IN ($in)")
+                    ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+            }
+            if (!in_array($section, ['delete', ''], true) && isset($_SESSION['bulk_undo'])) {
+                $retourFiltres['bulk'] = count($ids);
+            }
+        }
+        $retourFiltres['lieuxBloquees'] = $lieuxBloques;
+        redirect('lieux', $retourFiltres);
+    }
+
+    $f = lieux_filtres();
+    $where = $f['where'];
+    $params = $f['params'];
+    $type = $f['type'];
+    $ville = $f['ville'];
+    $pays = $f['pays'];
+    $grandeRegion = $f['grandeRegion'];
+    $jaugeMin = $f['jaugeMin'];
+    $jaugeMax = $f['jaugeMax'];
+    $moisEvenement = $f['moisEvenement'];
+    $moisProg = $f['moisProg'];
+    $statut = $f['statut'];
+
+    if ($vue === 'carte') {
+        [$cartePoints, $carteVillesManquantes] = lieux_carte_points($where, $params);
+        render('lieux_liste', [
+            'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
+            'lieux' => [], 'organisateurs' => [], 'nbEvenements' => [],
+            'recherche' => $recherche, 'type' => $type, 'categoriesLieu' => lieu_categories_liste(),
+            'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion, 'statut' => $statut,
+            'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
+            'villesDispo' => [], 'grandesRegionsDispo' => [],
+            'modeClient' => true, 'pgRoute' => 'lieux', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
+            'bulkCount' => null, 'okAnnule' => false,
+        ], 'Lieux');
+        return;
+    }
+
     $stmtTotFiltres = db()->prepare('SELECT COUNT(*) FROM lieux WHERE 1=1' . $where);
     $stmtTotFiltres->execute($params);
     $totalSansRecherche = (int) $stmtTotFiltres->fetchColumn();
@@ -527,6 +600,9 @@ function route_lieux(): void
     $grandesRegionsDispo = pays_regions_map(); // régions groupées par pays (taxonomie, migration_49)
 
     render('lieux_liste', [
+        'vue' => $vue,
+        'cartePoints' => [],
+        'carteVillesManquantes' => 0,
         'lieux' => $lieux,
         'organisateurs' => $organisateurs,
         'nbEvenements' => lieux_nb_evenements(array_column($lieux, 'id')),
@@ -738,6 +814,24 @@ function route_lieu_organisateur(): void
     }
     db()->commit();
     redirect('lieu', ['id' => $lieuId]);
+}
+
+// Géocode un lot de villes encore manquantes (bouton de la vue carte,
+// ?p=lieux&vue=carte) — voir lib/geocodage.php. Un lot reste volontairement
+// petit (politique Nominatim : 1 requête/seconde) ; l'utilisateur reclique
+// (ou le JS de la vue le fait pour lui) jusqu'à ce qu'il n'en reste plus.
+function route_lieux_geocoder(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux', ['vue' => 'carte']); }
+    check_csrf();
+    $n = geocodage_traiter_lot();
+    // Reprend les filtres actifs (transmis en champs cachés par la vue carte) pour
+    // que le clic « Géocoder » n'en fasse pas perdre le fil.
+    $retour = array_intersect_key($_POST, array_flip([
+        'q', 'type', 'ville', 'pays', 'grande_region', 'statut', 'jauge_min', 'jauge_max', 'mois_evenement', 'mois_prog',
+    ]));
+    redirect('lieux', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
 // Bascule immédiate actif/inactif d'un lieu (bloc « Statut » de la sidebar),

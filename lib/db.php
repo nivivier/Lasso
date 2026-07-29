@@ -348,6 +348,7 @@ function run_migrations(PDO $pdo): void
         50 => 'migration_50', // module booking : lieux.actif (actif/inactif) + lieux.site_web
         51 => 'migration_51', // module booking : evenements.lieu_id (lien vers un lieu de la base)
         52 => 'migration_52', // module booking : table historique unifiée (structures + lieux), migration des structure_notes
+        53 => 'migration_53', // module booking : table lieux_geocodage (cache ville+pays → latitude/longitude, vue carte)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1817,6 +1818,26 @@ function migration_52(PDO $pdo): void
             FROM structure_notes
         ");
     }
+}
+
+// Migration 53 : cache de géocodage pour la vue carte des lieux. Une entrée
+// par couple (ville, pays) — pas par lieu : plusieurs lieux partagent
+// généralement la même ville, et on ne veut interroger le service de
+// géocodage (Nominatim/OSM) qu'une seule fois par ville, jamais à l'affichage.
+// Voir lib/geocodage.php.
+function migration_53(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS lieux_geocodage (
+            cle       TEXT PRIMARY KEY,
+            ville     TEXT NOT NULL DEFAULT '',
+            pays      TEXT NOT NULL DEFAULT '',
+            latitude  REAL,
+            longitude REAL,
+            statut    TEXT NOT NULL DEFAULT '',
+            maj_le    TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ");
 }
 
 // Migration 44 : le champ « region » existant devient le « département / canton » ;

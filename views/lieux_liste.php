@@ -5,8 +5,13 @@
 /** @var array $categoriesLieu */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */
+/** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 $plusFiltres = $ville !== '' || $pays !== '' || $grandeRegion !== '' || $jaugeMin !== null || $jaugeMax !== null || $moisEvenement || $moisProg;
 $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !== 'actif';
+// Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change.
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
+$lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ($v !== 'liste' ? ['vue' => $v] : []));
 ?>
 <?php $actionUrl = '?p=lieux'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ((int) ($_GET['lieuxBloquees'] ?? 0) > 0): ?><p class="err flash"><?= (int) $_GET['lieuxBloquees'] ?> lieu(x) non supprimé(s) : une structure y est liée.</p><?php endif; ?>
@@ -19,8 +24,14 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !=
         <a class="btn" href="?p=lieu"><?= icon('plus') ?><span class="lbl"> Nouveau lieu</span></a>
     </div>
 
+    <nav class="view-tabs">
+        <a href="<?= e($lienVue('liste')) ?>" class="<?= $vue === 'liste' ? 'on' : '' ?>">Liste</a>
+        <a href="<?= e($lienVue('carte')) ?>" class="<?= $vue === 'carte' ? 'on' : '' ?>">Carte</a>
+    </nav>
+
     <form method="get" class="filters">
         <input type="hidden" name="p" value="lieux">
+        <?php if ($vue === 'carte'): ?><input type="hidden" name="vue" value="carte"><?php endif; ?>
         <label>Type
             <select name="type" onchange="this.form.submit()">
                 <option value="">Tous</option>
@@ -98,7 +109,9 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !=
 </div>
 </div>
 
-<?php if (!$lieux): ?>
+<?php if ($vue === 'carte'): ?>
+    <?php require __DIR__ . '/_lieux_carte.php'; ?>
+<?php elseif (!$lieux): ?>
     <?php if ($filtresActifs): ?>
         <p class="muted">Aucune salle ni festival ne correspond à ces critères.</p>
     <?php else: ?>

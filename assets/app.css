@@ -190,6 +190,21 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .param-subtabs a:hover { color: var(--primary-d); background: var(--primary-tint); border-color: var(--primary-tint); text-decoration: none; }
 .param-subtabs a.on { color: #fff; background: var(--primary); border-color: var(--primary); }
 
+/* Bascule Liste / Carte (page Lieux) — même pastille que les sous-onglets Paramètres. */
+.view-tabs { display: flex; gap: 6px; margin: 0 0 14px; flex-basis: 100%; }
+.view-tabs a {
+    padding: 6px 13px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill);
+    transition: color .15s, background .15s, border-color .15s;
+}
+.view-tabs a:hover { color: var(--primary-d); background: var(--primary-tint); border-color: var(--primary-tint); text-decoration: none; }
+.view-tabs a.on { color: #fff; background: var(--primary); border-color: var(--primary); }
+
+/* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. */
+.carte-lieux { height: 600px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+.carte-popup-liste { margin: 4px 0 0; padding-left: 18px; max-height: 180px; overflow-y: auto; }
+.carte-popup-liste li { margin-bottom: 2px; }
+
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
 .burger, .side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }
@@ -268,6 +283,15 @@ body.auth-bg {
 .page-head-band .param-tabs {
     flex: 1 1 100%;
     margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+.page-head-band .view-tabs {
+    flex: 1 1 100%;
+    margin: 0 0 12px;
     padding: 0;
     background: transparent;
     border: none;

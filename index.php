@@ -14,6 +14,7 @@ require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/routes_booking.php';
 require_once __DIR__ . '/lib/maj.php';
+require_once __DIR__ . '/lib/geocodage.php';
 require_once __DIR__ . '/lib/dev.php';
 require_once __DIR__ . '/lib/routes_dev.php';
 
@@ -171,6 +172,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
     'lieux'                  => 'route_lieux',
+    'lieux_geocoder'         => 'route_lieux_geocoder',
     'lieu'                   => 'route_lieu',
     'lieu_renommer'          => 'route_lieu_renommer',
     'lieu_statut'            => 'route_lieu_statut',

@@ -16,6 +16,12 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
   `vendor/` est **commité dans le dépôt** ; aucune commande Composer n'est
   nécessaire en production (déploiement reste `git pull`). Cette dérogation est
   scopée à ce module (PDF + QR-facture), pas un blanc-seing général.
+- **Exception actée** : la vue carte des lieux (module booking) utilise
+  **Leaflet** (`assets/vendor/leaflet/`, bundlé dans le dépôt, pas de CDN) avec
+  des fonds de carte OpenStreetMap. Géocodage ville+pays via Nominatim (OSM),
+  mis en cache en base (`lieux_geocodage`, jamais réinterrogé par lieu) —
+  seule dépendance réseau externe de cette fonctionnalité. Dérogation scopée à
+  la vue carte, pas un blanc-seing général.
 
 ## Lancer / tester
 ```bash
