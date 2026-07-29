@@ -297,7 +297,7 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
     // serveur, sinon une recherche ne porterait que sur la page déjà chargée.
     // En dessous du seuil client (lib/helpers.php), lassoListeClient() prend
     // le relais entièrement en JS.
-    <?php if ($modeClient): ?>
+    <?php if ($modeClient && $vue !== 'carte'): ?>
     lassoListeClient({
         tableSelector: '.evenements-liste',
         searchInputSelector: '#evenements-search',

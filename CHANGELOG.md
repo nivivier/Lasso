@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.13.1] — 2026-07-29
+
+### Corrigé
+- **Recherche inopérante en vue carte** (lieux, structures, événements) : le champ de recherche était câblé sur `lassoListeClient()` (filtrage JS d'un tableau) dès que `modeClient` était vrai — toujours le cas en vue carte, qui ne contient pourtant aucun tableau à filtrer, donc `lassoListeClient()` ne faisait rien silencieusement. La vue carte utilise désormais toujours `lassoRechercheServeur()` (aller-retour serveur, déjà branché sur `recherche_sql()` côté carte pour les 3 entités), quelle que soit la taille du jeu de données.
+
 ## [1.13.0] — 2026-07-29
 
 ### Ajouté

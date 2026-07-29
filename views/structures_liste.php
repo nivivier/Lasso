@@ -280,7 +280,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
 <script>
-<?php if ($modeClient): ?>
+<?php if ($modeClient && $vue !== 'carte'): ?>
 lassoListeClient({
     tableSelector: '.list-wide',
     searchInputSelector: '#structures-search',

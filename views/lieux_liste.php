@@ -215,7 +215,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
 <script>
-<?php if ($modeClient): ?>
+<?php if ($modeClient && $vue !== 'carte'): ?>
 lassoListeClient({
     tableSelector: '.list-wide',
     searchInputSelector: '#lieux-search',
