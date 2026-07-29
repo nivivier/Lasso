@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.12.3] — 2026-07-29
+
+### Corrigé
+- **Notification « Filtre : ... non localisée(s) »** (lieux/structures) n'avait aucune couleur (classe `flash` seule) alors que toutes les autres notifications de l'app combinent `flash` avec `ok`/`err`/`warn`. Reprend désormais le style `warn` déjà utilisé pour les autres notifications informatives (ex. « Modification annulée »).
+
 ## [1.12.2] — 2026-07-29
 
 ### Ajouté

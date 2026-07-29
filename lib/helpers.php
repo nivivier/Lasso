@@ -1490,7 +1490,7 @@ function filtre_non_localises_flash_html(bool $actif, string $nomPluriel, string
     if (!$actif) {
         return '';
     }
-    return '<p class="flash">Filtre : ' . e($nomPluriel) . " dont la ville n'a pas pu être localisée sur la carte. "
+    return '<p class="warn flash">Filtre : ' . e($nomPluriel) . " dont la ville n'a pas pu être localisée sur la carte. "
         . '<a href="' . e($lienQuitter) . '">Quitter ce filtre</a></p>';
 }
 
