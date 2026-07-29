@@ -394,3 +394,192 @@ function grande_regions_appliquer(array $lignes): int
     }
     return $n;
 }
+
+// ===========================================================================
+// Rapprochement événement ↔ lieu (evenements.lieu_id, voir migration_51) —
+// un événement stocke un nom de salle en texte libre (salle) mais n'est
+// jamais automatiquement rattaché à une fiche lieu de la base (ni la CSV, ni
+// le formulaire ne renseignent lieu_id : c'est un champ de recherche saisi à
+// la main, voir _region_select_js.php côté formulaire événement). Rattrapage :
+// rapproche par ville (+département/canton+pays — même précaution que le
+// géocodage, voir migration_57, pour ne pas confondre deux villes homonymes)
+// puis par nom normalisé (normaliser_nom_structure(), même convention que
+// structures_grouper()/maj_dates_construire_index()). Jamais deviné en cas
+// d'ambiguïté (plusieurs lieux candidats) : ces fiches restent affichées à
+// part, à traiter à la main sur la fiche événement.
+// ===========================================================================
+
+// Longueur minimale (nom normalisé) pour qu'une correspondance partielle (l'un
+// des noms contient l'autre) soit retenue — évite qu'un nom de lieu trop court
+// (« Le », « Bar ») ne « matche » n'importe quoi par simple inclusion.
+const EVENEMENTS_LIEUX_LONGUEUR_MIN = 4;
+
+// Détecte, pour chaque événement sans lieu_id (salle et ville renseignées),
+// les lieux candidats de la même ville (+département/canton+pays). Retourne
+// [ ['evenement_id'=>, 'date'=>, 'salle'=>, 'ville'=>, 'departement_canton'=>,
+//    'pays'=>, 'candidats'=>[ ['id'=>,'nom'=>,'type'=>], … ] ], … ] — un
+// tableau `candidats` vide = aucune correspondance (voir
+// evenements_lieux_grouper_aucune()), un seul élément = correspondance
+// univoque (voir evenements_lieux_lier()), plusieurs = ambigu (jamais deviné).
+function evenements_lieux_detecter(): array
+{
+    $lignes = db()->query(
+        "SELECT id, date, salle, ville, departement_canton, pays
+         FROM evenements
+         WHERE lieu_id IS NULL AND TRIM(salle) <> '' AND TRIM(ville) <> ''
+         ORDER BY date DESC"
+    )->fetchAll();
+
+    // Index des lieux par ville (+département/canton+pays) normalisés, chargé
+    // une fois pour tous les événements (pas une requête par ligne).
+    $lieuxParVille = [];
+    foreach (db()->query('SELECT id, nom, type, ville, departement_canton, pays FROM lieux')->fetchAll() as $l) {
+        $cle = normaliser_nom_structure((string) $l['ville']) . '|'
+            . mb_strtolower(trim((string) $l['departement_canton']), 'UTF-8') . '|'
+            . normaliser_nom_structure((string) $l['pays']);
+        $lieuxParVille[$cle][] = $l;
+    }
+
+    $out = [];
+    foreach ($lignes as $e) {
+        $paysNom = pays_nom_depuis_code((string) $e['pays']);
+        $cle = normaliser_nom_structure((string) $e['ville']) . '|'
+            . mb_strtolower(trim((string) $e['departement_canton']), 'UTF-8') . '|'
+            . normaliser_nom_structure($paysNom);
+        $salleNorm = normaliser_nom_structure((string) $e['salle']);
+        $candidats = [];
+        foreach ($lieuxParVille[$cle] ?? [] as $l) {
+            $nomNorm = normaliser_nom_structure((string) $l['nom']);
+            if ($nomNorm === '') {
+                continue;
+            }
+            $exact = $nomNorm === $salleNorm;
+            $partiel = !$exact
+                && min(mb_strlen($nomNorm), mb_strlen($salleNorm)) >= EVENEMENTS_LIEUX_LONGUEUR_MIN
+                && (str_contains($nomNorm, $salleNorm) || str_contains($salleNorm, $nomNorm));
+            if ($exact || $partiel) {
+                $candidats[] = ['id' => (int) $l['id'], 'nom' => (string) $l['nom'], 'type' => (string) $l['type']];
+            }
+        }
+        $out[] = [
+            'evenement_id' => (int) $e['id'], 'date' => (string) $e['date'], 'salle' => (string) $e['salle'],
+            'ville' => (string) $e['ville'], 'departement_canton' => (string) $e['departement_canton'], 'pays' => $paysNom,
+            'candidats' => $candidats,
+        ];
+    }
+    return $out;
+}
+
+// Répartit le résultat de evenements_lieux_detecter() en trois listes pour
+// l'écran de rattrapage : correspondances univoques (voir
+// evenements_lieux_lier()), écarts ambigus (jamais devinés, affichés pour
+// être traités à la main) et absence de correspondance (voir
+// evenements_lieux_grouper_aucune()/evenements_lieux_creer()).
+function evenements_lieux_repartir(array $detection): array
+{
+    $univoques = [];
+    $ambigues = [];
+    $aucune = [];
+    foreach ($detection as $d) {
+        if (count($d['candidats']) === 1) {
+            $univoques[] = $d;
+        } elseif (count($d['candidats']) > 1) {
+            $ambigues[] = $d;
+        } else {
+            $aucune[] = $d;
+        }
+    }
+    return ['univoques' => $univoques, 'ambigues' => $ambigues, 'aucune' => $aucune];
+}
+
+// Regroupe les événements « aucune correspondance » (voir
+// evenements_lieux_repartir()) par salle+ville+département/canton+pays
+// normalisés — une seule structure+lieu créée par groupe, pas une par
+// événement, quand plusieurs événements partagent la même salle non reconnue.
+// Retourne [ ['nom'=>, 'ville'=>, 'departement_canton'=>, 'pays'=>,
+// 'evenements'=>[ ['id'=>, 'date'=>], … ]], … ] — id+date de chaque événement
+// du groupe (pas seulement l'id) pour permettre un lien direct vers sa fiche
+// depuis l'écran de rattrapage (voir views/dev.php).
+function evenements_lieux_grouper_aucune(array $aucune): array
+{
+    $parGroupe = [];
+    foreach ($aucune as $d) {
+        if ($d['candidats'] || trim($d['salle']) === '') {
+            continue;
+        }
+        $cle = normaliser_nom_structure($d['salle']) . '|' . normaliser_nom_structure($d['ville']) . '|'
+            . mb_strtolower(trim($d['departement_canton']), 'UTF-8') . '|' . normaliser_nom_structure($d['pays']);
+        if (!isset($parGroupe[$cle])) {
+            $parGroupe[$cle] = [
+                'nom' => trim($d['salle']), 'ville' => $d['ville'], 'departement_canton' => $d['departement_canton'],
+                'pays' => $d['pays'], 'evenements' => [],
+            ];
+        }
+        $parGroupe[$cle]['evenements'][] = ['id' => $d['evenement_id'], 'date' => $d['date']];
+    }
+    return array_values($parGroupe);
+}
+
+// Lie chaque événement de $univoques (voir evenements_lieux_repartir()) à son
+// lieu candidat unique. L'appelant est responsable de la sauvegarde préalable
+// (sauvegarder_base()). Renvoie le nombre d'événements liés.
+function evenements_lieux_lier(array $univoques): int
+{
+    $n = 0;
+    db()->beginTransaction();
+    try {
+        foreach ($univoques as $d) {
+            if (count($d['candidats']) !== 1) {
+                continue; // relecture défensive : la répartition doit déjà garantir l'unicité
+            }
+            db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?')
+                ->execute([$d['candidats'][0]['id'], $d['evenement_id']]);
+            $n++;
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+    return $n;
+}
+
+// Crée une structure + un lieu (même nom que la salle) par groupe de
+// evenements_lieux_grouper_aucune(), reliés via structure_lieux, puis rattache
+// tous les événements du groupe au lieu créé. Catégorie « organisateur » par
+// défaut (même convention que structures_grouper() côté import CSV : on ne
+// sait rien d'autre sur l'entité que son nom). L'appelant est responsable de
+// la sauvegarde préalable (sauvegarder_base()). Renvoie le nombre de paires
+// structure+lieu créées (pas le nombre d'événements liés).
+function evenements_lieux_creer(array $groupes): int
+{
+    $n = 0;
+    db()->beginTransaction();
+    try {
+        foreach ($groupes as $g) {
+            db()->prepare(
+                'INSERT INTO structures (nom, categorie, adresse_localite, departement_canton, adresse_pays) VALUES (?, ?, ?, ?, ?)'
+            )->execute([$g['nom'], 'organisateur', $g['ville'], $g['departement_canton'], $g['pays']]);
+            $structureId = (int) db()->lastInsertId();
+
+            db()->prepare(
+                "INSERT INTO lieux (type, nom, ville, departement_canton, pays) VALUES ('Salle', ?, ?, ?, ?)"
+            )->execute([$g['nom'], $g['ville'], $g['departement_canton'], $g['pays']]);
+            $lieuId = (int) db()->lastInsertId();
+
+            db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
+                ->execute([$structureId, $lieuId]);
+
+            $stmtMaj = db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?');
+            foreach ($g['evenements'] as $ev) {
+                $stmtMaj->execute([$lieuId, $ev['id']]);
+            }
+            $n++;
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+    return $n;
+}

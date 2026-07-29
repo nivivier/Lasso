@@ -7,6 +7,13 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.15.0] — 2026-07-30
+
+### Ajouté
+- **Rattacher les événements à un lieu** (Paramètres → Données → Incohérences) : nouvel outil de rattrapage qui rapproche chaque événement sans lieu rattaché avec un lieu existant (même ville/département/canton/pays, nom normalisé), propose de créer une structure+lieu quand rien ne correspond (une seule paire par salle même si plusieurs événements la partagent), et n'applique jamais une correspondance ambiguë (plusieurs lieux candidats) — ces cas restent listés avec un lien direct vers la fiche événement à traiter à la main.
+- **Cases à cocher sur tout l'onglet Incohérences** : les 5 outils (doublons, dates CSV, grandes régions, rattachement lieu, création structure+lieu) n'appliquent désormais le changement qu'aux lignes cochées, plus jamais à tout ce qui a été détecté par défaut.
+- **Regroupement « Données »** : les onglets Importer/Exporter/Incohérences (ex-« Dev ») sont désormais réunis sous un seul onglet Paramètres → Données, avec ces 3 sections en sous-onglets.
+
 ## [1.14.0] — 2026-07-29
 
 ### Corrigé

@@ -24,7 +24,6 @@ if (peut_ecrire('coeur')) {
         'parametres_modules' => 'Modules',
         'comptes'            => 'Utilisateurs',
         'diagnostic'         => 'Diagnostic du serveur',
-        'dev'                => 'Dev',
     ]];
 }
 
@@ -50,20 +49,28 @@ if (module_actif('evenements') && peut_lire('evenements')) {
     $ptGroupes['evenements'] = ['Événements', ['parametres_evenements' => 'Événements']];
 }
 
-// Importer : un seul onglet couvrant plusieurs routes de traitement (selon les
-// modules actifs) — le lien pointe vers la première, toutes comptent comme
-// l'onglet actif (aliases).
+// Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
+// principal, avec ces 3 sections en sous-onglets.
+// Importer couvre plusieurs routes de traitement (selon les modules actifs) —
+// le sous-onglet pointe vers la première, toutes comptent comme la section
+// active (aliases, voir la mise en surbrillance des sous-onglets plus bas :
+// une section-alias est signalée active via le 3ᵉ élément du groupe, pas via
+// sa propre clé, d'où le cas particulier « première section du groupe »).
 $ptRoutesImport = [];
 if (module_actif('salaires')    && peut_lire('salaires'))    $ptRoutesImport[] = 'import_fiches';
 if (module_actif('facturation') && peut_lire('facturation')) $ptRoutesImport[] = 'import_factures';
 if (module_actif('compta')      && peut_lire('compta'))      $ptRoutesImport[] = 'import_ecritures';
 if (module_actif('evenements')  && peut_lire('evenements'))  $ptRoutesImport[] = 'import_evenements';
 if (module_actif('booking')     && peut_lire('booking'))     $ptRoutesImport[] = 'import_structures';
+$ptDonneesSections = [];
 if ($ptRoutesImport) {
-    $ptGroupes['import'] = ['Importer', [$ptRoutesImport[0] => 'Importer'], $ptRoutesImport];
+    $ptDonneesSections[$ptRoutesImport[0]] = 'Importer';
 }
-
-$ptGroupes['export'] = ['Exporter', ['export' => 'Exporter']];
+$ptDonneesSections['export'] = 'Exporter';
+if (peut_ecrire('coeur')) {
+    $ptDonneesSections['dev'] = 'Incohérences';
+}
+$ptGroupes['donnees'] = ['Données', $ptDonneesSections, $ptRoutesImport];
 
 $ptCurParam = $_GET['p'] ?? '';
 
@@ -91,8 +98,16 @@ $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [
 </div>
 <?php if (count($ptSectionsActives) > 1): ?>
 <nav class="param-subtabs">
+    <?php
+    // Une section-alias (ex. Importer, voir plus haut) n'est jamais elle-même
+    // la route courante : sa mise en surbrillance passe par les alias du
+    // groupe (3ᵉ élément), rattachés par convention à la toute première section.
+    $ptPremiereSection = array_key_first($ptSectionsActives);
+    $ptAliasesGroupe = $ptGroupes[$ptGroupeActif][2] ?? [];
+    ?>
     <?php foreach ($ptSectionsActives as $ptRoute => $ptLib): ?>
-        <a href="?p=<?= $ptRoute ?>" class="<?= $ptCurParam === $ptRoute ? 'on' : '' ?>"><?= e($ptLib) ?></a>
+        <?php $ptOn = $ptCurParam === $ptRoute || ($ptRoute === $ptPremiereSection && in_array($ptCurParam, $ptAliasesGroupe, true)); ?>
+        <a href="?p=<?= $ptRoute ?>" class="<?= $ptOn ? 'on' : '' ?>"><?= e($ptLib) ?></a>
     <?php endforeach; ?>
 </nav>
 <?php endif; ?>

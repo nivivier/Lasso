@@ -20,23 +20,39 @@ function route_dev(): void
     $datesAppliqueN  = null;
     $grandesRegionsErr      = null;
     $grandesRegionsAppliqueN = null;
+    $evenementsLieuxErr        = null;
+    $evenementsLieuxLiesN      = null;
+    $evenementsLieuxCreesN     = null;
+    $evenementsLieuxCreesEvN   = null;
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $action = $_POST['action'] ?? '';
+        // Identifiants cochés (case « sel[] », voir views/dev.php) — chaque
+        // action ci-dessous n'applique le changement qu'aux lignes présentes
+        // dans cet ensemble, jamais à tout ce qui a été détecté par défaut.
+        // Format de clé propre à chaque action, voir le filtre correspondant.
+        $selection = array_flip(array_map('strval', $_POST['sel'] ?? []));
 
         if ($action === 'doublons_fusionner') {
             $type = in_array($_POST['type'] ?? '', ['structures', 'lieux', 'contacts', 'tous'], true) ? $_POST['type'] : 'tous';
             $gr  = doublons_detecter($type);
-            $bak = sauvegarder_base('avant_doublons');
-            if ($bak === null) {
-                $doublonsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
+            foreach (['structures', 'lieux', 'contacts'] as $k) {
+                $gr[$k] = array_values(array_filter($gr[$k], fn ($g) => isset($selection["$k:{$g['ids'][0]}"])));
+            }
+            if (!$gr['structures'] && !$gr['lieux'] && !$gr['contacts']) {
+                $doublonsErr = 'Aucun groupe sélectionné.';
             } else {
-                $ns = doublons_fusionner_structures($gr['structures']);
-                $nl = doublons_fusionner_lieux($gr['lieux']);
-                $nc = doublons_fusionner_contacts($gr['contacts']);
-                redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nl' => $nl, 'nc' => $nc]);
-                return;
+                $bak = sauvegarder_base('avant_doublons');
+                if ($bak === null) {
+                    $doublonsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
+                } else {
+                    $ns = doublons_fusionner_structures($gr['structures']);
+                    $nl = doublons_fusionner_lieux($gr['lieux']);
+                    $nc = doublons_fusionner_contacts($gr['contacts']);
+                    redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nl' => $nl, 'nc' => $nc]);
+                    return;
+                }
             }
         } elseif ($action === 'dates_analyser') {
             $r = lire_fichier_importe(
@@ -74,29 +90,65 @@ function route_dev(): void
             } else {
                 $index    = maj_dates_reperer_colonnes($entete);
                 $resultat = maj_dates_analyser($entete, $lignes, $index);
-                if (!$resultat['aEcrire']) {
-                    $datesErr = 'Rien à écrire — aucune date nouvelle ou différente détectée.';
+                $aEcrireSel = array_values(array_filter($resultat['aEcrire'], fn ($op) => isset($selection["{$op[0]}:{$op[1]}"])));
+                if (!$aEcrireSel) {
+                    $datesErr = 'Rien à écrire — aucune ligne sélectionnée.';
                 } else {
                     $bak = sauvegarder_base('avant_maj_dates');
                     if ($bak === null) {
                         $datesErr = 'Échec de la sauvegarde préalable — écriture annulée.';
                     } else {
-                        maj_dates_appliquer($resultat['aEcrire']);
-                        $datesAppliqueN = count($resultat['aEcrire']);
+                        maj_dates_appliquer($aEcrireSel);
+                        $datesAppliqueN = count($aEcrireSel);
                         unset($_SESSION['dev_dates_csv'], $_SESSION['dev_dates_nom']);
                     }
                 }
             }
         } elseif ($action === 'grandes_regions_appliquer') {
             $lignes = grande_regions_detecter();
-            $bak = sauvegarder_base('avant_grandes_regions');
-            if ($bak === null) {
-                $grandesRegionsErr = 'Échec de la sauvegarde préalable — écriture annulée.';
+            $lignesSel = array_values(array_filter($lignes, fn ($l) => isset($selection["{$l['table']}:{$l['id']}"])));
+            if (!$lignesSel) {
+                $grandesRegionsErr = 'Aucune fiche sélectionnée.';
             } else {
-                $grandesRegionsAppliqueN = grande_regions_appliquer($lignes);
+                $bak = sauvegarder_base('avant_grandes_regions');
+                if ($bak === null) {
+                    $grandesRegionsErr = 'Échec de la sauvegarde préalable — écriture annulée.';
+                } else {
+                    $grandesRegionsAppliqueN = grande_regions_appliquer($lignesSel);
+                }
+            }
+        } elseif ($action === 'evenements_lieux_lier') {
+            $repartition = evenements_lieux_repartir(evenements_lieux_detecter());
+            $univoquesSel = array_values(array_filter($repartition['univoques'], fn ($d) => isset($selection[(string) $d['evenement_id']])));
+            if (!$univoquesSel) {
+                $evenementsLieuxErr = 'Rien à lier — aucune ligne sélectionnée.';
+            } else {
+                $bak = sauvegarder_base('avant_evenements_lieux');
+                if ($bak === null) {
+                    $evenementsLieuxErr = 'Échec de la sauvegarde préalable — écriture annulée.';
+                } else {
+                    $evenementsLieuxLiesN = evenements_lieux_lier($univoquesSel);
+                }
+            }
+        } elseif ($action === 'evenements_lieux_creer') {
+            $groupes = evenements_lieux_grouper_aucune(evenements_lieux_repartir(evenements_lieux_detecter())['aucune']);
+            $groupesSel = array_values(array_filter($groupes, fn ($g) => isset($selection[(string) $g['evenements'][0]['id']])));
+            if (!$groupesSel) {
+                $evenementsLieuxErr = 'Rien à créer — aucune ligne sélectionnée.';
+            } else {
+                $bak = sauvegarder_base('avant_evenements_lieux');
+                if ($bak === null) {
+                    $evenementsLieuxErr = 'Échec de la sauvegarde préalable — écriture annulée.';
+                } else {
+                    $evenementsLieuxCreesN = evenements_lieux_creer($groupesSel);
+                    $evenementsLieuxCreesEvN = array_sum(array_map(fn ($g) => count($g['evenements']), $groupesSel));
+                }
             }
         }
     }
+
+    $evenementsLieuxRepartition = evenements_lieux_repartir(evenements_lieux_detecter());
+    $evenementsLieuxAucuneGroupes = evenements_lieux_grouper_aucune($evenementsLieuxRepartition['aucune']);
 
     render('dev', [
         'type'           => $type,
@@ -113,5 +165,12 @@ function route_dev(): void
         'grandesRegions'         => grande_regions_detecter(),
         'grandesRegionsErr'      => $grandesRegionsErr,
         'grandesRegionsAppliqueN' => $grandesRegionsAppliqueN,
-    ], 'Dev');
+        'evenementsLieuxUnivoques'    => $evenementsLieuxRepartition['univoques'],
+        'evenementsLieuxAmbigues'     => $evenementsLieuxRepartition['ambigues'],
+        'evenementsLieuxAucuneGroupes' => $evenementsLieuxAucuneGroupes,
+        'evenementsLieuxErr'      => $evenementsLieuxErr,
+        'evenementsLieuxLiesN'    => $evenementsLieuxLiesN,
+        'evenementsLieuxCreesN'   => $evenementsLieuxCreesN,
+        'evenementsLieuxCreesEvN' => $evenementsLieuxCreesEvN,
+    ], 'Incohérences');
 }
