@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.10.3] — 2026-07-29
+
+### Corrigé
+- **Exemple d'import événements introuvable en prod** : `.gitignore` excluait tout fichier `*.csv` (pensé pour les décomptes/exports PII), ce qui emportait aussi `assets/exemples/evenements.csv` — jamais versionné, donc absent après déploiement. Exception ajoutée (`!/assets/exemples/*.csv`) et fichier commité.
+- **Exemple et aide d'import événements obsolètes** : ne mentionnaient pas la colonne `festival` (ajoutée avec la grande région) et n'indiquaient pas que `region` doit être un **code** (canton 2 lettres pour la Suisse, numéro de département pour la France) — source probable de confusion « canton vs région » à l'import, la grande région ne pouvant se déduire que d'un code reconnu. Documentation et fichier d'exemple mis à jour en conséquence.
+
+### Vérifié
+- La logique de déduction elle-même (`grande_region_deduite()`) fonctionne correctement pour les codes attendus (canton CH, département FR) — aucune régression trouvée côté import pour les événements récents (2026). Repéré en passant : 122 événements anciens (2016-2017, antérieurs à la fonctionnalité grande région) ont un canton/département de qualité douteuse (nom de grande région stocké dans `region` au lieu d'un code) — donnée historique, non touchée (voir règle « historique figé », CLAUDE.md).
+
 ## [1.10.2] — 2026-07-29
 
 ### Corrigé

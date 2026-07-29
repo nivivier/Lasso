@@ -20,6 +20,9 @@
 *.xls
 *.csv
 *.ods
+# Exception : fichier d'exemple statique servi depuis l'aide de l'import
+# événements (views/import_fiches.php), sans donnée réelle — doit être versionné.
+!/assets/exemples/*.csv
 
 # === Notes de spécification locales (pas encore implémentées) ===
 /SPEC_FACTURATION.md
