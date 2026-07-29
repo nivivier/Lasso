@@ -813,7 +813,7 @@ span + .badge.muted-badge { margin-left: 6px; }
     vertical-align: middle; line-height: 0; flex: 0 0 auto;
 }
 .flag-toggle .ico { width: 16px; height: 16px; }
-.flag-toggle:hover { opacity: 1; color: var(--highlight); }
+.flag-toggle:hover { background: none; opacity: 1; color: var(--highlight); }
 .flag-toggle.flag-star { opacity: 1; color: var(--highlight); }
 .flag-toggle.flag-star .ico { fill: var(--highlight); }
 .flag-toggle.flag-heart { opacity: 1; color: var(--danger); }

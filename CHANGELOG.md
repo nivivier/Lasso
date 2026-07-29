@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.10.2] — 2026-07-29
+
+### Corrigé
+- **Survol de l'étoile de marquage rapide** : un fond bleu apparaissait au survol malgré `background: none` sur l'état de base — une règle générique `button:hover` (boutons de l'appli) s'appliquait toujours pour cette seule propriété (le CSS se résout propriété par propriété, la spécificité plus élevée de `.flag-toggle:hover` sur les autres propriétés ne suffisait pas). `background: none` ajouté explicitement à `.flag-toggle:hover`.
+
 ## [1.10.1] — 2026-07-29
 
 ### Modifié
