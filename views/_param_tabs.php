@@ -24,6 +24,7 @@ if (peut_ecrire('coeur')) {
         'parametres_modules' => 'Modules',
         'comptes'            => 'Utilisateurs',
         'diagnostic'         => 'Diagnostic du serveur',
+        'dev'                => 'Dev',
     ]];
 }
 

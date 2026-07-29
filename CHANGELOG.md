@@ -7,6 +7,19 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.5.11] — 2026-07-29
+
+### Ajouté
+- **Onglet Paramètres → Dev** (réservé aux administrateurs) : lance depuis le
+  web les scripts de maintenance ponctuels, jusqu'ici CLI uniquement.
+  - Doublons exacts : détection immédiate (structures/lieux/contacts/tous),
+    puis fusion en un clic avec sauvegarde automatique de la base avant écriture.
+  - Mise à jour des dates depuis un CSV : dépôt du fichier, simulation
+    (rapport détaillé des écritures prévues), puis enregistrement avec
+    sauvegarde automatique. La logique commune aux deux points d'entrée
+    (web et CLI, `scripts/doublons.php` / `scripts/maj_dates_import.php`)
+    vit désormais dans `lib/dev.php`.
+
 ## [1.5.10] — 2026-07-25
 
 ### Corrigé

@@ -14,6 +14,8 @@ require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/routes_booking.php';
 require_once __DIR__ . '/lib/maj.php';
+require_once __DIR__ . '/lib/dev.php';
+require_once __DIR__ . '/lib/routes_dev.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
 if (FORCE_HTTPS && !is_https() && PHP_SAPI !== 'cli') {
@@ -258,6 +260,7 @@ if (peut_ecrire('coeur')) {
         'diagnostic'          => 'route_diagnostic',
         'apparence'           => 'route_apparence',
         'backup'              => 'route_backup',
+        'dev'                 => 'route_dev',
     ];
 }
 
