@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.15.1] — 2026-07-30
+
+### Ajouté
+- **Sélecteur unifié sur la page Exporter** : un menu déroulant « Type de données à exporter » (même esprit que celui déjà présent sur la page Importer) remplace l'empilement de cartes — une seule carte, le contenu du type choisi s'affiche en dessous, le champ Année mutualisé à droite du sélecteur de type. Nouvel export « Événements — CSV (SUISA + organisateur) », qui réutilise l'export déjà disponible depuis la liste des événements, toujours sans filtre (hormis l'année).
+
 ## [1.15.0] — 2026-07-30
 
 ### Ajouté

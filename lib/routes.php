@@ -820,8 +820,12 @@ function route_export(): void
     $comptesCamt = module_actif('compta')
         ? db()->query("SELECT id, libelle FROM comptes_bancaires WHERE trim(iban) <> '' ORDER BY ordre, libelle")->fetchAll()
         : [];
+    $anneesEvenements = module_actif('evenements')
+        ? array_map('intval', db()->query("SELECT DISTINCT strftime('%Y', date) FROM evenements ORDER BY 1 DESC")->fetchAll(PDO::FETCH_COLUMN))
+        : [];
     render('export', [
         'annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta, 'comptesCamt' => $comptesCamt,
+        'anneesEvenements' => $anneesEvenements,
         'errCamt' => ($_GET['err'] ?? '') === 'camt_compte',
     ], 'Exporter les données');
 }
