@@ -10,9 +10,11 @@
  *   • lieux.dernier_concert_le       (colonne « dernier concert ») + entrée
  *     d'historique de type « dernier_concert »
  *
- * Rapprochement identique à l'import : e-mail exact (prioritaire), sinon nom
- * normalisé DISCRIMINÉ PAR LA VILLE (deux homonymes de villes différentes ne
- * sont jamais confondus ; un nom ambigu sans ville est signalé, pas deviné).
+ * Rapprochement : e-mail (prioritaire), sinon nom normalisé — dans les DEUX
+ * cas DISCRIMINÉ PAR LA VILLE si plusieurs structures partagent le même
+ * e-mail ou le même nom (un e-mail générique n'est pas forcément unique ;
+ * deux homonymes de villes différentes ne sont jamais confondus ; un
+ * e-mail/nom ambigu sans ville pour trancher est signalé, pas deviné).
  *
  * Par défaut : DRY-RUN (n'écrit rien, affiche ce qui serait fait).
  * Avec --appliquer : sauvegarde automatique de la base, puis écriture.

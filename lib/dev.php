@@ -197,10 +197,24 @@ function maj_dates_construire_index(): array
             $indexNom[$cle][] = ['id' => (int) $s['id'], 'ville' => normaliser_nom_structure((string) ($s['adresse_localite'] ?? ''))];
         }
     }
-    foreach (db()->query("SELECT email, structure_id FROM structure_contacts WHERE email <> ''") as $c) {
+    // Un e-mail n'est pas forcément unique (adresse générique reprise par
+    // plusieurs structures) : on garde toutes les structures candidates, avec
+    // leur ville, pour permettre la même discrimination que le rapprochement
+    // par nom ci-dessous.
+    foreach (db()->query(
+        "SELECT c.email, c.structure_id, s.adresse_localite
+         FROM structure_contacts c JOIN structures s ON s.id = c.structure_id
+         WHERE c.email <> ''"
+    ) as $c) {
         $cle = mb_strtolower(trim((string) $c['email']), 'UTF-8');
-        if ($cle !== '' && !isset($indexEmail[$cle])) {
-            $indexEmail[$cle] = (int) $c['structure_id'];
+        if ($cle === '') { continue; }
+        $sid = (int) $c['structure_id'];
+        $dejaCandidate = false;
+        foreach ($indexEmail[$cle] ?? [] as $cand) {
+            if ($cand['id'] === $sid) { $dejaCandidate = true; break; }
+        }
+        if (!$dejaCandidate) {
+            $indexEmail[$cle][] = ['id' => $sid, 'ville' => normaliser_nom_structure((string) ($c['adresse_localite'] ?? ''))];
         }
     }
     $datesParStructure = [];
@@ -237,13 +251,21 @@ function maj_dates_analyser(array $entete, array $lignes, array $index): array
         $ville = $val($ligne, $index['ville']);
         $email = mb_strtolower($val($ligne, $index['email']), 'UTF-8');
 
-        // Rapprochement : e-mail, sinon nom + ville (jamais d'homonyme deviné).
+        // Rapprochement : e-mail, sinon nom — dans les deux cas discriminé par
+        // la ville si plusieurs structures partagent le même e-mail ou le même
+        // nom (jamais d'homonyme deviné à l'aveugle).
+        $vNorm = normaliser_nom_structure($ville);
         $sid = null;
         if ($email !== '' && isset($indexEmail[$email])) {
-            $sid = $indexEmail[$email];
-        } else {
+            $cands = $indexEmail[$email];
+            if ($vNorm !== '') {
+                foreach ($cands as $c) { if ($c['ville'] === $vNorm) { $sid = $c['id']; break; } }
+            } elseif (count($cands) === 1) {
+                $sid = $cands[0]['id'];
+            }
+        }
+        if ($sid === null) {
             $cands = $indexNom[normaliser_nom_structure($nom)] ?? [];
-            $vNorm = normaliser_nom_structure($ville);
             if ($vNorm !== '') {
                 foreach ($cands as $c) { if ($c['ville'] === $vNorm) { $sid = $c['id']; break; } }
             } elseif (count($cands) === 1) {
