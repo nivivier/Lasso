@@ -813,6 +813,13 @@ function route_structure(): void
             'via'              => trim($_POST['via'] ?? ''),
             'notes'            => trim($_POST['notes'] ?? ''),
         ];
+        // Grande région déduite du département/canton quand c'est possible
+        // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
+        // manuelle dans ce cas, quoi que le formulaire ait envoyé.
+        $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['region']);
+        if ($grandeRegionDeduite !== null) {
+            $champs['grande_region'] = $grandeRegionDeduite;
+        }
         // actif/desinscrit : gérés à part (bloc « Statut » de la sidebar, bascule
         // immédiate via route_structure_statut()) — jamais touchés par cet
         // enregistrement, sinon toute sauvegarde de la fiche les réinitialiserait.
@@ -824,6 +831,7 @@ function route_structure(): void
             $renderForm($err, array_merge((array) $structure, $champs, ['id' => $id]));
             return;
         }
+        pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
         if ($id) {
             $champs['id'] = $id;
             db()->prepare('UPDATE structures SET type=:type, categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom,

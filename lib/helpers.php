@@ -55,13 +55,14 @@ function send_security_headers(): void
     if (is_https()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
-    // CSP minimale : on autorise la police Google et les styles/scripts inline déjà utilisés.
+    // CSP minimale : on autorise la police Google, les styles/scripts inline déjà
+    // utilisés, et les tuiles OpenStreetMap (vue carte des lieux, lib/geocodage.php).
     header(
         "Content-Security-Policy: default-src 'self'; "
         . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         . "font-src 'self' https://fonts.gstatic.com; "
         . "script-src 'self' 'unsafe-inline'; "
-        . "img-src 'self' data:; base-uri 'self'; form-action 'self'"
+        . "img-src 'self' data: https://tile.openstreetmap.org; base-uri 'self'; form-action 'self'"
     );
 }
 
@@ -387,6 +388,84 @@ function region_options_nom(string $paysNom, string $selected): string
         $h .= '<option value="' . e($r) . '"' . ($selected === $r ? ' selected' : '') . '>' . e($r) . '</option>';
     }
     return $h;
+}
+
+// Cantons suisses non ambigus (français d'un seul côté de la barrière
+// linguistique) → grande région déduite avec certitude.
+const CANTONS_SUISSES_REGIONS = [
+    'GE' => 'Genève',
+    'VD' => 'Romandie', 'NE' => 'Romandie', 'JU' => 'Romandie',
+    'TI' => 'Tessin',
+    'ZH' => 'Alémanique', 'BS' => 'Alémanique', 'BL' => 'Alémanique',
+    'AG' => 'Alémanique', 'SG' => 'Alémanique', 'TG' => 'Alémanique', 'GR' => 'Alémanique',
+    'LU' => 'Alémanique', 'ZG' => 'Alémanique', 'SO' => 'Alémanique', 'SH' => 'Alémanique',
+    'AR' => 'Alémanique', 'AI' => 'Alémanique', 'GL' => 'Alémanique', 'UR' => 'Alémanique',
+    'SZ' => 'Alémanique', 'OW' => 'Alémanique', 'NW' => 'Alémanique',
+];
+// Cantons bilingues (Fribourg, Valais, Berne) : la région linguistique dépend
+// de la commune, pas du canton entier — valeur ci-dessous = simple défaut
+// (majorité linguistique), jamais imposée (voir grande_region_deduite() $strict).
+const CANTONS_SUISSES_BILINGUES = ['FR' => 'Romandie', 'VS' => 'Romandie', 'BE' => 'Alémanique'];
+
+// Grande région déduite du département (France, via le référentiel officiel
+// departements_regions, lib/db.php) ou du canton (Suisse, CANTONS_SUISSES_REGIONS
+// ci-dessus). $pays accepte indifféremment un NOM (structures/lieux :
+// adresse_pays/pays) ou un CODE ISO2 (événements : pays). $strict (défaut
+// true) : ne renvoie JAMAIS de valeur pour un canton bilingue — utilisé
+// partout où la déduction est IMPOSÉE (sauvegarde serveur, import, script Dev
+// de rattrapage), pour ne jamais écraser une saisie manuelle ambiguë.
+// $strict=false ne sert qu'à la suggestion JS du formulaire (défaut
+// pré-rempli mais toujours modifiable pour ces 3 cantons). Null si le pays
+// n'a pas de règle de déduction, ou si le département/canton n'est pas
+// reconnu (jamais de devinette : le champ reste alors saisi à la main).
+function grande_region_deduite(string $pays, string $region, bool $strict = true): ?string
+{
+    $pays = trim($pays);
+    $region = trim($region);
+    if ($region === '') {
+        return null;
+    }
+    if ($pays === 'France' || $pays === 'FR') {
+        $stmt = db()->prepare('SELECT region FROM departements_regions WHERE code = ?');
+        $stmt->execute([$region]);
+        $r = $stmt->fetchColumn();
+        return $r !== false ? (string) $r : null;
+    }
+    if ($pays === 'Suisse' || $pays === 'CH') {
+        $code = mb_strtoupper($region, 'UTF-8');
+        if (isset(CANTONS_SUISSES_REGIONS[$code])) {
+            return CANTONS_SUISSES_REGIONS[$code];
+        }
+        if (!$strict && isset(CANTONS_SUISSES_BILINGUES[$code])) {
+            return CANTONS_SUISSES_BILINGUES[$code];
+        }
+        return null;
+    }
+    return null;
+}
+
+// Référentiel départements français → région (code => région), pour l'auto-
+// remplissage JS de grande_region dans les formulaires (voir _geo_region_js.php) —
+// même source que grande_region_deduite().
+function departements_regions_map(): array
+{
+    return db()->query('SELECT code, region FROM departements_regions')->fetchAll(PDO::FETCH_KEY_PAIR);
+}
+
+// Nom de pays à partir d'un code ISO2 — inverse de pays_drapeau_nom()/
+// pays_options_code(). Nécessaire pour résoudre evenements.pays (stocké en
+// code) vers le nom attendu par region_options_nom()/pays_regions_map()
+// (clés indexées par nom, comme structures/lieux).
+function pays_nom_depuis_code(string $code): string
+{
+    static $map = null;
+    if ($map === null) {
+        $map = [];
+        foreach (pays_liste() as $p) {
+            $map[(string) $p['code_iso2']] = (string) $p['nom'];
+        }
+    }
+    return $map[strtoupper(trim($code))] ?? '';
 }
 
 // Émoji drapeau à partir d'un code pays ISO 3166-1 alpha-2 (ex. « CH » → 🇨🇭).

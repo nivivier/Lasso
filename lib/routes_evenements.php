@@ -507,6 +507,7 @@ function route_evenement(): void
     $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
     $salle = trim($_POST['salle'] ?? '');
     $festival = trim($_POST['festival'] ?? '');
+    $grandeRegion = trim($_POST['grande_region'] ?? '');
     // Lien vers un lieu de la base (facultatif) — validé s'il existe encore.
     $lieuId = ($_POST['lieu_id'] ?? '') !== '' ? (int) $_POST['lieu_id'] : null;
     if ($lieuId !== null) {
@@ -539,17 +540,32 @@ function route_evenement(): void
         return;
     }
 
+    // Grande région déduite du département/canton quand c'est possible
+    // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
+    // manuelle dans ce cas, quoi que le formulaire ait envoyé. $pays est un
+    // code ISO2 ici (evenements_pays_disponibles()) — grande_region_deduite()
+    // l'accepte directement, pas de conversion nécessaire.
+    $grandeRegionDeduite = grande_region_deduite($pays, $region);
+    if ($grandeRegionDeduite !== null) {
+        $grandeRegion = $grandeRegionDeduite;
+    }
+
     $champs = [
         'spectacle_id' => $spectacleId, 'date' => $date, 'statut' => $statut, 'visibilite' => $visibilite,
         'ville' => $ville, 'region' => $region, 'pays' => $pays, 'salle' => $salle, 'festival' => $festival,
-        'lieu_id' => $lieuId,
+        'grande_region' => $grandeRegion, 'lieu_id' => $lieuId,
         'lien_infos' => $lienInfos, 'lien_texte' => $lienTexte, 'remarques' => $remarques,
     ];
+    $paysNom = pays_nom_depuis_code($pays);
+    if ($paysNom !== '') {
+        pays_region_assurer($paysNom, $grandeRegion);
+    }
 
     if ($id) {
         $champs['id'] = $id;
         db()->prepare('UPDATE evenements SET spectacle_id=:spectacle_id, date=:date, statut=:statut,
                         visibilite=:visibilite, ville=:ville, region=:region, pays=:pays, salle=:salle, festival=:festival,
+                        grande_region=:grande_region,
                         lieu_id=:lieu_id, lien_infos=:lien_infos, lien_texte=:lien_texte, remarques=:remarques WHERE id=:id')->execute($champs);
         $evenementId = $id;
     } else {
@@ -557,9 +573,9 @@ function route_evenement(): void
         // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
         // depuis la carte « Suivi SUISA », visible une fois l'événement créé.
         db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, festival,
-                        lieu_id, lien_infos, lien_texte, remarques)
-                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :region, :pays, :salle, :festival, :lieu_id, :lien_infos,
-                        :lien_texte, :remarques)')
+                        grande_region, lieu_id, lien_infos, lien_texte, remarques)
+                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :region, :pays, :salle, :festival,
+                        :grande_region, :lieu_id, :lien_infos, :lien_texte, :remarques)')
             ->execute($champs);
         $evenementId = (int) db()->lastInsertId();
     }

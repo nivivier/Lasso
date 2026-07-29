@@ -1524,6 +1524,14 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
     $pays = $d['pays'] !== '' ? $d['pays'] : 'Suisse';
     $majLe = structure_date_csv_vers_iso($d['mise_a_jour']) ?? '';
     if ($ligne['correspondance_id'] === null) {
+        // Grande région déduite du département/canton importé (France/Suisse
+        // hors cantons bilingues) : remplace toute valeur CSV mappée sur
+        // grande_region quand le département/canton est reconnu ; sinon
+        // comportement actuel (valeur CSV acceptée telle quelle).
+        $grandeRegionDeduite = grande_region_deduite($pays, $d['region']);
+        if ($grandeRegionDeduite !== null) {
+            $d['grande_region'] = $grandeRegionDeduite;
+        }
         db()->prepare(
             'INSERT INTO structures (nom, categorie, sous_categorie, adresse_rue, adresse_npa, adresse_localite, region, grande_region, adresse_pays,
                                       site_web, via, notes, mise_a_jour_le, actif)
@@ -1534,6 +1542,7 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         ]);
         $structureId = (int) db()->lastInsertId();
         $resume['nouvelles']++;
+        $grandeRegionFinale = $d['grande_region'];
     } else {
         // Fiche déjà présente : FUSION champ par champ (jamais d'écrasement
         // global). Remplissage des champs vides côté base + application des
@@ -1553,6 +1562,15 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         // Le pays effectif de la fiche (pour la taxonomie des régions) : import
         // s'il est renseigné, sinon celui déjà en base.
         $pays = $d['pays'] !== '' ? $d['pays'] : (string) ($existante['adresse_pays'] ?? '');
+        // Grande région déduite du département/canton EFFECTIF (celui retenu
+        // par la fusion, pas forcément celui du CSV) — seulement si elle
+        // diffère de la valeur déjà en base, pour ne pas ajouter une écriture
+        // inutile quand tout est déjà cohérent.
+        $regionEffective = array_key_exists('region', $maj) ? $maj['region'] : (string) ($existante['region'] ?? '');
+        $grandeRegionDeduite = grande_region_deduite($pays, $regionEffective);
+        if ($grandeRegionDeduite !== null && $grandeRegionDeduite !== (string) ($existante['grande_region'] ?? '')) {
+            $maj['grande_region'] = $grandeRegionDeduite;
+        }
         if ($maj) {
             // Colonnes issues d'une whitelist (STRUCTURE_IMPORT_FUSION_CHAMPS) →
             // interpolation sûre.
@@ -1572,12 +1590,17 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         } else {
             $resume['ignorees']++;
         }
+        // $d['grande_region'] mis à jour vers la valeur effective (déduite ou
+        // fusionnée) : structure_lier_lieu_importe() ci-dessous lit $d, pas $maj.
+        $grandeRegionFinale = array_key_exists('grande_region', $maj) ? $maj['grande_region'] : (string) ($existante['grande_region'] ?? '');
+        $d['grande_region'] = $grandeRegionFinale;
     }
 
-    // La région importée (grande_region) rejoint la taxonomie sous le pays de la
-    // fiche si elle en est absente — la liste reste stricte dans les formulaires,
-    // mais l'import peut l'enrichir (le lieu auto éventuel réutilise la même).
-    pays_region_assurer($pays, (string) $d['grande_region']);
+    // La région (grande_region effective, déduite ou importée) rejoint la
+    // taxonomie sous le pays de la fiche si elle en est absente — la liste
+    // reste stricte dans les formulaires, mais l'import peut l'enrichir (le
+    // lieu auto éventuel réutilise la même).
+    pays_region_assurer($pays, (string) $grandeRegionFinale);
 
     structure_import_attacher_contact($structureId, $d);
     foreach (structure_tags_depuis_statut($d['tags_statut']) as $nomTag) {

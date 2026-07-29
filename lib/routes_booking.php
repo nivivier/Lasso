@@ -703,6 +703,13 @@ function route_lieu(): void
             'site_web'   => trim($_POST['site_web'] ?? ''),
             'notes'      => trim($_POST['notes'] ?? ''),
         ];
+        // Grande région déduite du département/canton quand c'est possible
+        // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
+        // manuelle dans ce cas, quoi que le formulaire ait envoyé.
+        $grandeRegionDeduite = grande_region_deduite($champs['pays'], $champs['region']);
+        if ($grandeRegionDeduite !== null) {
+            $champs['grande_region'] = $grandeRegionDeduite;
+        }
         $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
         if ($err) {
             render('lieu_form', ['lieu' => array_merge((array) $lieu, $champs, ['id' => $id]), 'err' => $err,
@@ -710,6 +717,7 @@ function route_lieu(): void
                 'categoriesLieu' => lieu_categories_liste()], 'Lieu');
             return;
         }
+        pays_region_assurer($champs['pays'], $champs['grande_region']);
         if ($id) {
             $champs['id'] = $id;
             // actif n'est PAS touché ici : il est géré à part par le bloc « Statut »

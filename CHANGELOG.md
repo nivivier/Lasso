@@ -7,6 +7,38 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.7.0] — 2026-07-29
+
+### Ajouté
+- **Grande région déduite du département/canton** (structures, lieux,
+  événements) : le champ « Région » n'a plus besoin d'être saisi à la main
+  pour la France (référentiel officiel des 101 départements, déjà en base
+  mais jusqu'ici inutilisé) et la Suisse (26 cantons) — déduite et imposée à
+  l'enregistrement (formulaire, import), select grisé côté formulaire pour le
+  signaler. Cantons bilingues (Fribourg, Valais, Berne) exclus de
+  l'automatisme (la langue dépend de la commune, pas du canton) : un défaut
+  est suggéré mais reste librement modifiable, jamais imposé.
+  - **Événements** gagnent la grande région (nouvelle colonne), pour la même
+    cohérence que structures/lieux — `evenements.pays` reste en code ISO2
+    (pas de migration de format), la logique de déduction accepte les deux
+    représentations.
+  - **Import événements** : ajoute la colonne `festival` (existait en base,
+    jamais reprise par l'import) et déduit la grande région comme les autres
+    points d'entrée.
+  - **Script Dev** (Paramètres → Dev) de rattrapage des fiches existantes :
+    dry-run listant les écarts avec la valeur actuellement enregistrée
+    (utile aussi pour repérer des incohérences de longue date, ex. régions
+    françaises pré-2016 jamais migrées), sauvegarde automatique avant
+    d'appliquer.
+
+### Corrigé
+- **Tuiles de la carte des lieux invisibles** (fond gris, en local comme en
+  production) : l'en-tête de sécurité `Content-Security-Policy` bloquait
+  toute image externe (`img-src 'self' data:`, sans exception) — les tuiles
+  OpenStreetMap n'ont donc jamais pu se charger depuis la mise en place de la
+  vue carte (1.5.12). `tile.openstreetmap.org` est désormais explicitement
+  autorisé.
+
 ## [1.6.0] — 2026-07-29
 
 ### Modifié

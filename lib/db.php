@@ -349,6 +349,7 @@ function run_migrations(PDO $pdo): void
         51 => 'migration_51', // module booking : evenements.lieu_id (lien vers un lieu de la base)
         52 => 'migration_52', // module booking : table historique unifiée (structures + lieux), migration des structure_notes
         53 => 'migration_53', // module booking : table lieux_geocodage (cache ville+pays → latitude/longitude, vue carte)
+        54 => 'migration_54', // module booking : evenements.grande_region (déduite du département/canton, voir grande_region_deduite())
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1838,6 +1839,16 @@ function migration_53(PDO $pdo): void
             maj_le    TEXT NOT NULL DEFAULT (datetime('now'))
         )
     ");
+}
+
+// Migration 54 : grande région sur les événements (parité avec structures/lieux),
+// déduite du département/canton — voir grande_region_deduite() (lib/helpers.php).
+function migration_54(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('grande_region', $cols, true)) {
+        $pdo->exec("ALTER TABLE evenements ADD COLUMN grande_region TEXT NOT NULL DEFAULT ''");
+    }
 }
 
 // Migration 44 : le champ « region » existant devient le « département / canton » ;

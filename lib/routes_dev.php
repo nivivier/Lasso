@@ -18,6 +18,8 @@ function route_dev(): void
     $datesErr        = null;
     $datesResultat   = null;
     $datesAppliqueN  = null;
+    $grandesRegionsErr      = null;
+    $grandesRegionsAppliqueN = null;
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -85,6 +87,14 @@ function route_dev(): void
                     }
                 }
             }
+        } elseif ($action === 'grandes_regions_appliquer') {
+            $lignes = grande_regions_detecter();
+            $bak = sauvegarder_base('avant_grandes_regions');
+            if ($bak === null) {
+                $grandesRegionsErr = 'Échec de la sauvegarde préalable — écriture annulée.';
+            } else {
+                $grandesRegionsAppliqueN = grande_regions_appliquer($lignes);
+            }
         }
     }
 
@@ -100,5 +110,8 @@ function route_dev(): void
         'datesErr'       => $datesErr,
         'datesResultat'  => $datesResultat,
         'datesAppliqueN' => $datesAppliqueN,
+        'grandesRegions'         => grande_regions_detecter(),
+        'grandesRegionsErr'      => $grandesRegionsErr,
+        'grandesRegionsAppliqueN' => $grandesRegionsAppliqueN,
     ], 'Dev');
 }

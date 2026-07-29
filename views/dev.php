@@ -3,6 +3,9 @@
 /** @var ?string $ok */ /** @var int $ns */ /** @var int $nl */ /** @var int $nc */
 /** @var string $datesEtape */ /** @var ?string $datesErr */ /** @var ?array $datesResultat */
 /** @var ?int $datesAppliqueN */
+/** @var array $grandesRegions */ /** @var ?string $grandesRegionsErr */ /** @var ?int $grandesRegionsAppliqueN */
+
+$libellesTable = ['structures' => 'Structures', 'lieux' => 'Lieux', 'evenements' => 'Événements'];
 
 $libellesType = ['structures' => 'Structures', 'lieux' => 'Lieux', 'contacts' => 'Contacts', 'tous' => 'Tous'];
 $totalGroupes = count($doublons['structures']) + count($doublons['lieux']) + count($doublons['contacts']);
@@ -137,5 +140,50 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
         <?php if ($datesResultat['nonTrouvees']): ?>
             <p class="muted small">Sans correspondance dans la base : <?= e(implode(', ', $datesResultat['nonTrouvees'])) ?></p>
         <?php endif; ?>
+    <?php endif; ?>
+</div>
+
+<div class="card mt-22">
+    <h2 class="mt-0">Grandes régions déduites du département/canton</h2>
+    <p class="muted small">
+        Recalcule la grande région (structures, lieux, événements) à partir du département français ou du canton
+        suisse déjà renseigné, et compare avec la valeur actuellement enregistrée. Jamais pour les cantons
+        bilingues (Fribourg, Valais, Berne — la déduction n'y est pas assez fiable, ces fiches restent inchangées)
+        ni pour les autres pays.
+    </p>
+
+    <?php if ($grandesRegionsErr): ?><p class="err"><?= e($grandesRegionsErr) ?></p><?php endif; ?>
+    <?php if ($grandesRegionsAppliqueN !== null): ?>
+        <p class="ok flash"><?= $grandesRegionsAppliqueN ?> fiche(s) mise(s) à jour.</p>
+    <?php endif; ?>
+
+    <?php if (!$grandesRegions): ?>
+        <p class="muted">Aucun écart trouvé — les grandes régions déjà enregistrées correspondent au référentiel.</p>
+    <?php else: ?>
+        <p><?= count($grandesRegions) ?> fiche(s) avec un écart.</p>
+        <div class="table-scroll">
+        <table class="list">
+            <thead><tr><th>Table</th><th>Fiche</th><th>Pays</th><th>Dép./canton</th><th>Actuelle</th><th>Déduite</th></tr></thead>
+            <tbody>
+            <?php foreach ($grandesRegions as $l): ?>
+                <tr>
+                    <td class="muted small"><?= e($libellesTable[$l['table']] ?? $l['table']) ?></td>
+                    <td><?= e($l['nom']) ?></td>
+                    <td class="muted small"><?= e($l['pays']) ?></td>
+                    <td class="muted small"><?= e($l['region']) ?></td>
+                    <td class="muted small"><?= $l['actuelle'] !== '' ? e($l['actuelle']) : '—' ?></td>
+                    <td><?= e($l['deduite']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <form method="post" action="?p=dev" class="mt-16"
+              onsubmit="return confirm('Mettre à jour ces <?= count($grandesRegions) ?> fiche(s) avec la grande région déduite ? Une sauvegarde de la base sera faite automatiquement avant.');">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="grandes_regions_appliquer">
+            <button type="submit"><?= icon('map-pin') ?> Appliquer les grandes régions déduites</button>
+        </form>
+        <p class="muted small">Une sauvegarde de la base est faite automatiquement avant l'écriture.</p>
     <?php endif; ?>
 </div>

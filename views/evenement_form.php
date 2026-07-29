@@ -104,10 +104,14 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 
         <div class="grid4">
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
-            <label>Région et pays
+            <label>Département/canton, région et pays
                 <div class="field-pair">
                     <input name="region" value="<?= $v('region') ?>" placeholder="canton ou département">
-                    <select name="pays">
+                    <select name="grande_region" class="region-select" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
+                        <option value="">— Région —</option>
+                        <?= region_options_nom(pays_nom_depuis_code($vRaw('pays')), $v('grande_region')) ?>
+                    </select>
+                    <select name="pays" class="pays-select">
                         <option value="">—</option>
                         <?= pays_options_code($vRaw('pays')) ?>
                     </select>
@@ -627,3 +631,4 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     }
 })();
 </script>
+<?php require __DIR__ . '/_region_select_js.php'; ?>

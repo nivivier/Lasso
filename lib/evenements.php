@@ -626,18 +626,23 @@ function normaliser_nom_spectacle(string $s): string
 }
 
 // Importe des événements depuis un CSV d'agenda de tournée (colonnes attendues,
-// dans n'importe quel ordre : date, ville, region, pays, lieu, details, type,
-// statut, lien, lien_texte — seules date/ville sont obligatoires). $simule =
-// true : n'écrit rien, retourne ce qui serait fait. Un événement existant
-// (même date + ville + salle, comparaison insensible à la casse) est ignoré —
-// jamais écrasé, même esprit que importer_factures_historique(). La colonne
-// « type » est recherchée parmi les spectacles existants (nom normalisé) ; à
-// défaut, un nouveau spectacle est créé à la volée. « lien_texte » est le texte du bouton de lien
+// dans n'importe quel ordre : date, ville, region, pays, lieu, festival,
+// details, type, statut, lien, lien_texte — seules date/ville sont
+// obligatoires). $simule = true : n'écrit rien, retourne ce qui serait fait.
+// Un événement existant (même date + ville + salle, comparaison insensible à
+// la casse) est ignoré — jamais écrasé, même esprit que
+// importer_factures_historique(). La colonne « type » est recherchée parmi
+// les spectacles existants (nom normalisé) ; à défaut, un nouveau spectacle
+// est créé à la volée. « lien_texte » est le texte du bouton de lien
 // (ex. « Réserver ») ; ignoré si « lien » est absent/invalide, sinon stocké tel
 // quel (une valeur vide utilisera le texte par défaut configurable à l'export,
 // voir evenements_lien_texte_defaut()). Visibilité toujours « non_repertorie »
 // à l'import (relecture manuelle avant publication) ; statut « confirme » par
-// défaut si la colonne est vide ou non reconnue. Renvoie [résultats par ligne, résumé].
+// défaut si la colonne est vide ou non reconnue. « grande_region » n'est pas
+// une colonne CSV : déduite du couple pays/région importé quand c'est possible
+// (France/Suisse hors cantons bilingues, voir grande_region_deduite()),
+// laissée vide sinon (modifiable ensuite sur la fiche). Renvoie [résultats
+// par ligne, résumé].
 function importer_evenements_csv(string $csv, bool $simule): array
 {
     $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv); // BOM UTF-8 (export Excel)
@@ -662,8 +667,8 @@ function importer_evenements_csv(string $csv, bool $simule): array
         "SELECT 1 FROM evenements WHERE date = ? AND lower(trim(ville)) = lower(trim(?)) AND lower(trim(salle)) = lower(trim(?))"
     );
     $insEv = db()->prepare(
-        "INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, lien_infos, lien_texte, remarques)
-         VALUES (?, ?, ?, 'non_repertorie', ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, region, pays, salle, festival, grande_region, lien_infos, lien_texte, remarques)
+         VALUES (?, ?, ?, 'non_repertorie', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     $insSpec = db()->prepare('INSERT INTO spectacles (nom) VALUES (?)');
     // Même liste blanche que le formulaire d'édition (route_evenement()) : un
@@ -687,6 +692,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
             $pays    = $col($r, 'pays');
             $pays    = in_array($pays, $paysDisponibles, true) ? $pays : '';
             $lieu    = $col($r, 'lieu');
+            $festival = $col($r, 'festival');
             $details = $col($r, 'details');
             $type    = $col($r, 'type');
             $statutRaw = mb_strtolower($col($r, 'statut'), 'UTF-8');
@@ -734,11 +740,12 @@ function importer_evenements_csv(string $csv, bool $simule): array
             $lienValide = ($lien !== '' && preg_match('#^https?://#i', $lien) && filter_var($lien, FILTER_VALIDATE_URL)) ? $lien : '';
             // Le texte du bouton n'a de sens que si le lien lui-même est valide.
             $lienTexte = $lienValide !== '' ? $lienTexte : '';
+            $grandeRegion = (string) grande_region_deduite($pays, $region);
 
             $ligneRes['statut'] = 'nouveau';
             $resume['nouveaux']++;
             if (!$simule) {
-                $insEv->execute([$spectacleId, $dateIso, $statut, $ville, $region, $pays, $lieu, $lienValide, $lienTexte, $details]);
+                $insEv->execute([$spectacleId, $dateIso, $statut, $ville, $region, $pays, $lieu, $festival, $grandeRegion, $lienValide, $lienTexte, $details]);
             }
             $resultats[] = $ligneRes;
         }

@@ -326,3 +326,61 @@ function maj_dates_appliquer(array $aEcrire): void
     }
     db()->commit();
 }
+
+// ===========================================================================
+// Grandes régions déduites du département/canton (structures, lieux,
+// événements) — voir grande_region_deduite() (lib/helpers.php). Rattrapage
+// des fiches existantes dont la grande région diverge de ce que déduirait
+// aujourd'hui le département/canton déjà renseigné (variantes de la
+// taxonomie, saisie manuelle antérieure…). Jamais les cantons bilingues
+// (Fribourg/Valais/Berne) : la déduction y est volontairement non fiable
+// (grande_region_deduite($pays, $region) en mode strict), donc jamais
+// proposée en écart ici.
+// ===========================================================================
+
+const GRANDE_REGION_TABLES = [
+    'structures' => ['pays_col' => 'adresse_pays', 'nom_sql' => 'nom', 'pays_code' => false],
+    'lieux'      => ['pays_col' => 'pays', 'nom_sql' => 'nom', 'pays_code' => false],
+    'evenements' => ['pays_col' => 'pays', 'nom_sql' => "ville || CASE WHEN TRIM(salle) <> '' THEN ' — ' || salle ELSE '' END", 'pays_code' => true],
+];
+
+// Détecte les écarts entre grande_region actuelle et déduite. Retourne
+// [ ['table'=>, 'id'=>, 'nom'=>, 'pays'=>, 'region'=>, 'actuelle'=>, 'deduite'=>], … ].
+function grande_regions_detecter(): array
+{
+    $out = [];
+    foreach (GRANDE_REGION_TABLES as $table => $def) {
+        $sql = "SELECT id, ({$def['nom_sql']}) AS nom, {$def['pays_col']} AS pays, region, grande_region
+                FROM $table WHERE TRIM(region) <> ''";
+        foreach (db()->query($sql)->fetchAll() as $r) {
+            $deduite = grande_region_deduite((string) $r['pays'], (string) $r['region']);
+            if ($deduite !== null && $deduite !== (string) $r['grande_region']) {
+                $out[] = [
+                    'table' => $table, 'id' => (int) $r['id'], 'nom' => (string) $r['nom'],
+                    'pays' => (string) $r['pays'], 'region' => (string) $r['region'],
+                    'actuelle' => (string) $r['grande_region'], 'deduite' => $deduite,
+                ];
+            }
+        }
+    }
+    return $out;
+}
+
+// Applique les grandes régions déduites (voir grande_regions_detecter()).
+// Renvoie le nombre de fiches modifiées.
+function grande_regions_appliquer(array $lignes): int
+{
+    $n = 0;
+    foreach ($lignes as $l) {
+        if (!isset(GRANDE_REGION_TABLES[$l['table']])) {
+            continue;
+        }
+        db()->prepare("UPDATE {$l['table']} SET grande_region = ? WHERE id = ?")->execute([$l['deduite'], $l['id']]);
+        $paysNom = GRANDE_REGION_TABLES[$l['table']]['pays_code'] ? pays_nom_depuis_code($l['pays']) : $l['pays'];
+        if ($paysNom !== '') {
+            pays_region_assurer($paysNom, $l['deduite']);
+        }
+        $n++;
+    }
+    return $n;
+}
