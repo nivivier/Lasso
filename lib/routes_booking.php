@@ -398,8 +398,7 @@ function lieux_filtres(): array
     $where = '';
     $params = [];
     if ($nonLocalises) {
-        $where .= " AND TRIM(ville) <> '' AND (LOWER(TRIM(ville)) || '|' || LOWER(TRIM(pays))) NOT IN "
-            . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
+        $where .= geocodage_non_localises_where('ville', 'pays');
     }
     if ($statut === 'actif') {
         $where .= ' AND actif = 1';

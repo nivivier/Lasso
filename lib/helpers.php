@@ -1428,6 +1428,72 @@ function ville_departement_canton_html(string $ville, string $drapeau, string $p
     return $h;
 }
 
+// Bandeau + formulaire de géocodage par lots de la vue carte (lieux ET
+// structures — factorisé pour ne pas dupliquer entre views/_lieux_carte.php
+// et views/_structures_carte.php) : compte des villes non localisées, lien
+// « Voir la liste » vers le filtre non_localises=1 de la vue liste, formulaire
+// de géocodage (avec les filtres actifs repostés en champs cachés) et message
+// de fin quand tout est localisé. $nomCompte : accord pour « N ... dont la
+// ville... » (ex. « lieu(x) », « structure(s) ») ; $nomPluriel/$accordAffiches :
+// accord pour « toutes les villes des ... » (ex. « lieux »/« affichés »,
+// « structures »/« affichées »). $hiddenParams : [nom => valeur] des filtres
+// actifs à reposter tels quels avec le formulaire. $geocodeDemande : true si
+// un lot vient d'être traité (?geocode=N dans l'URL), pour enchaîner
+// automatiquement sur le lot suivant tant qu'il en reste (voir le script en
+// bas de fonction) ou afficher le message de fin.
+function carte_banner_geocodage_html(
+    int $carteVillesManquantes,
+    string $nomCompte,
+    string $nomPluriel,
+    string $accordAffiches,
+    string $lienListe,
+    string $formAction,
+    array $hiddenParams,
+    bool $geocodeDemande
+): string {
+    if ($carteVillesManquantes > 0) {
+        $h = '<div class="carte-banner">';
+        $h .= '<p>' . $carteVillesManquantes . ' ' . e($nomCompte) . " dont la ville n'est pas encore localisée sur la carte.";
+        if ($lienListe !== '') {
+            $h .= ' <a href="' . e($lienListe) . '">Voir la liste</a>';
+        }
+        $h .= '</p>';
+        $h .= '<form method="post" action="' . e($formAction) . '" id="geocoder-form">';
+        $h .= '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
+        foreach ($hiddenParams as $nom => $valeur) {
+            $h .= '<input type="hidden" name="' . e($nom) . '" value="' . e((string) $valeur) . '">';
+        }
+        $h .= '<button type="submit" id="geocoder-btn">' . icon('map-pin') . ' Géocoder (par lots, ≈1 seconde par ville)</button>';
+        $h .= '</form>';
+        $h .= '<p class="muted small" id="geocoder-auto-msg" hidden>Géocodage en cours (service Nominatim/OpenStreetMap, 1 ville par seconde)… vous pouvez quitter la page à tout moment, il reprendra où il s\'est arrêté au prochain clic.</p>';
+        $h .= '</div>';
+        if ($geocodeDemande) {
+            $h .= '<script>(function () {'
+                . 'var msg = document.getElementById("geocoder-auto-msg"); if (msg) { msg.hidden = false; }'
+                . 'setTimeout(function () { var f = document.getElementById("geocoder-form"); if (f) { f.requestSubmit(); } }, 400);'
+                . '})();</script>';
+        }
+        return $h;
+    }
+    if ($geocodeDemande) {
+        return '<p class="carte-banner ok flash">Géocodage terminé — toutes les villes des ' . e($nomPluriel) . ' ' . e($accordAffiches) . ' sont désormais localisées.</p>';
+    }
+    return '';
+}
+
+// Bandeau « Filtre : non localisés » de la vue liste (lieux et structures) —
+// affiché quand on arrive depuis le lien « Voir la liste » du bandeau carte
+// ci-dessus, avec un lien pour quitter le filtre sans perdre les autres
+// filtres actifs.
+function filtre_non_localises_flash_html(bool $actif, string $nomPluriel, string $lienQuitter): string
+{
+    if (!$actif) {
+        return '';
+    }
+    return '<p class="flash">Filtre : ' . e($nomPluriel) . " dont la ville n'a pas pu être localisée sur la carte. "
+        . '<a href="' . e($lienQuitter) . '">Quitter ce filtre</a></p>';
+}
+
 // Affichage catégorie/sous-catégorie sur deux lignes (catégorie en petit et
 // muted au-dessus, sous-catégorie en dessous) — même style que le rappel de
 // catégorie de compta_ecritures.php (.row-field-txt/.row-field-prefix).

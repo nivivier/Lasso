@@ -30,29 +30,18 @@ $lienNonLocalises = '?p=lieux&' . http_build_query([
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 
 <div class="carte-lieux-wrap">
-    <?php if ($carteVillesManquantes > 0): ?>
-    <div class="carte-banner">
-        <p><?= $carteVillesManquantes ?> lieu(x) dont la ville n'est pas encore localisée sur la carte.
-            <a href="<?= e($lienNonLocalises) ?>">Voir la liste</a></p>
-        <form method="post" action="?p=lieux_geocoder" id="geocoder-form">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="q" value="<?= e($recherche) ?>">
-            <input type="hidden" name="type" value="<?= e($type) ?>">
-            <input type="hidden" name="ville" value="<?= e($ville) ?>">
-            <input type="hidden" name="pays" value="<?= e($pays) ?>">
-            <input type="hidden" name="grande_region" value="<?= e($grandeRegion) ?>">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
-            <input type="hidden" name="jauge_min" value="<?= $jaugeMin !== null ? (int) $jaugeMin : '' ?>">
-            <input type="hidden" name="jauge_max" value="<?= $jaugeMax !== null ? (int) $jaugeMax : '' ?>">
-            <input type="hidden" name="mois_evenement" value="<?= $moisEvenement ?: '' ?>">
-            <input type="hidden" name="mois_prog" value="<?= $moisProg ?: '' ?>">
-            <button type="submit" id="geocoder-btn"><?= icon('map-pin') ?> Géocoder (par lots, ≈1 seconde par ville)</button>
-        </form>
-        <p class="muted small" id="geocoder-auto-msg" hidden>Géocodage en cours (service Nominatim/OpenStreetMap, 1 ville par seconde)… vous pouvez quitter la page à tout moment, il reprendra où il s'est arrêté au prochain clic.</p>
-    </div>
-    <?php elseif (isset($_GET['geocode'])): ?>
-    <p class="carte-banner ok flash">Géocodage terminé — toutes les villes des lieux affichés sont désormais localisées.</p>
-    <?php endif; ?>
+    <?= carte_banner_geocodage_html(
+        $carteVillesManquantes,
+        'lieu(x)', 'lieux', 'affichés',
+        $lienNonLocalises,
+        '?p=lieux_geocoder',
+        [
+            'q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion,
+            'statut' => $statut, 'jauge_min' => $jaugeMin !== null ? (int) $jaugeMin : '', 'jauge_max' => $jaugeMax !== null ? (int) $jaugeMax : '',
+            'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: '',
+        ],
+        isset($_GET['geocode'])
+    ) ?>
 
     <div id="carte-lieux" class="carte-lieux"></div>
 </div>
@@ -78,15 +67,4 @@ $lienNonLocalises = '?p=lieux&' . http_build_query([
         map.setView([46.8, 2.5], 5);
     }
 })();
-
-<?php if (isset($_GET['geocode']) && $carteVillesManquantes > 0): ?>
-(function () {
-    const msg = document.getElementById('geocoder-auto-msg');
-    if (msg) { msg.hidden = false; }
-    setTimeout(() => {
-        const f = document.getElementById('geocoder-form');
-        if (f) { f.requestSubmit(); }
-    }, 400);
-})();
-<?php endif; ?>
 </script>

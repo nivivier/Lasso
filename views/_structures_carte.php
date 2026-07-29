@@ -15,28 +15,29 @@ $points = array_map(function (array $p): array {
     $html .= '</ul>';
     return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html];
 }, $cartePoints);
+
+// Lien de secours pour les villes qu'on ne parviendra sans doute jamais à
+// géocoder automatiquement (typo, ville introuvable pour Nominatim…) — voir
+// views/_lieux_carte.php pour le même principe.
+$lienNonLocalises = '?p=structures&' . http_build_query([
+    'vue' => 'liste', 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
+    'tag_id' => $tagId, 'statut' => $statut, 'non_localises' => 1,
+]);
 ?>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 
 <div class="carte-lieux-wrap">
-    <?php if ($carteVillesManquantes > 0): ?>
-    <div class="carte-banner">
-        <p><?= $carteVillesManquantes ?> structure(s) dont la ville n'est pas encore localisée sur la carte.</p>
-        <form method="post" action="?p=structures_geocoder" id="geocoder-form">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="q" value="<?= e($recherche) ?>">
-            <input type="hidden" name="categorie_id" value="<?= (int) $categorieId ?>">
-            <input type="hidden" name="pays" value="<?= e($pays) ?>">
-            <input type="hidden" name="departement_canton" value="<?= e($departementCanton) ?>">
-            <input type="hidden" name="tag_id" value="<?= (int) $tagId ?>">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
-            <button type="submit" id="geocoder-btn"><?= icon('map-pin') ?> Géocoder (par lots, ≈1 seconde par ville)</button>
-        </form>
-        <p class="muted small" id="geocoder-auto-msg" hidden>Géocodage en cours (service Nominatim/OpenStreetMap, 1 ville par seconde)… vous pouvez quitter la page à tout moment, il reprendra où il s'est arrêté au prochain clic.</p>
-    </div>
-    <?php elseif (isset($_GET['geocode'])): ?>
-    <p class="carte-banner ok flash">Géocodage terminé — toutes les villes des structures affichées sont désormais localisées.</p>
-    <?php endif; ?>
+    <?= carte_banner_geocodage_html(
+        $carteVillesManquantes,
+        'structure(s)', 'structures', 'affichées',
+        $lienNonLocalises,
+        '?p=structures_geocoder',
+        [
+            'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
+            'tag_id' => $tagId, 'statut' => $statut,
+        ],
+        isset($_GET['geocode'])
+    ) ?>
 
     <div id="carte-structures" class="carte-lieux"></div>
 </div>
@@ -62,15 +63,4 @@ $points = array_map(function (array $p): array {
         map.setView([46.8, 2.5], 5);
     }
 })();
-
-<?php if (isset($_GET['geocode']) && $carteVillesManquantes > 0): ?>
-(function () {
-    const msg = document.getElementById('geocoder-auto-msg');
-    if (msg) { msg.hidden = false; }
-    setTimeout(() => {
-        const f = document.getElementById('geocoder-form');
-        if (f) { f.requestSubmit(); }
-    }, 400);
-})();
-<?php endif; ?>
 </script>

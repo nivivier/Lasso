@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.12.0] — 2026-07-29
+
+### Ajouté
+- **Structures : lien « Voir la liste » sur le bandeau « villes non localisées »** de la vue carte (`?p=structures&vue=carte`), même comportement que celui déjà en place pour les lieux — mène à `?p=structures` filtré sur `non_localises=1`, avec un bandeau « Filtre : … » et un lien « Quitter ce filtre » sur la vue liste. Filtre `non_localises` ajouté à `structures_filtres()` (absent jusqu'ici, contrairement à `lieux_filtres()`).
+- Le bandeau + formulaire de géocodage par lots de la vue carte (lieux ET structures) est désormais factorisé dans `carte_banner_geocodage_html()` (`lib/helpers.php`), la bannière « Filtre : non localisés » de la vue liste dans `filtre_non_localises_flash_html()`, et le fragment SQL du filtre dans `geocodage_non_localises_where()` (`lib/geocodage.php`) — plus aucune duplication entre les deux entités.
+
+### Corrigé
+- **Lien « Quitter ce filtre »** (lieux et structures) contenait un paramètre `p=` dupliqué dans l'URL (`?p=lieux&p=lieux&...`) — sans conséquence fonctionnelle (PHP ne retient que la dernière valeur), mais corrigé au passage.
+
 ## [1.11.1] — 2026-07-29
 
 ### Ajouté

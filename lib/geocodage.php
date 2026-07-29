@@ -79,6 +79,18 @@ function geocodage_villes_manquantes(string $table = 'lieux', string $villeCol =
     )->fetchAll();
 }
 
+// Fragment SQL (" AND ...") pour ne garder que les lignes dont la ville n'a
+// jamais été géolocalisée avec succès (cache lieux_geocodage) — filtre
+// d'appoint partagé entre lieux_filtres() et structures_filtres(), pour
+// traiter les cas où Nominatim ne trouve pas la ville (typo, lieu-dit trop
+// précis…), accessible depuis le lien « Voir la liste » de la vue carte (voir
+// carte_banner_geocodage_html(), lib/helpers.php).
+function geocodage_non_localises_where(string $villeCol, string $paysCol): string
+{
+    return " AND TRIM($villeCol) <> '' AND (LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($paysCol))) NOT IN "
+        . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
+}
+
 // Variante événements : pays stocké en code ISO2 (evenements.pays), converti
 // en nom avant de construire la clé de cache — cohérente avec
 // structures/lieux qui stockent directement le nom. Dédoublonné par couple

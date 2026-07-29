@@ -7,13 +7,20 @@
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var string $lieuType */ /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
 /** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $categoriesLieu */ /** @var string $flag */
+/** @var bool $nonLocalises */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
 unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
 $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['vue' => $v]);
+// Lien pour quitter le filtre « non localisées » (venu de la vue carte) sans
+// perdre les autres filtres actifs — voir views/lieux_liste.php.
+$qsSansNonLocalises = $_GET;
+unset($qsSansNonLocalises['non_localises']);
+$lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
 <?php if ($tagBulk !== null): ?>
 <p class="ok flash">
     <?php if ($tagBulk > 0): ?>

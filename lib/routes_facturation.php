@@ -504,6 +504,11 @@ function structures_filtres(): array
     // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marquées,
     // 'star'/'heart' = marquées.
     $flag = valeur_autorisee((string) filtre_persistant('flag', 'structures_flag', ''), ['', 'aucun', 'star', 'heart'], '');
+    // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
+    // d'appoint, accessible depuis le lien de la vue carte (voir
+    // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
+    // mémorisé en session : lien ponctuel, pas un mode de travail courant.
+    $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
     // Filtres avancés sur le(s) lieu(x) lié(s) (type, jauge, mois — mêmes
     // critères que lieux_filtres()) : une structure matche si AU MOINS UN de
     // ses lieux liés (structure_lieux) satisfait la combinaison demandée.
@@ -534,6 +539,9 @@ function structures_filtres(): array
     if ($departementCanton !== '') {
         $where .= ' AND s.departement_canton = ?';
         $params[] = $departementCanton;
+    }
+    if ($nonLocalises) {
+        $where .= geocodage_non_localises_where('s.adresse_localite', 's.adresse_pays');
     }
     if ($tagId) {
         $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
@@ -581,6 +589,7 @@ function structures_filtres(): array
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
         'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'flag' => $flag,
+        'nonLocalises' => $nonLocalises,
         'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
     ];
@@ -626,6 +635,7 @@ function route_structures(): void
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
     $lieuMoisProg = $f['lieuMoisProg'];
     $flag = $f['flag'];
+    $nonLocalises = $f['nonLocalises'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
@@ -773,6 +783,7 @@ function route_structures(): void
             'tagId' => $tagId, 'statut' => $statut,
             'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
+            'nonLocalises' => $nonLocalises,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
             'categoriesLieu' => lieu_categories_liste(),
@@ -841,6 +852,7 @@ function route_structures(): void
         'lieuMoisEvenement' => $lieuMoisEvenement,
         'lieuMoisProg' => $lieuMoisProg,
         'flag' => $flag,
+        'nonLocalises' => $nonLocalises,
         'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
@@ -854,6 +866,7 @@ function route_structures(): void
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
+            'non_localises' => $nonLocalises ? 1 : '',
         ],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,

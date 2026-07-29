@@ -13,7 +13,7 @@ $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !=
 // perdre les autres filtres actifs.
 $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
-$lienQuitterNonLocalises = '?p=lieux&' . http_build_query($qsSansNonLocalises);
+$lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change.
 // vue toujours explicite dans les deux sens (même « liste ») : c'est ce qui
 // permet à filtre_persistant() (route_lieux()) de mémoriser le choix — un lien
@@ -24,9 +24,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
 ?>
 <?php $actionUrl = '?p=lieux'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ((int) ($_GET['lieuxBloquees'] ?? 0) > 0): ?><p class="err flash"><?= (int) $_GET['lieuxBloquees'] ?> lieu(x) non supprimé(s) : une structure y est liée.</p><?php endif; ?>
-<?php if ($nonLocalises): ?>
-    <p class="flash">Filtre : lieux dont la ville n'a pas pu être localisée sur la carte. <a href="<?= e($lienQuitterNonLocalises) ?>">Quitter ce filtre</a></p>
-<?php endif; ?>
+<?= filtre_non_localises_flash_html($nonLocalises, 'lieux', $lienQuitterNonLocalises) ?>
 <div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
