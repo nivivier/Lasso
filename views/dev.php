@@ -25,7 +25,8 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
         ancienne est conservée ; les autres lui cèdent leurs rattachements avant d'être supprimées.
     </p>
 
-    <form method="get" action="?p=dev" class="mb-16">
+    <form method="get" class="mb-16">
+        <input type="hidden" name="p" value="dev">
         <label class="d-inline">Type
             <select name="type" onchange="this.form.submit()">
                 <?php foreach ($libellesType as $v => $lib): ?>
