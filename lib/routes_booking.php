@@ -363,24 +363,40 @@ function route_structure_lieu_delier(): void
 // Mêmes conventions que ?p=structures : type, ville, jauge (bornes de
 // capacité), mois d'événement / de programmation (le mois choisi doit tomber
 // dans la plage du lieu, en gérant le passage d'année comme periode_chevauche()).
+// Chaque filtre structuré est mémorisé en session (filtre_persistant(), comme
+// evenements_lire_filtres()) : revenir sur ?p=lieux sans query string (lien de
+// la sidebar, retour contextuel…) rouvre les derniers filtres actifs. Seule la
+// recherche texte (q) ne l'est jamais, comme pagination_page().
 function lieux_filtres(): array
 {
-    $type = lieu_categorie_normaliser((string) ($_GET['type'] ?? '')) ?? '';
-    $ville = trim((string) ($_GET['ville'] ?? ''));
-    $pays = trim((string) ($_GET['pays'] ?? ''));
-    $grandeRegion = trim((string) ($_GET['grande_region'] ?? ''));
-    $jaugeMin = ($_GET['jauge_min'] ?? '') !== '' ? max(0, (int) $_GET['jauge_min']) : null;
-    $jaugeMax = ($_GET['jauge_max'] ?? '') !== '' ? max(0, (int) $_GET['jauge_max']) : null;
-    $moisEvenement = (int) ($_GET['mois_evenement'] ?? 0);
-    $moisProg = (int) ($_GET['mois_prog'] ?? 0);
+    $type = lieu_categorie_normaliser((string) filtre_persistant('type', 'lieux_type', '')) ?? '';
+    $ville = trim((string) filtre_persistant('ville', 'lieux_ville', ''));
+    $pays = trim((string) filtre_persistant('pays', 'lieux_pays', ''));
+    $grandeRegion = trim((string) filtre_persistant('grande_region', 'lieux_grande_region', ''));
+    $jaugeMinBrut = (string) filtre_persistant('jauge_min', 'lieux_jauge_min', '');
+    $jaugeMin = $jaugeMinBrut !== '' ? max(0, (int) $jaugeMinBrut) : null;
+    $jaugeMaxBrut = (string) filtre_persistant('jauge_max', 'lieux_jauge_max', '');
+    $jaugeMax = $jaugeMaxBrut !== '' ? max(0, (int) $jaugeMaxBrut) : null;
+    $moisEvenement = (int) filtre_persistant('mois_evenement', 'lieux_mois_evenement', 0);
+    $moisProg = (int) filtre_persistant('mois_prog', 'lieux_mois_prog', 0);
     if ($moisEvenement < 1 || $moisEvenement > 12) { $moisEvenement = 0; }
     if ($moisProg < 1 || $moisProg > 12) { $moisProg = 0; }
     // Statut : « actif » par défaut (les lieux inactifs sont du bruit dans le
     // travail courant) ; 'inactif' ou 'tous' pour les voir.
-    $statut = valeur_autorisee((string) ($_GET['statut'] ?? ''), ['actif', 'inactif', 'tous'], 'actif');
+    $statut = valeur_autorisee((string) filtre_persistant('statut', 'lieux_statut', 'actif'), ['actif', 'inactif', 'tous'], 'actif');
+    // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
+    // d'appoint pour traiter les cas où Nominatim ne trouve pas la ville
+    // (typo, lieu-dit trop précis…), accessible depuis le lien de la vue carte
+    // (voir views/_lieux_carte.php). Jamais mémorisé en session : lien
+    // ponctuel, pas un mode de travail courant.
+    $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
 
     $where = '';
     $params = [];
+    if ($nonLocalises) {
+        $where .= " AND TRIM(ville) <> '' AND (LOWER(TRIM(ville)) || '|' || LOWER(TRIM(pays))) NOT IN "
+            . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
+    }
     if ($statut === 'actif') {
         $where .= ' AND actif = 1';
     } elseif ($statut === 'inactif') {
@@ -428,7 +444,7 @@ function lieux_filtres(): array
         'where' => $where, 'params' => $params,
         'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion,
         'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
-        'statut' => $statut,
+        'statut' => $statut, 'nonLocalises' => $nonLocalises,
     ];
 }
 
@@ -537,6 +553,7 @@ function route_lieux(): void
     $moisEvenement = $f['moisEvenement'];
     $moisProg = $f['moisProg'];
     $statut = $f['statut'];
+    $nonLocalises = $f['nonLocalises'];
 
     if ($vue === 'carte') {
         [$cartePoints, $carteVillesManquantes] = lieux_carte_points($where, $params);
@@ -546,6 +563,7 @@ function route_lieux(): void
             'recherche' => $recherche, 'type' => $type, 'categoriesLieu' => lieu_categories_liste(),
             'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion, 'statut' => $statut,
             'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
+            'nonLocalises' => $nonLocalises,
             'villesDispo' => [], 'grandesRegionsDispo' => [],
             'modeClient' => true, 'pgRoute' => 'lieux', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false,
@@ -619,11 +637,12 @@ function route_lieux(): void
         'jaugeMax' => $jaugeMax,
         'moisEvenement' => $moisEvenement,
         'moisProg' => $moisProg,
+        'nonLocalises' => $nonLocalises,
         'villesDispo' => $villesDispo,
         'grandesRegionsDispo' => $grandesRegionsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'lieux',
-        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: ''],
+        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: '', 'non_localises' => $nonLocalises ? 1 : ''],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,

@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.9.0] — 2026-07-29
+
+### Ajouté
+- **Lieux non localisables sur la carte** : la bannière « N lieu(x) dont la ville n'est pas encore localisée » (`?p=lieux&vue=carte`) porte désormais un lien « Voir la liste » vers `?p=lieux` filtré sur ces fiches précises (typo, lieu-dit introuvable pour Nominatim…), pour les corriger à la main plutôt que de recliquer indéfiniment sur « Géocoder ».
+- **Structures : filtres avancés sur le(s) lieu(x) lié(s)** — type, jauge min/max, mois d'événement/de programmation. Une structure matche si au moins un de ses lieux liés satisfait la combinaison demandée.
+
+### Corrigé
+- **Filtres de `?p=lieux` et `?p=structures` non mémorisés** entre deux visites — contrairement aux événements, ils n'utilisaient pas `filtre_persistant()` : un lien sans query string (sidebar, retour contextuel) réinitialisait tout. Tous les filtres structurés sont désormais mémorisés en session, comme pour les événements (la recherche texte reste volontairement non mémorisée).
+- **Lien de retour depuis la liste des lieux** : cliquer un organisateur dans `?p=lieux` renvoyait vers la fiche du lieu de la ligne plutôt que vers la liste — `lien_retour_contextuel()` gagne des cibles génériques `lieux`/`structures` (comme `dashboard`/`compta_ecritures`), corrigées à la source dans `url_avec_retour()`.
+
 ## [1.8.0] — 2026-07-29
 
 ### Ajouté

@@ -485,18 +485,34 @@ function route_facture_rappel(): void
 // Filtres de la liste des structures (?p=structures) — factorisé pour être
 // réutilisé par la vue carte (mêmes critères, résultat non paginé, voir
 // structures_carte_points()).
+// Chaque filtre structuré est mémorisé en session (filtre_persistant(), comme
+// evenements_lire_filtres()/lieux_filtres()) : revenir sur ?p=structures sans
+// query string (lien de la sidebar, retour contextuel…) rouvre les derniers
+// filtres actifs. Seule la recherche texte (q) ne l'est jamais.
 function structures_filtres(): array
 {
-    $categorieId = (int) ($_GET['categorie_id'] ?? 0);
+    $categorieId = (int) filtre_persistant('categorie_id', 'structures_categorie_id', 0);
     $categorieChamps = structure_categorie_champs($categorieId);
     $categorie = $categorieChamps['categorie'];
     $sousCategorie = $categorieChamps['sous_categorie'];
-    $pays = trim((string) ($_GET['pays'] ?? ''));
-    $region = trim((string) ($_GET['region'] ?? ''));
-    $tagId = (int) ($_GET['tag_id'] ?? 0);
+    $pays = trim((string) filtre_persistant('pays', 'structures_pays', ''));
+    $region = trim((string) filtre_persistant('region', 'structures_region', ''));
+    $tagId = (int) filtre_persistant('tag_id', 'structures_tag_id', 0);
     // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
     // travail courant) ; 'inactif' ou 'tous' pour les voir.
-    $statut = valeur_autorisee((string) ($_GET['statut'] ?? ''), ['actif', 'inactif', 'tous'], 'actif');
+    $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), ['actif', 'inactif', 'tous'], 'actif');
+    // Filtres avancés sur le(s) lieu(x) lié(s) (type, jauge, mois — mêmes
+    // critères que lieux_filtres()) : une structure matche si AU MOINS UN de
+    // ses lieux liés (structure_lieux) satisfait la combinaison demandée.
+    $lieuType = lieu_categorie_normaliser((string) filtre_persistant('lieu_type', 'structures_lieu_type', '')) ?? '';
+    $lieuJaugeMinBrut = (string) filtre_persistant('lieu_jauge_min', 'structures_lieu_jauge_min', '');
+    $lieuJaugeMin = $lieuJaugeMinBrut !== '' ? max(0, (int) $lieuJaugeMinBrut) : null;
+    $lieuJaugeMaxBrut = (string) filtre_persistant('lieu_jauge_max', 'structures_lieu_jauge_max', '');
+    $lieuJaugeMax = $lieuJaugeMaxBrut !== '' ? max(0, (int) $lieuJaugeMaxBrut) : null;
+    $lieuMoisEvenement = (int) filtre_persistant('lieu_mois_evenement', 'structures_lieu_mois_evenement', 0);
+    $lieuMoisProg = (int) filtre_persistant('lieu_mois_prog', 'structures_lieu_mois_prog', 0);
+    if ($lieuMoisEvenement < 1 || $lieuMoisEvenement > 12) { $lieuMoisEvenement = 0; }
+    if ($lieuMoisProg < 1 || $lieuMoisProg > 12) { $lieuMoisProg = 0; }
 
     $where = ' WHERE 1=1';
     $params = [];
@@ -525,10 +541,39 @@ function structures_filtres(): array
     } elseif ($statut === 'inactif') {
         $where .= ' AND s.actif = 0';
     }
+    if ($lieuType !== '' || $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg) {
+        // Bornes de jauge/mois injectées telles quelles (déjà validées en
+        // entiers), même raison qu'ailleurs : un paramètre PDO serait lié en
+        // texte, or SQLite classe tout entier avant tout texte.
+        $lieuWhere = '';
+        $lieuParams = [];
+        if ($lieuType !== '') {
+            $lieuWhere .= ' AND l.type = ?';
+            $lieuParams[] = $lieuType;
+        }
+        if ($lieuJaugeMin !== null) {
+            $lieuWhere .= ' AND COALESCE(l.jauge_max, l.jauge_min, 0) >= ' . $lieuJaugeMin;
+        }
+        if ($lieuJaugeMax !== null) {
+            $lieuWhere .= ' AND COALESCE(l.jauge_min, l.jauge_max) IS NOT NULL AND COALESCE(l.jauge_min, l.jauge_max) <= ' . $lieuJaugeMax;
+        }
+        $filtreMoisLieu = function (string $colDebut, string $colFin, int $mois) use (&$lieuWhere): void {
+            $lieuWhere .= " AND l.$colDebut IS NOT NULL AND l.$colFin IS NOT NULL AND ("
+                . "(l.$colDebut <= l.$colFin AND $mois BETWEEN l.$colDebut AND l.$colFin) OR "
+                . "(l.$colDebut > l.$colFin AND ($mois >= l.$colDebut OR $mois <= l.$colFin)))";
+        };
+        if ($lieuMoisEvenement) { $filtreMoisLieu('mois_evenement_debut', 'mois_evenement_fin', $lieuMoisEvenement); }
+        if ($lieuMoisProg) { $filtreMoisLieu('mois_debut', 'mois_fin', $lieuMoisProg); }
+        $where .= ' AND EXISTS (SELECT 1 FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id'
+            . ' WHERE sl.structure_id = s.id' . $lieuWhere . ')';
+        $params = array_merge($params, $lieuParams);
+    }
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
         'pays' => $pays, 'region' => $region, 'tagId' => $tagId, 'statut' => $statut,
+        'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
+        'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
     ];
 }
 
@@ -566,7 +611,16 @@ function route_structures(): void
     $region = $f['region'];
     $tagId = $f['tagId'];
     $statut = $f['statut'];
-    $retourFiltres = ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut];
+    $lieuType = $f['lieuType'];
+    $lieuJaugeMin = $f['lieuJaugeMin'];
+    $lieuJaugeMax = $f['lieuJaugeMax'];
+    $lieuMoisEvenement = $f['lieuMoisEvenement'];
+    $lieuMoisProg = $f['lieuMoisProg'];
+    $retourFiltres = [
+        'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut,
+        'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
+        'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '',
+    ];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
     // le lettrage/l'axe analytique en masse sur les écritures ou les événements.
@@ -703,8 +757,11 @@ function route_structures(): void
             'structures' => [], 'nbEvenements' => [],
             'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'region' => $region,
             'tagId' => $tagId, 'statut' => $statut,
+            'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
+            'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
+            'categoriesLieu' => lieu_categories_liste(),
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
         ], 'Structures');
@@ -764,15 +821,25 @@ function route_structures(): void
         'region' => $region,
         'tagId' => $tagId,
         'statut' => $statut,
+        'lieuType' => $lieuType,
+        'lieuJaugeMin' => $lieuJaugeMin,
+        'lieuJaugeMax' => $lieuJaugeMax,
+        'lieuMoisEvenement' => $lieuMoisEvenement,
+        'lieuMoisProg' => $lieuMoisProg,
         'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
         'categoriesPourSelect' => structure_categories_pour_select(),
+        'categoriesLieu' => lieu_categories_liste(),
         'regionsDispo' => $regionsDispo,
         'tagsDispo' => $tagsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
-        'pgParams'  => ['q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut],
+        'pgParams'  => [
+            'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'region' => $region, 'tag_id' => $tagId, 'statut' => $statut,
+            'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
+            'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '',
+        ],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,

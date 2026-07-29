@@ -870,6 +870,8 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     $statiques = [
         'dashboard'        => ['?p=resumes', 'Tableau de bord'],
         'compta_ecritures' => ['?p=compta_ecritures', 'Écritures'],
+        'lieux'            => ['?p=lieux', 'Lieux'],
+        'structures'       => ['?p=structures', 'Structures'],
     ];
     if (isset($statiques[$depuis])) {
         return lien_retour($statiques[$depuis][0], $statiques[$depuis][1]);

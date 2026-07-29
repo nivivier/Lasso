@@ -6,8 +6,14 @@
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
+/** @var bool $nonLocalises */
 $plusFiltres = $ville !== '' || $pays !== '' || $grandeRegion !== '' || $jaugeMin !== null || $jaugeMax !== null || $moisEvenement || $moisProg;
 $filtresActifs = $type !== '' || $recherche !== '' || $plusFiltres || $statut !== 'actif';
+// Lien pour quitter le filtre « non localisés » (venu de la vue carte) sans
+// perdre les autres filtres actifs.
+$qsSansNonLocalises = $_GET;
+unset($qsSansNonLocalises['non_localises']);
+$lienQuitterNonLocalises = '?p=lieux&' . http_build_query($qsSansNonLocalises);
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change.
 // vue toujours explicite dans les deux sens (même « liste ») : c'est ce qui
 // permet à filtre_persistant() (route_lieux()) de mémoriser le choix — un lien
@@ -18,6 +24,9 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
 ?>
 <?php $actionUrl = '?p=lieux'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php if ((int) ($_GET['lieuxBloquees'] ?? 0) > 0): ?><p class="err flash"><?= (int) $_GET['lieuxBloquees'] ?> lieu(x) non supprimé(s) : une structure y est liée.</p><?php endif; ?>
+<?php if ($nonLocalises): ?>
+    <p class="flash">Filtre : lieux dont la ville n'a pas pu être localisée sur la carte. <a href="<?= e($lienQuitterNonLocalises) ?>">Quitter ce filtre</a></p>
+<?php endif; ?>
 <div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
@@ -164,7 +173,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
             <td class="small">
                 <?php $orgs = $organisateurs[(int) $l['id']] ?? []; ?>
                 <?php if ($orgs): ?>
-                    <?php foreach ($orgs as $i => $org): ?><?= $i ? ', ' : '' ?><a href="<?= url_avec_retour('?p=structure&id=' . $org['id'], 'lieu', (int) $l['id']) ?>" onclick="event.stopPropagation()"><?= e($org['nom']) ?></a><?php endforeach; ?>
+                    <?php foreach ($orgs as $i => $org): ?><?= $i ? ', ' : '' ?><a href="<?= url_avec_retour('?p=structure&id=' . $org['id'], 'lieux') ?>" onclick="event.stopPropagation()"><?= e($org['nom']) ?></a><?php endforeach; ?>
                 <?php else: ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="small">

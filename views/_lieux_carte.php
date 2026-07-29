@@ -16,13 +16,24 @@ $points = array_map(function (array $p): array {
     $html .= '</ul>';
     return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html];
 }, $cartePoints);
+
+// Lien de secours pour les villes qu'on ne parviendra sans doute jamais à
+// géocoder automatiquement (typo, lieu-dit trop précis, ville introuvable
+// pour Nominatim…) : liste les lieux concernés (mêmes filtres actifs) pour
+// les corriger à la main plutôt que de recliquer indéfiniment sur « Géocoder ».
+$lienNonLocalises = '?p=lieux&' . http_build_query([
+    'vue' => 'liste', 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion,
+    'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '',
+    'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: '', 'non_localises' => 1,
+]);
 ?>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 
 <div class="carte-lieux-wrap">
     <?php if ($carteVillesManquantes > 0): ?>
     <div class="carte-banner">
-        <p><?= $carteVillesManquantes ?> lieu(x) dont la ville n'est pas encore localisée sur la carte.</p>
+        <p><?= $carteVillesManquantes ?> lieu(x) dont la ville n'est pas encore localisée sur la carte.
+            <a href="<?= e($lienNonLocalises) ?>">Voir la liste</a></p>
         <form method="post" action="?p=lieux_geocoder" id="geocoder-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="q" value="<?= e($recherche) ?>">
