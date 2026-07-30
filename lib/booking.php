@@ -140,6 +140,50 @@ function structure_categorie_est_organisateur(string $nom): bool
     return (bool) $stmt->fetchColumn();
 }
 
+// Une sous-catégorie est-elle marquée « booking » (décrit un lieu où on peut
+// faire des concerts — Salle, Festival, Théâtre… — voir migration_59) ?
+// Résolution par nom, insensible à la casse : sert notamment à qualifier la
+// sous-catégorie d'une structure au moment de l'import (structure_lier_lieu_importe()
+// devenu obsolète) et à la fusion lieux→structures (lib/dev.php).
+function structure_sous_categorie_est_booking(string $nom): bool
+{
+    if (trim($nom) === '') {
+        return false;
+    }
+    $stmt = db()->prepare(
+        'SELECT est_booking FROM structure_categories WHERE nom = ? COLLATE NOCASE AND parent_id IS NOT NULL LIMIT 1'
+    );
+    $stmt->execute([$nom]);
+    return (bool) $stmt->fetchColumn();
+}
+
+// Noms des sous-catégories « booking » (Salle, Festival, Théâtre…), dans
+// l'ordre configuré — remplace lieu_categories_liste() pour le sélecteur
+// « Type » du formulaire de création rapide d'un lieu (carte « Lieux liés »).
+function structure_sous_categories_booking_noms(): array
+{
+    return db()->query(
+        "SELECT nom FROM structure_categories WHERE est_booking = 1 AND parent_id IS NOT NULL ORDER BY ordre, nom"
+    )->fetchAll(PDO::FETCH_COLUMN);
+}
+
+// Intitulé canonique (casse de structure_categories) de la sous-catégorie
+// « booking » correspondant à un nom (ex. l'ancien lieux.type), insensible à
+// la casse en entrée. Chaîne vide si aucune sous-catégorie booking ne porte ce
+// nom (le nom est alors laissé de côté par la fusion plutôt que d'écraser la
+// sous-catégorie existante d'une structure avec une valeur non reconnue).
+function structure_sous_categorie_booking_nom_pour(string $nom): string
+{
+    if (trim($nom) === '') {
+        return '';
+    }
+    $stmt = db()->prepare(
+        'SELECT nom FROM structure_categories WHERE nom = ? COLLATE NOCASE AND parent_id IS NOT NULL AND est_booking = 1 LIMIT 1'
+    );
+    $stmt->execute([$nom]);
+    return (string) ($stmt->fetchColumn() ?: '');
+}
+
 // Nom de structure normalisé pour un rapprochement insensible à la casse, aux
 // espaces et à la ponctuation (ex. « anti concert » ↔ « Anti-Concert ») — même
 // principe que normaliser_nom_spectacle() (lib/evenements.php), dupliqué
@@ -166,34 +210,13 @@ function texte_sans_accents(string $s): string
     ]);
 }
 
-// Taxonomie propre aux lieux (« catégories de lieu » : Salle, Festival, Salle de
-// concert, Saison culturelle…), gérée à part dans Paramètres → Catégories de
-// lieu. Remplace le binaire salle/festival historique du champ lieux.type.
-function lieu_categories_liste(): array
-{
-    return db()->query('SELECT nom FROM lieu_categories ORDER BY ordre, nom')->fetchAll(PDO::FETCH_COLUMN);
-}
-
 // --- Événements liés (lien evenements.lieu_id, voir migration_51) ------------
 
-// Événements rattachés à un LIEU, plus récents d'abord (module événements requis).
-function lieu_evenements(int $lieuId): array
-{
-    if (!module_actif('evenements')) {
-        return [];
-    }
-    $stmt = db()->prepare(
-        'SELECT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle
-         FROM evenements e LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
-         WHERE e.lieu_id = ? ORDER BY e.date DESC, e.id DESC'
-    );
-    $stmt->execute([$lieuId]);
-    return $stmt->fetchAll();
-}
-
 // Événements rattachés à une STRUCTURE : soit elle en est l'organisateur
-// (organisateur_structure_id), soit via l'un de ses lieux liés (structure_lieux
-// → evenements.lieu_id). Dédoublonné, plus récents d'abord.
+// (organisateur_structure_id), soit elle en est le lieu (evenements.lieu_id —
+// référence directement structures(id) depuis la fusion lieux→structures,
+// migration_60 : plus d'indirection par structure_lieux). Dédoublonné, plus
+// récents d'abord.
 function structure_evenements(int $structureId): array
 {
     if (!module_actif('evenements')) {
@@ -202,27 +225,11 @@ function structure_evenements(int $structureId): array
     $stmt = db()->prepare(
         'SELECT DISTINCT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle
          FROM evenements e LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
-         WHERE e.organisateur_structure_id = :sid
-            OR e.lieu_id IN (SELECT lieu_id FROM structure_lieux WHERE structure_id = :sid)
+         WHERE e.organisateur_structure_id = :sid OR e.lieu_id = :sid
          ORDER BY e.date DESC, e.id DESC'
     );
     $stmt->execute([':sid' => $structureId]);
     return $stmt->fetchAll();
-}
-
-// Nombre d'événements par lieu (colonne « Événements » de ?p=lieux). [id => n].
-function lieux_nb_evenements(array $lieuIds): array
-{
-    $ids = array_values(array_filter(array_map('intval', $lieuIds)));
-    if (!$ids || !module_actif('evenements')) {
-        return [];
-    }
-    $in = implode(',', $ids);
-    $out = [];
-    foreach (db()->query("SELECT lieu_id, COUNT(*) n FROM evenements WHERE lieu_id IN ($in) GROUP BY lieu_id") as $r) {
-        $out[(int) $r['lieu_id']] = (int) $r['n'];
-    }
-    return $out;
 }
 
 // Nombre d'événements par structure (organisateur OU via un de ses lieux),
@@ -239,42 +246,13 @@ function structures_nb_evenements(array $structureIds): array
                 SELECT organisateur_structure_id AS sid, id AS eid FROM evenements
                  WHERE organisateur_structure_id IN ($in)
                 UNION
-                SELECT sl.structure_id AS sid, e.id AS eid
-                  FROM structure_lieux sl JOIN evenements e ON e.lieu_id = sl.lieu_id
-                 WHERE sl.structure_id IN ($in)
+                SELECT lieu_id AS sid, id AS eid FROM evenements
+                 WHERE lieu_id IN ($in)
             ) GROUP BY sid";
     foreach (db()->query($sql) as $r) {
         $out[(int) $r['sid']] = (int) $r['n'];
     }
     return $out;
-}
-
-// Première catégorie de la liste — valeur de repli (jamais vide : au moins une
-// catégorie existe, garantie par la migration et la garde de suppression).
-function lieu_categorie_defaut(): string
-{
-    $n = db()->query('SELECT nom FROM lieu_categories ORDER BY ordre, nom LIMIT 1')->fetchColumn();
-    return $n !== false ? (string) $n : 'Salle';
-}
-
-// Intitulé canonique si $valeur correspond à une catégorie de lieu (insensible
-// à la casse), sinon null.
-function lieu_categorie_normaliser(string $valeur): ?string
-{
-    $v = trim($valeur);
-    if ($v === '') {
-        return null;
-    }
-    $stmt = db()->prepare('SELECT nom FROM lieu_categories WHERE nom = ? COLLATE NOCASE LIMIT 1');
-    $stmt->execute([$v]);
-    $n = $stmt->fetchColumn();
-    return $n !== false ? (string) $n : null;
-}
-
-// Type de lieu valide (repli sur le défaut si inconnu ou vide).
-function lieu_categorie_valide(string $valeur): string
-{
-    return lieu_categorie_normaliser($valeur) ?? lieu_categorie_defaut();
 }
 
 // Recalcule et stocke structures.dernier_contact_le (colonne dénormalisée) :
@@ -293,6 +271,30 @@ function structure_recalculer_dernier_contact(int $structureId): void
     $stmt->execute([$structureId, $structureId]);
     $date = (string) ($stmt->fetchColumn() ?: '');
     db()->prepare('UPDATE structures SET dernier_contact_le = ? WHERE id = ?')->execute([$date, $structureId]);
+}
+
+// Recalcule et stocke structures.dernier_concert_le (« dernier concert ou
+// diffusion » — champ général, pas réservé aux lieux : une structure media/
+// radio peut aussi l'utiliser pour dire qu'elle a déjà diffusé un titre, voir
+// migration_59) : MAX() de la valeur déjà connue (saisie manuelle/import — la
+// seule source pour une diffusion radio ou un concert antérieur à l'usage de
+// l'appli) et des dates des événements que l'appli sait avoir organisés dans
+// ce lieu (evenement_lieux, depuis la fusion lieux→structures, migration_60).
+// Ne fait donc que REMONTER la date, jamais la faire reculer. Appelée par
+// evenement_resynchroniser_miroirs() (lib/evenements.php) après toute
+// modification du lien lieu d'un événement.
+function structure_recalculer_dernier_concert(int $structureId): void
+{
+    $stmt = db()->prepare(
+        "SELECT MAX(d) FROM (
+            SELECT dernier_concert_le AS d FROM structures WHERE id = ?
+            UNION ALL
+            SELECT MAX(e.date) AS d FROM evenement_lieux el JOIN evenements e ON e.id = el.evenement_id WHERE el.lieu_id = ?
+        )"
+    );
+    $stmt->execute([$structureId, $structureId]);
+    $date = (string) ($stmt->fetchColumn() ?: '');
+    db()->prepare('UPDATE structures SET dernier_concert_le = ? WHERE id = ?')->execute([$date, $structureId]);
 }
 
 // --- Historique typé unifié (structures + lieux, table historique, migr. 52) --
@@ -364,14 +366,15 @@ function nom_entite(string $table, int $id): string
     return (string) ($s->fetchColumn() ?: '');
 }
 
-// Journalise, DES DEUX CÔTÉS, la liaison/déliaison entre une structure et un
-// lieu (l'un est l'organisateur de l'autre).
+// Journalise, DES DEUX CÔTÉS, la liaison/déliaison entre une structure et son
+// lieu organisé ($lieuId — structures(id) depuis la fusion lieux→structures,
+// migration_59/60 : les deux id sont désormais des structures).
 function journaliser_lien_structure_lieu(int $structureId, int $lieuId, bool $lie): void
 {
     $sNom = nom_entite('structures', $structureId);
-    $lNom = nom_entite('lieux', $lieuId);
+    $lNom = nom_entite('structures', $lieuId);
     journaliser('structure', $structureId, 'edition', ($lie ? 'Lieu lié : ' : 'Lieu délié : ') . $lNom);
-    journaliser('lieu', $lieuId, 'edition', ($lie ? 'Organisateur lié : ' : 'Organisateur délié : ') . $sNom);
+    journaliser('structure', $lieuId, 'edition', ($lie ? 'Organisateur lié : ' : 'Organisateur délié : ') . $sNom);
 }
 
 // Historique d'une fiche, plus récent d'abord, avec l'auteur.
@@ -390,10 +393,10 @@ function historique_entite(string $entiteType, int $id): array
     return $stmt->fetchAll();
 }
 
-// Historique FUSIONNÉ pour l'affichage : celui de la fiche + celui des entités
-// liées (les lieux d'une organisation, ou l'organisation d'un lieu), trié dans
-// le temps. Chaque entrée porte 'source_label' (vide = la fiche elle-même,
-// sinon « Lieu « X » » / « Organisateur « Y » »).
+// Historique FUSIONNÉ pour l'affichage : celui de la fiche + celui des lieux
+// qu'elle organise (structure_organisateurs, depuis la fusion lieux→structures,
+// migration_59/60), trié dans le temps. Chaque entrée porte 'source_label'
+// (vide = la fiche elle-même, sinon « Lieu « X » »).
 function historique_fusionne(string $entiteType, int $id): array
 {
     $entrees = [];
@@ -402,20 +405,11 @@ function historique_fusionne(string $entiteType, int $id): array
         $entrees[] = $e;
     }
     if ($entiteType === 'structure') {
-        $stmt = db()->prepare('SELECT l.id, l.nom FROM lieux l JOIN structure_lieux sl ON sl.lieu_id = l.id WHERE sl.structure_id = ?');
+        $stmt = db()->prepare('SELECT l.id, l.nom FROM structures l JOIN structure_organisateurs so ON so.structure_id = l.id WHERE so.organisateur_id = ?');
         $stmt->execute([$id]);
         foreach ($stmt->fetchAll() as $l) {
-            foreach (historique_entite('lieu', (int) $l['id']) as $e) {
+            foreach (historique_entite('structure', (int) $l['id']) as $e) {
                 $e['source_label'] = 'Lieu « ' . (string) $l['nom'] . ' »';
-                $entrees[] = $e;
-            }
-        }
-    } elseif ($entiteType === 'lieu') {
-        $stmt = db()->prepare('SELECT s.id, s.nom FROM structures s JOIN structure_lieux sl ON sl.structure_id = s.id WHERE sl.lieu_id = ?');
-        $stmt->execute([$id]);
-        foreach ($stmt->fetchAll() as $s) {
-            foreach (historique_entite('structure', (int) $s['id']) as $e) {
-                $e['source_label'] = 'Organisateur « ' . (string) $s['nom'] . ' »';
                 $entrees[] = $e;
             }
         }
@@ -462,34 +456,50 @@ function structures_fusionner(int $idGarde, array $autres): void
     }
     db()->prepare("DELETE FROM structure_tag_liens WHERE structure_id IN ($in)")->execute($autres);
 
-    $stmtLieux = db()->prepare("SELECT DISTINCT lieu_id FROM structure_lieux WHERE structure_id IN ($in)");
-    $stmtLieux->execute($autres);
-    $insLieu = db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)');
-    foreach ($stmtLieux->fetchAll(PDO::FETCH_COLUMN) as $lieuId) {
-        $insLieu->execute([$idGarde, $lieuId]);
+    // structure_organisateurs (many-to-many auto-référencé, remplace
+    // structure_lieux depuis la fusion lieux→structures, migration_59/60/61) :
+    // reprend les deux sens — les lieux organisés PAR une structure fusionnée,
+    // et les organisateurs D'un lieu fusionné. Jamais de boucle sur soi-même
+    // (contrainte CHECK structure_id <> organisateur_id).
+    $stmtOrgaLieux = db()->prepare("SELECT DISTINCT structure_id FROM structure_organisateurs WHERE organisateur_id IN ($in)");
+    $stmtOrgaLieux->execute($autres);
+    $insOrgaLieu = db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)');
+    foreach ($stmtOrgaLieux->fetchAll(PDO::FETCH_COLUMN) as $lieuId) {
+        if ($lieuId !== $idGarde) {
+            $insOrgaLieu->execute([$lieuId, $idGarde]);
+        }
     }
-    db()->prepare("DELETE FROM structure_lieux WHERE structure_id IN ($in)")->execute($autres);
+    $stmtOrgaOrgs = db()->prepare("SELECT DISTINCT organisateur_id FROM structure_organisateurs WHERE structure_id IN ($in)");
+    $stmtOrgaOrgs->execute($autres);
+    $insOrgaOrg = db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)');
+    foreach ($stmtOrgaOrgs->fetchAll(PDO::FETCH_COLUMN) as $organisateurId) {
+        if ($organisateurId !== $idGarde) {
+            $insOrgaOrg->execute([$idGarde, $organisateurId]);
+        }
+    }
+    db()->prepare("DELETE FROM structure_organisateurs WHERE structure_id IN ($in)")->execute($autres);
+    db()->prepare("DELETE FROM structure_organisateurs WHERE organisateur_id IN ($in)")->execute($autres);
 
     db()->prepare("DELETE FROM structures WHERE id IN ($in)")->execute($autres);
     db()->commit();
     structure_recalculer_dernier_contact($idGarde);
 }
 
-// Transforme une structure en salle/festival (lieu) d'une structure organisateur :
-// la structure « rétrogradée » devient un lieu lié à $orgId, et ses relations
-// (contacts, notes, factures, étiquettes, autres lieux liés) sont reprises par
-// l'organisateur avant sa suppression — même sémantique que structures_fusionner().
-// Réutilise un lieu déjà lié portant le même nom normalisé (cas d'un import
-// « organisateur » qui en avait auto-créé un) plutôt que d'en dupliquer un.
-// $type : une catégorie de lieu (repli sur le défaut si inconnue). Renvoie false
-// si structure/organisateur invalides.
+// Transforme une structure en lieu (salle/festival) d'un organisateur : depuis
+// la fusion lieux→structures (migration_59/60), un lieu EST une structure —
+// plus de fusion ni de suppression, contrairement à l'ancien comportement
+// (qui recréait une fiche `lieux` séparée et migrait contacts/notes/tags/
+// factures vers l'organisateur). On tague sa sous-catégorie (seulement si
+// elle n'en a pas déjà une — jamais d'écrasement) et on crée le lien
+// structure_organisateurs vers $orgId ; ses propres contacts/notes/tags/
+// factures restent sur elle. $type : une sous-catégorie booking (repli sur
+// « Salle » si non reconnue). Renvoie false si structure/organisateur invalides.
 function structure_transformer_en_lieu(int $structureId, int $orgId, string $type): bool
 {
     if ($structureId === $orgId || $structureId <= 0 || $orgId <= 0) {
         return false;
     }
-    $type = lieu_categorie_valide($type);
-    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
+    $stmt = db()->prepare('SELECT sous_categorie FROM structures WHERE id = ?');
     $stmt->execute([$structureId]);
     $s = $stmt->fetch();
     $stmtOrg = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
@@ -498,38 +508,12 @@ function structure_transformer_en_lieu(int $structureId, int $orgId, string $typ
         return false;
     }
 
-    db()->beginTransaction();
-    // Lieu représentant la structure : réutiliser un lieu déjà lié du même nom
-    // normalisé, sinon en créer un (jauge inconnue — la table structures n'a pas
-    // de jauge ; à compléter ensuite sur la fiche lieu).
-    $nomNorm = normaliser_nom_structure((string) $s['nom']);
-    $lieuId = null;
-    $stmtLieux = db()->prepare(
-        'SELECT l.id, l.nom FROM lieux l JOIN structure_lieux sl ON sl.lieu_id = l.id WHERE sl.structure_id = ?'
-    );
-    $stmtLieux->execute([$structureId]);
-    foreach ($stmtLieux->fetchAll() as $l) {
-        if (normaliser_nom_structure((string) $l['nom']) === $nomNorm) {
-            $lieuId = (int) $l['id'];
-            break;
-        }
+    if (trim((string) $s['sous_categorie']) === '') {
+        $type = structure_sous_categorie_booking_nom_pour($type) ?: 'Salle';
+        db()->prepare('UPDATE structures SET sous_categorie = ? WHERE id = ?')->execute([$type, $structureId]);
     }
-    if ($lieuId === null) {
-        db()->prepare(
-            'INSERT INTO lieux (type, nom, ville, departement_canton, pays) VALUES (?, ?, ?, ?, ?)'
-        )->execute([$type, (string) $s['nom'], (string) $s['adresse_localite'], (string) $s['departement_canton'], (string) $s['adresse_pays']]);
-        $lieuId = (int) db()->lastInsertId();
-    } else {
-        db()->prepare('UPDATE lieux SET type = ? WHERE id = ?')->execute([$type, $lieuId]);
-    }
-    db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
-        ->execute([$orgId, $lieuId]);
-    db()->commit();
-
-    // Reprise des relations de la structure d'origine par l'organisateur, puis
-    // suppression (structures_fusionner gère sa propre transaction, y compris le
-    // déplacement du lien du lieu ci-dessus s'il était rattaché à la structure).
-    structures_fusionner($orgId, [$structureId]);
+    db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
+        ->execute([$structureId, $orgId]);
     return true;
 }
 
@@ -594,11 +578,10 @@ function mailing_structures_eligibles(array $criteres): array
         $where[] = 's.adresse_localite = ?';
         $params[] = $criteres['ville'];
     }
-    // Type de lieu (lieu_categories) : structure ayant au moins un lieu lié de
-    // cette catégorie (ex. « Festival », « Salle de concert »).
+    // Type de lieu (sous-catégorie « booking », voir migration_59) : la
+    // structure ELLE-MÊME porte ce champ depuis la fusion lieux→structures.
     if (!empty($criteres['type_lieu'])) {
-        $where[] = 's.id IN (SELECT sl.structure_id FROM structure_lieux sl
-                             JOIN lieux l ON l.id = sl.lieu_id WHERE l.type = ?)';
+        $where[] = 's.sous_categorie = ? COLLATE NOCASE';
         $params[] = $criteres['type_lieu'];
     }
     if (!empty($criteres['tag_id'])) {
@@ -617,24 +600,19 @@ function mailing_structures_eligibles(array $criteres): array
     $stmt->execute($params);
     $structures = $stmt->fetchAll();
 
-    // Filtres de période via les lieux liés — appliqués en PHP (pas en SQL) car
-    // le chevauchement gère le passage d'année (periode_chevauche()), pas
-    // exprimable simplement en SQL. Deux plages, mêmes notions que la fiche
-    // lieu : mois_debut/mois_fin = « Préparé de… à » (période de programmation),
-    // mois_evenement_debut/fin = « Événements de… à » (quand ça a lieu).
+    // Filtres de période — appliqués en PHP (pas en SQL) car le chevauchement
+    // gère le passage d'année (periode_chevauche()), pas exprimable simplement
+    // en SQL. Deux plages, directement sur la structure depuis la fusion
+    // lieux→structures (migration_59/60) : mois_debut/mois_fin = « Préparé
+    // de… à » (période de programmation), mois_evenement_debut/fin =
+    // « Événements de… à » (quand ça a lieu).
     $filtrePeriode = function (array $structures, string $colDebut, string $colFin, int $md, int $mf): array {
-        $stmtDetail = db()->query(
-            "SELECT sl.structure_id, l.$colDebut AS d, l.$colFin AS f FROM structure_lieux sl
-             JOIN lieux l ON l.id = sl.lieu_id
-             WHERE l.$colDebut IS NOT NULL AND l.$colFin IS NOT NULL"
-        );
-        $eligibles = [];
-        foreach ($stmtDetail->fetchAll() as $r) {
-            if (periode_chevauche((int) $r['d'], (int) $r['f'], $md, $mf)) {
-                $eligibles[(int) $r['structure_id']] = true;
+        return array_values(array_filter($structures, function ($s) use ($colDebut, $colFin, $md, $mf) {
+            if ($s[$colDebut] === null || $s[$colFin] === null) {
+                return false;
             }
-        }
-        return array_values(array_filter($structures, fn ($s) => isset($eligibles[(int) $s['id']])));
+            return periode_chevauche((int) $s[$colDebut], (int) $s[$colFin], $md, $mf);
+        }));
     };
     if (!empty($criteres['mois_debut']) && !empty($criteres['mois_fin'])) {
         $structures = $filtrePeriode($structures, 'mois_debut', 'mois_fin', (int) $criteres['mois_debut'], (int) $criteres['mois_fin']);
@@ -1185,8 +1163,8 @@ function structures_analyser_import(array $lignes, array $mapping): array
         }
     }
     $catDefaut = structure_categorie_par_defaut();
-    $lieuCats = []; // clé pliée → nom canonique (catégorie de lieu)
-    foreach (lieu_categories_liste() as $n) {
+    $lieuCats = []; // clé pliée → nom canonique (sous-catégorie « booking »)
+    foreach (structure_sous_categories_booking_noms() as $n) {
         $lieuCats[texte_sans_accents((string) $n)] = (string) $n;
     }
     $normLieuCat = fn (string $v): string => $lieuCats[texte_sans_accents($v)] ?? '';
@@ -1202,15 +1180,17 @@ function structures_analyser_import(array $lignes, array $mapping): array
         }
         // Type de lieu (salle de concert, festival, saison culturelle…). Priorité
         // à la colonne dédiée « type_lieu » si elle est mappée (normalisée sur la
-        // taxonomie lieu_categories, valeur libre conservée sinon) ; à défaut,
-        // détecté sur les valeurs BRUTES de catégorie / sous-catégorie AVANT
-        // normalisation. La valeur part sur le lieu (lieux.type) et n'encombre pas
-        // la structure ; la sous-catégorie qui n'était qu'un type de lieu est vidée.
+        // taxonomie booking — structure_categories.est_booking, voir migration_59
+        // —, valeur libre conservée sinon) ; à défaut, détecté sur les valeurs
+        // BRUTES de catégorie / sous-catégorie AVANT normalisation. La valeur part
+        // sur structures.sous_categorie (voir structure_appliquer_champs_booking_importe())
+        // et n'encombre pas le champ catégorie/sous-catégorie « organisation » ;
+        // la sous-catégorie qui n'était qu'un type de lieu est vidée.
         $typeMappeRaw = trim((string) ($donnees['type_lieu'] ?? ''));
         $typeSous = $normLieuCat($donnees['sous_categorie']);
         $typeCat  = $normLieuCat($donnees['categorie']);
         if ($typeMappeRaw !== '') {
-            $donnees['type_lieu'] = lieu_categorie_normaliser($typeMappeRaw) ?? $typeMappeRaw;
+            $donnees['type_lieu'] = structure_sous_categorie_booking_nom_pour($typeMappeRaw) ?: $typeMappeRaw;
         } else {
             $donnees['type_lieu'] = $typeSous !== '' ? $typeSous : $typeCat;
         }
@@ -1600,20 +1580,22 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         structure_attacher_tag($structureId, $nomTag);
     }
 
-    // Création/liaison automatique d'un lieu du même nom (même adresse, jauge
-    // éventuelle) dans deux cas :
+    // Application des champs « booking » (sous-catégorie, jauge, mois,
+    // dernier concert) directement sur LA STRUCTURE elle-même (voir
+    // structure_appliquer_champs_booking_importe(), migration_59/60), dans
+    // deux cas :
     //   • catégorie marquée « organisateur » (Paramètres → Catégories : la ligne
     //     décrit une salle/un festival — SPEC_BOOKING.md §9) ;
-    //   • le type de lieu résolu est un VRAI type de la taxonomie lieu_categories
+    //   • le type de lieu résolu est un VRAI type de la taxonomie booking
     //     (ex. « Salle de location ») — la ligne est un lieu, y compris hors
     //     catégorie organisateur (ex. « Autres »).
-    // Les médias et l'entourage ne créent JAMAIS de lieu : ni organisateurs, ni
-    // porteurs d'un type de lieu reconnu (« Radio », « Journaliste »… n'en sont
-    // pas).
-    $creerLieu = structure_categorie_est_organisateur($d['categorie'])
-        || lieu_categorie_normaliser((string) ($d['type_lieu'] ?? '')) !== null;
-    if ($autoLieu && $creerLieu) {
-        structure_lier_lieu_importe($structureId, $d);
+    // Les médias et l'entourage n'appliquent JAMAIS ces champs : ni
+    // organisateurs, ni porteurs d'un type de lieu reconnu (« Radio »,
+    // « Journaliste »… n'en sont pas).
+    $appliquerBooking = structure_categorie_est_organisateur($d['categorie'])
+        || structure_sous_categorie_booking_nom_pour((string) ($d['type_lieu'] ?? '')) !== '';
+    if ($autoLieu && $appliquerBooking) {
+        structure_appliquer_champs_booking_importe($structureId, $d);
     }
 
     $dateContact = structure_date_csv_vers_iso($d['dernier_contact']);
@@ -1678,7 +1660,25 @@ function structure_import_trouver_ou_creer_organisateur(string $nom): array
 // à l'organisateur »).
 function structure_import_rattacher_lieu_membre(int $orgId, array $d, string $nomLieu): void
 {
-    structure_import_creer_lieu($orgId, $nomLieu, structure_import_type_lieu($nomLieu, (string) ($d['type_lieu'] ?? '')), $d);
+    // Un lieu EST une structure (fusion lieux→structures, migration_59/60) :
+    // retrouve (par nom normalisé, structure_trouver_correspondance()) ou crée
+    // une structure distincte pour ce lieu, lui applique les champs booking,
+    // puis la lie à l'organisateur (structure_organisateurs) — plutôt que de
+    // créer un lieu séparé lié via structure_lieux comme avant.
+    $lieuId = structure_trouver_correspondance($nomLieu, '');
+    if ($lieuId === null) {
+        db()->prepare(
+            'INSERT INTO structures (nom, categorie, adresse_localite, departement_canton, adresse_pays) VALUES (?, ?, ?, ?, ?)'
+        )->execute([
+            $nomLieu, structure_categorie_par_defaut(), $d['adresse_localite'], $d['departement_canton'],
+            $d['pays'] !== '' ? $d['pays'] : 'Suisse',
+        ]);
+        $lieuId = (int) db()->lastInsertId();
+    }
+    structure_appliquer_champs_booking_importe($lieuId, array_merge($d, ['nom' => $nomLieu]));
+    db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
+        ->execute([$lieuId, $orgId]);
+
     structure_import_attacher_contact($orgId, $d);
     foreach (structure_tags_depuis_statut($d['tags_statut']) as $nomTag) {
         structure_attacher_tag($orgId, $nomTag);
@@ -1695,87 +1695,66 @@ function structure_import_rattacher_lieu_membre(int $orgId, array $d, string $no
 function structure_import_type_lieu(string $nom, string $typeLieu): string
 {
     if (trim($typeLieu) !== '') {
-        // Normalise vers l'intitulé canonique de la taxonomie (tolère casse et
-        // accents, ex. « salle de location » → « Salle de location ») ; conserve
-        // la valeur nettoyée si elle n'y figure pas (type libre).
-        return lieu_categorie_normaliser($typeLieu) ?? trim($typeLieu);
+        // Normalise vers l'intitulé canonique de la taxonomie booking (tolère
+        // casse et accents, ex. « salle de location » → « Salle de location ») ;
+        // conserve la valeur nettoyée si elle n'y figure pas (type libre).
+        $reconnu = structure_sous_categorie_booking_nom_pour($typeLieu);
+        return $reconnu !== '' ? $reconnu : trim($typeLieu);
     }
     return str_contains(mb_strtolower($nom, 'UTF-8'), 'festival') ? 'Festival' : 'Salle';
 }
 
-// Crée (ou met à jour la jauge d') un lieu de nom/type donnés et le lie à la
-// structure. Adresse copiée depuis les données de la ligne ; jauge min/max
-// depuis les colonnes mappées, si présentes. Rapprochement par nom normalisé +
-// type, pour ne pas dupliquer un lieu déjà créé par une ligne précédente.
-function structure_import_creer_lieu(int $structureId, string $nom, string $type, array $d): void
+// Applique les champs « booking » (sous-catégorie déduite, jauge, mois de
+// programmation/d'événement, dernier concert) directement sur la structure
+// importée — remplace l'ancienne création d'un lieu séparé
+// (structure_import_creer_lieu()/structure_lier_lieu_importe()) : depuis la
+// fusion lieux→structures (migration_59/60), un lieu EST une structure, plus
+// besoin d'une fiche à part ni de structure_lieux. Remplissage des champs
+// vides uniquement (jamais d'écrasement, même politique que
+// structure_import_fusion()) ; dernier_concert_le prend le MAXIMUM des deux
+// valeurs (chaîne ISO, comparable lexicalement) pour ne jamais perdre une
+// date plus récente déjà connue.
+function structure_appliquer_champs_booking_importe(int $structureId, array $d): void
 {
-    $nomNorm = normaliser_nom_structure($nom);
-    $lieuId = null;
-    $stmt = db()->prepare("SELECT id, nom FROM lieux WHERE type = ?");
-    $stmt->execute([$type]);
-    foreach ($stmt->fetchAll() as $l) {
-        if (normaliser_nom_structure($l['nom']) === $nomNorm) {
-            $lieuId = (int) $l['id'];
-            break;
-        }
+    $stmt = db()->prepare(
+        'SELECT sous_categorie, dernier_concert_le FROM structures WHERE id = ?'
+    );
+    $stmt->execute([$structureId]);
+    $s = $stmt->fetch();
+    if (!$s) {
+        return;
     }
+
+    $sousCategorie = trim((string) $s['sous_categorie']) === ''
+        ? structure_import_type_lieu((string) $d['nom'], (string) ($d['type_lieu'] ?? ''))
+        : (string) $s['sous_categorie'];
+
     $jaugeMin = $d['jauge_min'] !== '' ? (int) $d['jauge_min'] : null;
     $jaugeMax = $d['jauge_max'] !== '' ? (int) $d['jauge_max'] : null;
     $evt = mois_plage_depuis_liste($d['periode_evenement'] ?? '');
     $prog = mois_plage_depuis_liste($d['periode_programmation'] ?? '');
-    $grande = (string) ($d['grande_region'] ?? '');
-    $dernierConcert = structure_date_csv_vers_iso($d['dernier_concert'] ?? '') ?? '';
-    // Date de dernier concert déjà en base (lieu existant) — pour ne journaliser
-    // que les changements réels et éviter les doublons au ré-import.
-    $ancienDC = '';
-    if ($lieuId !== null) {
-        $q = db()->prepare('SELECT dernier_concert_le FROM lieux WHERE id = ?');
-        $q->execute([$lieuId]);
-        $ancienDC = (string) ($q->fetchColumn() ?: '');
-    }
-    if ($lieuId === null) {
-        db()->prepare(
-            'INSERT INTO lieux (type, nom, ville, departement_canton, grande_region, pays, jauge_min, jauge_max,
-                                mois_debut, mois_fin, mois_evenement_debut, mois_evenement_fin, dernier_concert_le)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        )->execute([
-            $type, $nom, $d['adresse_localite'], $d['departement_canton'], $grande, $d['pays'], $jaugeMin, $jaugeMax,
-            $prog['debut'], $prog['fin'], $evt['debut'], $evt['fin'], $dernierConcert,
-        ]);
-        $lieuId = (int) db()->lastInsertId();
-    } else {
-        // Lieu déjà créé par une ligne précédente : on complète sans écraser une
-        // valeur déjà présente (COALESCE pour les mois, garde l'existant si le
-        // champ texte importé est vide).
-        db()->prepare(
-            "UPDATE lieux SET
-                jauge_min = COALESCE(?, jauge_min),
-                jauge_max = COALESCE(?, jauge_max),
-                mois_debut = COALESCE(?, mois_debut),
-                mois_fin = COALESCE(?, mois_fin),
-                mois_evenement_debut = COALESCE(?, mois_evenement_debut),
-                mois_evenement_fin = COALESCE(?, mois_evenement_fin),
-                grande_region = CASE WHEN ? <> '' THEN ? ELSE grande_region END,
-                dernier_concert_le = CASE WHEN ? <> '' THEN ? ELSE dernier_concert_le END
-             WHERE id = ?"
-        )->execute([
-            $jaugeMin, $jaugeMax, $prog['debut'], $prog['fin'], $evt['debut'], $evt['fin'],
-            $grande, $grande, $dernierConcert, $dernierConcert, $lieuId,
-        ]);
-    }
-    if ($dernierConcert !== '' && $dernierConcert !== $ancienDC) {
-        journaliser('lieu', $lieuId, 'dernier_concert', 'Dernier concert / diffusion (import) : ' . $dernierConcert, $dernierConcert);
-    }
-    db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
-        ->execute([$structureId, $lieuId]);
-}
+    $ancienDC = (string) $s['dernier_concert_le'];
+    $dernierConcert = max($ancienDC, structure_date_csv_vers_iso($d['dernier_concert'] ?? '') ?? '');
 
-// Crée (ou met à jour) le lieu correspondant à une structure « organisateur »
-// importée (catégorie organisateur), et le lie. Le nom du lieu = le nom de la
-// structure. Type = catégorie de lieu détectée, sinon déduit du nom.
-function structure_lier_lieu_importe(int $structureId, array $d): void
-{
-    structure_import_creer_lieu($structureId, $d['nom'], structure_import_type_lieu($d['nom'], (string) ($d['type_lieu'] ?? '')), $d);
+    db()->prepare(
+        'UPDATE structures SET
+            sous_categorie = ?,
+            jauge_min = COALESCE(jauge_min, ?),
+            jauge_max = COALESCE(jauge_max, ?),
+            mois_debut = COALESCE(mois_debut, ?),
+            mois_fin = COALESCE(mois_fin, ?),
+            mois_evenement_debut = COALESCE(mois_evenement_debut, ?),
+            mois_evenement_fin = COALESCE(mois_evenement_fin, ?),
+            dernier_concert_le = ?
+         WHERE id = ?'
+    )->execute([
+        $sousCategorie, $jaugeMin, $jaugeMax, $prog['debut'], $prog['fin'], $evt['debut'], $evt['fin'],
+        $dernierConcert, $structureId,
+    ]);
+
+    if ($dernierConcert !== '' && $dernierConcert !== $ancienDC) {
+        journaliser('structure', $structureId, 'dernier_concert', 'Dernier concert / diffusion (import) : ' . $dernierConcert, $dernierConcert);
+    }
 }
 
 // Ajoute chaque e-mail à la liste « ne pas contacter » (table mailing_exclusions,

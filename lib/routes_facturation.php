@@ -509,10 +509,11 @@ function structures_filtres(): array
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
     // mémorisé en session : lien ponctuel, pas un mode de travail courant.
     $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
-    // Filtres avancés sur le(s) lieu(x) lié(s) (type, jauge, mois — mêmes
-    // critères que lieux_filtres()) : une structure matche si AU MOINS UN de
-    // ses lieux liés (structure_lieux) satisfait la combinaison demandée.
-    $lieuType = lieu_categorie_normaliser((string) filtre_persistant('lieu_type', 'structures_lieu_type', '')) ?? '';
+    // Filtres avancés « lieu » (type, jauge, mois) : depuis la fusion
+    // lieux→structures (migration_59/60), ces champs vivent directement sur la
+    // structure — filtre simple sur ses propres colonnes, plus d'indirection
+    // par structure_lieux.
+    $lieuType = structure_sous_categorie_booking_nom_pour((string) filtre_persistant('lieu_type', 'structures_lieu_type', ''));
     $lieuJaugeMinBrut = (string) filtre_persistant('lieu_jauge_min', 'structures_lieu_jauge_min', '');
     $lieuJaugeMin = $lieuJaugeMinBrut !== '' ? max(0, (int) $lieuJaugeMinBrut) : null;
     $lieuJaugeMaxBrut = (string) filtre_persistant('lieu_jauge_max', 'structures_lieu_jauge_max', '');
@@ -562,28 +563,23 @@ function structures_filtres(): array
         // Bornes de jauge/mois injectées telles quelles (déjà validées en
         // entiers), même raison qu'ailleurs : un paramètre PDO serait lié en
         // texte, or SQLite classe tout entier avant tout texte.
-        $lieuWhere = '';
-        $lieuParams = [];
         if ($lieuType !== '') {
-            $lieuWhere .= ' AND l.type = ?';
-            $lieuParams[] = $lieuType;
+            $where .= ' AND s.sous_categorie = ? COLLATE NOCASE';
+            $params[] = $lieuType;
         }
         if ($lieuJaugeMin !== null) {
-            $lieuWhere .= ' AND COALESCE(l.jauge_max, l.jauge_min, 0) >= ' . $lieuJaugeMin;
+            $where .= ' AND COALESCE(s.jauge_max, s.jauge_min, 0) >= ' . $lieuJaugeMin;
         }
         if ($lieuJaugeMax !== null) {
-            $lieuWhere .= ' AND COALESCE(l.jauge_min, l.jauge_max) IS NOT NULL AND COALESCE(l.jauge_min, l.jauge_max) <= ' . $lieuJaugeMax;
+            $where .= ' AND COALESCE(s.jauge_min, s.jauge_max) IS NOT NULL AND COALESCE(s.jauge_min, s.jauge_max) <= ' . $lieuJaugeMax;
         }
-        $filtreMoisLieu = function (string $colDebut, string $colFin, int $mois) use (&$lieuWhere): void {
-            $lieuWhere .= " AND l.$colDebut IS NOT NULL AND l.$colFin IS NOT NULL AND ("
-                . "(l.$colDebut <= l.$colFin AND $mois BETWEEN l.$colDebut AND l.$colFin) OR "
-                . "(l.$colDebut > l.$colFin AND ($mois >= l.$colDebut OR $mois <= l.$colFin)))";
+        $filtreMoisLieu = function (string $colDebut, string $colFin, int $mois) use (&$where): void {
+            $where .= " AND s.$colDebut IS NOT NULL AND s.$colFin IS NOT NULL AND ("
+                . "(s.$colDebut <= s.$colFin AND $mois BETWEEN s.$colDebut AND s.$colFin) OR "
+                . "(s.$colDebut > s.$colFin AND ($mois >= s.$colDebut OR $mois <= s.$colFin)))";
         };
         if ($lieuMoisEvenement) { $filtreMoisLieu('mois_evenement_debut', 'mois_evenement_fin', $lieuMoisEvenement); }
         if ($lieuMoisProg) { $filtreMoisLieu('mois_debut', 'mois_fin', $lieuMoisProg); }
-        $where .= ' AND EXISTS (SELECT 1 FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id'
-            . ' WHERE sl.structure_id = s.id' . $lieuWhere . ')';
-        $params = array_merge($params, $lieuParams);
     }
 
     return [
@@ -789,7 +785,7 @@ function route_structures(): void
             'nonLocalises' => $nonLocalises,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
-            'categoriesLieu' => lieu_categories_liste(),
+            'categoriesLieu' => structure_sous_categories_booking_noms(),
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
         ], 'Structures');
@@ -802,7 +798,7 @@ function route_structures(): void
     $modeClient = pagination_mode_client($totalSansRecherche);
 
     $selectCols = "s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures,
-        (SELECT GROUP_CONCAT(l.nom, ', ') FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id WHERE sl.structure_id = s.id) AS lieux_noms,
+        (SELECT GROUP_CONCAT(l.nom, ', ') FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id WHERE so.organisateur_id = s.id) AS lieux_noms,
         (SELECT GROUP_CONCAT(t.nom, ', ') FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
         COALESCE(
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
@@ -860,7 +856,7 @@ function route_structures(): void
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
         'categoriesPourSelect' => structure_categories_pour_select(),
-        'categoriesLieu' => lieu_categories_liste(),
+        'categoriesLieu' => structure_sous_categories_booking_noms(),
         'regionsDispo' => $regionsDispo,
         'tagsDispo' => $tagsDispo,
         'modeClient' => $modeClient,
@@ -898,7 +894,8 @@ function route_structures_geocoder(): void
 function structure_donnees_crm(int $id): array
 {
     if (!$id || !module_actif('booking')) {
-        return ['contacts' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => []];
+        return ['contacts' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [],
+                'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
@@ -913,20 +910,47 @@ function structure_donnees_crm(int $id): array
     );
     $stmtTags->execute([$id]);
 
-    $stmtLieuxLies = db()->prepare(
-        'SELECT l.* FROM lieux l JOIN structure_lieux sl ON sl.lieu_id = l.id
-         WHERE sl.structure_id = ? ORDER BY l.type, l.nom'
+    // Structures liées, DANS LES DEUX SENS (structure_organisateurs, table
+    // auto-référencée depuis la fusion lieux→structures, migration_59/60) :
+    // celles que $id organise (sens='organise'), et celle(s) qui organisent
+    // $id (sens='organise_par' — $id est alors elle-même un lieu). ville/type
+    // alias sur les colonnes structures pour ne pas devoir changer le
+    // formulaire (views/structure_form.php).
+    $stmtOrganise = db()->prepare(
+        "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville, 'organise' AS sens FROM structures s
+         JOIN structure_organisateurs so ON so.structure_id = s.id
+         WHERE so.organisateur_id = ? ORDER BY s.sous_categorie, s.nom"
     );
-    $stmtLieuxLies->execute([$id]);
+    $stmtOrganise->execute([$id]);
+    $stmtOrganisePar = db()->prepare(
+        "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville, 'organise_par' AS sens FROM structures s
+         JOIN structure_organisateurs so ON so.organisateur_id = s.id
+         WHERE so.structure_id = ? ORDER BY s.sous_categorie, s.nom"
+    );
+    $stmtOrganisePar->execute([$id]);
+    $lieuxLies = array_merge($stmtOrganise->fetchAll(), $stmtOrganisePar->fetchAll());
+
+    // Candidats pour « organise » : structures « booking » (un lieu). Pour
+    // « organisé par » : n'importe quelle autre structure (l'organisateur
+    // n'est pas forcément lui-même un lieu).
+    $stmtLieuxDispo = db()->prepare(
+        "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville FROM structures s
+         JOIN structure_categories c ON c.nom = s.sous_categorie COLLATE NOCASE
+         WHERE c.est_booking = 1 AND s.id <> ? ORDER BY s.sous_categorie, s.nom"
+    );
+    $stmtLieuxDispo->execute([$id]);
+    $stmtOrganisateurDispo = db()->prepare('SELECT id, nom FROM structures WHERE id <> ? ORDER BY nom');
+    $stmtOrganisateurDispo->execute([$id]);
 
     return [
         'contacts'  => $stmtContacts->fetchAll(),
         'notes'     => $notesHistorique,
         'tags'      => $stmtTags->fetchAll(),
         'tagsDispo' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
-        'lieuxLies' => $stmtLieuxLies->fetchAll(),
-        'lieuxDispo' => db()->query('SELECT * FROM lieux ORDER BY type, nom')->fetchAll(),
-        'categoriesLieu' => lieu_categories_liste(),
+        'lieuxLies' => $lieuxLies,
+        'lieuxDispo' => $stmtLieuxDispo->fetchAll(),
+        'organisateurDispo' => $stmtOrganisateurDispo->fetchAll(),
+        'categoriesLieu' => structure_sous_categories_booking_noms(),
         'evenementsLies' => structure_evenements($id),
     ];
 }
@@ -1221,7 +1245,7 @@ function route_structure_fusion(): void
                 (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,
                 (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures,
                 (SELECT COUNT(*) FROM structure_tag_liens WHERE structure_id = s.id) AS nb_tags,
-                (SELECT COUNT(*) FROM structure_lieux WHERE structure_id = s.id) AS nb_lieux
+                (SELECT COUNT(*) FROM structure_organisateurs WHERE organisateur_id = s.id) AS nb_lieux
          FROM structures s WHERE s.id IN ($in) ORDER BY s.nom"
     );
     $stmt->execute($ids);
@@ -1238,8 +1262,10 @@ function route_structure_fusion(): void
 // structure ») : ids mémorisés en session ($_SESSION['transformer_ids'], ≥ 2).
 // L'utilisateur désigne l'organisateur parmi la sélection ; les autres structures
 // deviennent des lieux liés à lui (structure_transformer_en_lieu(), lib/booking.php,
-// qui reprend leurs contacts/notes/factures/étiquettes puis les supprime). Type du
-// lieu : déduit du nom (« festival » → festival, sinon salle) ou imposé globalement.
+// qui tague leur sous-catégorie « booking » et crée le lien structure_organisateurs —
+// leurs contacts/notes/factures/étiquettes RESTENT sur elles, aucune fusion/
+// suppression depuis la fusion lieux→structures). Type du lieu : déduit du nom
+// (« festival » → festival, sinon salle) ou imposé globalement.
 function route_structure_transformer(): void
 {
     require_login();
@@ -1251,9 +1277,10 @@ function route_structure_transformer(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $orgId = (int) ($_POST['organisateur_id'] ?? 0);
-        // 'deduire' = déduire du nom ; sinon une catégorie de lieu explicite.
-        $typeChoix = ($_POST['type'] ?? '') === 'deduire' ? 'deduire' : lieu_categorie_normaliser((string) ($_POST['type'] ?? ''));
-        if ($typeChoix === null) { $typeChoix = 'deduire'; }
+        // 'deduire' = déduire du nom ; sinon une sous-catégorie booking explicite.
+        $typeBrut = trim((string) ($_POST['type'] ?? ''));
+        $typeChoix = $typeBrut === 'deduire' ? 'deduire' : structure_sous_categorie_booking_nom_pour($typeBrut);
+        if ($typeChoix === '') { $typeChoix = 'deduire'; }
         if (!in_array($orgId, $ids, true)) {
             redirect('structure_transformer');
         }
@@ -1289,7 +1316,7 @@ function route_structure_transformer(): void
         redirect('structures');
     }
 
-    render('structure_transformer', ['candidats' => $candidats, 'categoriesLieu' => lieu_categories_liste()], 'Transformer en salles/festivals');
+    render('structure_transformer', ['candidats' => $candidats, 'categoriesLieu' => structure_sous_categories_booking_noms()], 'Transformer en salles/festivals');
 }
 
 // --- Import de factures historiques (JSON) ----------------------------------

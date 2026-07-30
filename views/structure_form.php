@@ -1,7 +1,7 @@
 <?php /** @var ?array $structure */ /** @var ?string $err */
 /** @var array $categoriesPourSelect */ /** @var int $categorieIdSelectionnee */
 /** @var array $contacts */ /** @var array $notes */ /** @var array $tags */ /** @var array $tagsDispo */
-/** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $categoriesLieu */
+/** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $organisateurDispo */ /** @var array $categoriesLieu */
 $v = fn(string $k, $d = '') => e((string) ($structure[$k] ?? $d));
 $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
@@ -243,29 +243,38 @@ $sid = (int) ($structure['id'] ?? 0);
 <div class="card card-lieux-liees">
     <div class="card-block section-editable">
         <div class="card-head-row">
-            <h2 class="mt-0">Lieux liés</h2>
-            <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les salles &amp; festivals"><?= icon('pencil') ?></button>
+            <h2 class="mt-0">Structures liées</h2>
+            <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les structures liées"><?= icon('pencil') ?></button>
         </div>
-        <?php foreach ($lieuxLies as $l): ?>
+        <?php
+        $lieuxOrganises = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise'));
+        $lieuxOrganisePar = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise_par'));
+        $ligneLien = function (array $l) use ($sid): void { ?>
             <div class="linked-add">
                 <span>
-                    <strong><a href="<?= url_avec_retour('?p=lieu&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
+                    <strong><a href="<?= url_avec_retour('?p=structure&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
                     <div class="muted small"><?= e((string) $l['type']) ?>
-                    <?php if ($l['ville']): ?> · <?= e($l['ville']) ?></div><?php endif; ?>
+                    <?php if ($l['ville']): ?> · <?= e($l['ville']) ?><?php endif; ?></div>
                 </span>
-                <form method="post" action="?p=structure_lieu_delier" class="edit-only" onsubmit="return confirm('Délier ce lieu ?');">
+                <form method="post" action="?p=structure_lieu_delier" class="edit-only" onsubmit="return confirm('Délier ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">
+                    <input type="hidden" name="sens" value="<?= e((string) $l['sens']) ?>">
                     <button type="submit" class="btn ghost btn-sm icon-only" title="Délier" aria-label="Délier"><?= icon('unlink') ?></button>
                 </form>
             </div>
-        <?php endforeach; ?>
-        <?php if (!$lieuxLies): ?><p class="muted small">Aucune salle ni festival lié.</p><?php endif; ?>
+        <?php };
+        ?>
+
+        <p class="muted small mb-8">Organise</p>
+        <?php foreach ($lieuxOrganises as $l) { $ligneLien($l); } ?>
+        <?php if (!$lieuxOrganises): ?><p class="muted small">Aucune salle ni festival lié.</p><?php endif; ?>
 
         <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="lieu-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
+            <input type="hidden" name="sens" value="organise">
             <div class="cat-search lieu-search">
                 <input type="text" class="cat-search-input" placeholder="Rechercher une salle/un festival…" autocomplete="off">
                 <input type="hidden" name="lieu_id" class="cat-search-val" value="">
@@ -287,15 +296,50 @@ $sid = (int) ($structure['id'] ?? 0);
                 <label>Ville <input name="nl_ville"></label>
             </div>
         </form>
+
+        <p class="muted small mb-8 mt-16">Organisée par</p>
+        <?php foreach ($lieuxOrganisePar as $l) { $ligneLien($l); } ?>
+        <?php if (!$lieuxOrganisePar): ?><p class="muted small">Aucun organisateur lié.</p><?php endif; ?>
+
+        <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="organisateur-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="structure_id" value="<?= $sid ?>">
+            <input type="hidden" name="sens" value="organise_par">
+            <div class="cat-search organisateur-search">
+                <input type="text" class="cat-search-input" placeholder="Rechercher une structure organisatrice…" autocomplete="off">
+                <input type="hidden" name="lieu_id" class="cat-search-val" value="">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="__new__">+ Nouvelle structure</li>
+                    <?php foreach ($organisateurDispo as $o): ?>
+                        <li data-val="<?= (int) $o['id'] ?>"><?= e($o['nom']) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <button type="submit" class="btn ghost btn-sm"><?= icon('link') ?> Lier</button>
+            <div id="organisateur-nouveau" hidden class="grid3 mt-10">
+                <label>Nom <input name="nl_nom"></label>
+                <label>Ville <input name="nl_ville"></label>
+                <label>Pays <input name="nl_pays" placeholder="Suisse"></label>
+            </div>
+        </form>
         <script>
         (function () {
-            var wrap = document.querySelector('.lieu-search');
-            var nouveau = document.getElementById('lieu-nouveau');
-            if (wrap && window.lassoInitCatSearch) {
-                lassoInitCatSearch(wrap, {
+            var wrapLieu = document.querySelector('.lieu-search');
+            var nouveauLieu = document.getElementById('lieu-nouveau');
+            if (wrapLieu && window.lassoInitCatSearch) {
+                lassoInitCatSearch(wrapLieu, {
                     showPlaceholderText: true,
                     clearHiddenOnInput: true,
-                    onSelect: function (li) { nouveau.hidden = li.dataset.val !== '__new__'; },
+                    onSelect: function (li) { nouveauLieu.hidden = li.dataset.val !== '__new__'; },
+                });
+            }
+            var wrapOrga = document.querySelector('.organisateur-search');
+            var nouveauOrga = document.getElementById('organisateur-nouveau');
+            if (wrapOrga && window.lassoInitCatSearch) {
+                lassoInitCatSearch(wrapOrga, {
+                    showPlaceholderText: true,
+                    clearHiddenOnInput: true,
+                    onSelect: function (li) { nouveauOrga.hidden = li.dataset.val !== '__new__'; },
                 });
             }
         })();

@@ -976,11 +976,11 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     $depuis = (string) ($_GET['depuis'] ?? '');
     // Recherche texte (q) et page de pagination (page) : ni l'une ni l'autre
     // n'est mémorisée en session (filtre_persistant() ne les couvre pas, voir
-    // evenements_lire_filtres()/lieux_filtres()/pagination_page()), donc
+    // evenements_lire_filtres()/structures_filtres()/pagination_page()), donc
     // perdues au retour si on ne les reporte pas explicitement — contrairement
     // aux filtres structurés (type/ville/statut…) déjà repris via la session.
     // Portée aux seules cibles « liste » ci-dessous (statiques + $defautHref) :
-    // une fiche précise (structure:id, lieu:id…) n'a pas ces champs à remplir.
+    // une fiche précise (structure:id…) n'a pas ces champs à remplir.
     $q = trim((string) ($_GET['q'] ?? ''));
     $page = (int) ($_GET['page'] ?? 0);
     $extra = [];
@@ -993,13 +993,12 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     $statiques = [
         'dashboard'        => ['?p=resumes', 'Tableau de bord'],
         'compta_ecritures' => ['?p=compta_ecritures', 'Écritures'],
-        'lieux'            => ['?p=lieux', 'Lieux'],
         'structures'       => ['?p=structures', 'Structures'],
     ];
     if (isset($statiques[$depuis])) {
         return lien_retour($avecExtras($statiques[$depuis][0]), $statiques[$depuis][1]);
     }
-    if (preg_match('/^(facture|evenement|fiche|employe|structure|lieu):(\d+)$/', $depuis, $m)) {
+    if (preg_match('/^(facture|evenement|fiche|employe|structure):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];
         if ($m[1] === 'structure') {
             $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
@@ -1007,13 +1006,6 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             $nom = $stmt->fetchColumn();
             if ($nom !== false) {
                 return lien_retour('?p=structure&id=' . $id, (string) $nom);
-            }
-        } elseif ($m[1] === 'lieu') {
-            $stmt = db()->prepare('SELECT nom FROM lieux WHERE id = ?');
-            $stmt->execute([$id]);
-            $nom = $stmt->fetchColumn();
-            if ($nom !== false) {
-                return lien_retour('?p=lieu&id=' . $id, (string) $nom);
             }
         } elseif ($m[1] === 'employe') {
             $stmt = db()->prepare('SELECT prenom, nom FROM employes WHERE id = ?');

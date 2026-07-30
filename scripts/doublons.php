@@ -1,20 +1,17 @@
 <?php
 /**
  * Script ponctuel : détecte (et, sur demande, fusionne) les doublons EXACTS de
- * structures, de lieux et de contacts.
+ * structures et de contacts.
  *
  * Clés de rapprochement (comparaison exacte, aux espaces et à la casse près) :
  *   • structures : nom + localité
- *   • lieux      : nom + ville + type
  *   • contacts   : même structure + e-mail identique (si renseigné) ; à défaut,
  *                  même structure + prénom + nom + téléphone identiques
  *
  * Dans chaque groupe, la fiche la PLUS ANCIENNE (plus petit id) est conservée ;
  * les autres lui cèdent leurs rattachements avant d'être supprimées :
- *   • structures : via structures_fusionner() (contacts, étiquettes, lieux,
- *     historique, factures, mailings)
- *   • lieux      : liens aux structures, événements (evenements.lieu_id),
- *     historique du lieu ; les champs vides de la fiche gardée sont complétés
+ *   • structures : via structures_fusionner() (contacts, étiquettes,
+ *     organisateurs/lieux liés, historique, factures, mailings)
  *   • contacts   : file d'attente et envois de mailing repointés, champs vides
  *     complétés, drapeaux (administration / booking / désinscrit) cumulés
  *
@@ -22,7 +19,7 @@
  * Avec --appliquer : sauvegarde automatique de la base, puis fusion.
  *
  * Usage :
- *   php scripts/doublons.php [--type=structures|lieux|contacts|tous]
+ *   php scripts/doublons.php [--type=structures|contacts|tous]
  *                            [--appliquer] [--db=chemin/base.sqlite] [--detail]
  */
 
@@ -53,8 +50,8 @@ foreach ($argv as $a) {
         $type = substr($a, 7);
     }
 }
-if (!in_array($type, ['structures', 'lieux', 'contacts', 'tous'], true)) {
-    fwrite(STDERR, "--type doit valoir structures, lieux, contacts ou tous.\n");
+if (!in_array($type, ['structures', 'contacts', 'tous'], true)) {
+    fwrite(STDERR, "--type doit valoir structures, contacts ou tous.\n");
     exit(1);
 }
 
@@ -63,7 +60,6 @@ echo "Mode : " . ($appliquer ? 'APPLICATION' : 'simulation (dry-run)') . " · ty
 
 $gr = doublons_detecter($type);
 $grStructures = $gr['structures'];
-$grLieux      = $gr['lieux'];
 $grContacts   = $gr['contacts'];
 
 // ------------------------------------------------------------------ RAPPORT
@@ -79,10 +75,9 @@ $afficher = function (string $titre, array $gr) use ($detail): void {
     }
 };
 $afficher('Structures', $grStructures);
-$afficher('Lieux', $grLieux);
 $afficher('Contacts', $grContacts);
 
-$aFaire = count($grStructures) + count($grLieux) + count($grContacts);
+$aFaire = count($grStructures) + count($grContacts);
 if (!$aFaire) {
     echo "\nAucun doublon exact trouvé.\n";
     exit(0);
@@ -102,11 +97,10 @@ if ($bak === null) { exit(1); }
 
 $n = [
     'structures' => doublons_fusionner_structures($grStructures),
-    'lieux'      => doublons_fusionner_lieux($grLieux),
     'contacts'   => doublons_fusionner_contacts($grContacts),
 ];
 
 printf(
-    "\nTerminé : %d structure(s), %d lieu(x) et %d contact(s) en doublon fusionnés.\n",
-    $n['structures'], $n['lieux'], $n['contacts']
+    "\nTerminé : %d structure(s) et %d contact(s) en doublon fusionnés.\n",
+    $n['structures'], $n['contacts']
 );

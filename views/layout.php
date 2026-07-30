@@ -97,9 +97,6 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('building-2') ?> Structures
         </a>
         <?php endif; ?>
-        <a href="?p=lieux" class="<?= in_array($cur, ['lieux', 'lieu'], true) ? 'on' : '' ?>">
-            <?= icon('map-pin') ?> Lieux
-        </a>
         <?php /* Mailing masqué temporairement du menu (fonctionnalité en cours de
                  test) — la page reste accessible via ?p=mailing. Retirer le
                  « && false » ci-dessous pour la réafficher. */ ?>

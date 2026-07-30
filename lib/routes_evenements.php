@@ -492,7 +492,7 @@ function route_evenement(): void
     $peutLierLieu = module_actif('booking') && peut_lire('booking');
     $lieuActuel = null;
     if (!$id && $peutLierLieu && !empty($_POST['lieu_id'])) {
-        $stmtL = db()->prepare('SELECT id, nom, ville FROM lieux WHERE id = ?');
+        $stmtL = db()->prepare('SELECT id, nom, adresse_localite AS ville FROM structures WHERE id = ?');
         $stmtL->execute([(int) $_POST['lieu_id']]);
         $lieuActuel = $stmtL->fetch() ?: null;
     }
@@ -553,7 +553,7 @@ function route_evenement(): void
     // Lien vers un lieu de la base (facultatif) — validé s'il existe encore.
     $lieuId = ($_POST['lieu_id'] ?? '') !== '' ? (int) $_POST['lieu_id'] : null;
     if ($lieuId !== null) {
-        $okLieu = db()->prepare('SELECT 1 FROM lieux WHERE id = ?');
+        $okLieu = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
         $okLieu->execute([$lieuId]);
         if (!$okLieu->fetchColumn()) {
             $lieuId = null;
@@ -614,6 +614,7 @@ function route_evenement(): void
         // « Organisation » une fois l'événement créé.
         db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)')
             ->execute([$evenementId, $lieuId]);
+        structure_recalculer_dernier_concert($lieuId);
     }
 
     redirect('evenement', ['id' => $evenementId, 'ok' => 'infos']);
@@ -662,6 +663,14 @@ function route_evenement_informations(): void
     db()->prepare('UPDATE evenements SET spectacle_id=?, date=?, statut=?, visibilite=?, salle=?, festival=?,
                     lien_infos=?, lien_texte=?, remarques=? WHERE id=?')
         ->execute([$spectacleId, $date, $statut, $visibilite, $salle, $festival, $lienInfos, $lienTexte, $remarques, $id]);
+
+    // La date a pu changer : re-dérive dernier_concert_le pour le(s) lieu(x)
+    // déjà lié(s) (voir structure_recalculer_dernier_concert()).
+    $stmtLieux = db()->prepare('SELECT lieu_id FROM evenement_lieux WHERE evenement_id = ?');
+    $stmtLieux->execute([$id]);
+    foreach ($stmtLieux->fetchAll(PDO::FETCH_COLUMN) as $lieuId) {
+        structure_recalculer_dernier_concert((int) $lieuId);
+    }
 
     redirect('evenement', ['id' => $id, 'ok' => 'informations']);
 }
@@ -717,7 +726,7 @@ function route_evenement_organisation(): void
     $lieuIds = array_values(array_unique(array_map('intval', $_POST['lieu_ids'] ?? [])));
     if ($lieuIds) {
         $in = implode(',', array_fill(0, count($lieuIds), '?'));
-        $stmt = db()->prepare("SELECT id FROM lieux WHERE id IN ($in)");
+        $stmt = db()->prepare("SELECT id FROM structures WHERE id IN ($in)");
         $stmt->execute($lieuIds);
         $lieuIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }

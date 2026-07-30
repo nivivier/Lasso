@@ -174,16 +174,8 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
     'structure_localisation' => 'route_structure_localisation',
-    'lieux'                  => 'route_lieux',
-    'lieux_geocoder'         => 'route_lieux_geocoder',
-    'lieu'                   => 'route_lieu',
-    'lieu_renommer'          => 'route_lieu_renommer',
-    'lieu_statut'            => 'route_lieu_statut',
-    'lieu_flag'              => 'route_lieu_flag',
-    'lieu_organisateur'      => 'route_lieu_organisateur',
     'structures_options'     => 'route_structures_options',
     'lieux_options'          => 'route_lieux_options',
-    'lieu_delete'            => 'route_lieu_delete',
     'mailing'                => 'route_mailing',
     'mailing_campagne'       => 'route_mailing_campagne',
     'mailing_modeles'        => 'route_mailing_modeles',
@@ -191,7 +183,6 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'mailing_envoyer'        => 'route_mailing_envoyer',
     'import_structures'      => 'route_import_structures',
     'parametres_structures'  => 'route_parametres_structures',
-    'parametres_lieux_categories' => 'route_parametres_lieux_categories',
     'parametres_tags'        => 'route_parametres_tags',
 ]);
 // Traitement de la file d'attente mailing + désinscription : protégés par un
@@ -238,11 +229,11 @@ if (module_actif('evenements')) {
     $handlers['evenements_ical'] = 'route_evenements_ical';
 }
 
-// Géocodage d'une seule ville (mini-carte de localisation sur ?p=lieu,
-// ?p=structure, ?p=evenement) : commun aux deux modules, accessible dès que
-// l'un des deux est actif — écriture sur l'un ou l'autre suffit (le
-// géocodage n'écrit que dans le cache partagé lieux_geocodage, jamais dans
-// la fiche lieu/structure/événement elle-même).
+// Géocodage d'une seule ville (mini-carte de localisation sur ?p=structure,
+// ?p=evenement) : commun aux deux modules, accessible dès que l'un des deux
+// est actif — écriture sur l'un ou l'autre suffit (le géocodage n'écrit que
+// dans le cache partagé lieux_geocodage, jamais dans la fiche
+// structure/événement elle-même).
 if (module_actif('booking') || module_actif('evenements')) {
     $handlers['geocoder_ville_unique'] = 'route_geocoder_ville_unique';
     $routeModules['geocoder_ville_unique'] = ['booking', 'evenements'];

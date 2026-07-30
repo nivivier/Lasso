@@ -1,9 +1,9 @@
 <?php
 /** @var string $miniCarteVille */ /** @var string $miniCarteDepartementCanton */ /** @var string $miniCartePays */
 /** @var string $miniCarteRetourRoute */ /** @var int $miniCarteRetourId */
-// Mini-carte de localisation (?p=lieu/?p=structure/?p=evenement) : un seul
-// marqueur sur la ville déjà géolocalisée (cache lieux_geocodage, voir
-// lib/geocodage.php — même source que la vue carte des lieux, ?p=lieux&vue=carte).
+// Mini-carte de localisation (?p=structure/?p=evenement) : un seul marqueur
+// sur la ville déjà géolocalisée (cache lieux_geocodage, voir
+// lib/geocodage.php — même source que la vue carte, ?p=structures&vue=carte).
 // Ville pas encore en cache : bouton pour la géocoder à la volée (une seule
 // ville, pas de politique de lot ici — voir route_geocoder_ville_unique()).
 // Rien n'est affiché si la ville est vide (fiche non localisable) : au

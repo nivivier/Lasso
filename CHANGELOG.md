@@ -7,6 +7,17 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.6.0] — 2026-07-30
+
+### Modifié
+- **Fusion des lieux dans les structures** : le module booking ne distingue plus « lieu » et « structure » comme deux tables séparées — un lieu était, dans l'immense majorité des cas, une pure duplication d'une structure déjà existante (même nom, même ville). Une structure peut désormais être marquée comme un type de lieu bookable (`structure_categories.est_booking` : Salle, Festival, Théâtre, MJC, Médiathèque, SMAC, Café-concert, Saison culturelle, etc.) directement via sa sous-catégorie, sans fiche dupliquée.
+- Le lien « est organisé par » devient un lien many-to-many **structure à structure** (`structure_organisateurs`), remplaçant l'ancien lien lieu→structure. Fiche structure (?p=structure) : la carte « Lieux liés » devient **« Structures liées »** et fonctionne dans les deux sens (« organise » / « est organisée par »), chaque sens avec sa propre recherche et création à la volée.
+- Le champ « dernier concert (ou diffusion) » (`dernier_concert_le`), déjà existant, est maintenant recalculé automatiquement à partir des événements liés à une structure (création, modification de date), en plus de la saisie manuelle.
+- Import CSV, doublons, Dev (rattachement automatique événements↔lieux, mise à jour des dates) : adaptés au nouveau modèle.
+
+### Supprimé
+- Tables `lieux`, `structure_lieux`, `lieu_categories` (migrations 59 à 61 — les données ont été fusionnées dans `structures` au préalable ; sauvegarde automatique de la base avant suppression). Menu « Lieux », page Paramètres > Lieux (catégories).
+
 ## [1.20.1] — 2026-07-30
 
 ### Modifié

@@ -829,13 +829,16 @@ function importer_evenements_csv(string $csv, bool $simule): array
 // Lieux et organisateurs multiples (carte « Organisation », voir migration_58)
 // ---------------------------------------------------------------------------
 
-// Lieux rattachés à un événement, dans l'ordre où ils ont été liés.
+// Lieux (structures « booking ») rattachés à un événement, dans l'ordre où ils
+// ont été liés. evenement_lieux.lieu_id référence structures(id) depuis la
+// fusion lieux→structures (migration_60) — ville/type alias sur les colonnes
+// structures pour ne pas devoir changer tous les appelants existants.
 function evenement_lieux_lies(int $evenementId): array
 {
     $stmt = db()->prepare(
-        'SELECT l.id, l.nom, l.ville, l.type FROM lieux l
-         JOIN evenement_lieux el ON el.lieu_id = l.id
-         WHERE el.evenement_id = ? ORDER BY el.id'
+        "SELECT s.id, s.nom, s.adresse_localite AS ville, s.sous_categorie AS type FROM structures s
+         JOIN evenement_lieux el ON el.lieu_id = s.id
+         WHERE el.evenement_id = ? ORDER BY el.id"
     );
     $stmt->execute([$evenementId]);
     return $stmt->fetchAll();
@@ -869,6 +872,14 @@ function evenement_resynchroniser_miroirs(int $evenementId): void
     $lieuId = $stmtL->fetchColumn();
     db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?')
         ->execute([$lieuId !== false ? (int) $lieuId : null, $evenementId]);
+
+    // Dérive dernier_concert_le pour CHAQUE lieu lié (pas seulement le miroir
+    // ci-dessus) — voir structure_recalculer_dernier_concert().
+    $stmtTousLieux = db()->prepare('SELECT lieu_id FROM evenement_lieux WHERE evenement_id = ?');
+    $stmtTousLieux->execute([$evenementId]);
+    foreach ($stmtTousLieux->fetchAll(PDO::FETCH_COLUMN) as $id) {
+        structure_recalculer_dernier_concert((int) $id);
+    }
 
     $stmtO = db()->prepare('SELECT structure_id FROM evenement_organisateurs WHERE evenement_id = ? ORDER BY id LIMIT 1');
     $stmtO->execute([$evenementId]);

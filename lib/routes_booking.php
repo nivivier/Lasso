@@ -191,131 +191,54 @@ function route_parametres_tags(): void
     ], 'Paramètres — Étiquettes');
 }
 
-// ------------------------------------------------------- CATÉGORIES DE LIEU (taxonomie)
-// Gestion de la liste « catégories de lieu » (lieux.type) : ajout, renommage
-// (met à jour les lieux qui l'utilisent), suppression (bloquée si utilisée ou si
-// c'est la dernière), réordonnancement. Même patron que route_parametres_pays().
-function route_parametres_lieux_categories(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $section = $_POST['section'] ?? '';
-        if ($section === 'add') {
-            $nom = trim($_POST['nom'] ?? '');
-            if ($nom !== '') {
-                $existe = db()->prepare('SELECT 1 FROM lieu_categories WHERE nom = ? COLLATE NOCASE');
-                $existe->execute([$nom]);
-                if (!$existe->fetchColumn()) {
-                    $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM lieu_categories')->fetchColumn();
-                    db()->prepare('INSERT INTO lieu_categories (nom, ordre) VALUES (?, ?)')->execute([$nom, $ordre]);
-                }
-            }
-        } elseif ($section === 'edit') {
-            $id = (int) ($_POST['id'] ?? 0);
-            $nom = trim($_POST['nom'] ?? '');
-            if ($nom !== '') {
-                $stmt = db()->prepare('SELECT nom FROM lieu_categories WHERE id = ?');
-                $stmt->execute([$id]);
-                $ancien = $stmt->fetchColumn();
-                $conflit = db()->prepare('SELECT 1 FROM lieu_categories WHERE nom = ? COLLATE NOCASE AND id <> ?');
-                $conflit->execute([$nom, $id]);
-                if ($ancien !== false && !$conflit->fetchColumn()) {
-                    db()->beginTransaction();
-                    db()->prepare('UPDATE lieu_categories SET nom = ? WHERE id = ?')->execute([$nom, $id]);
-                    if ($ancien !== $nom) {
-                        db()->prepare('UPDATE lieux SET type = ? WHERE type = ?')->execute([$nom, $ancien]);
-                    }
-                    db()->commit();
-                }
-            }
-        } elseif ($section === 'move') {
-            $id = (int) ($_POST['id'] ?? 0);
-            $dir = ($_POST['dir'] ?? '') === 'up' ? 'up' : 'down';
-            $ids = array_map('intval', db()->query('SELECT id FROM lieu_categories ORDER BY ordre, nom')->fetchAll(PDO::FETCH_COLUMN));
-            $pos = array_search($id, $ids, true);
-            $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
-            if ($pos !== false && $swap >= 0 && $swap < count($ids)) {
-                [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
-                $upd = db()->prepare('UPDATE lieu_categories SET ordre = ? WHERE id = ?');
-                db()->beginTransaction();
-                foreach ($ids as $i => $cid) {
-                    $upd->execute([$i, $cid]);
-                }
-                db()->commit();
-            }
-        } elseif ($section === 'reorder') {
-            $order = array_values(array_filter(array_map('intval', explode(',', $_POST['order'] ?? ''))));
-            if ($order) {
-                $upd = db()->prepare('UPDATE lieu_categories SET ordre = ? WHERE id = ?');
-                db()->beginTransaction();
-                foreach ($order as $i => $cid) {
-                    $upd->execute([$i, $cid]);
-                }
-                db()->commit();
-            }
-        } elseif ($section === 'delete') {
-            $id = (int) ($_POST['id'] ?? 0);
-            $stmt = db()->prepare('SELECT nom FROM lieu_categories WHERE id = ?');
-            $stmt->execute([$id]);
-            $nom = $stmt->fetchColumn();
-            if ($nom !== false) {
-                $total = (int) db()->query('SELECT COUNT(*) FROM lieu_categories')->fetchColumn();
-                $ref = db()->prepare('SELECT COUNT(*) FROM lieux WHERE type = ?');
-                $ref->execute([$nom]);
-                $nbUtil = (int) $ref->fetchColumn();
-                if ($total <= 1) {
-                    redirect('parametres_lieux_categories', ['err' => 'derniere']); // jamais supprimer la dernière
-                }
-                if ($nbUtil > 0) {
-                    // Réaffecter les lieux vers une autre catégorie avant suppression.
-                    $cible = trim($_POST['reaffecter_vers'] ?? '');
-                    $ok = db()->prepare('SELECT 1 FROM lieu_categories WHERE nom = ? COLLATE NOCASE');
-                    $ok->execute([$cible]);
-                    if ($cible !== '' && strcasecmp($cible, (string) $nom) !== 0 && $ok->fetchColumn()) {
-                        db()->beginTransaction();
-                        db()->prepare('UPDATE lieux SET type = ? WHERE type = ?')->execute([$cible, $nom]);
-                        db()->prepare('DELETE FROM lieu_categories WHERE id = ?')->execute([$id]);
-                        db()->commit();
-                    } else {
-                        redirect('parametres_lieux_categories', ['err' => 'used']);
-                    }
-                } else {
-                    db()->prepare('DELETE FROM lieu_categories WHERE id = ?')->execute([$id]);
-                }
-            }
-        }
-        redirect('parametres_lieux_categories', ['ok' => 1]);
-    }
-
-    render('parametres_lieux_categories', [
-        'saved' => isset($_GET['ok']),
-        'err' => $_GET['err'] ?? null,
-        'lignes' => db()->query(
-            "SELECT lc.id, lc.nom, (SELECT COUNT(*) FROM lieux l WHERE l.type = lc.nom) AS nb
-             FROM lieu_categories lc ORDER BY lc.ordre, lc.nom"
-        )->fetchAll(),
-    ], 'Paramètres — Catégories de lieu');
-}
-
 // ------------------------------------------------------------- LIEUX (salles/festivals)
-function lieu_creer_depuis_post(string $prefixe): int
+// Crée une structure « booking » (salle/festival) à la volée depuis le
+// formulaire « + Nouveau lieu » de la carte « Lieux liés » — remplace
+// l'ancienne lieu_creer_depuis_post() (créait une fiche `lieux` séparée).
+// $prefixe. + 'type' est validé contre les sous-catégories « booking »
+// existantes (voir structure_sous_categorie_booking_nom_pour()) ; repli sur
+// « Salle » si non reconnu (jamais vide).
+function structure_booking_creer_depuis_post(string $prefixe): int
 {
-    db()->prepare("INSERT INTO lieux (type, nom, ville, departement_canton, pays, mois_debut, mois_fin, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    $sousCategorie = structure_sous_categorie_booking_nom_pour((string) ($_POST[$prefixe . 'type'] ?? ''));
+    db()->prepare('INSERT INTO structures (nom, categorie, sous_categorie, adresse_localite, departement_canton, adresse_pays)
+                    VALUES (?, ?, ?, ?, ?, ?)')
         ->execute([
-            lieu_categorie_valide((string) ($_POST[$prefixe . 'type'] ?? '')),
             trim($_POST[$prefixe . 'nom'] ?? ''),
+            structure_categorie_par_defaut(),
+            $sousCategorie !== '' ? $sousCategorie : 'Salle',
             trim($_POST[$prefixe . 'ville'] ?? ''),
             trim($_POST[$prefixe . 'departement_canton'] ?? ''),
-            trim($_POST[$prefixe . 'pays'] ?? ''),
-            ($_POST[$prefixe . 'mois_debut'] ?? '') !== '' ? (int) $_POST[$prefixe . 'mois_debut'] : null,
-            ($_POST[$prefixe . 'mois_fin'] ?? '') !== '' ? (int) $_POST[$prefixe . 'mois_fin'] : null,
-            '',
+            trim($_POST[$prefixe . 'pays'] ?? '') ?: 'Suisse',
         ]);
     return (int) db()->lastInsertId();
 }
 
+// Crée une structure générique (organisateur) à la volée depuis le
+// formulaire « + Nouvelle structure » de la carte « Structures liées », sens
+// « est organisée par » — mêmes champs que structure_booking_creer_depuis_post(),
+// mais sans sous-catégorie imposée : la nature de l'organisateur n'est pas
+// forcément celle d'un lieu.
+function structure_organisateur_creer_depuis_post(string $prefixe): int
+{
+    db()->prepare('INSERT INTO structures (nom, categorie, adresse_localite, departement_canton, adresse_pays)
+                    VALUES (?, ?, ?, ?, ?)')
+        ->execute([
+            trim($_POST[$prefixe . 'nom'] ?? ''),
+            structure_categorie_par_defaut(),
+            trim($_POST[$prefixe . 'ville'] ?? ''),
+            trim($_POST[$prefixe . 'departement_canton'] ?? ''),
+            trim($_POST[$prefixe . 'pays'] ?? '') ?: 'Suisse',
+        ]);
+    return (int) db()->lastInsertId();
+}
+
+// Lie deux structures via structure_organisateurs, dans le sens choisi :
+// 'organise' (défaut) = la structure courante organise l'autre (un lieu) ;
+// 'organise_par' = la structure courante EST organisée par l'autre (elle est
+// alors elle-même un lieu, l'autre son organisateur — pas forcément
+// elle-même « booking »). Carte « Structures liées » (views/structure_form.php),
+// bidirectionnelle depuis le fil de discussion.
 function route_structure_lieu_lier(): void
 {
     require_login();
@@ -324,23 +247,32 @@ function route_structure_lieu_lier(): void
     }
     check_csrf();
     $structureId = (int) ($_POST['structure_id'] ?? 0);
-    $lieuRaw = (string) ($_POST['lieu_id'] ?? '');
-    if ($lieuRaw === '__new__') {
+    $sens = ($_POST['sens'] ?? '') === 'organise_par' ? 'organise_par' : 'organise';
+    $autreRaw = (string) ($_POST['lieu_id'] ?? '');
+    if ($autreRaw === '__new__') {
         if (trim($_POST['nl_nom'] ?? '') === '') {
             redirect('structure', ['id' => $structureId]);
         }
-        $lieuId = lieu_creer_depuis_post('nl_');
+        // Nouveau lieu (sens 'organise') : sous-catégorie booking déduite.
+        // Nouvel organisateur (sens 'organise_par') : structure générique,
+        // sa nature n'est pas forcément un lieu.
+        $autreId = $sens === 'organise'
+            ? structure_booking_creer_depuis_post('nl_')
+            : structure_organisateur_creer_depuis_post('nl_');
     } else {
-        $lieuId = (int) $lieuRaw;
-        $stmt = db()->prepare('SELECT 1 FROM lieux WHERE id = ?');
-        $stmt->execute([$lieuId]);
-        if (!$stmt->fetchColumn()) {
+        $autreId = (int) $autreRaw;
+        $stmt = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
+        $stmt->execute([$autreId]);
+        if (!$stmt->fetchColumn() || $autreId === $structureId) {
             redirect('structure', ['id' => $structureId]);
         }
     }
-    db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
-        ->execute([$structureId, $lieuId]);
-    journaliser_lien_structure_lieu($structureId, $lieuId, true);
+    // sens='organise' : structureId organise autreId → (structure_id=autreId, organisateur_id=structureId).
+    // sens='organise_par' : autreId organise structureId → (structure_id=structureId, organisateur_id=autreId).
+    [$lieuId, $organisateurId] = $sens === 'organise' ? [$autreId, $structureId] : [$structureId, $autreId];
+    db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
+        ->execute([$lieuId, $organisateurId]);
+    journaliser_lien_structure_lieu($organisateurId, $lieuId, true);
     redirect('structure', ['id' => $structureId]);
 }
 
@@ -350,441 +282,17 @@ function route_structure_lieu_delier(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $structureId = (int) ($_POST['structure_id'] ?? 0);
-        $lieuId = (int) ($_POST['lieu_id'] ?? 0);
-        journaliser_lien_structure_lieu($structureId, $lieuId, false);
-        db()->prepare('DELETE FROM structure_lieux WHERE structure_id = ? AND lieu_id = ?')->execute([$structureId, $lieuId]);
+        $autreId = (int) ($_POST['lieu_id'] ?? 0);
+        $sens = ($_POST['sens'] ?? '') === 'organise_par' ? 'organise_par' : 'organise';
+        [$lieuId, $organisateurId] = $sens === 'organise' ? [$autreId, $structureId] : [$structureId, $autreId];
+        journaliser_lien_structure_lieu($organisateurId, $lieuId, false);
+        db()->prepare('DELETE FROM structure_organisateurs WHERE structure_id = ? AND organisateur_id = ?')->execute([$lieuId, $organisateurId]);
         redirect('structure', ['id' => $structureId]);
     }
     redirect('structures');
 }
 
-// Filtres de la liste des lieux (?p=lieux) — factorisé pour être réutilisé par
-// la vue carte (mêmes critères, résultat non paginé, voir lieux_carte_points()).
-// Mêmes conventions que ?p=structures : type, ville, jauge (bornes de
-// capacité), mois d'événement / de programmation (le mois choisi doit tomber
-// dans la plage du lieu, en gérant le passage d'année comme periode_chevauche()).
-// Chaque filtre structuré est mémorisé en session (filtre_persistant(), comme
-// evenements_lire_filtres()) : revenir sur ?p=lieux sans query string (lien de
-// la sidebar, retour contextuel…) rouvre les derniers filtres actifs. Seule la
-// recherche texte (q) ne l'est jamais, comme pagination_page().
-function lieux_filtres(): array
-{
-    $type = lieu_categorie_normaliser((string) filtre_persistant('type', 'lieux_type', '')) ?? '';
-    $ville = trim((string) filtre_persistant('ville', 'lieux_ville', ''));
-    $pays = trim((string) filtre_persistant('pays', 'lieux_pays', ''));
-    $grandeRegion = trim((string) filtre_persistant('grande_region', 'lieux_grande_region', ''));
-    $jaugeMinBrut = (string) filtre_persistant('jauge_min', 'lieux_jauge_min', '');
-    $jaugeMin = $jaugeMinBrut !== '' ? max(0, (int) $jaugeMinBrut) : null;
-    $jaugeMaxBrut = (string) filtre_persistant('jauge_max', 'lieux_jauge_max', '');
-    $jaugeMax = $jaugeMaxBrut !== '' ? max(0, (int) $jaugeMaxBrut) : null;
-    $moisEvenement = (int) filtre_persistant('mois_evenement', 'lieux_mois_evenement', 0);
-    $moisProg = (int) filtre_persistant('mois_prog', 'lieux_mois_prog', 0);
-    if ($moisEvenement < 1 || $moisEvenement > 12) { $moisEvenement = 0; }
-    if ($moisProg < 1 || $moisProg > 12) { $moisProg = 0; }
-    // Statut : « actif » par défaut (les lieux inactifs sont du bruit dans le
-    // travail courant) ; 'inactif' ou 'tous' pour les voir.
-    $statut = valeur_autorisee((string) filtre_persistant('statut', 'lieux_statut', 'actif'), ['actif', 'inactif', 'tous'], 'actif');
-    // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marqués,
-    // 'star'/'heart' = marqués. 'aucun' ne peut pas être stocké tel quel dans la
-    // colonne flag (qui vaut '' pour « non marqué ») d'où la traduction ci-dessous.
-    $flag = valeur_autorisee((string) filtre_persistant('flag', 'lieux_flag', ''), ['', 'aucun', 'star', 'heart'], '');
-    // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
-    // d'appoint pour traiter les cas où Nominatim ne trouve pas la ville
-    // (typo, lieu-dit trop précis…), accessible depuis le lien de la vue carte
-    // (voir views/_lieux_carte.php). Jamais mémorisé en session : lien
-    // ponctuel, pas un mode de travail courant.
-    $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
 
-    $where = '';
-    $params = [];
-    if ($nonLocalises) {
-        $where .= geocodage_non_localises_where('ville', 'departement_canton', 'pays');
-    }
-    if ($statut === 'actif') {
-        $where .= ' AND actif = 1';
-    } elseif ($statut === 'inactif') {
-        $where .= ' AND actif = 0';
-    }
-    if ($type !== '') {
-        $where .= ' AND type = ?';
-        $params[] = $type;
-    }
-    if ($ville !== '') {
-        $where .= ' AND ville = ?';
-        $params[] = $ville;
-    }
-    if ($pays !== '') {
-        $where .= ' AND pays = ?';
-        $params[] = $pays;
-    }
-    if ($grandeRegion !== '') {
-        $where .= ' AND grande_region = ?';
-        $params[] = $grandeRegion;
-    }
-    if ($flag === 'aucun') {
-        $where .= " AND flag = ''";
-    } elseif ($flag !== '') {
-        $where .= ' AND flag = ?';
-        $params[] = $flag;
-    }
-    // Capacité = fourchette [jauge_min, jauge_max] du lieu ; un lieu sans jauge
-    // est exclu dès qu'un critère de jauge est actif. Chevauchement avec la
-    // fourchette demandée. Bornes injectées telles quelles (déjà validées en
-    // entiers) : un paramètre PDO serait lié en texte, or SQLite classe tout
-    // entier avant tout texte, donc « jauge_max >= '500' » ne matcherait jamais.
-    if ($jaugeMin !== null) {
-        $where .= ' AND COALESCE(jauge_max, jauge_min, 0) >= ' . $jaugeMin;
-    }
-    if ($jaugeMax !== null) {
-        $where .= ' AND COALESCE(jauge_min, jauge_max) IS NOT NULL AND COALESCE(jauge_min, jauge_max) <= ' . $jaugeMax;
-    }
-    // Le mois choisi doit être dans la plage [début, fin] du lieu ; plage
-    // renseignée aux deux bornes, passage d'année géré (ex. nov→fév). $mois est
-    // un entier validé (1–12), injecté directement pour la même raison d'affinité.
-    $filtreMois = function (string $colDebut, string $colFin, int $mois) use (&$where): void {
-        $where .= " AND $colDebut IS NOT NULL AND $colFin IS NOT NULL AND ("
-            . "($colDebut <= $colFin AND $mois BETWEEN $colDebut AND $colFin) OR "
-            . "($colDebut > $colFin AND ($mois >= $colDebut OR $mois <= $colFin)))";
-    };
-    if ($moisEvenement) { $filtreMois('mois_evenement_debut', 'mois_evenement_fin', $moisEvenement); }
-    if ($moisProg) { $filtreMois('mois_debut', 'mois_fin', $moisProg); }
-
-    return [
-        'where' => $where, 'params' => $params,
-        'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion,
-        'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
-        'statut' => $statut, 'nonLocalises' => $nonLocalises, 'flag' => $flag,
-    ];
-}
-
-// Points de la vue carte (?p=lieux&vue=carte) : lieux filtrés (mêmes critères
-// que la liste, $where/$params de lieux_filtres()), groupés par ville
-// géolocalisée — jamais paginé (un marqueur regroupe déjà tous les lieux d'une
-// même ville, la carte doit montrer la totalité du résultat filtré). Un lieu
-// dont la ville n'est pas encore dans le cache de géocodage (lib/geocodage.php)
-// est compté à part plutôt qu'ignoré silencieusement.
-// Retourne [points, nbLieuxNonGeolocalises].
-function lieux_carte_points(string $where, array $params): array
-{
-    [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'departement_canton', 'grande_region', 'type']);
-    $stmt = db()->prepare("SELECT id, nom, type, ville, departement_canton, pays FROM lieux WHERE ville <> ''" . $where . $rechSql . ' ORDER BY ville, nom');
-    $stmt->execute(array_merge($params, $rechParams));
-
-    return carte_points_grouper(
-        $stmt->fetchAll(),
-        fn (array $r): array => ['id' => (int) $r['id'], 'nom' => (string) $r['nom'], 'type' => (string) $r['type']]
-    );
-}
-
-function route_lieux(): void
-{
-    require_login();
-    $recherche = trim((string) ($_GET['q'] ?? ''));
-    // Mémorise la dernière vue utilisée (comme pagination_taille()) : un lien
-    // « Lieux » sans ?vue= explicite (sidebar) rouvre la dernière consultée.
-    $vue = filtre_persistant('vue', 'lieux_vue', 'liste') === 'carte' ? 'carte' : 'liste';
-    $pgTaille = pagination_taille('lieux_taille');
-
-    // Modification/suppression groupée (sélection + barre flottante), même esprit
-    // que les structures ci-dessus — un lieu lié à une structure est ignoré (jamais
-    // supprimé en masse par erreur) plutôt que de bloquer toute la sélection.
-    $retourFiltres = ['q' => $recherche];
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $section = $_POST['section'] ?? '';
-        if ($section === 'bulk_undo') {
-            $r = bulk_undo_appliquer();
-            redirect($r['route'] ?? 'lieux', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
-        }
-        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
-        $lieuxBloques = 0;
-        if ($ids) {
-            $in = implode(',', array_fill(0, count($ids), '?'));
-            unset($_SESSION['bulk_undo']);
-            if ($section === 'delete') {
-                $stmtRef = db()->prepare("SELECT DISTINCT lieu_id FROM structure_lieux WHERE lieu_id IN ($in)");
-                $stmtRef->execute($ids);
-                $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
-                $idsSupprimables = array_values(array_diff($ids, $refs));
-                if ($idsSupprimables) {
-                    $inSup = implode(',', array_fill(0, count($idsSupprimables), '?'));
-                    db()->prepare("DELETE FROM lieux WHERE id IN ($inSup)")->execute($idsSupprimables);
-                }
-                $lieuxBloques = count($refs);
-            } elseif ($section === 'type' && lieu_categorie_normaliser((string) ($_POST['bulk_type'] ?? '')) !== null) {
-                bulk_undo_memoriser('lieux', $ids, ['type'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET type = ? WHERE id IN ($in)")
-                    ->execute(array_merge([lieu_categorie_valide((string) $_POST['bulk_type'])], $ids));
-            } elseif ($section === 'ville') {
-                bulk_undo_memoriser('lieux', $ids, ['ville'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET ville = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
-            } elseif ($section === 'departement_canton') {
-                bulk_undo_memoriser('lieux', $ids, ['departement_canton'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET departement_canton = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_departement_canton'] ?? '')], $ids));
-            } elseif ($section === 'pays') {
-                bulk_undo_memoriser('lieux', $ids, ['pays'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET pays = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
-            // 'heart' reste dans la liste bien qu'inatteignable depuis l'UI
-            // (cœur désactivé, voir route_lieu_flag()) : simple validation
-            // d'entrée, pas une réactivation de la fonctionnalité.
-            } elseif ($section === 'flag' && in_array($_POST['bulk_flag'] ?? '', ['', 'star', 'heart'], true)) {
-                bulk_undo_memoriser('lieux', $ids, ['flag'], 'lieux', $retourFiltres);
-                db()->prepare("UPDATE lieux SET flag = ? WHERE id IN ($in)")
-                    ->execute(array_merge([$_POST['bulk_flag']], $ids));
-            }
-            if (!in_array($section, ['delete', ''], true) && isset($_SESSION['bulk_undo'])) {
-                $retourFiltres['bulk'] = count($ids);
-            }
-        }
-        $retourFiltres['lieuxBloquees'] = $lieuxBloques;
-        redirect('lieux', $retourFiltres);
-    }
-
-    $f = lieux_filtres();
-    $where = $f['where'];
-    $params = $f['params'];
-    $type = $f['type'];
-    $ville = $f['ville'];
-    $pays = $f['pays'];
-    $grandeRegion = $f['grandeRegion'];
-    $jaugeMin = $f['jaugeMin'];
-    $jaugeMax = $f['jaugeMax'];
-    $moisEvenement = $f['moisEvenement'];
-    $moisProg = $f['moisProg'];
-    $statut = $f['statut'];
-    $nonLocalises = $f['nonLocalises'];
-    $flag = $f['flag'];
-
-    if ($vue === 'carte') {
-        [$cartePoints, $carteVillesManquantes] = lieux_carte_points($where, $params);
-        render('lieux_liste', [
-            'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
-            'lieux' => [], 'organisateurs' => [], 'nbEvenements' => [],
-            'recherche' => $recherche, 'type' => $type, 'categoriesLieu' => lieu_categories_liste(),
-            'ville' => $ville, 'pays' => $pays, 'grandeRegion' => $grandeRegion, 'statut' => $statut,
-            'jaugeMin' => $jaugeMin, 'jaugeMax' => $jaugeMax, 'moisEvenement' => $moisEvenement, 'moisProg' => $moisProg,
-            'nonLocalises' => $nonLocalises, 'flag' => $flag,
-            'villesDispo' => [], 'grandesRegionsDispo' => [],
-            'modeClient' => true, 'pgRoute' => 'lieux', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
-            'bulkCount' => null, 'okAnnule' => false,
-        ], 'Lieux');
-        return;
-    }
-
-    $stmtTotFiltres = db()->prepare('SELECT COUNT(*) FROM lieux WHERE 1=1' . $where);
-    $stmtTotFiltres->execute($params);
-    $totalSansRecherche = (int) $stmtTotFiltres->fetchColumn();
-    $modeClient = pagination_mode_client($totalSansRecherche);
-
-    if ($modeClient) {
-        $stmt = db()->prepare('SELECT * FROM lieux WHERE 1=1' . $where . ' ORDER BY type, nom');
-        $stmt->execute($params);
-        $lieux = $stmt->fetchAll();
-        $pgPage  = 1;
-        $pgTotal = $totalSansRecherche;
-    } else {
-        [$rechSql, $rechParams] = recherche_sql(['nom', 'ville', 'departement_canton', 'grande_region', 'type']);
-        $whereRech = $where . $rechSql;
-        $paramsRech = array_merge($params, $rechParams);
-
-        $stmtTot = db()->prepare('SELECT COUNT(*) FROM lieux WHERE 1=1' . $whereRech);
-        $stmtTot->execute($paramsRech);
-        $pgTotal = (int) $stmtTot->fetchColumn();
-
-        $pgPage = pagination_page();
-        [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-
-        $stmt = db()->prepare('SELECT * FROM lieux WHERE 1=1' . $whereRech . ' ORDER BY type, nom' . $limitSql);
-        $stmt->execute(array_merge($paramsRech, $limitParams));
-        $lieux = $stmt->fetchAll();
-    }
-
-    // Organisateur(s) de chaque lieu affiché — une seule requête (pas de N+1),
-    // regroupés par lieu_id pour la colonne « Organisateur » de la liste.
-    $organisateurs = [];
-    if ($lieux) {
-        $lieuIds = array_map(fn ($l) => (int) $l['id'], $lieux);
-        $inOrg = implode(',', array_fill(0, count($lieuIds), '?'));
-        $stmtOrg = db()->prepare(
-            "SELECT sl.lieu_id, s.id, s.nom FROM structure_lieux sl
-             JOIN structures s ON s.id = sl.structure_id
-             WHERE sl.lieu_id IN ($inOrg) ORDER BY s.nom"
-        );
-        $stmtOrg->execute($lieuIds);
-        foreach ($stmtOrg->fetchAll() as $r) {
-            $organisateurs[(int) $r['lieu_id']][] = ['id' => (int) $r['id'], 'nom' => (string) $r['nom']];
-        }
-    }
-
-    $villesDispo = db()->query("SELECT DISTINCT ville FROM lieux WHERE ville <> '' ORDER BY ville")->fetchAll(PDO::FETCH_COLUMN);
-    $grandesRegionsDispo = pays_regions_map(); // régions groupées par pays (taxonomie, migration_49)
-
-    render('lieux_liste', [
-        'vue' => $vue,
-        'cartePoints' => [],
-        'carteVillesManquantes' => 0,
-        'lieux' => $lieux,
-        'organisateurs' => $organisateurs,
-        'nbEvenements' => lieux_nb_evenements(array_column($lieux, 'id')),
-        'recherche' => $recherche,
-        'type' => $type,
-        'categoriesLieu' => lieu_categories_liste(),
-        'ville' => $ville,
-        'pays' => $pays,
-        'grandeRegion' => $grandeRegion,
-        'statut' => $statut,
-        'jaugeMin' => $jaugeMin,
-        'jaugeMax' => $jaugeMax,
-        'moisEvenement' => $moisEvenement,
-        'moisProg' => $moisProg,
-        'nonLocalises' => $nonLocalises,
-        'flag' => $flag,
-        'villesDispo' => $villesDispo,
-        'grandesRegionsDispo' => $grandesRegionsDispo,
-        'modeClient' => $modeClient,
-        'pgRoute'   => 'lieux',
-        'pgParams'  => ['q' => $recherche, 'type' => $type, 'ville' => $ville, 'pays' => $pays, 'grande_region' => $grandeRegion, 'statut' => $statut, 'jauge_min' => $jaugeMin ?? '', 'jauge_max' => $jaugeMax ?? '', 'mois_evenement' => $moisEvenement ?: '', 'mois_prog' => $moisProg ?: '', 'non_localises' => $nonLocalises ? 1 : '', 'flag' => $flag],
-        'pgPage'    => $pgPage,
-        'pgTaille'  => $pgTaille,
-        'pgTotal'   => $pgTotal,
-        'bulkCount' => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
-        'okAnnule'  => ($_GET['ok'] ?? '') === 'annule',
-    ], 'Lieux');
-}
-
-// Structure(s) rattachée(s) à un lieu, avec leur contexte CRM (contacts,
-// dernières notes, autres salles/festivals de la même structure) — affiché en
-// lecture seule sur la fiche lieu (l'édition reste sur la fiche structure).
-function lieu_structures_liees(int $lieuId): array
-{
-    $stmt = db()->prepare(
-        'SELECT s.* FROM structures s JOIN structure_lieux sl ON sl.structure_id = s.id
-         WHERE sl.lieu_id = ? ORDER BY s.nom'
-    );
-    $stmt->execute([$lieuId]);
-    $out = [];
-    foreach ($stmt->fetchAll() as $s) {
-        $sid = (int) $s['id'];
-        $contacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
-        $contacts->execute([$sid]);
-        $notes = db()->prepare(
-            "SELECT h.*, u.prenom AS u_prenom, u.nom AS u_nom FROM historique h
-             LEFT JOIN utilisateurs u ON u.id = h.utilisateur_id
-             WHERE h.entite_type = 'structure' AND h.entite_id = ? ORDER BY h.cree_le DESC, h.id DESC LIMIT 8"
-        );
-        $notes->execute([$sid]);
-        $autresLieux = db()->prepare(
-            'SELECT l.* FROM lieux l JOIN structure_lieux sl ON sl.lieu_id = l.id
-             WHERE sl.structure_id = ? AND l.id <> ? ORDER BY l.type, l.nom'
-        );
-        $autresLieux->execute([$sid, $lieuId]);
-        $out[] = [
-            'structure'    => $s,
-            'contacts'     => $contacts->fetchAll(),
-            'notes'        => $notes->fetchAll(),
-            'autres_lieux' => $autresLieux->fetchAll(),
-        ];
-    }
-    return $out;
-}
-
-function route_lieu(): void
-{
-    require_login();
-    $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-    $lieu = null;
-    if ($id) {
-        $stmt = db()->prepare(
-            'SELECT l.*, (SELECT COUNT(*) FROM structure_lieux sl WHERE sl.lieu_id = l.id) AS nb_structures
-             FROM lieux l WHERE l.id = ?'
-        );
-        $stmt->execute([$id]);
-        $lieu = $stmt->fetch();
-        if (!$lieu) {
-            redirect('lieux');
-        }
-    }
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $champs = [
-            'type'       => lieu_categorie_valide((string) ($_POST['type'] ?? '')),
-            'nom'        => trim($_POST['nom'] ?? ''),
-            'ville'      => trim($_POST['ville'] ?? ''),
-            'departement_canton' => trim($_POST['departement_canton'] ?? ''),
-            'grande_region' => trim($_POST['grande_region'] ?? ''),
-            'pays'       => trim($_POST['pays'] ?? ''),
-            'mois_debut' => ($_POST['mois_debut'] ?? '') !== '' ? (int) $_POST['mois_debut'] : null,
-            'mois_fin'   => ($_POST['mois_fin'] ?? '') !== '' ? (int) $_POST['mois_fin'] : null,
-            'mois_evenement_debut' => ($_POST['mois_evenement_debut'] ?? '') !== '' ? (int) $_POST['mois_evenement_debut'] : null,
-            'mois_evenement_fin'   => ($_POST['mois_evenement_fin'] ?? '') !== '' ? (int) $_POST['mois_evenement_fin'] : null,
-            'jauge_min'  => ($_POST['jauge_min'] ?? '') !== '' ? (int) $_POST['jauge_min'] : null,
-            'jauge_max'  => ($_POST['jauge_max'] ?? '') !== '' ? (int) $_POST['jauge_max'] : null,
-            'dernier_concert_le' => trim($_POST['dernier_concert_le'] ?? ''),
-            'site_web'   => trim($_POST['site_web'] ?? ''),
-            'notes'      => trim($_POST['notes'] ?? ''),
-        ];
-        // Grande région déduite du département/canton quand c'est possible
-        // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
-        // manuelle dans ce cas, quoi que le formulaire ait envoyé.
-        $grandeRegionDeduite = grande_region_deduite($champs['pays'], $champs['departement_canton']);
-        if ($grandeRegionDeduite !== null) {
-            $champs['grande_region'] = $grandeRegionDeduite;
-        }
-        $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
-        if ($err) {
-            render('lieu_form', ['lieu' => array_merge((array) $lieu, $champs, ['id' => $id]), 'err' => $err,
-                'structuresLiees' => $id ? lieu_structures_liees($id) : [],
-                'categoriesLieu' => lieu_categories_liste()], 'Lieu');
-            return;
-        }
-        pays_region_assurer($champs['pays'], $champs['grande_region']);
-        if ($id) {
-            $champs['id'] = $id;
-            // actif n'est PAS touché ici : il est géré à part par le bloc « Statut »
-            // de la sidebar (route_lieu_statut), sinon chaque enregistrement de la
-            // fiche le réinitialiserait.
-            db()->prepare('UPDATE lieux SET type=:type, nom=:nom, ville=:ville, departement_canton=:departement_canton, grande_region=:grande_region, pays=:pays,
-                            mois_debut=:mois_debut, mois_fin=:mois_fin,
-                            mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
-                            jauge_min=:jauge_min, jauge_max=:jauge_max, dernier_concert_le=:dernier_concert_le,
-                            site_web=:site_web, notes=:notes WHERE id=:id')->execute($champs);
-            // Historique (module booking) : diff des champs + « dernier concert »
-            // à part si sa date a changé pour une valeur non vide.
-            if (module_actif('booking')) {
-                journaliser_diff('lieu', $id, (array) $lieu, $champs, [
-                    'nom' => 'Nom', 'type' => 'Type', 'ville' => 'Ville',
-                    'departement_canton' => 'Département / canton', 'grande_region' => 'Région', 'pays' => 'Pays',
-                    'jauge_min' => 'Jauge min', 'jauge_max' => 'Jauge max',
-                    'site_web' => 'Site web', 'notes' => 'Notes',
-                ]);
-                $ancienDC = trim((string) ($lieu['dernier_concert_le'] ?? ''));
-                if ($champs['dernier_concert_le'] !== '' && $champs['dernier_concert_le'] !== $ancienDC) {
-                    journaliser('lieu', $id, 'dernier_concert', 'Dernier concert / diffusion : ' . $champs['dernier_concert_le']);
-                }
-            }
-        } else {
-            db()->prepare('INSERT INTO lieux (type, nom, ville, departement_canton, grande_region, pays, mois_debut, mois_fin,
-                            mois_evenement_debut, mois_evenement_fin, jauge_min, jauge_max, dernier_concert_le, site_web, notes)
-                            VALUES (:type, :nom, :ville, :departement_canton, :grande_region, :pays, :mois_debut, :mois_fin,
-                            :mois_evenement_debut, :mois_evenement_fin, :jauge_min, :jauge_max, :dernier_concert_le, :site_web, :notes)')->execute($champs);
-        }
-        redirect('lieux');
-    }
-    render('lieu_form', [
-        'lieu' => $lieu,
-        'err' => null,
-        'evenementsLies' => $id ? lieu_evenements($id) : [],
-        'historique' => $id ? historique_fusionne('lieu', $id) : [],
-        'structuresLiees' => $id ? lieu_structures_liees($id) : [],
-        // La liste des structures (potentiellement des milliers) n'est plus
-        // injectée dans la page : le sélecteur d'organisateur la charge à la
-        // demande via ?p=structures_options (route_structures_options).
-        'categoriesLieu' => lieu_categories_liste(),
-    ], $id ? 'Modifier le lieu' : 'Nouveau lieu');
-}
 
 // Liste JSON { id, nom } de toutes les structures, pour alimenter à la demande
 // le sélecteur d'organisateur de la fiche lieu (évite d'injecter des milliers
@@ -801,14 +309,20 @@ function route_structures_options(): void
     exit;
 }
 
-// Liste JSON { id, nom } des lieux (nom suffixé de la ville pour distinguer les
-// homonymes), pour alimenter à la demande le sélecteur de lieu d'un événement.
-// Lecture seule, GET.
+// Liste JSON { id, nom } des lieux (structures « booking » — sous-catégorie
+// marquée est_booking, voir migration_59/structure_sous_categorie_est_booking()
+// —, nom suffixé de la ville pour distinguer les homonymes), pour alimenter à
+// la demande le sélecteur de lieu d'un événement. Lecture seule, GET.
 function route_lieux_options(): void
 {
     require_login();
     header('Content-Type: application/json; charset=utf-8');
-    $rows = db()->query('SELECT id, nom, ville FROM lieux ORDER BY nom, ville')->fetchAll();
+    $rows = db()->query(
+        "SELECT s.id, s.nom, s.adresse_localite AS ville FROM structures s
+         JOIN structure_categories c ON c.nom = s.sous_categorie COLLATE NOCASE
+         WHERE c.est_booking = 1
+         ORDER BY s.nom, s.adresse_localite"
+    )->fetchAll();
     echo json_encode(
         array_map(fn ($r) => [
             'id'  => (int) $r['id'],
@@ -819,62 +333,14 @@ function route_lieux_options(): void
     exit;
 }
 
-// Change (ou définit) l'organisateur d'un lieu depuis la fiche lieu : retire le
-// lien vers l'ancienne structure (si fourni) et lie la nouvelle. Réciproque de
-// structure_lieu_lier/délier côté structure. La relation reste many-to-many :
-// on ne touche qu'au lien désigné (ancien_structure_id), pas aux autres.
-function route_lieu_organisateur(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux'); }
-    check_csrf();
-    $lieuId = (int) ($_POST['lieu_id'] ?? 0);
-    $ancien = (int) ($_POST['ancien_structure_id'] ?? 0);
-    $nouveau = (int) ($_POST['structure_id'] ?? 0);
-    if (!$lieuId || !$nouveau) { redirect('lieu', ['id' => $lieuId]); }
-    // La nouvelle structure doit exister.
-    $ok = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
-    $ok->execute([$nouveau]);
-    if (!$ok->fetchColumn()) { redirect('lieu', ['id' => $lieuId]); }
-    db()->beginTransaction();
-    if ($ancien && $ancien !== $nouveau) {
-        db()->prepare('DELETE FROM structure_lieux WHERE lieu_id = ? AND structure_id = ?')->execute([$lieuId, $ancien]);
-        journaliser_lien_structure_lieu($ancien, $lieuId, false);
-    }
-    db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')->execute([$nouveau, $lieuId]);
-    if ($ancien !== $nouveau) {
-        journaliser_lien_structure_lieu($nouveau, $lieuId, true);
-    }
-    db()->commit();
-    redirect('lieu', ['id' => $lieuId]);
-}
-
-// Géocode un lot de villes encore manquantes (bouton de la vue carte,
-// ?p=lieux&vue=carte) — voir lib/geocodage.php. Un lot reste volontairement
-// petit (politique Nominatim : 1 requête/seconde) ; l'utilisateur reclique
-// (ou le JS de la vue le fait pour lui) jusqu'à ce qu'il n'en reste plus.
-function route_lieux_geocoder(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux', ['vue' => 'carte']); }
-    check_csrf();
-    $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('lieux', 'ville', 'departement_canton', 'pays'));
-    // Reprend les filtres actifs (transmis en champs cachés par la vue carte) pour
-    // que le clic « Géocoder » n'en fasse pas perdre le fil.
-    $retour = array_intersect_key($_POST, array_flip([
-        'q', 'type', 'ville', 'pays', 'grande_region', 'statut', 'jauge_min', 'jauge_max', 'mois_evenement', 'mois_prog',
-    ]));
-    redirect('lieux', $retour + ['vue' => 'carte', 'geocode' => $n]);
-}
-
 // Géocode une seule ville (bouton « Géocoder cette ville », mini-carte de
-// localisation sur ?p=lieu/?p=structure/?p=evenement — voir _mini_carte.php).
+// localisation sur ?p=structure/?p=evenement — voir _mini_carte.php).
 // $retour_route est restreint à une liste blanche : jamais d'URL arbitraire
 // fournie par le POST (redirect() reconstruit l'URL depuis la route + id).
 function route_geocoder_ville_unique(): void
 {
     require_login();
-    $retourRoute = in_array($_POST['retour_route'] ?? '', ['lieu', 'structure', 'evenement'], true)
+    $retourRoute = in_array($_POST['retour_route'] ?? '', ['structure', 'evenement'], true)
         ? $_POST['retour_route'] : 'resumes';
     $retourId = (int) ($_POST['retour_id'] ?? 0);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -888,99 +354,6 @@ function route_geocoder_ville_unique(): void
         geocodage_geocoder_ville($ville, $departementCanton, $pays);
     }
     redirect($retourRoute, $retourId ? ['id' => $retourId] : []);
-}
-
-// Bascule immédiate actif/inactif d'un lieu (bloc « Statut » de la sidebar),
-// sans passer par le bouton Enregistrer de la fiche (cf. route_structure_statut).
-function route_lieu_statut(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux'); }
-    check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    if (!$id) { redirect('lieux'); }
-    $actif = isset($_POST['actif']) ? 1 : 0;
-    $avant = (int) (db()->query('SELECT actif FROM lieux WHERE id = ' . $id)->fetchColumn());
-    db()->prepare('UPDATE lieux SET actif = ? WHERE id = ?')->execute([$actif, $id]);
-    if ($avant !== $actif) {
-        journaliser('lieu', $id, 'edition', 'Statut : ' . ($actif ? 'actif' : 'inactif'));
-    }
-    redirect('lieu', ['id' => $id]);
-}
-
-// Bascule le marquage rapide (flag) d'un lieu — aucun → étoile → cœur →
-// aucun (voir flag_toggle_html(), lib/helpers.php). Appelé en AJAX depuis
-// lassoInitFlagToggle() (assets/app.js) : répond en JSON, pas de redirect.
-function route_lieu_flag(): void
-{
-    require_login();
-    header('Content-Type: application/json');
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        echo json_encode(['ok' => false]);
-        return;
-    }
-    check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    $stmt = db()->prepare('SELECT flag FROM lieux WHERE id = ?');
-    $stmt->execute([$id]);
-    $actuel = $stmt->fetchColumn();
-    if ($actuel === false) {
-        echo json_encode(['ok' => false]);
-        return;
-    }
-    // Cœur temporairement désactivé (cycle à 2 états) : réactiver la ligne
-    // 'star' => 'heart' pour reprendre le cycle à 3 états aucun/étoile/cœur.
-    $suivant = match ((string) $actuel) {
-        ''      => 'star',
-        // 'star'  => 'heart',
-        default => '',
-    };
-    db()->prepare('UPDATE lieux SET flag = ? WHERE id = ?')->execute([$suivant, $id]);
-    echo json_encode(['ok' => true, 'flag' => $suivant]);
-}
-
-function route_lieu_renommer(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('lieux'); }
-    check_csrf();
-    $id  = (int) ($_POST['id'] ?? 0);
-    $nom = trim($_POST['nom'] ?? '');
-    if ($id && $nom !== '') {
-        $ancien = nom_entite('lieux', $id);
-        db()->prepare('UPDATE lieux SET nom = ? WHERE id = ?')->execute([$nom, $id]);
-        if ($ancien !== $nom) {
-            journaliser('lieu', $id, 'edition', 'Nom : ' . ($ancien !== '' ? $ancien : '(vide)') . ' → ' . $nom);
-        }
-    }
-    redirect('lieu', ['id' => $id]);
-}
-
-function route_lieu_delete(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $id = (int) ($_POST['id'] ?? 0);
-        if ($id) {
-            // Un lieu lié à des structures est tout de même supprimable : on
-            // retire d'abord les liens (journalisés côté structure) et
-            // l'historique du lieu, puis le lieu lui-même (les événements liés
-            // sont dénoués par la clé étrangère ON DELETE SET NULL).
-            $lNom = nom_entite('lieux', $id);
-            $stmt = db()->prepare('SELECT structure_id FROM structure_lieux WHERE lieu_id = ?');
-            $stmt->execute([$id]);
-            db()->beginTransaction();
-            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $structureId) {
-                journaliser('structure', (int) $structureId, 'edition', 'Lieu supprimé : ' . ($lNom !== '' ? $lNom : '#' . $id));
-            }
-            db()->prepare('DELETE FROM structure_lieux WHERE lieu_id = ?')->execute([$id]);
-            db()->prepare("DELETE FROM historique WHERE entite_type = 'lieu' AND entite_id = ?")->execute([$id]);
-            db()->prepare('DELETE FROM lieux WHERE id = ?')->execute([$id]);
-            db()->commit();
-        }
-    }
-    redirect('lieux');
 }
 
 // ------------------------------------------------------------- MAILING
@@ -1375,9 +748,9 @@ function route_mailing_campagne(): void
         if ($ids) {
             $in = implode(',', array_fill(0, count($ids), '?'));
             $stmtL = db()->prepare(
-                "SELECT sl.structure_id AS sid, GROUP_CONCAT(l.nom, ', ') AS noms
-                 FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id
-                 WHERE sl.structure_id IN ($in) GROUP BY sl.structure_id"
+                "SELECT so.organisateur_id AS sid, GROUP_CONCAT(l.nom, ', ') AS noms
+                 FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id
+                 WHERE so.organisateur_id IN ($in) GROUP BY so.organisateur_id"
             );
             $stmtL->execute($ids);
             foreach ($stmtL->fetchAll() as $r) {
@@ -1392,7 +765,7 @@ function route_mailing_campagne(): void
         'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
         'grandesRegions' => pays_regions_map(), // régions groupées par pays (taxonomie, migration_49)
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
-        'typesLieu' => lieu_categories_liste(),
+        'typesLieu' => structure_sous_categories_booking_noms(),
         'categoriesPourSelect' => structure_categories_pour_select(),
         'ciblages' => db()->query('SELECT id, nom FROM mailing_ciblages ORDER BY nom')->fetchAll(),
         'modeles' => db()->query('SELECT id, nom, sujet, corps FROM mailing_modeles ORDER BY nom')->fetchAll(),

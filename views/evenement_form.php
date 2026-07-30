@@ -314,7 +314,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         <p><span class="muted small">Lieu(x)</span><br>
         <?php if (!$lieuxLies): ?><span class="muted small">Aucun lieu lié.</span>
         <?php else: foreach ($lieuxLies as $l): ?>
-            <a href="?p=lieu&id=<?= (int) $l['id'] ?>" class="badge"><?= e($l['nom']) ?><?= trim((string) $l['ville']) !== '' ? ' — ' . e($l['ville']) : '' ?></a>
+            <a href="?p=structure&id=<?= (int) $l['id'] ?>" class="badge"><?= e($l['nom']) ?><?= trim((string) $l['ville']) !== '' ? ' — ' . e($l['ville']) : '' ?></a>
         <?php endforeach; endif; ?>
         </p>
         <?php endif; ?>

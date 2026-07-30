@@ -490,7 +490,6 @@ function route_parametres_pays(): void
                         db()->prepare('UPDATE pays_liste SET nom=?, code_iso2=? WHERE id=?')->execute([$nom, $code, $id]);
                         if ($ancien !== $nom) {
                             db()->prepare('UPDATE structures SET adresse_pays=? WHERE adresse_pays=?')->execute([$nom, $ancien]);
-                            db()->prepare('UPDATE lieux SET pays=? WHERE pays=?')->execute([$nom, $ancien]);
                             db()->prepare("UPDATE parametres SET valeur=? WHERE cle='employeur_pays' AND valeur=?")->execute([$nom, $ancien]);
                         }
                         db()->commit();
@@ -504,7 +503,6 @@ function route_parametres_pays(): void
                     db()->prepare('UPDATE pays_liste SET nom=? WHERE id=?')->execute([$nom, $id]);
                     if ($ancien !== $nom && $paysNom !== '') {
                         db()->prepare('UPDATE structures SET grande_region=? WHERE grande_region=? AND adresse_pays=?')->execute([$nom, $ancien, $paysNom]);
-                        db()->prepare('UPDATE lieux SET grande_region=? WHERE grande_region=? AND pays=?')->execute([$nom, $ancien, $paysNom]);
                     }
                     db()->commit();
                 }
@@ -554,7 +552,6 @@ function route_parametres_pays(): void
                             $regionNom = (string) $map[$id]['nom'];
                             if ($ancienPays !== '' && $nouveauPays !== '') {
                                 db()->prepare('UPDATE structures SET adresse_pays=? WHERE grande_region=? AND adresse_pays=?')->execute([$nouveauPays, $regionNom, $ancienPays]);
-                                db()->prepare('UPDATE lieux SET pays=? WHERE grande_region=? AND pays=?')->execute([$nouveauPays, $regionNom, $ancienPays]);
                             }
                         }
                     }
@@ -581,12 +578,10 @@ function route_parametres_pays(): void
                     $stmtEnf->execute([$id]);
                     $stmtRefS = db()->prepare('SELECT COUNT(*) FROM structures WHERE adresse_pays = ?');
                     $stmtRefS->execute([$nom]);
-                    $stmtRefL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE pays = ?');
-                    $stmtRefL->execute([$nom]);
                     $stmtRefE = db()->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'employeur_pays' AND valeur = ?");
                     $stmtRefE->execute([$nom]);
                     $total = (int) db()->query('SELECT COUNT(*) FROM pays_liste WHERE parent_id IS NULL')->fetchColumn();
-                    if ((int) $stmtEnf->fetchColumn() === 0 && (int) $stmtRefS->fetchColumn() === 0 && (int) $stmtRefL->fetchColumn() === 0 && (int) $stmtRefE->fetchColumn() === 0 && $total > 1) {
+                    if ((int) $stmtEnf->fetchColumn() === 0 && (int) $stmtRefS->fetchColumn() === 0 && (int) $stmtRefE->fetchColumn() === 0 && $total > 1) {
                         db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
                     } else {
                         redirect('parametres_pays', ['err' => 'used']);
@@ -599,9 +594,7 @@ function route_parametres_pays(): void
                     $paysNom = (string) ($map[$parentId]['nom'] ?? '');
                     $stmtRefS = db()->prepare('SELECT COUNT(*) FROM structures WHERE grande_region = ? AND adresse_pays = ?');
                     $stmtRefS->execute([$nom, $paysNom]);
-                    $stmtRefL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE grande_region = ? AND pays = ?');
-                    $stmtRefL->execute([$nom, $paysNom]);
-                    $utilisee = (int) $stmtRefS->fetchColumn() > 0 || (int) $stmtRefL->fetchColumn() > 0;
+                    $utilisee = (int) $stmtRefS->fetchColumn() > 0;
                     if (!$utilisee) {
                         db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
                     } else {
@@ -620,7 +613,6 @@ function route_parametres_pays(): void
                         if ($cibleValide) {
                             db()->beginTransaction();
                             db()->prepare('UPDATE structures SET grande_region = ? WHERE grande_region = ? AND adresse_pays = ?')->execute([$cible, $nom, $paysNom]);
-                            db()->prepare('UPDATE lieux SET grande_region = ? WHERE grande_region = ? AND pays = ?')->execute([$cible, $nom, $paysNom]);
                             db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
                             db()->commit();
                         } else {
@@ -635,7 +627,7 @@ function route_parametres_pays(): void
     }
 
     // Usage de chaque région (pour la réaffectation à la suppression), indexé par
-    // id : nombre de fiches (structures + lieux) du même pays portant ce nom.
+    // id : nombre de fiches structures du même pays portant ce nom.
     $map = $paysMap();
     $usageRegion = [];
     foreach ($map as $id => $r) {
@@ -643,9 +635,7 @@ function route_parametres_pays(): void
         $paysNom = (string) ($map[plan_pid($r['parent_id'] ?? null)]['nom'] ?? '');
         $sS = db()->prepare('SELECT COUNT(*) FROM structures WHERE grande_region = ? AND adresse_pays = ?');
         $sS->execute([$r['nom'], $paysNom]);
-        $sL = db()->prepare('SELECT COUNT(*) FROM lieux WHERE grande_region = ? AND pays = ?');
-        $sL->execute([$r['nom'], $paysNom]);
-        $usageRegion[(int) $id] = (int) $sS->fetchColumn() + (int) $sL->fetchColumn();
+        $usageRegion[(int) $id] = (int) $sS->fetchColumn();
     }
     render('parametres_pays', [
         'saved' => isset($_GET['ok']),

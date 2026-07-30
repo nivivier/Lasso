@@ -354,6 +354,9 @@ function run_migrations(PDO $pdo): void
         56 => 'migration_56', // renomme evenements/structures/lieux.region → departement_canton (clarté vs grande_region)
         57 => 'migration_57', // géocodage : departement_canton entre dans la clé de cache (désambiguïse les homonymes, ex. Bonneville)
         58 => 'migration_58', // module évenements : lieux/organisateurs multiples (evenement_lieux, evenement_organisateurs)
+        59 => 'migration_59', // fusion lieux → structures, étape 1/N (schéma additif) : structure_categories.est_booking, colonnes touring sur structures, table structure_organisateurs
+        60 => 'migration_60', // fusion lieux → structures, étape 2/N : evenements.lieu_id / evenement_lieux.lieu_id repointés vers structures(id) (au lieu de lieux(id))
+        61 => 'migration_61', // fusion lieux → structures, étape 3/3 : suppression de lieux/structure_lieux/lieu_categories (plus aucun code applicatif ne les utilise)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1937,6 +1940,243 @@ function migration_58(PDO $pdo): void
     foreach ($pdo->query('SELECT id, organisateur_structure_id FROM evenements WHERE organisateur_structure_id IS NOT NULL')->fetchAll() as $r) {
         $insO->execute([(int) $r['id'], (int) $r['organisateur_structure_id']]);
     }
+}
+
+// Migration 59 : fusion lieux → structures — étape 1/N, additive uniquement
+// (aucune donnée de `lieux` déplacée ni supprimée ici ; voir le script CLI de
+// fusion pour la suite). Constat qui motive la fusion : dans la base réelle,
+// 99,6 % des lieux liés à une seule structure (structure_lieux) partagent le
+// même nom ET la même ville que cette structure — un lieu n'est presque
+// jamais une entité distincte de son organisateur, juste sa fiche dupliquée
+// par l'auto-création de l'import (structure_lier_lieu_importe()). Le seul
+// vrai besoin many-to-many observé (une structure organisant plusieurs
+// lieux/festivals distincts) se modélise avec un simple lien auto-référencé
+// structure↔structure, pas deux tables séparées.
+//   - structure_categories.est_booking : une sous-catégorie « booking » décrit
+//     un lieu où on peut faire des concerts (Salle, Festival, Théâtre…), même
+//     esprit que est_organisateur. Une seule taxonomie (pas de type_lieu
+//     séparé) : on marque les sous-catégories existantes plutôt que d'ouvrir
+//     un second axe de classification.
+//   - Colonnes touring sur structures qui n'ont pas d'équivalent existant
+//     (departement_canton/adresse_pays/grande_region/notes/actif/site_web/flag
+//     ont déjà leur colonne, ville → adresse_localite) : jauge_min/jauge_max
+//     (capacité), mois_debut/mois_fin (période de programmation),
+//     mois_evenement_debut/mois_evenement_fin (mois où l'événement/festival a
+//     lieu), dernier_concert_le (« dernier concert ou diffusion » — champ
+//     général, pas réservé aux lieux : une structure media/radio peut aussi
+//     l'utiliser pour dire qu'elle a déjà diffusé un titre).
+//   - structure_organisateurs : many-to-many auto-référencé (structure_id =
+//     la structure organisée, organisateur_id = celle qui l'organise),
+//     remplace à terme structure_lieux (dont le seul champ, `role`, n'a
+//     jamais été renseigné en pratique — aucune perte).
+function migration_59(PDO $pdo): void
+{
+    $colsCat = array_column($pdo->query('PRAGMA table_info(structure_categories)')->fetchAll(), 'name');
+    if (!in_array('est_booking', $colsCat, true)) {
+        $pdo->exec('ALTER TABLE structure_categories ADD COLUMN est_booking INTEGER NOT NULL DEFAULT 0');
+    }
+
+    $colsStruct = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
+    $ajouts = [
+        'mois_debut'           => 'INTEGER',
+        'mois_fin'             => 'INTEGER',
+        'mois_evenement_debut' => 'INTEGER',
+        'mois_evenement_fin'   => 'INTEGER',
+        'jauge_min'            => 'INTEGER',
+        'jauge_max'            => 'INTEGER',
+        'dernier_concert_le'   => "TEXT NOT NULL DEFAULT ''",
+    ];
+    foreach ($ajouts as $col => $ddl) {
+        if (!in_array($col, $colsStruct, true)) {
+            $pdo->exec("ALTER TABLE structures ADD COLUMN $col $ddl");
+        }
+    }
+
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS structure_organisateurs (
+            structure_id    INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            organisateur_id INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            PRIMARY KEY (structure_id, organisateur_id),
+            CHECK (structure_id <> organisateur_id)
+        )
+    ');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_structure_organisateurs_organisateur ON structure_organisateurs(organisateur_id)');
+
+    // Seed taxonomie « booking », sous le nœud racine « Organisateur » :
+    //   - 7 sous-catégories déjà existantes correspondent mot pour mot à un
+    //     intitulé de lieu_categories (Centre culturel, Festival, MJC,
+    //     Médiathèque, SMAC, Salle de concert, Théâtre) → marquées est_booking ;
+    //   - 4 autres sous-catégories déjà existantes décrivent elles aussi sans
+    //     ambiguïté un lieu, bien qu'absentes de lieu_categories (Salle
+    //     municipale, Club, Scène ouverte, Lieu de création — vérifié : les
+    //     lieux liés aux structures portant ces sous-catégories ont le même
+    //     type) → marquées aussi ;
+    //   - les 6 intitulés de lieu_categories sans équivalent (Salle, Salle
+    //     communale, Salle de location, Café-concert, Café associatif, Saison
+    //     culturelle) sont créés.
+    // Les autres sous-catégories organisateur (Association, Service culturel,
+    // Production, Autres, Chant'Appart, Programmation, Direction, Projet de
+    // café, Programmation Radio, Radio…) décrivent la nature de la structure,
+    // pas un lieu : volontairement non marquées — les lieux qui leur sont
+    // liés passeront par la revue manuelle du script de fusion (Phase 2).
+    $racineId = (int) $pdo->query('SELECT id FROM structure_categories WHERE est_organisateur = 1 ORDER BY ordre LIMIT 1')->fetchColumn();
+    if ($racineId) {
+        $nomsExistants = [
+            'Centre culturel', 'Festival', 'MJC', 'Médiathèque', 'SMAC', 'Salle de concert', 'Théâtre',
+            'Salle municipale', 'Club', 'Scène ouverte', 'Lieu de création',
+        ];
+        $maj = $pdo->prepare('UPDATE structure_categories SET est_booking = 1 WHERE parent_id = ? AND nom = ? COLLATE NOCASE');
+        foreach ($nomsExistants as $nom) {
+            $maj->execute([$racineId, $nom]);
+        }
+
+        $stmtOrdre = $pdo->prepare('SELECT COALESCE(MAX(ordre), 0) FROM structure_categories WHERE parent_id = ?');
+        $stmtOrdre->execute([$racineId]);
+        $ordre = (int) $stmtOrdre->fetchColumn();
+        $nomsNouveaux = ['Salle', 'Salle communale', 'Salle de location', 'Café-concert', 'Café associatif', 'Saison culturelle'];
+        $ins = $pdo->prepare('INSERT OR IGNORE INTO structure_categories (nom, parent_id, est_organisateur, est_booking, ordre) VALUES (?, ?, 0, 1, ?)');
+        foreach ($nomsNouveaux as $nom) {
+            $ordre++;
+            $ins->execute([$nom, $racineId, $ordre]);
+        }
+    }
+}
+
+// Migration 60 : fusion lieux → structures — étape 2/N. evenements.lieu_id et
+// evenement_lieux.lieu_id référencaient lieux(id) ; ils référencent désormais
+// structures(id), avec les valeurs stockées traduites via structure_lieux
+// (MIN(structure_id) si plusieurs structures liées à un même lieu — cas
+// 'manuel' de la fusion Phase 2, laissés de côté par le script d'enrichissement,
+// voir lib/dev.php fusion_lieux_analyser()). `lieux`/`structure_lieux` restent
+// en place à ce stade (rien n'est supprimé ici) : la suppression attend que
+// tout le code applicatif ait basculé sur `structures` (voir le fil de
+// discussion). Recréation de table (nom temporaire, copie, DROP puis RENAME —
+// jamais RENAME vers un nom temporaire, voir le commentaire de migration_21/
+// CLAUDE.md) : 6 tables référencent evenements(id) par ailleurs
+// (evenement_employes, evenement_fiches, factures.evenement_id,
+// fiche_lignes.evenement_id, evenement_lieux, evenement_organisateurs) — leurs
+// clauses REFERENCES restent valides puisque la table d'origine est DROP puis
+// remplacée sous le MÊME nom, jamais renommée.
+function migration_60(PDO $pdo): void
+{
+    $dejaFait = false;
+    foreach ($pdo->query('PRAGMA foreign_key_list(evenements)')->fetchAll() as $fk) {
+        if ($fk['from'] === 'lieu_id' && $fk['table'] === 'structures') {
+            $dejaFait = true;
+            break;
+        }
+    }
+    if ($dejaFait) {
+        return;
+    }
+
+    $pdo->exec('PRAGMA foreign_keys = OFF');
+
+    // lieu_id → structure_id : le premier structure_id lié (MIN), pour les
+    // lieux liés à plusieurs structures (cas 'manuel' non résolu).
+    $mapping = [];
+    foreach ($pdo->query('SELECT lieu_id, MIN(structure_id) AS sid FROM structure_lieux GROUP BY lieu_id') as $r) {
+        $mapping[(int) $r['lieu_id']] = (int) $r['sid'];
+    }
+
+    // --- evenements ---
+    $pdo->exec("
+        CREATE TABLE evenements_v60 (
+            id                         INTEGER PRIMARY KEY AUTOINCREMENT,
+            spectacle_id               INTEGER REFERENCES spectacles(id) ON DELETE SET NULL,
+            date                       TEXT NOT NULL,
+            statut                     TEXT NOT NULL DEFAULT 'option',
+            visibilite                 TEXT NOT NULL DEFAULT 'non_repertorie',
+            ville                      TEXT NOT NULL DEFAULT '',
+            salle                      TEXT NOT NULL DEFAULT '',
+            festival                   TEXT NOT NULL DEFAULT '',
+            lien_infos                 TEXT NOT NULL DEFAULT '',
+            remarques                  TEXT NOT NULL DEFAULT '',
+            suisa_applicable           INTEGER NOT NULL DEFAULT 1,
+            suisa_envoye_a             TEXT NOT NULL DEFAULT '',
+            suisa_envoye_le            TEXT NOT NULL DEFAULT '',
+            suisa_decompte_le          TEXT NOT NULL DEFAULT '',
+            cree_le                    TEXT NOT NULL DEFAULT (datetime('now')),
+            departement_canton         TEXT NOT NULL DEFAULT '',
+            lien_texte                 TEXT NOT NULL DEFAULT '',
+            pays                       TEXT NOT NULL DEFAULT '',
+            axe_analytique_id_defaut   INTEGER REFERENCES axes_analytiques(id),
+            organisateur_structure_id  INTEGER REFERENCES structures(id),
+            production_externe         INTEGER NOT NULL DEFAULT 0,
+            lieu_id                    INTEGER REFERENCES structures(id) ON DELETE SET NULL,
+            grande_region              TEXT NOT NULL DEFAULT ''
+        )
+    ");
+    $colsSansLieu = [
+        'id', 'spectacle_id', 'date', 'statut', 'visibilite', 'ville', 'salle', 'festival', 'lien_infos', 'remarques',
+        'suisa_applicable', 'suisa_envoye_a', 'suisa_envoye_le', 'suisa_decompte_le', 'cree_le', 'departement_canton',
+        'lien_texte', 'pays', 'axe_analytique_id_defaut', 'organisateur_structure_id', 'production_externe', 'grande_region',
+    ];
+    $stmtIns = $pdo->prepare(
+        'INSERT INTO evenements_v60 (' . implode(',', $colsSansLieu) . ',lieu_id) VALUES ('
+        . implode(',', array_fill(0, count($colsSansLieu) + 1, '?')) . ')'
+    );
+    foreach ($pdo->query('SELECT * FROM evenements')->fetchAll() as $row) {
+        $vals = [];
+        foreach ($colsSansLieu as $c) {
+            $vals[] = $row[$c];
+        }
+        $vals[] = $row['lieu_id'] !== null ? ($mapping[(int) $row['lieu_id']] ?? null) : null;
+        $stmtIns->execute($vals);
+    }
+    $pdo->exec('DROP TABLE evenements');
+    $pdo->exec('ALTER TABLE evenements_v60 RENAME TO evenements');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenements_date ON evenements(date)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenements_spectacle ON evenements(spectacle_id)');
+
+    // --- evenement_lieux ---
+    $pdo->exec('
+        CREATE TABLE evenement_lieux_v60 (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            evenement_id INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+            lieu_id      INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            UNIQUE(evenement_id, lieu_id)
+        )
+    ');
+    $insEL = $pdo->prepare('INSERT OR IGNORE INTO evenement_lieux_v60 (evenement_id, lieu_id) VALUES (?, ?)');
+    foreach ($pdo->query('SELECT evenement_id, lieu_id FROM evenement_lieux')->fetchAll() as $r) {
+        $sid = $mapping[(int) $r['lieu_id']] ?? null;
+        if ($sid !== null) {
+            $insEL->execute([(int) $r['evenement_id'], $sid]);
+        }
+    }
+    $pdo->exec('DROP TABLE evenement_lieux');
+    $pdo->exec('ALTER TABLE evenement_lieux_v60 RENAME TO evenement_lieux');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenement_lieux_evenement ON evenement_lieux(evenement_id)');
+
+    $pdo->exec('PRAGMA foreign_keys = ON');
+    $casse = $pdo->query('PRAGMA foreign_key_check')->fetchAll();
+    if ($casse) {
+        throw new RuntimeException('migration_60 : clé étrangère cassée après migration — ' . json_encode($casse));
+    }
+}
+
+// Migration 61 : fusion lieux → structures — étape 3/3 (finale). Toutes les
+// données récupérables ont déjà été reprises : les 1906 lieux « auto »
+// enrichis sur leur structure (script scripts/fusion_lieux.php, Phase 2), les
+// FK événements repointées sur structures(id) (migration_60). Les ~22 lieux
+// restés non résolus (nom/ville différents de leur structure, ou liés à
+// plusieurs structures — doublons visibles à l'usage) sont perdus avec la
+// suppression de la table, décision actée avec l'utilisateur (base de dev, pas
+// de traitement automatique pour un si petit nombre de cas ambigus). Plus
+// aucun code applicatif ne lit/écrit lieux/structure_lieux/lieu_categories.
+// Sauvegarde de sécurité avant la suppression, par prudence (voir
+// sauvegarder_base(), même geste que les scripts de fusion en masse).
+function migration_61(PDO $pdo): void
+{
+    $tables = array_column($pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(), 'name');
+    if (!in_array('lieux', $tables, true)) {
+        return; // déjà migré
+    }
+    sauvegarder_base('avant_suppression_lieux');
+    $pdo->exec('DROP TABLE IF EXISTS structure_lieux');
+    $pdo->exec('DROP TABLE IF EXISTS lieux');
+    $pdo->exec('DROP TABLE IF EXISTS lieu_categories');
 }
 
 // Migration 44 : le champ « region » existant devient le « département / canton » ;

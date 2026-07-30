@@ -7,13 +7,16 @@
 declare(strict_types=1);
 
 // ===========================================================================
-// Doublons exacts (structures, lieux, contacts) — voir scripts/doublons.php
+// Doublons exacts (structures, contacts) — voir scripts/doublons.php. Les
+// lieux ne sont plus un type à part depuis la fusion lieux→structures
+// (migration_59/60/61) : un doublon de lieu EST un doublon de structure,
+// déjà couvert par le type 'structures'.
 // ===========================================================================
 
-// Détecte les groupes de doublons exacts. $type : structures|lieux|contacts|tous.
-// Retourne ['structures' => [...], 'lieux' => [...], 'contacts' => [...]], où
-// chaque groupe est ['libelle' => …, 'ids' => [garde, autres…]] (plus petit id
-// en tête = fiche la plus ancienne, conservée).
+// Détecte les groupes de doublons exacts. $type : structures|contacts|tous.
+// Retourne ['structures' => [...], 'contacts' => [...]], où chaque groupe est
+// ['libelle' => …, 'ids' => [garde, autres…]] (plus petit id en tête = fiche
+// la plus ancienne, conservée).
 function doublons_detecter(string $type = 'tous'): array
 {
     $grouper = function (string $sql): array {
@@ -31,15 +34,6 @@ function doublons_detecter(string $type = 'tous'): array
                 GROUP_CONCAT(id) AS ids
          FROM structures
          GROUP BY TRIM(LOWER(nom)), TRIM(LOWER(adresse_localite))
-         HAVING COUNT(*) > 1
-         ORDER BY COUNT(*) DESC, nom"
-    ) : [];
-
-    $grLieux = ($type === 'lieux' || $type === 'tous') ? $grouper(
-        "SELECT nom || CASE WHEN TRIM(ville) <> '' THEN ' — ' || ville ELSE '' END || ' (' || type || ')' AS libelle,
-                GROUP_CONCAT(id) AS ids
-         FROM lieux
-         GROUP BY TRIM(LOWER(nom)), TRIM(LOWER(ville)), TRIM(LOWER(type))
          HAVING COUNT(*) > 1
          ORDER BY COUNT(*) DESC, nom"
     ) : [];
@@ -70,7 +64,7 @@ function doublons_detecter(string $type = 'tous'): array
         }
     }
 
-    return ['structures' => $grStructures, 'lieux' => $grLieux, 'contacts' => $grContacts];
+    return ['structures' => $grStructures, 'contacts' => $grContacts];
 }
 
 // Complète les champs vides de la fiche gardée avec ceux d'un doublon.
@@ -94,29 +88,6 @@ function doublons_fusionner_structures(array $groupes): int
         if (!$ids) { continue; }
         structures_fusionner($garde, $ids); // gère sa propre transaction
         $n += count($ids);
-    }
-    return $n;
-}
-
-// Fusionne des groupes de lieux en doublon. Renvoie le nombre de fiches supprimées.
-function doublons_fusionner_lieux(array $groupes): int
-{
-    $n = 0;
-    foreach ($groupes as $g) {
-        $ids = $g['ids'];
-        $garde = array_shift($ids);
-        foreach ($ids as $autre) {
-            db()->beginTransaction();
-            doublons_completer_champs_vides('lieux', $garde, $autre, ['departement_canton', 'grande_region', 'pays', 'site_web', 'notes', 'dernier_concert_le']);
-            db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) SELECT structure_id, ? FROM structure_lieux WHERE lieu_id = ?')
-                ->execute([$garde, $autre]);
-            db()->prepare('DELETE FROM structure_lieux WHERE lieu_id = ?')->execute([$autre]);
-            db()->prepare('UPDATE evenements SET lieu_id = ? WHERE lieu_id = ?')->execute([$garde, $autre]);
-            db()->prepare("UPDATE historique SET entite_id = ? WHERE entite_type = 'lieu' AND entite_id = ?")->execute([$garde, $autre]);
-            db()->prepare('DELETE FROM lieux WHERE id = ?')->execute([$autre]);
-            db()->commit();
-            $n++;
-        }
     }
     return $n;
 }
@@ -149,56 +120,6 @@ function doublons_fusionner_contacts(array $groupes): int
     return $n;
 }
 
-// ===========================================================================
-// Doublons « soupçonnés » de lieux au sein d'une même structure — même nom
-// et même ville (normalisés, insensibles casse/accents/ponctuation), mais un
-// TYPE différent (contrairement aux doublons exacts de doublons_detecter(),
-// qui exige un type identique — d'où deux détecteurs distincts plutôt qu'un
-// paramètre en plus sur le premier). Cas observé : une salle et un festival
-// au même nom/ville, sous la même structure organisatrice — presque toujours
-// la même entité mal classée deux fois plutôt que deux lieux distincts.
-// Jamais au-delà d'une même structure : un nom+ville partagé par hasard entre
-// deux structures sans rapport n'a pas la même force de présomption.
-// ===========================================================================
-
-// Détecte les groupes. Même forme que doublons_detecter()['lieux']
-// (['libelle'=>, 'ids'=>[garde, autres…]]) — directement réutilisable par
-// doublons_fusionner_lieux().
-function doublons_lieux_suspects_detecter(): array
-{
-    $rows = db()->query(
-        "SELECT l.id, l.nom, l.type, l.ville, sl.structure_id, s.nom AS structure_nom
-         FROM lieux l
-         JOIN structure_lieux sl ON sl.lieu_id = l.id
-         JOIN structures s ON s.id = sl.structure_id"
-    )->fetchAll();
-
-    $parGroupe = [];
-    foreach ($rows as $r) {
-        $cle = (int) $r['structure_id'] . '|' . normaliser_nom_structure((string) $r['nom']) . '|' . normaliser_nom_structure((string) $r['ville']);
-        $parGroupe[$cle][] = $r;
-    }
-
-    $out = [];
-    foreach ($parGroupe as $lignes) {
-        if (count($lignes) < 2) {
-            continue;
-        }
-        $types = array_values(array_unique(array_map(fn ($l) => (string) $l['type'], $lignes)));
-        if (count($types) < 2) {
-            continue; // types identiques : doublon exact, déjà couvert par doublons_detecter().
-        }
-        $ids = array_map(fn ($l) => (int) $l['id'], $lignes);
-        sort($ids);
-        $out[] = [
-            'libelle' => $lignes[0]['nom'] . ' — ' . $lignes[0]['ville']
-                . ' (' . $lignes[0]['structure_nom'] . ' : ' . implode(' / ', $types) . ')',
-            'ids' => $ids,
-        ];
-    }
-    usort($out, fn ($a, $b) => count($b['ids']) <=> count($a['ids']));
-    return $out;
-}
 
 // ===========================================================================
 // Mise à jour des dates depuis un CSV — voir scripts/maj_dates_import.php
@@ -269,14 +190,10 @@ function maj_dates_construire_index(): array
         }
     }
     $datesParStructure = [];
-    foreach (db()->query('SELECT id, nom, mise_a_jour_le, dernier_contact_le FROM structures')->fetchAll() as $r) {
+    foreach (db()->query('SELECT id, nom, mise_a_jour_le, dernier_contact_le, dernier_concert_le FROM structures')->fetchAll() as $r) {
         $datesParStructure[(int) $r['id']] = $r;
     }
-    $lieuxParStructure = [];
-    foreach (db()->query('SELECT sl.structure_id, l.id, l.nom, l.dernier_concert_le FROM structure_lieux sl JOIN lieux l ON l.id = sl.lieu_id') as $r) {
-        $lieuxParStructure[(int) $r['structure_id']][] = $r;
-    }
-    return [$indexNom, $indexEmail, $datesParStructure, $lieuxParStructure];
+    return [$indexNom, $indexEmail, $datesParStructure];
 }
 
 // Analyse les lignes du CSV face à la base : détermine ce qui serait écrit,
@@ -285,7 +202,7 @@ function maj_dates_construire_index(): array
 //    'nonTrouvees' => [libellés], 'ambigues' => [libellés]]
 function maj_dates_analyser(array $entete, array $lignes, array $index): array
 {
-    [$indexNom, $indexEmail, $datesParStructure, $lieuxParStructure] = maj_dates_construire_index();
+    [$indexNom, $indexEmail, $datesParStructure] = maj_dates_construire_index();
 
     $val = fn(array $ligne, ?int $i): string => $i === null ? '' : trim((string) ($ligne[$i] ?? ''));
 
@@ -346,13 +263,9 @@ function maj_dates_analyser(array $entete, array $lignes, array $index): array
             $stats['contact']++;
         }
         $dConcert = structure_date_csv_vers_iso($val($ligne, $index['concert']));
-        if ($dConcert !== null) {
-            foreach ($lieuxParStructure[$sid] ?? [] as $l) {
-                if ($dConcert !== (string) ($l['dernier_concert_le'] ?? '')) {
-                    $aEcrire[] = ['lieu_concert', (int) $l['id'], $dConcert, "  ↳ lieu « {$l['nom']} » : dernier concert → $dConcert"];
-                    $stats['concert']++;
-                }
-            }
+        if ($dConcert !== null && $dConcert !== (string) ($actuel['dernier_concert_le'] ?? '')) {
+            $aEcrire[] = ['structure_concert', $sid, $dConcert, "$nom : dernier concert → $dConcert"];
+            $stats['concert']++;
         }
     }
 
@@ -370,9 +283,9 @@ function maj_dates_appliquer(array $aEcrire): void
         } elseif ($type === 'structure_contact') {
             db()->prepare('UPDATE structures SET dernier_contact_le = ? WHERE id = ?')->execute([$date, $id]);
             journaliser_contact_import($id, $date, 'Import CSV — dernier contact connu.');
-        } elseif ($type === 'lieu_concert') {
-            db()->prepare('UPDATE lieux SET dernier_concert_le = ? WHERE id = ?')->execute([$date, $id]);
-            journaliser('lieu', $id, 'dernier_concert', 'Dernier concert / diffusion (import) : ' . $date, $date);
+        } elseif ($type === 'structure_concert') {
+            db()->prepare('UPDATE structures SET dernier_concert_le = ? WHERE id = ?')->execute([$date, $id]);
+            journaliser('structure', $id, 'dernier_concert', 'Dernier concert / diffusion (import) : ' . $date, $date);
         }
     }
     db()->commit();
@@ -481,10 +394,15 @@ function evenements_lieux_detecter(): array
          ORDER BY date DESC"
     )->fetchAll();
 
-    // Index des lieux par ville (+département/canton+pays) normalisés, chargé
-    // une fois pour tous les événements (pas une requête par ligne).
+    // Index des lieux (structures « booking », voir migration_59) par ville
+    // (+département/canton+pays) normalisés, chargé une fois pour tous les
+    // événements (pas une requête par ligne).
     $lieuxParVille = [];
-    foreach (db()->query('SELECT id, nom, type, ville, departement_canton, pays FROM lieux')->fetchAll() as $l) {
+    foreach (db()->query(
+        "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville, s.departement_canton, s.adresse_pays AS pays
+         FROM structures s JOIN structure_categories c ON c.nom = s.sous_categorie COLLATE NOCASE
+         WHERE c.est_booking = 1"
+    )->fetchAll() as $l) {
         $cle = normaliser_nom_structure((string) $l['ville']) . '|'
             . mb_strtolower(trim((string) $l['departement_canton']), 'UTF-8') . '|'
             . normaliser_nom_structure((string) $l['pays']);
@@ -599,13 +517,14 @@ function evenements_lieux_lier(array $univoques): int
     return $n;
 }
 
-// Crée une structure + un lieu (même nom que la salle) par groupe de
-// evenements_lieux_grouper_aucune(), reliés via structure_lieux, puis rattache
-// tous les événements du groupe au lieu créé. Catégorie « organisateur » par
-// défaut (même convention que structures_grouper() côté import CSV : on ne
-// sait rien d'autre sur l'entité que son nom). L'appelant est responsable de
-// la sauvegarde préalable (sauvegarder_base()). Renvoie le nombre de paires
-// structure+lieu créées (pas le nombre d'événements liés).
+// Crée une structure « booking » (même nom que la salle, sous-catégorie
+// « Salle » — voir migration_59) par groupe de evenements_lieux_grouper_aucune(),
+// puis rattache tous les événements du groupe à cette structure. Depuis la
+// fusion lieux→structures, un lieu EST une structure : plus de paire
+// structure+lieu ni de structure_lieux à créer (contrairement à l'ancien
+// comportement). L'appelant est responsable de la sauvegarde préalable
+// (sauvegarder_base()). Renvoie le nombre de structures créées (pas le nombre
+// d'événements liés).
 function evenements_lieux_creer(array $groupes): int
 {
     $n = 0;
@@ -613,23 +532,15 @@ function evenements_lieux_creer(array $groupes): int
     try {
         foreach ($groupes as $g) {
             db()->prepare(
-                'INSERT INTO structures (nom, categorie, adresse_localite, departement_canton, adresse_pays) VALUES (?, ?, ?, ?, ?)'
-            )->execute([$g['nom'], 'organisateur', $g['ville'], $g['departement_canton'], $g['pays']]);
+                'INSERT INTO structures (nom, categorie, sous_categorie, adresse_localite, departement_canton, adresse_pays) VALUES (?, ?, ?, ?, ?, ?)'
+            )->execute([$g['nom'], structure_categorie_par_defaut(), 'Salle', $g['ville'], $g['departement_canton'], $g['pays']]);
             $structureId = (int) db()->lastInsertId();
-
-            db()->prepare(
-                "INSERT INTO lieux (type, nom, ville, departement_canton, pays) VALUES ('Salle', ?, ?, ?, ?)"
-            )->execute([$g['nom'], $g['ville'], $g['departement_canton'], $g['pays']]);
-            $lieuId = (int) db()->lastInsertId();
-
-            db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
-                ->execute([$structureId, $lieuId]);
 
             // Table de jointure (voir migration_58), pas seulement la colonne
             // miroir — même raison que evenements_lieux_lier() ci-dessus.
             $stmtMaj = db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)');
             foreach ($g['evenements'] as $ev) {
-                $stmtMaj->execute([$ev['id'], $lieuId]);
+                $stmtMaj->execute([$ev['id'], $structureId]);
                 evenement_resynchroniser_miroirs($ev['id']);
             }
             $n++;

@@ -11,11 +11,9 @@ function route_dev(): void
 {
     require_login();
 
-    $type = in_array($_GET['type'] ?? '', ['structures', 'lieux', 'contacts', 'tous'], true) ? $_GET['type'] : 'tous';
+    $type = in_array($_GET['type'] ?? '', ['structures', 'contacts', 'tous'], true) ? $_GET['type'] : 'tous';
 
     $doublonsErr     = null;
-    $doublonsLieuxSuspectsErr        = null;
-    $doublonsLieuxSuspectsFusionneN  = null;
     $datesEtape      = 'upload';
     $datesErr        = null;
     $datesResultat   = null;
@@ -37,12 +35,12 @@ function route_dev(): void
         $selection = array_flip(array_map('strval', $_POST['sel'] ?? []));
 
         if ($action === 'doublons_fusionner') {
-            $type = in_array($_POST['type'] ?? '', ['structures', 'lieux', 'contacts', 'tous'], true) ? $_POST['type'] : 'tous';
+            $type = in_array($_POST['type'] ?? '', ['structures', 'contacts', 'tous'], true) ? $_POST['type'] : 'tous';
             $gr  = doublons_detecter($type);
-            foreach (['structures', 'lieux', 'contacts'] as $k) {
+            foreach (['structures', 'contacts'] as $k) {
                 $gr[$k] = array_values(array_filter($gr[$k], fn ($g) => isset($selection["$k:{$g['ids'][0]}"])));
             }
-            if (!$gr['structures'] && !$gr['lieux'] && !$gr['contacts']) {
+            if (!$gr['structures'] && !$gr['contacts']) {
                 $doublonsErr = 'Aucun groupe sélectionné.';
             } else {
                 $bak = sauvegarder_base('avant_doublons');
@@ -50,23 +48,9 @@ function route_dev(): void
                     $doublonsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
                 } else {
                     $ns = doublons_fusionner_structures($gr['structures']);
-                    $nl = doublons_fusionner_lieux($gr['lieux']);
                     $nc = doublons_fusionner_contacts($gr['contacts']);
-                    redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nl' => $nl, 'nc' => $nc]);
+                    redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nc' => $nc]);
                     return;
-                }
-            }
-        } elseif ($action === 'doublons_lieux_suspects_fusionner') {
-            $groupes = doublons_lieux_suspects_detecter();
-            $groupesSel = array_values(array_filter($groupes, fn ($g) => isset($selection[(string) $g['ids'][0]])));
-            if (!$groupesSel) {
-                $doublonsLieuxSuspectsErr = 'Aucun groupe sélectionné.';
-            } else {
-                $bak = sauvegarder_base('avant_doublons_lieux_suspects');
-                if ($bak === null) {
-                    $doublonsLieuxSuspectsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
-                } else {
-                    $doublonsLieuxSuspectsFusionneN = doublons_fusionner_lieux($groupesSel);
                 }
             }
         } elseif ($action === 'dates_analyser') {
@@ -169,12 +153,8 @@ function route_dev(): void
         'type'           => $type,
         'doublons'       => doublons_detecter($type),
         'doublonsErr'    => $doublonsErr,
-        'doublonsLieuxSuspects'          => doublons_lieux_suspects_detecter(),
-        'doublonsLieuxSuspectsErr'       => $doublonsLieuxSuspectsErr,
-        'doublonsLieuxSuspectsFusionneN' => $doublonsLieuxSuspectsFusionneN,
         'ok'             => $_GET['ok'] ?? null,
         'ns'             => (int) ($_GET['ns'] ?? 0),
-        'nl'             => (int) ($_GET['nl'] ?? 0),
         'nc'             => (int) ($_GET['nc'] ?? 0),
         'datesEtape'     => $datesEtape,
         'datesErr'       => $datesErr,
