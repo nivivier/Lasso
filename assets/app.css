@@ -279,6 +279,16 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .ico-amber { color: var(--amber); }
 .ico-ok { color: var(--ok); }
 .ico-label { display: inline-flex; align-items: center; gap: 6px; }
+/* Fond très légèrement teinté selon le statut de l'événement (carte
+   Informations, ?p=evenement) — mêmes couleurs que evenement_statut_icone()/
+   les 3 classes .ico-*, à un pourcentage assez faible pour rester discret sur
+   une carte entière plutôt que sur un simple badge. */
+/* Sélecteur à deux classes : même piège que .card-flush plus haut (.card,
+   déclaré plus loin, écraserait sinon ce background avec le même var(--card)
+   à spécificité égale). */
+.card.card-statut-confirme { background: linear-gradient(in srgb, var(--ok) 6%, var(--card)); }
+.card.card-statut-annule { background: color-mix(in srgb, var(--muted) 6%, var(--card)); }
+.card.card-statut-option { background: color-mix(in srgb, var(--amber) 6%, var(--card)); }
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }

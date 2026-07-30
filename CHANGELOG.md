@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.17.5] — 2026-07-30
+
+### Ajouté
+- **Carte « Informations » teintée selon le statut** (?p=evenement) : fond très légèrement teinté (vert pour confirmé, gris pour annulé, ambre pour option — mêmes couleurs que l'icône de statut), à un pourcentage assez faible pour rester discret sur toute la carte. Même correctif de spécificité CSS que `.card-flush` (sélecteur à deux classes, sinon écrasé par `.card`).
+
 ## [1.17.4] — 2026-07-30
 
 ### Modifié

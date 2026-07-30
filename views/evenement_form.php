@@ -157,7 +157,8 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 <?php else: ?>
 
 <div class="grid3">
-<div class="card card-editable" id="carte-informations">
+<?php $statutCardClass = match ((string) $evenement['statut']) { 'confirme' => 'card-statut-confirme', 'annule' => 'card-statut-annule', default => 'card-statut-option' }; ?>
+<div class="card card-editable <?= $statutCardClass ?>" id="carte-informations">
     <div class="head-actions card-actions-overlay">
         <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
         <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
