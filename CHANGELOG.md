@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.16.1] — 2026-07-30
+
+### Corrigé
+- **Numéros de fiche non cliquables** dans les tableaux « Doublons exacts » et « Doublons de lieux soupçonnés » (onglet Incohérences) : les `#id` (conservée/supprimée(s)) sont désormais des liens vers la fiche structure/lieu correspondante.
+
 ## [1.16.0] — 2026-07-30
 
 ### Ajouté

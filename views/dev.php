@@ -31,6 +31,17 @@ $resumeItems = [
     ['id' => 'evenements-lieux', 'libelle' => 'Événements sans lieu rattaché', 'n' => $nbEvenementsATraiter],
 ];
 $resumeTotal = array_sum(array_column($resumeItems, 'n'));
+
+// Lien vers la fiche d'un id de doublon (structures/lieux) — pas de fiche
+// dédiée pour les contacts (gérés depuis la fiche structure), affichés en
+// texte simple.
+$lienFiche = function (string $type, int $id): string {
+    $routes = ['structures' => 'structure', 'lieux' => 'lieu'];
+    if (!isset($routes[$type])) {
+        return '#' . $id;
+    }
+    return '<a href="?p=' . $routes[$type] . '&id=' . $id . '">#' . $id . '</a>';
+};
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 
@@ -93,8 +104,8 @@ $resumeTotal = array_sum(array_column($resumeItems, 'n'));
                         <tr>
                             <td class="col-check"><input type="checkbox" name="sel[]" value="<?= e($k) ?>:<?= (int) $g['ids'][0] ?>" form="dev-doublons-form" class="row-check"></td>
                             <td><?= e($g['libelle']) ?></td>
-                            <td>#<?= (int) $g['ids'][0] ?></td>
-                            <td><?= e(implode(', #', array_map('strval', array_slice($g['ids'], 1)))) ?></td>
+                            <td><?= $lienFiche($k, (int) $g['ids'][0]) ?></td>
+                            <td><?= implode(', ', array_map(fn ($id) => $lienFiche($k, (int) $id), array_slice($g['ids'], 1))) ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -139,8 +150,8 @@ $resumeTotal = array_sum(array_column($resumeItems, 'n'));
                 <tr>
                     <td class="col-check"><input type="checkbox" name="sel[]" value="<?= (int) $g['ids'][0] ?>" form="dev-doublons-lieux-suspects-form" class="row-check"></td>
                     <td><?= e($g['libelle']) ?></td>
-                    <td>#<?= (int) $g['ids'][0] ?></td>
-                    <td><?= e(implode(', #', array_map('strval', array_slice($g['ids'], 1)))) ?></td>
+                    <td><?= $lienFiche('lieux', (int) $g['ids'][0]) ?></td>
+                    <td><?= implode(', ', array_map(fn ($id) => $lienFiche('lieux', (int) $id), array_slice($g['ids'], 1))) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
