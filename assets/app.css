@@ -231,7 +231,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .card.card-flush { padding: 0; overflow: hidden; position: relative; }
 .card-flush .card-edit { padding: 70px 26px 26px; }
 .loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 14px 16px; }
-.loc-header strong { font-size: 26px; color: var(--brand); }
+.loc-header strong { font-size: 32px; }
 
 /* Carte « Informations » (?p=evenement) : sans titre de cadre, la date et le
    spectacle en tiennent lieu visuellement. Le crayon/enregistrer/annuler
@@ -241,7 +241,19 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .card-editable { position: relative; }
 .card-actions-overlay { position: absolute; top: 26px; right: 26px; z-index: 1; }
 .info-date, .info-spectacle { padding-right: 110px; } /* dégage les boutons flottants (.card-actions-overlay) même pour un long nom de spectacle */
-.info-date { font-size: 26px; font-weight: 800; color: var(--brand); line-height: 1.2; }
+/* Même traitement visuel que le titre de page (h1, .page-head h1 — dégradé
+   de couleur en clip-text, gras, tracking resserré) : la date et le nom de
+   ville (carte Localisation, .loc-header strong) en tiennent lieu depuis que
+   le titre de page a été retiré en mode édition. */
+.info-date, .loc-header strong {
+    background: linear-gradient(150deg, var(--brand), var(--brand-2));
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+}
+.info-date { font-size: 32px; }
 .info-spectacle { font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px; }
 .kv-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
 .kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; padding: 8px 14px 8px 0; white-space: nowrap; vertical-align: top; width: 1%; }
@@ -266,6 +278,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    l'appli (--amber = « à faire »/en attente, --ok = confirmé/positif). */
 .ico-amber { color: var(--amber); }
 .ico-ok { color: var(--ok); }
+.ico-label { display: inline-flex; align-items: center; gap: 6px; }
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }

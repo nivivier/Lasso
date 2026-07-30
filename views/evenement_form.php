@@ -172,13 +172,13 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         <table class="kv-table">
             <tr>
                 <th>Statut</th>
-                <td><span class="<?php
+                <td><span class="ico-label <?php
                     echo match ((string) $evenement['statut']) { 'confirme' => 'ico-ok', 'annule' => 'muted', default => 'ico-amber' };
-                ?>" title="<?= e(evenement_statut_libelle((string) $evenement['statut'])) ?>"><?= icon(evenement_statut_icone((string) $evenement['statut'])) ?></span></td>
+                ?>"><?= icon(evenement_statut_icone((string) $evenement['statut'])) ?> <?= e(evenement_statut_libelle((string) $evenement['statut'])) ?></span></td>
             </tr>
             <tr>
                 <th>Audience</th>
-                <td><span title="<?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?>"><?= icon(evenement_visibilite_icone((string) $evenement['visibilite'])) ?></span></td>
+                <td><span class="ico-label"><?= icon(evenement_visibilite_icone((string) $evenement['visibilite'])) ?> <?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?></span></td>
             </tr>
             <tr>
                 <th>Salle à afficher</th>
@@ -202,45 +202,39 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
     <form method="post" id="informations-form" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <div class="grid4">
-            <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
-            <label><?= e(evenements_terme_spectacle(false)) ?>
-                <select name="spectacle_id">
-                    <option value="">—</option>
-                    <?php foreach ($spectacles as $s): ?>
-                        <option value="<?= (int) $s['id'] ?>" <?= $vRaw('spectacle_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>Statut
-                <select name="statut">
-                    <?php foreach (EVENEMENTS_STATUTS as $s): ?>
-                        <option value="<?= $s ?>" <?= $vRaw('statut', 'option') === $s ? 'selected' : '' ?>><?= e(evenement_statut_libelle($s)) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <div class="field-group">
-                <span>Audience <?= info_tip(
-                    "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
-                    . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
-                    . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
-                ) ?></span>
-                <?= icon_picker('visibilite', [
-                    'public'         => ['icone' => 'earth', 'label' => evenement_visibilite_libelle('public')],
-                    'prive'          => ['icone' => 'earth-lock', 'label' => evenement_visibilite_libelle('prive')],
-                    'non_repertorie' => ['icone' => 'globe-off', 'label' => evenement_visibilite_libelle('non_repertorie')],
-                ], $vRaw('visibilite', 'non_repertorie'), "Audience") ?>
-            </div>
+        <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
+        <label><?= e(evenements_terme_spectacle(false)) ?>
+            <select name="spectacle_id">
+                <option value="">—</option>
+                <?php foreach ($spectacles as $s): ?>
+                    <option value="<?= (int) $s['id'] ?>" <?= $vRaw('spectacle_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Statut
+            <select name="statut">
+                <?php foreach (EVENEMENTS_STATUTS as $s): ?>
+                    <option value="<?= $s ?>" <?= $vRaw('statut', 'option') === $s ? 'selected' : '' ?>><?= e(evenement_statut_libelle($s)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <div class="field-group">
+            <span>Audience <?= info_tip(
+                "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
+                . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
+                . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
+            ) ?></span>
+            <?= icon_picker('visibilite', [
+                'public'         => ['icone' => 'earth', 'label' => evenement_visibilite_libelle('public')],
+                'prive'          => ['icone' => 'earth-lock', 'label' => evenement_visibilite_libelle('prive')],
+                'non_repertorie' => ['icone' => 'globe-off', 'label' => evenement_visibilite_libelle('non_repertorie')],
+            ], $vRaw('visibilite', 'non_repertorie'), "Audience") ?>
         </div>
-        <div class="grid4">
-            <label>Salle <input name="salle" value="<?= $v('salle') ?>"></label>
-            <label>Festival <input name="festival" value="<?= $v('festival') ?>"></label>
-            <label>Lien <input type="url" name="lien_infos" value="<?= $v('lien_infos') ?>" placeholder="https://…"></label>
-            <label>Texte du bouton de lien <input name="lien_texte" value="<?= $v('lien_texte') ?>" placeholder="Plus d'informations"></label>
-        </div>
-        <div class="grid3">
-            <label>Remarques <input name="remarques" value="<?= $v('remarques') ?>"></label>
-        </div>
+        <label>Salle <input name="salle" value="<?= $v('salle') ?>"></label>
+        <label>Festival <input name="festival" value="<?= $v('festival') ?>"></label>
+        <label>Lien <input type="url" name="lien_infos" value="<?= $v('lien_infos') ?>" placeholder="https://…"></label>
+        <label>Texte du bouton de lien <input name="lien_texte" value="<?= $v('lien_texte') ?>" placeholder="Plus d'informations"></label>
+        <label>Remarques <input name="remarques" value="<?= $v('remarques') ?>"></label>
     </form>
 </div>
 <div class="card card-flush card-editable" id="carte-localisation">
@@ -553,26 +547,30 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 
 <div class="grid3 mt-22">
 <div class="card">
-    <h2 class="mt-0">SUISA <?= evenement_suisa_badge($evenement) ?></h2>
-    <?php if ($ok === 'suisa'): ?><p class="ok flash">SUISA enregistré.</p><?php endif; ?>
-    <form method="post" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
+    <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
+    <div class="page-head">
+        <h2 class="mt-0">SUISA <?= evenement_suisa_badge($evenement) ?></h2>
         <label class="check">
-            <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" <?= $suisaApplicable ? 'checked' : '' ?>>
+            <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" form="suisa-form" <?= $suisaApplicable ? 'checked' : '' ?>>
             s'applique
         </label>
-        <div class="grid3" id="suisa-champs" <?= $suisaApplicable ? '' : 'hidden' ?>>
-            <label>Envoyée à
-                <select name="suisa_envoye_a" <?= $suisaApplicable ? '' : 'disabled' ?>>
-                    <option value="">—</option>
-                    <?php foreach (EVENEMENTS_SUISA_ENVOYE_A as $ea): ?>
-                        <option value="<?= e($ea) ?>" <?= $vRaw('suisa_envoye_a') === $ea ? 'selected' : '' ?>><?= e(evenement_suisa_envoye_a_libelle($ea)) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
+    </div>
+    <?php if ($ok === 'suisa'): ?><p class="ok flash">SUISA enregistré.</p><?php endif; ?>
+    <form method="post" id="suisa-form" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <div id="suisa-champs" <?= $suisaApplicable ? '' : 'hidden' ?>>
+            <div class="grid2">
+                <label>Envoyée à
+                    <select name="suisa_envoye_a" <?= $suisaApplicable ? '' : 'disabled' ?>>
+                        <option value="">—</option>
+                        <?php foreach (EVENEMENTS_SUISA_ENVOYE_A as $ea): ?>
+                            <option value="<?= e($ea) ?>" <?= $vRaw('suisa_envoye_a') === $ea ? 'selected' : '' ?>><?= e(evenement_suisa_envoye_a_libelle($ea)) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
+            </div>
             <label>Date du décompte <input type="date" name="suisa_decompte_le" value="<?= $v('suisa_decompte_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
         </div>
         <div class="form-actions">

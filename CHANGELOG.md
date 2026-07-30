@@ -7,7 +7,10 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [1.17.2] — 2026-07-30
+## [1.17.3] — 2026-07-30
+
+### Modifié
+- **Fiche événement (édition), derniers réglages d'affichage** : la date (carte Informations) et le nom de ville (carte Localisation) reprennent le style du titre de page (dégradé de couleur, gras, 32px) plutôt qu'une taille ad hoc. Édition de la carte Informations : un champ par ligne au lieu de plusieurs colonnes. Statut et audience affichent désormais leur texte à côté de l'icône (plus icône seule). Carte SUISA : la case « s'applique » est en haut à droite du cadre (plus dans le formulaire) ; « Envoyée à » et « Date d'envoi » sur une ligne, « Date du décompte » sur la suivante.
 
 ### Modifié
 - **Fiche événement (édition), suite des finitions** : boutons raccourcis en un mot (« Créer », « Ajouter », « Lier » — ce dernier avec une icône de lien) ; carte SUISA renommée en « SUISA » et sa case à cocher en « s'applique ». Carte « Informations » sans titre de cadre : la date (grande, en gras, colorée) et le spectacle (gras) en tiennent lieu, suivis d'un tableau Statut/Audience/Salle à afficher/Festival à afficher/Lien/Remarques ; le crayon/enregistrer/annuler flottent désormais en haut à droite de la carte (superposés) plutôt que dans une ligne d'en-tête dédiée, pour que la date démarre tout en haut sans vide au-dessus. La carte « Localisation » est désormais juste après « Informations » (avant « Organisation ») ; le nom de la ville y est mis en valeur (même taille que la date) et son en-tête flottant colle enfin aux bords de la carte (correctif : `.card-flush` était écrasé par le `padding: 26px` de `.card`, même spécificité CSS, faute d'un sélecteur à deux classes). En édition de la localisation, ville et département/canton sur une ligne, région et pays sur la suivante. Le titre de page (« date : spectacle, ville ») est retiré (redondant avec la carte Informations) ; le bouton Supprimer rejoint le lien de retour sur la même ligne.
