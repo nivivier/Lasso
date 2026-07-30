@@ -804,3 +804,55 @@ function importer_evenements_csv(string $csv, bool $simule): array
     }
     return [$resultats, $resume];
 }
+
+// ---------------------------------------------------------------------------
+// Lieux et organisateurs multiples (carte « Organisation », voir migration_58)
+// ---------------------------------------------------------------------------
+
+// Lieux rattachés à un événement, dans l'ordre où ils ont été liés.
+function evenement_lieux_lies(int $evenementId): array
+{
+    $stmt = db()->prepare(
+        'SELECT l.id, l.nom, l.ville, l.type FROM lieux l
+         JOIN evenement_lieux el ON el.lieu_id = l.id
+         WHERE el.evenement_id = ? ORDER BY el.id'
+    );
+    $stmt->execute([$evenementId]);
+    return $stmt->fetchAll();
+}
+
+// Organisateurs (structures) rattachés à un événement, dans l'ordre où ils
+// ont été liés.
+function evenement_organisateurs_lies(int $evenementId): array
+{
+    $stmt = db()->prepare(
+        'SELECT s.* FROM structures s
+         JOIN evenement_organisateurs eo ON eo.structure_id = s.id
+         WHERE eo.evenement_id = ? ORDER BY eo.id'
+    );
+    $stmt->execute([$evenementId]);
+    return $stmt->fetchAll();
+}
+
+// Recale evenements.lieu_id / organisateur_structure_id sur le premier
+// lieu/organisateur lié (le plus ancien, MIN(id) dans la table de jointure —
+// NULL si plus aucun) : ces deux colonnes sont conservées comme miroir pour
+// tout le code qui les lit encore seules (fiche lieu/structure « événements
+// liés », pré-remplissage facture, export CSV SUISA, outil de rattrapage
+// Incohérences) — jamais mis à jour directement ailleurs que via cette
+// fonction, appelée après toute modification de evenement_lieux/
+// evenement_organisateurs.
+function evenement_resynchroniser_miroirs(int $evenementId): void
+{
+    $stmtL = db()->prepare('SELECT lieu_id FROM evenement_lieux WHERE evenement_id = ? ORDER BY id LIMIT 1');
+    $stmtL->execute([$evenementId]);
+    $lieuId = $stmtL->fetchColumn();
+    db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?')
+        ->execute([$lieuId !== false ? (int) $lieuId : null, $evenementId]);
+
+    $stmtO = db()->prepare('SELECT structure_id FROM evenement_organisateurs WHERE evenement_id = ? ORDER BY id LIMIT 1');
+    $stmtO->execute([$evenementId]);
+    $structureId = $stmtO->fetchColumn();
+    db()->prepare('UPDATE evenements SET organisateur_structure_id = ? WHERE id = ?')
+        ->execute([$structureId !== false ? (int) $structureId : null, $evenementId]);
+}

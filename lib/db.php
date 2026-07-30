@@ -353,6 +353,7 @@ function run_migrations(PDO $pdo): void
         55 => 'migration_55', // module booking : structures.flag / lieux.flag (marquage rapide étoile/cœur)
         56 => 'migration_56', // renomme evenements/structures/lieux.region → departement_canton (clarté vs grande_region)
         57 => 'migration_57', // géocodage : departement_canton entre dans la clé de cache (désambiguïse les homonymes, ex. Bonneville)
+        58 => 'migration_58', // module évenements : lieux/organisateurs multiples (evenement_lieux, evenement_organisateurs)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1898,6 +1899,43 @@ function migration_57(PDO $pdo): void
     if (!in_array('departement_canton', $cols, true)) {
         $pdo->exec("ALTER TABLE lieux_geocodage ADD COLUMN departement_canton TEXT NOT NULL DEFAULT ''");
         $pdo->exec('DELETE FROM lieux_geocodage');
+    }
+}
+
+// Migration 58 : un événement peut être rattaché à plusieurs lieux et
+// plusieurs organisateurs (jusqu'ici : un seul de chaque, evenements.lieu_id/
+// organisateur_structure_id) — voir lib/routes_evenements.php
+// route_evenement_organisation(). Les deux colonnes existantes sont
+// conservées comme miroir du premier lieu/organisateur lié (MIN(id) dans la
+// table de jointure), pour que tout le code qui les lit déjà (fiche lieu/
+// structure « événements liés », pré-remplissage facture, export SUISA,
+// outil de rattrapage Incohérences) continue de fonctionner sans changement.
+function migration_58(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS evenement_lieux (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            evenement_id INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+            lieu_id      INTEGER NOT NULL REFERENCES lieux(id) ON DELETE CASCADE,
+            UNIQUE(evenement_id, lieu_id)
+        );
+        CREATE TABLE IF NOT EXISTS evenement_organisateurs (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            evenement_id INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+            structure_id INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            UNIQUE(evenement_id, structure_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_evenement_lieux_evenement ON evenement_lieux(evenement_id);
+        CREATE INDEX IF NOT EXISTS idx_evenement_organisateurs_evenement ON evenement_organisateurs(evenement_id);
+    ");
+
+    $insL = $pdo->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)');
+    foreach ($pdo->query('SELECT id, lieu_id FROM evenements WHERE lieu_id IS NOT NULL')->fetchAll() as $r) {
+        $insL->execute([(int) $r['id'], (int) $r['lieu_id']]);
+    }
+    $insO = $pdo->prepare('INSERT OR IGNORE INTO evenement_organisateurs (evenement_id, structure_id) VALUES (?, ?)');
+    foreach ($pdo->query('SELECT id, organisateur_structure_id FROM evenements WHERE organisateur_structure_id IS NOT NULL')->fetchAll() as $r) {
+        $insO->execute([(int) $r['id'], (int) $r['organisateur_structure_id']]);
     }
 }
 

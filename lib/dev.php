@@ -583,8 +583,12 @@ function evenements_lieux_lier(array $univoques): int
             if (count($d['candidats']) !== 1) {
                 continue; // relecture défensive : la répartition doit déjà garantir l'unicité
             }
-            db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?')
-                ->execute([$d['candidats'][0]['id'], $d['evenement_id']]);
+            // Table de jointure (voir migration_58) — pas seulement la colonne
+            // miroir lieu_id, sinon le lieu resterait invisible dans la carte
+            // « Organisation » (?p=evenement, qui lit evenement_lieux).
+            db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)')
+                ->execute([$d['evenement_id'], $d['candidats'][0]['id']]);
+            evenement_resynchroniser_miroirs($d['evenement_id']);
             $n++;
         }
         db()->commit();
@@ -621,9 +625,12 @@ function evenements_lieux_creer(array $groupes): int
             db()->prepare('INSERT OR IGNORE INTO structure_lieux (structure_id, lieu_id) VALUES (?, ?)')
                 ->execute([$structureId, $lieuId]);
 
-            $stmtMaj = db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?');
+            // Table de jointure (voir migration_58), pas seulement la colonne
+            // miroir — même raison que evenements_lieux_lier() ci-dessus.
+            $stmtMaj = db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)');
             foreach ($g['evenements'] as $ev) {
-                $stmtMaj->execute([$lieuId, $ev['id']]);
+                $stmtMaj->execute([$ev['id'], $lieuId]);
+                evenement_resynchroniser_miroirs($ev['id']);
             }
             $n++;
         }

@@ -2,7 +2,8 @@
 /** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */ /** @var array $spectacleMap */
 /** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
 /** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
-/** @var array $factures */ /** @var array $facturesDispo */ /** @var ?array $organisateur */ /** @var array $structuresDispo */
+/** @var array $factures */ /** @var array $facturesDispo */
+/** @var array $lieuxLies */ /** @var array $organisateursLies */ /** @var array $structuresDispo */
 /** @var array $paysDisponibles */ /** @var array $axes */ /** @var ?string $err */ /** @var array $post */
 $isEdit = $id > 0;
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
@@ -15,8 +16,13 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 $ok = $_GET['ok'] ?? null;
 $errLigne = $_GET['errLigne'] ?? null;
 $errEmploye = $_GET['errEmploye'] ?? null;
-$errOrganisateur = $_GET['errOrganisateur'] ?? null;
+$errOrganisation = ($_GET['errOrganisation'] ?? null) === '1';
 $errProdExterne = $_GET['errProdExterne'] ?? null;
+$errInformationsMsg = [
+    'date'       => 'La date est invalide.',
+    'spectacle'  => 'Spectacle invalide.',
+    'lien'       => "Le lien doit être une URL valide (commençant par http:// ou https://).",
+][$_GET['errInformations'] ?? ''] ?? null;
 $prodExterne = (bool) ($evenement['production_externe'] ?? false);
 
 $confirmSuppr = null;
@@ -47,10 +53,16 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         $spectacles[] = ['id' => $spectacleActuelId, 'nom' => spectacle_chemin($spectacleActuelId, $spectacleMap) . ' (groupe, non réassignable)'];
     }
 }
+
+// Structures déjà liées comme organisateur, exclues du picker d'ajout
+// (carte « Organisation », édition) — inutile de proposer de relier ce qui
+// l'est déjà.
+$organisateursLiesIds = array_column($organisateursLies, 'id');
+$structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !in_array((int) $d['id'], $organisateursLiesIds, true)));
 ?>
 <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
-    <h1><?= $isEdit ? "Modifier l'événement" : 'Nouvel événement' ?></h1>
+    <h1><?= $isEdit ? e(evenement_titre_page($evenement)) : 'Nouvel événement' ?></h1>
     <?php if ($isEdit): ?>
     <div class="head-actions">
         <form method="post" action="?p=evenement_delete" class="d-inline" onsubmit="return confirm(<?= e(json_encode($confirmSuppr, JSON_UNESCAPED_UNICODE)) ?>);">
@@ -64,12 +76,13 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
+<?php if (!$isEdit): ?>
+<!-- Création : formulaire unique, inchangé — le multi-cadre lecture/édition
+     ci-dessous n'a de sens qu'une fois l'événement déjà renseigné. -->
 <div class="card">
     <h2 class="mt-0">Informations</h2>
-    <?php if ($ok === 'infos'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
-    <form method="post" action="?p=evenement<?= $isEdit ? '&id=' . (int) $id : '' ?><?= $depuisQs ?>" class="form">
+    <form method="post" action="?p=evenement<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= (int) $id ?>"><?php endif; ?>
 
         <div class="grid4">
             <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
@@ -120,7 +133,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
             <label>Salle <input name="salle" value="<?= $v('salle') ?>"></label>
             <label>Festival <input name="festival" value="<?= $v('festival') ?>"></label>
             <?php if ($peutLierLieu): ?>
-            <label><span>Lieu (base) <?= info_tip("Rattacher l'événement à un lieu de la base (booking) : il apparaîtra dans l'historique du lieu et de sa structure. Laisser vide pour ne pas lier.") ?></span>
+            <label><span>Lieu (base) <?= info_tip("Rattacher l'événement à un lieu de la base (booking) : il apparaîtra dans l'historique du lieu et de sa structure. Laisser vide pour ne pas lier. D'autres lieux pourront être ajoutés une fois l'événement créé, depuis la carte « Organisation ».") ?></span>
                 <div class="cat-search" id="evt-lieu-search">
                     <input type="text" class="cat-search-input" placeholder="Rechercher un lieu…" autocomplete="off" value="<?= $lieuActuel ? e((string) $lieuActuel['nom'] . ((string) $lieuActuel['ville'] !== '' ? ' — ' . (string) $lieuActuel['ville'] : '')) : '' ?>">
                     <input type="hidden" name="lieu_id" class="cat-search-val" value="<?= $lieuActuel ? (int) $lieuActuel['id'] : '' ?>">
@@ -141,47 +154,73 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         </div>
     </form>
 </div>
+<?php else: ?>
 
-<?php if ($isEdit && trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
-<div class="card mt-22">
-    <h2 class="mt-0">Localisation</h2>
-    <?php
-    $miniCarteVille = (string) $evenement['ville'];
-    $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
-    $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
-    $miniCarteRetourRoute = 'evenement';
-    $miniCarteRetourId = (int) $id;
-    require __DIR__ . '/_mini_carte.php';
-    ?>
-</div>
-<?php endif; ?>
-
-<?php if ($isEdit): ?>
-<div class="card mt-22">
+<div class="grid3">
+<div class="card card-editable" id="carte-informations">
     <div class="page-head">
-        <h2 class="mt-0">Suivi SUISA</h2>
-        <?= evenement_suisa_badge($evenement) ?>
+        <h2 class="mt-0">Informations</h2>
+        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
     </div>
-    <?php if ($ok === 'suisa'): ?><p class="ok flash">Suivi SUISA enregistré.</p><?php endif; ?>
-    <form method="post" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
+    <?php if ($ok === 'informations'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
+    <?php if ($errInformationsMsg): ?><p class="err"><?= e($errInformationsMsg) ?></p><?php endif; ?>
+
+    <div class="card-disp">
+        <div class="grid4">
+            <p><span class="muted small">Date</span><br><?= e(date('d.m.Y', strtotime((string) $evenement['date']))) ?></p>
+            <p><span class="muted small"><?= e(evenements_terme_spectacle(false)) ?></span><br><?= $evenement['spectacle_nom'] ? e($evenement['spectacle_nom']) : '—' ?></p>
+            <p><span class="muted small">Statut</span><br><?= e(evenement_statut_libelle((string) $evenement['statut'])) ?></p>
+            <p><span class="muted small">Type d'audience</span><br><?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?></p>
+        </div>
+        <div class="grid4">
+            <p><span class="muted small">Salle à afficher</span><br><?= trim((string) $evenement['salle']) !== '' ? e($evenement['salle']) : '—' ?></p>
+            <p><span class="muted small">Festival à afficher</span><br><?= trim((string) $evenement['festival']) !== '' ? e($evenement['festival']) : '—' ?></p>
+            <p><span class="muted small">Lien</span><br><?php if (trim((string) $evenement['lien_infos']) !== ''): ?><a href="<?= e($evenement['lien_infos']) ?>" target="_blank" rel="noopener"><?= e($evenement['lien_texte'] ?: $evenement['lien_infos']) ?></a><?php else: ?>—<?php endif; ?></p>
+            <p><span class="muted small">Remarques</span><br><?= trim((string) $evenement['remarques']) !== '' ? e($evenement['remarques']) : '—' ?></p>
+        </div>
+    </div>
+
+    <form method="post" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
-        <label class="check">
-            <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" <?= $suisaApplicable ? 'checked' : '' ?>>
-            La SUISA s'applique à cet événement
-        </label>
-        <div class="grid3" id="suisa-champs" <?= $suisaApplicable ? '' : 'hidden' ?>>
-            <label>Envoyée à
-                <select name="suisa_envoye_a" <?= $suisaApplicable ? '' : 'disabled' ?>>
+        <div class="grid4">
+            <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
+            <label><?= e(evenements_terme_spectacle(false)) ?>
+                <select name="spectacle_id">
                     <option value="">—</option>
-                    <?php foreach (EVENEMENTS_SUISA_ENVOYE_A as $ea): ?>
-                        <option value="<?= e($ea) ?>" <?= $vRaw('suisa_envoye_a') === $ea ? 'selected' : '' ?>><?= e(evenement_suisa_envoye_a_libelle($ea)) ?></option>
+                    <?php foreach ($spectacles as $s): ?>
+                        <option value="<?= (int) $s['id'] ?>" <?= $vRaw('spectacle_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
-            <label>Date du décompte <input type="date" name="suisa_decompte_le" value="<?= $v('suisa_decompte_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
+            <label>Statut
+                <select name="statut">
+                    <?php foreach (EVENEMENTS_STATUTS as $s): ?>
+                        <option value="<?= $s ?>" <?= $vRaw('statut', 'option') === $s ? 'selected' : '' ?>><?= e(evenement_statut_libelle($s)) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <div class="field-group">
+                <span>Type d'audience <?= info_tip(
+                    "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
+                    . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
+                    . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
+                ) ?></span>
+                <?= icon_picker('visibilite', [
+                    'public'         => ['icone' => 'earth', 'label' => evenement_visibilite_libelle('public')],
+                    'prive'          => ['icone' => 'earth-lock', 'label' => evenement_visibilite_libelle('prive')],
+                    'non_repertorie' => ['icone' => 'globe-off', 'label' => evenement_visibilite_libelle('non_repertorie')],
+                ], $vRaw('visibilite', 'non_repertorie'), "Type d'audience") ?>
+            </div>
+        </div>
+        <div class="grid4">
+            <label>Salle <input name="salle" value="<?= $v('salle') ?>"></label>
+            <label>Festival <input name="festival" value="<?= $v('festival') ?>"></label>
+            <label>Lien <input type="url" name="lien_infos" value="<?= $v('lien_infos') ?>" placeholder="https://…"></label>
+            <label>Texte du bouton de lien <input name="lien_texte" value="<?= $v('lien_texte') ?>" placeholder="Plus d'informations"></label>
+        </div>
+        <div class="grid3">
+            <label>Remarques <input name="remarques" value="<?= $v('remarques') ?>"></label>
         </div>
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
@@ -190,27 +229,154 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     </form>
 </div>
 
-<?php if ($axes): ?>
-<div class="card mt-22">
-    <h2 class="mt-0">Comptabilité analytique</h2>
-    <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
-    <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" class="form">
+<?php if ($peutLierLieu || module_actif('facturation')): ?>
+<div class="card card-editable" id="carte-organisation">
+    <div class="page-head">
+        <h2 class="mt-0">Organisation</h2>
+        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+    </div>
+    <?php if ($ok === 'organisation'): ?><p class="ok flash">Organisation enregistrée.</p><?php endif; ?>
+    <?php if ($errOrganisation): ?><p class="err">Le nom de la nouvelle structure est obligatoire.</p><?php endif; ?>
+
+    <div class="card-disp">
+        <?php if ($peutLierLieu): ?>
+        <p><span class="muted small">Lieu(x)</span><br>
+        <?php if (!$lieuxLies): ?><span class="muted small">Aucun lieu lié.</span>
+        <?php else: foreach ($lieuxLies as $l): ?>
+            <a href="?p=lieu&id=<?= (int) $l['id'] ?>" class="badge"><?= e($l['nom']) ?><?= trim((string) $l['ville']) !== '' ? ' — ' . e($l['ville']) : '' ?></a>
+        <?php endforeach; endif; ?>
+        </p>
+        <?php endif; ?>
+        <?php if (module_actif('facturation')): ?>
+        <p><span class="muted small">Organisateur(s)</span><br>
+        <?php if (!$organisateursLies): ?><span class="muted small">Aucun organisateur lié.</span>
+        <?php else: foreach ($organisateursLies as $o): ?>
+            <a href="?p=structure&id=<?= (int) $o['id'] ?>" class="badge"><?= e($o['nom']) ?></a>
+        <?php endforeach; endif; ?>
+        </p>
+        <?php endif; ?>
+    </div>
+
+    <form method="post" action="?p=evenement_organisation<?= $depuisQs ?>" class="card-edit form" hidden id="organisation-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <label><span>Axe par défaut <?= info_tip(
-            "Présélectionné pour les nouvelles prestations ajoutées ci-dessous et pour les lignes "
-            . "d'une facture créée depuis cet événement. Modifiable au cas par cas ensuite, sans "
-            . "effet rétroactif sur les prestations ou factures déjà enregistrées."
-        ) ?></span>
-            <?= $axeSelect('axe_analytique_id_defaut', '', (int) ($evenement['axe_analytique_id_defaut'] ?? 0)) ?>
+
+        <?php if ($peutLierLieu): ?>
+        <label>Lieu(x)
+            <div class="tags-liste" id="organisation-lieux-chips">
+                <?php foreach ($lieuxLies as $l): ?>
+                    <span class="badge" data-id="<?= (int) $l['id'] ?>"><?= e($l['nom']) ?><?= trim((string) $l['ville']) !== '' ? ' — ' . e($l['ville']) : '' ?>
+                        <input type="hidden" name="lieu_ids[]" value="<?= (int) $l['id'] ?>">
+                        <button type="button" class="btn-tag-x chip-remove" aria-label="Retirer">×</button>
+                    </span>
+                <?php endforeach; ?>
+            </div>
+            <div class="cat-search" id="evt-lieu-add-search">
+                <input type="text" class="cat-search-input" placeholder="Ajouter un lieu…" autocomplete="off">
+                <input type="hidden" class="cat-search-val" value="">
+                <ul class="cat-search-list" hidden role="listbox"></ul>
+            </div>
         </label>
+        <?php endif; ?>
+
+        <?php if (module_actif('facturation')): ?>
+        <label>Organisateur(s)
+            <div class="tags-liste" id="organisation-structures-chips">
+                <?php foreach ($organisateursLies as $o): ?>
+                    <span class="badge" data-id="<?= (int) $o['id'] ?>"><?= e($o['nom']) ?>
+                        <input type="hidden" name="structure_ids[]" value="<?= (int) $o['id'] ?>">
+                        <button type="button" class="btn-tag-x chip-remove" aria-label="Retirer">×</button>
+                    </span>
+                <?php endforeach; ?>
+            </div>
+            <div class="cat-search organisateur-search" id="evt-organisateur-add-search">
+                <input type="text" class="cat-search-input" placeholder="Ajouter un organisateur…" autocomplete="off">
+                <input type="hidden" class="cat-search-val" value="">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="__new__">+ Nouvelle structure</li>
+                    <?php foreach ($structuresDispoAjout as $d): ?>
+                        <li data-val="<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <div id="organisation-nouveau" class="grid2" hidden>
+                <label>Nom / raison sociale <input name="org_nom"></label>
+                <label>Type
+                    <select name="org_type">
+                        <option value="organisation">Organisation</option>
+                        <option value="particulier">Particulier</option>
+                    </select>
+                </label>
+                <label>Rue et numéro <input name="org_adresse_rue"></label>
+                <label>NPA <input name="org_adresse_npa"></label>
+                <label>Localité <input name="org_adresse_localite"></label>
+                <label>Pays <select name="org_adresse_pays"><?= pays_options_nom('Suisse') ?></select></label>
+                <label>E-mail (optionnel) <input name="org_email" type="email"></label>
+                <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
+                <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
+            </div>
+        </label>
+        <?php endif; ?>
+
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
+            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
         </div>
     </form>
 </div>
 <?php endif; ?>
 
+<div class="card card-editable" id="carte-localisation">
+    <div class="page-head">
+        <h2 class="mt-0">Localisation</h2>
+        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+    </div>
+    <?php if ($ok === 'localisation'): ?><p class="ok flash">Localisation enregistrée.</p><?php endif; ?>
+
+    <div class="card-disp">
+        <?php $drapeauEv = pays_drapeau((string) $evenement['pays']); ?>
+        <?php $villeHtmlEv = ville_departement_canton_html((string) $evenement['ville'], $drapeauEv, (string) $evenement['pays'], (string) $evenement['departement_canton']); ?>
+        <p><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></p>
+        <?php if (trim((string) $evenement['grande_region']) !== ''): ?><p class="muted small"><?= e($evenement['grande_region']) ?></p><?php endif; ?>
+    </div>
+
+    <form method="post" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <div class="grid4">
+            <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
+            <label>Département/canton, région et pays
+                <div class="field-pair">
+                    <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="canton ou département">
+                    <select name="grande_region" class="region-select" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
+                        <option value="">— Région —</option>
+                        <?= region_options_nom(pays_nom_depuis_code($vRaw('pays')), $v('grande_region')) ?>
+                    </select>
+                    <select name="pays" class="pays-select">
+                        <option value="">—</option>
+                        <?= pays_options_code($vRaw('pays')) ?>
+                    </select>
+                </div>
+            </label>
+        </div>
+        <div class="form-actions">
+            <button type="submit"><?= icon('save') ?> Enregistrer</button>
+            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
+        </div>
+    </form>
+
+    <?php if (trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
+        <?php
+        $miniCarteVille = (string) $evenement['ville'];
+        $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
+        $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
+        $miniCarteRetourRoute = 'evenement';
+        $miniCarteRetourId = (int) $id;
+        require __DIR__ . '/_mini_carte.php';
+        ?>
+    <?php endif; ?>
+</div>
+</div>
 <div class="card mt-22" id="carte-employes">
     <div class="page-head">
         <h2 class="mt-0">Employés <?= info_tip(
@@ -364,74 +530,59 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     <?php endif; ?>
 </div>
 
-<?php if (module_actif('facturation')): ?>
-<div class="card mt-22">
-    <h2 class="mt-0">Organisateur <?= info_tip(
-        "Structure à facturer pour cet événement (recherchée parmi les structures existantes, ou créée "
-        . "à la volée). Présélectionnée à la création d'une facture liée. Un seul organisateur à la "
-        . "fois : relier une autre structure remplace la précédente."
-    ) ?></h2>
-    <?php if ($ok === 'organisateur'): ?><p class="ok flash">Organisateur enregistré.</p><?php endif; ?>
-    <?php if ($errOrganisateur === '1'): ?><p class="err">Le nom de la nouvelle structure est obligatoire.</p><?php endif; ?>
-
-    <?php if ($organisateur):
-        $adrOrg = trim($organisateur['adresse_rue'] . ' ' . trim($organisateur['adresse_npa'] . ' ' . $organisateur['adresse_localite']));
-    ?>
-        <div class="linked-add">
-            <span>
-                <strong><?= e($organisateur['nom']) ?></strong>
-                <?php if ($adrOrg !== ''): ?><span class="muted small"> — <?= e($adrOrg) ?></span><?php endif; ?>
-                <?php if ($organisateur['email']): ?><span class="muted small"> — <?= e($organisateur['email']) ?></span><?php endif; ?>
-                <?php if ($organisateur['telephone']): ?><span class="muted small"> — <?= e($organisateur['telephone']) ?></span><?php endif; ?>
-                <?php if ($organisateur['personne_contact']): ?><span class="muted small"> — <?= e($organisateur['personne_contact']) ?></span><?php endif; ?>
-            </span>
-            <a class="btn ghost btn-sm" href="?p=structure&id=<?= (int) $organisateur['id'] ?>">Voir la fiche</a>
-            <form method="post" action="?p=evenement_organisateur_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cet organisateur ?');">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="id" value="<?= (int) $id ?>">
-                <button type="submit" class="btn ghost btn-sm icon-only" title="Délier" aria-label="Délier"><?= icon('x') ?></button>
-            </form>
-        </div>
-    <?php else: ?>
-        <p class="muted small">Aucun organisateur lié.</p>
-    <?php endif; ?>
-
-    <form method="post" action="?p=evenement_organisateur_lier<?= $depuisQs ?>" class="linked-add" id="organisateur-form">
+<div class="grid3 mt-22">
+<div class="card">
+    <h2 class="mt-0">Suivi SUISA <?= evenement_suisa_badge($evenement) ?></h2>
+    <?php if ($ok === 'suisa'): ?><p class="ok flash">Suivi SUISA enregistré.</p><?php endif; ?>
+    <form method="post" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <div class="cat-search organisateur-search">
-            <input type="text" class="cat-search-input" placeholder="Rechercher une structure…" autocomplete="off">
-            <input type="hidden" name="structure_id" class="cat-search-val" value="">
-            <ul class="cat-search-list" hidden role="listbox">
-                <li data-val="__new__">+ Nouvelle structure</li>
-                <?php foreach ($structuresDispo as $d): ?>
-                    <li data-val="<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <button type="submit" class="btn ghost btn-sm"><?= $organisateur ? 'Changer' : 'Lier' ?> l'organisateur</button>
-
-        <div id="organisateur-nouveau" class="grid2" hidden>
-            <label>Nom / raison sociale <input name="org_nom"></label>
-            <label>Type
-                <select name="org_type">
-                    <option value="organisation">Organisation</option>
-                    <option value="particulier">Particulier</option>
+        <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
+        <label class="check">
+            <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" <?= $suisaApplicable ? 'checked' : '' ?>>
+            La SUISA s'applique à cet événement
+        </label>
+        <div class="grid3" id="suisa-champs" <?= $suisaApplicable ? '' : 'hidden' ?>>
+            <label>Envoyée à
+                <select name="suisa_envoye_a" <?= $suisaApplicable ? '' : 'disabled' ?>>
+                    <option value="">—</option>
+                    <?php foreach (EVENEMENTS_SUISA_ENVOYE_A as $ea): ?>
+                        <option value="<?= e($ea) ?>" <?= $vRaw('suisa_envoye_a') === $ea ? 'selected' : '' ?>><?= e(evenement_suisa_envoye_a_libelle($ea)) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </label>
-            <label>Rue et numéro <input name="org_adresse_rue"></label>
-            <label>NPA <input name="org_adresse_npa"></label>
-            <label>Localité <input name="org_adresse_localite"></label>
-            <label>Pays <select name="org_adresse_pays"><?= pays_options_nom('Suisse') ?></select></label>
-            <label>E-mail (optionnel) <input name="org_email" type="email"></label>
-            <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
-            <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
+            <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
+            <label>Date du décompte <input type="date" name="suisa_decompte_le" value="<?= $v('suisa_decompte_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
+        </div>
+        <div class="form-actions">
+            <button type="submit"><?= icon('save') ?> Enregistrer</button>
+            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
+        </div>
+    </form>
+</div>
+
+<?php if ($axes): ?>
+<div class="card">
+    <h2 class="mt-0">Comptabilité analytique</h2>
+    <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
+    <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" class="form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <label><span>Axe par défaut <?= info_tip(
+            "Présélectionné pour les nouvelles prestations ajoutées ci-dessous et pour les lignes "
+            . "d'une facture créée depuis cet événement. Modifiable au cas par cas ensuite, sans "
+            . "effet rétroactif sur les prestations ou factures déjà enregistrées."
+        ) ?></span>
+            <?= $axeSelect('axe_analytique_id_defaut', '', (int) ($evenement['axe_analytique_id_defaut'] ?? 0)) ?>
+        </label>
+        <div class="form-actions">
+            <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
 </div>
 <?php endif; ?>
 
-<div class="card mt-22">
+<div class="card">
     <div class="page-head">
         <h2 class="mt-0">Factures liées</h2>
         <?php if (module_actif('facturation')): ?>
@@ -482,10 +633,25 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         </form>
     <?php endif; ?>
 </div>
+</div>
 <?php endif; ?>
 
 <script>
 (function () {
+    // Cadres lecture/édition (Informations, Organisation, Localisation) :
+    // un seul script générique pour les 3 (même esprit que le « tout cocher »
+    // de l'onglet Incohérences) — le bouton crayon révèle .card-edit et masque
+    // .card-disp, jamais l'inverse tant qu'on ne recharge pas la page
+    // (« Annuler » est un simple lien vers la page elle-même : voir plus haut).
+    document.querySelectorAll('.card-edit-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const card = btn.closest('.card-editable');
+            card.querySelector('.card-disp').hidden = true;
+            card.querySelector('.card-edit').hidden = false;
+            btn.hidden = true;
+        });
+    });
+
     const suisaCheck = document.getElementById('suisa-applicable');
     if (suisaCheck) {
         const suisaChamps = document.getElementById('suisa-champs');
@@ -592,37 +758,13 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         });
     });
 
-    // Organisateur (carte du même nom) : même widget de recherche, avec en plus
-    // une option « + Nouvelle structure » qui révèle les champs de création rapide.
-    const organisateurWrap = document.querySelector('.organisateur-search');
-    if (organisateurWrap) {
-        const orgInput   = organisateurWrap.querySelector('.cat-search-input');
-        const orgHidden  = organisateurWrap.querySelector('.cat-search-val');
-        const orgNouveau = document.getElementById('organisateur-nouveau');
-        lassoInitCatSearch(organisateurWrap, {
-            showPlaceholderText: true,
-            clearHiddenOnInput: true,
-            onSelect: li => {
-                orgInput.setCustomValidity('');
-                orgNouveau.hidden = li.dataset.val !== '__new__';
-            },
-        });
-        document.getElementById('organisateur-form').addEventListener('submit', e => {
-            if (!orgHidden.value) {
-                orgInput.setCustomValidity('Veuillez choisir une structure dans la liste, ou « + Nouvelle structure »');
-                orgInput.reportValidity();
-                e.preventDefault();
-            }
-        });
-    }
-
-    // Lieu (base) : widget de recherche alimenté à la demande via ?p=lieux_options
-    // au premier focus (potentiellement des milliers de lieux → pas d'injection
-    // dans la page). Effacer le champ vide le lien (clearHiddenOnInput).
-    const lieuWrap = document.getElementById('evt-lieu-search');
-    if (lieuWrap && window.lassoInitCatSearch) {
-        const lieuList = lieuWrap.querySelector('.cat-search-list');
-        const lieuInput = lieuWrap.querySelector('.cat-search-input');
+    // Lieu (base), recherche à la création (un seul lieu à ce stade) : widget
+    // alimenté à la demande via ?p=lieux_options au premier focus (potentiellement
+    // des milliers de lieux → pas d'injection dans la page).
+    const lieuWrapCreation = document.getElementById('evt-lieu-search');
+    if (lieuWrapCreation && window.lassoInitCatSearch) {
+        const lieuList = lieuWrapCreation.querySelector('.cat-search-list');
+        const lieuInput = lieuWrapCreation.querySelector('.cat-search-input');
         let lieuCharge = false;
         lieuInput.addEventListener('focus', function () {
             if (lieuCharge) { return; }
@@ -638,9 +780,90 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
                         frag.appendChild(li);
                     });
                     lieuList.appendChild(frag);
-                    lassoInitCatSearch(lieuWrap, { clearHiddenOnInput: true });
+                    lassoInitCatSearch(lieuWrapCreation, { clearHiddenOnInput: true });
                 })
                 .catch(function () { lieuCharge = false; });
+        });
+    }
+
+    // Carte « Organisation » (édition) : ajout/retrait de lieux/organisateurs en
+    // puces (« chips ») — rien n'est envoyé au serveur avant « Enregistrer »,
+    // contrairement aux anciennes routes lier/délier qui agissaient immédiatement.
+    function ajouterChip(chips, hiddenName, id, label) {
+        if (chips.querySelector('[data-id="' + id + '"]')) return;
+        const chip = document.createElement('span');
+        chip.className = 'badge';
+        chip.dataset.id = id;
+        chip.appendChild(document.createTextNode(label + ' '));
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = hiddenName; hidden.value = id;
+        chip.appendChild(hidden);
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button'; removeBtn.className = 'btn-tag-x chip-remove'; removeBtn.setAttribute('aria-label', 'Retirer'); removeBtn.textContent = '×';
+        chip.appendChild(removeBtn);
+        chips.appendChild(chip);
+    }
+    document.addEventListener('click', ev => {
+        const btn = ev.target.closest('.chip-remove');
+        if (btn) btn.closest('.badge').remove();
+    });
+
+    const orgWrap = document.getElementById('evt-organisateur-add-search');
+    if (orgWrap && window.lassoInitCatSearch) {
+        const orgChips = document.getElementById('organisation-structures-chips');
+        const orgInput = orgWrap.querySelector('.cat-search-input');
+        const orgHidden = orgWrap.querySelector('.cat-search-val');
+        const orgNouveau = document.getElementById('organisation-nouveau');
+        lassoInitCatSearch(orgWrap, {
+            clearHiddenOnInput: true,
+            onSelect: li => {
+                if (li.dataset.val === '__new__') {
+                    if (orgNouveau) orgNouveau.hidden = false;
+                } else {
+                    ajouterChip(orgChips, 'structure_ids[]', li.dataset.val, li.textContent);
+                }
+                // Réinitialiser tout de suite la valeur cachée du widget de
+                // recherche lui-même (pas seulement le texte affiché) : sinon
+                // le blur qui suit (~150 ms, cf. lassoInitCatSearch) retrouve
+                // l'ancien id et réaffiche son libellé dans le champ, comme si
+                // le dernier élément ajouté restait « sélectionné ».
+                orgHidden.value = '';
+                orgInput.value = '';
+            },
+        });
+    }
+
+    const lieuWrapOrga = document.getElementById('evt-lieu-add-search');
+    if (lieuWrapOrga && window.lassoInitCatSearch) {
+        const lieuChips = document.getElementById('organisation-lieux-chips');
+        const lieuListOrga = lieuWrapOrga.querySelector('.cat-search-list');
+        const lieuInputOrga = lieuWrapOrga.querySelector('.cat-search-input');
+        const lieuHiddenOrga = lieuWrapOrga.querySelector('.cat-search-val');
+        let lieuChargeOrga = false;
+        lieuInputOrga.addEventListener('focus', function () {
+            if (lieuChargeOrga) return;
+            lieuChargeOrga = true;
+            fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(function (opts) {
+                    const frag = document.createDocumentFragment();
+                    opts.forEach(function (o) {
+                        const li = document.createElement('li');
+                        li.dataset.val = o.id;
+                        li.textContent = o.nom;
+                        frag.appendChild(li);
+                    });
+                    lieuListOrga.appendChild(frag);
+                    lassoInitCatSearch(lieuWrapOrga, {
+                        clearHiddenOnInput: true,
+                        onSelect: li => {
+                            ajouterChip(lieuChips, 'lieu_ids[]', li.dataset.val, li.textContent);
+                            lieuHiddenOrga.value = '';
+                            lieuInputOrga.value = '';
+                        },
+                    });
+                })
+                .catch(function () { lieuChargeOrga = false; });
         });
     }
 })();

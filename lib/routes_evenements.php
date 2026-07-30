@@ -477,31 +477,29 @@ function route_evenement(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
 
-    // Carte « Organisateur » : structure à facturer pour cet événement (optionnel,
-    // un seul à la fois — voir route_evenement_organisateur_lier()).
-    $organisateur = null;
-    if ($id && module_actif('facturation') && !empty($evenement['organisateur_structure_id'])) {
-        $stmtOrg = db()->prepare('SELECT * FROM structures WHERE id = ?');
-        $stmtOrg->execute([(int) $evenement['organisateur_structure_id']]);
-        $organisateur = $stmtOrg->fetch() ?: null;
-    }
+    // Carte « Organisation » : lieux/organisateurs multiples (voir migration_58,
+    // evenement_lieux_lies()/evenement_organisateurs_lies() — lib/evenements.php).
+    $lieuxLies = $id ? evenement_lieux_lies($id) : [];
+    $organisateursLies = ($id && module_actif('facturation')) ? evenement_organisateurs_lies($id) : [];
     $structuresDispo = ($id && module_actif('facturation'))
         ? db()->query('SELECT * FROM structures WHERE actif = 1 ORDER BY nom')->fetchAll()
         : [];
 
-    // Lien vers un lieu de la base (module booking) — le lieu déjà rattaché, pour
-    // pré-remplir le sélecteur (chargé à la demande via ?p=lieux_options).
+    // Lien vers un lieu de la base (module booking) — recherche disponible dès
+    // la création (un seul lieu à ce stade, evenements.lieu_id) ; plusieurs
+    // lieux ne se gèrent qu'une fois l'événement créé, depuis la carte
+    // « Organisation » (chargée à la demande via ?p=lieux_options).
     $peutLierLieu = module_actif('booking') && peut_lire('booking');
     $lieuActuel = null;
-    if ($peutLierLieu && !empty($evenement['lieu_id'])) {
+    if (!$id && $peutLierLieu && !empty($_POST['lieu_id'])) {
         $stmtL = db()->prepare('SELECT id, nom, ville FROM lieux WHERE id = ?');
-        $stmtL->execute([(int) $evenement['lieu_id']]);
+        $stmtL->execute([(int) $_POST['lieu_id']]);
         $lieuActuel = $stmtL->fetch() ?: null;
     }
 
     $renderForm = function (?string $err) use (
         $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
-        $axes, $organisateur, $structuresDispo, $peutLierLieu, $lieuActuel
+        $axes, $lieuxLies, $organisateursLies, $structuresDispo, $peutLierLieu, $lieuActuel
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -516,7 +514,8 @@ function route_evenement(): void
             'tauxHoraires'   => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
             'factures'       => $id ? evenement_factures_liees($id) : [],
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
-            'organisateur'   => $organisateur,
+            'lieuxLies'      => $lieuxLies,
+            'organisateursLies' => $organisateursLies,
             'structuresDispo' => $structuresDispo,
             'peutLierLieu'   => $peutLierLieu,
             'lieuActuel'     => $lieuActuel,
@@ -524,7 +523,7 @@ function route_evenement(): void
             'axes'           => $axes,
             'err'            => $err,
             'post'           => $_POST,
-        ], $id ? "Modifier l'événement" : 'Nouvel événement');
+        ], $id ? evenement_titre_page($evenement) : 'Nouvel événement');
     };
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -532,9 +531,15 @@ function route_evenement(): void
         return;
     }
 
+    // Une fois l'événement créé, cette route ne gère plus l'enregistrement :
+    // chaque carte (Informations/Organisation/Localisation) se sauvegarde
+    // désormais séparément (route_evenement_informations()/_organisation()/
+    // _localisation()), en place, avec son propre bouton crayon.
+    if ($id) {
+        redirect('evenement', ['id' => $id]);
+    }
+
     check_csrf();
-    // Carte « Informations » uniquement — SUISA (route_evenement_suisa) et les
-    // liens employés/fiches/factures (routes dédiées) se sauvegardent séparément.
     $date = trim($_POST['date'] ?? '');
     $statut = valeur_autorisee($_POST['statut'] ?? '', EVENEMENTS_STATUTS, 'option');
     $visibilite = valeur_autorisee($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, 'non_repertorie');
@@ -558,14 +563,10 @@ function route_evenement(): void
     $lienTexte = trim($_POST['lien_texte'] ?? '');
     $remarques = trim($_POST['remarques'] ?? '');
 
-    // Un spectacle-parent (groupe/artiste) n'est jamais assignable — sauf s'il
-    // s'agit du spectacle déjà en place (édition d'un autre champ sans y toucher :
-    // le <select> le réaffiche tel quel, marqué « non réassignable »).
-    $spectacleInchange = $evenement && $spectacleId === (int) $evenement['spectacle_id'];
     $err = null;
     if (!date_valide($date)) {
         $err = 'La date est invalide.';
-    } elseif ($spectacleId !== null && !$spectacleInchange && !spectacle_assignable($spectacleId)) {
+    } elseif ($spectacleId !== null && !spectacle_assignable($spectacleId)) {
         $err = 'Spectacle invalide.';
     } elseif ($lienInfos !== '' && !preg_match('#^https?://#i', $lienInfos)) {
         $err = "Le lien doit être une URL valide (commençant par http:// ou https://).";
@@ -598,26 +599,163 @@ function route_evenement(): void
         pays_region_assurer($paysNom, $grandeRegion);
     }
 
-    if ($id) {
-        $champs['id'] = $id;
-        db()->prepare('UPDATE evenements SET spectacle_id=:spectacle_id, date=:date, statut=:statut,
-                        visibilite=:visibilite, ville=:ville, departement_canton=:departement_canton, pays=:pays, salle=:salle, festival=:festival,
-                        grande_region=:grande_region,
-                        lieu_id=:lieu_id, lien_infos=:lien_infos, lien_texte=:lien_texte, remarques=:remarques WHERE id=:id')->execute($champs);
-        $evenementId = $id;
-    } else {
-        // suisa_applicable/suisa_envoye_*/suisa_decompte_le gardent leurs valeurs
-        // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
-        // depuis la carte « Suivi SUISA », visible une fois l'événement créé.
-        db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
-                        grande_region, lieu_id, lien_infos, lien_texte, remarques)
-                        VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
-                        :grande_region, :lieu_id, :lien_infos, :lien_texte, :remarques)')
-            ->execute($champs);
-        $evenementId = (int) db()->lastInsertId();
+    // suisa_applicable/suisa_envoye_*/suisa_decompte_le gardent leurs valeurs
+    // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
+    // depuis la carte « Suivi SUISA », visible une fois l'événement créé.
+    db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
+                    grande_region, lieu_id, lien_infos, lien_texte, remarques)
+                    VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
+                    :grande_region, :lieu_id, :lien_infos, :lien_texte, :remarques)')
+        ->execute($champs);
+    $evenementId = (int) db()->lastInsertId();
+    if ($lieuId !== null) {
+        // Table de jointure (voir migration_58) — pas seulement la colonne
+        // miroir, pour que le lieu apparaisse tout de suite dans la carte
+        // « Organisation » une fois l'événement créé.
+        db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)')
+            ->execute([$evenementId, $lieuId]);
     }
 
     redirect('evenement', ['id' => $evenementId, 'ok' => 'infos']);
+}
+
+// Carte « Informations » — date, spectacle, statut, type d'audience, salle,
+// festival, lien/texte du bouton/remarques. Séparée de la création
+// (route_evenement(), qui ne gère plus que id=0) : cette carte s'édite en
+// place (lecture par défaut, crayon → édition) une fois l'événement créé.
+function route_evenement_informations(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    $evenement = evenement_charger($id);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$evenement) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+
+    $date = trim($_POST['date'] ?? '');
+    $statut = valeur_autorisee($_POST['statut'] ?? '', EVENEMENTS_STATUTS, 'option');
+    $visibilite = valeur_autorisee($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, 'non_repertorie');
+    $spectacleId = ($_POST['spectacle_id'] ?? '') !== '' ? (int) $_POST['spectacle_id'] : null;
+    $salle = trim($_POST['salle'] ?? '');
+    $festival = trim($_POST['festival'] ?? '');
+    $lienInfos = trim($_POST['lien_infos'] ?? '');
+    $lienTexte = trim($_POST['lien_texte'] ?? '');
+    $remarques = trim($_POST['remarques'] ?? '');
+
+    // Un spectacle-parent (groupe/artiste) n'est jamais assignable — sauf s'il
+    // s'agit du spectacle déjà en place (édition d'un autre champ sans y toucher :
+    // le <select> le réaffiche tel quel, marqué « non réassignable »).
+    $spectacleInchange = $spectacleId === (int) $evenement['spectacle_id'];
+    $err = null;
+    if (!date_valide($date)) {
+        $err = 'date';
+    } elseif ($spectacleId !== null && !$spectacleInchange && !spectacle_assignable($spectacleId)) {
+        $err = 'spectacle';
+    } elseif ($lienInfos !== '' && (!preg_match('#^https?://#i', $lienInfos) || !filter_var($lienInfos, FILTER_VALIDATE_URL))) {
+        $err = 'lien';
+    }
+    if ($err) {
+        redirect('evenement', ['id' => $id, 'errInformations' => $err]);
+    }
+
+    db()->prepare('UPDATE evenements SET spectacle_id=?, date=?, statut=?, visibilite=?, salle=?, festival=?,
+                    lien_infos=?, lien_texte=?, remarques=? WHERE id=?')
+        ->execute([$spectacleId, $date, $statut, $visibilite, $salle, $festival, $lienInfos, $lienTexte, $remarques, $id]);
+
+    redirect('evenement', ['id' => $id, 'ok' => 'informations']);
+}
+
+// Carte « Localisation » — ville, département/canton, région, pays (la
+// mini-carte elle-même reste en lecture seule, dérivée du cache de géocodage).
+function route_evenement_localisation(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($id)) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+
+    $ville = trim($_POST['ville'] ?? '');
+    $departementCanton = trim($_POST['departement_canton'] ?? '');
+    $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
+    $grandeRegion = trim($_POST['grande_region'] ?? '');
+
+    // Même déduction automatique qu'à la création (voir route_evenement()) :
+    // jamais laissée à la saisie manuelle quand elle peut être déduite.
+    $grandeRegionDeduite = grande_region_deduite($pays, $departementCanton);
+    if ($grandeRegionDeduite !== null) {
+        $grandeRegion = $grandeRegionDeduite;
+    }
+
+    db()->prepare('UPDATE evenements SET ville=?, departement_canton=?, pays=?, grande_region=? WHERE id=?')
+        ->execute([$ville, $departementCanton, $pays, $grandeRegion, $id]);
+
+    $paysNom = pays_nom_depuis_code($pays);
+    if ($paysNom !== '') {
+        pays_region_assurer($paysNom, $grandeRegion);
+    }
+
+    redirect('evenement', ['id' => $id, 'ok' => 'localisation']);
+}
+
+// Carte « Organisation » — remplace en un seul POST l'ensemble des lieux et
+// organisateurs liés (voir evenement_form.php : rien n'est envoyé tant que
+// « Enregistrer » n'est pas cliqué, contrairement aux anciennes routes
+// lier/délier qui agissaient immédiatement sur un seul lien à la fois).
+// Remplace route_evenement_organisateur_lier()/_delier().
+function route_evenement_organisation(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($id)) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+
+    $lieuIds = array_values(array_unique(array_map('intval', $_POST['lieu_ids'] ?? [])));
+    if ($lieuIds) {
+        $in = implode(',', array_fill(0, count($lieuIds), '?'));
+        $stmt = db()->prepare("SELECT id FROM lieux WHERE id IN ($in)");
+        $stmt->execute($lieuIds);
+        $lieuIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    $structureIdsPost = $_POST['structure_ids'] ?? [];
+    $structureIds = array_values(array_unique(array_map('intval', array_filter($structureIdsPost, fn ($v) => $v !== '__new__'))));
+    // Nouvelle structure créée à la volée (au plus une par soumission, même
+    // convention que l'ancien route_evenement_organisateur_lier()).
+    if (in_array('__new__', $structureIdsPost, true)) {
+        if (module_actif('facturation') && trim($_POST['org_nom'] ?? '') !== '') {
+            $structureIds[] = structure_creer_depuis_post('org_');
+        } elseif (trim($_POST['org_nom'] ?? '') === '') {
+            redirect('evenement', ['id' => $id, 'errOrganisation' => '1']);
+        }
+    }
+    if ($structureIds) {
+        $in = implode(',', array_fill(0, count($structureIds), '?'));
+        $stmt = db()->prepare("SELECT id FROM structures WHERE id IN ($in)");
+        $stmt->execute($structureIds);
+        $structureIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    db()->beginTransaction();
+    db()->prepare('DELETE FROM evenement_lieux WHERE evenement_id = ?')->execute([$id]);
+    $insL = db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)');
+    foreach ($lieuIds as $lieuId) {
+        $insL->execute([$id, $lieuId]);
+    }
+    db()->prepare('DELETE FROM evenement_organisateurs WHERE evenement_id = ?')->execute([$id]);
+    $insO = db()->prepare('INSERT OR IGNORE INTO evenement_organisateurs (evenement_id, structure_id) VALUES (?, ?)');
+    foreach ($structureIds as $structureId) {
+        $insO->execute([$id, $structureId]);
+    }
+    db()->commit();
+
+    evenement_resynchroniser_miroirs($id);
+
+    redirect('evenement', ['id' => $id, 'ok' => 'organisation']);
 }
 
 // Carte « Suivi SUISA » — sauvegarde indépendante de la carte « Informations ».
@@ -876,55 +1014,6 @@ function route_evenement_delete(): void
         db()->prepare('DELETE FROM evenements WHERE id = ?')->execute([$id]);
     }
     redirect('evenements_liste');
-}
-
-// Lie la structure « organisateur » d'un événement (carte du même nom) — une
-// structure existante choisie via la recherche, ou une nouvelle créée à la volée
-// (mêmes champs que la création rapide depuis une facture, préfixés « org_ »,
-// voir structure_creer_depuis_post()). Un seul organisateur à la fois : relier
-// remplace simplement l'ancien (pas d'historique à préserver, contrairement
-// aux fiches de salaire).
-function route_evenement_organisateur_lier(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('facturation')) {
-        redirect('evenements_liste');
-    }
-    check_csrf();
-    $evenementId = (int) ($_POST['id'] ?? 0);
-    if (!evenement_charger($evenementId)) {
-        redirect('evenements_liste');
-    }
-    $structureRaw = (string) ($_POST['structure_id'] ?? '');
-    if ($structureRaw === '__new__') {
-        if (trim($_POST['org_nom'] ?? '') === '') {
-            redirect('evenement', ['id' => $evenementId, 'errOrganisateur' => '1']);
-        }
-        $structureId = structure_creer_depuis_post('org_');
-    } else {
-        $structureId = (int) $structureRaw;
-        $stmtD = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
-        $stmtD->execute([$structureId]);
-        if (!$stmtD->fetchColumn()) {
-            redirect('evenement', ['id' => $evenementId]);
-        }
-    }
-    db()->prepare('UPDATE evenements SET organisateur_structure_id = ? WHERE id = ?')->execute([$structureId, $evenementId]);
-    redirect('evenement', ['id' => $evenementId, 'ok' => 'organisateur']);
-}
-
-// Détache l'organisateur d'un événement (la structure elle-même n'est jamais
-// supprimée, seul le lien l'est).
-function route_evenement_organisateur_delier(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
-    }
-    check_csrf();
-    $evenementId = (int) ($_POST['id'] ?? 0);
-    db()->prepare('UPDATE evenements SET organisateur_structure_id = NULL WHERE id = ?')->execute([$evenementId]);
-    redirect('evenement', ['id' => $evenementId]);
 }
 
 // Lie une facture existante (pas encore liée) à cet événement, depuis la fiche

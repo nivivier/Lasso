@@ -890,6 +890,21 @@ function evenement_label_court(array $ev): string
     return $l;
 }
 
+// Titre de la page d'édition d'un événement (« Date : Spectacle, Ville »,
+// parties absentes proprement omises) — même champs que evenement_label_court()
+// mais mise en forme propre à cette page (« : » et virgule, pas « — »/parenthèses
+// déjà utilisés ailleurs pour les liens de retour contextuels et les tableaux
+// de l'onglet Incohérences — format volontairement distinct, à ne pas fusionner).
+function evenement_titre_page(array $ev): string
+{
+    $titre = (string) ($ev['date'] ?? '') !== '' ? date('d.m.Y', strtotime((string) $ev['date'])) : '';
+    $reste = array_filter([$ev['spectacle_nom'] ?? null, $ev['ville'] ?? null], fn ($v) => trim((string) $v) !== '');
+    if ($reste) {
+        $titre .= ($titre !== '' ? ' : ' : '') . implode(', ', $reste);
+    }
+    return $titre !== '' ? $titre : 'Événement';
+}
+
 // Ajoute (ou complète) le paramètre ?depuis=type:id (ou ?depuis=type seul
 // pour une cible statique sans id, ex. 'dashboard'/'compta_ecritures') à une
 // URL, pour que la page cible affiche un lien de retour contextuel (voir

@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.17.0] — 2026-07-30
+
+### Ajouté
+- **Refonte de la fiche événement (édition)** : titre remplacé par « date : spectacle, ville » ; les informations (date, spectacle, statut, type d'audience, salle/festival à afficher, lien, remarques), l'organisation (lieux et organisateurs) et la localisation (ville, département/canton, région, pays + carte) sont désormais regroupées dans 3 cadres en lecture seule par défaut (crayon → édition → enregistrer/annuler), affichés côte à côte sur une grille de 3 (comme le second rang suivi SUISA / comptabilité analytique / factures liées) ; les cadres Employés et le reste restent inchangés.
+- **Lieux et organisateurs multiples par événement** : un événement peut désormais être rattaché à plusieurs lieux et plusieurs organisateurs (cadre « Organisation », puces ajoutables/retirables, un seul enregistrement groupé) — auparavant limité à un seul de chaque. Les anciennes colonnes `lieu_id`/`organisateur_structure_id` sont conservées en miroir du premier lien (aucun autre écran à adapter : fiche lieu/structure, pré-remplissage facture, export SUISA continuent de fonctionner tels quels).
+
 ## [1.16.1] — 2026-07-30
 
 ### Corrigé
