@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.18.2] — 2026-07-30
+
+### Modifié
+- **Bandeau d'en-tête (`.page-head-band`)** : fond blanc plein remplacé par le même fond translucide flouté que le bandeau du mode carte (`.blur-glass`), sur toutes les pages qui l'utilisent (Fiches de salaire, Écritures, Factures, Paramètres…) — laisse transparaître l'image de fond de l'application (Apparence) au lieu de la masquer complètement.
+
 ## [1.18.1] — 2026-07-30
 
 ### Corrigé
