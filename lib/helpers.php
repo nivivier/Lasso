@@ -674,19 +674,24 @@ if ($l > 75) {
 }
 
 // Bloc <style> qui redéfinit les variables CSS de couleur d'après la couleur
-// principale et la couleur de mise en évidence choisies — injecté dans <head>
-// (views/layout.php), après app.css. Cette dernière remplace la couleur
-// principale à certains endroits (boutons principaux, sommes de brut, liens,
-// tags) ; voir --highlight* dans app.css pour la liste des règles concernées.
+// principale et la couleur de mise en évidence choisies, plus l'image de fond
+// personnalisée (page Apparence) — injecté dans <head> (views/layout.php),
+// après app.css. Cette dernière remplace la couleur principale à certains
+// endroits (boutons principaux, sommes de brut, liens, tags) ; voir
+// --highlight* dans app.css pour la liste des règles concernées. --fond-url
+// n'est défini que si une image a été personnalisée : sinon app.css retombe
+// sur son propre repli (assets/fond.jpg) via var(--fond-url, url(...)).
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
     $h = couleurs_derivees((string) param('employeur_couleur_evidence', '#2563eb'));
+    $fondPerso = (string) param('employeur_fond', '');
+    $fondVar = $fondPerso !== '' ? '--fond-url:url(' . json_encode($fondPerso) . ');' : '';
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
-        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}</style>';
+        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';' . $fondVar . '}</style>';
 }
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées
@@ -765,6 +770,14 @@ function param_logo(string $variant): string
 {
     $cle = $variant === 'sombre' ? 'employeur_logo_sombre' : 'employeur_logo_clair';
     return (string) param($cle, '');
+}
+
+// Chemin web de l'image de fond de l'application (page Apparence) — celle
+// uploadée (uploads/…) si personnalisée, sinon le fond par défaut du dépôt.
+function param_fond(): string
+{
+    $p = (string) param('employeur_fond', '');
+    return $p !== '' ? $p : 'assets/fond.jpg';
 }
 
 // Traite l'upload d'un logo. Renvoie le chemin web relatif (uploads/…) si un

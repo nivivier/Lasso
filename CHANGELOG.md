@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.18.0] — 2026-07-30
+
+### Ajouté
+- **Choix de l'image de fond** (Paramètres → Apparence) : une image personnalisée (PNG/JPG/GIF/WebP, 2 Mo max) peut désormais remplacer le fond `assets/fond.jpg` par défaut, sur toutes les pages de l'application hors connexion. Même traitement que les logos employeur (upload validé par `getimagesize()`, stocké dans `uploads/`, ancien fichier supprimé au remplacement) ; `param_fond()` (lib/helpers.php) et `--fond-url` (variable CSS injectée par `couleurs_css_vars()`) fournissent le chemin actif partout où il est utilisé.
+
 ## [1.17.5] — 2026-07-30
 
 ### Ajouté

@@ -695,14 +695,23 @@ function route_employeur(): void
     render('employeur', ['saved' => isset($_GET['ok']), 'err' => null], 'Employeur');
 }
 
-// Apparence (section de l'onglet Application) : couleurs de l'application. Les
-// teintes dérivées sont recalculées au rendu (couleurs_css_vars), il suffit donc
-// d'enregistrer les deux couleurs de base. Valeur invalide ignorée.
+// Apparence (section de l'onglet Application) : couleurs de l'application et
+// image de fond. Les teintes dérivées sont recalculées au rendu
+// (couleurs_css_vars), il suffit donc d'enregistrer les deux couleurs de
+// base ; valeur invalide ignorée. Image de fond : même traitement que les
+// logos employeur (handle_logo_upload(), lib/helpers.php), remplace
+// assets/fond.jpg par défaut tant qu'aucun fichier n'est envoyé.
 function route_apparence(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
+        try {
+            $fond = handle_logo_upload('fond');
+        } catch (RuntimeException $ex) {
+            render('apparence', ['saved' => null, 'err' => $ex->getMessage()], 'Apparence');
+            return;
+        }
         $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
         foreach (['employeur_couleur_principale', 'employeur_couleur_evidence'] as $cleCouleur) {
             $couleur = trim($_POST[$cleCouleur] ?? '');
@@ -710,9 +719,16 @@ function route_apparence(): void
                 $stmt->execute([$cleCouleur, strtolower($couleur)]);
             }
         }
+        if ($fond !== null) {
+            $ancien = param('employeur_fond', '');
+            $stmt->execute(['employeur_fond', $fond]);
+            if ($ancien !== '' && str_starts_with($ancien, 'uploads/') && is_file(__DIR__ . '/../' . $ancien)) {
+                @unlink(__DIR__ . '/../' . $ancien);
+            }
+        }
         redirect('apparence', ['ok' => 1]);
     }
-    render('apparence', ['saved' => isset($_GET['ok'])], 'Apparence');
+    render('apparence', ['saved' => isset($_GET['ok']), 'err' => null], 'Apparence');
 }
 
 // Paramètres d'envoi des e-mails (expéditeur, contact, SMTP authentifié).

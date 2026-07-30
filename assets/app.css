@@ -48,7 +48,10 @@ body {
     margin: 0;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--ink);
-    background: var(--bg) url("fond.jpg");
+    /* Image de fond : var(--fond-url) posée en style inline par views/layout.php
+       (page Apparence, param_fond() — lib/helpers.php), avec assets/fond.jpg par
+       défaut si aucune image n'est personnalisée. */
+    background: var(--bg) var(--fond-url, url("fond.jpg"));
     background-size:cover;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -286,9 +289,9 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 /* Sélecteur à deux classes : même piège que .card-flush plus haut (.card,
    déclaré plus loin, écraserait sinon ce background avec le même var(--card)
    à spécificité égale). */
-.card.card-statut-confirme { background: linear-gradient(in srgb, var(--ok) 6%, var(--card)); }
-.card.card-statut-annule { background: color-mix(in srgb, var(--muted) 6%, var(--card)); }
-.card.card-statut-option { background: color-mix(in srgb, var(--amber) 6%, var(--card)); }
+.card.card-statut-confirme { background: linear-gradient(color-mix(in srgb, var(--ok) 10%, var(--card)), var(--card)); }
+.card.card-statut-annule { background: linear-gradient(color-mix(in srgb, var(--muted) 10%, var(--card)), var(--card)); }
+.card.card-statut-option { background: linear-gradient(color-mix(in srgb, var(--amber) 10%, var(--card)), var(--card)); }
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
@@ -1076,6 +1079,8 @@ body.print-page { background: #e9e9f2; }
 .logo-preview img { max-height: 40px; max-width: 200px; width: auto; display: block; }
 .logo-preview.clair { background: #fff; border: 1px solid var(--line); }
 .logo-preview.sombre { background: var(--brand); }
+.fond-preview { display: block; margin: 4px 0 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); max-width: 360px; }
+.fond-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
 /* Sélecteur de couleur principale (Paramètres > Employeur) : :not() en plus pour
    égaler la spécificité de la règle générale .form input:not(...):not(...) et
    ne pas hériter de sa largeur/padding pensés pour les champs texte. */
