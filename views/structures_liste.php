@@ -241,7 +241,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
-        <tr class="row-link <?= $d['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?>">
+        <tr class="row-link <?= $d['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
             <td>
                 <?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?>

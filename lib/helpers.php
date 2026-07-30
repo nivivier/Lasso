@@ -900,12 +900,38 @@ function url_avec_retour(string $href, string $type, ?int $id = null): string
     return $href . $sep . 'depuis=' . rawurlencode($id !== null ? $type . ':' . $id : $type);
 }
 
+// Suffixe "&q=...&page=..." pour le lien d'une ligne de liste (lieux/
+// structures/événements/factures) vers sa fiche détail — recherche texte et
+// page de pagination ne sont jamais mémorisées en session (voir
+// lien_retour_contextuel()), donc perdues au retour sans ce report explicite
+// dans l'URL de la fiche elle-même.
+function suffixe_retour_liste(string $recherche, int $pgPage): string
+{
+    $extra = [];
+    if ($recherche !== '') { $extra['q'] = $recherche; }
+    if ($pgPage > 1) { $extra['page'] = $pgPage; }
+    return $extra ? '&' . http_build_query($extra) : '';
+}
+
 // Lien « retour » contextuel : si la page a été atteinte via un lien croisé
 // inter-module portant ?depuis=type:id (voir url_avec_retour()), pointe vers
 // cet objet précis avec son libellé actuel plutôt que vers la liste générique.
 function lien_retour_contextuel(string $defautHref, string $defautLabel): string
 {
     $depuis = (string) ($_GET['depuis'] ?? '');
+    // Recherche texte (q) et page de pagination (page) : ni l'une ni l'autre
+    // n'est mémorisée en session (filtre_persistant() ne les couvre pas, voir
+    // evenements_lire_filtres()/lieux_filtres()/pagination_page()), donc
+    // perdues au retour si on ne les reporte pas explicitement — contrairement
+    // aux filtres structurés (type/ville/statut…) déjà repris via la session.
+    // Portée aux seules cibles « liste » ci-dessous (statiques + $defautHref) :
+    // une fiche précise (structure:id, lieu:id…) n'a pas ces champs à remplir.
+    $q = trim((string) ($_GET['q'] ?? ''));
+    $page = (int) ($_GET['page'] ?? 0);
+    $extra = [];
+    if ($q !== '') { $extra['q'] = $q; }
+    if ($page > 1) { $extra['page'] = $page; }
+    $avecExtras = fn (string $href): string => $extra ? $href . (str_contains($href, '?') ? '&' : '?') . http_build_query($extra) : $href;
     // Cibles sans id propre (page/liste, pas un objet précis) — le filtrage
     // actif (compte/année/catégorie…) est repris automatiquement au retour
     // via filtre_persistant() (session), pas besoin de l'encoder dans l'URL.
@@ -916,7 +942,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
         'structures'       => ['?p=structures', 'Structures'],
     ];
     if (isset($statiques[$depuis])) {
-        return lien_retour($statiques[$depuis][0], $statiques[$depuis][1]);
+        return lien_retour($avecExtras($statiques[$depuis][0]), $statiques[$depuis][1]);
     }
     if (preg_match('/^(facture|evenement|fiche|employe|structure|lieu):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];
@@ -965,7 +991,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             }
         }
     }
-    return lien_retour($defautHref, $defautLabel);
+    return lien_retour($avecExtras($defautHref), $defautLabel);
 }
 
 // Mémorise l'état « avant » de lignes modifiées en masse (voir bulk_undo_appliquer()),

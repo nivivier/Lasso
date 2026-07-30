@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.15.2] — 2026-07-30
+
+### Corrigé
+- **Recherche perdue au retour** (lieux, structures, événements, factures) : la recherche texte et la page de pagination n'étaient jamais mémorisées (par choix, comme pour tout filtre éphémère), donc perdues en cliquant sur une fiche puis « Retour » — contrairement aux autres filtres (type, ville, statut…), repris automatiquement via la session. Le lien vers chaque fiche transporte désormais la recherche et la page actives (nouvelle fonction `suffixe_retour_liste()`), restituées par le lien de retour contextuel.
+
 ## [1.15.1] — 2026-07-30
 
 ### Ajouté

@@ -181,7 +181,7 @@ $lienVue = fn (string $v) => '?p=lieux&' . http_build_query($qsSansVue + ['vue' 
     </tr></thead>
     <tbody>
     <?php foreach ($lieux as $l): ?>
-        <tr class="row-link <?= (int) ($l['actif'] ?? 1) ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=lieu&id=<?= (int) $l['id'] ?>">
+        <tr class="row-link <?= (int) ($l['actif'] ?? 1) ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=lieu&id=<?= (int) $l['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $l['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
             <td><?= flag_toggle_html('lieu', (int) $l['id'], (string) ($l['flag'] ?? '')) ?> <strong><?= e($l['nom']) ?></strong><?php if (!(int) ($l['actif'] ?? 1)): ?> <span class="badge muted-badge">inactif</span><?php endif; ?></td>
             <td class="small">
