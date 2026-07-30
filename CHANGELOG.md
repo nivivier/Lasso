@@ -312,6 +312,15 @@ puis sont promues sur le canal **stable** en figeant une version.
     (web et CLI, `scripts/doublons.php` / `scripts/maj_dates_import.php`)
     vit désormais dans `lib/dev.php`.
 
+## [1.5.11] — 2026-07-30
+
+### Modifié
+- **Exporter → sauvegarde complète** : description mise à jour. Elle ne citait
+  que les salaires et la comptabilité alors que le fichier contient bien
+  l'intégralité de la base (facturation, événements, booking, paramètres,
+  comptes…). Elle précise désormais ce qui n'y figure pas : les logos déposés
+  dans `uploads/` et la configuration du serveur.
+
 ## [1.5.10] — 2026-07-25
 
 ### Corrigé

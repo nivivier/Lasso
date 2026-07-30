@@ -51,7 +51,15 @@ $anneeSansToutes = ['certificats' => true];
     <noscript><p class="muted small">JavaScript est requis pour choisir le type de données — sans lui, seule la sauvegarde complète ci-dessous reste disponible.</p></noscript>
 
     <div class="export-bloc mt-16" data-type="backup">
-        <p class="muted small mb-0">Télécharge une copie complète de la base (toutes les données : employés, fiches, taux, <strong>comptabilité</strong> — comptes, écritures, plan, règles…) dans un seul fichier <code>.sqlite</code>. À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
+        <p class="muted small mb-8">Copie intégrale de la base dans un seul fichier <code>.sqlite</code> : <strong>toutes les tables</strong>, quels que soient les modules activés —
+            salaires (employés, fiches, taux, unités), comptabilité (écritures, plan comptable, règles, axes analytiques),
+            facturation (factures, structures), événements (événements, spectacles),
+            booking (lieux, contacts, étiquettes, notes et historique, mailings, ciblages),
+            ainsi que les paramètres, les comptes utilisateurs et les catégories (pays, régions, types de lieu).
+            À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
+        <p class="muted small mb-0"><?= icon('info') ?> Ne sont pas inclus : les <strong>logos</strong> déposés dans <code>uploads/</code>
+            (la base ne mémorise que leur emplacement) et le fichier de configuration du serveur. Pour une restauration complète,
+            sauvegarde aussi le dossier <code>uploads/</code>.</p>
         <div class="form-actions">
             <a class="btn" href="?p=backup"><?= icon('download') ?> Télécharger la sauvegarde</a>
         </div>
