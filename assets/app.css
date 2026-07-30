@@ -289,6 +289,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .loc-map-bg:has(.mini-carte) { position: absolute; inset: 0; z-index: 0; }
 .loc-map-bg .mini-carte { width: 100%; height: 100%; border: 0; border-radius: 0; }
 .loc-map-bg:not(:has(.mini-carte)) { padding: 96px 16px 20px; }
+/* La carte, en absolu (inset:0), ne contribue à aucune hauteur pour .card-flush
+   — sans ce plancher, la carte visible se limiterait à la hauteur de
+   .loc-header (la carte Leaflet serait présente dans le DOM mais invisible,
+   hauteur nulle). */
+.card.card-flush:has(.loc-map-bg .mini-carte) { min-height: 340px; }
 
 /* Icônes de valeur (statut/audience en lecture, carte « Informations » de
    ?p=evenement) : mêmes couleurs que les usages existants ailleurs dans
@@ -458,6 +463,23 @@ h3.sub.no-mt { margin-top: 0; }
 .fusion-candidat:has(input:checked) { border-color: var(--primary); box-shadow: var(--focus-ring); }
 .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .card-head-row h2 { margin: 0; }
+
+/* Sous-sections empilées dans une même carte (?p=structure : Lieux liés +
+   Événements liés) — même esprit que .struct-aside .aside-block
+   (lieu_form.php/structure_form.php, colonne de droite historique), mais sans
+   exiger cet ancêtre précis puisque ces cartes ne sont plus dans une barre
+   latérale. */
+.card-block + .card-block { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.card-block .grid2, .card-block .grid3, .card-block .grid4 { grid-template-columns: 1fr; }
+
+/* 3 colonnes de cartes empilées, chaque colonne d'une hauteur indépendante
+   (?p=structure, avec le module booking) : Lieux liés/Informations générales,
+   Statut/Contacts, Localisation/Historique. Un simple grid3 (rangées) forcerait
+   les cartes à s'aligner par ligne quelle que soit leur hauteur — ici chaque
+   colonne est un flex empilé, indépendant des deux autres. */
+.card-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; align-items: start; }
+.card-col { display: flex; flex-direction: column; gap: 22px; }
+@media (max-width: 900px) { .card-columns { grid-template-columns: 1fr; } }
 
 input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: 19px; font-weight: 800; padding: 2px 14px; color: var(--primary)}
 

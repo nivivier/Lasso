@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.20.0] — 2026-07-30
+
+### Ajouté
+- **Fiche structure (?p=structure) réorganisée en 3 colonnes de cartes indépendantes** : colonne 1 (Lieux liés puis Informations générales), colonne 2 (Statut puis Contacts), colonne 3 (Localisation puis Historique) — chaque colonne a sa propre hauteur, sans forcer l'alignement des cartes en ligne (`.card-columns`/`.card-col`, `assets/app.css`).
+- **Carte « Localisation » dédiée sur la fiche structure** (adresse postale complète : rue, NPA, localité, département/canton, région, pays), même apparence que la carte « Localisation » de la fiche événement — nouvelle route `route_structure_localisation()`. Les Coordonnées ne sont plus enregistrées par `route_structure()` que si le module booking est inactif ou inaccessible en lecture (auquel cas la fiche garde un seul cadre, sans carte séparée).
+- Icône crayon → croix (annuler) pendant l'édition des sections « Lieux liés » et « Contacts » ; icône dédiée (unlink) pour délier un lieu, plutôt qu'une croix générique ; icône (link) sur le bouton « Lier ».
+
+### Corrigé
+- **Mini-carte de localisation invisible une fois une ville géocodée** (`?p=structure`/`?p=evenement`, carte « Localisation ») : la carte Leaflet, positionnée en absolu, ne donnait aucune hauteur à son cadre parent — elle restait présente dans le DOM mais à hauteur nulle. Hauteur minimale ajoutée sur `.card.card-flush` dès qu'une mini-carte y est présente.
+
 ## [1.19.1] — 2026-07-30
 
 ### Ajouté

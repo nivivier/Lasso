@@ -967,58 +967,87 @@ function route_structure(): void
         if ($categorieChamps['categorie'] === '') {
             $categorieChamps = ['categorie' => structure_categorie_par_defaut(), 'sous_categorie' => ''];
         }
+        // Champs communs à la création et à l'édition (carte « Informations
+        // générales ») : Coordonnées/localisation en sont sorties, gérées à
+        // part par route_structure_localisation() (carte « Localisation »
+        // dédiée) — sauf en création, où tout reste dans un seul formulaire.
         $champs = [
             'type'             => ($_POST['type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
             'categorie'        => $categorieChamps['categorie'],
             'sous_categorie'   => $categorieChamps['sous_categorie'],
             'nom'              => trim($_POST['nom'] ?? ''),
-            'adresse_rue'      => trim($_POST['adresse_rue'] ?? ''),
-            'adresse_npa'      => trim($_POST['adresse_npa'] ?? ''),
-            'adresse_localite' => trim($_POST['adresse_localite'] ?? ''),
-            'adresse_pays'     => trim($_POST['adresse_pays'] ?? '') ?: 'Suisse',
-            'departement_canton' => trim($_POST['departement_canton'] ?? ''),
-            'grande_region'    => trim($_POST['grande_region'] ?? ''),
             'site_web'         => trim($_POST['site_web'] ?? ''),
             'via'              => trim($_POST['via'] ?? ''),
             'notes'            => trim($_POST['notes'] ?? ''),
         ];
-        // Grande région déduite du département/canton quand c'est possible
-        // (France/Suisse hors cantons bilingues) : jamais laissée à la saisie
-        // manuelle dans ce cas, quoi que le formulaire ait envoyé.
-        $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['departement_canton']);
-        if ($grandeRegionDeduite !== null) {
-            $champs['grande_region'] = $grandeRegionDeduite;
-        }
-        // actif/desinscrit : gérés à part (bloc « Statut » de la sidebar, bascule
-        // immédiate via route_structure_statut()) — jamais touchés par cet
+        // actif/desinscrit : gérés à part (bloc « Statut », bascule immédiate
+        // via route_structure_statut()) — jamais touchés par cet
         // enregistrement, sinon toute sauvegarde de la fiche les réinitialiserait.
         // email/telephone/personne_contact : plus dans ce formulaire (remplacés par
         // la card Contacts) — colonnes conservées mais volontairement absentes des
         // requêtes ci-dessous, pour ne jamais écraser une valeur historique.
         $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
-        if ($err) {
-            $renderForm($err, array_merge((array) $structure, $champs, ['id' => $id]));
-            return;
-        }
-        pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
         if ($id) {
+            if ($err) {
+                $renderForm($err, array_merge((array) $structure, $champs, ['id' => $id]));
+                return;
+            }
             $champs['id'] = $id;
-            db()->prepare('UPDATE structures SET type=:type, categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom,
-                            adresse_rue=:adresse_rue, adresse_npa=:adresse_npa,
-                            adresse_localite=:adresse_localite, adresse_pays=:adresse_pays, departement_canton=:departement_canton, grande_region=:grande_region, site_web=:site_web,
-                            via=:via, notes=:notes
-                            WHERE id=:id')->execute($champs);
-            // Historique : diff des champs modifiés (module booking).
-            if (module_actif('booking')) {
-                journaliser_diff('structure', $id, (array) $structure, $champs, [
-                    'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
+            $sqlSet = 'type=:type, categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom, site_web=:site_web, via=:via, notes=:notes';
+            $diffChamps = [
+                'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
+                'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
+            ];
+            // Sans accès en lecture au module booking (mêmes conditions que
+            // $avecAside, views/structure_form.php), pas de carte
+            // « Localisation » séparée : les coordonnées restent dans ce même
+            // formulaire, comme avant route_structure_localisation().
+            if (!(module_actif('booking') && peut_lire('booking'))) {
+                $champs['adresse_rue']        = trim($_POST['adresse_rue'] ?? '');
+                $champs['adresse_npa']        = trim($_POST['adresse_npa'] ?? '');
+                $champs['adresse_localite']   = trim($_POST['adresse_localite'] ?? '');
+                $champs['adresse_pays']       = trim($_POST['adresse_pays'] ?? '') ?: 'Suisse';
+                $champs['departement_canton'] = trim($_POST['departement_canton'] ?? '');
+                $champs['grande_region']      = trim($_POST['grande_region'] ?? '');
+                $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['departement_canton']);
+                if ($grandeRegionDeduite !== null) {
+                    $champs['grande_region'] = $grandeRegionDeduite;
+                }
+                pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
+                $sqlSet .= ', adresse_rue=:adresse_rue, adresse_npa=:adresse_npa, adresse_localite=:adresse_localite,
+                             adresse_pays=:adresse_pays, departement_canton=:departement_canton, grande_region=:grande_region';
+                $diffChamps += [
                     'adresse_rue' => 'Rue', 'adresse_npa' => 'NPA', 'adresse_localite' => 'Localité',
                     'adresse_pays' => 'Pays', 'departement_canton' => 'Département / canton', 'grande_region' => 'Région',
-                    'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
-                ]);
+                ];
+            }
+            db()->prepare('UPDATE structures SET ' . $sqlSet . ' WHERE id=:id')->execute($champs);
+            // Historique : diff des champs modifiés (module booking).
+            if (module_actif('booking')) {
+                journaliser_diff('structure', $id, (array) $structure, $champs, $diffChamps);
             }
         } else {
-            // Création : active et non désinscrite par défaut.
+            // Création : formulaire unique, coordonnées incluses (pas de carte
+            // « Localisation » séparée tant que la structure n'existe pas).
+            $champs['adresse_rue']         = trim($_POST['adresse_rue'] ?? '');
+            $champs['adresse_npa']         = trim($_POST['adresse_npa'] ?? '');
+            $champs['adresse_localite']    = trim($_POST['adresse_localite'] ?? '');
+            $champs['adresse_pays']        = trim($_POST['adresse_pays'] ?? '') ?: 'Suisse';
+            $champs['departement_canton']  = trim($_POST['departement_canton'] ?? '');
+            $champs['grande_region']       = trim($_POST['grande_region'] ?? '');
+            // Grande région déduite du département/canton quand c'est possible
+            // (France/Suisse hors cantons bilingues) : jamais laissée à la
+            // saisie manuelle dans ce cas, quoi que le formulaire ait envoyé.
+            $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['departement_canton']);
+            if ($grandeRegionDeduite !== null) {
+                $champs['grande_region'] = $grandeRegionDeduite;
+            }
+            if ($err) {
+                $renderForm($err, array_merge((array) $structure, $champs, ['id' => $id]));
+                return;
+            }
+            pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
+            // Active et non désinscrite par défaut.
             db()->prepare('INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
                             departement_canton, grande_region, site_web, via, notes, actif, desinscrit)
                             VALUES (:type, :categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
@@ -1028,6 +1057,49 @@ function route_structure(): void
         redirect('structures');
     }
     $renderForm(($_GET['err'] ?? '') === 'used' ? 'Suppression impossible : des factures sont rattachées à cette structure.' : null, (array) $structure);
+}
+
+// Carte « Localisation » (?p=structure, édition) — adresse postale complète
+// (rue/NPA/localité) + département-canton/région/pays, sauvegardée à part
+// de la carte « Informations générales » (route_structure() ci-dessus).
+function route_structure_localisation(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$id) {
+        redirect('structures');
+    }
+    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
+    $stmt->execute([$id]);
+    $structureAvant = $stmt->fetch();
+    if (!$structureAvant) {
+        redirect('structures');
+    }
+    check_csrf();
+    $champs = [
+        'adresse_rue'        => trim($_POST['adresse_rue'] ?? ''),
+        'adresse_npa'        => trim($_POST['adresse_npa'] ?? ''),
+        'adresse_localite'   => trim($_POST['adresse_localite'] ?? ''),
+        'adresse_pays'       => trim($_POST['adresse_pays'] ?? '') ?: 'Suisse',
+        'departement_canton' => trim($_POST['departement_canton'] ?? ''),
+        'grande_region'      => trim($_POST['grande_region'] ?? ''),
+    ];
+    $grandeRegionDeduite = grande_region_deduite($champs['adresse_pays'], $champs['departement_canton']);
+    if ($grandeRegionDeduite !== null) {
+        $champs['grande_region'] = $grandeRegionDeduite;
+    }
+    pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
+    $champs['id'] = $id;
+    db()->prepare('UPDATE structures SET adresse_rue=:adresse_rue, adresse_npa=:adresse_npa, adresse_localite=:adresse_localite,
+                    adresse_pays=:adresse_pays, departement_canton=:departement_canton, grande_region=:grande_region
+                    WHERE id=:id')->execute($champs);
+    if (module_actif('booking')) {
+        journaliser_diff('structure', $id, $structureAvant, $champs, [
+            'adresse_rue' => 'Rue', 'adresse_npa' => 'NPA', 'adresse_localite' => 'Localité',
+            'adresse_pays' => 'Pays', 'departement_canton' => 'Département / canton', 'grande_region' => 'Région',
+        ]);
+    }
+    redirect('structure', ['id' => $id, 'ok' => 'localisation']);
 }
 
 // Bascule immédiate du statut (active / désinscrite du mailing) depuis le bloc

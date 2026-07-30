@@ -173,6 +173,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_tag_retirer'  => 'route_structure_tag_retirer',
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
+    'structure_localisation' => 'route_structure_localisation',
     'lieux'                  => 'route_lieux',
     'lieux_geocoder'         => 'route_lieux_geocoder',
     'lieu'                   => 'route_lieu',

@@ -57,12 +57,10 @@ $sid = (int) ($structure['id'] ?? 0);
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à cette structure.</p><?php endif; ?>
 <?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, étiquettes et lieux liés ont été repris ici.</p><?php endif; ?>
 <?php if (($_GET['ok'] ?? null) === 'transforme'): ?><p class="ok flash">Structures transformées en salles/festivals rattachés à cet organisateur.</p><?php endif; ?>
-<?php if (!empty($structure['mise_a_jour_le'])): ?>
+<?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
+<?php if (!empty($structure['mise_a_jour_le']) && !$avecAside): ?>
     <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
 <?php endif; ?>
-
-<?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
-<?php if ($avecAside): ?><div class="struct-wrapper"><div class="struct-main"><?php endif; ?>
 
 <?php if (!$isEdit): ?>
 <form method="post" action="?p=structure" class="card form">
@@ -121,7 +119,11 @@ $sid = (int) ($structure['id'] ?? 0);
         <a class="btn ghost" href="?p=structures">Annuler</a>
     </div>
 </form>
-<?php else: ?>
+
+<?php elseif (!$avecAside): ?>
+<!-- Sans le module booking (ou sans lecture dessus) : pas de carte
+     « Localisation » séparée, les coordonnées restent ici — voir
+     route_structure() (lib/routes_facturation.php). -->
 <form method="post" action="?p=structure&id=<?= (int) $structure['id'] ?>" class="card card-editable form" id="structure-details-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="nom" value="<?= $v('nom') ?>">
@@ -228,45 +230,168 @@ $sid = (int) ($structure['id'] ?? 0);
         </div>
     </div>
 </form>
-<?php endif; ?>
 
-<?php if ($avecAside): ?>
+<?php else: ?>
+<!-- Avec le module booking : 3 colonnes de cartes empilées, chacune d'une
+     hauteur indépendante — colonne 1 : Lieux liés + Informations générales ;
+     colonne 2 : Statut + Contacts ; colonne 3 : Localisation + Historique
+     (voir le fil de discussion pour la répartition exacte). -->
+<div class="card-columns">
 
-<div class="card mt-22">
-    <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
-    <form method="post" action="?p=structure_note_ajouter" class="form">
+<div class="card-col">
+
+<div class="card">
+    <div class="card-block section-editable">
+        <div class="card-head-row">
+            <h2 class="mt-0">Lieux liés</h2>
+            <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les salles &amp; festivals"><?= icon('pencil') ?></button>
+        </div>
+        <?php foreach ($lieuxLies as $l): ?>
+            <div class="linked-add">
+                <span>
+                    <strong><a href="<?= url_avec_retour('?p=lieu&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
+                    <span class="muted small"> — <?= e((string) $l['type']) ?></span>
+                    <?php if ($l['ville']): ?><span class="muted small"> — <?= e($l['ville']) ?></span><?php endif; ?>
+                </span>
+                <form method="post" action="?p=structure_lieu_delier" class="edit-only" onsubmit="return confirm('Délier ce lieu ?');">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="structure_id" value="<?= $sid ?>">
+                    <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">
+                    <button type="submit" class="btn ghost btn-sm icon-only" title="Délier" aria-label="Délier"><?= icon('unlink') ?></button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+        <?php if (!$lieuxLies): ?><p class="muted small">Aucune salle ni festival lié.</p><?php endif; ?>
+
+        <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="lieu-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="structure_id" value="<?= $sid ?>">
+            <div class="cat-search lieu-search">
+                <input type="text" class="cat-search-input" placeholder="Rechercher une salle/un festival…" autocomplete="off">
+                <input type="hidden" name="lieu_id" class="cat-search-val" value="">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="__new__">+ Nouveau lieu</li>
+                    <?php foreach ($lieuxDispo as $l): ?>
+                        <li data-val="<?= (int) $l['id'] ?>"><?= e($l['nom']) ?> (<?= e((string) $l['type']) ?>)</li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <button type="submit" class="btn ghost btn-sm"><?= icon('link') ?> Lier</button>
+            <div id="lieu-nouveau" hidden class="grid3 mt-10">
+                <label>Nom <input name="nl_nom"></label>
+                <label>Type
+                    <select name="nl_type">
+                        <?php foreach (($categoriesLieu ?? []) as $c): ?><option value="<?= e($c) ?>"><?= e($c) ?></option><?php endforeach; ?>
+                    </select>
+                </label>
+                <label>Ville <input name="nl_ville"></label>
+            </div>
+        </form>
+        <script>
+        (function () {
+            var wrap = document.querySelector('.lieu-search');
+            var nouveau = document.getElementById('lieu-nouveau');
+            if (wrap && window.lassoInitCatSearch) {
+                lassoInitCatSearch(wrap, {
+                    showPlaceholderText: true,
+                    clearHiddenOnInput: true,
+                    onSelect: function (li) { nouveau.hidden = li.dataset.val !== '__new__'; },
+                });
+            }
+        })();
+        </script>
+    </div>
+
+    <?php if (module_actif('evenements') && $evenementsLies): ?>
+    <div class="card-block">
+        <h2 class="mt-0"><?= icon('calendar') ?> Événements (<?= count($evenementsLies) ?>)</h2>
+        <ul class="clean-list small">
+            <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
+            <li>
+                <a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
+                — <?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?><?php if ($ev['ville']): ?> <span class="muted">· <?= e((string) $ev['ville']) ?></span><?php endif; ?>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
+    </div>
+    <?php endif; ?>
+</div>
+
+<div class="card card-editable">
+    <?php
+    $categorieAffichee = trim((string) ($structure['categorie'] ?? ''));
+    if ($categorieAffichee !== '' && trim((string) ($structure['sous_categorie'] ?? '')) !== '') {
+        $categorieAffichee .= ' › ' . $structure['sous_categorie'];
+    }
+    ?>
+    <form method="post" action="?p=structure&id=<?= $sid ?>" class="form" id="structure-details-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="structure_id" value="<?= $sid ?>">
-        <textarea name="contenu" rows="2" placeholder="Ajouter une note…" required></textarea>
-        <div class="form-actions">
-            <label class="check"><input type="checkbox" name="est_contact" value="1"> Marquer comme prise de contact</label>
-            <button type="submit" class="btn ghost btn-sm"><?= icon('message-square') ?> Ajouter</button>
+        <input type="hidden" name="nom" value="<?= $v('nom') ?>">
+
+        <div class="card-head-row">
+            <h2 class="mt-0">Informations générales</h2>
+            <div class="head-actions">
+                <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            </div>
+        </div>
+
+        <div class="card-disp">
+            <table class="kv-table">
+                <tr>
+                    <th>Catégorie</th>
+                    <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td><span class="ico-label"><?= icon(($structure['type'] ?? 'organisation') === 'particulier' ? 'user' : 'building') ?> <?= ($structure['type'] ?? 'organisation') === 'particulier' ? 'Particulier' : 'Organisation' ?></span></td>
+                </tr>
+                <tr>
+                    <th>Connu via</th>
+                    <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
+                </tr>
+                <tr>
+                    <th>Site web</th>
+                    <td><?php if (trim((string) ($structure['site_web'] ?? '')) !== ''): ?><a href="<?= $v('site_web') ?>" target="_blank" rel="noopener"><?= $v('site_web') ?></a><?php else: ?>—<?php endif; ?></td>
+                </tr>
+                <tr>
+                    <th>Remarques</th>
+                    <td><?= trim((string) ($structure['notes'] ?? '')) !== '' ? nl2br($v('notes')) : '—' ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="card-edit" hidden>
+            <label>Catégorie
+                <select name="categorie_id">
+                    <?php foreach ($categoriesPourSelect as $cat): ?>
+                        <option value="<?= (int) $cat['id'] ?>" <?= $categorieIdSelectionnee === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <div class="field-group">
+                <span>Type</span>
+                <?= icon_picker('type', [
+                    'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
+                    'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
+                ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
+            </div>
+            <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+            <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
+            <label>Remarques
+                <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
+            </label>
         </div>
     </form>
-    <div class="mt-16">
-        <?php $histoEntrees = $notes; require __DIR__ . '/_historique.php'; ?>
-        <?php if (!$notes): ?><p class="muted small">Aucune entrée pour l'instant.</p><?php endif; ?>
-    </div>
 </div>
 
 </div>
-<aside class="struct-aside">
 
-<?php if (trim((string) ($structure['adresse_localite'] ?? '')) !== ''): ?>
-<section class="aside-block">
-    <h2 class="mt-0">Localisation</h2>
-    <?php
-    $miniCarteVille = (string) $structure['adresse_localite'];
-    $miniCarteDepartementCanton = (string) ($structure['departement_canton'] ?? '');
-    $miniCartePays = (string) ($structure['adresse_pays'] ?? 'Suisse');
-    $miniCarteRetourRoute = 'structure';
-    $miniCarteRetourId = $sid;
-    require __DIR__ . '/_mini_carte.php';
-    ?>
-</section>
-<?php endif; ?>
+<div class="card-col">
 
-<section class="aside-block">
+<div class="card">
     <h2 class="mt-0">Statut</h2>
     <form method="post" action="?p=structure_statut" id="statut-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -280,7 +405,6 @@ $sid = (int) ($structure['id'] ?? 0);
             Désinscrite du mailing <?= info_tip("Automatique : une structure inactive est toujours désinscrite du mailing.") ?>
         </label>
     </form>
-
 
     <div class="tags-liste mt-16">
         <?php foreach ($tags as $t): ?>
@@ -321,85 +445,9 @@ $sid = (int) ($structure['id'] ?? 0);
         desinscrit.addEventListener('change', function () { form.requestSubmit(); });
     })();
     </script>
-</section>
+</div>
 
-<?php if (module_actif('evenements') && $evenementsLies): ?>
-<section class="aside-block">
-    <h2 class="mt-0"><?= icon('calendar') ?> Événements (<?= count($evenementsLies) ?>)</h2>
-    <ul class="clean-list small">
-        <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
-        <li>
-            <a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
-            — <?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?><?php if ($ev['ville']): ?> <span class="muted">· <?= e((string) $ev['ville']) ?></span><?php endif; ?>
-        </li>
-        <?php endforeach; ?>
-    </ul>
-    <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
-</section>
-<?php endif; ?>
-
-<section class="aside-block section-editable">
-    <div class="card-head-row">
-        <h2 class="mt-0">Lieux liés</h2>
-        <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les salles &amp; festivals"><?= icon('pencil') ?></button>
-    </div>
-    <?php foreach ($lieuxLies as $l): ?>
-        <div class="linked-add">
-            <span>
-                <strong><a href="<?= url_avec_retour('?p=lieu&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
-                <span class="muted small"> — <?= e((string) $l['type']) ?></span>
-                <?php if ($l['ville']): ?><span class="muted small"> — <?= e($l['ville']) ?></span><?php endif; ?>
-            </span>
-            <form method="post" action="?p=structure_lieu_delier" class="edit-only" onsubmit="return confirm('Délier ce lieu ?');">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">
-                <button type="submit" class="btn ghost btn-sm icon-only" title="Délier" aria-label="Délier"><?= icon('x') ?></button>
-            </form>
-        </div>
-    <?php endforeach; ?>
-    <?php if (!$lieuxLies): ?><p class="muted small">Aucune salle ni festival lié.</p><?php endif; ?>
-
-    <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="lieu-form">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="structure_id" value="<?= $sid ?>">
-        <div class="cat-search lieu-search">
-            <input type="text" class="cat-search-input" placeholder="Rechercher une salle/un festival…" autocomplete="off">
-            <input type="hidden" name="lieu_id" class="cat-search-val" value="">
-            <ul class="cat-search-list" hidden role="listbox">
-                <li data-val="__new__">+ Nouveau lieu</li>
-                <?php foreach ($lieuxDispo as $l): ?>
-                    <li data-val="<?= (int) $l['id'] ?>"><?= e($l['nom']) ?> (<?= e((string) $l['type']) ?>)</li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <button type="submit" class="btn ghost btn-sm">Lier</button>
-        <div id="lieu-nouveau" hidden class="grid3 mt-10">
-            <label>Nom <input name="nl_nom"></label>
-            <label>Type
-                <select name="nl_type">
-                    <?php foreach (($categoriesLieu ?? []) as $c): ?><option value="<?= e($c) ?>"><?= e($c) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Ville <input name="nl_ville"></label>
-        </div>
-    </form>
-    <script>
-    (function () {
-        var wrap = document.querySelector('.lieu-search');
-        var nouveau = document.getElementById('lieu-nouveau');
-        if (wrap && window.lassoInitCatSearch) {
-            lassoInitCatSearch(wrap, {
-                showPlaceholderText: true,
-                clearHiddenOnInput: true,
-                onSelect: function (li) { nouveau.hidden = li.dataset.val !== '__new__'; },
-            });
-        }
-    })();
-    </script>
-</section>
-
-<section class="aside-block section-editable">
+<div class="card section-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Contacts</h2>
         <button type="button" class="btn ghost btn-sm icon-only edit-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('plus') ?></button>
@@ -453,13 +501,13 @@ $sid = (int) ($structure['id'] ?? 0);
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
         <div class="grid2">
-	        <label>Prénom <input name="prenom"></label>
-	        <label>Nom <input name="nom"></label>
-	    </div>
-	    <div class="grid2">
-	        <label>E-mail <input name="email" type="email"></label>
-	        <label>Téléphone <input name="telephone" type="tel"></label>
-	    </div>
+            <label>Prénom <input name="prenom"></label>
+            <label>Nom <input name="nom"></label>
+        </div>
+        <div class="grid2">
+            <label>E-mail <input name="email" type="email"></label>
+            <label>Téléphone <input name="telephone" type="tel"></label>
+        </div>
         <label>Langue <input name="langue" placeholder="ex. FR"></label>
         <label class="grid3-full">Formulaire de contact (URL, optionnel) <input name="formulaire_url" type="url" placeholder="https://…"></label>
         <label class="check"><input type="checkbox" name="est_administration" value="1"> Administration <?= info_tip("Contact utilisé par défaut pour l'envoi des factures — un seul à la fois par structure.") ?></label>
@@ -489,13 +537,20 @@ $sid = (int) ($structure['id'] ?? 0);
 
         // Crayon d'en-tête : bascule la section en mode édition — seules alors
         // apparaissent les commandes ajouter/lier/modifier/supprimer (.edit-only,
-        // masquées par défaut, voir app.css). En quittant l'édition, on referme
-        // les formulaires d'ajout/édition restés ouverts.
+        // masquées par défaut, voir app.css). Le crayon devient une croix
+        // (annuler) tant que l'édition est ouverte. En quittant l'édition, on
+        // referme aussi les formulaires d'ajout/édition restés ouverts.
+        var editToggleIconPencil = <?= json_encode(icon('pencil')) ?>;
+        var editToggleIconX = <?= json_encode(icon('x')) ?>;
         document.querySelectorAll('.edit-toggle-btn').forEach(function (btn) {
+            var titreDefaut = btn.title;
             btn.addEventListener('click', function () {
                 var sec = btn.closest('.section-editable');
                 var on = sec.classList.toggle('editing');
                 btn.classList.toggle('on', on);
+                btn.innerHTML = on ? editToggleIconX : editToggleIconPencil;
+                btn.title = on ? 'Annuler' : titreDefaut;
+                btn.setAttribute('aria-label', on ? 'Annuler' : titreDefaut);
                 if (!on) {
                     sec.querySelectorAll('.contact-row').forEach(function (row) {
                         var ef = row.querySelector('.contact-edit-form');
@@ -510,9 +565,98 @@ $sid = (int) ($structure['id'] ?? 0);
         });
     })();
     </script>
-</section>
+</div>
 
-</aside>
+</div>
+
+<div class="card-col">
+
+<?php
+$rueAffichee = trim((string) ($structure['adresse_rue'] ?? ''));
+$npaAffiche = trim((string) ($structure['adresse_npa'] ?? ''));
+$villeHtmlS = ville_departement_canton_html(
+    (string) ($structure['adresse_localite'] ?? ''),
+    pays_drapeau_nom((string) ($structure['adresse_pays'] ?? '')),
+    (string) ($structure['adresse_pays'] ?? ''),
+    (string) ($structure['departement_canton'] ?? '')
+);
+?>
+<div class="card card-flush card-editable" id="carte-localisation">
+    <?php if (($_GET['ok'] ?? null) === 'localisation'): ?><p class="ok flash">Localisation enregistrée.</p><?php endif; ?>
+
+    <div class="loc-header blur-glass">
+        <div>
+            <div><?= $villeHtmlS !== '' ? $villeHtmlS : '<span class="muted small">Ville non renseignée.</span>' ?></div>
+            <?php if ($rueAffichee !== '' || $npaAffiche !== ''): ?>
+            <div class="muted small"><?= e($rueAffichee) ?><?= $rueAffichee !== '' ? ' · ' : '' ?><?= e($npaAffiche) ?> <?= e((string) ($structure['adresse_localite'] ?? '')) ?></div>
+            <?php endif; ?>
+            <?php if (trim((string) ($structure['grande_region'] ?? '')) !== ''): ?><div class="muted small">· <?= e($structure['grande_region']) ?></div><?php endif; ?>
+        </div>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="structure-localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
+    </div>
+
+    <div class="card-disp">
+        <div class="loc-map-bg">
+            <?php if (trim((string) ($structure['adresse_localite'] ?? '')) !== ''): ?>
+                <?php
+                $miniCarteVille = (string) $structure['adresse_localite'];
+                $miniCarteDepartementCanton = (string) ($structure['departement_canton'] ?? '');
+                $miniCartePays = (string) ($structure['adresse_pays'] ?? 'Suisse');
+                $miniCarteRetourRoute = 'structure';
+                $miniCarteRetourId = $sid;
+                require __DIR__ . '/_mini_carte.php';
+                ?>
+            <?php else: ?>
+                <p class="muted small">Aucune ville renseignée.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <form method="post" id="structure-localisation-form" action="?p=structure_localisation" class="card-edit form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= $sid ?>">
+        <input name="adresse_rue" value="<?= $v('adresse_rue') ?>" placeholder="Rue et numéro" aria-label="Rue et numéro" class="mb-16">
+        <div class="grid2">
+            <input name="adresse_npa" value="<?= $v('adresse_npa') ?>" placeholder="NPA" aria-label="NPA">
+            <input name="adresse_localite" value="<?= $v('adresse_localite') ?>" placeholder="Localité" aria-label="Localité" class="input-titre">
+        </div>
+        <div class="grid3 mt-16">
+            <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="Département / canton" aria-label="Département / canton">
+            <select name="grande_region" class="region-select" aria-label="Région" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
+                <option value="">— Région —</option>
+                <?= region_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse'), (string) ($structure['grande_region'] ?? '')) ?>
+            </select>
+            <select name="adresse_pays" class="pays-select" aria-label="Pays"><?= pays_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse')) ?></select>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+    <?php if (!empty($structure['mise_a_jour_le'])): ?>
+        <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
+    <?php endif; ?>
+    <form method="post" action="?p=structure_note_ajouter" class="form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="structure_id" value="<?= $sid ?>">
+        <textarea name="contenu" rows="2" placeholder="Ajouter une note…" required></textarea>
+        <div class="form-actions">
+            <label class="check"><input type="checkbox" name="est_contact" value="1"> Marquer comme prise de contact</label>
+            <button type="submit" class="btn ghost btn-sm"><?= icon('message-square') ?> Ajouter</button>
+        </div>
+    </form>
+    <div class="mt-16">
+        <?php $histoEntrees = $notes; require __DIR__ . '/_historique.php'; ?>
+        <?php if (!$notes): ?><p class="muted small">Aucune entrée pour l'instant.</p><?php endif; ?>
+    </div>
+</div>
+
+</div>
+
 </div>
 
 <?php endif; ?>
