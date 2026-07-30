@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.19.1] — 2026-07-30
+
+### Ajouté
+- **Carte lecture/édition sur la fiche structure** (?p=structure) : Catégorie, Type, Connu via, Coordonnées, Site web et Remarques s'affichent désormais en lecture par défaut, avec un bouton crayon (→ enregistrer/annuler) pour les modifier — même mécanique que les cadres de la fiche événement. Cette mécanique (`.card-editable`/`.card-disp`/`.card-edit`) est désormais partagée dans `assets/app.js` plutôt que dupliquée par page.
+
 ## [1.19.0] — 2026-07-30
 
 ### Ajouté

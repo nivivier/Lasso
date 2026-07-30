@@ -659,25 +659,8 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 <script>
 (function () {
     // Cadres lecture/édition (Informations, Organisation, Localisation) :
-    // un seul script générique pour les 3 (même esprit que le « tout cocher »
-    // de l'onglet Incohérences) — le bouton crayon révèle .card-edit et masque
-    // .card-disp, jamais l'inverse tant qu'on ne recharge pas la page
-    // (« Annuler » est un simple lien vers la page elle-même : voir plus haut).
-    // Le crayon est remplacé par les boutons enregistrer/annuler, au même
-    // endroit (en haut à droite du cadre) — tous trois vivent dans le même
-    // conteneur .head-actions, juste à côté du crayon.
-    document.querySelectorAll('.card-edit-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const card = btn.closest('.card-editable');
-            card.querySelector('.card-disp').hidden = true;
-            card.querySelector('.card-edit').hidden = false;
-            const actions = btn.closest('.head-actions');
-            btn.hidden = true;
-            actions.querySelector('.card-save-btn').hidden = false;
-            actions.querySelector('.card-cancel-btn').hidden = false;
-        });
-    });
-
+    // script générique partagé (assets/app.js, window DOMContentLoaded) —
+    // rien à faire ici.
     const suisaCheck = document.getElementById('suisa-applicable');
     if (suisaCheck) {
         const suisaChamps = document.getElementById('suisa-champs');

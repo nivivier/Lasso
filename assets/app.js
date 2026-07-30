@@ -46,6 +46,29 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Cadres lecture/édition (?p=evenement : Informations/Organisation/
+// Localisation ; ?p=structure : Catégorie/Type/Connu via/Coordonnées/Site
+// web/Remarques…) : un seul script générique, partagé entre ces vues — le
+// bouton crayon révèle .card-edit et masque .card-disp, jamais l'inverse
+// tant qu'on ne recharge pas la page (« Annuler » est un simple lien vers la
+// page elle-même). Le crayon est remplacé par les boutons enregistrer/
+// annuler, au même endroit — tous trois vivent dans le même conteneur
+// .head-actions, juste à côté du crayon (voir aussi .card-actions-overlay
+// dans app.css pour les cadres sans ligne d'en-tête propre).
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.card-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('.card-editable');
+            card.querySelector('.card-disp').hidden = true;
+            card.querySelector('.card-edit').hidden = false;
+            const actions = btn.closest('.head-actions');
+            btn.hidden = true;
+            actions.querySelector('.card-save-btn').hidden = false;
+            actions.querySelector('.card-cancel-btn').hidden = false;
+        });
+    });
+});
+
 // Recherche texte adossée au serveur (?q=), pour les listes paginées : filtrer
 // seulement les lignes déjà chargées dans le DOM laisserait de côté tout ce
 // qui est sur une autre page. Débounce après la dernière frappe puis recharge

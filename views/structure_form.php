@@ -64,18 +64,15 @@ $sid = (int) ($structure['id'] ?? 0);
 <?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
 <?php if ($avecAside): ?><div class="struct-wrapper"><div class="struct-main"><?php endif; ?>
 
-<form method="post" action="?p=structure<?= $isEdit ? '&id=' . (int) $structure['id'] : '' ?>" class="card form">
+<?php if (!$isEdit): ?>
+<form method="post" action="?p=structure" class="card form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-
-    <?php if ($isEdit): ?><input type="hidden" name="nom" value="<?= $v('nom') ?>"><?php endif; ?>
     <div class="form-split">
-    
+
         <div class="form-split-main">
             <div class="grid3">
-                <?php if (!$isEdit): ?>
                 <label>Nom / raison sociale <input name="nom" class="input-titre" value="<?= $v('nom') ?>" required></label>
-                <?php endif; ?>
-                
+
                 <label>Catégorie
                     <select name="categorie_id">
                         <?php foreach ($categoriesPourSelect as $cat): ?>
@@ -83,7 +80,7 @@ $sid = (int) ($structure['id'] ?? 0);
                         <?php endforeach; ?>
                     </select>
                 </label>
-                
+
                 <div class="field-group">
                     <span>Type</span>
                     <?= icon_picker('type', [
@@ -113,7 +110,7 @@ $sid = (int) ($structure['id'] ?? 0);
             </div>
             <label class="mt-22">Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
         </fieldset>
-        
+
             <label>Remarques
                 <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
             </label>
@@ -124,6 +121,114 @@ $sid = (int) ($structure['id'] ?? 0);
         <a class="btn ghost" href="?p=structures">Annuler</a>
     </div>
 </form>
+<?php else: ?>
+<form method="post" action="?p=structure&id=<?= (int) $structure['id'] ?>" class="card card-editable form" id="structure-details-form">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+    <input type="hidden" name="nom" value="<?= $v('nom') ?>">
+
+    <div class="head-actions card-actions-overlay">
+        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+        <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+        <a href="?p=structure&id=<?= (int) $structure['id'] ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+    </div>
+
+    <?php
+    $categorieAffichee = trim((string) ($structure['categorie'] ?? ''));
+    if ($categorieAffichee !== '' && trim((string) ($structure['sous_categorie'] ?? '')) !== '') {
+        $categorieAffichee .= ' › ' . $structure['sous_categorie'];
+    }
+    $rueAffichee = trim((string) ($structure['adresse_rue'] ?? ''));
+    $npaAffiche = trim((string) ($structure['adresse_npa'] ?? ''));
+    $villeHtmlS = ville_departement_canton_html(
+        (string) ($structure['adresse_localite'] ?? ''),
+        pays_drapeau_nom((string) ($structure['adresse_pays'] ?? '')),
+        (string) ($structure['adresse_pays'] ?? ''),
+        (string) ($structure['departement_canton'] ?? '')
+    );
+    ?>
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr>
+                <th>Catégorie</th>
+                <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
+            </tr>
+            <tr>
+                <th>Type</th>
+                <td><span class="ico-label"><?= icon(($structure['type'] ?? 'organisation') === 'particulier' ? 'user' : 'building') ?> <?= ($structure['type'] ?? 'organisation') === 'particulier' ? 'Particulier' : 'Organisation' ?></span></td>
+            </tr>
+            <tr>
+                <th>Connu via</th>
+                <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
+            </tr>
+            <tr>
+                <th>Coordonnées</th>
+                <td>
+                    <?php if ($rueAffichee === '' && $npaAffiche === '' && $villeHtmlS === ''): ?>—
+                    <?php else: ?>
+                        <?php if ($rueAffichee !== ''): ?><?= e($rueAffichee) ?><br><?php endif; ?>
+                        <?php if ($npaAffiche !== '' || $villeHtmlS !== ''): ?><?= e($npaAffiche) ?> <?= $villeHtmlS ?><?php endif; ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <tr>
+                <th>Site web</th>
+                <td><?php if (trim((string) ($structure['site_web'] ?? '')) !== ''): ?><a href="<?= $v('site_web') ?>" target="_blank" rel="noopener"><?= $v('site_web') ?></a><?php else: ?>—<?php endif; ?></td>
+            </tr>
+            <tr>
+                <th>Remarques</th>
+                <td><?= trim((string) ($structure['notes'] ?? '')) !== '' ? nl2br($v('notes')) : '—' ?></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card-edit" hidden>
+        <div class="form-split">
+            <div class="form-split-main">
+                <div class="grid3">
+                    <label>Catégorie
+                        <select name="categorie_id">
+                            <?php foreach ($categoriesPourSelect as $cat): ?>
+                                <option value="<?= (int) $cat['id'] ?>" <?= $categorieIdSelectionnee === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <div class="field-group">
+                        <span>Type</span>
+                        <?= icon_picker('type', [
+                            'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
+                            'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
+                        ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
+                    </div>
+
+                    <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+                </div>
+            </div>
+            <fieldset class="fieldset-groupe">
+                <legend>Coordonnées</legend>
+                <input name="adresse_rue" value="<?= $v('adresse_rue') ?>" placeholder="Rue et numéro" aria-label="Rue et numéro" class="mb-16">
+                <div class="grid2">
+                    <input name="adresse_npa" value="<?= $v('adresse_npa') ?>" placeholder="NPA" aria-label="NPA">
+                    <input name="adresse_localite" value="<?= $v('adresse_localite') ?>" placeholder="Localité" aria-label="Localité" class="input-titre">
+                </div>
+                <div class="grid3 mt-16">
+                    <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="Département / canton" aria-label="Département / canton">
+                    <select name="grande_region" class="region-select" aria-label="Région" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
+                        <option value="">— Région —</option>
+                        <?= region_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse'), (string) ($structure['grande_region'] ?? '')) ?>
+                    </select>
+                    <select name="adresse_pays" class="pays-select" aria-label="Pays"><?= pays_options_nom((string) ($structure['adresse_pays'] ?? 'Suisse')) ?></select>
+                </div>
+                <label class="mt-22">Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
+            </fieldset>
+
+            <label>Remarques
+                <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
+            </label>
+        </div>
+    </div>
+</form>
+<?php endif; ?>
 
 <?php if ($avecAside): ?>
 
