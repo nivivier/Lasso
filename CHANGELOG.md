@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.16.0] — 2026-07-30
+
+### Ajouté
+- **Résumé en tête de l'onglet Incohérences** : nombre d'éléments détectés par outil (doublons exacts, doublons de lieux soupçonnés, grandes régions à déduire, événements sans lieu), chacun avec un lien direct vers sa section.
+- **Doublons de lieux soupçonnés** (nouvel outil) : repère les lieux d'une même structure partageant le même nom et la même ville mais classés sous un type différent (ex. « Salle » vs « Association ») — souvent la même entité mal classée deux fois. Distinct des doublons exacts (qui exigent un type identique), avec sa propre sélection par case à cocher et fusion (réutilise `doublons_fusionner_lieux()`).
+
 ## [1.15.2] — 2026-07-30
 
 ### Corrigé

@@ -14,6 +14,8 @@ function route_dev(): void
     $type = in_array($_GET['type'] ?? '', ['structures', 'lieux', 'contacts', 'tous'], true) ? $_GET['type'] : 'tous';
 
     $doublonsErr     = null;
+    $doublonsLieuxSuspectsErr        = null;
+    $doublonsLieuxSuspectsFusionneN  = null;
     $datesEtape      = 'upload';
     $datesErr        = null;
     $datesResultat   = null;
@@ -52,6 +54,19 @@ function route_dev(): void
                     $nc = doublons_fusionner_contacts($gr['contacts']);
                     redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nl' => $nl, 'nc' => $nc]);
                     return;
+                }
+            }
+        } elseif ($action === 'doublons_lieux_suspects_fusionner') {
+            $groupes = doublons_lieux_suspects_detecter();
+            $groupesSel = array_values(array_filter($groupes, fn ($g) => isset($selection[(string) $g['ids'][0]])));
+            if (!$groupesSel) {
+                $doublonsLieuxSuspectsErr = 'Aucun groupe sélectionné.';
+            } else {
+                $bak = sauvegarder_base('avant_doublons_lieux_suspects');
+                if ($bak === null) {
+                    $doublonsLieuxSuspectsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
+                } else {
+                    $doublonsLieuxSuspectsFusionneN = doublons_fusionner_lieux($groupesSel);
                 }
             }
         } elseif ($action === 'dates_analyser') {
@@ -154,6 +169,9 @@ function route_dev(): void
         'type'           => $type,
         'doublons'       => doublons_detecter($type),
         'doublonsErr'    => $doublonsErr,
+        'doublonsLieuxSuspects'          => doublons_lieux_suspects_detecter(),
+        'doublonsLieuxSuspectsErr'       => $doublonsLieuxSuspectsErr,
+        'doublonsLieuxSuspectsFusionneN' => $doublonsLieuxSuspectsFusionneN,
         'ok'             => $_GET['ok'] ?? null,
         'ns'             => (int) ($_GET['ns'] ?? 0),
         'nl'             => (int) ($_GET['nl'] ?? 0),

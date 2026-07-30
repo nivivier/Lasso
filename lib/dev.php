@@ -150,6 +150,57 @@ function doublons_fusionner_contacts(array $groupes): int
 }
 
 // ===========================================================================
+// Doublons « soupçonnés » de lieux au sein d'une même structure — même nom
+// et même ville (normalisés, insensibles casse/accents/ponctuation), mais un
+// TYPE différent (contrairement aux doublons exacts de doublons_detecter(),
+// qui exige un type identique — d'où deux détecteurs distincts plutôt qu'un
+// paramètre en plus sur le premier). Cas observé : une salle et un festival
+// au même nom/ville, sous la même structure organisatrice — presque toujours
+// la même entité mal classée deux fois plutôt que deux lieux distincts.
+// Jamais au-delà d'une même structure : un nom+ville partagé par hasard entre
+// deux structures sans rapport n'a pas la même force de présomption.
+// ===========================================================================
+
+// Détecte les groupes. Même forme que doublons_detecter()['lieux']
+// (['libelle'=>, 'ids'=>[garde, autres…]]) — directement réutilisable par
+// doublons_fusionner_lieux().
+function doublons_lieux_suspects_detecter(): array
+{
+    $rows = db()->query(
+        "SELECT l.id, l.nom, l.type, l.ville, sl.structure_id, s.nom AS structure_nom
+         FROM lieux l
+         JOIN structure_lieux sl ON sl.lieu_id = l.id
+         JOIN structures s ON s.id = sl.structure_id"
+    )->fetchAll();
+
+    $parGroupe = [];
+    foreach ($rows as $r) {
+        $cle = (int) $r['structure_id'] . '|' . normaliser_nom_structure((string) $r['nom']) . '|' . normaliser_nom_structure((string) $r['ville']);
+        $parGroupe[$cle][] = $r;
+    }
+
+    $out = [];
+    foreach ($parGroupe as $lignes) {
+        if (count($lignes) < 2) {
+            continue;
+        }
+        $types = array_values(array_unique(array_map(fn ($l) => (string) $l['type'], $lignes)));
+        if (count($types) < 2) {
+            continue; // types identiques : doublon exact, déjà couvert par doublons_detecter().
+        }
+        $ids = array_map(fn ($l) => (int) $l['id'], $lignes);
+        sort($ids);
+        $out[] = [
+            'libelle' => $lignes[0]['nom'] . ' — ' . $lignes[0]['ville']
+                . ' (' . $lignes[0]['structure_nom'] . ' : ' . implode(' / ', $types) . ')',
+            'ids' => $ids,
+        ];
+    }
+    usort($out, fn ($a, $b) => count($b['ids']) <=> count($a['ids']));
+    return $out;
+}
+
+// ===========================================================================
 // Mise à jour des dates depuis un CSV — voir scripts/maj_dates_import.php
 // ===========================================================================
 

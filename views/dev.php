@@ -1,5 +1,7 @@
 <?php
 /** @var string $type */ /** @var array $doublons */ /** @var ?string $doublonsErr */
+/** @var array $doublonsLieuxSuspects */ /** @var ?string $doublonsLieuxSuspectsErr */
+/** @var ?int $doublonsLieuxSuspectsFusionneN */
 /** @var ?string $ok */ /** @var int $ns */ /** @var int $nl */ /** @var int $nc */
 /** @var string $datesEtape */ /** @var ?string $datesErr */ /** @var ?array $datesResultat */
 /** @var ?int $datesAppliqueN */
@@ -16,6 +18,19 @@ $totalSurnum  = 0;
 foreach (['structures', 'lieux', 'contacts'] as $k) {
     foreach ($doublons[$k] as $g) { $totalSurnum += count($g['ids']) - 1; }
 }
+
+// Résumé en tête de page : un lien par section ci-dessous, uniquement les
+// outils qui se détectent seuls (pas « Mise à jour des dates », qui exige un
+// fichier téléversé — rien à résumer tant qu'aucun n'est fourni).
+$nbEvenementsATraiter = count($evenementsLieuxUnivoques) + count($evenementsLieuxAmbigues)
+    + array_sum(array_map(fn ($g) => count($g['evenements']), $evenementsLieuxAucuneGroupes));
+$resumeItems = [
+    ['id' => 'doublons-exacts', 'libelle' => 'Doublons exacts', 'n' => $totalGroupes],
+    ['id' => 'doublons-lieux-suspects', 'libelle' => 'Doublons de lieux soupçonnés (même structure)', 'n' => count($doublonsLieuxSuspects)],
+    ['id' => 'grandes-regions', 'libelle' => 'Grandes régions à déduire', 'n' => count($grandesRegions)],
+    ['id' => 'evenements-lieux', 'libelle' => 'Événements sans lieu rattaché', 'n' => $nbEvenementsATraiter],
+];
+$resumeTotal = array_sum(array_column($resumeItems, 'n'));
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 
@@ -23,7 +38,26 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
     <p class="ok flash">Fusion effectuée : <?= $ns ?> structure(s), <?= $nl ?> lieu(x) et <?= $nc ?> contact(s) en doublon supprimés.</p>
 <?php endif; ?>
 
-<div class="card">
+<div class="card mb-22">
+    <h2 class="mt-0">Résumé</h2>
+    <?php if ($resumeTotal === 0): ?>
+        <p class="muted">Aucune incohérence détectée pour l'instant.</p>
+    <?php else: ?>
+        <table class="list">
+            <tbody>
+            <?php foreach ($resumeItems as $it): ?>
+                <tr>
+                    <td><?= e($it['libelle']) ?></td>
+                    <td class="muted small"><?= $it['n'] ?> trouvé<?= $it['n'] > 1 ? 's' : '' ?></td>
+                    <td><?php if ($it['n'] > 0): ?><a href="#<?= e($it['id']) ?>" class="btn-sm">Voir</a><?php endif; ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</div>
+
+<div class="card" id="doublons-exacts">
     <h2 class="mt-0">Doublons exacts</h2>
     <p class="muted small">
         Détecte les fiches strictement identiques : structures (nom + localité), lieux (nom + ville + type),
@@ -74,6 +108,49 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
             <input type="hidden" name="action" value="doublons_fusionner">
             <input type="hidden" name="type" value="<?= e($type) ?>">
             <button type="submit"><?= icon('merge') ?> Fusionner les doublons cochés</button>
+        </form>
+        <p class="muted small">Une sauvegarde de la base est faite automatiquement avant la fusion.</p>
+    <?php endif; ?>
+</div>
+
+<div class="card mt-22" id="doublons-lieux-suspects">
+    <h2 class="mt-0">Doublons de lieux soupçonnés (même structure)</h2>
+    <p class="muted small">
+        Repère les lieux d'une même structure partageant le même nom et la même ville, mais classés
+        sous un type différent (salle, festival…) — souvent la même entité mal classée deux fois
+        plutôt que deux lieux distincts. Contrairement aux doublons exacts ci-dessus (même type
+        exigé) : à vérifier avant de fusionner, le type différent peut aussi être volontaire.
+    </p>
+
+    <?php if ($doublonsLieuxSuspectsErr): ?><p class="err"><?= e($doublonsLieuxSuspectsErr) ?></p><?php endif; ?>
+    <?php if ($doublonsLieuxSuspectsFusionneN !== null): ?>
+        <p class="ok flash"><?= $doublonsLieuxSuspectsFusionneN ?> lieu(x) en doublon supprimé(s).</p>
+    <?php endif; ?>
+
+    <?php if (!$doublonsLieuxSuspects): ?>
+        <p class="muted">Aucun doublon soupçonné trouvé.</p>
+    <?php else: ?>
+        <p><?= count($doublonsLieuxSuspects) ?> groupe(s) soupçonné(s).</p>
+        <div class="table-scroll">
+        <table class="list">
+            <thead><tr><th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th><th>Lieu</th><th>Conservé</th><th>Supprimé(s)</th></tr></thead>
+            <tbody>
+            <?php foreach ($doublonsLieuxSuspects as $g): ?>
+                <tr>
+                    <td class="col-check"><input type="checkbox" name="sel[]" value="<?= (int) $g['ids'][0] ?>" form="dev-doublons-lieux-suspects-form" class="row-check"></td>
+                    <td><?= e($g['libelle']) ?></td>
+                    <td>#<?= (int) $g['ids'][0] ?></td>
+                    <td><?= e(implode(', #', array_map('strval', array_slice($g['ids'], 1)))) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <form method="post" action="?p=dev" class="mt-16" id="dev-doublons-lieux-suspects-form"
+              onsubmit="return confirm('Fusionner les groupes cochés ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.');">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="doublons_lieux_suspects_fusionner">
+            <button type="submit"><?= icon('merge') ?> Fusionner les groupes cochés</button>
         </form>
         <p class="muted small">Une sauvegarde de la base est faite automatiquement avant la fusion.</p>
     <?php endif; ?>
@@ -150,7 +227,7 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
     <?php endif; ?>
 </div>
 
-<div class="card mt-22">
+<div class="card mt-22" id="grandes-regions">
     <h2 class="mt-0">Grandes régions déduites du département/canton</h2>
     <p class="muted small">
         Recalcule la grande région (structures, lieux, événements) à partir du département français ou du canton
@@ -196,7 +273,7 @@ foreach (['structures', 'lieux', 'contacts'] as $k) {
     <?php endif; ?>
 </div>
 
-<div class="card mt-22">
+<div class="card mt-22" id="evenements-lieux">
     <h2 class="mt-0">Rattacher les événements à un lieu</h2>
     <p class="muted small">
         Un événement stocke le nom de la salle en texte libre, sans être automatiquement rattaché à une fiche
