@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.18.1] — 2026-07-30
+
+### Corrigé
+- **Image de fond personnalisée invisible sur les pages de l'application** (n'apparaissait que dans l'aperçu de Paramètres → Apparence) : le chemin était résolu par rapport à `assets/` (`assets/uploads/…`, inexistant) au lieu de la racine du site. En cause : une URL relative portée par une variable CSS (`--fond-url`) se résout par rapport à la feuille de style où elle est *utilisée* (`assets/app.css`), pas où elle est déclarée. Remplacé par une règle `body.has-sidebar{background-image:…}` posée directement dans le `<style>` inline de la page (`couleurs_css_vars()`), où les chemins relatifs se résolvent normalement par rapport à la page — comme partout ailleurs (logos, etc.).
+
 ## [1.18.0] — 2026-07-30
 
 ### Ajouté

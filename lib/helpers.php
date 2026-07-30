@@ -678,20 +678,26 @@ if ($l > 75) {
 // personnalisée (page Apparence) — injecté dans <head> (views/layout.php),
 // après app.css. Cette dernière remplace la couleur principale à certains
 // endroits (boutons principaux, sommes de brut, liens, tags) ; voir
-// --highlight* dans app.css pour la liste des règles concernées. --fond-url
-// n'est défini que si une image a été personnalisée : sinon app.css retombe
-// sur son propre repli (assets/fond.jpg) via var(--fond-url, url(...)).
+// --highlight* dans app.css pour la liste des règles concernées.
+// L'image de fond est posée ici en dur (body.has-sidebar{background-image:...})
+// plutôt que via une variable CSS consommée depuis app.css : une URL relative
+// dans une custom property se résout par rapport à la feuille de style où la
+// var() est *utilisée*, pas où la propriété est déclarée — utilisée dans
+// app.css (assets/app.css), "uploads/…" se serait résolu en
+// "assets/uploads/…" (inexistant) au lieu de "uploads/…" à la racine du site.
+// Ici, dans le <style> inline de la page elle-même, l'URL relative se résout
+// normalement par rapport à la page — comme param_fond()/param_logo()
+// partout ailleurs (<img src="uploads/…">).
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
     $h = couleurs_derivees((string) param('employeur_couleur_evidence', '#2563eb'));
-    $fondPerso = (string) param('employeur_fond', '');
-    $fondVar = $fondPerso !== '' ? '--fond-url:url(' . json_encode($fondPerso) . ');' : '';
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
-        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';' . $fondVar . '}</style>';
+        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}'
+        . 'body.has-sidebar{background-image:url(' . json_encode(param_fond()) . ');}</style>';
 }
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées

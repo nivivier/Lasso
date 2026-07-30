@@ -48,10 +48,10 @@ body {
     margin: 0;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--ink);
-    /* Image de fond : var(--fond-url) posée en style inline par views/layout.php
-       (page Apparence, param_fond() — lib/helpers.php), avec assets/fond.jpg par
-       défaut si aucune image n'est personnalisée. */
-    background: var(--bg) var(--fond-url, url("fond.jpg"));
+    /* Fond par défaut — remplacé pour body.has-sidebar par le <style> inline
+       de couleurs_css_vars() (lib/helpers.php) si une image personnalisée a
+       été choisie dans Paramètres → Apparence. */
+    background: var(--bg) url("fond.jpg");
     background-size:cover;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
