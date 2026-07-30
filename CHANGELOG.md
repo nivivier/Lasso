@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.17.4] — 2026-07-30
+
+### Modifié
+- **Carte « Localisation » (?p=evenement)** : l'en-tête flottant (ville/canton/région + crayon) a désormais le même padding (26px) que les autres cadres de la page, au lieu d'un padding plus serré — la réserve de hauteur pour le formulaire d'édition et le message « ville non géocodée » est ajustée en conséquence.
+
 ## [1.17.3] — 2026-07-30
 
 ### Modifié

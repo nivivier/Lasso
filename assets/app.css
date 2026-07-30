@@ -229,8 +229,8 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    la feuille de style (même spécificité en un seul sélecteur de classe —
    .card-flush seul serait écrasé par .card, déclaré plus loin). */
 .card.card-flush { padding: 0; overflow: hidden; position: relative; }
-.card-flush .card-edit { padding: 70px 26px 26px; }
-.loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 14px 16px; }
+.card-flush .card-edit { padding: 96px 26px 26px; }
+.loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 26px; }
 .loc-header strong { font-size: 32px; }
 
 /* Carte « Informations » (?p=evenement) : sans titre de cadre, la date et le
@@ -271,7 +271,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    de marge en haut pour ne pas passer sous l'en-tête. */
 .loc-map-bg:has(.mini-carte) { position: absolute; inset: 0; z-index: 0; }
 .loc-map-bg .mini-carte { width: 100%; height: 100%; border: 0; border-radius: 0; }
-.loc-map-bg:not(:has(.mini-carte)) { padding: 70px 16px 20px; }
+.loc-map-bg:not(:has(.mini-carte)) { padding: 96px 16px 20px; }
 
 /* Icônes de valeur (statut/audience en lecture, carte « Informations » de
    ?p=evenement) : mêmes couleurs que les usages existants ailleurs dans
