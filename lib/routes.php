@@ -700,7 +700,11 @@ function route_employeur(): void
 // (couleurs_css_vars), il suffit donc d'enregistrer les deux couleurs de
 // base ; valeur invalide ignorée. Image de fond : même traitement que les
 // logos employeur (handle_logo_upload(), lib/helpers.php), remplace
-// assets/fond.jpg par défaut tant qu'aucun fichier n'est envoyé.
+// assets/fond.jpg par défaut tant qu'aucun fichier n'est envoyé — suppression
+// de l'image personnalisée gérée à part par un bouton dédié, voir
+// route_apparence_fond_supprimer(). Effets clair/flouté (cases à cocher
+// combinables) appliqués en filter CSS sur un ::before dédié, jamais sur
+// <body> — voir couleurs_css_vars().
 function route_apparence(): void
 {
     require_login();
@@ -719,6 +723,9 @@ function route_apparence(): void
                 $stmt->execute([$cleCouleur, strtolower($couleur)]);
             }
         }
+        foreach (['employeur_fond_clair', 'employeur_fond_floute'] as $cleEffet) {
+            $stmt->execute([$cleEffet, isset($_POST[$cleEffet]) ? '1' : '']);
+        }
         if ($fond !== null) {
             $ancien = param('employeur_fond', '');
             $stmt->execute(['employeur_fond', $fond]);
@@ -729,6 +736,23 @@ function route_apparence(): void
         redirect('apparence', ['ok' => 1]);
     }
     render('apparence', ['saved' => isset($_GET['ok']), 'err' => null], 'Apparence');
+}
+
+// Supprime l'image de fond personnalisée (bouton dédié, ?p=apparence) et
+// revient à assets/fond.jpg — n'affecte ni les couleurs ni les effets
+// clair/flouté, contrairement à route_apparence() (formulaire principal).
+function route_apparence_fond_supprimer(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $ancien = param('employeur_fond', '');
+        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')->execute(['employeur_fond', '']);
+        if ($ancien !== '' && str_starts_with($ancien, 'uploads/') && is_file(__DIR__ . '/../' . $ancien)) {
+            @unlink(__DIR__ . '/../' . $ancien);
+        }
+    }
+    redirect('apparence', ['ok' => 1]);
 }
 
 // Paramètres d'envoi des e-mails (expéditeur, contact, SMTP authentifié).

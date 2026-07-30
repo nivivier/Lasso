@@ -48,21 +48,33 @@ body {
     margin: 0;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--ink);
-    /* Fond par défaut — remplacé pour body.has-sidebar par le <style> inline
-       de couleurs_css_vars() (lib/helpers.php) si une image personnalisée a
-       été choisie dans Paramètres → Apparence. */
-    background: var(--bg) url("fond.jpg");
-    background-size:cover;
+    background: var(--bg);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    /* Pas de filter/backdrop-filter/transform ici : ces propriétés font de
-       <body> le containing block de tous ses descendants position:fixed
-       (barre de modification groupée, toasts .flash, .modal-overlay…),
-       qui se retrouvent alors positionnés par rapport à la hauteur totale
-       du document au lieu du viewport — invisibles hors écran sur toute
-       page plus haute que la fenêtre. Vérifié empiriquement : ce filtre
-       n'apportait de toute façon aucun effet visuel utile (il s'applique à
-       ce qui est *derrière* <body>, pas à son propre fond). */
+    /* Pas de filter/backdrop-filter/transform sur <body> lui-même : ces
+       propriétés en feraient le containing block de tous ses descendants
+       position:fixed (barre de modification groupée, toasts .flash,
+       .modal-overlay…), qui se retrouveraient alors positionnés par rapport
+       à la hauteur totale du document au lieu du viewport — invisibles hors
+       écran sur toute page plus haute que la fenêtre. Vérifié empiriquement :
+       backdrop-filter n'a de toute façon aucun effet utile ici (il s'applique
+       à ce qui est *derrière* l'élément, pas à son propre fond). L'image de
+       fond (et son éventuel effet clair/flouté, Paramètres → Apparence) vit
+       donc sur un ::before séparé (ci-dessous) : lui seul peut porter un
+       filter sans rien casser, puisqu'un pseudo-élément vide n'a aucun
+       descendant position:fixed à cette hauteur. */
+}
+/* Fond par défaut — image et filtre (clair/flouté) posés par le <style>
+   inline de couleurs_css_vars() (lib/helpers.php), body.has-sidebar::before
+   ci-dessous n'en fixe que la mécanique. inset:-30px déborde le viewport
+   pour que le flou (filter:blur()) ne laisse pas de bord translucide. */
+body.has-sidebar::before {
+    content: '';
+    position: fixed;
+    inset: -30px;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
 }
 
 /* Garantit que l'attribut HTML hidden fonctionne même sur les éléments avec display:flex/grid. */

@@ -276,6 +276,7 @@ if (peut_ecrire('coeur')) {
         'maj'                 => 'route_maj',
         'diagnostic'          => 'route_diagnostic',
         'apparence'           => 'route_apparence',
+        'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
         'backup'              => 'route_backup',
         'dev'                 => 'route_dev',
     ];

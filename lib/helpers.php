@@ -679,7 +679,7 @@ if ($l > 75) {
 // après app.css. Cette dernière remplace la couleur principale à certains
 // endroits (boutons principaux, sommes de brut, liens, tags) ; voir
 // --highlight* dans app.css pour la liste des règles concernées.
-// L'image de fond est posée ici en dur (body.has-sidebar{background-image:...})
+// L'image de fond est posée ici en dur (body.has-sidebar::before{background-image:...})
 // plutôt que via une variable CSS consommée depuis app.css : une URL relative
 // dans une custom property se résout par rapport à la feuille de style où la
 // var() est *utilisée*, pas où la propriété est déclarée — utilisée dans
@@ -687,17 +687,26 @@ if ($l > 75) {
 // "assets/uploads/…" (inexistant) au lieu de "uploads/…" à la racine du site.
 // Ici, dans le <style> inline de la page elle-même, l'URL relative se résout
 // normalement par rapport à la page — comme param_fond()/param_logo()
-// partout ailleurs (<img src="uploads/…">).
+// partout ailleurs (<img src="uploads/…">). L'effet clair/flouté (filter)
+// est posé sur ce même ::before, jamais sur <body> lui-même — voir le
+// commentaire dans app.css (body.has-sidebar::before).
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
     $h = couleurs_derivees((string) param('employeur_couleur_evidence', '#2563eb'));
+    // Effets combinables (voir param_fond_clair()/param_fond_floute()) : les
+    // fonctions filter s'enchaînent dans une seule déclaration, chacune
+    // s'appliquant sur le résultat de la précédente.
+    $filtres = [];
+    if (param_fond_clair()) { $filtres[] = 'contrast(.1) brightness(2)'; }
+    if (param_fond_floute()) { $filtres[] = 'blur(10px)'; }
+    $filtreFond = $filtres ? 'filter:' . implode(' ', $filtres) . ';' : '';
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
         . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}'
-        . 'body.has-sidebar{background-image:url(' . json_encode(param_fond()) . ');}</style>';
+        . 'body.has-sidebar::before{background-image:url(' . json_encode(param_fond()) . ');' . $filtreFond . '}</style>';
 }
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées
@@ -784,6 +793,18 @@ function param_fond(): string
 {
     $p = (string) param('employeur_fond', '');
     return $p !== '' ? $p : 'assets/fond.jpg';
+}
+
+// Effets appliqués à l'image de fond (page Apparence, cases à cocher
+// combinables — les deux peuvent être actives en même temps) : 'clair'
+// (adoucie/éclaircie, meilleure lisibilité) et 'floute'.
+function param_fond_clair(): bool
+{
+    return (string) param('employeur_fond_clair', '') === '1';
+}
+function param_fond_floute(): bool
+{
+    return (string) param('employeur_fond_floute', '') === '1';
 }
 
 // Traite l'upload d'un logo. Renvoie le chemin web relatif (uploads/…) si un

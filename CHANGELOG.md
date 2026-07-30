@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.19.0] — 2026-07-30
+
+### Ajouté
+- **Effets « clair » et « flouté » pour l'image de fond** (Paramètres → Apparence, cases à cocher combinables) : adoucit/éclaircit et/ou floute l'image pour préserver la lisibilité du contenu par-dessus. Implémenté via un `::before` dédié (jamais un filter/backdrop-filter sur `<body>` lui-même — cassait déjà les éléments `position:fixed` par le passé, voir commentaire historique dans app.css).
+- **Bouton « Supprimer l'image de fond »** (Paramètres → Apparence) : revient au fond par défaut de l'application ; n'apparaît que si une image personnalisée est active. Route dédiée (`route_apparence_fond_supprimer()`), n'affecte ni les couleurs ni les effets clair/flouté.
+
 ## [1.18.2] — 2026-07-30
 
 ### Modifié

@@ -33,6 +33,26 @@
         ) ?></h3>
         <span class="fond-preview"><img src="<?= e(param_fond()) ?>" alt="Fond actuel"></span>
         <input type="file" name="fond" accept="image/png,image/jpeg,image/gif,image/webp">
+        <?php if (param('employeur_fond', '') !== ''): ?>
+        <div class="mt-16">
+            <?php // formaction : ce bouton soumet le même formulaire vers une route dédiée
+                  // (route_apparence_fond_supprimer()), sans toucher couleurs/effets — un
+                  // <form> imbriqué serait invalide en HTML. ?>
+            <button type="submit" formaction="?p=apparence_fond_supprimer" formnovalidate class="btn ghost btn-sm"
+                    onclick="return confirm('Supprimer l\'image de fond personnalisée et revenir au fond par défaut ?');">
+                <?= icon('trash') ?> Supprimer l'image de fond
+            </button>
+        </div>
+        <?php endif; ?>
+
+        <label class="check mt-16">
+            <input type="checkbox" name="employeur_fond_clair" value="1" <?= param_fond_clair() ? 'checked' : '' ?>>
+            Fond clair <?= info_tip("Adoucit et éclaircit l'image pour une meilleure lisibilité du contenu par-dessus.") ?>
+        </label>
+        <label class="check">
+            <input type="checkbox" name="employeur_fond_floute" value="1" <?= param_fond_floute() ? 'checked' : '' ?>>
+            Fond flouté <?= info_tip("Applique un flou à l'image. Combinable avec « Fond clair ».") ?>
+        </label>
 
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
