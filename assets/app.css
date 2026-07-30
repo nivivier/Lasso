@@ -312,6 +312,15 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .card.card-statut-annule { background: linear-gradient(color-mix(in srgb, var(--muted) 10%, var(--card)), var(--card)); }
 .card.card-statut-option { background: linear-gradient(color-mix(in srgb, var(--amber) 10%, var(--card)), var(--card)); }
 
+/* Carte « Lieux liés » (?p=structure) : même dégradé teinté que les cartes
+   statut ci-dessus, mais légèrement transparent + flouté (esprit .blur-glass)
+   plutôt qu'opaque — mise en évidence discrète sans figer le fond de la carte. */
+.card.card-lieux-liees {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--highlight) 25%, var(--card)), color-mix(in srgb, var(--card) 50%, transparent));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }
 .burger, .side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }

@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.20.1] — 2026-07-30
+
+### Modifié
+- Fiche structure (?p=structure), carte Contacts : les badges (administration/booking/désinscrit) s'affichent désormais juste après le nom du contact plutôt qu'en fin de ligne.
+- Fiche structure, carte « Lieux liés » : fond légèrement teinté (couleur de mise en évidence), transparent et flouté, pour la distinguer visuellement des autres cartes (`.card-lieux-liees`, `assets/app.css`).
+
 ## [1.20.0] — 2026-07-30
 
 ### Ajouté

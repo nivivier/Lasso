@@ -240,7 +240,7 @@ $sid = (int) ($structure['id'] ?? 0);
 
 <div class="card-col">
 
-<div class="card">
+<div class="card card-lieux-liees">
     <div class="card-block section-editable">
         <div class="card-head-row">
             <h2 class="mt-0">Lieux liés</h2>
@@ -250,8 +250,8 @@ $sid = (int) ($structure['id'] ?? 0);
             <div class="linked-add">
                 <span>
                     <strong><a href="<?= url_avec_retour('?p=lieu&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
-                    <span class="muted small"> — <?= e((string) $l['type']) ?></span>
-                    <?php if ($l['ville']): ?><span class="muted small"> — <?= e($l['ville']) ?></span><?php endif; ?>
+                    <div class="muted small"><?= e((string) $l['type']) ?>
+                    <?php if ($l['ville']): ?> · <?= e($l['ville']) ?></div><?php endif; ?>
                 </span>
                 <form method="post" action="?p=structure_lieu_delier" class="edit-only" onsubmit="return confirm('Délier ce lieu ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -458,14 +458,14 @@ $sid = (int) ($structure['id'] ?? 0);
             <div class="linked-add contact-read <?= $c['actif'] ? '' : 'inactif' ?>">
                 <span>
                     <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
-                    <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
-                    <?php if ($c['email']): ?><span class="muted small"> — <?= e($c['email']) ?></span><?php endif; ?>
-                    <?php if ($c['telephone']): ?><span class="muted small"> — <?= e($c['telephone']) ?></span><?php endif; ?>
-                    <?php if ($c['formulaire_url']): ?><span class="muted small"> — <a href="<?= e($c['formulaire_url']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()">Formulaire</a></span><?php endif; ?>
-                    <?php if ($c['langue']): ?><span class="muted small"> — <?= e($c['langue']) ?></span><?php endif; ?>
                     <?php if ($c['est_administration']): ?><span class="badge">administration</span><?php endif; ?>
                     <?php if ($c['est_booking']): ?><span class="badge">booking</span><?php endif; ?>
                     <?php if ($c['desinscrit']): ?><span class="badge muted-badge">désinscrit</span><?php endif; ?>
+                    <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
+                    <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
+                    <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
+                    <?php if ($c['formulaire_url']): ?><div class="muted small"> — <a href="<?= e($c['formulaire_url']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()">Formulaire</a></div><?php endif; ?>
+                    <?php if ($c['langue']): ?><span class="muted small"><?= e($c['langue']) ?></span><?php endif; ?>
                 </span>
                 <button type="button" class="btn ghost btn-sm icon-only contact-edit-btn edit-only" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                 <form method="post" action="?p=structure_contact_delete" class="edit-only" onsubmit="return confirm('Supprimer ce contact ?');">
@@ -590,7 +590,7 @@ $villeHtmlS = ville_departement_canton_html(
             <?php if ($rueAffichee !== '' || $npaAffiche !== ''): ?>
             <div class="muted small"><?= e($rueAffichee) ?><?= $rueAffichee !== '' ? ' · ' : '' ?><?= e($npaAffiche) ?> <?= e((string) ($structure['adresse_localite'] ?? '')) ?></div>
             <?php endif; ?>
-            <?php if (trim((string) ($structure['grande_region'] ?? '')) !== ''): ?><div class="muted small">· <?= e($structure['grande_region']) ?></div><?php endif; ?>
+            <?php if (trim((string) ($structure['grande_region'] ?? '')) !== ''): ?><div class="muted small"><?= e($structure['grande_region']) ?></div><?php endif; ?>
         </div>
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
