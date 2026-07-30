@@ -196,8 +196,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    La carte occupe tout l'espace disponible à droite de la sidebar (position:
    fixed, hors du flux normal — .content n'a donc plus besoin de hauteur en
    dessous du bandeau) ; le bandeau d'en-tête flotte par-dessus, fond
-   semi-transparent (.carte-header) plutôt que le fond plein habituel. */
-.page-head-band.carte-header { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+   semi-transparent (.carte-header) plutôt que le fond plein habituel — fond
+   factorisé dans .blur-glass, réutilisé par l'en-tête flottant de la carte
+   « Localisation » (?p=evenement, cf. plus bas). */
+.page-head-band.carte-header,
+.blur-glass { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 160px; z-index: 1; }
 .carte-lieux { width: 100%; height: 100%; }
 .carte-banner {
@@ -214,6 +217,35 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 /* Mini-carte de localisation (?p=lieu, ?p=structure, ?p=evenement), voir
    views/_mini_carte.php — un seul marqueur, pas de fond plein écran. */
 .mini-carte { width: 100%; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+
+/* Carte sans marge interne : son contenu (ex. mini-carte plein cadre) occupe
+   tout l'espace jusqu'aux coins arrondis — carte « Localisation » de
+   ?p=evenement, seul usage actuel. .card-disp y reste un simple bloc de
+   bascule (voir .card-editable plus bas) : c'est .loc-map-bg, positionné en
+   absolu par rapport à .card-flush, qui remplit réellement la carte — d'où le
+   z-index explicite sur .loc-header pour rester au-dessus malgré l'ordre DOM. */
+.card-flush { padding: 0; overflow: hidden; position: relative; }
+.card-flush .card-edit { padding: 70px 26px 26px; }
+.loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px 16px; }
+/* Message flash (juste après enregistrement) : positionné comme .loc-header
+   (z-index 1) pour rester peint au-dessus de .loc-map-bg (z-index 0) malgré
+   la marge nulle de la carte — sinon la carte géographique, en position
+   absolue plein cadre, le recouvrirait. */
+.card-flush > .ok, .card-flush > .err { position: relative; z-index: 1; margin: 14px 16px 0; }
+/* .loc-map-bg enveloppe _mini_carte.php telle quelle (partagée avec ?p=lieu/
+   ?p=structure, non modifiée) : sa carte, quand elle existe, remplit tout le
+   cadre en absolu (sous l'en-tête flottant) ; sinon (ville pas encore
+   géocodée/absente) son message + bouton restent en flux normal, avec assez
+   de marge en haut pour ne pas passer sous l'en-tête. */
+.loc-map-bg:has(.mini-carte) { position: absolute; inset: 0; z-index: 0; }
+.loc-map-bg .mini-carte { width: 100%; height: 100%; border: 0; border-radius: 0; }
+.loc-map-bg:not(:has(.mini-carte)) { padding: 70px 16px 20px; }
+
+/* Icônes de valeur (statut/audience en lecture, carte « Informations » de
+   ?p=evenement) : mêmes couleurs que les usages existants ailleurs dans
+   l'appli (--amber = « à faire »/en attente, --ok = confirmé/positif). */
+.ico-amber { color: var(--amber); }
+.ico-ok { color: var(--ok); }
 
 /* Barre mobile + burger (cachés sur bureau) */
 .mobile-bar { display: none; }

@@ -27,6 +27,26 @@ function evenement_visibilite_libelle(string $visibilite): string
     };
 }
 
+// Icônes associées (carte « Informations » en lecture, ?p=evenement) — mêmes
+// icônes que le sélecteur d'édition (icon_picker) pour le statut de visibilité.
+function evenement_statut_icone(string $statut): string
+{
+    return match ($statut) {
+        'confirme' => 'circle-check',
+        'annule'   => 'circle-x',
+        default    => 'circle-ellipsis',
+    };
+}
+
+function evenement_visibilite_icone(string $visibilite): string
+{
+    return match ($visibilite) {
+        'public' => 'earth',
+        'prive'  => 'earth-lock',
+        default  => 'globe-off',
+    };
+}
+
 // Statut SUISA dérivé (jamais stocké), voir SPEC_EVENEMENTS.md §5. Calculé par
 // ordre de priorité : ne s'applique pas > décompte reçu > à venir > abandonné
 // > manquant > envoyé > à faire. « À venir » : sans décompte, et la date de

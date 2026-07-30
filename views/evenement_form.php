@@ -160,7 +160,11 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 <div class="card card-editable" id="carte-informations">
     <div class="page-head">
         <h2 class="mt-0">Informations</h2>
-        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
     </div>
     <?php if ($ok === 'informations'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
     <?php if ($errInformationsMsg): ?><p class="err"><?= e($errInformationsMsg) ?></p><?php endif; ?>
@@ -169,8 +173,10 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         <div class="grid4">
             <p><span class="muted small">Date</span><br><?= e(date('d.m.Y', strtotime((string) $evenement['date']))) ?></p>
             <p><span class="muted small"><?= e(evenements_terme_spectacle(false)) ?></span><br><?= $evenement['spectacle_nom'] ? e($evenement['spectacle_nom']) : '—' ?></p>
-            <p><span class="muted small">Statut</span><br><?= e(evenement_statut_libelle((string) $evenement['statut'])) ?></p>
-            <p><span class="muted small">Type d'audience</span><br><?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?></p>
+            <p><span class="muted small">Statut</span><br><span class="<?php
+                echo match ((string) $evenement['statut']) { 'confirme' => 'ico-ok', 'annule' => 'muted', default => 'ico-amber' };
+            ?>" title="<?= e(evenement_statut_libelle((string) $evenement['statut'])) ?>"><?= icon(evenement_statut_icone((string) $evenement['statut'])) ?></span></p>
+            <p><span class="muted small">Audience</span><br><span title="<?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?>"><?= icon(evenement_visibilite_icone((string) $evenement['visibilite'])) ?></span></p>
         </div>
         <div class="grid4">
             <p><span class="muted small">Salle à afficher</span><br><?= trim((string) $evenement['salle']) !== '' ? e($evenement['salle']) : '—' ?></p>
@@ -180,7 +186,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         </div>
     </div>
 
-    <form method="post" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
+    <form method="post" id="informations-form" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <div class="grid4">
@@ -201,7 +207,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                 </select>
             </label>
             <div class="field-group">
-                <span>Type d'audience <?= info_tip(
+                <span>Audience <?= info_tip(
                     "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
                     . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
                     . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
@@ -210,7 +216,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                     'public'         => ['icone' => 'earth', 'label' => evenement_visibilite_libelle('public')],
                     'prive'          => ['icone' => 'earth-lock', 'label' => evenement_visibilite_libelle('prive')],
                     'non_repertorie' => ['icone' => 'globe-off', 'label' => evenement_visibilite_libelle('non_repertorie')],
-                ], $vRaw('visibilite', 'non_repertorie'), "Type d'audience") ?>
+                ], $vRaw('visibilite', 'non_repertorie'), "Audience") ?>
             </div>
         </div>
         <div class="grid4">
@@ -222,10 +228,6 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         <div class="grid3">
             <label>Remarques <input name="remarques" value="<?= $v('remarques') ?>"></label>
         </div>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
-        </div>
     </form>
 </div>
 
@@ -233,7 +235,11 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 <div class="card card-editable" id="carte-organisation">
     <div class="page-head">
         <h2 class="mt-0">Organisation</h2>
-        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="organisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
     </div>
     <?php if ($ok === 'organisation'): ?><p class="ok flash">Organisation enregistrée.</p><?php endif; ?>
     <?php if ($errOrganisation): ?><p class="err">Le nom de la nouvelle structure est obligatoire.</p><?php endif; ?>
@@ -317,30 +323,45 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
             </div>
         </label>
         <?php endif; ?>
-
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
-        </div>
     </form>
 </div>
 <?php endif; ?>
 
-<div class="card card-editable" id="carte-localisation">
-    <div class="page-head">
-        <h2 class="mt-0">Localisation</h2>
-        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-    </div>
+<div class="card card-flush card-editable" id="carte-localisation">
     <?php if ($ok === 'localisation'): ?><p class="ok flash">Localisation enregistrée.</p><?php endif; ?>
 
-    <div class="card-disp">
-        <?php $drapeauEv = pays_drapeau((string) $evenement['pays']); ?>
-        <?php $villeHtmlEv = ville_departement_canton_html((string) $evenement['ville'], $drapeauEv, (string) $evenement['pays'], (string) $evenement['departement_canton']); ?>
-        <p><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></p>
-        <?php if (trim((string) $evenement['grande_region']) !== ''): ?><p class="muted small"><?= e($evenement['grande_region']) ?></p><?php endif; ?>
+    <div class="loc-header blur-glass">
+        <div>
+            <?php $drapeauEv = pays_drapeau((string) $evenement['pays']); ?>
+            <?php $villeHtmlEv = ville_departement_canton_html((string) $evenement['ville'], $drapeauEv, (string) $evenement['pays'], (string) $evenement['departement_canton']); ?>
+            <div><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></div>
+            <?php if (trim((string) $evenement['grande_region']) !== ''): ?><div class="muted small"><?= e($evenement['grande_region']) ?></div><?php endif; ?>
+        </div>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
     </div>
 
-    <form method="post" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
+    <div class="card-disp">
+        <div class="loc-map-bg">
+            <?php if (trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
+                <?php
+                $miniCarteVille = (string) $evenement['ville'];
+                $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
+                $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
+                $miniCarteRetourRoute = 'evenement';
+                $miniCarteRetourId = (int) $id;
+                require __DIR__ . '/_mini_carte.php';
+                ?>
+            <?php else: ?>
+                <p class="muted small">Aucune ville renseignée.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <form method="post" id="localisation-form" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <div class="grid4">
@@ -359,22 +380,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                 </div>
             </label>
         </div>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
-        </div>
     </form>
-
-    <?php if (trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
-        <?php
-        $miniCarteVille = (string) $evenement['ville'];
-        $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
-        $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
-        $miniCarteRetourRoute = 'evenement';
-        $miniCarteRetourId = (int) $id;
-        require __DIR__ . '/_mini_carte.php';
-        ?>
-    <?php endif; ?>
 </div>
 </div>
 <div class="card mt-22" id="carte-employes">
@@ -643,12 +649,18 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
     // de l'onglet Incohérences) — le bouton crayon révèle .card-edit et masque
     // .card-disp, jamais l'inverse tant qu'on ne recharge pas la page
     // (« Annuler » est un simple lien vers la page elle-même : voir plus haut).
+    // Le crayon est remplacé par les boutons enregistrer/annuler, au même
+    // endroit (en haut à droite du cadre) — tous trois vivent dans le même
+    // conteneur .head-actions, juste à côté du crayon.
     document.querySelectorAll('.card-edit-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const card = btn.closest('.card-editable');
             card.querySelector('.card-disp').hidden = true;
             card.querySelector('.card-edit').hidden = false;
+            const actions = btn.closest('.head-actions');
             btn.hidden = true;
+            actions.querySelector('.card-save-btn').hidden = false;
+            actions.querySelector('.card-cancel-btn').hidden = false;
         });
     });
 

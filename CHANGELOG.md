@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.17.1] — 2026-07-30
+
+### Modifié
+- **Fiche événement (édition), finitions** : les boutons « enregistrer »/« annuler » remplacent désormais le crayon au même endroit (en haut à droite du cadre), en icônes seules (disquette/croix). La carte « Localisation » n'a plus de titre ni de marge interne : la carte géographique occupe tout le cadre, surmontée d'un en-tête flottant translucide flouté (ville, drapeau, canton, région — même style que le bandeau du mode carte, désormais factorisé dans `.blur-glass`). Dans la carte « Informations », « Type d'audience » devient « Audience » et son statut « Public »/« Privé »/« Non répertorié » comme le statut de l'événement (« Confirmé »/« Annulé »/« Option ») s'affichent en icône seule (statut coloré : vert/gris/ambre).
+
 ## [1.17.0] — 2026-07-30
 
 ### Ajouté
