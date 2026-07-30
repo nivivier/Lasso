@@ -168,8 +168,8 @@ function route_facturation_form(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
     $delaiDefaut = (int) param('facturation_delai_jours_defaut', '30');
-    // Facture créée depuis un événement (bouton « Créer une facture liée »,
-    // module événements) : evenement_id porté par l'URL à la création, ou déjà
+    // Facture créée depuis un événement (bouton « Créer », carte Factures
+    // liées, module événements) : evenement_id porté par l'URL à la création, ou déjà
     // figé sur la facture en modification.
     $evenementId = ($_GET['evenement_id'] ?? $_POST['evenement_id'] ?? '') !== ''
         ? (int) ($_GET['evenement_id'] ?? $_POST['evenement_id'])

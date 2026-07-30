@@ -224,9 +224,29 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    bascule (voir .card-editable plus bas) : c'est .loc-map-bg, positionné en
    absolu par rapport à .card-flush, qui remplit réellement la carte — d'où le
    z-index explicite sur .loc-header pour rester au-dessus malgré l'ordre DOM. */
-.card-flush { padding: 0; overflow: hidden; position: relative; }
+/* Sélecteur à deux classes (pas juste .card-flush) : garantit la priorité sur
+   le padding: 26px de .card ci-dessous, quel que soit l'ordre des règles dans
+   la feuille de style (même spécificité en un seul sélecteur de classe —
+   .card-flush seul serait écrasé par .card, déclaré plus loin). */
+.card.card-flush { padding: 0; overflow: hidden; position: relative; }
 .card-flush .card-edit { padding: 70px 26px 26px; }
-.loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px 16px; }
+.loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 14px 16px; }
+.loc-header strong { font-size: 26px; color: var(--brand); }
+
+/* Carte « Informations » (?p=evenement) : sans titre de cadre, la date et le
+   spectacle en tiennent lieu visuellement. Le crayon/enregistrer/annuler
+   flottent en superposition (haut droite) plutôt que dans une ligne d'en-tête
+   dédiée — sinon cette ligne, même sans titre, laisse un vide entre le haut
+   de la carte et la date. */
+.card-editable { position: relative; }
+.card-actions-overlay { position: absolute; top: 26px; right: 26px; z-index: 1; }
+.info-date, .info-spectacle { padding-right: 110px; } /* dégage les boutons flottants (.card-actions-overlay) même pour un long nom de spectacle */
+.info-date { font-size: 26px; font-weight: 800; color: var(--brand); line-height: 1.2; }
+.info-spectacle { font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+.kv-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+.kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; padding: 8px 14px 8px 0; white-space: nowrap; vertical-align: top; width: 1%; }
+.kv-table td { padding: 8px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.kv-table tr:first-child th, .kv-table tr:first-child td { border-top: none; }
 /* Message flash (juste après enregistrement) : positionné comme .loc-header
    (z-index 1) pour rester peint au-dessus de .loc-map-bg (z-index 0) malgré
    la marge nulle de la carte — sinon la carte géographique, en position
@@ -283,6 +303,10 @@ body.auth-bg {
 
 /* =================== Headings / page head =================== */
 .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+/* Retour + bouton Supprimer sur la même ligne (?p=evenement, édition) : sans
+   cette remise à zéro, la marge basse du lien décale l'alignement vertical
+   avec le bouton dans le même .page-head. */
+.page-head > .back-link { margin-bottom: 0; }
 .back-link:hover { color: var(--highlight-d); text-decoration: none; }
 .back-link .ico { width: 16px; height: 16px; }
 .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }

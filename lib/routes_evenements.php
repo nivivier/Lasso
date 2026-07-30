@@ -601,7 +601,7 @@ function route_evenement(): void
 
     // suisa_applicable/suisa_envoye_*/suisa_decompte_le gardent leurs valeurs
     // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
-    // depuis la carte « Suivi SUISA », visible une fois l'événement créé.
+    // depuis la carte « SUISA », visible une fois l'événement créé.
     db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
                     grande_region, lieu_id, lien_infos, lien_texte, remarques)
                     VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
@@ -758,7 +758,7 @@ function route_evenement_organisation(): void
     redirect('evenement', ['id' => $id, 'ok' => 'organisation']);
 }
 
-// Carte « Suivi SUISA » — sauvegarde indépendante de la carte « Informations ».
+// Carte « SUISA » — sauvegarde indépendante de la carte « Informations ».
 function route_evenement_suisa(): void
 {
     require_login();

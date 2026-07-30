@@ -60,9 +60,8 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 $organisateursLiesIds = array_column($organisateursLies, 'id');
 $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !in_array((int) $d['id'], $organisateursLiesIds, true)));
 ?>
-<?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
 <div class="page-head">
-    <h1><?= $isEdit ? e(evenement_titre_page($evenement)) : 'Nouvel événement' ?></h1>
+    <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
     <?php if ($isEdit): ?>
     <div class="head-actions">
         <form method="post" action="?p=evenement_delete" class="d-inline" onsubmit="return confirm(<?= e(json_encode($confirmSuppr, JSON_UNESCAPED_UNICODE)) ?>);">
@@ -73,6 +72,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
     </div>
     <?php endif; ?>
 </div>
+<?php if (!$isEdit): ?><h1><?= e('Nouvel événement') ?></h1><?php endif; ?>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
@@ -158,32 +158,45 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 
 <div class="grid3">
 <div class="card card-editable" id="carte-informations">
-    <div class="page-head">
-        <h2 class="mt-0">Informations</h2>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
-        </div>
+    <div class="head-actions card-actions-overlay">
+        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+        <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+        <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
     </div>
     <?php if ($ok === 'informations'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
     <?php if ($errInformationsMsg): ?><p class="err"><?= e($errInformationsMsg) ?></p><?php endif; ?>
 
     <div class="card-disp">
-        <div class="grid4">
-            <p><span class="muted small">Date</span><br><?= e(date('d.m.Y', strtotime((string) $evenement['date']))) ?></p>
-            <p><span class="muted small"><?= e(evenements_terme_spectacle(false)) ?></span><br><?= $evenement['spectacle_nom'] ? e($evenement['spectacle_nom']) : '—' ?></p>
-            <p><span class="muted small">Statut</span><br><span class="<?php
-                echo match ((string) $evenement['statut']) { 'confirme' => 'ico-ok', 'annule' => 'muted', default => 'ico-amber' };
-            ?>" title="<?= e(evenement_statut_libelle((string) $evenement['statut'])) ?>"><?= icon(evenement_statut_icone((string) $evenement['statut'])) ?></span></p>
-            <p><span class="muted small">Audience</span><br><span title="<?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?>"><?= icon(evenement_visibilite_icone((string) $evenement['visibilite'])) ?></span></p>
-        </div>
-        <div class="grid4">
-            <p><span class="muted small">Salle à afficher</span><br><?= trim((string) $evenement['salle']) !== '' ? e($evenement['salle']) : '—' ?></p>
-            <p><span class="muted small">Festival à afficher</span><br><?= trim((string) $evenement['festival']) !== '' ? e($evenement['festival']) : '—' ?></p>
-            <p><span class="muted small">Lien</span><br><?php if (trim((string) $evenement['lien_infos']) !== ''): ?><a href="<?= e($evenement['lien_infos']) ?>" target="_blank" rel="noopener"><?= e($evenement['lien_texte'] ?: $evenement['lien_infos']) ?></a><?php else: ?>—<?php endif; ?></p>
-            <p><span class="muted small">Remarques</span><br><?= trim((string) $evenement['remarques']) !== '' ? e($evenement['remarques']) : '—' ?></p>
-        </div>
+        <div class="info-date"><?= e(date('d.m.Y', strtotime((string) $evenement['date']))) ?></div>
+        <div class="info-spectacle"><?= $evenement['spectacle_nom'] ? e($evenement['spectacle_nom']) : '—' ?></div>
+        <table class="kv-table">
+            <tr>
+                <th>Statut</th>
+                <td><span class="<?php
+                    echo match ((string) $evenement['statut']) { 'confirme' => 'ico-ok', 'annule' => 'muted', default => 'ico-amber' };
+                ?>" title="<?= e(evenement_statut_libelle((string) $evenement['statut'])) ?>"><?= icon(evenement_statut_icone((string) $evenement['statut'])) ?></span></td>
+            </tr>
+            <tr>
+                <th>Audience</th>
+                <td><span title="<?= e(evenement_visibilite_libelle((string) $evenement['visibilite'])) ?>"><?= icon(evenement_visibilite_icone((string) $evenement['visibilite'])) ?></span></td>
+            </tr>
+            <tr>
+                <th>Salle à afficher</th>
+                <td><?= trim((string) $evenement['salle']) !== '' ? e($evenement['salle']) : '—' ?></td>
+            </tr>
+            <tr>
+                <th>Festival à afficher</th>
+                <td><?= trim((string) $evenement['festival']) !== '' ? e($evenement['festival']) : '—' ?></td>
+            </tr>
+            <tr>
+                <th>Lien</th>
+                <td><?php if (trim((string) $evenement['lien_infos']) !== ''): ?><a href="<?= e($evenement['lien_infos']) ?>" target="_blank" rel="noopener"><?= e($evenement['lien_texte'] ?: $evenement['lien_infos']) ?></a><?php else: ?>—<?php endif; ?></td>
+            </tr>
+            <tr>
+                <th>Remarques</th>
+                <td><?= trim((string) $evenement['remarques']) !== '' ? e($evenement['remarques']) : '—' ?></td>
+            </tr>
+        </table>
     </div>
 
     <form method="post" id="informations-form" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
@@ -227,6 +240,63 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         </div>
         <div class="grid3">
             <label>Remarques <input name="remarques" value="<?= $v('remarques') ?>"></label>
+        </div>
+    </form>
+</div>
+<div class="card card-flush card-editable" id="carte-localisation">
+    <?php if ($ok === 'localisation'): ?><p class="ok flash">Localisation enregistrée.</p><?php endif; ?>
+
+    <div class="loc-header blur-glass">
+        <div>
+            <?php $drapeauEv = pays_drapeau((string) $evenement['pays']); ?>
+            <?php $villeHtmlEv = ville_departement_canton_html((string) $evenement['ville'], $drapeauEv, (string) $evenement['pays'], (string) $evenement['departement_canton']); ?>
+            <div><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></div>
+            <?php if (trim((string) $evenement['grande_region']) !== ''): ?><div class="muted small"><?= e($evenement['grande_region']) ?></div><?php endif; ?>
+        </div>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
+    </div>
+
+    <div class="card-disp">
+        <div class="loc-map-bg">
+            <?php if (trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
+                <?php
+                $miniCarteVille = (string) $evenement['ville'];
+                $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
+                $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
+                $miniCarteRetourRoute = 'evenement';
+                $miniCarteRetourId = (int) $id;
+                require __DIR__ . '/_mini_carte.php';
+                ?>
+            <?php else: ?>
+                <p class="muted small">Aucune ville renseignée.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <form method="post" id="localisation-form" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <div class="grid2">
+            <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
+            <label>Département/canton <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="canton ou département"></label>
+        </div>
+        <div class="grid2">
+            <label>Région
+                <select name="grande_region" class="region-select" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
+                    <option value="">— Région —</option>
+                    <?= region_options_nom(pays_nom_depuis_code($vRaw('pays')), $v('grande_region')) ?>
+                </select>
+            </label>
+            <label>Pays
+                <select name="pays" class="pays-select">
+                    <option value="">—</option>
+                    <?= pays_options_code($vRaw('pays')) ?>
+                </select>
+            </label>
         </div>
     </form>
 </div>
@@ -327,61 +397,6 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 </div>
 <?php endif; ?>
 
-<div class="card card-flush card-editable" id="carte-localisation">
-    <?php if ($ok === 'localisation'): ?><p class="ok flash">Localisation enregistrée.</p><?php endif; ?>
-
-    <div class="loc-header blur-glass">
-        <div>
-            <?php $drapeauEv = pays_drapeau((string) $evenement['pays']); ?>
-            <?php $villeHtmlEv = ville_departement_canton_html((string) $evenement['ville'], $drapeauEv, (string) $evenement['pays'], (string) $evenement['departement_canton']); ?>
-            <div><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></div>
-            <?php if (trim((string) $evenement['grande_region']) !== ''): ?><div class="muted small"><?= e($evenement['grande_region']) ?></div><?php endif; ?>
-        </div>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
-        </div>
-    </div>
-
-    <div class="card-disp">
-        <div class="loc-map-bg">
-            <?php if (trim((string) ($evenement['ville'] ?? '')) !== ''): ?>
-                <?php
-                $miniCarteVille = (string) $evenement['ville'];
-                $miniCarteDepartementCanton = (string) ($evenement['departement_canton'] ?? '');
-                $miniCartePays = pays_nom_depuis_code((string) ($evenement['pays'] ?? ''));
-                $miniCarteRetourRoute = 'evenement';
-                $miniCarteRetourId = (int) $id;
-                require __DIR__ . '/_mini_carte.php';
-                ?>
-            <?php else: ?>
-                <p class="muted small">Aucune ville renseignée.</p>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <form method="post" id="localisation-form" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <div class="grid4">
-            <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
-            <label>Département/canton, région et pays
-                <div class="field-pair">
-                    <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="canton ou département">
-                    <select name="grande_region" class="region-select" title="Région (Normandie, Romandie… — se gère dans Paramètres → Pays)">
-                        <option value="">— Région —</option>
-                        <?= region_options_nom(pays_nom_depuis_code($vRaw('pays')), $v('grande_region')) ?>
-                    </select>
-                    <select name="pays" class="pays-select">
-                        <option value="">—</option>
-                        <?= pays_options_code($vRaw('pays')) ?>
-                    </select>
-                </div>
-            </label>
-        </div>
-    </form>
-</div>
 </div>
 <div class="card mt-22" id="carte-employes">
     <div class="page-head">
@@ -409,7 +424,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                             <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn ghost"><?= icon('user-plus') ?> Ajouter un employé</button>
+                    <button type="submit" class="btn ghost"><?= icon('user-plus') ?> Ajouter</button>
                 </form>
             <?php endif; ?>
         </div>
@@ -538,15 +553,15 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 
 <div class="grid3 mt-22">
 <div class="card">
-    <h2 class="mt-0">Suivi SUISA <?= evenement_suisa_badge($evenement) ?></h2>
-    <?php if ($ok === 'suisa'): ?><p class="ok flash">Suivi SUISA enregistré.</p><?php endif; ?>
+    <h2 class="mt-0">SUISA <?= evenement_suisa_badge($evenement) ?></h2>
+    <?php if ($ok === 'suisa'): ?><p class="ok flash">SUISA enregistré.</p><?php endif; ?>
     <form method="post" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
         <label class="check">
             <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" <?= $suisaApplicable ? 'checked' : '' ?>>
-            La SUISA s'applique à cet événement
+            s'applique
         </label>
         <div class="grid3" id="suisa-champs" <?= $suisaApplicable ? '' : 'hidden' ?>>
             <label>Envoyée à
@@ -592,7 +607,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
     <div class="page-head">
         <h2 class="mt-0">Factures liées</h2>
         <?php if (module_actif('facturation')): ?>
-            <a class="btn ghost" href="?p=facturation_form&evenement_id=<?= (int) $id ?>"><?= icon('file-plus') ?> Créer une facture liée</a>
+            <a class="btn ghost" href="?p=facturation_form&evenement_id=<?= (int) $id ?>"><?= icon('file-plus') ?> Créer</a>
         <?php endif; ?>
     </div>
     <?php if (!$factures): ?>
@@ -635,7 +650,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                     <?php endforeach; ?>
                 </ul>
             </div>
-            <button type="submit" class="btn ghost btn-sm">Lier une facture existante</button>
+            <button type="submit" class="btn ghost btn-sm"><?= icon('link') ?> Lier</button>
         </form>
     <?php endif; ?>
 </div>
