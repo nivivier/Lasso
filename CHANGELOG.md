@@ -7,7 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [1.21.2] — 2026-07-31
+## [1.21.3] — 2026-07-31
+
+### Modifié
+- Carte Contacts (fiche structure) : « Aucun contact. » ne s'affiche plus à tort quand seuls des contacts de structures liées existent ; le nom de la structure liée porte désormais une petite icône (blocs/bâtiment, même convention que « Structures liées ») indiquant le sens du lien.
+
+
 
 ### Corrigé
 - `?p=dev` plantait (« no such table: lieux ») : la détection des grandes régions (`GRANDE_REGION_TABLES`) référençait encore la table `lieux`, supprimée en v1.21.0 (fusion lieux→structures). Nettoyage complémentaire d'une valeur par défaut similaire dans `geocodage_villes_manquantes()`.

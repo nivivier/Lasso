@@ -545,13 +545,16 @@ $sid = (int) ($structure['id'] ?? 0);
     <?php endforeach; ?>
     <?php if (!$contacts && !$contactsLies): ?><p class="muted small">Aucun contact.</p><?php endif; ?>
 
+    <?php
+        $sensParStructure = array_column($lieuxLies, 'sens', 'id');
+    ?>
     <?php if ($contactsLies): ?>
         <?php foreach ($contactsLies as $c): ?>
             <div class="linked-add contact-read <?= $c['actif'] ? '' : 'inactif' ?>">
                 <span>
                     <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
                     <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
-                    <div class="muted small"><a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a></div>
+                    <div class="muted small"><?= icon(($sensParStructure[$c['structure_id']] ?? '') === 'organise' ? 'blocks' : 'building') ?> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a></div>
                     <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
                     <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
                 </span>
