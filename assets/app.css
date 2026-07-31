@@ -509,7 +509,7 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: 19px; 
 .seg-picker .seg-btn {
     display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
     width: 46px; height: 38px; margin: 0; background: #fff; border: none; border-right: 1px solid var(--line); color: var(--muted);
-    cursor: pointer; transition: background .15s, color .15s; text-decoration: none; box-shadow: none;
+    cursor: pointer; transition: background .15s, color .15s; text-decoration: none; box-shadow: none; border-radius: 0;
 }
 .seg-btn:last-child { border-right: none; }
 .seg-btn .ico { width: 17px; height: 17px; }

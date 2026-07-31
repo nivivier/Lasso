@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.3] — 2026-07-31
+
+### Corrigé
+- Carte « Statut » (fiche structure) : les jonctions entre les 3 boutons du sélecteur segmenté n'étaient pas des lignes droites (chaque `<button>` hérite d'un `border-radius` individuel du style de bouton par défaut du site, créant une légère courbure interne à chaque coin — invisible avec le `<label>` utilisé par les autres sélecteurs segmentés). `.seg-btn` réinitialise désormais aussi `border-radius: 0`, seul le conteneur `.seg-picker` arrondissant la silhouette globale.
+
 ## [1.24.2] — 2026-07-31
 
 ### Modifié
