@@ -1020,7 +1020,7 @@ function route_structure(): void
                  $map
              )],
             structure_donnees_crm($id)
-        ), $id ? 'Modifier la structure' : 'Nouvelle structure');
+        ), $id ? (string) $structureAffichee['nom'] : 'Nouvelle structure');
     };
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

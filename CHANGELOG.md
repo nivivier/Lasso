@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.21.6] — 2026-07-31
+
+### Modifié
+- Fiche structure (?p=structure) : le titre de l'onglet affiche le nom de la structure au lieu de « Modifier la structure ».
+
 ## [1.21.5] — 2026-07-31
 
 ### Modifié
