@@ -780,6 +780,18 @@ function mois_nom(int $m): string
     return MOIS_FR[$m] ?? (string) $m;
 }
 
+// Abrégé 3 lettres majuscules (JAN, FÉV… JUN/JUL distincts de juin/juillet,
+// contrairement à une simple troncature) — puce de date façon calendrier.
+const MOIS_ABREGES_FR = [
+    1 => 'JAN', 2 => 'FÉV', 3 => 'MAR', 4 => 'AVR', 5 => 'MAI', 6 => 'JUN',
+    7 => 'JUL', 8 => 'AOÛ', 9 => 'SEP', 10 => 'OCT', 11 => 'NOV', 12 => 'DÉC',
+];
+
+function mois_abrege(int $m): string
+{
+    return MOIS_ABREGES_FR[$m] ?? '';
+}
+
 // Chemin web du logo employeur ('clair' fond clair, 'sombre' fond sombre) ou '' si non défini.
 function param_logo(string $variant): string
 {

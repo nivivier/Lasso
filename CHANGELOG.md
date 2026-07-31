@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.21.5] — 2026-07-31
+
+### Modifié
+- Carte « Événements » de la fiche structure : chaque ligne devient une puce de date façon calendrier (jour + mois abrégé, année en dessous), avec le spectacle et, en dessous, la ville et la structure liée (icône blocs/bâtiment). Nouvel helper `mois_abrege()` (`lib/helpers.php`).
+
 ## [1.21.4] — 2026-07-31
 
 ### Modifié

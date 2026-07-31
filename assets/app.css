@@ -798,6 +798,14 @@ button:active, .btn:active { transform: translateY(1px); }
 .muted { color: var(--muted); }
 .small { font-size: 12.8px; }
 .clean-list { list-style: none; margin: 0; padding: 0; }
+.evt-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.evt-row + .evt-row { border-top: 1px solid var(--line); }
+.evt-date { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; padding: 5px 4px; border-radius: var(--radius-sm); background: var(--primary-tint); line-height: 1.15; text-align: center; }
+.evt-date-jm { font-size: 12.5px; font-weight: 700; letter-spacing: .01em; color: var(--primary-d); }
+.evt-date-an { font-size: 10.5px; font-weight: 500; color: var(--muted); }
+.evt-info { min-width: 0; }
+.evt-spectacle { font-weight: 600; }
+.evt-spectacle a { color: inherit; }
 .tiny { font-size: 10.5px; }
 .text-strike { text-decoration: line-through; }
 

@@ -354,11 +354,24 @@ $sid = (int) ($structure['id'] ?? 0);
     <div class="card-block">
         <h2 class="mt-0">Événements (<?= count($evenementsLies) ?>)</h2>
         <ul class="clean-list">
-            <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
-            <li>
-                <a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
-                — <?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?><?php if ($ev['ville']): ?> <span class="muted">· <?= e((string) $ev['ville']) ?></span><?php endif; ?>
-                <?php if (!empty($ev['structure_id'])): ?> <span class="muted small"><span class="ico-tiny"><?= icon($ev['sens'] === 'organise' ? 'blocks' : 'building') ?></span> <?= e((string) $ev['structure_nom']) ?></span><?php endif; ?>
+            <?php foreach (array_slice($evenementsLies, 0, 30) as $ev):
+                $ts = $ev['date'] ? strtotime((string) $ev['date']) : false;
+            ?>
+            <li class="evt-row">
+                <a href="?p=evenement&id=<?= (int) $ev['id'] ?>" class="evt-date">
+                    <?php if ($ts): ?>
+                        <span class="evt-date-jm"><?= date('d', $ts) ?> <?= mois_abrege((int) date('n', $ts)) ?></span>
+                        <span class="evt-date-an"><?= date('Y', $ts) ?></span>
+                    <?php else: ?>
+                        <span class="evt-date-jm">—</span>
+                    <?php endif; ?>
+                </a>
+                <div class="evt-info">
+                    <div class="evt-spectacle"><a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?></a></div>
+                    <div class="muted small">
+                        <?= e((string) $ev['ville']) ?><?php if (!empty($ev['structure_id'])): ?><?= $ev['ville'] ? ' · ' : '' ?><span class="ico-tiny"><?= icon($ev['sens'] === 'organise' ? 'blocks' : 'building') ?></span> <?= e((string) $ev['structure_nom']) ?><?php endif; ?>
+                    </div>
+                </div>
             </li>
             <?php endforeach; ?>
         </ul>
