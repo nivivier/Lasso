@@ -1166,22 +1166,35 @@ function route_structure_localisation(): void
 }
 
 // Bascule immédiate du statut (active / désinscrite du mailing) depuis le bloc
-// « Statut » de la sidebar — enregistrée à chaque coche sans passer par le
-// bouton Enregistrer de la fiche. Règle métier : une structure inactive est
-// toujours désinscrite du mailing (comme le bulk change et l'ancien formulaire).
+// Bascule cyclique du statut d'une structure — Actif → Ne pas contacter →
+// Inactive → Actif (voir structure_statut_toggle_html(), lib/helpers.php).
+// « Ne pas contacter » = active mais désinscrite du mailing ; une structure
+// inactive est toujours désinscrite (déduit, jamais un 4e état saisissable).
+// Appelé en AJAX (lassoInitStatutToggle(), assets/app.js) : répond en JSON,
+// pas de redirect (même mécanique que route_structure_flag()).
 function route_structure_statut(): void
 {
     require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures'); }
+    header('Content-Type: application/json');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['ok' => false]);
+        return;
+    }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
-    if (!$id) { redirect('structures'); }
-    $actif = isset($_POST['actif']) ? 1 : 0;
-    $desinscrit = isset($_POST['desinscrit']) ? 1 : 0;
-    if (!$actif) { $desinscrit = 1; }
-    $av = db()->prepare('SELECT actif, desinscrit FROM structures WHERE id = ?');
-    $av->execute([$id]);
-    $avant = $av->fetch() ?: ['actif' => $actif, 'desinscrit' => $desinscrit];
+    $stmt = db()->prepare('SELECT actif, desinscrit FROM structures WHERE id = ?');
+    $stmt->execute([$id]);
+    $avant = $stmt->fetch();
+    if (!$avant) {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    $etatActuel = !$avant['actif'] ? 'inactive' : ((int) $avant['desinscrit'] ? 'ne_pas_contacter' : 'actif');
+    [$etatSuivant, $actif, $desinscrit] = match ($etatActuel) {
+        'actif'            => ['ne_pas_contacter', 1, 1],
+        'ne_pas_contacter' => ['inactive', 0, 1],
+        default            => ['actif', 1, 0],
+    };
     db()->prepare('UPDATE structures SET actif = ?, desinscrit = ? WHERE id = ?')->execute([$actif, $desinscrit, $id]);
     if (module_actif('booking')) {
         $lignes = [];
@@ -1189,7 +1202,7 @@ function route_structure_statut(): void
         if ((int) $avant['desinscrit'] !== $desinscrit) { $lignes[] = 'Désinscrite du mailing : ' . ($desinscrit ? 'oui' : 'non'); }
         if ($lignes) { journaliser('structure', $id, 'edition', implode("\n", $lignes)); }
     }
-    redirect('structure', ['id' => $id]);
+    echo json_encode(['ok' => true, 'etat' => $etatSuivant]);
 }
 
 // Bascule le marquage rapide (flag) d'une structure — aucun → étoile → cœur →

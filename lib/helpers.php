@@ -1462,6 +1462,7 @@ function icon(string $name): string
         'circle-check' => '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
         'circle-x'     => '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
         'circle-ellipsis' => '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
+        'circle-dashed' => '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
         'link'       => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
         'unlink'     => '<path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/>',
         'earth-lock' => '<path d="M7 3.34V5a3 3 0 0 0 3 3"/><path d="M11 21.95V18a2 2 0 0 0-2-2 2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05"/><path d="M21.54 15H17a2 2 0 0 0-2 2v4.54"/><path d="M12 2a10 10 0 1 0 9.54 13"/><path d="M20 6V4a2 2 0 1 0-4 0v2"/><rect width="8" height="5" x="14" y="6" rx="1"/>',
@@ -1524,6 +1525,30 @@ function flag_toggle_html(string $table, int $id, string $flag): string
     };
     return '<button type="button" class="flag-toggle flag-' . e($flag ?: 'aucun') . '"'
         . ' data-flag-table="' . e($table) . '" data-flag-id="' . $id . '" data-flag-valeur="' . e($flag) . '"'
+        . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
+}
+
+// Statut d'une structure, bouton cyclé au clic (même mécanique que
+// flag_toggle_html() : voir route_structure_statut() + lassoInitStatutToggle(),
+// assets/app.js) — 3 états : « Actif » (active, pas désinscrite), « Ne pas
+// contacter » (active mais désinscrite du mailing), « Inactive » (toujours
+// désinscrite du mailing, déduit — pas un 4e état possible). Cycle dans cet
+// ordre au clic.
+function structure_statut_toggle_html(int $id, bool $actif, bool $desinscrit): string
+{
+    $etat = !$actif ? 'inactive' : ($desinscrit ? 'ne_pas_contacter' : 'actif');
+    $icone = match ($etat) {
+        'ne_pas_contacter' => 'circle-x',
+        'inactive'         => 'circle-dashed',
+        default            => 'circle-check',
+    };
+    $label = match ($etat) {
+        'ne_pas_contacter' => 'Ne pas contacter',
+        'inactive'         => 'Inactive',
+        default            => 'Actif',
+    } . ' — cliquer pour changer';
+    return '<button type="button" class="statut-toggle statut-' . e($etat) . '"'
+        . ' data-statut-id="' . $id . '"'
         . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
 }
 

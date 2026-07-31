@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.23.0] — 2026-07-31
+
+### Modifié
+- Fiche structure, carte « Statut » : les cases « Structure active »/« Désinscrite du mailing » sont remplacées par un bouton à bascule (icône) en haut à droite du titre, cyclant Actif (vert) → Ne pas contacter (rouge, active mais désinscrite) → Inactive (gris, toujours désinscrite) → Actif. AJAX (comme le marquage rapide étoile/cœur), sans rechargement de page. Nouveaux helpers `structure_statut_toggle_html()` (lib/helpers.php) et `lassoInitStatutToggle()` (assets/app.js).
+
 ## [1.22.0] — 2026-07-31
 
 ### Ajouté

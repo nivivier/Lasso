@@ -454,19 +454,10 @@ $sid = (int) ($structure['id'] ?? 0);
 <div class="card-col">
 
 <div class="card">
-    <h2 class="mt-0">Statut</h2>
-    <form method="post" action="?p=structure_statut" id="statut-form">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= $sid ?>">
-        <label class="check mb-8">
-            <input type="checkbox" name="actif" id="structure-actif" value="1" <?= $structure['actif'] ? 'checked' : '' ?>>
-            Structure active
-        </label>
-        <label class="check">
-            <input type="checkbox" name="desinscrit" id="structure-desinscrit" value="1" <?= $structure['desinscrit'] ? 'checked' : '' ?>>
-            Désinscrite du mailing <?= info_tip("Automatique : une structure inactive est toujours désinscrite du mailing.") ?>
-        </label>
-    </form>
+    <div class="card-head-row">
+        <h2 class="mt-0">Statut</h2>
+        <?= structure_statut_toggle_html($sid, (bool) $structure['actif'], (bool) $structure['desinscrit']) ?>
+    </div>
 
     <div class="tags-liste mt-16">
         <?php foreach ($tags as $t): ?>
@@ -490,24 +481,8 @@ $sid = (int) ($structure['id'] ?? 0);
         </datalist>
         <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
     </form>
-    <script>
-    (function () {
-        var actif = document.getElementById('structure-actif');
-        var desinscrit = document.getElementById('structure-desinscrit');
-        var form = document.getElementById('statut-form');
-        if (!actif || !desinscrit || !form) return;
-        function syncDisable() {
-            desinscrit.disabled = !actif.checked;
-            if (!actif.checked) desinscrit.checked = true;
-        }
-        syncDisable();
-        // Coche/décoche : enregistrement immédiat (route_structure_statut), sans
-        // passer par le bouton Enregistrer de la fiche.
-        actif.addEventListener('change', function () { syncDisable(); form.requestSubmit(); });
-        desinscrit.addEventListener('change', function () { form.requestSubmit(); });
-    })();
-    </script>
 </div>
+<script>lassoInitStatutToggle();</script>
 
 <div class="card section-editable">
     <div class="card-head-row">
