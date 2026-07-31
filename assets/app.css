@@ -434,6 +434,22 @@ h3.sub.no-mt { margin-top: 0; }
     padding: 26px;
     box-shadow: var(--shadow);
 }
+/* De nombreux blocs répétés (.linked-add, .tags-liste, .contact-row…) espaçaient
+   les lignes via un margin-bottom sur chaque ligne — inoffensif tant qu'une
+   autre ligne suit, mais qui s'ajoutait au padding-bottom de la carte quand
+   la ligne se trouvait être la dernière (y compris quand seul un formulaire
+   masqué — .edit-only, [hidden] — suivait : un :last-child CSS cible cet
+   élément cadré dans le DOM, pas la dernière ligne VISIBLE, donc inefficace
+   ici). Le bas de carte se creusait alors visiblement plus que le haut (nettoyé
+   au cas par cas via .mt-0 sur le premier titre). Fix : la marge migre sur le
+   haut de l'élément SUIVANT plutôt que le bas de chaque ligne — un
+   margin-top sur un élément caché (display:none) n'a aucun effet visuel, donc
+   plus jamais de marge fantôme en fin de carte, quel que soit ce qui suit. */
+/* Même souci avec un <p> ordinaire (ex. « Aucun contact. ») terminant une
+   carte : sa marge par défaut du navigateur (1em) s'ajoute au padding-bottom
+   de la carte. Scopé à *:last-child (donc sans effet si un élément — même
+   masqué — le suit encore, cas alors couvert par la règle précédente). */
+.card > p:last-child, .card-block > p:last-child, .card-disp > p:last-child { margin-bottom: 0; }
 .card.auth { width: 100%; padding: 30px; }
 .card.auth h1 { margin: 0 0 18px; font-size: 22px; }
 .fieldset-groupe { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 16px 16px; margin: 0 0 18px; }
@@ -676,7 +692,9 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .check { display: flex; flex-direction: row !important; align-items: center; gap: 9px; font-weight: 500; color: var(--ink); }
 .check input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .form-actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
-.linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+.linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
+.contact-row { margin-bottom: 0; }
+:is(.linked-add, .contact-row):not(.souscat-row) + * { margin-top: 16px; }
 .linked-add select { width: auto; flex: 1; }
 .linked-add .cat-search { flex: 1; }
 /* Le champ occupe toute la largeur disponible → le bouton reste collé à droite. */
@@ -941,7 +959,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
 /* Étiquettes de structure (booking) : badge + petit bouton de retrait intégré. */
-.tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 0; }
+.tags-liste + * { margin-top: 12px; }
 .tags-liste .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 0; }
 .btn-tag-x { border: none; background: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
 /* Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton

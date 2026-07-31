@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.4] — 2026-07-31
+
+### Corrigé
+- Padding du bas des cartes visuellement plus grand que celui du haut : les lignes répétées (`.linked-add`, `.tags-liste`, `.contact-row`) espaçaient via un `margin-bottom` qui s'ajoutait au padding de la carte quand la ligne se trouvait être la dernière — y compris quand seul un formulaire masqué (`.edit-only`, `[hidden]`) suivait, cas où un simple `:last-child` CSS ne fonctionne pas (il cible cet élément caché dans le DOM, pas la dernière ligne visible). La marge migre désormais vers le haut de l'élément suivant (sans effet sur un élément `display:none`), et un `<p>` terminant une carte (« Aucun contact. », etc.) ne porte plus sa marge par défaut du navigateur.
+
 ## [1.24.3] — 2026-07-31
 
 ### Corrigé
