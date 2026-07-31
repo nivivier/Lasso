@@ -932,7 +932,9 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .ce-cout { color: var(--ink); }
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
-.badge { font-size: 11px; background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-weight: 600; white-space: nowrap; }
+.badge { font-size: 11px; background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-weight: 600; white-space: nowrap; border: none; box-shadow: none; }
+.badge.tag-ajouter-btn { cursor: pointer; margin-left: 6px; }
+.badge.tag-ajouter-btn:hover { background: var(--highlight); color: #fff; }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
 .badge.orange-badge { background: var(--orange-tint); color: var(--orange); margin-left: 0; }

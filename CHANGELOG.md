@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.2] — 2026-07-31
+
+### Modifié
+- Carte « Statut » (fiche structure) : le champ « Ajouter une étiquette » ne s'affiche plus en permanence, mais derrière un petit « + » à la suite des étiquettes existantes (bouton `.badge`, réutilise le délégué `data-show`/`data-hide` déjà en place).
+
 ## [1.24.1] — 2026-07-31
 
 ### Ajouté

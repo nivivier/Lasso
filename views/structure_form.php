@@ -479,8 +479,9 @@ $sid = (int) ($structure['id'] ?? 0);
             </span>
         <?php endforeach; ?>
         <?php if (!$tags): ?><span class="muted small">Aucune étiquette.</span><?php endif; ?>
+        <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
     </div>
-    <form method="post" action="?p=structure_tag_ajouter" class="linked-add">
+    <form method="post" action="?p=structure_tag_ajouter" class="linked-add mt-10" id="tag-ajouter-form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
         <input type="text" name="nom" list="tags-dispo" placeholder="Ajouter une étiquette…" autocomplete="off">
@@ -488,6 +489,7 @@ $sid = (int) ($structure['id'] ?? 0);
             <?php foreach ($tagsDispo as $t): ?><option value="<?= e($t['nom']) ?>"><?php endforeach; ?>
         </datalist>
         <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </form>
 </div>
 <script>lassoInitStatutToggle();</script>
