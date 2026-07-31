@@ -958,6 +958,27 @@ function structure_donnees_crm(int $id): array
     $stmtOrganisateurDispo = db()->prepare('SELECT id, nom FROM structures WHERE id <> ? ORDER BY nom');
     $stmtOrganisateurDispo->execute([$id]);
 
+    // Événements de la structure ET de ses structures liées (organise/organisée
+    // par) — un événement lié à la fois à $id et à une structure liée (ou à
+    // deux structures liées) ne doit apparaître qu'une fois (id vu = exclu des
+    // tours suivants). Les événements provenant uniquement d'une structure
+    // liée portent structure_id/structure_nom/sens pour l'affichage (icône).
+    $evenementsLies = structure_evenements($id);
+    $vusEvenements = array_fill_keys(array_column($evenementsLies, 'id'), true);
+    foreach ($lieuxLies as $l) {
+        foreach (structure_evenements((int) $l['id']) as $ev) {
+            if (isset($vusEvenements[$ev['id']])) {
+                continue;
+            }
+            $vusEvenements[$ev['id']] = true;
+            $ev['structure_id'] = (int) $l['id'];
+            $ev['structure_nom'] = $l['nom'];
+            $ev['sens'] = $l['sens'];
+            $evenementsLies[] = $ev;
+        }
+    }
+    usort($evenementsLies, fn ($a, $b) => strcmp((string) $b['date'], (string) $a['date']) ?: $b['id'] <=> $a['id']);
+
     return [
         'contacts'  => $stmtContacts->fetchAll(),
         'contactsLies' => $contactsLies,
@@ -968,7 +989,7 @@ function structure_donnees_crm(int $id): array
         'lieuxDispo' => $stmtLieuxDispo->fetchAll(),
         'organisateurDispo' => $stmtOrganisateurDispo->fetchAll(),
         'categoriesLieu' => structure_sous_categories_booking_noms(),
-        'evenementsLies' => structure_evenements($id),
+        'evenementsLies' => $evenementsLies,
     ];
 }
 

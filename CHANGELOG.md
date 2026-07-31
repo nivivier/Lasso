@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.21.4] — 2026-07-31
+
+### Modifié
+- Carte « Événements » de la fiche structure : inclut désormais aussi les événements des structures liées (organise/organisée par), avec le nom de la structure et une petite icône (blocs/bâtiment) indiquant le sens. Un événement lié à la fois à la structure et à une (ou plusieurs) structure(s) liée(s) n'apparaît qu'une seule fois.
+
 ## [1.21.3] — 2026-07-31
 
 ### Modifié

@@ -358,6 +358,7 @@ $sid = (int) ($structure['id'] ?? 0);
             <li>
                 <a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
                 — <?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?><?php if ($ev['ville']): ?> <span class="muted">· <?= e((string) $ev['ville']) ?></span><?php endif; ?>
+                <?php if (!empty($ev['structure_id'])): ?> <span class="muted small"><span class="ico-tiny"><?= icon($ev['sens'] === 'organise' ? 'blocks' : 'building') ?></span> <?= e((string) $ev['structure_nom']) ?></span><?php endif; ?>
             </li>
             <?php endforeach; ?>
         </ul>
@@ -554,7 +555,7 @@ $sid = (int) ($structure['id'] ?? 0);
                 <span>
                     <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
                     <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
-                    <div class="muted small"><?= icon(($sensParStructure[$c['structure_id']] ?? '') === 'organise' ? 'blocks' : 'building') ?> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a></div>
+                    <div class="muted small"><span class="ico-tiny"><?= icon(($sensParStructure[$c['structure_id']] ?? '') === 'organise' ? 'blocks' : 'building') ?></span> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a></div>
                     <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
                     <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
                 </span>
