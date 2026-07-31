@@ -470,7 +470,7 @@ $sid = (int) ($structure['id'] ?? 0);
 
     <div class="tags-liste mt-16">
         <?php foreach ($tags as $t): ?>
-            <span class="badge"><?= e($t['nom']) ?>
+            <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
                 <form method="post" action="?p=structure_tag_retirer" class="d-inline" onsubmit="return confirm('Retirer cette étiquette ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">

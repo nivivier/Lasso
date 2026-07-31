@@ -143,6 +143,14 @@ function route_structure_tag_retirer(): void
 // Les liens structure↔étiquette tombent en cascade à la suppression
 // (structure_tag_liens ON DELETE CASCADE) : l'écran annonce le nombre de fiches
 // concernées avant de confirmer.
+
+// '' (couleur par défaut du badge, voir badge_style_html()) si la valeur
+// postée n'est pas un hex #RRGGBB valide (ex. <input type="color"> falsifié).
+function tag_couleur_valide(string $couleur): string
+{
+    return preg_match('/^#[0-9a-fA-F]{6}$/', $couleur) ? strtolower($couleur) : '';
+}
+
 function route_parametres_tags(): void
 {
     require_login();
@@ -151,23 +159,25 @@ function route_parametres_tags(): void
         $section = $_POST['section'] ?? '';
         if ($section === 'add') {
             $nom = trim($_POST['nom'] ?? '');
+            $couleur = tag_couleur_valide($_POST['couleur'] ?? '');
             if ($nom !== '') {
                 // Nom unique (insensible à la casse) : on ne crée pas de doublon.
                 $existe = db()->prepare('SELECT 1 FROM structure_tags WHERE nom = ? COLLATE NOCASE');
                 $existe->execute([$nom]);
                 if (!$existe->fetchColumn()) {
-                    db()->prepare('INSERT INTO structure_tags (nom) VALUES (?)')->execute([$nom]);
+                    db()->prepare('INSERT INTO structure_tags (nom, couleur) VALUES (?, ?)')->execute([$nom, $couleur]);
                 }
             }
         } elseif ($section === 'edit') {
             $id = (int) ($_POST['id'] ?? 0);
             $nom = trim($_POST['nom'] ?? '');
+            $couleur = tag_couleur_valide($_POST['couleur'] ?? '');
             if ($nom !== '' && $id) {
                 $conflit = db()->prepare('SELECT 1 FROM structure_tags WHERE nom = ? COLLATE NOCASE AND id <> ?');
                 $conflit->execute([$nom, $id]);
                 if (!$conflit->fetchColumn()) {
                     // Le lien porte l'id : renommer suffit, rien à propager.
-                    db()->prepare('UPDATE structure_tags SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+                    db()->prepare('UPDATE structure_tags SET nom = ?, couleur = ? WHERE id = ?')->execute([$nom, $couleur, $id]);
                 }
             }
         } elseif ($section === 'delete') {
@@ -181,7 +191,7 @@ function route_parametres_tags(): void
 
     // Étiquettes + nombre de structures qui les portent (une seule requête).
     $lignes = db()->query(
-        'SELECT t.id, t.nom, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb
+        'SELECT t.id, t.nom, t.couleur, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb
          FROM structure_tags t ORDER BY t.nom COLLATE NOCASE'
     )->fetchAll();
 

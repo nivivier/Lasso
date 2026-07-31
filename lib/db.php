@@ -357,6 +357,7 @@ function run_migrations(PDO $pdo): void
         59 => 'migration_59', // fusion lieux → structures, étape 1/N (schéma additif) : structure_categories.est_booking, colonnes touring sur structures, table structure_organisateurs
         60 => 'migration_60', // fusion lieux → structures, étape 2/N : evenements.lieu_id / evenement_lieux.lieu_id repointés vers structures(id) (au lieu de lieux(id))
         61 => 'migration_61', // fusion lieux → structures, étape 3/3 : suppression de lieux/structure_lieux/lieu_categories (plus aucun code applicatif ne les utilise)
+        62 => 'migration_62', // structure_tags.couleur (couleur choisie pour le badge de l'étiquette)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2177,6 +2178,16 @@ function migration_61(PDO $pdo): void
     $pdo->exec('DROP TABLE IF EXISTS structure_lieux');
     $pdo->exec('DROP TABLE IF EXISTS lieux');
     $pdo->exec('DROP TABLE IF EXISTS lieu_categories');
+}
+
+// Migration 62 : couleur (hex, "" = couleur par défaut du badge) sur les
+// étiquettes de structure (?p=parametres_tags).
+function migration_62(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structure_tags)')->fetchAll(), 'name');
+    if (!in_array('couleur', $cols, true)) {
+        $pdo->exec("ALTER TABLE structure_tags ADD COLUMN couleur TEXT NOT NULL DEFAULT ''");
+    }
 }
 
 // Migration 44 : le champ « region » existant devient le « département / canton » ;

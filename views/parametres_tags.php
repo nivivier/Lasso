@@ -14,17 +14,17 @@
     <?php if (!$lignes): ?>
         <tr><td class="muted small">Aucune étiquette.</td></tr>
     <?php endif; ?>
-    <?php foreach ($lignes as $t): $tid = (int) $t['id']; $nb = (int) $t['nb']; ?>
+    <?php foreach ($lignes as $t): $tid = (int) $t['id']; $nb = (int) $t['nb']; $couleur = (string) ($t['couleur'] ?? ''); ?>
         <tr class="plan-row" data-id="<?= $tid ?>">
             <td>
                 <div class="inline-edit">
-                    <span class="plan-puce" aria-hidden="true">•</span>
-                    <span class="plan-nom"><?= e($t['nom']) ?></span>
+                    <span class="badge tag-apercu"<?= badge_style_html($couleur) ?>><?= e($t['nom']) ?></span>
                     <span class="muted small"><?= $nb > 0 ? $nb . ' structure' . ($nb > 1 ? 's' : '') : 'inutilisée' ?></span>
                     <form method="post" action="?p=parametres_tags" class="inline-edit plan-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= $tid ?>">
+                        <input type="color" name="couleur" value="<?= e($couleur ?: '#2563eb') ?>" title="Couleur">
                         <input name="nom" value="<?= e($t['nom']) ?>" class="grow plan-libelle" required aria-label="Nom">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
@@ -51,6 +51,7 @@
                 <form method="post" action="?p=parametres_tags" class="inline-edit">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="add">
+                    <input type="color" name="couleur" value="#2563eb" title="Couleur">
                     <input name="nom" placeholder="ex. À relancer en septembre" required class="grow" aria-label="Nom">
                     <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                     <button type="button" class="btn ghost btn-sm" data-hide="tag-add"><?= icon('x') ?> Annuler</button>

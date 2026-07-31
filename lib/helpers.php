@@ -1527,6 +1527,19 @@ function flag_toggle_html(string $table, int $id, string $flag): string
         . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
 }
 
+// Attribut style="…" d'un badge d'étiquette à la couleur choisie par
+// l'utilisateur (?p=parametres_tags, structure_tags.couleur) — fond teinté à
+// faible opacité (même esprit que --highlight-tint/-d) + texte à la couleur
+// pleine. '' (attribut vide) si pas de couleur : le badge garde son style par
+// défaut (.badge, assets/app.css).
+function badge_style_html(string $couleur): string
+{
+    if (!preg_match('/^#[0-9a-f]{6}$/i', $couleur)) {
+        return '';
+    }
+    return ' style="background:' . e($couleur) . '1a;color:' . e($couleur) . ';"';
+}
+
 // Affichage combiné « Ville 🇫🇷 (canton/département) » — factorisé entre les
 // listes structures et événements (ville en gras, drapeau du pays, canton/
 // département entre parenthèses en muted — jamais la grande région, voir

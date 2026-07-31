@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.22.0] — 2026-07-31
+
+### Ajouté
+- Couleur d'étiquette (?p=parametres_tags) : chaque étiquette de structure peut désormais avoir sa propre couleur (sélecteur natif), avec aperçu du badge dans la liste. La couleur choisie est reprise sur les badges d'étiquettes de la fiche structure (`structure_tags.couleur`, migration_62).
+
 ## [1.21.7] — 2026-07-31
 
 ### Corrigé
