@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.21.7] — 2026-07-31
+
+### Corrigé
+- Fiche structure (?p=structure), carte « Informations générales » : enregistrer renvoyait vers la liste des structures au lieu de rester sur la fiche (`redirect('structures')` inconditionnel après une modification).
+
+### Modifié
+- Renommage du titre (fiche structure) : le bouton Enregistrer utilise désormais la couleur de mise en évidence, comme les autres boutons Enregistrer de la fiche (il était resté en style « ghost »).
+
 ## [1.21.6] — 2026-07-31
 
 ### Modifié

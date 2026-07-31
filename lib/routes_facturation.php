@@ -1088,6 +1088,7 @@ function route_structure(): void
             if (module_actif('booking')) {
                 journaliser_diff('structure', $id, (array) $structure, $champs, $diffChamps);
             }
+            redirect('structure', ['id' => $id]);
         } else {
             // Création : formulaire unique, coordonnées incluses (pas de carte
             // « Localisation » séparée tant que la structure n'existe pas).
