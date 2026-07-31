@@ -48,8 +48,17 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <?= icon('bar-chart') ?> Cotisations
         </a>
         <?php endif; ?>
-        <?php if (module_actif('compta') && peut_lire('compta')): ?>
+        <?php
+        $comptaOk      = module_actif('compta') && peut_lire('compta');
+        $analytiqueOk  = module_actif('analytique') && peut_lire('analytique');
+        $facturationOk = module_actif('facturation') && peut_lire('facturation');
+        $evenementsOk  = module_actif('evenements') && peut_lire('evenements');
+        $bookingOk     = module_actif('booking') && peut_lire('booking');
+        $structuresOk  = $facturationOk || $bookingOk;
+        ?>
+        <?php if ($comptaOk || $facturationOk): ?>
         <span class="side-nav-sep">Comptabilité</span>
+        <?php if ($comptaOk): ?>
         <?php $ecrituresPages = ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles']; ?>
         <?php $nbEcr = nb_ecritures_a_lettrer(); ?>
         <a href="?p=compta_ecritures" class="<?= in_array($cur, $ecrituresPages, true) ? 'on' : '' ?>">
@@ -60,51 +69,50 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
             <?= icon('book-open') ?> Comptes annuels
         </a>
-        <?php if (module_actif('analytique') && peut_lire('analytique')): ?>
+        <?php if ($analytiqueOk): ?>
         <?php $analysePages = ['compta_analyse', 'compta_analyse_axe', 'compta_axes']; ?>
         <a href="?p=compta_analyse" class="<?= in_array($cur, $analysePages, true) ? 'on' : '' ?>">
             <?= icon('layers') ?> Analyse
         </a>
         <?php endif; ?>
         <?php endif; ?>
-        <?php if (module_actif('facturation') && peut_lire('facturation')): ?>
-        <span class="side-nav-sep">Facturation</span>
+        <?php if ($facturationOk): ?>
         <?php $facturationPages = ['facturation', 'facturation_liste', 'facturation_form', 'facture']; ?>
         <?php $nbRetard = nb_factures_en_retard(); ?>
         <a href="?p=facturation_liste" class="<?= in_array($cur, $facturationPages, true) ? 'on' : '' ?>">
             <?= icon('receipt-swiss-franc') ?> Factures
             <?php if ($nbRetard > 0): ?><span class="nav-badge"><?= $nbRetard ?></span><?php endif; ?>
         </a>
-        <a href="?p=structures" class="<?= in_array($cur, ['structures', 'structure'], true) ? 'on' : '' ?>">
-            <?= icon('building-2') ?> Structures
-        </a>
         <?php endif; ?>
-        <?php if (module_actif('evenements') && peut_lire('evenements')): ?>
+        <?php endif; ?>
+        <?php if ($evenementsOk || $structuresOk): ?>
         <span class="side-nav-sep">Événements</span>
+        <?php if ($evenementsOk): ?>
         <?php $nbSuisaManquant = nb_evenements_suisa_manquants(); ?>
         <a href="?p=evenements_liste" class="<?= in_array($cur, ['evenements', 'evenements_liste', 'evenement'], true) ? 'on' : '' ?>">
             <?= icon('calendar') ?> Événements
             <?php if ($nbSuisaManquant > 0): ?><span class="nav-badge"><?= $nbSuisaManquant ?></span><?php endif; ?>
         </a>
-        <a href="?p=spectacles" class="<?= in_array($cur, ['spectacles', 'spectacle'], true) ? 'on' : '' ?>">
-            <?= icon('music') ?> <?= e(evenements_terme_spectacle()) ?>
-        </a>
         <?php endif; ?>
-        <?php if (module_actif('booking') && peut_lire('booking')): ?>
-        <span class="side-nav-sep">Booking</span>
-        <?php if (!(module_actif('facturation') && peut_lire('facturation'))): ?>
+        <?php if ($structuresOk): ?>
         <a href="?p=structures" class="<?= in_array($cur, ['structures', 'structure'], true) ? 'on' : '' ?>">
             <?= icon('building-2') ?> Structures
         </a>
         <?php endif; ?>
+        <?php if ($evenementsOk): ?>
+        <a href="?p=spectacles" class="<?= in_array($cur, ['spectacles', 'spectacle'], true) ? 'on' : '' ?>">
+            <?= icon('music') ?> <?= e(evenements_terme_spectacle()) ?>
+        </a>
+        <?php endif; ?>
+        <?php endif; ?>
         <?php /* Mailing masqué temporairement du menu (fonctionnalité en cours de
                  test) — la page reste accessible via ?p=mailing. Retirer le
                  « && false » ci-dessous pour la réafficher. */ ?>
-        <?php if (peut_lire('booking') && false): ?>
+        <?php if ($bookingOk && false): ?>
+        <span class="side-nav-sep">Booking</span>
         <a href="?p=mailing" class="<?= $cur === 'mailing' ? 'on' : '' ?>">
             <?= icon('mail') ?> Mailing
         </a>
-        <?php endif; ?>
         <?php endif; ?>
         <?php if (peut_lire('coeur')): ?>
         <span class="side-nav-sep"></span>

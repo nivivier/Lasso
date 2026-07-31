@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.21.1] — 2026-07-31
+
+### Modifié
+- Menu latéral simplifié : « Factures » rejoint la section Comptabilité, « Structures » rejoint la section Événements (entre Événements et Spectacles). Les sections dédiées « Facturation » et « Booking » disparaissent (leur seul contenu restant, Mailing, est déjà masqué).
+
 ## [1.21.0] — 2026-07-30
 
 ### Modifié
