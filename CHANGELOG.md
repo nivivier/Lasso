@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.1] — 2026-07-31
+
+### Ajouté
+- Fiche structure, carte « Informations générales » : le champ Remarques, s'il dépasse 200 caractères, est tronqué avec un lien « voir tout » qui affiche le texte complet en un clic (sans recharger la page). Mécanisme générique (`.voir-tout-btn`, `assets/app.js`), réutilisable pour d'autres champs longs.
+
 ## [1.24.0] — 2026-07-31
 
 ### Ajouté

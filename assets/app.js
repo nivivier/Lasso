@@ -382,6 +382,17 @@ document.addEventListener('click', e => {
         const t = document.getElementById(hide.dataset.hide);
         if (t) t.hidden = true;
     }
+    // Texte tronqué (> 200 caractères, ex. Remarques d'une fiche structure) :
+    // « voir tout » révèle le texte complet, remplace le tronqué. Générique
+    // (réutilisable pour d'autres champs longs) : cherche les deux spans
+    // frères dans le même parent, pas d'id à câbler par champ.
+    const voirTout = e.target.closest('.voir-tout-btn');
+    if (voirTout) {
+        const cell = voirTout.parentElement;
+        cell.querySelector('.notes-tronquees').hidden = true;
+        cell.querySelector('.notes-completes').hidden = false;
+        voirTout.hidden = true;
+    }
 });
 
 // Arbre hiérarchique avec glisser-déposer pour réordonner/reparenter (rangées

@@ -420,7 +420,15 @@ $sid = (int) ($structure['id'] ?? 0);
                 </tr>
                 <tr>
                     <th>Remarques</th>
-                    <td><?= trim((string) ($structure['notes'] ?? '')) !== '' ? nl2br($v('notes')) : '—' ?></td>
+                    <td>
+                        <?php $notesTxt = trim((string) ($structure['notes'] ?? '')); ?>
+                        <?php if ($notesTxt === ''): ?>—
+                        <?php elseif (mb_strlen($notesTxt) > 200): ?>
+                            <span class="notes-tronquees"><?= nl2br(e(mb_substr($notesTxt, 0, 200)) . '…') ?></span>
+                            <span class="notes-completes" hidden><?= nl2br(e($notesTxt)) ?></span>
+                            <button type="button" class="voir-tout-btn">voir tout</button>
+                        <?php else: ?><?= nl2br(e($notesTxt)) ?><?php endif; ?>
+                    </td>
                 </tr>
             </table>
         </div>
