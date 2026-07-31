@@ -256,9 +256,14 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
             <td class="muted small"><?= $d['lieux_noms'] ? e($d['lieux_noms']) : '—' ?></td>
             <td class="small">
-                <?php $tagsNoms = array_filter(array_map('trim', explode(',', (string) ($d['tags_noms'] ?? '')))); ?>
-                <?php if ($tagsNoms): ?>
-                    <?php foreach ($tagsNoms as $tn): ?><span class="badge"><?= e($tn) ?></span> <?php endforeach; ?>
+                <?php
+                    $tagsPaires = ($d['tags_noms'] ?? '') !== '' ? array_map(
+                        fn ($p) => explode("\x1f", $p, 2) + ['', ''],
+                        explode("\x1e", (string) $d['tags_noms'])
+                    ) : [];
+                ?>
+                <?php if ($tagsPaires): ?>
+                    <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
                 <?php else: ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>

@@ -23,6 +23,17 @@ function db(): PDO
     ]);
     $pdo->exec('PRAGMA foreign_keys = ON');
     $pdo->exec('PRAGMA journal_mode = WAL');
+    // LOWER() intégré de SQLite ne repasse en minuscule que l'ASCII (ex.
+    // « GENÈVE » -> « genÈve », le È reste inchangé) : sans extension ICU
+    // (absente d'un hébergement mutualisé), une ville saisie avec une
+    // majuscule accentuée ne matche jamais sa clé de cache géocodage
+    // (lieux_geocodage.cle, construite en PHP via mb_strtolower) — voir
+    // geocodage_non_localises_where()/geocodage_villes_manquantes(),
+    // lib/geocodage.php, qui utilisent LOWER_UTF8() à la place.
+    // @ : sqliteCreateFunction() est dépréciée depuis PHP 8.5 au profit de
+    // Pdo\Sqlite::createFunction(), mais new PDO('sqlite:...') ne renvoie pas
+    // cette sous-classe ici — l'ancienne méthode reste la seule disponible.
+    @$pdo->sqliteCreateFunction('LOWER_UTF8', fn ($s) => mb_strtolower((string) $s, 'UTF-8'), 1);
 
     init_schema($pdo);
     return $pdo;

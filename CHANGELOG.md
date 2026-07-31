@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.0] — 2026-07-31
+
+### Ajouté
+- ?p=structures : les badges d'étiquette (colonne Tags) reprennent la couleur choisie dans ?p=parametres_tags. La recherche texte (champ de la liste et de la vue carte) porte désormais aussi sur les étiquettes.
+
+### Corrigé
+- `?p=structures&non_localises=1` réaffichait à tort des fiches déjà géolocalisées avec succès : le `LOWER()` intégré de SQLite ne repasse en minuscule que l'ASCII (« GENÈVE » restait « genÈve »), alors que la clé de cache (`lieux_geocodage.cle`) est construite en PHP via `mb_strtolower()` (Unicode complet) — toute ville saisie avec une majuscule accentuée ne matchait donc jamais son entrée de cache. Nouvelle fonction SQLite `LOWER_UTF8()` (enregistrée dans `db()`), utilisée par `geocodage_non_localises_where()`/`geocodage_villes_manquantes()`.
+- Renommer un pays (?p=parametres_pays) rendait orphelines les entrées de cache de géocodage des structures concernées (le pays fait partie de la clé) : ajout de la propagation vers `lieux_geocodage.cle`.
+- Carte « Statut » (fiche structure) : bordures et ombre bleues parasites sur les 3 boutons du sélecteur segmenté (le bouton `<button>` hérite du style de bouton par défaut du site, contrairement au `<label>` utilisé par les autres sélecteurs segmentés) — `.seg-btn` réinitialise désormais explicitement `border`/`box-shadow`.
+
 ## [1.23.1] — 2026-07-31
 
 ### Modifié

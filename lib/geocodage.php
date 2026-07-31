@@ -95,7 +95,7 @@ function geocodage_villes_manquantes(string $table = 'structures', string $ville
         "SELECT DISTINCT TRIM($villeCol) AS ville, TRIM($departementCantonCol) AS departement_canton, TRIM($paysCol) AS pays
          FROM $table
          WHERE TRIM($villeCol) <> ''
-           AND LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($departementCantonCol)) || '|' || LOWER(TRIM($paysCol))
+           AND LOWER_UTF8(TRIM($villeCol)) || '|' || LOWER_UTF8(TRIM($departementCantonCol)) || '|' || LOWER_UTF8(TRIM($paysCol))
                NOT IN (SELECT cle FROM lieux_geocodage)
          ORDER BY ville"
     )->fetchAll();
@@ -109,7 +109,7 @@ function geocodage_villes_manquantes(string $table = 'structures', string $ville
 // carte_banner_geocodage_html(), lib/helpers.php).
 function geocodage_non_localises_where(string $villeCol, string $departementCantonCol, string $paysCol): string
 {
-    return " AND TRIM($villeCol) <> '' AND (LOWER(TRIM($villeCol)) || '|' || LOWER(TRIM($departementCantonCol)) || '|' || LOWER(TRIM($paysCol))) NOT IN "
+    return " AND TRIM($villeCol) <> '' AND (LOWER_UTF8(TRIM($villeCol)) || '|' || LOWER_UTF8(TRIM($departementCantonCol)) || '|' || LOWER_UTF8(TRIM($paysCol))) NOT IN "
         . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
 }
 

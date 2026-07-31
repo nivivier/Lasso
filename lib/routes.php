@@ -491,6 +491,17 @@ function route_parametres_pays(): void
                         if ($ancien !== $nom) {
                             db()->prepare('UPDATE structures SET adresse_pays=? WHERE adresse_pays=?')->execute([$nom, $ancien]);
                             db()->prepare("UPDATE parametres SET valeur=? WHERE cle='employeur_pays' AND valeur=?")->execute([$nom, $ancien]);
+                            // Cache de géocodage (lieux_geocodage.cle = ville|departement_canton|pays,
+                            // tout en minuscules — voir geocodage_cle()) : le pays fait partie de la
+                            // clé, donc un renommage la rend orpheline sans ce correctif. Sans lui,
+                            // ?p=structures&non_localises=1 réafficherait à tort des fiches déjà
+                            // géolocalisées avec succès (la comparaison ne retrouve plus la clé).
+                            $ancienCle = mb_strtolower($ancien, 'UTF-8');
+                            $nomCle = mb_strtolower($nom, 'UTF-8');
+                            db()->prepare(
+                                "UPDATE lieux_geocodage SET cle = SUBSTR(cle, 1, LENGTH(cle) - LENGTH(?)) || ?
+                                 WHERE cle LIKE '%|' || ? ESCAPE '\\'"
+                            )->execute([$ancienCle, $nomCle, like_echappe($ancienCle)]);
                         }
                         db()->commit();
                     }
