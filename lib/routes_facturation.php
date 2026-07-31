@@ -1166,12 +1166,12 @@ function route_structure_localisation(): void
 }
 
 // Bascule immédiate du statut (active / désinscrite du mailing) depuis le bloc
-// Bascule cyclique du statut d'une structure — Actif → Ne pas contacter →
-// Inactive → Actif (voir structure_statut_toggle_html(), lib/helpers.php).
-// « Ne pas contacter » = active mais désinscrite du mailing ; une structure
-// inactive est toujours désinscrite (déduit, jamais un 4e état saisissable).
-// Appelé en AJAX (lassoInitStatutToggle(), assets/app.js) : répond en JSON,
-// pas de redirect (même mécanique que route_structure_flag()).
+// Statut d'une structure — sélecteur segmenté, valeur cliquée directement
+// (voir structure_statut_toggle_html(), lib/helpers.php). « Ne pas contacter »
+// = active mais désinscrite du mailing ; une structure inactive est toujours
+// désinscrite (déduit, jamais un 4e état saisissable). Appelé en AJAX
+// (lassoInitStatutToggle(), assets/app.js) : répond en JSON, pas de redirect
+// (même mécanique que route_structure_flag()).
 function route_structure_statut(): void
 {
     require_login();
@@ -1182,6 +1182,16 @@ function route_structure_statut(): void
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
+    $etatSuivant = (string) ($_POST['etat'] ?? '');
+    if (!in_array($etatSuivant, ['actif', 'ne_pas_contacter', 'inactive'], true)) {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    [$actif, $desinscrit] = match ($etatSuivant) {
+        'actif'            => [1, 0],
+        'ne_pas_contacter' => [1, 1],
+        default            => [0, 1],
+    };
     $stmt = db()->prepare('SELECT actif, desinscrit FROM structures WHERE id = ?');
     $stmt->execute([$id]);
     $avant = $stmt->fetch();
@@ -1189,12 +1199,6 @@ function route_structure_statut(): void
         echo json_encode(['ok' => false]);
         return;
     }
-    $etatActuel = !$avant['actif'] ? 'inactive' : ((int) $avant['desinscrit'] ? 'ne_pas_contacter' : 'actif');
-    [$etatSuivant, $actif, $desinscrit] = match ($etatActuel) {
-        'actif'            => ['ne_pas_contacter', 1, 1],
-        'ne_pas_contacter' => ['inactive', 0, 1],
-        default            => ['actif', 1, 0],
-    };
     db()->prepare('UPDATE structures SET actif = ?, desinscrit = ? WHERE id = ?')->execute([$actif, $desinscrit, $id]);
     if (module_actif('booking')) {
         $lignes = [];

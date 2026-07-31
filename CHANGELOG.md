@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.23.1] — 2026-07-31
+
+### Modifié
+- Fiche structure, carte « Statut » : le bouton à bascule cyclé devient un sélecteur segmenté horizontal (3 icônes, même style que le champ Type de « Informations générales ») — on clique directement l'état voulu au lieu de cycler. `route_structure_statut()` reçoit désormais l'état ciblé (`etat`) plutôt que de calculer le suivant.
+- ?p=parametres_tags : le crayon révèle maintenant les champs éditables (nom + couleur) et les actions Enregistrer (mis en évidence, en grand), Supprimer (petite poubelle rouge) et Annuler (croix, restaure les valeurs d'origine) — au lieu d'un formulaire toujours visible.
+
 ## [1.23.0] — 2026-07-31
 
 ### Modifié

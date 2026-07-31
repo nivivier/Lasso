@@ -286,35 +286,33 @@ function lassoInitFlagToggle() {
     });
 }
 
-// Statut d'une structure (fiche, carte « Statut ») — bouton cyclé au clic,
-// même mécanique que lassoInitFlagToggle() ci-dessus (voir
-// structure_statut_toggle_html(), lib/helpers.php, et route_structure_statut()).
-const LASSO_STATUT_ICONES = {
-    actif: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
-    ne_pas_contacter: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
-    inactive: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/></svg>',
-};
-const LASSO_STATUT_LABELS = { actif: 'Actif', ne_pas_contacter: 'Ne pas contacter', inactive: 'Inactive' };
+// Statut d'une structure (fiche, carte « Statut ») — sélecteur segmenté
+// (même style visuel que le champ Type de « Informations générales », voir
+// icon_picker()/.seg-picker), mais cliqué en AJAX au lieu d'être soumis avec
+// le reste du formulaire (voir structure_statut_toggle_html(), lib/helpers.php,
+// et route_structure_statut()).
 function lassoInitStatutToggle() {
     const csrfInput = document.querySelector('input[name="csrf"]');
-    document.querySelectorAll('.statut-toggle').forEach(btn => {
-        if (btn.dataset.statutBound) return;
-        btn.dataset.statutBound = '1';
-        btn.addEventListener('click', async e => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!csrfInput) return;
-            const fd = new FormData();
-            fd.append('csrf', csrfInput.value);
-            fd.append('id', btn.dataset.statutId);
-            const data = await fetch('?p=structure_statut', { method: 'POST', body: fd })
-                .then(r => r.json()).catch(() => null);
-            if (!data || !data.ok) return;
-            btn.className = 'statut-toggle statut-' + data.etat;
-            btn.innerHTML = LASSO_STATUT_ICONES[data.etat];
-            const label = LASSO_STATUT_LABELS[data.etat] + ' — cliquer pour changer';
-            btn.title = label;
-            btn.setAttribute('aria-label', label);
+    document.querySelectorAll('.statut-toggle').forEach(picker => {
+        if (picker.dataset.statutBound) return;
+        picker.dataset.statutBound = '1';
+        const boutons = picker.querySelectorAll('.seg-btn');
+        boutons.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!csrfInput || btn.classList.contains('on')) return;
+                const fd = new FormData();
+                fd.append('csrf', csrfInput.value);
+                fd.append('id', picker.dataset.statutId);
+                fd.append('etat', btn.dataset.statutValeur);
+                const data = await fetch('?p=structure_statut', { method: 'POST', body: fd })
+                    .then(r => r.json()).catch(() => null);
+                if (!data || !data.ok) return;
+                boutons.forEach(b => {
+                    const on = b.dataset.statutValeur === data.etat;
+                    b.classList.toggle('on', on);
+                    b.setAttribute('aria-checked', on ? 'true' : 'false');
+                });
+            });
         });
     });
 }

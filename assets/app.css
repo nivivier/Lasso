@@ -957,18 +957,13 @@ span + .badge.muted-badge { margin-left: 6px; }
 .flag-toggle.flag-star .ico { fill: var(--highlight); }
 .flag-toggle.flag-heart { opacity: 1; color: var(--danger); }
 .flag-toggle.flag-heart .ico { fill: var(--danger); }
-/* Statut d'une structure (carte « Statut »), même mécanique que .flag-toggle
-   ci-dessus — voir structure_statut_toggle_html() (lib/helpers.php). */
-.statut-toggle {
-    background: none; border: none; box-shadow: none; padding: 2px; margin: 0;
-    cursor: pointer; display: inline-flex; align-items: center;
-    vertical-align: middle; line-height: 0; flex: 0 0 auto;
-}
-.statut-toggle .ico { width: 20px; height: 20px; }
-.statut-toggle.statut-actif { color: var(--ok); }
-.statut-toggle.statut-ne_pas_contacter { color: var(--danger); }
-.statut-toggle.statut-inactive { color: var(--muted); }
-.statut-toggle:hover { background: none; opacity: .8; }
+/* Statut d'une structure (carte « Statut ») — .seg-picker (icon_picker(), voir
+   plus haut), chaque état avec sa propre couleur une fois actif (« on ») :
+   vert Actif, rouge Ne pas contacter, gris Inactive — voir
+   structure_statut_toggle_html() (lib/helpers.php). */
+.statut-toggle .seg-btn[data-statut-valeur="actif"].on { background: var(--teal-tint); color: var(--ok); }
+.statut-toggle .seg-btn[data-statut-valeur="ne_pas_contacter"].on { background: var(--danger-tint); color: var(--danger); }
+.statut-toggle .seg-btn[data-statut-valeur="inactive"].on { background: var(--line); color: var(--muted); }
 
 /* Flux de notes (fiche structure, booking) : liste chronologique inversée. */
 .notes-flux { display: flex; flex-direction: column; gap: 14px; }

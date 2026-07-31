@@ -1528,28 +1528,29 @@ function flag_toggle_html(string $table, int $id, string $flag): string
         . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
 }
 
-// Statut d'une structure, bouton cyclé au clic (même mécanique que
-// flag_toggle_html() : voir route_structure_statut() + lassoInitStatutToggle(),
-// assets/app.js) — 3 états : « Actif » (active, pas désinscrite), « Ne pas
-// contacter » (active mais désinscrite du mailing), « Inactive » (toujours
-// désinscrite du mailing, déduit — pas un 4e état possible). Cycle dans cet
-// ordre au clic.
+// Statut d'une structure — sélecteur segmenté horizontal (même style que le
+// champ Type de la carte « Informations générales », voir icon_picker(), mais
+// cliqué en AJAX au lieu de soumis avec le reste du formulaire : voir
+// route_structure_statut() + lassoInitStatutToggle(), assets/app.js). 3 états :
+// « Actif » (active, pas désinscrite), « Ne pas contacter » (active mais
+// désinscrite du mailing), « Inactive » (toujours désinscrite du mailing,
+// déduit — pas un 4e état possible).
 function structure_statut_toggle_html(int $id, bool $actif, bool $desinscrit): string
 {
     $etat = !$actif ? 'inactive' : ($desinscrit ? 'ne_pas_contacter' : 'actif');
-    $icone = match ($etat) {
-        'ne_pas_contacter' => 'circle-x',
-        'inactive'         => 'circle-dashed',
-        default            => 'circle-check',
-    };
-    $label = match ($etat) {
-        'ne_pas_contacter' => 'Ne pas contacter',
-        'inactive'         => 'Inactive',
-        default            => 'Actif',
-    } . ' — cliquer pour changer';
-    return '<button type="button" class="statut-toggle statut-' . e($etat) . '"'
-        . ' data-statut-id="' . $id . '"'
-        . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
+    $options = [
+        'actif'            => ['icone' => 'circle-check', 'label' => 'Actif'],
+        'ne_pas_contacter' => ['icone' => 'circle-x', 'label' => 'Ne pas contacter'],
+        'inactive'         => ['icone' => 'circle-dashed', 'label' => 'Inactive'],
+    ];
+    $h = '<div class="seg-picker statut-toggle" role="radiogroup" aria-label="Statut" data-statut-id="' . $id . '">';
+    foreach ($options as $val => $opt) {
+        $on = $etat === $val;
+        $h .= '<button type="button" class="seg-btn' . ($on ? ' on' : '') . '" data-statut-valeur="' . e($val) . '"'
+            . ' role="radio" aria-checked="' . ($on ? 'true' : 'false') . '" title="' . e($opt['label']) . '" aria-label="' . e($opt['label']) . '">'
+            . icon($opt['icone']) . '</button>';
+    }
+    return $h . '</div>';
 }
 
 // Attribut style="…" d'un badge d'étiquette à la couleur choisie par
