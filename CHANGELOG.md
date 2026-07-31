@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [1.6.0] — 2026-07-30
+## [1.21.0] — 2026-07-30
 
 ### Modifié
 - **Fusion des lieux dans les structures** : le module booking ne distingue plus « lieu » et « structure » comme deux tables séparées — un lieu était, dans l'immense majorité des cas, une pure duplication d'une structure déjà existante (même nom, même ville). Une structure peut désormais être marquée comme un type de lieu bookable (`structure_categories.est_booking` : Salle, Festival, Théâtre, MJC, Médiathèque, SMAC, Café-concert, Saison culturelle, etc.) directement via sa sous-catégorie, sans fiche dupliquée.
