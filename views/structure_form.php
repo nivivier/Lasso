@@ -252,7 +252,7 @@ $sid = (int) ($structure['id'] ?? 0);
         $ligneLien = function (array $l) use ($sid): void { ?>
             <div class="linked-add">
                 <span>
-                    <strong><a href="<?= url_avec_retour('?p=structure&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
+                    <strong><?= icon($l['sens'] === 'organise' ? 'blocks' : 'building') ?> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
                     <div class="muted small"><?= e((string) $l['type']) ?>
                     <?php if ($l['ville']): ?> · <?= e($l['ville']) ?><?php endif; ?></div>
                 </span>
@@ -267,9 +267,11 @@ $sid = (int) ($structure['id'] ?? 0);
         <?php };
         ?>
 
-        <p class="muted small mb-8">Organise</p>
+        <?php if (!$lieuxLies): ?><p class="muted small read-only">Aucune structure liée.</p><?php endif; ?>
+
+        <p class="muted small mb-8 edit-only">Organise</p>
         <?php foreach ($lieuxOrganises as $l) { $ligneLien($l); } ?>
-        <?php if (!$lieuxOrganises): ?><p class="muted small">Aucune salle ni festival lié.</p><?php endif; ?>
+        <?php if (!$lieuxOrganises): ?><p class="muted small edit-only">Aucune salle ni festival lié.</p><?php endif; ?>
 
         <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="lieu-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -297,9 +299,9 @@ $sid = (int) ($structure['id'] ?? 0);
             </div>
         </form>
 
-        <p class="muted small mb-8 mt-16">Organisée par</p>
+        <p class="muted small mb-8 mt-16 edit-only">Organisée par</p>
         <?php foreach ($lieuxOrganisePar as $l) { $ligneLien($l); } ?>
-        <?php if (!$lieuxOrganisePar): ?><p class="muted small">Aucun organisateur lié.</p><?php endif; ?>
+        <?php if (!$lieuxOrganisePar): ?><p class="muted small edit-only">Aucun organisateur lié.</p><?php endif; ?>
 
         <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="organisateur-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -345,11 +347,13 @@ $sid = (int) ($structure['id'] ?? 0);
         })();
         </script>
     </div>
+</div>
 
-    <?php if (module_actif('evenements') && $evenementsLies): ?>
+<?php if (module_actif('evenements') && $evenementsLies): ?>
+<div class="card">
     <div class="card-block">
-        <h2 class="mt-0"><?= icon('calendar') ?> Événements (<?= count($evenementsLies) ?>)</h2>
-        <ul class="clean-list small">
+        <h2 class="mt-0">Événements (<?= count($evenementsLies) ?>)</h2>
+        <ul class="clean-list">
             <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
             <li>
                 <a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '—') ?></a>
@@ -359,8 +363,8 @@ $sid = (int) ($structure['id'] ?? 0);
         </ul>
         <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
     </div>
-    <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <div class="card card-editable">
     <?php
@@ -539,7 +543,21 @@ $sid = (int) ($structure['id'] ?? 0);
             </form>
         </div>
     <?php endforeach; ?>
-    <?php if (!$contacts): ?><p class="muted small">Aucun contact.</p><?php endif; ?>
+    <?php if (!$contacts && !$contactsLies): ?><p class="muted small">Aucun contact.</p><?php endif; ?>
+
+    <?php if ($contactsLies): ?>
+        <?php foreach ($contactsLies as $c): ?>
+            <div class="linked-add contact-read <?= $c['actif'] ? '' : 'inactif' ?>">
+                <span>
+                    <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
+                    <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
+                    <div class="muted small"><a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a></div>
+                    <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
+                    <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
+                </span>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 
     <form method="post" action="?p=structure_contact_ajouter" class="grid3" id="nouveau-contact-form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

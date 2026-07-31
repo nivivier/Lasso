@@ -87,9 +87,9 @@ function geocodage_geocoder_ville(string $ville, string $departementCanton, stri
 
 // Triplets (ville, département/canton, pays) utilisés par au moins une ligne
 // de $table mais absents du cache. $villeCol/$paysCol doivent stocker le
-// pays en NOM (structures, lieux) — pour une table qui le stocke en code
+// pays en NOM (structures) — pour une table qui le stocke en code
 // ISO2 (événements), voir geocodage_villes_manquantes_evenements() à la place.
-function geocodage_villes_manquantes(string $table = 'lieux', string $villeCol = 'ville', string $departementCantonCol = 'departement_canton', string $paysCol = 'pays'): array
+function geocodage_villes_manquantes(string $table = 'structures', string $villeCol = 'adresse_localite', string $departementCantonCol = 'departement_canton', string $paysCol = 'adresse_pays'): array
 {
     return db()->query(
         "SELECT DISTINCT TRIM($villeCol) AS ville, TRIM($departementCantonCol) AS departement_canton, TRIM($paysCol) AS pays

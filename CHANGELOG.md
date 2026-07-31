@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.21.2] — 2026-07-31
+
+### Corrigé
+- `?p=dev` plantait (« no such table: lieux ») : la détection des grandes régions (`GRANDE_REGION_TABLES`) référençait encore la table `lieux`, supprimée en v1.21.0 (fusion lieux→structures). Nettoyage complémentaire d'une valeur par défaut similaire dans `geocodage_villes_manquantes()`.
+
+### Modifié
+- Fiche structure (?p=structure), carte « Structures liées » : en lecture, les libellés « Organise »/« Organisée par » disparaissent au profit d'une icône devant chaque nom (blocs pour « organise », bâtiment pour « organisé par ») ; le message « Aucun(e) … lié(e) » ne s'affiche plus quand l'autre sens a au moins un lien.
+- La carte « Événements » de la fiche structure devient une carte séparée (elle était auparavant fondue dans « Structures liées ») ; icône et puces retirées, texte en taille standard.
+- Carte « Contacts » de la fiche structure : affiche désormais aussi les contacts des structures liées (organise/organisée par), à la suite des contacts propres, avec lien vers leur fiche.
+
 ## [1.21.1] — 2026-07-31
 
 ### Modifié

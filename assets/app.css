@@ -465,6 +465,7 @@ h3.sub.no-mt { margin-top: 0; }
    les commandes ajouter/lier/modifier/supprimer (.edit-only) restent masquées
    tant que le crayon d'en-tête n'a pas basculé la section en mode édition. */
 .section-editable:not(.editing) .edit-only { display: none; }
+.section-editable.editing .read-only { display: none; }
 .edit-toggle-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
 /* Le bouton « + » (nouveau contact) reste sur la même ligne que le crayon. */
 .card-head-row .edit-only { flex: 0 0 auto; }
@@ -795,6 +796,7 @@ button:active, .btn:active { transform: translateY(1px); }
 @media print { .bulk-undo-flash { display: none; } }
 .muted { color: var(--muted); }
 .small { font-size: 12.8px; }
+.clean-list { list-style: none; margin: 0; padding: 0; }
 .tiny { font-size: 10.5px; }
 .text-strike { text-decoration: line-through; }
 

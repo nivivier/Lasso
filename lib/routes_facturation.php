@@ -894,7 +894,7 @@ function route_structures_geocoder(): void
 function structure_donnees_crm(int $id): array
 {
     if (!$id || !module_actif('booking')) {
-        return ['contacts' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [],
+        return ['contacts' => [], 'contactsLies' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [],
                 'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
@@ -930,6 +930,22 @@ function structure_donnees_crm(int $id): array
     $stmtOrganisePar->execute([$id]);
     $lieuxLies = array_merge($stmtOrganise->fetchAll(), $stmtOrganisePar->fetchAll());
 
+    // Contacts des structures liées (organise/organisée par), affichés en
+    // complément dans la carte Contacts — utile pour retrouver d'un coup
+    // d'œil qui contacter côté organisateur ET côté lieu/festival.
+    $contactsLies = [];
+    if ($lieuxLies) {
+        $idsLies = array_column($lieuxLies, 'id');
+        $in = implode(',', array_fill(0, count($idsLies), '?'));
+        $stmtContactsLies = db()->prepare(
+            "SELECT sc.*, s.nom AS structure_nom FROM structure_contacts sc
+             JOIN structures s ON s.id = sc.structure_id
+             WHERE sc.structure_id IN ($in) ORDER BY s.nom, sc.actif DESC, sc.id"
+        );
+        $stmtContactsLies->execute($idsLies);
+        $contactsLies = $stmtContactsLies->fetchAll();
+    }
+
     // Candidats pour « organise » : structures « booking » (un lieu). Pour
     // « organisé par » : n'importe quelle autre structure (l'organisateur
     // n'est pas forcément lui-même un lieu).
@@ -944,6 +960,7 @@ function structure_donnees_crm(int $id): array
 
     return [
         'contacts'  => $stmtContacts->fetchAll(),
+        'contactsLies' => $contactsLies,
         'notes'     => $notesHistorique,
         'tags'      => $stmtTags->fetchAll(),
         'tagsDispo' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),

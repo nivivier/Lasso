@@ -304,7 +304,6 @@ function maj_dates_appliquer(array $aEcrire): void
 
 const GRANDE_REGION_TABLES = [
     'structures' => ['pays_col' => 'adresse_pays', 'nom_sql' => 'nom', 'pays_code' => false],
-    'lieux'      => ['pays_col' => 'pays', 'nom_sql' => 'nom', 'pays_code' => false],
     'evenements' => ['pays_col' => 'pays', 'nom_sql' => "ville || CASE WHEN TRIM(salle) <> '' THEN ' — ' || salle ELSE '' END", 'pays_code' => true],
 ];
 
