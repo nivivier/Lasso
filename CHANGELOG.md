@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.25.2] — 2026-08-01
+
+### Corrigé
+- **Urgent** : `migration_63` (statut de structure unifié, v1.25.0) plantait l'application entière sur les hébergements dont le SQLite lié à PHP est antérieur à 3.35 (`ALTER TABLE ... DROP COLUMN` non supporté — « near "DROP": syntax error », constaté en prod). La suppression des colonnes `actif`/`desinscrit` (déjà remplacées par `statut`, backfill non affecté) est maintenant best-effort : si indisponible, ces colonnes restent en base, inertes, sans bloquer le démarrage.
+
 ## [1.25.1] — 2026-08-01
 
 ### Corrigé

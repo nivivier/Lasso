@@ -2209,8 +2209,14 @@ function migration_62(PDO $pdo): void
 // changement (bouton dédié dans structure_statut_toggle_html()) mais jamais
 // déduit automatiquement d'une valeur existante — aucune fiche migrée ne
 // peut y arriver seule, seule une action manuelle l'attribue ensuite.
-// DROP COLUMN direct (SQLite ≥ 3.35, pas de FK ni d'index sur ces colonnes) :
-// pas le cas à risque documenté en tête de fichier (pas de RENAME de table).
+// DROP COLUMN direct (pas de FK ni d'index sur ces colonnes : pas le cas à
+// risque documenté en tête de fichier, pas de RENAME de table) — mais
+// nécessite SQLite ≥ 3.35 (2021), pas garanti sur tous les hébergements
+// mutualisés (constaté en prod : « near "DROP": syntax error », version plus
+// ancienne). Best-effort, jamais bloquant : si indisponible, actif/desinscrit
+// restent en base, inertes (plus aucun code applicatif ne les lit/écrit) —
+// sans le try/catch, l'exception empêchait PRAGMA user_version d'avancer et
+// donc TOUTE requête HTTP faisait planter db() (voir index.php:47).
 function migration_63(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
@@ -2225,10 +2231,10 @@ function migration_63(PDO $pdo): void
         );
     }
     if (in_array('actif', $cols, true)) {
-        $pdo->exec('ALTER TABLE structures DROP COLUMN actif');
+        try { $pdo->exec('ALTER TABLE structures DROP COLUMN actif'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
     if (in_array('desinscrit', $cols, true)) {
-        $pdo->exec('ALTER TABLE structures DROP COLUMN desinscrit');
+        try { $pdo->exec('ALTER TABLE structures DROP COLUMN desinscrit'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
 }
 
