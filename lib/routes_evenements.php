@@ -140,6 +140,10 @@ function route_evenements_liste(): void
     $statut = $f['statut']; $visibilite = $f['visibilite']; $pays = $f['pays']; $salaries = $f['salaries'];
     $recherche = $f['q'];
     $retourFiltres = $f;
+    // Villes jamais géolocalisées avec succès (lien « Voir la liste » du
+    // bandeau carte) — jamais mémorisé en session, comme pour structures/lieux
+    // (voir structures_filtres()).
+    $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
     // Mémorise la dernière vue utilisée (comme lieux/structures) : un lien
     // « Événements » sans ?vue= explicite (sidebar) rouvre la dernière consultée.
     $vue = filtre_persistant('vue', 'evenements_vue', 'liste') === 'carte' ? 'carte' : 'liste';
@@ -263,7 +267,7 @@ function route_evenements_liste(): void
             'statutSuisa' => $statutSuisa, 'spectacleId' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
             'spectacles' => [], 'spectaclesFiltre' => spectacles_pour_filtre($spectacleMap),
             'paysDisponibles' => evenements_pays_disponibles(), 'pays' => $pays, 'salaries' => $salaries,
-            'recherche' => $recherche, 'modeClient' => true,
+            'recherche' => $recherche, 'modeClient' => true, 'nonLocalises' => $nonLocalises,
             'bulkCount' => null, 'okAnnule' => false, 'prodExterneOk' => null, 'prodExterneBloques' => null,
             'pgRoute' => 'evenements_liste', 'pgParams' => $retourFiltres, 'pgPage' => 1, 'pgTaille' => pagination_taille('evenements_taille'), 'pgTotal' => 0,
         ], 'Événements');
@@ -332,6 +336,7 @@ function route_evenements_liste(): void
         'salaries'        => $salaries,
         'recherche'       => $recherche,
         'modeClient'      => $modeClient,
+        'nonLocalises'    => $nonLocalises,
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
         'prodExterneOk'      => isset($_GET['prodExterneOk']) ? (int) $_GET['prodExterneOk'] : null,

@@ -113,6 +113,53 @@ function geocodage_non_localises_where(string $villeCol, string $departementCant
         . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
 }
 
+// Variante événements de geocodage_non_localises_where() ci-dessus (même
+// sémantique : jamais géolocalisé avec SUCCÈS, y compris les échecs
+// définitifs jamais réessayés automatiquement — voir geocodage_geocoder_ville()) —
+// mais evenements.pays est stocké en code ISO2, à traduire en nom pour
+// matcher la clé du cache (geocodage_cle()) avant de pouvoir comparer :
+// impossible à exprimer en SQL pur sans dupliquer pays_liste(), donc résolu
+// ici en PHP (une requête batchée sur les triplets distincts, même principe
+// que carte_points_grouper()). Retourne les IDs d'événements à filtrer.
+// Mémorisé pour la requête HTTP en cours : evenements_where_filtres() peut
+// être appelée plusieurs fois par affichage (total hors recherche, page
+// courante) sur exactement le même résultat.
+function evenements_non_localises_ids(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $rows = db()->query(
+        "SELECT id, TRIM(ville) AS ville, TRIM(departement_canton) AS departement_canton, TRIM(pays) AS pays_code
+         FROM evenements WHERE TRIM(ville) <> ''"
+    )->fetchAll();
+
+    $cles = [];
+    foreach ($rows as $r) {
+        $cles[geocodage_cle((string) $r['ville'], (string) $r['departement_canton'], pays_nom_depuis_code((string) $r['pays_code']))] = true;
+    }
+    $statutParCle = [];
+    if ($cles !== []) {
+        $placeholders = implode(',', array_fill(0, count($cles), '?'));
+        $stmt = db()->prepare("SELECT cle, statut FROM lieux_geocodage WHERE cle IN ($placeholders)");
+        $stmt->execute(array_keys($cles));
+        foreach ($stmt->fetchAll() as $g) {
+            $statutParCle[(string) $g['cle']] = (string) $g['statut'];
+        }
+    }
+
+    $ids = [];
+    foreach ($rows as $r) {
+        $cle = geocodage_cle((string) $r['ville'], (string) $r['departement_canton'], pays_nom_depuis_code((string) $r['pays_code']));
+        if (($statutParCle[$cle] ?? '') !== 'ok') {
+            $ids[] = (int) $r['id'];
+        }
+    }
+    $cache = $ids;
+    return $ids;
+}
+
 // Variante événements : pays stocké en code ISO2 (evenements.pays), converti
 // en nom avant de construire la clé de cache — cohérente avec
 // structures/lieux qui stockent directement le nom. Dédoublonné par triplet

@@ -255,6 +255,13 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
     } elseif ($f['salaries'] === 'non') {
         $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
     }
+    // Villes jamais géolocalisées avec succès (lien « Voir la liste » du
+    // bandeau carte, carte_banner_geocodage_html()) — jamais mémorisé en
+    // session, lien ponctuel comme pour structures/lieux (voir structures_filtres()).
+    if (($_GET['non_localises'] ?? '') === '1') {
+        $ids = evenements_non_localises_ids();
+        $where .= $ids ? ' AND e.id IN (' . implode(',', $ids) . ')' : ' AND 0';
+    }
     if ($avecRecherche) {
         [$rechSql, $rechParams] = recherche_sql(['e.ville', 'e.salle', 'e.festival', 's.nom']);
         $where .= $rechSql;

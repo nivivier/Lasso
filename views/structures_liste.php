@@ -5,8 +5,8 @@
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
-/** @var string $lieuType */ /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
-/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $categoriesLieu */ /** @var string $flag */
+/** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
+/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var string $flag */
 /** @var bool $nonLocalises */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
@@ -58,6 +58,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <option value="actif" <?= $statut === 'actif' ? 'selected' : '' ?>>Actives</option>
+                <option value="ne_pas_contacter" <?= $statut === 'ne_pas_contacter' ? 'selected' : '' ?>>Ne pas contacter</option>
                 <option value="inactif" <?= $statut === 'inactif' ? 'selected' : '' ?>>Inactives</option>
                 <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Toutes</option>
             </select>
@@ -65,7 +66,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <label class="search-label">
             <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
-        <?php $lieuFiltresActifs = $lieuType !== '' || $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
+        <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
         <details class="filters-more" <?= ($pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '') ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>
             <div class="filters-more-body">
@@ -93,14 +94,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                     </select>
                 </label>
                 <?php endif; ?>
-                <label><span>Type de lieu lié <?= info_tip("Filtre sur les lieux (salles, festivals…) liés à la structure — au moins un lieu lié doit correspondre.") ?></span>
-                    <select name="lieu_type" onchange="this.form.submit()">
-                        <option value="">Tous</option>
-                        <?php foreach ($categoriesLieu as $c): ?>
-                            <option value="<?= e($c) ?>" <?= $lieuType === $c ? 'selected' : '' ?>><?= e($c) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
                 <label class="jauge-filtre">Jauge min du lieu
                     <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" onchange="this.form.submit()" placeholder="200">
                 </label>

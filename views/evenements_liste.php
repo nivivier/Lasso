@@ -7,6 +7,7 @@
 /** @var ?int $prodExterneOk */ /** @var ?int $prodExterneBloques */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
+/** @var bool $nonLocalises */
 $statutsSuisa = [
     'tous' => 'Tous', 'a_venir' => 'À venir', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
     'abandonne' => 'Abandonné', 'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
@@ -18,8 +19,14 @@ $termeSingulier = evenements_terme_spectacle(false);
 $qsSansVue = $_GET;
 unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
 $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVue + ['vue' => $v]);
+// Lien pour quitter le filtre « non localisés » (venu de la vue carte) sans
+// perdre les autres filtres actifs — voir views/structures_liste.php.
+$qsSansNonLocalises = $_GET;
+unset($qsSansNonLocalises['non_localises']);
+$lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 ?>
 <?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?= filtre_non_localises_flash_html($nonLocalises, 'événements', $lienQuitterNonLocalises) ?>
 <?php if ($prodExterneOk): ?><p class="flash"><?= (int) $prodExterneOk ?> événement(s) passé(s) en « Production externe ».</p><?php endif; ?>
 <?php if ($prodExterneBloques): ?><p class="err flash"><?= (int) $prodExterneBloques ?> événement(s) non modifié(s) : une prestation liée est déjà sur une fiche payée (figée, jamais modifiée).</p><?php endif; ?>
 <div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">

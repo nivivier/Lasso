@@ -14,6 +14,14 @@ $points = array_map(function (array $p): array {
     $html .= '</ul>';
     return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html];
 }, $cartePoints);
+
+// Lien de secours pour les villes qu'on ne parviendra sans doute jamais à
+// géocoder automatiquement (typo, ville introuvable pour Nominatim…) — voir
+// views/_structures_carte.php pour le même principe.
+$lienNonLocalises = '?p=evenements_liste&' . http_build_query([
+    'vue' => 'liste', 'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+    'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries, 'non_localises' => 1,
+]);
 ?>
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 
@@ -21,7 +29,7 @@ $points = array_map(function (array $p): array {
     <?= carte_banner_geocodage_html(
         $carteVillesManquantes,
         'événement(s)', 'événements', 'affichés',
-        '',
+        $lienNonLocalises,
         '?p=evenements_geocoder',
         [
             'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,

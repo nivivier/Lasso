@@ -499,8 +499,10 @@ function structures_filtres(): array
     $departementCanton = trim((string) filtre_persistant('departement_canton', 'structures_departement_canton', ''));
     $tagId = (int) filtre_persistant('tag_id', 'structures_tag_id', 0);
     // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
-    // travail courant) ; 'inactif' ou 'tous' pour les voir.
-    $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), ['actif', 'inactif', 'tous'], 'actif');
+    // travail courant) ; 'ne_pas_contacter' (active mais désinscrite du
+    // mailing — voir structure_statut_toggle_html()), 'inactif' ou 'tous'
+    // pour les voir.
+    $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), ['actif', 'ne_pas_contacter', 'inactif', 'tous'], 'actif');
     // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marquées,
     // 'star'/'heart' = marquées.
     $flag = valeur_autorisee((string) filtre_persistant('flag', 'structures_flag', ''), ['', 'aucun', 'star', 'heart'], '');
@@ -509,11 +511,10 @@ function structures_filtres(): array
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
     // mémorisé en session : lien ponctuel, pas un mode de travail courant.
     $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
-    // Filtres avancés « lieu » (type, jauge, mois) : depuis la fusion
+    // Filtres avancés « lieu » (jauge, mois) : depuis la fusion
     // lieux→structures (migration_59/60), ces champs vivent directement sur la
     // structure — filtre simple sur ses propres colonnes, plus d'indirection
     // par structure_lieux.
-    $lieuType = structure_sous_categorie_booking_nom_pour((string) filtre_persistant('lieu_type', 'structures_lieu_type', ''));
     $lieuJaugeMinBrut = (string) filtre_persistant('lieu_jauge_min', 'structures_lieu_jauge_min', '');
     $lieuJaugeMin = $lieuJaugeMinBrut !== '' ? max(0, (int) $lieuJaugeMinBrut) : null;
     $lieuJaugeMaxBrut = (string) filtre_persistant('lieu_jauge_max', 'structures_lieu_jauge_max', '');
@@ -550,6 +551,8 @@ function structures_filtres(): array
     }
     if ($statut === 'actif') {
         $where .= ' AND s.actif = 1';
+    } elseif ($statut === 'ne_pas_contacter') {
+        $where .= ' AND s.actif = 1 AND s.desinscrit = 1';
     } elseif ($statut === 'inactif') {
         $where .= ' AND s.actif = 0';
     }
@@ -559,14 +562,10 @@ function structures_filtres(): array
         $where .= ' AND s.flag = ?';
         $params[] = $flag;
     }
-    if ($lieuType !== '' || $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg) {
+    if ($lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg) {
         // Bornes de jauge/mois injectées telles quelles (déjà validées en
         // entiers), même raison qu'ailleurs : un paramètre PDO serait lié en
         // texte, or SQLite classe tout entier avant tout texte.
-        if ($lieuType !== '') {
-            $where .= ' AND s.sous_categorie = ? COLLATE NOCASE';
-            $params[] = $lieuType;
-        }
         if ($lieuJaugeMin !== null) {
             $where .= ' AND COALESCE(s.jauge_max, s.jauge_min, 0) >= ' . $lieuJaugeMin;
         }
@@ -586,7 +585,7 @@ function structures_filtres(): array
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
         'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'flag' => $flag,
         'nonLocalises' => $nonLocalises,
-        'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
+        'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
     ];
 }
@@ -626,7 +625,6 @@ function route_structures(): void
     $departementCanton = $f['departementCanton'];
     $tagId = $f['tagId'];
     $statut = $f['statut'];
-    $lieuType = $f['lieuType'];
     $lieuJaugeMin = $f['lieuJaugeMin'];
     $lieuJaugeMax = $f['lieuJaugeMax'];
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
@@ -635,7 +633,7 @@ function route_structures(): void
     $nonLocalises = $f['nonLocalises'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
-        'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
+        'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
     ];
 
@@ -781,12 +779,11 @@ function route_structures(): void
             'structures' => [], 'nbEvenements' => [],
             'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'departementCanton' => $departementCanton,
             'tagId' => $tagId, 'statut' => $statut,
-            'lieuType' => $lieuType, 'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
+            'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
             'nonLocalises' => $nonLocalises,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
-            'categoriesLieu' => structure_sous_categories_booking_noms(),
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
         ], 'Structures');
@@ -848,7 +845,6 @@ function route_structures(): void
         'departementCanton' => $departementCanton,
         'tagId' => $tagId,
         'statut' => $statut,
-        'lieuType' => $lieuType,
         'lieuJaugeMin' => $lieuJaugeMin,
         'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement,
@@ -859,14 +855,13 @@ function route_structures(): void
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
         'categoriesPourSelect' => structure_categories_pour_select(),
-        'categoriesLieu' => structure_sous_categories_booking_noms(),
         'regionsDispo' => $regionsDispo,
         'tagsDispo' => $tagsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
         'pgParams'  => [
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
-            'lieu_type' => $lieuType, 'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
+            'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
             'non_localises' => $nonLocalises ? 1 : '',
         ],

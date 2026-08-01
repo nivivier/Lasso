@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.7] — 2026-08-01
+
+### Ajouté
+- `?p=structures` : statut « Ne pas contacter » (active mais désinscrite du mailing) dans le filtre Statut.
+- `?p=evenements_liste&vue=carte` : lien « Voir la liste » vers les événements pas encore localisés (comme structures/lieux).
+
+### Retiré
+- `?p=structures` : filtre « Type de lieu lié » (« Plus de filtres »).
+
 ## [1.24.6] — 2026-08-01
 
 ### Ajouté
