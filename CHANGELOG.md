@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.28.0] — 2026-08-01
+
+### Modifié
+- Fiche structure, carte « Historique » : n'affiche plus que les 3 dernières entrées par défaut, avec un lien « Voir les … précédentes » pour dérouler le reste.
+- Fiche structure, carte « Événements » : affiche le nom du spectacle-groupe en priorité (avec la feuille en petit dessous si distincte) plutôt que systématiquement la feuille ; retrait de la ligne de localisation de l'événement (redondante avec la page de la structure).
+
 ## [1.27.0] — 2026-08-01
 
 ### Retiré

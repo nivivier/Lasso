@@ -255,9 +255,17 @@ function structure_evenements(int $structureId): array
     if (!module_actif('evenements')) {
         return [];
     }
+    // spectacle = feuille rattachée à l'événement (evenements.spectacle_id,
+    // toujours une feuille — voir spectacle_assignable()) ; spectacle_groupe =
+    // son parent (l'artiste), si elle est imbriquée sous un groupe — sinon
+    // NULL (spectacle autonome, pas de groupe). Voir views/structure_form.php,
+    // carte « Événements » : affiche le groupe en priorité, la feuille en
+    // second si distincte.
     $stmt = db()->prepare(
-        'SELECT DISTINCT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle
-         FROM evenements e LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
+        'SELECT DISTINCT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle, spg.nom AS spectacle_groupe
+         FROM evenements e
+         LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
+         LEFT JOIN spectacles spg ON spg.id = sp.parent_id
          WHERE e.organisateur_structure_id = :sid OR e.lieu_id = :sid
          ORDER BY e.date DESC, e.id DESC'
     );

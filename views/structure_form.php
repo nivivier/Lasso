@@ -367,10 +367,14 @@ $sid = (int) ($structure['id'] ?? 0);
                     <?php endif; ?>
                 </a>
                 <div class="evt-info">
-                    <div class="evt-spectacle"><a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e((string) ($ev['spectacle'] ?? '') ?: 'Événement') ?></a></div>
-                    <div class="muted small">
-                        <?= e((string) $ev['ville']) ?><?php if (!empty($ev['structure_id'])): ?><?= $ev['ville'] ? ' · ' : '' ?><span class="ico-tiny"><?= icon($ev['sens'] === 'organise' ? 'blocks' : 'building') ?></span> <?= e((string) $ev['structure_nom']) ?><?php endif; ?>
-                    </div>
+                    <?php $nomPrincipal = (string) ($ev['spectacle_groupe'] ?? '') !== '' ? (string) $ev['spectacle_groupe'] : ((string) ($ev['spectacle'] ?? '') ?: 'Événement'); ?>
+                    <div class="evt-spectacle"><a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($nomPrincipal) ?></a></div>
+                    <?php if ((string) ($ev['spectacle_groupe'] ?? '') !== '' && (string) ($ev['spectacle'] ?? '') !== ''): ?>
+                        <div class="muted small"><?= e((string) $ev['spectacle']) ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty($ev['structure_id'])): ?>
+                        <div class="muted small"><span class="ico-tiny"><?= icon($ev['sens'] === 'organise' ? 'blocks' : 'building') ?></span> <?= e((string) $ev['structure_nom']) ?></div>
+                    <?php endif; ?>
                 </div>
             </li>
             <?php endforeach; ?>
@@ -782,9 +786,30 @@ $villeHtmlS = ville_departement_canton_html(
         </div>
     </form>
     <div class="mt-16">
-        <?php $histoEntrees = $notes; require __DIR__ . '/_historique.php'; ?>
-        <?php if (!$notes): ?><p class="muted small">Aucune entrée pour l'instant.</p><?php endif; ?>
+        <?php if ($notes): ?>
+            <?php $notesRecentes = array_slice($notes, 0, 3); $notesReste = array_slice($notes, 3); ?>
+            <?php $histoEntrees = $notesRecentes; require __DIR__ . '/_historique.php'; ?>
+            <?php if ($notesReste): ?>
+                <div class="hist-reste" hidden>
+                    <?php $histoEntrees = $notesReste; require __DIR__ . '/_historique.php'; ?>
+                </div>
+                <button type="button" class="btn ghost btn-sm hist-voir-plus-btn"><?= icon('chevron-down') ?> Voir les <?= count($notesReste) ?> précédente<?= count($notesReste) > 1 ? 's' : '' ?></button>
+            <?php endif; ?>
+        <?php else: ?>
+            <p class="muted small">Aucune entrée pour l'instant.</p>
+        <?php endif; ?>
     </div>
+    <script>
+    (function () {
+        var btn = document.querySelector('.hist-voir-plus-btn');
+        var reste = document.querySelector('.hist-reste');
+        if (!btn || !reste) return;
+        btn.addEventListener('click', function () {
+            reste.hidden = false;
+            btn.hidden = true;
+        });
+    })();
+    </script>
 </div>
 
 </div>
