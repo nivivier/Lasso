@@ -21,10 +21,21 @@ declare(strict_types=1);
 // Rester sous le délai d'exécution PHP par défaut, une requête espacée d'1s.
 const GEOCODAGE_LOT_TAILLE = 15;
 
+// Ville et pays repliés sur les accents (texte_sans_accents(), lib/booking.php)
+// avant mise en clé : « Chambéry »/« Chambery », « Mâcon »/« Macon »… sont la
+// même ville réellement saisie avec ou sans accent selon la fiche — sans ce
+// repli, chaque variante interrogeait Nominatim séparément et affichait deux
+// repères pour une seule vraie ville sur la vue carte. Département/canton
+// PAS replié (codes courts sans accent, ex. GE/VD/75) et volontairement
+// conservé tel quel dans la clé : c'est le seul moyen de lever l'ambiguïté
+// des homonymes inter-départements (voir docblock plus haut) — voir aussi
+// carte_points_grouper() pour le filet de sécurité qui fusionne à l'affichage
+// les points qui convergent malgré tout vers les mêmes coordonnées (ex.
+// canton renseigné sur une fiche, vide sur une autre pour la même ville).
 function geocodage_cle(string $ville, string $departementCanton, string $pays): string
 {
-    return mb_strtolower(trim($ville), 'UTF-8') . '|' . mb_strtolower(trim($departementCanton), 'UTF-8')
-        . '|' . mb_strtolower(trim($pays), 'UTF-8');
+    return texte_sans_accents($ville) . '|' . mb_strtolower(trim($departementCanton), 'UTF-8')
+        . '|' . texte_sans_accents($pays);
 }
 
 // Résultat déjà en cache pour cette ville, ou null si jamais interrogée.
@@ -247,5 +258,22 @@ function carte_points_grouper(array $lignes, callable $itemBuilder): array
         }
         $parCle[$cle]['items'][] = $itemBuilder($r);
     }
-    return [array_values($parCle), $nonGeolocalises];
+
+    // Filet de sécurité : deux clés de cache différentes (ex. canton renseigné
+    // sur une fiche, vide sur une autre pour la même ville — voir
+    // geocodage_cle()) peuvent malgré tout converger vers les mêmes
+    // coordonnées Nominatim. Fusionne alors ces points à l'affichage (~110 m
+    // de tolérance, sous la distance séparant deux vraies villes distinctes)
+    // pour n'afficher qu'un seul repère par ville réelle.
+    $parCoord = [];
+    foreach ($parCle as $p) {
+        $coordCle = round($p['lat'], 3) . ',' . round($p['lon'], 3);
+        if (!isset($parCoord[$coordCle])) {
+            $parCoord[$coordCle] = $p;
+        } else {
+            $parCoord[$coordCle]['items'] = array_merge($parCoord[$coordCle]['items'], $p['items']);
+        }
+    }
+
+    return [array_values($parCoord), $nonGeolocalises];
 }

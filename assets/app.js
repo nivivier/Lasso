@@ -334,15 +334,14 @@ function lassoInitCarteLieux(mapId, points, storageKey) {
     }).addTo(map);
 
     // Un point = une ville (déjà groupée par carte_points_grouper()), qui peut
-    // contenir plusieurs fiches. Pastille plus grande + couleur d'accent et
-    // nombre affiché dès que le point en regroupe plusieurs, pour repérer les
-    // villes à forte densité sans avoir à ouvrir chaque popup.
+    // contenir plusieurs fiches. Légèrement plus grand dès que le point en
+    // regroupe plusieurs, pour repérer les villes à forte densité sans avoir
+    // à ouvrir chaque popup — même couleur partout, pas de nombre affiché.
     points.forEach(p => {
         const n = p.count || 1;
-        const taille = n > 1 ? Math.min(24 + n * 2, 46) : 14;
+        const taille = n > 1 ? Math.min(16 + n, 22) : 14;
         const icon = L.divIcon({
-            className: 'carte-pin' + (n > 1 ? ' carte-pin-multi' : ''),
-            html: n > 1 ? '<span>' + n + '</span>' : '',
+            className: 'carte-pin',
             iconSize: [taille, taille],
             iconAnchor: [taille / 2, taille / 2],
         });

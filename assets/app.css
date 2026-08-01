@@ -228,17 +228,13 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 .carte-popup-liste { margin: 4px 0 0; padding-left: 18px; max-height: 180px; overflow-y: auto; }
 .carte-popup-liste li { margin-bottom: 2px; }
-/* Pastilles de carte (?p=structures/évenements&vue=carte) : point simple =
-   petit disque neutre, point regroupant plusieurs fiches (même ville, voir
-   carte_points_grouper()) = disque plus grand en couleur d'accent avec le
-   nombre de fiches, pour repérer les villes denses sans ouvrir chaque popup. */
+/* Pastilles de carte (?p=structures/évenements&vue=carte) : même couleur pour
+   tous les points, légèrement plus grandes quand le point regroupe plusieurs
+   fiches (même ville, voir carte_points_grouper()) pour repérer les villes
+   denses sans ouvrir chaque popup. */
 .carte-pin {
     background: var(--ink); border: 2px solid #fff; border-radius: 50%;
     box-shadow: 0 1px 4px rgb(0 0 0 / .35);
-}
-.carte-pin-multi {
-    background: var(--primary); display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 12px; line-height: 1;
 }
 @media (max-width: 800px) {
     .carte-lieux-wrap { left: 0; }

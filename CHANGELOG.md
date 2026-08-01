@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.29.2] — 2026-08-01
+
+### Modifié
+- Vues carte (`?p=structures`/`?p=evenements&vue=carte`) : pastilles toutes de la même couleur, sans nombre affiché, différence de taille resserrée (14-22 px) entre un point simple et un point regroupant plusieurs fiches.
+
+### Corrigé
+- Géocodage (`lieux_geocodage`) : une même ville saisie avec ou sans accent sur des fiches différentes (« Chambéry »/« Chambery », « Mâcon »/« Macon »…) était géocodée séparément et affichait deux repères sur la vue carte au lieu d'un seul — la clé de cache replie désormais les accents (`texte_sans_accents()`). Filet de sécurité complémentaire dans `carte_points_grouper()` : deux points qui convergent malgré tout vers les mêmes coordonnées (ex. canton renseigné sur une fiche, vide sur une autre pour la même ville) sont fusionnés à l'affichage.
+
 ## [1.29.1] — 2026-08-01
 
 ### Modifié
