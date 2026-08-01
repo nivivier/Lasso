@@ -165,28 +165,12 @@ function structure_categorie_id_pour(string $categorie, string $sousCategorie, ?
     return 0;
 }
 
-// Catégorie de repli si aucune n'est fournie/reconnue : celle marquée
-// « organisateur », sinon la première catégorie racine (ordre configuré).
+// Catégorie de repli si aucune n'est fournie/reconnue : la première catégorie
+// racine (ordre configuré).
 function structure_categorie_par_defaut(): string
 {
     $racines = structure_categories_racines();
-    foreach ($racines as $c) {
-        if ($c['est_organisateur']) {
-            return (string) $c['nom'];
-        }
-    }
     return $racines ? (string) $racines[0]['nom'] : '';
-}
-
-// Une structure de cette catégorie (racine) représente-t-elle un lieu
-// (salle/festival), pour déclencher la création automatique d'un lieu lié à
-// l'import CSV (structures_appliquer_import()) ? Remplace l'ancien test en dur
-// categorie === 'organisateur'.
-function structure_categorie_est_organisateur(string $nom): bool
-{
-    $stmt = db()->prepare('SELECT est_organisateur FROM structure_categories WHERE nom = ? AND parent_id IS NULL');
-    $stmt->execute([$nom]);
-    return (bool) $stmt->fetchColumn();
 }
 
 // Une sous-catégorie est-elle marquée « booking » (décrit un lieu où on peut
@@ -734,7 +718,6 @@ function mailing_personnaliser(string $texte, array $structure, ?array $contact)
 // colonnes (§8 de SPEC_BOOKING.md). Seul « nom » est obligatoire.
 const STRUCTURE_IMPORT_CHAMPS = [
     'nom'              => 'Nom de la structure',
-    'organisateur'     => 'Organisateur (asso mère — regroupe ses salles/festivals)',
     'categorie'        => 'Catégorie (organisateur/média/autres/entourage)',
     'sous_categorie'   => 'Sous-catégorie (ex. Journaliste, Salle de concert…)',
     'type_lieu'        => 'Type de lieu (salle, festival, salle de location…)',
@@ -1046,92 +1029,6 @@ function mois_plage_depuis_liste(string $champ): array
     return ['debut' => $nums[$startIdx], 'fin' => $nums[($startIdx - 1 + $c) % $c]];
 }
 
-// Détermine l'organisateur d'une ligne d'import et le nom « propre » du lieu
-// (festival/salle) qu'elle décrit. Deux sources : la colonne « Organisateur »
-// mappée (prioritaire, déterministe) ; à défaut, une parenthèse finale dans le
-// nom (« Festival X (Asso Y) » → organisateur « Asso Y », lieu « Festival X »).
-// Renvoie ['organisateur' => nom|'', 'nom_lieu' => nom sans la parenthèse,
-// 'org_source' => 'colonne'|'parenthese'|'']. La source sert à écarter les faux
-// positifs : une parenthèse ne vaut regroupement que si l'organisateur est une
-// entité réelle (cf. structures_grouper), car « X (Le Havre) » désigne le plus
-// souvent une ville, pas un organisateur.
-function structure_import_groupe(array $d): array
-{
-    $nom = trim((string) ($d['nom'] ?? ''));
-    $orgCol = trim((string) ($d['organisateur'] ?? ''));
-    $base = $nom;
-    $paren = '';
-    if (preg_match('/^(.+?)\s*\((.+)\)\s*$/u', $nom, $m)) {
-        $base = trim($m[1]);
-        $paren = trim($m[2]);
-    }
-    $org = $orgCol !== '' ? $orgCol : $paren;
-    if ($org === '') {
-        return ['organisateur' => '', 'nom_lieu' => $nom, 'org_source' => ''];
-    }
-    $source = $orgCol !== '' ? 'colonne' : 'parenthese';
-    // Nom du lieu : sans la parenthèse si celle-ci nomme bien l'organisateur ;
-    // sinon le nom tel quel (cas d'une colonne organisateur séparée).
-    $nomLieu = ($paren !== '' && normaliser_nom_structure($paren) === normaliser_nom_structure($org)) ? $base : $nom;
-    return ['organisateur' => $org, 'nom_lieu' => $nomLieu, 'org_source' => $source];
-}
-
-// Regroupe les lignes analysées par organisateur (clé = nom normalisé). Un
-// groupe n'est retenu que s'il contient au moins un « lieu » (ligne dont le nom
-// diffère de l'organisateur) — sinon il n'y a rien à regrouper. Chaque groupe :
-// ['organisateur' => nom affiché, 'membres' => [index], 'lieux' => [[index,nom]],
-//  'self_index' => index de la ligne qui EST l'organisateur (ou null)].
-function structures_grouper(array $analyse): array
-{
-    $groupes = [];
-    foreach ($analyse as $l) {
-        $org = (string) ($l['organisateur'] ?? '');
-        if ($org === '') {
-            continue;
-        }
-        $key = normaliser_nom_structure($org);
-        if ($key === '') {
-            continue;
-        }
-        if (!isset($groupes[$key])) {
-            $groupes[$key] = ['organisateur' => $org, 'membres' => [], 'lieux' => [], 'self_index' => null, 'source_colonne' => false];
-        }
-        if (($l['org_source'] ?? '') === 'colonne') {
-            $groupes[$key]['source_colonne'] = true;
-        }
-        $groupes[$key]['membres'][] = (int) $l['index'];
-        if (normaliser_nom_structure((string) $l['nom_lieu']) === $key) {
-            $groupes[$key]['self_index'] = (int) $l['index'];
-        } elseif (!empty($l['cat_organisateur'])) {
-            // Seules les lignes d'une catégorie « organisateur » (salles/festivals)
-            // peuvent devenir des lieux ; médias/radios/entourage n'en sont jamais.
-            $groupes[$key]['lieux'][] = ['index' => (int) $l['index'], 'nom' => (string) $l['nom_lieu']];
-        }
-    }
-    // Deuxième passe : une ligne « autonome » (sans organisateur déclaré) dont le
-    // nom correspond à un organisateur EST la fiche de cet organisateur — on la
-    // rattache au groupe pour la réutiliser plutôt que d'en créer une en double.
-    foreach ($analyse as $l) {
-        if ((string) ($l['organisateur'] ?? '') !== '') {
-            continue;
-        }
-        $key = normaliser_nom_structure((string) $l['nom_lieu']);
-        if (isset($groupes[$key]) && $groupes[$key]['self_index'] === null) {
-            $groupes[$key]['self_index'] = (int) $l['index'];
-            $groupes[$key]['membres'][] = (int) $l['index'];
-        }
-    }
-    // On ne garde un groupe que s'il a au moins un lieu (salle/festival) ET que
-    // l'organisateur est une entité RÉELLE : soit désigné par la colonne
-    // « Organisateur » (intention explicite), soit présent comme sa propre ligne
-    // (self_index). Une parenthèse seule ne suffit pas — « X (Le Havre) » nomme
-    // une ville, pas un organisateur, et ne doit pas regrouper les lignes.
-    return array_filter(
-        $groupes,
-        fn ($g) => count($g['lieux']) > 0 && ($g['source_colonne'] || $g['self_index'] !== null)
-    );
-}
-
 // Applique le mapping (champ → index de colonne CSV) à chaque ligne, et
 // détecte les correspondances existantes. Ne modifie rien (analyse pure) —
 // réutilisée à la fois pour afficher l'écran de résolution des conflits et
@@ -1188,19 +1085,14 @@ function structures_analyser_import(array $lignes, array $mapping): array
         }
     }
     // Taxonomie des structures, indexée par clé « pliée » (minuscule sans accents)
-    // pour un rapprochement tolérant à l'import : racines, sous-catégories (→ parent),
-    // et catégories « organisateur ».
+    // pour un rapprochement tolérant à l'import : racines, sous-catégories (→ parent).
     $catMap = structure_categorie_map();
     $catsRacines = []; // clé pliée → nom racine canonique
     $catsSub = [];     // clé pliée → ['parent' => nom racine, 'nom' => nom sous-cat]
-    $catsOrg = [];     // nom racine canonique → true si catégorie « organisateur »
     foreach ($catMap as $r) {
         $nom = (string) $r['nom'];
         if (plan_pid($r['parent_id'] ?? null) === 0) {
             $catsRacines[texte_sans_accents($nom)] = $nom;
-            if (!empty($r['est_organisateur'])) {
-                $catsOrg[$nom] = true;
-            }
         }
     }
     foreach ($catMap as $r) {
@@ -1293,18 +1185,11 @@ function structures_analyser_import(array $lignes, array $mapping): array
             $stmt->execute([$correspondanceId]);
             $structureExistante = $stmt->fetch() ?: null;
         }
-        $groupe = structure_import_groupe($donnees);
         $analyse[] = [
             'index' => $index,
             'donnees' => $donnees,
             'correspondance_id' => $correspondanceId,
             'structure_existante' => $structureExistante,
-            'organisateur' => $groupe['organisateur'],
-            'nom_lieu' => $groupe['nom_lieu'],
-            'org_source' => $groupe['org_source'],
-            // Éligible à devenir un lieu (salle/festival) : uniquement les
-            // catégories « organisateur » — exclut médias/radios/entourage.
-            'cat_organisateur' => isset($catsOrg[$donnees['categorie']]),
         ];
     }
     return $analyse;
@@ -1350,7 +1235,7 @@ function structures_taxonomie_assurer(array $paires): int
     if (!$aCreer) {
         return 0;
     }
-    $ins = db()->prepare('INSERT OR IGNORE INTO structure_categories (nom, parent_id, est_organisateur, ordre) VALUES (?, ?, 0, ?)');
+    $ins = db()->prepare('INSERT OR IGNORE INTO structure_categories (nom, parent_id, ordre) VALUES (?, ?, ?)');
     foreach ($aCreer as $c) {
         $ordre = ($maxOrdre[$c['parent']] ?? 0) + 1;
         $maxOrdre[$c['parent']] = $ordre;
@@ -1447,14 +1332,13 @@ function structure_import_fusion(array $existante, array $donnees): array
 }
 
 // Parmi les lignes analysées, celles qui correspondent à une fiche existante ET
-// présentent au moins un conflit de champ (à trancher par l'utilisateur). Les
-// lignes déjà consommées par un regroupement ($exclus : index => true) sont
-// écartées. Chaque entrée = la ligne + 'conflits' (cf. structure_import_fusion).
-function structures_import_conflits(array $analyse, array $exclus = []): array
+// présentent au moins un conflit de champ (à trancher par l'utilisateur).
+// Chaque entrée = la ligne + 'conflits' (cf. structure_import_fusion).
+function structures_import_conflits(array $analyse): array
 {
     $out = [];
     foreach ($analyse as $l) {
-        if ($l['correspondance_id'] === null || isset($exclus[$l['index']])) {
+        if ($l['correspondance_id'] === null) {
             continue;
         }
         $existante = is_array($l['structure_existante'] ?? null) ? $l['structure_existante'] : [];
@@ -1467,81 +1351,30 @@ function structures_import_conflits(array $analyse, array $exclus = []): array
     return $out;
 }
 
-// Applique l'import. Deux régimes cohabitent :
-//   • Regroupements confirmés ($groupesConfirmes = clés normalisées d'orga-
-//     nisateur, cf. structures_grouper()) : l'organisateur devient/reste UNE
-//     structure, les lignes « lieu » du groupe deviennent des salles/festivals
-//     qui lui sont rattachés (leurs contacts/notes/étiquettes vont à
-//     l'organisateur, comme la transformation a posteriori — SPEC_BOOKING.md).
-//   • Lignes hors regroupement : logique par ligne habituelle — insérées si
-//     sans correspondance, sinon FUSIONNÉES champ par champ avec la fiche
-//     existante ($choix : index → [colonne => true] = prendre l'import pour un
-//     champ en conflit ; défaut = garder l'actuel ; jamais d'écrasement global).
-// Retourne un résumé.
-function structures_appliquer_import(array $analyse, array $choix, array $groupesConfirmes = []): array
+// Applique l'import : chaque ligne est insérée si sans correspondance, sinon
+// FUSIONNÉE champ par champ avec la fiche existante ($choix : index →
+// [colonne => true] = prendre l'import pour un champ en conflit ; défaut =
+// garder l'actuel ; jamais d'écrasement global). Retourne un résumé.
+function structures_appliquer_import(array $analyse, array $choix): array
 {
-    $resume = ['nouvelles' => 0, 'mises_a_jour' => 0, 'ignorees' => 0, 'lieux' => 0, 'sous_categories' => 0];
+    $resume = ['nouvelles' => 0, 'mises_a_jour' => 0, 'ignorees' => 0, 'sous_categories' => 0];
 
     // Enregistre d'abord les sous-catégories nouvelles dans la taxonomie (pour
     // qu'elles figurent dans Paramètres → Catégories).
     $resume['sous_categories'] = structures_import_assurer_sous_categories($analyse);
 
-    $groupes = structures_grouper($analyse);
-    $confirmes = array_flip($groupesConfirmes);
-    $parIndex = [];
-    foreach ($analyse as $l) {
-        $parIndex[$l['index']] = $l;
-    }
-    $consommes = []; // index des lignes déjà traitées via un regroupement
-
-    foreach ($groupes as $key => $g) {
-        if (!isset($confirmes[$key])) {
-            continue;
-        }
-        // 1. L'organisateur : sa propre ligne si présente dans l'import,
-        //    sinon une structure minimale créée/retrouvée par le nom.
-        if ($g['self_index'] !== null && isset($parIndex[$g['self_index']])) {
-            $orgId = structure_import_appliquer_structure($parIndex[$g['self_index']], $choix, $resume, false);
-            $consommes[$g['self_index']] = true;
-            if ($orgId === null) {
-                continue; // sécurité : organisateur non appliqué → on laisse le reste tel quel
-            }
-        } else {
-            [$orgId, $creee] = structure_import_trouver_ou_creer_organisateur($g['organisateur']);
-            if ($creee) {
-                $resume['nouvelles']++;
-            }
-        }
-        // 2. Les lignes « lieu » du groupe → salles/festivals rattachés.
-        foreach ($g['lieux'] as $lieu) {
-            if (!isset($parIndex[$lieu['index']])) {
-                continue;
-            }
-            structure_import_rattacher_lieu_membre($orgId, $parIndex[$lieu['index']]['donnees'], $lieu['nom']);
-            $consommes[$lieu['index']] = true;
-            $resume['lieux']++;
-        }
-        structure_recalculer_dernier_contact($orgId);
-    }
-
-    // Lignes hors regroupement.
     foreach ($analyse as $ligne) {
-        if (isset($consommes[$ligne['index']])) {
-            continue;
-        }
-        structure_import_appliquer_structure($ligne, $choix, $resume, true);
+        structure_import_appliquer_structure($ligne, $choix, $resume);
     }
     return $resume;
 }
 
 // Insère (si nouvelle) ou FUSIONNE champ par champ (si déjà présente) la
-// structure d'une ligne d'import, puis y rattache contact/étiquettes/note (et,
-// si $autoLieu, crée le lieu auto des catégories « organisateur »). Pour une
-// fiche existante : remplissage des champs vides + application des choix de
-// conflit ($choix[index][colonne] = prendre l'import), défaut = garder
-// l'actuel. Renvoie l'id de la structure. Facteur commun aux lignes normales et
-// aux lignes « organisateur » d'un regroupement.
-function structure_import_appliquer_structure(array $ligne, array $choix, array &$resume, bool $autoLieu): ?int
+// structure d'une ligne d'import, puis y rattache contact/étiquettes/note.
+// Pour une fiche existante : remplissage des champs vides + application des
+// choix de conflit ($choix[index][colonne] = prendre l'import), défaut =
+// garder l'actuel. Renvoie l'id de la structure.
+function structure_import_appliquer_structure(array $ligne, array $choix, array &$resume): ?int
 {
     $d = $ligne['donnees'];
     $pays = $d['pays'] !== '' ? $d['pays'] : 'Suisse';
@@ -1630,21 +1463,13 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         structure_attacher_tag($structureId, $nomTag);
     }
 
-    // Application des champs « booking » (sous-catégorie, jauge, mois,
-    // dernier concert) directement sur LA STRUCTURE elle-même (voir
-    // structure_appliquer_champs_booking_importe(), migration_59/60), dans
-    // deux cas :
-    //   • catégorie marquée « organisateur » (Paramètres → Catégories : la ligne
-    //     décrit une salle/un festival — SPEC_BOOKING.md §9) ;
-    //   • le type de lieu résolu est un VRAI type de la taxonomie booking
-    //     (ex. « Salle de location ») — la ligne est un lieu, y compris hors
-    //     catégorie organisateur (ex. « Autres »).
-    // Les médias et l'entourage n'appliquent JAMAIS ces champs : ni
-    // organisateurs, ni porteurs d'un type de lieu reconnu (« Radio »,
-    // « Journaliste »… n'en sont pas).
-    $appliquerBooking = structure_categorie_est_organisateur($d['categorie'])
-        || structure_sous_categorie_booking_nom_pour((string) ($d['type_lieu'] ?? '')) !== '';
-    if ($autoLieu && $appliquerBooking) {
+    // Application des champs « booking » (sous-catégorie, jauge, mois, dernier
+    // concert) directement sur LA STRUCTURE elle-même (voir
+    // structure_appliquer_champs_booking_importe(), migration_59/60) : le type
+    // de lieu résolu doit être un VRAI type de la taxonomie booking (ex.
+    // « Salle de location »). Les médias et l'entourage n'appliquent jamais
+    // ces champs (« Radio », « Journaliste »… n'en sont pas).
+    if (structure_sous_categorie_booking_nom_pour((string) ($d['type_lieu'] ?? '')) !== '') {
         structure_appliquer_champs_booking_importe($structureId, $d);
     }
 
@@ -1680,63 +1505,6 @@ function structure_import_attacher_contact(int $structureId, array $d): void
         $structureId, $d['prenom'], $d['nom_contact'], $d['role'], $d['email_contact'],
         $d['telephone'], $d['formulaire_url'], $d['langue'], $desinscrit,
     ]);
-}
-
-// Retrouve (par nom normalisé) ou crée une structure organisateur minimale,
-// pour un regroupement dont aucune ligne ne décrit l'organisateur lui-même.
-// Renvoie [id, créée?].
-function structure_import_trouver_ou_creer_organisateur(string $nom): array
-{
-    $id = structure_trouver_correspondance($nom, '');
-    if ($id) {
-        return [(int) $id, false];
-    }
-    // Catégorie « organisateur » si elle existe (une salle/festival lui sera
-    // rattaché), sinon la catégorie par défaut.
-    $categorie = structure_categorie_par_defaut();
-    foreach (structure_categories_noms() as $catNom) {
-        if (structure_categorie_est_organisateur($catNom)) {
-            $categorie = $catNom;
-            break;
-        }
-    }
-    db()->prepare("INSERT INTO structures (nom, categorie, statut) VALUES (?, ?, 'actif')")->execute([$nom, $categorie]);
-    return [(int) db()->lastInsertId(), true];
-}
-
-// Rattache une ligne « lieu » d'un regroupement à l'organisateur : crée/lie le
-// lieu (nom nettoyé de la parenthèse), et reporte le contact, les étiquettes et
-// la note de dernier contact de la ligne SUR l'organisateur (choix « rattacher
-// à l'organisateur »).
-function structure_import_rattacher_lieu_membre(int $orgId, array $d, string $nomLieu): void
-{
-    // Un lieu EST une structure (fusion lieux→structures, migration_59/60) :
-    // retrouve (par nom normalisé, structure_trouver_correspondance()) ou crée
-    // une structure distincte pour ce lieu, lui applique les champs booking,
-    // puis la lie à l'organisateur (structure_organisateurs) — plutôt que de
-    // créer un lieu séparé lié via structure_lieux comme avant.
-    $lieuId = structure_trouver_correspondance($nomLieu, '');
-    if ($lieuId === null) {
-        db()->prepare(
-            'INSERT INTO structures (nom, categorie, adresse_localite, departement_canton, adresse_pays) VALUES (?, ?, ?, ?, ?)'
-        )->execute([
-            $nomLieu, structure_categorie_par_defaut(), $d['adresse_localite'], $d['departement_canton'],
-            $d['pays'] !== '' ? $d['pays'] : 'Suisse',
-        ]);
-        $lieuId = (int) db()->lastInsertId();
-    }
-    structure_appliquer_champs_booking_importe($lieuId, array_merge($d, ['nom' => $nomLieu]));
-    db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
-        ->execute([$lieuId, $orgId]);
-
-    structure_import_attacher_contact($orgId, $d);
-    foreach (structure_tags_depuis_statut($d['tags_statut']) as $nomTag) {
-        structure_attacher_tag($orgId, $nomTag);
-    }
-    $dateContact = structure_date_csv_vers_iso($d['dernier_contact']);
-    if ($dateContact !== null) {
-        journaliser_contact_import($orgId, $dateContact, 'Import CSV — dernier contact connu (' . $nomLieu . ').');
-    }
 }
 
 // Type d'un lieu à l'import : si une catégorie de lieu a été détectée (colonne

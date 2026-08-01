@@ -367,7 +367,7 @@ function grande_regions_appliquer(array $lignes): int
 // rapproche par ville (+département/canton+pays — même précaution que le
 // géocodage, voir migration_57, pour ne pas confondre deux villes homonymes)
 // puis par nom normalisé (normaliser_nom_structure(), même convention que
-// structures_grouper()/maj_dates_construire_index()). Jamais deviné en cas
+// maj_dates_construire_index()). Jamais deviné en cas
 // d'ambiguïté (plusieurs lieux candidats) : ces fiches restent affichées à
 // part, à traiter à la main sur la fiche événement.
 // ===========================================================================

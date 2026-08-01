@@ -103,65 +103,7 @@ check('symboles inconnus ignorés', [], structure_tags_depuis_statut('???unknown
 check('cellule vide', [], structure_tags_depuis_statut(''));
 check('doublons dédupliqués', ['Actif'], structure_tags_depuis_statut('& &'));
 
-echo "7) structure_import_groupe() — organisateur depuis colonne ou parenthèses\n";
-$g = structure_import_groupe(['nom' => 'Festival Pause Guitare (Arpèges et Trémolos)']);
-check('parenthèse : organisateur extrait', 'Arpèges et Trémolos', $g['organisateur']);
-check('parenthèse : nom du lieu nettoyé', 'Festival Pause Guitare', $g['nom_lieu']);
-check('parenthèse : source = parenthese', 'parenthese', $g['org_source']);
-$g = structure_import_groupe(['nom' => 'Festival Les Ptits Bouchons', 'organisateur' => 'Arpèges et Trémolos']);
-check('colonne : organisateur prioritaire', 'Arpèges et Trémolos', $g['organisateur']);
-check('colonne : nom du lieu conservé tel quel', 'Festival Les Ptits Bouchons', $g['nom_lieu']);
-check('colonne : source = colonne', 'colonne', $g['org_source']);
-$g = structure_import_groupe(['nom' => 'La Tannerie']);
-check('sans organisateur : vide', '', $g['organisateur']);
-check('sans organisateur : nom du lieu = nom', 'La Tannerie', $g['nom_lieu']);
-check('sans organisateur : source vide', '', $g['org_source']);
-$g = structure_import_groupe(['nom' => 'Arpèges et Trémolos', 'organisateur' => 'Arpèges et Trémolos']);
-check('organisateur = lui-même (self)', 'Arpèges et Trémolos', $g['nom_lieu']);
-
-echo "8) structures_grouper() — regroupement (catégorie organisateur + entité réelle)\n";
-// Construit une ligne d'analyse (cat_organisateur = catégorie salle/festival par défaut).
-$mkrow = function (int $i, string $nom, string $orgCol = '', bool $cat = true): array {
-    $g = structure_import_groupe(['nom' => $nom, 'organisateur' => $orgCol]);
-    return ['index' => $i, 'organisateur' => $g['organisateur'], 'nom_lieu' => $g['nom_lieu'],
-            'org_source' => $g['org_source'], 'cat_organisateur' => $cat];
-};
-$cle = normaliser_nom_structure('Arpèges et Trémolos');
-// Cas nominal : organisateur présent comme sa propre ligne + 2 festivals.
-$groupes = structures_grouper([
-    $mkrow(0, 'Arpèges et Trémolos'),
-    $mkrow(1, 'Festival Pause Guitare (Arpèges et Trémolos)'),
-    $mkrow(2, 'Festival Les Ptits Bouchons (Arpèges et Trémolos)'),
-    $mkrow(3, 'La Tannerie'),
-]);
-check('un seul groupe (self présent)', 1, count($groupes));
-check('deux salles/festivals dans le groupe', 2, count($groupes[$cle]['lieux'] ?? []));
-check('ligne organisateur repérée (self_index)', 0, $groupes[$cle]['self_index'] ?? null);
-// FAUX POSITIF ville : « X (Le Havre) », « Y (Le Havre) » sans ligne « Le Havre ».
-check('parenthèse de ville sans entité réelle → aucun groupe', 0, count(structures_grouper([
-    $mkrow(0, 'Concert Machin (Le Havre)'),
-    $mkrow(1, 'Concert Bidule (Le Havre)'),
-])));
-// Colonne « Organisateur » explicite : de confiance même sans ligne organisateur.
-check('organisateur en colonne (sans self) → groupe conservé', 1, count(structures_grouper([
-    $mkrow(0, 'Salle A', 'Asso Mère'),
-    $mkrow(1, 'Salle B', 'Asso Mère'),
-])));
-// FAUX POSITIF catégorie : radios (cat_organisateur = false) jamais regroupées.
-check('médias/radios (hors catégorie organisateur) → aucun groupe', 0, count(structures_grouper([
-    $mkrow(0, 'Radio Machin (France Bleu)', '', false),
-    $mkrow(1, 'Radio Bidule (France Bleu)', '', false),
-    $mkrow(2, 'France Bleu', '', false),
-])));
-check('sans aucune parenthèse ni colonne : aucun groupe', 0, count(structures_grouper([
-    $mkrow(0, 'A'),
-    $mkrow(1, 'B'),
-])));
-check('organisateur sans lieu (que le self) : pas de groupe', 0, count(structures_grouper([
-    $mkrow(0, 'Solo', 'Solo'),
-])));
-
-echo "9) mois_token_vers_numero() — numéros, noms, abréviations\n";
+echo "7) mois_token_vers_numero() — numéros, noms, abréviations\n";
 check('numéro', 6, mois_token_vers_numero('6'));
 check('numéro hors bornes → null', null, mois_token_vers_numero('13'));
 check('nom complet', 3, mois_token_vers_numero('mars'));
@@ -176,7 +118,7 @@ check('code anglais « aug » → août', 8, mois_token_vers_numero('aug'));
 check('code anglais « Dec » (casse) → décembre', 12, mois_token_vers_numero('Dec'));
 check('jeton inconnu → null', null, mois_token_vers_numero('xyz'));
 
-echo "10) mois_plage_depuis_liste() — champ mois séparés par des espaces\n";
+echo "8) mois_plage_depuis_liste() — champ mois séparés par des espaces\n";
 check('contigu « 6 7 8 »', ['debut' => 6, 'fin' => 8], mois_plage_depuis_liste('6 7 8'));
 check('un seul mois', ['debut' => 4, 'fin' => 4], mois_plage_depuis_liste('4'));
 check('désordonné « 8 6 7 »', ['debut' => 6, 'fin' => 8], mois_plage_depuis_liste('8 6 7'));
@@ -186,14 +128,14 @@ check('tous les mois → 1..12', ['debut' => 1, 'fin' => 12], mois_plage_depuis_
 check('vide → null/null', ['debut' => null, 'fin' => null], mois_plage_depuis_liste(''));
 check('séparateurs mixtes « 6, 7 ; 8 »', ['debut' => 6, 'fin' => 8], mois_plage_depuis_liste('6, 7 ; 8'));
 
-echo "11) texte_sans_accents() — repli des accents pour rapprochement d'intitulés\n";
+echo "9) texte_sans_accents() — repli des accents pour rapprochement d'intitulés\n";
 check('accents français repliés', 'media', texte_sans_accents('Média'));
 check('majuscules + accents', 'theatre', texte_sans_accents('THÉÂTRE'));
 check('cédille', 'ca', texte_sans_accents('Çà'));
 check('ligature œ', 'oeuvre', texte_sans_accents('œuvre'));
 check('espaces/casse', 'media', texte_sans_accents('  Media  '));
 
-echo "12) structure_import_resoudre_categorie() — colonne catégorie tolérante\n";
+echo "10) structure_import_resoudre_categorie() — colonne catégorie tolérante\n";
 $racines = ['organisateur' => 'Organisateur', 'media' => 'Media', 'autres' => 'Autres'];
 $subs = [
     'radio'    => ['parent' => 'Media', 'nom' => 'Radio'],

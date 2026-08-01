@@ -370,6 +370,7 @@ function run_migrations(PDO $pdo): void
         61 => 'migration_61', // fusion lieux → structures, étape 3/3 : suppression de lieux/structure_lieux/lieu_categories (plus aucun code applicatif ne les utilise)
         62 => 'migration_62', // structure_tags.couleur (couleur choisie pour le badge de l'étiquette)
         63 => 'migration_63', // structures.actif + desinscrit → statut unique (contact_privilegie/actif/ne_pas_contacter/inactif)
+        64 => 'migration_64', // retire structure_categories.est_organisateur (catégorie « organisateur » + auto-groupement import CSV supprimés)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2235,6 +2236,21 @@ function migration_63(PDO $pdo): void
     }
     if (in_array('desinscrit', $cols, true)) {
         try { $pdo->exec('ALTER TABLE structures DROP COLUMN desinscrit'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+    }
+}
+
+// Retire la distinction « catégorie organisateur » (structure_categories.
+// est_organisateur) : ne pilotait plus que l'auto-groupement organisateur↔lieu
+// de l'import CSV (structures_grouper(), retiré du même coup — voir
+// lib/booking.php) et le choix de la catégorie de repli
+// (structure_categorie_par_defaut(), désormais la première racine tout
+// court). DROP COLUMN best-effort (voir migration_63 pour le pourquoi du
+// try/catch — pas garanti sur tous les hébergements).
+function migration_64(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structure_categories)')->fetchAll(), 'name');
+    if (in_array('est_organisateur', $cols, true)) {
+        try { $pdo->exec('ALTER TABLE structure_categories DROP COLUMN est_organisateur'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
 }
 

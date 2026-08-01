@@ -449,32 +449,29 @@ function route_parametres_structures(): void
                 }
                 if (!$stmtExiste->fetchColumn()) {
                     $ordre = (int) $stmtOrdre->fetchColumn();
-                    $estOrganisateur = $parent === null && isset($_POST['est_organisateur']) ? 1 : 0;
-                    db()->prepare('INSERT INTO structure_categories (nom, parent_id, est_organisateur, ordre) VALUES (?, ?, ?, ?)')
-                        ->execute([$nom, $parent, $estOrganisateur, $ordre]);
+                    db()->prepare('INSERT INTO structure_categories (nom, parent_id, ordre) VALUES (?, ?, ?)')
+                        ->execute([$nom, $parent, $ordre]);
                 }
             }
         } elseif ($section === 'edit') {
             // Formulaire unique (renommage inline ou repli complet) : soumis en
-            // entier à chaque fois (voir lassoPlanArbre()), donc parent_id/
-            // est_organisateur sont présents même si seul le nom a changé.
+            // entier à chaque fois (voir lassoPlanArbre()), donc parent_id est
+            // présent même si seul le nom a changé.
             $id = (int) ($_POST['id'] ?? 0);
             $nom = trim($_POST['nom'] ?? '');
             if ($nom !== '' && isset($map[$id])) {
                 $estRacine = plan_pid($map[$id]['parent_id'] ?? null) === 0;
                 if ($estRacine) {
                     $parent = null;
-                    $estOrganisateur = isset($_POST['est_organisateur']) ? 1 : 0;
                 } else {
                     $parentPost = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
                     $parentValide = $parentPost !== null && isset($map[$parentPost]) && plan_pid($map[$parentPost]['parent_id'] ?? null) === 0;
                     $parent = $parentValide ? $parentPost : plan_pid($map[$id]['parent_id'] ?? null);
-                    $estOrganisateur = 0;
                 }
                 $ancien = (string) $map[$id]['nom'];
                 db()->beginTransaction();
-                db()->prepare('UPDATE structure_categories SET nom=?, parent_id=?, est_organisateur=? WHERE id=?')
-                    ->execute([$nom, $parent, $estOrganisateur, $id]);
+                db()->prepare('UPDATE structure_categories SET nom=?, parent_id=? WHERE id=?')
+                    ->execute([$nom, $parent, $id]);
                 if ($ancien !== $nom) {
                     if ($estRacine) {
                         db()->prepare('UPDATE structures SET categorie=? WHERE categorie=?')->execute([$nom, $ancien]);
@@ -1025,7 +1022,7 @@ function route_import_structures(): void
     $vars = [
         'etape' => 'upload', 'err' => null, 'entete' => [], 'conflits' => [],
         'nNouvelles' => 0, 'nFusion' => 0, 'resume' => [], 'nExclusion' => 0,
-        'groupes' => [], 'groupesConfirmes' => [], 'mappingSuggere' => [],
+        'mappingSuggere' => [],
     ];
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etape === 'exclusion') {
@@ -1062,7 +1059,7 @@ function route_import_structures(): void
         return;
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($etape, ['analyser', 'grouper', 'appliquer'], true)) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($etape, ['analyser', 'appliquer'], true)) {
         check_csrf();
         $csv = (string) ($_SESSION['import_structures_csv'] ?? '');
         [$entete, $lignes] = structures_lire_csv($csv);
@@ -1078,58 +1075,18 @@ function route_import_structures(): void
             structure_import_memoriser_mapping($mapping, $entete);
         }
         $analyse = structures_analyser_import($lignes, $mapping);
-        $groupes = structures_grouper($analyse);
-
-        // Étape 1 (analyser → grouper) : si des regroupements sont détectés,
-        // on propose une étape de revue ; sinon on passe directement aux conflits.
-        if ($etape === 'analyser' && $groupes) {
-            $parIndex = [];
-            foreach ($analyse as $l) {
-                $parIndex[$l['index']] = $l;
-            }
-            foreach ($groupes as $key => &$g) {
-                $existe = false;
-                if ($g['self_index'] !== null && isset($parIndex[$g['self_index']])) {
-                    $existe = $parIndex[$g['self_index']]['correspondance_id'] !== null;
-                } else {
-                    $existe = (bool) structure_trouver_correspondance($g['organisateur'], '');
-                }
-                $g['cle'] = $key;
-                $g['existe'] = $existe;
-            }
-            unset($g);
-            $vars['etape'] = 'grouper';
-            $vars['groupes'] = $groupes;
-            render('import_structures', $vars, 'Importer');
-            return;
-        }
-
-        // Regroupements confirmés (étapes grouper/appliquer). On ne garde que
-        // les clés réellement détectées, et on note les lignes « lieu » consommées
-        // par un regroupement pour les retirer de la liste des conflits.
-        $confirmes = ($etape === 'analyser')
-            ? []
-            : array_values(array_filter((array) ($_POST['groupes'] ?? []), fn ($k) => isset($groupes[$k])));
-        $exclus = [];
-        foreach ($confirmes as $k) {
-            foreach ($groupes[$k]['lieux'] as $lieu) {
-                $exclus[$lieu['index']] = true;
-            }
-        }
 
         if ($etape !== 'appliquer') {
-            // analyser (sans groupe) ou grouper → écran de résolution. On ne
-            // présente QUE les fiches existantes ayant un vrai conflit de champ
-            // (deux valeurs remplies et différentes) ; le reste (nouvelles +
-            // fusions sans conflit) s'applique tout seul.
-            $conflits = structures_import_conflits($analyse, $exclus);
-            $restants = array_filter($analyse, fn ($l) => !isset($exclus[$l['index']]));
-            $nCorrespondances = count(array_filter($restants, fn ($l) => $l['correspondance_id'] !== null));
+            // analyser → écran de résolution. On ne présente QUE les fiches
+            // existantes ayant un vrai conflit de champ (deux valeurs remplies
+            // et différentes) ; le reste (nouvelles + fusions sans conflit)
+            // s'applique tout seul.
+            $conflits = structures_import_conflits($analyse);
+            $nCorrespondances = count(array_filter($analyse, fn ($l) => $l['correspondance_id'] !== null));
             $vars['etape'] = 'resoudre';
             $vars['conflits'] = $conflits;
-            $vars['nNouvelles'] = count($restants) - $nCorrespondances;
+            $vars['nNouvelles'] = count($analyse) - $nCorrespondances;
             $vars['nFusion'] = $nCorrespondances - count($conflits); // fusionnées sans conflit
-            $vars['groupesConfirmes'] = $confirmes;
             render('import_structures', $vars, 'Importer');
             return;
         }
@@ -1148,7 +1105,7 @@ function route_import_structures(): void
         // revenir en arrière si l'import se passe mal (data/…_avant_import_*.bak).
         sauvegarder_base('avant_import_structures');
         $vars['etape'] = 'resume';
-        $vars['resume'] = structures_appliquer_import($analyse, $choix, $confirmes);
+        $vars['resume'] = structures_appliquer_import($analyse, $choix);
         unset($_SESSION['import_structures_csv'], $_SESSION['import_structures_nom'], $_SESSION['import_structures_mapping']);
         render('import_structures', $vars, 'Importer');
         return;

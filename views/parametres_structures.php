@@ -39,7 +39,7 @@ $parentOptions = function (?int $selected) use ($map): string {
 </form>
 
 <div class="section-head mt-0">
-    <h2 class="mt-0">Catégories <?= info_tip("« Organisateur » : une structure de cette catégorie est traitée comme une salle/un festival — un lieu lui est lié automatiquement à l'import CSV.") ?></h2>
+    <h2 class="mt-0">Catégories</h2>
     <form method="post" action="?p=parametres_structures" class="d-inline ml-auto">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="sync">
@@ -66,16 +66,13 @@ $parentOptions = function (?int $selected) use ($map): string {
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= $cid ?>">
                         <input name="nom" value="<?= e($c['nom']) ?>" class="grow plan-libelle" required aria-label="Nom">
-                        <?php if ($estRacine): ?>
-                            <label class="check">Organisateur <input type="checkbox" name="est_organisateur" value="1" class="plan-organisateur" <?= $c['est_organisateur'] ? 'checked' : '' ?>></label>
-                        <?php else: ?>
+                        <?php if (!$estRacine): ?>
                             <label class="plan-parent plan-fallback">dans
                                 <select name="parent_id"><?= $parentOptions(plan_pid($c['parent_id'] ?? null)) ?></select>
                             </label>
                         <?php endif; ?>
                         <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
-                    <?php if ($estRacine && $c['est_organisateur']): ?><span class="badge">organisateur</span><?php endif; ?>
                     <?php if ($nbUsage > 0): ?>
                         <a class="badge muted-badge" href="?p=structures&categorie_id=<?= $cid ?>&statut=tous"><?= $nbUsage ?> structure<?= $nbUsage > 1 ? 's' : '' ?></a>
                     <?php endif; ?>
@@ -117,7 +114,6 @@ $parentOptions = function (?int $selected) use ($map): string {
                         <option value="">— Nouvelle catégorie racine —</option>
                         <?= $parentOptions(null) ?>
                     </select>
-                    <label class="check">Organisateur <input type="checkbox" name="est_organisateur" value="1"></label>
                     <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
                     <button type="button" class="btn ghost btn-sm" data-hide="cat-add"><?= icon('x') ?> Annuler</button>
                 </form>
@@ -193,16 +189,5 @@ $parentOptions = function (?int $selected) use ($map): string {
         modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) close(); });
     }
-
-    // Case « Organisateur » : soumet le formulaire d'édition dès qu'on la
-    // coche/décoche (comme le renommage), sans attendre le bouton de repli
-    // (masqué une fois le glisser-déposer actif) — jamais de glisser-déposer
-    // équivalent pour ce drapeau, contrairement au rattachement.
-    document.querySelectorAll('.plan-organisateur').forEach(inp => {
-        inp.addEventListener('change', () => {
-            const f = inp.closest('form');
-            (f.requestSubmit ? f.requestSubmit() : f.submit());
-        });
-    });
 })();
 </script>

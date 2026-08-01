@@ -949,13 +949,12 @@ function structure_donnees_crm(int $id): array
         $contactsLies = $stmtContactsLies->fetchAll();
     }
 
-    // Candidats pour « organise » : structures « booking » (un lieu). Pour
-    // « organisé par » : n'importe quelle autre structure (l'organisateur
-    // n'est pas forcément lui-même un lieu).
+    // Candidats pour « organise » et pour « organisé par » : n'importe quelle
+    // autre structure, sans distinction de filtre entre les deux rôles (ni
+    // l'un ni l'autre n'est restreint à un type particulier).
     $stmtLieuxDispo = db()->prepare(
         "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville FROM structures s
-         JOIN structure_categories c ON c.nom = s.sous_categorie COLLATE NOCASE
-         WHERE c.est_booking = 1 AND s.id <> ? ORDER BY s.sous_categorie, s.nom"
+         WHERE s.id <> ? ORDER BY s.nom"
     );
     $stmtLieuxDispo->execute([$id]);
     $stmtOrganisateurDispo = db()->prepare('SELECT id, nom FROM structures WHERE id <> ? ORDER BY nom');

@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.27.0] — 2026-08-01
+
+### Retiré
+- Distinction « catégorie organisateur » (`structure_categories.est_organisateur`, case à cocher de Paramètres → Catégories) et l'auto-groupement organisateur↔lieu qu'elle pilotait à l'import CSV (détection « Festival X (Asso Y) », étape « Regrouper » de l'assistant d'import) : chaque ligne s'importe désormais comme une structure indépendante, le rattachement se fait ensuite à la main sur la fiche (carte « Structures liées »).
+- Colonne d'import CSV « Organisateur » (asso mère), devenue sans effet.
+
+### Modifié
+- `?p=structure`, carte « Structures liées » : les deux rôles « Organise » / « Organisée par » restent distincts, mais leurs deux champs de recherche affichent désormais exactement les mêmes structures (plus de filtre différent entre les deux).
+
 ## [1.26.0] — 2026-08-01
 
 ### Ajouté

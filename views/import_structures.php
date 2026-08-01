@@ -1,7 +1,7 @@
 <?php /** @var string $etape */ /** @var ?string $err */
 /** @var array $entete */ /** @var array $conflits */ /** @var int $nNouvelles */ /** @var int $nFusion */
 /** @var array $resume */ /** @var int $nExclusion */
-/** @var array $groupes */ /** @var array $groupesConfirmes */ /** @var array $mappingSuggere */
+/** @var array $mappingSuggere */
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <h2 class="mt-0">Importer un carnet d'adresses</h2>
@@ -52,50 +52,6 @@
     </form>
 </div>
 
-<?php elseif ($etape === 'grouper'): ?>
-<div class="card form">
-    <p class="muted small">Certaines lignes semblent décrire des <strong>salles ou festivals rattachés à un même organisateur</strong>
-       (colonne « Organisateur », ou nom entre parenthèses). Cochez les regroupements à appliquer : l'organisateur
-       devient — ou reste — une structure, et ses salles/festivals lui sont rattachés (leurs contacts et étiquettes
-       vont à l'organisateur). Décochez pour importer ces lignes comme des structures séparées.</p>
-    <form method="post" action="?p=import_structures">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="etape" value="grouper">
-        <div class="form-actions mb-16">
-            <button type="button" class="btn ghost btn-sm" id="btn-tout-cocher">Tout cocher</button>
-            <button type="button" class="btn ghost btn-sm" id="btn-tout-decocher">Tout décocher</button>
-        </div>
-        <?php foreach ($groupes as $g): ?>
-            <label class="card mt-16 groupe-item">
-                <div class="linked-add">
-                    <input type="checkbox" name="groupes[]" value="<?= e($g['cle']) ?>" checked>
-                    <span>
-                        <strong><?= e($g['organisateur']) ?></strong>
-                        <span class="badge muted-badge"><?= $g['existe'] ? 'structure existante' : 'nouvelle structure' ?></span>
-                        <?php if ($g['self_index'] === null): ?><span class="muted small"> — organisateur non listé, créé automatiquement</span><?php endif; ?>
-                    </span>
-                </div>
-                <div class="muted small mt-10">
-                    <?= count($g['lieux']) ?> salle(s)/festival(s) rattachée(s) :
-                    <?= e(implode(', ', array_map(fn ($l) => $l['nom'], $g['lieux']))) ?>
-                </div>
-            </label>
-        <?php endforeach; ?>
-        <div class="form-actions mt-16">
-            <button type="submit"><?= icon('save') ?> Continuer</button>
-        </div>
-    </form>
-    <script>
-    (function () {
-        var boxes = document.querySelectorAll('input[name="groupes[]"]');
-        var c = document.getElementById('btn-tout-cocher');
-        var d = document.getElementById('btn-tout-decocher');
-        if (c) c.addEventListener('click', function () { boxes.forEach(function (b) { b.checked = true; }); });
-        if (d) d.addEventListener('click', function () { boxes.forEach(function (b) { b.checked = false; }); });
-    })();
-    </script>
-</div>
-
 <?php elseif ($etape === 'resoudre'): ?>
 <div class="card form">
     <p><strong><?= $nNouvelles ?></strong> nouvelle(s) structure(s) ajoutée(s)<?php if ($nFusion > 0): ?>,
@@ -113,7 +69,6 @@
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="appliquer">
         <input type="hidden" name="depuis_session" value="1">
-        <?php foreach ($groupesConfirmes as $gc): ?><input type="hidden" name="groupes[]" value="<?= e($gc) ?>"><?php endforeach; ?>
         <?php foreach ($conflits as $c): $i = (int) $c['index']; $titre = (string) ($c['structure_existante']['nom'] ?? $c['donnees']['nom']); ?>
             <div class="card mt-16 conflit-row">
                 <h3 class="sub no-mt"><?= e($titre) ?></h3>
@@ -154,8 +109,7 @@
 <?php elseif ($etape === 'resume'): ?>
 <div class="card">
     <p class="ok flash"><strong><?= (int) $resume['nouvelles'] ?></strong> nouvelle(s) structure(s) ajoutée(s),
-       <strong><?= (int) $resume['mises_a_jour'] ?></strong> mise(s) à jour, <strong><?= (int) $resume['ignorees'] ?></strong> ignorée(s)<?php if ((int) ($resume['lieux'] ?? 0) > 0): ?>,
-       <strong><?= (int) $resume['lieux'] ?></strong> salle(s)/festival(s) rattachée(s) à leur organisateur<?php endif; ?><?php if ((int) ($resume['sous_categories'] ?? 0) > 0): ?>,
+       <strong><?= (int) $resume['mises_a_jour'] ?></strong> mise(s) à jour, <strong><?= (int) $resume['ignorees'] ?></strong> ignorée(s)<?php if ((int) ($resume['sous_categories'] ?? 0) > 0): ?>,
        <strong><?= (int) $resume['sous_categories'] ?></strong> sous-catégorie(s) ajoutée(s) à la taxonomie<?php endif; ?>.</p>
     <a class="btn ghost" href="?p=structures">Voir les structures</a>
     <a class="btn ghost" href="?p=import_structures">Importer un autre fichier</a>
