@@ -237,7 +237,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>Lieux</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
+        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>Lieux</th><th>Structures liées</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
@@ -247,7 +247,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?>
                 <strong><?= e($d['nom']) ?></strong>
                 <?php if (!$d['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
-                <?php if ($d['desinscrit']): ?><span class="badge muted-badge">désinscrit</span><?php endif; ?>
             </td>
             <td class="small">
                 <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
@@ -255,6 +254,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </td>
             <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
             <td class="muted small"><?= $d['lieux_noms'] ? e($d['lieux_noms']) : '—' ?></td>
+            <td class="muted small"><?= $d['structures_liees_noms'] ? e($d['structures_liees_noms']) : '—' ?></td>
             <td class="small">
                 <?php
                     $tagsPaires = ($d['tags_noms'] ?? '') !== '' ? array_map(
@@ -262,9 +262,9 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                         explode("\x1e", (string) $d['tags_noms'])
                     ) : [];
                 ?>
-                <?php if ($tagsPaires): ?>
-                    <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
-                <?php else: ?><span class="muted">—</span><?php endif; ?>
+                <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
+                <?php if ($d['desinscrit']): ?><span class="badge muted-badge"><span class="ico-tiny"><?= icon('mail-x') ?></span> désinscrit</span><?php endif; ?>
+                <?php if (!$tagsPaires && !$d['desinscrit']): ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td>

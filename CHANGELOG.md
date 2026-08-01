@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.6] — 2026-08-01
+
+### Ajouté
+- `?p=structures` : nouvelle colonne « Structures liées » (organisateur(s) de la structure, sens inverse de la colonne « Lieux »).
+
+### Modifié
+- `?p=structures` : l'indicateur « désinscrit » (mailing) est déplacé de la colonne Nom vers la colonne Tags, avec une icône enveloppe barrée.
+
 ## [1.24.5] — 2026-08-01
 
 ### Corrigé
