@@ -135,7 +135,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-nav a.on .ico { background: var(--primary); box-shadow: 0 5px 14px rgb(var(--primary-rgb) / .45); }
 .side-nav-sep { margin: 14px 6px 2px; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,.4); }
 .side-nav-sep:empty { margin: 16px 6px 0; }
-.ico { width: 18px; height: 18px; flex-shrink: 0; }
+.ico { width: 18px; height: 18px; flex-shrink: 0; vertical-align: middle; }
 .ico-tiny .ico { width: 11px; height: 11px; vertical-align: -1px; }
 
 /* Icône d'info + infobulle (survol/focus sur ordinateur, tap sur mobile —

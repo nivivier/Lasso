@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.25.1] — 2026-08-01
+
+### Corrigé
+- Icônes seules (colonne Statut de `?p=structures`, en-têtes Factures/Événements…) : alignement vertical légèrement décalé vers le haut (icône SVG en `vertical-align: baseline` par défaut) — corrigé en `middle`.
+- Badge « désinscrit » d'un contact (fiche structure) : majuscule (« Désinscrit »).
+
 ## [1.25.0] — 2026-08-01
 
 ### Ajouté
