@@ -421,6 +421,24 @@ $sid = (int) ($structure['id'] ?? 0);
                     <td><?php if (trim((string) ($structure['site_web'] ?? '')) !== ''): ?><a href="<?= $v('site_web') ?>" target="_blank" rel="noopener"><?= $v('site_web') ?></a><?php else: ?>—<?php endif; ?></td>
                 </tr>
                 <tr>
+                    <th>Jauge</th>
+                    <td>
+                        <?php
+                        $jaugeMinAff = $structure['jauge_min'] ?? null;
+                        $jaugeMaxAff = $structure['jauge_max'] ?? null;
+                        if ($jaugeMinAff !== null && $jaugeMinAff !== '' && $jaugeMaxAff !== null && $jaugeMaxAff !== ''):
+                            echo (int) $jaugeMinAff . ' – ' . (int) $jaugeMaxAff;
+                        elseif ($jaugeMinAff !== null && $jaugeMinAff !== ''):
+                            echo '≥ ' . (int) $jaugeMinAff;
+                        elseif ($jaugeMaxAff !== null && $jaugeMaxAff !== ''):
+                            echo '≤ ' . (int) $jaugeMaxAff;
+                        else:
+                            echo '—';
+                        endif;
+                        ?>
+                    </td>
+                </tr>
+                <tr>
                     <th>Remarques</th>
                     <td>
                         <?php $notesTxt = trim((string) ($structure['notes'] ?? '')); ?>
@@ -452,6 +470,10 @@ $sid = (int) ($structure['id'] ?? 0);
             </div>
             <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
             <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
+            <div class="grid2">
+                <label>Jauge min <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
+                <label>Jauge max <input name="jauge_max" type="number" min="0" value="<?= ($structure['jauge_max'] ?? '') !== '' ? (int) $structure['jauge_max'] : '' ?>" placeholder="ex. 800"></label>
+            </div>
             <label>Remarques
                 <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
             </label>

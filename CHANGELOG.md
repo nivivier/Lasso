@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.30.1] — 2026-08-01
+
+### Ajouté
+- Fiche structure, carte « Informations générales » : jauge min/max éditables (déjà utilisées comme critères de filtre, mais jamais saisissables depuis la fiche jusqu'ici).
+
 ## [1.30.0] — 2026-08-01
 
 ### Retiré

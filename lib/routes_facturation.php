@@ -1071,6 +1071,17 @@ function route_structure(): void
                 'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
                 'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
             ];
+            // Jauge min/max : uniquement dans la carte « Informations
+            // générales » avec $avecAside (booking actif + lecture) — même
+            // condition que ci-dessous, côté opposé, pour ne jamais écraser
+            // silencieusement une valeur existante depuis un formulaire qui
+            // n'a pas ces champs (cf. commentaire localisation juste après).
+            if (module_actif('booking') && peut_lire('booking')) {
+                $champs['jauge_min'] = ($_POST['jauge_min'] ?? '') !== '' ? max(0, (int) $_POST['jauge_min']) : null;
+                $champs['jauge_max'] = ($_POST['jauge_max'] ?? '') !== '' ? max(0, (int) $_POST['jauge_max']) : null;
+                $sqlSet .= ', jauge_min=:jauge_min, jauge_max=:jauge_max';
+                $diffChamps += ['jauge_min' => 'Jauge min', 'jauge_max' => 'Jauge max'];
+            }
             // Sans accès en lecture au module booking (mêmes conditions que
             // $avecAside, views/structure_form.php), pas de carte
             // « Localisation » séparée : les coordonnées restent dans ce même
