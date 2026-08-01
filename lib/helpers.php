@@ -882,12 +882,35 @@ function handle_pdf_upload(string $field): ?string
     return 'uploads/' . $name;
 }
 
+// Convertit en UTF-8 un contenu de fichier importé dont l'encodage n'est pas
+// déjà de l'UTF-8 valide — cas fréquent d'un carnet d'adresses/tableur
+// exporté « CSV » sous Windows sans choix explicite d'encodage (Windows-1252
+// par défaut) : sans cette conversion, tout caractère accentué (header ou
+// donnée) devient une séquence UTF-8 invalide, silencieusement cassée par
+// la suite de la chaîne (mb_strtolower(), json_encode(), écriture SQLite…) —
+// symptôme observé : les colonnes/valeurs accentuées ne sont pas reconnues.
+function normaliser_encodage_utf8(string $s): string
+{
+    if (str_starts_with($s, "\xFF\xFE")) {
+        return (string) mb_convert_encoding(substr($s, 2), 'UTF-8', 'UTF-16LE');
+    }
+    if (str_starts_with($s, "\xFE\xFF")) {
+        return (string) mb_convert_encoding(substr($s, 2), 'UTF-8', 'UTF-16BE');
+    }
+    if (mb_check_encoding($s, 'UTF-8')) {
+        return $s;
+    }
+    return (string) mb_convert_encoding($s, 'UTF-8', 'Windows-1252');
+}
+
 // Lit le fichier téléversé sous le champ "fichier" (import fiches/écritures/
-// événements/factures), avec repli sur un contenu déjà mémorisé en session
-// (permet de cliquer « Importer » après « Simuler » sans re-téléverser) —
-// factorise le motif dupliqué dans les 4 routes d'import. $sessionNomKey
+// événements/factures/structures), avec repli sur un contenu déjà mémorisé en
+// session (permet de cliquer « Importer » après « Simuler » sans re-téléverser)
+// — factorise le motif dupliqué dans les routes d'import. $sessionNomKey
 // optionnel : nom du fichier original à relire depuis la session avec le
-// contenu (sinon 'nom' reste vide au repli session).
+// contenu (sinon 'nom' reste vide au repli session). Le contenu est toujours
+// normalisé en UTF-8 (voir normaliser_encodage_utf8()) avant d'être retourné
+// ou mémorisé, donc le repli session n'a pas besoin de reconvertir.
 // Retourne ['contenu' => ?string, 'nom' => string, 'err' => ?string].
 function lire_fichier_importe(
     int $maxOctets,
@@ -901,7 +924,8 @@ function lire_fichier_importe(
         if (($up['size'] ?? 0) > $maxOctets) {
             return ['contenu' => null, 'nom' => '', 'err' => $msgTropGros];
         }
-        return ['contenu' => (string) file_get_contents($up['tmp_name']), 'nom' => (string) $up['name'], 'err' => null];
+        $contenu = normaliser_encodage_utf8((string) file_get_contents($up['tmp_name']));
+        return ['contenu' => $contenu, 'nom' => (string) $up['name'], 'err' => null];
     }
     if (!empty($_POST['depuis_session']) && !empty($_SESSION[$sessionKey])) {
         $nom = $sessionNomKey !== null ? (string) ($_SESSION[$sessionNomKey] ?? 'import') : '';

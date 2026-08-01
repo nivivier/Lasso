@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.5] — 2026-08-01
+
+### Corrigé
+- Import CSV (carnet d'adresses, fiches, écritures, événements) : un fichier exporté en Windows-1252 (« CSV » sous Windows sans choix explicite d'encodage — cas fréquent) cassait silencieusement tout caractère accentué, en-têtes de colonnes comme valeurs (mb_strtolower()/json_encode() sur de l'UTF-8 invalide). Le contenu est désormais normalisé en UTF-8 à la lecture (`normaliser_encodage_utf8()`, `lire_fichier_importe()`, lib/helpers.php), avec repli sur Windows-1252 quand ce n'est pas déjà de l'UTF-8 valide.
+
 ## [1.24.4] — 2026-07-31
 
 ### Corrigé
