@@ -487,7 +487,7 @@ function route_evenement(): void
     $lieuxLies = $id ? evenement_lieux_lies($id) : [];
     $organisateursLies = ($id && module_actif('facturation')) ? evenement_organisateurs_lies($id) : [];
     $structuresDispo = ($id && module_actif('facturation'))
-        ? db()->query('SELECT * FROM structures WHERE actif = 1 ORDER BY nom')->fetchAll()
+        ? db()->query("SELECT * FROM structures WHERE statut != 'inactif' ORDER BY nom")->fetchAll()
         : [];
 
     // Lien vers un lieu de la base (module booking) — recherche disponible dès

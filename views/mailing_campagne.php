@@ -166,10 +166,10 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
             </tr></thead>
             <tbody>
             <?php foreach ($structuresApercu as $d): ?>
-                <tr class="<?= $d['actif'] ? '' : 'inactif' ?>">
+                <tr>
                     <td>
                         <strong><a href="?p=structure&id=<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></a></strong>
-                        <?php if (!$d['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
+                        <?php if ($d['statut'] === 'contact_privilegie'): ?><span class="ico-tiny ico-pink" title="Contact privilégié"><?= icon('heart') ?></span><?php endif; ?>
                     </td>
                     <td class="small">
                         <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>

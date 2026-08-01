@@ -162,7 +162,9 @@ function route_facturation_form(): void
         redirect('facture', ['id' => $id]);
     }
 
-    $structures = db()->query("SELECT * FROM structures WHERE actif = 1 ORDER BY nom")->fetchAll();
+    // Toutes sauf inactives (une structure « ne pas contacter » — mailing —
+    // peut très bien rester facturable), même portée que l'ancien actif = 1.
+    $structures = db()->query("SELECT * FROM structures WHERE statut != 'inactif' ORDER BY nom")->fetchAll();
     $comptes   = compta_comptes();
     $axes      = module_actif('analytique')
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
@@ -498,11 +500,13 @@ function structures_filtres(): array
     $pays = trim((string) filtre_persistant('pays', 'structures_pays', ''));
     $departementCanton = trim((string) filtre_persistant('departement_canton', 'structures_departement_canton', ''));
     $tagId = (int) filtre_persistant('tag_id', 'structures_tag_id', 0);
-    // Statut : « actif » par défaut (les fiches inactives sont du bruit dans le
-    // travail courant) ; 'ne_pas_contacter' (active mais désinscrite du
-    // mailing — voir structure_statut_toggle_html()), 'inactif' ou 'tous'
-    // pour les voir.
-    $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), ['actif', 'ne_pas_contacter', 'inactif', 'tous'], 'actif');
+    // Statut : « actif » par défaut = structures.statut IN ('actif',
+    // 'contact_privilegie') — les deux sont des variantes actives au quotidien
+    // (les fiches ne_pas_contacter/inactif sont du bruit dans le travail
+    // courant), voir STRUCTURE_STATUTS (lib/booking.php). 'contact_privilegie'
+    // en filtre à part ne montre qu'eux ; 'ne_pas_contacter'/'inactif' idem ;
+    // 'tous' pour tout voir.
+    $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), array_merge(STRUCTURE_STATUTS, ['tous']), 'actif');
     // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marquées,
     // 'star'/'heart' = marquées.
     $flag = valeur_autorisee((string) filtre_persistant('flag', 'structures_flag', ''), ['', 'aucun', 'star', 'heart'], '');
@@ -550,11 +554,10 @@ function structures_filtres(): array
         $params[] = $tagId;
     }
     if ($statut === 'actif') {
-        $where .= ' AND s.actif = 1';
-    } elseif ($statut === 'ne_pas_contacter') {
-        $where .= ' AND s.actif = 1 AND s.desinscrit = 1';
-    } elseif ($statut === 'inactif') {
-        $where .= ' AND s.actif = 0';
+        $where .= " AND s.statut IN ('actif','contact_privilegie')";
+    } elseif (in_array($statut, STRUCTURE_STATUTS, true)) {
+        $where .= ' AND s.statut = ?';
+        $params[] = $statut;
     }
     if ($flag === 'aucun') {
         $where .= " AND s.flag = ''";
@@ -671,18 +674,9 @@ function route_structures(): void
                     db()->prepare("UPDATE structures SET categorie = ?, sous_categorie = ? WHERE id IN ($in)")
                         ->execute(array_merge([$bulkCategorieChamps['categorie'], $bulkCategorieChamps['sous_categorie']], $ids));
                 }
-            } elseif ($section === 'actif') {
-                $actif = ($_POST['bulk_actif'] ?? '') === '1' ? 1 : 0;
-                bulk_undo_memoriser('structures', $ids, ['actif', 'desinscrit'], 'structures', $retourFiltres);
-                if ($actif) {
-                    db()->prepare("UPDATE structures SET actif = ? WHERE id IN ($in)")->execute(array_merge([$actif], $ids));
-                } else {
-                    db()->prepare("UPDATE structures SET actif = 0, desinscrit = 1 WHERE id IN ($in)")->execute($ids);
-                }
-            } elseif ($section === 'desinscrit') {
-                $desinscrit = ($_POST['bulk_desinscrit'] ?? '') === '1' ? 1 : 0;
-                bulk_undo_memoriser('structures', $ids, ['desinscrit'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET desinscrit = ? WHERE id IN ($in)")->execute(array_merge([$desinscrit], $ids));
+            } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', STRUCTURE_STATUTS, true)) {
+                bulk_undo_memoriser('structures', $ids, ['statut'], 'structures', $retourFiltres);
+                db()->prepare("UPDATE structures SET statut = ? WHERE id IN ($in)")->execute(array_merge([$_POST['bulk_statut']], $ids));
             } elseif ($section === 'type' && in_array($_POST['bulk_type'] ?? '', ['organisation', 'particulier'], true)) {
                 bulk_undo_memoriser('structures', $ids, ['type'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET type = ? WHERE id IN ($in)")
@@ -813,7 +807,9 @@ function route_structures(): void
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1),
             NULLIF(s.email, '')
         ) AS email_affiche";
-    $orderBy = ' ORDER BY s.actif DESC, s.nom';
+    // « Contact privilégié » puis « actif » d'abord, « ne_pas_contacter » puis
+    // « inactif » en dernier (même esprit que l'ancien ORDER BY s.actif DESC).
+    $orderBy = " ORDER BY CASE s.statut WHEN 'contact_privilegie' THEN 0 WHEN 'actif' THEN 1 WHEN 'ne_pas_contacter' THEN 2 ELSE 3 END, s.nom";
 
     if ($modeClient) {
         $stmt = db()->prepare('SELECT ' . $selectCols . ' FROM structures s' . $where . $orderBy);
@@ -1049,9 +1045,9 @@ function route_structure(): void
             'via'              => trim($_POST['via'] ?? ''),
             'notes'            => trim($_POST['notes'] ?? ''),
         ];
-        // actif/desinscrit : gérés à part (bloc « Statut », bascule immédiate
-        // via route_structure_statut()) — jamais touchés par cet
-        // enregistrement, sinon toute sauvegarde de la fiche les réinitialiserait.
+        // statut : géré à part (bloc « Statut », bascule immédiate via
+        // route_structure_statut()) — jamais touché par cet enregistrement,
+        // sinon toute sauvegarde de la fiche le réinitialiserait.
         // email/telephone/personne_contact : plus dans ce formulaire (remplacés par
         // la card Contacts) — colonnes conservées mais volontairement absentes des
         // requêtes ci-dessous, pour ne jamais écraser une valeur historique.
@@ -1117,11 +1113,11 @@ function route_structure(): void
                 return;
             }
             pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
-            // Active et non désinscrite par défaut.
-            db()->prepare('INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
-                            departement_canton, grande_region, site_web, via, notes, actif, desinscrit)
+            // Statut « actif » par défaut.
+            db()->prepare("INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
+                            departement_canton, grande_region, site_web, via, notes, statut)
                             VALUES (:type, :categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
-                            :departement_canton, :grande_region, :site_web, :via, :notes, 1, 0)')
+                            :departement_canton, :grande_region, :site_web, :via, :notes, 'actif')")
                 ->execute($champs);
         }
         redirect('structures');
@@ -1172,13 +1168,11 @@ function route_structure_localisation(): void
     redirect('structure', ['id' => $id, 'ok' => 'localisation']);
 }
 
-// Bascule immédiate du statut (active / désinscrite du mailing) depuis le bloc
-// Statut d'une structure — sélecteur segmenté, valeur cliquée directement
-// (voir structure_statut_toggle_html(), lib/helpers.php). « Ne pas contacter »
-// = active mais désinscrite du mailing ; une structure inactive est toujours
-// désinscrite (déduit, jamais un 4e état saisissable). Appelé en AJAX
-// (lassoInitStatutToggle(), assets/app.js) : répond en JSON, pas de redirect
-// (même mécanique que route_structure_flag()).
+// Bascule immédiate du statut d'une structure (structures.statut, voir
+// STRUCTURE_STATUTS/lib/booking.php) depuis le bloc Statut — sélecteur
+// segmenté, valeur cliquée directement (structure_statut_toggle_html(),
+// lib/helpers.php). Appelé en AJAX (lassoInitStatutToggle(), assets/app.js) :
+// répond en JSON, pas de redirect (même mécanique que route_structure_flag()).
 function route_structure_statut(): void
 {
     require_login();
@@ -1190,28 +1184,20 @@ function route_structure_statut(): void
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $etatSuivant = (string) ($_POST['etat'] ?? '');
-    if (!in_array($etatSuivant, ['actif', 'ne_pas_contacter', 'inactive'], true)) {
+    if (!in_array($etatSuivant, STRUCTURE_STATUTS, true)) {
         echo json_encode(['ok' => false]);
         return;
     }
-    [$actif, $desinscrit] = match ($etatSuivant) {
-        'actif'            => [1, 0],
-        'ne_pas_contacter' => [1, 1],
-        default            => [0, 1],
-    };
-    $stmt = db()->prepare('SELECT actif, desinscrit FROM structures WHERE id = ?');
+    $stmt = db()->prepare('SELECT statut FROM structures WHERE id = ?');
     $stmt->execute([$id]);
-    $avant = $stmt->fetch();
-    if (!$avant) {
+    $avant = $stmt->fetchColumn();
+    if ($avant === false) {
         echo json_encode(['ok' => false]);
         return;
     }
-    db()->prepare('UPDATE structures SET actif = ?, desinscrit = ? WHERE id = ?')->execute([$actif, $desinscrit, $id]);
-    if (module_actif('booking')) {
-        $lignes = [];
-        if ((int) $avant['actif'] !== $actif) { $lignes[] = 'Statut : ' . ($actif ? 'active' : 'inactive'); }
-        if ((int) $avant['desinscrit'] !== $desinscrit) { $lignes[] = 'Désinscrite du mailing : ' . ($desinscrit ? 'oui' : 'non'); }
-        if ($lignes) { journaliser('structure', $id, 'edition', implode("\n", $lignes)); }
+    db()->prepare('UPDATE structures SET statut = ? WHERE id = ?')->execute([$etatSuivant, $id]);
+    if (module_actif('booking') && (string) $avant !== $etatSuivant) {
+        journaliser('structure', $id, 'edition', 'Statut : ' . structure_statut_libelle($etatSuivant));
     }
     echo json_encode(['ok' => true, 'etat' => $etatSuivant]);
 }

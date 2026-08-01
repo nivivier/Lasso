@@ -305,6 +305,8 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    l'appli (--amber = « à faire »/en attente, --ok = confirmé/positif). */
 .ico-amber { color: var(--amber); }
 .ico-ok { color: var(--ok); }
+.ico-danger { color: var(--danger); }
+.ico-pink { color: #f541cc; }
 .ico-label { display: inline-flex; align-items: center; gap: 6px; }
 /* Fond très légèrement teinté selon le statut de l'événement (carte
    Informations, ?p=evenement) — mêmes couleurs que evenement_statut_icone()/
@@ -984,11 +986,14 @@ span + .badge.muted-badge { margin-left: 6px; }
 .flag-toggle.flag-heart .ico { fill: var(--danger); }
 /* Statut d'une structure (carte « Statut ») — .seg-picker (icon_picker(), voir
    plus haut), chaque état avec sa propre couleur une fois actif (« on ») :
-   vert Actif, rouge Ne pas contacter, gris Inactive — voir
-   structure_statut_toggle_html() (lib/helpers.php). */
+   rose Contact privilégié, vert Actif, rouge Ne pas contacter, gris Inactif —
+   voir structure_statut_toggle_html() (lib/helpers.php), mêmes valeurs que
+   STRUCTURE_STATUTS (lib/booking.php). */
+.statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on { background: #f541cc1a; color: #f541cc; }
+.statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on .ico { fill: currentColor; }
 .statut-toggle .seg-btn[data-statut-valeur="actif"].on { background: var(--teal-tint); color: var(--ok); }
 .statut-toggle .seg-btn[data-statut-valeur="ne_pas_contacter"].on { background: var(--danger-tint); color: var(--danger); }
-.statut-toggle .seg-btn[data-statut-valeur="inactive"].on { background: var(--line); color: var(--muted); }
+.statut-toggle .seg-btn[data-statut-valeur="inactif"].on { background: var(--line); color: var(--muted); }
 
 /* Flux de notes (fiche structure, booking) : liste chronologique inversée. */
 .notes-flux { display: flex; flex-direction: column; gap: 14px; }

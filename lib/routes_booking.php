@@ -885,7 +885,7 @@ function route_mailing_exclusions(): void
          WHERE c.desinscrit = 1 AND c.email <> '' ORDER BY c.email"
     )->fetchAll();
     $structures = db()->query(
-        "SELECT id, nom, email FROM structures WHERE desinscrit = 1 ORDER BY nom"
+        "SELECT id, nom, email FROM structures WHERE statut IN ('ne_pas_contacter','inactif') ORDER BY nom"
     )->fetchAll();
     render('mailing_exclusions', [
         'emails' => $emails,
@@ -1000,7 +1000,10 @@ function route_desinscription(): void
     if ($contactId) {
         db()->prepare('UPDATE structure_contacts SET desinscrit = 1 WHERE id = ? AND structure_id = ?')->execute([$contactId, $structureId]);
     } else {
-        db()->prepare('UPDATE structures SET desinscrit = 1 WHERE id = ?')->execute([$structureId]);
+        // Ne rétrograde jamais un statut déjà « inactif » (déjà exclu du
+        // mailing, rien à faire) — sinon fait toujours passer à
+        // « ne_pas_contacter », y compris depuis « contact_privilegie ».
+        db()->prepare("UPDATE structures SET statut = 'ne_pas_contacter' WHERE id = ? AND statut != 'inactif'")->execute([$structureId]);
     }
     echo '<!doctype html><meta charset="utf-8"><p style="font-family:sans-serif;padding:2rem">'
         . 'Vous ne recevrez plus de mailing de notre part.</p>';

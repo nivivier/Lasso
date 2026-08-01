@@ -58,6 +58,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <option value="actif" <?= $statut === 'actif' ? 'selected' : '' ?>>Actives</option>
+                <option value="contact_privilegie" <?= $statut === 'contact_privilegie' ? 'selected' : '' ?>>Contacts privilégiés</option>
                 <option value="ne_pas_contacter" <?= $statut === 'ne_pas_contacter' ? 'selected' : '' ?>>Ne pas contacter</option>
                 <option value="inactif" <?= $statut === 'inactif' ? 'selected' : '' ?>>Inactives</option>
                 <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Toutes</option>
@@ -155,8 +156,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             <option value="tag_ajouter">Ajouter une étiquette</option>
             <option value="tag_retirer">Retirer une étiquette</option>
             <?php endif; ?>
-            <option value="actif">Modifier « active »</option>
-            <option value="desinscrit">Modifier « désinscrite »</option>
+            <option value="statut">Modifier le statut</option>
             <option value="fusionner">Fusionner (2 sélections ou plus)</option>
             <option value="transformer_lieu">Transformer en salle/festival d'un organisateur (2 sélections ou plus)</option>
             <option value="delete">Supprimer</option>
@@ -210,16 +210,11 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </select>
         </span>
         <?php endif; ?>
-        <span class="bulk-field" data-for="actif" hidden>
-            <select name="bulk_actif" class="inline-year-select">
-                <option value="1">Active</option>
-                <option value="0">Inactive</option>
-            </select>
-        </span>
-        <span class="bulk-field" data-for="desinscrit" hidden>
-            <select name="bulk_desinscrit" class="inline-year-select">
-                <option value="1">Désinscrite</option>
-                <option value="0">Pas désinscrite</option>
+        <span class="bulk-field" data-for="statut" hidden>
+            <select name="bulk_statut" class="inline-year-select">
+                <?php foreach (STRUCTURE_STATUTS as $s): ?>
+                    <option value="<?= e($s) ?>"><?= e(structure_statut_libelle($s)) ?></option>
+                <?php endforeach; ?>
             </select>
         </span>
 
@@ -230,16 +225,16 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>Structures liées</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
+        <th>Statut</th><th>Nom</th><th>Ville</th><th>Catégorie</th><th>Structures liées</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
-        <tr class="row-link <?= $d['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
+        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
+            <td><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
             <td>
                 <?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?>
                 <strong><?= e($d['nom']) ?></strong>
-                <?php if (!$d['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
             </td>
             <td class="small">
                 <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
@@ -265,8 +260,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                     ) : [];
                 ?>
                 <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
-                <?php if ($d['desinscrit']): ?><span class="badge muted-badge"><span class="ico-tiny"><?= icon('mail-x') ?></span> désinscrit</span><?php endif; ?>
-                <?php if (!$tagsPaires && !$d['desinscrit']): ?><span class="muted">—</span><?php endif; ?>
+                <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td>

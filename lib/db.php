@@ -369,6 +369,7 @@ function run_migrations(PDO $pdo): void
         60 => 'migration_60', // fusion lieux → structures, étape 2/N : evenements.lieu_id / evenement_lieux.lieu_id repointés vers structures(id) (au lieu de lieux(id))
         61 => 'migration_61', // fusion lieux → structures, étape 3/3 : suppression de lieux/structure_lieux/lieu_categories (plus aucun code applicatif ne les utilise)
         62 => 'migration_62', // structure_tags.couleur (couleur choisie pour le badge de l'étiquette)
+        63 => 'migration_63', // structures.actif + desinscrit → statut unique (contact_privilegie/actif/ne_pas_contacter/inactif)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2198,6 +2199,36 @@ function migration_62(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(structure_tags)')->fetchAll(), 'name');
     if (!in_array('couleur', $cols, true)) {
         $pdo->exec("ALTER TABLE structure_tags ADD COLUMN couleur TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Remplace structures.actif (bool) + structures.desinscrit (bool) par un
+// unique statut texte (voir STRUCTURE_STATUTS, lib/booking.php) : « actif »,
+// « ne_pas_contacter » (active mais désinscrite du mailing), « inactif ».
+// « contact_privilegie » est un 4e état PRIORITAIRE ajouté par ce même
+// changement (bouton dédié dans structure_statut_toggle_html()) mais jamais
+// déduit automatiquement d'une valeur existante — aucune fiche migrée ne
+// peut y arriver seule, seule une action manuelle l'attribue ensuite.
+// DROP COLUMN direct (SQLite ≥ 3.35, pas de FK ni d'index sur ces colonnes) :
+// pas le cas à risque documenté en tête de fichier (pas de RENAME de table).
+function migration_63(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
+    if (!in_array('statut', $cols, true)) {
+        $pdo->exec("ALTER TABLE structures ADD COLUMN statut TEXT NOT NULL DEFAULT 'actif'");
+        $pdo->exec(
+            "UPDATE structures SET statut = CASE
+                WHEN actif = 1 AND desinscrit = 0 THEN 'actif'
+                WHEN actif = 1 AND desinscrit = 1 THEN 'ne_pas_contacter'
+                ELSE 'inactif'
+            END"
+        );
+    }
+    if (in_array('actif', $cols, true)) {
+        $pdo->exec('ALTER TABLE structures DROP COLUMN actif');
+    }
+    if (in_array('desinscrit', $cols, true)) {
+        $pdo->exec('ALTER TABLE structures DROP COLUMN desinscrit');
     }
 }
 

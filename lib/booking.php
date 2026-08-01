@@ -9,6 +9,55 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/compta.php'; // plan_pid()/plan_enfants()/plan_est_feuille()/plan_liste_ordonnee() (arbre générique id/parent_id/ordre)
 
+// Statut unique d'une structure (structures.statut, migration_63 — remplace
+// actif+desinscrit) : « contact_privilegie » (prioritaire, jamais déduit
+// automatiquement d'un import/backfill — uniquement une action manuelle sur
+// la fiche), « actif », « ne_pas_contacter » (active mais désinscrite du
+// mailing), « inactif ». Ordre = ordre d'affichage du sélecteur segmenté
+// (structure_statut_toggle_html(), lib/helpers.php) et des filtres/bulk
+// (?p=structures). « actif »/« contact_privilegie » comptent pour éligibles
+// au mailing (mailing_structures_eligibles()) ; « ne_pas_contacter »/
+// « inactif » en sont toujours exclus.
+const STRUCTURE_STATUTS = ['contact_privilegie', 'actif', 'ne_pas_contacter', 'inactif'];
+
+const STRUCTURE_STATUTS_LIBELLES = [
+    'contact_privilegie' => 'Contact privilégié',
+    'actif'               => 'Actif',
+    'ne_pas_contacter'    => 'Ne pas contacter',
+    'inactif'             => 'Inactif',
+];
+
+const STRUCTURE_STATUTS_ICONES = [
+    'contact_privilegie' => 'heart',
+    'actif'               => 'circle-check',
+    'ne_pas_contacter'    => 'circle-x',
+    'inactif'             => 'circle-dashed',
+];
+
+// Classe CSS de couleur de l'icône (assets/app.css) — utilisée par la colonne
+// « Statut » de ?p=structures (icône seule, voir views/structures_liste.php).
+const STRUCTURE_STATUTS_CLASSES_ICONE = [
+    'contact_privilegie' => 'ico-pink',
+    'actif'               => 'ico-ok',
+    'ne_pas_contacter'    => 'ico-danger',
+    'inactif'             => 'muted',
+];
+
+function structure_statut_libelle(string $statut): string
+{
+    return STRUCTURE_STATUTS_LIBELLES[$statut] ?? $statut;
+}
+
+function structure_statut_icone(string $statut): string
+{
+    return STRUCTURE_STATUTS_ICONES[$statut] ?? 'circle-dashed';
+}
+
+function structure_statut_icone_classe(string $statut): string
+{
+    return STRUCTURE_STATUTS_CLASSES_ICONE[$statut] ?? 'muted';
+}
+
 // Catégorie CRM d'une structure (booking) — axe distinct de structures.type
 // (organisation/particulier, forme juridique pour la facturation), voir
 // SPEC_BOOKING.md §5. Configurable (Paramètres → Catégories). Une sous-catégorie
@@ -545,10 +594,11 @@ function periode_chevauche(int $debut, int $fin, int $filtreDebut, int $filtreFi
 // mois_debut/mois_fin (int|null, période de
 // programmation des lieux liés), mois_evenement_debut/fin (int|null, période
 // des événements), contact_jamais (bool), contact_avant (date string|'').
-// Exclut toujours desinscrit=1, en dernière étape, non contournable.
+// Exclut toujours les statuts ne_pas_contacter/inactif, en dernière étape,
+// non contournable.
 function mailing_structures_eligibles(array $criteres): array
 {
-    $where = ['s.desinscrit = 0'];
+    $where = ["s.statut IN ('actif','contact_privilegie')"];
     $params = [];
 
     // Catégorie/sous-catégorie : mêmes clés que le filtre de ?p=structures
@@ -1507,8 +1557,8 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
         }
         db()->prepare(
             'INSERT INTO structures (nom, categorie, sous_categorie, adresse_rue, adresse_npa, adresse_localite, departement_canton, grande_region, adresse_pays,
-                                      site_web, via, notes, mise_a_jour_le, actif)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)'
+                                      site_web, via, notes, mise_a_jour_le, statut)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'actif\')'
         )->execute([
             $d['nom'], $d['categorie'], $d['sous_categorie'], $d['adresse_rue'], $d['adresse_npa'], $d['adresse_localite'],
             $d['departement_canton'], $d['grande_region'], $pays, $d['site_web'], $d['via'], $d['notes'], $majLe,
@@ -1650,7 +1700,7 @@ function structure_import_trouver_ou_creer_organisateur(string $nom): array
             break;
         }
     }
-    db()->prepare('INSERT INTO structures (nom, categorie, actif) VALUES (?, ?, 1)')->execute([$nom, $categorie]);
+    db()->prepare("INSERT INTO structures (nom, categorie, statut) VALUES (?, ?, 'actif')")->execute([$nom, $categorie]);
     return [(int) db()->lastInsertId(), true];
 }
 

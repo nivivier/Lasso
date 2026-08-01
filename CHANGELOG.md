@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.25.0] — 2026-08-01
+
+### Ajouté
+- Statut de structure unifié (« Contact privilégié », « Actif », « Ne pas contacter », « Inactif ») remplaçant les deux cases à cocher séparées « Active » et « Désinscrite du mailing ». Nouveau bouton « Contact privilégié » (cœur rose) dans le sélecteur de statut de `?p=structure`, en premier.
+- `?p=structures` : colonne « Statut » (icône seule) en première position, filtre « Contacts privilégiés », action groupée « Modifier le statut ».
+
+### Modifié
+- Migration des données existantes : Active + non désinscrite → Actif ; Active + désinscrite → Ne pas contacter ; non active → Inactif (aucune fiche existante n'obtient « Contact privilégié » automatiquement).
+- Le badge « Désinscrit » d'un contact (fiche structure) s'écrit désormais avec une majuscule.
+
 ## [1.24.8] — 2026-08-01
 
 ### Ajouté

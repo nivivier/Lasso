@@ -1556,24 +1556,20 @@ function flag_toggle_html(string $table, int $id, string $flag): string
 // Statut d'une structure — sélecteur segmenté horizontal (même style que le
 // champ Type de la carte « Informations générales », voir icon_picker(), mais
 // cliqué en AJAX au lieu de soumis avec le reste du formulaire : voir
-// route_structure_statut() + lassoInitStatutToggle(), assets/app.js). 3 états :
-// « Actif » (active, pas désinscrite), « Ne pas contacter » (active mais
-// désinscrite du mailing), « Inactive » (toujours désinscrite du mailing,
-// déduit — pas un 4e état possible).
-function structure_statut_toggle_html(int $id, bool $actif, bool $desinscrit): string
+// route_structure_statut() + lassoInitStatutToggle(), assets/app.js). 4 états,
+// mêmes valeurs que structures.statut (STRUCTURE_STATUTS, lib/booking.php,
+// migration_63 — remplace actif+desinscrit) : « Contact privilégié »
+// (prioritaire), « Actif », « Ne pas contacter » (désinscrite du mailing),
+// « Inactif ».
+function structure_statut_toggle_html(int $id, string $statut): string
 {
-    $etat = !$actif ? 'inactive' : ($desinscrit ? 'ne_pas_contacter' : 'actif');
-    $options = [
-        'actif'            => ['icone' => 'circle-check', 'label' => 'Actif'],
-        'ne_pas_contacter' => ['icone' => 'circle-x', 'label' => 'Ne pas contacter'],
-        'inactive'         => ['icone' => 'circle-dashed', 'label' => 'Inactive'],
-    ];
     $h = '<div class="seg-picker statut-toggle" role="radiogroup" aria-label="Statut" data-statut-id="' . $id . '">';
-    foreach ($options as $val => $opt) {
-        $on = $etat === $val;
+    foreach (STRUCTURE_STATUTS as $val) {
+        $on = $statut === $val;
+        $label = structure_statut_libelle($val);
         $h .= '<button type="button" class="seg-btn' . ($on ? ' on' : '') . '" data-statut-valeur="' . e($val) . '"'
-            . ' role="radio" aria-checked="' . ($on ? 'true' : 'false') . '" title="' . e($opt['label']) . '" aria-label="' . e($opt['label']) . '">'
-            . icon($opt['icone']) . '</button>';
+            . ' role="radio" aria-checked="' . ($on ? 'true' : 'false') . '" title="' . e($label) . '" aria-label="' . e($label) . '">'
+            . icon(structure_statut_icone($val)) . '</button>';
     }
     return $h . '</div>';
 }

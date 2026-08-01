@@ -464,7 +464,7 @@ $sid = (int) ($structure['id'] ?? 0);
 <div class="card">
     <div class="card-head-row">
         <h2 class="mt-0">Statut</h2>
-        <?= structure_statut_toggle_html($sid, (bool) $structure['actif'], (bool) $structure['desinscrit']) ?>
+        <?= structure_statut_toggle_html($sid, (string) $structure['statut']) ?>
     </div>
 
     <div class="tags-liste mt-16">
@@ -507,7 +507,7 @@ $sid = (int) ($structure['id'] ?? 0);
                     <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
                     <?php if ($c['est_administration']): ?><span class="badge">administration</span><?php endif; ?>
                     <?php if ($c['est_booking']): ?><span class="badge">booking</span><?php endif; ?>
-                    <?php if ($c['desinscrit']): ?><span class="badge muted-badge">désinscrit</span><?php endif; ?>
+                    <?php if ($c['desinscrit']): ?><span class="badge muted-badge">Désinscrit</span><?php endif; ?>
                     <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
                     <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
                     <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>

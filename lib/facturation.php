@@ -14,9 +14,9 @@ const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];
 // $prefixe : préfixe des noms de champs POST (ex. 'nd_', 'org_'). Retourne l'id créé.
 function structure_creer_depuis_post(string $prefixe): int
 {
-    db()->prepare('INSERT INTO structures (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
-                    telephone, personne_contact, actif)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)')
+    db()->prepare("INSERT INTO structures (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
+                    telephone, personne_contact, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'actif')")
         ->execute([
             ($_POST[$prefixe . 'type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
             trim($_POST[$prefixe . 'nom'] ?? ''),
