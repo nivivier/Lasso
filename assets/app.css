@@ -233,7 +233,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    fiches (même ville, voir carte_points_grouper()) pour repérer les villes
    denses sans ouvrir chaque popup. */
 .carte-pin {
-    background: var(--ink); border: 2px solid #fff; border-radius: 50%;
+    background: var(--highlight); border: 2px solid #fff; border-radius: 50%;
     box-shadow: 0 1px 4px rgb(0 0 0 / .35);
 }
 @media (max-width: 800px) {

@@ -371,6 +371,7 @@ function run_migrations(PDO $pdo): void
         62 => 'migration_62', // structure_tags.couleur (couleur choisie pour le badge de l'étiquette)
         63 => 'migration_63', // structures.actif + desinscrit → statut unique (contact_privilegie/actif/ne_pas_contacter/inactif)
         64 => 'migration_64', // retire structure_categories.est_organisateur (catégorie « organisateur » + auto-groupement import CSV supprimés)
+        65 => 'migration_65', // lieux_geocodage.cle : repli des accents (voir geocodage_cle()) — reclé les lignes déjà en cache pour qu'elles restent trouvées
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2251,6 +2252,48 @@ function migration_64(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(structure_categories)')->fetchAll(), 'name');
     if (in_array('est_organisateur', $cols, true)) {
         try { $pdo->exec('ALTER TABLE structure_categories DROP COLUMN est_organisateur'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+    }
+}
+
+// geocodage_cle() (lib/geocodage.php) replie désormais les accents sur ville/
+// pays (« Chambéry »/« Chambery » → même clé) — sans cette migration, les
+// lignes déjà en cache sous l'ancienne clé (accentuée) ne seraient plus
+// jamais retrouvées par un lookup calculé avec la nouvelle formule : la ville
+// basculerait à tort en « non géolocalisée » et disparaîtrait de la vue carte
+// au lieu de simplement fusionner avec son doublon. Recalcule la clé de
+// chaque ligne existante avec la même logique de repli (dupliquée ici,
+// volontairement autonome — pas de dépendance vers lib/booking.php depuis une
+// migration) ; si la nouvelle clé est déjà prise par une autre ligne (ex. les
+// deux variantes accentuée/non accentuée étaient toutes les deux en cache),
+// la ligne redondante est supprimée plutôt que de violer la clé primaire.
+function migration_65(PDO $pdo): void
+{
+    $repli = [
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a',
+        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+        'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+        'ç' => 'c', 'ñ' => 'n', 'œ' => 'oe', 'æ' => 'ae', 'ÿ' => 'y',
+    ];
+    $plie = fn (string $s): string => strtr(mb_strtolower(trim($s), 'UTF-8'), $repli);
+
+    $lignes = $pdo->query('SELECT cle, ville, departement_canton, pays FROM lieux_geocodage')->fetchAll();
+    $existe = $pdo->prepare('SELECT 1 FROM lieux_geocodage WHERE cle = ?');
+    $supprime = $pdo->prepare('DELETE FROM lieux_geocodage WHERE cle = ?');
+    $renomme = $pdo->prepare('UPDATE lieux_geocodage SET cle = ? WHERE cle = ?');
+    foreach ($lignes as $l) {
+        $nouvelleCle = $plie((string) $l['ville']) . '|' . mb_strtolower(trim((string) $l['departement_canton']), 'UTF-8')
+            . '|' . $plie((string) $l['pays']);
+        if ($nouvelleCle === $l['cle']) {
+            continue;
+        }
+        $existe->execute([$nouvelleCle]);
+        if ($existe->fetchColumn()) {
+            $supprime->execute([$l['cle']]);
+        } else {
+            $renomme->execute([$nouvelleCle, $l['cle']]);
+        }
     }
 }
 

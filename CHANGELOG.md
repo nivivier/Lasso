@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.29.3] — 2026-08-01
+
+### Corrigé
+- Vues carte : régression de la 1.29.2 — les villes déjà en cache sous leur ancienne clé accentuée (ex. « Genève », « Neuchâtel ») n'étaient plus retrouvées après le repli des accents dans `geocodage_cle()` et disparaissaient de la carte au lieu de fusionner avec leur doublon. Migration 65 : reclé les lignes déjà en cache avec la nouvelle formule.
+
+### Modifié
+- Vues carte : pastilles en couleur de mise en évidence (bleu) au lieu de la couleur neutre.
+
 ## [1.29.2] — 2026-08-01
 
 ### Modifié
