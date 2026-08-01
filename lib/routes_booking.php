@@ -319,19 +319,19 @@ function route_structures_options(): void
     exit;
 }
 
-// Liste JSON { id, nom } des lieux (structures « booking » — sous-catégorie
-// marquée est_booking, voir migration_59/structure_sous_categorie_est_booking()
-// —, nom suffixé de la ville pour distinguer les homonymes), pour alimenter à
-// la demande le sélecteur de lieu d'un événement. Lecture seule, GET.
+// Liste JSON { id, nom } de toutes les structures (nom suffixé de la ville
+// pour distinguer les homonymes), pour alimenter à la demande le sélecteur de
+// lieu d'un événement. Non filtré sur la catégorie/sous-catégorie booking :
+// même principe que route_structures_options() pour l'organisateur — « lieu »
+// est un rôle choisi via le sélecteur utilisé, pas une propriété de la
+// structure (cf. retrait du filtre est_booking équivalent sur le CRM
+// facturation). Lecture seule, GET.
 function route_lieux_options(): void
 {
     require_login();
     header('Content-Type: application/json; charset=utf-8');
     $rows = db()->query(
-        "SELECT s.id, s.nom, s.adresse_localite AS ville FROM structures s
-         JOIN structure_categories c ON c.nom = s.sous_categorie COLLATE NOCASE
-         WHERE c.est_booking = 1
-         ORDER BY s.nom, s.adresse_localite"
+        "SELECT id, nom, adresse_localite AS ville FROM structures ORDER BY nom, adresse_localite"
     )->fetchAll();
     echo json_encode(
         array_map(fn ($r) => [

@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.28.1] — 2026-08-01
+
+### Corrigé
+- Fiche événement, recherche de lieu (création et carte « Organisation ») : ne retrouvait que les structures dont la sous-catégorie est marquée « booking », excluant des lieux réels catégorisés autrement (ex. structure classée « Organisateur »). Recherche désormais non filtrée sur toutes les structures, comme pour la recherche d'organisateur.
+
 ## [1.28.0] — 2026-08-01
 
 ### Modifié
