@@ -274,7 +274,12 @@ function structure_evenements(int $structureId): array
 }
 
 // Nombre d'événements par structure (organisateur OU via un de ses lieux),
-// dédoublonné. Colonne « Événements » de ?p=structures. [id => n].
+// dédoublonné. Colonne « Événements » de ?p=structures. [id => n]. Inclut
+// aussi les événements des structures qu'elle organise (structure_organisateurs,
+// sens « organise » — voir structures_liste.php/structure_donnees_crm()) :
+// sinon un organisateur dont les événements sont portés par ses salles/
+// festivals liés (organisateur_structure_id/lieu_id pointant sur ceux-ci, pas
+// sur lui) apparaîtrait à tort sans aucun événement.
 function structures_nb_evenements(array $structureIds): array
 {
     $ids = array_values(array_filter(array_map('intval', $structureIds)));
@@ -282,16 +287,40 @@ function structures_nb_evenements(array $structureIds): array
         return [];
     }
     $in = implode(',', $ids);
-    $out = [];
-    $sql = "SELECT sid, COUNT(DISTINCT eid) n FROM (
-                SELECT organisateur_structure_id AS sid, id AS eid FROM evenements
-                 WHERE organisateur_structure_id IN ($in)
-                UNION
-                SELECT lieu_id AS sid, id AS eid FROM evenements
-                 WHERE lieu_id IN ($in)
-            ) GROUP BY sid";
+
+    $organiseesParOrg = [];
+    $stmtLiens = db()->query("SELECT organisateur_id, structure_id FROM structure_organisateurs WHERE organisateur_id IN ($in)");
+    foreach ($stmtLiens as $l) {
+        $organiseesParOrg[(int) $l['organisateur_id']][] = (int) $l['structure_id'];
+    }
+
+    $tousIds = $ids;
+    foreach ($organiseesParOrg as $liees) {
+        $tousIds = array_merge($tousIds, $liees);
+    }
+    $tousIds = array_values(array_unique($tousIds));
+    $inTous = implode(',', $tousIds);
+
+    // Événements de chaque structure impliquée (d'origine ou liée), pour
+    // ensuite regrouper par structure d'origine sans compter deux fois un
+    // même événement référencé à la fois par organisateur_structure_id et lieu_id.
+    $eidsParSid = [];
+    $sql = "SELECT organisateur_structure_id AS sid, id AS eid FROM evenements WHERE organisateur_structure_id IN ($inTous)
+            UNION
+            SELECT lieu_id AS sid, id AS eid FROM evenements WHERE lieu_id IN ($inTous)";
     foreach (db()->query($sql) as $r) {
-        $out[(int) $r['sid']] = (int) $r['n'];
+        $eidsParSid[(int) $r['sid']][(int) $r['eid']] = true;
+    }
+
+    $out = [];
+    foreach ($ids as $sid) {
+        $eids = $eidsParSid[$sid] ?? [];
+        foreach ($organiseesParOrg[$sid] ?? [] as $lieeId) {
+            $eids += $eidsParSid[$lieeId] ?? [];
+        }
+        if ($eids) {
+            $out[$sid] = count($eids);
+        }
     }
     return $out;
 }

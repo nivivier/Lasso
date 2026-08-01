@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.30.3] — 2026-08-01
+
+### Corrigé
+- `?p=structures` : la colonne « Événements » ne comptait que les événements directement rattachés à la structure, pas ceux de ses structures liées qu'elle organise (structure_organisateurs, sens « organise ») — un organisateur dont les événements sont portés par ses salles/festivals liés apparaissait à tort à 0.
+
 ## [1.30.2] — 2026-08-01
 
 ### Corrigé
