@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.26.0] — 2026-08-01
+
+### Ajouté
+- `?p=structure` : nouvelle carte « Période » sous « Informations générales » (module booking) — case « Toute l'année » par défaut, ou mois de début/fin de réalisation et de préparation. Aucune colonne dédiée pour la case : son état est déduit des 4 champs de mois (tous vides = toute l'année).
+
 ## [1.25.2] — 2026-08-01
 
 ### Corrigé

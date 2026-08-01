@@ -457,6 +457,74 @@ $sid = (int) ($structure['id'] ?? 0);
     </form>
 </div>
 
+<div class="card card-editable">
+    <?php
+        $periodeVide = empty($structure['mois_evenement_debut']) && empty($structure['mois_evenement_fin'])
+            && empty($structure['mois_debut']) && empty($structure['mois_fin']);
+    ?>
+    <form method="post" action="?p=structure_periode" class="form" id="structure-periode-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= $sid ?>">
+
+        <div class="card-head-row">
+            <h2 class="mt-0">Période</h2>
+            <div class="head-actions">
+                <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier la période"><?= icon('pencil') ?></button>
+                <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            </div>
+        </div>
+
+        <div class="card-disp">
+            <?php if ($periodeVide): ?>
+                <p class="muted small">Toute l'année.</p>
+            <?php else: ?>
+                <table class="kv-table">
+                    <tr>
+                        <th>Réalisation</th>
+                        <td><?= !empty($structure['mois_evenement_debut']) ? e(mois_nom((int) $structure['mois_evenement_debut'])) : '—' ?> – <?= !empty($structure['mois_evenement_fin']) ? e(mois_nom((int) $structure['mois_evenement_fin'])) : '—' ?></td>
+                    </tr>
+                    <tr>
+                        <th>Préparation</th>
+                        <td><?= !empty($structure['mois_debut']) ? e(mois_nom((int) $structure['mois_debut'])) : '—' ?> – <?= !empty($structure['mois_fin']) ? e(mois_nom((int) $structure['mois_fin'])) : '—' ?></td>
+                    </tr>
+                </table>
+            <?php endif; ?>
+        </div>
+
+        <div class="card-edit" hidden>
+            <label class="check"><input type="checkbox" id="periode-toute-annee" <?= $periodeVide ? 'checked' : '' ?>> Toute l'année</label>
+            <div id="periode-mois-champs" class="grid3" <?= $periodeVide ? 'hidden' : '' ?>>
+                <label>Début de réalisation
+                    <select name="mois_evenement_debut"><?= mois_options((int) ($structure['mois_evenement_debut'] ?? 0)) ?></select>
+                </label>
+                <label>Fin de réalisation
+                    <select name="mois_evenement_fin"><?= mois_options((int) ($structure['mois_evenement_fin'] ?? 0)) ?></select>
+                </label>
+                <label>Début de préparation
+                    <select name="mois_debut"><?= mois_options((int) ($structure['mois_debut'] ?? 0)) ?></select>
+                </label>
+                <label>Fin de préparation
+                    <select name="mois_fin"><?= mois_options((int) ($structure['mois_fin'] ?? 0)) ?></select>
+                </label>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+(function () {
+    var chk = document.getElementById('periode-toute-annee');
+    var champs = document.getElementById('periode-mois-champs');
+    if (!chk || !champs) return;
+    chk.addEventListener('change', function () {
+        champs.hidden = chk.checked;
+        if (chk.checked) {
+            champs.querySelectorAll('select').forEach(function (s) { s.value = ''; });
+        }
+    });
+})();
+</script>
+
 </div>
 
 <div class="card-col">

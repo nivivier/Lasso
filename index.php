@@ -174,6 +174,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
     'structure_localisation' => 'route_structure_localisation',
+    'structure_periode'      => 'route_structure_periode',
     'structures_options'     => 'route_structures_options',
     'lieux_options'          => 'route_lieux_options',
     'mailing'                => 'route_mailing',

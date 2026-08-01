@@ -780,6 +780,19 @@ function mois_nom(int $m): string
     return MOIS_FR[$m] ?? (string) $m;
 }
 
+// <option> d'un <select> mois, avec un repli vide (« — », valeur '') distinct
+// de « Tous » (0) utilisé dans les filtres — ici une valeur absente doit
+// pouvoir être enregistrée telle quelle (colonne NULL), pas juste ignorée en
+// filtrage. Voir la carte « Période » de ?p=structure (structure_form.php).
+function mois_options(int $selectionne): string
+{
+    $h = '<option value=""' . ($selectionne === 0 ? ' selected' : '') . '>—</option>';
+    for ($m = 1; $m <= 12; $m++) {
+        $h .= '<option value="' . $m . '"' . ($selectionne === $m ? ' selected' : '') . '>' . e(mois_nom($m)) . '</option>';
+    }
+    return $h;
+}
+
 // Abrégé 3 lettres majuscules (JAN, FÉV… JUN/JUL distincts de juin/juillet,
 // contrairement à une simple troncature) — puce de date façon calendrier.
 const MOIS_ABREGES_FR = [

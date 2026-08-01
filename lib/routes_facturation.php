@@ -1168,6 +1168,49 @@ function route_structure_localisation(): void
     redirect('structure', ['id' => $id, 'ok' => 'localisation']);
 }
 
+// Carte « Période » (?p=structure, édition) — mois de début/fin de
+// réalisation (mois_evenement_debut/fin) et de préparation (mois_debut/fin),
+// sauvegardée à part de la carte « Informations générales ». Pas de colonne
+// dédiée pour la case « Toute l'année » (structure_form.php) : son état est
+// entièrement dérivé des 4 champs (tous vides = toute l'année) — le JS vide
+// les <select> quand elle est cochée avant soumission, donc il suffit ici
+// d'enregistrer ce qui est posté, vide ou non (NULL).
+function route_structure_periode(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$id) {
+        redirect('structures');
+    }
+    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
+    $stmt->execute([$id]);
+    $structureAvant = $stmt->fetch();
+    if (!$structureAvant) {
+        redirect('structures');
+    }
+    check_csrf();
+    $moisValide = function (string $champ): ?int {
+        $v = trim((string) ($_POST[$champ] ?? ''));
+        return ($v !== '' && (int) $v >= 1 && (int) $v <= 12) ? (int) $v : null;
+    };
+    $champs = [
+        'mois_evenement_debut' => $moisValide('mois_evenement_debut'),
+        'mois_evenement_fin'   => $moisValide('mois_evenement_fin'),
+        'mois_debut'           => $moisValide('mois_debut'),
+        'mois_fin'             => $moisValide('mois_fin'),
+        'id' => $id,
+    ];
+    db()->prepare('UPDATE structures SET mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
+                    mois_debut=:mois_debut, mois_fin=:mois_fin WHERE id=:id')->execute($champs);
+    if (module_actif('booking')) {
+        journaliser_diff('structure', $id, $structureAvant, $champs, [
+            'mois_evenement_debut' => 'Début de réalisation', 'mois_evenement_fin' => 'Fin de réalisation',
+            'mois_debut' => 'Début de préparation', 'mois_fin' => 'Fin de préparation',
+        ]);
+    }
+    redirect('structure', ['id' => $id, 'ok' => 'periode']);
+}
+
 // Bascule immédiate du statut d'une structure (structures.statut, voir
 // STRUCTURE_STATUTS/lib/booking.php) depuis le bloc Statut — sélecteur
 // segmenté, valeur cliquée directement (structure_statut_toggle_html(),
