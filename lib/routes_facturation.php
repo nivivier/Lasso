@@ -766,11 +766,8 @@ function route_structures(): void
             } elseif ($section === 'fusionner' && count($ids) >= 2) {
                 $_SESSION['fusion_ids'] = $ids;
                 redirect('structure_fusion');
-            } elseif ($section === 'transformer_lieu' && count($ids) >= 2) {
-                $_SESSION['transformer_ids'] = $ids;
-                redirect('structure_transformer');
             }
-            if ($section !== '' && $section !== 'delete' && $section !== 'fusionner' && $section !== 'transformer_lieu' && isset($_SESSION['bulk_undo'])) {
+            if ($section !== '' && $section !== 'delete' && $section !== 'fusionner' && isset($_SESSION['bulk_undo'])) {
                 $retourFiltres['bulk'] = count($ids);
             }
         }
@@ -1359,67 +1356,6 @@ function route_structure_fusion(): void
     }
 
     render('structure_fusion', ['candidats' => $candidats], 'Fusionner des structures');
-}
-
-// Transformation en salle/festival (action groupée « Transformer en lieu d'une
-// structure ») : ids mémorisés en session ($_SESSION['transformer_ids'], ≥ 2).
-// L'utilisateur désigne l'organisateur parmi la sélection ; les autres structures
-// deviennent des lieux liés à lui (structure_transformer_en_lieu(), lib/booking.php,
-// qui tague leur sous-catégorie « booking » et crée le lien structure_organisateurs —
-// leurs contacts/notes/factures/étiquettes RESTENT sur elles, aucune fusion/
-// suppression depuis la fusion lieux→structures). Type du lieu : déduit du nom
-// (« festival » → festival, sinon salle) ou imposé globalement.
-function route_structure_transformer(): void
-{
-    require_login();
-    $ids = array_values(array_unique(array_map('intval', (array) ($_SESSION['transformer_ids'] ?? []))));
-    if (count($ids) < 2) {
-        redirect('structures');
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $orgId = (int) ($_POST['organisateur_id'] ?? 0);
-        // 'deduire' = déduire du nom ; sinon une sous-catégorie booking explicite.
-        $typeBrut = trim((string) ($_POST['type'] ?? ''));
-        $typeChoix = $typeBrut === 'deduire' ? 'deduire' : structure_sous_categorie_booking_nom_pour($typeBrut);
-        if ($typeChoix === '') { $typeChoix = 'deduire'; }
-        if (!in_array($orgId, $ids, true)) {
-            redirect('structure_transformer');
-        }
-        foreach (array_diff($ids, [$orgId]) as $structureId) {
-            $stmt = db()->prepare('SELECT nom, sous_categorie FROM structures WHERE id = ?');
-            $stmt->execute([$structureId]);
-            $s = $stmt->fetch();
-            if (!$s) { continue; }
-            if ($typeChoix === 'deduire') {
-                // Déduction festival/salle depuis le nom + la sous-catégorie
-                // (même règle que l'import — helper partagé).
-                $type = structure_import_type_lieu($s['nom'] . ' ' . $s['sous_categorie'], '');
-            } else {
-                $type = $typeChoix;
-            }
-            structure_transformer_en_lieu((int) $structureId, $orgId, $type);
-        }
-        unset($_SESSION['transformer_ids']);
-        redirect('structure', ['id' => $orgId, 'ok' => 'transforme']);
-    }
-
-    $in = implode(',', array_fill(0, count($ids), '?'));
-    $stmt = db()->prepare(
-        "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
-                (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,
-                (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures
-         FROM structures s WHERE s.id IN ($in) ORDER BY s.nom"
-    );
-    $stmt->execute($ids);
-    $candidats = $stmt->fetchAll();
-    if (count($candidats) < 2) {
-        unset($_SESSION['transformer_ids']);
-        redirect('structures');
-    }
-
-    render('structure_transformer', ['candidats' => $candidats, 'categoriesLieu' => structure_sous_categories_booking_noms()], 'Transformer en salles/festivals');
 }
 
 // --- Import de factures historiques (JSON) ----------------------------------

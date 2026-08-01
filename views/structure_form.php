@@ -55,9 +55,7 @@ $sid = (int) ($structure['id'] ?? 0);
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à cette structure.</p><?php endif; ?>
-<?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, étiquettes et lieux liés ont été repris ici.</p><?php endif; ?>
-<?php if (($_GET['ok'] ?? null) === 'transforme'): ?><p class="ok flash">Structures transformées en salles/festivals rattachés à cet organisateur.</p><?php endif; ?>
-<?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
+<?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, étiquettes et lieux liés ont été repris ici.</p><?php endif; ?><?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
 <?php if (!empty($structure['mise_a_jour_le']) && !$avecAside): ?>
     <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
 <?php endif; ?>

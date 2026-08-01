@@ -526,38 +526,6 @@ function structures_fusionner(int $idGarde, array $autres): void
     structure_recalculer_dernier_contact($idGarde);
 }
 
-// Transforme une structure en lieu (salle/festival) d'un organisateur : depuis
-// la fusion lieux→structures (migration_59/60), un lieu EST une structure —
-// plus de fusion ni de suppression, contrairement à l'ancien comportement
-// (qui recréait une fiche `lieux` séparée et migrait contacts/notes/tags/
-// factures vers l'organisateur). On tague sa sous-catégorie (seulement si
-// elle n'en a pas déjà une — jamais d'écrasement) et on crée le lien
-// structure_organisateurs vers $orgId ; ses propres contacts/notes/tags/
-// factures restent sur elle. $type : une sous-catégorie booking (repli sur
-// « Salle » si non reconnue). Renvoie false si structure/organisateur invalides.
-function structure_transformer_en_lieu(int $structureId, int $orgId, string $type): bool
-{
-    if ($structureId === $orgId || $structureId <= 0 || $orgId <= 0) {
-        return false;
-    }
-    $stmt = db()->prepare('SELECT sous_categorie FROM structures WHERE id = ?');
-    $stmt->execute([$structureId]);
-    $s = $stmt->fetch();
-    $stmtOrg = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
-    $stmtOrg->execute([$orgId]);
-    if (!$s || !$stmtOrg->fetchColumn()) {
-        return false;
-    }
-
-    if (trim((string) $s['sous_categorie']) === '') {
-        $type = structure_sous_categorie_booking_nom_pour($type) ?: 'Salle';
-        db()->prepare('UPDATE structures SET sous_categorie = ? WHERE id = ?')->execute([$type, $structureId]);
-    }
-    db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
-        ->execute([$structureId, $orgId]);
-    return true;
-}
-
 // Un mois de festival (mois_debut..mois_fin, ex. 6..9) chevauche-t-il la plage
 // filtrée (ex. avril=4..septembre=9) ? Gère le passage d'année (ex. nov.=11 à
 // fév.=2) en testant les deux découpages possibles.

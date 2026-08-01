@@ -165,7 +165,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             <?php endif; ?>
             <option value="statut">Modifier le statut</option>
             <option value="fusionner">Fusionner (2 sélections ou plus)</option>
-            <option value="transformer_lieu">Transformer en salle/festival d'un organisateur (2 sélections ou plus)</option>
             <option value="delete">Supprimer</option>
         </select>
 
@@ -325,9 +324,6 @@ lassoInitFlagToggle();
         } else if (action.value === 'fusionner') {
             submit.textContent = 'Fusionner la sélection';
             submit.classList.remove('danger');
-        } else if (action.value === 'transformer_lieu') {
-            submit.textContent = 'Transformer la sélection';
-            submit.classList.remove('danger');
         } else {
             submit.textContent = 'Modifier la sélection';
             submit.classList.remove('danger');
@@ -340,8 +336,8 @@ lassoInitFlagToggle();
         const n = document.querySelectorAll('.row-check:checked').length;
         if (action.value === 'delete' && !confirm('Supprimer ' + n + ' structure(s) ? Cette action est irréversible.')) {
             e.preventDefault();
-        } else if ((action.value === 'fusionner' || action.value === 'transformer_lieu') && n < 2) {
-            alert('Sélectionnez au moins deux structures (l\'organisateur et les salles/festivals à rattacher).');
+        } else if (action.value === 'fusionner' && n < 2) {
+            alert('Sélectionnez au moins deux structures à fusionner.');
             e.preventDefault();
         }
     });

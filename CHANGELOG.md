@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.30.0] — 2026-08-01
+
+### Retiré
+- `?p=structures`, action groupée « Transformer en salle/festival d'un organisateur » (et toute la fonctionnalité associée : route, page, `structure_transformer_en_lieu()`).
+
 ## [1.29.3] — 2026-08-01
 
 ### Corrigé

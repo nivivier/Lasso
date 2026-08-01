@@ -159,8 +159,7 @@ if (module_actif('facturation') || module_actif('booking')) {
     $handlers['structure_flag']  = 'route_structure_flag';
     $handlers['structure_delete'] = 'route_structure_delete';
     $handlers['structure_fusion'] = 'route_structure_fusion';
-    $handlers['structure_transformer'] = 'route_structure_transformer';
-    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_flag', 'structure_delete', 'structure_fusion', 'structure_transformer'] as $r) {
+    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_flag', 'structure_delete', 'structure_fusion'] as $r) {
         $routeModules[$r] = ['facturation', 'booking'];
     }
 }
