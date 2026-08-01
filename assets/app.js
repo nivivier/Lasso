@@ -333,7 +333,21 @@ function lassoInitCarteLieux(mapId, points, storageKey) {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
     }).addTo(map);
 
-    points.forEach(p => L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.popup));
+    // Un point = une ville (déjà groupée par carte_points_grouper()), qui peut
+    // contenir plusieurs fiches. Pastille plus grande + couleur d'accent et
+    // nombre affiché dès que le point en regroupe plusieurs, pour repérer les
+    // villes à forte densité sans avoir à ouvrir chaque popup.
+    points.forEach(p => {
+        const n = p.count || 1;
+        const taille = n > 1 ? Math.min(24 + n * 2, 46) : 14;
+        const icon = L.divIcon({
+            className: 'carte-pin' + (n > 1 ? ' carte-pin-multi' : ''),
+            html: n > 1 ? '<span>' + n + '</span>' : '',
+            iconSize: [taille, taille],
+            iconAnchor: [taille / 2, taille / 2],
+        });
+        L.marker([p.lat, p.lon], { icon }).addTo(map).bindPopup(p.popup);
+    });
 
     let vueRestauree = false;
     try {

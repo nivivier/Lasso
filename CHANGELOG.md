@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.29.1] — 2026-08-01
+
+### Modifié
+- Vues carte (`?p=structures`/`?p=evenements&vue=carte`) : les points regroupant plusieurs fiches (même ville) s'affichent désormais en pastille plus grande, en couleur d'accent, avec le nombre de fiches — au lieu d'un simple repère identique quel que soit le nombre d'éléments.
+
 ## [1.29.0] — 2026-08-01
 
 ### Ajouté

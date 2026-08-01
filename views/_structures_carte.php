@@ -13,7 +13,7 @@ $points = array_map(function (array $p): array {
             . ($s['type'] !== '' ? ' <span class="muted small">(' . e($s['type']) . ')</span>' : '') . '</li>';
     }
     $html .= '</ul>';
-    return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html];
+    return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html, 'count' => count($p['items'])];
 }, $cartePoints);
 
 // Lien de secours pour les villes qu'on ne parviendra sans doute jamais à

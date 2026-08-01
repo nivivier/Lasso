@@ -12,7 +12,7 @@ $points = array_map(function (array $p): array {
         $html .= '<li><a href="?p=evenement&id=' . (int) $ev['id'] . '">' . e($ev['nom']) . '</a></li>';
     }
     $html .= '</ul>';
-    return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html];
+    return ['lat' => $p['lat'], 'lon' => $p['lon'], 'popup' => $html, 'count' => count($p['items'])];
 }, $cartePoints);
 
 // Lien de secours pour les villes qu'on ne parviendra sans doute jamais à
