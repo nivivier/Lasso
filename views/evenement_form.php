@@ -769,11 +769,16 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
 
     // Lieu (base), recherche à la création (un seul lieu à ce stade) : widget
     // alimenté à la demande via ?p=lieux_options au premier focus (potentiellement
-    // des milliers de lieux → pas d'injection dans la page).
+    // des milliers de lieux → pas d'injection dans la page). lassoInitCatSearch()
+    // est appelée tout de suite (liste encore vide) — pas dans le .then() — pour
+    // que le champ réagisse dès le premier focus/frappe/clic pendant que la
+    // requête est en vol, au lieu de rester muet tant qu'elle n'a pas abouti
+    // (c'était la cause du bug « il faut cliquer 2-3 fois »).
     const lieuWrapCreation = document.getElementById('evt-lieu-search');
     if (lieuWrapCreation && window.lassoInitCatSearch) {
         const lieuList = lieuWrapCreation.querySelector('.cat-search-list');
         const lieuInput = lieuWrapCreation.querySelector('.cat-search-input');
+        lassoInitCatSearch(lieuWrapCreation, { clearHiddenOnInput: true });
         let lieuCharge = false;
         lieuInput.addEventListener('focus', function () {
             if (lieuCharge) { return; }
@@ -789,7 +794,10 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                         frag.appendChild(li);
                     });
                     lieuList.appendChild(frag);
-                    lassoInitCatSearch(lieuWrapCreation, { clearHiddenOnInput: true });
+                    // Ré-applique le filtre courant : si l'utilisateur a déjà
+                    // tapé pendant le chargement, les options qui viennent
+                    // d'arriver doivent être filtrées tout de suite.
+                    lieuInput.dispatchEvent(new Event('input'));
                 })
                 .catch(function () { lieuCharge = false; });
         });
@@ -848,6 +856,18 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         const lieuListOrga = lieuWrapOrga.querySelector('.cat-search-list');
         const lieuInputOrga = lieuWrapOrga.querySelector('.cat-search-input');
         const lieuHiddenOrga = lieuWrapOrga.querySelector('.cat-search-val');
+        // lassoInitCatSearch() appelée tout de suite (liste encore vide), pas
+        // dans le .then() du fetch — même correctif que le widget de création
+        // ci-dessus : sinon le champ ne réagit à rien tant que la requête
+        // ?p=lieux_options n'a pas abouti.
+        lassoInitCatSearch(lieuWrapOrga, {
+            clearHiddenOnInput: true,
+            onSelect: li => {
+                ajouterChip(lieuChips, 'lieu_ids[]', li.dataset.val, li.textContent);
+                lieuHiddenOrga.value = '';
+                lieuInputOrga.value = '';
+            },
+        });
         let lieuChargeOrga = false;
         lieuInputOrga.addEventListener('focus', function () {
             if (lieuChargeOrga) return;
@@ -863,14 +883,7 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
                         frag.appendChild(li);
                     });
                     lieuListOrga.appendChild(frag);
-                    lassoInitCatSearch(lieuWrapOrga, {
-                        clearHiddenOnInput: true,
-                        onSelect: li => {
-                            ajouterChip(lieuChips, 'lieu_ids[]', li.dataset.val, li.textContent);
-                            lieuHiddenOrga.value = '';
-                            lieuInputOrga.value = '';
-                        },
-                    });
+                    lieuInputOrga.dispatchEvent(new Event('input'));
                 })
                 .catch(function () { lieuChargeOrga = false; });
         });

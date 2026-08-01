@@ -198,22 +198,30 @@ function lassoInitCatSearch(wrap, opts = {}) {
     const input  = wrap.querySelector('.cat-search-input');
     const hidden = wrap.querySelector('.cat-search-val');
     const list   = wrap.querySelector('.cat-search-list');
-    const items  = Array.from(list.querySelectorAll(groupsFilter ? 'li:not(.cat-search-group):not(.cat-search-sens)' : 'li'));
-    const groups   = groupsFilter ? Array.from(list.querySelectorAll('.cat-search-group')) : [];
-    const sensHdrs = groupsFilter ? Array.from(list.querySelectorAll('.cat-search-sens')) : [];
+    // Requêtées à chaque usage (pas une fois pour toutes en constantes) :
+    // certains appelants peuplent la liste après coup (ex. options chargées
+    // par fetch au premier focus, evenement_form.php) — figer items/groups au
+    // moment de l'init les rendrait invisibles au filtre et au clic tant que
+    // lassoInitCatSearch() n'est pas rappelée, ce qui provoquait justement le
+    // bug « il faut cliquer 2-3 fois » sur les sélecteurs de lieu.
+    function items() {
+        return Array.from(list.querySelectorAll(groupsFilter ? 'li:not(.cat-search-group):not(.cat-search-sens)' : 'li'));
+    }
+    function groups() { return groupsFilter ? Array.from(list.querySelectorAll('.cat-search-group')) : []; }
+    function sensHdrs() { return groupsFilter ? Array.from(list.querySelectorAll('.cat-search-sens')) : []; }
 
     if (hydrateInitial) {
-        const initItem = items.find(li => li.dataset.val === hidden.value);
+        const initItem = items().find(li => li.dataset.val === hidden.value);
         if (initItem) input.value = initItem.textContent;
     }
 
     function filterGroups() {
-        groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
-        sensHdrs.forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
+        groups().forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
+        sensHdrs().forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
     }
     function filter(q) {
         const nq = lassoNorm(q);
-        items.forEach(li => { li.hidden = nq !== '' && !lassoNorm(li.textContent).includes(nq); });
+        items().forEach(li => { li.hidden = nq !== '' && !lassoNorm(li.textContent).includes(nq); });
         if (groupsFilter) filterGroups();
     }
     function textFor(li) {
@@ -228,18 +236,21 @@ function lassoInitCatSearch(wrap, opts = {}) {
     input.addEventListener('blur', () => {
         setTimeout(() => {
             list.hidden = true;
-            const cur = items.find(li => li.dataset.val === hidden.value);
+            const cur = items().find(li => li.dataset.val === hidden.value);
             input.value = cur ? textFor(cur) : '';
         }, 150);
     });
-    items.forEach(li => {
-        li.addEventListener('mousedown', e => {
-            e.preventDefault();
-            hidden.value = li.dataset.val;
-            input.value = textFor(li);
-            list.hidden = true;
-            if (onSelect) onSelect(li);
-        });
+    // Délégation sur la liste plutôt qu'un écouteur par <li> : fonctionne
+    // aussi pour des options ajoutées après l'initialisation, sans dupliquer
+    // d'écouteurs si lassoInitCatSearch() était rappelée.
+    list.addEventListener('mousedown', e => {
+        const li = e.target.closest('li');
+        if (!li || !list.contains(li)) return;
+        e.preventDefault();
+        hidden.value = li.dataset.val;
+        input.value = textFor(li);
+        list.hidden = true;
+        if (onSelect) onSelect(li);
     });
 }
 

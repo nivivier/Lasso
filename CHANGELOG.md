@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.30.2] — 2026-08-01
+
+### Corrigé
+- `?p=evenement`, carte « Organisation » : le sélecteur de lieu ne réagissait à rien (focus/frappe/clic) tant que sa requête `?p=lieux_options` n'avait pas abouti en arrière-plan, obligeant à refocaliser le champ 2-3 fois avant que l'ajout ne fonctionne — le widget de recherche (`lassoInitCatSearch()`) est désormais actif dès le premier focus, la liste se remplissant ensuite dessous.
+- `?p=evenement`, carte « Organisation » : le sélecteur d'organisateur excluait les structures au statut « inactif », qui restent pourtant des organisateurs valables pour un événement déjà survenu.
+
 ## [1.30.1] — 2026-08-01
 
 ### Ajouté

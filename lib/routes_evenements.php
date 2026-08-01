@@ -486,8 +486,13 @@ function route_evenement(): void
     // evenement_lieux_lies()/evenement_organisateurs_lies() — lib/evenements.php).
     $lieuxLies = $id ? evenement_lieux_lies($id) : [];
     $organisateursLies = ($id && module_actif('facturation')) ? evenement_organisateurs_lies($id) : [];
+    // Non filtré sur le statut : une structure « inactive »/« ne pas
+    // contacter » peut quand même avoir organisé l'événement (statut = suivi
+    // commercial, pas une propriété qui devrait bloquer le rattachement d'un
+    // fait déjà survenu) — même principe que route_lieux_options()/
+    // route_structures_options() pour la recherche d'ajout.
     $structuresDispo = ($id && module_actif('facturation'))
-        ? db()->query("SELECT * FROM structures WHERE statut != 'inactif' ORDER BY nom")->fetchAll()
+        ? db()->query('SELECT * FROM structures ORDER BY nom')->fetchAll()
         : [];
 
     // Lien vers un lieu de la base (module booking) — recherche disponible dès
