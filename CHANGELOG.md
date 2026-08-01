@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.29.0] — 2026-08-01
+
+### Ajouté
+- `?p=structures` : nouveau filtre « Avec événements liés » (Plus de filtres).
+
+### Corrigé
+- `?p=dev`, Incohérences → « Événements sans lieu rattaché » : la détection de correspondances ne considérait que les structures dont la sous-catégorie est marquée « booking », comme la recherche de lieu de la fiche événement (voir 1.28.1) — même correction, toutes les structures sont désormais candidates.
+
 ## [1.28.1] — 2026-08-01
 
 ### Corrigé

@@ -527,6 +527,11 @@ function structures_filtres(): array
     $lieuMoisProg = (int) filtre_persistant('lieu_mois_prog', 'structures_lieu_mois_prog', 0);
     if ($lieuMoisEvenement < 1 || $lieuMoisEvenement > 12) { $lieuMoisEvenement = 0; }
     if ($lieuMoisProg < 1 || $lieuMoisProg > 12) { $lieuMoisProg = 0; }
+    // Même critère de lien que structures_nb_evenements()/structure_evenements()
+    // (colonnes miroir organisateur_structure_id/lieu_id, voir migration_58) —
+    // pas de sens si le module événements est inactif.
+    $avecEvenements = module_actif('evenements')
+        && filtre_persistant('avec_evenements', 'structures_avec_evenements', '') === '1';
 
     $where = ' WHERE 1=1';
     $params = [];
@@ -583,6 +588,9 @@ function structures_filtres(): array
         if ($lieuMoisEvenement) { $filtreMoisLieu('mois_evenement_debut', 'mois_evenement_fin', $lieuMoisEvenement); }
         if ($lieuMoisProg) { $filtreMoisLieu('mois_debut', 'mois_fin', $lieuMoisProg); }
     }
+    if ($avecEvenements) {
+        $where .= ' AND EXISTS (SELECT 1 FROM evenements e WHERE e.organisateur_structure_id = s.id OR e.lieu_id = s.id)';
+    }
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
@@ -590,6 +598,7 @@ function structures_filtres(): array
         'nonLocalises' => $nonLocalises,
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
+        'avecEvenements' => $avecEvenements,
     ];
 }
 
@@ -634,10 +643,12 @@ function route_structures(): void
     $lieuMoisProg = $f['lieuMoisProg'];
     $flag = $f['flag'];
     $nonLocalises = $f['nonLocalises'];
+    $avecEvenements = $f['avecEvenements'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
+        'avec_evenements' => $avecEvenements ? 1 : '',
     ];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
@@ -775,7 +786,7 @@ function route_structures(): void
             'tagId' => $tagId, 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
-            'nonLocalises' => $nonLocalises,
+            'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
@@ -856,6 +867,7 @@ function route_structures(): void
         'lieuMoisProg' => $lieuMoisProg,
         'flag' => $flag,
         'nonLocalises' => $nonLocalises,
+        'avecEvenements' => $avecEvenements,
         'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
@@ -868,7 +880,7 @@ function route_structures(): void
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
-            'non_localises' => $nonLocalises ? 1 : '',
+            'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements ? 1 : '',
         ],
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,

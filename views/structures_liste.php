@@ -7,7 +7,7 @@
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
 /** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var string $flag */
-/** @var bool $nonLocalises */
+/** @var bool $nonLocalises */ /** @var bool $avecEvenements */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
@@ -68,7 +68,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
-        <details class="filters-more" <?= ($pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '') ? 'open' : '' ?>>
+        <details class="filters-more" <?= ($pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '' || $avecEvenements) ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>
             <div class="filters-more-body">
                 <label>Pays
@@ -125,6 +125,13 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                         <?php /* Cœur temporairement désactivé (voir route_structure_flag()) */ ?>
                     </select>
                 </label>
+                <?php if (module_actif('evenements')): ?>
+                <label class="check">
+                    <input type="hidden" name="avec_evenements" value="0">
+                    <input type="checkbox" name="avec_evenements" value="1" <?= $avecEvenements ? 'checked' : '' ?> onchange="this.form.submit()">
+                    Avec événements liés
+                </label>
+                <?php endif; ?>
             </div>
         </details>
     </form>
@@ -134,7 +141,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php elseif (!$structures): ?>
-    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== ''): ?>
+    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '' || $avecEvenements): ?>
         <p class="muted">Aucune structure ne correspond à cette recherche.</p>
     <?php else: ?>
         <p class="muted">Aucune structure pour l'instant. Commencez par en ajouter une.</p>

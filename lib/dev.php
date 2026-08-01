@@ -393,14 +393,15 @@ function evenements_lieux_detecter(): array
          ORDER BY date DESC"
     )->fetchAll();
 
-    // Index des lieux (structures « booking », voir migration_59) par ville
-    // (+département/canton+pays) normalisés, chargé une fois pour tous les
-    // événements (pas une requête par ligne).
+    // Index de toutes les structures par ville (+département/canton+pays)
+    // normalisés, chargé une fois pour tous les événements (pas une requête
+    // par ligne). Non filtré sur la sous-catégorie « booking » : une salle
+    // peut être catégorisée autrement (ex. Organisateur) et rester un
+    // candidat valable — même principe que route_lieux_options().
     $lieuxParVille = [];
     foreach (db()->query(
-        "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville, s.departement_canton, s.adresse_pays AS pays
-         FROM structures s JOIN structure_categories c ON c.nom = s.sous_categorie COLLATE NOCASE
-         WHERE c.est_booking = 1"
+        "SELECT id, nom, sous_categorie AS type, adresse_localite AS ville, departement_canton, adresse_pays AS pays
+         FROM structures"
     )->fetchAll() as $l) {
         $cle = normaliser_nom_structure((string) $l['ville']) . '|'
             . mb_strtolower(trim((string) $l['departement_canton']), 'UTF-8') . '|'
