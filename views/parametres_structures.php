@@ -53,7 +53,7 @@ $parentOptions = function (?int $selected) use ($map): string {
     <?php if (!$lignes): ?>
         <tr><td class="muted small">Aucune catégorie.</td></tr>
     <?php endif; ?>
-    <?php foreach ($lignes as $c): $cid = (int) $c['id']; $prof = (int) $c['profondeur']; $estRacine = $prof === 0; ?>
+    <?php foreach ($lignes as $c): $cid = (int) $c['id']; $prof = (int) $c['profondeur']; $estRacine = $prof === 0; $nbUsage = (int) ($usage[$cid] ?? 0); ?>
         <tr class="plan-row <?= $c['a_enfants'] ? 'plan-groupe' : '' ?>"
             data-id="<?= $cid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($c['parent_id'] ?? null) ?>">
             <td>
@@ -76,6 +76,9 @@ $parentOptions = function (?int $selected) use ($map): string {
                         <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                     <?php if ($estRacine && $c['est_organisateur']): ?><span class="badge">organisateur</span><?php endif; ?>
+                    <?php if ($nbUsage > 0): ?>
+                        <a class="badge muted-badge" href="?p=structures&categorie_id=<?= $cid ?>&statut=tous"><?= $nbUsage ?> structure<?= $nbUsage > 1 ? 's' : '' ?></a>
+                    <?php endif; ?>
                 </div>
             </td>
             <td class="actions nowrap">
@@ -87,7 +90,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                     <button type="submit" name="dir" value="up" class="btn ghost btn-sm icon-only" title="Monter" aria-label="Monter" <?= $c['est_premier'] ? 'disabled' : '' ?>><?= icon('chevron-up') ?></button>
                     <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $c['est_dernier'] ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
                 </form>
-                <?php $nbUsage = (int) ($usage[$cid] ?? 0); if ($nbUsage === 0 || $c['a_enfants']): ?>
+                <?php if ($nbUsage === 0 || $c['a_enfants']): ?>
                 <form method="post" action="?p=parametres_structures" onsubmit="return confirm('Supprimer <?= $estRacine ? 'cette catégorie' : 'cette sous-catégorie' ?> ?');" class="d-inline">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">

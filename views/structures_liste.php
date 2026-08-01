@@ -230,7 +230,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>Lieux</th><th>Structures liées</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
+        <th>Nom</th><th>Ville</th><th>Catégorie</th><th>Structures liées</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
@@ -246,8 +246,17 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?= $villeHtml !== '' ? $villeHtml : '—' ?>
             </td>
             <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
-            <td class="muted small"><?= $d['lieux_noms'] ? e($d['lieux_noms']) : '—' ?></td>
-            <td class="muted small"><?= $d['structures_liees_noms'] ? e($d['structures_liees_noms']) : '—' ?></td>
+            <td class="small">
+                <?php
+                    $lieesPaires = ($d['structures_liees'] ?? '') !== '' ? array_map(
+                        fn ($p) => explode("\x1f", $p, 3) + ['', '', ''],
+                        explode("\x1e", (string) $d['structures_liees'])
+                    ) : [];
+                ?>
+                <?php if ($lieesPaires): ?>
+                    <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?>" onclick="event.stopPropagation()"><?= e((string) $ln) ?></a><?php endforeach; ?>
+                <?php else: ?><span class="muted">—</span><?php endif; ?>
+            </td>
             <td class="small">
                 <?php
                     $tagsPaires = ($d['tags_noms'] ?? '') !== '' ? array_map(

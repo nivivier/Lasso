@@ -795,9 +795,18 @@ function route_structures(): void
     $totalSansRecherche = (int) $stmtTotStruct->fetchColumn();
     $modeClient = pagination_mode_client($totalSansRecherche);
 
+    // Structures liées, DANS LES DEUX SENS (même principe que structure_donnees_crm()) :
+    // celles que la structure organise (sens='organise', ex. ses salles/festivals)
+    // et celle(s) qui l'organisent (sens='organise_par', si c'est elle-même un
+    // lieu) — fusionnées dans une seule colonne « Structures liées », affichage
+    // distingué par icône (voir views/structures_liste.php).
     $selectCols = "s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures,
-        (SELECT GROUP_CONCAT(l.nom, ', ') FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id WHERE so.organisateur_id = s.id) AS lieux_noms,
-        (SELECT GROUP_CONCAT(o.nom, ', ') FROM structure_organisateurs so JOIN structures o ON o.id = so.organisateur_id WHERE so.structure_id = s.id) AS structures_liees_noms,
+        (SELECT GROUP_CONCAT(nom || char(31) || id || char(31) || sens, char(30)) FROM (
+            SELECT l.nom AS nom, l.id AS id, 'organise' AS sens FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id WHERE so.organisateur_id = s.id
+            UNION ALL
+            SELECT o.nom AS nom, o.id AS id, 'organise_par' AS sens FROM structure_organisateurs so JOIN structures o ON o.id = so.organisateur_id WHERE so.structure_id = s.id
+            ORDER BY nom
+        )) AS structures_liees,
         (SELECT GROUP_CONCAT(t.nom || char(31) || COALESCE(t.couleur, ''), char(30)) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
         COALESCE(
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),

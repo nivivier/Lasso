@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.24.8] — 2026-08-01
+
+### Ajouté
+- `?p=parametres_structures` : nombre de structures par catégorie/sous-catégorie, avec lien vers la liste filtrée correspondante.
+
+### Modifié
+- `?p=structures` : les colonnes « Lieux » et « Structures liées » sont fusionnées en une seule colonne « Structures liées », chaque entrée avec une icône selon le sens de la relation et un lien vers la fiche.
+
 ## [1.24.7] — 2026-08-01
 
 ### Ajouté
