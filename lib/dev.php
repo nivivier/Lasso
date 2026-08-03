@@ -359,17 +359,17 @@ function grande_regions_appliquer(array $lignes): int
 }
 
 // ===========================================================================
-// Rapprochement événement ↔ lieu (evenements.lieu_id, voir migration_51) —
-// un événement stocke un nom de salle en texte libre (salle) mais n'est
-// jamais automatiquement rattaché à une fiche lieu de la base (ni la CSV, ni
-// le formulaire ne renseignent lieu_id : c'est un champ de recherche saisi à
-// la main, voir _region_select_js.php côté formulaire événement). Rattrapage :
-// rapproche par ville (+département/canton+pays — même précaution que le
-// géocodage, voir migration_57, pour ne pas confondre deux villes homonymes)
-// puis par nom normalisé (normaliser_nom_structure(), même convention que
-// maj_dates_construire_index()). Jamais deviné en cas
-// d'ambiguïté (plusieurs lieux candidats) : ces fiches restent affichées à
-// part, à traiter à la main sur la fiche événement.
+// Rapprochement événement ↔ structure (evenement_structures, voir
+// migration_58/66) — un événement stocke un nom de salle en texte libre
+// (salle) mais n'est jamais automatiquement rattaché à une fiche structure de
+// la base (ni la CSV, ni le formulaire ne renseignent le lien : c'est un
+// champ de recherche saisi à la main, voir _region_select_js.php côté
+// formulaire événement). Rattrapage : rapproche par ville (+département/
+// canton+pays — même précaution que le géocodage, voir migration_57, pour ne
+// pas confondre deux villes homonymes) puis par nom normalisé
+// (normaliser_nom_structure(), même convention que maj_dates_construire_index()).
+// Jamais deviné en cas d'ambiguïté (plusieurs candidats) : ces fiches restent
+// affichées à part, à traiter à la main sur la fiche événement.
 // ===========================================================================
 
 // Longueur minimale (nom normalisé) pour qu'une correspondance partielle (l'un
@@ -377,7 +377,7 @@ function grande_regions_appliquer(array $lignes): int
 // (« Le », « Bar ») ne « matche » n'importe quoi par simple inclusion.
 const EVENEMENTS_LIEUX_LONGUEUR_MIN = 4;
 
-// Détecte, pour chaque événement sans lieu_id (salle et ville renseignées),
+// Détecte, pour chaque événement sans structure liée (salle et ville renseignées),
 // les lieux candidats de la même ville (+département/canton+pays). Retourne
 // [ ['evenement_id'=>, 'date'=>, 'salle'=>, 'ville'=>, 'departement_canton'=>,
 //    'pays'=>, 'candidats'=>[ ['id'=>,'nom'=>,'type'=>], … ] ], … ] — un
@@ -388,8 +388,9 @@ function evenements_lieux_detecter(): array
 {
     $lignes = db()->query(
         "SELECT id, date, salle, ville, departement_canton, pays
-         FROM evenements
-         WHERE lieu_id IS NULL AND TRIM(salle) <> '' AND TRIM(ville) <> ''
+         FROM evenements e
+         WHERE NOT EXISTS (SELECT 1 FROM evenement_structures es WHERE es.evenement_id = e.id)
+           AND TRIM(salle) <> '' AND TRIM(ville) <> ''
          ORDER BY date DESC"
     )->fetchAll();
 
@@ -501,10 +502,11 @@ function evenements_lieux_lier(array $univoques): int
             if (count($d['candidats']) !== 1) {
                 continue; // relecture défensive : la répartition doit déjà garantir l'unicité
             }
-            // Table de jointure (voir migration_58) — pas seulement la colonne
-            // miroir lieu_id, sinon le lieu resterait invisible dans la carte
-            // « Organisation » (?p=evenement, qui lit evenement_lieux).
-            db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)')
+            // Table de jointure (voir migration_58/66) — pas seulement le
+            // miroir organisateur_structure_id, sinon la structure resterait
+            // invisible dans la carte « Organisation » (?p=evenement, qui lit
+            // evenement_structures).
+            db()->prepare('INSERT OR IGNORE INTO evenement_structures (evenement_id, structure_id) VALUES (?, ?)')
                 ->execute([$d['evenement_id'], $d['candidats'][0]['id']]);
             evenement_resynchroniser_miroirs($d['evenement_id']);
             $n++;
@@ -536,9 +538,9 @@ function evenements_lieux_creer(array $groupes): int
             )->execute([$g['nom'], structure_categorie_par_defaut(), 'Salle', $g['ville'], $g['departement_canton'], $g['pays']]);
             $structureId = (int) db()->lastInsertId();
 
-            // Table de jointure (voir migration_58), pas seulement la colonne
+            // Table de jointure (voir migration_58/66), pas seulement le
             // miroir — même raison que evenements_lieux_lier() ci-dessus.
-            $stmtMaj = db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)');
+            $stmtMaj = db()->prepare('INSERT OR IGNORE INTO evenement_structures (evenement_id, structure_id) VALUES (?, ?)');
             foreach ($g['evenements'] as $ev) {
                 $stmtMaj->execute([$ev['id'], $structureId]);
                 evenement_resynchroniser_miroirs($ev['id']);

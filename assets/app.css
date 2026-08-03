@@ -973,6 +973,13 @@ span + .badge.muted-badge { margin-left: 6px; }
 .tags-liste + * { margin-top: 12px; }
 .tags-liste .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 0; }
 .btn-tag-x { border: none; background: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+/* Étoile « à facturer » (carte Organisation, ?p=evenement) : une seule active
+   à la fois par liste de structures liées — voir definirFacturation() dans
+   views/evenement_form.php. */
+.btn-tag-star { border: none; background: none; color: var(--muted); cursor: pointer; padding: 0; display: inline-flex; align-items: center; }
+.btn-tag-star .ico { width: 14px; height: 14px; }
+.btn-tag-star.on { color: var(--highlight); }
+.btn-tag-star.on .ico { fill: var(--highlight); }
 /* Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton
    cyclé au clic, voir flag_toggle_html() (lib/helpers.php) et
    lassoInitFlagToggle() (assets/app.js). Cœur temporairement désactivé côté

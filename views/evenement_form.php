@@ -3,7 +3,7 @@
 /** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
 /** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
 /** @var array $factures */ /** @var array $facturesDispo */
-/** @var array $lieuxLies */ /** @var array $organisateursLies */ /** @var array $structuresDispo */
+/** @var array $structuresLiees */
 /** @var array $paysDisponibles */ /** @var array $axes */ /** @var ?string $err */ /** @var array $post */
 $isEdit = $id > 0;
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
@@ -54,11 +54,6 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
     }
 }
 
-// Structures déjà liées comme organisateur, exclues du picker d'ajout
-// (carte « Organisation », édition) — inutile de proposer de relier ce qui
-// l'est déjà.
-$organisateursLiesIds = array_column($organisateursLies, 'id');
-$structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !in_array((int) $d['id'], $organisateursLiesIds, true)));
 ?>
 <div class="page-head">
     <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
@@ -310,20 +305,13 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
     <?php if ($errOrganisation): ?><p class="err">Le nom de la nouvelle structure est obligatoire.</p><?php endif; ?>
 
     <div class="card-disp">
-        <?php if ($peutLierLieu): ?>
-        <p><span class="muted small">Lieu(x)</span><br>
-        <?php if (!$lieuxLies): ?><span class="muted small">Aucun lieu lié.</span>
-        <?php else: foreach ($lieuxLies as $l): ?>
-            <a href="?p=structure&id=<?= (int) $l['id'] ?>" class="badge"><?= e($l['nom']) ?><?= trim((string) $l['ville']) !== '' ? ' — ' . e($l['ville']) : '' ?></a>
-        <?php endforeach; endif; ?>
-        </p>
-        <?php endif; ?>
-        <?php if (module_actif('facturation')): ?>
-        <p><span class="muted small">Organisateur(s)</span><br>
-        <?php if (!$organisateursLies): ?><span class="muted small">Aucun organisateur lié.</span>
-        <?php else: foreach ($organisateursLies as $o): ?>
-            <a href="?p=structure&id=<?= (int) $o['id'] ?>" class="badge"><?= e($o['nom']) ?></a>
-        <?php endforeach; endif; ?>
+        <?php if (!$structuresLiees): ?>
+        <p class="muted small">Aucune structure liée.</p>
+        <?php else: ?>
+        <p>
+            <?php foreach ($structuresLiees as $s): ?>
+                <a href="?p=structure&id=<?= (int) $s['id'] ?>" class="badge"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('star') ?></span> <?php endif; ?><?= e($s['nom']) ?><?= trim((string) $s['ville']) !== '' ? ' — ' . e($s['ville']) : '' ?></a>
+            <?php endforeach; ?>
         </p>
         <?php endif; ?>
     </div>
@@ -332,61 +320,44 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
 
-        <?php if ($peutLierLieu): ?>
-        <label>Lieu(x)
-            <div class="tags-liste" id="organisation-lieux-chips">
-                <?php foreach ($lieuxLies as $l): ?>
-                    <span class="badge" data-id="<?= (int) $l['id'] ?>"><?= e($l['nom']) ?><?= trim((string) $l['ville']) !== '' ? ' — ' . e($l['ville']) : '' ?>
-                        <input type="hidden" name="lieu_ids[]" value="<?= (int) $l['id'] ?>">
-                        <button type="button" class="btn-tag-x chip-remove" aria-label="Retirer">×</button>
-                    </span>
-                <?php endforeach; ?>
-            </div>
-            <div class="cat-search" id="evt-lieu-add-search">
-                <input type="text" class="cat-search-input" placeholder="Ajouter un lieu…" autocomplete="off">
-                <input type="hidden" class="cat-search-val" value="">
-                <ul class="cat-search-list" hidden role="listbox"></ul>
-            </div>
-        </label>
-        <?php endif; ?>
-
+        <div class="tags-liste" id="organisation-structures-chips">
+            <?php foreach ($structuresLiees as $s): ?>
+                <span class="badge" data-id="<?= (int) $s['id'] ?>">
+                    <button type="button" class="btn-tag-star<?= $s['est_facturation'] ? ' on' : '' ?>" title="Marquer comme structure à facturer / SUISA" aria-label="Marquer comme structure à facturer"><?= icon('star') ?></button>
+                    <?= e($s['nom']) ?><?= trim((string) $s['ville']) !== '' ? ' — ' . e($s['ville']) : '' ?>
+                    <input type="hidden" name="structure_ids[]" value="<?= (int) $s['id'] ?>">
+                    <button type="button" class="btn-tag-x chip-remove" aria-label="Retirer">×</button>
+                </span>
+            <?php endforeach; ?>
+        </div>
+        <input type="hidden" name="facturation_id" id="organisation-facturation-id" value="<?php
+            $facturationActuelle = array_values(array_filter($structuresLiees, fn ($s) => $s['est_facturation']));
+            echo $facturationActuelle ? (int) $facturationActuelle[0]['id'] : '';
+        ?>">
+        <div class="cat-search" id="evt-structure-add-search">
+            <input type="text" class="cat-search-input" placeholder="Ajouter une structure…" autocomplete="off">
+            <input type="hidden" class="cat-search-val" value="">
+            <ul class="cat-search-list" hidden role="listbox">
+                <?php if (module_actif('facturation')): ?><li data-val="__new__">+ Nouvelle structure</li><?php endif; ?>
+            </ul>
+        </div>
         <?php if (module_actif('facturation')): ?>
-        <label>Organisateur(s)
-            <div class="tags-liste" id="organisation-structures-chips">
-                <?php foreach ($organisateursLies as $o): ?>
-                    <span class="badge" data-id="<?= (int) $o['id'] ?>"><?= e($o['nom']) ?>
-                        <input type="hidden" name="structure_ids[]" value="<?= (int) $o['id'] ?>">
-                        <button type="button" class="btn-tag-x chip-remove" aria-label="Retirer">×</button>
-                    </span>
-                <?php endforeach; ?>
-            </div>
-            <div class="cat-search organisateur-search" id="evt-organisateur-add-search">
-                <input type="text" class="cat-search-input" placeholder="Ajouter un organisateur…" autocomplete="off">
-                <input type="hidden" class="cat-search-val" value="">
-                <ul class="cat-search-list" hidden role="listbox">
-                    <li data-val="__new__">+ Nouvelle structure</li>
-                    <?php foreach ($structuresDispoAjout as $d): ?>
-                        <li data-val="<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            <div id="organisation-nouveau" class="grid2" hidden>
-                <label>Nom / raison sociale <input name="org_nom"></label>
-                <label>Type
-                    <select name="org_type">
-                        <option value="organisation">Organisation</option>
-                        <option value="particulier">Particulier</option>
-                    </select>
-                </label>
-                <label>Rue et numéro <input name="org_adresse_rue"></label>
-                <label>NPA <input name="org_adresse_npa"></label>
-                <label>Localité <input name="org_adresse_localite"></label>
-                <label>Pays <select name="org_adresse_pays"><?= pays_options_nom('Suisse') ?></select></label>
-                <label>E-mail (optionnel) <input name="org_email" type="email"></label>
-                <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
-                <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
-            </div>
-        </label>
+        <div id="organisation-nouveau" class="grid2" hidden>
+            <label>Nom / raison sociale <input name="org_nom"></label>
+            <label>Type
+                <select name="org_type">
+                    <option value="organisation">Organisation</option>
+                    <option value="particulier">Particulier</option>
+                </select>
+            </label>
+            <label>Rue et numéro <input name="org_adresse_rue"></label>
+            <label>NPA <input name="org_adresse_npa"></label>
+            <label>Localité <input name="org_adresse_localite"></label>
+            <label>Pays <select name="org_adresse_pays"><?= pays_options_nom('Suisse') ?></select></label>
+            <label>E-mail (optionnel) <input name="org_email" type="email"></label>
+            <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
+            <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
+        </div>
         <?php endif; ?>
     </form>
 </div>
@@ -803,89 +774,116 @@ $structuresDispoAjout = array_values(array_filter($structuresDispo, fn ($d) => !
         });
     }
 
-    // Carte « Organisation » (édition) : ajout/retrait de lieux/organisateurs en
-    // puces (« chips ») — rien n'est envoyé au serveur avant « Enregistrer »,
-    // contrairement aux anciennes routes lier/délier qui agissaient immédiatement.
-    function ajouterChip(chips, hiddenName, id, label) {
+    // Carte « Organisation » (édition) : ajout/retrait de structures liées en
+    // puces (« chips »), plus de distinction lieu/organisateur (voir
+    // migration_66) — rien n'est envoyé au serveur avant « Enregistrer »,
+    // contrairement aux anciennes routes lier/délier qui agissaient
+    // immédiatement sur un seul lien à la fois. Une puce peut être marquée
+    // « à facturer » (référence pour la facture et l'export SUISA) — une
+    // seule à la fois, reflétée dans le champ caché facturation_id.
+    const facturationHidden = document.getElementById('organisation-facturation-id');
+    function definirFacturation(chips, id) {
+        chips.querySelectorAll('.btn-tag-star').forEach(btn => {
+            btn.classList.toggle('on', btn.closest('.badge').dataset.id === String(id));
+        });
+        if (facturationHidden) facturationHidden.value = id;
+    }
+    function ajouterChip(chips, id, label) {
         if (chips.querySelector('[data-id="' + id + '"]')) return;
         const chip = document.createElement('span');
         chip.className = 'badge';
         chip.dataset.id = id;
-        chip.appendChild(document.createTextNode(label + ' '));
+        const starBtn = document.createElement('button');
+        starBtn.type = 'button'; starBtn.className = 'btn-tag-star';
+        starBtn.title = 'Marquer comme structure à facturer / SUISA';
+        starBtn.setAttribute('aria-label', 'Marquer comme structure à facturer');
+        starBtn.innerHTML = <?= json_encode(icon('star')) ?>;
+        chip.appendChild(starBtn);
+        chip.appendChild(document.createTextNode(' ' + label + ' '));
         const hidden = document.createElement('input');
-        hidden.type = 'hidden'; hidden.name = hiddenName; hidden.value = id;
+        hidden.type = 'hidden'; hidden.name = 'structure_ids[]'; hidden.value = id;
         chip.appendChild(hidden);
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button'; removeBtn.className = 'btn-tag-x chip-remove'; removeBtn.setAttribute('aria-label', 'Retirer'); removeBtn.textContent = '×';
         chip.appendChild(removeBtn);
         chips.appendChild(chip);
+        // Première structure ajoutée à une liste vide : présélectionnée comme
+        // référence facture/SUISA (aucune ambiguïté possible) ; au-delà, on ne
+        // devine rien de plus — l'utilisateur choisit via l'étoile.
+        if (chips.querySelectorAll('.badge').length === 1) {
+            definirFacturation(chips, id);
+        }
     }
     document.addEventListener('click', ev => {
-        const btn = ev.target.closest('.chip-remove');
-        if (btn) btn.closest('.badge').remove();
+        const starBtn = ev.target.closest('.btn-tag-star');
+        if (starBtn) {
+            definirFacturation(starBtn.closest('.tags-liste'), starBtn.closest('.badge').dataset.id);
+            return;
+        }
+        const removeBtn = ev.target.closest('.chip-remove');
+        if (removeBtn) {
+            const chip = removeBtn.closest('.badge');
+            const chips = chip.closest('.tags-liste');
+            const etaitFacturation = chip.querySelector('.btn-tag-star')?.classList.contains('on');
+            chip.remove();
+            // La structure retirée était la référence facture/SUISA : reporte
+            // automatiquement sur la première restante, plutôt que de laisser
+            // silencieusement plus aucune référence choisie.
+            if (etaitFacturation && chips) {
+                const suivante = chips.querySelector('.badge');
+                if (suivante) definirFacturation(chips, suivante.dataset.id);
+                else if (facturationHidden) facturationHidden.value = '';
+            }
+        }
     });
 
-    const orgWrap = document.getElementById('evt-organisateur-add-search');
-    if (orgWrap && window.lassoInitCatSearch) {
-        const orgChips = document.getElementById('organisation-structures-chips');
-        const orgInput = orgWrap.querySelector('.cat-search-input');
-        const orgHidden = orgWrap.querySelector('.cat-search-val');
-        const orgNouveau = document.getElementById('organisation-nouveau');
-        lassoInitCatSearch(orgWrap, {
+    const structureWrap = document.getElementById('evt-structure-add-search');
+    if (structureWrap && window.lassoInitCatSearch) {
+        const structureChips = document.getElementById('organisation-structures-chips');
+        const structureList = structureWrap.querySelector('.cat-search-list');
+        const structureInput = structureWrap.querySelector('.cat-search-input');
+        const structureHidden = structureWrap.querySelector('.cat-search-val');
+        const structureNouveau = document.getElementById('organisation-nouveau');
+        // lassoInitCatSearch() appelée tout de suite (liste encore vide, hormis
+        // « + Nouvelle structure » déjà en dur), pas dans le .then() du fetch :
+        // sinon le champ ne réagit à rien tant que ?p=lieux_options n'a pas abouti.
+        lassoInitCatSearch(structureWrap, {
             clearHiddenOnInput: true,
             onSelect: li => {
                 if (li.dataset.val === '__new__') {
-                    if (orgNouveau) orgNouveau.hidden = false;
+                    if (structureNouveau) structureNouveau.hidden = false;
                 } else {
-                    ajouterChip(orgChips, 'structure_ids[]', li.dataset.val, li.textContent);
+                    ajouterChip(structureChips, li.dataset.val, li.textContent);
                 }
                 // Réinitialiser tout de suite la valeur cachée du widget de
                 // recherche lui-même (pas seulement le texte affiché) : sinon
                 // le blur qui suit (~150 ms, cf. lassoInitCatSearch) retrouve
                 // l'ancien id et réaffiche son libellé dans le champ, comme si
                 // le dernier élément ajouté restait « sélectionné ».
-                orgHidden.value = '';
-                orgInput.value = '';
+                structureHidden.value = '';
+                structureInput.value = '';
             },
         });
-    }
-
-    const lieuWrapOrga = document.getElementById('evt-lieu-add-search');
-    if (lieuWrapOrga && window.lassoInitCatSearch) {
-        const lieuChips = document.getElementById('organisation-lieux-chips');
-        const lieuListOrga = lieuWrapOrga.querySelector('.cat-search-list');
-        const lieuInputOrga = lieuWrapOrga.querySelector('.cat-search-input');
-        const lieuHiddenOrga = lieuWrapOrga.querySelector('.cat-search-val');
-        // lassoInitCatSearch() appelée tout de suite (liste encore vide), pas
-        // dans le .then() du fetch — même correctif que le widget de création
-        // ci-dessus : sinon le champ ne réagit à rien tant que la requête
-        // ?p=lieux_options n'a pas abouti.
-        lassoInitCatSearch(lieuWrapOrga, {
-            clearHiddenOnInput: true,
-            onSelect: li => {
-                ajouterChip(lieuChips, 'lieu_ids[]', li.dataset.val, li.textContent);
-                lieuHiddenOrga.value = '';
-                lieuInputOrga.value = '';
-            },
-        });
-        let lieuChargeOrga = false;
-        lieuInputOrga.addEventListener('focus', function () {
-            if (lieuChargeOrga) return;
-            lieuChargeOrga = true;
+        let structureChargee = false;
+        structureInput.addEventListener('focus', function () {
+            if (structureChargee) return;
+            structureChargee = true;
             fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(function (opts) {
+                    const dejaLies = new Set([...structureChips.querySelectorAll('.badge')].map(b => b.dataset.id));
                     const frag = document.createDocumentFragment();
                     opts.forEach(function (o) {
+                        if (dejaLies.has(String(o.id))) return;
                         const li = document.createElement('li');
                         li.dataset.val = o.id;
                         li.textContent = o.nom;
                         frag.appendChild(li);
                     });
-                    lieuListOrga.appendChild(frag);
-                    lieuInputOrga.dispatchEvent(new Event('input'));
+                    structureList.appendChild(frag);
+                    structureInput.dispatchEvent(new Event('input'));
                 })
-                .catch(function () { lieuChargeOrga = false; });
+                .catch(function () { structureChargee = false; });
         });
     }
 })();

@@ -372,6 +372,7 @@ function run_migrations(PDO $pdo): void
         63 => 'migration_63', // structures.actif + desinscrit → statut unique (contact_privilegie/actif/ne_pas_contacter/inactif)
         64 => 'migration_64', // retire structure_categories.est_organisateur (catégorie « organisateur » + auto-groupement import CSV supprimés)
         65 => 'migration_65', // lieux_geocodage.cle : repli des accents (voir geocodage_cle()) — reclé les lignes déjà en cache pour qu'elles restent trouvées
+        66 => 'migration_66', // fusion evenement_lieux/evenement_organisateurs → evenement_structures (plus de distinction lieu/organisateur sur ?p=evenement, une structure marquée « à facturer »)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2294,6 +2295,56 @@ function migration_65(PDO $pdo): void
         } else {
             $renomme->execute([$nouvelleCle, $l['cle']]);
         }
+    }
+}
+
+// Fusionne evenement_lieux + evenement_organisateurs (migration_58/60) en une
+// seule table evenement_structures : ?p=evenement ne distingue plus « lieu »
+// et « organisateur » parmi les structures liées à un événement — juste des
+// structures liées, dont une seule peut être marquée « à facturer »
+// (est_facturation), utilisée par le pré-remplissage facture et l'export CSV
+// SUISA (qui lisaient jusqu'ici evenements.organisateur_structure_id). Le
+// backfill de est_facturation reprend exactement ce que ces deux lectures
+// voyaient déjà (la structure alors pointée par organisateur_structure_id),
+// donc aucun changement de comportement pour elles à l'issue de la migration.
+// evenements.lieu_id disparaît (plus de rôle « lieu » séparé à mettre en
+// miroir) ; organisateur_structure_id reste, mais devient un miroir de la
+// structure est_facturation=1 (voir evenement_resynchroniser_miroirs()).
+function migration_66(PDO $pdo): void
+{
+    $pdo->exec('CREATE TABLE IF NOT EXISTS evenement_structures (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        evenement_id    INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+        structure_id    INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+        est_facturation INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(evenement_id, structure_id)
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenement_structures_evenement ON evenement_structures(evenement_id)');
+
+    $tables = array_column($pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(), 'name');
+    if (in_array('evenement_lieux', $tables, true)) {
+        $pdo->exec('INSERT OR IGNORE INTO evenement_structures (evenement_id, structure_id)
+                     SELECT evenement_id, lieu_id FROM evenement_lieux');
+    }
+    if (in_array('evenement_organisateurs', $tables, true)) {
+        $pdo->exec('INSERT OR IGNORE INTO evenement_structures (evenement_id, structure_id)
+                     SELECT evenement_id, structure_id FROM evenement_organisateurs');
+    }
+    // Sous-requête corrélée plutôt qu'une comparaison multi-colonnes (a, b) IN
+    // (SELECT ...) : équivalente ici (une seule ligne par evenement_id est
+    // possible côté evenements) mais ne dépend pas du support des « row
+    // values » dans IN, moins universel selon les versions de SQLite.
+    $pdo->exec("UPDATE evenement_structures SET est_facturation = 1
+                WHERE structure_id = (
+                    SELECT organisateur_structure_id FROM evenements WHERE evenements.id = evenement_structures.evenement_id
+                )");
+
+    $pdo->exec('DROP TABLE IF EXISTS evenement_lieux');
+    $pdo->exec('DROP TABLE IF EXISTS evenement_organisateurs');
+
+    $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (in_array('lieu_id', $cols, true)) {
+        try { $pdo->exec('ALTER TABLE evenements DROP COLUMN lieu_id'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
 }
 

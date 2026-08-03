@@ -833,64 +833,45 @@ function importer_evenements_csv(string $csv, bool $simule): array
 }
 
 // ---------------------------------------------------------------------------
-// Lieux et organisateurs multiples (carte « Organisation », voir migration_58)
+// Structures liées (carte « Organisation », voir migration_58/66) — plus de
+// distinction lieu/organisateur : une même structure liée, une seule pouvant
+// être marquée « à facturer » (est_facturation).
 // ---------------------------------------------------------------------------
 
-// Lieux (structures « booking ») rattachés à un événement, dans l'ordre où ils
-// ont été liés. evenement_lieux.lieu_id référence structures(id) depuis la
-// fusion lieux→structures (migration_60) — ville/type alias sur les colonnes
-// structures pour ne pas devoir changer tous les appelants existants.
-function evenement_lieux_lies(int $evenementId): array
+// Structures rattachées à un événement, dans l'ordre où elles ont été liées.
+// est_facturation (0/1) désigne celle utilisée par le pré-remplissage facture
+// et l'export CSV SUISA (miroir evenements.organisateur_structure_id, voir
+// evenement_resynchroniser_miroirs()) — jamais plus d'une par événement.
+function evenement_structures_liees(int $evenementId): array
 {
     $stmt = db()->prepare(
-        "SELECT s.id, s.nom, s.adresse_localite AS ville, s.sous_categorie AS type FROM structures s
-         JOIN evenement_lieux el ON el.lieu_id = s.id
-         WHERE el.evenement_id = ? ORDER BY el.id"
+        "SELECT s.*, s.adresse_localite AS ville, s.sous_categorie AS type, es.est_facturation FROM structures s
+         JOIN evenement_structures es ON es.structure_id = s.id
+         WHERE es.evenement_id = ? ORDER BY es.id"
     );
     $stmt->execute([$evenementId]);
     return $stmt->fetchAll();
 }
 
-// Organisateurs (structures) rattachés à un événement, dans l'ordre où ils
-// ont été liés.
-function evenement_organisateurs_lies(int $evenementId): array
-{
-    $stmt = db()->prepare(
-        'SELECT s.* FROM structures s
-         JOIN evenement_organisateurs eo ON eo.structure_id = s.id
-         WHERE eo.evenement_id = ? ORDER BY eo.id'
-    );
-    $stmt->execute([$evenementId]);
-    return $stmt->fetchAll();
-}
-
-// Recale evenements.lieu_id / organisateur_structure_id sur le premier
-// lieu/organisateur lié (le plus ancien, MIN(id) dans la table de jointure —
-// NULL si plus aucun) : ces deux colonnes sont conservées comme miroir pour
-// tout le code qui les lit encore seules (fiche lieu/structure « événements
-// liés », pré-remplissage facture, export CSV SUISA, outil de rattrapage
-// Incohérences) — jamais mis à jour directement ailleurs que via cette
-// fonction, appelée après toute modification de evenement_lieux/
-// evenement_organisateurs.
+// Recale evenements.organisateur_structure_id sur la structure marquée
+// « à facturer » (est_facturation = 1, NULL si aucune) : cette colonne est
+// conservée comme miroir pour tout le code qui la lit encore seule
+// (pré-remplissage facture, export CSV SUISA) — jamais mise à jour ailleurs
+// que via cette fonction, appelée après toute modification de
+// evenement_structures.
 function evenement_resynchroniser_miroirs(int $evenementId): void
 {
-    $stmtL = db()->prepare('SELECT lieu_id FROM evenement_lieux WHERE evenement_id = ? ORDER BY id LIMIT 1');
-    $stmtL->execute([$evenementId]);
-    $lieuId = $stmtL->fetchColumn();
-    db()->prepare('UPDATE evenements SET lieu_id = ? WHERE id = ?')
-        ->execute([$lieuId !== false ? (int) $lieuId : null, $evenementId]);
-
-    // Dérive dernier_concert_le pour CHAQUE lieu lié (pas seulement le miroir
-    // ci-dessus) — voir structure_recalculer_dernier_concert().
-    $stmtTousLieux = db()->prepare('SELECT lieu_id FROM evenement_lieux WHERE evenement_id = ?');
-    $stmtTousLieux->execute([$evenementId]);
-    foreach ($stmtTousLieux->fetchAll(PDO::FETCH_COLUMN) as $id) {
-        structure_recalculer_dernier_concert((int) $id);
-    }
-
-    $stmtO = db()->prepare('SELECT structure_id FROM evenement_organisateurs WHERE evenement_id = ? ORDER BY id LIMIT 1');
-    $stmtO->execute([$evenementId]);
-    $structureId = $stmtO->fetchColumn();
+    $stmtF = db()->prepare('SELECT structure_id FROM evenement_structures WHERE evenement_id = ? AND est_facturation = 1 LIMIT 1');
+    $stmtF->execute([$evenementId]);
+    $structureId = $stmtF->fetchColumn();
     db()->prepare('UPDATE evenements SET organisateur_structure_id = ? WHERE id = ?')
         ->execute([$structureId !== false ? (int) $structureId : null, $evenementId]);
+
+    // Dérive dernier_concert_le pour CHAQUE structure liée (plus de
+    // distinction lieu/organisateur) — voir structure_recalculer_dernier_concert().
+    $stmtToutes = db()->prepare('SELECT structure_id FROM evenement_structures WHERE evenement_id = ?');
+    $stmtToutes->execute([$evenementId]);
+    foreach ($stmtToutes->fetchAll(PDO::FETCH_COLUMN) as $id) {
+        structure_recalculer_dernier_concert((int) $id);
+    }
 }

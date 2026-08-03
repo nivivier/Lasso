@@ -243,13 +243,10 @@ function texte_sans_accents(string $s): string
     ]);
 }
 
-// --- Événements liés (lien evenements.lieu_id, voir migration_51) ------------
+// --- Événements liés (table evenement_structures, voir migration_58/66) ----
 
-// Événements rattachés à une STRUCTURE : soit elle en est l'organisateur
-// (organisateur_structure_id), soit elle en est le lieu (evenements.lieu_id —
-// référence directement structures(id) depuis la fusion lieux→structures,
-// migration_60 : plus d'indirection par structure_lieux). Dédoublonné, plus
-// récents d'abord.
+// Événements rattachés à une STRUCTURE (evenement_structures — plus de
+// distinction lieu/organisateur). Dédoublonné, plus récents d'abord.
 function structure_evenements(int $structureId): array
 {
     if (!module_actif('evenements')) {
@@ -264,22 +261,23 @@ function structure_evenements(int $structureId): array
     $stmt = db()->prepare(
         'SELECT DISTINCT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle, spg.nom AS spectacle_groupe
          FROM evenements e
+         JOIN evenement_structures es ON es.evenement_id = e.id
          LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
          LEFT JOIN spectacles spg ON spg.id = sp.parent_id
-         WHERE e.organisateur_structure_id = :sid OR e.lieu_id = :sid
+         WHERE es.structure_id = :sid
          ORDER BY e.date DESC, e.id DESC'
     );
     $stmt->execute([':sid' => $structureId]);
     return $stmt->fetchAll();
 }
 
-// Nombre d'événements par structure (organisateur OU via un de ses lieux),
-// dédoublonné. Colonne « Événements » de ?p=structures. [id => n]. Inclut
-// aussi les événements des structures qu'elle organise (structure_organisateurs,
-// sens « organise » — voir structures_liste.php/structure_donnees_crm()) :
-// sinon un organisateur dont les événements sont portés par ses salles/
-// festivals liés (organisateur_structure_id/lieu_id pointant sur ceux-ci, pas
-// sur lui) apparaîtrait à tort sans aucun événement.
+// Nombre d'événements par structure (evenement_structures — plus de
+// distinction lieu/organisateur), dédoublonné. Colonne « Événements » de
+// ?p=structures. [id => n]. Inclut aussi les événements des structures
+// qu'elle organise (structure_organisateurs, sens « organise » — voir
+// structures_liste.php/structure_donnees_crm()) : sinon un organisateur dont
+// les événements sont portés par ses salles/festivals liés (liés à eux dans
+// evenement_structures, pas à lui) apparaîtrait à tort sans aucun événement.
 function structures_nb_evenements(array $structureIds): array
 {
     $ids = array_values(array_filter(array_map('intval', $structureIds)));
@@ -302,12 +300,9 @@ function structures_nb_evenements(array $structureIds): array
     $inTous = implode(',', $tousIds);
 
     // Événements de chaque structure impliquée (d'origine ou liée), pour
-    // ensuite regrouper par structure d'origine sans compter deux fois un
-    // même événement référencé à la fois par organisateur_structure_id et lieu_id.
+    // ensuite regrouper par structure d'origine.
     $eidsParSid = [];
-    $sql = "SELECT organisateur_structure_id AS sid, id AS eid FROM evenements WHERE organisateur_structure_id IN ($inTous)
-            UNION
-            SELECT lieu_id AS sid, id AS eid FROM evenements WHERE lieu_id IN ($inTous)";
+    $sql = "SELECT structure_id AS sid, evenement_id AS eid FROM evenement_structures WHERE structure_id IN ($inTous)";
     foreach (db()->query($sql) as $r) {
         $eidsParSid[(int) $r['sid']][(int) $r['eid']] = true;
     }
@@ -348,18 +343,18 @@ function structure_recalculer_dernier_contact(int $structureId): void
 // radio peut aussi l'utiliser pour dire qu'elle a déjà diffusé un titre, voir
 // migration_59) : MAX() de la valeur déjà connue (saisie manuelle/import — la
 // seule source pour une diffusion radio ou un concert antérieur à l'usage de
-// l'appli) et des dates des événements que l'appli sait avoir organisés dans
-// ce lieu (evenement_lieux, depuis la fusion lieux→structures, migration_60).
-// Ne fait donc que REMONTER la date, jamais la faire reculer. Appelée par
-// evenement_resynchroniser_miroirs() (lib/evenements.php) après toute
-// modification du lien lieu d'un événement.
+// l'appli) et des dates des événements que l'appli sait lui avoir rattachés
+// (evenement_structures, voir migration_66 — plus de distinction lieu/
+// organisateur). Ne fait donc que REMONTER la date, jamais la faire reculer.
+// Appelée par evenement_resynchroniser_miroirs() (lib/evenements.php) après
+// toute modification des structures liées d'un événement.
 function structure_recalculer_dernier_concert(int $structureId): void
 {
     $stmt = db()->prepare(
         "SELECT MAX(d) FROM (
             SELECT dernier_concert_le AS d FROM structures WHERE id = ?
             UNION ALL
-            SELECT MAX(e.date) AS d FROM evenement_lieux el JOIN evenements e ON e.id = el.evenement_id WHERE el.lieu_id = ?
+            SELECT MAX(e.date) AS d FROM evenement_structures es JOIN evenements e ON e.id = es.evenement_id WHERE es.structure_id = ?
         )"
     );
     $stmt->execute([$structureId, $structureId]);

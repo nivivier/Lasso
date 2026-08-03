@@ -528,8 +528,8 @@ function structures_filtres(): array
     if ($lieuMoisEvenement < 1 || $lieuMoisEvenement > 12) { $lieuMoisEvenement = 0; }
     if ($lieuMoisProg < 1 || $lieuMoisProg > 12) { $lieuMoisProg = 0; }
     // Même critère de lien que structures_nb_evenements()/structure_evenements()
-    // (colonnes miroir organisateur_structure_id/lieu_id, voir migration_58) —
-    // pas de sens si le module événements est inactif.
+    // (table evenement_structures, voir migration_66) — pas de sens si le
+    // module événements est inactif.
     $avecEvenements = module_actif('evenements')
         && filtre_persistant('avec_evenements', 'structures_avec_evenements', '') === '1';
 
@@ -589,7 +589,7 @@ function structures_filtres(): array
         if ($lieuMoisProg) { $filtreMoisLieu('mois_debut', 'mois_fin', $lieuMoisProg); }
     }
     if ($avecEvenements) {
-        $where .= ' AND EXISTS (SELECT 1 FROM evenements e WHERE e.organisateur_structure_id = s.id OR e.lieu_id = s.id)';
+        $where .= ' AND EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
     }
 
     return [

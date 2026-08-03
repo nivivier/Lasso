@@ -482,22 +482,17 @@ function route_evenement(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
 
-    // Carte « Organisation » : lieux/organisateurs multiples (voir migration_58,
-    // evenement_lieux_lies()/evenement_organisateurs_lies() — lib/evenements.php).
-    $lieuxLies = $id ? evenement_lieux_lies($id) : [];
-    $organisateursLies = ($id && module_actif('facturation')) ? evenement_organisateurs_lies($id) : [];
-    // Non filtré sur le statut : une structure « inactive »/« ne pas
-    // contacter » peut quand même avoir organisé l'événement (statut = suivi
-    // commercial, pas une propriété qui devrait bloquer le rattachement d'un
-    // fait déjà survenu) — même principe que route_lieux_options()/
-    // route_structures_options() pour la recherche d'ajout.
-    $structuresDispo = ($id && module_actif('facturation'))
-        ? db()->query('SELECT * FROM structures ORDER BY nom')->fetchAll()
-        : [];
+    // Carte « Organisation » : structures liées, sans distinction lieu/
+    // organisateur (voir migration_58/66, evenement_structures_liees() —
+    // lib/evenements.php). Candidats à l'ajout chargés à la demande côté
+    // client (?p=lieux_options, potentiellement des milliers de structures) —
+    // pas de liste serveur ici, contrairement à l'ancienne recherche
+    // « Organisateur(s) » seule.
+    $structuresLiees = $id ? evenement_structures_liees($id) : [];
 
-    // Lien vers un lieu de la base (module booking) — recherche disponible dès
-    // la création (un seul lieu à ce stade, evenements.lieu_id) ; plusieurs
-    // lieux ne se gèrent qu'une fois l'événement créé, depuis la carte
+    // Lien vers une structure de la base (module booking) — recherche
+    // disponible dès la création (une seule à ce stade) ; d'autres structures
+    // ne se gèrent qu'une fois l'événement créé, depuis la carte
     // « Organisation » (chargée à la demande via ?p=lieux_options).
     $peutLierLieu = module_actif('booking') && peut_lire('booking');
     $lieuActuel = null;
@@ -509,7 +504,7 @@ function route_evenement(): void
 
     $renderForm = function (?string $err) use (
         $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
-        $axes, $lieuxLies, $organisateursLies, $structuresDispo, $peutLierLieu, $lieuActuel
+        $axes, $structuresLiees, $peutLierLieu, $lieuActuel
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -524,9 +519,7 @@ function route_evenement(): void
             'tauxHoraires'   => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
             'factures'       => $id ? evenement_factures_liees($id) : [],
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
-            'lieuxLies'      => $lieuxLies,
-            'organisateursLies' => $organisateursLies,
-            'structuresDispo' => $structuresDispo,
+            'structuresLiees' => $structuresLiees,
             'peutLierLieu'   => $peutLierLieu,
             'lieuActuel'     => $lieuActuel,
             'paysDisponibles' => evenements_pays_disponibles(),
@@ -601,7 +594,7 @@ function route_evenement(): void
     $champs = [
         'spectacle_id' => $spectacleId, 'date' => $date, 'statut' => $statut, 'visibilite' => $visibilite,
         'ville' => $ville, 'departement_canton' => $departementCanton, 'pays' => $pays, 'salle' => $salle, 'festival' => $festival,
-        'grande_region' => $grandeRegion, 'lieu_id' => $lieuId,
+        'grande_region' => $grandeRegion,
         'lien_infos' => $lienInfos, 'lien_texte' => $lienTexte, 'remarques' => $remarques,
     ];
     $paysNom = pays_nom_depuis_code($pays);
@@ -613,16 +606,19 @@ function route_evenement(): void
     // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
     // depuis la carte « SUISA », visible une fois l'événement créé.
     db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
-                    grande_region, lieu_id, lien_infos, lien_texte, remarques)
+                    grande_region, lien_infos, lien_texte, remarques)
                     VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
-                    :grande_region, :lieu_id, :lien_infos, :lien_texte, :remarques)')
+                    :grande_region, :lien_infos, :lien_texte, :remarques)')
         ->execute($champs);
     $evenementId = (int) db()->lastInsertId();
     if ($lieuId !== null) {
-        // Table de jointure (voir migration_58) — pas seulement la colonne
-        // miroir, pour que le lieu apparaisse tout de suite dans la carte
-        // « Organisation » une fois l'événement créé.
-        db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)')
+        // Table de jointure (voir migration_58/66) — pas seulement le miroir
+        // organisateur_structure_id, pour que la structure apparaisse tout de
+        // suite dans la carte « Organisation » une fois l'événement créé. Pas
+        // marquée « à facturer » par défaut (comportement identique à avant :
+        // organisateur_structure_id restait NULL tant qu'aucun organisateur
+        // n'était choisi depuis la carte « Organisation »).
+        db()->prepare('INSERT OR IGNORE INTO evenement_structures (evenement_id, structure_id) VALUES (?, ?)')
             ->execute([$evenementId, $lieuId]);
         structure_recalculer_dernier_concert($lieuId);
     }
@@ -674,12 +670,12 @@ function route_evenement_informations(): void
                     lien_infos=?, lien_texte=?, remarques=? WHERE id=?')
         ->execute([$spectacleId, $date, $statut, $visibilite, $salle, $festival, $lienInfos, $lienTexte, $remarques, $id]);
 
-    // La date a pu changer : re-dérive dernier_concert_le pour le(s) lieu(x)
-    // déjà lié(s) (voir structure_recalculer_dernier_concert()).
-    $stmtLieux = db()->prepare('SELECT lieu_id FROM evenement_lieux WHERE evenement_id = ?');
-    $stmtLieux->execute([$id]);
-    foreach ($stmtLieux->fetchAll(PDO::FETCH_COLUMN) as $lieuId) {
-        structure_recalculer_dernier_concert((int) $lieuId);
+    // La date a pu changer : re-dérive dernier_concert_le pour les structures
+    // déjà liées (voir structure_recalculer_dernier_concert()).
+    $stmtStructures = db()->prepare('SELECT structure_id FROM evenement_structures WHERE evenement_id = ?');
+    $stmtStructures->execute([$id]);
+    foreach ($stmtStructures->fetchAll(PDO::FETCH_COLUMN) as $structureId) {
+        structure_recalculer_dernier_concert((int) $structureId);
     }
 
     redirect('evenement', ['id' => $id, 'ok' => 'informations']);
@@ -719,11 +715,13 @@ function route_evenement_localisation(): void
     redirect('evenement', ['id' => $id, 'ok' => 'localisation']);
 }
 
-// Carte « Organisation » — remplace en un seul POST l'ensemble des lieux et
-// organisateurs liés (voir evenement_form.php : rien n'est envoyé tant que
-// « Enregistrer » n'est pas cliqué, contrairement aux anciennes routes
-// lier/délier qui agissaient immédiatement sur un seul lien à la fois).
-// Remplace route_evenement_organisateur_lier()/_delier().
+// Carte « Organisation » — remplace en un seul POST l'ensemble des structures
+// liées (voir evenement_form.php : rien n'est envoyé tant que « Enregistrer »
+// n'est pas cliqué, contrairement aux anciennes routes lier/délier qui
+// agissaient immédiatement sur un seul lien à la fois). Plus de distinction
+// lieu/organisateur (voir migration_66) : une seule liste de structures,
+// dont au plus une marquée « à facturer » (facturation_id) pour la facture/
+// l'export SUISA. Remplace route_evenement_organisateur_lier()/_delier().
 function route_evenement_organisation(): void
 {
     require_login();
@@ -732,14 +730,6 @@ function route_evenement_organisation(): void
         redirect('evenements_liste');
     }
     check_csrf();
-
-    $lieuIds = array_values(array_unique(array_map('intval', $_POST['lieu_ids'] ?? [])));
-    if ($lieuIds) {
-        $in = implode(',', array_fill(0, count($lieuIds), '?'));
-        $stmt = db()->prepare("SELECT id FROM structures WHERE id IN ($in)");
-        $stmt->execute($lieuIds);
-        $lieuIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-    }
 
     $structureIdsPost = $_POST['structure_ids'] ?? [];
     $structureIds = array_values(array_unique(array_map('intval', array_filter($structureIdsPost, fn ($v) => $v !== '__new__'))));
@@ -759,16 +749,21 @@ function route_evenement_organisation(): void
         $structureIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
-    db()->beginTransaction();
-    db()->prepare('DELETE FROM evenement_lieux WHERE evenement_id = ?')->execute([$id]);
-    $insL = db()->prepare('INSERT OR IGNORE INTO evenement_lieux (evenement_id, lieu_id) VALUES (?, ?)');
-    foreach ($lieuIds as $lieuId) {
-        $insL->execute([$id, $lieuId]);
+    // Structure marquée « à facturer » (référence pour la facture/l'export
+    // SUISA, voir evenement_resynchroniser_miroirs()) : au plus une, doit
+    // faire partie de la sélection courante — sinon aucune (le JS en
+    // présélectionne une côté client dès le premier ajout, voir
+    // views/evenement_form.php, mais on ne devine rien côté serveur).
+    $facturationId = (int) ($_POST['facturation_id'] ?? 0);
+    if (!in_array($facturationId, $structureIds, true)) {
+        $facturationId = 0;
     }
-    db()->prepare('DELETE FROM evenement_organisateurs WHERE evenement_id = ?')->execute([$id]);
-    $insO = db()->prepare('INSERT OR IGNORE INTO evenement_organisateurs (evenement_id, structure_id) VALUES (?, ?)');
+
+    db()->beginTransaction();
+    db()->prepare('DELETE FROM evenement_structures WHERE evenement_id = ?')->execute([$id]);
+    $ins = db()->prepare('INSERT OR IGNORE INTO evenement_structures (evenement_id, structure_id, est_facturation) VALUES (?, ?, ?)');
     foreach ($structureIds as $structureId) {
-        $insO->execute([$id, $structureId]);
+        $ins->execute([$id, $structureId, $structureId === $facturationId ? 1 : 0]);
     }
     db()->commit();
 

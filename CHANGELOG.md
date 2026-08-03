@@ -7,6 +7,12 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.32.0] — 2026-08-01
+
+### Modifié
+- `?p=evenement`, carte « Organisation » : « Lieu(x) » et « Organisateur(s) » sont fusionnés en une seule liste de structures liées, sans sous-titre — plus de distinction de rôle entre les deux. Une structure peut être marquée « à facturer » (icône étoile, une seule à la fois) : c'est elle qui sert de référence au pré-remplissage facture et à l'export CSV SUISA (comportement inchangé pour ces deux fonctionnalités).
+- Migration 66 : fusionne les tables `evenement_lieux`/`evenement_organisateurs` en une seule `evenement_structures` (avec la marque « à facturer ») ; `evenements.lieu_id` est retiré (`organisateur_structure_id` est conservé, désormais dérivé de la structure marquée « à facturer »).
+
 ## [1.31.0] — 2026-08-01
 
 ### Modifié
