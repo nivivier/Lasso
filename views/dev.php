@@ -260,15 +260,15 @@ $lienFiche = function (string $type, int $id): string {
         <p><?= count($evenementsLieuxUnivoques) ?> événement(s) avec un lieu candidat unique.</p>
         <div class="table-scroll">
         <table class="list">
-            <thead><tr><th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th><th>Date</th><th>Salle (événement)</th><th>Ville</th><th>Lieu proposé</th></tr></thead>
+            <thead><tr><th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th><th>Date</th><th>Salle (événement)</th><th>Ville</th><th>Organisateur proposé</th></tr></thead>
             <tbody>
             <?php foreach ($evenementsLieuxUnivoques as $d): ?>
                 <tr>
                     <td class="col-check"><input type="checkbox" name="sel[]" value="<?= (int) $d['evenement_id'] ?>" form="dev-evlier-form" class="row-check"></td>
-                    <td class="muted small"><?= e($d['date']) ?></td>
+                    <td class="muted small"><a href="?p=evenement&id=<?= (int) $d['evenement_id'] ?>"><?= e($d['date']) ?></a></td>
                     <td><?= e($d['salle']) ?></td>
                     <td class="muted small"><?= e($d['ville']) ?></td>
-                    <td><?= e($d['candidats'][0]['nom']) ?> <span class="muted small">(<?= e($d['candidats'][0]['type']) ?>)</span></td>
+                    <td><a href="?p=structure&id=<?= (int) $d['candidats'][0]['id'] ?>"><?= e($d['candidats'][0]['nom']) ?></a> <span class="muted small">(<?= e($d['candidats'][0]['type']) ?>)</span></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

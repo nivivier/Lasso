@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.32.2] — 2026-08-01
+
+### Modifié
+- `?p=dev` → Incohérences → « Correspondances trouvées » : la date et la structure proposée sont désormais des liens (vers l'événement et la fiche structure) ; colonne renommée « Organisateur proposé » (plus de distinction lieu/organisateur).
+
 ## [1.32.1] — 2026-08-01
 
 ### Corrigé
