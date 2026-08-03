@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.31.0] — 2026-08-01
+
+### Modifié
+- `?p=structure` : réorganisation des colonnes pour hiérarchiser l'essentiel — colonne 1 : Statut puis Informations générales (le champ le plus consulté passe avant les cartes de relations/activité) ; colonne 2 : Structures liées, Événements, Contacts ; colonne 3 inchangée (Localisation, Historique).
+- La carte « Période » est fusionnée dans « Informations générales », juste avant Remarques : les lignes Réalisation et Préparation affichent chacune indépendamment « Toute l'année » quand ses propres mois ne sont pas renseignés (au lieu d'un message global valable seulement si les 4 champs étaient vides).
+
+### Retiré
+- Route `?p=structure_periode` et `route_structure_periode()` : la sauvegarde de la période est désormais intégrée à `route_structure()`, dans le même formulaire que le reste des informations générales.
+
 ## [1.30.3] — 2026-08-01
 
 ### Corrigé

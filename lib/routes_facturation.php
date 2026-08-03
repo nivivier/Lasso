@@ -1071,16 +1071,31 @@ function route_structure(): void
                 'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
                 'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
             ];
-            // Jauge min/max : uniquement dans la carte « Informations
-            // générales » avec $avecAside (booking actif + lecture) — même
-            // condition que ci-dessous, côté opposé, pour ne jamais écraser
-            // silencieusement une valeur existante depuis un formulaire qui
-            // n'a pas ces champs (cf. commentaire localisation juste après).
+            // Jauge min/max + période (Réalisation/Préparation, fusionnée
+            // dans cette même carte « Informations générales ») : uniquement
+            // avec $avecAside (booking actif + lecture) — même condition que
+            // ci-dessous, côté opposé, pour ne jamais écraser silencieusement
+            // une valeur existante depuis un formulaire qui n'a pas ces champs
+            // (cf. commentaire localisation juste après).
             if (module_actif('booking') && peut_lire('booking')) {
                 $champs['jauge_min'] = ($_POST['jauge_min'] ?? '') !== '' ? max(0, (int) $_POST['jauge_min']) : null;
                 $champs['jauge_max'] = ($_POST['jauge_max'] ?? '') !== '' ? max(0, (int) $_POST['jauge_max']) : null;
-                $sqlSet .= ', jauge_min=:jauge_min, jauge_max=:jauge_max';
-                $diffChamps += ['jauge_min' => 'Jauge min', 'jauge_max' => 'Jauge max'];
+                $moisValide = function (string $champ): ?int {
+                    $mv = trim((string) ($_POST[$champ] ?? ''));
+                    return ($mv !== '' && (int) $mv >= 1 && (int) $mv <= 12) ? (int) $mv : null;
+                };
+                $champs['mois_evenement_debut'] = $moisValide('mois_evenement_debut');
+                $champs['mois_evenement_fin']   = $moisValide('mois_evenement_fin');
+                $champs['mois_debut']           = $moisValide('mois_debut');
+                $champs['mois_fin']             = $moisValide('mois_fin');
+                $sqlSet .= ', jauge_min=:jauge_min, jauge_max=:jauge_max,
+                             mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
+                             mois_debut=:mois_debut, mois_fin=:mois_fin';
+                $diffChamps += [
+                    'jauge_min' => 'Jauge min', 'jauge_max' => 'Jauge max',
+                    'mois_evenement_debut' => 'Début de réalisation', 'mois_evenement_fin' => 'Fin de réalisation',
+                    'mois_debut' => 'Début de préparation', 'mois_fin' => 'Fin de préparation',
+                ];
             }
             // Sans accès en lecture au module booking (mêmes conditions que
             // $avecAside, views/structure_form.php), pas de carte
@@ -1185,49 +1200,6 @@ function route_structure_localisation(): void
         ]);
     }
     redirect('structure', ['id' => $id, 'ok' => 'localisation']);
-}
-
-// Carte « Période » (?p=structure, édition) — mois de début/fin de
-// réalisation (mois_evenement_debut/fin) et de préparation (mois_debut/fin),
-// sauvegardée à part de la carte « Informations générales ». Pas de colonne
-// dédiée pour la case « Toute l'année » (structure_form.php) : son état est
-// entièrement dérivé des 4 champs (tous vides = toute l'année) — le JS vide
-// les <select> quand elle est cochée avant soumission, donc il suffit ici
-// d'enregistrer ce qui est posté, vide ou non (NULL).
-function route_structure_periode(): void
-{
-    require_login();
-    $id = (int) ($_POST['id'] ?? 0);
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$id) {
-        redirect('structures');
-    }
-    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
-    $stmt->execute([$id]);
-    $structureAvant = $stmt->fetch();
-    if (!$structureAvant) {
-        redirect('structures');
-    }
-    check_csrf();
-    $moisValide = function (string $champ): ?int {
-        $v = trim((string) ($_POST[$champ] ?? ''));
-        return ($v !== '' && (int) $v >= 1 && (int) $v <= 12) ? (int) $v : null;
-    };
-    $champs = [
-        'mois_evenement_debut' => $moisValide('mois_evenement_debut'),
-        'mois_evenement_fin'   => $moisValide('mois_evenement_fin'),
-        'mois_debut'           => $moisValide('mois_debut'),
-        'mois_fin'             => $moisValide('mois_fin'),
-        'id' => $id,
-    ];
-    db()->prepare('UPDATE structures SET mois_evenement_debut=:mois_evenement_debut, mois_evenement_fin=:mois_evenement_fin,
-                    mois_debut=:mois_debut, mois_fin=:mois_fin WHERE id=:id')->execute($champs);
-    if (module_actif('booking')) {
-        journaliser_diff('structure', $id, $structureAvant, $champs, [
-            'mois_evenement_debut' => 'Début de réalisation', 'mois_evenement_fin' => 'Fin de réalisation',
-            'mois_debut' => 'Début de préparation', 'mois_fin' => 'Fin de préparation',
-        ]);
-    }
-    redirect('structure', ['id' => $id, 'ok' => 'periode']);
 }
 
 // Bascule immédiate du statut d'une structure (structures.statut, voir

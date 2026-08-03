@@ -231,10 +231,191 @@ $sid = (int) ($structure['id'] ?? 0);
 
 <?php else: ?>
 <!-- Avec le module booking : 3 colonnes de cartes empilées, chacune d'une
-     hauteur indépendante — colonne 1 : Lieux liés + Informations générales ;
-     colonne 2 : Statut + Contacts ; colonne 3 : Localisation + Historique
-     (voir le fil de discussion pour la répartition exacte). -->
+     hauteur indépendante — colonne 1 : Statut + Informations générales (la
+     carte « Période » a été fusionnée dedans, avant Remarques) ; colonne 2 :
+     Structures liées + Événements + Contacts ; colonne 3 : Localisation +
+     Historique (voir le fil de discussion pour la répartition exacte). -->
 <div class="card-columns">
+
+<div class="card-col">
+
+<div class="card">
+    <div class="card-head-row">
+        <h2 class="mt-0">Statut</h2>
+        <?= structure_statut_toggle_html($sid, (string) $structure['statut']) ?>
+    </div>
+
+    <div class="tags-liste mt-16">
+        <?php foreach ($tags as $t): ?>
+            <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
+                <form method="post" action="?p=structure_tag_retirer" class="d-inline" onsubmit="return confirm('Retirer cette étiquette ?');">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="structure_id" value="<?= $sid ?>">
+                    <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
+                    <button type="submit" class="btn-tag-x" aria-label="Retirer">×</button>
+                </form>
+            </span>
+        <?php endforeach; ?>
+        <?php if (!$tags): ?><span class="muted small">Aucune étiquette.</span><?php endif; ?>
+        <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
+    </div>
+    <form method="post" action="?p=structure_tag_ajouter" class="linked-add mt-10" id="tag-ajouter-form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="structure_id" value="<?= $sid ?>">
+        <input type="text" name="nom" list="tags-dispo" placeholder="Ajouter une étiquette…" autocomplete="off">
+        <datalist id="tags-dispo">
+            <?php foreach ($tagsDispo as $t): ?><option value="<?= e($t['nom']) ?>"><?php endforeach; ?>
+        </datalist>
+        <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+    </form>
+</div>
+<script>lassoInitStatutToggle();</script>
+
+<div class="card card-editable">
+    <?php
+    $categorieAffichee = trim((string) ($structure['categorie'] ?? ''));
+    if ($categorieAffichee !== '' && trim((string) ($structure['sous_categorie'] ?? '')) !== '') {
+        $categorieAffichee .= ' › ' . $structure['sous_categorie'];
+    }
+    $periodeVide = empty($structure['mois_evenement_debut']) && empty($structure['mois_evenement_fin'])
+        && empty($structure['mois_debut']) && empty($structure['mois_fin']);
+    ?>
+    <form method="post" action="?p=structure&id=<?= $sid ?>" class="form" id="structure-details-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="nom" value="<?= $v('nom') ?>">
+
+        <div class="card-head-row">
+            <h2 class="mt-0">Informations générales</h2>
+            <div class="head-actions">
+                <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            </div>
+        </div>
+
+        <div class="card-disp">
+            <table class="kv-table">
+                <tr>
+                    <th>Catégorie</th>
+                    <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td><span class="ico-label"><?= icon(($structure['type'] ?? 'organisation') === 'particulier' ? 'user' : 'building') ?> <?= ($structure['type'] ?? 'organisation') === 'particulier' ? 'Particulier' : 'Organisation' ?></span></td>
+                </tr>
+                <tr>
+                    <th>Connu via</th>
+                    <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
+                </tr>
+                <tr>
+                    <th>Site web</th>
+                    <td><?php if (trim((string) ($structure['site_web'] ?? '')) !== ''): ?><a href="<?= $v('site_web') ?>" target="_blank" rel="noopener"><?= $v('site_web') ?></a><?php else: ?>—<?php endif; ?></td>
+                </tr>
+                <tr>
+                    <th>Jauge</th>
+                    <td>
+                        <?php
+                        $jaugeMinAff = $structure['jauge_min'] ?? null;
+                        $jaugeMaxAff = $structure['jauge_max'] ?? null;
+                        if ($jaugeMinAff !== null && $jaugeMinAff !== '' && $jaugeMaxAff !== null && $jaugeMaxAff !== ''):
+                            echo (int) $jaugeMinAff . ' – ' . (int) $jaugeMaxAff;
+                        elseif ($jaugeMinAff !== null && $jaugeMinAff !== ''):
+                            echo '≥ ' . (int) $jaugeMinAff;
+                        elseif ($jaugeMaxAff !== null && $jaugeMaxAff !== ''):
+                            echo '≤ ' . (int) $jaugeMaxAff;
+                        else:
+                            echo '—';
+                        endif;
+                        ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Réalisation</th>
+                    <td>
+                        <?php if (empty($structure['mois_evenement_debut']) && empty($structure['mois_evenement_fin'])): ?>Toute l'année
+                        <?php else: ?><?= !empty($structure['mois_evenement_debut']) ? e(mois_nom((int) $structure['mois_evenement_debut'])) : '—' ?> – <?= !empty($structure['mois_evenement_fin']) ? e(mois_nom((int) $structure['mois_evenement_fin'])) : '—' ?><?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Préparation</th>
+                    <td>
+                        <?php if (empty($structure['mois_debut']) && empty($structure['mois_fin'])): ?>Toute l'année
+                        <?php else: ?><?= !empty($structure['mois_debut']) ? e(mois_nom((int) $structure['mois_debut'])) : '—' ?> – <?= !empty($structure['mois_fin']) ? e(mois_nom((int) $structure['mois_fin'])) : '—' ?><?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Remarques</th>
+                    <td>
+                        <?php $notesTxt = trim((string) ($structure['notes'] ?? '')); ?>
+                        <?php if ($notesTxt === ''): ?>—
+                        <?php elseif (mb_strlen($notesTxt) > 200): ?>
+                            <span class="notes-tronquees"><?= nl2br(e(mb_substr($notesTxt, 0, 200)) . '…') ?></span>
+                            <span class="notes-completes" hidden><?= nl2br(e($notesTxt)) ?></span>
+                            <button type="button" class="voir-tout-btn">voir tout</button>
+                        <?php else: ?><?= nl2br(e($notesTxt)) ?><?php endif; ?>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="card-edit" hidden>
+            <label>Catégorie
+                <select name="categorie_id">
+                    <?php foreach ($categoriesPourSelect as $cat): ?>
+                        <option value="<?= (int) $cat['id'] ?>" <?= $categorieIdSelectionnee === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <div class="field-group">
+                <span>Type</span>
+                <?= icon_picker('type', [
+                    'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
+                    'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
+                ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
+            </div>
+            <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+            <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
+            <div class="grid2">
+                <label>Jauge min <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
+                <label>Jauge max <input name="jauge_max" type="number" min="0" value="<?= ($structure['jauge_max'] ?? '') !== '' ? (int) $structure['jauge_max'] : '' ?>" placeholder="ex. 800"></label>
+            </div>
+            <label class="check"><input type="checkbox" id="periode-toute-annee" <?= $periodeVide ? 'checked' : '' ?>> Toute l'année</label>
+            <div id="periode-mois-champs" class="grid3" <?= $periodeVide ? 'hidden' : '' ?>>
+                <label>Début de réalisation
+                    <select name="mois_evenement_debut"><?= mois_options((int) ($structure['mois_evenement_debut'] ?? 0)) ?></select>
+                </label>
+                <label>Fin de réalisation
+                    <select name="mois_evenement_fin"><?= mois_options((int) ($structure['mois_evenement_fin'] ?? 0)) ?></select>
+                </label>
+                <label>Début de préparation
+                    <select name="mois_debut"><?= mois_options((int) ($structure['mois_debut'] ?? 0)) ?></select>
+                </label>
+                <label>Fin de préparation
+                    <select name="mois_fin"><?= mois_options((int) ($structure['mois_fin'] ?? 0)) ?></select>
+                </label>
+            </div>
+            <label>Remarques
+                <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
+            </label>
+        </div>
+    </form>
+</div>
+<script>
+(function () {
+    var chk = document.getElementById('periode-toute-annee');
+    var champs = document.getElementById('periode-mois-champs');
+    if (!chk || !champs) return;
+    chk.addEventListener('change', function () {
+        champs.hidden = chk.checked;
+        if (chk.checked) {
+            champs.querySelectorAll('select').forEach(function (s) { s.value = ''; });
+        }
+    });
+})();
+</script>
+
+</div>
 
 <div class="card-col">
 
@@ -381,210 +562,6 @@ $sid = (int) ($structure['id'] ?? 0);
     </div>
 </div>
 <?php endif; ?>
-
-<div class="card card-editable">
-    <?php
-    $categorieAffichee = trim((string) ($structure['categorie'] ?? ''));
-    if ($categorieAffichee !== '' && trim((string) ($structure['sous_categorie'] ?? '')) !== '') {
-        $categorieAffichee .= ' › ' . $structure['sous_categorie'];
-    }
-    ?>
-    <form method="post" action="?p=structure&id=<?= $sid ?>" class="form" id="structure-details-form">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="nom" value="<?= $v('nom') ?>">
-
-        <div class="card-head-row">
-            <h2 class="mt-0">Informations générales</h2>
-            <div class="head-actions">
-                <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
-            </div>
-        </div>
-
-        <div class="card-disp">
-            <table class="kv-table">
-                <tr>
-                    <th>Catégorie</th>
-                    <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
-                </tr>
-                <tr>
-                    <th>Type</th>
-                    <td><span class="ico-label"><?= icon(($structure['type'] ?? 'organisation') === 'particulier' ? 'user' : 'building') ?> <?= ($structure['type'] ?? 'organisation') === 'particulier' ? 'Particulier' : 'Organisation' ?></span></td>
-                </tr>
-                <tr>
-                    <th>Connu via</th>
-                    <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
-                </tr>
-                <tr>
-                    <th>Site web</th>
-                    <td><?php if (trim((string) ($structure['site_web'] ?? '')) !== ''): ?><a href="<?= $v('site_web') ?>" target="_blank" rel="noopener"><?= $v('site_web') ?></a><?php else: ?>—<?php endif; ?></td>
-                </tr>
-                <tr>
-                    <th>Jauge</th>
-                    <td>
-                        <?php
-                        $jaugeMinAff = $structure['jauge_min'] ?? null;
-                        $jaugeMaxAff = $structure['jauge_max'] ?? null;
-                        if ($jaugeMinAff !== null && $jaugeMinAff !== '' && $jaugeMaxAff !== null && $jaugeMaxAff !== ''):
-                            echo (int) $jaugeMinAff . ' – ' . (int) $jaugeMaxAff;
-                        elseif ($jaugeMinAff !== null && $jaugeMinAff !== ''):
-                            echo '≥ ' . (int) $jaugeMinAff;
-                        elseif ($jaugeMaxAff !== null && $jaugeMaxAff !== ''):
-                            echo '≤ ' . (int) $jaugeMaxAff;
-                        else:
-                            echo '—';
-                        endif;
-                        ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Remarques</th>
-                    <td>
-                        <?php $notesTxt = trim((string) ($structure['notes'] ?? '')); ?>
-                        <?php if ($notesTxt === ''): ?>—
-                        <?php elseif (mb_strlen($notesTxt) > 200): ?>
-                            <span class="notes-tronquees"><?= nl2br(e(mb_substr($notesTxt, 0, 200)) . '…') ?></span>
-                            <span class="notes-completes" hidden><?= nl2br(e($notesTxt)) ?></span>
-                            <button type="button" class="voir-tout-btn">voir tout</button>
-                        <?php else: ?><?= nl2br(e($notesTxt)) ?><?php endif; ?>
-                    </td>
-                </tr>
-            </table>
-        </div>
-
-        <div class="card-edit" hidden>
-            <label>Catégorie
-                <select name="categorie_id">
-                    <?php foreach ($categoriesPourSelect as $cat): ?>
-                        <option value="<?= (int) $cat['id'] ?>" <?= $categorieIdSelectionnee === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <div class="field-group">
-                <span>Type</span>
-                <?= icon_picker('type', [
-                    'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
-                    'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
-                ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
-            </div>
-            <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
-            <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
-            <div class="grid2">
-                <label>Jauge min <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
-                <label>Jauge max <input name="jauge_max" type="number" min="0" value="<?= ($structure['jauge_max'] ?? '') !== '' ? (int) $structure['jauge_max'] : '' ?>" placeholder="ex. 800"></label>
-            </div>
-            <label>Remarques
-                <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
-            </label>
-        </div>
-    </form>
-</div>
-
-<div class="card card-editable">
-    <?php
-        $periodeVide = empty($structure['mois_evenement_debut']) && empty($structure['mois_evenement_fin'])
-            && empty($structure['mois_debut']) && empty($structure['mois_fin']);
-    ?>
-    <form method="post" action="?p=structure_periode" class="form" id="structure-periode-form">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= $sid ?>">
-
-        <div class="card-head-row">
-            <h2 class="mt-0">Période</h2>
-            <div class="head-actions">
-                <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier la période"><?= icon('pencil') ?></button>
-                <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
-            </div>
-        </div>
-
-        <div class="card-disp">
-            <?php if ($periodeVide): ?>
-                <p class="muted small">Toute l'année.</p>
-            <?php else: ?>
-                <table class="kv-table">
-                    <tr>
-                        <th>Réalisation</th>
-                        <td><?= !empty($structure['mois_evenement_debut']) ? e(mois_nom((int) $structure['mois_evenement_debut'])) : '—' ?> – <?= !empty($structure['mois_evenement_fin']) ? e(mois_nom((int) $structure['mois_evenement_fin'])) : '—' ?></td>
-                    </tr>
-                    <tr>
-                        <th>Préparation</th>
-                        <td><?= !empty($structure['mois_debut']) ? e(mois_nom((int) $structure['mois_debut'])) : '—' ?> – <?= !empty($structure['mois_fin']) ? e(mois_nom((int) $structure['mois_fin'])) : '—' ?></td>
-                    </tr>
-                </table>
-            <?php endif; ?>
-        </div>
-
-        <div class="card-edit" hidden>
-            <label class="check"><input type="checkbox" id="periode-toute-annee" <?= $periodeVide ? 'checked' : '' ?>> Toute l'année</label>
-            <div id="periode-mois-champs" class="grid3" <?= $periodeVide ? 'hidden' : '' ?>>
-                <label>Début de réalisation
-                    <select name="mois_evenement_debut"><?= mois_options((int) ($structure['mois_evenement_debut'] ?? 0)) ?></select>
-                </label>
-                <label>Fin de réalisation
-                    <select name="mois_evenement_fin"><?= mois_options((int) ($structure['mois_evenement_fin'] ?? 0)) ?></select>
-                </label>
-                <label>Début de préparation
-                    <select name="mois_debut"><?= mois_options((int) ($structure['mois_debut'] ?? 0)) ?></select>
-                </label>
-                <label>Fin de préparation
-                    <select name="mois_fin"><?= mois_options((int) ($structure['mois_fin'] ?? 0)) ?></select>
-                </label>
-            </div>
-        </div>
-    </form>
-</div>
-<script>
-(function () {
-    var chk = document.getElementById('periode-toute-annee');
-    var champs = document.getElementById('periode-mois-champs');
-    if (!chk || !champs) return;
-    chk.addEventListener('change', function () {
-        champs.hidden = chk.checked;
-        if (chk.checked) {
-            champs.querySelectorAll('select').forEach(function (s) { s.value = ''; });
-        }
-    });
-})();
-</script>
-
-</div>
-
-<div class="card-col">
-
-<div class="card">
-    <div class="card-head-row">
-        <h2 class="mt-0">Statut</h2>
-        <?= structure_statut_toggle_html($sid, (string) $structure['statut']) ?>
-    </div>
-
-    <div class="tags-liste mt-16">
-        <?php foreach ($tags as $t): ?>
-            <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
-                <form method="post" action="?p=structure_tag_retirer" class="d-inline" onsubmit="return confirm('Retirer cette étiquette ?');">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                    <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
-                    <button type="submit" class="btn-tag-x" aria-label="Retirer">×</button>
-                </form>
-            </span>
-        <?php endforeach; ?>
-        <?php if (!$tags): ?><span class="muted small">Aucune étiquette.</span><?php endif; ?>
-        <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
-    </div>
-    <form method="post" action="?p=structure_tag_ajouter" class="linked-add mt-10" id="tag-ajouter-form" hidden>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="structure_id" value="<?= $sid ?>">
-        <input type="text" name="nom" list="tags-dispo" placeholder="Ajouter une étiquette…" autocomplete="off">
-        <datalist id="tags-dispo">
-            <?php foreach ($tagsDispo as $t): ?><option value="<?= e($t['nom']) ?>"><?php endforeach; ?>
-        </datalist>
-        <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
-        <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-    </form>
-</div>
-<script>lassoInitStatutToggle();</script>
 
 <div class="card section-editable">
     <div class="card-head-row">
