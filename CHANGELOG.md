@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.33.1] — 2026-08-01
+
+### Modifié
+- `?p=structures` : contenu plus petit pour les colonnes « Structures liées », « Factures liées » et « Dernier contact » ; titres plus petits pour « Statut », « Structures liées » et « Dernier contact » ; ajout d'un `title`/`aria-label` sur les icônes « Factures liées » et « Événements liés » (colonnes sans libellé visible jusqu'ici).
+
 ## [1.33.0] — 2026-08-01
 
 ### Retiré

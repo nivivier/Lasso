@@ -224,7 +224,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th>Statut</th><th>Nom</th><th>Ville</th><th>Catégorie</th><th>Structures liées</th><th>Tags</th><th>Dernier contact</th><th><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th><?= icon('calendar') ?></th><?php endif; ?>
+        <th class="col-petit">Statut</th><th>Nom</th><th>Ville</th><th>Catégorie</th><th class="col-petit">Structures liées</th><th>Tags</th><th class="col-petit">Dernier contact</th><th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
@@ -262,7 +262,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
-            <td>
+            <td class="small">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
                     <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>" onclick="event.stopPropagation()"><?= (int) $d['nb_factures'] ?></a>
                 <?php else: ?>
