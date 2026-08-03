@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.32.1] — 2026-08-01
+
+### Corrigé
+- Fusion de structures (`?p=structures` → « Fusionner », et l'outil « Doublons exacts » de `?p=dev`) : les factures étaient déjà réaffectées à la structure conservée, mais pas les événements liés (`evenement_structures`) — ils restaient à tort attachés à la structure supprimée. Le marquage « à facturer » (référence facture/SUISA) est préservé en cas de conflit (événement déjà lié aux deux structures fusionnées). Le nombre d'événements liés est aussi affiché dans l'écran de choix de la structure à conserver.
+
 ## [1.32.0] — 2026-08-01
 
 ### Modifié

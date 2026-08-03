@@ -485,12 +485,13 @@ function historique_fusionne(string $entiteType, int $id): array
 
 // Fusionne $autres dans $idGarde : le profil (nom, adresse, catégorie…) de
 // $idGarde est conservé tel quel — seules les relations (contacts, notes,
-// mailing, factures, tags, lieux liés) des structures fusionnées sont
-// reprises, puis les structures fusionnées sont supprimées. Contacts/notes/
-// mailing/factures : simple réaffectation (pas de contrainte d'unicité).
-// Tags/lieux : clé primaire composite (structure_id, tag_id|lieu_id) — copie
-// de ce qui manque (INSERT OR IGNORE) puis suppression des anciennes lignes,
-// pour ne jamais entrer en conflit avec un tag/lieu déjà présent sur $idGarde.
+// mailing, factures, tags, lieux liés, événements liés) des structures
+// fusionnées sont reprises, puis les structures fusionnées sont supprimées.
+// Contacts/notes/mailing/factures : simple réaffectation (pas de contrainte
+// d'unicité). Tags/lieux/événements : clé (composite ou UNIQUE) — copie de ce
+// qui manque (INSERT OR IGNORE/UPDATE OR IGNORE) puis suppression des
+// anciennes lignes, pour ne jamais entrer en conflit avec un tag/lieu/
+// événement déjà présent sur $idGarde.
 function structures_fusionner(int $idGarde, array $autres): void
 {
     $autres = array_values(array_unique(array_diff(array_map('intval', $autres), [$idGarde])));
@@ -512,6 +513,33 @@ function structures_fusionner(int $idGarde, array $autres): void
     // entrées des structures fusionnées vers celle conservée.
     db()->prepare("UPDATE historique SET entite_id = ? WHERE entite_type = 'structure' AND entite_id IN ($in)")
         ->execute(array_merge([$idGarde], $autres));
+
+    // Événements liés (evenement_structures, migration_66) : reprend les
+    // structures fusionnées vers celle conservée. Contrainte UNIQUE
+    // (evenement_id, structure_id) : un même événement peut déjà être lié à
+    // $idGarde ET à une structure fusionnée — dans ce cas UPDATE OR IGNORE
+    // laisse la ligne fusionnée inchangée (conflit), supprimée ensuite comme
+    // doublon désormais inutile.
+    $stmtEvts = db()->prepare("SELECT DISTINCT evenement_id FROM evenement_structures WHERE structure_id IN ($in)");
+    $stmtEvts->execute($autres);
+    $evenementIds = array_map('intval', $stmtEvts->fetchAll(PDO::FETCH_COLUMN));
+    if ($evenementIds) {
+        // Remonte le marquage « à facturer » (référence pré-remplissage
+        // facture/export SUISA) avant de fusionner les liens : sinon perdu si
+        // l'événement était déjà aussi lié à $idGarde (ligne fusionnée alors
+        // simplement supprimée par le doublon ci-dessous, sans transférer son
+        // marquage).
+        $stmtFacturation = db()->prepare("SELECT evenement_id FROM evenement_structures WHERE structure_id IN ($in) AND est_facturation = 1");
+        $stmtFacturation->execute($autres);
+        $updFacturation = db()->prepare('UPDATE evenement_structures SET est_facturation = 1 WHERE evenement_id = ? AND structure_id = ?');
+        foreach ($stmtFacturation->fetchAll(PDO::FETCH_COLUMN) as $evId) {
+            $updFacturation->execute([(int) $evId, $idGarde]);
+        }
+
+        db()->prepare("UPDATE OR IGNORE evenement_structures SET structure_id = ? WHERE structure_id IN ($in)")
+            ->execute(array_merge([$idGarde], $autres));
+        db()->prepare("DELETE FROM evenement_structures WHERE structure_id IN ($in)")->execute($autres);
+    }
 
     $stmtTags = db()->prepare("SELECT DISTINCT tag_id FROM structure_tag_liens WHERE structure_id IN ($in)");
     $stmtTags->execute($autres);
@@ -548,6 +576,12 @@ function structures_fusionner(int $idGarde, array $autres): void
     db()->prepare("DELETE FROM structures WHERE id IN ($in)")->execute($autres);
     db()->commit();
     structure_recalculer_dernier_contact($idGarde);
+    // Recale evenements.organisateur_structure_id (référence facture/SUISA)
+    // et structures.dernier_concert_le pour $idGarde sur les événements
+    // repris ci-dessus.
+    foreach ($evenementIds as $evenementId) {
+        evenement_resynchroniser_miroirs($evenementId);
+    }
 }
 
 // Un mois de festival (mois_debut..mois_fin, ex. 6..9) chevauche-t-il la plage

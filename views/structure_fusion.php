@@ -6,8 +6,8 @@
 
 <p class="muted small">
     Choisissez la structure à conserver : ses propres informations (nom, adresse, catégorie…) sont
-    gardées telles quelles. Les contacts, notes, factures, étiquettes et lieux liés des autres
-    structures sélectionnées lui sont rattachés, puis ces autres structures sont
+    gardées telles quelles. Les contacts, notes, factures, étiquettes, lieux liés et événements des
+    autres structures sélectionnées lui sont rattachés, puis ces autres structures sont
     <strong>définitivement supprimées</strong>.
 </p>
 
@@ -30,7 +30,7 @@
             <div class="muted small mt-10">
                 <?= (int) $c['nb_contacts'] ?> contact(s), <?= (int) $c['nb_notes'] ?> note(s),
                 <?= (int) $c['nb_factures'] ?> facture(s), <?= (int) $c['nb_tags'] ?> étiquette(s),
-                <?= (int) $c['nb_lieux'] ?> salle(s)/festival(s) lié(s)
+                <?= (int) $c['nb_lieux'] ?> salle(s)/festival(s) lié(s), <?= (int) $c['nb_evenements'] ?> événement(s) lié(s)
             </div>
         </label>
     <?php endforeach; ?>

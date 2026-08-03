@@ -1300,8 +1300,8 @@ function route_structure_delete(): void
 // Fusion de structures (action groupée « Fusionner ») : candidats mémorisés en
 // session par route_structures() ($_SESSION['fusion_ids'], ≥ 2 ids). Choix de
 // la structure à garder (ses propres champs restent tels quels), puis
-// structures_fusionner() réaffecte contacts/notes/mailing/factures/tags/lieux
-// des autres avant de les supprimer — voir lib/booking.php.
+// structures_fusionner() réaffecte contacts/notes/mailing/factures/tags/lieux/
+// événements des autres avant de les supprimer — voir lib/booking.php.
 function route_structure_fusion(): void
 {
     require_login();
@@ -1328,7 +1328,8 @@ function route_structure_fusion(): void
                 (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,
                 (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures,
                 (SELECT COUNT(*) FROM structure_tag_liens WHERE structure_id = s.id) AS nb_tags,
-                (SELECT COUNT(*) FROM structure_organisateurs WHERE organisateur_id = s.id) AS nb_lieux
+                (SELECT COUNT(*) FROM structure_organisateurs WHERE organisateur_id = s.id) AS nb_lieux,
+                (SELECT COUNT(*) FROM evenement_structures WHERE structure_id = s.id) AS nb_evenements
          FROM structures s WHERE s.id IN ($in) ORDER BY s.nom"
     );
     $stmt->execute($ids);
