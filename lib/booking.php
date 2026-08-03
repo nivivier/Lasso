@@ -58,9 +58,8 @@ function structure_statut_icone_classe(string $statut): string
     return STRUCTURE_STATUTS_CLASSES_ICONE[$statut] ?? 'muted';
 }
 
-// Catégorie CRM d'une structure (booking) — axe distinct de structures.type
-// (organisation/particulier, forme juridique pour la facturation), voir
-// SPEC_BOOKING.md §5. Configurable (Paramètres → Catégories). Une sous-catégorie
+// Catégorie CRM d'une structure (booking), voir SPEC_BOOKING.md §5.
+// Configurable (Paramètres → Catégories). Une sous-catégorie
 // est nécessairement imbriquée dans une catégorie (structure_categories.parent_id,
 // même principe que spectacles/groupe-spectacle — voir lib/evenements.php) : une
 // catégorie racine a parent_id NULL, une sous-catégorie a pour parent_id l'id

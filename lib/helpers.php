@@ -1566,10 +1566,10 @@ function flag_toggle_html(string $table, int $id, string $flag): string
         . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
 }
 
-// Statut d'une structure — sélecteur segmenté horizontal (même style que le
-// champ Type de la carte « Informations générales », voir icon_picker(), mais
-// cliqué en AJAX au lieu de soumis avec le reste du formulaire : voir
-// route_structure_statut() + lassoInitStatutToggle(), assets/app.js). 4 états,
+// Statut d'une structure — sélecteur segmenté horizontal (même style que
+// icon_picker(), mais cliqué en AJAX au lieu de soumis avec le reste du
+// formulaire : voir route_structure_statut() + lassoInitStatutToggle(),
+// assets/app.js). 4 états,
 // mêmes valeurs que structures.statut (STRUCTURE_STATUTS, lib/booking.php,
 // migration_63 — remplace actif+desinscrit) : « Contact privilégié »
 // (prioritaire), « Actif », « Ne pas contacter » (désinscrite du mailing),

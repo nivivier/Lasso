@@ -14,11 +14,10 @@ const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];
 // $prefixe : préfixe des noms de champs POST (ex. 'nd_', 'org_'). Retourne l'id créé.
 function structure_creer_depuis_post(string $prefixe): int
 {
-    db()->prepare("INSERT INTO structures (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
+    db()->prepare("INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
                     telephone, personne_contact, statut)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'actif')")
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'actif')")
         ->execute([
-            ($_POST[$prefixe . 'type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
             trim($_POST[$prefixe . 'nom'] ?? ''),
             trim($_POST[$prefixe . 'adresse_rue'] ?? ''),
             trim($_POST[$prefixe . 'adresse_npa'] ?? ''),
@@ -602,10 +601,10 @@ function importer_factures_historique(array $facturesData, bool $simule): array
                 $findDeb->execute([$structureNom]);
                 $structureId = $findDeb->fetchColumn();
                 if ($structureId === false) {
-                    db()->prepare('INSERT INTO structures (type, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, actif)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)')
+                    db()->prepare("INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email, statut)
+                                    VALUES (?, ?, ?, ?, ?, ?, 'actif')")
                         ->execute([
-                            'organisation', $structureNom,
+                            $structureNom,
                             trim((string) ($f['debiteur_adresse_rue'] ?? '')),
                             trim((string) ($f['debiteur_adresse_npa'] ?? '')),
                             trim((string) ($f['debiteur_adresse_localite'] ?? '')),

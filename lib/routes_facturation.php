@@ -688,10 +688,6 @@ function route_structures(): void
             } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', STRUCTURE_STATUTS, true)) {
                 bulk_undo_memoriser('structures', $ids, ['statut'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET statut = ? WHERE id IN ($in)")->execute(array_merge([$_POST['bulk_statut']], $ids));
-            } elseif ($section === 'type' && in_array($_POST['bulk_type'] ?? '', ['organisation', 'particulier'], true)) {
-                bulk_undo_memoriser('structures', $ids, ['type'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET type = ? WHERE id IN ($in)")
-                    ->execute(array_merge([$_POST['bulk_type']], $ids));
             } elseif ($section === 'ville') {
                 bulk_undo_memoriser('structures', $ids, ['adresse_localite'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET adresse_localite = ? WHERE id IN ($in)")
@@ -1045,7 +1041,6 @@ function route_structure(): void
         // part par route_structure_localisation() (carte « Localisation »
         // dédiée) — sauf en création, où tout reste dans un seul formulaire.
         $champs = [
-            'type'             => ($_POST['type'] ?? '') === 'particulier' ? 'particulier' : 'organisation',
             'categorie'        => $categorieChamps['categorie'],
             'sous_categorie'   => $categorieChamps['sous_categorie'],
             'nom'              => trim($_POST['nom'] ?? ''),
@@ -1066,7 +1061,7 @@ function route_structure(): void
                 return;
             }
             $champs['id'] = $id;
-            $sqlSet = 'type=:type, categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom, site_web=:site_web, via=:via, notes=:notes';
+            $sqlSet = 'categorie=:categorie, sous_categorie=:sous_categorie, nom=:nom, site_web=:site_web, via=:via, notes=:notes';
             $diffChamps = [
                 'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
                 'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
@@ -1148,9 +1143,9 @@ function route_structure(): void
             }
             pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
             // Statut « actif » par défaut.
-            db()->prepare("INSERT INTO structures (type, categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
+            db()->prepare("INSERT INTO structures (categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
                             departement_canton, grande_region, site_web, via, notes, statut)
-                            VALUES (:type, :categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
+                            VALUES (:categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
                             :departement_canton, :grande_region, :site_web, :via, :notes, 'actif')")
                 ->execute($champs);
         }

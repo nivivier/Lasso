@@ -344,12 +344,6 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         <?php if (module_actif('facturation')): ?>
         <div id="organisation-nouveau" class="grid2" hidden>
             <label>Nom / raison sociale <input name="org_nom"></label>
-            <label>Type
-                <select name="org_type">
-                    <option value="organisation">Organisation</option>
-                    <option value="particulier">Particulier</option>
-                </select>
-            </label>
             <label>Rue et numéro <input name="org_adresse_rue"></label>
             <label>NPA <input name="org_adresse_npa"></label>
             <label>Localité <input name="org_adresse_localite"></label>

@@ -77,14 +77,6 @@ $sid = (int) ($structure['id'] ?? 0);
                     </select>
                 </label>
 
-                <div class="field-group">
-                    <span>Type</span>
-                    <?= icon_picker('type', [
-                        'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
-                        'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
-                    ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
-                </div>
-
 			<label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
 
             </div>
@@ -153,10 +145,6 @@ $sid = (int) ($structure['id'] ?? 0);
                 <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
             </tr>
             <tr>
-                <th>Type</th>
-                <td><span class="ico-label"><?= icon(($structure['type'] ?? 'organisation') === 'particulier' ? 'user' : 'building') ?> <?= ($structure['type'] ?? 'organisation') === 'particulier' ? 'Particulier' : 'Organisation' ?></span></td>
-            </tr>
-            <tr>
                 <th>Connu via</th>
                 <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
             </tr>
@@ -192,14 +180,6 @@ $sid = (int) ($structure['id'] ?? 0);
                             <?php endforeach; ?>
                         </select>
                     </label>
-
-                    <div class="field-group">
-                        <span>Type</span>
-                        <?= icon_picker('type', [
-                            'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
-                            'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
-                        ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
-                    </div>
 
                     <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
                 </div>
@@ -301,10 +281,6 @@ $sid = (int) ($structure['id'] ?? 0);
                     <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
                 </tr>
                 <tr>
-                    <th>Type</th>
-                    <td><span class="ico-label"><?= icon(($structure['type'] ?? 'organisation') === 'particulier' ? 'user' : 'building') ?> <?= ($structure['type'] ?? 'organisation') === 'particulier' ? 'Particulier' : 'Organisation' ?></span></td>
-                </tr>
-                <tr>
                     <th>Connu via</th>
                     <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
                 </tr>
@@ -367,13 +343,6 @@ $sid = (int) ($structure['id'] ?? 0);
                     <?php endforeach; ?>
                 </select>
             </label>
-            <div class="field-group">
-                <span>Type</span>
-                <?= icon_picker('type', [
-                    'organisation' => ['icone' => 'building', 'label' => 'Organisation'],
-                    'particulier'  => ['icone' => 'user', 'label' => 'Particulier'],
-                ], (string) ($structure['type'] ?? 'organisation'), 'Type (facturation)') ?>
-            </div>
             <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
             <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
             <div class="grid2">

@@ -379,7 +379,7 @@ function route_evenements_export_suisa(): void
               LEFT JOIN structures d ON d.id = e.organisateur_structure_id';
     $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
-                   d.nom AS org_nom, d.type AS org_type, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
+                   d.nom AS org_nom, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
                    d.adresse_localite AS org_localite, d.adresse_pays AS org_pays, d.email AS org_email,
                    d.telephone AS org_telephone, d.personne_contact AS org_contact'
          . $from . $where . ' ORDER BY e.date DESC, e.id DESC';
@@ -401,7 +401,7 @@ function route_evenements_export_suisa(): void
     fputcsv($out, [
         'Date', 'Spectacle', 'Ville', 'Région/canton', 'Pays', 'Salle', 'Festival',
         'SUISA envoyée à', "SUISA date d'envoi", 'SUISA date du décompte',
-        'Organisateur — Nom', 'Organisateur — Type', 'Organisateur — Rue', 'Organisateur — NPA',
+        'Organisateur — Nom', 'Organisateur — Rue', 'Organisateur — NPA',
         'Organisateur — Localité', 'Organisateur — Pays', 'Organisateur — E-mail',
         'Organisateur — Téléphone', 'Organisateur — Personne de contact',
     ], ';', '"', '\\');
@@ -418,7 +418,6 @@ function route_evenements_export_suisa(): void
             $dateAffichee((string) $r['suisa_envoye_le']),
             $dateAffichee((string) $r['suisa_decompte_le']),
             $r['org_nom'] ?? '',
-            $r['org_type'] === null ? '' : ($r['org_type'] === 'particulier' ? 'Particulier' : 'Organisation'),
             $r['org_rue'] ?? '',
             $r['org_npa'] ?? '',
             $r['org_localite'] ?? '',

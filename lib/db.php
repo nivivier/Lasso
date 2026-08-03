@@ -373,6 +373,7 @@ function run_migrations(PDO $pdo): void
         64 => 'migration_64', // retire structure_categories.est_organisateur (catégorie « organisateur » + auto-groupement import CSV supprimés)
         65 => 'migration_65', // lieux_geocodage.cle : repli des accents (voir geocodage_cle()) — reclé les lignes déjà en cache pour qu'elles restent trouvées
         66 => 'migration_66', // fusion evenement_lieux/evenement_organisateurs → evenement_structures (plus de distinction lieu/organisateur sur ?p=evenement, une structure marquée « à facturer »)
+        67 => 'migration_67', // retire structures.type (organisation/particulier) — la catégorie suffit, plus utilisé
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2345,6 +2346,19 @@ function migration_66(PDO $pdo): void
     $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
     if (in_array('lieu_id', $cols, true)) {
         try { $pdo->exec('ALTER TABLE evenements DROP COLUMN lieu_id'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+    }
+}
+
+// Retire structures.type (organisation/particulier, forme juridique pour la
+// facturation, migration_18) : jamais utilisé en pratique, la catégorie
+// (categorie/sous_categorie) suffit à distinguer les structures. best-effort
+// (DROP COLUMN nécessite SQLite >= 3.35, pas garanti sur tous les
+// hébergements — voir migration_63/64 pour le même motif).
+function migration_67(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
+    if (in_array('type', $cols, true)) {
+        try { $pdo->exec('ALTER TABLE structures DROP COLUMN type'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
 }
 

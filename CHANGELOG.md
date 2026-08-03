@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.33.0] — 2026-08-01
+
+### Retiré
+- `structures.type` (`organisation`/`particulier`) : jamais utilisé en pratique, la catégorie suffit. Retiré de la fiche structure (`?p=structure`), du bulk-edit (`?p=structures`), des formulaires de création rapide de structure (facture, carte Organisation d'un événement) et de l'export CSV SUISA (colonne « Organisateur — Type »). Migration 67.
+
+### Corrigé
+- Import de factures historiques (`importer_factures_historique()`) : la création automatique d'une structure manquante référençait encore la colonne `structures.actif`, supprimée par une migration précédente (unification du statut) — aurait provoqué une erreur SQL fatale à la prochaine utilisation.
+
 ## [1.32.2] — 2026-08-01
 
 ### Modifié

@@ -153,7 +153,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <select name="section" id="bulk-action" class="inline-year-select">
             <option value="">— Choisir une action —</option>
             <option value="categorie">Modifier la catégorie</option>
-            <option value="type">Modifier le type</option>
             <option value="ville">Modifier la ville</option>
             <option value="departement_canton">Modifier le département / canton</option>
             <option value="pays">Modifier le pays</option>
@@ -173,12 +172,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?php foreach ($categoriesPourSelect as $cat): ?>
                     <option value="<?= (int) $cat['id'] ?>"><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
                 <?php endforeach; ?>
-            </select>
-        </span>
-        <span class="bulk-field" data-for="type" hidden>
-            <select name="bulk_type" class="inline-year-select">
-                <option value="organisation">Organisation</option>
-                <option value="particulier">Particulier</option>
             </select>
         </span>
         <span class="bulk-field" data-for="ville" hidden>

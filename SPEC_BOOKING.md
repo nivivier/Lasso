@@ -72,7 +72,7 @@ dans tout le schéma — pas de colonne `debiteur_id` résiduelle pointant vers 
 
 | champ | notes |
 |---|---|
-| *(colonnes existantes inchangées)* | `type` (`organisation`/`particulier`), `nom`, `adresse_*`, `email`, `telephone`, `personne_contact`, `notes`, `actif`, `cree_le` |
+| *(colonnes existantes inchangées)* | `nom`, `adresse_*`, `email`, `telephone`, `personne_contact`, `notes`, `actif`, `cree_le` (`type` retiré — migration_67, jamais utilisé, la catégorie suffit) |
 | `categorie` | **nouvelle** — `organisateur` / `media` / `autres` / `entourage`, catégorie à part entière (voir §5, décidé — pas de fusion `entourage`/`autres`). Nom délibérément différent de `type` (collision évitée) |
 | `departement_canton` | **nouvelle** (renommée depuis `region`, voir CHANGELOG 1.11.0) — texte libre (ex. « 35 », « GE »), sert de critère de filtre mailing (§7) ; alimentée par l'import (§9, référentiel départements→région) |
 | `site_web` | **nouvelle** — URL du site de la structure (champ dédié, voir §9 mapping `Site`) |

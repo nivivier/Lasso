@@ -97,15 +97,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 
     <div id="nouveau-structure" <?= $nouveauStructure ? '' : 'hidden' ?>>
         <h3 class="sub">Nouvelle structure</h3>
-        <div class="grid2">
-            <label>Nom / raison sociale <input name="nd_nom" value="<?= $pv('nd_nom') ?>"></label>
-            <label>Type
-                <select name="nd_type">
-                    <option value="organisation" <?= ($post['nd_type'] ?? 'organisation') === 'organisation' ? 'selected' : '' ?>>Organisation</option>
-                    <option value="particulier" <?= ($post['nd_type'] ?? '') === 'particulier' ? 'selected' : '' ?>>Particulier</option>
-                </select>
-            </label>
-        </div>
+        <label>Nom / raison sociale <input name="nd_nom" value="<?= $pv('nd_nom') ?>"></label>
         <div class="grid3">
             <label>Rue et numéro <input name="nd_adresse_rue" value="<?= $pv('nd_adresse_rue') ?>"></label>
             <label>NPA <input name="nd_adresse_npa" value="<?= $pv('nd_adresse_npa') ?>"></label>
