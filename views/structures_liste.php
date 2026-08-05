@@ -224,7 +224,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th class="col-petit">Statut</th><th>Nom</th><th>Ville</th><th>Catégorie</th><th class="col-petit">Structures liées</th><th>Tags</th><th class="col-petit">Dernier contact</th><th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></th><?php endif; ?>
+        <th class="col-petit">Statut</th><th>Nom</th><th>Ville</th><th>Catégorie</th><th class="col-petit">Structures liées</th><th>Tags</th><th>Contact</th><th class="col-petit">Dernier contact</th><th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></th><?php endif; ?>
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
@@ -260,6 +260,10 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 ?>
                 <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
                 <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
+            </td>
+            <td class="tiny">
+                <?php $contactsNoms = ($d['contacts_noms'] ?? '') !== '' ? explode("\x1e", (string) $d['contacts_noms']) : []; ?>
+                <?= $contactsNoms ? e(implode(', ', $contactsNoms)) : '<span class="muted">—</span>' ?>
             </td>
             <td class="muted tiny"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td class="small">

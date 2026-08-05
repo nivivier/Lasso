@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.36.0] — 2026-08-05
+
+### Ajouté
+- `?p=structures` : nouvelle colonne « Contact » listant les personnes de contact liées à chaque structure ; ces noms sont désormais aussi pris en compte par la recherche générale (liste et carte).
+
+### Corrigé
+- `.tiny` : une règle CSS orpheline du même nom (10.5px, plus utilisée nulle part) entrait en conflit avec la classe introduite en 1.33.2 (10px) et gagnait la cascade — les colonnes « Structures liées »/« Dernier contact » de `?p=structures` s'affichaient donc toujours à 10.5px. Règle orpheline supprimée.
+
 ## [1.35.0] — 2026-08-05
 
 ### Ajouté

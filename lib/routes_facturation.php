@@ -609,7 +609,8 @@ function structures_filtres(): array
 function structures_carte_points(string $where, array $params): array
 {
     [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email',
-        '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)']);
+        '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)',
+        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom)) FROM structure_contacts WHERE structure_id = s.id)"]);
     $stmt = db()->prepare(
         "SELECT s.id, s.nom, s.categorie, s.adresse_localite AS ville, s.departement_canton, s.adresse_pays AS pays
          FROM structures s" . $where . " AND s.adresse_localite <> ''" . $rechSql . ' ORDER BY s.adresse_localite, s.nom'
@@ -806,6 +807,9 @@ function route_structures(): void
             ORDER BY nom
         )) AS structures_liees,
         (SELECT GROUP_CONCAT(t.nom || char(31) || COALESCE(t.couleur, ''), char(30)) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
+        (SELECT GROUP_CONCAT(nom, char(30)) FROM (
+            SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
+        )) AS contacts_noms,
         COALESCE(
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1),
@@ -823,7 +827,8 @@ function route_structures(): void
         $pgTotal = $totalSansRecherche;
     } else {
         [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email',
-        '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)']);
+        '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)',
+        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom)) FROM structure_contacts WHERE structure_id = s.id)"]);
         $where .= $rechSql;
         $params = array_merge($params, $rechParams);
 

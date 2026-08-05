@@ -839,7 +839,6 @@ button:active, .btn:active { transform: translateY(1px); }
 .evt-info { min-width: 0; }
 .evt-spectacle { font-weight: 600; }
 .evt-spectacle a { color: inherit; }
-.tiny { font-size: 10.5px; }
 .text-strike { text-decoration: line-through; }
 
 /* Utilitaires d'espacement / disposition (remplacent les styles inline) */
