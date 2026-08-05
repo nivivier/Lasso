@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.33.2] — 2026-08-05
+
+### Modifié
+- `?p=structures` : les colonnes « Structures liées » et « Dernier contact » passent de `.small` (12.8px) à une nouvelle classe `.tiny` (10px), encore plus discrètes.
+
 ## [1.33.1] — 2026-08-01
 
 ### Modifié

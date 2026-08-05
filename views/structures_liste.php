@@ -240,7 +240,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?= $villeHtml !== '' ? $villeHtml : '—' ?>
             </td>
             <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
-            <td class="small">
+            <td class="tiny">
                 <?php
                     $lieesPaires = ($d['structures_liees'] ?? '') !== '' ? array_map(
                         fn ($p) => explode("\x1f", $p, 3) + ['', '', ''],
@@ -261,7 +261,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
                 <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
             </td>
-            <td class="muted small"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
+            <td class="muted tiny"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td class="small">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
                     <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>" onclick="event.stopPropagation()"><?= (int) $d['nb_factures'] ?></a>
