@@ -1875,9 +1875,15 @@ function route_resumes(): void
         : [];
     $comptaSeries = module_actif('compta') ? compta_dashboard_series() : [];
     $prochainsEvenements = module_actif('evenements') ? evenements_a_venir(5) : [];
+    $suisaAFaire = 0;
+    if (module_actif('evenements')) {
+        $stmt = db()->prepare('SELECT COUNT(*) FROM evenements e WHERE ' . evenement_sql_statut_suisa('a_faire', 'e.'));
+        $stmt->execute([evenements_delai_abandon_mois()]);
+        $suisaAFaire = (int) $stmt->fetchColumn();
+    }
     render('resumes', [
         'aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
-        'prochainsEvenements' => $prochainsEvenements,
+        'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire,
     ], 'Tableau de bord');
 }
 

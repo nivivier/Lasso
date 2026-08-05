@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.35.0] — 2026-08-05
+
+### Ajouté
+- Tableau de bord : nouvelle section « Suisa » indiquant le nombre d'envois Suisa à faire (événements au statut SUISA « à faire »), avec un bouton pour voir la liste filtrée et un bouton d'export SUISA direct.
+
 ## [1.34.0] — 2026-08-05
 
 ### Modifié

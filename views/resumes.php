@@ -1,6 +1,7 @@
 <?php
 /** @var array $aPayer */ /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
+/** @var int $suisaAFaire */
 
 // Génère le SVG du graphique comptable (inline, sans bibliothèque).
 $dash_svg = function (array $series): string {
@@ -176,8 +177,20 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
             </table>
             <?php endif; ?>
         </div>
+        <div>
+            <h2 class="mt-0">Suisa</h2>
+            <?php if ($suisaAFaire < 1): ?>
+                <p class="muted">Aucun envoi Suisa à faire.</p>
+            <?php else: ?>
+                <p>Il y a <?= $suisaAFaire ?> envoi<?= $suisaAFaire > 1 ? 's' : '' ?> suisa à faire.</p>
+                <div class="form-actions">
+                    <a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste&statut_suisa=a_faire"><?= icon('calendar') ?> Voir les événements</a>
+                    <a class="btn ghost btn-sm" href="?p=evenements_export_suisa&statut_suisa=a_faire"><?= icon('download') ?> Export SUISA</a>
+                </div>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
-    
+
         <?php if ($dashComptaActif): ?>
         <div>
             <h2 class="mt-0">Évolution financière</h2>
