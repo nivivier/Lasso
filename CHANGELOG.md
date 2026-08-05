@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.36.2] — 2026-08-05
+
+### Ajouté
+- `?p=structure` : le champ « Dernier contact » du tableau récapitulatif de la carte Historique est désormais éditable manuellement, en plus de « Connu via » (sera écrasé par la prochaine prise de contact enregistrée automatiquement — comportement voulu, simple rattrapage).
+
 ## [1.36.1] — 2026-08-05
 
 ### Ajouté

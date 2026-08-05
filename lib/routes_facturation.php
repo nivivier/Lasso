@@ -1202,8 +1202,12 @@ function route_structure_localisation(): void
     redirect('structure', ['id' => $id, 'ok' => 'localisation']);
 }
 
-// Édition du seul champ « Connu via », depuis le tableau récapitulatif de la
-// carte Historique (?p=structure) — même principe que route_structure_localisation().
+// Édition des champs « Connu via » et « Dernier contact » (manuel), depuis le
+// tableau récapitulatif de la carte Historique (?p=structure) — même principe
+// que route_structure_localisation(). Le dernier contact saisi ici sera
+// écrasé par le prochain recalcul automatique (structure_recalculer_dernier_contact(),
+// note « prise de contact » ou mailing envoyé) : accepté, c'est un simple
+// rattrapage manuel, pas une source de vérité durable.
 function route_structure_via(): void
 {
     require_login();
@@ -1219,9 +1223,14 @@ function route_structure_via(): void
     }
     check_csrf();
     $via = trim($_POST['via'] ?? '');
-    db()->prepare('UPDATE structures SET via = ? WHERE id = ?')->execute([$via, $id]);
+    $dernierContact = trim($_POST['dernier_contact_le'] ?? '');
+    if ($dernierContact !== '' && !date_valide($dernierContact)) {
+        $dernierContact = (string) $structureAvant['dernier_contact_le'];
+    }
+    db()->prepare('UPDATE structures SET via = ?, dernier_contact_le = ? WHERE id = ?')->execute([$via, $dernierContact, $id]);
     if (module_actif('booking')) {
-        journaliser_diff('structure', $id, $structureAvant, ['via' => $via], ['via' => 'Connu via']);
+        journaliser_diff('structure', $id, $structureAvant, ['via' => $via, 'dernier_contact_le' => $dernierContact],
+            ['via' => 'Connu via', 'dernier_contact_le' => 'Dernier contact']);
     }
     redirect('structure', ['id' => $id, 'ok' => 'via']);
 }

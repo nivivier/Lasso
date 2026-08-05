@@ -763,6 +763,7 @@ $villeHtmlS = ville_departement_canton_html(
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= $sid ?>">
         <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+        <label><span>Dernier contact <?= info_tip("Rattrapage manuel — sera écrasé par la prochaine prise de contact enregistrée (note ou mailing).") ?></span> <input type="date" name="dernier_contact_le" value="<?= !empty($structure['dernier_contact_le']) ? e(date('Y-m-d', strtotime($structure['dernier_contact_le']))) : '' ?>"></label>
     </form>
     <?php if (!empty($structure['mise_a_jour_le'])): ?>
         <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
