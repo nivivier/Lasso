@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.37.0] — 2026-08-05
+
+### Modifié
+- Rafraîchissement visuel (CSS uniquement, `assets/app.css`) :
+  - Chevron personnalisé sur tous les `<select>` du site (remplace la flèche native de l'OS, incohérente entre navigateurs) — SVG inline, sans bibliothèque externe.
+  - Transition douce à l'ouverture d'une carte en édition (crayon cliqué) et sur le survol des lignes de tableau, au lieu d'une bascule instantanée.
+  - Un peu plus d'air dans les tableaux de fiche (`.kv-table` — Informations générales, Historique, etc.) ; les tableaux de liste ne sont pas concernés (densité conservée).
+
 ## [1.36.3] — 2026-08-05
 
 ### Modifié

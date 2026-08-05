@@ -265,6 +265,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    dédiée — sinon cette ligne, même sans titre, laisse un vide entre le haut
    de la carte et la date. */
 .card-editable { position: relative; }
+/* Transition douce à l'ouverture d'une carte en édition (crayon cliqué) — un
+   <form>/<div> qui passe de [hidden] à visible entre dans l'arbre de rendu,
+   ce qui redéclenche l'animation à chaque bascule (pas besoin de JS). */
+.card-editable .card-edit:not([hidden]) { animation: card-edit-in .18s ease-out; }
+@keyframes card-edit-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .card-actions-overlay { position: absolute; top: 26px; right: 26px; z-index: 1; }
 .info-date, .info-spectacle { padding-right: 110px; } /* dégage les boutons flottants (.card-actions-overlay) même pour un long nom de spectacle */
 /* Même traitement visuel que le titre de page (h1, .page-head h1 — dégradé
@@ -282,8 +287,8 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .info-date { font-size: 32px; }
 .info-spectacle { font-size: 16px; font-weight: 700; color: var(--ink); margin-top: 2px; }
 .kv-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
-.kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; padding: 8px 14px 8px 0; white-space: nowrap; vertical-align: top; width: 1%; }
-.kv-table td { padding: 8px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; padding: 11px 14px 11px 0; white-space: nowrap; vertical-align: top; width: 1%; }
+.kv-table td { padding: 11px 0; border-top: 1px solid var(--line); font-size: 14.5px; line-height: 1.5; }
 .kv-table tr:first-child th, .kv-table tr:first-child td { border-top: none; }
 /* « voir tout » d'un texte tronqué (> 200 caractères, ex. Remarques) — voir
    le délégué click générique .voir-tout-btn dans assets/app.js. */
@@ -430,9 +435,19 @@ body.auth-bg {
 /* Sélecteur d'année à côté du titre (Événements, Écritures, etc.) : même
    hauteur que les .btn.ghost.btn-sm du bandeau (ex. « Export SUISA »). */
 .page-head-title .inline-year-select { padding: 5px 8px; }
+/* .inline-year-select est aussi posée sur des <input> (texte/date, voir
+   evenements_liste.php bulk-edit) qui n'ont pas de chevron — rétabli ici
+   seulement pour la variante <select> (background:/padding: en shorthand
+   plus haut écrasent le chevron global défini sur le sélecteur `select`). */
+select.inline-year-select {
+    padding-right: 26px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center; background-size: 13px;
+}
 .cout-toggle { display: flex; align-items: center; }
 .cout-toggle .check { flex-direction: row; align-items: center; gap: 7px; margin: 0; font-size: 13.5px; font-weight: 500; color: var(--ink); white-space: nowrap; }
-h2 { font-size: 18px; margin: 36px 0 16px; font-weight: 700; line-height: 1.3; }
+h2 { font-size: 18px; margin: 36px 0 16px; font-weight: 700; line-height: 1.3; letter-spacing: -.01em; }
 h3.sub { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 14px; font-weight: 700; }
 h3.sub.no-mt { margin-top: 0; }
 
@@ -554,6 +569,20 @@ input:not([type="checkbox"]):not([type="radio"]), select, textarea {
     transition: border-color .15s, box-shadow .15s;
 }
 input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
+/* Chevron custom sur tous les <select> (remplace la flèche native de l'OS,
+   incohérente entre navigateurs) — SVG inline en data URI (pas de fichier
+   externe), couleur --muted figée en dur (un data URI ne peut pas référencer
+   une variable CSS). */
+select {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+}
+select::-ms-expand { display: none; }
+select:disabled { cursor: not-allowed; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
 .row-cat-input { font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 140px;
@@ -612,7 +641,7 @@ input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-app
 .suggestion-config { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .suggestion-ecriture { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .suggestion-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; }
-.suggestion-row select { font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.suggestion-row select { font: inherit; font-size: 13px; padding: 3px 22px 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card); background-position: right 5px center; background-size: 12px; }
 .suggestion-table tfoot tr:last-child td { font-weight: bold; }
 
 /* Panneau de ventilation multi-axe (flottant, positionné par JS) */
@@ -721,7 +750,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .year-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; flex-wrap: wrap; }
 .year-bar h2 { margin: 0; }
 .year-bar label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
-.year-bar select { width: auto; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; font-weight: 600; }
+.year-bar select { width: auto; padding: 8px 30px 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; font-weight: 600; }
 
 /* =================== Buttons =================== */
 button, .btn {
@@ -884,7 +913,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 /* Même boîte (padding/font-size) que .search-label input[type=search] ci-dessous,
    pour une hauteur identique — sinon les <select> (padding 10px, 14px de
    base) dépassent le champ de recherche. */
-.filters select { padding: 9px 10px; font-size: 13.5px; }
+.filters select { padding: 9px 28px 9px 10px; font-size: 13.5px; }
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
    quel dans un .section-head (ex. compta_analyse_axe.php). */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--muted); flex: 1 1 200px; }
@@ -928,7 +957,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .pagination { display: flex; align-items: center; gap: 16px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
 .pagination-taille { display: flex; }
 .pagination-taille label { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: 13px; color: var(--muted); }
-.pagination-taille select { font: inherit; font-size: 13.5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
+.pagination-taille select { font: inherit; font-size: 13.5px; padding: 4px 24px 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff; background-position: right 6px center; background-size: 12px; cursor: pointer; }
 .pagination-info { font-size: 13px; color: var(--muted); }
 .pagination-nav { display: flex; align-items: center; gap: 8px; }
 .pagination-nav [aria-disabled="true"], .pagination-nav button:disabled { opacity: .4; cursor: default; }
@@ -942,7 +971,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .list thead th { background: var(--surface); font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
 .list tbody tr { transition: background .12s; }
 .list tbody tr:hover { background: var(--surface); }
-.list tr.row-link { cursor: pointer; }
+.list tr.row-link { cursor: pointer; transition: background .12s ease; }
 .list tr.row-link:hover { background: var(--primary-tint); }
 .list tbody tr:last-child td { border-bottom: none; }
 .list .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -1061,7 +1090,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 .card > .section-head:first-child { margin-top: 0; }
 .section-head h2, .section-head h3.sub { margin: 0; }
 .annee-pick { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
-.annee-pick select { width: auto; font: inherit; font-size: 14px; color: var(--ink); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.annee-pick select { width: auto; font: inherit; font-size: 14px; color: var(--ink); padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff; }
 
 /* =================== Payslip =================== */
 .payslip { max-width: 720px; }
