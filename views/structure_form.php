@@ -281,10 +281,6 @@ $sid = (int) ($structure['id'] ?? 0);
                     <td><?= $categorieAffichee !== '' ? e($categorieAffichee) : '—' ?></td>
                 </tr>
                 <tr>
-                    <th>Connu via</th>
-                    <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
-                </tr>
-                <tr>
                     <th>Site web</th>
                     <td><?php if (trim((string) ($structure['site_web'] ?? '')) !== ''): ?><a href="<?= $v('site_web') ?>" target="_blank" rel="noopener"><?= $v('site_web') ?></a><?php else: ?>—<?php endif; ?></td>
                 </tr>
@@ -739,6 +735,20 @@ $villeHtmlS = ville_departement_canton_html(
 
 <div class="card">
     <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+    <table class="kv-table">
+        <tr>
+            <th>Connu via</th>
+            <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
+        </tr>
+        <tr>
+            <th>Dernier contact</th>
+            <td><?= !empty($structure['dernier_contact_le']) ? e(date('d.m.Y', strtotime($structure['dernier_contact_le']))) : '—' ?></td>
+        </tr>
+        <tr>
+            <th>Dernière modification</th>
+            <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
+        </tr>
+    </table>
     <?php if (!empty($structure['mise_a_jour_le'])): ?>
         <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
     <?php endif; ?>
@@ -753,7 +763,7 @@ $villeHtmlS = ville_departement_canton_html(
     </form>
     <div class="mt-16">
         <?php if ($notes): ?>
-            <?php $notesRecentes = array_slice($notes, 0, 3); $notesReste = array_slice($notes, 3); ?>
+            <?php $notesRecentes = array_slice($notes, 0, 2); $notesReste = array_slice($notes, 2); ?>
             <?php $histoEntrees = $notesRecentes; require __DIR__ . '/_historique.php'; ?>
             <?php if ($notesReste): ?>
                 <div class="hist-reste" hidden>

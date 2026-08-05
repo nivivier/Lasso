@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.34.0] — 2026-08-05
+
+### Modifié
+- `?p=structure` : refonte de la carte « Historique », qui affiche désormais en tête un tableau récapitulatif (Connu via / Dernier contact / Dernière modification) — le champ « Connu via » (auparavant dans « Informations générales », son champ d'édition reste inchangé) et le nombre d'entrées affichées directement passe de 3 à 2 (avec « Voir les X précédentes » pour le reste).
+
 ## [1.33.2] — 2026-08-05
 
 ### Modifié
