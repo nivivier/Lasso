@@ -7,6 +7,11 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.36.3] — 2026-08-05
+
+### Modifié
+- `?p=structures` : tri alphabétique ignorant désormais un article initial (« le/la/les/l' », apostrophe droite ou courbe) — ex. « Le 35 » se classe à « 35 », « L'Alibi » à « Alibi ».
+
 ## [1.36.2] — 2026-08-05
 
 ### Ajouté

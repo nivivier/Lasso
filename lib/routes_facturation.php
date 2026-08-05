@@ -817,7 +817,18 @@ function route_structures(): void
         ) AS email_affiche";
     // « Contact privilégié » puis « actif » d'abord, « ne_pas_contacter » puis
     // « inactif » en dernier (même esprit que l'ancien ORDER BY s.actif DESC).
-    $orderBy = " ORDER BY CASE s.statut WHEN 'contact_privilegie' THEN 0 WHEN 'actif' THEN 1 WHEN 'ne_pas_contacter' THEN 2 ELSE 3 END, s.nom";
+    // Tri alphabétique sans tenir compte d'un article initial (« le/la/les/l' » —
+    // LIKE est insensible à la casse ASCII par défaut en SQLite, donc « Le » et
+    // « le » sont tous deux reconnus ; apostrophe droite et courbe supportées).
+    $orderBy = " ORDER BY CASE s.statut WHEN 'contact_privilegie' THEN 0 WHEN 'actif' THEN 1 WHEN 'ne_pas_contacter' THEN 2 ELSE 3 END,
+        CASE
+            WHEN s.nom LIKE 'les %' THEN substr(s.nom, 5)
+            WHEN s.nom LIKE 'le %' THEN substr(s.nom, 4)
+            WHEN s.nom LIKE 'la %' THEN substr(s.nom, 4)
+            WHEN s.nom LIKE 'l''%' THEN substr(s.nom, 3)
+            WHEN s.nom LIKE 'l’%' THEN substr(s.nom, 3)
+            ELSE s.nom
+        END";
 
     if ($modeClient) {
         $stmt = db()->prepare('SELECT ' . $selectCols . ' FROM structures s' . $where . $orderBy);
