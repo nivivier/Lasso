@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [1.36.1] — 2026-08-05
+
+### Ajouté
+- `?p=structure` : le champ « Connu via » du tableau récapitulatif de la carte Historique est désormais éditable (crayon dédié), via une nouvelle route `?p=structure_via`.
+
+### Corrigé
+- La carte « Informations générales » ne portait plus le champ « Connu via » depuis la 1.34.0 (déplacé vers Historique) mais l'enregistrement de cette carte réinitialisait quand même `structures.via` à vide à chaque sauvegarde (champ absent du formulaire). Champ préservé via un champ caché.
+
 ## [1.36.0] — 2026-08-05
 
 ### Ajouté

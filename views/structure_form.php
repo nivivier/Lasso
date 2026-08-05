@@ -339,7 +339,7 @@ $sid = (int) ($structure['id'] ?? 0);
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+            <input type="hidden" name="via" value="<?= $v('via') ?>">
             <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
             <div class="grid2">
                 <label>Jauge min <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
@@ -733,22 +733,37 @@ $villeHtmlS = ville_departement_canton_html(
     </form>
 </div>
 
-<div class="card">
-    <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
-    <table class="kv-table">
-        <tr>
-            <th>Connu via</th>
-            <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
-        </tr>
-        <tr>
-            <th>Dernier contact</th>
-            <td><?= !empty($structure['dernier_contact_le']) ? e(date('d.m.Y', strtotime($structure['dernier_contact_le']))) : '—' ?></td>
-        </tr>
-        <tr>
-            <th>Dernière modification</th>
-            <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
-        </tr>
-    </table>
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="structure-via-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
+    </div>
+    <?php if (($_GET['ok'] ?? null) === 'via'): ?><p class="ok flash">Enregistré.</p><?php endif; ?>
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr>
+                <th>Connu via</th>
+                <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
+            </tr>
+            <tr>
+                <th>Dernier contact</th>
+                <td><?= !empty($structure['dernier_contact_le']) ? e(date('d.m.Y', strtotime($structure['dernier_contact_le']))) : '—' ?></td>
+            </tr>
+            <tr>
+                <th>Dernière modification</th>
+                <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
+            </tr>
+        </table>
+    </div>
+    <form method="post" id="structure-via-form" action="?p=structure_via" class="card-edit form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= $sid ?>">
+        <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+    </form>
     <?php if (!empty($structure['mise_a_jour_le'])): ?>
         <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
     <?php endif; ?>

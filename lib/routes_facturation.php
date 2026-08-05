@@ -1202,6 +1202,30 @@ function route_structure_localisation(): void
     redirect('structure', ['id' => $id, 'ok' => 'localisation']);
 }
 
+// Édition du seul champ « Connu via », depuis le tableau récapitulatif de la
+// carte Historique (?p=structure) — même principe que route_structure_localisation().
+function route_structure_via(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$id) {
+        redirect('structures');
+    }
+    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
+    $stmt->execute([$id]);
+    $structureAvant = $stmt->fetch();
+    if (!$structureAvant) {
+        redirect('structures');
+    }
+    check_csrf();
+    $via = trim($_POST['via'] ?? '');
+    db()->prepare('UPDATE structures SET via = ? WHERE id = ?')->execute([$via, $id]);
+    if (module_actif('booking')) {
+        journaliser_diff('structure', $id, $structureAvant, ['via' => $via], ['via' => 'Connu via']);
+    }
+    redirect('structure', ['id' => $id, 'ok' => 'via']);
+}
+
 // Bascule immédiate du statut d'une structure (structures.statut, voir
 // STRUCTURE_STATUTS/lib/booking.php) depuis le bloc Statut — sélecteur
 // segmenté, valeur cliquée directement (structure_statut_toggle_html(),
