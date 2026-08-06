@@ -494,6 +494,14 @@ body.auth-bg {
    un filet de fond non blanc juste avant le vrai bas de la fenêtre. */
 .content:has(> .module-content) { display: flex; flex-direction: column; max-width: none; padding-bottom: 0; }
 .content:has(> .module-content) > .module-content { flex: 1; margin-bottom: 0; }
+/* Paramètres (views/_param_tabs.php) : mêmes onglets .module-tabs que les
+   autres modules, mais pas de .module-content (pas de fond blanc pleine
+   largeur, ces pages restent en cartes classiques) — :not(:has(...)) exclut
+   donc les vraies pages « module » ci-dessus, qui ont déjà leur propre
+   traitement. Sans ce plafond retiré, le contenu restait bloqué à 1120px de
+   large sous un bandeau d'onglets qui, lui, s'étend déjà sur toute la
+   largeur — écart visible sur un écran large. */
+.content:has(.page-head-band .module-tabs):not(:has(> .module-content)) { max-width: none; }
 /* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
 .module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }
@@ -1460,6 +1468,21 @@ abbr {
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
+    /* .toolbar > .head-actions { margin-left: auto } pousse les actions à
+       droite quand filtres et actions tiennent sur une seule ligne (desktop)
+       — dès que .filters passe à la ligne (mobile, largeur trop étroite),
+       cette marge auto pousse .head-actions tout seul à l'extrême droite de
+       SA propre ligne, avec un grand vide à gauche plutôt qu'un retour à la
+       ligne naturel. En colonne : chaque bloc prend toute la largeur, la
+       marge auto (axe transversal en colonne) n'a plus d'espace à pousser. */
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .toolbar > .head-actions { margin-left: 0; }
+    /* .search-label { flex: 1 1 200px } vise une largeur (200px) en contexte
+       ligne (.filters, resté en row) — en colonne, ce même flex-basis vaut
+       pour la hauteur : sans ce reset, un .search-label posé directement
+       dans .toolbar (pas de .filters autour, ex. employes.php/spectacles.php)
+       s'étire sur 200px de haut. */
+    .toolbar > .search-label { flex: 0 0 auto; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
     .facture-aside { order: 0; }
