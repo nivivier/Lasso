@@ -42,6 +42,23 @@ const MODULES = [
     ],
 ];
 
+// Couleur d'accent propre à chaque module — remplace --primary/--highlight
+// (normalement personnalisables, Paramètres > Employeur > « Couleur
+// principale ») sur les pages de ce module uniquement : rail (icône active)
+// et interface (boutons, liens, badges, sommes…), pour les distinguer
+// visuellement au premier coup d'œil. Fixe, jamais personnalisable — sinon
+// deux modules pourraient entrer en collision avec la couleur choisie par
+// l'employeur. Login, tableau de bord et Paramètres restent sur la couleur
+// principale de l'employeur (voir module_couleur_css_vars(), lib/helpers.php,
+// et nav_groupe_actif() : ces trois-là ne correspondent à aucun groupe).
+const MODULE_COULEURS = [
+    'salaires'    => '#0c9486', // teal
+    'compta'      => '#b45309', // ambre
+    'facturation' => '#4f46e5', // indigo
+    'evenements'  => '#db2777', // rose
+    'booking'     => '#7c3aed', // violet
+];
+
 // Cœur de l'application : jamais désactivable, listé à titre indicatif dans
 // les paramètres de modules.
 const MODULE_COEUR = [

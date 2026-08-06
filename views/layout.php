@@ -1,6 +1,11 @@
 <?php /** @var string $pageTitle, $contentView */ $u = current_user(); $cur = $_GET['p'] ?? '';
 $nomEmployeur = param('employeur_nom') ?: 'Fiches de salaire';
-$logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
+$logoClair = param_logo('clair'); $logoSombre = param_logo('sombre');
+// Calculés ici (avant <head>, pas seulement pour la boucle du rail plus bas)
+// pour pouvoir injecter module_couleur_css_vars($navActif) dans <head>.
+$navGroupes = $u ? nav_groupes() : [];
+$navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis'] ?? '')) : null;
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -12,6 +17,7 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
     <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
     <script src="assets/app.js?v=<?= @filemtime(__DIR__ . '/../assets/app.js') ?: '1' ?>"></script>
     <?= couleurs_css_vars() ?>
+    <?= module_couleur_css_vars($navActif) ?>
 </head>
 <body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">
 <?php if ($u): ?>
@@ -35,10 +41,6 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
             <span class="pill"><?= icon('circle-gauge') ?></span>
             <span class="rail-label">Tableau de bord</span>
         </a>
-        <?php
-        $navGroupes = nav_groupes();
-        $navActif   = nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis'] ?? ''));
-        ?>
         <?php foreach ($navGroupes as $navCle => $navG): ?>
         <?php $navBadge = array_sum(array_column($navG[2], 2)); ?>
         <a href="?p=<?= array_key_first($navG[2]) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>">
