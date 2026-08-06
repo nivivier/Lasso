@@ -24,8 +24,17 @@ $cls = function (string $c) use ($petits) {
 };
 $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trimestre', 'mois' => 'Mois'];
 ?>
-<div class="page-head"><h1>Cotisations</h1></div>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
 
+<div class="module-content"><div class="module-content-inner">
 <div class="section-head">
     <h2 class="mt-0">Résumé</h2>
     <form method="get" class="annee-pick">
@@ -147,3 +156,4 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
 </table>
 </div>
 <?php endif; ?>
+</div></div>

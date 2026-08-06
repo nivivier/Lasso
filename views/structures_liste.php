@@ -36,16 +36,19 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <div class="page-head">
     <div class="page-head-title">
         <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <div class="head-actions">
         <div class="seg-picker" role="radiogroup" aria-label="Affichage">
             <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
             <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
         </div>
-    </div>
-    <div class="head-actions">
         <a class="btn" href="?p=structure"><?= icon('user-plus') ?><span class="lbl"> Nouvelle structure</span></a>
     </div>
-
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="structures">
@@ -138,8 +141,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </div>
         </details>
     </form>
-</div>
-</div>
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
@@ -286,6 +287,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 </div>
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
+</div></div>
 <script>
 <?php if ($modeClient && $vue !== 'carte'): ?>
 lassoListeClient({

@@ -63,18 +63,27 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
     return $h;
 };
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Comptes annuels</h1>
-        <form method="get">
-            <input type="hidden" name="p" value="compta_bilan">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="compta_bilan">
+        <label>Année
+            <select name="annee" onchange="this.form.submit()">
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
                 <?php endforeach; ?>
             </select>
-        </form>
-    </div>
+        </label>
+    </form>
     <div class="head-actions">
         <?php
         $comparAnnees = array_values(array_filter(array_map('intval', $cols), fn($a) => $a !== $annee));
@@ -92,10 +101,6 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </label>
         <a class="btn ghost" href="?p=compta_bilan_print&annee=<?= (int) $annee ?>&prec=<?= $nbPrec ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
     </div>
-
-
-</div>
-
 
 <?php if ($continuite): ?>
 <div class="err mb-16">
@@ -162,7 +167,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         </tbody>
     </table>
     </div>
-
+</div></div>
 
 <script>
 (function () {

@@ -62,30 +62,28 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <div class="page-head">
     <div class="page-head-title">
         <h1><?= e($ntLabel) ?></h1>
-        <form method="get" id="annee-form">
-            <input type="hidden" name="p" value="compta_ecritures">
-            <input type="hidden" name="compte" value="<?= $compteId ?>">
-            <input type="hidden" name="categorie" value="<?= e($categorieFilter) ?>">
-            <input type="hidden" name="axe" value="<?= e($axeFilter) ?>">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
-                <option value="0">Toutes</option>
-                <?php foreach ($annees as $a): ?>
-                    <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
-                <?php endforeach; ?>
-            </select>
-        </form>
     </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
     <div class="head-actions">
         <a href="?p=compta_regles" class="btn ghost btn-sm btn-compact"><?= icon('settings') ?> <span>Lettrage auto<span class="lbl">matique</span></span></a>
         <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
         <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
     </div>
 
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-
     <form method="get" class="filters">
         <input type="hidden" name="p" value="compta_ecritures">
-        <input type="hidden" name="annee" value="<?= $annee ?>">
+        <label>Année
+            <select name="annee" onchange="this.form.submit()">
+                <option value="0">Toutes</option>
+                <?php foreach ($annees as $a): ?>
+                    <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
         <label>Compte
             <select name="compte" onchange="this.form.submit()">
                 <option value="0" <?= $compteId === 0 ? 'selected' : '' ?>>Tous les comptes</option>
@@ -121,9 +119,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
-</div>
-</div>
-<?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
+    <?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
 
 <!-- Formulaire écriture manuelle -->
 <div class="card form ecr-manuel-form" id="ecr-manuel-form" <?= $showForm ? '' : 'hidden' ?>>
@@ -342,7 +338,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 </table>
 </div>
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
-
+</div></div>
 
 <!-- Panneau de ventilation analytique (singleton, positionné par JS) -->
 <?php if ($axes): ?>

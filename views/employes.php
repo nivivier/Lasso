@@ -1,7 +1,16 @@
 <?php /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
 <div class="page-head">
-    <h1>Employés</h1>
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
     <div class="head-actions">
         <?php if ($employes || $recherche !== ''): ?>
         <label class="search-label">
@@ -10,7 +19,6 @@
         <?php endif; ?>
         <a class="btn" href="?p=employe" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
     </div>
-</div>
 
 <?php if (!$employes): ?>
     <?php if ($recherche !== ''): ?>
@@ -56,6 +64,7 @@
 </div>
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
+</div></div>
 <script>
 <?php if ($modeClient): ?>
 lassoListeClient({

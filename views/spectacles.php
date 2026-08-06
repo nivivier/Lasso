@@ -19,8 +19,17 @@ $parentOptions = function (int $excludeId) use ($map): string {
     return $h;
 };
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
 <div class="page-head">
-    <h1><?= e($termePluriel) ?></h1>
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
     <div class="head-actions">
         <?php if ($lignes): ?>
         <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
@@ -35,8 +44,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <?php endif; ?>
         <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
     </div>
-</div>
-<?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
+    <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=spectacles" id="reorder-form" hidden>
@@ -135,6 +143,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
     </table>
 </div>
 <?php endif; ?>
+</div></div>
 
 <script>
 (function () {

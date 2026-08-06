@@ -6,11 +6,21 @@
 <div class="page-head">
     <div class="page-head-title">
         <h1><?= e($ntLabel) ?></h1>
-        <form method="get">
-            <input type="hidden" name="p" value="fiches">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
-            <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <div class="head-actions">
+        <a class="btn ghost btn-sm" href="?p=employes" title="Employés"><?= icon('users') ?> <span class="lbl">Employés</span></a>
+        <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
+    </div>
+
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="fiches">
+        <label>Année
+            <select name="annee" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php
                 $opts = array_filter(array_unique(array_merge([(int) date('Y')], array_map('intval', $annees))), fn($y) => $y > 0);
@@ -19,18 +29,7 @@
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
                 <?php endforeach; ?>
             </select>
-        </form>
-    </div>
-    <div class="head-actions">
-        <a class="btn ghost btn-sm" href="?p=employes" title="Employés"><?= icon('users') ?> <span class="lbl">Employés</span></a>
-        <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
-    </div>
-
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="fiches">
-        <input type="hidden" name="annee" value="<?= (int) $annee ?>">
+        </label>
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>
@@ -49,8 +48,6 @@
             </select>
         </label>
     </form>
-</div>
-</div>
 
 <?php if (!$fiches): ?>
     <p class="muted">Aucune fiche pour cette sélection.</p>
@@ -113,3 +110,4 @@
 </div>
 <?php require __DIR__ . '/_pagination.php'; ?>
 <?php endif; ?>
+</div></div>

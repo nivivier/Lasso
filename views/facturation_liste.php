@@ -6,28 +6,28 @@
 <div class="page-head">
     <div class="page-head-title">
         <h1><?= e($ntLabel) ?></h1>
-        <form method="get">
-            <input type="hidden" name="p" value="facturation_liste">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <div class="head-actions">
+        <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
+        <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
+    </div>
+
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="facturation_liste">
+        <label>Année
+            <select name="annee" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
                 foreach ($opts as $a): ?>
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
                 <?php endforeach; ?>
             </select>
-        </form>
-    </div>
-    <div class="head-actions">
-        <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
-        <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
-    </div>
-
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="facturation_liste">
-        <input type="hidden" name="annee" value="<?= (int) $annee ?>">
+        </label>
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <?php foreach (['tous' => 'Tous', 'brouillon' => 'Brouillons', 'emise' => 'Émises', 'en_retard' => 'En retard', 'payee' => 'Payées', 'annulee' => 'Annulées'] as $val => $lib): ?>
@@ -39,8 +39,6 @@
             <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
-</div>
-</div>
 
 <?php if (!$factures): ?>
     <?php if ($recherche !== ''): ?>
@@ -88,6 +86,7 @@
 </div>
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
 <?php endif; ?>
+</div></div>
 <script>
 <?php if ($modeClient): ?>
 lassoListeClient({

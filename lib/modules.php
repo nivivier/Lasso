@@ -284,51 +284,52 @@ function route_autorisee(array $modules): bool
 // à tenir synchronisée à deux endroits (comme c'était le cas avant, avec la
 // logique inline dans layout.php). Un groupe = [Libellé, icône, [onglets]] ;
 // chaque onglet = clé de route => [Libellé, [routes qui le mettent en
-// surbrillance], badge (0 = aucun)]. Absent du tableau = module inactif ou
-// hors des droits de l'utilisateur courant (mêmes conditions qu'avant).
+// surbrillance], badge (0 = aucun), icône]. Absent du tableau = module
+// inactif ou hors des droits de l'utilisateur courant (mêmes conditions
+// qu'avant).
 function nav_groupes(): array
 {
     $g = [];
 
     if (module_actif('salaires') && peut_lire('salaires')) {
         $g['salaires'] = ['Salaires', 'file-text', [
-            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_new'], nb_fiches_a_payer()],
-            'employes' => ['Employés', ['employes', 'employe', 'employe_voir'], 0],
-            'resume'   => ['Cotisations', ['resume'], 0],
+            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_new'], nb_fiches_a_payer(), 'file-text'],
+            'employes' => ['Employés', ['employes', 'employe', 'employe_voir'], 0, 'users'],
+            'resume'   => ['Cotisations', ['resume'], 0, 'bar-chart'],
         ]];
     }
 
     $analytiqueOk = module_actif('analytique') && peut_lire('analytique');
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
-            'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles'], nb_ecritures_a_lettrer()],
-            'compta_bilan'     => ['Comptes annuels', ['compta_bilan', 'compta_plan', 'compta_comptes'], 0],
+            'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles'], nb_ecritures_a_lettrer(), 'banknote'],
+            'compta_bilan'     => ['Comptes annuels', ['compta_bilan', 'compta_plan', 'compta_comptes'], 0, 'book-open'],
         ];
         if ($analytiqueOk) {
-            $onglets['compta_analyse'] = ['Analyse', ['compta_analyse', 'compta_analyse_axe', 'compta_axes'], 0];
+            $onglets['compta_analyse'] = ['Analyse', ['compta_analyse', 'compta_analyse_axe', 'compta_axes'], 0, 'layers'];
         }
         $g['compta'] = ['Comptabilité', 'banknote', $onglets];
     }
 
     if (module_actif('facturation') && peut_lire('facturation')) {
         $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
-            'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard()],
-            'structures'        => ['Structures', ['structures', 'structure'], 0],
+            'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
+            'structures'        => ['Structures', ['structures', 'structure'], 0, 'building-2'],
         ]];
     }
 
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
-            'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_manquants()],
-            'structures'       => ['Structures', ['structures', 'structure'], 0],
-            'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0],
+            'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_manquants(), 'calendar'],
+            'structures'       => ['Structures', ['structures', 'structure'], 0, 'building-2'],
+            'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'],
         ]];
     }
 
     if (module_actif('booking') && peut_lire('booking')) {
         $g['booking'] = ['Booking', 'building-2', [
-            'mailing'    => ['Mailing', ['mailing', 'mailing_campagne', 'mailing_modeles', 'mailing_exclusions'], 0],
-            'structures' => ['Structures', ['structures', 'structure'], 0],
+            'mailing'    => ['Mailing', ['mailing', 'mailing_campagne', 'mailing_modeles', 'mailing_exclusions'], 0, 'mail'],
+            'structures' => ['Structures', ['structures', 'structure'], 0, 'building-2'],
         ]];
     }
 

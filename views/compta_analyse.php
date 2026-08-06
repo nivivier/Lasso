@@ -2,19 +2,28 @@
 /** @var int $annee */ /** @var array $annees */ /** @var array $axes */
 /** @var array $ventilation */ /** @var array $detailParAxe */ /** @var array $nonVentile */
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Comptabilité analytique</h1>
-        <form method="get">
-            <input type="hidden" name="p" value="compta_analyse">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <form method="get" class="filters">
+        <input type="hidden" name="p" value="compta_analyse">
+        <label>Année
+            <select name="annee" onchange="this.form.submit()">
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>
                 <?php endforeach; ?>
             </select>
-        </form>
-    </div>
+        </label>
+    </form>
     <div class="head-actions">
         <a href="?p=compta_axes" class="btn ghost btn-sm btn-compact"><?= icon('settings') ?> <span><span class="lbl">Gérer les axes</span><span class="lbl-m">Axes</span></span></a>
         <?php if ($axes): ?>
@@ -24,7 +33,6 @@
         <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
         <?php endif; ?>
     </div>
-</div>
 
 <?php if (!$axes): ?>
 <div class="card">
@@ -106,3 +114,4 @@
     </table>
     </div>
 <?php endif; ?>
+</div></div>

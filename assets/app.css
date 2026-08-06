@@ -223,7 +223,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    (?p=evenement, cf. plus bas). */
 .page-head-band,
 .blur-glass { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 160px; z-index: 1; }
+.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 84px; z-index: 1; }
 .carte-lieux { width: 100%; height: 100%; }
 .carte-banner {
     position: absolute; bottom: 16px; right: 16px; z-index: 1001; max-width: 340px;
@@ -424,7 +424,6 @@ body.auth-bg {
 }
 /* Paramètres : les onglets touchent le bas de l'en-tête, pas d'espace en trop. */
 .page-head-band .page-head:has(.param-tabs) { padding-bottom: 0; }
-.page-head-band .filters,
 .page-head-band .param-tabs,
 .page-head-band .module-tabs {
     flex: 1 1 100%;
@@ -436,6 +435,16 @@ body.auth-bg {
     border-radius: 0;
 }
 .page-head-band .page-head:has(.module-tabs) { padding-bottom: 0; }
+/* Zone de contenu pleine largeur SOUS le bandeau d'onglets (EXPÉRIMENTAL) —
+   même mécanique de débordement que .page-head-band (largeur 100vw, marge
+   négative = largeur sidebar + padding .content), mais fond plein (pas de
+   flou/sticky), et SANS plafond de largeur comme .page-head-band .page-head
+   (1120px) : les boutons d'action, les filtres et surtout les tableaux
+   profitent de toute la largeur disponible à droite du rail. */
+.module-content { width: 100vw; margin: 0 0 24px -132px; background: var(--card); }
+.module-content-inner { margin: 0 0 0 84px; padding: 24px 48px 30px; }
+.module-content .head-actions { margin-bottom: 20px; }
+.module-content .filters { margin-bottom: 22px; }
 /* Bandeau d'onglets de module (EXPÉRIMENTAL — branche experiment-nav-rail),
    niveau intermédiaire entre le rail (module) et la page (onglet) — voir
    views/_module_tabs.php. Même esprit que .param-tabs (Paramètres) mais
@@ -1354,6 +1363,8 @@ abbr {
        d'être sticky ni de déborder sous quoi que ce soit. */
     .page-head-band { position: static; width: auto; margin: 0 -18px 20px; }
     .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
+    .module-content { width: auto; margin: 0 -18px 20px; }
+    .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
     .facture-aside { order: 0; }

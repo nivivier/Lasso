@@ -33,30 +33,17 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <div class="page-head">
     <div class="page-head-title">
         <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <div class="head-actions">
         <div class="seg-picker" role="radiogroup" aria-label="Affichage">
             <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
             <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
         </div>
-        <form method="get">
-            <input type="hidden" name="p" value="evenements_liste">
-            <input type="hidden" name="statut_suisa" value="<?= e($statutSuisa) ?>">
-            <input type="hidden" name="spectacle_id" value="<?= (int) $spectacleId ?>">
-            <input type="hidden" name="statut" value="<?= e($statut) ?>">
-            <input type="hidden" name="visibilite" value="<?= e($visibilite) ?>">
-            <input type="hidden" name="pays" value="<?= e($pays) ?>">
-            <input type="hidden" name="salaries" value="<?= e($salaries) ?>">
-            <input type="hidden" name="q" value="<?= e($recherche) ?>">
-            <input type="hidden" name="vue" value="<?= e($vue) ?>">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
-                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
-                <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
-                foreach ($opts as $a): ?>
-                    <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
-                <?php endforeach; ?>
-            </select>
-        </form>
-    </div>
-    <div class="head-actions">
         <?php $exportQs = http_build_query([
             'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
             'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
@@ -68,12 +55,18 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
     </div>
 
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-
     <form method="get" class="filters">
         <input type="hidden" name="p" value="evenements_liste">
-        <input type="hidden" name="annee" value="<?= (int) $annee ?>">
         <input type="hidden" name="vue" value="<?= e($vue) ?>">
+        <label>Année
+            <select name="annee" onchange="this.form.submit()">
+                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
+                <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
+                foreach ($opts as $a): ?>
+                    <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
         <label>Statut
             <select name="statut" onchange="this.form.submit()">
                 <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Tous</option>
@@ -128,8 +121,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </div>
         </details>
     </form>
-</div>
-</div>
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_evenements_carte.php'; ?>
@@ -317,3 +308,4 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 })();
 </script>
 <?php endif; ?>
+</div></div>
