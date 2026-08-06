@@ -19,6 +19,7 @@ $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
 <?php if ($tagBulk !== null): ?>
@@ -34,7 +35,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Structures</h1>
+        <h1><?= e($ntLabel) ?></h1>
         <div class="seg-picker" role="radiogroup" aria-label="Affichage">
             <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
             <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
@@ -43,6 +44,8 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
     <div class="head-actions">
         <a class="btn" href="?p=structure"><?= icon('user-plus') ?><span class="lbl"> Nouvelle structure</span></a>
     </div>
+
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="structures">

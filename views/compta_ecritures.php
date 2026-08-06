@@ -57,10 +57,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 };
 ?>
 <?php $actionUrl = '?p=compta_ecritures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Écritures</h1>
+        <h1><?= e($ntLabel) ?></h1>
         <form method="get" id="annee-form">
             <input type="hidden" name="p" value="compta_ecritures">
             <input type="hidden" name="compte" value="<?= $compteId ?>">
@@ -79,6 +80,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
         <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
     </div>
+
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="compta_ecritures">

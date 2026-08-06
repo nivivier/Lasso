@@ -1,10 +1,11 @@
 <?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var string $statut */
 /** @var array $employes */ /** @var int $employeId */ /** @var array $axesParFiche */ /** @var array $totaux */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Fiches de salaire</h1>
+        <h1><?= e($ntLabel) ?></h1>
         <form method="get">
             <input type="hidden" name="p" value="fiches">
             <input type="hidden" name="statut" value="<?= e($statut) ?>">
@@ -24,6 +25,8 @@
         <a class="btn ghost btn-sm" href="?p=employes" title="Employés"><?= icon('users') ?> <span class="lbl">Employés</span></a>
         <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
     </div>
+
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="fiches">

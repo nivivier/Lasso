@@ -1,5 +1,15 @@
 <?php /** @var int $enAttente */ /** @var int $envoyes24h */ /** @var int $plafondJour */
 /** @var string $traiterUrl */ /** @var array $campagnes */ /** @var mixed $ok */ ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
 <?php require __DIR__ . '/_mailing_tabs.php'; ?>
 
 <?php if ($ok !== null && $ok !== ''): ?><p class="ok flash"><?= (int) $ok ?> destinataire(s) ajouté(s) à la file d'attente.</p><?php endif; ?>

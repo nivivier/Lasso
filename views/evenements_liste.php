@@ -12,7 +12,6 @@ $statutsSuisa = [
     'tous' => 'Tous', 'a_venir' => 'À venir', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
     'abandonne' => 'Abandonné', 'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
 ];
-$termePluriel = evenements_terme_spectacle();
 $termeSingulier = evenements_terme_spectacle(false);
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
@@ -25,6 +24,7 @@ $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'événements', $lienQuitterNonLocalises) ?>
 <?php if ($prodExterneOk): ?><p class="flash"><?= (int) $prodExterneOk ?> événement(s) passé(s) en « Production externe ».</p><?php endif; ?>
@@ -32,7 +32,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 <div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Événements</h1>
+        <h1><?= e($ntLabel) ?></h1>
         <div class="seg-picker" role="radiogroup" aria-label="Affichage">
             <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
             <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
@@ -65,9 +65,10 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <a class="btn ghost btn-sm" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
             <?= icon('download') ?> <span class="lbl">Export SUISA</span>
         </a>
-        <a class="btn ghost btn-sm" href="?p=spectacles"><?= icon('music') ?> <span class="lbl"><?= e($termePluriel) ?></span></a>
         <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
     </div>
+
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="evenements_liste">

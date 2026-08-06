@@ -31,94 +31,28 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre'); ?>
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <nav class="side-nav">
-        <a href="?p=resumes" class="<?= $cur === 'resumes' ? 'on' : '' ?>">
-            <?= icon('circle-gauge') ?> Tableau de bord
+        <a href="?p=resumes" class="rail-btn <?= $cur === 'resumes' ? 'on' : '' ?>" title="Tableau de bord">
+            <span class="pill"><?= icon('circle-gauge') ?></span>
+            <span class="rail-label">Tableau de bord</span>
         </a>
-        <?php if (module_actif('salaires') && peut_lire('salaires')): ?>
-        <span class="side-nav-sep">Salaires</span>
-        <?php $nbFiches = nb_fiches_a_payer(); ?>
-        <a href="?p=fiches" class="<?= in_array($cur, ['fiches', 'fiche', 'fiche_new']) ? 'on' : '' ?>">
-            <?= icon('file-text') ?> Fiches de salaire
-            <?php if ($nbFiches > 0): ?><span class="nav-badge"><?= $nbFiches ?></span><?php endif; ?>
-        </a>
-        <a href="?p=employes" class="<?= in_array($cur, ['employes', 'employe', 'employe_voir']) ? 'on' : '' ?>">
-            <?= icon('users') ?> Employés
-        </a>
-        <a href="?p=resume" class="<?= $cur === 'resume' ? 'on' : '' ?>">
-            <?= icon('bar-chart') ?> Cotisations
-        </a>
-        <?php endif; ?>
         <?php
-        $comptaOk      = module_actif('compta') && peut_lire('compta');
-        $analytiqueOk  = module_actif('analytique') && peut_lire('analytique');
-        $facturationOk = module_actif('facturation') && peut_lire('facturation');
-        $evenementsOk  = module_actif('evenements') && peut_lire('evenements');
-        $bookingOk     = module_actif('booking') && peut_lire('booking');
-        $structuresOk  = $facturationOk || $bookingOk;
+        $navGroupes = nav_groupes();
+        $navActif   = nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis'] ?? ''));
         ?>
-        <?php if ($comptaOk || $facturationOk): ?>
-        <span class="side-nav-sep">Comptabilité</span>
-        <?php if ($comptaOk): ?>
-        <?php $ecrituresPages = ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles']; ?>
-        <?php $nbEcr = nb_ecritures_a_lettrer(); ?>
-        <a href="?p=compta_ecritures" class="<?= in_array($cur, $ecrituresPages, true) ? 'on' : '' ?>">
-            <?= icon('banknote') ?> Écritures
-            <?php if ($nbEcr > 0): ?><span class="nav-badge"><?= $nbEcr ?></span><?php endif; ?>
+        <?php foreach ($navGroupes as $navCle => $navG): ?>
+        <?php $navBadge = array_sum(array_column($navG[2], 2)); ?>
+        <a href="?p=<?= array_key_first($navG[2]) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>">
+            <span class="pill"><?= icon($navG[1]) ?></span>
+            <span class="rail-label"><?= e($navG[0]) ?></span>
+            <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
         </a>
-        <?php $bilanPages = ['compta_bilan', 'compta_plan', 'compta_comptes']; ?>
-        <a href="?p=compta_bilan" class="<?= in_array($cur, $bilanPages, true) ? 'on' : '' ?>">
-            <?= icon('book-open') ?> Comptes annuels
-        </a>
-        <?php if ($analytiqueOk): ?>
-        <?php $analysePages = ['compta_analyse', 'compta_analyse_axe', 'compta_axes']; ?>
-        <a href="?p=compta_analyse" class="<?= in_array($cur, $analysePages, true) ? 'on' : '' ?>">
-            <?= icon('layers') ?> Analyse
-        </a>
-        <?php endif; ?>
-        <?php endif; ?>
-        <?php if ($facturationOk): ?>
-        <?php $facturationPages = ['facturation', 'facturation_liste', 'facturation_form', 'facture']; ?>
-        <?php $nbRetard = nb_factures_en_retard(); ?>
-        <a href="?p=facturation_liste" class="<?= in_array($cur, $facturationPages, true) ? 'on' : '' ?>">
-            <?= icon('receipt-swiss-franc') ?> Factures
-            <?php if ($nbRetard > 0): ?><span class="nav-badge"><?= $nbRetard ?></span><?php endif; ?>
-        </a>
-        <?php endif; ?>
-        <?php endif; ?>
-        <?php if ($evenementsOk || $structuresOk): ?>
-        <span class="side-nav-sep">Événements</span>
-        <?php if ($evenementsOk): ?>
-        <?php $nbSuisaManquant = nb_evenements_suisa_manquants(); ?>
-        <a href="?p=evenements_liste" class="<?= in_array($cur, ['evenements', 'evenements_liste', 'evenement'], true) ? 'on' : '' ?>">
-            <?= icon('calendar') ?> Événements
-            <?php if ($nbSuisaManquant > 0): ?><span class="nav-badge"><?= $nbSuisaManquant ?></span><?php endif; ?>
-        </a>
-        <?php endif; ?>
-        <?php if ($structuresOk): ?>
-        <a href="?p=structures" class="<?= in_array($cur, ['structures', 'structure'], true) ? 'on' : '' ?>">
-            <?= icon('building-2') ?> Structures
-        </a>
-        <?php endif; ?>
-        <?php if ($evenementsOk): ?>
-        <a href="?p=spectacles" class="<?= in_array($cur, ['spectacles', 'spectacle'], true) ? 'on' : '' ?>">
-            <?= icon('music') ?> <?= e(evenements_terme_spectacle()) ?>
-        </a>
-        <?php endif; ?>
-        <?php endif; ?>
-        <?php /* Mailing masqué temporairement du menu (fonctionnalité en cours de
-                 test) — la page reste accessible via ?p=mailing. Retirer le
-                 « && false » ci-dessous pour la réafficher. */ ?>
-        <?php if ($bookingOk && false): ?>
-        <span class="side-nav-sep">Booking</span>
-        <a href="?p=mailing" class="<?= $cur === 'mailing' ? 'on' : '' ?>">
-            <?= icon('mail') ?> Mailing
-        </a>
-        <?php endif; ?>
+        <?php endforeach; ?>
+        <div class="rail-spacer"></div>
         <?php if (peut_lire('coeur')): ?>
-        <span class="side-nav-sep"></span>
         <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
-        <a href="?p=maj" class="<?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>">
-            <?= icon('settings') ?> Paramètres
+        <a href="?p=maj" class="rail-btn <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres">
+            <span class="pill"><?= icon('settings') ?></span>
+            <span class="rail-label">Paramètres</span>
         </a>
         <?php endif; ?>
     </nav>

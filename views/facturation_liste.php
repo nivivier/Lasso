@@ -1,10 +1,11 @@
 <?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */
 /** @var bool $avecEvenements */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
-        <h1>Facturation</h1>
+        <h1><?= e($ntLabel) ?></h1>
         <form method="get">
             <input type="hidden" name="p" value="facturation_liste">
             <input type="hidden" name="statut" value="<?= e($statut) ?>">
@@ -19,9 +20,10 @@
     </div>
     <div class="head-actions">
         <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
-        <a class="btn ghost btn-sm" href="?p=structures"><?= icon('users') ?> <span class="lbl">Structures</span></a>
         <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
     </div>
+
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
 
     <form method="get" class="filters">
         <input type="hidden" name="p" value="facturation_liste">

@@ -276,3 +276,93 @@ function route_autorisee(array $modules): bool
     }
     return $_SERVER['REQUEST_METHOD'] !== 'POST' || $ecriture;
 }
+
+// --- Navigation (rail d'icônes + bandeau d'onglets, EXPÉRIMENTAL) -----------
+// Source de vérité unique pour le regroupement des pages par module, utilisée
+// à la fois par le rail (views/layout.php) et le bandeau d'onglets
+// (views/_module_tabs.php) — pour ne jamais avoir la liste des routes/onglets
+// à tenir synchronisée à deux endroits (comme c'était le cas avant, avec la
+// logique inline dans layout.php). Un groupe = [Libellé, icône, [onglets]] ;
+// chaque onglet = clé de route => [Libellé, [routes qui le mettent en
+// surbrillance], badge (0 = aucun)]. Absent du tableau = module inactif ou
+// hors des droits de l'utilisateur courant (mêmes conditions qu'avant).
+function nav_groupes(): array
+{
+    $g = [];
+
+    if (module_actif('salaires') && peut_lire('salaires')) {
+        $g['salaires'] = ['Salaires', 'file-text', [
+            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_new'], nb_fiches_a_payer()],
+            'employes' => ['Employés', ['employes', 'employe', 'employe_voir'], 0],
+            'resume'   => ['Cotisations', ['resume'], 0],
+        ]];
+    }
+
+    $analytiqueOk = module_actif('analytique') && peut_lire('analytique');
+    if (module_actif('compta') && peut_lire('compta')) {
+        $onglets = [
+            'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles'], nb_ecritures_a_lettrer()],
+            'compta_bilan'     => ['Comptes annuels', ['compta_bilan', 'compta_plan', 'compta_comptes'], 0],
+        ];
+        if ($analytiqueOk) {
+            $onglets['compta_analyse'] = ['Analyse', ['compta_analyse', 'compta_analyse_axe', 'compta_axes'], 0];
+        }
+        $g['compta'] = ['Comptabilité', 'banknote', $onglets];
+    }
+
+    if (module_actif('facturation') && peut_lire('facturation')) {
+        $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
+            'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard()],
+            'structures'        => ['Structures', ['structures', 'structure'], 0],
+        ]];
+    }
+
+    if (module_actif('evenements') && peut_lire('evenements')) {
+        $g['evenements'] = ['Événements', 'calendar', [
+            'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_manquants()],
+            'structures'       => ['Structures', ['structures', 'structure'], 0],
+            'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0],
+        ]];
+    }
+
+    if (module_actif('booking') && peut_lire('booking')) {
+        $g['booking'] = ['Booking', 'building-2', [
+            'mailing'    => ['Mailing', ['mailing', 'mailing_campagne', 'mailing_modeles', 'mailing_exclusions'], 0],
+            'structures' => ['Structures', ['structures', 'structure'], 0],
+        ]];
+    }
+
+    return $g;
+}
+
+// Résout quel groupe de nav_groupes() doit être mis en surbrillance (rail
+// ET bandeau d'onglets) pour la route courante. La plupart des routes
+// n'appartiennent qu'à un seul groupe — mais 'structures'/'structure' peut
+// appartenir à trois (Factures/Événements/Booking) puisque c'est une page
+// partagée : on préfère $depuis s'il désigne un groupe valide contenant la
+// route, sinon on retombe sur un ordre de priorité fixe (Booking d'abord,
+// propriétaire du CRM des structures — voir SPEC_BOOKING.md).
+function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?string
+{
+    $candidats = [];
+    foreach ($groupes as $cle => $g) {
+        foreach ($g[2] as $ongletCle => $onglet) {
+            if ($ongletCle === $route || in_array($route, $onglet[1], true)) {
+                $candidats[] = $cle;
+                break;
+            }
+        }
+    }
+    if (!$candidats) {
+        return null;
+    }
+    if ($depuis !== '' && in_array($depuis, $candidats, true)) {
+        return $depuis;
+    }
+    foreach (['booking', 'facturation', 'evenements'] as $prefere) {
+        if (in_array($prefere, $candidats, true)) {
+            return $prefere;
+        }
+    }
+    return $candidats[0];
+}
