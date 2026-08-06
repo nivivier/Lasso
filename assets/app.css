@@ -526,6 +526,13 @@ body.auth-bg {
    large sous un bandeau d'onglets qui, lui, s'étend déjà sur toute la
    largeur — écart visible sur un écran large. */
 .content:has(.page-head-band .module-tabs):not(:has(> .module-content)) { max-width: none; }
+/* Sur ces mêmes pages (Paramètres, Mailing…), .page-head-band n'a pas de
+   marge basse (0, voir plus haut — pensé pour les pages « module » qui
+   enchaînent avec .module-content-inner et son propre padding-top) : sans
+   .module-content, rien ne remplaçait cet espacement et le contenu de la
+   page se retrouvait collé au bandeau d'onglets. 24px reprend la valeur du
+   padding-top de .module-content-inner, pour un espacement cohérent partout. */
+.content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band { margin-bottom: 24px; }
 /* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
 .module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }

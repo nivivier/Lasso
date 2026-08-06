@@ -20,6 +20,12 @@ unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php
+// Structures est partagée par 3 groupes de nav (booking/facturation/evenements,
+// voir nav_groupe_actif()) — reporté sur les liens vers une structure pour que
+// le rail/bandeau y reste dans le même groupe de provenance une fois dessus.
+$suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
+?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
 <?php if ($tagBulk !== null): ?>
@@ -233,7 +239,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
     </tr></thead>
     <tbody>
     <?php foreach ($structures as $d): ?>
-        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
+        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= $suffixeDepuis ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
             <td><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
             <td>
@@ -253,7 +259,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                     ) : [];
                 ?>
                 <?php if ($lieesPaires): ?>
-                    <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?>" onclick="event.stopPropagation()"><?= e((string) $ln) ?></a><?php endforeach; ?>
+                    <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?><?= $suffixeDepuis ?>" onclick="event.stopPropagation()"><?= e((string) $ln) ?></a><?php endforeach; ?>
                 <?php else: ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="small">
