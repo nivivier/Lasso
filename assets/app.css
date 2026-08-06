@@ -783,19 +783,22 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .field-pair select { flex: 1; width: auto; min-width: 0; }
 /* Grille de taux : autant de colonnes que la largeur le permet (≈150px/champ) */
 .grid-taux { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 22px; }
-/* Tableau de bord : deux colonnes indépendantes via flexbox.
-   Chaque .dash-col empile ses pods verticalement sans attendre la hauteur de l'autre. */
-.dash-cols { display: flex; gap: 40px; align-items: flex-start; }
-.dash-col { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 32px; }
+/* Tableau de bord : grille responsive, chaque widget (Prochains événements,
+   Suisa, Évolution financière, Salaires à verser, Factures émises…) est une
+   cellule indépendante — 3 colonnes en plein écran, 2 en tablette, 1 en
+   dessous (mobile, cf. @media 800px plus bas) plutôt que deux colonnes figées
+   groupant plusieurs pods chacune. .content perd son plafond de largeur de
+   lecture (1120px) sur cette page : avec 3 colonnes, le tableau de bord
+   profite de toute la largeur dispo plutôt que de se comprimer inutilement. */
+.content:has(> .dash-cols) { max-width: none; }
+.dash-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; align-items: start; }
 .dash-chart-card { padding: 16px 20px 12px; }
 .dash-chart { width: 100%; height: auto; display: block; }
-/* Entre le plein desktop et le tiroir mobile (@media 800px plus bas), les deux
-   colonnes n'ont plus la place de rester côte à côte sans se comprimer trop
-   (le tableau « Salaires à verser » force un retour à la ligne du texte qui
-   déséquilibre les hauteurs face au graphique) : on passe en pile plus tôt,
-   avant que ça ne devienne inconfortable, plutôt que d'attendre le tiroir. */
-@media (max-width: 1120px) {
-    .dash-cols { flex-direction: column; align-items: stretch; gap: 32px; }
+@media (max-width: 1400px) {
+    .dash-cols { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+    .dash-cols { grid-template-columns: 1fr; }
 }
 
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */

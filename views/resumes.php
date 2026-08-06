@@ -144,8 +144,6 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
     des modules dans <a href="?p=parametres_modules">Paramètres → Modules</a>.</p>
 <?php else: ?>
 <div class="dash-cols">
-    <div class="dash-col">
-    
     <?php if (module_actif('evenements')): ?>
         <div>
             <h2 class="mt-0">Prochains événements</h2>
@@ -197,11 +195,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
             <div class="card dash-chart-card"><?= $dash_svg($comptaSeries) ?></div>
         </div>
         <?php endif; ?>
-        
-                
 
-    </div>
-    <div class="dash-col">
         <?php if (module_actif('salaires')): ?>
         <div>
             <h2 class="mt-0">Salaires à verser</h2>
@@ -256,7 +250,5 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
             <?php endif; ?>
         </div>
         <?php endif; ?>
-        
-    </div>
 </div>
 <?php endif; ?>
