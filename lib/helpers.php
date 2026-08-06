@@ -737,14 +737,19 @@ function couleurs_css_vars(): string
         . 'body.has-sidebar::before{background-image:url(' . json_encode(param_fond()) . ');' . $filtreFond . '}</style>';
 }
 
-// Bloc <style> qui surcharge --primary*/--highlight* (voir couleurs_css_vars()
+// Bloc <style> qui surcharge --primary*/--brand* (voir couleurs_css_vars()
 // ci-dessus) avec la couleur fixe du module actif (MODULE_COULEURS,
 // lib/modules.php) — injecté juste après couleurs_css_vars() (views/layout.php),
 // donc gagne en cascade. $module : clé de nav_groupes()/nav_groupe_actif(),
 // ou null hors d'un module (tableau de bord, Paramètres — pas de surcharge,
-// la couleur principale de l'employeur s'applique normalement). --brand/
-// --brand-2 (dégradé de fond du rail) ne sont volontairement pas touchés :
-// seul l'accent change, pas l'identité visuelle du rail lui-même.
+// la couleur principale de l'employeur s'applique normalement).
+// --highlight* (« couleur de mise en évidence », réglage Employeur séparé)
+// n'est volontairement PAS touché : il reste la même partout, quel que soit
+// le module — seuls --primary* (icône active du rail, focus, accents
+// secondaires) et --brand*/--brand-2 (titre de page en dégradé, voir h1 dans
+// app.css) suivent la couleur du module. Le rail lui-même (fond de .sidebar)
+// ne dépend plus de --brand — voir le commentaire sur .sidebar dans app.css —
+// donc cette surcharge ne le fait pas changer de couleur.
 function module_couleur_css_vars(?string $module): string
 {
     if ($module === null || !isset(MODULE_COULEURS[$module])) {
@@ -753,8 +758,7 @@ function module_couleur_css_vars(?string $module): string
     $c = couleurs_derivees(MODULE_COULEURS[$module]);
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
-        . ';--highlight:' . $c['primary'] . ';--highlight-d:' . $c['primary_d']
-        . ';--highlight-tint:' . $c['primary_tint'] . ';--highlight-rgb:' . $c['primary_rgb'] . ';}</style>';
+        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}</style>';
 }
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées

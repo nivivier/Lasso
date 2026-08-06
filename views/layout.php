@@ -31,7 +31,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 <aside class="sidebar" id="sidebar">
     <div class="side-brand">
         <div class="side-brand-txt">
-            <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+            <?php if ($logoClair !== ''): ?><img src="<?= e($logoClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
             <span class="side-sub">Gestion des salaires</span>
         </div>
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
@@ -43,7 +43,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         </a>
         <?php foreach ($navGroupes as $navCle => $navG): ?>
         <?php $navBadge = array_sum(array_column($navG[2], 2)); ?>
-        <a href="?p=<?= array_key_first($navG[2]) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>">
+        <a href="?p=<?= array_key_first($navG[2]) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" style="--rail-accent: <?= e(MODULE_COULEURS[$navCle] ?? '') ?>">
             <span class="pill"><?= icon($navG[1]) ?></span>
             <span class="rail-label"><?= e($navG[0]) ?></span>
             <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
@@ -87,7 +87,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         </div>
     </div>
     <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-        <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+        <img src="assets/lasso.png" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
     </a>
 </aside>
 <main class="content">

@@ -130,11 +130,16 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    remplace l'ancien rail « icône-pastille + libellé à droite » par un rail
    étroit, icône au-dessus d'un petit libellé, largeur 84px (voir aussi les
    offsets de .page-head-band, calés sur cette largeur). */
+/* Rail clair par défaut (pas de dégradé --brand/--brand-2 : depuis que
+   --brand suit la couleur du module actif — module_couleur_css_vars(),
+   lib/helpers.php —, un fond de rail dérivé de --brand changerait de
+   couleur à chaque page ; le rail lui-même doit rester un repère stable). */
 .sidebar {
     width: var(--rail-width);
     flex-shrink: 0;
-    background: linear-gradient(165deg, var(--brand) 0%, var(--brand-2) 100%);
-    color: #fff;
+    background: var(--bg);
+    color: var(--ink);
+    border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     padding: 20px 8px;
@@ -145,7 +150,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 }
 .side-brand { padding: 0 4px 14px; text-align: center; }
 .side-logo { width: 100%; max-width: 62px; height: auto; margin: 0 auto; display: block; }
-.side-name { font-size: var(--fs-11); font-weight: 700; color: #fff; word-break: break-word; }
+.side-name { font-size: var(--fs-11); font-weight: 700; color: var(--ink); word-break: break-word; }
 .side-sub { display: none; }
 .side-nav { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .side-nav::-webkit-scrollbar { display: none; }
@@ -154,20 +159,29 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     display: flex; flex-direction: column; align-items: center; gap: 5px;
     padding: 8px 4px; width: 100%;
     border-radius: var(--radius-sm);
-    color: rgba(255,255,255,.62);
+    color: var(--muted);
     font-weight: 700; font-size: var(--fs-10); line-height: 1.15; text-align: center;
     position: relative;
 }
+/* --rail-accent : couleur fixe posée en style inline par module (voir
+   views/layout.php, MODULE_COULEURS dans lib/modules.php) — l'icône reste
+   teintée de sa propre couleur même hors du module actif (repère visuel
+   constant), contrairement à --primary/--highlight qui eux ne suivent que
+   la page courante. Tableau de bord/Paramètres n'ont pas de --rail-accent
+   (pas de module) : repli sur --muted/--primary, comme avant. */
 .rail-btn .pill {
     width: 40px; height: 40px; padding: 10px; box-sizing: border-box; flex-shrink: 0;
-    border-radius: 11px; background: rgba(255,255,255,.08);
+    border-radius: 11px; background: var(--surface); color: var(--rail-accent, var(--muted));
     display: flex; align-items: center; justify-content: center;
-    transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+    transition: background .15s ease, transform .15s ease, box-shadow .15s ease, color .15s ease;
 }
-.rail-btn:hover { color: rgba(255,255,255,.9); text-decoration: none; }
-.rail-btn:hover .pill { background: rgba(255,255,255,.16); transform: translateY(-1px); }
-.rail-btn.on { color: #fff; }
-.rail-btn.on .pill { background: var(--primary); box-shadow: 0 5px 14px rgb(var(--primary-rgb) / .45); }
+.rail-btn:hover { color: var(--ink); text-decoration: none; }
+.rail-btn:hover .pill { background: var(--line); transform: translateY(-1px); }
+.rail-btn.on { color: var(--ink); }
+.rail-btn.on .pill {
+    background: var(--rail-accent, var(--primary)); color: #fff;
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--rail-accent, var(--primary)) 45%, transparent);
+}
 /* Pastille de comptage : au-dessus de la pastille d'icône (rail étroit, pas
    de place à droite comme dans l'ancien sidebar). */
 .nav-badge { position: absolute; top: 4px; right: 12px; background: var(--danger); color: #fff; font-size: var(--fs-9_5); font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
@@ -373,26 +387,36 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     -webkit-backdrop-filter: blur(10px);
 }
 
-/* Barre mobile + burger (cachés sur bureau) */
+/* Barre mobile + burger (cachés sur bureau). .mobile-bar reste sur fond
+   sombre (--brand) — texte/burger blancs, inchangé ; .side-close vit lui
+   dans le tiroir (.sidebar), passé clair — couleurs distinctes, d'où deux
+   règles plutôt qu'une seule .burger, .side-close comme avant. */
 .mobile-bar { display: none; }
-.burger, .side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }
-.burger:hover, .side-close:hover { background: rgba(255,255,255,.12); }
+.burger { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }
+.burger:hover { background: rgba(255,255,255,.12); }
+.side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: var(--ink); }
+.side-close:hover { background: var(--line); }
 .burger .ico, .side-close .ico { width: 24px; height: 24px; }
 .side-close { display: none; }
 .scrim { display: none; }
 
-.side-avatar-wrap { margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.12); position: relative; }
-.side-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.18); border: none; cursor: pointer; color: #fff; font-size: var(--fs-13); font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0 auto; transition: background .15s; }
-.side-avatar:hover { background: rgba(255,255,255,.28); }
+.side-avatar-wrap { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); position: relative; }
+.side-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; color: var(--ink); font-size: var(--fs-13); font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0 auto; transition: background .15s; }
+.side-avatar:hover { background: var(--line); }
 .side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: #fff; border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
 .side-avatar-id { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
 .side-avatar-id strong { display: block; font-size: var(--fs-13); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-avatar-id span { font-size: var(--fs-11); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .side-avatar-menu a { display: block; padding: 9px 14px; font-size: var(--fs-13); font-weight: 500; color: var(--ink); text-decoration: none; }
 .side-avatar-menu a:hover, .side-avatar-menu a.on { background: var(--bg); color: var(--primary); }
+/* Règle de base pensée pour le fond sombre de la page de connexion
+   (.auth-wrap, seul autre endroit qui réutilise .side-powered) — dans le
+   rail, devenu clair, .sidebar .side-powered ci-dessous la surcharge. */
 .side-powered { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: var(--fs-10); color: rgba(255,255,255,.4); }
 .side-powered:hover { color: rgba(255,255,255,.7); text-decoration: none; }
 .side-powered-logo { height: 12px; width: auto; opacity: .7; }
+.sidebar .side-powered { color: var(--muted); }
+.sidebar .side-powered:hover { color: var(--ink); }
 .side-version { opacity: .7; }
 
 .content { flex: 1; min-width: 0; padding: 40px var(--content-pad); max-width: 1120px; }
@@ -1364,7 +1388,7 @@ body.print-page { background: #e9e9f2; }
 }
 .color-field code { font-size: var(--fs-13); color: var(--muted); }
 /* Repli texte quand aucun logo n'est configuré */
-.side-name { color: #fff; font-weight: 800; font-size: var(--fs-19); }
+.side-name { color: var(--ink); font-weight: 800; font-size: var(--fs-19); }
 .mbar-name { color: #fff; font-weight: 800; font-size: var(--fs-17); }
 .auth-name { color: var(--brand); font-weight: 800; font-size: var(--fs-24); margin-bottom: 6px; }
 
