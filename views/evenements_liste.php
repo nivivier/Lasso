@@ -60,15 +60,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
                 <?php endforeach; ?>
             </select>
         </label>
-        <label><?= e($termeSingulier) ?>
-            <select name="spectacle_id" onchange="this.form.submit()">
-                <option value="0">Tous</option>
-                <option value="-1" <?= $spectacleId === -1 ? 'selected' : '' ?>>Sans <?= mb_strtolower(e($termeSingulier)) ?></option>
-                <?php foreach ($spectaclesFiltre as $s): ?>
-                    <option value="<?= (int) $s['id'] ?>" <?= $spectacleId === (int) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
         <label>Pays
             <select name="pays" onchange="this.form.submit()">
                 <option value="tous" <?= $pays === 'tous' ? 'selected' : '' ?>>Tous</option>
@@ -78,9 +69,18 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
         <label class="search-label">
             <input type="search" name="q" id="evenements-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
-        <details class="filters-more" <?= ($statutSuisa !== 'tous' || $visibilite !== 'tous' || $salaries !== 'tous') ? 'open' : '' ?>>
+        <details class="filters-more" <?= ($spectacleId !== 0 || $statutSuisa !== 'tous' || $visibilite !== 'tous' || $salaries !== 'tous') ? 'open' : '' ?>>
             <summary>Plus de filtres</summary>
             <div class="filters-more-body">
+                <label><?= e($termeSingulier) ?>
+                    <select name="spectacle_id" onchange="this.form.submit()">
+                        <option value="0">Tous</option>
+                        <option value="-1" <?= $spectacleId === -1 ? 'selected' : '' ?>>Sans <?= mb_strtolower(e($termeSingulier)) ?></option>
+                        <?php foreach ($spectaclesFiltre as $s): ?>
+                            <option value="<?= (int) $s['id'] ?>" <?= $spectacleId === (int) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
                 <label>Statut SUISA
                     <select name="statut_suisa" onchange="this.form.submit()">
                         <?php foreach ($statutsSuisa as $val => $lib): ?>
