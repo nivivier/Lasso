@@ -486,9 +486,14 @@ body.auth-bg {
    .content) et le vrai bord de la fenêtre. Pas de plafond ici : ces pages
    utilisent déjà toute la largeur disponible par construction (voir plus
    bas), .page-head-band .page-head garde lui son propre plafond à 1120px
-   pour le titre/les onglets. */
-.content:has(> .module-content) { display: flex; flex-direction: column; max-width: none; }
-.content:has(> .module-content) > .module-content { flex: 1; }
+   pour le titre/les onglets.
+   padding-bottom:0 sur .content + margin-bottom:0 sur .module-content :
+   sinon ces deux valeurs (40px de padding, 24px de marge — pensées pour un
+   fond de page classique, pas un fond blanc qui doit toucher le bord) se
+   soustraient à l'espace que flex:1 attribue à .module-content et laissent
+   un filet de fond non blanc juste avant le vrai bas de la fenêtre. */
+.content:has(> .module-content) { display: flex; flex-direction: column; max-width: none; padding-bottom: 0; }
+.content:has(> .module-content) > .module-content { flex: 1; margin-bottom: 0; }
 /* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
 .module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }
