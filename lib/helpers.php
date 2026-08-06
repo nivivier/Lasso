@@ -287,6 +287,34 @@ function pagination_sql(int $page, int $taille): array
     return [' LIMIT ? OFFSET ?', [$taille, ($page - 1) * $taille]];
 }
 
+// Numéros de page affichés autour de la page courante (± 1) + toujours la
+// première et la dernière, « … » (chaîne, pas de sens numérique) pour les
+// trous — évite d'afficher 50+ numéros pour une grosse pagination. Mêmes
+// règles reprises côté JS pour le mode client (assets/app.js, pagesAffichees()
+// dans lassoListeClient()) : les deux doivent rester synchronisées à la main,
+// pas de logique partagée possible entre PHP (rendu serveur) et JS (rendu
+// dans le navigateur, listes sous PAGINATION_SEUIL_CLIENT).
+function pagination_pages_affichees(int $page, int $nbPages): array
+{
+    if ($nbPages <= 7) {
+        return range(1, $nbPages);
+    }
+    $brut = array_unique([1, 2, $page - 1, $page, $page + 1, $nbPages - 1, $nbPages]);
+    $brut = array_values(array_filter($brut, fn ($p) => $p >= 1 && $p <= $nbPages));
+    sort($brut);
+
+    $out = [];
+    $prec = null;
+    foreach ($brut as $p) {
+        if ($prec !== null && $p - $prec > 1) {
+            $out[] = '…';
+        }
+        $out[] = $p;
+        $prec = $p;
+    }
+    return $out;
+}
+
 // Échappe % / _ / \ pour un motif LIKE sûr (à utiliser avec ESCAPE '\\') —
 // sinon un utilisateur tapant "%" ou "_" dans une recherche déclencherait un
 // joker SQL au lieu d'un caractère littéral. $terme : déjà sans les % de

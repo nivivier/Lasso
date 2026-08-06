@@ -41,6 +41,7 @@
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
     --row-pad: 10px 12px;              /* padding standard des cellules .list */
     --content-pad: 48px;               /* respiration horizontale standard (.content, .page-head, .module-content-inner…) */
+    --rail-width: 100px;                /* largeur du rail d'icônes (.sidebar) — voir aussi .carte-lieux-wrap et les débordements .page-head-band/.module-content */
 }
 
 * { box-sizing: border-box; }
@@ -100,7 +101,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    étroit, icône au-dessus d'un petit libellé, largeur 84px (voir aussi les
    offsets de .page-head-band, calés sur cette largeur). */
 .sidebar {
-    width: 100px;
+    width: var(--rail-width);
     flex-shrink: 0;
     background: linear-gradient(165deg, var(--brand) 0%, var(--brand-2) 100%);
     color: #fff;
@@ -140,8 +141,9 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 /* Pastille de comptage : au-dessus de la pastille d'icône (rail étroit, pas
    de place à droite comme dans l'ancien sidebar). */
 .nav-badge { position: absolute; top: 4px; right: 12px; background: var(--danger); color: #fff; font-size: 9.5px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
-.ico { width: 24px; height: 24px; flex-shrink: 0; vertical-align: middle; }
+.ico { width: 16px; height: 16px; flex-shrink: 0; vertical-align: middle; }
 .ico-tiny .ico { width: 11px; height: 11px; vertical-align: -1px; }
+.sidebar .ico {width: 24px; height: 24px; }
 
 /* Icône d'info + infobulle (survol/focus sur ordinateur, tap sur mobile —
    voir le script dans layout.php et info_tip() dans lib/helpers.php). Point
@@ -219,7 +221,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    (?p=evenement, cf. plus bas). */
 .page-head-band,
 .blur-glass { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 84px; z-index: 1; }
+.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: var(--rail-width); z-index: 1; }
 .carte-lieux { width: 100%; height: 100%; }
 .carte-banner {
     position: absolute; bottom: 16px; right: 16px; z-index: 1001; max-width: 340px;
@@ -409,13 +411,23 @@ body.auth-bg {
     position: sticky;
     top: 0;
     z-index: 20;
-    width: 100vw;
-    margin: -40px 0 0px -132px; /* -132px = largeur sidebar (84) + padding .content (48) */
+    /* calc(100% + …) plutôt que 100vw : 100vw compte la largeur de la fenêtre
+       SANS la barre de défilement verticale, donc plus large que la zone
+       visible dès qu'une scrollbar non-overlay est présente — ça créait un
+       débordement horizontal de quelques pixels sur toute page assez haute
+       pour scroller. 100% (de .content, jamais plus large que la zone
+       visible) + la même marge négative à gauche reproduit le même
+       débordement jusqu'au bord de l'écran, sans le bug — mais la largeur
+       doit elle aussi compenser les DEUX paddings de .content (gauche et
+       droite) en plus du rail : 100% (base) exclut déjà les deux paddings,
+       contrairement à la marge qui n'en déplace qu'un côté. */
+    width: calc(100% + var(--rail-width) + 2 * var(--content-pad));
+    margin: -40px 0 0px calc(-1 * (var(--rail-width) + var(--content-pad)));
     border-bottom: 1px solid var(--line);
 }
 .page-head-band .page-head {
     max-width: 1120px;
-    margin: 0 0 0 84px; /* replique le décalage de .content après la sidebar */
+    margin: 0 0 0 var(--rail-width); /* replique le décalage de .content après le rail */
     padding: 22px var(--content-pad) 20px;
 }
 .page-head-band .module-tabs {
@@ -434,8 +446,23 @@ body.auth-bg {
    flou/sticky), et SANS plafond de largeur comme .page-head-band .page-head
    (1120px) : les boutons d'action, les filtres et surtout les tableaux
    profitent de toute la largeur disponible à droite du rail. */
-.module-content { width: 100vw; margin: 0 0 24px -132px; background: var(--card); }
-.module-content-inner { margin: 0 0 0 84px; padding: 24px var(--content-pad) 30px; }
+/* Le fond blanc va jusqu'en bas de la page même quand le tableau est court
+   (ex. pagination désormais posée sous le cadre, voir views/_pagination.php) :
+   .content passe en colonne flex et .module-content prend tout l'espace
+   restant, plutôt que de s'arrêter juste sous le tableau.
+   max-width:none : .content est normalement plafonné à 1120px (largeur de
+   lecture) — sur un écran large, ce plafond laissait un vide non blanc entre
+   le bord droit de .module-content (calculé à partir de la largeur RÉELLE de
+   .content) et le vrai bord de la fenêtre. Pas de plafond ici : ces pages
+   utilisent déjà toute la largeur disponible par construction (voir plus
+   bas), .page-head-band .page-head garde lui son propre plafond à 1120px
+   pour le titre/les onglets. */
+.content:has(> .module-content) { display: flex; flex-direction: column; max-width: none; }
+.content:has(> .module-content) > .module-content { flex: 1; }
+/* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
+   (même bug de scrollbar avec 100vw, même correctif, même calcul). */
+.module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }
+.module-content-inner { margin: 0 0 0 var(--rail-width); padding: 24px var(--content-pad) 30px; }
 /* Barre d'outils (EXPÉRIMENTAL) : regroupe filtres/recherche et boutons
    d'action sur une seule ligne, posée directement sur le fond blanc de
    .module-content-inner (pas de carte encadrée comme l'ancien .filters
@@ -470,7 +497,7 @@ body.auth-bg {
    restent transparents. */
 .module-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
 .module-tab {
-    appearance: none; cursor: pointer; text-decoration: none; font: inherit; font-size: 13.5px; font-weight: 600;
+    appearance: none; cursor: pointer; text-decoration: none; font: inherit; font-size: 14.5px; font-weight: 600;
     color: var(--muted); background: transparent; border: 1px solid transparent;
     border-radius: 8px 8px 0 0; padding: 9px 16px; margin-bottom: -1px;
     display: inline-flex; align-items: center; gap: 7px;
@@ -1006,7 +1033,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 
 /* Pagination des listes longues (fiches, employés, écritures, factures,
    débiteurs, événements) — voir views/_pagination.php. */
-.pagination { display: flex; align-items: center; gap: 16px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+.pagination { display: flex; align-items: center; gap: 16px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
 .pagination-taille { display: flex; }
 .pagination-taille label { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: 13px; color: var(--muted); }
 .pagination-taille select { font: inherit; font-size: 13.5px; padding: 4px 24px 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff; background-position: right 6px center; background-size: 12px; cursor: pointer; }
@@ -1014,6 +1041,17 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .pagination-nav { display: flex; align-items: center; gap: 8px; }
 .pagination-nav [aria-disabled="true"], .pagination-nav button:disabled { opacity: .4; cursor: default; }
 .pagination[data-pg-client] [data-pg-nav][hidden] { display: none; }
+/* Numéros de page cliquables (pagination_pages_affichees(), lib/helpers.php,
+   et son pendant JS pagesAffichees() dans assets/app.js pour le mode client). */
+.pagination-pages { display: flex; align-items: center; gap: 2px; }
+.pagination-page {
+    appearance: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; color: var(--muted);
+    background: none; border: none; border-radius: var(--radius-sm); min-width: 26px; height: 26px; padding: 0 4px;
+    display: inline-flex; align-items: center; justify-content: center; transition: color .12s, background .12s;
+}
+.pagination-page:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
+.pagination-page.on { color: #fff; background: var(--primary); font-weight: 700; cursor: default; }
+.pagination-ellipsis { color: var(--muted); font-size: 13px; padding: 0 2px; }
 .filters:has(.filters-more[open]) { margin-bottom: 65px; }
 
 /* =================== Tables =================== */

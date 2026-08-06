@@ -130,6 +130,26 @@ function lassoListeClient(config) {
         if (sep) sep.style.display = sepVisible ? '' : 'none';
     }
 
+    // Mêmes règles que pagination_pages_affichees() (lib/helpers.php, pendant
+    // serveur de views/_pagination.php) : 1re/dernière page toujours visibles,
+    // page courante ± 1, '…' (chaîne, pas de sens numérique) pour les trous.
+    function pagesAffichees(pageCourante, nbPages) {
+        if (nbPages <= 7) {
+            return Array.from({ length: nbPages }, (_, i) => i + 1);
+        }
+        const brut = [...new Set([1, 2, pageCourante - 1, pageCourante, pageCourante + 1, nbPages - 1, nbPages])]
+            .filter(p => p >= 1 && p <= nbPages)
+            .sort((a, b) => a - b);
+        const out = [];
+        let prec = null;
+        brut.forEach(p => {
+            if (prec !== null && p - prec > 1) out.push('…');
+            out.push(p);
+            prec = p;
+        });
+        return out;
+    }
+
     function render() {
         const total = matched.length;
         const nbPages = Math.max(1, Math.ceil(total / taille));
@@ -142,11 +162,30 @@ function lassoListeClient(config) {
 
         if (!pag) return;
         const info = pag.querySelector('[data-pg-info]');
-        const pageSpan = pag.querySelector('[data-pg-page]');
+        const numbers = pag.querySelector('[data-pg-numbers]');
         const nav = pag.querySelector('[data-pg-nav]');
         if (total > taille) {
             info.textContent = (total === 0 ? 0 : debut + 1) + '–' + fin + ' sur ' + total;
-            pageSpan.textContent = 'Page ' + page + ' / ' + nbPages;
+            numbers.innerHTML = '';
+            pagesAffichees(page, nbPages).forEach(p => {
+                if (p === '…') {
+                    const span = document.createElement('span');
+                    span.className = 'pagination-ellipsis';
+                    span.textContent = '…';
+                    numbers.appendChild(span);
+                    return;
+                }
+                const el = document.createElement(p === page ? 'span' : 'button');
+                el.className = 'pagination-page' + (p === page ? ' on' : '');
+                el.textContent = p;
+                if (p === page) {
+                    el.setAttribute('aria-current', 'page');
+                } else {
+                    el.type = 'button';
+                    el.addEventListener('click', () => { page = p; render(); });
+                }
+                numbers.appendChild(el);
+            });
             nav.hidden = false;
             nav.querySelector('[data-pg-prev]').disabled = page <= 1;
             nav.querySelector('[data-pg-next]').disabled = page >= nbPages;

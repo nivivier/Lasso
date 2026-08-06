@@ -12,6 +12,10 @@ $nbPages = (int) ceil($pgTotal / $pgTaille);
 $debut   = ($pgPage - 1) * $pgTaille + 1;
 $fin     = min($pgPage * $pgTaille, $pgTotal);
 $lien    = fn(int $p): string => e('?p=' . $pgRoute . '&' . http_build_query($pgParams + ['page' => $p]));
+// Fenêtre de numéros affichés autour de la page courante (+ 1re/dernière),
+// « … » pour les trous — mêmes règles que le pendant JS de
+// _pagination_client.php (assets/app.js, lassoListeClient()).
+$pagesAffichees = pagination_pages_affichees($pgPage, $nbPages);
 ?>
 <div class="pagination">
     <form method="get" class="pagination-taille">
@@ -33,7 +37,17 @@ $lien    = fn(int $p): string => e('?p=' . $pgRoute . '&' . http_build_query($pg
         <?php else: ?>
             <span class="btn ghost btn-sm icon-only" aria-disabled="true"><?= icon('chevron-left') ?></span>
         <?php endif; ?>
-        <span class="muted small nowrap">Page <?= $pgPage ?> / <?= $nbPages ?></span>
+        <span class="pagination-pages">
+            <?php foreach ($pagesAffichees as $p): ?>
+                <?php if ($p === '…'): ?>
+                    <span class="pagination-ellipsis">…</span>
+                <?php elseif ($p === $pgPage): ?>
+                    <span class="pagination-page on" aria-current="page"><?= $p ?></span>
+                <?php else: ?>
+                    <a href="<?= $lien($p) ?>" class="pagination-page"><?= $p ?></a>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </span>
         <?php if ($pgPage < $nbPages): ?>
             <a href="<?= $lien($pgPage + 1) ?>" class="btn ghost btn-sm icon-only" title="Page suivante" aria-label="Page suivante"><?= icon('chevron-right') ?></a>
         <?php else: ?>

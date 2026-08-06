@@ -22,7 +22,7 @@ if ($pgTotal <= 0) {
     <span class="pagination-info" data-pg-info></span>
     <span class="pagination-nav" data-pg-nav>
         <button type="button" class="btn ghost btn-sm icon-only" data-pg-prev title="Page précédente" aria-label="Page précédente"><?= icon('chevron-left') ?></button>
-        <span class="muted small nowrap" data-pg-page></span>
+        <span class="pagination-pages" data-pg-numbers></span>
         <button type="button" class="btn ghost btn-sm icon-only" data-pg-next title="Page suivante" aria-label="Page suivante"><?= icon('chevron-right') ?></button>
     </span>
 </div>
