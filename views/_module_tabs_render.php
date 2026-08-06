@@ -9,7 +9,7 @@
 <nav class="module-tabs">
     <?php foreach ($ntOnglets as $ntRoute => $ntOnglet): ?>
         <?php [$ntLib, $ntRoutesMatch, $ntBadge, $ntIcon] = $ntOnglet; ?>
-        <?php $ntHref = '?p=' . $ntRoute . ($ntRoute === 'structures' ? '&depuis=' . $ntCle : ''); ?>
+        <?php $ntHref = '?p=' . $ntRoute . '&depuis=' . $ntCle; ?>
         <a href="<?= e($ntHref) ?>" class="module-tab <?= in_array((string) ($_GET['p'] ?? ''), $ntRoutesMatch, true) ? 'on' : '' ?>">
             <?= icon($ntIcon) ?> <?= e($ntLib) ?>
             <?php if ($ntBadge > 0): ?><span class="nav-badge"><?= $ntBadge ?></span><?php endif; ?>

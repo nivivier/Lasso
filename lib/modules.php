@@ -302,7 +302,8 @@ function nav_groupes(): array
     $analytiqueOk = module_actif('analytique') && peut_lire('analytique');
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
-            'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import', 'compta_regles'], nb_ecritures_a_lettrer(), 'banknote'],
+            'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import'], nb_ecritures_a_lettrer(), 'banknote'],
+            'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'settings'],
             'compta_bilan'     => ['Comptes annuels', ['compta_bilan', 'compta_plan', 'compta_comptes'], 0, 'book-open'],
         ];
         if ($analytiqueOk) {
@@ -314,6 +315,7 @@ function nav_groupes(): array
     if (module_actif('facturation') && peut_lire('facturation')) {
         $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
             'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
+            'compta_comptes'    => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
             'structures'        => ['Structures', ['structures', 'structure'], 0, 'building-2'],
         ]];
     }

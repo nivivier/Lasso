@@ -40,6 +40,7 @@
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
     --row-pad: 10px 12px;              /* padding standard des cellules .list */
+    --content-pad: 48px;               /* respiration horizontale standard (.content, .page-head, .module-content-inner…) */
 }
 
 * { box-sizing: border-box; }
@@ -99,7 +100,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    étroit, icône au-dessus d'un petit libellé, largeur 84px (voir aussi les
    offsets de .page-head-band, calés sur cette largeur). */
 .sidebar {
-    width: 84px;
+    width: 100px;
     flex-shrink: 0;
     background: linear-gradient(165deg, var(--brand) 0%, var(--brand-2) 100%);
     color: #fff;
@@ -112,7 +113,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     z-index: 100; /* passe devant le bandeau d'en-tête (.page-head-band) et son icône */
 }
 .side-brand { padding: 0 4px 14px; text-align: center; }
-.side-logo { width: 100%; max-width: 52px; height: auto; margin: 0 auto; display: block; }
+.side-logo { width: 100%; max-width: 62px; height: auto; margin: 0 auto; display: block; }
 .side-name { font-size: 11px; font-weight: 700; color: #fff; word-break: break-word; }
 .side-sub { display: none; }
 .side-nav { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; }
@@ -139,7 +140,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 /* Pastille de comptage : au-dessus de la pastille d'icône (rail étroit, pas
    de place à droite comme dans l'ancien sidebar). */
 .nav-badge { position: absolute; top: 4px; right: 12px; background: var(--danger); color: #fff; font-size: 9.5px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
-.ico { width: 18px; height: 18px; flex-shrink: 0; vertical-align: middle; }
+.ico { width: 24px; height: 24px; flex-shrink: 0; vertical-align: middle; }
 .ico-tiny .ico { width: 11px; height: 11px; vertical-align: -1px; }
 
 /* Icône d'info + infobulle (survol/focus sur ordinateur, tap sur mobile —
@@ -191,15 +192,10 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-btn:hover { background: var(--surface); }
 .perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
 
-/* === Page Paramètres : barre d'onglets === */
-.param-tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--line); margin: 0 0 26px; }
-.param-tabs a {
-    padding: 10px 15px; font-size: 14px; font-weight: 600; color: var(--muted);
-    border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
-    transition: color .15s, border-color .15s;
-}
-.param-tabs a:hover { color: var(--ink); text-decoration: none; }
-.param-tabs a.on { color: var(--primary); border-bottom-color: var(--primary); }
+/* === Page Paramètres : barre d'onglets ===
+   Les onglets principaux réutilisent .module-tabs/.module-tab (voir plus bas,
+   EXPÉRIMENTAL) — même rendu que le bandeau des autres modules, voir
+   views/_param_tabs.php. */
 /* Sous-onglets (sections du groupe actif) : rangée de pastilles sous le bandeau. */
 .param-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 24px; }
 .param-subtabs a {
@@ -367,7 +363,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-powered-logo { height: 12px; width: auto; opacity: .7; }
 .side-version { opacity: .7; }
 
-.content { flex: 1; min-width: 0; padding: 40px 48px; max-width: 1120px; }
+.content { flex: 1; min-width: 0; padding: 40px var(--content-pad); max-width: 1120px; }
 
 /* =================== Auth pages =================== */
 body.auth-bg {
@@ -414,17 +410,14 @@ body.auth-bg {
     top: 0;
     z-index: 20;
     width: 100vw;
-    margin: -40px 0 24px -132px; /* -132px = largeur sidebar (84) + padding .content (48) */
+    margin: -40px 0 0px -132px; /* -132px = largeur sidebar (84) + padding .content (48) */
     border-bottom: 1px solid var(--line);
 }
 .page-head-band .page-head {
     max-width: 1120px;
     margin: 0 0 0 84px; /* replique le décalage de .content après la sidebar */
-    padding: 22px 48px 20px;
+    padding: 22px var(--content-pad) 20px;
 }
-/* Paramètres : les onglets touchent le bas de l'en-tête, pas d'espace en trop. */
-.page-head-band .page-head:has(.param-tabs) { padding-bottom: 0; }
-.page-head-band .param-tabs,
 .page-head-band .module-tabs {
     flex: 1 1 100%;
     margin: 0;
@@ -442,14 +435,39 @@ body.auth-bg {
    (1120px) : les boutons d'action, les filtres et surtout les tableaux
    profitent de toute la largeur disponible à droite du rail. */
 .module-content { width: 100vw; margin: 0 0 24px -132px; background: var(--card); }
-.module-content-inner { margin: 0 0 0 84px; padding: 24px 48px 30px; }
-.module-content .head-actions { margin-bottom: 20px; }
-.module-content .filters { margin-bottom: 22px; }
+.module-content-inner { margin: 0 0 0 84px; padding: 24px var(--content-pad) 30px; }
+/* Barre d'outils (EXPÉRIMENTAL) : regroupe filtres/recherche et boutons
+   d'action sur une seule ligne, posée directement sur le fond blanc de
+   .module-content-inner (pas de carte encadrée comme l'ancien .filters
+   isolé) — séparée du tableau par un simple filet. Les boutons d'action
+   (.head-actions) se poussent à droite via margin-left:auto, quel que soit
+   leur ordre dans le marquage. position:relative + z-index : sur les pages
+   avec bascule Liste/Carte, la carte plein écran (.carte-lieux-wrap,
+   position:fixed, z-index:1) est posée après la barre d'outils dans le flux
+   — sans passer la barre en positionnée elle-même, un élément fixed passe
+   toujours au-dessus d'un élément statique, quel que soit l'ordre du DOM. */
+.toolbar { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px 20px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 2px; }
+.toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
+.toolbar > .head-actions { margin-left: auto; }
+/* Tableaux pleine largeur (EXPÉRIMENTAL) : à l'intérieur de la zone blanche
+   .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
+   de la zone via une marge négative égale au padding horizontal du
+   conteneur — ni bordure ni coin arrondi gauche/droite, pour un tableau qui
+   se fond dans le fond blanc plutôt que de flotter dedans comme une carte.
+   Le contenu des cellules reste lui aligné sur le même padding que le reste
+   de la page (.page-head, .toolbar…) via un padding gauche/droite posé sur
+   la première/dernière cellule de chaque ligne plutôt que sur <table> (rendu
+   plus fiable entre navigateurs que le padding directement sur <table>). */
+.module-content-inner .table-scroll { margin: 0 calc(-1 * var(--content-pad)); border-radius: 0; }
+.module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
+.module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
+.module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
 /* Bandeau d'onglets de module (EXPÉRIMENTAL — branche experiment-nav-rail),
    niveau intermédiaire entre le rail (module) et la page (onglet) — voir
-   views/_module_tabs.php. Même esprit que .param-tabs (Paramètres) mais
-   « onglet » plutôt que soulignement : l'onglet actif se détache en blanc
-   plein sur le fond flouté du bandeau, les inactifs restent transparents. */
+   views/_module_tabs.php. Réutilisé tel quel par les onglets principaux de
+   Paramètres (views/_param_tabs.php) pour un rendu cohérent partout : l'onglet
+   actif se détache en blanc plein sur le fond flouté du bandeau, les inactifs
+   restent transparents. */
 .module-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
 .module-tab {
     appearance: none; cursor: pointer; text-decoration: none; font: inherit; font-size: 13.5px; font-weight: 600;
@@ -1365,6 +1383,7 @@ abbr {
     .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
+    .module-content-inner .table-scroll { margin: 0 -18px; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
     .facture-aside { order: 0; }

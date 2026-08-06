@@ -1,4 +1,15 @@
 <?php /** @var array $emp */ /** @var array $fiches */ ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=employes', 'Employés') ?>
 <?php if (($_GET['err'] ?? '') === 'fiches'): ?><p class="err">Impossible de supprimer : cet employé a des fiches de salaire.</p><?php endif; ?>
 <div class="page-head">
@@ -64,3 +75,4 @@
 </table>
 </div>
 <?php endif; ?>
+</div></div>

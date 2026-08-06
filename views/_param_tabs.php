@@ -71,6 +71,18 @@ if (peut_ecrire('coeur')) {
 }
 $ptGroupes['donnees'] = ['Données', $ptDonneesSections, $ptRoutesImport];
 
+// Icônes des onglets principaux — même esprit que nav_groupes() (lib/modules.php),
+// une icône par groupe, purement décorative (pas de sens fonctionnel supplémentaire).
+$ptIcones = [
+    'application' => 'settings',
+    'employeur'   => 'building',
+    'emails'      => 'mail',
+    'taux'        => 'percent',
+    'categories'  => 'blocks',
+    'evenements'  => 'calendar',
+    'donnees'     => 'import',
+];
+
 $ptCurParam = $_GET['p'] ?? '';
 
 // Groupe actif : celui dont une section (ou un alias) correspond à la route.
@@ -88,9 +100,9 @@ $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [
     <div class="page-head-title">
         <h1>Paramètres</h1>
     </div>
-    <nav class="param-tabs">
+    <nav class="module-tabs">
         <?php foreach ($ptGroupes as $ptCle => $ptG): ?>
-            <a href="?p=<?= array_key_first($ptG[1]) ?>" class="<?= $ptGroupeActif === $ptCle ? 'on' : '' ?>"><?= e($ptG[0]) ?></a>
+            <a href="?p=<?= array_key_first($ptG[1]) ?>" class="module-tab <?= $ptGroupeActif === $ptCle ? 'on' : '' ?>"><?= icon($ptIcones[$ptCle] ?? 'settings') ?> <?= e($ptG[0]) ?></a>
         <?php endforeach; ?>
     </nav>
 </div>

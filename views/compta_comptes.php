@@ -1,21 +1,27 @@
 <?php
 /** @var array $comptes */ /** @var ?string $err */ /** @var bool $saved */ /** @var ?string $flagErr */
-/** @var array $retour */
 ?>
-<div class="page-head">
-    <div>
-        <?= lien_retour($retour['href'], $retour['label']) ?>
-        <h1>Comptes bancaires</h1>
-    </div>
-    <div class="head-actions">
-        <button type="button" id="btn-new-compte" class="btn"><?= icon('plus') ?><span class="lbl"> Ajouter un compte</span></button>
-    </div>
-</div>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Compte bancaire enregistré.</p><?php endif; ?>
 <?php if ($flagErr === 'used'): ?><p class="err flash">Suppression impossible : des écritures sont rattachées à ce compte.</p><?php endif; ?>
-<?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
 
-<div class="table-scroll">
+<div class="module-content"><div class="module-content-inner">
+    <div class="toolbar">
+        <div class="head-actions">
+            <button type="button" id="btn-new-compte" class="btn"><?= icon('plus') ?><span class="lbl"> Ajouter un compte</span></button>
+        </div>
+    </div>
+    <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
+
+    <div class="table-scroll">
     <table class="list mt-10">
         <thead><tr><th>Compte bancaire</th><th></th></tr></thead>
         <tbody>
@@ -72,7 +78,8 @@
             </tr>
         </tfoot>
     </table>
-</div>
+    </div>
+</div></div>
 
 <script>
 (function () {

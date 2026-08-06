@@ -42,14 +42,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
-        <div class="seg-picker" role="radiogroup" aria-label="Affichage">
-            <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
-            <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
-        </div>
-        <a class="btn" href="?p=structure"><?= icon('user-plus') ?><span class="lbl"> Nouvelle structure</span></a>
-    </div>
-
+    <div class="toolbar">
     <form method="get" class="filters">
         <input type="hidden" name="p" value="structures">
         <input type="hidden" name="vue" value="<?= e($vue) ?>">
@@ -141,6 +134,14 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </div>
         </details>
     </form>
+        <div class="head-actions">
+            <div class="seg-picker" role="radiogroup" aria-label="Affichage">
+                <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
+                <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
+            </div>
+            <a class="btn" href="?p=structure"><?= icon('user-plus') ?><span class="lbl"> Nouvelle structure</span></a>
+        </div>
+    </div>
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>

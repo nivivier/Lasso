@@ -11,13 +11,15 @@
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
+    <div class="toolbar">
         <?php if ($employes || $recherche !== ''): ?>
         <label class="search-label">
             <input type="search" id="employes-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <?php endif; ?>
-        <a class="btn" href="?p=employe" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
+        <div class="head-actions">
+            <a class="btn" href="?p=employe" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
+        </div>
     </div>
 
 <?php if (!$employes): ?>

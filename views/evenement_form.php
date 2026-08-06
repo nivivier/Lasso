@@ -55,6 +55,17 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 }
 
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
 <div class="page-head">
     <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
     <?php if ($isEdit): ?>
@@ -620,6 +631,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 </div>
 </div>
 <?php endif; ?>
+</div></div>
 
 <script>
 (function () {

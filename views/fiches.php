@@ -12,42 +12,42 @@
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
-        <a class="btn ghost btn-sm" href="?p=employes" title="Employés"><?= icon('users') ?> <span class="lbl">Employés</span></a>
-        <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
+    <div class="toolbar">
+        <form method="get" class="filters">
+            <input type="hidden" name="p" value="fiches">
+            <label>Année
+                <select name="annee" onchange="this.form.submit()">
+                    <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
+                    <?php
+                    $opts = array_filter(array_unique(array_merge([(int) date('Y')], array_map('intval', $annees))), fn($y) => $y > 0);
+                    rsort($opts);
+                    foreach ($opts as $a): ?>
+                        <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Statut
+                <select name="statut" onchange="this.form.submit()">
+                    <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>
+                        <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Employé
+                <select name="employe_id" onchange="this.form.submit()">
+                    <option value="0">Tous</option>
+                    <?php foreach ($employes as $emp): ?>
+                        <option value="<?= (int) $emp['id'] ?>" <?= $employeId === (int) $emp['id'] ? 'selected' : '' ?>>
+                            <?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+        </form>
+        <div class="head-actions">
+            <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
+        </div>
     </div>
-
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="fiches">
-        <label>Année
-            <select name="annee" onchange="this.form.submit()">
-                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
-                <?php
-                $opts = array_filter(array_unique(array_merge([(int) date('Y')], array_map('intval', $annees))), fn($y) => $y > 0);
-                rsort($opts);
-                foreach ($opts as $a): ?>
-                    <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Statut
-            <select name="statut" onchange="this.form.submit()">
-                <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>
-                    <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Employé
-            <select name="employe_id" onchange="this.form.submit()">
-                <option value="0">Tous</option>
-                <?php foreach ($employes as $emp): ?>
-                    <option value="<?= (int) $emp['id'] ?>" <?= $employeId === (int) $emp['id'] ? 'selected' : '' ?>>
-                        <?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-    </form>
 
 <?php if (!$fiches): ?>
     <p class="muted">Aucune fiche pour cette sélection.</p>

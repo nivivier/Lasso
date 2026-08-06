@@ -39,22 +39,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
-        <div class="seg-picker" role="radiogroup" aria-label="Affichage">
-            <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
-            <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
-        </div>
-        <?php $exportQs = http_build_query([
-            'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
-            'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
-            'q' => $recherche,
-        ]); ?>
-        <a class="btn ghost btn-sm" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
-            <?= icon('download') ?> <span class="lbl">Export SUISA</span>
-        </a>
-        <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
-    </div>
-
+    <div class="toolbar">
     <form method="get" class="filters">
         <input type="hidden" name="p" value="evenements_liste">
         <input type="hidden" name="vue" value="<?= e($vue) ?>">
@@ -121,6 +106,22 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </div>
         </details>
     </form>
+        <div class="head-actions">
+            <div class="seg-picker" role="radiogroup" aria-label="Affichage">
+                <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
+                <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
+            </div>
+            <?php $exportQs = http_build_query([
+                'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+                'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
+                'q' => $recherche,
+            ]); ?>
+            <a class="btn ghost btn-sm" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
+                <?= icon('download') ?> <span class="lbl">Export SUISA</span>
+            </a>
+            <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
+        </div>
+    </div>
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_evenements_carte.php'; ?>

@@ -13,6 +13,7 @@
 </div>
 
 <div class="module-content"><div class="module-content-inner">
+    <div class="toolbar">
     <form method="get" class="filters">
         <input type="hidden" name="p" value="compta_analyse">
         <label>Année
@@ -32,6 +33,7 @@
         <?php if ($ventilation): ?>
         <a class="btn ghost" href="?p=compta_analyse_print&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
         <?php endif; ?>
+    </div>
     </div>
 
 <?php if (!$axes): ?>

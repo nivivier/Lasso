@@ -18,6 +18,17 @@ $ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) :
 // pour que le lien de retour contextuel survive à un enregistrement.
 $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
 <?php if (($saved ?? null) === 'emise'): ?><p class="ok flash">Facture émise.</p><?php endif; ?>
 <?php if (($saved ?? null) === 'payee'): ?><p class="ok flash">Facture marquée comme payée.</p><?php endif; ?>
 <?php switch ($_GET['mail'] ?? null) {
@@ -208,6 +219,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 </aside>
 <?php endif; ?>
 </div>
+</div></div>
 <?php if ($peutPayer && $ecrituresLibres): ?>
 <script>
 (function () {

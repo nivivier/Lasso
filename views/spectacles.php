@@ -30,19 +30,23 @@ $parentOptions = function (int $excludeId) use ($map): string {
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
+    <div class="toolbar">
         <?php if ($lignes): ?>
-        <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
-                            data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
-                            title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
-        <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
-                            data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
-                            title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
         <label class="search-label">
             <input type="search" id="spectacles-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
         </label>
         <?php endif; ?>
-        <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
+        <div class="head-actions">
+            <?php if ($lignes): ?>
+            <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+                                data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
+                                title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
+            <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+                                data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
+                                title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
+            <?php endif; ?>
+            <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
+        </div>
     </div>
     <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 

@@ -72,26 +72,33 @@ $condRow = function (array $cond): string {
 $condVide  = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
 $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new']);
 ?>
-<div class="page-head">
-    <div>
-        <?= lien_retour('?p=compta_ecritures', 'Écritures') ?>
-        <h1>Lettrage automatique</h1>
-    </div>
-    <div class="head-actions">
-        <form method="post" action="?p=compta_ecritures">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="apply_rules">
-            <button type="submit" class="btn ghost btn-sm btn-compact"><?= icon('tag') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
-        </form>
-        <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?><span class="lbl"> Nouvelle règle</span></button>
-    </div>
-</div>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Règles mises à jour.</p><?php endif; ?>
 <?php if ($test !== null): ?>
     <p class="ok flash"><?= $test < 0
         ? 'Aucune condition à tester.'
         : 'Cette règle toucherait <strong>' . (int) $test . '</strong> écriture(s) non lettrée(s).' ?></p>
 <?php endif; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
+<div class="module-content"><div class="module-content-inner">
+    <div class="toolbar">
+        <div class="head-actions">
+            <form method="post" action="?p=compta_ecritures">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="section" value="apply_rules">
+                <button type="submit" class="btn ghost btn-sm btn-compact"><?= icon('tag') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
+            </form>
+            <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?><span class="lbl"> Nouvelle règle</span></button>
+        </div>
+    </div>
 
 <template id="cond-tpl">
     <div class="cond-row" data-type="texte">
@@ -231,6 +238,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
     </div>
     <?php endforeach; ?>
 </div>
+</div></div>
 
 <script>
 (function () {

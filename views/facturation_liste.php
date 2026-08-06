@@ -12,11 +12,7 @@
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
-        <a class="btn ghost btn-sm" href="?p=compta_comptes"><?= icon('landmark') ?> <span class="lbl">Comptes bancaires</span></a>
-        <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
-    </div>
-
+    <div class="toolbar">
     <form method="get" class="filters">
         <input type="hidden" name="p" value="facturation_liste">
         <label>Année
@@ -39,6 +35,10 @@
             <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
+        <div class="head-actions">
+            <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
+        </div>
+    </div>
 
 <?php if (!$factures): ?>
     <?php if ($recherche !== ''): ?>

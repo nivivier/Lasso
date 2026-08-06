@@ -68,12 +68,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="head-actions">
-        <a href="?p=compta_regles" class="btn ghost btn-sm btn-compact"><?= icon('settings') ?> <span>Lettrage auto<span class="lbl">matique</span></span></a>
-        <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
-        <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
-    </div>
-
+    <div class="toolbar">
     <form method="get" class="filters">
         <input type="hidden" name="p" value="compta_ecritures">
         <label>Année
@@ -119,6 +114,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
     </form>
+        <div class="head-actions">
+            <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
+            <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
+        </div>
+    </div>
     <?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
 
 <!-- Formulaire écriture manuelle -->

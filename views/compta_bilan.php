@@ -74,6 +74,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 </div>
 
 <div class="module-content"><div class="module-content-inner">
+    <div class="toolbar">
     <form method="get" class="filters">
         <input type="hidden" name="p" value="compta_bilan">
         <label>Année
@@ -100,6 +101,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
             </select>
         </label>
         <a class="btn ghost" href="?p=compta_bilan_print&annee=<?= (int) $annee ?>&prec=<?= $nbPrec ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
+    </div>
     </div>
 
 <?php if ($continuite): ?>
