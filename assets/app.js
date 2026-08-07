@@ -56,6 +56,31 @@ document.addEventListener('click', e => {
         if (!details.contains(e.target)) { details.open = false; }
     });
 });
+// Repositionne le menu en position:fixed à l'ouverture, calculée depuis le
+// bouton entonnoir : .table-scroll a overflow-x:auto, ce qui force
+// implicitement overflow-y à auto (un navigateur ne peut pas laisser une
+// direction "visible" et l'autre non) et rogne donc le menu — en
+// position:absolute, il reste un descendant clippé par ce conteneur — dès
+// qu'il dépasse le bas du tableau, surtout visible sur un tableau court (peu
+// de lignes). position:fixed échappe à ce clip. Recalculé à chaque ouverture ;
+// clampé à droite une fois la largeur réelle connue (offsetWidth, qui dépend
+// du contenu, cf. max-width sur .col-filter-menu). 'toggle' ne bubble pas,
+// d'où l'écoute en phase de capture sur document plutôt qu'un simple 'click'.
+document.addEventListener('toggle', e => {
+    const details = e.target;
+    if (!(details instanceof HTMLElement) || !details.classList.contains('col-filter') || !details.open) { return; }
+    const menu = details.querySelector('.col-filter-menu');
+    const btn = details.querySelector('.col-filter-btn');
+    if (!menu || !btn) { return; }
+    const r = btn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (r.bottom + 4) + 'px';
+    menu.style.left = r.left + 'px';
+    requestAnimationFrame(() => {
+        const maxLeft = window.innerWidth - menu.offsetWidth - 8;
+        menu.style.left = Math.max(8, Math.min(r.left, maxLeft)) + 'px';
+    });
+}, true);
 // Cases à cocher du filtre : la sélection ne part que sur clic explicite du
 // bouton "Appliquer" (bouton submit du formulaire, voir views/fiches.php) —
 // pas à chaque case cochée, ni à la fermeture du panneau, pour laisser le

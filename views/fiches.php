@@ -41,9 +41,7 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
         </div>
     </div>
 
-<?php if (!$fiches): ?>
-    <p class="muted">Aucune fiche pour cette sélection.</p>
-<?php else: ?>
+<?php $nbCols = 10 + ($axesParFiche ? 1 : 0); ?>
 <div class="table-scroll">
 <table class="list list-wide">
     <thead>
@@ -77,7 +75,10 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
         </tr>
     </thead>
     <tbody>
-    <?php $nbCols = 10 + ($axesParFiche ? 1 : 0); $anneePrec = null;
+    <?php if (!$fiches): ?>
+        <tr><td colspan="<?= $nbCols ?>" class="muted">Aucune fiche pour cette sélection.</td></tr>
+    <?php else: ?>
+    <?php $anneePrec = null;
     foreach ($fiches as $f):
         $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f);
         $anneeCourante = (int) $f['annee'];
@@ -98,7 +99,9 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
             <td class="center"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
     <?php endforeach; ?>
+    <?php endif; ?>
     </tbody>
+    <?php if ($fiches): ?>
     <tfoot>
         <?php
             $totBrut       = (float) $totaux['brut'];
@@ -122,8 +125,8 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
             <td></td>
         </tr>
     </tfoot>
+    <?php endif; ?>
 </table>
 </div>
-<?php require __DIR__ . '/_pagination.php'; ?>
-<?php endif; ?>
+<?php if ($fiches): ?><?php require __DIR__ . '/_pagination.php'; ?><?php endif; ?>
 </div></div>

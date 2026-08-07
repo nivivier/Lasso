@@ -1255,8 +1255,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .col-filter > summary.col-filter-btn { list-style: none; }
 .col-filter > summary.col-filter-btn::-webkit-details-marker { display: none; }
 .col-filter-menu {
+    /* position/top/left de repli (avant que le JS ne bascule en position:fixed
+       à l'ouverture, voir assets/app.js) : sans ça, un flash en position:absolute
+       mal placée est visible avant le premier recalcul. */
     position: absolute; top: calc(100% + 4px); left: 0; z-index: 20;
-    display: none; flex-direction: column; min-width: 130px; gap: 2px;
+    display: none; flex-direction: column; min-width: 130px; max-width: 200px; gap: 2px;
     background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
     box-shadow: var(--shadow); padding: 6px;
 }
