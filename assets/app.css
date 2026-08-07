@@ -149,7 +149,16 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     z-index: 100; /* passe devant le bandeau d'en-tête (.page-head-band) et son icône */
 }
 .side-brand { padding: 0 4px 14px; text-align: center; }
-.side-logo { width: 100%; max-width: 62px; height: auto; margin: 0 auto; display: block; }
+/* Hauteur fixe (pas height:auto) + object-fit:contain : la largeur du logo
+   employeur est bornée (max-width) mais sa hauteur réelle dépend de l'image
+   uploadée (aucune dimension stockée en base, juste validée à l'upload —
+   voir getimagesize() dans lib/helpers.php). Avec height:auto, le
+   navigateur ne réserve aucun espace tant que l'image n'est pas décodée :
+   à CHAQUE clic (rechargement complet de page, pas de SPA), la zone du
+   logo s'affiche à hauteur nulle puis « saute » à sa taille une fois
+   l'image prête — perçu comme un flicker du rail. Une hauteur fixe réserve
+   l'espace immédiatement, quelle que soit la vitesse de décodage. */
+.side-logo { width: 100%; max-width: 62px; height: 44px; object-fit: contain; margin: 0 auto; display: block; }
 .side-name { font-size: var(--fs-11); font-weight: 700; color: var(--ink); word-break: break-word; }
 .side-sub { display: none; }
 .side-nav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; }
@@ -551,6 +560,12 @@ body.auth-bg {
    un filet de fond non blanc juste avant le vrai bas de la fenêtre. */
 .content:has(> .module-content) { display: flex; flex-direction: column; max-width: none; padding-bottom: 0; }
 .content:has(> .module-content) > .module-content { flex: 1; margin-bottom: 0; }
+/* Espace avant le contenu déjà fourni par le padding-top de .module-content-inner
+   (24px bureau, 16px mobile) : la marge basse de .page-head-band (0 sur
+   bureau, mais 20px en mobile — voir @media plus bas) s'ajoutait à ce
+   padding sur mobile uniquement, doublant l'espace. Neutralisée ici pour les
+   deux tailles d'écran (no-op sur bureau, où elle vaut déjà 0). */
+.content:has(> .module-content) > .page-head-band { margin-bottom: 0; }
 /* Paramètres (views/_param_tabs.php) : mêmes onglets .module-tabs que les
    autres modules, mais pas de .module-content (pas de fond blanc pleine
    largeur, ces pages restent en cartes classiques) — :not(:has(...)) exclut
@@ -899,7 +914,15 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    profite de toute la largeur dispo plutôt que de se comprimer inutilement. */
 .content:has(> .dash-cols) { max-width: none; }
 .dash-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; align-items: start; }
-.dash-chart-card { padding: 16px 20px 12px; }
+/* Chaque pod (Prochains événements, Suisa, Évolution financière, Salaires à
+   verser, Factures émises) est une carte à part entière, titre compris —
+   avant, le <h2> flottait au-dessus de la carte, directement sur le fond
+   d'écran personnalisable (Apparence) : illisible selon l'image de fond.
+   Effet vitre dépolie (même recette que .blur-glass/.page-head-band et le
+   bandeau flottant de la vue carte d'evenements_liste) plutôt qu'un fond
+   blanc plein : cohérent avec le reste de l'appli quand un fond d'écran est
+   actif, et transparent par-dessus la couleur unie par défaut. */
+.dash-card { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .dash-chart { width: 100%; height: auto; display: block; }
 @media (max-width: 1400px) {
     .dash-cols { grid-template-columns: repeat(2, 1fr); }
@@ -1310,6 +1333,27 @@ span + .badge.muted-badge { margin-left: 6px; }
 .info-grid dt { color: var(--muted); font-size: var(--fs-12_5); }
 .info-grid dd { margin: 0; font-size: var(--fs-14); overflow-wrap: anywhere; }
 .info-grid > div:nth-last-child(-n+2) { border-bottom: none; } /* pas de trait sous la dernière ligne (2 colonnes) */
+/* Variante responsive (?p=employe_voir) : jusqu'à 4 colonnes selon la largeur
+   disponible, plutôt que le fixe 2 colonnes ci-dessus (gardé tel quel pour
+   les autres usages de .info-grid — diagnostic, mises à jour — où les
+   valeurs sont plus longues et ne profiteraient pas de colonnes en plus).
+   Trait de séparation en border-top (première rangée sans trait) plutôt que
+   border-bottom (dernière rangée sans trait, comme ci-dessus) : ne dépend
+   que du nombre de colonnes pour savoir quelle rangée est la première,
+   contrairement à la dernière rangée qui dépend AUSSI du nombre total de
+   champs — reste correct si des champs sont ajoutés/retirés plus tard.
+   Scopé à min-width:801px : sous ce seuil, .info-grid repasse à 1 colonne
+   (règle plus bas) sans qu'aucune règle ci-dessous n'interfère. */
+@media (min-width: 801px) {
+    .info-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .info-grid-4 > div { border-bottom: none; border-top: 1px solid var(--line); }
+    .info-grid-4 > div:nth-child(-n+4) { border-top: none; }
+}
+@media (min-width: 801px) and (max-width: 1300px) {
+    .info-grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .info-grid-4 > div:nth-child(-n+4) { border-top: 1px solid var(--line); }
+    .info-grid-4 > div:nth-child(-n+2) { border-top: none; }
+}
 .ps-table { width: 100%; border-collapse: collapse; margin-bottom: 11px; }
 .ps-table th { text-align: left; font-size: var(--fs-11); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--brand); padding: 5px 8px; }
 .ps-table td { padding: 4.5px 8px; border-bottom: 1px solid var(--line); }
@@ -1526,8 +1570,12 @@ abbr {
 
     .content { padding: 22px 18px; max-width: none; }
     /* Pas de sidebar en place (tiroir hors écran) : le bandeau n'a plus besoin
-       d'être sticky ni de déborder sous quoi que ce soit. */
-    .page-head-band { position: static; width: auto; margin: 0 -18px 20px; }
+       d'être sticky ni de déborder sous quoi que ce soit. margin-top:-22px
+       (au lieu de 0) reprend le même principe que sur bureau (margin-top:-40px,
+       voir plus haut) : annule le padding-top de .content (22px ici) pour ne
+       pas s'ajouter au padding-top de .page-head (16px) — sans ça, ~38px de
+       vide séparaient la barre mobile du titre au lieu des 16px voulus. */
+    .page-head-band { position: static; width: auto; margin: -22px -18px 20px; }
     .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }

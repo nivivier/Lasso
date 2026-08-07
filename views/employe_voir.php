@@ -30,7 +30,7 @@
 
 <div class="card mb-22">
     <?php $adresse = trim($emp['rue'] . ($emp['rue'] && $emp['npa_localite'] ? ', ' : '') . $emp['npa_localite']); ?>
-    <dl class="info-grid">
+    <dl class="info-grid info-grid-4">
         <div><dt>Date de naissance</dt><dd><?= trim((string) ($emp['date_naissance'] ?? '')) !== '' ? e(date('d.m.Y', strtotime($emp['date_naissance']))) : '—' ?></dd></div>
         <div><dt>Numéro AVS</dt><dd><?= e($emp['numero_avs']) ?: '—' ?></dd></div>
         <div><dt>E-mail</dt><dd><?= $emp['email'] ? '<a href="mailto:' . e($emp['email']) . '">' . e($emp['email']) . '</a>' : '—' ?></dd></div>

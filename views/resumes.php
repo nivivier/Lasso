@@ -145,7 +145,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
 <?php else: ?>
 <div class="dash-cols">
     <?php if (module_actif('evenements')): ?>
-        <div>
+        <div class="card dash-card">
             <h2 class="mt-0">Prochains événements</h2>
             <?php if (!$prochainsEvenements): ?>
                 <p class="muted">Aucun événement à venir.</p>
@@ -175,7 +175,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
             </table>
             <?php endif; ?>
         </div>
-        <div>
+        <div class="card dash-card">
             <h2 class="mt-0">Suisa</h2>
             <?php if ($suisaAFaire < 1): ?>
                 <p class="muted">Aucun envoi Suisa à faire.</p>
@@ -190,14 +190,14 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
         <?php endif; ?>
 
         <?php if ($dashComptaActif): ?>
-        <div>
+        <div class="card dash-card">
             <h2 class="mt-0">Évolution financière</h2>
-            <div class="card dash-chart-card"><?= $dash_svg($comptaSeries) ?></div>
+            <?= $dash_svg($comptaSeries) ?>
         </div>
         <?php endif; ?>
 
         <?php if (module_actif('salaires')): ?>
-        <div>
+        <div class="card dash-card">
             <h2 class="mt-0">Salaires à verser</h2>
             <?php if (!$aPayer): ?>
                 <p class="muted">Vous êtes à jour.</p>
@@ -224,7 +224,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
         <?php endif; ?>
         
         <?php if (module_actif('facturation')): ?>
-        <div>
+        <div class="card dash-card">
             <h2 class="mt-0">Factures émises</h2>
             <?php if (!$facturesEmises): ?>
                 <p class="muted">Aucune facture émise en attente de paiement.</p>
