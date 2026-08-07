@@ -1545,6 +1545,12 @@ function fiche_lignes_de(array $f): array
     $rows = $stmt->fetchAll();
     if (!$rows) {
         $rows = [[
+            // Pas de ligne fiche_lignes réelle (fiche sans lignes personnalisées) :
+            // id=0, une valeur qu'aucune vraie ligne ne prend jamais (voir
+            // route_fiche_ligne_axe_save(), qui exige un id existant en base) —
+            // affiche/désactive silencieusement l'édition d'axe pour cette ligne
+            // implicite plutôt que déclencher un "Undefined array key" (_fiche_body.php).
+            'id'            => 0,
             'libelle'       => 'Heures',
             'heures_unite'  => 1.0,
             'quantite'      => (float) $f['nombre_heures'],
