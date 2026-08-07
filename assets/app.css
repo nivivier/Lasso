@@ -1198,7 +1198,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    filtre. <details> natif (même esprit que .filters-more) : pas de JS,
    .col-filter-menu en position:absolute (plutôt que le display:flex en ligne
    de .filters-more-body) pour flotter sans élargir la colonne ni décaler les
-   colonnes suivantes. */
+   colonnes suivantes.
+   .col-paiement : largeur minimale fixe, réservée pour le pire cas (les 3
+   pastilles de filtre actives à la fois) — sans ça, la colonne (table en
+   table-layout:auto, largeur dictée par son contenu le plus large) s'élargit
+   quand un filtre s'active et rétrécit quand on le retire, décalant toutes
+   les colonnes suivantes à chaque changement. .col-th-actif-list plafonne sa
+   largeur à la même valeur et repasse à la ligne (flex-wrap déjà en place)
+   plutôt que de dépasser. */
+.col-paiement { min-width: 128px; }
 .col-th { display: inline-flex; align-items: center; gap: 4px; }
 .col-filter { position: relative; display: inline-flex; }
 .col-filter-btn {
@@ -1225,11 +1233,21 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .col-filter-menu label:hover { background: var(--surface); }
 .col-filter-menu input[type="checkbox"] { margin: 0; }
+.col-filter-sep { height: 1px; background: var(--line); margin: 3px 2px; }
+.col-filter-quick { display: flex; gap: 4px; }
+.col-filter-quick button {
+    flex: 1 1 0; padding: 4px 0; border-radius: 6px; border: none; background: var(--surface);
+    font-size: var(--fs-11_5); font-weight: 700; color: var(--muted); cursor: pointer;
+    text-transform: none; letter-spacing: normal; box-shadow: none;
+}
+.col-filter-quick button:hover { background: var(--primary-tint); color: var(--primary-d); }
 /* Filtres actifs : une pastille par valeur cochée sous le titre de colonne,
    chacune avec sa propre croix — plutôt qu'un seul texte + une croix globale,
    pour pouvoir retirer une valeur precise quand plusieurs sont actives à la
-   fois (cases à cocher = sélection multiple, contrairement à un select). */
-.col-th-actif-list { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+   fois (cases à cocher = sélection multiple, contrairement à un select).
+   max-width borne à la même valeur que .col-paiement (min-width) : les
+   pastilles passent à la ligne plutôt que d'élargir la colonne. */
+.col-th-actif-list { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; max-width: 128px; }
 .col-th-actif {
     display: inline-flex; align-items: center; gap: 3px; padding: 1px 3px 1px 6px;
     border-radius: var(--radius-pill); background: var(--primary-tint);

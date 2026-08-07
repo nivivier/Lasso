@@ -70,12 +70,12 @@ $lienStatutSans = fn (string $retire): string => '?' . http_build_query(
             <th class="col-employe">Employé</th><?php if ($axesParFiche): ?><th class="col-petit">Axes</th><?php endif; ?>
             <th class="num">Brut</th><th class="num col-petit">Charges sociales</th><th class="num col-petit">Impôt à la source</th>
             <th class="num">Net</th>
-            <th>
+            <th class="col-paiement">
                 <span class="col-th">
                     Paiement
                     <details class="col-filter">
                         <summary class="col-filter-btn" title="Filtrer"><?= icon('funnel') ?></summary>
-                        <form method="get" class="col-filter-menu" onchange="this.submit()">
+                        <form method="get" class="col-filter-menu">
                             <input type="hidden" name="p" value="fiches">
                             <input type="hidden" name="annee" value="<?= (int) $annee ?>">
                             <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
@@ -83,6 +83,11 @@ $lienStatutSans = fn (string $retire): string => '?' . http_build_query(
                             <?php foreach ($statutLabels as $val => $lib): ?>
                                 <label><input type="checkbox" name="statut[]" value="<?= e($val) ?>" <?= in_array($val, $statut, true) ? 'checked' : '' ?>> <?= e($lib) ?></label>
                             <?php endforeach; ?>
+                            <div class="col-filter-sep"></div>
+                            <div class="col-filter-quick">
+                                <button type="button" data-check-all>Tout</button>
+                                <button type="button" data-check-none>Aucun</button>
+                            </div>
                         </form>
                     </details>
                 </span>

@@ -56,6 +56,32 @@ document.addEventListener('click', e => {
         if (!details.contains(e.target)) { details.open = false; }
     });
 });
+// Cases à cocher du filtre : pas de soumission à chaque case (fermerait le
+// panneau à chaque clic — un aller-retour serveur = rechargement de toute la
+// page — avant même d'avoir pu en cocher une deuxième). La sélection ne part
+// donc qu'à la fermeture du panneau (clic sur le résumé ou en dehors, voir
+// ci-dessus, qui déclenche 'toggle' dans les deux cas). "Tout"/"Aucun" : de
+// simples cases à cocher/décocher en bloc, pas des boutons de soumission —
+// mêmes règles. DOMContentLoaded requis ici (contrairement à l'écouteur de
+// clic ci-dessus, qui interroge le DOM au moment du clic) : ce script est
+// chargé dans <head>, avant que .col-filter n'existe dans le DOM — attacher
+// les écouteurs immédiatement ne trouverait aucun élément.
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.col-filter').forEach(details => {
+        details.addEventListener('toggle', () => {
+            if (!details.open) {
+                const form = details.querySelector('form');
+                if (form) form.requestSubmit();
+            }
+        });
+        details.querySelectorAll('[data-check-all], [data-check-none]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const coche = btn.hasAttribute('data-check-all');
+                btn.closest('form').querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = coche; });
+            });
+        });
+    });
+});
 
 // Cadres lecture/édition (?p=evenement : Informations/Organisation/
 // Localisation ; ?p=structure : Catégorie/Type/Connu via/Coordonnées/Site
