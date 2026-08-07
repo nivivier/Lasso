@@ -573,12 +573,16 @@ function route_compta_ecritures(): void
     require_login();
     $comptes = compta_comptes();
 
-    // Filtres : GET prioritaire, sinon dernière valeur en session, sinon défaut.
-    $compteId = (int) filtre_persistant('compte', 'ecr_compte', 0);
+    // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
+    // filtre_coche() dans lib/helpers.php) : cases à cocher, 0 à N valeurs
+    // simultanées. $categorieFilter/$axeFilter en texteLibre=true : mélange
+    // d'ids numériques (plan_compte_id/axe_id) et de sentinelles textuelles
+    // ("a_lettrer"/"ignore"/"sans_axe") qu'un intval() aveugle corromprait.
+    $compteId = filtre_coche('compte', 'ecr_compte');
     $annees   = compta_annees();
-    $annee    = (int) filtre_persistant('annee', 'ecr_annee', 0); // 0 = « Toutes les années » par défaut
-    $categorieFilter = filtre_persistant('categorie', 'ecr_categorie', '');
-    $axeFilter        = filtre_persistant('axe', 'ecr_axe', '');
+    $annee    = filtre_coche('annee', 'ecr_annee');
+    $categorieFilter = filtre_coche('categorie', 'ecr_categorie', null, true);
+    $axeFilter        = filtre_coche('axe', 'ecr_axe', null, true);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -701,30 +705,60 @@ function route_compta_ecritures(): void
     $where  = ' WHERE 1=1';
     $params = [];
     if ($compteId) {
-        $where .= ' AND e.compte_bancaire_id = ?';
-        $params[] = $compteId;
+        $where .= ' AND e.compte_bancaire_id IN (' . implode(',', array_fill(0, count($compteId), '?')) . ')';
+        $params = array_merge($params, $compteId);
     }
     if ($annee) {
-        $where .= ' AND substr(e.date_op,1,4) = ?';
-        $params[] = (string) $annee;
+        $where .= ' AND substr(e.date_op,1,4) IN (' . implode(',', array_fill(0, count($annee), '?')) . ')';
+        $params = array_merge($params, array_map('strval', $annee));
     }
-    if ($categorieFilter === 'a_lettrer') {
-        $where .= " AND e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore'";
-    } elseif ($categorieFilter === 'ignore') {
-        $where .= " AND e.origine_lettrage = 'ignore'";
-    } elseif (ctype_digit((string) $categorieFilter) && $categorieFilter !== '') {
-        // Catégorie choisie : si feuille → cette catégorie ; si sur-catégorie
-        // (parent) → toutes les écritures de son sous-arbre.
-        $ids = plan_descendants((int) $categorieFilter, plan_enfants(compta_plan_actif()));
-        $in  = implode(',', array_fill(0, count($ids), '?'));
-        $where .= " AND e.plan_compte_id IN ($in)";
-        $params = array_merge($params, array_map('intval', $ids));
+    if ($categorieFilter) {
+        // Une condition par valeur cochée, unies en OR : sentinelles
+        // ("à lettrer"/"ne pas lettrer") directement, ids numériques
+        // regroupés dans un seul IN (chacun étendu à son sous-arbre si
+        // c'est une sur-catégorie — voir plan_descendants()).
+        $catConds  = [];
+        $catParams = [];
+        $catIds    = [];
+        $byParentPlan = plan_enfants(compta_plan_actif());
+        foreach ($categorieFilter as $val) {
+            if ($val === 'a_lettrer') {
+                $catConds[] = "(e.plan_compte_id IS NULL AND e.origine_lettrage <> 'ignore')";
+            } elseif ($val === 'ignore') {
+                $catConds[] = "(e.origine_lettrage = 'ignore')";
+            } elseif (ctype_digit((string) $val)) {
+                $catIds = array_merge($catIds, plan_descendants((int) $val, $byParentPlan));
+            }
+        }
+        if ($catIds) {
+            $catIds = array_values(array_unique(array_map('intval', $catIds)));
+            $catConds[] = 'e.plan_compte_id IN (' . implode(',', array_fill(0, count($catIds), '?')) . ')';
+            $catParams  = $catIds;
+        }
+        if ($catConds) {
+            $where .= ' AND (' . implode(' OR ', $catConds) . ')';
+            $params = array_merge($params, $catParams);
+        }
     }
-    if (module_actif('analytique') && ctype_digit((string) $axeFilter) && $axeFilter !== '') {
-        $where .= ' AND EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id = ?)';
-        $params[] = (int) $axeFilter;
-    } elseif (module_actif('analytique') && $axeFilter === 'sans_axe') {
-        $where .= ' AND e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id)';
+    if (module_actif('analytique') && $axeFilter) {
+        $axeConds  = [];
+        $axeParams = [];
+        $axeIds    = [];
+        foreach ($axeFilter as $val) {
+            if ($val === 'sans_axe') {
+                $axeConds[] = '(e.plan_compte_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id))';
+            } elseif (ctype_digit((string) $val)) {
+                $axeIds[] = (int) $val;
+            }
+        }
+        if ($axeIds) {
+            $axeConds[] = 'EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id IN (' . implode(',', array_fill(0, count($axeIds), '?')) . '))';
+            $axeParams  = $axeIds;
+        }
+        if ($axeConds) {
+            $where .= ' AND (' . implode(' OR ', $axeConds) . ')';
+            $params = array_merge($params, $axeParams);
+        }
     }
     $recherche = trim((string) ($_GET['q'] ?? ''));
 
@@ -812,7 +846,7 @@ function route_compta_ecritures(): void
         'recherche'       => $recherche,
         'modeClient' => $modeClient,
         'pgRoute' => 'compta_ecritures',
-        'pgParams' => ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche],
+        'pgParams' => array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche]),
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
     ], 'Comptabilité — Lettrage');
 }

@@ -1,10 +1,11 @@
 <?php
-/** @var array $comptes */ /** @var int $compteId */ /** @var int $annee */ /** @var array $annees */
-/** @var string $categorieFilter */ /** @var string $axeFilter */ /** @var array $ecritures */
+/** @var array $comptes */ /** @var array $compteId */ /** @var array $annee */ /** @var array $annees */
+/** @var array $categorieFilter */ /** @var array $axeFilter */ /** @var array $ecritures */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
+/** @var array $categoriesArbre */
 
 // Map id → chemin et id → {prefix, leaf} pour les inputs individuels.
 $cheminById    = [];
@@ -32,8 +33,34 @@ $feuillesSorted = array_values(array_merge(
 // Formulaire écriture manuelle (création ou modification).
 $showForm = $openNew || $editEcr !== null;
 $isEdit   = $editEcr !== null;
-$qs = '&compte=' . $compteId . '&annee=' . $annee . '&categorie=' . urlencode($categorieFilter) . '&axe=' . urlencode($axeFilter);
+// http_build_query gère aussi bien les valeurs scalaires que les tableaux
+// (compte[0]=1&compte[1]=2 — reparsable tel quel par PHP), donc pas besoin
+// de distinguer les filtres à valeur unique des filtres multi-valeurs ici.
+$qs = '&' . http_build_query(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter]);
 $axeLabel = fn(array $ax): string => ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
+
+// Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
+// filtre_colonne_html()/filtre_colonne_actifs_html() dans lib/helpers.php) :
+// Date/Compte/Catégorie/Axe, à la place des 4 anciens <select> de la toolbar.
+$compteLabels = [];
+foreach ($comptes as $c) { $compteLabels[(int) $c['id']] = $c['libelle']; }
+$anneeLabels = [];
+foreach ($annees as $a) { $anneeLabels[(int) $a] = (string) (int) $a; }
+$categorieLabels = ['a_lettrer' => '— À lettrer —', 'ignore' => '— Ne pas lettrer —'];
+foreach ($categoriesArbre as $c) {
+    $categorieLabels[(int) $c['id']] = str_repeat("\u{00A0}\u{00A0}", (int) $c['profondeur']) . $c['libelle'] . (!empty($c['a_enfants']) ? ' (et sous-catégories)' : '');
+}
+$axeLabels = ['sans_axe' => '— Sans axe —'];
+foreach ($axes as $ax) { $axeLabels[(int) $ax['id']] = $axeLabel($ax); }
+$autresCompte    = array_filter(['annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche]);
+$autresAnnee     = array_filter(['compte' => $compteId, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche]);
+$autresCategorie = array_filter(['compte' => $compteId, 'annee' => $annee, 'axe' => $axeFilter, 'q' => $recherche]);
+$autresAxe       = array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'q' => $recherche]);
+// Colonne Compte masquée quand le filtre la rend redondante (un seul compte
+// coché) — généralise l'ancien "$compteId === 0" (affiché) / valeur unique
+// (masqué) au cas multi-sélection : masquée seulement si exactement 1 coché.
+$compteColVisible = count($compteId) !== 1;
+$compteDefaut     = count($compteId) === 1 ? $compteId[0] : 0;
 
 // Fonction : composant cat-search réutilisable (partagé bulk + form manuel).
 $catSearchField = function (string $name, ?int $selected, string $placeholder, bool $ignore = false) use ($feuillesSorted, $cheminById, $catPrefixById): string {
@@ -69,51 +96,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="compta_ecritures">
-        <label>Année
-            <select name="annee" onchange="this.form.submit()">
-                <option value="0">Toutes</option>
-                <?php foreach ($annees as $a): ?>
-                    <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Compte
-            <select name="compte" onchange="this.form.submit()">
-                <option value="0" <?= $compteId === 0 ? 'selected' : '' ?>>Tous les comptes</option>
-                <?php foreach ($comptes as $c): ?>
-                    <option value="<?= (int) $c['id'] ?>" <?= $compteId === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Catégorie
-            <select name="categorie" onchange="this.form.submit()">
-                <option value="" <?= $categorieFilter === '' ? 'selected' : '' ?>>Toutes</option>
-                <option value="a_lettrer" <?= $categorieFilter === 'a_lettrer' ? 'selected' : '' ?>>— À lettrer —</option>
-                <option value="ignore" <?= $categorieFilter === 'ignore' ? 'selected' : '' ?>>— Ne pas lettrer —</option>
-                <?php foreach ($categoriesArbre as $c): $cid = (int) $c['id']; ?>
-                    <option value="<?= $cid ?>" <?= $categorieFilter === (string) $cid ? 'selected' : '' ?>>
-                        <?= str_repeat("\u{00A0}\u{00A0}", (int) $c['profondeur']) ?><?= e($c['libelle']) ?><?= !empty($c['a_enfants']) ? ' (et sous-catégories)' : '' ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <?php if ($axes): ?>
-        <label>Axe
-            <select name="axe" onchange="this.form.submit()">
-                <option value="" <?= $axeFilter === '' ? 'selected' : '' ?>>Tous</option>
-                <option value="sans_axe" <?= $axeFilter === 'sans_axe' ? 'selected' : '' ?>>— Sans axe —</option>
-                <?php foreach ($axes as $ax): ?>
-                    <option value="<?= (int) $ax['id'] ?>" <?= $axeFilter === (string) $ax['id'] ? 'selected' : '' ?>><?= e($axeLabel($ax)) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <?php endif; ?>
-        <label class="search-label">
-            <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-        </label>
-    </form>
+        <form method="get" class="filters">
+            <input type="hidden" name="p" value="compta_ecritures">
+            <label class="search-label">
+                <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            </label>
+        </form>
         <div class="head-actions">
             <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
             <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
@@ -132,7 +120,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <label>Compte
                 <select name="compte_bancaire_id" required>
                     <?php foreach ($comptes as $c): ?>
-                        <option value="<?= (int) $c['id'] ?>" <?= ($isEdit ? (int)$editEcr['compte_bancaire_id'] : $compteId) === (int)$c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
+                        <option value="<?= (int) $c['id'] ?>" <?= ($isEdit ? (int)$editEcr['compte_bancaire_id'] : $compteDefaut) === (int)$c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -180,13 +168,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 <?php if (!$comptes): ?>
     <p class="muted">Aucun compte bancaire. Commencez par en <a href="?p=compta_comptes">créer un</a> puis <a href="?p=compta_import">importer</a> un export.</p>
-<?php elseif (!$ecritures): ?>
-    <p class="muted">Aucune écriture pour ce filtre.</p>
 <?php else: ?>
-
-
-
-
 
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
@@ -229,22 +211,53 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 <div class="table-scroll">
 <table class="list compta-lettrage">
+    <?php $nbCols = 6 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0); ?>
     <thead>
         <tr>
             <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-            <th>Date</th>
-            <?php if ($compteId === 0): ?><th>Compte</th><?php endif; ?>
+            <th class="col-date">
+                <span class="col-th">
+                    Date
+                    <?= filtre_colonne_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+            </th>
+            <?php if ($compteColVisible): ?>
+            <th class="col-compte">
+                <span class="col-th">
+                    Compte
+                    <?= filtre_colonne_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresCompte) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresCompte) ?>
+            </th>
+            <?php endif; ?>
             <th>Texte</th>
             <th class="num">Montant</th>
-            <th>Catégorie</th>
-            <?php if ($axes): ?><th>Axe</th><?php endif; ?>
+            <th class="col-categorie">
+                <span class="col-th">
+                    Catégorie
+                    <?= filtre_colonne_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresCategorie) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresCategorie) ?>
+            </th>
+            <?php if ($axes): ?>
+            <th class="col-axe">
+                <span class="col-th">
+                    Axe
+                    <?= filtre_colonne_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresAxe) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresAxe) ?>
+            </th>
+            <?php endif; ?>
             <th></th>
         </tr>
     </thead>
     <tbody>
+    <?php if (!$ecritures): ?>
+        <tr><td colspan="<?= $nbCols ?>" class="muted">Aucune écriture pour ce filtre.</td></tr>
+    <?php else: ?>
     <?php
     $prevMois = null;
-    $nbCols = 6 + ($compteId === 0 ? 1 : 0) + ($axes ? 1 : 0);
     // Options du select inline pour la colonne axe (construit une fois, réutilisé par toutes les lignes)
     $axeOptsHtml = '';
     foreach ($axes as $ax) {
@@ -271,7 +284,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <tr class="<?= $estNonLettre ? 'non-lettre' : '' ?><?= $estIgnore ? ' ecr-ignore' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
-            <?php if ($compteId === 0): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
+            <?php if ($compteColVisible): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <td class="texte-cell" title="<?= e($ecr['texte']) ?>">
                 <?php if (!empty($ecr['facture_id'])): ?>
                     <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
@@ -334,10 +347,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </td>
         </tr>
     <?php endforeach; ?>
+    <?php endif; ?>
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
+<?php if ($ecritures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
 </div></div>
 
 <!-- Panneau de ventilation analytique (singleton, positionné par JS) -->

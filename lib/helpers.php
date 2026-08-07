@@ -198,6 +198,15 @@ function redirect(string $route, array $params = []): void
     }
     $url = '?p=' . urlencode($route);
     foreach ($params as $k => $v) {
+        // Filtre multi-valeurs (voir filtre_coche()) : une paire clé[]=valeur
+        // par élément, plutôt que (string) $v qui produirait "Array" + un
+        // avertissement PHP.
+        if (is_array($v)) {
+            foreach ($v as $vv) {
+                $url .= '&' . urlencode($k) . '[]=' . urlencode((string) $vv);
+            }
+            continue;
+        }
         $url .= '&' . urlencode($k) . '=' . urlencode((string) $v);
     }
     header('Location: ' . $url);
@@ -338,6 +347,35 @@ function recherche_sql(array $colonnes): array
     $motif = '%' . like_echappe($q) . '%';
     $sql = ' AND (' . implode(' OR ', array_map(fn($c) => "$c LIKE ? ESCAPE '\\'", $colonnes)) . ')';
     return [$sql, array_fill(0, count($colonnes), $motif)];
+}
+
+// Lecture d'un filtre multi-valeurs (cases à cocher) porté par une colonne :
+// GET prioritaire (marqueur <champ>_set toujours présent quand le panneau est
+// soumis, même si aucune case n'est cochée — sinon impossible de distinguer
+// « toutes les cases décochées » de « rien dans l'URL, retomber sur la
+// session ») sinon dernière valeur en session. $valeurs : whitelist connue
+// (ex. statut) → intersection ; sinon $texteLibre=false attend des ids
+// numériques (annee/employe_id/compte, intval + valeurs nulles écartées, 0
+// n'étant jamais un id valide) ; $texteLibre=true conserve les valeurs telles
+// quelles (catégorie/axe : mélange d'ids numériques et de sentinelles
+// textuelles comme "a_lettrer"/"sans_axe", intval() les corromprait).
+function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, bool $texteLibre = false): array
+{
+    $normaliser = function (array $brut) use ($valeurs, $texteLibre): array {
+        if ($valeurs !== null) {
+            return array_values(array_intersect($brut, $valeurs));
+        }
+        if ($texteLibre) {
+            return array_values(array_unique(array_filter(array_map('strval', $brut), fn($v) => $v !== '')));
+        }
+        return array_values(array_filter(array_map('intval', $brut)));
+    };
+    if (isset($_GET[$cle . '_set'])) {
+        $v = $normaliser((array) ($_GET[$cle] ?? []));
+        $_SESSION[$cleSession] = $v;
+        return $v;
+    }
+    return $normaliser((array) ($_SESSION[$cleSession] ?? []));
 }
 
 // Filtre de colonne à cases à cocher (EXPÉRIMENTAL, ?p=fiches — Paiement/

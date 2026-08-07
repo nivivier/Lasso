@@ -1042,38 +1042,12 @@ function route_fiches(): void
 {
     require_login();
     // Filtres de colonne (EXPÉRIMENTAL — Paiement/Date/Employé) : cases à
-    // cocher, 0 à N valeurs simultanées, pas un select à valeur unique —
-    // filtre_persistant() ne convient pas telle quelle : elle ne met à jour
-    // la session QUE si la clé GET est présente, or un formulaire de cases à
-    // cocher DONT AUCUNE N'EST COCHÉE n'envoie tout simplement pas le
-    // paramètre, ce qui serait pris à tort pour « rien n'a changé, garder la
-    // session » au lieu de « tout décoché ». Un marqueur <nom>_set (posé par
-    // chaque formulaire, toujours présent qu'il y ait des cases cochées ou
-    // non) sert donc de marqueur explicite de soumission — factorisé ici,
-    // réutilisé pour statut/annee/employe_id.
-    // array_filter (sans callback) sur la branche annee/employe_id : élimine
-    // les 0 — au format scalaire d'avant ce changement, 0 signifiait « aucun
-    // filtre » (select « Toutes années »/« Tous »), jamais une année ou un
-    // id réels. Sans ça, une session encore au format scalaire (ex.
-    // fiches_annee = "0") serait castée par (array) en [0], lu comme un
-    // filtre actif sur annee=0, qui ne matche aucune fiche → liste vide.
-    $filtreCoche = function (string $cle, string $cleSession, ?array $valeurs = null) {
-        if (isset($_GET[$cle . '_set'])) {
-            $brut = (array) ($_GET[$cle] ?? []);
-            $v = $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_filter(array_map('intval', $brut)));
-            $_SESSION[$cleSession] = $v;
-            return $v;
-        }
-        // (array) plutôt que ?? [] seul : couvre aussi une session encore au
-        // format valeur unique d'avant ce changement (scalaire) — casté en
-        // tableau à un seul élément, filtré si une liste de valeurs valides
-        // est fournie (statut), sinon repris tel quel (annee/employe_id).
-        $brut = (array) ($_SESSION[$cleSession] ?? []);
-        return $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_filter(array_map('intval', $brut)));
-    };
-    $statut    = $filtreCoche('statut', 'fiches_statut', ['avenir', 'apayer', 'payees']);
-    $annee     = $filtreCoche('annee', 'fiches_annee');
-    $employeId = $filtreCoche('employe_id', 'fiches_employe');
+    // cocher, 0 à N valeurs simultanées, pas un select à valeur unique — voir
+    // filtre_coche() (lib/helpers.php, partagé avec compta_ecritures/
+    // facturation_liste/evenements_liste) pour le détail du marqueur <nom>_set.
+    $statut    = filtre_coche('statut', 'fiches_statut', ['avenir', 'apayer', 'payees']);
+    $annee     = filtre_coche('annee', 'fiches_annee');
+    $employeId = filtre_coche('employe_id', 'fiches_employe');
     // Recherche texte (nom/prénom employé) : voir recherche_sql(), lib/helpers.php.
     $recherche = trim((string) ($_GET['q'] ?? ''));
     $where  = ' WHERE 1=1';
