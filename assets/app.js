@@ -46,6 +46,17 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Filtre de colonne (.col-filter, ex. "Paiement" sur ?p=fiches) : <details>
+// natif, comme .filters-more ci-dessus, mais celui-ci ne se ferme pas tout
+// seul au clic dehors (comportement natif de <details> — reste ouvert tant
+// qu'on ne reclique pas sur son <summary>). Un seul écouteur global : ferme
+// tout .col-filter ouvert dont le clic n'a pas eu lieu à l'intérieur.
+document.addEventListener('click', e => {
+    document.querySelectorAll('.col-filter[open]').forEach(details => {
+        if (!details.contains(e.target)) { details.open = false; }
+    });
+});
+
 // Cadres lecture/édition (?p=evenement : Informations/Organisation/
 // Localisation ; ?p=structure : Catégorie/Type/Connu via/Coordonnées/Site
 // web/Remarques…) : un seul script générique, partagé entre ces vues — le

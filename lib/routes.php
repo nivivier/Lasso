@@ -1043,8 +1043,25 @@ function route_fiches(): void
     require_login();
     // Filtres : GET prioritaire, sinon dernière valeur en session (conservée au
     // retour depuis une fiche), sinon défaut.
-    $annee     = (int) filtre_persistant('annee', 'fiches_annee', 0); // 0 = « Toutes les années » par défaut
-    $statut    = filtre_persistant('statut', 'fiches_statut', 'tous'); // tous | apayer | payees
+    $annee = (int) filtre_persistant('annee', 'fiches_annee', 0); // 0 = « Toutes les années » par défaut
+    // Statut : cases à cocher (0 à 3 valeurs simultanées parmi avenir/apayer/
+    // payees), pas un select à valeur unique — filtre_persistant() ne convient
+    // pas tel quel : elle ne met à jour la session QUE si la clé GET est
+    // présente, or un formulaire de cases à cocher DONT AUCUNE N'EST COCHÉE
+    // n'envoie tout simplement pas le paramètre 'statut[]', ce qui serait pris
+    // à tort pour « rien n'a changé, garder la session » au lieu de « tout
+    // décoché ». statut_set (posé par le formulaire, toujours présent qu'il y
+    // ait des cases cochées ou non) sert de marqueur explicite de soumission.
+    if (isset($_GET['statut_set'])) {
+        $statut = array_values(array_intersect((array) ($_GET['statut'] ?? []), ['avenir', 'apayer', 'payees']));
+        $_SESSION['fiches_statut'] = $statut;
+    } else {
+        // (array) plutôt que ?? [] seul : couvre aussi une session encore au
+        // format texte unique d'avant ce changement (ex. 'tous'/'apayer') —
+        // (array) 'tous' donne ['tous'], filtré par array_intersect() ci-après
+        // car hors des 3 valeurs valides, d'où un repli propre sur "aucun filtre".
+        $statut = array_values(array_intersect((array) ($_SESSION['fiches_statut'] ?? []), ['avenir', 'apayer', 'payees']));
+    }
     $employeId = (int) filtre_persistant('employe_id', 'fiches_employe', 0);
     $where  = ' WHERE 1=1';
     $params = [];
@@ -1052,10 +1069,17 @@ function route_fiches(): void
         $where .= ' AND f.annee = ?';
         $params[] = $annee;
     }
-    if ($statut === 'apayer') {
-        $where .= " AND (f.date_paiement IS NULL OR f.date_paiement = '')";
-    } elseif ($statut === 'payees') {
-        $where .= " AND f.date_paiement <> ''";
+    if ($statut) {
+        // Synchronisé avec fiche_a_venir() (lib/helpers.php) : à venir = pas
+        // encore payée ET année/mois postérieurs au mois en cours.
+        $nonPayee  = "(f.date_paiement IS NULL OR f.date_paiement = '')";
+        $dateVenir = "(f.annee > CAST(strftime('%Y','now') AS INTEGER)"
+            . " OR (f.annee = CAST(strftime('%Y','now') AS INTEGER) AND f.mois > CAST(strftime('%m','now') AS INTEGER)))";
+        $statutConds = [];
+        if (in_array('avenir', $statut, true)) { $statutConds[] = "$nonPayee AND $dateVenir"; }
+        if (in_array('apayer', $statut, true)) { $statutConds[] = "$nonPayee AND NOT $dateVenir"; }
+        if (in_array('payees', $statut, true)) { $statutConds[] = "f.date_paiement <> ''"; }
+        $where .= ' AND (' . implode(' OR ', $statutConds) . ')';
     }
     if ($employeId) {
         $where .= ' AND f.employe_id = ?';

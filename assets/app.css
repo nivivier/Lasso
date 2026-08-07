@@ -1213,17 +1213,32 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .col-filter > summary.col-filter-btn::-webkit-details-marker { display: none; }
 .col-filter-menu {
     position: absolute; top: calc(100% + 4px); left: 0; z-index: 20;
-    display: none; flex-direction: column; min-width: 130px; gap: 1px;
+    display: none; flex-direction: column; min-width: 130px; gap: 2px;
     background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
-    box-shadow: var(--shadow); padding: 5px;
+    box-shadow: var(--shadow); padding: 6px;
 }
 .col-filter[open] .col-filter-menu { display: flex; }
-.col-filter-menu a {
-    padding: 6px 9px; border-radius: 6px; font-size: var(--fs-13); font-weight: 600;
-    text-transform: none; letter-spacing: normal; color: var(--ink); text-decoration: none;
+.col-filter-menu label {
+    display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 6px;
+    font-size: var(--fs-13); font-weight: 600; text-transform: none; letter-spacing: normal;
+    color: var(--ink); cursor: pointer;
 }
-.col-filter-menu a:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
-.col-th-actif { display: block; margin-top: 2px; font-size: var(--fs-10_5); font-weight: 600; color: var(--primary); }
+.col-filter-menu label:hover { background: var(--surface); }
+.col-filter-menu input[type="checkbox"] { margin: 0; }
+/* Filtres actifs : une pastille par valeur cochée sous le titre de colonne,
+   chacune avec sa propre croix — plutôt qu'un seul texte + une croix globale,
+   pour pouvoir retirer une valeur precise quand plusieurs sont actives à la
+   fois (cases à cocher = sélection multiple, contrairement à un select). */
+.col-th-actif-list { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.col-th-actif {
+    display: inline-flex; align-items: center; gap: 3px; padding: 1px 3px 1px 6px;
+    border-radius: var(--radius-pill); background: var(--primary-tint);
+    font-size: var(--fs-10_5); font-weight: 600; color: var(--primary-d);
+    text-transform: none; letter-spacing: normal;
+}
+.col-th-actif a { display: inline-flex; color: inherit; opacity: .7; }
+.col-th-actif a:hover { opacity: 1; }
+.col-th-actif a .ico { width: 10px; height: 10px; }
 .list tbody tr { transition: background .12s; }
 .list tbody tr:hover { background: var(--surface); }
 .list tr.row-link { cursor: pointer; transition: background .12s ease; }

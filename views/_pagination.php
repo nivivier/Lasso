@@ -20,7 +20,13 @@ $pagesAffichees = pagination_pages_affichees($pgPage, $nbPages);
 <div class="pagination">
     <form method="get" class="pagination-taille">
         <input type="hidden" name="p" value="<?= e($pgRoute) ?>">
-        <?php foreach ($pgParams as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e((string) $v) ?>"><?php endforeach; ?>
+        <?php foreach ($pgParams as $k => $v): ?>
+            <?php if (is_array($v)): ?>
+                <?php foreach ($v as $vv): ?><input type="hidden" name="<?= e($k) ?>[]" value="<?= e((string) $vv) ?>"><?php endforeach; ?>
+            <?php else: ?>
+                <input type="hidden" name="<?= e($k) ?>" value="<?= e((string) $v) ?>">
+            <?php endif; ?>
+        <?php endforeach; ?>
         <label>Par&nbsp;page
             <select name="taille" onchange="this.form.submit()">
                 <?php foreach (PAGINATION_TAILLES as $t): ?>

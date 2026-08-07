@@ -1,21 +1,21 @@
-<?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var string $statut */
+<?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var array $statut */
 /** @var array $employes */ /** @var int $employeId */ /** @var array $axesParFiche */ /** @var array $totaux */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <?php
 // Filtre "Statut" (EXPÉRIMENTAL) : déplacé de la barre d'outils vers un bouton
 // à côté du titre de la colonne "Paiement" qu'il filtre réellement — voir
-// .col-filter/.col-filter-menu (assets/app.css). $lienStatut reporte les
-// autres paramètres de la requête (année, employé…) et repart de la page 1
-// (un changement de filtre ne doit pas laisser la pagination sur une page
-// devenue hors bornes). 'statut' TOUJOURS explicite dans l'URL générée (même
-// pour 'tous') : $statut est lu via filtre_persistant() (lib/helpers.php),
-// qui ne met à jour la session QUE si le paramètre GET est présent — un lien
-// qui omettrait 'statut' laisserait donc l'ancien filtre actif en session
-// (le bouton "retirer le filtre" ne retirerait rien).
-$statutLabels = ['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'];
+// .col-filter/.col-filter-menu (assets/app.css). Cases à cocher (0 à 3 valeurs
+// simultanées) plutôt qu'un choix unique — $statut est désormais un tableau
+// (voir route_fiches(), lib/routes.php). $lienStatutSans() reconstruit l'URL
+// avec une seule valeur retirée (utilisé par la croix de chaque filtre actif) ;
+// 'statut_set' TOUJOURS posé (même à 0 case cochée) pour que route_fiches()
+// sache que la case a bien été soumise plutôt que de retomber sur la session.
+$statutLabels = ['avenir' => 'À venir', 'apayer' => 'À payer', 'payees' => 'Payées'];
 $qsSansStatut = $_GET;
-unset($qsSansStatut['statut'], $qsSansStatut['page']);
-$lienStatut = fn (string $v): string => '?' . http_build_query($qsSansStatut + ['statut' => $v]);
+unset($qsSansStatut['statut'], $qsSansStatut['statut_set'], $qsSansStatut['page']);
+$lienStatutSans = fn (string $retire): string => '?' . http_build_query(
+    $qsSansStatut + ['statut_set' => 1, 'statut' => array_values(array_diff($statut, [$retire]))]
+);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <div class="page-head-band">
@@ -31,7 +31,8 @@ $lienStatut = fn (string $v): string => '?' . http_build_query($qsSansStatut + [
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="fiches">
-            <?php if ($statut !== 'tous'): ?><input type="hidden" name="statut" value="<?= e($statut) ?>"><?php endif; ?>
+            <input type="hidden" name="statut_set" value="1">
+            <?php foreach ($statut as $s): ?><input type="hidden" name="statut[]" value="<?= e($s) ?>"><?php endforeach; ?>
             <label>Année
                 <select name="annee" onchange="this.form.submit()">
                     <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
@@ -72,19 +73,26 @@ $lienStatut = fn (string $v): string => '?' . http_build_query($qsSansStatut + [
             <th>
                 <span class="col-th">
                     Paiement
-                    <?php if ($statut !== 'tous'): ?>
-                        <a class="col-filter-btn" href="<?= e($lienStatut('tous')) ?>" title="Retirer le filtre"><?= icon('funnel-x') ?></a>
-                    <?php else: ?>
-                        <details class="col-filter">
-                            <summary class="col-filter-btn" title="Filtrer"><?= icon('funnel') ?></summary>
-                            <div class="col-filter-menu">
-                                <a href="<?= e($lienStatut('apayer')) ?>">À payer</a>
-                                <a href="<?= e($lienStatut('payees')) ?>">Payées</a>
-                            </div>
-                        </details>
-                    <?php endif; ?>
+                    <details class="col-filter">
+                        <summary class="col-filter-btn" title="Filtrer"><?= icon('funnel') ?></summary>
+                        <form method="get" class="col-filter-menu" onchange="this.submit()">
+                            <input type="hidden" name="p" value="fiches">
+                            <input type="hidden" name="annee" value="<?= (int) $annee ?>">
+                            <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
+                            <input type="hidden" name="statut_set" value="1">
+                            <?php foreach ($statutLabels as $val => $lib): ?>
+                                <label><input type="checkbox" name="statut[]" value="<?= e($val) ?>" <?= in_array($val, $statut, true) ? 'checked' : '' ?>> <?= e($lib) ?></label>
+                            <?php endforeach; ?>
+                        </form>
+                    </details>
                 </span>
-                <?php if ($statut !== 'tous'): ?><span class="col-th-actif"><?= e($statutLabels[$statut]) ?></span><?php endif; ?>
+                <?php if ($statut): ?>
+                <span class="col-th-actif-list">
+                    <?php foreach ($statut as $s): ?>
+                        <span class="col-th-actif"><?= e($statutLabels[$s]) ?><a href="<?= e($lienStatutSans($s)) ?>" title="Retirer « <?= e($statutLabels[$s]) ?> »"><?= icon('x') ?></a></span>
+                    <?php endforeach; ?>
+                </span>
+                <?php endif; ?>
             </th>
             <th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
             <th class="center col-petit">Envoyée</th>
