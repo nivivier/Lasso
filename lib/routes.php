@@ -1051,10 +1051,16 @@ function route_fiches(): void
     // chaque formulaire, toujours présent qu'il y ait des cases cochées ou
     // non) sert donc de marqueur explicite de soumission — factorisé ici,
     // réutilisé pour statut/annee/employe_id.
+    // array_filter (sans callback) sur la branche annee/employe_id : élimine
+    // les 0 — au format scalaire d'avant ce changement, 0 signifiait « aucun
+    // filtre » (select « Toutes années »/« Tous »), jamais une année ou un
+    // id réels. Sans ça, une session encore au format scalaire (ex.
+    // fiches_annee = "0") serait castée par (array) en [0], lu comme un
+    // filtre actif sur annee=0, qui ne matche aucune fiche → liste vide.
     $filtreCoche = function (string $cle, string $cleSession, ?array $valeurs = null) {
         if (isset($_GET[$cle . '_set'])) {
             $brut = (array) ($_GET[$cle] ?? []);
-            $v = $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_map('intval', $brut));
+            $v = $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_filter(array_map('intval', $brut)));
             $_SESSION[$cleSession] = $v;
             return $v;
         }
@@ -1063,7 +1069,7 @@ function route_fiches(): void
         // tableau à un seul élément, filtré si une liste de valeurs valides
         // est fournie (statut), sinon repris tel quel (annee/employe_id).
         $brut = (array) ($_SESSION[$cleSession] ?? []);
-        return $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_map('intval', $brut));
+        return $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_filter(array_map('intval', $brut)));
     };
     $statut    = $filtreCoche('statut', 'fiches_statut', ['avenir', 'apayer', 'payees']);
     $annee     = $filtreCoche('annee', 'fiches_annee');
