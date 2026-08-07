@@ -10,8 +10,6 @@
 </div>
 </div>
 
-<?php require __DIR__ . '/_mailing_tabs.php'; ?>
-
 <?php if ($ok !== null && $ok !== ''): ?><p class="ok flash"><?= (int) $ok ?> destinataire(s) ajouté(s) à la file d'attente.</p><?php endif; ?>
 
 <div class="card">

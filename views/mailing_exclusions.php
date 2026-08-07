@@ -1,5 +1,14 @@
 <?php /** @var array $emails */ /** @var array $contacts */ /** @var array $structures */ /** @var bool $saved */ ?>
-<?php require __DIR__ . '/_mailing_tabs.php'; ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<div class="page-head-band">
+<div class="page-head">
+    <div class="page-head-title">
+        <h1><?= e($ntLabel) ?></h1>
+    </div>
+    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
+</div>
+</div>
+
 <?php if ($saved): ?><p class="ok flash">Liste mise à jour.</p><?php endif; ?>
 
 <p class="muted small">
