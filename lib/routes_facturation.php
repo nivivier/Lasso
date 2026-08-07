@@ -72,11 +72,14 @@ function route_facturation(): void
 function route_facturation_liste(): void
 {
     require_login();
-    $statut = filtre_persistant('statut', 'facturation_statut', 'tous');
+    // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
+    // filtre_coche() dans lib/helpers.php) : Émission (ex-Année) et Paiement
+    // (ex-Statut), à la place des 2 anciens <select> de la toolbar.
+    $statut = filtre_coche('statut', 'facturation_statut', array_merge(FACTURATION_STATUTS, ['en_retard']));
     $annees = array_map('intval', db()->query(
         "SELECT DISTINCT strftime('%Y', COALESCE(NULLIF(date_emission,''), cree_le)) FROM factures ORDER BY 1 DESC"
     )->fetchAll(PDO::FETCH_COLUMN));
-    $annee = (int) filtre_persistant('annee', 'facturation_annee', 0); // 0 = « Toutes les années » par défaut
+    $annee = filtre_coche('annee', 'facturation_annee');
 
     $avecEvenements = module_actif('evenements');
     $from = ' FROM factures f JOIN structures d ON d.id = f.structure_id';
@@ -86,15 +89,27 @@ function route_facturation_liste(): void
     $where = ' WHERE 1=1';
     $params = [];
     if ($annee) {
-        $where .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) = ?";
-        $params[] = (string) $annee;
+        $where .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) IN (" . implode(',', array_fill(0, count($annee), '?')) . ')';
+        $params = array_merge($params, array_map('strval', $annee));
     }
-    if ($statut === 'en_retard') {
-        $where .= ' AND ' . facturation_sql_en_retard('f.');
-        $params[] = date('Y-m-d');
-    } elseif (in_array($statut, FACTURATION_STATUTS, true)) {
-        $where .= ' AND f.statut = ?';
-        $params[] = $statut;
+    if ($statut) {
+        // "En retard" (dérivé) + statuts réels unis en OR — mêmes valeurs
+        // possibles que FACTURATION_STATUTS, jamais exclusives entre elles.
+        $statutConds  = [];
+        $statutParams = [];
+        if (in_array('en_retard', $statut, true)) {
+            $statutConds[]  = facturation_sql_en_retard('f.');
+            $statutParams[] = date('Y-m-d');
+        }
+        $reels = array_values(array_intersect($statut, FACTURATION_STATUTS));
+        if ($reels) {
+            $statutConds[] = 'f.statut IN (' . implode(',', array_fill(0, count($reels), '?')) . ')';
+            $statutParams  = array_merge($statutParams, $reels);
+        }
+        if ($statutConds) {
+            $where .= ' AND (' . implode(' OR ', $statutConds) . ')';
+            $params = array_merge($params, $statutParams);
+        }
     }
     $recherche = trim((string) ($_GET['q'] ?? ''));
 
@@ -142,7 +157,7 @@ function route_facturation_liste(): void
         'recherche'      => $recherche,
         'modeClient'     => $modeClient,
         'pgRoute'        => 'facturation_liste',
-        'pgParams'       => ['statut' => $statut, 'annee' => $annee, 'q' => $recherche],
+        'pgParams'       => array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]),
         'pgPage'         => $pgPage,
         'pgTaille'       => $pgTaille,
         'pgTotal'        => $pgTotal,

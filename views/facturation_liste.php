@@ -1,6 +1,15 @@
-<?php /** @var array $factures */ /** @var string $statut */ /** @var int $annee */ /** @var array $annees */
+<?php /** @var array $factures */ /** @var array $statut */ /** @var array $annee */ /** @var array $annees */
 /** @var bool $avecEvenements */ /** @var string $recherche */ /** @var bool $modeClient */
-/** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
+/** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
+
+// Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches) : Émission
+// (ex-Année) et Paiement (ex-Statut), à la place des 2 <select> de la toolbar.
+$statutLabels = ['brouillon' => 'Brouillons', 'emise' => 'Émises', 'en_retard' => 'En retard', 'payee' => 'Payées', 'annulee' => 'Annulées'];
+$anneeLabels = [];
+foreach (array_unique(array_merge($annee, [(int) date('Y')], $annees)) as $a) { $anneeLabels[(int) $a] = (string) (int) $a; }
+$autresStatut = array_filter(['annee' => $annee, 'q' => $recherche]);
+$autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
+?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
@@ -13,51 +22,46 @@
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="facturation_liste">
-        <label>Année
-            <select name="annee" onchange="this.form.submit()">
-                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
-                <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
-                foreach ($opts as $a): ?>
-                    <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Statut
-            <select name="statut" onchange="this.form.submit()">
-                <?php foreach (['tous' => 'Tous', 'brouillon' => 'Brouillons', 'emise' => 'Émises', 'en_retard' => 'En retard', 'payee' => 'Payées', 'annulee' => 'Annulées'] as $val => $lib): ?>
-                    <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label class="search-label">
-            <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-        </label>
-    </form>
+        <form method="get" class="filters">
+            <input type="hidden" name="p" value="facturation_liste">
+            <label class="search-label">
+                <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            </label>
+        </form>
         <div class="head-actions">
             <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
         </div>
     </div>
 
-<?php if (!$factures): ?>
-    <?php if ($recherche !== ''): ?>
-        <p class="muted">Aucune facture ne correspond à « <?= e($recherche) ?> ».</p>
-    <?php else: ?>
-        <p class="muted">Aucune facture pour cette sélection.</p>
-    <?php endif; ?>
-<?php else: ?>
+<?php $nbCols = 6 + ($avecEvenements ? 1 : 0); ?>
 <div class="table-scroll">
 <table class="list list-wide">
     <thead><tr>
-        <th>Numéro</th><th>Structure</th><th>Émission</th><th>Échéance</th>
+        <th>Numéro</th><th>Structure</th>
+        <th class="col-date">
+            <span class="col-th">
+                Émission
+                <?= filtre_colonne_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+        </th>
+        <th>Échéance</th>
         <?php if ($avecEvenements): ?><th>Événement</th><?php endif; ?>
-        <th class="num">Montant</th><th>Paiement</th>
+        <th class="num">Montant</th>
+        <th class="col-paiement">
+            <span class="col-th">
+                Paiement
+                <?= filtre_colonne_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut) ?>
+        </th>
     </tr></thead>
     <tbody>
+    <?php if (!$factures): ?>
+        <tr><td colspan="<?= $nbCols ?>" class="muted"><?php if ($recherche !== ''): ?>Aucune facture ne correspond à « <?= e($recherche) ?> ».<?php else: ?>Aucune facture pour cette sélection.<?php endif; ?></td></tr>
+    <?php else: ?>
     <?php
     $prevMois = null;
-    $nbCols = 6 + ($avecEvenements ? 1 : 0);
     foreach ($factures as $f):
         $moisCle = substr((string) ($f['date_emission'] ?: $f['cree_le']), 0, 7);
         if ($moisCle !== $prevMois):
@@ -81,11 +85,11 @@
             <td><?= facturation_badge($f) ?></td>
         </tr>
     <?php endforeach; ?>
+    <?php endif; ?>
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
-<?php endif; ?>
+<?php if ($factures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
 </div></div>
 <script>
 <?php if ($modeClient): ?>
