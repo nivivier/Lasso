@@ -31,7 +31,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 <aside class="sidebar" id="sidebar">
     <div class="side-brand">
         <div class="side-brand-txt">
-            <?php if ($logoClair !== ''): ?><img src="<?= e($logoClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+            <?php if ($logoClair !== ''): ?><img src="<?= e(param_logo_data_uri('clair')) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
             <span class="side-sub">Gestion des salaires</span>
         </div>
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
@@ -87,7 +87,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         </div>
     </div>
     <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-        <img src="assets/lasso.png" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+        <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
     </a>
 </aside>
 <main class="content">

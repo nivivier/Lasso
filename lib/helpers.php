@@ -864,6 +864,76 @@ function param_logo(string $variant): string
     return (string) param($cle, '');
 }
 
+// Représentation data: URI (base64) du logo employeur — utilisée pour le logo
+// du rail (views/layout.php, .side-logo) afin d'éviter une requête HTTP
+// séparée à chaque navigation. Chaque clic dans l'appli recharge la page
+// entière (pas de SPA) ; en dev, php -S (voir CLAUDE.md) n'envoie aucun
+// en-tête de cache pour les fichiers statiques (vérifié : ni Last-Modified,
+// ni Cache-Control), donc l'image était re-téléchargée à chaque clic — visible
+// comme un flash de son texte alt le temps du chargement. Inliner l'image
+// dans le HTML supprime cette requête, donc ce flash, quelle que soit la
+// configuration de cache du serveur (dev ou prod). Repli sur le chemin web
+// classique si le fichier est illisible (pas d'image cassée).
+function param_logo_data_uri(string $variant): string
+{
+    $chemin = param_logo($variant);
+    if ($chemin === '') {
+        return '';
+    }
+    $fs = realpath(__DIR__ . '/../' . $chemin) ?: (__DIR__ . '/../' . $chemin);
+    if (!is_file($fs) || !is_readable($fs)) {
+        return $chemin;
+    }
+    $dims = @getimagesize($fs);
+    $data = @file_get_contents($fs);
+    if ($data === false) {
+        return $chemin;
+    }
+    return 'data:' . ((string) ($dims['mime'] ?? 'image/png')) . ';base64,' . base64_encode($data);
+}
+
+// Variante de param_logo_data_uri() pour un petit badge d'image FIXE du dépôt
+// (pas un logo employeur configurable) — ex. le logo Lasso du pied du rail
+// (views/layout.php, .side-powered-logo), affiché à 12px de haut alors que le
+// fichier source (assets/lasso.png) fait 612×553px (~190 Ko) : l'inliner tel
+// quel ajouterait ~250 Ko en base64 à CHAQUE page (pas de SPA). Redimensionné
+// via GD avant l'encodage — quelques Ko au lieu de ~250 Ko, sans avoir à
+// committer un second fichier image à maintenir en plus de l'original.
+// $hauteurPx : hauteur cible en pixels réels (prévoir 2-3× la hauteur CSS
+// affichée pour rester net sur les écrans haute densité).
+function asset_data_uri_mini(string $cheminRelatif, int $hauteurPx): string
+{
+    $fs = __DIR__ . '/../' . $cheminRelatif;
+    if (!is_file($fs) || !is_readable($fs) || !extension_loaded('gd')) {
+        return $cheminRelatif;
+    }
+    $src = @imagecreatefrompng($fs);
+    if (!$src) {
+        return $cheminRelatif;
+    }
+    $w = imagesx($src);
+    $h = imagesy($src);
+    if ($h <= 0) {
+        return $cheminRelatif;
+    }
+    $nH = $hauteurPx;
+    $nW = max(1, (int) round($w * $nH / $h));
+    $dst = imagecreatetruecolor($nW, $nH);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nW, $nH, $w, $h);
+    // Pas d'imagedestroy() : sans effet depuis PHP 8.0 (GC gère les ressources
+    // GD), déprécié en 8.5 — un appel émettrait un warning imprimé directement
+    // dans le flux de sortie, corrompant l'attribut src= au milieu du rendu.
+    ob_start();
+    imagepng($dst);
+    $data = ob_get_clean();
+    if ($data === false || $data === '') {
+        return $cheminRelatif;
+    }
+    return 'data:image/png;base64,' . base64_encode($data);
+}
+
 // Chemin web de l'image de fond de l'application (page Apparence) — celle
 // uploadée (uploads/…) si personnalisée, sinon le fond par défaut du dépôt.
 function param_fond(): string
