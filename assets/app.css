@@ -913,7 +913,19 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    lecture (1120px) sur cette page : avec 3 colonnes, le tableau de bord
    profite de toute la largeur dispo plutôt que de se comprimer inutilement. */
 .content:has(> .dash-cols) { max-width: none; }
-.dash-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; align-items: start; }
+/* column-count (mise en page façon "presse", chaque carte remplit une
+   colonne avant de passer à la suivante) plutôt que grid-template-columns :
+   en grid, la hauteur d'une RANGÉE est celle de son item le plus grand — un
+   pod court (ex. Suisa) partageant sa rangée avec un pod haut (ex. Évolution
+   financière) laissait un grand vide sous lui avant que le pod suivant de sa
+   colonne ne démarre à la ligne de grille suivante, quelle que soit sa
+   propre hauteur. En colonnes, chaque carte s'enchaîne directement sous la
+   précédente DANS SA COLONNE, sans dépendre de la hauteur des cartes des
+   colonnes voisines. break-inside:avoid empêche une carte d'être coupée
+   entre deux colonnes ; margin-bottom (pas de row-gap en colonnes) restitue
+   un espacement vertical identique au column-gap horizontal. */
+.dash-cols { column-count: 3; column-gap: 32px; }
+.dash-cols > * { break-inside: avoid; margin: 0 0 32px; }
 /* Chaque pod (Prochains événements, Suisa, Évolution financière, Salaires à
    verser, Factures émises) est une carte à part entière, titre compris —
    avant, le <h2> flottait au-dessus de la carte, directement sur le fond
@@ -925,10 +937,10 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .dash-card { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .dash-chart { width: 100%; height: auto; display: block; }
 @media (max-width: 1400px) {
-    .dash-cols { grid-template-columns: repeat(2, 1fr); }
+    .dash-cols { column-count: 2; }
 }
 @media (max-width: 900px) {
-    .dash-cols { grid-template-columns: 1fr; }
+    .dash-cols { column-count: 1; }
 }
 
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
