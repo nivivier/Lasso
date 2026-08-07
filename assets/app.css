@@ -1192,6 +1192,38 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .list { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 .list th, .list td { padding: var(--row-pad); text-align: left; border-bottom: 1px solid var(--line); }
 .list thead th { background: var(--surface); font-size: var(--fs-11_5); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+/* Filtre porté par une colonne (EXPÉRIMENTAL, ?p=fiches — "Paiement") : un
+   bouton entonnoir à côté du titre de colonne plutôt qu'un <select> dans la
+   barre d'outils, pour que le filtre reste visuellement rattaché à ce qu'il
+   filtre. <details> natif (même esprit que .filters-more) : pas de JS,
+   .col-filter-menu en position:absolute (plutôt que le display:flex en ligne
+   de .filters-more-body) pour flotter sans élargir la colonne ni décaler les
+   colonnes suivantes. */
+.col-th { display: inline-flex; align-items: center; gap: 4px; }
+.col-filter { position: relative; display: inline-flex; }
+.col-filter-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; padding: 0; flex-shrink: 0;
+    border-radius: 5px; color: var(--muted); background: none; border: none; cursor: pointer;
+    text-transform: none; letter-spacing: normal;
+}
+.col-filter-btn .ico { width: 12px; height: 12px; }
+.col-filter-btn:hover { color: var(--primary-d); background: var(--primary-tint); }
+.col-filter > summary.col-filter-btn { list-style: none; }
+.col-filter > summary.col-filter-btn::-webkit-details-marker { display: none; }
+.col-filter-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 20;
+    display: none; flex-direction: column; min-width: 130px; gap: 1px;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 5px;
+}
+.col-filter[open] .col-filter-menu { display: flex; }
+.col-filter-menu a {
+    padding: 6px 9px; border-radius: 6px; font-size: var(--fs-13); font-weight: 600;
+    text-transform: none; letter-spacing: normal; color: var(--ink); text-decoration: none;
+}
+.col-filter-menu a:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
+.col-th-actif { display: block; margin-top: 2px; font-size: var(--fs-10_5); font-weight: 600; color: var(--primary); }
 .list tbody tr { transition: background .12s; }
 .list tbody tr:hover { background: var(--surface); }
 .list tr.row-link { cursor: pointer; transition: background .12s ease; }

@@ -1,6 +1,22 @@
 <?php /** @var array $fiches */ /** @var int $annee */ /** @var array $annees */ /** @var string $statut */
 /** @var array $employes */ /** @var int $employeId */ /** @var array $axesParFiche */ /** @var array $totaux */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
+<?php
+// Filtre "Statut" (EXPÉRIMENTAL) : déplacé de la barre d'outils vers un bouton
+// à côté du titre de la colonne "Paiement" qu'il filtre réellement — voir
+// .col-filter/.col-filter-menu (assets/app.css). $lienStatut reporte les
+// autres paramètres de la requête (année, employé…) et repart de la page 1
+// (un changement de filtre ne doit pas laisser la pagination sur une page
+// devenue hors bornes). 'statut' TOUJOURS explicite dans l'URL générée (même
+// pour 'tous') : $statut est lu via filtre_persistant() (lib/helpers.php),
+// qui ne met à jour la session QUE si le paramètre GET est présent — un lien
+// qui omettrait 'statut' laisserait donc l'ancien filtre actif en session
+// (le bouton "retirer le filtre" ne retirerait rien).
+$statutLabels = ['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'];
+$qsSansStatut = $_GET;
+unset($qsSansStatut['statut'], $qsSansStatut['page']);
+$lienStatut = fn (string $v): string => '?' . http_build_query($qsSansStatut + ['statut' => $v]);
+?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <div class="page-head-band">
 <div class="page-head">
@@ -15,6 +31,7 @@
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="fiches">
+            <?php if ($statut !== 'tous'): ?><input type="hidden" name="statut" value="<?= e($statut) ?>"><?php endif; ?>
             <label>Année
                 <select name="annee" onchange="this.form.submit()">
                     <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
@@ -23,13 +40,6 @@
                     rsort($opts);
                     foreach ($opts as $a): ?>
                         <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>Statut
-                <select name="statut" onchange="this.form.submit()">
-                    <?php foreach (['tous' => 'Toutes', 'apayer' => 'À payer', 'payees' => 'Payées'] as $val => $lib): ?>
-                        <option value="<?= $val ?>" <?= $statut === $val ? 'selected' : '' ?>><?= $lib ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -58,7 +68,25 @@
         <tr>
             <th class="col-employe">Employé</th><?php if ($axesParFiche): ?><th class="col-petit">Axes</th><?php endif; ?>
             <th class="num">Brut</th><th class="num col-petit">Charges sociales</th><th class="num col-petit">Impôt à la source</th>
-            <th class="num">Net</th><th>Paiement</th><th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
+            <th class="num">Net</th>
+            <th>
+                <span class="col-th">
+                    Paiement
+                    <?php if ($statut !== 'tous'): ?>
+                        <a class="col-filter-btn" href="<?= e($lienStatut('tous')) ?>" title="Retirer le filtre"><?= icon('funnel-x') ?></a>
+                    <?php else: ?>
+                        <details class="col-filter">
+                            <summary class="col-filter-btn" title="Filtrer"><?= icon('funnel') ?></summary>
+                            <div class="col-filter-menu">
+                                <a href="<?= e($lienStatut('apayer')) ?>">À payer</a>
+                                <a href="<?= e($lienStatut('payees')) ?>">Payées</a>
+                            </div>
+                        </details>
+                    <?php endif; ?>
+                </span>
+                <?php if ($statut !== 'tous'): ?><span class="col-th-actif"><?= e($statutLabels[$statut]) ?></span><?php endif; ?>
+            </th>
+            <th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
             <th class="center col-petit">Envoyée</th>
         </tr>
     </thead>

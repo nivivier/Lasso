@@ -1165,6 +1165,16 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
         'dashboard'        => ['?p=resumes', 'Tableau de bord'],
         'compta_ecritures' => ['?p=compta_ecritures', 'Écritures'],
         'structures'       => ['?p=structures', 'Structures'],
+        // Structures est partagée par 3 groupes de nav (voir nav_groupe_actif())
+        // — structures_liste.php pose depuis=<groupe> (pas depuis=structures)
+        // sur ses liens vers une structure, pour que nav_groupe_actif() y
+        // mette en surbrillance le bon groupe. Sans ces 3 entrées, un tel
+        // depuis ne correspondait à rien ici et retombait sur le
+        // '?p=structures' générique ci-dessus, perdant le groupe de
+        // provenance sur le lien retour.
+        'booking'          => ['?p=structures&depuis=booking', 'Structures'],
+        'facturation'      => ['?p=structures&depuis=facturation', 'Structures'],
+        'evenements'       => ['?p=structures&depuis=evenements', 'Structures'],
     ];
     if (isset($statiques[$depuis])) {
         return lien_retour($avecExtras($statiques[$depuis][0]), $statiques[$depuis][1]);
@@ -1640,6 +1650,8 @@ function icon(string $name): string
         'tag'        => '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
         'message-square' => '<path d="M22 17a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2z"/>',
         'send'       => '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+        'funnel'     => '<path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/>',
+        'funnel-x'   => '<path d="M12.531 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14v6a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341l.427-.473"/><path d="m16.5 3.5 5 5"/><path d="m21.5 3.5-5 5"/>',
     ];
     $p = $paths[$name] ?? '';
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
