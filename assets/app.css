@@ -1245,14 +1245,14 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .col-filter-menu label:hover { background: var(--surface); }
 .col-filter-menu input[type="checkbox"] { margin: 0; }
+.col-filter-tout { font-weight: 700; }
 .col-filter-sep { height: 1px; background: var(--line); margin: 3px 2px; }
-.col-filter-quick { display: flex; gap: 4px; }
-.col-filter-quick button {
-    flex: 1 1 0; padding: 4px 0; border-radius: 6px; border: none; background: var(--surface);
-    font-size: var(--fs-11_5); font-weight: 700; color: var(--muted); cursor: pointer;
+.col-filter-apply {
+    margin-top: 4px; padding: 4px 0; border-radius: 6px; border: none; background: var(--primary);
+    font-size: var(--fs-11_5); font-weight: 700; color: #fff; cursor: pointer;
     text-transform: none; letter-spacing: normal; box-shadow: none;
 }
-.col-filter-quick button:hover { background: var(--primary-tint); color: var(--primary-d); }
+.col-filter-apply:hover { background: var(--primary-d); }
 /* Filtres actifs : une pastille par valeur cochée sous le titre de colonne,
    chacune avec sa propre croix — plutôt qu'un seul texte + une croix globale,
    pour pouvoir retirer une valeur precise quand plusieurs sont actives à la

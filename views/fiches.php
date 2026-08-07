@@ -80,14 +80,12 @@ $lienStatutSans = fn (string $retire): string => '?' . http_build_query(
                             <input type="hidden" name="annee" value="<?= (int) $annee ?>">
                             <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
                             <input type="hidden" name="statut_set" value="1">
+                            <label class="col-filter-tout"><input type="checkbox" data-check-tout <?= count($statut) === count($statutLabels) ? 'checked' : '' ?>> Tout</label>
+                            <div class="col-filter-sep"></div>
                             <?php foreach ($statutLabels as $val => $lib): ?>
                                 <label><input type="checkbox" name="statut[]" value="<?= e($val) ?>" <?= in_array($val, $statut, true) ? 'checked' : '' ?>> <?= e($lib) ?></label>
                             <?php endforeach; ?>
-                            <div class="col-filter-sep"></div>
-                            <div class="col-filter-quick">
-                                <button type="button" data-check-all>Tout</button>
-                                <button type="button" data-check-none>Aucun</button>
-                            </div>
+                            <button type="submit" class="col-filter-apply">Appliquer</button>
                         </form>
                     </details>
                 </span>
