@@ -340,6 +340,58 @@ function recherche_sql(array $colonnes): array
     return [$sql, array_fill(0, count($colonnes), $motif)];
 }
 
+// Filtre de colonne à cases à cocher (EXPÉRIMENTAL, ?p=fiches — Paiement/
+// Date/Employé) : bouton entonnoir + panneau (voir .col-filter* dans
+// assets/app.css), plutôt qu'un <select> dans la barre d'outils, pour que
+// le filtre reste visuellement rattaché à la colonne qu'il filtre. $page :
+// route courante (p=…), sinon ce <form> sans action= soumettrait sans
+// paramètre 'p' et retomberait sur la route par défaut de l'appli au lieu
+// de rester sur la page filtrée. $champ : nom du paramètre GET, envoyé en
+// tableau (ex. 'statut' → statut[]). $options : [valeur => libellé].
+// $actives : sous-ensemble actuellement coché de $options. $autresParams :
+// les AUTRES filtres de la page (jamais celui-ci) à reporter en hidden
+// inputs pour ne pas les perdre en soumettant ce panneau — valeurs
+// scalaires ou tableaux, sérialisées à l'identique.
+function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams): string
+{
+    $h = '<details class="col-filter"><summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>'
+       . '<form method="get" class="col-filter-menu">'
+       . '<input type="hidden" name="p" value="' . e($page) . '">';
+    foreach ($autresParams as $k => $v) {
+        foreach ((array) $v as $vv) {
+            $h .= '<input type="hidden" name="' . e(is_array($v) ? $k . '[]' : (string) $k) . '" value="' . e((string) $vv) . '">';
+        }
+    }
+    $h .= '<input type="hidden" name="' . e($champ) . '_set" value="1">'
+        . '<label class="col-filter-tout"><input type="checkbox" data-check-tout' . (count($actives) === count($options) ? ' checked' : '') . '> Tout</label>'
+        . '<div class="col-filter-sep"></div><div class="col-filter-options">';
+    $activesTxt = array_map('strval', $actives);
+    foreach ($options as $val => $lib) {
+        $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
+        $h .= '<label><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e($lib) . '</label>';
+    }
+    return $h . '</div><button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
+}
+
+// Pastilles des valeurs actives d'un filtre_colonne_html() — une par valeur,
+// chacune avec sa propre croix pour la retirer individuellement (les autres
+// valeurs actives et les autres filtres de la page restent inchangés).
+function filtre_colonne_actifs_html(string $page, string $champ, array $options, array $actives, array $autresParams): string
+{
+    if (!$actives) {
+        return '';
+    }
+    $h = '<span class="col-th-actif-list">';
+    foreach ($actives as $val) {
+        $lib = $options[$val] ?? (string) $val;
+        $qs = ['p' => $page] + $autresParams;
+        $qs[$champ . '_set'] = 1;
+        $qs[$champ] = array_values(array_diff($actives, [$val]));
+        $h .= '<span class="col-th-actif">' . e($lib) . '<a href="?' . e(http_build_query($qs)) . '" title="Retirer « ' . e($lib) . ' »">' . icon('x') . '</a></span>';
+    }
+    return $h . '</span>';
+}
+
 // Montant CHF : "1 234.55"
 function chf(float $v): string
 {

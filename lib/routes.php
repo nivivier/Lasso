@@ -1041,33 +1041,40 @@ function route_taux(): void
 function route_fiches(): void
 {
     require_login();
-    // Filtres : GET prioritaire, sinon dernière valeur en session (conservée au
-    // retour depuis une fiche), sinon défaut.
-    $annee = (int) filtre_persistant('annee', 'fiches_annee', 0); // 0 = « Toutes les années » par défaut
-    // Statut : cases à cocher (0 à 3 valeurs simultanées parmi avenir/apayer/
-    // payees), pas un select à valeur unique — filtre_persistant() ne convient
-    // pas tel quel : elle ne met à jour la session QUE si la clé GET est
-    // présente, or un formulaire de cases à cocher DONT AUCUNE N'EST COCHÉE
-    // n'envoie tout simplement pas le paramètre 'statut[]', ce qui serait pris
-    // à tort pour « rien n'a changé, garder la session » au lieu de « tout
-    // décoché ». statut_set (posé par le formulaire, toujours présent qu'il y
-    // ait des cases cochées ou non) sert de marqueur explicite de soumission.
-    if (isset($_GET['statut_set'])) {
-        $statut = array_values(array_intersect((array) ($_GET['statut'] ?? []), ['avenir', 'apayer', 'payees']));
-        $_SESSION['fiches_statut'] = $statut;
-    } else {
+    // Filtres de colonne (EXPÉRIMENTAL — Paiement/Date/Employé) : cases à
+    // cocher, 0 à N valeurs simultanées, pas un select à valeur unique —
+    // filtre_persistant() ne convient pas telle quelle : elle ne met à jour
+    // la session QUE si la clé GET est présente, or un formulaire de cases à
+    // cocher DONT AUCUNE N'EST COCHÉE n'envoie tout simplement pas le
+    // paramètre, ce qui serait pris à tort pour « rien n'a changé, garder la
+    // session » au lieu de « tout décoché ». Un marqueur <nom>_set (posé par
+    // chaque formulaire, toujours présent qu'il y ait des cases cochées ou
+    // non) sert donc de marqueur explicite de soumission — factorisé ici,
+    // réutilisé pour statut/annee/employe_id.
+    $filtreCoche = function (string $cle, string $cleSession, ?array $valeurs = null) {
+        if (isset($_GET[$cle . '_set'])) {
+            $brut = (array) ($_GET[$cle] ?? []);
+            $v = $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_map('intval', $brut));
+            $_SESSION[$cleSession] = $v;
+            return $v;
+        }
         // (array) plutôt que ?? [] seul : couvre aussi une session encore au
-        // format texte unique d'avant ce changement (ex. 'tous'/'apayer') —
-        // (array) 'tous' donne ['tous'], filtré par array_intersect() ci-après
-        // car hors des 3 valeurs valides, d'où un repli propre sur "aucun filtre".
-        $statut = array_values(array_intersect((array) ($_SESSION['fiches_statut'] ?? []), ['avenir', 'apayer', 'payees']));
-    }
-    $employeId = (int) filtre_persistant('employe_id', 'fiches_employe', 0);
+        // format valeur unique d'avant ce changement (scalaire) — casté en
+        // tableau à un seul élément, filtré si une liste de valeurs valides
+        // est fournie (statut), sinon repris tel quel (annee/employe_id).
+        $brut = (array) ($_SESSION[$cleSession] ?? []);
+        return $valeurs !== null ? array_values(array_intersect($brut, $valeurs)) : array_values(array_map('intval', $brut));
+    };
+    $statut    = $filtreCoche('statut', 'fiches_statut', ['avenir', 'apayer', 'payees']);
+    $annee     = $filtreCoche('annee', 'fiches_annee');
+    $employeId = $filtreCoche('employe_id', 'fiches_employe');
+    // Recherche texte (nom/prénom employé) : voir recherche_sql(), lib/helpers.php.
+    $recherche = trim((string) ($_GET['q'] ?? ''));
     $where  = ' WHERE 1=1';
     $params = [];
-    if ($annee > 0) { // 0 = « Toutes les années »
-        $where .= ' AND f.annee = ?';
-        $params[] = $annee;
+    if ($annee) {
+        $where .= ' AND f.annee IN (' . implode(',', array_fill(0, count($annee), '?')) . ')';
+        $params = array_merge($params, $annee);
     }
     if ($statut) {
         // Synchronisé avec fiche_a_venir() (lib/helpers.php) : à venir = pas
@@ -1082,11 +1089,14 @@ function route_fiches(): void
         $where .= ' AND (' . implode(' OR ', $statutConds) . ')';
     }
     if ($employeId) {
-        $where .= ' AND f.employe_id = ?';
-        $params[] = $employeId;
+        $where .= ' AND f.employe_id IN (' . implode(',', array_fill(0, count($employeId), '?')) . ')';
+        $params = array_merge($params, $employeId);
     }
+    [$rechSql, $rechParams] = recherche_sql(['e.nom', 'e.prenom']);
+    $where .= $rechSql;
+    $params = array_merge($params, $rechParams);
 
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM fiches f' . $where);
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where);
     $stmtTot->execute($params);
     $pgTotal = (int) $stmtTot->fetchColumn();
 
@@ -1097,7 +1107,7 @@ function route_fiches(): void
         'SELECT COALESCE(SUM(f.salaire_brut),0) AS brut, COALESCE(SUM(f.total_deductions),0) AS ded,
                 COALESCE(SUM(f.ded_impot_source),0) AS impot, COALESCE(SUM(f.salaire_net),0) AS net,
                 COALESCE(SUM(f.total_charges_emp),0) AS charges_emp, COALESCE(SUM(f.cout_total_emp),0) AS cout_emp
-         FROM fiches f' . $where
+         FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where
     );
     $stmtSum->execute($params);
     $totaux = $stmtSum->fetch();
@@ -1108,7 +1118,7 @@ function route_fiches(): void
 
     $sql = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
             FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where;
-    $sql  .= $annee > 0 ? ' ORDER BY f.mois DESC, e.nom' : ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
+    $sql  .= ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
     $sql  .= $limitSql;
     $stmt  = db()->prepare($sql);
     $stmt->execute(array_merge($params, $limitParams));
@@ -1134,8 +1144,10 @@ function route_fiches(): void
     }
 
     render('fiches', ['fiches' => $fiches, 'annee' => $annee, 'annees' => $annees, 'statut' => $statut,
-        'employes' => $employes, 'employeId' => $employeId, 'axesParFiche' => $axesParFiche, 'totaux' => $totaux,
-        'pgRoute' => 'fiches', 'pgParams' => ['annee' => $annee, 'statut' => $statut, 'employe_id' => $employeId],
+        'employes' => $employes, 'employeId' => $employeId, 'recherche' => $recherche,
+        'axesParFiche' => $axesParFiche, 'totaux' => $totaux,
+        'pgRoute' => 'fiches',
+        'pgParams' => array_filter(['annee' => $annee, 'statut' => $statut, 'employe_id' => $employeId, 'q' => $recherche]),
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Fiches de salaire');
 }
 
