@@ -379,6 +379,18 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     if ($depuis !== '' && in_array($depuis, $candidats, true)) {
         return $depuis;
     }
+    // $depuis peut aussi être une référence d'objet « type:id » (convention de
+    // lien_retour_contextuel(), lib/helpers.php — ex. depuis=evenement:42,
+    // posée par un lien qui veut à la fois mettre en surbrillance le bon
+    // groupe de nav ICI et permettre un retour précis vers cet objet une fois
+    // sur la page cible). Complété au fil des besoins — seul le cas
+    // evenement:id est utilisé aujourd'hui (lien structure depuis ?p=evenement).
+    if ($depuis !== '' && preg_match('/^([a-z_]+):\d+$/', $depuis, $m)) {
+        $groupeDuType = ['evenement' => 'evenements'][$m[1]] ?? null;
+        if ($groupeDuType !== null && in_array($groupeDuType, $candidats, true)) {
+            return $groupeDuType;
+        }
+    }
     foreach (['booking', 'facturation', 'evenements'] as $prefere) {
         if (in_array($prefere, $candidats, true)) {
             return $prefere;

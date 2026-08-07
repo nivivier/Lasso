@@ -56,6 +56,17 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php
+// Structures est partagée par 3 groupes de nav (booking/facturation/evenements,
+// voir nav_groupe_actif()) — reporté sur les liens vers une structure pour que
+// le rail/bandeau y reste dans le même groupe de provenance une fois dessus
+// (même principe que structures_liste.php). Ici en forme « evenement:id »
+// (convention de lien_retour_contextuel()) plutôt que la simple clé de groupe
+// « evenements » : nav_groupe_actif() sait résoudre les deux, mais seule la
+// forme objet permet en plus au lien « retour » de la fiche structure de
+// pointer précisément vers CET événement plutôt que vers la liste générique.
+$suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ? '&depuis=' . $ntCle : '');
+?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -321,7 +332,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
         <?php else: ?>
         <p>
             <?php foreach ($structuresLiees as $s): ?>
-                <a href="?p=structure&id=<?= (int) $s['id'] ?>" class="badge"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('star') ?></span> <?php endif; ?><?= e($s['nom']) ?><?= trim((string) $s['ville']) !== '' ? ' — ' . e($s['ville']) : '' ?></a>
+                <a href="?p=structure&id=<?= (int) $s['id'] ?><?= $suffixeDepuis ?>" class="badge"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('star') ?></span> <?php endif; ?><?= e($s['nom']) ?><?= trim((string) $s['ville']) !== '' ? ' — ' . e($s['ville']) : '' ?></a>
             <?php endforeach; ?>
         </p>
         <?php endif; ?>
