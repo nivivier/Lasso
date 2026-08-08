@@ -47,6 +47,25 @@
     --row-pad: 10px 12px;              /* padding standard des cellules .list */
     --content-pad: 48px;               /* respiration horizontale standard (.content, .page-head, .module-content-inner…) */
     --rail-width: 120px;                /* largeur du rail d'icônes (.sidebar) — voir aussi .carte-lieux-wrap et les débordements .page-head-band/.module-content */
+    /* Boîte de button/.btn (voir plus bas) : point de référence unique pour
+       tout contrôle qui doit visuellement matcher la hauteur des boutons
+       d'action (champ de recherche, toggle Liste/Carte, bouton « Plus de
+       filtres »…). Avant ces variables, chaque contrôle recalculait sa propre
+       hauteur à la main (ex. .seg-btn en « +20px », .filters-more summary en
+       « +22px ») — les deux constantes ont fini par diverger silencieusement
+       de 2px. --action-height est dérivée directement de --btn-padding-v/
+       --btn-border-w (utilisées AUSSI dans la règle button/.btn elle-même,
+       plus bas) : un futur changement du padding/bordure des boutons se
+       répercute automatiquement partout, au lieu de devoir retrouver et
+       resynchroniser chaque constante à la main. */
+    --btn-padding-v: 10px;
+    --btn-border-w: 1px;
+    --action-height: calc(var(--fs-basic) * 1.6 + 2 * var(--btn-padding-v) + 2 * var(--btn-border-w));
+    /* ?p=structures / ?p=evenements_liste en vue carte (.toolbar-carte, voir
+       plus bas) : largeur du <form class="filters"> qui contient la
+       recherche (+ le bouton « Plus de filtres » sur structures) — détail de
+       la dérivation juste avant la règle qui l'utilise. */
+    --carte-search-form-width: 260px;
 
 	/* ---------------- Typo ---------------- */
 
@@ -121,8 +140,8 @@ h1 * { -webkit-text-fill-color: currentColor; }
 /* =================== Sidebar layout =================== */
 body.has-sidebar { display: flex; min-height: 100vh; }
 
-/* Rail d'icônes de modules (EXPÉRIMENTAL — branche experiment-nav-rail) :
-   remplace l'ancien rail « icône-pastille + libellé à droite » par un rail
+/* Rail d'icônes de modules : remplace l'ancien rail « icône-pastille +
+   libellé à droite » par un rail
    étroit, icône au-dessus d'un petit libellé, largeur 84px (voir aussi les
    offsets de .page-head-band, calés sur cette largeur). */
 /* Rail clair par défaut (pas de dégradé --brand/--brand-2 : depuis que
@@ -276,8 +295,8 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
 
 /* === Page Paramètres : barre d'onglets ===
-   Les onglets principaux réutilisent .module-tabs/.module-tab (voir plus bas,
-   EXPÉRIMENTAL) — même rendu que le bandeau des autres modules, voir
+   Les onglets principaux réutilisent .module-tabs/.module-tab (voir plus bas)
+   — même rendu que le bandeau des autres modules, voir
    views/_param_tabs.php. */
 /* Sous-onglets (sections du groupe actif) : rangée de pastilles sous le bandeau. */
 .param-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 24px; }
@@ -531,7 +550,7 @@ body.auth-bg {
     border-radius: 0;
 }
 .page-head-band .page-head:has(.module-tabs) { padding-bottom: 0; }
-/* Zone de contenu pleine largeur SOUS le bandeau d'onglets (EXPÉRIMENTAL) —
+/* Zone de contenu pleine largeur SOUS le bandeau d'onglets —
    même mécanique de débordement que .page-head-band (largeur 100vw, marge
    négative = largeur sidebar + padding .content), mais fond plein (pas de
    flou/sticky), et SANS plafond de largeur comme .page-head-band .page-head
@@ -580,7 +599,7 @@ body.auth-bg {
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
 .module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }
 .module-content-inner { margin: 0 0 0 var(--rail-width); padding: 24px var(--content-pad) 30px; }
-/* Barre d'outils (EXPÉRIMENTAL) : regroupe filtres/recherche et boutons
+/* Barre d'outils : regroupe filtres/recherche et boutons
    d'action sur une seule ligne, posée directement sur le fond blanc de
    .module-content-inner (pas de carte encadrée comme l'ancien .filters
    isolé) — séparée du tableau par un simple filet. Les boutons d'action
@@ -630,6 +649,36 @@ body.auth-bg {
     margin-top: -24px; margin-left: calc(-1 * var(--content-pad)); margin-right: calc(-1 * var(--content-pad));
     padding-top: 24px; padding-left: var(--content-pad); padding-right: var(--content-pad);
 }
+/* .toolbar-carte : classe explicite posée par la vue (pas une inférence
+   :has(.carte-filters)) sur ?p=structures/?p=evenements_liste EN VUE CARTE
+   uniquement (voir views/*_liste.php — `<?= $vue === 'carte' ? '
+   toolbar-carte' : '' ?>`). Avant cette classe, ".toolbar:has(.carte-filters)"
+   servait à cibler la même situation, mais forçait 3 règles génériques
+   (.toolbar, .search-label, form.filters) à porter chacune un cas particulier
+   pour UN seul enfant possible — cf. les 2 essais ratés documentés sur
+   .carte-filters ci-dessous. Avec la classe explicite : le HTML dit
+   directement "ceci est une toolbar en mode carte", plus besoin de le
+   redéduire en CSS à chaque règle qui a besoin de le savoir. */
+/* --carte-search-form-width : largeur du <form class="filters"> en
+   .toolbar-carte, pour que la recherche (200px) et le bouton « Plus de
+   filtres » (~41px, ?p=structures seulement) restent l'un À CÔTÉ DE l'autre
+   au lieu que ce dernier soit rejeté sur sa propre ligne DANS le formulaire
+   (mesuré : flex-basis:auto ne donnait que 247.5px, 10px trop juste pour les
+   deux côte à côte avec le gap de 16px entre eux — 200 + 41 + 16 = 257,
+   260 pour une marge de sécurité). Sans effet sur ?p=evenements_liste
+   (recherche seule dans le formulaire, marge simplement inutilisée — le
+   <form> n'a pas de fond propre, cette largeur est invisible). Variable
+   définie dans :root (voir tout en haut du fichier), pas ici : une custom
+   property doit être déclarée dans un bloc de règle, pas en dehors. */
+.toolbar-carte .search-label,
+.toolbar-carte > form.filters { flex-grow: 0; }
+.toolbar-carte > form.filters { flex-basis: var(--carte-search-form-width); }
+/* Espace sous la toolbar en vue carte : .toolbar-opaque ne couvre que sa
+   propre boîte (pas de padding-bottom propre, hérite du padding-bottom:2px
+   de .toolbar) — la carte plein écran (.carte-lieux-wrap, position:fixed)
+   touchait donc directement le bas de la dernière ligne de filtres, sans
+   respiration. */
+.toolbar-carte { padding-bottom: 20px; }
 /* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements_liste.php
    / views/structures_liste.php) : placé dans le flux ENTRE la recherche et
    .head-actions, TOUJOURS sur la même ligne qu'eux (flex-basis:100% essayé
@@ -642,17 +691,16 @@ body.auth-bg {
    pousse .head-actions sur une 3e. flex-basis:0 : taille hypothétique nulle
    pour la décision de retour à la ligne — recherche/.carte-filters/.head-actions
    restent sur la ligne 1, puis flex-grow:1 distribue l'espace restant (après
-   recherche, fixée à 200px ici — voir .toolbar:has(.carte-filters) .search-label
-   ci-dessus — et boutons) à .carte-filters ; si cet espace est plus étroit
-   que ses filtres mis bout à bout, flex-wrap:wrap (hérité de .filters) les
-   rejette sur une 2e ligne INTERNE à .carte-filters, sans jamais toucher la
-   position de .head-actions. min-width:0 : sans ça un flex-item ne peut pas
-   rétrécir sous la largeur intrinsèque de son contenu, ce qui empêcherait ce
-   retour à la ligne interne de se déclencher. Libellés en --fs-small : ligne
-   dense (jusqu'à 7 filtres). */
+   recherche, fixée par --carte-search-form-width ci-dessus, et boutons) à
+   .carte-filters ; si cet espace est plus étroit que ses filtres mis bout à
+   bout, flex-wrap:wrap (hérité de .filters) les rejette sur une 2e ligne
+   INTERNE à .carte-filters, sans jamais toucher la position de .head-actions.
+   min-width:0 : sans ça un flex-item ne peut pas rétrécir sous la largeur
+   intrinsèque de son contenu, ce qui empêcherait ce retour à la ligne interne
+   de se déclencher. Libellés en --fs-small : ligne dense (jusqu'à 7 filtres). */
 .carte-filters { flex: 1 1 0; min-width: 0; }
 .carte-filters .col-th { font-size: var(--fs-small); }
-/* Tableaux pleine largeur (EXPÉRIMENTAL) : à l'intérieur de la zone blanche
+/* Tableaux pleine largeur : à l'intérieur de la zone blanche
    .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
    de la zone via une marge négative égale au padding horizontal du
    conteneur — ni bordure ni coin arrondi gauche/droite, pour un tableau qui
@@ -665,8 +713,8 @@ body.auth-bg {
 .module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
 .module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
 .module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
-/* Bandeau d'onglets de module (EXPÉRIMENTAL — branche experiment-nav-rail),
-   niveau intermédiaire entre le rail (module) et la page (onglet) — voir
+/* Bandeau d'onglets de module, niveau intermédiaire entre le rail (module)
+   et la page (onglet) — voir
    views/_module_tabs.php. Réutilisé tel quel par les onglets principaux de
    Paramètres (views/_param_tabs.php) pour un rendu cohérent partout : l'onglet
    actif se détache en blanc plein sur le fond flouté du bandeau, les inactifs
@@ -805,13 +853,12 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
 .seg-picker .seg-btn {
     display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
     width: 46px;
-    /* Hauteur calquée sur celle de button/.btn (padding vertical 10px +
-       line-height héritée 1.6, voir plus haut — la bordure de 1px de .seg-btn
-       est horizontale seulement, celle qui complète la hauteur vient de
-       .seg-picker tout autour, d'où le -2px absent ici mais déjà compté côté
-       .seg-picker) : sans ce calcul, le toggle Liste/Carte à côté de
-       .head-actions paraissait plus bas que ses boutons voisins. */
-    height: calc(var(--fs-basic) * 1.6 + 20px);
+    /* --action-height (voir :root) calque la hauteur totale de button/.btn.
+       .seg-btn n'a pas sa propre bordure haut/bas (seulement une bordure
+       droite entre boutons) : c'est .seg-picker, tout autour, qui apporte les
+       2px de bordure manquants — d'où le -2 * var(--btn-border-w) : sans lui,
+       le toggle Liste/Carte serait 2px plus haut que ses boutons voisins. */
+    height: calc(var(--action-height) - 2 * var(--btn-border-w));
     margin: 0; background: #fff; border: none; border-right: 1px solid var(--line); color: var(--muted);
     cursor: pointer; transition: background .15s, color .15s; text-decoration: none; box-shadow: none; border-radius: 0;
 }
@@ -938,9 +985,10 @@ select:disabled { cursor: not-allowed; }
    propageait alors par héritage jusque dans l'input, qui
    recalculait 0.8 × SA PROPRE taille de police (13px) = 10.4px, écrasant sa
    hauteur bien en dessous de celle de button/.btn. Fixé directement sur
-   l'input (spécificité suffisante ici pour ne dépendre d'aucun héritage). */
-input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 10px 34px 10px 10px; font-size: var(--fs-basic); line-height: 1.6; }
-input[type="search"] { padding-right: 34px; }
+   l'input (spécificité suffisante ici pour ne dépendre d'aucun héritage).
+   padding vertical en var(--btn-padding-v) (pas 10px en dur) : suit
+   automatiquement button/.btn si son padding change un jour (voir :root). */
+input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: var(--btn-padding-v) 34px var(--btn-padding-v) 10px; font-size: var(--fs-basic); line-height: 1.6; }
 /* Icône loupe de tous les champs de recherche (type=search) : posée en
    ::after sur .search-label (pas en background-image sur l'input comme
    avant) via mask-image plutôt que fill/stroke figés dans le SVG — un SVG en
@@ -1080,8 +1128,8 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 /* =================== Buttons =================== */
 button, .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 7px; font: inherit; font-size: var(--fs-basic); cursor: pointer;
-    background: var(--highlight); color: #fff; border: 1px solid var(--highlight);
-    padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600;
+    background: var(--highlight); color: #fff; border: var(--btn-border-w) solid var(--highlight);
+    padding: var(--btn-padding-v) 18px; border-radius: var(--radius-sm); font-weight: 600;
     transition: background .15s, border-color .15s, transform .05s; box-shadow: var(--shadow-sm);
 }
 button:hover, .btn:hover { background: var(--highlight-d); border-color: var(--highlight-d); text-decoration: none; }
@@ -1250,37 +1298,10 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    d'abord, ça n'avait aucun effet, ".filters label" ayant une spécificité
    plus élevée.) */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
-/* Exception : ?p=structures / ?p=evenements_liste en vue carte (.carte-filters,
-   voir plus haut) — la recherche partage la ligne 1 avec les filtres ET les
-   boutons d'action ; si elle grandissait aussi (flex-grow:1 comme partout
-   ailleurs), elle absorberait la quasi-totalité de l'espace restant au
-   détriment des filtres, qui se retrouveraient écrasés à 1 filtre par ligne
-   sur plusieurs lignes au lieu de 2. Ici seulement, la recherche reste
-   compacte (200px) pour laisser la place aux filtres — et le <form> qui la
-   contient ne doit PAS non plus grandir (voir .toolbar > form.filters plus
-   haut), sinon la moitié de l'espace attribué par flex-grow irait gonfler
-   ce <form> invisible (aucun enfant dedans n'en profiterait, .search-label
-   restant lui-même à flex-grow:0) au lieu d'aller entièrement à
-   .carte-filters. flex-basis:260px explicite (pas "auto") : avec basis:auto,
-   la taille du <form> dépend de son contenu au moment du calcul, et sur
-   ?p=structures (recherche + bouton « Plus de filtres ») le résultat mesuré
-   (247.5px) était plus étroit que les 257px nécessaires pour les deux côte à
-   côte — le bouton « Plus de filtres » se retrouvait rejeté sur sa propre
-   ligne DANS le <form>. 260px : large que la recherche (200px) + le bouton
-   « Plus de filtres » (~41px) + le gap entre eux (16px), pour les deux
-   toujours l'un à côté de l'autre. Sans effet sur ?p=evenements_liste
-   (recherche seule dans le <form>, 260px est juste un peu de marge
-   inutilisée — invisible, .form.filters n'a pas de fond propre). */
-.toolbar:has(.carte-filters) .search-label,
-.toolbar:has(.carte-filters) > form.filters { flex-grow: 0; }
-.toolbar:has(.carte-filters) > form.filters { flex-basis: 260px; }
-/* Espace sous la toolbar en vue carte : .toolbar-opaque ne couvre que sa
-   propre boîte (pas de padding-bottom propre, hérite du padding-bottom:2px
-   de .toolbar) — la carte plein écran (.carte-lieux-wrap, position:fixed)
-   touchait donc directement le bas de la dernière ligne de filtres, sans
-   respiration. Vue liste non concernée (le tableau suit avec son propre
-   margin-bottom:22px habituel, cf. .toolbar de base). */
-.toolbar:has(.carte-filters) { padding-bottom: 20px; }
+/* L'exception "recherche compacte + <form> figé" pour ?p=structures /
+   ?p=evenements_liste en vue carte vit désormais sur .toolbar-carte (classe
+   explicite posée par la vue), pas ici — voir juste après .toolbar-opaque,
+   tout en haut de ce fichier. */
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
    <details> natif. .filters-more-body en position:fixed (repositionné par JS
    à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai
@@ -1298,16 +1319,18 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 /* Le déclencheur (<summary>) reprend l'aspect d'un .btn.ghost.btn-sm, sans
    dépendre de ces classes sur la balise (list-style/marker natifs à retirer
    en plus). */
-/* height calquée sur button/.btn (padding vertical 10px + line-height héritée
-   1.6 + bordure 1px, voir plus haut/plus bas) : sans elle, le bouton
-   « Plus de filtres » (icône seule, donc pas de ligne de texte pour pousser
-   sa hauteur) restait plus bas (37px) que les autres boutons d'action de la
-   toolbar (43px). box-sizing:border-box (règle générale, tout en haut du
-   fichier) : la hauteur totale inclut déjà le padding et la bordure. */
+/* height:var(--action-height) (voir :root, calque button/.btn) : sans elle,
+   le bouton « Plus de filtres » (icône seule, donc pas de ligne de texte pour
+   pousser sa hauteur) restait plus bas (37px) que les autres boutons d'action
+   de la toolbar. box-sizing:border-box (règle générale, tout en haut du
+   fichier) : la hauteur totale inclut déjà le padding et la bordure, donc le
+   padding ci-dessous (9px 11px, purement pour l'espace autour de l'icône
+   17px) n'a pas besoin de correspondre exactement à --btn-padding-v — align-
+   items:center recentre le contenu dans la hauteur imposée quoi qu'il arrive. */
 .filters-more summary {
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
     list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
-    padding: 9px 11px; height: calc(var(--fs-basic) * 1.6 + 22px); transition: background .15s, border-color .15s;
+    padding: 9px 11px; height: var(--action-height); transition: background .15s, border-color .15s;
 }
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
@@ -1826,6 +1849,17 @@ abbr {
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
+    /* .toolbar-opaque (desktop, voir plus haut) annule le padding de
+       .module-content-inner avec des valeurs fixes (24px haut / 48px
+       gauche-droite) pour faire déborder son fond blanc jusqu'aux bords —
+       sans ce reset, ces mêmes valeurs s'appliqueraient ici contre un
+       .module-content-inner qui ne fait plus que 16px/18px (juste au-dessus),
+       et le fond blanc + le contenu de la toolbar déborderaient d'~30px hors
+       du cadre. */
+    .toolbar-opaque {
+        margin-top: -16px; margin-left: -18px; margin-right: -18px;
+        padding-top: 16px; padding-left: 18px; padding-right: 18px;
+    }
     /* .toolbar > .head-actions { margin-left: auto } pousse les actions à
        droite quand filtres et actions tiennent sur une seule ligne (desktop)
        — dès que .filters passe à la ligne (mobile, largeur trop étroite),
@@ -1839,8 +1873,12 @@ abbr {
        ligne (.filters, resté en row) — en colonne, ce même flex-basis vaut
        pour la hauteur : sans ce reset, un .search-label posé directement
        dans .toolbar (pas de .filters autour, ex. employes.php/spectacles.php)
-       s'étire sur 200px de haut. */
+       s'étire sur 200px de haut. Même chose pour --carte-search-form-width
+       (260px, voir .toolbar-carte tout en haut) sur le <form> qui contient
+       la recherche en vue carte : en colonne, cette largeur deviendrait une
+       HAUTEUR de 260px, avec un grand vide au-dessus de la recherche. */
     .toolbar > .search-label { flex: 0 0 auto; }
+    .toolbar-carte > form.filters { flex-basis: auto; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
     .facture-aside { order: 0; }
@@ -1946,7 +1984,7 @@ abbr {
 .plan-puce { display: inline-flex; align-items: center; justify-content: center; width: 16px; color: var(--muted); flex: 0 0 auto; }
 .plan-puce .ico { width: 14px; height: 14px; }
 /* Libellé en lecture seule + crayon (mode JS). Édition directe en repli sans JS. */
-.plan-nom { display: none; font-size: var(--fs-basic); color: var(--ink); }
+.plan-nom { display: none; font-size: var(--fs-large); color: var(--ink); }
 .plan-row.plan-groupe .plan-nom { font-weight: 700; }
 .plan-edit-btn { display: none; flex: 0 0 auto; }
 .plan-edit-btn .ico { width: 15px; height: 15px; }

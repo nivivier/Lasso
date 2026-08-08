@@ -22,23 +22,47 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Positionne un panneau flottant (position:fixed) sous un élément d'ancrage,
+// aligné à gauche puis clampé pour ne jamais déborder le bord droit du
+// viewport. Partagé par .filters-more-body et .col-filter-menu ci-dessous —
+// les deux résolvent le même problème (voir leurs commentaires respectifs :
+// un ancêtre overflow:auto/hidden rogne un position:absolute, position:fixed
+// y échappe) et avaient été écrits séparément à l'origine ; seul
+// .col-filter-menu clampait contre le bord droit, .filters-more-body pouvait
+// déborder hors écran sur un viewport étroit. offsetWidth n'est connu
+// qu'après que le panneau soit affiché (display:flex) ET positionné — lu
+// dans un requestAnimationFrame (après le prochain rendu), pas
+// immédiatement, pour ne pas forcer un reflow synchrone juste après avoir
+// écrit top/left.
+function positionnerPanneauFlottant(anchorRect, panel, offsetTop) {
+    panel.style.top = (anchorRect.bottom + offsetTop) + 'px';
+    panel.style.left = anchorRect.left + 'px';
+    requestAnimationFrame(() => {
+        const maxLeft = window.innerWidth - panel.offsetWidth - 8;
+        panel.style.left = Math.max(8, Math.min(anchorRect.left, maxLeft)) + 'px';
+    });
+}
+
 // Filtres secondaires (.filters-more, ex. ?p=structures : Jauge/Mois du
-// lieu) : .filters-more-body en position:fixed, repositionné ici à
-// l'ouverture (voir .filters-more-body dans assets/app.css pour le pourquoi
-// du fixed plutôt qu'absolute — un absolute, même ancré plus haut dans
-// l'arbre, faisait grandir la largeur intrinsèque de .filters et provoquait
-// un retour à la ligne de .toolbar qui décalait .head-actions). Ancré sur
-// .toolbar entier (pas juste le bouton) pour ouvrir sous toute la barre,
-// aligné à gauche. Un position:fixed flotte par-dessus le contenu suivant
-// par nature (aucun effet dans le flux) — on réserve donc explicitement la
-// place en dessous (margin-bottom, hauteur réelle mesurée) pour que le
-// tableau descende au lieu d'être recouvert. Posé sur .toolbar et non sur
-// .filters : .toolbar a align-items:flex-end, et grandir .filters lui-même
-// (un de ses flex-items) décale .head-actions vers le bas avec lui — déjà
-// constaté avec l'ancienne réserve, qui plus est en position:absolute
-// (voir commit précédent) ; .toolbar n'a pas ce problème, rien au-dessus
-// n'aligne ses propres enfants sur sa taille. Recalculé à l'ouverture et au
-// resize (largeur d'écran changeante, donc hauteur du panneau aussi).
+// lieu) : .filters-more-body en position:fixed (voir assets/app.css pour le
+// pourquoi du fixed plutôt qu'absolute — un absolute, même ancré plus haut
+// dans l'arbre, faisait grandir la largeur intrinsèque de .filters et
+// provoquait un retour à la ligne de .toolbar qui décalait .head-actions).
+// Ancré sur .toolbar entier (pas juste le bouton) pour ouvrir sous toute la
+// barre, aligné à gauche. Un position:fixed flotte par-dessus le contenu
+// suivant par nature (aucun effet dans le flux) — on réserve donc
+// explicitement la place en dessous (margin-bottom, hauteur réelle mesurée)
+// pour que le tableau descende au lieu d'être recouvert. Posé sur .toolbar
+// et non sur .filters : .toolbar a align-items:flex-end, et grandir
+// .filters lui-même (un de ses flex-items) décale .head-actions vers le bas
+// avec lui — déjà constaté avec l'ancienne réserve, qui plus est en
+// position:absolute (voir commit précédent) ; .toolbar n'a pas ce problème,
+// rien au-dessus n'aligne ses propres enfants sur sa taille. Recalculé à
+// l'ouverture et au resize (largeur d'écran changeante, donc hauteur du
+// panneau aussi) — resize coalescé en requestAnimationFrame (rAfEnCours) :
+// sans ça, glisser le bord de la fenêtre pouvait redéclencher le
+// repositionnement (et son offsetHeight, cf. positionner() ci-dessous) des
+// dizaines de fois par seconde.
 window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.filters-more').forEach(details => {
         const body = details.querySelector('.filters-more-body');
@@ -46,13 +70,22 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!body || !toolbar) return;
         const positionner = () => {
             if (!details.open) { toolbar.style.removeProperty('margin-bottom'); return; }
+            // Toutes les lectures (rect, offsetHeight) AVANT toute écriture de
+            // style : offsetHeight ne dépend pas de top/left (position:fixed),
+            // donc rien n'empêche de le lire en premier — l'inverse forcerait
+            // un reflow synchrone (écrire top/left puis relire une taille).
             const r = toolbar.getBoundingClientRect();
-            body.style.top = (r.bottom + 12) + 'px';
-            body.style.left = r.left + 'px';
-            toolbar.style.marginBottom = (body.offsetHeight + 12 + 22) + 'px';
+            const hauteurPanneau = body.offsetHeight;
+            positionnerPanneauFlottant(r, body, 12);
+            toolbar.style.marginBottom = (hauteurPanneau + 12 + 22) + 'px';
         };
         details.addEventListener('toggle', positionner);
-        window.addEventListener('resize', () => { if (details.open) positionner(); });
+        let rAfEnCours = false;
+        window.addEventListener('resize', () => {
+            if (!details.open || rAfEnCours) return;
+            rAfEnCours = true;
+            requestAnimationFrame(() => { rAfEnCours = false; positionner(); });
+        });
         if (details.open) positionner();
     });
 });
@@ -73,24 +106,18 @@ document.addEventListener('click', e => {
 // direction "visible" et l'autre non) et rogne donc le menu — en
 // position:absolute, il reste un descendant clippé par ce conteneur — dès
 // qu'il dépasse le bas du tableau, surtout visible sur un tableau court (peu
-// de lignes). position:fixed échappe à ce clip. Recalculé à chaque ouverture ;
-// clampé à droite une fois la largeur réelle connue (offsetWidth, qui dépend
-// du contenu, cf. max-width sur .col-filter-menu). 'toggle' ne bubble pas,
-// d'où l'écoute en phase de capture sur document plutôt qu'un simple 'click'.
+// de lignes). position:fixed échappe à ce clip. Recalculé à chaque
+// ouverture ; clampage droit délégué à positionnerPanneauFlottant()
+// ci-dessus. 'toggle' ne bubble pas, d'où l'écoute en phase de capture sur
+// document plutôt qu'un simple 'click'.
 document.addEventListener('toggle', e => {
     const details = e.target;
     if (!(details instanceof HTMLElement) || !details.classList.contains('col-filter') || !details.open) { return; }
     const menu = details.querySelector('.col-filter-menu');
     const btn = details.querySelector('.col-filter-btn');
     if (!menu || !btn) { return; }
-    const r = btn.getBoundingClientRect();
     menu.style.position = 'fixed';
-    menu.style.top = (r.bottom + 4) + 'px';
-    menu.style.left = r.left + 'px';
-    requestAnimationFrame(() => {
-        const maxLeft = window.innerWidth - menu.offsetWidth - 8;
-        menu.style.left = Math.max(8, Math.min(r.left, maxLeft)) + 'px';
-    });
+    positionnerPanneauFlottant(btn.getBoundingClientRect(), menu, 4);
 }, true);
 // Cases à cocher du filtre : la sélection ne part que sur clic explicite du
 // bouton "Appliquer" (bouton submit du formulaire, voir views/fiches.php) —
