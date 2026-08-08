@@ -222,7 +222,7 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
     $where = ' WHERE 1=1';
     $params = [];
     if ($f['annee']) {
-        $where .= " AND strftime('%Y', e.date) IN (" . implode(',', array_fill(0, count($f['annee']), '?')) . ')';
+        $where .= " AND strftime('%Y', e.date) IN (" . sql_in($f['annee']) . ')';
         $params = array_merge($params, array_map('strval', $f['annee']));
     }
     if ($f['spectacle_id']) {
@@ -241,7 +241,7 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
         }
         if ($spIds) {
             $spIds = array_values(array_unique($spIds));
-            $spConds[] = 'e.spectacle_id IN (' . implode(',', array_fill(0, count($spIds), '?')) . ')';
+            $spConds[] = 'e.spectacle_id IN (' . sql_in($spIds) . ')';
             $spParams  = $spIds;
         }
         if ($spConds) {
@@ -250,11 +250,11 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
         }
     }
     if ($f['statut']) {
-        $where .= ' AND e.statut IN (' . implode(',', array_fill(0, count($f['statut']), '?')) . ')';
+        $where .= ' AND e.statut IN (' . sql_in($f['statut']) . ')';
         $params = array_merge($params, $f['statut']);
     }
     if ($f['visibilite']) {
-        $where .= ' AND e.visibilite IN (' . implode(',', array_fill(0, count($f['visibilite']), '?')) . ')';
+        $where .= ' AND e.visibilite IN (' . sql_in($f['visibilite']) . ')';
         $params = array_merge($params, $f['visibilite']);
     }
     if ($f['statut_suisa']) {
@@ -281,7 +281,7 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
         }
     }
     if ($f['pays']) {
-        $where .= ' AND e.pays IN (' . implode(',', array_fill(0, count($f['pays']), '?')) . ')';
+        $where .= ' AND e.pays IN (' . sql_in($f['pays']) . ')';
         $params = array_merge($params, $f['pays']);
     }
     // "oui"+"non" cochés en même temps, ou ni l'un ni l'autre : équivalent à
@@ -610,7 +610,7 @@ function evenements_a_exporter(?int $spectacleId = null): array
     $params = [];
     if ($spectacleId) {
         $ids = array_merge([$spectacleId], spectacle_descendants($spectacleId, spectacle_map()));
-        $in  = implode(',', array_fill(0, count($ids), '?'));
+        $in  = sql_in($ids);
         $sql .= " AND e.spectacle_id IN ($in)";
         $params = array_merge($params, $ids);
     }

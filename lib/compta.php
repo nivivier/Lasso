@@ -905,7 +905,7 @@ function compta_previsualiser_import(array $parse): array
     if ($compte && $total > 0) {
         // hash encode déjà le compte (voir ligne_hash) : UNIQUE global sur ecritures.hash.
         $hashes = hash_lignes((int) $compte['id'], $parse['lignes']);
-        $in = implode(',', array_fill(0, count($hashes), '?'));
+        $in = sql_in($hashes);
         $stmt = db()->prepare("SELECT COUNT(*) FROM ecritures WHERE hash IN ($in)");
         $stmt->execute($hashes);
         $nbDoublons = (int) $stmt->fetchColumn();

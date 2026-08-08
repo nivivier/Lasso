@@ -753,7 +753,7 @@ function route_mailing_campagne(): void
         $premiers = array_slice($parId, 0, 20, true);
         $ids = array_keys($premiers);
         if ($ids) {
-            $in = implode(',', array_fill(0, count($ids), '?'));
+            $in = sql_in($ids);
             $stmtL = db()->prepare(
                 "SELECT so.organisateur_id AS sid, GROUP_CONCAT(l.nom, ', ') AS noms
                  FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id

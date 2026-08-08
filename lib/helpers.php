@@ -234,6 +234,50 @@ function e(?string $s): string
     return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 }
 
+// Placeholders "?,?,?..." (un par élément de $valeurs) pour une clause IN (...)
+// préparée — un seul point de vérité pour ce pattern, avant répété (copié à
+// la main : implode(',', array_fill(0, count($x), '?'))) plus de 40 fois
+// dans lib/. Prend le tableau lui-même (pas juste sa taille) pour que
+// l'appelant n'ait pas à écrire count($x) séparément.
+function sql_in(array $valeurs): string
+{
+    return implode(',', array_fill(0, count($valeurs), '?'));
+}
+
+// Reporte un tableau de paramètres GET (filtres actuels, souvent construit
+// avec filtre_coche()) dans un formulaire, sous forme de <input type="hidden">
+// — une paire nom[]=valeur par élément pour un filtre multi-valeurs (tableau),
+// une seule nom=valeur sinon ; jamais (string) $v directement, qui produirait
+// "Array" + un avertissement PHP. Repris à l'identique par tous les
+// formulaires qui doivent survivre à une soumission sans perdre les filtres
+// déjà actifs (dropdown de colonne, bannière de géocodage, pagination) : un
+// seul point de vérité pour ce pattern. redirect() plus haut a une logique
+// très proche mais produit une query string (urlencode), pas du HTML échappé
+// — volontairement resté séparé plutôt que forcé dans cette fonction.
+function hidden_inputs_html(array $params): string
+{
+    $h = '';
+    foreach ($params as $nom => $valeur) {
+        foreach ((array) $valeur as $vv) {
+            $h .= '<input type="hidden" name="' . e(is_array($valeur) ? $nom . '[]' : (string) $nom) . '" value="' . e((string) $vv) . '">';
+        }
+    }
+    return $h;
+}
+
+// Fabrique une closure $autresFiltres('champ') => tous les $tousFiltres SAUF
+// celui nommé, sans valeurs vides (array_filter) — pour reporter dans un
+// panneau de filtre de colonne (filtre_colonne_html()) les AUTRES filtres
+// actuellement actifs de la page, sans celui-là (qui a déjà son propre état
+// posté par ce panneau-là). Usage : $autresFiltres = autres_filtres_fn([
+// 'annee' => $annee, 'categorie' => $categorieFilter, ...]); puis
+// $autresFiltres('annee') à chaque filtre_colonne_html() — évite d'écrire à
+// la main, pour chaque filtre, un littéral listant tous les autres.
+function autres_filtres_fn(array $tousFiltres): Closure
+{
+    return fn (string $cle): array => array_filter(array_diff_key($tousFiltres, [$cle => true]));
+}
+
 // Filtre persistant entre requêtes (listes avec filtres : fiches, écritures,
 // factures…) : priorité au paramètre GET (et mémorisé en session pour les
 // navigations suivantes, ex. retour depuis une fiche), sinon dernière valeur
@@ -401,12 +445,8 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
 {
     $h = '<details class="col-filter"><summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>'
        . '<form method="get" class="col-filter-menu">'
-       . '<input type="hidden" name="p" value="' . e($page) . '">';
-    foreach ($autresParams as $k => $v) {
-        foreach ((array) $v as $vv) {
-            $h .= '<input type="hidden" name="' . e(is_array($v) ? $k . '[]' : (string) $k) . '" value="' . e((string) $vv) . '">';
-        }
-    }
+       . '<input type="hidden" name="p" value="' . e($page) . '">'
+       . hidden_inputs_html($autresParams);
     $h .= '<input type="hidden" name="' . e($champ) . '_set" value="1">'
         . '<label class="col-filter-tout"><input type="checkbox" data-check-tout' . (count($actives) === count($options) ? ' checked' : '') . '> Tout</label>'
         . '<div class="col-filter-sep"></div><div class="col-filter-options">';
@@ -1330,7 +1370,7 @@ function bulk_undo_memoriser(string $table, array $ids, array $colonnes, string 
     if (!$ids) {
         return;
     }
-    $in   = implode(',', array_fill(0, count($ids), '?'));
+    $in   = sql_in($ids);
     $cols = implode(',', array_map(fn(string $c) => "\"$c\"", $colonnes));
     $stmt = db()->prepare("SELECT id, $cols FROM \"$table\" WHERE id IN ($in)");
     $stmt->execute($ids);
@@ -1350,7 +1390,7 @@ function bulk_undo_memoriser_ventilations(array $ecritureIds, string $route, arr
     if (!$ecritureIds) {
         return;
     }
-    $in   = implode(',', array_fill(0, count($ecritureIds), '?'));
+    $in   = sql_in($ecritureIds);
     $stmt = db()->prepare("SELECT ecriture_id, axe_id, montant FROM ecritures_ventilations WHERE ecriture_id IN ($in)");
     $stmt->execute($ecritureIds);
     $_SESSION['bulk_undo'] = [
@@ -1374,7 +1414,7 @@ function bulk_undo_appliquer(): ?array
         if (!$ids) {
             return null;
         }
-        $in = implode(',', array_fill(0, count($ids), '?'));
+        $in = sql_in($ids);
         db()->prepare("DELETE FROM ecritures_ventilations WHERE ecriture_id IN ($in)")->execute($ids);
         $ins = db()->prepare('INSERT INTO ecritures_ventilations (ecriture_id, axe_id, montant) VALUES (?, ?, ?)');
         foreach ($u['rows'] as $row) {
@@ -1898,14 +1938,7 @@ function carte_banner_geocodage_html(
         $h .= '</p>';
         $h .= '<form method="post" action="' . e($formAction) . '" id="geocoder-form">';
         $h .= '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
-        foreach ($hiddenParams as $nom => $valeur) {
-            // Filtre multi-valeurs (voir filtre_coche()) : une paire clé[]=valeur
-            // par élément, plutôt que (string) $valeur qui produirait "Array" +
-            // un avertissement PHP.
-            foreach ((array) $valeur as $vv) {
-                $h .= '<input type="hidden" name="' . e(is_array($valeur) ? $nom . '[]' : (string) $nom) . '" value="' . e((string) $vv) . '">';
-            }
-        }
+        $h .= hidden_inputs_html($hiddenParams);
         $h .= '<button type="submit" id="geocoder-btn">' . icon('map-pin') . ' Géocoder (par lots, ≈1 seconde par ville)</button>';
         $h .= '</form>';
         $h .= '<p class="muted small" id="geocoder-auto-msg" hidden>Géocodage en cours (service Nominatim/OpenStreetMap, 1 ville par seconde)… vous pouvez quitter la page à tout moment, il reprendra où il s\'est arrêté au prochain clic.</p>';

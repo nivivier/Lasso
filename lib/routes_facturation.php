@@ -89,7 +89,7 @@ function route_facturation_liste(): void
     $where = ' WHERE 1=1';
     $params = [];
     if ($annee) {
-        $where .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) IN (" . implode(',', array_fill(0, count($annee), '?')) . ')';
+        $where .= " AND strftime('%Y', COALESCE(NULLIF(f.date_emission,''), f.cree_le)) IN (" . sql_in($annee) . ')';
         $params = array_merge($params, array_map('strval', $annee));
     }
     if ($statut) {
@@ -103,7 +103,7 @@ function route_facturation_liste(): void
         }
         $reels = array_values(array_intersect($statut, FACTURATION_STATUTS));
         if ($reels) {
-            $statutConds[] = 'f.statut IN (' . implode(',', array_fill(0, count($reels), '?')) . ')';
+            $statutConds[] = 'f.statut IN (' . sql_in($reels) . ')';
             $statutParams  = array_merge($statutParams, $reels);
         }
         if ($statutConds) {
@@ -584,22 +584,22 @@ function structures_filtres(): array
         }
     }
     if ($pays) {
-        $where .= ' AND s.adresse_pays IN (' . implode(',', array_fill(0, count($pays), '?')) . ')';
+        $where .= ' AND s.adresse_pays IN (' . sql_in($pays) . ')';
         $params = array_merge($params, $pays);
     }
     if ($departementCanton) {
-        $where .= ' AND s.departement_canton IN (' . implode(',', array_fill(0, count($departementCanton), '?')) . ')';
+        $where .= ' AND s.departement_canton IN (' . sql_in($departementCanton) . ')';
         $params = array_merge($params, $departementCanton);
     }
     if ($nonLocalises) {
         $where .= geocodage_non_localises_where('s.adresse_localite', 's.departement_canton', 's.adresse_pays');
     }
     if ($tagId) {
-        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . implode(',', array_fill(0, count($tagId), '?')) . '))';
+        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . sql_in($tagId) . '))';
         $params = array_merge($params, $tagId);
     }
     if ($statut) {
-        $where .= ' AND s.statut IN (' . implode(',', array_fill(0, count($statut), '?')) . ')';
+        $where .= ' AND s.statut IN (' . sql_in($statut) . ')';
         $params = array_merge($params, $statut);
     }
     if ($flag) {
@@ -711,7 +711,7 @@ function route_structures(): void
         }
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if ($ids) {
-            $in = implode(',', array_fill(0, count($ids), '?'));
+            $in = sql_in($ids);
             unset($_SESSION['bulk_undo']);
             if ($section === 'delete') {
                 // Une structure référencée par une facture est ignorée (jamais supprimée
@@ -721,7 +721,7 @@ function route_structures(): void
                 $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
                 $idsSupprimables = array_values(array_diff($ids, $refs));
                 if ($idsSupprimables) {
-                    $inSup = implode(',', array_fill(0, count($idsSupprimables), '?'));
+                    $inSup = sql_in($idsSupprimables);
                     db()->prepare("DELETE FROM structures WHERE id IN ($inSup)")->execute($idsSupprimables);
                 }
                 if ($refs) {
@@ -1013,7 +1013,7 @@ function structure_donnees_crm(int $id): array
     $contactsLies = [];
     if ($lieuxLies) {
         $idsLies = array_column($lieuxLies, 'id');
-        $in = implode(',', array_fill(0, count($idsLies), '?'));
+        $in = sql_in($idsLies);
         $stmtContactsLies = db()->prepare(
             "SELECT sc.*, s.nom AS structure_nom FROM structure_contacts sc
              JOIN structures s ON s.id = sc.structure_id
@@ -1419,7 +1419,7 @@ function route_structure_fusion(): void
         redirect('structure', ['id' => $garderId, 'ok' => 'fusion']);
     }
 
-    $in = implode(',', array_fill(0, count($ids), '?'));
+    $in = sql_in($ids);
     $stmt = db()->prepare(
         "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
                 (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,

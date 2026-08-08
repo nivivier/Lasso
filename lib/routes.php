@@ -283,7 +283,7 @@ function route_employes(): void
     $derniere = [];
     if ($employes) {
         $empIds = array_column($employes, 'id');
-        $inPlh  = implode(',', array_fill(0, count($empIds), '?'));
+        $inPlh  = sql_in($empIds);
         $q = db()->prepare(
             "SELECT employe_id, annee, mois, salaire_brut, salaire_net
              FROM fiches WHERE employe_id IN ($inPlh) ORDER BY annee DESC, mois DESC"
@@ -1053,7 +1053,7 @@ function route_fiches(): void
     $where  = ' WHERE 1=1';
     $params = [];
     if ($annee) {
-        $where .= ' AND f.annee IN (' . implode(',', array_fill(0, count($annee), '?')) . ')';
+        $where .= ' AND f.annee IN (' . sql_in($annee) . ')';
         $params = array_merge($params, $annee);
     }
     if ($statut) {
@@ -1069,7 +1069,7 @@ function route_fiches(): void
         $where .= ' AND (' . implode(' OR ', $statutConds) . ')';
     }
     if ($employeId) {
-        $where .= ' AND f.employe_id IN (' . implode(',', array_fill(0, count($employeId), '?')) . ')';
+        $where .= ' AND f.employe_id IN (' . sql_in($employeId) . ')';
         $params = array_merge($params, $employeId);
     }
     [$rechSql, $rechParams] = recherche_sql(['e.nom', 'e.prenom']);
@@ -1110,7 +1110,7 @@ function route_fiches(): void
     $axesParFiche = [];
     if ($fiches && module_actif('analytique')) {
         $ficheIds = array_column($fiches, 'id');
-        $inPlh = implode(',', array_fill(0, count($ficheIds), '?'));
+        $inPlh = sql_in($ficheIds);
         $stmtAx = db()->prepare(
             "SELECT fl.fiche_id, GROUP_CONCAT(DISTINCT COALESCE(a.code, a.libelle)) AS axes_csv
              FROM fiche_lignes fl JOIN axes_analytiques a ON a.id = fl.axe_analytique_id
@@ -1242,7 +1242,7 @@ function sauvegarder_fiche(array $emp, int $annee, int $mois, string $datePaieme
             array_map(fn ($l) => (int) ($l['evenement_id'] ?? 0), $lignes)
         )));
         if ($evenementIds) {
-            $in = implode(',', array_fill(0, count($evenementIds), '?'));
+            $in = sql_in($evenementIds);
             db()->prepare("DELETE FROM evenement_fiches WHERE fiche_id = ? AND evenement_id NOT IN ($in)")
                 ->execute(array_merge([$ficheId], $evenementIds));
             $insEf = db()->prepare('INSERT OR IGNORE INTO evenement_fiches (evenement_id, fiche_id) VALUES (?, ?)');

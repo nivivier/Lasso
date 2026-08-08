@@ -159,7 +159,7 @@ function route_evenements_liste(): void
         }
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if ($ids) {
-            $in = implode(',', array_fill(0, count($ids), '?'));
+            $in = sql_in($ids);
             // Modifications simples (UPDATE) : état « avant » mémorisé pour permettre
             // l'annulation en un clic (voir bulk_undo_memoriser()). La suppression n'est
             // pas couverte (état bien plus lourd à restaurer fidèlement).
@@ -236,7 +236,7 @@ function route_evenements_liste(): void
                         }
                     }
                     if ($idsActivables) {
-                        $inAct = implode(',', array_fill(0, count($idsActivables), '?'));
+                        $inAct = sql_in($idsActivables);
                         db()->prepare("UPDATE evenements SET production_externe = 1 WHERE id IN ($inAct)")->execute($idsActivables);
                         $retourFiltres['prodExterneOk'] = count($idsActivables);
                     }
@@ -742,7 +742,7 @@ function route_evenement_organisation(): void
         }
     }
     if ($structureIds) {
-        $in = implode(',', array_fill(0, count($structureIds), '?'));
+        $in = sql_in($structureIds);
         $stmt = db()->prepare("SELECT id FROM structures WHERE id IN ($in)");
         $stmt->execute($structureIds);
         $structureIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));

@@ -497,7 +497,7 @@ function structures_fusionner(int $idGarde, array $autres): void
     if (!$autres) {
         return;
     }
-    $in = implode(',', array_fill(0, count($autres), '?'));
+    $in = sql_in($autres);
 
     // Transaction : la fusion enchaîne une dizaine de mutations (réaffectations
     // + suppressions) ; une erreur en cours de route laisserait des relations à

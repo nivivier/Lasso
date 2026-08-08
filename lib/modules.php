@@ -51,12 +51,16 @@ const MODULES = [
 // l'employeur. Login, tableau de bord et Paramètres restent sur la couleur
 // principale de l'employeur (voir module_couleur_css_vars(), lib/helpers.php,
 // et nav_groupe_actif() : ces trois-là ne correspondent à aucun groupe).
+// Contraste texte blanc dessus >= 4.5:1 (WCAG AA) vérifié pour les 5 —
+// utilisées comme fond sous du texte blanc (.pagination-page.on,
+// .param-subtabs a.on, voir assets/app.css) : une teinte trop claire y
+// rendrait le texte illisible.
 const MODULE_COULEURS = [
-    'salaires'    => '#0c9486', // teal
-    'compta'      => '#b45309', // ambre
-    'facturation' => '#4f46e5', // indigo
-    'evenements'  => '#db2777', // rose
-    'booking'     => '#7c3aed', // violet
+    'salaires'    => '#168176', // teal
+    'compta'      => '#c25415', // ambre
+    'facturation' => '#526be3', // indigo
+    'evenements'  => '#e01670', // rose
+    'booking'     => '#855cd5', // violet
 ];
 
 // Cœur de l'application : jamais désactivable, listé à titre indicatif dans
@@ -294,7 +298,7 @@ function route_autorisee(array $modules): bool
     return $_SERVER['REQUEST_METHOD'] !== 'POST' || $ecriture;
 }
 
-// --- Navigation (rail d'icônes + bandeau d'onglets, EXPÉRIMENTAL) -----------
+// --- Navigation (rail d'icônes + bandeau d'onglets) -------------------------
 // Source de vérité unique pour le regroupement des pages par module, utilisée
 // à la fois par le rail (views/layout.php) et le bandeau d'onglets
 // (views/_module_tabs.php) — pour ne jamais avoir la liste des routes/onglets
@@ -304,8 +308,19 @@ function route_autorisee(array $modules): bool
 // surbrillance], badge (0 = aucun), icône]. Absent du tableau = module
 // inactif ou hors des droits de l'utilisateur courant (mêmes conditions
 // qu'avant).
+// Mémoïsée (même pattern que permissions_utilisateur_courant() plus haut) :
+// appelée une fois par layout.php (rail) et une seconde fois par
+// _module_tabs.php (bandeau) sur chacune des pages retrofitées — sans cache,
+// chacun des 4 compteurs de badge embarqués (nb_fiches_a_payer(),
+// nb_ecritures_a_lettrer(), nb_factures_en_retard(),
+// nb_evenements_suisa_manquants()) exécutait sa requête DB deux fois par
+// page, pour un résultat strictement identique dans la même requête HTTP.
 function nav_groupes(): array
 {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
     $g = [];
 
     if (module_actif('salaires') && peut_lire('salaires')) {
@@ -333,14 +348,14 @@ function nav_groupes(): array
         $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
             'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
             'compta_comptes'    => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
-            'structures'        => ['Structures', ['structures', 'structure'], 0, 'house'],
+            'structures'        => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
         ]];
     }
 
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
             'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_manquants(), 'calendar'],
-            'structures'       => ['Structures', ['structures', 'structure'], 0, 'house'],
+            'structures'       => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'],
         ]];
     }
@@ -350,7 +365,7 @@ function nav_groupes(): array
         // views/_mailing_tabs.php, retiré) : ses 4 pages deviennent des
         // onglets de premier niveau au même titre que Structures.
         $g['booking'] = ['Booking', 'house', [
-            'structures'         => ['Structures', ['structures', 'structure'], 0, 'house'],
+            'structures'         => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'mailing'            => ['Suivi', ['mailing'], 0, 'mail'],
             'mailing_campagne'   => ['Nouvelle campagne', ['mailing_campagne'], 0, 'send'],
             'mailing_modeles'    => ['Modèles', ['mailing_modeles'], 0, 'file-text'],
@@ -358,7 +373,7 @@ function nav_groupes(): array
         ]];
     }
 
-    return $g;
+    return $cache = $g;
 }
 
 // Résout quel groupe de nav_groupes() doit être mis en surbrillance (rail

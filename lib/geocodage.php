@@ -152,7 +152,7 @@ function evenements_non_localises_ids(): array
     }
     $statutParCle = [];
     if ($cles !== []) {
-        $placeholders = implode(',', array_fill(0, count($cles), '?'));
+        $placeholders = sql_in($cles);
         $stmt = db()->prepare("SELECT cle, statut FROM lieux_geocodage WHERE cle IN ($placeholders)");
         $stmt->execute(array_keys($cles));
         foreach ($stmt->fetchAll() as $g) {
@@ -233,7 +233,7 @@ function carte_points_grouper(array $lignes, callable $itemBuilder): array
     }
     $geoParCle = [];
     if ($cles !== []) {
-        $placeholders = implode(',', array_fill(0, count($cles), '?'));
+        $placeholders = sql_in($cles);
         $stmt = db()->prepare("SELECT * FROM lieux_geocodage WHERE cle IN ($placeholders)");
         $stmt->execute(array_keys($cles));
         foreach ($stmt->fetchAll() as $g) {

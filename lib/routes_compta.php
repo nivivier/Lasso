@@ -637,19 +637,19 @@ function route_compta_ecritures(): void
                 unset($_SESSION['bulk_undo']); // évite de reprendre par erreur un état d'une requête précédente
                 if ($planId === '' || $planId === '0') {
                     // Délettrage : remet à NULL (annule aussi un « Ne pas lettrer »).
-                    $in = implode(',', array_fill(0, count($ids), '?'));
+                    $in = sql_in($ids);
                     bulk_undo_memoriser('ecritures', $ids, ['plan_compte_id', 'origine_lettrage'], 'compta_ecritures', $retour);
                     db()->prepare("UPDATE ecritures SET plan_compte_id = NULL, origine_lettrage = '' WHERE id IN ($in)")
                         ->execute($ids);
                 } elseif ($planId === 'ignore') {
                     // Marquage « Ne pas lettrer » : sans catégorie, mais exclue des non-lettrées.
-                    $in = implode(',', array_fill(0, count($ids), '?'));
+                    $in = sql_in($ids);
                     bulk_undo_memoriser('ecritures', $ids, ['plan_compte_id', 'origine_lettrage'], 'compta_ecritures', $retour);
                     db()->prepare("UPDATE ecritures SET plan_compte_id = NULL, origine_lettrage = 'ignore' WHERE id IN ($in)")
                         ->execute($ids);
                 } elseif (plan_est_feuille((int) $planId, compta_plan_map())) {
                     // Seules les catégories feuilles (sans enfant) sont assignables.
-                    $in = implode(',', array_fill(0, count($ids), '?'));
+                    $in = sql_in($ids);
                     bulk_undo_memoriser('ecritures', $ids, ['plan_compte_id', 'origine_lettrage'], 'compta_ecritures', $retour);
                     $stmt = db()->prepare("UPDATE ecritures SET plan_compte_id = ?, origine_lettrage = 'manuel' WHERE id IN ($in)");
                     $stmt->execute(array_merge([(int) $planId], $ids));
@@ -667,7 +667,7 @@ function route_compta_ecritures(): void
             if ($ids) {
                 unset($_SESSION['bulk_undo']); // évite de reprendre par erreur un état d'une requête précédente
                 bulk_undo_memoriser_ventilations($ids, 'compta_ecritures', $retour);
-                $in = implode(',', array_fill(0, count($ids), '?'));
+                $in = sql_in($ids);
                 db()->prepare("DELETE FROM ecritures_ventilations WHERE ecriture_id IN ($in)")->execute($ids);
                 if ($axeId) {
                     $stmtMt  = db()->prepare('SELECT id, montant FROM ecritures WHERE id = ?');
@@ -705,11 +705,11 @@ function route_compta_ecritures(): void
     $where  = ' WHERE 1=1';
     $params = [];
     if ($compteId) {
-        $where .= ' AND e.compte_bancaire_id IN (' . implode(',', array_fill(0, count($compteId), '?')) . ')';
+        $where .= ' AND e.compte_bancaire_id IN (' . sql_in($compteId) . ')';
         $params = array_merge($params, $compteId);
     }
     if ($annee) {
-        $where .= ' AND substr(e.date_op,1,4) IN (' . implode(',', array_fill(0, count($annee), '?')) . ')';
+        $where .= ' AND substr(e.date_op,1,4) IN (' . sql_in($annee) . ')';
         $params = array_merge($params, array_map('strval', $annee));
     }
     if ($categorieFilter) {
@@ -732,7 +732,7 @@ function route_compta_ecritures(): void
         }
         if ($catIds) {
             $catIds = array_values(array_unique(array_map('intval', $catIds)));
-            $catConds[] = 'e.plan_compte_id IN (' . implode(',', array_fill(0, count($catIds), '?')) . ')';
+            $catConds[] = 'e.plan_compte_id IN (' . sql_in($catIds) . ')';
             $catParams  = $catIds;
         }
         if ($catConds) {
@@ -752,7 +752,7 @@ function route_compta_ecritures(): void
             }
         }
         if ($axeIds) {
-            $axeConds[] = 'EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id IN (' . implode(',', array_fill(0, count($axeIds), '?')) . '))';
+            $axeConds[] = 'EXISTS (SELECT 1 FROM ecritures_ventilations ev WHERE ev.ecriture_id = e.id AND ev.axe_id IN (' . sql_in($axeIds) . '))';
             $axeParams  = $axeIds;
         }
         if ($axeConds) {
@@ -808,7 +808,7 @@ function route_compta_ecritures(): void
     $ventilationsParEcr = [];
     if ($ecritures && module_actif('analytique')) {
         $ecrIds = array_column($ecritures, 'id');
-        $inPlh  = implode(',', array_fill(0, count($ecrIds), '?'));
+        $inPlh  = sql_in($ecrIds);
         $stmtV  = db()->prepare(
             "SELECT ev.ecriture_id, ev.axe_id, ev.montant, a.libelle, a.code
              FROM ecritures_ventilations ev JOIN axes_analytiques a ON a.id = ev.axe_id
