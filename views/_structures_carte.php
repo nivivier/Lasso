@@ -1,7 +1,7 @@
 <?php
 /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
-/** @var string $recherche */ /** @var int $categorieId */ /** @var string $pays */
-/** @var string $departementCanton */ /** @var int $tagId */ /** @var string $statut */
+/** @var string $recherche */ /** @var array $categorieId */ /** @var array $pays */
+/** @var array $departementCanton */ /** @var array $tagId */ /** @var array $statut */
 
 // Popup construit côté serveur (échappement e() habituel) : le JS se contente
 // de l'injecter tel quel, jamais de HTML assemblé côté client.

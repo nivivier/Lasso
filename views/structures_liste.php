@@ -1,13 +1,13 @@
-<?php /** @var array $structures */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var int $categorieId */
-/** @var string $pays */ /** @var string $departementCanton */ /** @var int $tagId */ /** @var string $statut */
+<?php /** @var array $structures */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var array $categorieId */
+/** @var array $pays */ /** @var array $departementCanton */ /** @var array $tagId */ /** @var array $statut */
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
-/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var string $flag */
-/** @var bool $nonLocalises */ /** @var bool $avecEvenements */
+/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $flag */
+/** @var bool $nonLocalises */ /** @var array $avecEvenements */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
@@ -18,6 +18,31 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
 $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
+
+// Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
+// filtre_colonne_html()/filtre_colonne_actifs_html() dans lib/helpers.php) :
+// Statut/Tags/Catégorie/Flag/Avec-événements, à la place des anciens <select>
+// de la toolbar. Colonne Ville : porte à la fois Pays et Département/canton
+// (deux entonnoirs séparés, un composant par filtre). Jauge/mois restent des
+// champs scalaires dans « Plus de filtres », non concernés par ce filtrage.
+$statutLabels = [];
+foreach (STRUCTURE_STATUTS as $s) { $statutLabels[$s] = structure_statut_libelle($s); }
+$tagLabels = [];
+foreach ($tagsDispo as $t) { $tagLabels[(int) $t['id']] = $t['nom']; }
+$categorieLabels = [];
+foreach ($categoriesPourSelect as $cat) { $categorieLabels[(int) $cat['id']] = str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) . $cat['nom']; }
+$flagLabels = ['aucun' => 'Non marquées', 'star' => 'Étoile', 'heart' => 'Cœur'];
+$paysLabels = [];
+foreach (array_unique(array_merge($pays, array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
+$departementCantonLabels = [];
+foreach (array_unique(array_merge($departementCanton, $regionsDispo)) as $r) { $departementCantonLabels[$r] = $r; }
+$avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
+// $autresXxx : les AUTRES filtres actifs de la page (jamais celui-ci), à
+// reporter en hidden inputs par chaque panneau — construits une fois depuis
+// $tousFiltres plutôt qu'un littéral quasi identique par filtre.
+$tousFiltres = ['categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
+    'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche];
+$autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFiltres, [$cle => true]));
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php
@@ -49,97 +74,59 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="structures">
-        <input type="hidden" name="vue" value="<?= e($vue) ?>">
-        <label>Catégorie
-            <select name="categorie_id" onchange="this.form.submit()">
-                <option value="0">Toutes</option>
-                <?php foreach ($categoriesPourSelect as $cat): ?>
-                    <option value="<?= (int) $cat['id'] ?>" <?= $categorieId === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Statut
-            <select name="statut" onchange="this.form.submit()">
-                <option value="actif" <?= $statut === 'actif' ? 'selected' : '' ?>>Actives</option>
-                <option value="contact_privilegie" <?= $statut === 'contact_privilegie' ? 'selected' : '' ?>>Contacts privilégiés</option>
-                <option value="ne_pas_contacter" <?= $statut === 'ne_pas_contacter' ? 'selected' : '' ?>>Ne pas contacter</option>
-                <option value="inactif" <?= $statut === 'inactif' ? 'selected' : '' ?>>Inactives</option>
-                <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Toutes</option>
-            </select>
-        </label>
-        <label class="search-label">
-            <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-        </label>
-        <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
-        <details class="filters-more" <?= ($pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '' || $avecEvenements) ? 'open' : '' ?>>
-            <summary>Plus de filtres</summary>
-            <div class="filters-more-body">
-                <label>Pays
-                    <select name="pays" onchange="this.form.submit()">
-                        <option value="">Tous</option>
-                        <?= pays_options_nom($pays) ?>
-                    </select>
-                </label>
-                <label>Département / canton
-                    <select name="departement_canton" onchange="this.form.submit()">
-                        <option value="">Tous</option>
-                        <?php foreach ($regionsDispo as $r): ?>
-                            <option value="<?= e($r) ?>" <?= $departementCanton === $r ? 'selected' : '' ?>><?= e($r) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <?php if ($tagsDispo): ?>
-                <label>Étiquette
-                    <select name="tag_id" onchange="this.form.submit()">
-                        <option value="0">Toutes</option>
-                        <?php foreach ($tagsDispo as $t): ?>
-                            <option value="<?= (int) $t['id'] ?>" <?= $tagId === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nom']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <?php endif; ?>
-                <label class="jauge-filtre">Jauge min du lieu
-                    <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" onchange="this.form.submit()" placeholder="200">
-                </label>
-                <label class="jauge-filtre">Jauge max du lieu
-                    <input type="number" name="lieu_jauge_max" min="0" value="<?= $lieuJaugeMax !== null ? (int) $lieuJaugeMax : '' ?>" onchange="this.form.submit()" placeholder="1000">
-                </label>
-                <label>Mois d'événement du lieu
-                    <select name="lieu_mois_evenement" onchange="this.form.submit()">
-                        <option value="0">Tous</option>
-                        <?php for ($m = 1; $m <= 12; $m++): ?>
-                            <option value="<?= $m ?>" <?= $lieuMoisEvenement === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
-                        <?php endfor; ?>
-                    </select>
-                </label>
-                <label>Mois de programmation du lieu
-                    <select name="lieu_mois_prog" onchange="this.form.submit()">
-                        <option value="0">Tous</option>
-                        <?php for ($m = 1; $m <= 12; $m++): ?>
-                            <option value="<?= $m ?>" <?= $lieuMoisProg === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
-                        <?php endfor; ?>
-                    </select>
-                </label>
-                <label>Flag
-                    <select name="flag" onchange="this.form.submit()">
-                        <option value="">Tous</option>
-                        <option value="aucun" <?= $flag === 'aucun' ? 'selected' : '' ?>>Non marquées</option>
-                        <option value="star" <?= $flag === 'star' ? 'selected' : '' ?>>Étoile</option>
-                        <?php /* Cœur temporairement désactivé (voir route_structure_flag()) */ ?>
-                    </select>
-                </label>
-                <?php if (module_actif('evenements')): ?>
-                <label class="check">
-                    <input type="hidden" name="avec_evenements" value="0">
-                    <input type="checkbox" name="avec_evenements" value="1" <?= $avecEvenements ? 'checked' : '' ?> onchange="this.form.submit()">
-                    Avec événements liés
-                </label>
-                <?php endif; ?>
-            </div>
-        </details>
-    </form>
+        <form method="get" class="filters">
+            <input type="hidden" name="p" value="structures">
+            <input type="hidden" name="vue" value="<?= e($vue) ?>">
+            <label class="search-label">
+                <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            </label>
+            <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
+            <details class="filters-more" <?= $lieuFiltresActifs ? 'open' : '' ?>>
+                <summary>Plus de filtres</summary>
+                <div class="filters-more-body">
+                    <label class="jauge-filtre">Jauge min du lieu
+                        <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" onchange="this.form.submit()" placeholder="200">
+                    </label>
+                    <label class="jauge-filtre">Jauge max du lieu
+                        <input type="number" name="lieu_jauge_max" min="0" value="<?= $lieuJaugeMax !== null ? (int) $lieuJaugeMax : '' ?>" onchange="this.form.submit()" placeholder="1000">
+                    </label>
+                    <label>Mois d'événement du lieu
+                        <select name="lieu_mois_evenement" onchange="this.form.submit()">
+                            <option value="0">Tous</option>
+                            <?php for ($m = 1; $m <= 12; $m++): ?>
+                                <option value="<?= $m ?>" <?= $lieuMoisEvenement === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </label>
+                    <label>Mois de programmation du lieu
+                        <select name="lieu_mois_prog" onchange="this.form.submit()">
+                            <option value="0">Tous</option>
+                            <?php for ($m = 1; $m <= 12; $m++): ?>
+                                <option value="<?= $m ?>" <?= $lieuMoisProg === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </label>
+                </div>
+            </details>
+        </form>
+        <?php if ($vue === 'carte'): ?>
+        <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les
+             mêmes filtres que la vue liste (voir plus bas, thead) restent donc
+             ici, dans la toolbar. -->
+        <div class="filters carte-filters">
+            <span class="col-th">Statut <?= filtre_colonne_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Catégorie <?= filtre_colonne_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Pays <?= filtre_colonne_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Département / canton <?= filtre_colonne_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton') + ['vue' => 'carte']) ?></span>
+            <?php if ($tagsDispo): ?>
+            <span class="col-th">Tags <?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id') + ['vue' => 'carte']) ?></span>
+            <?php endif; ?>
+            <span class="col-th">Flag <?= filtre_colonne_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag') + ['vue' => 'carte']) ?></span>
+            <?php if (module_actif('evenements')): ?>
+            <span class="col-th">Événements <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements') + ['vue' => 'carte']) ?></span>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
@@ -151,13 +138,8 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
-<?php elseif (!$structures): ?>
-    <?php if ($recherche !== '' || $categorieId !== 0 || $pays !== '' || $departementCanton !== '' || $tagId || $lieuFiltresActifs || $flag !== '' || $avecEvenements): ?>
-        <p class="muted">Aucune structure ne correspond à cette recherche.</p>
-    <?php else: ?>
-        <p class="muted">Aucune structure pour l'instant. Commencez par en ajouter une.</p>
-    <?php endif; ?>
 <?php else: ?>
+<?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $tagId || $lieuFiltresActifs || $flag || $avecEvenements; ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=structures">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -231,13 +213,65 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
     </form>
 </div>
+<?php $nbCols = 10 + (module_actif('evenements') ? 1 : 0); ?>
 <div class="table-scroll">
 <table class="list list-wide">
     <thead><tr>
         <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-        <th class="col-petit">Statut</th><th>Nom</th><th>Ville</th><th>Catégorie</th><th class="col-petit">Structures liées</th><th>Tags</th><th>Contact</th><th class="col-petit">Dernier contact</th><th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th><?php if (module_actif('evenements')): ?><th title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></th><?php endif; ?>
+        <th class="col-petit">
+            <span class="col-th">
+                Statut
+                <?= filtre_colonne_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
+        </th>
+        <th class="col-nom">
+            <span class="col-th">
+                Nom
+                <?= filtre_colonne_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag')) ?>
+        </th>
+        <th class="col-ville">
+            <span class="col-th">
+                Ville
+                <?= filtre_colonne_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
+                <?= filtre_colonne_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
+            <?= filtre_colonne_actifs_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton')) ?>
+        </th>
+        <th class="col-categorie">
+            <span class="col-th">
+                Catégorie
+                <?= filtre_colonne_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id')) ?>
+        </th>
+        <th class="col-petit">Structures liées</th>
+        <th class="col-tags">
+            <span class="col-th">
+                Tags
+                <?php if ($tagsDispo): ?><?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id')) ?><?php endif; ?>
+            </span>
+            <?php if ($tagsDispo): ?><?= filtre_colonne_actifs_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id')) ?><?php endif; ?>
+        </th>
+        <th>Contact</th><th class="col-petit">Dernier contact</th>
+        <th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th>
+        <?php if (module_actif('evenements')): ?>
+        <th class="col-evenements">
+            <span class="col-th">
+                <span title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></span>
+                <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements')) ?>
+        </th>
+        <?php endif; ?>
     </tr></thead>
     <tbody>
+    <?php if (!$structures): ?>
+        <tr><td colspan="<?= $nbCols ?>" class="muted"><?= $filtresActifs ? 'Aucune structure ne correspond à cette recherche.' : "Aucune structure pour l'instant. Commencez par en ajouter une." ?></td></tr>
+    <?php else: ?>
     <?php foreach ($structures as $d): ?>
         <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= $suffixeDepuis ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
             <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
@@ -289,10 +323,11 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?php endif; ?>
         </tr>
     <?php endforeach; ?>
+    <?php endif; ?>
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
+<?php if ($structures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
 <?php endif; ?>
 </div></div>
 <script>

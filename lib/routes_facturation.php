@@ -508,23 +508,27 @@ function route_facture_rappel(): void
 // filtres actifs. Seule la recherche texte (q) ne l'est jamais.
 function structures_filtres(): array
 {
-    $categorieId = (int) filtre_persistant('categorie_id', 'structures_categorie_id', 0);
-    $categorieChamps = structure_categorie_champs($categorieId);
-    $categorie = $categorieChamps['categorie'];
-    $sousCategorie = $categorieChamps['sous_categorie'];
-    $pays = trim((string) filtre_persistant('pays', 'structures_pays', ''));
-    $departementCanton = trim((string) filtre_persistant('departement_canton', 'structures_departement_canton', ''));
-    $tagId = (int) filtre_persistant('tag_id', 'structures_tag_id', 0);
-    // Statut : « actif » par défaut = structures.statut IN ('actif',
-    // 'contact_privilegie') — les deux sont des variantes actives au quotidien
-    // (les fiches ne_pas_contacter/inactif sont du bruit dans le travail
-    // courant), voir STRUCTURE_STATUTS (lib/booking.php). 'contact_privilegie'
-    // en filtre à part ne montre qu'eux ; 'ne_pas_contacter'/'inactif' idem ;
-    // 'tous' pour tout voir.
-    $statut = valeur_autorisee((string) filtre_persistant('statut', 'structures_statut', 'actif'), array_merge(STRUCTURE_STATUTS, ['tous']), 'actif');
-    // Marquage rapide (flag_toggle_html()) : '' = tous, 'aucun' = non marquées,
-    // 'star'/'heart' = marquées.
-    $flag = valeur_autorisee((string) filtre_persistant('flag', 'structures_flag', ''), ['', 'aucun', 'star', 'heart'], '');
+    // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
+    // filtre_coche() dans lib/helpers.php) : cases à cocher, 0 à N valeurs
+    // simultanées. categorie_id/tag_id : ids numériques ; pays/
+    // departement_canton en texteLibre=true (mêmes valeurs libres qu'avant,
+    // jamais validées contre une liste fixe — un champ texte, pas un menu
+    // fermé). statut : whitelist STRUCTURE_STATUTS, avec un défaut au tout
+    // premier affichage ("actif"+"contact_privilegie" pré-cochés — les fiches
+    // ne_pas_contacter/inactif sont du bruit dans le travail courant, voir
+    // STRUCTURE_STATUTS dans lib/booking.php) ; l'ancienne expansion implicite
+    // "actif => aussi contact_privilegie" disparaît, remplacée par les deux
+    // cases cochées ensemble par défaut — cocher "Actif" seul ne montre
+    // désormais plus que les actifs, cohérent avec les autres cases.
+    $categorieMap = structure_categorie_map();
+    $categorieId = filtre_coche('categorie_id', 'structures_categorie_id');
+    $pays = filtre_coche('pays', 'structures_pays', null, true);
+    $departementCanton = filtre_coche('departement_canton', 'structures_departement_canton', null, true);
+    $tagId = filtre_coche('tag_id', 'structures_tag_id');
+    $statut = filtre_coche('statut', 'structures_statut', STRUCTURE_STATUTS, false, ['actif', 'contact_privilegie']);
+    // Marquage rapide (flag_toggle_html()) : 'aucun' = non marquées, 'star'/
+    // 'heart' = marquées ; aucune case cochée = tous.
+    $flag = filtre_coche('flag', 'structures_flag', ['aucun', 'star', 'heart']);
     // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
     // d'appoint, accessible depuis le lien de la vue carte (voir
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
@@ -533,7 +537,8 @@ function structures_filtres(): array
     // Filtres avancés « lieu » (jauge, mois) : depuis la fusion
     // lieux→structures (migration_59/60), ces champs vivent directement sur la
     // structure — filtre simple sur ses propres colonnes, plus d'indirection
-    // par structure_lieux.
+    // par structure_lieux. Restent de simples champs scalaires dans la toolbar
+    // (« Plus de filtres »), pas convertis en filtre de colonne.
     $lieuJaugeMinBrut = (string) filtre_persistant('lieu_jauge_min', 'structures_lieu_jauge_min', '');
     $lieuJaugeMin = $lieuJaugeMinBrut !== '' ? max(0, (int) $lieuJaugeMinBrut) : null;
     $lieuJaugeMaxBrut = (string) filtre_persistant('lieu_jauge_max', 'structures_lieu_jauge_max', '');
@@ -544,46 +549,77 @@ function structures_filtres(): array
     if ($lieuMoisProg < 1 || $lieuMoisProg > 12) { $lieuMoisProg = 0; }
     // Même critère de lien que structures_nb_evenements()/structure_evenements()
     // (table evenement_structures, voir migration_66) — pas de sens si le
-    // module événements est inactif.
+    // module événements est inactif. "avec"+"sans" cochés ensemble, ou aucun
+    // des deux : équivalent à "tous" (toute ligne vaut forcément l'un ou
+    // l'autre), généralise l'ancienne case à cocher unique.
     $avecEvenements = module_actif('evenements')
-        && filtre_persistant('avec_evenements', 'structures_avec_evenements', '') === '1';
+        ? filtre_coche('avec_evenements', 'structures_avec_evenements', ['avec', 'sans'])
+        : [];
 
     $where = ' WHERE 1=1';
     $params = [];
-    if ($categorie !== '') {
-        $where .= ' AND s.categorie = ?';
-        $params[] = $categorie;
+    if ($categorieId) {
+        // Une condition par valeur cochée, unies en OR : catégorie racine
+        // choisie → tout son sous-arbre (s.categorie seul) ; sous-catégorie
+        // précise → categorie ET sous_categorie (voir structure_categorie_champs()).
+        $catConds = [];
+        $catParams = [];
+        foreach ($categorieId as $cid) {
+            $champs = structure_categorie_champs((int) $cid, $categorieMap);
+            if ($champs['categorie'] === '') {
+                continue;
+            }
+            if ($champs['sous_categorie'] === '') {
+                $catConds[] = 's.categorie = ?';
+                $catParams[] = $champs['categorie'];
+            } else {
+                $catConds[] = '(s.categorie = ? AND s.sous_categorie = ?)';
+                $catParams[] = $champs['categorie'];
+                $catParams[] = $champs['sous_categorie'];
+            }
+        }
+        if ($catConds) {
+            $where .= ' AND (' . implode(' OR ', $catConds) . ')';
+            $params = array_merge($params, $catParams);
+        }
     }
-    if ($sousCategorie !== '') {
-        $where .= ' AND s.sous_categorie = ?';
-        $params[] = $sousCategorie;
+    if ($pays) {
+        $where .= ' AND s.adresse_pays IN (' . implode(',', array_fill(0, count($pays), '?')) . ')';
+        $params = array_merge($params, $pays);
     }
-    if ($pays !== '') {
-        $where .= ' AND s.adresse_pays = ?';
-        $params[] = $pays;
-    }
-    if ($departementCanton !== '') {
-        $where .= ' AND s.departement_canton = ?';
-        $params[] = $departementCanton;
+    if ($departementCanton) {
+        $where .= ' AND s.departement_canton IN (' . implode(',', array_fill(0, count($departementCanton), '?')) . ')';
+        $params = array_merge($params, $departementCanton);
     }
     if ($nonLocalises) {
         $where .= geocodage_non_localises_where('s.adresse_localite', 's.departement_canton', 's.adresse_pays');
     }
     if ($tagId) {
-        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
-        $params[] = $tagId;
+        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . implode(',', array_fill(0, count($tagId), '?')) . '))';
+        $params = array_merge($params, $tagId);
     }
-    if ($statut === 'actif') {
-        $where .= " AND s.statut IN ('actif','contact_privilegie')";
-    } elseif (in_array($statut, STRUCTURE_STATUTS, true)) {
-        $where .= ' AND s.statut = ?';
-        $params[] = $statut;
+    if ($statut) {
+        $where .= ' AND s.statut IN (' . implode(',', array_fill(0, count($statut), '?')) . ')';
+        $params = array_merge($params, $statut);
     }
-    if ($flag === 'aucun') {
-        $where .= " AND s.flag = ''";
-    } elseif ($flag !== '') {
-        $where .= ' AND s.flag = ?';
-        $params[] = $flag;
+    if ($flag) {
+        $flagConds = [];
+        $flagParams = [];
+        foreach ($flag as $val) {
+            if ($val === 'aucun') {
+                $flagConds[] = "s.flag = ''";
+            } else {
+                $flagConds[] = 's.flag = ?';
+                $flagParams[] = $val;
+            }
+        }
+        $where .= ' AND (' . implode(' OR ', $flagConds) . ')';
+        $params = array_merge($params, $flagParams);
+    }
+    if (count($avecEvenements) === 1 && $avecEvenements[0] === 'avec') {
+        $where .= ' AND EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
+    } elseif (count($avecEvenements) === 1 && $avecEvenements[0] === 'sans') {
+        $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
     }
     if ($lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg) {
         // Bornes de jauge/mois injectées telles quelles (déjà validées en
@@ -602,9 +638,6 @@ function structures_filtres(): array
         };
         if ($lieuMoisEvenement) { $filtreMoisLieu('mois_evenement_debut', 'mois_evenement_fin', $lieuMoisEvenement); }
         if ($lieuMoisProg) { $filtreMoisLieu('mois_debut', 'mois_fin', $lieuMoisProg); }
-    }
-    if ($avecEvenements) {
-        $where .= ' AND EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
     }
 
     return [
@@ -664,7 +697,7 @@ function route_structures(): void
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
-        'avec_evenements' => $avecEvenements ? 1 : '',
+        'avec_evenements' => $avecEvenements,
     ];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
@@ -900,12 +933,12 @@ function route_structures(): void
         'tagsDispo' => $tagsDispo,
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
-        'pgParams'  => [
+        'pgParams'  => array_filter([
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
-            'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements ? 1 : '',
-        ],
+            'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
+        ]),
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal,

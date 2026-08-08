@@ -358,8 +358,12 @@ function recherche_sql(array $colonnes): array
 // numériques (annee/employe_id/compte, intval + valeurs nulles écartées, 0
 // n'étant jamais un id valide) ; $texteLibre=true conserve les valeurs telles
 // quelles (catégorie/axe : mélange d'ids numériques et de sentinelles
-// textuelles comme "a_lettrer"/"sans_axe", intval() les corromprait).
-function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, bool $texteLibre = false): array
+// textuelles comme "a_lettrer"/"sans_axe", intval() les corromprait). $defaut :
+// valeur de tout premier affichage (session jamais touchée, ex. structures —
+// "actif"/"contact_privilegie" pour masquer par défaut le bruit inactif/ne
+// pas contacter) ; une fois la session touchée une seule fois (même pour
+// tout décocher), $defaut ne revient plus jamais — comme filtre_persistant().
+function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, bool $texteLibre = false, array $defaut = []): array
 {
     $normaliser = function (array $brut) use ($valeurs, $texteLibre): array {
         if ($valeurs !== null) {
@@ -375,7 +379,10 @@ function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, b
         $_SESSION[$cleSession] = $v;
         return $v;
     }
-    return $normaliser((array) ($_SESSION[$cleSession] ?? []));
+    if (!isset($_SESSION[$cleSession])) {
+        return $defaut;
+    }
+    return $normaliser((array) $_SESSION[$cleSession]);
 }
 
 // Filtre de colonne à cases à cocher (EXPÉRIMENTAL, ?p=fiches — Paiement/
