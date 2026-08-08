@@ -1,17 +1,13 @@
 <?php
-/** @var array $evenements */ /** @var int $annee */ /** @var array $annees */
-/** @var string $statutSuisa */ /** @var int $spectacleId */ /** @var string $statut */
-/** @var string $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
-/** @var array $paysDisponibles */ /** @var string $pays */ /** @var string $salaries */ /** @var string $recherche */
+/** @var array $evenements */ /** @var array $annee */ /** @var array $annees */
+/** @var array $statutSuisa */ /** @var array $spectacleId */ /** @var array $statut */
+/** @var array $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
+/** @var array $paysDisponibles */ /** @var array $pays */ /** @var array $salaries */ /** @var string $recherche */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */
 /** @var ?int $prodExterneOk */ /** @var ?int $prodExterneBloques */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var bool $nonLocalises */
-$statutsSuisa = [
-    'tous' => 'Tous', 'a_venir' => 'À venir', 'a_faire' => 'À faire', 'envoye' => 'Envoyé', 'manquant' => 'Manquant',
-    'abandonne' => 'Abandonné', 'decompte_recu' => 'Décompte reçu', 'ne_sapplique_pas' => "Ne s'applique pas",
-];
 $termeSingulier = evenements_terme_spectacle(false);
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
@@ -23,6 +19,32 @@ $lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVu
 $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
+
+// Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
+// filtre_colonne_html()/filtre_colonne_actifs_html() dans lib/helpers.php) :
+// Date/Spectacle/Audience/Statut/Suisa/Salariés, et le filtre Pays (ex-toolbar)
+// porté par la colonne Ville/salle. En vue liste, remplacent la toolbar de
+// filtres ; en vue carte (pas de tableau, rien où accrocher un en-tête de
+// colonne), les mêmes composants restent affichés dans la toolbar.
+$anneeLabels = [];
+foreach (array_unique(array_merge($annee, [(int) date('Y')], $annees)) as $a) { $anneeLabels[(int) $a] = (string) (int) $a; }
+$statutLabels = [];
+foreach (EVENEMENTS_STATUTS as $s) { $statutLabels[$s] = evenement_statut_libelle($s); }
+$visibiliteLabels = [];
+foreach (EVENEMENTS_VISIBILITES as $vi) { $visibiliteLabels[$vi] = evenement_visibilite_libelle($vi); }
+$statutSuisaLabels = [];
+foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $ss) { $statutSuisaLabels[$ss] = evenement_statut_suisa_libelle($ss); }
+$spectacleLabels = ['-1' => 'Sans ' . mb_strtolower($termeSingulier)];
+foreach ($spectaclesFiltre as $s) { $spectacleLabels[(int) $s['id']] = $s['nom']; }
+$paysLabels = [];
+foreach ($paysDisponibles as $code) { $paysLabels[$code] = pays_nom_depuis_code($code) ?: $code; }
+$salariesLabels = ['oui' => 'Oui', 'non' => 'Non'];
+// $autresXxx : les AUTRES filtres actifs de la page (jamais celui-ci), à
+// reporter en hidden inputs par chaque panneau — construits une fois depuis
+// $tousFiltres plutôt que 7 littéraux quasi identiques.
+$tousFiltres = ['annee' => $annee, 'spectacle_id' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
+    'statut_suisa' => $statutSuisa, 'pays' => $pays, 'salaries' => $salaries, 'q' => $recherche];
+$autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFiltres, [$cle => true]));
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
@@ -40,72 +62,27 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="evenements_liste">
-        <input type="hidden" name="vue" value="<?= e($vue) ?>">
-        <label>Année
-            <select name="annee" onchange="this.form.submit()">
-                <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
-                <?php $opts = array_unique(array_merge([$annee, (int) date('Y')], $annees)); $opts = array_diff($opts, [0]); rsort($opts);
-                foreach ($opts as $a): ?>
-                    <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Statut
-            <select name="statut" onchange="this.form.submit()">
-                <option value="tous" <?= $statut === 'tous' ? 'selected' : '' ?>>Tous</option>
-                <?php foreach (EVENEMENTS_STATUTS as $s): ?>
-                    <option value="<?= $s ?>" <?= $statut === $s ? 'selected' : '' ?>><?= e(evenement_statut_libelle($s)) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Pays
-            <select name="pays" onchange="this.form.submit()">
-                <option value="tous" <?= $pays === 'tous' ? 'selected' : '' ?>>Tous</option>
-                <?= pays_options_code($pays === 'tous' ? '' : $pays) ?>
-            </select>
-        </label>
-        <label class="search-label">
-            <input type="search" name="q" id="evenements-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-        </label>
-        <details class="filters-more" <?= ($spectacleId !== 0 || $statutSuisa !== 'tous' || $visibilite !== 'tous' || $salaries !== 'tous') ? 'open' : '' ?>>
-            <summary>Plus de filtres</summary>
-            <div class="filters-more-body">
-                <label><?= e($termeSingulier) ?>
-                    <select name="spectacle_id" onchange="this.form.submit()">
-                        <option value="0">Tous</option>
-                        <option value="-1" <?= $spectacleId === -1 ? 'selected' : '' ?>>Sans <?= mb_strtolower(e($termeSingulier)) ?></option>
-                        <?php foreach ($spectaclesFiltre as $s): ?>
-                            <option value="<?= (int) $s['id'] ?>" <?= $spectacleId === (int) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label>Statut SUISA
-                    <select name="statut_suisa" onchange="this.form.submit()">
-                        <?php foreach ($statutsSuisa as $val => $lib): ?>
-                            <option value="<?= $val ?>" <?= $statutSuisa === $val ? 'selected' : '' ?>><?= $lib ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label>Type d'audience
-                    <select name="visibilite" onchange="this.form.submit()">
-                        <option value="tous" <?= $visibilite === 'tous' ? 'selected' : '' ?>>Toutes</option>
-                        <?php foreach (EVENEMENTS_VISIBILITES as $vi): ?>
-                            <option value="<?= $vi ?>" <?= $visibilite === $vi ? 'selected' : '' ?>><?= e(evenement_visibilite_libelle($vi)) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label>Salariés
-                    <select name="salaries" onchange="this.form.submit()">
-                        <option value="tous" <?= $salaries === 'tous' ? 'selected' : '' ?>>Tous</option>
-                        <option value="oui" <?= $salaries === 'oui' ? 'selected' : '' ?>>Oui</option>
-                        <option value="non" <?= $salaries === 'non' ? 'selected' : '' ?>>Non</option>
-                    </select>
-                </label>
-            </div>
-        </details>
-    </form>
+        <form method="get" class="filters">
+            <input type="hidden" name="p" value="evenements_liste">
+            <input type="hidden" name="vue" value="<?= e($vue) ?>">
+            <label class="search-label">
+                <input type="search" name="q" id="evenements-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+            </label>
+        </form>
+        <?php if ($vue === 'carte'): ?>
+        <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les
+             mêmes filtres que la vue liste (voir plus bas, thead) restent donc
+             ici, dans la toolbar. -->
+        <div class="filters carte-filters">
+            <span class="col-th">Date <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee') + ['vue' => 'carte']) ?></span>
+            <span class="col-th"><?= e($termeSingulier) ?> <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Pays <?= filtre_colonne_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Audience <?= filtre_colonne_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Statut <?= filtre_colonne_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Suisa <?= filtre_colonne_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Salariés <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries') + ['vue' => 'carte']) ?></span>
+        </div>
+        <?php endif; ?>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
@@ -125,8 +102,6 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_evenements_carte.php'; ?>
-<?php elseif (!$evenements): ?>
-    <p class="muted">Aucun événement pour cette sélection.</p>
 <?php else: ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=evenements_liste">
@@ -205,13 +180,65 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 </div>
 <div class="table-scroll">
 <table class="list list-wide evenements-liste">
+    <?php $nbCols = 8; ?>
     <thead>
         <tr>
             <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
-            <th>Date</th><th><?= e($termeSingulier) ?></th><th>Ville / salle</th><th>Audience</th><th>Statut</th><th>SUISA</th><th class="num">Salariés</th>
+            <th class="col-date">
+                <span class="col-th">
+                    Date
+                    <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
+            </th>
+            <th class="col-spectacle">
+                <span class="col-th">
+                    <?= e($termeSingulier) ?>
+                    <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
+            </th>
+            <th class="col-ville">
+                <span class="col-th">
+                    Ville / salle
+                    <?= filtre_colonne_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
+            </th>
+            <th class="col-audience">
+                <span class="col-th">
+                    Audience
+                    <?= filtre_colonne_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
+            </th>
+            <th class="col-statut">
+                <span class="col-th">
+                    Statut
+                    <?= filtre_colonne_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
+            </th>
+            <th class="col-suisa">
+                <span class="col-th">
+                    SUISA
+                    <?= filtre_colonne_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
+            </th>
+            <th class="num col-salaries">
+                <span class="col-th">
+                    Salariés
+                    <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
+                </span>
+                <?= filtre_colonne_actifs_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
+            </th>
         </tr>
     </thead>
     <tbody>
+    <?php if (!$evenements): ?>
+        <tr><td colspan="<?= $nbCols ?>" class="muted">Aucun événement pour cette sélection.</td></tr>
+    <?php else: ?>
     <?php $moisPrecedent = null; foreach ($evenements as $ev):
         $moisCle = substr((string) $ev['date'], 0, 7); // "AAAA-MM"
         if ($moisCle !== $moisPrecedent):
@@ -242,10 +269,11 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
             </td>
         </tr>
     <?php endforeach; ?>
+    <?php endif; ?>
     </tbody>
 </table>
 </div>
-<?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
+<?php if ($evenements): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
 <script>
 (function () {
     const bulkBar = document.getElementById('bulk-bar');

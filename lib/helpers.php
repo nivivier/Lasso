@@ -1888,7 +1888,12 @@ function carte_banner_geocodage_html(
         $h .= '<form method="post" action="' . e($formAction) . '" id="geocoder-form">';
         $h .= '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
         foreach ($hiddenParams as $nom => $valeur) {
-            $h .= '<input type="hidden" name="' . e($nom) . '" value="' . e((string) $valeur) . '">';
+            // Filtre multi-valeurs (voir filtre_coche()) : une paire clé[]=valeur
+            // par élément, plutôt que (string) $valeur qui produirait "Array" +
+            // un avertissement PHP.
+            foreach ((array) $valeur as $vv) {
+                $h .= '<input type="hidden" name="' . e(is_array($valeur) ? $nom . '[]' : (string) $nom) . '" value="' . e((string) $vv) . '">';
+            }
         }
         $h .= '<button type="submit" id="geocoder-btn">' . icon('map-pin') . ' Géocoder (par lots, ≈1 seconde par ville)</button>';
         $h .= '</form>';

@@ -192,17 +192,22 @@ function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): strin
 // voir filtre_persistant()). Lu tôt par route_evenements_liste() (avant que
 // spectacle_map() soit nécessaire, pour le retour après une action groupée) et
 // par route_evenements_export_suisa() (même filtres, sans pagination).
+// Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
+// filtre_coche() dans lib/helpers.php) : cases à cocher, 0 à N valeurs
+// simultanées par filtre (un tableau vide = « tous », remplace les anciennes
+// valeurs sentinelles "tous"/0). spectacle_id en texteLibre=true : mélange
+// d'ids numériques et de la sentinelle textuelle "-1" (sans spectacle) —
+// jamais 0 (spectacle_id est un id réel, jamais nul en base).
 function evenements_lire_filtres(): array
 {
     return [
-        'annee'        => (int) filtre_persistant('annee', 'evenements_annee', 0),
-        'statut_suisa' => filtre_persistant('statut_suisa', 'evenements_statut_suisa', 'tous'),
-        // spectacle_id : 0 = tous, -1 = sans spectacle (spectacle_id NULL), > 0 = un spectacle précis.
-        'spectacle_id' => (int) filtre_persistant('spectacle_id', 'evenements_spectacle_id', 0),
-        'statut'       => filtre_persistant('statut', 'evenements_statut', 'tous'),
-        'visibilite'   => filtre_persistant('visibilite', 'evenements_visibilite', 'tous'),
-        'pays'         => filtre_persistant('pays', 'evenements_pays_filtre', 'tous'),
-        'salaries'     => filtre_persistant('salaries', 'evenements_salaries', 'tous'), // tous | oui | non
+        'annee'        => filtre_coche('annee', 'evenements_annee'),
+        'statut_suisa' => filtre_coche('statut_suisa', 'evenements_statut_suisa', EVENEMENTS_STATUTS_SUISA_FILTRE),
+        'spectacle_id' => filtre_coche('spectacle_id', 'evenements_spectacle_id', null, true),
+        'statut'       => filtre_coche('statut', 'evenements_statut', EVENEMENTS_STATUTS),
+        'visibilite'   => filtre_coche('visibilite', 'evenements_visibilite', EVENEMENTS_VISIBILITES),
+        'pays'         => filtre_coche('pays', 'evenements_pays_filtre', evenements_pays_disponibles()),
+        'salaries'     => filtre_coche('salaries', 'evenements_salaries', ['oui', 'non']),
         'q'            => trim((string) ($_GET['q'] ?? '')), // jamais mémorisée en session, comme pagination_page()
     ];
 }
@@ -217,42 +222,73 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
     $where = ' WHERE 1=1';
     $params = [];
     if ($f['annee']) {
-        $where .= " AND strftime('%Y', e.date) = ?";
-        $params[] = (string) $f['annee'];
+        $where .= " AND strftime('%Y', e.date) IN (" . implode(',', array_fill(0, count($f['annee']), '?')) . ')';
+        $params = array_merge($params, array_map('strval', $f['annee']));
     }
-    if ($f['spectacle_id'] === -1) {
-        $where .= ' AND e.spectacle_id IS NULL';
-    } elseif ($f['spectacle_id']) {
-        $ids = array_merge([$f['spectacle_id']], spectacle_descendants($f['spectacle_id'], $spectacleMap));
-        $in  = implode(',', array_fill(0, count($ids), '?'));
-        $where .= " AND e.spectacle_id IN ($in)";
-        $params = array_merge($params, $ids);
-    }
-    if (in_array($f['statut'], EVENEMENTS_STATUTS, true)) {
-        $where .= ' AND e.statut = ?';
-        $params[] = $f['statut'];
-    }
-    if (in_array($f['visibilite'], EVENEMENTS_VISIBILITES, true)) {
-        $where .= ' AND e.visibilite = ?';
-        $params[] = $f['visibilite'];
-    }
-    if (in_array($f['statut_suisa'], EVENEMENTS_STATUTS_SUISA_FILTRE, true)) {
-        $where .= ' AND (' . evenement_sql_statut_suisa($f['statut_suisa'], 'e.') . ')';
-        // Ordre des paramètres = ordre des '?' dans evenement_sql_statut_suisa().
-        if ($f['statut_suisa'] === 'manquant') {
-            $params[] = evenements_delai_decompte_mois();
-            $params[] = evenements_delai_abandon_mois();
-        } elseif (in_array($f['statut_suisa'], ['a_faire', 'envoye', 'abandonne'], true)) {
-            $params[] = evenements_delai_abandon_mois();
+    if ($f['spectacle_id']) {
+        // Une condition par valeur cochée, unies en OR : "-1" (sans spectacle)
+        // directement, ids numériques regroupés dans un seul IN (chacun étendu
+        // à ses descendants si c'est un spectacle-groupe — spectacle_descendants()).
+        $spConds  = [];
+        $spParams = [];
+        $spIds    = [];
+        foreach ($f['spectacle_id'] as $val) {
+            if ($val === '-1') {
+                $spConds[] = 'e.spectacle_id IS NULL';
+            } elseif (ctype_digit((string) $val)) {
+                $spIds = array_merge($spIds, [(int) $val], spectacle_descendants((int) $val, $spectacleMap));
+            }
+        }
+        if ($spIds) {
+            $spIds = array_values(array_unique($spIds));
+            $spConds[] = 'e.spectacle_id IN (' . implode(',', array_fill(0, count($spIds), '?')) . ')';
+            $spParams  = $spIds;
+        }
+        if ($spConds) {
+            $where .= ' AND (' . implode(' OR ', $spConds) . ')';
+            $params = array_merge($params, $spParams);
         }
     }
-    if ($f['pays'] !== 'tous' && in_array($f['pays'], evenements_pays_disponibles(), true)) {
-        $where .= ' AND e.pays = ?';
-        $params[] = $f['pays'];
+    if ($f['statut']) {
+        $where .= ' AND e.statut IN (' . implode(',', array_fill(0, count($f['statut']), '?')) . ')';
+        $params = array_merge($params, $f['statut']);
     }
-    if ($f['salaries'] === 'oui') {
+    if ($f['visibilite']) {
+        $where .= ' AND e.visibilite IN (' . implode(',', array_fill(0, count($f['visibilite']), '?')) . ')';
+        $params = array_merge($params, $f['visibilite']);
+    }
+    if ($f['statut_suisa']) {
+        // Une condition par valeur cochée, unies en OR — ordre des paramètres =
+        // ordre des '?' dans chaque evenement_sql_statut_suisa(), donc ajoutés
+        // immédiatement après la condition qui les consomme.
+        $suisaConds  = [];
+        $suisaParams = [];
+        foreach ($f['statut_suisa'] as $val) {
+            if (!in_array($val, EVENEMENTS_STATUTS_SUISA_FILTRE, true)) {
+                continue;
+            }
+            $suisaConds[] = '(' . evenement_sql_statut_suisa($val, 'e.') . ')';
+            if ($val === 'manquant') {
+                $suisaParams[] = evenements_delai_decompte_mois();
+                $suisaParams[] = evenements_delai_abandon_mois();
+            } elseif (in_array($val, ['a_faire', 'envoye', 'abandonne'], true)) {
+                $suisaParams[] = evenements_delai_abandon_mois();
+            }
+        }
+        if ($suisaConds) {
+            $where .= ' AND (' . implode(' OR ', $suisaConds) . ')';
+            $params = array_merge($params, $suisaParams);
+        }
+    }
+    if ($f['pays']) {
+        $where .= ' AND e.pays IN (' . implode(',', array_fill(0, count($f['pays']), '?')) . ')';
+        $params = array_merge($params, $f['pays']);
+    }
+    // "oui"+"non" cochés en même temps, ou ni l'un ni l'autre : équivalent à
+    // "tous" (toute ligne vaut forcément l'un ou l'autre), pas de condition.
+    if (count($f['salaries']) === 1 && $f['salaries'][0] === 'oui') {
         $where .= ' AND EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
-    } elseif ($f['salaries'] === 'non') {
+    } elseif (count($f['salaries']) === 1 && $f['salaries'][0] === 'non') {
         $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_employes ee WHERE ee.evenement_id = e.id)';
     }
     // Villes jamais géolocalisées avec succès (lien « Voir la liste » du
