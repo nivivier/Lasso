@@ -91,7 +91,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             </label>
             <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
             <details class="filters-more" <?= $lieuFiltresActifs ? 'open' : '' ?>>
-                <summary>Plus de filtres</summary>
+                <summary title="Plus de filtres" aria-label="Plus de filtres"><?= icon('funnel-plus') ?></summary>
                 <div class="filters-more-body">
                     <label class="jauge-filtre">Jauge min
                         <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" onchange="this.form.submit()" placeholder="200">

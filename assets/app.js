@@ -22,27 +22,29 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Filtres secondaires (.filters-more, ex. ?p=lieux, ?p=structures) : la
-// réserve d'espace sous la ligne de filtres (margin-bottom, voir
-// .filters:has(.filters-more[open]) dans assets/app.css) est une valeur fixe
-// pensée pour un panneau tenant sur une ligne — insuffisante depuis que
-// certaines listes (lieux, structures) ont assez de champs pour que le
-// panneau (position:absolute, largeur plafonnée) s'étale sur plusieurs
-// lignes, ce qui le faisait chevaucher le tableau. On mesure la hauteur
-// réelle du panneau ouvert (variable aussi selon la largeur d'écran) pour
-// ajuster la réserve en conséquence.
+// Filtres secondaires (.filters-more, ex. ?p=structures : Jauge/Mois du
+// lieu) : .filters-more-body en position:fixed, repositionné ici à
+// l'ouverture (voir .filters-more-body dans assets/app.css pour le pourquoi
+// du fixed plutôt qu'absolute — un absolute, même ancré plus haut dans
+// l'arbre, faisait grandir la largeur intrinsèque de .filters et provoquait
+// un retour à la ligne de .toolbar qui décalait .head-actions). Ancré sur
+// .toolbar entier (pas juste le bouton) pour ouvrir sous toute la barre,
+// aligné à gauche — cohérent avec la demande « sous la toolbar, à gauche ».
+// Recalculé à chaque ouverture ET au resize (largeur d'écran changeante).
 window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.filters-more').forEach(details => {
         const body = details.querySelector('.filters-more-body');
-        const filtres = details.closest('.filters');
-        if (!body || !filtres) return;
-        const ajuster = () => {
-            if (!details.open) { filtres.style.removeProperty('margin-bottom'); return; }
-            filtres.style.marginBottom = (body.offsetHeight + 24) + 'px';
+        const toolbar = details.closest('.toolbar');
+        if (!body || !toolbar) return;
+        const positionner = () => {
+            if (!details.open) return;
+            const r = toolbar.getBoundingClientRect();
+            body.style.top = (r.bottom + 12) + 'px';
+            body.style.left = r.left + 'px';
         };
-        details.addEventListener('toggle', ajuster);
-        window.addEventListener('resize', () => { if (details.open) ajuster(); });
-        if (details.open) ajuster();
+        details.addEventListener('toggle', positionner);
+        window.addEventListener('resize', () => { if (details.open) positionner(); });
+        if (details.open) positionner();
     });
 });
 

@@ -1164,35 +1164,32 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    quel dans un .section-head (ex. compta_analyse_axe.php). */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-13_5); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
-   <details> natif, sans JS. .filters-more-body est en position:absolute :
-   sinon, en flux normal, son apparition agrandit la boîte de .filters-more,
-   donc la hauteur de toute la ligne flex, et pousse le déclencheur vers le
-   bas (constaté : le simple flux normal fait bouger le texte même avec une
-   position horizontale fixe). En absolute, il n'a aucun effet sur la taille
-   de .filters-more ni sur la ligne — le déclencheur ne bouge donc plus
-   jamais, ni horizontalement ni verticalement. Ancré sur .filters (tout le
-   bandeau, pas juste le bouton) via :has() pour ouvrir sous la toolbar,
-   aligné à gauche (left:0) — le bouton lui-même reste à droite
-   (.filters-more { margin-left: auto }), seul son contenu déplié réapparaît
-   à gauche. .filters:has(...) réserve la place en dessous (margin-bottom)
-   pour ne pas chevaucher le tableau, puisque l'absolute ne pousse plus rien
-   dans le flux normal. */
-.filters:has(.filters-more) { position: relative; }
+   <details> natif. .filters-more-body en position:fixed (repositionné par JS
+   à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai
+   absolute (ancré sur .filters, puis sur .toolbar) faisait grandir la
+   largeur intrinsèque de .filters (display:flex, width:auto) jusqu'à celle
+   de .filters-more-body (max-width 640px) MALGRÉ l'absolute — un descendant
+   absolument positionné ne devrait normalement pas peser sur la taille de
+   ses ancêtres, mais ça a été constaté ici (probablement le calcul de
+   « hypothetical main size » qui sert à décider le wrap flex, avant que
+   l'exclusion de l'absolute ne s'applique) : .toolbar (flex-wrap:wrap)
+   passait alors à la ligne, poussant .head-actions plus bas avec un grand
+   vide au-dessus. position:fixed échappe complètement à ce calcul (aucun
+   ancêtre n'en dépend, cf. même technique sur .col-filter-menu). */
 .filters-more { margin-left: auto; flex-shrink: 0; align-self: flex-end; }
 /* Le déclencheur (<summary>) reprend l'aspect d'un .btn.ghost.btn-sm, sans
    dépendre de ces classes sur la balise (list-style/marker natifs à retirer
    en plus). */
 .filters-more summary {
-    cursor: pointer; display: inline-flex; align-items: center; color: var(--ink); font-size: var(--fs-13_5); font-weight: 500;
-    white-space: nowrap; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
-    padding: 6.5px 12px; transition: background .15s, border-color .15s;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
+    list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 9px 11px; transition: background .15s, border-color .15s;
 }
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
-.filters-more summary::before { content: '▸'; display: inline-block; margin-right: 6px; }
-.filters-more[open] summary::before { content: '▾'; }
+.filters-more summary .ico { width: 17px; height: 17px; }
 .filters-more-body {
-    display: none; position: absolute; top: 100%; left: 0; margin-top: 12px;
+    display: none; position: fixed; top: 0; left: 0; z-index: 20;
     width: max-content; max-width: min(640px, calc(100vw - 40px));
     gap: 16px; flex-wrap: wrap;
 }
@@ -1223,14 +1220,6 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .pagination-page:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
 .pagination-page.on { color: #fff; background: var(--primary); font-weight: 700; cursor: default; }
 .pagination-ellipsis { color: var(--muted); font-size: var(--fs-13); padding: 0 2px; }
-/* Sur .toolbar (pas .filters) : .toolbar a align-items:flex-end, donc
-   grandir .filters lui-même (margin-bottom) décale .head-actions vers le bas
-   avec lui (aligné sur le bord inférieur, désormais plus bas) — constaté :
-   les boutons d'action se décalaient à l'ouverture de « Plus de filtres ».
-   Le margin-bottom de .toolbar, lui, est hors de la ligne flex interne et
-   n'affecte pas l'alignement de ses propres enfants. 87px = 22px (marge de
-   base de .toolbar) + 65px réservés pour .filters-more-body déplié. */
-.toolbar:has(.filters-more[open]) { margin-bottom: 87px; }
 
 /* =================== Tables =================== */
 /* border-collapse:separate + border-spacing:0 permet à overflow:hidden + border-radius de fonctionner sur <table>. */
