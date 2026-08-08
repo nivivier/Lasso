@@ -81,7 +81,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar<?= $vue === 'carte' ? ' toolbar-carte' : '' ?>">
+    <div class="toolbar toolbar-flush">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">

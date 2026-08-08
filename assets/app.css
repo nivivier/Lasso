@@ -593,19 +593,22 @@ body.auth-bg {
 .toolbar { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px 20px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 2px; }
 .toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
 .toolbar > .head-actions { margin-left: auto; }
-/* Vue carte (?p=evenements_liste, ?p=structures, vue=carte) : la toolbar est
-   posée directement sur la carte plein écran (.carte-lieux-wrap, position:
-   fixed, voir plus haut) — fond blanc opaque pour rester lisible par-dessus,
-   plutôt que transparente comme en vue liste où elle repose sur le fond de
-   page uni. Colle directement sous le bandeau d'onglets (.module-content-inner
-   perd son padding haut/gauche/droite quand elle contient .toolbar-carte —
-   seul le bas est conservé, pour respirer avant la carte) plutôt que de
-   flotter avec la marge habituelle. Coins arrondis seulement en bas (le haut
-   touche le bandeau d'onglets, carré lui aussi à cet endroit). */
-.toolbar-carte { background: #fff; border-radius: 0 0 var(--radius) var(--radius); padding: 14px 18px; box-shadow: var(--shadow-sm); }
-.module-content-inner:has(> .toolbar-carte) { padding-top: 0; padding-left: 0; padding-right: 0; }
-.toolbar-carte .search-label,
-.toolbar-carte .search-label input[type="search"] { font-size: var(--fs-small); }
+/* ?p=evenements_liste / ?p=structures (vues liste ET carte, voir
+   views/*_liste.php — .toolbar-flush posé sans condition sur $vue) : la
+   toolbar colle directement sous le bandeau d'onglets (.module-content-inner
+   perd son padding haut/gauche/droite quand elle contient .toolbar-flush —
+   seul le bas est conservé, pour respirer avant le tableau/la carte) plutôt
+   que de flotter avec la marge habituelle. Fond blanc opaque : sans effet en
+   vue liste (déjà posée sur le fond blanc de .module-content), mais
+   nécessaire en vue carte où la toolbar est posée directement sur la carte
+   plein écran (.carte-lieux-wrap, position:fixed, voir plus haut). Coins
+   arrondis seulement en bas (le haut touche le bandeau d'onglets, carré lui
+   aussi à cet endroit). Sans condition sur $vue : la bascule Liste/Carte ne
+   doit déplacer ni la toolbar, ni le champ de recherche, ni les boutons
+   d'action — même placement dans les deux vues, seul le contenu en dessous
+   change. */
+.toolbar-flush { background: #fff; border-radius: 0 0 var(--radius) var(--radius); padding: 14px 18px; box-shadow: var(--shadow-sm); }
+.module-content-inner:has(> .toolbar-flush) { padding-top: 0; padding-left: 0; padding-right: 0; }
 /* .carte-filters (7 filtres de colonne repliés, voir views/evenements_liste.php
    / views/structures_liste.php) n'avait jusqu'ici aucune règle propre : en
    flex-item par défaut (flex:0 1 auto) de .toolbar, il se faisait rétrécir
@@ -1284,7 +1287,16 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    (ex. filtre Employé, un nom par employé). */
 .col-filter-options { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
 .col-filter-menu label {
-    display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 6px;
+    /* flex-direction:row (pas juste display:flex) : sur ?p=structures/
+       evenements_liste en vue carte, ce <label> est un descendant de
+       .carte-filters, qui porte la classe .filters — ".filters label"
+       (plus haut, pour les <label> "normaux" empilés au-dessus de leur
+       champ) impose flex-direction:column à même spécificité, gagnant sur
+       cette seule propriété (jamais fixée ici jusqu'ici) faute de
+       concurrent plus tardif. Conséquence : case à cocher et texte
+       empilés au lieu de côte à côte, et centrés (align-items:center
+       s'applique alors à l'axe croisé, devenu horizontal). */
+    display: flex; flex-direction: row; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 6px;
     font-size: var(--fs-basic); font-weight: 600; text-transform: none; letter-spacing: normal;
     color: var(--ink); cursor: pointer;
 }
