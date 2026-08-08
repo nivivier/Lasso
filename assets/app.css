@@ -592,6 +592,15 @@ body.auth-bg {
    toujours au-dessus d'un élément statique, quel que soit l'ordre du DOM. */
 .toolbar { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px 20px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 2px; }
 .toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
+/* form.filters (pas .carte-filters, qui est un <div>) : le <form> qui
+   enveloppe .search-label doit lui-même grandir dans .toolbar pour que le
+   flex-grow:1 de .search-label (voir plus bas) ait de la place où grandir —
+   sans ça, .search-label grandit dans le <form>, mais le <form> lui-même
+   reste à sa largeur de contenu (flex-grow:0 par défaut) et rien ne bouge.
+   Sélecteur tag-qualifié (form.filters, pas juste .filters) : ne doit pas
+   s'appliquer à .carte-filters, dont le flex-grow:1 propre (voir plus bas)
+   doit rester géré uniquement par sa propre règle. */
+.toolbar > form.filters { flex-grow: 1; }
 .toolbar > .head-actions { margin-left: auto; }
 /* ?p=evenements_liste / ?p=structures (vues liste ET carte, voir
    views/*_liste.php — .toolbar-opaque posé sans condition sur $vue) : la
@@ -623,23 +632,25 @@ body.auth-bg {
 }
 /* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements_liste.php
    / views/structures_liste.php) : placé dans le flux ENTRE la recherche et
-   .head-actions (ordre DOM et visuel voulu : recherche, puis filtres, puis
-   boutons). Deux essais avant celui-ci, tous les deux ratés :
-   1) flex-basis:auto — la taille hypothétique utilisée par le retour à la
-      ligne de .toolbar est alors la largeur intrinsèque du contenu (les 7
-      filtres bout à bout, non enroulés) : ça bascule .carte-filters ENTIER
-      sur une 2e ligne à lui seul, ET pousse .head-actions sur une 3e ligne.
-   2) flex-basis:0 (grow:1) — .carte-filters reste bien sur la ligne de la
-      recherche/des boutons, mais l'espace qui LUI reste après eux
-      (recherche ~200px + .head-actions ~450px, sur une toolbar d'~880px)
-      est trop étroit (mesuré ~107px) pour un seul filtre : ses enfants se
-      empilent alors un par un (7 lignes), pas 2.
-   flex-basis:100% (flex:0 0 100%) : .carte-filters occupe TOUJOURS sa propre
-   ligne pleine largeur (comme .carte-filters entre la recherche, en ligne 2,
-   et .head-actions, repoussé en ligne 3) — avec ~880px au lieu de ~107px, les
-   7 filtres tiennent sur 1-2 lignes (flex-wrap hérité de .filters), jamais
-   plus. Libellés en --fs-small : ligne dense. */
-.carte-filters { flex: 0 0 100%; }
+   .head-actions, TOUJOURS sur la même ligne qu'eux (flex-basis:100% essayé
+   avant — .carte-filters sur sa propre ligne pleine largeur — a été refusé :
+   ça donnait 3 lignes recherche/filtres/boutons au lieu d'une seule).
+   flex-basis:0 (pas "auto") : avec flex-basis:auto, la taille hypothétique
+   utilisée par le retour à la ligne de .toolbar est la largeur intrinsèque du
+   contenu (les 7 filtres bout à bout, non enroulés) — bien plus large que la
+   ligne, ce qui bascule .carte-filters ENTIER sur une 2e ligne à lui seul, et
+   pousse .head-actions sur une 3e. flex-basis:0 : taille hypothétique nulle
+   pour la décision de retour à la ligne — recherche/.carte-filters/.head-actions
+   restent sur la ligne 1, puis flex-grow:1 distribue l'espace restant (après
+   recherche, fixée à 200px ici — voir .toolbar:has(.carte-filters) .search-label
+   ci-dessus — et boutons) à .carte-filters ; si cet espace est plus étroit
+   que ses filtres mis bout à bout, flex-wrap:wrap (hérité de .filters) les
+   rejette sur une 2e ligne INTERNE à .carte-filters, sans jamais toucher la
+   position de .head-actions. min-width:0 : sans ça un flex-item ne peut pas
+   rétrécir sous la largeur intrinsèque de son contenu, ce qui empêcherait ce
+   retour à la ligne interne de se déclencher. Libellés en --fs-small : ligne
+   dense (jusqu'à 7 filtres). */
+.carte-filters { flex: 1 1 0; min-width: 0; }
 .carte-filters .col-th { font-size: var(--fs-small); }
 /* Tableaux pleine largeur (EXPÉRIMENTAL) : à l'intérieur de la zone blanche
    .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
@@ -1219,13 +1230,25 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    base) dépassent le champ de recherche. */
 .filters select { padding: 10px 28px 10px 10px; font-size: var(--fs-basic); }
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
-   quel dans un .section-head (ex. compta_analyse_axe.php). flex-grow:0 (pas 1) :
-   le champ ne doit pas s'étirer pour occuper tout l'espace restant de la
-   toolbar (ex. quand .head-actions est poussé à droite par margin-left:auto
-   et laisse un grand vide) — largeur fixe à 200px, comme un champ de
-   recherche compact partout ailleurs dans l'appli ; flex-shrink:1 : peut
-   quand même rétrécir sous 200px si la toolbar est vraiment trop étroite. */
-.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 0 1 200px; }
+   quel dans un .section-head (ex. compta_analyse_axe.php). flex-grow:1 :
+   le champ occupe tout l'espace restant de la toolbar (ex. quand
+   .head-actions est poussé à droite par margin-left:auto et laisse un grand
+   vide) plutôt que de rester figé à 200px. */
+.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
+/* Exception : ?p=structures / ?p=evenements_liste en vue carte (.carte-filters,
+   voir plus haut) — la recherche partage la ligne 1 avec les filtres ET les
+   boutons d'action ; si elle grandissait aussi (flex-grow:1 comme partout
+   ailleurs), elle absorberait la quasi-totalité de l'espace restant au
+   détriment des filtres, qui se retrouveraient écrasés à 1 filtre par ligne
+   sur plusieurs lignes au lieu de 2. Ici seulement, la recherche reste
+   compacte (200px) pour laisser la place aux filtres — et le <form> qui la
+   contient ne doit PAS non plus grandir (voir .toolbar > form.filters plus
+   haut), sinon la moitié de l'espace attribué par flex-grow irait gonfler
+   ce <form> invisible (aucun enfant dedans n'en profiterait, .search-label
+   restant lui-même à flex-grow:0) au lieu d'aller entièrement à
+   .carte-filters. */
+.toolbar:has(.carte-filters) .search-label,
+.toolbar:has(.carte-filters) > form.filters { flex-grow: 0; }
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
    <details> natif. .filters-more-body en position:fixed (repositionné par JS
    à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai
