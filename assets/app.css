@@ -595,35 +595,51 @@ body.auth-bg {
 .toolbar > .head-actions { margin-left: auto; }
 /* ?p=evenements_liste / ?p=structures (vues liste ET carte, voir
    views/*_liste.php — .toolbar-opaque posé sans condition sur $vue) : la
-   toolbar garde le placement/marge habituel de .module-content-inner (rien
-   n'est retiré ici, contrairement à un essai précédent qui la collait sous
-   le bandeau d'onglets — ça introduisait une ligne/ombre parasite entre la
-   toolbar et le tableau en vue liste, et changeait le padding des champs
-   « Plus de filtres » par rapport à avant). Seul ajout : un fond blanc
-   opaque (PAS une card — pas de bordure/ombre/coins arrondis, pas de
-   padding propre non plus : la respiration vient uniquement du padding
-   habituel de .module-content-inner, comme sur toutes les autres pages),
-   sans effet visuel en vue liste (déjà posée sur le fond blanc de
+   toolbar garde le placement/marge habituel de .module-content-inner — pas
+   une card, pas de bordure/ombre/coins arrondis, pas de padding propre visible
+   (identique à toutes les autres pages). Seul besoin réel : un fond blanc
+   opaque, sans effet en vue liste (déjà posée sur le fond blanc de
    .module-content), mais nécessaire en vue carte où la toolbar est posée
    directement sur la carte plein écran (.carte-lieux-wrap, position:fixed,
-   voir plus haut). Sans condition sur $vue : la bascule Liste/Carte ne doit
-   déplacer ni la toolbar, ni le champ de recherche, ni les boutons
-   d'action — même placement dans les deux vues, seul le contenu en dessous
-   change. */
-.toolbar-opaque { background: #fff; }
-/* .carte-filters (7 filtres de colonne repliés, voir views/evenements_liste.php
-   / views/structures_liste.php) n'avait jusqu'ici aucune règle propre : en
-   flex-item par défaut (flex:0 1 auto) de .toolbar, il se faisait rétrécir
-   sous sa largeur naturelle dès que .search-label + .head-actions ne
-   laissaient plus assez de place sur la même ligne — et comme .carte-filters
-   est lui-même display:flex (hérité de .filters) avec flex-wrap:wrap, se
-   faire rétrécir le forçait à empiler ses propres enfants (chaque filtre)
-   sur plusieurs lignes étroites au lieu de simplement passer, en bloc, à la
-   ligne suivante. flex-basis:100% + flex-shrink:0 : .carte-filters garde
-   toujours sa largeur naturelle (une seule ligne) et passe entièrement à la
-   ligne suivante si besoin, sans jamais se faire comprimer de l'intérieur.
-   Libellés en --fs-small : la ligne de filtres est dense (jusqu'à 7). */
-.carte-filters { flex: 1 0 100%; }
+   voir plus haut). Marge négative + padding égal au padding haut/gauche/droite
+   de .module-content-inner (24px / var(--content-pad)) : le fond déborde
+   jusqu'au bandeau d'onglets et jusqu'aux bords, alors que le contenu de la
+   toolbar (recherche, boutons) reste exactement à sa position habituelle (la
+   marge négative et le padding s'annulent) — .module-content-inner GARDE son
+   propre padding intact (pas de :has() pour le retirer, contrairement à un
+   essai précédent) pour ne pas casser le calcul plein-cadre de
+   .table-scroll en vue liste (margin: calc(-1 * var(--content-pad)), plus
+   bas). Sans condition sur $vue : la bascule Liste/Carte ne doit déplacer ni
+   la toolbar, ni le champ de recherche, ni les boutons d'action — même
+   placement dans les deux vues, seul le contenu en dessous change.
+   margin-top/left/right seulement (PAS le raccourci margin: qui réinitialise
+   aussi margin-bottom à 0 et écraserait le margin-bottom:22px de .toolbar
+   ci-dessus — espace toolbar/tableau supprimé par erreur une première fois
+   pour cette raison). Idem padding-top/left/right seulement. */
+.toolbar-opaque {
+    background: #fff;
+    margin-top: -24px; margin-left: calc(-1 * var(--content-pad)); margin-right: calc(-1 * var(--content-pad));
+    padding-top: 24px; padding-left: var(--content-pad); padding-right: var(--content-pad);
+}
+/* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements_liste.php
+   / views/structures_liste.php) : placé dans le flux ENTRE la recherche et
+   .head-actions (ordre DOM et visuel voulu : recherche, puis filtres, puis
+   boutons). Deux essais avant celui-ci, tous les deux ratés :
+   1) flex-basis:auto — la taille hypothétique utilisée par le retour à la
+      ligne de .toolbar est alors la largeur intrinsèque du contenu (les 7
+      filtres bout à bout, non enroulés) : ça bascule .carte-filters ENTIER
+      sur une 2e ligne à lui seul, ET pousse .head-actions sur une 3e ligne.
+   2) flex-basis:0 (grow:1) — .carte-filters reste bien sur la ligne de la
+      recherche/des boutons, mais l'espace qui LUI reste après eux
+      (recherche ~200px + .head-actions ~450px, sur une toolbar d'~880px)
+      est trop étroit (mesuré ~107px) pour un seul filtre : ses enfants se
+      empilent alors un par un (7 lignes), pas 2.
+   flex-basis:100% (flex:0 0 100%) : .carte-filters occupe TOUJOURS sa propre
+   ligne pleine largeur (comme .carte-filters entre la recherche, en ligne 2,
+   et .head-actions, repoussé en ligne 3) — avec ~880px au lieu de ~107px, les
+   7 filtres tiennent sur 1-2 lignes (flex-wrap hérité de .filters), jamais
+   plus. Libellés en --fs-small : ligne dense. */
+.carte-filters { flex: 0 0 100%; }
 .carte-filters .col-th { font-size: var(--fs-small); }
 /* Tableaux pleine largeur (EXPÉRIMENTAL) : à l'intérieur de la zone blanche
    .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
@@ -777,7 +793,15 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
 .seg-picker { display: inline-flex; flex-direction: row !important; width: max-content; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .seg-picker .seg-btn {
     display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
-    width: 46px; height: 38px; margin: 0; background: #fff; border: none; border-right: 1px solid var(--line); color: var(--muted);
+    width: 46px;
+    /* Hauteur calquée sur celle de button/.btn (padding vertical 10px +
+       line-height héritée 1.6, voir plus haut — la bordure de 1px de .seg-btn
+       est horizontale seulement, celle qui complète la hauteur vient de
+       .seg-picker tout autour, d'où le -2px absent ici mais déjà compté côté
+       .seg-picker) : sans ce calcul, le toggle Liste/Carte à côté de
+       .head-actions paraissait plus bas que ses boutons voisins. */
+    height: calc(var(--fs-basic) * 1.6 + 20px);
+    margin: 0; background: #fff; border: none; border-right: 1px solid var(--line); color: var(--muted);
     cursor: pointer; transition: background .15s, color .15s; text-decoration: none; box-shadow: none; border-radius: 0;
 }
 .seg-btn:last-child { border-right: none; }
@@ -888,17 +912,31 @@ select:disabled { cursor: not-allowed; }
 .grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
 /* :not() en plus pour égaler la spécificité de la règle générale .filters input:not(...):not(...)
-   (sinon son padding shorthand écraserait le padding-right réservé à l'icône ci-dessous). */
-input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 9px 34px 9px 10px; font-size: var(--fs-basic); }
-/* Icône loupe de tous les champs de recherche (type=search) : un seul point de
-   modification (ce data-URI, repris de l'icône « search » de icon()) pour
-   changer l'icône partout dans l'application. */
-input[type="search"] {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 15px 15px;
-    padding-right: 34px;
+   (sinon son padding shorthand écraserait le padding-right réservé à l'icône ci-dessous).
+   padding vertical 10px (pas 9px) : aligné sur le padding par défaut de tous
+   les champs (input:not(checkbox/radio), select, textarea ci-dessus), pour
+   que le champ de recherche ait exactement la même hauteur que button/.btn
+   (même formule padding+bordure+line-height) — un .search-label à côté d'un
+   .head-actions (toolbar) paraissait plus bas sinon. */
+input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 10px 34px 10px 10px; font-size: var(--fs-basic); }
+input[type="search"] { padding-right: 34px; }
+/* Icône loupe de tous les champs de recherche (type=search) : posée en
+   ::after sur .search-label (pas en background-image sur l'input comme
+   avant) via mask-image plutôt que fill/stroke figés dans le SVG — un SVG en
+   data-URI ne peut pas référencer une variable CSS, donc pas moyen de le
+   teinter avec --highlight (qui se décline par module, voir
+   module_couleur_css_vars()) autrement qu'en le transformant en masque
+   (silhouette) coloré par background-color. Un seul point de modification
+   (ce data-URI, repris de l'icône « search » de icon()) pour changer
+   l'icône partout dans l'application. */
+.search-label { position: relative; }
+.search-label::after {
+    content: ""; position: absolute; top: 50%; right: 10px; width: 15px; height: 15px;
+    transform: translateY(-50%); background: var(--highlight); pointer-events: none;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat; mask-size: 15px 15px;
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat; -webkit-mask-size: 15px 15px;
 }
 /* En-têtes de groupe dans les listes cat-search */
 /* Propriétés partagées par les labels en petites capitales (sections, règles, cat-search) */
@@ -1179,10 +1217,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 /* Même boîte (padding/font-size) que .search-label input[type=search] ci-dessous,
    pour une hauteur identique — sinon les <select> (padding 10px, 14px de
    base) dépassent le champ de recherche. */
-.filters select { padding: 9px 28px 9px 10px; font-size: var(--fs-basic); }
+.filters select { padding: 10px 28px 10px 10px; font-size: var(--fs-basic); }
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
-   quel dans un .section-head (ex. compta_analyse_axe.php). */
-.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
+   quel dans un .section-head (ex. compta_analyse_axe.php). flex-grow:0 (pas 1) :
+   le champ ne doit pas s'étirer pour occuper tout l'espace restant de la
+   toolbar (ex. quand .head-actions est poussé à droite par margin-left:auto
+   et laisse un grand vide) — largeur fixe à 200px, comme un champ de
+   recherche compact partout ailleurs dans l'appli ; flex-shrink:1 : peut
+   quand même rétrécir sous 200px si la toolbar est vraiment trop étroite. */
+.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 0 1 200px; }
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
    <details> natif. .filters-more-body en position:fixed (repositionné par JS
    à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai

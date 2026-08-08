@@ -121,7 +121,14 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <?php if ($vue === 'carte'): ?>
         <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les
              mêmes filtres que la vue liste (voir plus bas, thead) restent donc
-             ici, dans la toolbar. -->
+             ici, dans la toolbar, ENTRE la recherche et .head-actions (ordre
+             visuel voulu : recherche | filtres | boutons). .carte-filters
+             est flex:1 1 auto (pas 100%) : il occupe l'espace restant sur la
+             ligne 1 et laisse flex-wrap:wrap (hérité de .filters) rejeter ses
+             PROPRES enfants (chaque filtre) sur une 2e ligne interne si ça ne
+             tient pas — .head-actions reste sur la ligne 1, poussé à droite
+             par margin-left:auto, quelle que soit la hauteur prise par
+             .carte-filters. -->
         <div class="filters carte-filters">
             <span class="col-th">Statut <?= filtre_colonne_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut') + ['vue' => 'carte']) ?></span>
             <span class="col-th">Catégorie <?= filtre_colonne_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id') + ['vue' => 'carte']) ?></span>
@@ -141,7 +148,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
                 <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
             </div>
-            <a class="btn" href="?p=structure"><?= icon('user-plus') ?><span class="lbl"> Nouvelle structure</span></a>
+            <a class="btn" href="?p=structure"><?= icon('house-plus') ?><span class="lbl"> Nouvelle structure</span></a>
         </div>
     </div>
 

@@ -72,7 +72,14 @@ $autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFil
         <?php if ($vue === 'carte'): ?>
         <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les
              mêmes filtres que la vue liste (voir plus bas, thead) restent donc
-             ici, dans la toolbar. -->
+             ici, dans la toolbar, ENTRE la recherche et .head-actions (ordre
+             visuel voulu : recherche | filtres | boutons). .carte-filters
+             est flex:1 1 auto (pas 100%) : il occupe l'espace restant sur la
+             ligne 1 et laisse flex-wrap:wrap (hérité de .filters) rejeter ses
+             PROPRES enfants (chaque filtre) sur une 2e ligne interne si ça ne
+             tient pas — .head-actions reste sur la ligne 1, poussé à droite
+             par margin-left:auto, quelle que soit la hauteur prise par
+             .carte-filters. -->
         <div class="filters carte-filters">
             <span class="col-th">Date <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee') + ['vue' => 'carte']) ?></span>
             <span class="col-th"><?= e($termeSingulier) ?> <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id') + ['vue' => 'carte']) ?></span>
@@ -93,10 +100,10 @@ $autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFil
                 'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
                 'q' => $recherche,
             ]); ?>
-            <a class="btn ghost btn-sm" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
+            <a class="btn ghost" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
                 <?= icon('download') ?> <span class="lbl">Export SUISA</span>
             </a>
-            <a class="btn" href="?p=evenement"><?= icon('file-plus') ?><span class="lbl"> Nouvel événement</span></a>
+            <a class="btn" href="?p=evenement"><?= icon('calendar-plus') ?><span class="lbl"> Nouvel événement</span></a>
         </div>
     </div>
 

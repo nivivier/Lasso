@@ -333,14 +333,14 @@ function nav_groupes(): array
         $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
             'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
             'compta_comptes'    => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
-            'structures'        => ['Structures', ['structures', 'structure'], 0, 'building-2'],
+            'structures'        => ['Structures', ['structures', 'structure'], 0, 'house'],
         ]];
     }
 
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
             'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_manquants(), 'calendar'],
-            'structures'       => ['Structures', ['structures', 'structure'], 0, 'building-2'],
+            'structures'       => ['Structures', ['structures', 'structure'], 0, 'house'],
             'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'],
         ]];
     }
@@ -349,8 +349,8 @@ function nav_groupes(): array
         // Mailing n'a plus de sous-onglets propres (voir l'ancien
         // views/_mailing_tabs.php, retiré) : ses 4 pages deviennent des
         // onglets de premier niveau au même titre que Structures.
-        $g['booking'] = ['Booking', 'building-2', [
-            'structures'         => ['Structures', ['structures', 'structure'], 0, 'building-2'],
+        $g['booking'] = ['Booking', 'house', [
+            'structures'         => ['Structures', ['structures', 'structure'], 0, 'house'],
             'mailing'            => ['Suivi', ['mailing'], 0, 'mail'],
             'mailing_campagne'   => ['Nouvelle campagne', ['mailing_campagne'], 0, 'send'],
             'mailing_modeles'    => ['Modèles', ['mailing_modeles'], 0, 'file-text'],
