@@ -1163,18 +1163,22 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 /* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
    quel dans un .section-head (ex. compta_analyse_axe.php). */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-13_5); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
-/* Filtres secondaires repliés (ex. evenements_liste.php : Statut SUISA, Type
-   d'audience, Salariés) — <details> natif, sans JS. .filters-more-body est en
-   position:absolute : sinon, en flux normal, son apparition agrandit la
-   boîte de .filters-more, donc la hauteur de toute la ligne flex, et pousse
-   le déclencheur vers le bas (constaté : le simple flux normal fait bouger
-   le texte même avec une position horizontale fixe). En absolute, il n'a
-   aucun effet sur la taille de .filters-more ni sur la ligne — le
-   déclencheur ne bouge donc plus jamais, ni horizontalement ni
-   verticalement. .filters:has(...) réserve la place en dessous (margin-
-   bottom) pour ne pas chevaucher le tableau, puisque l'absolute ne pousse
-   plus rien dans le flux normal. */
-.filters-more { margin-left: auto; flex-shrink: 0; align-self: flex-end; position: relative; }
+/* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
+   <details> natif, sans JS. .filters-more-body est en position:absolute :
+   sinon, en flux normal, son apparition agrandit la boîte de .filters-more,
+   donc la hauteur de toute la ligne flex, et pousse le déclencheur vers le
+   bas (constaté : le simple flux normal fait bouger le texte même avec une
+   position horizontale fixe). En absolute, il n'a aucun effet sur la taille
+   de .filters-more ni sur la ligne — le déclencheur ne bouge donc plus
+   jamais, ni horizontalement ni verticalement. Ancré sur .filters (tout le
+   bandeau, pas juste le bouton) via :has() pour ouvrir sous la toolbar,
+   aligné à gauche (left:0) — le bouton lui-même reste à droite
+   (.filters-more { margin-left: auto }), seul son contenu déplié réapparaît
+   à gauche. .filters:has(...) réserve la place en dessous (margin-bottom)
+   pour ne pas chevaucher le tableau, puisque l'absolute ne pousse plus rien
+   dans le flux normal. */
+.filters:has(.filters-more) { position: relative; }
+.filters-more { margin-left: auto; flex-shrink: 0; align-self: flex-end; }
 /* Le déclencheur (<summary>) reprend l'aspect d'un .btn.ghost.btn-sm, sans
    dépendre de ces classes sur la balise (list-style/marker natifs à retirer
    en plus). */
@@ -1188,7 +1192,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .filters-more summary::before { content: '▸'; display: inline-block; margin-right: 6px; }
 .filters-more[open] summary::before { content: '▾'; }
 .filters-more-body {
-    display: none; position: absolute; top: 100%; right: 0; margin-top: 12px;
+    display: none; position: absolute; top: 100%; left: 0; margin-top: 12px;
     width: max-content; max-width: min(640px, calc(100vw - 40px));
     gap: 16px; flex-wrap: wrap;
 }
@@ -1219,7 +1223,14 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .pagination-page:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
 .pagination-page.on { color: #fff; background: var(--primary); font-weight: 700; cursor: default; }
 .pagination-ellipsis { color: var(--muted); font-size: var(--fs-13); padding: 0 2px; }
-.filters:has(.filters-more[open]) { margin-bottom: 65px; }
+/* Sur .toolbar (pas .filters) : .toolbar a align-items:flex-end, donc
+   grandir .filters lui-même (margin-bottom) décale .head-actions vers le bas
+   avec lui (aligné sur le bord inférieur, désormais plus bas) — constaté :
+   les boutons d'action se décalaient à l'ouverture de « Plus de filtres ».
+   Le margin-bottom de .toolbar, lui, est hors de la ligne flex interne et
+   n'affecte pas l'alignement de ses propres enfants. 87px = 22px (marge de
+   base de .toolbar) + 65px réservés pour .filters-more-body déplié. */
+.toolbar:has(.filters-more[open]) { margin-bottom: 87px; }
 
 /* =================== Tables =================== */
 /* border-collapse:separate + border-spacing:0 permet à overflow:hidden + border-radius de fonctionner sur <table>. */

@@ -39,9 +39,17 @@ foreach (array_unique(array_merge($departementCanton, $regionsDispo)) as $r) { $
 $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
 // $autresXxx : les AUTRES filtres actifs de la page (jamais celui-ci), à
 // reporter en hidden inputs par chaque panneau — construits une fois depuis
-// $tousFiltres plutôt qu'un littéral quasi identique par filtre.
+// $tousFiltres plutôt qu'un littéral quasi identique par filtre. 'depuis' y
+// est inclus (jamais exclu par $autresFiltres, vu qu'aucun appel n'exclut
+// cette clé) : Structures est partagée par 3 groupes de nav (booking/
+// facturation/evenements) et sans ça, soumettre un panneau de filtre — un
+// simple <form method="get"> qui ne connaît que ses propres champs — perdait
+// ?depuis=… en route, faisant retomber le rail/bandeau sur son groupe par
+// défaut (voir nav_groupe_actif()) au lieu de rester dans le groupe de
+// provenance.
 $tousFiltres = ['categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
-    'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche];
+    'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche,
+    'depuis' => (string) ($_GET['depuis'] ?? '')];
 $autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFiltres, [$cle => true]));
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
@@ -77,6 +85,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
+            <?php if (($_GET['depuis'] ?? '') !== ''): ?><input type="hidden" name="depuis" value="<?= e((string) $_GET['depuis']) ?>"><?php endif; ?>
             <label class="search-label">
                 <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
             </label>
@@ -84,13 +93,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <details class="filters-more" <?= $lieuFiltresActifs ? 'open' : '' ?>>
                 <summary>Plus de filtres</summary>
                 <div class="filters-more-body">
-                    <label class="jauge-filtre">Jauge min du lieu
+                    <label class="jauge-filtre">Jauge min
                         <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" onchange="this.form.submit()" placeholder="200">
                     </label>
-                    <label class="jauge-filtre">Jauge max du lieu
+                    <label class="jauge-filtre">Jauge max
                         <input type="number" name="lieu_jauge_max" min="0" value="<?= $lieuJaugeMax !== null ? (int) $lieuJaugeMax : '' ?>" onchange="this.form.submit()" placeholder="1000">
                     </label>
-                    <label>Mois d'événement du lieu
+                    <label>Mois d'événement
                         <select name="lieu_mois_evenement" onchange="this.form.submit()">
                             <option value="0">Tous</option>
                             <?php for ($m = 1; $m <= 12; $m++): ?>
@@ -98,7 +107,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                             <?php endfor; ?>
                         </select>
                     </label>
-                    <label>Mois de programmation du lieu
+                    <label>Mois de programmation
                         <select name="lieu_mois_prog" onchange="this.form.submit()">
                             <option value="0">Tous</option>
                             <?php for ($m = 1; $m <= 12; $m++): ?>

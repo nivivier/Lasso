@@ -938,6 +938,11 @@ function route_structures(): void
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
             'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
+            // Structures est partagée par 3 groupes de nav (booking/facturation/
+            // evenements) — reporté dans les liens de pagination pour que le
+            // rail/bandeau reste dans le groupe de provenance (voir la même
+            // remarque sur $tousFiltres dans views/structures_liste.php).
+            'depuis' => (string) ($_GET['depuis'] ?? ''),
         ]),
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
