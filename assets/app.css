@@ -593,6 +593,17 @@ body.auth-bg {
 .toolbar { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px 20px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 2px; }
 .toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
 .toolbar > .head-actions { margin-left: auto; }
+/* Vue carte (?p=evenements_liste, ?p=structures, vue=carte) : la toolbar est
+   posée directement sur la carte plein écran (.carte-lieux-wrap, position:
+   fixed, voir plus haut) — fond blanc opaque pour rester lisible par-dessus,
+   plutôt que transparente comme en vue liste où elle repose sur le fond de
+   page uni. Recherche en --fs-small (pas --fs-basic, la taille par défaut
+   de .search-label/input[type=search] plus bas) : la toolbar carte est plus
+   dense (jusqu'à 7 filtres de colonne repliés dans la même barre, voir
+   .carte-filters), un texte plus petit y respire mieux. */
+.toolbar-carte { background: #fff; border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow-sm); }
+.toolbar-carte .search-label,
+.toolbar-carte .search-label input[type="search"] { font-size: var(--fs-small); }
 /* Tableaux pleine largeur (EXPÉRIMENTAL) : à l'intérieur de la zone blanche
    .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
    de la zone via une marge négative égale au padding horizontal du
