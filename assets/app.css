@@ -597,13 +597,29 @@ body.auth-bg {
    posée directement sur la carte plein écran (.carte-lieux-wrap, position:
    fixed, voir plus haut) — fond blanc opaque pour rester lisible par-dessus,
    plutôt que transparente comme en vue liste où elle repose sur le fond de
-   page uni. Recherche en --fs-small (pas --fs-basic, la taille par défaut
-   de .search-label/input[type=search] plus bas) : la toolbar carte est plus
-   dense (jusqu'à 7 filtres de colonne repliés dans la même barre, voir
-   .carte-filters), un texte plus petit y respire mieux. */
-.toolbar-carte { background: #fff; border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow-sm); }
+   page uni. Colle directement sous le bandeau d'onglets (.module-content-inner
+   perd son padding haut/gauche/droite quand elle contient .toolbar-carte —
+   seul le bas est conservé, pour respirer avant la carte) plutôt que de
+   flotter avec la marge habituelle. Coins arrondis seulement en bas (le haut
+   touche le bandeau d'onglets, carré lui aussi à cet endroit). */
+.toolbar-carte { background: #fff; border-radius: 0 0 var(--radius) var(--radius); padding: 14px 18px; box-shadow: var(--shadow-sm); }
+.module-content-inner:has(> .toolbar-carte) { padding-top: 0; padding-left: 0; padding-right: 0; }
 .toolbar-carte .search-label,
 .toolbar-carte .search-label input[type="search"] { font-size: var(--fs-small); }
+/* .carte-filters (7 filtres de colonne repliés, voir views/evenements_liste.php
+   / views/structures_liste.php) n'avait jusqu'ici aucune règle propre : en
+   flex-item par défaut (flex:0 1 auto) de .toolbar, il se faisait rétrécir
+   sous sa largeur naturelle dès que .search-label + .head-actions ne
+   laissaient plus assez de place sur la même ligne — et comme .carte-filters
+   est lui-même display:flex (hérité de .filters) avec flex-wrap:wrap, se
+   faire rétrécir le forçait à empiler ses propres enfants (chaque filtre)
+   sur plusieurs lignes étroites au lieu de simplement passer, en bloc, à la
+   ligne suivante. flex-basis:100% + flex-shrink:0 : .carte-filters garde
+   toujours sa largeur naturelle (une seule ligne) et passe entièrement à la
+   ligne suivante si besoin, sans jamais se faire comprimer de l'intérieur.
+   Libellés en --fs-small : la ligne de filtres est dense (jusqu'à 7). */
+.carte-filters { flex: 1 0 100%; }
+.carte-filters .col-th { font-size: var(--fs-small); }
 /* Tableaux pleine largeur (EXPÉRIMENTAL) : à l'intérieur de la zone blanche
    .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
    de la zone via une marge négative égale au padding horizontal du
