@@ -61,7 +61,7 @@ $autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFil
 </div>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar toolbar-flush">
+    <div class="toolbar toolbar-opaque">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="evenements_liste">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">

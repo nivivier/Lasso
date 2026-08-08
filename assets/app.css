@@ -594,21 +594,23 @@ body.auth-bg {
 .toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
 .toolbar > .head-actions { margin-left: auto; }
 /* ?p=evenements_liste / ?p=structures (vues liste ET carte, voir
-   views/*_liste.php — .toolbar-flush posé sans condition sur $vue) : la
-   toolbar colle directement sous le bandeau d'onglets (.module-content-inner
-   perd son padding haut/gauche/droite quand elle contient .toolbar-flush —
-   seul le bas est conservé, pour respirer avant le tableau/la carte) plutôt
-   que de flotter avec la marge habituelle. Fond blanc opaque : sans effet en
-   vue liste (déjà posée sur le fond blanc de .module-content), mais
-   nécessaire en vue carte où la toolbar est posée directement sur la carte
-   plein écran (.carte-lieux-wrap, position:fixed, voir plus haut). Coins
-   arrondis seulement en bas (le haut touche le bandeau d'onglets, carré lui
-   aussi à cet endroit). Sans condition sur $vue : la bascule Liste/Carte ne
-   doit déplacer ni la toolbar, ni le champ de recherche, ni les boutons
+   views/*_liste.php — .toolbar-opaque posé sans condition sur $vue) : la
+   toolbar garde le placement/marge habituel de .module-content-inner (rien
+   n'est retiré ici, contrairement à un essai précédent qui la collait sous
+   le bandeau d'onglets — ça introduisait une ligne/ombre parasite entre la
+   toolbar et le tableau en vue liste, et changeait le padding des champs
+   « Plus de filtres » par rapport à avant). Seul ajout : un fond blanc
+   opaque (PAS une card — pas de bordure/ombre/coins arrondis, pas de
+   padding propre non plus : la respiration vient uniquement du padding
+   habituel de .module-content-inner, comme sur toutes les autres pages),
+   sans effet visuel en vue liste (déjà posée sur le fond blanc de
+   .module-content), mais nécessaire en vue carte où la toolbar est posée
+   directement sur la carte plein écran (.carte-lieux-wrap, position:fixed,
+   voir plus haut). Sans condition sur $vue : la bascule Liste/Carte ne doit
+   déplacer ni la toolbar, ni le champ de recherche, ni les boutons
    d'action — même placement dans les deux vues, seul le contenu en dessous
    change. */
-.toolbar-flush { background: #fff; border-radius: 0 0 var(--radius) var(--radius); padding: 14px 18px; box-shadow: var(--shadow-sm); }
-.module-content-inner:has(> .toolbar-flush) { padding-top: 0; padding-left: 0; padding-right: 0; }
+.toolbar-opaque { background: #fff; }
 /* .carte-filters (7 filtres de colonne repliés, voir views/evenements_liste.php
    / views/structures_liste.php) n'avait jusqu'ici aucune règle propre : en
    flex-item par défaut (flex:0 1 auto) de .toolbar, il se faisait rétrécir
@@ -1206,10 +1208,16 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
 .filters-more summary .ico { width: 17px; height: 17px; }
+/* Fond blanc/bordure/ombre : sans ça, une fois position:fixed (donc sorti du
+   flux et de la carte visuelle de .toolbar/.toolbar-opaque), le panneau
+   flottait à nu sur le fond de page (ou la carte, en vue carte) et semblait
+   détaché de la toolbar plutôt que d'en faire partie. */
 .filters-more-body {
     display: none; position: fixed; top: 0; left: 0; z-index: 20;
     width: max-content; max-width: min(640px, calc(100vw - 40px));
     gap: 16px; flex-wrap: wrap;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); padding: 16px;
 }
 .filters-more[open] .filters-more-body { display: flex; }
 .filters-more-body label { margin-bottom: 0; }
