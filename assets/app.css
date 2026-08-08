@@ -928,8 +928,18 @@ select:disabled { cursor: not-allowed; }
    les champs (input:not(checkbox/radio), select, textarea ci-dessus), pour
    que le champ de recherche ait exactement la même hauteur que button/.btn
    (même formule padding+bordure+line-height) — un .search-label à côté d'un
-   .head-actions (toolbar) paraissait plus bas sinon. */
-input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 10px 34px 10px 10px; font-size: var(--fs-basic); }
+   .head-actions (toolbar) paraissait plus bas sinon. line-height:1.6 posé
+   ICI, directement sur l'input (pas sur .search-label, essayé d'abord et
+   sans effet) : .search-label est un <label>, visé par ".filters label
+   { line-height:0.8 }" (pensée pour les petits libellés au-dessus des
+   <select>) — spécificité (1 classe) inférieure à ".filters label" (1 classe
+   + 1 type), qui l'emporte quel que soit l'ordre dans le fichier ;
+   line-height (valeur SANS unité = ratio, pas une valeur figée) se
+   propageait alors par héritage jusque dans l'input, qui
+   recalculait 0.8 × SA PROPRE taille de police (13px) = 10.4px, écrasant sa
+   hauteur bien en dessous de celle de button/.btn. Fixé directement sur
+   l'input (spécificité suffisante ici pour ne dépendre d'aucun héritage). */
+input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: 10px 34px 10px 10px; font-size: var(--fs-basic); line-height: 1.6; }
 input[type="search"] { padding-right: 34px; }
 /* Icône loupe de tous les champs de recherche (type=search) : posée en
    ::after sur .search-label (pas en background-image sur l'input comme
@@ -1223,7 +1233,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    sans texte de label visible) doit rester aligné avec les <select> des
    autres filtres, qui ont eux un texte de label au-dessus — seul le bas des
    colonnes flex (donc les champs eux-mêmes) coïncide alors. */
-.filters { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+.filters { display: flex; gap: 4px 10px; align-items: flex-end; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .filters label { margin-bottom: 0; }
 /* Même boîte (padding/font-size) que .search-label input[type=search] ci-dessous,
    pour une hauteur identique — sinon les <select> (padding 10px, 14px de
@@ -1233,7 +1243,12 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    quel dans un .section-head (ex. compta_analyse_axe.php). flex-grow:1 :
    le champ occupe tout l'espace restant de la toolbar (ex. quand
    .head-actions est poussé à droite par margin-left:auto et laisse un grand
-   vide) plutôt que de rester figé à 200px. */
+   vide) plutôt que de rester figé à 200px. (Le line-height hérité de
+   ".filters label" à travers ce <label>, qui écrasait la hauteur de
+   l'input search à l'intérieur, est corrigé directement sur
+   input[type="search"] — voir plus haut — et pas ici : même essayé ici
+   d'abord, ça n'avait aucun effet, ".filters label" ayant une spécificité
+   plus élevée.) */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
 /* Exception : ?p=structures / ?p=evenements_liste en vue carte (.carte-filters,
    voir plus haut) — la recherche partage la ligne 1 avec les filtres ET les
@@ -1246,9 +1261,26 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    haut), sinon la moitié de l'espace attribué par flex-grow irait gonfler
    ce <form> invisible (aucun enfant dedans n'en profiterait, .search-label
    restant lui-même à flex-grow:0) au lieu d'aller entièrement à
-   .carte-filters. */
+   .carte-filters. flex-basis:260px explicite (pas "auto") : avec basis:auto,
+   la taille du <form> dépend de son contenu au moment du calcul, et sur
+   ?p=structures (recherche + bouton « Plus de filtres ») le résultat mesuré
+   (247.5px) était plus étroit que les 257px nécessaires pour les deux côte à
+   côte — le bouton « Plus de filtres » se retrouvait rejeté sur sa propre
+   ligne DANS le <form>. 260px : large que la recherche (200px) + le bouton
+   « Plus de filtres » (~41px) + le gap entre eux (16px), pour les deux
+   toujours l'un à côté de l'autre. Sans effet sur ?p=evenements_liste
+   (recherche seule dans le <form>, 260px est juste un peu de marge
+   inutilisée — invisible, .form.filters n'a pas de fond propre). */
 .toolbar:has(.carte-filters) .search-label,
 .toolbar:has(.carte-filters) > form.filters { flex-grow: 0; }
+.toolbar:has(.carte-filters) > form.filters { flex-basis: 260px; }
+/* Espace sous la toolbar en vue carte : .toolbar-opaque ne couvre que sa
+   propre boîte (pas de padding-bottom propre, hérite du padding-bottom:2px
+   de .toolbar) — la carte plein écran (.carte-lieux-wrap, position:fixed)
+   touchait donc directement le bas de la dernière ligne de filtres, sans
+   respiration. Vue liste non concernée (le tableau suit avec son propre
+   margin-bottom:22px habituel, cf. .toolbar de base). */
+.toolbar:has(.carte-filters) { padding-bottom: 20px; }
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
    <details> natif. .filters-more-body en position:fixed (repositionné par JS
    à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai
@@ -1266,10 +1298,16 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 /* Le déclencheur (<summary>) reprend l'aspect d'un .btn.ghost.btn-sm, sans
    dépendre de ces classes sur la balise (list-style/marker natifs à retirer
    en plus). */
+/* height calquée sur button/.btn (padding vertical 10px + line-height héritée
+   1.6 + bordure 1px, voir plus haut/plus bas) : sans elle, le bouton
+   « Plus de filtres » (icône seule, donc pas de ligne de texte pour pousser
+   sa hauteur) restait plus bas (37px) que les autres boutons d'action de la
+   toolbar (43px). box-sizing:border-box (règle générale, tout en haut du
+   fichier) : la hauteur totale inclut déjà le padding et la bordure. */
 .filters-more summary {
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
     list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
-    padding: 9px 11px; transition: background .15s, border-color .15s;
+    padding: 9px 11px; height: calc(var(--fs-basic) * 1.6 + 22px); transition: background .15s, border-color .15s;
 }
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
