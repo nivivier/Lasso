@@ -29,18 +29,27 @@ window.addEventListener('DOMContentLoaded', () => {
 // l'arbre, faisait grandir la largeur intrinsèque de .filters et provoquait
 // un retour à la ligne de .toolbar qui décalait .head-actions). Ancré sur
 // .toolbar entier (pas juste le bouton) pour ouvrir sous toute la barre,
-// aligné à gauche — cohérent avec la demande « sous la toolbar, à gauche ».
-// Recalculé à chaque ouverture ET au resize (largeur d'écran changeante).
+// aligné à gauche. Un position:fixed flotte par-dessus le contenu suivant
+// par nature (aucun effet dans le flux) — on réserve donc explicitement la
+// place en dessous (margin-bottom, hauteur réelle mesurée) pour que le
+// tableau descende au lieu d'être recouvert. Posé sur .toolbar et non sur
+// .filters : .toolbar a align-items:flex-end, et grandir .filters lui-même
+// (un de ses flex-items) décale .head-actions vers le bas avec lui — déjà
+// constaté avec l'ancienne réserve, qui plus est en position:absolute
+// (voir commit précédent) ; .toolbar n'a pas ce problème, rien au-dessus
+// n'aligne ses propres enfants sur sa taille. Recalculé à l'ouverture et au
+// resize (largeur d'écran changeante, donc hauteur du panneau aussi).
 window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.filters-more').forEach(details => {
         const body = details.querySelector('.filters-more-body');
         const toolbar = details.closest('.toolbar');
         if (!body || !toolbar) return;
         const positionner = () => {
-            if (!details.open) return;
+            if (!details.open) { toolbar.style.removeProperty('margin-bottom'); return; }
             const r = toolbar.getBoundingClientRect();
             body.style.top = (r.bottom + 12) + 'px';
             body.style.left = r.left + 'px';
+            toolbar.style.marginBottom = (body.offsetHeight + 12 + 22) + 'px';
         };
         details.addEventListener('toggle', positionner);
         window.addEventListener('resize', () => { if (details.open) positionner(); });
