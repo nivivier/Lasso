@@ -16,6 +16,8 @@ foreach (plan_liste_ordonnee($map) as $r) {
         . e(spectacle_chemin($rid, $map)) . '</option>';
 }
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 <?= lien_retour('?p=spectacles', evenements_terme_spectacle()) ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier le ' . e($termeSingulier) : 'Nouveau ' . e($termeSingulier) ?></h1>

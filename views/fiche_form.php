@@ -71,6 +71,8 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
 // qui réaffiche cette page (voir lien_retour_contextuel() dans lib/helpers.php).
 $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 <?= lien_retour_contextuel('?p=fiches', 'Fiches de salaire') ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la fiche de salaire' : 'Nouvelle fiche de salaire' ?></h1>

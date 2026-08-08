@@ -20,14 +20,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 };
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
@@ -38,10 +31,10 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <?php endif; ?>
         <div class="head-actions">
             <?php if ($lignes): ?>
-            <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+            <button type="button" class="btn ghost icon-only export-copy" onclick="event.stopPropagation()"
                                 data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
                                 title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
-            <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+            <button type="button" class="btn ghost icon-only export-copy" onclick="event.stopPropagation()"
                                 data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
                                 title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
             <?php endif; ?>

@@ -2,6 +2,8 @@
 $v = fn(string $k, $d = '') => e((string) ($emp[$k] ?? $d));
 $isEdit = !empty($emp['id']);
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 <?= lien_retour($isEdit ? '?p=employe_voir&id=' . (int) $emp['id'] : '?p=employes', $isEdit ? 'Fiche employé' : 'Employés') ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier l\'employé' : 'Nouvel employé' ?></h1>

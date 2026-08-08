@@ -79,14 +79,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         ? 'Aucune condition à tester.'
         : 'Cette règle toucherait <strong>' . (int) $test . '</strong> écriture(s) non lettrée(s).' ?></p>
 <?php endif; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
@@ -94,7 +87,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
             <form method="post" action="?p=compta_ecritures">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="section" value="apply_rules">
-                <button type="submit" class="btn ghost btn-sm btn-compact"><?= icon('tag') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
+                <button type="submit" class="btn ghost"><?= icon('tag') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
             </form>
             <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?><span class="lbl"> Nouvelle règle</span></button>
         </div>
@@ -127,7 +120,6 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
     </div>
 </template>
 
-<div class="card form">
 
     <!-- Nouvelle règle -->
     <div id="new-rule-card" class="regle-card regle-new <?= $ouvrirNew ? '' : 'hidden' ?>">
@@ -237,7 +229,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
         </form>
     </div>
     <?php endforeach; ?>
-</div>
+
 </div></div>
 
 <script>

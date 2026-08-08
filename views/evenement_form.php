@@ -67,14 +67,7 @@ if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] ==
 // pointer précisément vers CET événement plutôt que vers la liste générique.
 $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ? '&depuis=' . $ntCle : '');
 ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
 <div class="page-head">

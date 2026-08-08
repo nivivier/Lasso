@@ -21,6 +21,8 @@ $flashErr = [
     'children' => 'Action impossible : cette catégorie contient des sous-catégories.',
 ];
 ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 <div class="page-head page-head-sub">
     <?= lien_retour('?p=compta_bilan', 'Comptes annuels') ?>
     <h1>Plan comptable</h1>

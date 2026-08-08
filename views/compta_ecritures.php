@@ -52,10 +52,11 @@ foreach ($categoriesArbre as $c) {
 }
 $axeLabels = ['sans_axe' => '— Sans axe —'];
 foreach ($axes as $ax) { $axeLabels[(int) $ax['id']] = $axeLabel($ax); }
-$autresCompte    = array_filter(['annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche]);
-$autresAnnee     = array_filter(['compte' => $compteId, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche]);
-$autresCategorie = array_filter(['compte' => $compteId, 'annee' => $annee, 'axe' => $axeFilter, 'q' => $recherche]);
-$autresAxe       = array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'q' => $recherche]);
+// $autresFiltres('champ') : les AUTRES filtres actifs de la page (jamais
+// celui-ci), à reporter en hidden inputs par chaque panneau — voir
+// autres_filtres_fn(), lib/helpers.php.
+$tousFiltres = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche];
+$autresFiltres = autres_filtres_fn($tousFiltres);
 // Colonne Compte masquée quand le filtre la rend redondante (un seul compte
 // coché) — généralise l'ancien "$compteId === 0" (affiché) / valeur unique
 // (masqué) au cas multi-sélection : masquée seulement si exactement 1 coché.
@@ -85,14 +86,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 ?>
 <?php $actionUrl = '?p=compta_ecritures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
@@ -103,7 +97,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </label>
         </form>
         <div class="head-actions">
-            <button type="button" id="btn-new-ecr" class="btn ghost btn-sm btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
+            <button type="button" id="btn-new-ecr" class="btn ghost btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
             <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
         </div>
     </div>
@@ -218,17 +212,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <th class="col-date">
                 <span class="col-th">
                     Date
-                    <?= filtre_colonne_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+                    <?= filtre_colonne_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
             </th>
             <?php if ($compteColVisible): ?>
             <th class="col-compte">
                 <span class="col-th">
                     Compte
-                    <?= filtre_colonne_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresCompte) ?>
+                    <?= filtre_colonne_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresCompte) ?>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte')) ?>
             </th>
             <?php endif; ?>
             <th>Texte</th>
@@ -236,17 +230,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <th class="col-categorie">
                 <span class="col-th">
                     Catégorie
-                    <?= filtre_colonne_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresCategorie) ?>
+                    <?= filtre_colonne_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresCategorie) ?>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie')) ?>
             </th>
             <?php if ($axes): ?>
             <th class="col-axe">
                 <span class="col-th">
                     Axe
-                    <?= filtre_colonne_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresAxe) ?>
+                    <?= filtre_colonne_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresAxe) ?>
+                <?= filtre_colonne_actifs_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe')) ?>
             </th>
             <?php endif; ?>
             <th></th>

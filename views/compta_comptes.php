@@ -4,14 +4,7 @@
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Compte bancaire enregistré.</p><?php endif; ?>
 <?php if ($flagErr === 'used'): ?><p class="err flash">Suppression impossible : des écritures sont rattachées à ce compte.</p><?php endif; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">

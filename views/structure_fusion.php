@@ -1,4 +1,6 @@
 <?php /** @var array $candidats */ ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 <?= lien_retour('?p=structures', 'Structures') ?>
 <div class="page-head">
     <h1>Fusionner des structures</h1>

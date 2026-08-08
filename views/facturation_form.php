@@ -51,6 +51,8 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 ?>
 <?php $structureCourant = (string) ($post['structure_id'] ?? ($facture['structure_id'] ?? ($structureDefautEvenement ?: ''))); ?>
 <?php $nouveauStructure = $structureCourant === '__new__'; ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 <?= lien_retour('?p=facturation_liste', 'Facturation') ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la facture' : 'Nouvelle facture' ?></h1>

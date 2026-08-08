@@ -50,7 +50,7 @@ $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans é
 $tousFiltres = ['categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
     'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche,
     'depuis' => (string) ($_GET['depuis'] ?? '')];
-$autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFiltres, [$cle => true]));
+$autresFiltres = autres_filtres_fn($tousFiltres);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php
@@ -71,17 +71,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 </p>
 <?php endif; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
-<div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar toolbar-opaque">
+    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">

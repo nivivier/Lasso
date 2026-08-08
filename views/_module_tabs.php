@@ -1,6 +1,5 @@
 <?php
-// Rail d'icônes + bandeau d'onglets de module (EXPÉRIMENTAL — branche
-// experiment-nav-rail, ne pas fusionner sur stable). Calcule le groupe de
+// Rail d'icônes + bandeau d'onglets de module. Calcule le groupe de
 // nav_groupes() actif pour la route courante (lib/modules.php). Variables
 // préfixées « nt » — même convention que « pt » dans _param_tabs.php, pour
 // éviter toute collision avec extract($data) dans render().

@@ -19,21 +19,14 @@ $autresAnnee   = array_filter(['statut' => $statut, 'employe_id' => $employeId, 
 $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="fiches">
             <label class="search-label">
-                <input type="search" name="q" placeholder="Rechercher un employé..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
+                <input type="search" name="q" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
             </label>
         </form>
         <div class="head-actions">

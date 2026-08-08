@@ -7,14 +7,7 @@ $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=structures', 'Structures') ?>

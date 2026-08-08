@@ -28,14 +28,7 @@ if ($criteres['contact_jamais']) { $resumeCiblage[] = 'Jamais contactées'; }
 elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées depuis le ' . date('d.m.Y', strtotime($criteres['contact_avant'])); }
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
-<div class="page-head-band">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <?php if ($msg === 'test_ok'): ?><p class="ok flash">E-mail de test envoyé.</p>
 <?php elseif ($msg === 'test_ko'): ?><p class="err flash">Échec de l'envoi de test (vérifiez la configuration SMTP dans Paramètres → E-mails).</p>

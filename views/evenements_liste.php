@@ -39,29 +39,22 @@ foreach ($spectaclesFiltre as $s) { $spectacleLabels[(int) $s['id']] = $s['nom']
 $paysLabels = [];
 foreach ($paysDisponibles as $code) { $paysLabels[$code] = pays_nom_depuis_code($code) ?: $code; }
 $salariesLabels = ['oui' => 'Oui', 'non' => 'Non'];
-// $autresXxx : les AUTRES filtres actifs de la page (jamais celui-ci), à
-// reporter en hidden inputs par chaque panneau — construits une fois depuis
-// $tousFiltres plutôt que 7 littéraux quasi identiques.
+// $autresFiltres('champ') : les AUTRES filtres actifs de la page (jamais
+// celui-ci), à reporter en hidden inputs par chaque panneau — voir
+// autres_filtres_fn(), lib/helpers.php.
 $tousFiltres = ['annee' => $annee, 'spectacle_id' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
     'statut_suisa' => $statutSuisa, 'pays' => $pays, 'salaries' => $salaries, 'q' => $recherche];
-$autresFiltres = fn (string $cle): array => array_filter(array_diff_key($tousFiltres, [$cle => true]));
+$autresFiltres = autres_filtres_fn($tousFiltres);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'événements', $lienQuitterNonLocalises) ?>
 <?php if ($prodExterneOk): ?><p class="flash"><?= (int) $prodExterneOk ?> événement(s) passé(s) en « Production externe ».</p><?php endif; ?>
 <?php if ($prodExterneBloques): ?><p class="err flash"><?= (int) $prodExterneBloques ?> événement(s) non modifié(s) : une prestation liée est déjà sur une fiche payée (figée, jamais modifiée).</p><?php endif; ?>
-<div class="page-head-band<?= $vue === 'carte' ? ' carte-header' : '' ?>">
-<div class="page-head">
-    <div class="page-head-title">
-        <h1><?= e($ntLabel) ?></h1>
-    </div>
-    <?php require __DIR__ . '/_module_tabs_render.php'; ?>
-</div>
-</div>
+<?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar toolbar-opaque">
+    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="evenements_liste">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
