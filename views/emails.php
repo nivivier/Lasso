@@ -3,6 +3,9 @@
 <?php if ($saved): ?><p class="ok flash">Paramètres d'envoi enregistrés.</p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
+<?php if (!peut_ecrire('coeur')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <div class="card form">
     <p class="muted small">Ces réglages pilotent l'envoi automatique des fiches de salaire par e-mail.</p>
     <form method="post" action="?p=emails">
@@ -70,3 +73,4 @@
         </div>
     </form>
 </div>
+<?php endif; ?>

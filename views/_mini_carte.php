@@ -28,7 +28,7 @@ $geo = geocodage_lire($miniCarteVille, $miniCarteDepartementCanton, $miniCartePa
         map.setView(pos, 7);
     })();
     </script>
-<?php else: ?>
+<?php elseif (peut_ecrire('booking') || peut_ecrire('evenements')): ?>
     <p class="muted small">Ville non encore localisée sur la carte.</p>
     <form method="post" action="?p=geocoder_ville_unique">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -39,4 +39,6 @@ $geo = geocodage_lire($miniCarteVille, $miniCarteDepartementCanton, $miniCartePa
         <input type="hidden" name="retour_id" value="<?= (int) $miniCarteRetourId ?>">
         <button type="submit" class="btn-sm"><?= icon('map-pin') ?> Géocoder cette ville</button>
     </form>
+<?php else: ?>
+    <p class="muted small">Ville non encore localisée sur la carte.</p>
 <?php endif; ?>

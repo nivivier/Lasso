@@ -7,7 +7,7 @@
     <h2 class="mt-0">Salaires horaires <?= info_tip(
         "Proposés lors de la création d'une fiche de salaire. Un taux manuel reste toujours possible."
     ) ?></h2>
-    <button type="button" class="btn btn-sm ml-auto" data-show="th-add"><?= icon('plus') ?> Nouveau</button>
+    <?php if (peut_ecrire('salaires')): ?><button type="button" class="btn btn-sm ml-auto" data-show="th-add"><?= icon('plus') ?> Nouveau</button><?php endif; ?>
 </div>
     <?php if ($tauxHoraires): ?>
     <div class="table-scroll">
@@ -17,6 +17,7 @@
         <?php foreach ($tauxHoraires as $th): ?>
             <tr>
                 <td>
+                    <?php if (peut_ecrire('salaires')): ?>
                     <span class="row-field-disp">
                         <span><?= e($th['libelle']) ?></span>
                         <button type="button" class="row-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
@@ -28,15 +29,20 @@
                         <input type="text" name="th_libelle" value="<?= e($th['libelle']) ?>" required class="grow" aria-label="Libellé du taux horaire">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                     </form>
+                    <?php else: ?>
+                    <?= e($th['libelle']) ?>
+                    <?php endif; ?>
                 </td>
                 <td class="num"><?= chf((float) $th['montant']) ?> CHF/h</td>
                 <td class="actions">
+                    <?php if (peut_ecrire('salaires')): ?>
                     <form method="post" action="?p=taux_horaires" onsubmit="return confirm('Supprimer ce taux horaire ?');" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $th['id'] ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -76,7 +82,7 @@
         "Utilisées dans les fiches de salaire. Chaque unité vaut un nombre d'heures (le calcul du salaire se fait "
         . "toujours sur le total d'heures). Supprimer une unité ne modifie pas les fiches déjà créées."
     ) ?></h2>
-    <button type="button" class="btn btn-sm ml-auto" data-show="u-add"><?= icon('plus') ?> Nouveau</button>
+    <?php if (peut_ecrire('salaires')): ?><button type="button" class="btn btn-sm ml-auto" data-show="u-add"><?= icon('plus') ?> Nouveau</button><?php endif; ?>
 </div>
     <?php if ($unites): ?>
     <div class="table-scroll">
@@ -86,6 +92,7 @@
         <?php foreach ($unites as $u): ?>
             <tr>
                 <td>
+                    <?php if (peut_ecrire('salaires')): ?>
                     <span class="row-field-disp">
                         <span><?= e($u['libelle']) ?></span>
                         <button type="button" class="row-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
@@ -97,15 +104,20 @@
                         <input type="text" name="u_libelle" value="<?= e($u['libelle']) ?>" required class="grow" aria-label="Libellé de l'unité">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                     </form>
+                    <?php else: ?>
+                    <?= e($u['libelle']) ?>
+                    <?php endif; ?>
                 </td>
                 <td class="num"><?= nombre_court($u['heures']) ?> h</td>
                 <td class="actions">
+                    <?php if (peut_ecrire('salaires')): ?>
                     <form method="post" action="?p=taux_horaires" onsubmit="return confirm('Supprimer cette unité ?');" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="unite_del">
                         <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>

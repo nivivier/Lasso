@@ -12,8 +12,13 @@ $compteOptions = function ($selected) use ($comptes): string {
 };
 
 // Composant catégorie cherchable : scrollable ET filtrable en tapant.
-$catSearchable = function ($selected) use ($feuilles): string {
+$catSearchable = function ($selected, bool $editable = true) use ($feuilles): string {
     $sel   = $selected === null ? '' : (string) $selected;
+    if (!$editable) {
+        $lib = '';
+        foreach ($feuilles as $f) { if ((int) $f['id'] === (int) $sel) { $lib = $f['chemin']; break; } }
+        return '<div class="cat-search"><input type="text" class="cat-search-input" value="' . e($lib) . '" disabled></div>';
+    }
     $items = '';
     foreach ($feuilles as $f) {
         $items .= '<li data-val="' . (int) $f['id'] . '">' . e($f['chemin']) . '</li>';
@@ -71,6 +76,7 @@ $condRow = function (array $cond): string {
 
 $condVide  = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
 $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new']);
+$peutEcrireRegles = peut_ecrire('compta');
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Règles mises à jour.</p><?php endif; ?>
@@ -82,6 +88,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
+    <?php if ($peutEcrireRegles): ?>
     <div class="toolbar">
         <div class="head-actions">
             <form method="post" action="?p=compta_ecritures">
@@ -92,6 +99,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
             <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?><span class="lbl"> Nouvelle règle</span></button>
         </div>
     </div>
+    <?php endif; ?>
 
 <template id="cond-tpl">
     <div class="cond-row" data-type="texte">
@@ -122,6 +130,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
 
 
     <!-- Nouvelle règle -->
+    <?php if ($peutEcrireRegles): ?>
     <div id="new-rule-card" class="regle-card regle-new <?= $ouvrirNew ? '' : 'hidden' ?>">
         <form method="post" action="?p=compta_regles">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -156,6 +165,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
             </div>
         </form>
     </div>
+    <?php endif; ?>
 
     <?php if (!$regles): ?>
     <p class="muted small" id="no-rule">Aucune règle définie. Cliquez sur « Nouvelle règle ».</p>
@@ -175,26 +185,28 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
             <div class="regle-head">
                 <!-- Toggle actif/inactif -->
                 <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
-                    <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?>
+                    <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?> <?= $peutEcrireRegles ? '' : 'disabled' ?>
                            class="regle-actif-cb" onchange="this.closest('form').submit()">
                     <span class="regle-toggle-pill"></span>
                 </label>
+                <?php if ($peutEcrireRegles): ?>
                 <!-- Flèches de réordonnancement -->
                 <div class="regle-arrows">
                     <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter" aria-label="Monter"><?= icon('chevron-up') ?></button>
                     <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
                 </div>
+                <?php endif; ?>
                 <!-- Compte -->
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Compte</span>
-                    <select name="compte_bancaire_id" class="regle-ctrl-select"><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
+                    <select name="compte_bancaire_id" class="regle-ctrl-select" <?= $peutEcrireRegles ? '' : 'disabled' ?>><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
                 </div>
                 <!-- Groupe Conditions : toujours affiché ; ET/OU visible si >1 condition -->
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Conditions</span>
                     <div class="regle-cond-row">
-                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition" aria-label="Ajouter une condition"><?= icon('plus') ?></button>
-                        <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?>>
+                        <?php if ($peutEcrireRegles): ?><button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition" aria-label="Ajouter une condition"><?= icon('plus') ?></button><?php endif; ?>
+                        <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?> <?= $peutEcrireRegles ? '' : 'disabled' ?>>
                             <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET</option>
                             <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU</option>
                         </select>
@@ -209,11 +221,13 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                         <span class="muted small">Touche : 0</span>
                     <?php endif; ?>
                 <?php endif; ?>
+                <?php if ($peutEcrireRegles): ?>
                 <span class="test-result muted small"></span>
                 <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
                 <button type="submit" name="section" value="edit" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
                 <button type="submit" name="section" value="del" class="btn ghost btn-sm danger"
                         onclick="return confirm('Supprimer cette règle ?')"><?= icon('trash') ?></button>
+                <?php endif; ?>
             </div>
             <div class="regle-conds" id="conds-<?= $rid ?>">
                 <?php foreach ($r['conditions'] as $cond): ?>
@@ -224,7 +238,7 @@ $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new
                 <?php endif; ?>
             </div>
             <div class="regle-cat">
-                <label class="regle-label grow">Catégorie cible<?= $catSearchable((int) $r['plan_compte_id']) ?></label>
+                <label class="regle-label grow">Catégorie cible<?= $catSearchable((int) $r['plan_compte_id'], $peutEcrireRegles) ?></label>
             </div>
         </form>
     </div>

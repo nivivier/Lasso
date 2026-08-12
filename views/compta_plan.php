@@ -26,7 +26,9 @@ $flashErr = [
 <?php if ($saved): ?><p class="ok flash">Plan comptable mis à jour.</p><?php endif; ?>
 <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 
+<?php $peutEcrirePlan = peut_ecrire('compta'); ?>
 <div class="module-content"><div class="module-content-inner">
+<?php if ($peutEcrirePlan): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=compta_plan" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -35,14 +37,17 @@ $flashErr = [
     <input type="hidden" name="parent_id" value="">
     <input type="hidden" name="order" value="">
 </form>
+<?php endif; ?>
 
 <div class="form" id="plan-card">
     <?php foreach (['produit' => 'Produits (recettes)', 'charge' => 'Charges (dépenses)'] as $sens => $titre):
         $rows = array_values(array_filter($lignes, fn($l) => $l['sens'] === $sens)); ?>
     <div class="section-head <?= $sens === 'produit' ? 'mt-0' : '' ?>">
         <h2 class="mt-0"><?= e($titre) ?></h2>
+        <?php if ($peutEcrirePlan): ?>
         <button type="button" class="btn btn-sm ml-auto"
                 data-show="plan-add-<?= $sens ?>"><?= icon('plus') ?> Nouveau</button>
+        <?php endif; ?>
     </div>
     <div class="table-scroll">
     <table class="list mb-16 plan-table" data-sens="<?= $sens ?>">
@@ -57,6 +62,7 @@ $flashErr = [
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                         <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
+                        <?php if ($peutEcrirePlan): ?>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>
                         <form method="post" action="?p=compta_plan" class="inline-edit plan-edit">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -68,10 +74,14 @@ $flashErr = [
                             </label>
                             <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                         </form>
+                        <?php else: ?>
+                        <span class="plan-nom"><?= e($p['libelle']) ?></span>
+                        <?php endif; ?>
                         <?php if (!$actif): ?><span class="badge warn-badge">archivée</span><?php endif; ?>
                     </div>
                 </td>
                 <td class="actions nowrap">
+                    <?php if ($peutEcrirePlan): ?>
                     <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
                     <form method="post" action="?p=compta_plan" class="d-inline plan-fallback">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -98,6 +108,7 @@ $flashErr = [
                         <input type="hidden" name="id" value="<?= $pid ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <?php endif; ?>
                     <?php endif; ?>
                 </td>
             </tr>

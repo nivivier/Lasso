@@ -5,6 +5,8 @@
 $v = fn(string $k, $d = '') => e((string) ($structure[$k] ?? $d));
 $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
+$peutEcrireStruct = peut_ecrire('facturation') || peut_ecrire('booking');
+$peutEcrireBooking = peut_ecrire('booking');
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -12,7 +14,7 @@ $sid = (int) ($structure['id'] ?? 0);
 <div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=structures', 'Structures') ?>
 <div class="page-head">
-    <?php if ($isEdit): ?>
+    <?php if ($isEdit && $peutEcrireStruct): ?>
     <div class="titre-row">
         <div class="titre-read">
             <?= flag_toggle_html('structure', $sid, (string) ($structure['flag'] ?? '')) ?>
@@ -43,10 +45,12 @@ $sid = (int) ($structure['id'] ?? 0);
     })();
     lassoInitFlagToggle();
     </script>
+    <?php elseif ($isEdit): ?>
+    <h1><?= $v('nom') ?></h1>
     <?php else: ?>
     <h1>Nouvelle structure</h1>
     <?php endif; ?>
-    <?php if ($isEdit && (int) ($structure['nb_factures'] ?? 0) === 0): ?>
+    <?php if ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0): ?>
     <div class="head-actions">
         <form method="post" action="?p=structure_delete" onsubmit="return confirm('Supprimer définitivement cette structure ?');" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -64,7 +68,9 @@ $sid = (int) ($structure['id'] ?? 0);
     <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
 <?php endif; ?>
 
-<?php if (!$isEdit): ?>
+<?php if (!$isEdit && !$peutEcrireStruct): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php elseif (!$isEdit): ?>
 <form method="post" action="?p=structure" class="card form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <div class="form-split">
@@ -122,11 +128,13 @@ $sid = (int) ($structure['id'] ?? 0);
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="nom" value="<?= $v('nom') ?>">
 
+    <?php if ($peutEcrireStruct): ?>
     <div class="head-actions card-actions-overlay">
         <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
         <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
         <a href="?p=structure&id=<?= (int) $structure['id'] ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
     </div>
+    <?php endif; ?>
 
     <?php
     $categorieAffichee = trim((string) ($structure['categorie'] ?? ''));
@@ -226,23 +234,28 @@ $sid = (int) ($structure['id'] ?? 0);
 <div class="card">
     <div class="card-head-row">
         <h2 class="mt-0">Statut</h2>
-        <?= structure_statut_toggle_html($sid, (string) $structure['statut']) ?>
+        <?php if ($peutEcrireBooking): ?><?= structure_statut_toggle_html($sid, (string) $structure['statut']) ?><?php else: ?><span class="badge"><?= e(structure_statut_libelle((string) $structure['statut'])) ?></span><?php endif; ?>
     </div>
 
     <div class="tags-liste mt-16">
         <?php foreach ($tags as $t): ?>
             <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
+                <?php if ($peutEcrireBooking): ?>
                 <form method="post" action="?p=structure_tag_retirer" class="d-inline" onsubmit="return confirm('Retirer cette étiquette ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
                     <button type="submit" class="btn-tag-x" aria-label="Retirer">×</button>
                 </form>
+                <?php endif; ?>
             </span>
         <?php endforeach; ?>
         <?php if (!$tags): ?><span class="muted small">Aucune étiquette.</span><?php endif; ?>
+        <?php if ($peutEcrireBooking): ?>
         <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
+        <?php endif; ?>
     </div>
+    <?php if ($peutEcrireBooking): ?>
     <form method="post" action="?p=structure_tag_ajouter" class="linked-add mt-10" id="tag-ajouter-form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
@@ -253,8 +266,9 @@ $sid = (int) ($structure['id'] ?? 0);
         <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
         <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </form>
+    <?php endif; ?>
 </div>
-<script>lassoInitStatutToggle();</script>
+<?php if ($peutEcrireBooking): ?><script>lassoInitStatutToggle();</script><?php endif; ?>
 
 <div class="card card-editable">
     <?php
@@ -271,11 +285,13 @@ $sid = (int) ($structure['id'] ?? 0);
 
         <div class="card-head-row">
             <h2 class="mt-0">Informations générales</h2>
+            <?php if ($peutEcrireStruct): ?>
             <div class="head-actions">
                 <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                 <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
                 <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
             </div>
+            <?php endif; ?>
         </div>
 
         <div class="card-disp">
@@ -392,7 +408,9 @@ $sid = (int) ($structure['id'] ?? 0);
     <div class="card-block section-editable">
         <div class="card-head-row">
             <h2 class="mt-0">Structures liées</h2>
+            <?php if ($peutEcrireBooking): ?>
             <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les structures liées"><?= icon('pencil') ?></button>
+            <?php endif; ?>
         </div>
         <?php
         $lieuxOrganises = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise'));
@@ -535,8 +553,10 @@ $sid = (int) ($structure['id'] ?? 0);
 <div class="card section-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Contacts</h2>
+        <?php if ($peutEcrireBooking): ?>
         <button type="button" class="btn ghost btn-sm icon-only edit-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('plus') ?></button>
         <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les contacts"><?= icon('pencil') ?></button>
+        <?php endif; ?>
     </div>
     <?php foreach ($contacts as $c): ?>
         <div class="contact-row">
@@ -694,11 +714,13 @@ $villeHtmlS = ville_departement_canton_html(
             <?php endif; ?>
             <?php if (trim((string) ($structure['grande_region'] ?? '')) !== ''): ?><div class="muted small"><?= e($structure['grande_region']) ?></div><?php endif; ?>
         </div>
+        <?php if ($peutEcrireBooking): ?>
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="structure-localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
             <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="card-disp">
@@ -740,11 +762,13 @@ $villeHtmlS = ville_departement_canton_html(
 <div class="card card-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+        <?php if ($peutEcrireBooking): ?>
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="structure-via-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
             <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
         </div>
+        <?php endif; ?>
     </div>
     <?php if (($_GET['ok'] ?? null) === 'via'): ?><p class="ok flash">Enregistré.</p><?php endif; ?>
     <div class="card-disp">
@@ -772,6 +796,7 @@ $villeHtmlS = ville_departement_canton_html(
     <?php if (!empty($structure['mise_a_jour_le'])): ?>
         <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
     <?php endif; ?>
+    <?php if ($peutEcrireBooking): ?>
     <form method="post" action="?p=structure_note_ajouter" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
@@ -781,6 +806,7 @@ $villeHtmlS = ville_departement_canton_html(
             <button type="submit" class="btn ghost btn-sm"><?= icon('message-square') ?> Ajouter</button>
         </div>
     </form>
+    <?php endif; ?>
     <div class="mt-16">
         <?php if ($notes): ?>
             <?php $notesRecentes = array_slice($notes, 0, 2); $notesReste = array_slice($notes, 2); ?>

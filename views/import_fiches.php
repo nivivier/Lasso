@@ -8,7 +8,7 @@
 // formats acceptés, boutons) change selon la sélection. Chaque route de
 // traitement reste distincte (import_fiches / import_factures / …).
 $types = [];
-if (module_actif('salaires')) {
+if (module_actif('salaires') && peut_ecrire('salaires')) {
     $types['fiches'] = [
         'libelle' => 'Fiches de salaire (JSON)',
         'action'  => '?p=import_fiches',
@@ -18,7 +18,7 @@ if (module_actif('salaires')) {
         'confirm' => 'Importer réellement les fiches nouvelles ?',
     ];
 }
-if (module_actif('facturation')) {
+if (module_actif('facturation') && peut_ecrire('facturation')) {
     $types['factures'] = [
         'libelle' => 'Factures (JSON)',
         'action'  => '?p=import_factures',
@@ -28,7 +28,7 @@ if (module_actif('facturation')) {
         'confirm' => 'Importer réellement les factures nouvelles ?',
     ];
 }
-if (module_actif('compta')) {
+if (module_actif('compta') && peut_ecrire('compta')) {
     $types['ecritures'] = [
         'libelle' => 'Écritures bancaires (CSV / XML camt.053)',
         'action'  => '?p=import_ecritures',
@@ -38,7 +38,7 @@ if (module_actif('compta')) {
         'confirm' => 'Importer réellement ces écritures ?',
     ];
 }
-if (module_actif('evenements')) {
+if (module_actif('evenements') && peut_ecrire('evenements')) {
     $types['evenements'] = [
         'libelle' => 'Événements (CSV)',
         'action'  => '?p=import_evenements',
@@ -48,7 +48,7 @@ if (module_actif('evenements')) {
         'confirm' => 'Importer réellement les événements nouveaux ?',
     ];
 }
-if (module_actif('booking')) {
+if (module_actif('booking') && peut_ecrire('booking')) {
     $types['structures'] = [
         'libelle' => 'Structures — carnet d\'adresses (CSV)',
         'action'  => '?p=import_structures',
@@ -70,6 +70,9 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 
+<?php if (!$types): ?>
+<p class="muted">Vous n'avez pas les droits d'écriture nécessaires pour importer des données.</p>
+<?php else: ?>
 <div class="card form" id="import-unifie" data-type-actif="<?= e((string) $typeActif) ?>">
     <h2 class="mt-0">Importer des données</h2>
     <form method="post" action="?p=import_fiches" enctype="multipart/form-data" id="import-form">
@@ -115,8 +118,9 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
         <noscript><p class="warn">JavaScript est requis pour choisir le type de données (sans lui, le formulaire importe des fiches de salaire).</p></noscript>
     </form>
 </div>
+<?php endif; ?>
 
-<?php if (module_actif('booking')): ?>
+<?php if (module_actif('booking') && peut_ecrire('booking')): ?>
 <div class="card form mt-22 import-extra" data-for="structures" hidden>
     <h3 class="sub no-mt">Liste « ne pas contacter » (structures)</h3>
     <p class="muted small">Une adresse par ligne — désinscrit immédiatement du mailing, sans jamais pouvoir être réimportée par erreur.</p>

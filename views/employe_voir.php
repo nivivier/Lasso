@@ -9,6 +9,7 @@
     <h1><?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
         <?php if (!$emp['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
     </h1>
+    <?php if (peut_ecrire('salaires')): ?>
     <div class="head-actions">
         <a class="btn ghost" href="?p=employe&id=<?= (int) $emp['id'] ?>"><?= icon('pencil') ?> Modifier l'employé</a>
         <?php if (!$fiches): ?>
@@ -19,6 +20,7 @@
             </form>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
 </div>
 
 <div class="card mb-22">
@@ -41,7 +43,9 @@
         <?php if ($fiches): ?>
             <a class="btn ghost" href="?p=certificat&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-text') ?> Certificat de salaire</a>
         <?php endif; ?>
+        <?php if (peut_ecrire('salaires')): ?>
         <a class="btn" href="?p=fiche_new&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-plus') ?> Nouvelle fiche</a>
+        <?php endif; ?>
     </div>
 </div>
 

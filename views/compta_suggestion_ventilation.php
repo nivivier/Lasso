@@ -21,6 +21,9 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     </div>
 </div>
 
+<?php if (!peut_ecrire('analytique')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <!-- Étape 1 : liste des écritures de charges sociales non ventilées -->
 <div class="section-head"><h2>Écriture à ventiler</h2></div>
 <?php if (!$ecritures): ?>
@@ -371,4 +374,5 @@ $_axesJson   = json_encode(array_values(array_map(
     }
 })();
 </script>
+<?php endif; ?>
 <?php endif; ?>

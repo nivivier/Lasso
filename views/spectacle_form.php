@@ -23,6 +23,9 @@ foreach (plan_liste_ordonnee($map) as $r) {
     <h1><?= $isEdit ? 'Modifier le ' . e($termeSingulier) : 'Nouveau ' . e($termeSingulier) ?></h1>
 </div>
 
+<?php if (!peut_ecrire('evenements')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
 <form method="post" action="?p=spectacle<?= $isEdit ? '&id=' . (int) $spectacle['id'] : '' ?>" class="card form" enctype="multipart/form-data">
@@ -57,3 +60,4 @@ foreach (plan_liste_ordonnee($map) as $r) {
         <a class="btn ghost" href="?p=spectacles">Annuler</a>
     </div>
 </form>
+<?php endif; ?>

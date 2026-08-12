@@ -58,7 +58,9 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <h1><?= $edit ? 'Modifier la facture' : 'Nouvelle facture' ?></h1>
 </div>
 
-<?php if (!$comptes): ?>
+<?php if (!peut_ecrire('facturation')): ?>
+    <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php elseif (!$comptes): ?>
     <p class="muted">Aucun compte bancaire. Ajoutez-en un dans <a href="?p=compta_comptes">Comptes bancaires</a> d'abord.</p>
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>

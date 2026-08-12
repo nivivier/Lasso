@@ -96,13 +96,16 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             <a class="btn ghost" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
                 <?= icon('download') ?> <span class="lbl">Export SUISA</span>
             </a>
+            <?php if (peut_ecrire('evenements')): ?>
             <a class="btn" href="?p=evenement"><?= icon('calendar-plus') ?><span class="lbl"> Nouvel événement</span></a>
+            <?php endif; ?>
         </div>
     </div>
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_evenements_carte.php'; ?>
 <?php else: ?>
+<?php if (peut_ecrire('evenements')): ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=evenements_liste">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -178,12 +181,13 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
     </form>
 </div>
+<?php endif; ?>
 <div class="table-scroll">
 <table class="list list-wide evenements-liste">
-    <?php $nbCols = 8; ?>
+    <?php $nbCols = 8 - (peut_ecrire('evenements') ? 0 : 1); ?>
     <thead>
         <tr>
-            <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
+            <?php if (peut_ecrire('evenements')): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <th class="col-date">
                 <span class="col-th">
                     Date
@@ -252,7 +256,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             $festivalSalle = implode(', ', array_filter([$ev['festival'], $ev['salle']], fn ($v) => $v !== ''));
         ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
-            <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td>
+            <?php if (peut_ecrire('evenements')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
             <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
             <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
@@ -277,6 +281,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <script>
 (function () {
     const bulkBar = document.getElementById('bulk-bar');
+    if (bulkBar) {
     function updateBulkBar() {
         bulkBar.hidden = document.querySelectorAll('.row-check:checked').length === 0;
     }
@@ -320,6 +325,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             e.preventDefault();
         }
     });
+    }
 
     // Recherche : voir lassoRechercheServeur() (assets/app.js) — paginée côté
     // serveur, sinon une recherche ne porterait que sur la page déjà chargée.

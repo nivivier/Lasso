@@ -21,9 +21,11 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
                 <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
             </label>
         </form>
+        <?php if (peut_ecrire('facturation')): ?>
         <div class="head-actions">
             <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
         </div>
+        <?php endif; ?>
     </div>
 
 <?php $nbCols = 6 + ($avecEvenements ? 1 : 0); ?>

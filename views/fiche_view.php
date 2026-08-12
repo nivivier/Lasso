@@ -22,16 +22,19 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <h1>Fiche · <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></h1>
     <div class="head-actions">
 
+        <?php if (peut_ecrire('salaires')): ?>
         <?php if (!empty($modifiable)): ?>
             <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?><?= $depuisQs ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
         <?php else: ?>
             <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
+        <?php endif; ?>
         <?php endif; ?>
         <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
         <?php
         $envoyee = trim((string) ($f['email_envoye_le'] ?? '')) !== '';
         $peutEnvoyer = filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) && filter_var($emailExp, FILTER_VALIDATE_EMAIL);
         ?>
+        <?php if (peut_ecrire('salaires')): ?>
         <?php if ($peutEnvoyer): ?>
             <form method="post" action="?p=fiche_email<?= $depuisQs ?>" class="d-inline"
                   onsubmit="return confirm('Envoyer cette fiche par e-mail à <?= e($emailEmploye) ?> ?');">
@@ -45,14 +48,17 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 <?= icon('mail') ?> <span class="lbl">Envoyer</span>
             </button>
         <?php endif; ?>
+        <?php endif; ?>
         <?php if ($envoyee): ?>
             <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?> <span class="lbl">Envoyée</span></span>
         <?php endif; ?>
+        <?php if (peut_ecrire('salaires')): ?>
         <form method="post" action="?p=fiche_delete" onsubmit="return confirm('Supprimer définitivement cette fiche ?');" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la fiche"><?= icon('trash') ?></button>
         </form>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -63,6 +69,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         </div>
     </div>
     <aside class="fiche-aside">
+        <?php if (peut_ecrire('salaires')): ?>
         <form method="post" action="?p=fiche_date<?= $depuisQs ?>" class="paiement-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
@@ -76,7 +83,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             </div>
 
         </form>
-        
+
                     <h2>Affichage avancé</h2>
                 <form method="post" action="?p=fiche_cout<?= $depuisQs ?>" id="cout-form" class="cout-toggle">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -88,6 +95,10 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 Coût employeur
             </label>
         </form>
+        <?php else: ?>
+        <h2>Date de paiement</h2>
+        <p><?= !empty($f['date_paiement']) ? e(date('d.m.Y', strtotime((string) $f['date_paiement']))) : '<span class="muted">À payer</span>' ?></p>
+        <?php endif; ?>
     </aside>
 </div>
 <?php if (!empty($axes)): ?>

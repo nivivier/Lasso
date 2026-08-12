@@ -23,6 +23,9 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
         <p class="muted small"><span class="badge warn-badge">Année <?= $annee ?> non encore configurée</span> — valeurs reprises de l'année précédente (ou par défaut). Enregistrez pour les fixer.</p>
     <?php endif; ?>
 
+    <?php if (!peut_ecrire('salaires')): ?>
+    <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour modifier les taux.</p>
+    <?php else: ?>
     <form method="post" action="?p=taux">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="annee" value="<?= $annee ?>">
@@ -83,4 +86,5 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
             <button type="submit"><?= icon('save') ?> Enregistrer les taux <?= $annee ?></button>
         </div>
     </form>
+    <?php endif; ?>
 </div>

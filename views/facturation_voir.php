@@ -39,6 +39,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <h1>Facture <?= $numeroAffiche ?></h1>
     <div class="head-actions">
         <?php if ($brouillon): ?>
+            <?php if (peut_ecrire('facturation')): ?>
             <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
             <form method="post" action="?p=facture_emettre<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Émettre cette facture ? Le numéro et la référence de paiement seront figés.');">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -50,11 +51,13 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                 <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
             </form>
+            <?php endif; ?>
         <?php else: ?>
             <a class="btn ghost" href="?p=facture_pdf&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu / PDF"><?= icon('eye') ?> <span class="lbl">PDF</span></a>
             <?php if ($statutEffectif === 'en_retard'): ?>
                 <a class="btn ghost" href="?p=facture_rappel&id=<?= (int) $f['id'] ?>" data-preview target="_blank"><?= icon('mail') ?> <span class="lbl">Lettre de rappel</span></a>
             <?php endif; ?>
+            <?php if (peut_ecrire('facturation')): ?>
             <?php if ($peutEmail): ?>
                 <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -68,6 +71,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn danger">Annuler</button>
                 </form>
+            <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>
     </div>
@@ -138,7 +142,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     </div>
 </div>
 </div>
-<?php if ($peutPayer || module_actif('evenements')): ?>
+<?php if (($peutPayer || module_actif('evenements')) && peut_ecrire('facturation')): ?>
 <aside class="fiche-aside facture-aside">
     <?php if ($peutPayer): ?>
     <form method="post" action="?p=facture_payee<?= $depuisQs ?>" class="paiement-form">
@@ -213,7 +217,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php endif; ?>
 </div>
 </div></div>
-<?php if ($peutPayer && $ecrituresLibres): ?>
+<?php if ($peutPayer && $ecrituresLibres && peut_ecrire('facturation')): ?>
 <script>
 (function () {
     const wrap = document.querySelector('.ecr-search');
@@ -261,7 +265,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 })();
 </script>
 <?php endif; ?>
-<?php if (module_actif('evenements')): ?>
+<?php if (module_actif('evenements') && peut_ecrire('facturation')): ?>
 <script>
 (function () {
     const btn = document.querySelector('.evenement-edit-btn');

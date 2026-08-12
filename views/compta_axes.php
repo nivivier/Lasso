@@ -1,14 +1,17 @@
 <?php
 /** @var array $axes */ /** @var bool $saved */
+$peutEcrireAxes = peut_ecrire('analytique');
 ?>
 <div class="page-head">
     <div>
         <?= lien_retour('?p=compta_analyse', 'Analyse') ?>
         <h1>Axes analytiques</h1>
     </div>
+    <?php if ($peutEcrireAxes): ?>
     <div class="head-actions">
         <button type="button" id="btn-new-axe" class="btn"><?= icon('plus') ?><span class="lbl"> Ajouter un axe</span></button>
     </div>
+    <?php endif; ?>
 </div>
 <?php if ($saved): ?><p class="ok flash">Axe enregistré.</p><?php endif; ?>
 
@@ -22,6 +25,7 @@
         <?php foreach ($axes as $a): ?>
             <tr>
                 <td class="td-toggle">
+                    <?php if ($peutEcrireAxes): ?>
                     <form method="post" action="?p=compta_axes">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="toggle_actif">
@@ -32,6 +36,9 @@
                             <span class="regle-toggle-pill"></span>
                         </label>
                     </form>
+                    <?php else: ?>
+                    <span class="badge <?= $a['actif'] ? 'ok-badge' : 'muted-badge' ?>"><?= $a['actif'] ? 'Actif' : 'Inactif' ?></span>
+                    <?php endif; ?>
                 </td>
                 <td>
                     <div class="axe-read">
@@ -39,6 +46,7 @@
                         <?php if ($a['code']): ?><span class="muted small"> · <?= e($a['code']) ?></span><?php endif; ?>
                         <?php if (!$a['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
                     </div>
+                    <?php if ($peutEcrireAxes): ?>
                     <form method="post" action="?p=compta_axes" class="inline-edit axe-edit-form" hidden>
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="update">
@@ -47,8 +55,10 @@
                         <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban input-code" title="Code court optionnel (ex. LAB, TOU, STA)" aria-label="Code court">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
+                    <?php endif; ?>
                 </td>
                 <td class="actions nowrap">
+                    <?php if ($peutEcrireAxes): ?>
                     <form method="post" action="?p=compta_axes" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="move_up">
@@ -69,6 +79,7 @@
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>

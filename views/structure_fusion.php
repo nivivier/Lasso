@@ -13,6 +13,9 @@
     <strong>définitivement supprimées</strong>.
 </p>
 
+<?php if (!(peut_ecrire('facturation') || peut_ecrire('booking'))): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <form method="post" action="?p=structure_fusion" class="form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php foreach ($candidats as $c): ?>
@@ -41,3 +44,4 @@
         <a class="btn ghost" href="?p=structures">Annuler</a>
     </div>
 </form>
+<?php endif; ?>

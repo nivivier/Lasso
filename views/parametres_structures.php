@@ -29,6 +29,8 @@ $parentOptions = function (?int $selected) use ($map): string {
     jour les structures qui l'utilisent déjà.
 </p>
 
+<?php $peutEcrireCat = peut_ecrire('booking'); ?>
+<?php if ($peutEcrireCat): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=parametres_structures" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -37,15 +39,18 @@ $parentOptions = function (?int $selected) use ($map): string {
     <input type="hidden" name="parent_id" value="">
     <input type="hidden" name="order" value="">
 </form>
+<?php endif; ?>
 
 <div class="section-head mt-0">
     <h2 class="mt-0">Catégories</h2>
+    <?php if ($peutEcrireCat): ?>
     <form method="post" action="?p=parametres_structures" class="d-inline ml-auto">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="sync">
         <button type="submit" class="btn ghost btn-sm" title="Ajouter à la taxonomie les sous-catégories présentes sur des structures (import) mais manquantes ici"><?= icon('calendar-sync') ?> Synchroniser depuis les structures</button>
     </form>
     <button type="button" class="btn btn-sm" data-show="cat-add"><?= icon('plus') ?> Nouvelle catégorie</button>
+    <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="categories-card">
 <table class="list mb-16 plan-table">
@@ -61,6 +66,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                     <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                     <span class="plan-puce" aria-hidden="true"><?= $c['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                     <span class="plan-nom"><?= e($c['nom']) ?></span>
+                    <?php if ($peutEcrireCat): ?>
                     <form method="post" action="?p=parametres_structures" class="inline-edit plan-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
@@ -73,12 +79,14 @@ $parentOptions = function (?int $selected) use ($map): string {
                         <?php endif; ?>
                         <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
+                    <?php endif; ?>
                     <?php if ($nbUsage > 0): ?>
                         <a class="badge muted-badge" href="?p=structures&categorie_id=<?= $cid ?>&statut=tous"><?= $nbUsage ?> structure<?= $nbUsage > 1 ? 's' : '' ?></a>
                     <?php endif; ?>
                 </div>
             </td>
             <td class="actions nowrap">
+                <?php if ($peutEcrireCat): ?>
                 <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
                 <form method="post" action="?p=parametres_structures" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -98,6 +106,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                 <button type="button" class="btn ghost btn-sm icon-only cat-del-btn" title="Supprimer" aria-label="Supprimer"
                         data-id="<?= $cid ?>" data-nom="<?= e($c['nom']) ?>" data-nb="<?= $nbUsage ?>"
                         data-kind="<?= $estRacine ? 'root' : 'sub' ?>" data-parent="<?= (int) plan_pid($c['parent_id'] ?? null) ?>"><?= icon('trash') ?></button>
+                <?php endif; ?>
                 <?php endif; ?>
             </td>
         </tr>

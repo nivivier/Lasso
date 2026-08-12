@@ -26,12 +26,14 @@
             <td><?= e($x['email']) ?></td>
             <td class="muted small"><?= e(date('d.m.Y', strtotime($x['cree_le']))) ?></td>
             <td class="actions">
+                <?php if (peut_ecrire('booking')): ?>
                 <form method="post" action="?p=mailing_exclusions" class="d-inline" onsubmit="return confirm('Retirer cette adresse de la liste d\'exclusion ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="retirer">
                     <input type="hidden" name="id" value="<?= (int) $x['id'] ?>">
                     <button type="submit" class="btn ghost btn-sm icon-only" title="Retirer de la liste" aria-label="Retirer de la liste"><?= icon('trash') ?></button>
                 </form>
+                <?php endif; ?>
             </td>
         </tr>
     <?php endforeach; ?>

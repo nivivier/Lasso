@@ -96,13 +96,16 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
             </label>
         </form>
+        <?php if (peut_ecrire('compta')): ?>
         <div class="head-actions">
             <button type="button" id="btn-new-ecr" class="btn ghost btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
             <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
         </div>
+        <?php endif; ?>
     </div>
     <?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
 
+<?php if (peut_ecrire('compta')): ?>
 <!-- Formulaire écriture manuelle -->
 <div class="card form ecr-manuel-form" id="ecr-manuel-form" <?= $showForm ? '' : 'hidden' ?>>
     <h3 class="form-subtitle"><?= $isEdit ? 'Modifier l\'écriture' : 'Nouvelle écriture manuelle' ?></h3>
@@ -159,11 +162,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     </form>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <?php if (!$comptes): ?>
     <p class="muted">Aucun compte bancaire. Commencez par en <a href="?p=compta_comptes">créer un</a> puis <a href="?p=compta_import">importer</a> un export.</p>
 <?php else: ?>
 
+<?php if (peut_ecrire('compta')): ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -202,13 +207,14 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
     </form>
 </div>
+<?php endif; ?>
 
 <div class="table-scroll">
 <table class="list compta-lettrage">
-    <?php $nbCols = 6 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0); ?>
+    <?php $nbCols = 6 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
     <thead>
         <tr>
-            <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
+            <?php if (peut_ecrire('compta')): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <th class="col-date">
                 <span class="col-th">
                     Date
@@ -276,7 +282,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         $rowCatLeaf   = $estIgnore ? 'Ne pas lettrer' : ($catLeafById[$pid] ?? '');
         ?>
         <tr class="<?= $estNonLettre ? 'non-lettre' : '' ?><?= $estIgnore ? ' ecr-ignore' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
-            <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td>
+            <?php if (peut_ecrire('compta')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteColVisible): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <td class="texte-cell" title="<?= e($ecr['texte']) ?>">
@@ -287,6 +293,10 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </td>
             <td class="num <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
             <td class="cat-cell">
+                <?php if (!peut_ecrire('compta')): ?>
+                    <?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?>
+                    <span><?= $rowCatVal !== '' ? e($rowCatLeaf) : '<span class="muted">— à lettrer —</span>' ?></span>
+                <?php else: ?>
                 <form method="post" action="?p=compta_ecritures<?= $qs ?>">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="lettrer">
@@ -305,6 +315,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —" value="">
                     <?php endif; ?>
                 </form>
+                <?php endif; ?>
             </td>
             <?php if ($axes):
                 $vents   = $ventilationsParEcr[(int) $ecr['id']] ?? [];
@@ -316,7 +327,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 data-ecr-montant="<?= (float) $ecr['montant'] ?>"
                 data-ventilations="<?= e(json_encode(array_values($vents), JSON_UNESCAPED_UNICODE)) ?>">
                 <div class="axe-disp">
-                    <?php if ($nVents === 0): ?>
+                    <?php if (!peut_ecrire('analytique')): ?>
+                        <span class="axe-disp-txt muted small"><?= $dispTxt !== '' ? $dispTxt : '—' ?></span>
+                    <?php elseif ($nVents === 0): ?>
                         <select class="axe-inline-sel" title="Axe analytique"><option value="">— Axe —</option><?= $axeOptsHtml ?></select>
                         <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe"><?= icon('plus') ?></button>
                     <?php elseif ($nVents === 1): ?>
@@ -331,12 +344,14 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </td>
             <?php endif; ?>
             <td class="actions">
+                <?php if (peut_ecrire('compta')): ?>
                 <?php if ($isManuel): ?>
                     <a class="btn ghost btn-sm icon-only" title="Modifier cette écriture" aria-label="Modifier cette écriture"
                        href="?p=compta_ecritures<?= $qs ?>&edit=<?= (int) $ecr['id'] ?>"><?= icon('pencil') ?></a>
                 <?php else: ?>
                     <a class="btn ghost btn-sm icon-only" title="Créer une règle depuis cette écriture" aria-label="Créer une règle depuis cette écriture"
                        href="?p=compta_regles&motif=<?= urlencode($ecr['texte']) ?>&compte=<?= (int) $ecr['compte_bancaire_id'] ?>"><?= icon('tag') ?></a>
+                <?php endif; ?>
                 <?php endif; ?>
             </td>
         </tr>

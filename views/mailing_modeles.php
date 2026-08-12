@@ -4,6 +4,9 @@
 
 <?php if ($saved): ?><p class="ok flash">Modèles mis à jour.</p><?php endif; ?>
 
+<?php if (!peut_ecrire('booking')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <div class="card form">
     <div class="section-head mt-0">
         <h2 class="mt-0">Modèles de message</h2>
@@ -54,3 +57,4 @@
         <?php endforeach; ?>
     <?php endif; ?>
 </div>
+<?php endif; ?>

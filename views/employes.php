@@ -10,9 +10,11 @@
             <input type="search" id="employes-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
         </label>
         <?php endif; ?>
+        <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
             <a class="btn" href="?p=employe" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
         </div>
+        <?php endif; ?>
     </div>
 
 <?php if (!$employes): ?>

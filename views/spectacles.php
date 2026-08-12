@@ -38,11 +38,15 @@ $parentOptions = function (int $excludeId) use ($map): string {
                                 data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
                                 title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?><span class="lbl"> Sync iCal</span></button>
             <?php endif; ?>
+            <?php if (peut_ecrire('evenements')): ?>
             <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
+            <?php endif; ?>
         </div>
     </div>
     <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 
+<?php $peutEcrireSpec = peut_ecrire('evenements'); ?>
+<?php if ($peutEcrireSpec): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=spectacles" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -51,9 +55,11 @@ $parentOptions = function (int $excludeId) use ($map): string {
     <input type="hidden" name="parent_id" value="">
     <input type="hidden" name="order" value="">
 </form>
+<?php endif; ?>
 
 <?php if (!$lignes): ?>
     <p class="muted">Aucun <?= e($termeSingulier) ?> pour l'instant. Commencez par en ajouter un.</p>
+    <?php if ($peutEcrireSpec): ?>
     <form method="post" action="?p=spectacles" class="inline-edit card form" id="spectacle-add" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="add">
@@ -61,6 +67,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
         <button type="button" class="btn ghost btn-sm" data-hide="spectacle-add"><?= icon('x') ?> Annuler</button>
     </form>
+    <?php endif; ?>
 <?php else: ?>
 <div class="form table-scroll" id="spectacles-card">
     <table class="list mb-16 plan-table spectacles-table">
@@ -88,6 +95,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                         <span class="plan-grip" draggable="true" onclick="event.stopPropagation()" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                         <span class="plan-puce" aria-hidden="true"><?= $s['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                         <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?>"><?= e($s['nom']) ?></a>
+                        <?php if ($peutEcrireSpec): ?>
                         <form method="post" action="?p=spectacles" class="inline-edit plan-edit">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="section" value="rename">
@@ -95,6 +103,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                             <input name="nom" value="<?= e($s['nom']) ?>" class="grow plan-libelle" required aria-label="Nom du spectacle">
                             <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                         </form>
+                        <?php endif; ?>
                         <?php if ($s['suisa_feuille_fichier']): ?>
                             <a class="muted small" href="<?= e($s['suisa_feuille_fichier']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()">PDF</a>
                         <?php endif; ?>
@@ -110,9 +119,11 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
                             data-url="<?= e(evenements_export_url('evenements_ical', $token, $sid)) ?>"
                             title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
+                    <?php if ($peutEcrireSpec): ?>
                     <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
-                    <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?>" title="Modifier (notes, PDF, parent)" aria-label="Modifier"><?= icon('file-text') ?></a>
-                    <?php if (!$s['a_enfants'] && $total === 0): ?>
+                    <?php endif; ?>
+                    <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
+                    <?php if ($peutEcrireSpec && !$s['a_enfants'] && $total === 0): ?>
                     <form method="post" action="?p=spectacle_delete" onsubmit="return confirm('Supprimer ce <?= e($termeSingulier) ?> ?');" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= $sid ?>">

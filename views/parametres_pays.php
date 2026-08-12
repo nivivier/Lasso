@@ -17,6 +17,8 @@ $paysOptions = function (?int $selected) use ($map): string {
 <?php if ($err === 'used'): ?><p class="err flash">Suppression impossible : ce pays a encore des régions, est utilisé par une structure / un lieu / l'employeur, ou c'est le dernier pays restant.</p><?php endif; ?>
 <?php if ($err === 'region_used'): ?><p class="err flash">Suppression impossible : au moins une fiche utilise cette région — réaffectez-la d'abord.</p><?php endif; ?>
 
+<?php $peutEcrirePays = peut_ecrire('coeur'); ?>
+<?php if ($peutEcrirePays): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=parametres_pays" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -25,13 +27,16 @@ $paysOptions = function (?int $selected) use ($map): string {
     <input type="hidden" name="parent_id" value="">
     <input type="hidden" name="order" value="">
 </form>
+<?php endif; ?>
 
 <div class="section-head mt-0">
     <h2 class="mt-0">Pays &amp; régions <?= info_tip("Liste de pays commune à toute l'application (structures, salles/festivals, employeur,
     événements, factures). Les régions (Normandie, Romandie, Acadie…) sont des sous-entrées d'un pays :
     glissez une ligne pour la réordonner ou la déplacer. Renommer un pays ou une région met aussi à jour
     les fiches qui l'utilisent déjà.") ?> </h2>
+    <?php if ($peutEcrirePays): ?>
     <button type="button" class="btn btn-sm ml-auto" data-show="pays-add"><?= icon('plus') ?> Nouveau pays / région</button>
+    <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="pays-card">
 <table class="list mb-16 plan-table">
@@ -47,6 +52,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                     <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                     <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                     <span class="plan-nom"><?= $estPays ? pays_drapeau((string) ($p['code_iso2'] ?? '')) . ' ' : '' ?><?= e($p['nom']) ?></span>
+                    <?php if ($peutEcrirePays): ?>
                     <form method="post" action="?p=parametres_pays" class="inline-edit plan-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
@@ -61,9 +67,11 @@ $paysOptions = function (?int $selected) use ($map): string {
                         <?php endif; ?>
                         <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
+                    <?php endif; ?>
                 </div>
             </td>
             <td class="actions nowrap">
+                <?php if ($peutEcrirePays): ?>
                 <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
                 <form method="post" action="?p=parametres_pays" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -83,6 +91,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                 <button type="button" class="btn ghost btn-sm icon-only region-del-btn" title="Supprimer" aria-label="Supprimer"
                         data-id="<?= $pid ?>" data-nom="<?= e($p['nom']) ?>" data-nb="<?= $nbUsage ?>"
                         data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>"><?= icon('trash') ?></button>
+                <?php endif; ?>
                 <?php endif; ?>
             </td>
         </tr>

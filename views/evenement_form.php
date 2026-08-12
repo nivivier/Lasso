@@ -6,6 +6,7 @@
 /** @var array $structuresLiees */
 /** @var array $paysDisponibles */ /** @var array $axes */ /** @var ?string $err */ /** @var array $post */
 $isEdit = $id > 0;
+$peutEcrireEv = peut_ecrire('evenements');
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
 $vRaw = fn (string $k, $d = '') => (string) ($post[$k] ?? $evenement[$k] ?? $d);
 $retour = $isEdit ? '?p=evenement&id=' . (int) $id : '?p=evenements_liste';
@@ -72,7 +73,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <div class="module-content"><div class="module-content-inner">
 <div class="page-head">
     <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
-    <?php if ($isEdit): ?>
+    <?php if ($isEdit && $peutEcrireEv): ?>
     <div class="head-actions">
         <form method="post" action="?p=evenement_delete" class="d-inline" onsubmit="return confirm(<?= e(json_encode($confirmSuppr, JSON_UNESCAPED_UNICODE)) ?>);">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -86,7 +87,9 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<?php if (!$isEdit): ?>
+<?php if (!$isEdit && !$peutEcrireEv): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php elseif (!$isEdit): ?>
 <!-- Création : formulaire unique, inchangé — le multi-cadre lecture/édition
      ci-dessous n'a de sens qu'une fois l'événement déjà renseigné. -->
 <div class="card">
@@ -169,11 +172,13 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <div class="grid3">
 <?php $statutCardClass = match ((string) $evenement['statut']) { 'confirme' => 'card-statut-confirme', 'annule' => 'card-statut-annule', default => 'card-statut-option' }; ?>
 <div class="card card-editable <?= $statutCardClass ?>" id="carte-informations">
+    <?php if ($peutEcrireEv): ?>
     <div class="head-actions card-actions-overlay">
         <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
         <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
         <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
     </div>
+    <?php endif; ?>
     <?php if ($ok === 'informations'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
     <?php if ($errInformationsMsg): ?><p class="err"><?= e($errInformationsMsg) ?></p><?php endif; ?>
 
@@ -258,11 +263,13 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <div><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></div>
             <?php if (trim((string) $evenement['grande_region']) !== ''): ?><div class="muted small"><?= e($evenement['grande_region']) ?></div><?php endif; ?>
         </div>
+        <?php if ($peutEcrireEv): ?>
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
             <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="card-disp">
@@ -310,11 +317,13 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <div class="card card-editable" id="carte-organisation">
     <div class="page-head">
         <h2 class="mt-0">Organisation</h2>
+        <?php if ($peutEcrireEv): ?>
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="organisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
             <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
         </div>
+        <?php endif; ?>
     </div>
     <?php if ($ok === 'organisation'): ?><p class="ok flash">Organisation enregistrée.</p><?php endif; ?>
     <?php if ($errOrganisation): ?><p class="err">Le nom de la nouvelle structure est obligatoire.</p><?php endif; ?>
@@ -381,6 +390,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             . "prestation depuis un seul des événements de la tournée et liez les autres depuis "
             . "la fiche elle-même."
         ) ?></h2>
+        <?php if ($peutEcrireEv): ?>
         <div class="head-actions">
             <form method="post" action="?p=evenement_production_externe<?= $depuisQs ?>" id="prod-externe-form">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -403,6 +413,9 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                 </form>
             <?php endif; ?>
         </div>
+        <?php elseif ($prodExterne): ?>
+        <span class="badge">Production externe</span>
+        <?php endif; ?>
     </div>
     <?php if ($errLigne === '1'): ?><p class="err">Prestation invalide : vérifiez l'unité, la quantité et le taux horaire.</p><?php endif; ?>
     <?php if ($errLigne === 'payee'): ?><p class="err">La fiche de ce mois a déjà été payée : créez plutôt une fiche complémentaire depuis « Fiches de salaire ».</p><?php endif; ?>
@@ -422,12 +435,14 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                 <tr>
                     <td><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
                     <td class="epf-actions-cell">
+                        <?php if ($peutEcrireEv): ?>
                         <form method="post" action="?p=evenement_employe_delier<?= $depuisQs ?>" onsubmit="return confirm('Retirer cet employé de l\'événement ?');">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="employe_id" value="<?= (int) $emp['id'] ?>">
                             <button type="submit" class="btn ghost btn-sm icon-only" title="Retirer l'employé" aria-label="Retirer l'employé"><?= icon('trash') ?></button>
                         </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -506,6 +521,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                         </td>
                         <td class="num"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
                         <td class="epf-actions-cell">
+                            <?php if ($peutEcrireEv): ?>
                             <form id="<?= e($formId) ?>" method="post" action="?p=evenement_ligne_ajouter<?= $depuisQs ?>">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="id" value="<?= (int) $id ?>">
@@ -516,6 +532,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                                 <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation"<?= $ligne ? ' hidden' : '' ?>><?= icon('save') ?></button>
                                 <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier<?= $depuisQs ?>" class="btn ghost btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
                             </div>
+                            <?php endif; ?>
                         </td>
                     <?php endif; ?>
                 </tr>
@@ -531,12 +548,15 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
     <div class="page-head">
         <h2 class="mt-0">SUISA <?= evenement_suisa_badge($evenement) ?></h2>
+        <?php if ($peutEcrireEv): ?>
         <label class="check">
             <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" form="suisa-form" <?= $suisaApplicable ? 'checked' : '' ?>>
             s'applique
         </label>
+        <?php endif; ?>
     </div>
     <?php if ($ok === 'suisa'): ?><p class="ok flash">SUISA enregistré.</p><?php endif; ?>
+    <?php if ($peutEcrireEv): ?>
     <form method="post" id="suisa-form" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
@@ -559,12 +579,14 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
         </div>
     </form>
+    <?php endif; ?>
 </div>
 
 <?php if ($axes): ?>
 <div class="card">
     <h2 class="mt-0">Comptabilité analytique</h2>
     <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
+    <?php if ($peutEcrireEv): ?>
     <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" class="form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
@@ -579,13 +601,14 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 
 <div class="card">
     <div class="page-head">
         <h2 class="mt-0">Factures liées</h2>
-        <?php if (module_actif('facturation')): ?>
+        <?php if (module_actif('facturation') && peut_ecrire('facturation')): ?>
             <a class="btn ghost" href="?p=facturation_form&evenement_id=<?= (int) $id ?>"><?= icon('file-plus') ?> Créer</a>
         <?php endif; ?>
     </div>
@@ -602,19 +625,21 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                     <td class="num strong"><?= chf((float) $fa['montant_total']) ?></td>
                     <td><?= facturation_badge($fa) ?></td>
                     <td>
+                        <?php if ($peutEcrireEv): ?>
                         <form method="post" action="?p=evenement_facture_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cette facture de l\'événement ?');">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="facture_id" value="<?= (int) $fa['id'] ?>">
                             <button type="submit" class="btn ghost btn-sm" title="Délier" aria-label="Délier"><?= icon('x') ?></button>
                         </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
     <?php endif; ?>
-    <?php if (module_actif('facturation') && $facturesDispo): ?>
+    <?php if (module_actif('facturation') && $facturesDispo && $peutEcrireEv): ?>
         <form method="post" action="?p=evenement_facture_lier<?= $depuisQs ?>" class="linked-add mt-18">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">

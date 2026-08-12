@@ -9,6 +9,10 @@ $isEdit = !empty($emp['id']);
     <h1><?= $isEdit ? 'Modifier l\'employé' : 'Nouvel employé' ?></h1>
 </div>
 
+
+<?php if (!peut_ecrire('salaires')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
 <form method="post" action="?p=employe<?= $isEdit ? '&id=' . (int) $emp['id'] : '' ?>" class="card form">
@@ -73,3 +77,4 @@ $isEdit = !empty($emp['id']);
         <a class="btn ghost" href="?p=employes">Annuler</a>
     </div>
 </form>
+<?php endif; ?>

@@ -51,6 +51,7 @@ $tousFiltres = ['categorie_id' => $categorieId, 'pays' => $pays, 'departement_ca
     'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche,
     'depuis' => (string) ($_GET['depuis'] ?? '')];
 $autresFiltres = autres_filtres_fn($tousFiltres);
+$peutEcrireStruct = peut_ecrire('facturation') || peut_ecrire('booking');
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php
@@ -141,7 +142,9 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
                 <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte"><?= icon('map') ?></a>
             </div>
+            <?php if ($peutEcrireStruct): ?>
             <a class="btn" href="?p=structure"><?= icon('house-plus') ?><span class="lbl"> Nouvelle structure</span></a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -149,6 +152,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php else: ?>
 <?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $tagId || $lieuFiltresActifs || $flag || $avecEvenements; ?>
+<?php if ($peutEcrireStruct): ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=structures">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -222,11 +226,12 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
     </form>
 </div>
-<?php $nbCols = 10 + (module_actif('evenements') ? 1 : 0); ?>
+<?php endif; ?>
+<?php $nbCols = 10 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1); ?>
 <div class="table-scroll">
 <table class="list list-wide">
     <thead><tr>
-        <th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th>
+        <?php if ($peutEcrireStruct): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
         <th class="col-petit">
             <span class="col-th">
                 Statut
@@ -283,10 +288,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
     <?php else: ?>
     <?php foreach ($structures as $d): ?>
         <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= $suffixeDepuis ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
-            <td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td>
+            <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td><?php endif; ?>
             <td><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
             <td>
-                <?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?>
+                <?php if ($peutEcrireStruct): ?><?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?><?php endif; ?>
                 <strong><?= e($d['nom']) ?></strong>
             </td>
             <td class="small">

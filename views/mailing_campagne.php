@@ -147,6 +147,7 @@ $critHiddenInputs = function (array $criteres): string {
 <div class="card">
     <div class="section-head mt-0">
         <h2 class="mt-0">Destinataires</h2>
+        <?php if (peut_ecrire('booking')): ?>
         <form method="post" action="?p=mailing_campagne" class="linked-add ml-auto" data-sync-criteres>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="ciblage_save">
@@ -154,6 +155,7 @@ $critHiddenInputs = function (array $criteres): string {
             <input type="text" name="ciblage_nom" placeholder="Enregistrer ce ciblage sous… (ex. Festivals romands été)" required>
             <button type="submit" class="btn"><?= icon('save') ?></button>
         </form>
+        <?php endif; ?>
     </div>
 
     <?php if ($ciblages): ?>
@@ -162,12 +164,14 @@ $critHiddenInputs = function (array $criteres): string {
         <?php foreach ($ciblages as $cb): ?>
             <span class="badge">
                 <a href="?p=mailing_campagne&ciblage=<?= (int) $cb['id'] ?>"><?= e($cb['nom']) ?></a>
+                <?php if (peut_ecrire('booking')): ?>
                 <form method="post" action="?p=mailing_campagne" class="d-inline" onsubmit="return confirm('Supprimer le ciblage « <?= e($cb['nom']) ?> » ?');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="ciblage_delete">
                     <input type="hidden" name="id" value="<?= (int) $cb['id'] ?>">
                     <button type="submit" class="btn-tag-x" title="Supprimer ce ciblage" aria-label="Supprimer ce ciblage">×</button>
                 </form>
+                <?php endif; ?>
             </span>
         <?php endforeach; ?>
     </div>
@@ -247,6 +251,9 @@ $critHiddenInputs = function (array $criteres): string {
     <?php endif; ?>
 </div>
 
+<?php if (!peut_ecrire('booking')): ?>
+<p class="err mt-22">Vous n'avez pas les droits d'écriture nécessaires pour créer ou envoyer une campagne.</p>
+<?php else: ?>
 <div class="card mt-22">
     <div class="section-head mt-0">
         <h2 class="mt-0">Message</h2>
@@ -285,6 +292,7 @@ $critHiddenInputs = function (array $criteres): string {
         </div>
     </form>
 </div>
+<?php endif; ?>
 
 <script>
 (function () {

@@ -29,9 +29,11 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                 <input type="search" name="q" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
             </label>
         </form>
+        <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
             <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
         </div>
+        <?php endif; ?>
     </div>
 
 <?php $nbCols = 10 + ($axesParFiche ? 1 : 0); ?>

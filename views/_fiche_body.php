@@ -24,13 +24,17 @@ $evenementLienHtml = function (array $l) use ($impression, $f): string {
     return ' <a class="muted small" href="' . e(url_avec_retour('?p=evenement&id=' . (int) $l['evenement_id'], 'fiche', (int) $f['id'])) . '">(' . e($label) . ')</a>';
 };
 
-$axeCellHtml = function (array $l) use ($axes): string {
+$peutEcrireAxe = module_actif('analytique') && peut_ecrire('analytique');
+$axeCellHtml = function (array $l) use ($axes, $peutEcrireAxe): string {
     $axeId  = (int) ($l['axe_analytique_id'] ?? 0);
     $axeLib = '';
     foreach ($axes as $ax) {
         if ((int) $ax['id'] === $axeId) { $axeLib = $ax['code'] ?: $ax['libelle']; break; }
     }
     $hasAxeSet = $axeId && $axeLib !== '';
+    if (!$peutEcrireAxe) {
+        return '<td class="ligne-axe-cell">' . ($axeLib !== '' ? e($axeLib) : '<span class="muted">—</span>') . '</td>';
+    }
     $h  = '<td class="ligne-axe-cell" data-ligne-id="' . (int) $l['id'] . '">';
     $h .= '<div class="axe-disp"' . ($hasAxeSet ? '' : ' hidden') . '>';
     $h .= '<span class="axe-disp-txt">' . e($axeLib) . '</span>';

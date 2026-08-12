@@ -1,5 +1,6 @@
 <?php
 /** @var array $comptes */ /** @var ?string $err */ /** @var bool $saved */ /** @var ?string $flagErr */
+$peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Compte bancaire enregistré.</p><?php endif; ?>
@@ -8,9 +9,11 @@
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
+        <?php if ($peutEcrireComptes): ?>
         <div class="head-actions">
             <button type="button" id="btn-new-compte" class="btn"><?= icon('plus') ?><span class="lbl"> Ajouter un compte</span></button>
         </div>
+        <?php endif; ?>
     </div>
     <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
@@ -31,6 +34,7 @@
                             <span class="muted small"> · solde initial <?= chf((float) $c['solde_initial']) ?></span>
                         <?php endif; ?>
                     </div>
+                    <?php if ($peutEcrireComptes): ?>
                     <form method="post" action="?p=compta_comptes" class="inline-edit compte-edit-form" hidden>
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
@@ -40,8 +44,10 @@
                         <input name="solde_initial" type="number" step="0.01" value="<?= (float) $c['solde_initial'] ?>" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)" aria-label="Solde initial">
                         <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
+                    <?php endif; ?>
                 </td>
                 <td class="actions nowrap">
+                    <?php if ($peutEcrireComptes): ?>
                     <button type="button" class="btn ghost btn-sm icon-only compte-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                     <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
                     <form method="post" action="?p=compta_comptes" onsubmit="return confirm('Supprimer ce compte ?');" class="d-inline">
@@ -50,6 +56,7 @@
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>

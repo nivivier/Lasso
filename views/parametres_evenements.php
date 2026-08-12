@@ -3,6 +3,9 @@
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Paramètres enregistrés.</p><?php endif; ?>
 
+<?php if (!peut_ecrire('evenements')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <div class="card form">
     <h2 class="mt-0">Valeurs par défaut</h2>
     <form method="post" action="?p=parametres_evenements">
@@ -44,3 +47,4 @@
         </div>
     </form>
 </div>
+<?php endif; ?>

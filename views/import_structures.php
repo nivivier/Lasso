@@ -6,6 +6,9 @@
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <h2 class="mt-0">Importer un carnet d'adresses</h2>
 
+<?php if (!peut_ecrire('booking')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
 <?php if ($etape === 'upload'): ?>
@@ -120,4 +123,5 @@
     <p class="ok flash"><strong><?= (int) $nExclusion ?></strong> adresse(s) ajoutée(s) à la liste d'exclusion.</p>
     <a class="btn ghost" href="?p=import_structures">Retour à l'import</a>
 </div>
+<?php endif; ?>
 <?php endif; ?>

@@ -80,7 +80,9 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 
 <?php if (!empty($saved)): ?><p class="ok flash">✓ Fiche enregistrée avec succès.</p><?php endif; ?>
 
-<?php if (!$employes): ?>
+<?php if (!peut_ecrire('salaires')): ?>
+    <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php elseif (!$employes): ?>
     <p class="muted">Aucun employé actif. <a href="?p=employe">Ajoutez un employé</a> d'abord.</p>
 <?php elseif (!$unites): ?>
     <p class="muted">Aucune unité de temps définie. <a href="?p=employeur">Ajoutez au moins « Heure » (1 h)</a> d'abord.</p>

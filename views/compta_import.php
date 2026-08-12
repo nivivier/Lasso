@@ -7,6 +7,9 @@
 </div>
 <?php if ($okDel): ?><p class="ok flash">Import supprimé.</p><?php endif; ?>
 
+<?php if (!peut_ecrire('compta')): ?>
+<p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
+<?php else: ?>
 <div class="card form">
     <h2>Importer un relevé bancaire</h2>
     <p class="muted small">Téléversez un export PostFinance (CSV) ou un relevé <strong>ISO 20022 camt.053</strong> (XML). Le compte bancaire est reconnu automatiquement par son IBAN — <strong>s'il n'existe pas encore, vous pourrez lui donner un nom</strong> après avoir simulé l'import. Les doublons sont ignorés : vous pouvez réimporter ou ajouter des périodes qui se chevauchent sans risque. Les règles de lettrage sont appliquées automatiquement après l'import.</p>
@@ -60,4 +63,5 @@
     </table>
     </div>
 </div>
+<?php endif; ?>
 <?php endif; ?>
