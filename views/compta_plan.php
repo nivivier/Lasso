@@ -23,13 +23,10 @@ $flashErr = [
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
-<div class="page-head page-head-sub">
-    <?= lien_retour('?p=compta_bilan', 'Comptes annuels') ?>
-    <h1>Plan comptable</h1>
-</div>
 <?php if ($saved): ?><p class="ok flash">Plan comptable mis à jour.</p><?php endif; ?>
 <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 
+<div class="module-content"><div class="module-content-inner">
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=compta_plan" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -39,7 +36,7 @@ $flashErr = [
     <input type="hidden" name="order" value="">
 </form>
 
-<div class="card form" id="plan-card">
+<div class="form" id="plan-card">
     <?php foreach (['produit' => 'Produits (recettes)', 'charge' => 'Charges (dépenses)'] as $sens => $titre):
         $rows = array_values(array_filter($lignes, fn($l) => $l['sens'] === $sens)); ?>
     <div class="section-head <?= $sens === 'produit' ? 'mt-0' : '' ?>">
@@ -125,6 +122,7 @@ $flashErr = [
     </div>
     <?php endforeach; ?>
 </div>
+</div></div>
 
 <!-- Boîte de dialogue : suppression d'une catégorie contenant des écritures -->
 <div id="del-modal" class="modal-overlay" hidden>

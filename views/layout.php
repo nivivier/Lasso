@@ -1,6 +1,10 @@
 <?php /** @var string $pageTitle, $contentView */ $u = current_user(); $cur = $_GET['p'] ?? '';
 $nomEmployeur = param('employeur_nom') ?: 'Fiches de salaire';
 $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre');
+// Fond calculé (views/_wave_decor.php) tant qu'aucune image personnalisée
+// n'est configurée (?p=apparence) — sinon on garde l'image uploadée telle
+// quelle (body.has-sidebar::before, voir couleurs_css_vars()).
+$fondPersonnalise = param('employeur_fond', '') !== '';
 // Calculés ici (avant <head>, pas seulement pour la boucle du rail plus bas)
 // pour pouvoir injecter module_couleur_css_vars($navActif) dans <head>.
 $navGroupes = $u ? nav_groupes() : [];
@@ -21,6 +25,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 </head>
 <body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">
 <?php if ($u): ?>
+<?php if (!$fondPersonnalise) { require __DIR__ . '/_wave_decor.php'; } ?>
 <header class="mobile-bar">
     <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
     <button type="button" class="burger" id="burger" aria-label="Menu" aria-expanded="false">
@@ -38,13 +43,13 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     </div>
     <nav class="side-nav">
         <a href="?p=resumes" class="rail-btn <?= $cur === 'resumes' ? 'on' : '' ?>" title="Tableau de bord">
-            <span class="pill"><?= icon('circle-gauge') ?></span>
+            <?= icon('circle-gauge') ?>
             <span class="rail-label">Tableau de bord</span>
         </a>
         <?php foreach ($navGroupes as $navCle => $navG): ?>
         <?php $navBadge = array_sum(array_column($navG[2], 2)); ?>
         <a href="?p=<?= array_key_first($navG[2]) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" style="--rail-accent: <?= e(MODULE_COULEURS[$navCle] ?? '') ?>">
-            <span class="pill"><?= icon($navG[1]) ?></span>
+            <?= icon($navG[1]) ?>
             <span class="rail-label"><?= e($navG[0]) ?></span>
             <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
         </a>
@@ -53,7 +58,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         <?php if (peut_lire('coeur')): ?>
         <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
         <a href="?p=maj" class="rail-btn <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres">
-            <span class="pill"><?= icon('settings') ?></span>
+            <?= icon('settings') ?>
             <span class="rail-label">Paramètres</span>
         </a>
         <?php endif; ?>
@@ -208,11 +213,12 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 })();
 </script>
 <?php else: ?>
+<?php require __DIR__ . '/_wave_decor.php'; ?>
 <main class="auth-wrap">
     <?php if ($logoClair !== ''): ?><img src="<?= e($logoClair) ?>" alt="<?= e($nomEmployeur) ?>" class="auth-logo"><?php else: ?><div class="auth-name"><?= e($nomEmployeur) ?></div><?php endif; ?>
     <?php require $contentView; ?>
-    <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-        <img src="assets/lasso-blanc.png" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+    <a class="side-powered auth-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
+        <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
     </a>
 </main>
 <?php endif; ?>

@@ -151,18 +151,25 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .sidebar {
     width: var(--rail-width);
     flex-shrink: 0;
-    background: var(--bg);
+    background: var(--card);
     color: var(--ink);
     border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
-    padding: 20px 8px;
+    /* Pas de padding horizontal ici (contrairement à avant) : .side-nav a
+       overflow-y:auto, et la spec CSS force alors overflow-x à auto aussi
+       (jamais visible) dès qu'il diffère de overflow-y — un padding sur
+       .sidebar aurait donc coupé net le trait d'accent de .rail-btn, pensé
+       pour toucher le bord de la fenêtre (voir plus bas). Chaque enfant
+       (side-brand, rail-btn, side-avatar-wrap) porte désormais son propre
+       padding horizontal de 8px. */
+    padding: 20px 0;
     position: sticky;
     top: 0;
     height: 100vh;
     z-index: 100; /* passe devant le bandeau d'en-tête (.page-head-band) et son icône */
 }
-.side-brand { padding: 0 4px 14px; text-align: center; }
+.side-brand { padding: 0 12px 14px; text-align: center; }
 /* Hauteur fixe (pas height:auto) + object-fit:contain : la largeur du logo
    employeur est bornée (max-width) mais sa hauteur réelle dépend de l'image
    uploadée (aucune dimension stockée en base, juste validée à l'upload —
@@ -179,12 +186,13 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-nav::-webkit-scrollbar { display: none; }
 .rail-spacer { flex: 1 1 auto; }
 .rail-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    padding: 8px 4px; width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 9px 12px 10px; width: 100%;
     border-radius: var(--radius-sm);
     color: var(--muted);
     font-weight: 700; font-size: var(--fs-tiny); line-height: 1.15; text-align: center;
     position: relative;
+    isolation: isolate;
     transition: color .15s ease;
 }
 /* Séparateur avant Paramètres (seul lien statique après .rail-spacer) : le
@@ -197,33 +205,58 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    constant), contrairement à --primary/--highlight qui eux ne suivent que
    la page courante. Tableau de bord/Paramètres n'ont pas de --rail-accent
    (pas de module) : repli sur --muted/--primary, comme avant.
-   Fond légèrement teinté (color-mix 12 %) même au repos plutôt qu'un gris
-   plat : chaque module garde une présence colorée discrète en permanence,
-   pas seulement quand actif ou survolé — le rail complet lu d'un coup
-   d'œil paraît « vivant » plutôt qu'une colonne de pastilles grises
-   identiques. Repose sur une transform/couleur "spring" (cubic-bezier avec
-   dépassement) plutôt qu'un simple ease, pour un rebond léger au survol au
-   lieu d'un mouvement mécanique. */
-.rail-btn .pill {
-    width: 46px; height: 46px; padding: 10px; box-sizing: border-box; flex-shrink: 0;
-    border-radius: 13px; color: var(--rail-accent, var(--muted));
-    background: color-mix(in srgb, var(--rail-accent, var(--muted)) 12%, var(--surface));
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s ease, transform .35s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s ease, color .2s ease;
+
+   « Trait d'accent » (pas de cadre autour de l'icône, voir artefact de
+   design de session) : l'icône est nue, toujours teintée de sa couleur de
+   module (pas seulement au survol/actif) et légèrement penchée au repos —
+   redressée d'un coup de ressort au survol/actif. Le repère d'état n'est
+   plus un fond mais un trait dégradé sur le bord gauche du bouton, qui
+   respire doucement une fois actif, plus une lueur diffuse derrière
+   l'icône — jamais de bord net. */
+.rail-btn::after {
+    content: ""; position: absolute; inset: 2px 6px auto 6px; top: 4px; height: 42px; z-index: -1;
+    border-radius: 14px;
+    background: radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, transparent), transparent 70%);
+    opacity: 0; filter: blur(7px);
+    transition: opacity .22s ease;
+}
+.rail-btn:hover::after { opacity: .22; }
+.rail-btn.on::after { opacity: .32; }
+
+.rail-btn::before {
+    /* left:0 touche déjà le bord de la fenêtre : .rail-btn s'étend
+       maintenant sur toute la largeur de .sidebar (plus de padding
+       horizontal sur .sidebar, voir plus haut) — un offset négatif ici
+       serait coupé par overflow-x:auto de .side-nav (imposé par la spec CSS
+       dès que overflow-y n'est pas visible, même non déclaré explicitement). */
+    content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--rail-accent, var(--primary)) 100%, white 15%), var(--rail-accent, var(--primary)));
+    box-shadow: 0 0 5px 0 color-mix(in srgb, var(--rail-accent, var(--primary)) 45%, transparent);
+    transform: scaleY(0) translateX(-2px); transform-origin: center; opacity: 0;
+    transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), opacity .18s ease;
 }
 .rail-btn:hover { color: var(--ink); text-decoration: none; }
-.rail-btn:hover .pill {
-    background: color-mix(in srgb, var(--rail-accent, var(--muted)) 22%, var(--surface));
-    transform: translateY(-2px) scale(1.07);
-    box-shadow: 0 6px 14px color-mix(in srgb, var(--rail-accent, var(--muted)) 30%, transparent);
+.rail-btn.on { color: var(--rail-accent, var(--primary)); }
+.rail-btn.on::before { transform: scaleY(1) translateX(0); opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+    .rail-btn.on::before { animation: rail-trait-pulse 2.6s ease-in-out .3s infinite; }
+    @keyframes rail-trait-pulse {
+        0%, 100% { opacity: 1; filter: brightness(1); }
+        50% { opacity: .78; filter: brightness(1.25); }
+    }
 }
-.rail-btn.on { color: var(--rail-accent, var(--ink)); }
-.rail-btn.on .pill {
-    background: linear-gradient(155deg, var(--rail-accent, var(--primary)), color-mix(in srgb, var(--rail-accent, var(--primary)) 82%, black));
-    color: #fff;
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--rail-accent, var(--primary)) 45%, transparent);
+.rail-btn .ico {
+    color: var(--rail-accent, var(--muted));
+    opacity: .8;
+    transform: rotate(-6deg);
+    transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), opacity .18s ease;
 }
-.rail-btn.on:hover .pill { transform: translateY(-2px) scale(1.05); }
+.rail-btn:hover .ico { transform: rotate(0deg) translateY(-1px) scale(1.1); opacity: 1; }
+.rail-btn.on .ico { transform: rotate(0deg) scale(1.08); opacity: 1; }
+.rail-label { color: var(--muted); transition: color .15s ease; }
+.rail-btn:hover .rail-label { color: var(--ink); }
+.rail-btn.on .rail-label { color: var(--rail-accent, var(--primary)); font-weight: 800; }
 /* Pas d'animation d'entrée sur .rail-btn : chaque clic dans l'appli est un
    rechargement complet de page (pas de SPA), donc une animation « le menu
    prend vie » rejouerait à CHAQUE navigation, pas seulement au premier
@@ -234,13 +267,18 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 @media (prefers-reduced-motion: no-preference) {
     .nav-badge { animation: nav-badge-pulse 2.2s ease-in-out infinite; }
     @keyframes nav-badge-pulse {
-        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent); }
-        50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 0%, transparent); }
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rail-accent, var(--danger)) 55%, transparent); }
+        50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--rail-accent, var(--danger)) 0%, transparent); }
     }
 }
 /* Pastille de comptage : au-dessus de la pastille d'icône (rail étroit, pas
-   de place à droite comme dans l'ancien sidebar). */
-.nav-badge { position: absolute; top: 4px; right: 12px; background: var(--danger); color: #fff; font-size: var(--fs-tiny); font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+   de place à droite comme dans l'ancien sidebar). Couleur du module
+   (--rail-accent, posé en style inline sur .rail-btn) plutôt qu'un rouge
+   fixe — repli sur --danger hors du rail (bandeau d'onglets, voir
+   .module-tab .nav-badge plus bas, qui n'a pas de --rail-accent). Bordure
+   blanche pour la détacher de son icône (même teinte, sinon la pastille se
+   fond dans l'icône juste derrière). */
+.nav-badge { position: absolute; top: 2px; right: 10px; background: var(--rail-accent, var(--danger)); color: #fff; font-size: var(--fs-tiny); font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; border: 2px solid var(--card); display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; }
 .ico { width: 16px; height: 16px; flex-shrink: 0; vertical-align: middle; }
 .ico-tiny .ico { width: 11px; height: 11px; vertical-align: -1px; }
 .sidebar .ico {width: 30px; height: 30px; }
@@ -298,15 +336,30 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    Les onglets principaux réutilisent .module-tabs/.module-tab (voir plus bas)
    — même rendu que le bandeau des autres modules, voir
    views/_param_tabs.php. */
-/* Sous-onglets (sections du groupe actif) : rangée de pastilles sous le bandeau. */
-.param-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 24px; }
+/* Sous-onglets (sections du groupe actif) : rangée de pastilles sur fond
+   blanc plein cadre — PAS une card (ni bordure, ni ombre, ni coins arrondis,
+   ni marge la détachant du bandeau du dessus) : un bandeau, comme .toolbar-
+   opaque/.page-head-band juste au-dessus, dont il prolonge le fond blanc
+   sans discontinuité ni bord visible entre les deux. Même mécanique de
+   débordement (largeur 100% + rail + 2*content-pad, marge négative à
+   gauche) que .page-head-band, avec le même padding-left (rail-width +
+   content-pad) pour que les pastilles retombent exactement sous le titre/
+   les onglets principaux. */
+.param-subtabs {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    width: calc(100% + var(--rail-width) + 2 * var(--content-pad));
+    margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad)));
+    background: var(--card);
+    padding: 10px var(--content-pad) 10px calc(var(--rail-width) + var(--content-pad));
+    border-bottom: 1px solid var(--line);
+}
 .param-subtabs a {
     padding: 6px 13px; font-size: var(--fs-basic); font-weight: 600; color: var(--muted); white-space: nowrap;
-    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill);
-    transition: color .15s, background .15s, border-color .15s;
+    border-radius: var(--radius-pill);
+    transition: color .15s, background .15s;
 }
-.param-subtabs a:hover { color: var(--primary-d); background: var(--primary-tint); border-color: var(--primary-tint); text-decoration: none; }
-.param-subtabs a.on { color: #fff; background: var(--primary); border-color: var(--primary); }
+.param-subtabs a:hover { color: var(--primary-d); background: var(--primary-tint); text-decoration: none; }
+.param-subtabs a.on { color: #fff; background: var(--primary); }
 
 /* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. Bascule
    Liste/Carte : .seg-picker (icon_picker(), lib/helpers.php) en liens de
@@ -456,7 +509,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-close { display: none; }
 .scrim { display: none; }
 
-.side-avatar-wrap { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); position: relative; }
+.side-avatar-wrap { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid var(--line); position: relative; }
 .side-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; color: var(--ink); font-size: var(--fs-basic); font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0 auto; transition: background .15s; }
 .side-avatar:hover { background: var(--line); }
 .side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: #fff; border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
@@ -477,15 +530,60 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 
 .content { flex: 1; min-width: 0; padding: 40px var(--content-pad); max-width: 1120px; }
 
-/* =================== Auth pages =================== */
+/* =================== Fond calculé (vagues) =================== */
+/* Fond calculé (pas d'image statique) à partir de --primary/--highlight —
+   mêmes variables que le reste de l'appli (couleurs_css_vars(),
+   lib/helpers.php) — plutôt qu'un dégradé/une image fixe : suit
+   automatiquement la couleur de mise en évidence si l'employeur la
+   personnalise. Halos + vagues SVG superposées en .wave-decor (voir
+   views/_wave_decor.php) : structure fournie par l'utilisateur (concept
+   « Fluid Wave Background »), recolorée avec color-mix() sur nos tokens.
+   Partagé par .auth-bg (pages non connectées) ET .has-sidebar (pages
+   connectées, tant qu'aucune image de fond personnalisée n'est configurée —
+   ?p=apparence) : un seul jeu de règles, jamais deux à faire évoluer en
+   parallèle. z-index:-1 (pas 0) dans les deux cas : passe derrière TOUT le
+   contenu normal sans qu'aucun ancêtre n'ait besoin de son propre z-index
+   pour repasser devant (même mécanique que l'ancien body.has-sidebar::before
+   qu'il remplace ici par défaut). */
 body.auth-bg {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(150deg, var(--brand) 0%, var(--brand-2) 55%, var(--primary) 120%);
+    position: relative;
     padding: 24px;
 }
-.auth-wrap { display: flex; flex-direction: column; align-items: center; gap: 22px; width: 100%; max-width: 380px; }
-.auth-logo { width: 150px; filter: brightness(0) invert(1); opacity: .96; }
+body.auth-bg, body.has-sidebar {
+    background:
+        radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 70%),
+        linear-gradient(180deg, var(--card), color-mix(in srgb, var(--card) 92%, var(--primary)));
+}
+.wave-decor { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.wave-blur { position: absolute; border-radius: 100%; }
+.wave-blur.one { width: 800px; height: 500px; top: -250px; left: -150px; background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.wave-blur.two { width: 650px; height: 350px; right: -120px; top: 100px; background: color-mix(in srgb, var(--highlight) 6%, transparent); }
+.wave-shape { position: absolute; width: 120%; left: -10%; opacity: .4; }
+.wave-shape-1 { height: 75vh; bottom: -8vh; opacity: .3; }
+.wave-shape-1 path { fill: color-mix(in srgb, var(--primary) 78%, var(--card)); }
+.wave-shape-2 { height: 55vh; bottom: 24vh; opacity: .25; filter: blur(12px); }
+.wave-shape-2 path { fill: color-mix(in srgb, var(--primary) 40%, var(--card)); }
+.wave-shape-3 { height: clamp(120px, 18vh, 220px); bottom: clamp(20vh, 24vh, 280px); z-index: 4; }
+.wave-shape-3 path { fill: var(--highlight); }
+.wave-shape-4 { height: clamp(230px, 30vh, 420px); bottom: 5vh; z-index: 5; opacity: .15; }
+.wave-shape-4 path { fill: color-mix(in srgb, var(--primary) 65%, #24104f); }
+
+.auth-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; width: 100%; max-width: 380px; }
+.auth-logo { width: 150px; }
+/* .side-powered par défaut est pensé pour un fond sombre (texte quasi
+   blanc, voir plus haut) — sur ce fond clair, mêmes couleurs que sa variante
+   .sidebar .side-powered. */
+.auth-powered { color: var(--muted); }
+.auth-powered:hover { color: var(--ink); }
+
+@media (max-width: 768px) {
+    .wave-shape-1 { height: 70vh; }
+    .wave-shape-2 { height: 45vh; bottom: 27vh; }
+    .wave-shape-3 { height: 14vh; bottom: 25vh; }
+    .wave-shape-4 { height: 28vh; bottom: 5vh; }
+}
 
 /* =================== Headings / page head =================== */
 .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: var(--fs-basic); font-weight: 500; margin-bottom: 12px; }
@@ -533,6 +631,12 @@ body.auth-bg {
        contrairement à la marge qui n'en déplace qu'un côté. */
     width: calc(100% + var(--rail-width) + 2 * var(--content-pad));
     margin: -40px 0 0px calc(-1 * (var(--rail-width) + var(--content-pad)));
+    /* Ligne de couleur tout en haut de page (voir artefact de session
+       « trait d'accent ») : --primary suit déjà la couleur du module actif
+       — module_couleur_css_vars(), lib/helpers.php. border-top (pas
+       border-bottom) pour qu'elle touche le tout premier pixel visible du
+       bandeau sticky, au-dessus du titre/des onglets — pas juste en dessous. */
+    border-top: 3px solid var(--primary);
     border-bottom: 1px solid var(--line);
 }
 .page-head-band .page-head {
@@ -595,6 +699,15 @@ body.auth-bg {
    page se retrouvait collé au bandeau d'onglets. 24px reprend la valeur du
    padding-top de .module-content-inner, pour un espacement cohérent partout. */
 .content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band { margin-bottom: 24px; }
+/* ...sauf quand .page-head-band est immédiatement suivi de .param-subtabs
+   (Paramètres, groupes à plusieurs sections — voir views/_param_tabs.php) :
+   ce bandeau blanc prolonge déjà le fond du dessus sans discontinuité (voir
+   .param-subtabs plus bas) — les 24px s'ajouteraient à son propre padding-top
+   et recreeraient l'espace vide que .param-subtabs est censé éviter. Reprend
+   le sélecteur complet de la règle du dessus (pas juste .page-head-band:has(...))
+   pour la spécificité : sinon cette règle, moins spécifique, perdait contre
+   elle malgré son ordre plus tardif dans la feuille de style. */
+.content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band:has(+ .param-subtabs) { margin-bottom: 0; }
 /* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
 .module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }
@@ -1437,6 +1550,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .col-filter-menu label:hover { background: var(--surface); }
 .col-filter-menu input[type="checkbox"] { margin: 0; }
+/* Panneau à contenu libre (filtre_colonne_form_html(), ?p=mailing_campagne) :
+   <select>/<input type=date> prennent toute la largeur du panneau plutôt que
+   leur largeur intrinsèque (qui déborderait de max-width:200px ci-dessus). */
+.col-filter-menu select, .col-filter-menu input[type="date"] { width: 100%; }
+/* .col-filter-menu label est en flex-direction:row (texte + case à cocher
+   côte à côte) — pour un libellé plus long couplé à un champ (« Pas
+   contactées depuis le » + date, filtre « Contacté »), repasse en colonne
+   plutôt que de laisser le texte s'écraser sur 3 lignes à côté du champ. */
+.col-filter-menu label.col-filter-champ { flex-direction: column; align-items: flex-start; }
 .col-filter-tout { font-weight: 700; }
 .col-filter-sep { height: 1px; background: var(--line); margin: 3px 2px; }
 .col-filter-apply {
@@ -1461,6 +1583,13 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .col-th-actif a { display: inline-flex; color: inherit; opacity: .7; }
 .col-th-actif a:hover { opacity: 1; }
 .col-th-actif a .ico { width: 10px; height: 10px; }
+/* ?p=mailing_campagne : mêmes pastilles .col-th-actif-list/.col-th-actif,
+   mais hors tableau (pas de colonne à qui accrocher chaque filtre) — une
+   rangée sous .toolbar plutôt qu'un groupe par <th>, donc pas de largeur de
+   colonne à respecter (max-width:128px annulé) ni de retrait par groupe
+   (margin-top:0, l'espacement vient du gap du conteneur). */
+.filtres-ciblage-actifs { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: -6px 0 16px; }
+.filtres-ciblage-actifs .col-th-actif-list { max-width: none; margin-top: 0; }
 .list tbody tr { transition: background .12s; }
 .list tbody tr:hover { background: var(--surface); }
 .list tr.row-link { cursor: pointer; transition: background .12s ease; }
@@ -1808,7 +1937,7 @@ abbr {
     /* Logo déjà affiché dans .mobile-bar : pas besoin de le répéter en haut du
        tiroir, seul le bouton de fermeture reste — au même endroit que le burger
        (même padding que .mobile-bar, même taille d'icône). */
-    .side-brand { justify-content: flex-end; display: flex; align-items: center; margin: -20px -8px 0; padding: 10px 16px; }
+    .side-brand { justify-content: flex-end; display: flex; align-items: center; margin: -20px 0 0; padding: 10px 16px; }
     .side-brand-txt { display: none; }
     .side-close { display: inline-flex; }
     .sidebar .side-close .ico { width: 24px; height: 24px; }
@@ -1827,10 +1956,9 @@ abbr {
         position: fixed; top: 0; right: 0; left: auto; bottom: 0; height: 100vh; width: 100px;
         transform: translateX(100%); transition: transform .25s ease; z-index: 50;
     }
-    /* Pastilles légèrement agrandies dans le tiroir (cibles tactiles) */
+    /* Cibles tactiles un peu plus grandes dans le tiroir */
     .rail-btn { font-size: var(--fs-small); }
-    .rail-btn .pill { width: 48px; height: 48px; }
-    .sidebar .ico { width: 20px; height: 20px; }
+    .sidebar .ico { width: 26px; height: 26px; }
     body.nav-open .sidebar { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,.35); }
 
     .scrim { display: block; position: fixed; inset: 0; background: rgba(20,16,40,.5);
@@ -1846,6 +1974,7 @@ abbr {
        vide séparaient la barre mobile du titre au lieu des 16px voulus. */
     .page-head-band { position: static; width: auto; margin: -22px -18px 20px; }
     .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
+    .param-subtabs { width: auto; margin: 0 -18px 20px; padding: 10px 18px; }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }

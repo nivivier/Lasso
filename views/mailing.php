@@ -17,7 +17,6 @@
         <code class="small"><?= e($traiterUrl) ?></code>
         <a class="btn ghost btn-sm" href="<?= e($traiterUrl) ?>" target="_blank" rel="noopener"><?= icon('send') ?> Traiter maintenant</a>
     </div>
-    <p class="mt-16"><a class="btn" href="?p=mailing_campagne"><?= icon('send') ?> Nouvelle campagne</a></p>
 </div>
 
 <div class="card mt-22">

@@ -604,11 +604,12 @@ function periode_chevauche(int $debut, int $fin, int $filtreDebut, int $filtreFi
 
 // Filtre les structures éligibles à un mailing (aperçu ET constitution réelle
 // de la file d'attente doivent utiliser cette même fonction, cf. §7 — jamais
-// deux implémentations divergentes). $criteres : categorie + sous_categorie
-// (string|'', mêmes clés que le filtre de ?p=structures), pays (string|''),
-// grande_region (Région, string|''), departement_canton (string|''),
-// ville (string|''), type_lieu (catégorie de lieu, string|''), tag_id (int|0),
-// mois_debut/mois_fin (int|null, période de
+// deux implémentations divergentes). $criteres (voir mailing_criteres_depuis()) :
+// categorie_id (int[], arbre catégorie/sous-catégorie — mêmes ids que le
+// filtre de ?p=structures, une catégorie racine choisie inclut tout son
+// sous-arbre, résolu ici via structure_categorie_champs() comme dans
+// structures_filtres()), pays/grande_region/departement_canton/ville/type_lieu
+// (string[]), tag_id (int[]), mois_debut/mois_fin (int|null, période de
 // programmation des lieux liés), mois_evenement_debut/fin (int|null, période
 // des événements), contact_jamais (bool), contact_avant (date string|'').
 // Exclut toujours les statuts ne_pas_contacter/inactif, en dernière étape,
@@ -618,42 +619,56 @@ function mailing_structures_eligibles(array $criteres): array
     $where = ["s.statut IN ('actif','contact_privilegie')"];
     $params = [];
 
-    // Catégorie/sous-catégorie : mêmes clés que le filtre de ?p=structures
-    // (choisir une catégorie racine inclut toutes ses sous-catégories).
-    if (!empty($criteres['categorie'])) {
-        $where[] = 's.categorie = ?';
-        $params[] = $criteres['categorie'];
-    }
-    if (!empty($criteres['sous_categorie'])) {
-        $where[] = 's.sous_categorie = ?';
-        $params[] = $criteres['sous_categorie'];
+    // Catégorie/sous-catégorie : une condition par id coché, unies en OR —
+    // même logique que structures_filtres() dans lib/routes_facturation.php.
+    if (!empty($criteres['categorie_id'])) {
+        $map = structure_categorie_map();
+        $catConds = [];
+        foreach ($criteres['categorie_id'] as $cid) {
+            $champs = structure_categorie_champs((int) $cid, $map);
+            if ($champs['categorie'] === '') {
+                continue;
+            }
+            if ($champs['sous_categorie'] === '') {
+                $catConds[] = 's.categorie = ?';
+                $params[] = $champs['categorie'];
+            } else {
+                $catConds[] = '(s.categorie = ? AND s.sous_categorie = ?)';
+                $params[] = $champs['categorie'];
+                $params[] = $champs['sous_categorie'];
+            }
+        }
+        if ($catConds) {
+            $where[] = '(' . implode(' OR ', $catConds) . ')';
+        }
     }
     if (!empty($criteres['pays'])) {
-        $where[] = 's.adresse_pays = ?';
-        $params[] = $criteres['pays'];
+        $where[] = 's.adresse_pays IN (' . sql_in($criteres['pays']) . ')';
+        $params = array_merge($params, $criteres['pays']);
     }
     // grande_region = « Région » (Normandie, Romandie…) ; departement_canton = « Département / canton ».
     if (!empty($criteres['grande_region'])) {
-        $where[] = 's.grande_region = ?';
-        $params[] = $criteres['grande_region'];
+        $where[] = 's.grande_region IN (' . sql_in($criteres['grande_region']) . ')';
+        $params = array_merge($params, $criteres['grande_region']);
     }
     if (!empty($criteres['departement_canton'])) {
-        $where[] = 's.departement_canton = ?';
-        $params[] = $criteres['departement_canton'];
+        $where[] = 's.departement_canton IN (' . sql_in($criteres['departement_canton']) . ')';
+        $params = array_merge($params, $criteres['departement_canton']);
     }
     if (!empty($criteres['ville'])) {
-        $where[] = 's.adresse_localite = ?';
-        $params[] = $criteres['ville'];
+        $where[] = 's.adresse_localite IN (' . sql_in($criteres['ville']) . ')';
+        $params = array_merge($params, $criteres['ville']);
     }
     // Type de lieu (sous-catégorie « booking », voir migration_59) : la
     // structure ELLE-MÊME porte ce champ depuis la fusion lieux→structures.
+    // COLLATE NOCASE sur x lie la collation à x pour tout l'IN (voir doc SQLite).
     if (!empty($criteres['type_lieu'])) {
-        $where[] = 's.sous_categorie = ? COLLATE NOCASE';
-        $params[] = $criteres['type_lieu'];
+        $where[] = 's.sous_categorie COLLATE NOCASE IN (' . sql_in($criteres['type_lieu']) . ')';
+        $params = array_merge($params, $criteres['type_lieu']);
     }
     if (!empty($criteres['tag_id'])) {
-        $where[] = 's.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id = ?)';
-        $params[] = (int) $criteres['tag_id'];
+        $where[] = 's.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . sql_in($criteres['tag_id']) . '))';
+        $params = array_merge($params, $criteres['tag_id']);
     }
     if (!empty($criteres['contact_jamais'])) {
         $where[] = "s.dernier_contact_le = ''";

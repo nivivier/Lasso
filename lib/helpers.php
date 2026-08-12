@@ -477,6 +477,23 @@ function filtre_colonne_actifs_html(string $page, string $champ, array $options,
     return $h . '</span>';
 }
 
+// Variante de filtre_colonne_html() pour un panneau au contenu libre (pas des
+// cases à cocher) — même enveloppe .col-filter/.col-filter-menu (bouton
+// entonnoir + <details>, voir assets/app.css), mais $contenu est du HTML déjà
+// construit par l'appelant (ex. deux <select> « De »/« à » pour une plage de
+// mois, un <input type="date"> + une case à cocher pour ?p=mailing_campagne).
+// Pas de marqueur « _set » ni de case « Tout » : ces notions n'ont de sens
+// que pour un filtre à cases à cocher (filtre_coche()).
+function filtre_colonne_form_html(string $page, array $autresParams, string $contenu): string
+{
+    return '<details class="col-filter"><summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>'
+        . '<form method="get" class="col-filter-menu">'
+        . '<input type="hidden" name="p" value="' . e($page) . '">'
+        . hidden_inputs_html($autresParams)
+        . $contenu
+        . '<button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
+}
+
 // Montant CHF : "1 234.55"
 function chf(float $v): string
 {
@@ -844,34 +861,42 @@ if ($l > 75) {
 // après app.css. Cette dernière remplace la couleur principale à certains
 // endroits (boutons principaux, sommes de brut, liens, tags) ; voir
 // --highlight* dans app.css pour la liste des règles concernées.
-// L'image de fond est posée ici en dur (body.has-sidebar::before{background-image:...})
-// plutôt que via une variable CSS consommée depuis app.css : une URL relative
-// dans une custom property se résout par rapport à la feuille de style où la
-// var() est *utilisée*, pas où la propriété est déclarée — utilisée dans
-// app.css (assets/app.css), "uploads/…" se serait résolu en
-// "assets/uploads/…" (inexistant) au lieu de "uploads/…" à la racine du site.
-// Ici, dans le <style> inline de la page elle-même, l'URL relative se résout
-// normalement par rapport à la page — comme param_fond()/param_logo()
-// partout ailleurs (<img src="uploads/…">). L'effet clair/flouté (filter)
-// est posé sur ce même ::before, jamais sur <body> lui-même — voir le
-// commentaire dans app.css (body.has-sidebar::before).
+// L'image de fond personnalisée (si configurée) est posée ici en dur
+// (body.has-sidebar::before{background-image:...}) plutôt que via une
+// variable CSS consommée depuis app.css : une URL relative dans une custom
+// property se résout par rapport à la feuille de style où la var() est
+// *utilisée*, pas où la propriété est déclarée — utilisée dans app.css
+// (assets/app.css), "uploads/…" se serait résolu en "assets/uploads/…"
+// (inexistant) au lieu de "uploads/…" à la racine du site. Ici, dans le
+// <style> inline de la page elle-même, l'URL relative se résout normalement
+// par rapport à la page — comme param_fond()/param_logo() partout ailleurs
+// (<img src="uploads/…">). L'effet clair/flouté (filter) est posé sur ce
+// même ::before, jamais sur <body> lui-même — voir le commentaire dans
+// app.css (body.has-sidebar::before). Sans image personnalisée (cas par
+// défaut), rien n'est émis ici : le fond calculé (.wave-decor, voir
+// views/_wave_decor.php) prend le relais, posé par views/layout.php.
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
     $h = couleurs_derivees((string) param('employeur_couleur_evidence', '#2563eb'));
-    // Effets combinables (voir param_fond_clair()/param_fond_floute()) : les
-    // fonctions filter s'enchaînent dans une seule déclaration, chacune
-    // s'appliquant sur le résultat de la précédente.
-    $filtres = [];
-    if (param_fond_clair()) { $filtres[] = 'contrast(.1) brightness(2)'; }
-    if (param_fond_floute()) { $filtres[] = 'blur(10px)'; }
-    $filtreFond = $filtres ? 'filter:' . implode(' ', $filtres) . ';' : '';
+    $fondPerso = (string) param('employeur_fond', '');
+    $styleFond = '';
+    if ($fondPerso !== '') {
+        // Effets combinables (voir param_fond_clair()/param_fond_floute()) :
+        // les fonctions filter s'enchaînent dans une seule déclaration,
+        // chacune s'appliquant sur le résultat de la précédente.
+        $filtres = [];
+        if (param_fond_clair()) { $filtres[] = 'contrast(.1) brightness(2)'; }
+        if (param_fond_floute()) { $filtres[] = 'blur(10px)'; }
+        $filtreFond = $filtres ? 'filter:' . implode(' ', $filtres) . ';' : '';
+        $styleFond = 'body.has-sidebar::before{background-image:url(' . json_encode($fondPerso) . ');' . $filtreFond . '}';
+    }
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
         . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}'
-        . 'body.has-sidebar::before{background-image:url(' . json_encode(param_fond()) . ');' . $filtreFond . '}</style>';
+        . $styleFond . '</style>';
 }
 
 // Bloc <style> qui surcharge --primary*/--brand* (voir couleurs_css_vars()

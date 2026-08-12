@@ -66,103 +66,104 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
-<div class="module-content"><div class="module-content-inner">
-    <div class="toolbar">
-    <form method="get" class="filters">
-        <input type="hidden" name="p" value="compta_bilan">
-        <label>Année
-            <select name="annee" onchange="this.form.submit()">
-                <?php foreach ($annees as $a): ?>
-                    <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
+<div class="module-content">
+    <div class="module-content-inner">
+        <div class="toolbar">
+
+            <form method="get" class="filters">
+                <input type="hidden" name="p" value="compta_bilan">
+                <label>Année
+                    <select name="annee" onchange="this.form.submit()">
+                        <?php foreach ($annees as $a): ?>
+                            <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </form>
+
+            <div class="filters">
+                <?php
+                $comparAnnees = array_values(array_filter(array_map('intval', $cols), fn($a) => $a !== $annee));
+                $jusquaEff  = $comparAnnees ? min($comparAnnees) : 0;
+                $anneesPrec = array_values(array_filter(array_map('intval', $annees), fn($a) => $a < $annee));
+                ?>
+                <label>
+                    Comparer jusqu'à
+                    <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&jusqua='+this.value">
+                        <option value="aucune" <?= $jusquaEff === 0 ? 'selected' : '' ?>>-</option>
+                        <?php foreach ($anneesPrec as $y): ?>
+                            <option value="<?= $y ?>" <?= $jusquaEff === $y ? 'selected' : '' ?>><?= $y ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <a class="btn ghost" href="?p=compta_bilan_print&annee=<?= (int) $annee ?>&prec=<?= $nbPrec ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
+            </div>
+
+        </div>
+
+        <?php if ($continuite): ?>
+        <div class="err mb-16">
+            <strong>Report à nouveau — contrôle de continuité :</strong>
+            <ul class="mb-0">
+                <?php foreach ($continuite as $a): ?>
+                <li><?= e($a['compte']) ?> : solde d'ouverture <?= (int) $a['annee'] ?> (<?= chf($a['ouverture']) ?>) ≠ clôture <?= (int) $a['annee'] - 1 ?> (<?= chf($a['cloture_prec']) ?>) — un export est peut-être manquant entre les deux exercices.</li>
                 <?php endforeach; ?>
-            </select>
-        </label>
-    </form>
-    <div class="head-actions">
-        <?php
-        $comparAnnees = array_values(array_filter(array_map('intval', $cols), fn($a) => $a !== $annee));
-        $jusquaEff  = $comparAnnees ? min($comparAnnees) : 0;
-        $anneesPrec = array_values(array_filter(array_map('intval', $annees), fn($a) => $a < $annee));
-        ?>
-        <label class="inline">
-            Comparer jusqu'à
-            <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&jusqua='+this.value">
-                <option value="aucune" <?= $jusquaEff === 0 ? 'selected' : '' ?>>-</option>
-                <?php foreach ($anneesPrec as $y): ?>
-                    <option value="<?= $y ?>" <?= $jusquaEff === $y ? 'selected' : '' ?>><?= $y ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <a class="btn ghost" href="?p=compta_bilan_print&annee=<?= (int) $annee ?>&prec=<?= $nbPrec ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
-    </div>
-    </div>
-
-<?php if ($continuite): ?>
-<div class="err mb-16">
-    <strong>Report à nouveau — contrôle de continuité :</strong>
-    <ul class="mb-0">
-        <?php foreach ($continuite as $a): ?>
-        <li><?= e($a['compte']) ?> : solde d'ouverture <?= (int) $a['annee'] ?> (<?= chf($a['ouverture']) ?>) ≠ clôture <?= (int) $a['annee'] - 1 ?> (<?= chf($a['cloture_prec']) ?>) — un export est peut-être manquant entre les deux exercices.</li>
-        <?php endforeach; ?>
-    </ul>
-</div>
-<?php endif; ?>
-
-
-    <div class="section-head">
-        <h2>État du patrimoine</h2>
-        <a href="?p=compta_comptes" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Comptes bancaires</a>
-    </div>
-    <div class="table-scroll">
-    <table class="list">
-        <thead>
-            <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
-        </thead>
-        <tbody>
-            <?php foreach ($patrimoine as $p): ?>
-            <tr>
-                <td><?= e($p['libelle']) ?></td>
-                <?php foreach ($cols as $a): $v = $p['valeurs'][$a] ?? null; ?>
-                    <td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= $v === null ? '<span class="muted">—</span>' : chf((float) $v) ?></td>
-                <?php endforeach; ?>
-            </tr>
-            <?php endforeach; ?>
-            <tr class="cr-total">
-                <td>Total du patrimoine</td>
-                <?php foreach ($cols as $a): ?><td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
-            </tr>
-        </tbody>
-    </table>
-    </div>
-
-
-
-    <div class="section-head">
-        <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
-        <a href="?p=compta_plan" class="btn ghost btn-sm ml-auto"><?= icon('pencil') ?> Plan comptable</a>
-    </div>
-    <?php if ($resultat['non_lettrees']['nb'] > 0): ?>
-<p class="err"><?= (int) $resultat['non_lettrees']['nb'] ?> écriture(s) de <?= (int) $annee ?> non lettrée(s)
-   (<?= chf($resultat['non_lettrees']['montant']) ?> CHF) ne sont pas prises en compte.
-   <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&categorie=a_lettrer">Les lettrer</a>.</p>
-<?php endif; ?>
-    <div class="table-scroll">
-    <table class="list compta-cr">
-        <?php if ($nbCols > 1): ?>
-        <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
+            </ul>
+        </div>
         <?php endif; ?>
-        <tbody>
-            <?= $blocSens('produit', 'Recettes') ?>
-            <?= compta_ligne_total('Total des recettes', 'produits', 'cr-total', $cols, $totauxParAnnee) ?>
-            <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
-            <?= $blocSens('charge', 'Dépenses') ?>
-            <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
-            <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
-            <?= compta_ligne_total('Résultat de l\'année', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
-        </tbody>
-    </table>
+
+
+        <h2>État du patrimoine</h2>
+
+        <div class="table-scroll">
+            <table class="list">
+                <thead>
+                    <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($patrimoine as $p): ?>
+                    <tr>
+                        <td><?= e($p['libelle']) ?></td>
+                        <?php foreach ($cols as $a): $v = $p['valeurs'][$a] ?? null; ?>
+                            <td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= $v === null ? '<span class="muted">—</span>' : chf((float) $v) ?></td>
+                        <?php endforeach; ?>
+                    </tr>
+                    <?php endforeach; ?>
+                    <tr class="cr-total">
+                        <td>Total du patrimoine</td>
+                        <?php foreach ($cols as $a): ?><td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
+
+        <?php if ($resultat['non_lettrees']['nb'] > 0): ?>
+        <p class="err"><?= (int) $resultat['non_lettrees']['nb'] ?> écriture(s) de <?= (int) $annee ?> non lettrée(s)
+        (<?= chf($resultat['non_lettrees']['montant']) ?> CHF) ne sont pas prises en compte.
+        <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&categorie=a_lettrer">Les lettrer</a>.</p>
+        <?php endif; ?>
+
+        <div class="table-scroll">
+            <table class="list compta-cr">
+                <?php if ($nbCols > 1): ?>
+                <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
+                <?php endif; ?>
+                <tbody>
+                    <?= $blocSens('produit', 'Recettes') ?>
+                    <?= compta_ligne_total('Total des recettes', 'produits', 'cr-total', $cols, $totauxParAnnee) ?>
+                    <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
+                    <?= $blocSens('charge', 'Dépenses') ?>
+                    <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
+                    <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
+                    <?= compta_ligne_total('Résultat de l\'année', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div></div>
+
+</div>
 
 <script>
 (function () {

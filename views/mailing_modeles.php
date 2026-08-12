@@ -7,7 +7,7 @@
 <div class="card form">
     <div class="section-head mt-0">
         <h2 class="mt-0">Modèles de message</h2>
-        <button type="button" class="btn btn-sm ml-auto" data-show="modele-add"><?= icon('plus') ?> Nouveau modèle</button>
+        <button type="button" class="btn ml-auto" data-show="modele-add"><?= icon('plus') ?> Nouveau modèle</button>
     </div>
     <p class="muted small">Sujets et corps réutilisables, chargeables en un clic dans « Nouvelle campagne ».
         Variables : <code>{{prenom}}</code> (contact), <code>{{nom_structure}}</code>.</p>

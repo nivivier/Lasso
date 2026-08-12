@@ -6,17 +6,21 @@
 // Résumé lisible du ciblage actif (badges de l'aperçu + rappel dans la campagne).
 $resumeCiblage = [];
 if ($criteres['categorie_id']) {
+    $noms = [];
     foreach ($categoriesPourSelect as $c) {
-        if ((int) $c['id'] === (int) $criteres['categorie_id']) { $resumeCiblage[] = $c['nom']; break; }
+        if (in_array((int) $c['id'], $criteres['categorie_id'], true)) { $noms[] = $c['nom']; }
     }
+    if ($noms) { $resumeCiblage[] = implode(', ', $noms); }
 }
 if ($criteres['tag_id']) {
+    $noms = [];
     foreach ($tags as $t) {
-        if ((int) $t['id'] === (int) $criteres['tag_id']) { $resumeCiblage[] = 'Étiquette : ' . $t['nom']; break; }
+        if (in_array((int) $t['id'], $criteres['tag_id'], true)) { $noms[] = $t['nom']; }
     }
+    if ($noms) { $resumeCiblage[] = 'Étiquette : ' . implode(', ', $noms); }
 }
 foreach (['pays' => 'Pays', 'grande_region' => 'Région', 'departement_canton' => 'Dépt/canton', 'ville' => 'Ville', 'type_lieu' => 'Type de lieu'] as $k => $lib) {
-    if ($criteres[$k] !== '') { $resumeCiblage[] = $lib . ' : ' . $criteres[$k]; }
+    if ($criteres[$k]) { $resumeCiblage[] = $lib . ' : ' . implode(', ', $criteres[$k]); }
 }
 if ($criteres['mois_evenement_debut'] !== '' && $criteres['mois_evenement_fin'] !== '') {
     $resumeCiblage[] = 'Événements ' . mois_nom((int) $criteres['mois_evenement_debut']) . '–' . mois_nom((int) $criteres['mois_evenement_fin']);
@@ -26,6 +30,111 @@ if ($criteres['mois_debut'] !== '' && $criteres['mois_fin'] !== '') {
 }
 if ($criteres['contact_jamais']) { $resumeCiblage[] = 'Jamais contactées'; }
 elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées depuis le ' . date('d.m.Y', strtotime($criteres['contact_avant'])); }
+
+// Filtres de ciblage à cases à cocher (mêmes composants que ?p=structures —
+// filtre_colonne_html()/lib/helpers.php), à la place des anciens <select> à
+// valeur unique. $autresFiltres reporte, pour chaque panneau, TOUS les autres
+// critères actuellement actifs (y compris les champs scalaires du crit-form
+// ci-dessous : sans session ici — contrairement à filtre_coche()/
+// filtre_persistant(), voir mailing_criteres_depuis() — un critère absent de
+// l'URL soumise par un panneau serait perdu). 'previsualiser' => '1' force
+// l'aperçu à se rafraîchir dès qu'on coche une case, sans clic supplémentaire.
+$categorieLabels = [];
+foreach ($categoriesPourSelect as $cat) { $categorieLabels[(int) $cat['id']] = str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) . $cat['nom']; }
+$tagLabels = [];
+foreach ($tags as $t) { $tagLabels[(int) $t['id']] = $t['nom']; }
+$typeLieuLabels = array_combine($typesLieu, $typesLieu);
+$paysLabels = [];
+foreach (array_unique(array_merge($criteres['pays'], array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
+$grandeRegionLabels = [];
+foreach ($grandesRegions as $regionsDuPays) {
+    foreach ($regionsDuPays as $r) { $grandeRegionLabels[$r] = $r; }
+}
+$departementCantonLabels = [];
+foreach (array_unique(array_merge($criteres['departement_canton'], $regions)) as $r) { $departementCantonLabels[$r] = $r; }
+$villeLabels = [];
+foreach (array_unique(array_merge($criteres['ville'], $villes)) as $v) { $villeLabels[$v] = $v; }
+
+$tousFiltresCiblage = [
+    'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'], 'pays' => $criteres['pays'],
+    'grande_region' => $criteres['grande_region'], 'departement_canton' => $criteres['departement_canton'],
+    'ville' => $criteres['ville'], 'type_lieu' => $criteres['type_lieu'],
+    'mois_debut' => $criteres['mois_debut'], 'mois_fin' => $criteres['mois_fin'],
+    'mois_evenement_debut' => $criteres['mois_evenement_debut'], 'mois_evenement_fin' => $criteres['mois_evenement_fin'],
+    'contact_avant' => $criteres['contact_avant'], 'contact_jamais' => $criteres['contact_jamais'] ? '1' : '',
+    'previsualiser' => '1',
+];
+$autresFiltresCiblage = autres_filtres_fn($tousFiltresCiblage);
+// Comme $autresFiltresCiblage, mais pour un panneau qui pilote PLUSIEURS
+// champs à la fois (Réalisation/Préparation/Contacté ci-dessous) : exclut
+// tous les champs de $cles d'un coup (autres_filtres_fn() n'en exclut qu'un).
+$sansCles = fn (array $cles): array => array_filter(array_diff_key($tousFiltresCiblage, array_fill_keys($cles, true)));
+
+// Réalisation/Préparation/Contacté : même enveloppe .col-filter que les
+// filtres à cases à cocher ci-dessus (filtre_colonne_form_html()), mais au
+// contenu libre — deux <select> « De »/« à » pour une plage de mois, ou un
+// <input type="date"> + une case à cocher pour le contact.
+$moisSelect = function (string $nom, $valeur): string {
+    $h = '<select name="' . e($nom) . '"><option value="">—</option>';
+    for ($m = 1; $m <= 12; $m++) {
+        $h .= '<option value="' . $m . '"' . ((string) $valeur === (string) $m ? ' selected' : '') . '>' . e(mois_nom($m)) . '</option>';
+    }
+    return $h . '</select>';
+};
+$realisationContenu = '<label>De ' . $moisSelect('mois_evenement_debut', $criteres['mois_evenement_debut']) . '</label>'
+    . '<label>à ' . $moisSelect('mois_evenement_fin', $criteres['mois_evenement_fin']) . '</label>';
+$preparationContenu = '<label>De ' . $moisSelect('mois_debut', $criteres['mois_debut']) . '</label>'
+    . '<label>à ' . $moisSelect('mois_fin', $criteres['mois_fin']) . '</label>';
+$contacteContenu = '<label class="col-filter-champ">Pas contactées depuis le <input type="date" name="contact_avant" value="' . e($criteres['contact_avant']) . '"></label>'
+    . '<label class="check"><input type="checkbox" name="contact_jamais" value="1"' . ($criteres['contact_jamais'] ? ' checked' : '') . '> Jamais contactées</label>';
+
+// Valeurs actives des 7 filtres à cases à cocher, une pastille par valeur
+// avec sa propre croix de retrait (filtre_colonne_actifs_html(), même
+// composant que les en-têtes de colonne de ?p=structures/?p=evenements_liste)
+// — affichée sous la rangée de filtres plutôt que dans l'en-tête d'une
+// colonne, cette page n'ayant pas de tableau à qui l'accrocher.
+$actifsCiblageHtml = filtre_colonne_actifs_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id'))
+    . filtre_colonne_actifs_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id'))
+    . filtre_colonne_actifs_html('mailing_campagne', 'type_lieu', $typeLieuLabels, $criteres['type_lieu'], $autresFiltresCiblage('type_lieu'))
+    . filtre_colonne_actifs_html('mailing_campagne', 'pays', $paysLabels, $criteres['pays'], $autresFiltresCiblage('pays'))
+    . filtre_colonne_actifs_html('mailing_campagne', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autresFiltresCiblage('grande_region'))
+    . filtre_colonne_actifs_html('mailing_campagne', 'departement_canton', $departementCantonLabels, $criteres['departement_canton'], $autresFiltresCiblage('departement_canton'))
+    . filtre_colonne_actifs_html('mailing_campagne', 'ville', $villeLabels, $criteres['ville'], $autresFiltresCiblage('ville'));
+
+// Même pastille (.col-th-actif) pour Réalisation/Préparation/Contacté, qui ne
+// sont pas des filtres à cases à cocher (pas de $options/$actives à donner à
+// filtre_colonne_actifs_html()) — une seule pastille par groupe (pas par
+// champ élémentaire : « De »/« à » forment une seule plage, jamais retirés
+// séparément), $sansCles() efface les deux/trois champs du groupe d'un coup.
+$pilleGroupe = function (string $label, array $cles) use ($sansCles): string {
+    $qs = ['p' => 'mailing_campagne'] + $sansCles($cles);
+    return '<span class="col-th-actif-list"><span class="col-th-actif">' . e($label)
+        . '<a href="?' . e(http_build_query($qs)) . '" title="Retirer « ' . e($label) . ' »">' . icon('x') . '</a></span></span>';
+};
+if ($criteres['mois_evenement_debut'] !== '' && $criteres['mois_evenement_fin'] !== '') {
+    $actifsCiblageHtml .= $pilleGroupe('Réalisation : ' . mois_nom((int) $criteres['mois_evenement_debut']) . '–' . mois_nom((int) $criteres['mois_evenement_fin']), ['mois_evenement_debut', 'mois_evenement_fin']);
+}
+if ($criteres['mois_debut'] !== '' && $criteres['mois_fin'] !== '') {
+    $actifsCiblageHtml .= $pilleGroupe('Préparation : ' . mois_nom((int) $criteres['mois_debut']) . '–' . mois_nom((int) $criteres['mois_fin']), ['mois_debut', 'mois_fin']);
+}
+if ($criteres['contact_jamais']) {
+    $actifsCiblageHtml .= $pilleGroupe('Jamais contactées', ['contact_avant', 'contact_jamais']);
+} elseif ($criteres['contact_avant'] !== '') {
+    $actifsCiblageHtml .= $pilleGroupe('Pas contactées depuis le ' . date('d.m.Y', strtotime($criteres['contact_avant'])), ['contact_avant', 'contact_jamais']);
+}
+
+// Champs cachés « critères » d'un formulaire (ciblage_save / campagne-form) —
+// mailing_criteres_vers_url() mélange scalaires et tableaux, e() seul ne
+// suffit pas (voir hidden_inputs_html(), même principe).
+$critHiddenInputs = function (array $criteres): string {
+    $h = '';
+    foreach (mailing_criteres_vers_url($criteres) as $k => $v) {
+        foreach ((array) $v as $vv) {
+            $h .= '<input type="hidden" name="' . e(is_array($v) ? $k . '[]' : $k) . '" value="' . e((string) $vv) . '" class="crit-hidden">';
+        }
+    }
+    return $h;
+};
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -36,7 +145,16 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
 <?php elseif ($msg === 'vide'): ?><p class="err flash">Sujet et corps du message sont obligatoires.</p><?php endif; ?>
 
 <div class="card">
-    <h2 class="mt-0">Destinataires <?= info_tip("Combinables : catégorie (une catégorie inclut ses sous-catégories), étiquette, pays, région, département/canton, ville, type de lieu, périodes des lieux liés (événements / programmation), dernier contact. Mêmes filtres que la liste des structures. Les structures désinscrites et la liste d'exclusion sont toujours écartées.") ?></h2>
+    <div class="section-head mt-0">
+        <h2 class="mt-0">Destinataires</h2>
+        <form method="post" action="?p=mailing_campagne" class="linked-add ml-auto" data-sync-criteres>
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="section" value="ciblage_save">
+            <?= $critHiddenInputs($criteres) ?>
+            <input type="text" name="ciblage_nom" placeholder="Enregistrer ce ciblage sous… (ex. Festivals romands été)" required>
+            <button type="submit" class="btn"><?= icon('save') ?></button>
+        </form>
+    </div>
 
     <?php if ($ciblages): ?>
     <div class="tags-liste">
@@ -55,110 +173,48 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
     </div>
     <?php endif; ?>
 
-    <form method="get" class="grid3" id="crit-form">
-        <input type="hidden" name="p" value="mailing_campagne">
-        <label>Catégorie
-            <select name="categorie_id">
-                <option value="0">Toutes</option>
-                <?php foreach ($categoriesPourSelect as $cat): ?>
-                    <option value="<?= (int) $cat['id'] ?>" <?= (int) $criteres['categorie_id'] === (int) $cat['id'] ? 'selected' : '' ?>><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Étiquette
-            <select name="tag_id">
-                <option value="0">Toutes</option>
-                <?php foreach ($tags as $t): ?>
-                    <option value="<?= (int) $t['id'] ?>" <?= (int) $criteres['tag_id'] === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label><span>Type de lieu <?= info_tip("Structures ayant au moins un lieu lié de ce type (Festival, Salle de concert, Saison culturelle…).") ?></span>
-            <select name="type_lieu">
-                <option value="">Tous</option>
-                <?php foreach ($typesLieu as $tl): ?>
-                    <option value="<?= e($tl) ?>" <?= $criteres['type_lieu'] === $tl ? 'selected' : '' ?>><?= e($tl) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Pays
-            <select name="pays">
-                <option value="">Tous</option>
-                <?= pays_options_nom($criteres['pays']) ?>
-            </select>
-        </label>
-        <label><span>Région <?= info_tip("Grande région (Normandie, Romandie, Acadie… — se gère dans Paramètres → Pays)") ?></span>
-            <select name="grande_region">
-                <option value="">Toutes</option>
-                <?php foreach ($grandesRegions as $paysNom => $regionsDuPays): ?>
-                    <optgroup label="<?= e($paysNom) ?>">
-                        <?php foreach ($regionsDuPays as $r): ?>
-                            <option value="<?= e($r) ?>" <?= $criteres['grande_region'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
-                        <?php endforeach; ?>
-                    </optgroup>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Département / canton
-            <select name="departement_canton">
-                <option value="">Tous</option>
-                <?php foreach ($regions as $r): ?>
-                    <option value="<?= e($r) ?>" <?= $criteres['departement_canton'] === $r ? 'selected' : '' ?>><?= e($r) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Ville
-            <select name="ville">
-                <option value="">Toutes</option>
-                <?php foreach ($villes as $v): ?>
-                    <option value="<?= e($v) ?>" <?= $criteres['ville'] === $v ? 'selected' : '' ?>><?= e($v) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <?php $moisSelect = function (string $nom, $valeur): void { ?>
-            <select name="<?= $nom ?>">
-                <option value="">—</option>
-                <?php for ($m = 1; $m <= 12; $m++): ?>
-                    <option value="<?= $m ?>" <?= (string) $valeur === (string) $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
-                <?php endfor; ?>
-            </select>
-        <?php }; ?>
-        <label><span>Événements de… <?= info_tip("Quand le festival a lieu ou quand la saison se déroule (lieux liés à la structure).") ?></span>
-            <?php $moisSelect('mois_evenement_debut', $criteres['mois_evenement_debut']); ?>
-        </label>
-        <label>… à
-            <?php $moisSelect('mois_evenement_fin', $criteres['mois_evenement_fin']); ?>
-        </label>
-        <label><span>Préparé de… <?= info_tip("Quand le festival / la salle choisit sa programmation (lieux liés à la structure).") ?></span>
-            <?php $moisSelect('mois_debut', $criteres['mois_debut']); ?>
-        </label>
-        <label>… à
-            <?php $moisSelect('mois_fin', $criteres['mois_fin']); ?>
-        </label>
-        <label><span>Pas contactées depuis le <?= info_tip("Structures jamais contactées ou dont le dernier contact est antérieur à cette date. Ignoré si « Jamais contactées » est coché.") ?></span>
-            <input type="date" name="contact_avant" value="<?= e($criteres['contact_avant']) ?>">
-        </label>
-        <label class="check"><input type="checkbox" name="contact_jamais" value="1" <?= $criteres['contact_jamais'] ? 'checked' : '' ?>> Jamais contactées</label>
-        <div class="form-actions grid3-full">
-            <button type="submit" name="previsualiser" value="1" class="btn ghost btn-sm">Prévisualiser</button>
+    <div class="toolbar">
+        <div class="filters carte-filters">
+            <span class="col-th">Catégorie <?= filtre_colonne_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id')) ?></span>
+            <?php if ($tags): ?><span class="col-th">Étiquette <?= filtre_colonne_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id')) ?></span><?php endif; ?>
+            <?php if ($typesLieu): ?>
+            <span class="col-th">Type de lieu <?= filtre_colonne_html('mailing_campagne', 'type_lieu', $typeLieuLabels, $criteres['type_lieu'], $autresFiltresCiblage('type_lieu')) ?></span>
+            <?php endif; ?>
+            <span class="col-th">Pays <?= filtre_colonne_html('mailing_campagne', 'pays', $paysLabels, $criteres['pays'], $autresFiltresCiblage('pays')) ?></span>
+            <span class="col-th">Région <?= filtre_colonne_html('mailing_campagne', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autresFiltresCiblage('grande_region')) ?></span>
+            <span class="col-th">Département / canton <?= filtre_colonne_html('mailing_campagne', 'departement_canton', $departementCantonLabels, $criteres['departement_canton'], $autresFiltresCiblage('departement_canton')) ?></span>
+            <span class="col-th">Ville <?= filtre_colonne_html('mailing_campagne', 'ville', $villeLabels, $criteres['ville'], $autresFiltresCiblage('ville')) ?></span>
+            <span class="col-th">Réalisation <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['mois_evenement_debut', 'mois_evenement_fin']), $realisationContenu) ?></span>
+            <span class="col-th">Préparation <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['mois_debut', 'mois_fin']), $preparationContenu) ?></span>
+            <span class="col-th">Contacté <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['contact_avant', 'contact_jamais']), $contacteContenu) ?></span>
         </div>
-    </form>
+    </div>
+    <?php if ($actifsCiblageHtml !== ''): ?>
+    <div class="filtres-ciblage-actifs"><?= $actifsCiblageHtml ?></div>
+    <?php endif; ?>
 
-    <form method="post" action="?p=mailing_campagne" class="linked-add mt-16" data-sync-criteres>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="section" value="ciblage_save">
-        <?php foreach (mailing_criteres_vers_url($criteres) as $k => $v): ?>
-            <input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>" class="crit-hidden">
-        <?php endforeach; ?>
-        <input type="text" name="ciblage_nom" placeholder="Enregistrer ce ciblage sous… (ex. Festivals romands été)" required>
-        <button type="submit" class="btn ghost btn-sm"><?= icon('save') ?> Enregistrer le ciblage</button>
+    <?php
+    // Ancre invisible pour syncCriteres() (voir le <script> en bas de page) :
+    // au moment de soumettre le formulaire d'enregistrement du ciblage ou de
+    // création de la campagne, on relit l'état COURANT des filtres depuis ce
+    // <form> (hidden inputs, jamais affichés — sans bouton visible depuis que
+    // chaque filtre s'applique lui-même) plutôt que celui rendu au dernier
+    // aperçu.
+    ?>
+    <form method="get" id="crit-form" hidden>
+        <input type="hidden" name="p" value="mailing_campagne">
+        <?= hidden_inputs_html([
+            'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'], 'pays' => $criteres['pays'],
+            'grande_region' => $criteres['grande_region'], 'departement_canton' => $criteres['departement_canton'],
+            'ville' => $criteres['ville'], 'type_lieu' => $criteres['type_lieu'],
+            'mois_evenement_debut' => $criteres['mois_evenement_debut'], 'mois_evenement_fin' => $criteres['mois_evenement_fin'],
+            'mois_debut' => $criteres['mois_debut'], 'mois_fin' => $criteres['mois_fin'],
+            'contact_avant' => $criteres['contact_avant'], 'contact_jamais' => $criteres['contact_jamais'] ? '1' : '',
+        ]) ?>
     </form>
 
     <?php if ($apercu !== null): ?>
-        <p class="mt-16"><strong><?= count($apercu) ?></strong> destinataire(s) trouvé(s)<?= $totalStructures ? ' dans ' . $totalStructures . ' structure(s)' : '' ?>.
-            <?php foreach ($resumeCiblage as $b): ?><span class="badge"><?= e($b) ?></span><?php endforeach; ?>
-            <?php if (!$resumeCiblage): ?><span class="badge muted-badge">toutes les structures</span><?php endif; ?>
-        </p>
+        <p class="mt-16"><strong><?= count($apercu) ?></strong> destinataire(s) trouvé(s)<?= $totalStructures ? ' dans ' . $totalStructures . ' structure(s)' : '' ?>.</p>
         <?php if ($structuresApercu): ?>
         <div class="table-scroll">
         <table class="list list-wide">
@@ -212,9 +268,7 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
 
     <form method="post" action="?p=mailing_envoyer" class="form" id="campagne-form" data-sync-criteres>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <?php foreach (mailing_criteres_vers_url($criteres) as $k => $v): ?>
-            <input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>" class="crit-hidden">
-        <?php endforeach; ?>
+        <?= $critHiddenInputs($criteres) ?>
         <label>Sujet <input name="sujet" id="camp-sujet" required></label>
         <label><span>Corps <?= info_tip('Variables disponibles : {{prenom}} (contact), {{nom_structure}}.') ?></span>
             <textarea name="corps" id="camp-corps" rows="8" required placeholder="Bonjour {{prenom}},&#10;&#10;…"></textarea>
@@ -222,12 +276,12 @@ elseif ($criteres['contact_avant'] !== '') { $resumeCiblage[] = 'Pas contactées
 
         <div class="linked-add">
             <input type="email" name="test_email" id="camp-test-email" value="<?= e($testEmailDefaut) ?>" placeholder="Adresse pour l'e-mail de test">
-            <button type="submit" name="section" value="test" formaction="?p=mailing_campagne" formnovalidate class="btn ghost btn-sm"><?= icon('send') ?> Envoyer un test</button>
+            <button type="submit" name="section" value="test" formaction="?p=mailing_campagne" formnovalidate class="btn ghost"><?= icon('send') ?> Envoyer un test</button>
         </div>
 
         <div class="form-actions">
             <button type="submit" onclick="return confirm('Ajouter ces destinataires à la file d\'attente d\'envoi ?');"><?= icon('send') ?> Créer la campagne<?= $apercu !== null ? ' (' . count($apercu) . ' destinataires)' : '' ?></button>
-            <button type="submit" name="section" value="modele_save" formaction="?p=mailing_modeles" formnovalidate class="btn ghost btn-sm" id="camp-save-modele"><?= icon('save') ?> Enregistrer comme modèle</button>
+            <button type="submit" name="section" value="modele_save" formaction="?p=mailing_modeles" formnovalidate class="btn ghost" id="camp-save-modele"><?= icon('save') ?> Enregistrer comme modèle</button>
         </div>
     </form>
 </div>

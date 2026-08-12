@@ -813,23 +813,25 @@ function route_mailing_modeles(): void
 
 // Critères de ciblage d'un mailing, depuis $_GET (prévisualisation) ou $_POST
 // (création de la campagne) — une seule construction pour garantir que
-// l'aperçu et l'envoi réel ciblent exactement les mêmes structures. La
-// catégorie arrive en categorie_id (arbre catégorie/sous-catégorie, comme le
-// filtre de ?p=structures) et est résolue en noms ici.
+// l'aperçu et l'envoi réel ciblent exactement les mêmes structures. Champs à
+// choix multiples (cases à cocher, même mécanique que structures_filtres()
+// dans lib/routes_facturation.php — mais sans la persistance en session de
+// filtre_coche(), volontairement : $src peut être $_GET OU $_POST et les deux
+// doivent produire les mêmes critères pour une même sélection). La catégorie
+// arrive en categorie_id (arbre catégorie/sous-catégorie, comme le filtre de
+// ?p=structures) — résolue en noms par mailing_structures_eligibles(), pas ici.
 function mailing_criteres_depuis(array $src): array
 {
-    $categorieId = (int) ($src['categorie_id'] ?? 0);
-    $champs = structure_categorie_champs($categorieId);
+    $ids = fn (string $k): array => array_values(array_unique(array_filter(array_map('intval', (array) ($src[$k] ?? [])), fn ($v) => $v > 0)));
+    $txt = fn (string $k): array => array_values(array_unique(array_filter(array_map('strval', (array) ($src[$k] ?? [])), fn ($v) => $v !== '')));
     return [
-        'categorie_id'   => $categorieId,
-        'categorie'      => $champs['categorie'],
-        'sous_categorie' => $champs['sous_categorie'],
-        'tag_id'         => (int) ($src['tag_id'] ?? 0),
-        'pays'           => trim((string) ($src['pays'] ?? '')),
-        'grande_region'  => trim((string) ($src['grande_region'] ?? '')),
-        'departement_canton' => trim((string) ($src['departement_canton'] ?? '')),
-        'ville'          => trim((string) ($src['ville'] ?? '')),
-        'type_lieu'      => trim((string) ($src['type_lieu'] ?? '')),
+        'categorie_id'   => $ids('categorie_id'),
+        'tag_id'         => $ids('tag_id'),
+        'pays'           => $txt('pays'),
+        'grande_region'  => $txt('grande_region'),
+        'departement_canton' => $txt('departement_canton'),
+        'ville'          => $txt('ville'),
+        'type_lieu'      => $txt('type_lieu'),
         'mois_debut'     => $src['mois_debut'] ?? '',
         'mois_fin'       => $src['mois_fin'] ?? '',
         'mois_evenement_debut' => $src['mois_evenement_debut'] ?? '',
@@ -841,12 +843,19 @@ function mailing_criteres_depuis(array $src): array
 
 // Paramètres d'URL correspondant à des critères (pour recharger un ciblage ou
 // revenir sur ?p=mailing avec l'état conservé) — l'inverse de
-// mailing_criteres_depuis(), en ne gardant que les clés « source ».
+// mailing_criteres_depuis(), en ne gardant que les clés « source ». Les
+// champs à choix multiples restent des tableaux (redirect()/json_encode()
+// les sérialisent correctement — voir hidden_inputs_html() pour le même
+// principe côté formulaire).
 function mailing_criteres_vers_url(array $criteres): array
 {
     $url = [];
-    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'departement_canton', 'ville', 'type_lieu',
-              'mois_debut', 'mois_fin', 'mois_evenement_debut', 'mois_evenement_fin', 'contact_avant'] as $k) {
+    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'departement_canton', 'ville', 'type_lieu'] as $k) {
+        if (!empty($criteres[$k])) {
+            $url[$k] = array_values((array) $criteres[$k]);
+        }
+    }
+    foreach (['mois_debut', 'mois_fin', 'mois_evenement_debut', 'mois_evenement_fin', 'contact_avant'] as $k) {
         if (!empty($criteres[$k])) {
             $url[$k] = (string) $criteres[$k];
         }

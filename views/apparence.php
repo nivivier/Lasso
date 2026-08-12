@@ -29,11 +29,22 @@
 
         <h3 class="sub">Image de fond <?= info_tip(
             "Affichée en arrière-plan de l'application (hors page de connexion). "
-            . 'Formats acceptés : PNG, JPG, GIF ou WebP (2 Mo max). Laissez vide pour conserver le fond actuel.'
+            . "Formats acceptés : PNG, JPG, GIF ou WebP (2 Mo max). Sans image personnalisée, "
+            . "un fond calculé à partir des couleurs ci-dessus est utilisé."
         ) ?></h3>
+        <?php if (param('employeur_fond', '') !== ''): ?>
         <span class="fond-preview"><img src="<?= e(param_fond()) ?>" alt="Fond actuel"></span>
+        <?php endif; ?>
         <input type="file" name="fond" accept="image/png,image/jpeg,image/gif,image/webp">
         <?php if (param('employeur_fond', '') !== ''): ?>
+        <label class="check mt-16">
+            <input type="checkbox" name="employeur_fond_clair" value="1" <?= param_fond_clair() ? 'checked' : '' ?>>
+            Fond clair <?= info_tip("Adoucit et éclaircit l'image pour une meilleure lisibilité du contenu par-dessus.") ?>
+        </label>
+        <label class="check">
+            <input type="checkbox" name="employeur_fond_floute" value="1" <?= param_fond_floute() ? 'checked' : '' ?>>
+            Fond flouté <?= info_tip("Applique un flou à l'image. Combinable avec « Fond clair ».") ?>
+        </label>
         <div class="mt-16">
             <?php // formaction : ce bouton soumet le même formulaire vers une route dédiée
                   // (route_apparence_fond_supprimer()), sans toucher couleurs/effets — un
@@ -43,16 +54,9 @@
                 <?= icon('trash') ?> Supprimer l'image de fond
             </button>
         </div>
+        <?php else: ?>
+        <p class="muted small mt-8">Fond actuel : calculé automatiquement (aucune image personnalisée).</p>
         <?php endif; ?>
-
-        <label class="check mt-16">
-            <input type="checkbox" name="employeur_fond_clair" value="1" <?= param_fond_clair() ? 'checked' : '' ?>>
-            Fond clair <?= info_tip("Adoucit et éclaircit l'image pour une meilleure lisibilité du contenu par-dessus.") ?>
-        </label>
-        <label class="check">
-            <input type="checkbox" name="employeur_fond_floute" value="1" <?= param_fond_floute() ? 'checked' : '' ?>>
-            Fond flouté <?= info_tip("Applique un flou à l'image. Combinable avec « Fond clair ».") ?>
-        </label>
 
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>

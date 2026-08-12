@@ -31,12 +31,12 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <?php endif; ?>
         <div class="head-actions">
             <?php if ($lignes): ?>
-            <button type="button" class="btn ghost icon-only export-copy" onclick="event.stopPropagation()"
+            <button type="button" class="btn ghost export-copy" onclick="event.stopPropagation()"
                                 data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
-                                title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
-            <button type="button" class="btn ghost icon-only export-copy" onclick="event.stopPropagation()"
+                                title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?><span class="lbl"> Sync JSON</span></button>
+            <button type="button" class="btn ghost export-copy" onclick="event.stopPropagation()"
                                 data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
-                                title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
+                                title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?><span class="lbl"> Sync iCal</span></button>
             <?php endif; ?>
             <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
         </div>

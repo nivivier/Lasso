@@ -335,8 +335,10 @@ function nav_groupes(): array
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
             'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import'], nb_ecritures_a_lettrer(), 'banknote'],
+            'compta_comptes'   => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
+            'compta_plan'      => ['Plan comptable', ['compta_plan'], 0, 'rows-3'],
             'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'settings'],
-            'compta_bilan'     => ['Comptes annuels', ['compta_bilan', 'compta_plan', 'compta_comptes'], 0, 'book-open'],
+            'compta_bilan'     => ['Comptes annuels', ['compta_bilan'], 0, 'book-open'],
         ];
         if ($analytiqueOk) {
             $onglets['compta_analyse'] = ['Analyse', ['compta_analyse', 'compta_analyse_axe', 'compta_axes'], 0, 'layers'];
@@ -382,7 +384,9 @@ function nav_groupes(): array
 // appartenir à trois (Factures/Événements/Booking) puisque c'est une page
 // partagée : on préfère $depuis s'il désigne un groupe valide contenant la
 // route, sinon on retombe sur un ordre de priorité fixe (Booking d'abord,
-// propriétaire du CRM des structures — voir SPEC_BOOKING.md).
+// propriétaire du CRM des structures — voir SPEC_BOOKING.md ; Comptabilité
+// avant Facturation pour compta_comptes, également partagée entre ces deux
+// groupes, car les comptes bancaires sont d'abord une notion comptable).
 function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?string
 {
     $candidats = [];
@@ -412,7 +416,7 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
             return $groupeDuType;
         }
     }
-    foreach (['booking', 'facturation', 'evenements'] as $prefere) {
+    foreach (['booking', 'compta', 'facturation', 'evenements'] as $prefere) {
         if (in_array($prefere, $candidats, true)) {
             return $prefere;
         }
