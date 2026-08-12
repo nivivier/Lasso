@@ -7,6 +7,18 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.1] — 2026-08-13
+
+### Corrigé
+- Un utilisateur en lecture seule sur un module voyait quand même les
+  boutons d'ajout/modification/suppression et les formulaires d'édition en
+  ligne sur la quasi-totalité des pages : cliquer dessus était bien
+  rejeté côté serveur (aucune donnée n'a jamais pu être modifiée), mais
+  l'interface montrait à tort des actions inaccessibles. Chaque contrôle
+  d'écriture est désormais masqué (ou remplacé par un message clair sur les
+  pages entièrement dédiées à l'édition) selon les droits réels de
+  l'utilisateur sur le module concerné.
+
 ## [2.0.0] — 2026-08-12
 
 ### Modifié
