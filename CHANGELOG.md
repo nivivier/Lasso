@@ -7,6 +7,37 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.0] — 2026-08-12
+
+### Modifié
+- **Nouvelle navigation** : le menu latéral vertical est remplacé par un rail
+  d'icônes de modules (Salaires/Comptabilité/Factures/Événements/Booking),
+  chacune ouvrant un bandeau d'onglets pleine largeur pour les pages du
+  module (badges de compteur, couleur d'accent propre à chaque module).
+  Paramètres et Mailing conservent un second niveau de sous-onglets sur le
+  même principe.
+- Comptabilité : Comptes bancaires et Plan comptable deviennent des onglets
+  de premier niveau (au lieu de raccourcis dans Comptes annuels).
+- Filtres de liste (fiches, structures, événements, écritures, factures,
+  mailing) : les anciens formulaires de filtre sont remplacés par des
+  panneaux de cases à cocher multi-sélection avec pastilles amovibles.
+- Listes et tableau de bord en pleine largeur, fond blanc continu jusqu'en
+  bas de page, pagination centrée, échelle typographique unifiée en 6
+  tailles sémantiques, mise en page responsive du tableau de bord et des
+  toolbars sur mobile.
+- Fond d'écran par défaut calculé automatiquement (vagues dérivées des
+  couleurs employeur), sur la connexion comme sur les pages connectées ;
+  une image de fond personnalisée (?p=apparence) reste prioritaire si
+  configurée.
+
+### Corrigé
+- Débordement horizontal de la pagination et régressions diverses de la
+  toolbar unifiée (dropdowns, filtres perdant `?depuis=`, avertissement
+  « Undefined array key » sur une fiche sans lignes personnalisées).
+- `nav_groupe_actif()` : `compta_comptes`, partagé entre Comptabilité et
+  Factures, met désormais en évidence Comptabilité par défaut (au lieu de
+  Factures) quand aucun contexte de provenance n'est précisé.
+
 ## [1.37.0] — 2026-08-05
 
 ### Modifié
