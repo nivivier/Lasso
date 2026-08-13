@@ -7,6 +7,21 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.3] — 2026-08-13
+
+### Modifié
+- Tableau de bord : la carte Suisa devient un mini-tableau à 2 lignes (À
+  faire/Manquants) avec le nombre et des liens Voir/Exporter par statut
+  (Exporter en icône seule) ; la bulle de compteur de la section Événements
+  (rail + onglet) reflète désormais les envois « à faire » plutôt que les
+  décomptes manquants.
+
+### Corrigé
+- Les liens Voir/Exporter Suisa du tableau de bord utilisaient l'ancien
+  format de filtre (valeur scalaire), silencieusement ignoré par le filtre à
+  cases à cocher de la colonne SUISA (?p=evenements_liste) — la liste
+  affichée n'était donc jamais filtrée. Corrigé pour les deux statuts.
+
 ## [2.0.2] — 2026-08-13
 
 ### Modifié
