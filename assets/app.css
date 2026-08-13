@@ -1272,6 +1272,11 @@ button:active, .btn:active { transform: translateY(1px); }
 .btn.icon-only { padding: 9px 11px; }
 .btn.icon-only .ico { width: 17px; height: 17px; }
 .btn-sm { padding: 4px 8px; font-size: var(--fs-basic); }
+/* .btn-compact-break (?p=compta_ecritures, bouton « Écriture manuelle ») :
+   <br> caché sur bureau (assez de place pour une seule ligne) — voir plus
+   bas, en mobile, sa réactivation forcée. display:none retire le saut de
+   ligne comme s'il n'existait pas dans le texte (pas seulement invisible). */
+.btn-compact-break { display: none; }
 .add-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
 .add-row label { flex: 1; min-width: 160px; margin-bottom: 0; }
 .add-row button { white-space: nowrap; }
@@ -2099,6 +2104,10 @@ abbr {
        axe) paraît désaligné ; aligné à gauche, les deux lignes démarrent au
        même point sous l'icône, lisible quel que soit le nombre de lignes. */
     .btn.btn-compact { font-size: var(--fs-small); line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; text-align: left; }
+    /* Réactive le <br> cadré ci-dessus (masqué sur bureau) : choix de style
+       délibéré pour ce bouton précis, pas un repli sous contrainte d'espace
+       — le texte reste sur 2 lignes même quand une seule suffirait. */
+    .btn-compact-break { display: inline; }
     /* Sidebar pleine largeur : datepicker compact, pas extensible */
     .fiche-aside .paiement-date { flex: 0 0 auto; width: auto; }
     .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }

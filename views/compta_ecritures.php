@@ -98,7 +98,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </form>
         <?php if (peut_ecrire('compta')): ?>
         <div class="head-actions">
-            <button type="button" id="btn-new-ecr" class="btn ghost btn-compact"><?= icon('plus') ?> Écriture manuelle</button>
+            <button type="button" id="btn-new-ecr" class="btn ghost btn-compact"><?= icon('plus') ?> Écriture<br class="btn-compact-break"> manuelle</button>
             <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
         </div>
         <?php endif; ?>
