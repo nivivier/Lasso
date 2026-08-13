@@ -1985,16 +1985,9 @@ abbr {
        (propre à chaque module, voir module_couleur_css_vars()) sans avoir à
        la reprendre ici — un dégradé de couleur figé aurait juré dès que le
        module change. Règle commune aux deux sélecteurs (.module-tabs,
-       .param-subtabs) plutôt que dupliquée.
-       overflow-y: visible en plus de overflow-x: auto : sans ça, la spec
-       CSS force overflow-y à auto dès qu'un seul axe est explicite (« si un
-       axe est visible et l'autre pas, celui qui reste visible devient
-       auto »), ce qui rognait le débord de -1px de .module-tab
-       (margin-bottom, plus bas) censé faire disparaître le trait de
-       .page-head-band sous l'onglet actif — même bug déjà rencontré sur
-       .side-nav (trait d'accent du rail, voir plus haut) dans ce fichier. */
+       .param-subtabs) plutôt que dupliquée. */
     .module-tabs, .param-subtabs {
-        flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; scroll-snap-type: x proximity;
+        flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity;
         -webkit-overflow-scrolling: touch; scrollbar-width: none;
         -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
         mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
@@ -2003,6 +1996,19 @@ abbr {
     .module-tab, .param-subtabs a { flex: 0 0 auto; scroll-snap-align: start; }
     .module-tab { white-space: nowrap; }
     .param-subtabs { padding-right: 26px; }
+    /* Sur bureau, l'onglet actif « efface » le trait .page-head-band sous
+       lui via un débord de -1px (margin-bottom sur .module-tab, plus haut)
+       qui déborde exprès de sa boîte pour recouvrir le trait ancestral.
+       Impossible dès que .module-tabs défile : overflow-x:auto force
+       TOUJOURS overflow-y à auto aussi (règle de la spec CSS — testé,
+       overflow-y:visible posé à côté est purement et simplement ignoré,
+       jamais appliqué), qui rogne ce débord quel que soit l'onglet actif.
+       Un enfant qui doit défiler ne peut plus jamais peindre en dehors de
+       sa propre boîte, quel que soit l'ancêtre. Seule issue : ne plus
+       compter sur ce trait ancestral pour CE bandeau précis — le retirer
+       entièrement en mobile plutôt que tenter de le « trouer » au bon
+       endroit (position qui varie de toute façon avec le défilement). */
+    .page-head-band:has(.module-tabs) { border-bottom-color: transparent; }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
