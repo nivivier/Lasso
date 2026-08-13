@@ -951,7 +951,13 @@ h3.sub.no-mt { margin-top: 0; }
    colonne est un flex empilé, indépendant des deux autres. */
 .card-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; align-items: start; }
 .card-col { display: flex; flex-direction: column; gap: 22px; }
-@media (max-width: 900px) { .card-columns { grid-template-columns: 1fr; } }
+/* row-gap:0 (via le gap raccourci ci-dessus) ne se voit jamais en 3 colonnes
+   (chaque .card-col ne fait qu'une seule ligne dans la grille) — mais une
+   fois réduit à 1 colonne (ci-dessous), les 3 .card-col s'empilent et
+   deviendraient adjacents sans le moindre espace entre eux. Même 22px que le
+   gap interne de .card-col, pour une cadence régulière entre toutes les
+   cartes une fois empilées, qu'elles viennent de la même colonne ou non. */
+@media (max-width: 900px) { .card-columns { grid-template-columns: 1fr; row-gap: 22px; } }
 
 input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--fs-big); font-weight: 800; padding: 2px 14px; color: var(--primary)}
 
@@ -1147,6 +1153,18 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 18px; }
 .grid3-full { grid-column: 1 / -1; }
+/* row-gap:0 ci-dessus est voulu pour l'usage courant de .grid2/3/4 (grille de
+   CHAMPS de formulaire) : chaque champ porte déjà sa propre marge basse, un
+   row-gap en plus la doublerait. Mais ces mêmes classes servent aussi,
+   ailleurs, à poser plusieurs .card côte à côte (?p=evenement, cadres
+   Informations/Localisation/Organisation) — une carte n'a, elle, aucune
+   marge à elle : sur une seule colonne (mobile, @media plus bas :
+   grid-template-columns devient 1fr), row-gap:0 les collait donc les unes aux
+   autres sans espace, un fix par page en aurait laissé d'autres réapparaître
+   ailleurs à la prochaine réutilisation. :has(> .card) cible ce seul usage
+   (jamais vrai pour une grille de champs, dont les enfants directs sont des
+   <label>/.field-group) — sans effet sur toute grille de champs existante. */
+.grid2:has(> .card), .grid3:has(> .card), .grid4:has(> .card) { row-gap: 22px; }
 .field-pair { display: flex; gap: 8px; }
 .field-pair input { flex: 2; min-width: 0; }
 .field-pair select { flex: 1; width: auto; min-width: 0; }
@@ -2007,8 +2025,16 @@ abbr {
        sa propre boîte, quel que soit l'ancêtre. Seule issue : ne plus
        compter sur ce trait ancestral pour CE bandeau précis — le retirer
        entièrement en mobile plutôt que tenter de le « trouer » au bon
-       endroit (position qui varie de toute façon avec le défilement). */
-    .page-head-band:has(.module-tabs) { border-bottom-color: transparent; }
+       endroit (position qui varie de toute façon avec le défilement).
+       border-bottom-width:0 (pas seulement border-bottom-color:transparent) :
+       .page-head-band est translucide (background rgba + backdrop-filter,
+       voir plus haut) — une couleur transparente laisse quand même 1px de
+       largeur de bordure, qui continue de peindre le flou du fond derrière
+       au lieu du blanc plein de .module-content juste en dessous. Ce 1px
+       redevenait visible comme un filet gris selon ce qu'il y a derrière
+       (image de fond personnalisable, Apparence). Largeur à 0 : plus de
+       zone du tout à cet endroit, donc plus rien à traverser en transparence. */
+    .page-head-band:has(.module-tabs) { border-bottom-width: 0; }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
@@ -2048,7 +2074,18 @@ abbr {
     /* Boutons d'action : icônes seules par défaut ; .btn-compact garde un texte court */
     .head-actions .lbl { display: none; }
     .lbl-m { display: inline; }
-    .head-actions .btn { padding: 9px 11px; gap: 0; }
+    /* height: var(--action-height) (pas un padding vertical choisi à la
+       main) : ces boutons perdent leur texte ci-dessus et deviennent
+       visuellement icon-only, à côté du champ de recherche sur la même
+       ligne (.toolbar, voir plus haut) — un padding réinventé ici (9px)
+       divergeait de --btn-padding-v (10px) qui fixe la hauteur du champ de
+       recherche, les boutons se retrouvant 2px plus bas qu'elle. --action-
+       height est déjà le point de référence unique pour ce genre de
+       correspondance (voir :root, repris par .seg-btn) : s'aligner dessus
+       plutôt que remettre un chiffre à la main garantit qu'un futur
+       changement de --btn-padding-v/--btn-border-w suit automatiquement ici
+       aussi. */
+    .head-actions .btn { height: var(--action-height); padding: 0 11px; gap: 0; }
     .head-actions .mail-sent { gap: 0; }
     .btn.btn-compact { font-size: var(--fs-small); line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; text-align: left; }
     /* Sidebar pleine largeur : datepicker compact, pas extensible */
