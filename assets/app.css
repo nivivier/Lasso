@@ -1975,6 +1975,34 @@ abbr {
     .page-head-band { position: static; width: auto; margin: -22px -18px 20px; }
     .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
     .param-subtabs { width: auto; margin: 0 -18px 20px; padding: 10px 18px; }
+    /* Onglets et sous-onglets : une seule ligne qui défile horizontalement au
+       lieu de passer à la ligne (jusqu'à ~500px cumulés avant tout contenu
+       sur une page à deux niveaux comme Paramètres). CSS seul (scroll-snap +
+       masque de fondu en bord droit) — l'onglet actif hors champ au
+       chargement est ramené dans la zone visible en JS, voir assets/app.js.
+       mask-image (pas un calque de couleur superposé) : fonctionne quelle
+       que soit la couleur du dégradé de fond au-dessus de .module-tabs
+       (propre à chaque module, voir module_couleur_css_vars()) sans avoir à
+       la reprendre ici — un dégradé de couleur figé aurait juré dès que le
+       module change. Règle commune aux deux sélecteurs (.module-tabs,
+       .param-subtabs) plutôt que dupliquée.
+       overflow-y: visible en plus de overflow-x: auto : sans ça, la spec
+       CSS force overflow-y à auto dès qu'un seul axe est explicite (« si un
+       axe est visible et l'autre pas, celui qui reste visible devient
+       auto »), ce qui rognait le débord de -1px de .module-tab
+       (margin-bottom, plus bas) censé faire disparaître le trait de
+       .page-head-band sous l'onglet actif — même bug déjà rencontré sur
+       .side-nav (trait d'accent du rail, voir plus haut) dans ce fichier. */
+    .module-tabs, .param-subtabs {
+        flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    }
+    .module-tabs::-webkit-scrollbar, .param-subtabs::-webkit-scrollbar { display: none; }
+    .module-tab, .param-subtabs a { flex: 0 0 auto; scroll-snap-align: start; }
+    .module-tab { white-space: nowrap; }
+    .param-subtabs { padding-right: 26px; }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }

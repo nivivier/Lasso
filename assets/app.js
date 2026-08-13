@@ -22,6 +22,19 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Onglets/sous-onglets (.module-tabs, .param-subtabs) : en mobile ces bandes
+// défilent horizontalement au lieu de passer à la ligne (voir @media 800px,
+// assets/app.css) — si l'onglet actif n'est pas celui du début (ex. arrivée
+// directe sur un onglet plus loin dans la liste), il doit être visible dès
+// le chargement plutôt que caché hors champ à droite. Sans effet sur bureau
+// (la bande n'y déborde jamais, scrollIntoView n'y fait rien).
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.module-tabs, .param-subtabs').forEach(nav => {
+        const actif = nav.querySelector('.on');
+        if (actif) actif.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+});
+
 // Positionne un panneau flottant (position:fixed) sous un élément d'ancrage,
 // aligné à gauche puis clampé pour ne jamais déborder le bord droit du
 // viewport. Partagé par .filters-more-body et .col-filter-menu ci-dessous —
