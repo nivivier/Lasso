@@ -2074,19 +2074,30 @@ abbr {
     /* Boutons d'action : icônes seules par défaut ; .btn-compact garde un texte court */
     .head-actions .lbl { display: none; }
     .lbl-m { display: inline; }
-    /* height: var(--action-height) (pas un padding vertical choisi à la
-       main) : ces boutons perdent leur texte ci-dessus et deviennent
-       visuellement icon-only, à côté du champ de recherche sur la même
-       ligne (.toolbar, voir plus haut) — un padding réinventé ici (9px)
+    /* min-height (pas height) : ces boutons perdent leur texte ci-dessus et
+       deviennent visuellement icon-only, à côté du champ de recherche sur la
+       même ligne (.toolbar, voir plus haut) — un padding réinventé ici (9px)
        divergeait de --btn-padding-v (10px) qui fixe la hauteur du champ de
        recherche, les boutons se retrouvant 2px plus bas qu'elle. --action-
        height est déjà le point de référence unique pour ce genre de
        correspondance (voir :root, repris par .seg-btn) : s'aligner dessus
        plutôt que remettre un chiffre à la main garantit qu'un futur
        changement de --btn-padding-v/--btn-border-w suit automatiquement ici
-       aussi. */
-    .head-actions .btn { height: var(--action-height); padding: 0 11px; gap: 0; }
+       aussi. min-height (pas height) : un .btn-compact (juste en dessous)
+       garde lui du texte visible même en mobile — si l'espace manque sur la
+       ligne (.toolbar, recherche + boutons), ce texte peut se retrouver sur
+       deux lignes (ex. « Écriture manuelle » → « Écriture » / « manuelle »,
+       un mot par ligne, comportement de repli normal du navigateur pour un
+       bouton flex qui rétrécit). Une hauteur figée aurait alors rogné la
+       deuxième ligne — min-height laisse le bouton grandir librement au-delà
+       du minimum dès que son contenu l'exige. */
+    .head-actions .btn { min-height: var(--action-height); padding: 0 11px; gap: 0; }
     .head-actions .mail-sent { gap: 0; }
+    /* justify-content:flex-start + text-align:left (pas center, contrairement
+       à button/.btn) : sur deux lignes, un texte centré ligne à ligne (« Écri-
+       ture » centré, « manuelle » centré en dessous, chacun sur son propre
+       axe) paraît désaligné ; aligné à gauche, les deux lignes démarrent au
+       même point sous l'icône, lisible quel que soit le nombre de lignes. */
     .btn.btn-compact { font-size: var(--fs-small); line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; text-align: left; }
     /* Sidebar pleine largeur : datepicker compact, pas extensible */
     .fiche-aside .paiement-date { flex: 0 0 auto; width: auto; }
