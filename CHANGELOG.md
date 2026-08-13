@@ -7,6 +7,21 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.4] — 2026-08-13
+
+### Ajouté
+- `?p=evenements_json` : CORS (`Access-Control-Allow-Origin: *`) et cache
+  HTTP public d'une heure, pour permettre à un site externe de consommer ce
+  flux directement via `fetch()` côté client (sans passer par un
+  intermédiaire serveur).
+
+### Corrigé
+- `?p=evenements_json`/`evenements_ical` : un `spectacle_id` invalide (texte,
+  0, négatif) était silencieusement traité comme « aucun filtre » — un
+  appelant externe pouvait, par simple faute de frappe, récupérer la
+  totalité des événements au lieu du sous-ensemble attendu, sans s'en
+  rendre compte. Rejeté explicitement (code 400) désormais.
+
 ## [2.0.3] — 2026-08-13
 
 ### Modifié
