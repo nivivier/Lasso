@@ -1320,6 +1320,27 @@ function route_evenements_json(): void
     $spectacleId = isset($_GET['spectacle_id']) ? (int) $_GET['spectacle_id'] : null;
     $items = evenements_a_exporter($spectacleId);
     header('Content-Type: application/json; charset=utf-8');
+    // Route publique protégée par token (pas par cookie de session, voir
+    // evenements_verifier_token()) : Access-Control-Allow-Origin: * sans risque,
+    // aucune requête "credentialed" à protéger. Permet à un site externe
+    // (index.html) de consommer ce flux via fetch() côté client.
+    header('Access-Control-Allow-Origin: *');
+    // 1h : le navigateur (et tout proxy/CDN intermédiaire) sert la réponse
+    // depuis son cache HTTP natif pendant ce délai — pas besoin de réinventer
+    // ce TTL côté client (ex. localStorage), le cache HTTP standard s'en charge.
+    header('Cache-Control: public, max-age=3600');
+    // start_session() (lib/helpers.php, appelée sur toute requête) envoie par
+    // défaut Expires/Pragma: no-cache — deux en-têtes distincts de Cache-Control,
+    // donc jamais écrasés par le header() ci-dessus (même nom requis). Laissés
+    // tels quels, ils contrediraient le "public, max-age=3600" qu'on vient de
+    // poser (un proxy/cache strict qui respecte Pragma pourrait ne jamais
+    // mettre cette réponse en cache). Cette route n'a d'ailleurs aucun besoin
+    // de session (token en query string, pas de cookie) — retirés ici plutôt
+    // que globalement, pour ne pas toucher le cache-control des pages avec
+    // session (tableau de bord, etc.), qui doivent au contraire rester
+    // non cachées.
+    header_remove('Expires');
+    header_remove('Pragma');
     echo json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     exit;
 }
