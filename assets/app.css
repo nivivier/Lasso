@@ -1433,7 +1433,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    input[type="search"] — voir plus haut — et pas ici : même essayé ici
    d'abord, ça n'avait aucun effet, ".filters label" ayant une spécificité
    plus élevée.) */
-.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 200px; }
+.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 110px; }
 /* L'exception "recherche compacte + <form> figé" pour ?p=structures /
    ?p=evenements_liste en vue carte vit désormais sur .toolbar-carte (classe
    explicite posée par la vue), pas ici — voir juste après .toolbar-opaque,

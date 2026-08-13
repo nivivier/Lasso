@@ -7,6 +7,26 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.2] — 2026-08-13
+
+### Modifié
+- Largeur par défaut du champ de recherche des barres d'outils réduite
+  (200px → 110px), pour laisser plus de place aux boutons d'action juste à
+  côté.
+- Mode mobile : le libellé du bouton « Écriture manuelle »
+  (?p=compta_ecritures) s'affiche désormais toujours sur deux lignes.
+
+### Corrigé
+- Mode mobile : trait gris persistant sous l'onglet actif sur certaines
+  pages (Factures, Événements, Structures) — la correction précédente ne
+  neutralisait que la couleur de la bordure du bandeau, pas sa largeur, qui
+  laissait transparaître un filet flou derrière le fond translucide.
+- Mode mobile : les boutons d'action des barres d'outils n'avaient pas
+  toujours exactement la même hauteur que le champ de recherche voisin.
+- Mode mobile : certaines cartes empilées (ex. ?p=evenement, ?p=structure)
+  se retrouvaient collées les unes aux autres sans espace une fois la mise
+  en page réduite à une seule colonne.
+
 ## [2.0.1] — 2026-08-13
 
 ### Corrigé
