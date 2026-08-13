@@ -313,7 +313,7 @@ function route_autorisee(array $modules): bool
 // _module_tabs.php (bandeau) sur chacune des pages retrofitées — sans cache,
 // chacun des 4 compteurs de badge embarqués (nb_fiches_a_payer(),
 // nb_ecritures_a_lettrer(), nb_factures_en_retard(),
-// nb_evenements_suisa_manquants()) exécutait sa requête DB deux fois par
+// nb_evenements_suisa_a_faire()) exécutait sa requête DB deux fois par
 // page, pour un résultat strictement identique dans la même requête HTTP.
 function nav_groupes(): array
 {
@@ -356,7 +356,7 @@ function nav_groupes(): array
 
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
-            'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_manquants(), 'calendar'],
+            'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
             'structures'       => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'],
         ]];

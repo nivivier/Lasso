@@ -428,6 +428,20 @@ function nb_evenements_suisa_manquants(): int
     }
 }
 
+// Nombre d'événements SUISA « à faire » (badge de menu / tableau de bord) —
+// prédicat SQL (evenement_sql_statut_suisa(), synchronisé avec evenement_statut_suisa()),
+// filtrable directement en base plutôt que rechargé en PHP.
+function nb_evenements_suisa_a_faire(): int
+{
+    try {
+        $stmt = db()->prepare('SELECT COUNT(*) FROM evenements e WHERE ' . evenement_sql_statut_suisa('a_faire', 'e.'));
+        $stmt->execute([evenements_delai_abandon_mois()]);
+        return (int) $stmt->fetchColumn();
+    } catch (\Exception) {
+        return 0;
+    }
+}
+
 // Liste des spectacles assignables (feuilles uniquement — un spectacle-parent
 // représente un artiste, pure groupement, jamais assigné directement à un
 // événement) pour un <select> — formulaire événement. 'nom' porte le chemin

@@ -1891,15 +1891,11 @@ function route_resumes(): void
         : [];
     $comptaSeries = module_actif('compta') ? compta_dashboard_series() : [];
     $prochainsEvenements = module_actif('evenements') ? evenements_a_venir(5) : [];
-    $suisaAFaire = 0;
-    if (module_actif('evenements')) {
-        $stmt = db()->prepare('SELECT COUNT(*) FROM evenements e WHERE ' . evenement_sql_statut_suisa('a_faire', 'e.'));
-        $stmt->execute([evenements_delai_abandon_mois()]);
-        $suisaAFaire = (int) $stmt->fetchColumn();
-    }
+    $suisaAFaire   = module_actif('evenements') ? nb_evenements_suisa_a_faire() : 0;
+    $suisaManquant = module_actif('evenements') ? nb_evenements_suisa_manquants() : 0;
     render('resumes', [
         'aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
-        'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire,
+        'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaManquant' => $suisaManquant,
     ], 'Tableau de bord');
 }
 
