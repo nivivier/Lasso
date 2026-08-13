@@ -1314,10 +1314,31 @@ function evenements_verifier_token(): void
     }
 }
 
+// Résout ?spectacle_id= pour les exports publics (JSON/iCal) — null si absent
+// (pas de filtre, comportement historique). Si présent, doit être un entier
+// positif ; toute autre valeur (chaîne non numérique, 0, négatif) est
+// rejetée explicitement plutôt que silencieusement traitée comme « tous ».
+// Contrairement à l'usage interne (filtre_coche(), sentinelle 0 = tous postée
+// par un <select> contrôlé par l'app), cette valeur vient d'un appelant
+// externe : une faute de frappe ne doit jamais élargir silencieusement
+// l'export à la totalité des événements sans que l'appelant s'en aperçoive.
+function evenements_lire_spectacle_id_export(): ?int
+{
+    if (!isset($_GET['spectacle_id'])) {
+        return null;
+    }
+    $brut = (string) $_GET['spectacle_id'];
+    if (!ctype_digit($brut) || (int) $brut < 1) {
+        http_response_code(400);
+        exit('spectacle_id invalide (entier positif attendu).');
+    }
+    return (int) $brut;
+}
+
 function route_evenements_json(): void
 {
     evenements_verifier_token();
-    $spectacleId = isset($_GET['spectacle_id']) ? (int) $_GET['spectacle_id'] : null;
+    $spectacleId = evenements_lire_spectacle_id_export();
     $items = evenements_a_exporter($spectacleId);
     header('Content-Type: application/json; charset=utf-8');
     // Route publique protégée par token (pas par cookie de session, voir
@@ -1348,7 +1369,7 @@ function route_evenements_json(): void
 function route_evenements_ical(): void
 {
     evenements_verifier_token();
-    $spectacleId = isset($_GET['spectacle_id']) ? (int) $_GET['spectacle_id'] : null;
+    $spectacleId = evenements_lire_spectacle_id_export();
     $items = evenements_a_exporter($spectacleId);
     header('Content-Type: text/calendar; charset=utf-8');
     header('Content-Disposition: inline; filename="evenements.ics"');
