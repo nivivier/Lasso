@@ -1990,24 +1990,24 @@ abbr {
         padding-top: 16px; padding-left: 18px; padding-right: 18px;
     }
     /* .toolbar > .head-actions { margin-left: auto } pousse les actions à
-       droite quand filtres et actions tiennent sur une seule ligne (desktop)
-       — dès que .filters passe à la ligne (mobile, largeur trop étroite),
-       cette marge auto pousse .head-actions tout seul à l'extrême droite de
-       SA propre ligne, avec un grand vide à gauche plutôt qu'un retour à la
-       ligne naturel. En colonne : chaque bloc prend toute la largeur, la
-       marge auto (axe transversal en colonne) n'a plus d'espace à pousser. */
-    .toolbar { flex-direction: column; align-items: stretch; }
+       l'extrême droite (desktop) — en mobile la recherche est réduite à une
+       petite largeur minimale (voir .search-label ci-dessous) pour que les
+       boutons d'action tiennent souvent à côté sur la même ligne, posés
+       juste après elle (margin-left:0) plutôt que plaqués à droite avec un
+       vide ; s'ils ne tiennent pas, flex-wrap (hérité de .toolbar) les
+       rejette sur leur propre ligne pleine largeur, sans le vide à gauche
+       qu'aurait laissé une marge auto. */
     .toolbar > .head-actions { margin-left: 0; }
-    /* .search-label { flex: 1 1 200px } vise une largeur (200px) en contexte
-       ligne (.filters, resté en row) — en colonne, ce même flex-basis vaut
-       pour la hauteur : sans ce reset, un .search-label posé directement
-       dans .toolbar (pas de .filters autour, ex. employes.php/spectacles.php)
-       s'étire sur 200px de haut. Même chose pour --carte-search-form-width
-       (260px, voir .toolbar-carte tout en haut) sur le <form> qui contient
-       la recherche en vue carte : en colonne, cette largeur deviendrait une
-       HAUTEUR de 260px, avec un grand vide au-dessus de la recherche. */
-    .toolbar > .search-label { flex: 0 0 auto; }
-    .toolbar-carte > form.filters { flex-basis: auto; }
+    /* Recherche réduite à une petite largeur minimale (au lieu des 200px
+       desktop) : assez pour rester utilisable, assez peu pour laisser de la
+       place aux boutons d'action à côté sur la même ligne quand ça tient.
+       Reste flex-grow:1 (comme sur bureau) : si les actions ne tiennent
+       finalement pas et repartent seules sur leur propre ligne (wrap), la
+       recherche s'étire pour occuper toute la largeur de la sienne, au lieu
+       de rester figée à sa petite taille avec un vide à côté. */
+    .toolbar > .search-label,
+    .toolbar > form.filters { flex: 1 1 110px; min-width: 110px; }
+    .toolbar-carte > form.filters { flex-basis: 110px; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
     .facture-aside { order: 0; }
