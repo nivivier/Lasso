@@ -195,13 +195,13 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
                         <td>À faire</td>
                         <td class="num strong"><?= $suisaAFaire ?></td>
                         <td><a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>"><?= icon('calendar') ?> Voir</a></td>
-                        <td><a class="btn ghost btn-sm" href="?p=evenements_export_suisa<?= $suisaLien('a_faire') ?>"><?= icon('download') ?> Exporter</a></td>
+                        <td><a class="btn ghost btn-sm icon-only" href="?p=evenements_export_suisa<?= $suisaLien('a_faire') ?>" title="Exporter" aria-label="Exporter"><?= icon('download') ?></a></td>
                     </tr>
                     <tr>
                         <td>Manquants</td>
                         <td class="num strong"><?= $suisaManquant ?></td>
                         <td><a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>"><?= icon('calendar') ?> Voir</a></td>
-                        <td><a class="btn ghost btn-sm" href="?p=evenements_export_suisa<?= $suisaLien('manquant') ?>"><?= icon('download') ?> Exporter</a></td>
+                        <td><a class="btn ghost btn-sm icon-only" href="?p=evenements_export_suisa<?= $suisaLien('manquant') ?>" title="Exporter" aria-label="Exporter"><?= icon('download') ?></a></td>
                     </tr>
                 </tbody>
             </table>
