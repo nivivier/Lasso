@@ -7,6 +7,27 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.5] — 2026-08-13
+
+### Ajouté
+- Formulaire de création de structure (?p=structure) : champs Statut,
+  Période et Étiquettes, jusqu'ici seulement disponibles après coup en
+  édition. Après création, redirection vers la fiche fraîchement créée
+  (plus la liste).
+- ?p=structures : petit « + » par ligne pour ajouter une étiquette sans
+  ouvrir la fiche.
+- Nom/titre d'une ligne de liste cliquable (?p=structures/evenements_liste/
+  facturation_liste/fiches) : vrai lien — un clic droit dessus offre
+  désormais « Ouvrir dans un nouvel onglet »/« Copier le lien ».
+
+### Modifié
+- Longueur minimale du mot de passe : 8 caractères (au lieu de 12).
+
+### Corrigé
+- Autocomplétion du champ étiquette (?p=structures, ?p=structure) peu ou
+  pas utilisable en mobile (notamment Safari iOS) — remplacée par une liste
+  de suggestions entièrement en JS.
+
 ## [2.0.4] — 2026-08-13
 
 ### Ajouté
