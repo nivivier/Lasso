@@ -154,10 +154,17 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     });
 
     // Lignes cliquables (souris + clavier). Un clic sur un lien/bouton/case à
-    // cocher dans la ligne garde son comportement propre.
+    // cocher dans la ligne garde son comportement propre — form inclus (ex.
+    // formulaire d'ajout d'étiquette par ligne, ?p=structures, ou les
+    // formulaires déjà présents dans les lignes de ?p=spectacles) : sans ça,
+    // un clic dans un espace du formulaire hors bouton/champ (padding entre
+    // deux champs, etc.) déclenchait quand même la navigation de la ligne.
+    // .cat-search-list répétée à part (déjà couverte par closest('form') vu
+    // qu'elle y est nichée aujourd'hui) : au cas où une future liste de
+    // suggestions apparaisse un jour hors d'un <form> dans une ligne.
     function go(el) { const u = el.getAttribute('data-href'); if (u) location.href = u; }
     document.querySelectorAll('tr.row-link[data-href]').forEach(row => {
-        row.addEventListener('click', e => { if (!e.target.closest('a,button,input')) go(row); });
+        row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list')) go(row); });
         row.addEventListener('keydown', e => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(row); }
         });

@@ -64,8 +64,9 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
     ?>
         <tr class="mois-sep"><td colspan="<?= $nbCols ?>"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>
     <?php endif; ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $f['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
-            <td><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></td>
+        <?php $hrefLigne = '?p=facture&id=' . (int) $f['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
+        <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+            <td><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
             <td><strong><?= e($f['structure_nom']) ?></strong></td>
             <td class="muted small"><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
             <td class="muted small"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>

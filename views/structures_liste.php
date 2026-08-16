@@ -201,11 +201,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         </span>
         <?php if ($tagsDispo || module_actif('booking')): ?>
         <span class="bulk-field" data-for="tag_ajouter" hidden>
-            <input type="text" name="bulk_tag_ajouter" class="inline-year-select" list="bulk-tags-dispo"
-                   placeholder="Étiquette à ajouter" autocomplete="off">
-            <datalist id="bulk-tags-dispo">
-                <?php foreach ($tagsDispo as $t): ?><option value="<?= e($t['nom']) ?>"><?php endforeach; ?>
-            </datalist>
+            <div class="cat-search tag-search">
+                <input type="text" name="bulk_tag_ajouter" class="cat-search-input inline-year-select"
+                       placeholder="Étiquette à ajouter" autocomplete="off">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
+                </ul>
+            </div>
         </span>
         <span class="bulk-field" data-for="tag_retirer" hidden>
             <select name="bulk_tag_retirer" class="inline-year-select">
@@ -287,12 +289,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <tr><td colspan="<?= $nbCols ?>" class="muted"><?= $filtresActifs ? 'Aucune structure ne correspond à cette recherche.' : "Aucune structure pour l'instant. Commencez par en ajouter une." ?></td></tr>
     <?php else: ?>
     <?php foreach ($structures as $d): ?>
-        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $d['id'] ?><?= $suffixeDepuis ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
+        <?php $hrefLigne = '?p=structure&id=' . (int) $d['id'] . $suffixeDepuis . suffixe_retour_liste($recherche, $pgPage); ?>
+        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td><?php endif; ?>
             <td><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
             <td>
                 <?php if ($peutEcrireStruct): ?><?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?><?php endif; ?>
-                <strong><?= e($d['nom']) ?></strong>
+                <strong><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e($d['nom']) ?></a></strong>
             </td>
             <td class="small">
                 <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
@@ -319,6 +322,23 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 ?>
                 <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
                 <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
+                <?php if (peut_ecrire('booking')): ?>
+                <?php $tagFormId = 'tag-ajouter-form-' . (int) $d['id']; ?>
+                <button type="button" class="badge tag-ajouter-btn" data-show="<?= e($tagFormId) ?>" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
+                <form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="<?= e($tagFormId) ?>" hidden>
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="structure_id" value="<?= (int) $d['id'] ?>">
+                    <input type="hidden" name="retour" value="structures">
+                    <div class="cat-search tag-search">
+                        <input type="text" name="nom" class="cat-search-input" placeholder="Étiquette…" autocomplete="off">
+                        <ul class="cat-search-list" hidden role="listbox">
+                            <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only" data-hide="<?= e($tagFormId) ?>" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                </form>
+                <?php endif; ?>
             </td>
             <td class="tiny">
                 <?php $contactsNoms = ($d['contacts_noms'] ?? '') !== '' ? explode("\x1e", (string) $d['contacts_noms']) : []; ?>
@@ -354,6 +374,7 @@ lassoListeClient({
 lassoRechercheServeur(document.getElementById('structures-search'));
 <?php endif; ?>
 lassoInitFlagToggle();
+lassoInitTagSuggest();
 
 (function () {
     const bulkBar = document.getElementById('bulk-bar');

@@ -255,9 +255,10 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             $drapeau = pays_drapeau((string) $ev['pays']);
             $festivalSalle = implode(', ', array_filter([$ev['festival'], $ev['salle']], fn ($v) => $v !== ''));
         ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="?p=evenement&id=<?= (int) $ev['id'] ?><?= suffixe_retour_liste($recherche, $pgPage) ?>">
+        <?php $hrefLigne = '?p=evenement&id=' . (int) $ev['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
+        <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <?php if (peut_ecrire('evenements')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
-            <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><?= e(date('d.m.Y', strtotime($ev['date']))) ?></td>
+            <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></a></td>
             <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
             <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
                 <?= ville_departement_canton_html((string) $ev['ville'], $drapeau, (string) $ev['pays'], (string) $ev['departement_canton']) ?>

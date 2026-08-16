@@ -104,16 +104,14 @@ function route_structure_tag_ajouter(): void
     $structureId = (int) ($_POST['structure_id'] ?? 0);
     $nom = trim($_POST['nom'] ?? '');
     if ($nom !== '') {
-        $stmt = db()->prepare('SELECT id FROM structure_tags WHERE nom = ? COLLATE NOCASE');
-        $stmt->execute([$nom]);
-        $tagId = $stmt->fetchColumn();
-        if ($tagId === false) {
-            db()->prepare('INSERT INTO structure_tags (nom) VALUES (?)')->execute([$nom]);
-            $tagId = (int) db()->lastInsertId();
-        }
-        db()->prepare('INSERT OR IGNORE INTO structure_tag_liens (structure_id, tag_id) VALUES (?, ?)')
-            ->execute([$structureId, (int) $tagId]);
+        structure_attacher_tag($structureId, $nom);
         journaliser('structure', $structureId, 'edition', 'Étiquette ajoutée : ' . $nom);
+    }
+    // retour=structures (posé par le petit "+" par ligne de ?p=structures,
+    // ajouté sans quitter la liste) : sinon toujours la fiche structure,
+    // comportement historique de ce formulaire.
+    if (($_POST['retour'] ?? '') === 'structures') {
+        redirect('structures');
     }
     redirect('structure', ['id' => $structureId]);
 }

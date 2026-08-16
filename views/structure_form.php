@@ -71,6 +71,13 @@ $peutEcrireBooking = peut_ecrire('booking');
 <?php if (!$isEdit && !$peutEcrireStruct): ?>
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php elseif (!$isEdit): ?>
+<?php
+// Période/statut/étiquettes : mêmes conditions d'accès que leurs équivalents
+// en édition (carte « Informations générales »/« Statut », plus haut dans ce
+// fichier) — période lisible dès que le module booking est lu, statut/
+// étiquettes seulement s'il est modifiable.
+$bookingOkCreation = module_actif('booking') && peut_lire('booking');
+?>
 <form method="post" action="?p=structure" class="card form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <div class="form-split">
@@ -89,7 +96,33 @@ $peutEcrireBooking = peut_ecrire('booking');
 
 			<label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
 
+                <?php if ($bookingOkCreation && peut_ecrire('booking')): ?>
+                <label>Statut
+                    <select name="statut">
+                        <?php foreach (STRUCTURE_STATUTS as $st): ?>
+                            <option value="<?= e($st) ?>" <?= $st === 'actif' ? 'selected' : '' ?>><?= e(structure_statut_libelle($st)) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <?php endif; ?>
+
             </div>
+
+            <?php if ($bookingOkCreation && peut_ecrire('booking')): ?>
+            <div class="field-group mt-16">
+                <span>Étiquettes</span>
+                <div class="tags-liste" id="tags-nouvelles-liste"></div>
+                <div class="linked-add mt-10">
+                    <div class="cat-search tag-search">
+                        <input type="text" id="tag-nouveau-input" class="cat-search-input" placeholder="Ajouter une étiquette…" autocomplete="off">
+                        <ul class="cat-search-list" hidden role="listbox">
+                            <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <button type="button" id="tag-nouveau-btn" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
         <fieldset class="fieldset-groupe">
             <legend>Coordonnées</legend>
@@ -109,6 +142,27 @@ $peutEcrireBooking = peut_ecrire('booking');
             <label class="mt-22">Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
         </fieldset>
 
+            <?php if ($bookingOkCreation): ?>
+            <fieldset class="fieldset-groupe">
+                <legend>Période</legend>
+                <label class="check"><input type="checkbox" id="periode-toute-annee-creation" checked> Toute l'année</label>
+                <div id="periode-mois-champs-creation" class="grid3" hidden>
+                    <label>Début de réalisation
+                        <select name="mois_evenement_debut"><?= mois_options(0) ?></select>
+                    </label>
+                    <label>Fin de réalisation
+                        <select name="mois_evenement_fin"><?= mois_options(0) ?></select>
+                    </label>
+                    <label>Début de préparation
+                        <select name="mois_debut"><?= mois_options(0) ?></select>
+                    </label>
+                    <label>Fin de préparation
+                        <select name="mois_fin"><?= mois_options(0) ?></select>
+                    </label>
+                </div>
+            </fieldset>
+            <?php endif; ?>
+
             <label>Remarques
                 <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
             </label>
@@ -119,6 +173,65 @@ $peutEcrireBooking = peut_ecrire('booking');
         <a class="btn ghost" href="?p=structures">Annuler</a>
     </div>
 </form>
+<?php if ($bookingOkCreation): ?>
+<script>
+(function () {
+    var chk = document.getElementById('periode-toute-annee-creation');
+    var champs = document.getElementById('periode-mois-champs-creation');
+    if (chk && champs) {
+        chk.addEventListener('change', function () {
+            champs.hidden = chk.checked;
+            if (chk.checked) {
+                champs.querySelectorAll('select').forEach(function (s) { s.value = ''; });
+            }
+        });
+    }
+    // Étiquettes à ajouter à la création : pas encore d'id de structure pour
+    // les lier tout de suite (structure_attacher_tag() attache à un id
+    // existant) — accumulées en puces ici, transmises via tags[] (un champ
+    // cadré par puce) au même POST que le reste du formulaire ; route_structure()
+    // les attache une à une juste après l'insertion (lib/routes_facturation.php).
+    var liste = document.getElementById('tags-nouvelles-liste');
+    var input = document.getElementById('tag-nouveau-input');
+    var btn = document.getElementById('tag-nouveau-btn');
+    if (liste && input && btn) {
+        function ajouterPuce() {
+            var nom = input.value.trim();
+            if (!nom) return;
+            var deja = Array.from(liste.querySelectorAll('input[name="tags[]"]'))
+                .some(function (h) { return h.value.toLowerCase() === nom.toLowerCase(); });
+            if (deja) { input.value = ''; return; }
+            var puce = document.createElement('span');
+            puce.className = 'badge';
+            puce.textContent = nom + ' ';
+            var retirer = document.createElement('button');
+            retirer.type = 'button';
+            retirer.className = 'btn-tag-x';
+            retirer.setAttribute('aria-label', 'Retirer');
+            retirer.textContent = '×';
+            retirer.addEventListener('click', function () { puce.remove(); });
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'tags[]';
+            hidden.value = nom;
+            puce.appendChild(retirer);
+            puce.appendChild(hidden);
+            liste.appendChild(puce);
+            input.value = '';
+            input.focus();
+        }
+        btn.addEventListener('click', ajouterPuce);
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); ajouterPuce(); }
+        });
+        // Cliquer une suggestion l'ajoute directement (voir lassoInitTagSuggest(),
+        // assets/app.js) — pas besoin d'un clic supplémentaire sur le bouton +.
+        input.addEventListener('tagselected', ajouterPuce);
+    }
+})();
+lassoInitTagSuggest();
+</script>
+<?php endif; ?>
 
 <?php elseif (!$avecAside): ?>
 <!-- Sans le module booking (ou sans lecture dessus) : pas de carte
@@ -259,16 +372,18 @@ $peutEcrireBooking = peut_ecrire('booking');
     <form method="post" action="?p=structure_tag_ajouter" class="linked-add mt-10" id="tag-ajouter-form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
-        <input type="text" name="nom" list="tags-dispo" placeholder="Ajouter une étiquette…" autocomplete="off">
-        <datalist id="tags-dispo">
-            <?php foreach ($tagsDispo as $t): ?><option value="<?= e($t['nom']) ?>"><?php endforeach; ?>
-        </datalist>
+        <div class="cat-search tag-search">
+            <input type="text" name="nom" class="cat-search-input" placeholder="Ajouter une étiquette…" autocomplete="off">
+            <ul class="cat-search-list" hidden role="listbox">
+                <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
+            </ul>
+        </div>
         <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
         <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </form>
     <?php endif; ?>
 </div>
-<?php if ($peutEcrireBooking): ?><script>lassoInitStatutToggle();</script><?php endif; ?>
+<?php if ($peutEcrireBooking): ?><script>lassoInitStatutToggle(); lassoInitTagSuggest();</script><?php endif; ?>
 
 <div class="card card-editable">
     <?php

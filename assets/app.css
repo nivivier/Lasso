@@ -1617,6 +1617,22 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .list tbody tr:hover { background: var(--surface); }
 .list tr.row-link { cursor: pointer; transition: background .12s ease; }
 .list tr.row-link:hover { background: var(--primary-tint); }
+/* Nom/titre d'une ligne de liste cliquable (?p=structures/evenements_liste/
+   facturation_liste/fiches) : un vrai <a href>, pas seulement le data-href +
+   clic JS de .row-link (voir go(), views/layout.php) — sans lui, un clic
+   droit sur le nom n'offrait ni « Ouvrir dans un nouvel onglet » ni « Copier
+   le lien », faute d'un href à cet endroit précis pour le navigateur.
+   color:inherit/text-decoration:none : reste visuellement identique à un
+   texte normal (le fond de ligne teinté au survol, .row-link:hover
+   ci-dessus, indique déjà la zone cliquable) — seul un survol direct du nom
+   souligne, pour ne pas suggérer un lien "à part" du reste de la ligne. */
+.titre-lien { color: inherit; text-decoration: none; }
+.titre-lien:hover { text-decoration: underline; }
+/* .text-strike (événement annulé, ?p=evenements_liste) posé sur le <td>
+   plutôt que directement sur .titre-lien : text-decoration:none ci-dessus
+   annulerait sinon le barré hérité du parent pour ce lien précis. */
+.text-strike .titre-lien { text-decoration: line-through; }
+.text-strike .titre-lien:hover { text-decoration: line-through underline; }
 .list tbody tr:last-child td { border-bottom: none; }
 .list .num { text-align: right; font-variant-numeric: tabular-nums; }
 .list .strong { font-weight: 700; color: var(--teal-d); }

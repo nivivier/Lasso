@@ -43,7 +43,7 @@ if (!defined('FORCE_HTTPS')) {
 }
 
 // --- Sécurité : mots de passe & sessions ----------------------------------
-if (!defined('PASSWORD_MIN'))      define('PASSWORD_MIN', 12);       // longueur minimale
+if (!defined('PASSWORD_MIN'))      define('PASSWORD_MIN', 8);        // longueur minimale
 if (!defined('BCRYPT_COST'))       define('BCRYPT_COST', 12);        // coût bcrypt
 if (!defined('SESSION_IDLE'))      define('SESSION_IDLE', 3600);     // 1h d'inactivité
 if (!defined('SESSION_ABSOLUTE'))  define('SESSION_ABSOLUTE', 86400);// 24 h de durée de vie max

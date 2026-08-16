@@ -971,7 +971,17 @@ function route_structures_geocoder(): void
 function structure_donnees_crm(int $id): array
 {
     if (!$id || !module_actif('booking')) {
-        return ['contacts' => [], 'contactsLies' => [], 'notes' => [], 'tags' => [], 'tagsDispo' => [], 'lieuxLies' => [], 'lieuxDispo' => [],
+        // tagsDispo indépendant de $id (toutes les étiquettes existantes, pas
+        // celles d'une structure précise) : renseigné même à la création
+        // (?p=structure sans id), pour les suggestions du champ « Étiquettes »
+        // du formulaire de création (views/structure_form.php) — mais pas si
+        // $id est set (structure existante) avec le module booking inactif,
+        // seul autre cas menant ici : rien à suggérer, la carte qui les
+        // afficherait n'est de toute façon pas rendue dans ce cas.
+        $creationAvecBooking = !$id && module_actif('booking');
+        return ['contacts' => [], 'contactsLies' => [], 'notes' => [], 'tags' => [],
+                'tagsDispo' => $creationAvecBooking ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [],
+                'lieuxLies' => [], 'lieuxDispo' => [],
                 'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
@@ -1211,14 +1221,52 @@ function route_structure(): void
                 return;
             }
             pays_region_assurer($champs['adresse_pays'], $champs['grande_region']);
-            // Statut « actif » par défaut.
+            // Période/statut/étiquettes : mêmes champs que la carte « Statut »/
+            // « Informations générales » en édition, repris ici pour qu'ils
+            // soient renseignables dès la création plutôt que seulement après
+            // coup — mêmes conditions d'accès que leurs équivalents en édition
+            // (module booking lu pour la période, écrit pour statut/étiquettes,
+            // voir plus haut et views/structure_form.php).
+            $bookingOk = module_actif('booking') && peut_lire('booking');
+            $champs['mois_evenement_debut'] = null;
+            $champs['mois_evenement_fin']   = null;
+            $champs['mois_debut']           = null;
+            $champs['mois_fin']             = null;
+            if ($bookingOk) {
+                $moisValide = function (string $champ): ?int {
+                    $mv = trim((string) ($_POST[$champ] ?? ''));
+                    return ($mv !== '' && (int) $mv >= 1 && (int) $mv <= 12) ? (int) $mv : null;
+                };
+                $champs['mois_evenement_debut'] = $moisValide('mois_evenement_debut');
+                $champs['mois_evenement_fin']   = $moisValide('mois_evenement_fin');
+                $champs['mois_debut']           = $moisValide('mois_debut');
+                $champs['mois_fin']             = $moisValide('mois_fin');
+            }
+            $champs['statut'] = 'actif';
+            if ($bookingOk && peut_ecrire('booking') && in_array($_POST['statut'] ?? '', STRUCTURE_STATUTS, true)) {
+                $champs['statut'] = $_POST['statut'];
+            }
             db()->prepare("INSERT INTO structures (categorie, sous_categorie, nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
-                            departement_canton, grande_region, site_web, via, notes, statut)
+                            departement_canton, grande_region, site_web, via, notes, statut,
+                            mois_evenement_debut, mois_evenement_fin, mois_debut, mois_fin)
                             VALUES (:categorie, :sous_categorie, :nom, :adresse_rue, :adresse_npa, :adresse_localite, :adresse_pays,
-                            :departement_canton, :grande_region, :site_web, :via, :notes, 'actif')")
+                            :departement_canton, :grande_region, :site_web, :via, :notes, :statut,
+                            :mois_evenement_debut, :mois_evenement_fin, :mois_debut, :mois_fin)")
                 ->execute($champs);
+            $nouvelId = (int) db()->lastInsertId();
+            if ($bookingOk && peut_ecrire('booking')) {
+                foreach ((array) ($_POST['tags'] ?? []) as $nomTag) {
+                    $nomTag = trim((string) $nomTag);
+                    if ($nomTag !== '') {
+                        structure_attacher_tag($nouvelId, $nomTag);
+                    }
+                }
+            }
+            // Vers la fiche fraîchement créée (pas la liste) : le lien "retour"
+            // de la fiche (lien_retour_contextuel()) reste un lien vers la
+            // liste, sans dépendre d'un ?depuis= porté par cette redirection.
+            redirect('structure', ['id' => $nouvelId]);
         }
-        redirect('structures');
     }
     $renderForm(($_GET['err'] ?? '') === 'used' ? 'Suppression impossible : des factures sont rattachées à cette structure.' : null, (array) $structure);
 }

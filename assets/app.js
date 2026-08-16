@@ -440,6 +440,55 @@ function lassoInitFlagToggle() {
     });
 }
 
+// Suggestions pour un champ « étiquette » en texte libre (?p=structure,
+// ?p=structures — ajout individuel, ajout groupé, ajout par ligne) :
+// contrairement à lassoInitCatSearch() (sélection fermée dans une liste),
+// une valeur tapée qui ne correspond à aucune suggestion reste valide —
+// elle créera une nouvelle étiquette côté serveur (structure_attacher_tag()).
+// Remplace un <input list="…"> + <datalist> natif : le rendu de la liste de
+// suggestions d'un <datalist> est peu fiable sur mobile (Safari iOS
+// notamment ne l'affiche quasiment jamais) — cette version, entièrement
+// rendue en JS (mêmes classes .cat-search-input/.cat-search-list que
+// lassoInitCatSearch(), même mécanique de filtre), fonctionne partout.
+// Boucle sur tous les .tag-search de la page (même idiome que
+// lassoInitFlagToggle()) : plusieurs instances à la fois sur ?p=structures
+// (une par ligne + la barre de modification groupée), idempotent
+// (data-tag-suggest-bound) pour pouvoir être rappelée sans dupliquer les
+// écouteurs (ex. après l'ajout d'une ligne).
+function lassoInitTagSuggest() {
+    document.querySelectorAll('.tag-search').forEach(wrap => {
+        if (wrap.dataset.tagSuggestBound) return;
+        wrap.dataset.tagSuggestBound = '1';
+        const input = wrap.querySelector('.cat-search-input');
+        const list = wrap.querySelector('.cat-search-list');
+        if (!input || !list) return;
+        function items() { return Array.from(list.querySelectorAll('li')); }
+        function filter(q) {
+            const nq = lassoNorm(q);
+            items().forEach(li => { li.hidden = nq !== '' && !lassoNorm(li.textContent).includes(nq); });
+        }
+        input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
+        input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
+        input.addEventListener('blur', () => { setTimeout(() => { list.hidden = true; }, 150); });
+        // mousedown (pas click) : se déclenche avant le blur de l'input,
+        // même raison que lassoInitCatSearch() plus haut.
+        list.addEventListener('mousedown', e => {
+            const li = e.target.closest('li');
+            if (!li || !list.contains(li)) return;
+            e.preventDefault();
+            input.value = li.textContent;
+            list.hidden = true;
+            // Événement dédié (pas de rappel JS direct) : le champ groupé de
+            // création de structure (plusieurs étiquettes avant tout
+            // enregistrement, voir structure_form.php) écoute cet événement
+            // pour ajouter la puce immédiatement au clic sur une suggestion,
+            // sans que ce composant générique ait besoin de connaître cette
+            // mécanique de puces (propre à un seul endroit de l'appli).
+            input.dispatchEvent(new Event('tagselected'));
+        });
+    });
+}
+
 // Statut d'une structure (fiche, carte « Statut ») — sélecteur segmenté
 // (même style visuel que le champ Type de « Informations générales », voir
 // icon_picker()/.seg-picker), mais cliqué en AJAX au lieu d'être soumis avec

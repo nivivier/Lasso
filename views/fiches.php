@@ -80,8 +80,9 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
         if ($anneeCourante !== $anneePrec): $anneePrec = $anneeCourante; ?>
         <tr class="fiche-mois-sep"><td colspan="<?= $nbCols ?>"><?= $anneeCourante ?></td></tr>
     <?php endif; ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>">
-            <td class="col-date"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
+        <?php $hrefLigne = '?p=fiche&id=' . (int) $f['id']; ?>
+        <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+            <td class="col-date"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></a></td>
             <td><?= e($f['employe_nom']) ?></td>
             <?php if ($axesParFiche): ?><td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td><?php endif; ?>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
