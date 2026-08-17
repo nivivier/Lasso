@@ -7,6 +7,17 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.0.6] — 2026-08-17
+
+### Modifié
+- Export iCal : le titre d'un événement rattaché à un sous-spectacle porte
+  désormais le nom du spectacle-groupe (l'artiste) suivi du sous-spectacle
+  entre parenthèses — ex. « Hector ou rien (Tant qu'on déborde) » au lieu de
+  « Tant qu'on déborde » seul. Un spectacle sans parent reste affiché seul,
+  comme avant.
+- Exports publics JSON/iCal : nouveau champ `spectacle_parent` (nom du
+  spectacle-groupe) quand le spectacle de l'événement en a un.
+
 ## [2.0.5] — 2026-08-13
 
 ### Ajouté

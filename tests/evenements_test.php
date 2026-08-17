@@ -150,6 +150,22 @@ $evDepartementCantonPays = [
 $icsDepartementCantonPays = evenements_generer_ical([evenement_export_donnees($evDepartementCantonPays)]);
 check('LOCATION combine ville, département/canton et pays', true, str_contains($icsDepartementCantonPays, 'LOCATION:Besançon (25\\, FR)'));
 
+// Sous-spectacle (feuille rattachée à un spectacle-groupe = artiste) : le résumé
+// doit porter le nom du groupe, celui de la feuille entre parenthèses.
+$evSousSpectacle = [
+    'id' => 4, 'date' => '2026-11-11', 'visibilite' => 'public', 'statut' => 'confirme',
+    'ville' => 'Vevey', 'salle' => '', 'festival' => '', 'lien_infos' => '',
+    'spectacle_nom' => "Tant qu'on déborde", 'spectacle_parent_nom' => 'Hector ou rien', 'remarques' => '',
+];
+$icsSousSpectacle = evenements_generer_ical([evenement_export_donnees($evSousSpectacle)]);
+check('SUMMARY = « Groupe (sous-spectacle) » quand le spectacle a un parent', true,
+    str_contains($icsSousSpectacle, "SUMMARY:Hector ou rien (Tant qu'on déborde)"));
+
+$evSansParent = $evSousSpectacle;
+unset($evSansParent['spectacle_parent_nom']);
+check('SUMMARY = nom du spectacle seul sans parent', true,
+    str_contains(evenements_generer_ical([evenement_export_donnees($evSansParent)]), "SUMMARY:Tant qu'on déborde"));
+
 echo "5) Validation stricte de date (checkdate, pas de \"roulement\")\n";
 check('date valide', true, date_valide('2026-07-16'));
 check('31 avril rejeté (checkdate)', false, date_valide('2026-04-31'));

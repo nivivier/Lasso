@@ -574,8 +574,10 @@ function evenement_exportable(array $ev): bool
 }
 
 // Données exposables d'un événement, filtrées selon la visibilité. $ev doit
-// contenir un champ spectacle_nom (jointure sur spectacles) le cas échéant.
-// Jamais de champ SUISA / facture / employés / fiches dans le résultat.
+// contenir un champ spectacle_nom (jointure sur spectacles) et, si ce
+// spectacle a un parent (spectacle-groupe = artiste, voir le commentaire sur
+// spectacle_map()), spectacle_parent_nom. Jamais de champ SUISA / facture /
+// employés / fiches dans le résultat.
 function evenement_export_donnees(array $ev): array
 {
     $donnees = ['id' => (int) $ev['id'], 'date' => (string) $ev['date']];
@@ -605,6 +607,15 @@ function evenement_export_donnees(array $ev): array
     }
     if (trim((string) ($ev['spectacle_nom'] ?? '')) !== '') {
         $donnees['spectacle'] = (string) $ev['spectacle_nom'];
+        // Nom de l'artiste (spectacle-groupe parent, voir spectacle_map()) si
+        // le spectacle assigné en a un — un spectacle assigné directement à
+        // un événement est toujours une feuille (jamais un groupe, voir
+        // spectacle_assignable()), donc jamais lui-même parent d'un autre
+        // spectacle exporté ici.
+        $parentNom = trim((string) ($ev['spectacle_parent_nom'] ?? ''));
+        if ($parentNom !== '') {
+            $donnees['spectacle_parent'] = $parentNom;
+        }
     }
     $donnees['remarques'] = (string) ($ev['remarques'] ?? '');
     return $donnees;
@@ -618,8 +629,9 @@ function evenement_export_donnees(array $ev): array
 // vide.
 function evenements_a_exporter(?int $spectacleId = null): array
 {
-    $sql = "SELECT e.*, s.nom AS spectacle_nom FROM evenements e
+    $sql = "SELECT e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_parent_nom FROM evenements e
             LEFT JOIN spectacles s ON s.id = e.spectacle_id
+            LEFT JOIN spectacles sp ON sp.id = s.parent_id
             WHERE e.visibilite <> 'non_repertorie' AND e.statut <> 'option'";
     $params = [];
     if ($spectacleId) {
@@ -682,7 +694,14 @@ function evenements_generer_ical(array $items): string
         if ($it['prive']) {
             $summary = 'Événement privé';
         } else {
-            $summary = ((bool) $it['annule'] ? '[ANNULÉ] ' : '') . ($it['spectacle'] ?? 'Concert');
+            // « Artiste (Spectacle) » quand le spectacle a un artiste parent
+            // (spectacle_parent, voir evenement_export_donnees()) — ex.
+            // "Hector ou rien (Tant qu'on déborde)" — sinon le nom de
+            // spectacle seul, comme avant.
+            $titreSpectacle = isset($it['spectacle_parent'])
+                ? $it['spectacle_parent'] . ' (' . $it['spectacle'] . ')'
+                : ($it['spectacle'] ?? 'Concert');
+            $summary = ((bool) $it['annule'] ? '[ANNULÉ] ' : '') . $titreSpectacle;
         }
         $lignes[] = 'BEGIN:VEVENT';
         $lignes[] = 'UID:evenement-' . $it['id'] . '@lasso';
