@@ -4,10 +4,15 @@
 // ----------------------------------------------------------------- AUTH
 // Secret d'installation : si SETUP_SECRET est défini (non vide), l'écran setup
 // n'est accessible qu'avec la bonne clé (?key=… ou champ caché du formulaire).
+function setup_secret_defini(): bool
+{
+    return defined('SETUP_SECRET') && SETUP_SECRET !== '';
+}
+
 function setup_secret_ok(): bool
 {
-    if (!defined('SETUP_SECRET') || SETUP_SECRET === '') {
-        return true; // protection désactivée (local)
+    if (!setup_secret_defini()) {
+        return true; // protection désactivée (local) — en prod, voir route_setup()
     }
     $key = (string) ($_POST['key'] ?? $_GET['key'] ?? '');
     return $key !== '' && hash_equals(SETUP_SECRET, $key);
@@ -18,8 +23,23 @@ function route_setup(): void
     if (has_users()) {
         redirect('login');
     }
+    // En production, l'écran de création du premier compte exige un secret
+    // d'installation. Sans lui, il resterait ouvert à quiconque passe entre la
+    // mise en ligne et la première connexion de l'administrateur.
+    //
+    // Ce cas est distingué de la clé erronée juste en dessous, et répond par un
+    // message explicite plutôt qu'un 404 muet : c'est l'exploitant qui a besoin
+    // de savoir pourquoi l'écran refuse de s'ouvrir, et le message ne donne
+    // aucune prise — il n'existe aucun moyen de créer un compte sans le secret.
+    // Un 404 ici rendrait une première installation légitime indiagnosticable.
+    if (APP_ENV === 'prod' && !setup_secret_defini()) {
+        http_response_code(503);
+        exit("Installation désactivée : définissez SETUP_SECRET dans lib/config.local.php "
+            . "(une longue valeur aléatoire), puis ouvrez ?p=setup&key=<ce secret>.");
+    }
     if (!setup_secret_ok()) {
-        // On ne révèle pas l'existence de l'écran : réponse « introuvable ».
+        // Clé absente ou fausse alors qu'un secret est défini : on ne révèle pas
+        // l'existence de l'écran.
         http_response_code(404);
         exit('Page introuvable.');
     }
@@ -39,7 +59,7 @@ function route_setup(): void
             return;
         }
         $stmt = db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)');
-        $stmt->execute([$email, password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST])]);
+        $stmt->execute([$email, hacher_mot_de_passe($mdp)]);
         $uid = (int) db()->lastInsertId();
         // Premier compte : accès complet (administrateur) pour pouvoir
         // configurer l'application dès l'installation — les comptes créés
@@ -62,20 +82,28 @@ function route_login(): void
     $ip = client_ip();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
+        // L'identifiant est lu AVANT le contrôle de blocage : celui-ci compte
+        // désormais aussi les échecs visant ce compte, toutes IP confondues
+        // (login_is_locked()), ce qui ferme l'angle mort du comptage par IP seule.
+        $email = trim($_POST['email'] ?? '');
+        $mdp   = $_POST['mot_de_passe'] ?? '';
         // Anti-force-brute : blocage temporaire après trop d'échecs.
-        if (login_is_locked($ip)) {
+        if (login_is_locked($ip, $email)) {
             $min = (int) ceil(LOGIN_WINDOW / 60);
             render('login', ['err' => "Trop de tentatives. Réessayez dans $min minutes.", 'email' => ''], 'Connexion');
             return;
         }
         usleep(random_int(200000, 500000)); // ralentit l'automatisation
-        $email = trim($_POST['email'] ?? '');
-        $mdp   = $_POST['mot_de_passe'] ?? '';
         $stmt  = db()->prepare('SELECT * FROM utilisateurs WHERE email = ?');
         $stmt->execute([$email]);
         $u = $stmt->fetch();
         if ($u && password_verify($mdp, $u['mot_de_passe'])) {
-            login_clear_failures($ip);
+            // Les deux compteurs sont purgés : sans le volet e-mail, un
+            // utilisateur légitime qui se trompe cinq fois puis réussit
+            // resterait bloqué par son propre compteur de compte au prochain
+            // essai, jusqu'à expiration de la fenêtre.
+            login_clear_failures($ip, $email);
+            rehacher_si_necessaire((int) $u['id'], $mdp, (string) $u['mot_de_passe']);
             session_regenerate_id(true);
             $_SESSION['uid']           = (int) $u['id'];
             $_SESSION['login_time']    = time();
@@ -129,7 +157,7 @@ function route_compte(): void
             render('compte', ['u' => ['prenom' => $prenom, 'nom' => $nom, 'email' => $email] + $u, 'err' => $err, 'saved' => null], 'Mon compte');
             return;
         }
-        $hash = $nouveau !== '' ? password_hash($nouveau, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST]) : $u['mot_de_passe'];
+        $hash = $nouveau !== '' ? hacher_mot_de_passe($nouveau) : $u['mot_de_passe'];
         db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, mot_de_passe = ? WHERE id = ?')
             ->execute([$prenom, $nom, $email, $hash, $u['id']]);
         redirect('compte', ['ok' => 1]);
@@ -168,7 +196,7 @@ function route_comptes(): void
             // l'inverse du tout premier compte (route_setup), qui reçoit
             // tout pour pouvoir configurer l'application dès l'installation.
             db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)')
-                ->execute([$email, password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST])]);
+                ->execute([$email, hacher_mot_de_passe($mdp)]);
             redirect('comptes', ['ok' => 'created']);
         }
     }
@@ -201,7 +229,7 @@ function route_compte_reset(): void
         redirect('comptes', ['err' => 'short']);
     }
     db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
-        ->execute([password_hash($mdp, PASSWORD_DEFAULT, ['cost' => BCRYPT_COST]), $id]);
+        ->execute([hacher_mot_de_passe($mdp), $id]);
     redirect('comptes', ['ok' => 'reset']);
 }
 
@@ -1874,8 +1902,14 @@ function route_resumes(): void
     require_login();
     $aujAnnee = (int) date('Y');
     $aujMois  = (int) date('n');
+    // module_accessible() et non module_actif() : le tableau de bord fait partie
+    // du cœur, donc s'ouvre pour tout compte connecté — ses widgets doivent donc
+    // vérifier le droit de LECTURE de chaque module, sinon un compte limité à un
+    // seul module y verrait les données de tous les autres. Le rail de
+    // navigation posait déjà les deux conditions ; cette page ne posait que la
+    // première. Les conditions de views/resumes.php ont été alignées.
     $aPayer = [];
-    if (module_actif('salaires')) {
+    if (module_accessible('salaires')) {
         foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
             $estFutur = (int) $f['annee'] > $aujAnnee || ((int) $f['annee'] === $aujAnnee && (int) $f['mois'] > $aujMois);
             if (!$estFutur) {
@@ -1883,16 +1917,16 @@ function route_resumes(): void
             }
         }
     }
-    $facturesEmises = module_actif('facturation')
+    $facturesEmises = module_accessible('facturation')
         ? db()->query(
             "SELECT f.*, d.nom AS structure_nom FROM factures f JOIN structures d ON d.id = f.structure_id
              WHERE f.statut = 'emise' ORDER BY f.date_echeance"
         )->fetchAll()
         : [];
-    $comptaSeries = module_actif('compta') ? compta_dashboard_series() : [];
-    $prochainsEvenements = module_actif('evenements') ? evenements_a_venir(5) : [];
-    $suisaAFaire   = module_actif('evenements') ? nb_evenements_suisa_a_faire() : 0;
-    $suisaManquant = module_actif('evenements') ? nb_evenements_suisa_manquants() : 0;
+    $comptaSeries = module_accessible('compta') ? compta_dashboard_series() : [];
+    $prochainsEvenements = module_accessible('evenements') ? evenements_a_venir(5) : [];
+    $suisaAFaire   = module_accessible('evenements') ? nb_evenements_suisa_a_faire() : 0;
+    $suisaManquant = module_accessible('evenements') ? nb_evenements_suisa_manquants() : 0;
     render('resumes', [
         'aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaManquant' => $suisaManquant,
@@ -2032,4 +2066,22 @@ function route_resume(): void
         'retNb'     => $retNb,
         'retAnnee'  => $retAnnee,
     ], 'Cotisations');
+}
+
+// ------------------------------------------------------- RECHERCHE UNIFIÉE
+// Route du cœur : accessible à tout compte connecté, sans rattachement à un
+// module. Ce n'est pas un relâchement — c'est recherche_globale() qui filtre
+// source par source sur module_actif() ET peut_lire(), parce qu'une même page
+// couvre plusieurs modules aux droits distincts (voir lib/recherche.php).
+function route_recherche(): void
+{
+    require_login();
+    $q = trim((string) ($_GET['q'] ?? ''));
+    $groupes = $q !== '' ? recherche_globale($q) : [];
+    render('recherche', [
+        'q'       => $q,
+        'groupes' => $groupes,
+        'total'   => recherche_total($groupes),
+        'tropCourt' => $q !== '' && mb_strlen($q) < RECHERCHE_MIN,
+    ], $q !== '' ? "Recherche : $q" : 'Recherche');
 }

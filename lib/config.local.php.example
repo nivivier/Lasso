@@ -7,14 +7,27 @@
 // ============================================================================
 
 // --- Environnement -------------------------------------------------------
+// Sans indication, l'application retient 'prod' dès qu'elle est servie par un
+// serveur web (seuls la ligne de commande et « php -S » passent en 'dev') : le
+// défaut penche du côté sûr. La définir explicitement reste recommandé — c'est
+// la valeur la plus prioritaire, et Paramètres → Diagnostic affiche celle qui
+// a été retenue.
 // define('APP_ENV', 'prod');   // 'prod' en production, 'dev' en local
 
-// --- Base de données HORS de la racine web (recommandé) ------------------
+// --- Base de données HORS de la racine web (fortement recommandé) --------
+// Le dossier contient aussi les sauvegardes (*.sqlite.bak) et le journal des
+// e-mails : hors racine web, aucune erreur de configuration Apache ne peut les
+// exposer. Un .htaccess de protection est posé automatiquement, mais Nginx
+// l'ignore et il ne remplace pas un emplacement correct.
 // define('APP_DB_PATH', '/home/clients/xxxxxxxx/data/database.sqlite');
 
 // --- HTTPS ---------------------------------------------------------------
 // define('FORCE_HTTPS', true);
 
 // --- Secret d'installation (protège l'écran de création du 1er compte) ---
+// OBLIGATOIRE en production : sans lui, l'écran de création du premier compte
+// refuse de s'ouvrir (il resterait sinon accessible à quiconque entre la mise
+// en ligne et votre première connexion).
 // Mettez une longue valeur aléatoire, puis ouvrez  ?p=setup&key=<cette valeur>
+// Pour en générer une :  php -r 'echo bin2hex(random_bytes(24)), "\n";'
 // define('SETUP_SECRET', 'collez-ici-une-longue-chaine-aleatoire');

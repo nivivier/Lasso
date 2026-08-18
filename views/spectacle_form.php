@@ -18,7 +18,9 @@ foreach (plan_liste_ordonnee($map) as $r) {
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
-<?= lien_retour('?p=spectacles', evenements_terme_spectacle()) ?>
+<?php // Contextuel : un spectacle est une catégorie de la recherche unifiée, donc
+      // on doit pouvoir y revenir. Sans ?depuis, retombe sur la liste comme avant. ?>
+<?= lien_retour_contextuel('?p=spectacles', evenements_terme_spectacle()) ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier le ' . e($termeSingulier) : 'Nouveau ' . e($termeSingulier) ?></h1>
 </div>

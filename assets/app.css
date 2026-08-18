@@ -1,3 +1,30 @@
+/* Inter, servie depuis le dépôt (assets/fonts/) et non plus depuis
+   fonts.googleapis.com. Trois raisons de ne pas dépendre du CDN : la règle du
+   projet (bibliothèques bundlées, pas de CDN — voir CLAUDE.md), une requête
+   bloquante vers un tiers avant le premier rendu, et surtout le fait que chaque
+   affichage de page transmettait l'adresse IP de l'utilisateur à Google sans
+   nécessité fonctionnelle, dans une application qui traite des salaires
+   nominatifs.
+
+   Un seul fichier : Inter v20 est une police VARIABLE, le même woff2 couvre
+   tout l'axe de graisse (d'où « font-weight: 100 900 » plutôt que cinq blocs
+   @font-face, un par graisse, comme les servait Google). Sous-ensemble latin :
+   U+0000-00FF couvre les voyelles accentuées, plus Œ/œ (U+0152-0153) et
+   l'euro — soit tout ce dont le français a besoin.
+
+   font-display: swap — le texte s'affiche immédiatement dans la police de
+   repli, puis bascule ; jamais de blanc au chargement. */
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("fonts/inter-latin-var.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                   U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                   U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
 	/* ---------------- Couleurs ---------------- */
 	
@@ -6,6 +33,15 @@
     --primary: #6d4aee;     /* violet / mauve accent */
     --primary-d: #5a39d4;
     --primary-tint: #efeaff;
+    /* Couleur principale de l'employeur, que module_couleur_css_vars() ne
+       réécrit JAMAIS — contrairement à --primary juste au-dessus, remplacée
+       sur :root par la couleur du module courant, si bien que var(--primary)
+       change de teinte au fil de la navigation. Sert à l'icône du tableau de
+       bord (views/layout.php), qui n'appartient à aucun module et doit rester
+       un repère de teinte constante, comme le sont celles des modules.
+       Valeur réelle injectée par couleurs_css_vars() ; celle-ci n'est que le
+       repli avant l'écriture de <head>, comme pour --primary. */
+    --primary-base: #6d4aee;
     /* Couleur de mise en évidence (paramétrable, Paramètres > Employeur) :
        remplace --primary à certains endroits seulement — boutons principaux,
        sommes de brut, liens, tags. Voir couleurs_css_vars() (lib/helpers.php)
@@ -184,7 +220,6 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-sub { display: none; }
 .side-nav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .side-nav::-webkit-scrollbar { display: none; }
-.rail-spacer { flex: 1 1 auto; }
 .rail-btn {
     display: flex; flex-direction: column; align-items: center; gap: 7px;
     padding: 9px 12px 10px; width: 100%;
@@ -195,10 +230,6 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     isolation: isolate;
     transition: color .15s ease;
 }
-/* Séparateur avant Paramètres (seul lien statique après .rail-spacer) : le
-   distingue visuellement des modules au lieu du simple vide laissé par le
-   spacer flex. */
-.rail-spacer + .rail-btn { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 2px; }
 /* --rail-accent : couleur fixe posée en style inline par module (voir
    views/layout.php, MODULE_COULEURS dans lib/modules.php) — l'icône reste
    teintée de sa propre couleur même hors du module actif (repère visuel
@@ -510,8 +541,21 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .scrim { display: none; }
 
 .side-avatar-wrap { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid var(--line); position: relative; }
-.side-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; color: var(--ink); font-size: var(--fs-basic); font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0 auto; transition: background .15s; }
+/* Pastille du compte et roue des paramètres sur une même rangée, centrée.
+   `margin: 0` sur .side-avatar (au lieu du `margin: 0 auto` d'avant, quand
+   elle était seule) : en contexte flex une marge automatique absorbe l'espace
+   libre et pousserait la roue contre le bord. */
+.side-bottom { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.side-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; color: var(--ink); font-size: var(--fs-basic); font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0; transition: background .15s; }
 .side-avatar:hover { background: var(--line); }
+/* Même gabarit rond que la pastille, pour que les deux se lisent comme une
+   paire. L'icône est ramenée à 18px : la règle `.sidebar .ico` monte à 30px
+   pour les icônes du rail, bien trop pour un rond de 36px. */
+.side-cog { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--muted); flex-shrink: 0; transition: background .15s, color .15s; }
+.side-cog .ico { width: 18px; height: 18px; }
+.side-cog:hover { background: var(--line); color: var(--ink); }
+.side-cog.on { background: var(--primary-tint); color: var(--primary); }
+.side-cog:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: #fff; border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
 .side-avatar-id { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
 .side-avatar-id strong { display: block; font-size: var(--fs-basic); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1108,24 +1152,51 @@ select:disabled { cursor: not-allowed; }
    padding vertical en var(--btn-padding-v) (pas 10px en dur) : suit
    automatiquement button/.btn si son padding change un jour (voir :root). */
 input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: var(--btn-padding-v) 34px var(--btn-padding-v) 10px; font-size: var(--fs-basic); line-height: 1.6; }
-/* Icône loupe de tous les champs de recherche (type=search) : posée en
-   ::after sur .search-label (pas en background-image sur l'input comme
-   avant) via mask-image plutôt que fill/stroke figés dans le SVG — un SVG en
-   data-URI ne peut pas référencer une variable CSS, donc pas moyen de le
-   teinter avec --highlight (qui se décline par module, voir
-   module_couleur_css_vars()) autrement qu'en le transformant en masque
-   (silhouette) coloré par background-color. Un seul point de modification
-   (ce data-URI, repris de l'icône « search » de icon()) pour changer
-   l'icône partout dans l'application. */
+/* Loupe de tous les champs de recherche (voir champ_recherche(), lib/helpers.php).
+   C'est un vrai <button> et non plus un ::after décoratif : la loupe est
+   cliquable partout — elle soumet le formulaire quand il y en a un, sinon elle
+   rend le focus au champ. Le SVG vient de icon('search') avec
+   stroke="currentColor", donc la teinte par module (--highlight, voir
+   module_couleur_css_vars()) s'applique par simple héritage de `color` : plus
+   besoin du masque CSS qu'imposait un data-URI, qui ne pouvait pas lire une
+   variable CSS.
+
+   Ni `display` ni `padding-right` ici : le premier est fixé plus bas par la
+   règle .search-label des filtres (flex/column), le second par la règle
+   input[type="search"]:not(…):not(…) ci-dessus, toutes deux plus spécifiques —
+   les redéclarer ici n'aurait aucun effet. Les 34px qu'elle réserve à droite
+   suffisent : la loupe occupe de 8 à 24px depuis le bord. */
 .search-label { position: relative; }
-.search-label::after {
-    content: ""; position: absolute; top: 50%; right: 10px; width: 15px; height: 15px;
-    transform: translateY(-50%); background: var(--highlight); pointer-events: none;
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
-    mask-repeat: no-repeat; mask-size: 15px 15px;
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
-    -webkit-mask-repeat: no-repeat; -webkit-mask-size: 15px 15px;
+.search-label input { width: 100%; }
+/* Centrage vertical par `inset` + marges automatiques, et non par
+   translateY(-50%) : la règle globale `button:active` pose son propre
+   transform (l'enfoncement de 1 px commun à tous les boutons), qui aurait
+   écrasé celui du centrage — la loupe serait descendue d'un coup au clic.
+   background/border/box-shadow sont remis à zéro pour la même raison : cette
+   loupe est un bouton pour le clavier et la souris, pas visuellement. */
+/* Le bouton occupe toute la hauteur du champ et 38px de large (retrait d'1px
+   pour ne pas mordre la bordure arrondie) : l'icône reste petite, mais la
+   cible tactile fait 38×41 au lieu des 16×20 de l'icône seule — indispensable
+   au doigt, la loupe étant désormais un vrai bouton et non un décor. Les 34px
+   réservés à droite par input[type="search"] empêchent le texte saisi de
+   passer dessous. */
+.search-go {
+    position: absolute; top: 1px; bottom: 1px; right: 1px; width: 38px;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    background: none; border: 0; box-shadow: none;
+    color: var(--highlight); cursor: pointer;
+    transition: color .15s ease;
 }
+/* Trait plus épais que le 2 par défaut de icon() : à cette taille la loupe
+   paraissait fine à côté du poids du texte saisi. */
+.search-go .ico { width: 16px; height: 16px; stroke-width: 2.6; }
+/* Survol : la couleur seule. Pas de pastille de fond derrière l'icône — rien
+   d'autre dans l'interface n'en pose sur une icône à l'intérieur d'un champ.
+   Le `background: none` est indispensable : sans lui, `button:hover` peindrait
+   le fond bleu plein de tous les boutons derrière la loupe. */
+.search-go:hover { background: none; color: var(--highlight-d); }
+.search-go:focus-visible { outline: 2px solid var(--highlight); outline-offset: -2px; border-radius: var(--radius-sm); }
+
 /* En-têtes de groupe dans les listes cat-search */
 /* Propriétés partagées par les labels en petites capitales (sections, règles, cat-search) */
 .cat-search-sens,
@@ -1141,7 +1212,6 @@ input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: var(-
    que .row-link:hover ailleurs (tableau de bord, listes…), pas une couleur
    fixe indépendante du thème. */
 .compta-lettrage tbody tr:hover td { background: var(--primary-tint); }
-.search-label input { width: 100%; }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
 input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
 .auth-form { margin-top: 4px; }
@@ -2354,3 +2424,31 @@ abbr {
 .hist-item.hist-mailing .hist-ico { color: #2b8a5b; }
 .hist-item.hist-note .hist-ico { color: #6b7280; }
 .hist-item.hist-dernier_concert .hist-ico { color: #9b5bb0; }
+
+/* ---------------- Recherche unifiée (?p=recherche, tableau de bord) --------
+   Le champ et son bouton forment une seule ligne ; le champ prend toute la
+   place restante. --action-height (voir plus haut) aligne le champ sur la
+   hauteur des boutons, plutôt que de refixer une valeur en dur qui finirait
+   par diverger. */
+/* Plus de bouton « Rechercher » : la loupe du champ (.search-go) soumet le
+   formulaire, donc le champ occupe toute la largeur disponible. */
+.recherche-form { margin: 0 0 18px; }
+.recherche-form .recherche-champ { display: block; width: 100%; }
+.recherche-form .recherche-champ input { height: var(--action-height); }
+
+/* Sur le tableau de bord, la recherche est le premier geste de la page :
+   détachée du reste, et sur toute la largeur du contenu. */
+.recherche-dash { margin-bottom: 24px; }
+
+.recherche-groupe { margin-bottom: 16px; }
+.recherche-groupe-titre {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-large);
+    margin-bottom: 6px;
+}
+/* Le compteur est repoussé à droite du titre. */
+.recherche-groupe-titre .muted { margin-left: auto; font-weight: 400; }
+.recherche-groupe .list td { padding: var(--row-pad); }
+.recherche-groupe .list tr:last-child td { border-bottom: 0; }

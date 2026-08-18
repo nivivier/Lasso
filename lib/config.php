@@ -16,16 +16,35 @@ if (is_file($__local)) {
 // --- Environnement : 'prod' ou 'dev' --------------------------------------
 // En 'prod' : erreurs masquées (mais journalisées), e-mails réellement envoyés,
 // redirection HTTPS forcée. En 'dev' : erreurs affichées, e-mails journalisés.
-// Mettez explicitement 'prod' sur le serveur ; 'auto' détecte via le nom d'hôte.
+//
+// L'environnement ne doit JAMAIS pouvoir être influencé par la requête. La
+// détection précédente reposait sur $_SERVER['SERVER_NAME'] : avec
+// « UseCanonicalName Off » (défaut de beaucoup d'hébergements mutualisés),
+// cette valeur n'est pas une donnée de configuration mais l'en-tête « Host »
+// envoyé par le client. Une requête portant « Host: localhost » suffisait donc
+// à faire basculer l'application en 'dev' — soit display_errors actif (chemins
+// absolus, traces, fragments SQL renvoyés au visiteur), la redirection HTTPS
+// désactivée, et les e-mails détournés vers un fichier journal.
+//
+// Ordre de résolution, du plus explicite au plus sûr :
+//   1. define('APP_ENV', …) dans lib/config.local.php (chargé juste au-dessus) ;
+//   2. variable d'environnement du serveur (« SetEnv APP_ENV prod » en Apache,
+//      fastcgi_param sinon) — posée par la configuration, pas par le client.
+//      Apache préfixe la variable en REDIRECT_ après une réécriture interne,
+//      les deux formes sont donc acceptées ;
+//   3. exécution en ligne de commande ou via le serveur intégré de PHP
+//      (« php -S », SAPI cli-server, jamais utilisé en production) → 'dev' ;
+//   4. tout le reste → 'prod'. Le défaut penche désormais du côté sûr : une
+//      configuration oubliée masque les erreurs au lieu de les exposer.
 if (!defined('APP_ENV')) {
-    $app_env = 'auto';
-    if ($app_env === 'auto') {
-        $app_local = PHP_SAPI === 'cli'
-            || in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost', '::1'], true)
-            || in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
-        $app_env = $app_local ? 'dev' : 'prod';
+    $app_env_serveur = $_SERVER['APP_ENV'] ?? $_SERVER['REDIRECT_APP_ENV'] ?? null;
+    if (in_array($app_env_serveur, ['dev', 'prod'], true)) {
+        define('APP_ENV', $app_env_serveur);
+    } elseif (in_array(PHP_SAPI, ['cli', 'cli-server'], true)) {
+        define('APP_ENV', 'dev');
+    } else {
+        define('APP_ENV', 'prod');
     }
-    define('APP_ENV', $app_env);
 }
 
 // --- Emplacement du fichier SQLite ----------------------------------------

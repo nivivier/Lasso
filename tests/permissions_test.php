@@ -60,6 +60,43 @@ echo "3) PERMISSION_MODULES\n";
 check('coeur listé', true, in_array('coeur', PERMISSION_MODULES, true));
 check('un module par entrée de MODULES + coeur', count(MODULES) + 1, count(PERMISSION_MODULES));
 
+// L'invariante centrale du dispatch (index.php) : un GET exige la lecture, un
+// POST exige l'écriture. Toute mutation de l'application passe par un POST
+// protégé par check_csrf() — si cette règle cédait, une route mutante
+// deviendrait accessible en lecture seule. Ces assertions la verrouillent.
+echo "4) route_autorisee_pour() — lecture pour un GET, écriture pour un POST\n";
+$lecteur   = ['compta' => 'lecture'];
+$redacteur = ['compta' => 'ecriture'];
+
+check('aucun droit → GET refusé',            false, route_autorisee_pour([], ['compta'], 'GET'));
+check('aucun droit → POST refusé',           false, route_autorisee_pour([], ['compta'], 'POST'));
+check('lecture → GET autorisé',              true,  route_autorisee_pour($lecteur, ['compta'], 'GET'));
+check('lecture → POST REFUSÉ',               false, route_autorisee_pour($lecteur, ['compta'], 'POST'));
+check('écriture → GET autorisé',             true,  route_autorisee_pour($redacteur, ['compta'], 'GET'));
+check('écriture → POST autorisé',            true,  route_autorisee_pour($redacteur, ['compta'], 'POST'));
+check('droit sur un AUTRE module → refusé',  false, route_autorisee_pour($redacteur, ['salaires'], 'GET'));
+
+// Méthodes autres que POST : traitées comme des lectures. HEAD est envoyé par
+// les navigateurs et les sondes, il ne doit pas être plus permissif qu'un GET
+// ni être refusé à un lecteur.
+check('HEAD assimilé à une lecture',         true,  route_autorisee_pour($lecteur, ['compta'], 'HEAD'));
+check('méthode inconnue non traitée en POST', true, route_autorisee_pour($lecteur, ['compta'], 'PUT'));
+
+// Routes couvrant plusieurs modules (comptes bancaires : compta OU facturation ;
+// structures : facturation OU booking) — un seul module suffisant donne l'accès,
+// et le niveau requis se lit sur celui qui l'accorde.
+echo "5) route_autorisee_pour() — routes partagées entre deux modules\n";
+$partage = ['compta', 'facturation'];
+check('lecture sur l\'un des deux → GET autorisé',  true,  route_autorisee_pour(['facturation' => 'lecture'], $partage, 'GET'));
+check('lecture sur l\'un des deux → POST refusé',   false, route_autorisee_pour(['facturation' => 'lecture'], $partage, 'POST'));
+check('écriture sur l\'un des deux → POST autorisé', true, route_autorisee_pour(['facturation' => 'ecriture'], $partage, 'POST'));
+check(
+    'lecture sur l\'un, écriture sur l\'autre → POST autorisé',
+    true,
+    route_autorisee_pour(['compta' => 'lecture', 'facturation' => 'ecriture'], $partage, 'POST')
+);
+check('aucun des deux → refusé', false, route_autorisee_pour(['salaires' => 'ecriture'], $partage, 'GET'));
+
 echo "\n";
 if ($fails === 0) {
     echo "✅ TOUS LES TESTS PASSENT ($tests assertions)\n";

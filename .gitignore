@@ -1,5 +1,13 @@
 # === Données sensibles (PII employés) — ne JAMAIS versionner ===
-/data/
+# « /data/* » et non « /data/ » : git refuse de réinclure un fichier dont un
+# dossier parent est exclu, donc le « !/data/.htaccess » ci-dessous n'aurait
+# aucun effet avec la forme « /data/ ». Même construction que /uploads/* plus
+# bas. Ce .htaccess (Require all denied) DOIT être versionné : sans lui, une
+# installation neuve laisse data/ sans protection — le dossier est créé par un
+# simple mkdir() dans db(), et le .htaccess racine ne bloque pas les .bak/.log
+# qu'on y trouve (sauvegardes de base, journal d'e-mails).
+/data/*
+!/data/.htaccess
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm

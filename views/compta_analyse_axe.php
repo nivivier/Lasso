@@ -195,9 +195,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 <?php if ($ecritures): ?>
 <div class="section-head">
     <h2>Écritures</h2>
-    <label class="search-label ml-auto">
-        <input type="search" id="axe-ecritures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
-    </label>
+    <?= champ_recherche(['id' => 'axe-ecritures-search', 'classe' => 'ml-auto']) ?>
     <a href="?p=compta_ecritures&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost btn-sm"><?= icon('pencil') ?> Modifier</a>
 </div>
 

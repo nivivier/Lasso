@@ -6,9 +6,7 @@
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
         <?php if ($employes || $recherche !== ''): ?>
-        <label class="search-label">
-            <input type="search" id="employes-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-        </label>
+        <?= champ_recherche(['id' => 'employes-search', 'valeur' => $recherche]) ?>
         <?php endif; ?>
         <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">

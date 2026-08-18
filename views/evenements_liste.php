@@ -58,9 +58,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         <form method="get" class="filters">
             <input type="hidden" name="p" value="evenements_liste">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
-            <label class="search-label">
-                <input type="search" name="q" id="evenements-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-            </label>
+            <?= champ_recherche(['id' => 'evenements-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php if ($vue === 'carte'): ?>
         <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les

@@ -80,9 +80,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <?php if (($_GET['depuis'] ?? '') !== ''): ?><input type="hidden" name="depuis" value="<?= e((string) $_GET['depuis']) ?>"><?php endif; ?>
-            <label class="search-label">
-                <input type="search" name="q" id="structures-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-            </label>
+            <?= champ_recherche(['id' => 'structures-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
             <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
             <details class="filters-more" <?= $lieuFiltresActifs ? 'open' : '' ?>>
                 <summary title="Plus de filtres" aria-label="Plus de filtres"><?= icon('funnel-plus') ?></summary>

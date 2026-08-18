@@ -29,3 +29,40 @@ $oui = fn(bool $b) => $b
     </p>
     <p class="muted small">Astuce : pour désactiver la mise à jour en un clic, ajoutez <code>define('ALLOW_WEB_UPDATE', false);</code> dans <code>lib/config.local.php</code>.</p>
 </div>
+
+<div class="card">
+    <h2 class="mt-0">Environnement et performance</h2>
+    <p class="muted small">À contrôler après chaque changement d'hébergement.</p>
+    <dl class="info-grid">
+        <div>
+            <dt>Environnement détecté</dt>
+            <dd>
+                <span class="badge <?= $appEnv === 'prod' ? 'ok-badge' : 'warn-badge' ?>"><?= e($appEnv) ?></span>
+                <?php if ($appEnv !== 'prod'): ?>
+                    <span class="muted small">— les erreurs sont affichées et les e-mails seulement journalisés. Sur un serveur public, définissez <code>APP_ENV</code> sur <code>prod</code>.</span>
+                <?php endif; ?>
+            </dd>
+        </div>
+        <div><dt>Redirection HTTPS forcée</dt><dd><?= $oui($httpsForce) ?></dd></div>
+        <div>
+            <dt>Écran d'installation protégé <span class="muted small">(<code>SETUP_SECRET</code>)</span></dt>
+            <dd><?= $oui($setupProtege) ?></dd>
+        </div>
+        <div><dt>Version de PHP</dt><dd><code><?= e($phpVersion) ?></code></dd></div>
+        <div>
+            <dt>OPcache <span class="muted small">(cache de bytecode)</span></dt>
+            <dd>
+                <?= $oui($opcache['actif']) ?>
+                <span class="muted small">— <?= e($opcache['detail']) ?></span>
+            </dd>
+        </div>
+    </dl>
+    <?php if (!$opcache['actif']): ?>
+    <p class="muted small">
+        Sans OPcache, PHP réanalyse le code de l'application à chaque requête. C'est le
+        réglage qui pèse le plus sur la vitesse ; s'il est disponible chez votre
+        hébergeur, activez-le (souvent une case à cocher dans le panneau de
+        configuration, ou <code>opcache.enable=1</code> dans le <code>php.ini</code>).
+    </p>
+    <?php endif; ?>
+</div>

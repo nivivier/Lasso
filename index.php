@@ -8,6 +8,7 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calc.php';
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/modules.php';
+require_once __DIR__ . '/lib/recherche.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/routes_facturation.php';
@@ -65,6 +66,11 @@ $handlers = [
     'logout' => 'route_logout',
     'compte' => 'route_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
     'resumes' => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours accessible.
+    // Recherche unifiée : traverse plusieurs modules, donc rattachable à aucun.
+    // Volontairement absente de $routeModules — le filtrage par module_actif()
+    // et peut_lire() se fait source par source dans recherche_globale()
+    // (lib/recherche.php), seul endroit qui puisse le faire correctement.
+    'recherche' => 'route_recherche',
 ];
 $routeModules = [];
 

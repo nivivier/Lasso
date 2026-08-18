@@ -25,11 +25,14 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
 
 ## Lancer / tester
 ```bash
-php -S 127.0.0.1:8000      # serveur local (env détecté = dev)
-php tests/calc_test.php    # tests de calcul (doivent tous passer)
+php -S 127.0.0.1:8000   # serveur local (env détecté = dev, via PHP_SAPI cli-server)
+php tests/run.php       # analyse syntaxique de tout le code + toute la suite de tests
 ```
-Avant de conclure une tâche qui touche au code : `php -l` sur les fichiers modifiés
-+ `php tests/calc_test.php`.
+Avant de conclure une tâche qui touche au code : **`php tests/run.php`**, qui fait
+à la fois le `php -l` sur l'ensemble du projet et les 6 fichiers de tests. Il sort
+en code ≠ 0 au moindre échec (c'est la même commande que la CI, voir
+`.github/workflows/tests.yml`) — ne pas se contenter de lancer un fichier de tests
+isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 
 ## Architecture
 - **Front controller** `index.php` : charge `lib/config.php`, force HTTPS, en-têtes
@@ -37,19 +40,25 @@ Avant de conclure une tâche qui touche au code : `php -l` sur les fichiers modi
   `route_*()` dans `lib/routes.php`.
 - **Vues** : `render($vue, $data, $titre)` (avec layout) ou `render_bare()` (impression).
   `views/layout.php` enveloppe ; `views/_*_body.php` = corps réutilisés (écran + impression + e-mail).
-- **DB** `lib/db.php` : `db()` (PDO singleton, WAL). Schéma créé par `init_schema()`.
+- **Décisions & impasses connues** : `docs/DECISIONS.md` — le « pourquoi » des choix
+  structurants et des pièges déjà rencontrés (migrations SQLite, résolution de
+  `APP_ENV`, CSP, cache des data-URI, tests). **À lire avant de toucher au schéma,
+  à la configuration d'environnement ou à la CSP.** Convention : un commentaire dans
+  le code énonce l'invariante à respecter ; le récit historique va dans ce fichier,
+  pour qu'il ne vieillisse pas au milieu du code.
+- **DB** `lib/db.php` : `db()` (PDO singleton, WAL) + `param()`. Schéma dans
+  `lib/db/schema.php` (`init_schema()`, `seed_*()`), migrations dans
+  `lib/db/migrations.php` — les deux chargés par `db.php`, jamais requis directement.
   **Migrations versionnées** via `PRAGMA user_version` + `$steps` → `migration_N()`
   (idempotentes : `ALTER` après vérif d'existence de colonne). Pour faire évoluer le
   schéma : ajouter une entrée `$steps` + une fonction `migration_N()`.
-  ⚠️ Pour recréer une table avec un schéma modifié (ex. retirer une contrainte
-  inline), **ne pas** faire `ALTER TABLE x RENAME TO x_old` puis recréer `x` :
-  testé empiriquement (SQLite 3.53), `PRAGMA foreign_keys = OFF` **ne suffit pas**
-  à empêcher SQLite de réécrire la clause `REFERENCES` des autres tables vers
-  `x_old`, qui devient une FK cassée une fois `x_old` droppée (voir migration_21
-  pour un exemple vérifié). À la place : créer la nouvelle table sous un nom
-  temporaire (`x_new`), y copier les données, `DROP TABLE x` (une suppression,
-  pas un renommage — ne déclenche aucune réécriture ailleurs), puis
-  `ALTER TABLE x_new RENAME TO x`. Vérifier ensuite avec `PRAGMA foreign_key_check`.
+  ⚠️ Pour recréer une table avec un schéma modifié : créer la nouvelle sous un nom
+  temporaire (`x_new`), y copier les données, `DROP TABLE x`, puis
+  `ALTER TABLE x_new RENAME TO x` — **jamais** `RENAME TO x_old` puis recréation,
+  qui laisse des FK cassées (`PRAGMA foreign_keys = OFF` n'y change rien ; le
+  pourquoi est dans `docs/DECISIONS.md § Migrations SQLite`, l'exemple dans
+  `migration_21`). `tests/migrations_test.php` vérifie `PRAGMA foreign_key_check`
+  sur toute la chaîne, donc une rechute est détectée en CI.
 - **Calcul** `lib/calc.php` : `calculer_fiche()`, `r2()` (arrondi 2 déc.),
   `seuil_heures()`, `laa_effectif()`, `taux_pour_annee()`, `taux_stockes()`, `TAUX_DEFAUT`.
 - **Helpers** `lib/helpers.php` : `e()` (échappement), `param()` (paramètres, cachés),
@@ -78,6 +87,17 @@ Avant de conclure une tâche qui touche au code : `php -l` sur les fichiers modi
     contrôle — ne pas le faire.
   - Un nouveau compte (`route_comptes()`) démarre **sans aucun droit** ; seul
     le tout premier compte (`route_setup()`) reçoit tout par défaut.
+  - **`module_accessible($id)`** = `module_actif()` **ET** `peut_lire()`. Les deux
+    conditions vont toujours ensemble pour décider d'afficher quelque chose :
+    tester `module_actif()` seul laisse fuiter les données d'un module vers un
+    compte qui n'y a pas accès.
+- **Recherche unifiée** `lib/recherche.php` (`?p=recherche`, champ sur le tableau
+  de bord) : traverse employés/structures/factures/événements/spectacles. Seule
+  fonctionnalité qui interroge plusieurs modules dans la même requête — chaque
+  source est donc filtrée par `module_accessible()` **avant** toute requête, et la
+  route n'est volontairement rattachée à aucun module. Ajouter une entité = une
+  entrée dans `recherche_sources()` (projeter `id/titre/sous_titre/tri/texte`) ;
+  `tests/recherche_test.php` vérifie la déclaration.
 
 ## Domaine (paie suisse) — à respecter
 - Déductions employé : AVS/AI/APG, AC, A.mat (GE), **LAA** (deux taux : *réduit* si

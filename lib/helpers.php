@@ -78,13 +78,30 @@ function send_security_headers(): void
     if (is_https()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
-    // CSP minimale : on autorise la police Google, les styles/scripts inline déjà
-    // utilisés, et les tuiles OpenStreetMap (vue carte des lieux, lib/geocodage.php).
+    // CSP. Plus aucun domaine Google : Inter est servie depuis assets/fonts/
+    // (voir le @font-face en tête de assets/app.css). Restent les tuiles
+    // OpenStreetMap (vue carte des lieux, lib/geocodage.php).
+    //
+    // script-src conserve 'unsafe-inline', ce qui limite fortement la valeur de
+    // cette CSP contre le XSS. Le retirer suppose de passer aux nonces — et un
+    // nonce ne couvre QUE les balises <script> : dès qu'il est présent, le
+    // navigateur ignore 'unsafe-inline', donc les 85 gestionnaires inline encore
+    // présents dans les vues (onsubmit/onclick/onchange, notamment les
+    // confirmations de suppression) cesseraient tous de fonctionner. Le passage
+    // au nonce impose donc de les réécrire d'abord en addEventListener ; tant que
+    // ce n'est pas fait, ajouter un nonce casserait l'application sans rien
+    // sécuriser. Les autres directives ci-dessous ne dépendent pas de ce chantier
+    // et sont posées dès maintenant :
+    //   object-src 'none'      — plus de <object>/<embed>, vecteur classique ;
+    //   frame-ancestors 'self' — équivalent moderne de X-Frame-Options, qui reste
+    //                            envoyé plus haut pour les navigateurs anciens.
     header(
         "Content-Security-Policy: default-src 'self'; "
-        . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        . "font-src 'self' https://fonts.gstatic.com; "
+        . "style-src 'self' 'unsafe-inline'; "
+        . "font-src 'self'; "
         . "script-src 'self' 'unsafe-inline'; "
+        . "object-src 'none'; "
+        . "frame-ancestors 'self'; "
         . "img-src 'self' data: https://tile.openstreetmap.org; base-uri 'self'; form-action 'self'"
     );
 }
@@ -154,6 +171,31 @@ function check_csrf(): void
     }
 }
 
+// --- Mots de passe --------------------------------------------------------
+// PASSWORD_BCRYPT explicite, et non PASSWORD_DEFAULT : l'option 'cost' n'a de
+// sens que pour bcrypt. Le jour où PHP fera pointer PASSWORD_DEFAULT vers un
+// Argon2, 'cost' deviendrait silencieusement inopérant et les nouveaux mots de
+// passe seraient hachés avec les paramètres par défaut d'un autre algorithme,
+// sans que rien ne le signale. Point d'entrée unique : les quatre endroits qui
+// créaient un hash (installation, changement par l'utilisateur, création de
+// compte, réinitialisation) répétaient le même triplet d'arguments.
+function hacher_mot_de_passe(string $mdp): string
+{
+    return password_hash($mdp, PASSWORD_BCRYPT, ['cost' => BCRYPT_COST]);
+}
+
+// Réhachage opportuniste après une authentification réussie : si BCRYPT_COST a
+// été relevé (ou l'algorithme changé) depuis la création du hash, on en profite
+// pour le mettre à niveau — c'est le seul moment où le mot de passe en clair est
+// disponible. Sans ça, une empreinte créée avec un coût faible le reste à vie.
+function rehacher_si_necessaire(int $uid, string $mdpEnClair, string $hashActuel): void
+{
+    if (password_needs_rehash($hashActuel, PASSWORD_BCRYPT, ['cost' => BCRYPT_COST])) {
+        db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
+            ->execute([hacher_mot_de_passe($mdpEnClair), $uid]);
+    }
+}
+
 // --- Anti-force-brute du login -------------------------------------------
 function client_ip(): string
 {
@@ -168,10 +210,26 @@ function login_failures_recent(string $ip): int
     return (int) $stmt->fetchColumn();
 }
 
-// Vrai si l'IP a dépassé le quota d'échecs et reste bloquée.
-function login_is_locked(string $ip): bool
+// Nombre d'échecs récents (même fenêtre) visant CE compte, toutes IP confondues.
+function login_failures_recent_email(string $email): int
 {
-    return login_failures_recent($ip) >= LOGIN_MAX_ATTEMPTS;
+    $stmt = db()->prepare('SELECT COUNT(*) FROM login_attempts WHERE email = ? AND cree_le > ?');
+    $stmt->execute([$email, time() - LOGIN_WINDOW]);
+    return (int) $stmt->fetchColumn();
+}
+
+// Vrai si le quota d'échecs est dépassé, côté IP ou côté compte. Le compteur par
+// compte comble l'angle mort du comptage par IP seule : un attaquant qui fait
+// tourner ses adresses n'était jamais ralenti, quel que soit le nombre d'essais
+// sur une même adresse e-mail. $email vide (formulaire soumis sans identifiant)
+// n'active que le volet IP — sinon tous les comptes se bloqueraient mutuellement
+// via la ligne « email = '' ».
+function login_is_locked(string $ip, string $email = ''): bool
+{
+    if (login_failures_recent($ip) >= LOGIN_MAX_ATTEMPTS) {
+        return true;
+    }
+    return $email !== '' && login_failures_recent_email($email) >= LOGIN_MAX_ATTEMPTS;
 }
 
 function login_record_failure(string $ip, string $email): void
@@ -182,9 +240,15 @@ function login_record_failure(string $ip, string $email): void
     db()->prepare('DELETE FROM login_attempts WHERE cree_le < ?')->execute([time() - 3600]);
 }
 
-function login_clear_failures(string $ip): void
+// Purge les échecs après une authentification réussie, pour l'IP et pour le
+// compte concerné (voir login_is_locked() : les deux compteurs bloquent, les
+// deux doivent donc être remis à zéro). $email vide ne purge que l'IP.
+function login_clear_failures(string $ip, string $email = ''): void
 {
     db()->prepare('DELETE FROM login_attempts WHERE ip = ?')->execute([$ip]);
+    if ($email !== '') {
+        db()->prepare('DELETE FROM login_attempts WHERE email = ?')->execute([$email]);
+    }
 }
 
 function redirect(string $route, array $params = []): void
@@ -215,11 +279,26 @@ function redirect(string $route, array $params = []): void
 
 // Supprime la ligne $id de $table, sauf si des lignes de $tableRef y font
 // encore référence via $colonneRef (ex. un employé qui a des fiches, un
-// débiteur qui a des factures) — la suppression est alors refusée. Noms de
-// tables/colonnes toujours des constantes internes, jamais une valeur utilisateur.
+// débiteur qui a des factures) — la suppression est alors refusée.
 // Retourne true si la suppression a eu lieu, false si elle a été refusée.
+//
+// Les quatre noms sont interpolés dans le SQL (impossible de les paramétrer :
+// PDO ne prépare que des valeurs, pas des identifiants). Tous les appels
+// actuels passent des littéraux du code, jamais une valeur issue de la requête
+// — mais c'était une invariante tenue par convention, vérifiable nulle part.
+// Le contrôle ci-dessous la rend explicite : un identifiant qui n'est pas un
+// nom simple (lettres, chiffres, souligné) lève au lieu d'atteindre le SQL.
+// Volontairement un contrôle de forme et non une liste des tables autorisées :
+// une liste exhaustive devrait être tenue à jour à chaque nouvelle table, et
+// finirait par être élargie sans réflexion — la forme, elle, suffit à écarter
+// toute injection, puisqu'aucun caractère de syntaxe SQL ne passe.
 function supprimer_si_non_reference(string $table, int $id, string $tableRef, string $colonneRef): bool
 {
+    foreach (['table' => $table, 'tableRef' => $tableRef, 'colonneRef' => $colonneRef] as $nom => $val) {
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $val)) {
+            throw new InvalidArgumentException("supprimer_si_non_reference() : \$$nom invalide.");
+        }
+    }
     $stmt = db()->prepare("SELECT COUNT(*) FROM $tableRef WHERE $colonneRef = ?");
     $stmt->execute([$id]);
     if ((int) $stmt->fetchColumn() > 0) {
@@ -366,6 +445,29 @@ function pagination_pages_affichees(int $page, int $nbPages): array
         $prec = $p;
     }
     return $out;
+}
+
+// Minuscule + repli des accents sur la lettre de base (é→e, ç→c…), en gardant
+// espaces et ponctuation — pour un rapprochement lisible d'intitulés à l'import
+// (ex. « Média » ↔ « Media »). Différent de normaliser_nom_structure()
+// (lib/booking.php) qui, lui, SUPPRIME accents ET ponctuation (pour comparer
+// des noms propres).
+//
+// Vit ici et non dans lib/booking.php (son emplacement d'origine) parce que
+// lib/db.php l'expose à SQLite sous le nom SANS_ACCENTS() pour la recherche
+// unifiée : db.php est chargé bien avant booking.php, qui n'accompagne que le
+// module booking.
+function texte_sans_accents(string $s): string
+{
+    $s = mb_strtolower(trim($s), 'UTF-8');
+    return strtr($s, [
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a',
+        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+        'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+        'ç' => 'c', 'ñ' => 'n', 'œ' => 'oe', 'æ' => 'ae', 'ÿ' => 'y',
+    ]);
 }
 
 // Échappe % / _ / \ pour un motif LIKE sûr (à utiliser avec ESCAPE '\\') —
@@ -891,8 +993,14 @@ function couleurs_css_vars(): string
         $filtreFond = $filtres ? 'filter:' . implode(' ', $filtres) . ';' : '';
         $styleFond = 'body.has-sidebar::before{background-image:url(' . json_encode($fondPerso) . ');' . $filtreFond . '}';
     }
+    // --primary-base : même valeur que --primary, mais que
+    // module_couleur_css_vars() ne réécrit JAMAIS. Sert là où il faut la
+    // couleur principale de l'employeur telle quelle, indépendamment du module
+    // consulté — l'icône du tableau de bord (views/layout.php), qui n'appartient
+    // à aucun module et doit rester un repère de teinte constante.
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
+        . ';--primary-base:' . $c['primary']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
         . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}'
@@ -1036,6 +1144,58 @@ function param_logo(string $variant): string
 // dans le HTML supprime cette requête, donc ce flash, quelle que soit la
 // configuration de cache du serveur (dev ou prod). Repli sur le chemin web
 // classique si le fichier est illisible (pas d'image cassée).
+// Cache disque d'une chaîne coûteuse à produire, invalidé par la source.
+//
+// Motivation : les deux fonctions de data-URI ci-dessous s'exécutaient à CHAQUE
+// affichage de page (elles ne servent que dans views/layout.php, présent
+// partout). asset_data_uri_mini() décode un PNG de 612×553, le rééchantillonne
+// via GD, le réencode et le passe en base64 — pour un badge affiché à 12px.
+// Le résultat ne change que si le fichier source change : le recalculer à
+// chaque requête est du travail pur perdu, particulièrement sur mutualisé.
+//
+// La signature inclut mtime ET taille de chaque source : un fichier remplacé
+// dans la même seconde (mtime identique) mais de taille différente invalide
+// quand même l'entrée. Les entrées devenues obsolètes (même clé, autre
+// signature) sont supprimées à l'écriture — sans quoi chaque changement de logo
+// laisserait un fichier orphelin derrière lui.
+//
+// Le cache vit à côté de la base (dirname(APP_DB_PATH)) et non dans le dépôt :
+// il suit ainsi APP_DB_PATH hors racine web en production, et bénéficie des
+// protections déjà posées sur ce dossier. Toute défaillance d'écriture est
+// silencieuse et sans conséquence : on renvoie la valeur calculée.
+function cache_disque(string $cle, array $fichiersSources, callable $produire): string
+{
+    $sig = [];
+    foreach ($fichiersSources as $f) {
+        $sig[] = @filemtime($f) . ':' . @filesize($f);
+    }
+    $dir     = dirname(APP_DB_PATH) . '/cache';
+    $empreinte = substr(hash('sha256', implode('|', $sig)), 0, 16);
+    $fichier = $dir . '/' . $cle . '-' . $empreinte . '.txt';
+
+    $cache = @file_get_contents($fichier);
+    if ($cache !== false) {
+        return $cache;
+    }
+
+    $valeur = (string) $produire();
+
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0770, true);
+        proteger_dossier_donnees($dir);
+    }
+    foreach ((array) @glob($dir . '/' . $cle . '-*.txt') as $obsolete) {
+        @unlink($obsolete);
+    }
+    // Écriture atomique : un fichier temporaire puis rename(), pour qu'une
+    // requête concurrente ne puisse jamais lire un contenu tronqué.
+    $tmp = $fichier . '.' . getmypid() . '.tmp';
+    if (@file_put_contents($tmp, $valeur) !== false) {
+        @rename($tmp, $fichier);
+    }
+    return $valeur;
+}
+
 function param_logo_data_uri(string $variant): string
 {
     $chemin = param_logo($variant);
@@ -1046,12 +1206,14 @@ function param_logo_data_uri(string $variant): string
     if (!is_file($fs) || !is_readable($fs)) {
         return $chemin;
     }
-    $dims = @getimagesize($fs);
-    $data = @file_get_contents($fs);
-    if ($data === false) {
-        return $chemin;
-    }
-    return 'data:' . ((string) ($dims['mime'] ?? 'image/png')) . ';base64,' . base64_encode($data);
+    return cache_disque('logo-' . $variant, [$fs], function () use ($fs, $chemin) {
+        $dims = @getimagesize($fs);
+        $data = @file_get_contents($fs);
+        if ($data === false) {
+            return $chemin;
+        }
+        return 'data:' . ((string) ($dims['mime'] ?? 'image/png')) . ';base64,' . base64_encode($data);
+    });
 }
 
 // Variante de param_logo_data_uri() pour un petit badge d'image FIXE du dépôt
@@ -1069,6 +1231,17 @@ function asset_data_uri_mini(string $cheminRelatif, int $hauteurPx): string
     if (!is_file($fs) || !is_readable($fs) || !extension_loaded('gd')) {
         return $cheminRelatif;
     }
+    // La hauteur cible fait partie de la clé : deux appels sur la même source
+    // à des tailles différentes ne doivent pas se marcher dessus.
+    return cache_disque(
+        'mini-' . preg_replace('/[^a-z0-9]+/i', '_', $cheminRelatif) . '-' . $hauteurPx,
+        [$fs],
+        fn () => asset_data_uri_mini_calculer($fs, $cheminRelatif, $hauteurPx)
+    );
+}
+
+function asset_data_uri_mini_calculer(string $fs, string $cheminRelatif, int $hauteurPx): string
+{
     $src = @imagecreatefrompng($fs);
     if (!$src) {
         return $cheminRelatif;
@@ -1320,6 +1493,17 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     if ($q !== '') { $extra['q'] = $q; }
     if ($page > 1) { $extra['page'] = $page; }
     $avecExtras = fn (string $href): string => $extra ? $href . (str_contains($href, '?') ? '&' : '?') . http_build_query($extra) : $href;
+    // Recherche unifiée : traité à part des cibles statiques ci-dessous parce
+    // que son libellé rappelle le terme cherché (« Recherche « hector » »),
+    // pour que le lien retour dise où il ramène. Le terme lui-même revient par
+    // $avecExtras, qui reporte déjà ?q= — sans quoi on retomberait sur une page
+    // de recherche vide, ce qui obligerait à ressaisir la requête.
+    if ($depuis === 'recherche') {
+        return lien_retour(
+            $avecExtras('?p=recherche'),
+            $q !== '' ? 'Recherche « ' . $q . ' »' : 'Recherche'
+        );
+    }
     // Cibles sans id propre (page/liste, pas un objet précis) — le filtrage
     // actif (compte/année/catégorie…) est repris automatiquement au retour
     // via filtre_persistant() (session), pas besoin de l'encoder dans l'URL.
@@ -1822,6 +2006,49 @@ function icon(string $name): string
     $p = $paths[$name] ?? '';
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
         . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $p . '</svg>';
+}
+
+// Champ de recherche standard de l'application : la saisie plus une loupe
+// CLIQUABLE. Un seul rendu pour les dix champs du site, afin que le geste soit
+// le même partout.
+//
+// Deux natures de champ coexistent, d'où $submit :
+//   - true  : le champ est dans un <form> (listes filtrées côté serveur, page
+//             de recherche) — la loupe est un vrai bouton submit ;
+//   - false : le champ filtre en direct en JS (employés, spectacles, écritures
+//             d'un axe) — il n'y a rien à soumettre, la loupe se contente de
+//             rendre le focus au champ (voir assets/app.js).
+//
+// Conteneur <span> et non <label> : un <label> ne doit pas contenir d'élément
+// interactif autre que son propre champ, et son comportement d'activation
+// entrerait en conflit avec le clic sur le bouton. L'accessibilité est portée
+// par l'aria-label du champ, déjà présent partout.
+function champ_recherche(array $opts = []): string
+{
+    $classe      = trim('search-label ' . ($opts['classe'] ?? ''));
+    $submit      = (bool) ($opts['submit'] ?? false);
+    $placeholder = $opts['placeholder'] ?? 'Rechercher...';
+    $aria        = $opts['aria'] ?? 'Rechercher';
+
+    $attrs = 'type="search" autocomplete="off"';
+    foreach (['id', 'name'] as $a) {
+        if (($opts[$a] ?? '') !== '') {
+            $attrs .= ' ' . $a . '="' . e((string) $opts[$a]) . '"';
+        }
+    }
+    if (isset($opts['valeur'])) {
+        $attrs .= ' value="' . e((string) $opts['valeur']) . '"';
+    }
+    if (!empty($opts['autofocus'])) {
+        $attrs .= ' autofocus';
+    }
+
+    return '<span class="' . e($classe) . '">'
+        . '<input ' . $attrs . ' placeholder="' . e($placeholder) . '" aria-label="' . e($aria) . '">'
+        . '<button type="' . ($submit ? 'submit' : 'button') . '" class="search-go" aria-label="' . e($aria) . '">'
+        . icon('search')
+        . '</button>'
+        . '</span>';
 }
 
 // Icône « i » avec infobulle : survol/focus sur ordinateur, tap sur mobile

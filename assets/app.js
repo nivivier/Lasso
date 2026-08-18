@@ -761,3 +761,136 @@ function lassoPlanArbre(opts) {
     });
     document.addEventListener('dragend', hideIndic);
 }
+
+// Raccourci « / » : place le curseur dans le champ de recherche de la page
+// (recherche unifiée du tableau de bord, ou recherche d'une liste). Ignoré dès
+// que l'utilisateur est déjà en train de saisir quelque part — sinon taper « / »
+// dans un champ de texte volerait le focus au lieu d'écrire le caractère.
+window.addEventListener('DOMContentLoaded', () => {
+    const champ = document.getElementById('recherche-globale')
+        || document.querySelector('.recherche-form input[type="search"]');
+    if (!champ) return;
+    document.addEventListener('keydown', e => {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+        const a = document.activeElement;
+        if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
+        e.preventDefault();
+        champ.focus();
+        champ.select();
+    });
+});
+
+// Loupe des champs qui filtrent en direct (employés, spectacles, écritures d'un
+// axe) : il n'y a pas de formulaire à soumettre, donc champ_recherche() rend un
+// type="button" — le clic ramène simplement le focus dans le champ. Sans ça, la
+// loupe serait le seul élément de l'interface qui a l'air cliquable sans rien
+// faire. Les champs à l'intérieur d'un <form> reçoivent un vrai submit et ne
+// passent pas par ici.
+document.addEventListener('click', e => {
+    const btn = e.target.closest('.search-go[type="button"]');
+    if (!btn) return;
+    const champ = btn.parentElement.querySelector('input[type="search"]');
+    if (champ) champ.focus();
+});
+
+// ---------------------------------------------------------------- ERGONOMIE
+// 1) Marge de pardon autour des cases à cocher : un clic qui tombe jusqu'à 3px
+// à côté de la case compte comme un clic dessus. Une case fait 13px de côté —
+// la manquer de peu est fréquent, et dans une liste ce raté ne se contente pas
+// de ne rien faire : la ligne est cliquable, donc le clic ouvre la fiche et
+// fait perdre la sélection en cours.
+//
+// En phase de CAPTURE, et non en bulle : l'écouteur de ligne cliquable
+// (views/layout.php) est posé sur le <tr>, donc un ancêtre de la cible — en
+// bulle il se déclencherait avant nous et la navigation aurait déjà eu lieu.
+// La capture descend depuis document, on passe donc en premier et on peut
+// arrêter l'événement.
+//
+// Le tour de CSS habituel (bordure transparente pour élargir la boîte) ne
+// fonctionne pas ici : les cases gardent leur rendu natif (app.css ne pose
+// appearance:none que sur :not([type=checkbox]):not([type=radio])), et le
+// navigateur ignore la bordure — vérifié, la boîte reste à 13x13.
+const CASE_PARDON_PX = 3;
+document.addEventListener('click', e => {
+    // Clic déjà servi par la case elle-même, son <label>, ou un autre contrôle.
+    if (e.target.closest('input, label, button, a, select, textarea')) return;
+
+    // Recherche au plus près : on remonte de trois niveaux au maximum, en
+    // s'arrêtant au premier ancêtre qui contient des cases. Évite de mesurer
+    // toutes les cases d'une liste de plusieurs centaines de lignes à chaque
+    // clic de la page.
+    let cases = [];
+    let noeud = e.target;
+    for (let i = 0; i < 3 && noeud && noeud !== document.body; i++) {
+        cases = noeud.querySelectorAll('input[type="checkbox"]:not(:disabled)');
+        if (cases.length) break;
+        noeud = noeud.parentElement;
+    }
+    if (!cases.length) return;
+
+    for (const c of cases) {
+        const r = c.getBoundingClientRect();
+        if (!r.width) continue; // case masquée
+        const dedans = e.clientX >= r.left - CASE_PARDON_PX && e.clientX <= r.right + CASE_PARDON_PX
+                    && e.clientY >= r.top - CASE_PARDON_PX && e.clientY <= r.bottom + CASE_PARDON_PX;
+        if (!dedans) continue;
+        e.preventDefault();
+        e.stopPropagation();
+        c.checked = !c.checked;
+        c.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+    }
+}, true);
+
+// 2) Mémoire de la sélection d'une liste. Cocher plusieurs lignes puis ouvrir
+// une fiche pour vérifier un détail faisait perdre toute la sélection au
+// retour — il fallait tout recocher. On la conserve donc le temps de la
+// session d'onglet.
+//
+// sessionStorage (et non localStorage) : la sélection est un état de travail
+// courant, pas une préférence — elle doit disparaître avec l'onglet, et rester
+// propre à cet onglet si la même liste est ouverte deux fois.
+//
+// Clé par route (?p=…) : deux listes différentes ne doivent pas partager leur
+// sélection. Les valeurs absentes de la page (filtre différent, ligne
+// supprimée) sont simplement ignorées au retour.
+(function () {
+    const cle = 'lasso:selection:' + (new URLSearchParams(location.search).get('p') || 'defaut');
+    const cases = () => document.querySelectorAll('.row-check');
+
+    function memoriser() {
+        const ids = [...cases()].filter(c => c.checked).map(c => c.value);
+        try {
+            ids.length ? sessionStorage.setItem(cle, JSON.stringify(ids))
+                       : sessionStorage.removeItem(cle);
+        } catch (e) { /* stockage indisponible (navigation privée stricte) : tant pis */ }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const liste = cases();
+        if (!liste.length) return;
+
+        let ids = [];
+        try { ids = JSON.parse(sessionStorage.getItem(cle) || '[]'); } catch (e) { ids = []; }
+        if (Array.isArray(ids) && ids.length) {
+            const voulus = new Set(ids);
+            let restaurees = 0;
+            liste.forEach(c => { if (voulus.has(c.value)) { c.checked = true; restaurees++; } });
+            // Un seul évènement après coup : les scripts de liste
+            // (views/compta_ecritures.php, views/structures_liste.php) écoutent
+            // « change » pour afficher leur barre d'actions groupées. Ils sont
+            // attachés par un script en fin de <body>, donc avant ce
+            // DOMContentLoaded — la barre se met bien à jour.
+            if (restaurees) liste[0].dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        liste.forEach(c => c.addEventListener('change', memoriser));
+
+        // La sélection est consommée par l'action groupée : ne pas la faire
+        // réapparaître sur la liste après le traitement.
+        const form = document.getElementById('bulkform');
+        if (form) form.addEventListener('submit', () => {
+            try { sessionStorage.removeItem(cle); } catch (e) {}
+        });
+    });
+})();

@@ -225,22 +225,10 @@ function normaliser_nom_structure(string $s): string
     return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower(trim($s), 'UTF-8'));
 }
 
-// Minuscule + repli des accents sur la lettre de base (é→e, ç→c…), en gardant
-// espaces et ponctuation — pour un rapprochement lisible d'intitulés à l'import
-// (ex. « Média » ↔ « Media »). Différent de normaliser_nom_structure() qui, lui,
-// SUPPRIME accents et ponctuation (pour comparer des noms propres).
-function texte_sans_accents(string $s): string
-{
-    $s = mb_strtolower(trim($s), 'UTF-8');
-    return strtr($s, [
-        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a',
-        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
-        'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o',
-        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
-        'ç' => 'c', 'ñ' => 'n', 'œ' => 'oe', 'æ' => 'ae', 'ÿ' => 'y',
-    ]);
-}
+// texte_sans_accents() a déménagé dans lib/helpers.php : c'est un utilitaire de
+// chaîne générique, et lib/db.php l'expose désormais à SQLite (fonction
+// SANS_ACCENTS, utilisée par la recherche unifiée). db.php ne peut pas dépendre
+// de ce fichier-ci, qui n'est chargé qu'avec le module booking.
 
 // --- Événements liés (table evenement_structures, voir migration_58/66) ----
 

@@ -7,6 +7,69 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.1.0] — 2026-08-18
+
+### Sécurité
+- **Fuite de données entre modules sur le tableau de bord** : ses widgets ne
+  testaient que `module_actif()`, jamais `peut_lire()` — un compte n'ayant accès
+  qu'à un module y voyait malgré tout les fiches de salaire à payer, les factures
+  émises et les comptes annuels. Le rail de navigation, lui, vérifiait bien les
+  deux. Introduction de `module_accessible()` comme point de vérité unique, et
+  alignement de la route comme de la vue.
+- Dossier `data/` : `.htaccess` de refus désormais versionné **et** recréé par
+  `db()` s'il manque ; `FilesMatch` de la racine élargi aux fichiers sensibles.
+- Détection de `APP_ENV` durcie (plus de bascule en `dev` sur un en-tête
+  d'hôte falsifiable).
+- Politique de sécurité de contenu resserrée ; suppression de la dépendance à
+  Google Fonts (police Inter désormais servie depuis le dépôt, `assets/fonts/`)
+  — plus aucune requête vers un tiers au chargement d'une page.
+- Anti-force-brute étendu au couple e-mail + adresse IP ; `PASSWORD_BCRYPT`
+  explicite avec réencodage à la connexion ; installation refusée en production
+  sans `SETUP_SECRET` ; liste blanche sur les suppressions référentielles.
+
+### Ajouté
+- **Recherche unifiée** (`?p=recherche`, champ sur le tableau de bord) :
+  traverse employés, structures, **contacts**, factures, événements et
+  spectacles en une seule requête. Multi-mots dans n'importe quel ordre et
+  insensible aux accents (« deborde » trouve « déborde »). Chaque source est
+  filtrée par `module_accessible()` avant toute requête. Raccourci `/` pour
+  atteindre le champ.
+- Retour contextuel depuis une fiche vers la recherche d'origine, terme
+  conservé (« Recherche « hector » »).
+- Intégration continue (`.github/workflows/tests.yml`) et lanceur unique
+  `php tests/run.php` : analyse syntaxique de tout le projet + toute la suite.
+- Tests d'autorisation des routes, d'idempotence des migrations et de la
+  recherche (dont un garde-fou sur le filtrage par droits).
+- `docs/DECISIONS.md` : le « pourquoi » des choix structurants et des impasses
+  déjà rencontrées.
+
+### Modifié
+- **Loupe cliquable sur tous les champs de recherche** : elle soumet le
+  formulaire là où il y en a un, rend le focus au champ ailleurs. Le bouton
+  « Rechercher » du tableau de bord disparaît, le champ prend toute la largeur.
+  Rendu centralisé dans `champ_recherche()`.
+- **Paramètres** quitte le rail de navigation pour rejoindre la pastille du
+  compte, en bas de la barre latérale : ce n'est pas un module, il n'avait pas
+  à en avoir le poids visuel.
+- L'icône du tableau de bord porte la couleur principale de l'employeur au lieu
+  du gris, via la nouvelle variable `--primary-base` (stable d'un module à
+  l'autre, contrairement à `--primary`).
+- Export iCal : titre « Artiste (Sous-spectacle) » pour les sous-spectacles.
+- `lib/db.php` scindé (`lib/db/schema.php`, `lib/db/migrations.php`) ;
+  `texte_sans_accents()` déplacée dans `lib/helpers.php` et exposée à SQLite.
+- Images en data-URI mises en cache ; compression et cache long sur les assets ;
+  diagnostic OPcache dans Paramètres.
+
+### Ergonomie
+- **Marge de pardon de 3 px autour des cases à cocher** : un clic qui tombe
+  juste à côté coche quand même, au lieu d'ouvrir la fiche et de faire perdre
+  la sélection en cours.
+- **Sélection d'une liste conservée** le temps de la session d'onglet : ouvrir
+  une fiche puis revenir ne fait plus tout décocher.
+
+### Corrigé
+- `tests/facturation_test.php` échouait sur un `pays_liste()` indéfini.
+
 ## [2.0.6] — 2026-08-17
 
 ### Modifié

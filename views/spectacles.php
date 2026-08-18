@@ -25,9 +25,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
         <?php if ($lignes): ?>
-        <label class="search-label">
-            <input type="search" id="spectacles-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher">
-        </label>
+        <?= champ_recherche(['id' => 'spectacles-search']) ?>
         <?php endif; ?>
         <div class="head-actions">
             <?php if ($lignes): ?>

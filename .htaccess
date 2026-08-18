@@ -1,10 +1,22 @@
 DirectoryIndex index.php
 Options -Indexes
 
-# Bloque l'accès direct aux fichiers sensibles
-<FilesMatch "\.(sqlite|sqlite-wal|sqlite-shm|sql|md)$">
+# Bloque l'accès direct aux fichiers sensibles.
+# .bak/.bak-wal/.bak-shm : sauvegardes de base produites par les scripts de
+# maintenance (data/database_avant_*.sqlite.bak) — un seul de ces fichiers
+# servi en clair, c'est toute la base (salaires nominatifs, n° AVS, empreintes
+# bcrypt). .log : journal des e-mails envoyés (data/emails_envoyes.log), qui
+# contient le corps des fiches transmises. Les deux manquaient à cette liste.
+<FilesMatch "\.(sqlite|sqlite-wal|sqlite-shm|sql|md|log|bak|bak-wal|bak-shm)$">
     Require all denied
 </FilesMatch>
+
+# Défense en profondeur sur le dossier de données : data/.htaccess porte déjà
+# « Require all denied », mais il n'existe que s'il a bien été déployé. Cette
+# règle-ci vit dans le .htaccess racine (toujours versionné, donc toujours
+# présent) et ne dépend d'aucun fichier du dossier lui-même. En production, la
+# base devrait de toute façon être hors racine web (APP_DB_PATH, voir README §2).
+RedirectMatch 404 ^/data/
 
 # Bloque les fichiers cachés (.htaccess, .DS_Store, etc.)
 <FilesMatch "^\.">
@@ -16,3 +28,27 @@ RedirectMatch 404 /\.git
 <FilesMatch "(^\.git|composer\.(json|lock)|config\.local\.php(\.example)?)$">
     Require all denied
 </FilesMatch>
+
+# --- Compression -----------------------------------------------------------
+# Chaque bloc est gardé par son IfModule : un hébergement mutualisé sans
+# mod_deflate ou mod_headers renverrait sinon une erreur 500 sur toute
+# l'application, pas seulement sur les assets.
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# --- Cache des fichiers statiques -----------------------------------------
+# Cache d'un an, sans revalidation. C'est sûr ici — et seulement ici — parce que
+# views/layout.php suffixe déjà app.css et app.js de « ?v=<filemtime> » : toute
+# modification change l'URL, donc aucun navigateur ne peut servir une version
+# périmée. Ne PAS étendre ce bloc aux réponses HTML, qui n'ont pas de version
+# dans leur URL et doivent rester non cachées (elles portent des données de
+# session). Les polices et images sont incluses : leur nom change à chaque
+# remplacement (uploads/ utilise un nom aléatoire, voir handle_logo_upload()).
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2|woff|ttf|svg|png|jpe?g|gif|webp|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>

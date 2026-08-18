@@ -1,0 +1,38 @@
+# Analyse syntaxique + suite de tests, à chaque push et chaque pull request.
+#
+# Raison d'être : deux régressions silencieuses ont vécu longtemps dans le dépôt
+# faute de ce garde-fou — un fichier de tests interrompu par une erreur fatale
+# (donc dont la moitié des assertions ne tournait plus) et un correctif écrit,
+# fonctionnel, mais jamais commité ni déployé. Les deux se voient ici.
+#
+# Aucune action tierce : seul actions/checkout (publié par GitHub) est utilisé,
+# et le PHP préinstallé sur le runner suffit. Cohérent avec la règle du projet
+# — pas de dépendance externe sans nécessité. vendor/ étant commité, il n'y a
+# aucune étape d'installation.
+
+name: Tests
+
+on:
+  push:
+    branches: [main, stable]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version de PHP et extensions
+        run: |
+          php -v
+          php -m
+
+      # pdo_sqlite est indispensable (base de l'application et bases en mémoire
+      # des tests). Présent par défaut sur le runner ; on échoue explicitement
+      # plutôt que de laisser un test planter avec un message obscur.
+      - name: Vérifier pdo_sqlite
+        run: php -r 'exit(extension_loaded("pdo_sqlite") ? 0 : 1);' || { echo "pdo_sqlite manquant"; exit 1; }
+
+      - name: Analyse syntaxique et tests
+        run: php tests/run.php

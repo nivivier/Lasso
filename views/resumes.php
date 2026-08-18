@@ -133,18 +133,33 @@ $dash_svg = function (array $series): string {
 <?php if (($_GET['refuse'] ?? null) === '1'): ?><p class="err flash">Accès refusé : vous n'avez pas les droits nécessaires pour cette page.</p><?php endif; ?>
 <div class="page-head"><h1>Tableau de bord</h1></div>
 
+<?php // Recherche unifiée. Les sources interrogées dépendent des droits du
+      // compte (voir lib/recherche.php) : le champ s'affiche pour tout le monde,
+      // les résultats sont filtrés. Raccourci « / » posé dans assets/app.js. ?>
+<form class="recherche-form recherche-dash" method="get" action="">
+    <input type="hidden" name="p" value="recherche">
+    <?= champ_recherche([
+        'id'          => 'recherche-globale',
+        'name'        => 'q',
+        'classe'      => 'recherche-champ',
+        'placeholder' => 'Rechercher partout',
+        'aria'        => "Rechercher dans toute l'application",
+        'submit'      => true,
+    ]) ?>
+</form>
+
 <?php
 // Dérivé des mêmes conditions que chaque widget ci-dessous (pas une liste à
 // part) : un widget ajouté/retiré ne peut pas désynchroniser ce garde-fou.
-$dashComptaActif = module_actif('compta') && count($comptaSeries) >= 1;
-$dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif('facturation') || module_actif('evenements');
+$dashComptaActif = module_accessible('compta') && count($comptaSeries) >= 1;
+$dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_accessible('facturation') || module_accessible('evenements');
 ?>
 <?php if (!$dashModuleActif): ?>
     <p class="muted">Aucun module actif n'alimente le tableau de bord pour l'instant. Active
     des modules dans <a href="?p=parametres_modules">Paramètres → Modules</a>.</p>
 <?php else: ?>
 <div class="dash-cols">
-    <?php if (module_actif('evenements')): ?>
+    <?php if (module_accessible('evenements')): ?>
         <div class="card dash-card">
             <h2 class="mt-0">Prochains événements</h2>
             <?php if (!$prochainsEvenements): ?>
@@ -215,7 +230,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
         </div>
         <?php endif; ?>
 
-        <?php if (module_actif('salaires')): ?>
+        <?php if (module_accessible('salaires')): ?>
         <div class="card dash-card">
             <h2 class="mt-0">Salaires à verser</h2>
             <?php if (!$aPayer): ?>
@@ -242,7 +257,7 @@ $dashModuleActif = $dashComptaActif || module_actif('salaires') || module_actif(
         </div>
         <?php endif; ?>
         
-        <?php if (module_actif('facturation')): ?>
+        <?php if (module_accessible('facturation')): ?>
         <div class="card dash-card">
             <h2 class="mt-0">Factures émises</h2>
             <?php if (!$facturesEmises): ?>

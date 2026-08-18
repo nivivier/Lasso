@@ -17,9 +17,7 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="facturation_liste">
-            <label class="search-label">
-                <input type="search" name="q" id="facturation-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-            </label>
+            <?= champ_recherche(['id' => 'facturation-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php if (peut_ecrire('facturation')): ?>
         <div class="head-actions">

@@ -177,7 +177,13 @@ const FACTURATION_PAYS_ISO2 = [
     'liechtenstein' => 'LI',
 ];
 
-function facturation_pays_iso2(string $pays): string
+// $paysListe : liste de pays au format pays_liste() (lignes avec 'nom' et
+// 'code_iso2'). Laissée à null, elle est lue en base — c'est le cas de tous les
+// appels applicatifs. Le paramètre existe pour que la fonction reste testable
+// sans base : elle était sinon présentée comme pure alors qu'elle interrogeait
+// pays_liste(), ce qui faisait échouer tests/facturation_test.php sur un
+// « undefined function » et interrompait le fichier au 4e groupe d'assertions.
+function facturation_pays_iso2(string $pays, ?array $paysListe = null): string
 {
     $p = trim($pays);
     if (preg_match('/^[A-Za-z]{2}$/', $p)) {
@@ -187,7 +193,7 @@ function facturation_pays_iso2(string $pays): string
     // Priorité à la liste configurable : un pays ajouté par l'utilisateur (ex.
     // Belgique, Espagne, Canada…) y a son code ISO2 exact, absent de la table
     // figée ci-dessous — sans quoi la QR-facture retomberait à tort sur « CH ».
-    foreach (pays_liste() as $entry) {
+    foreach ($paysListe ?? pays_liste() as $entry) {
         if (mb_strtolower((string) $entry['nom'], 'UTF-8') === $pNorm) {
             return (string) $entry['code_iso2'];
         }

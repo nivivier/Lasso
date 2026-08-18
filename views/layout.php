@@ -16,8 +16,15 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($pageTitle) ?> — <?= e($nomEmployeur) ?></title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <?php // Inter est servie depuis le dépôt (assets/fonts/, voir le @font-face
+          // en tête de app.css) : plus aucune requête vers fonts.googleapis.com.
+          // Préchargée car elle est découverte tardivement (référencée depuis la
+          // feuille de style, donc après son téléchargement et son analyse). ?>
+    <?php // URL sans « ?v= », volontairement : elle doit correspondre au
+          // caractère près à celle du @font-face, sinon le navigateur
+          // télécharge le fichier deux fois et le préchargement est perdu. La
+          // police est immuable — si elle change un jour, changer son nom. ?>
+    <link rel="preload" href="assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
     <script src="assets/app.js?v=<?= @filemtime(__DIR__ . '/../assets/app.js') ?: '1' ?>"></script>
     <?= couleurs_css_vars() ?>
@@ -42,7 +49,16 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <nav class="side-nav">
-        <a href="?p=resumes" class="rail-btn <?= $cur === 'resumes' ? 'on' : '' ?>" title="Tableau de bord">
+        <?php // --rail-accent explicite : sans lui, .rail-btn .ico retombe sur
+              // --muted et l'icône reste grise au repos, alors que celles des
+              // modules portent toujours leur couleur. C'est la couleur
+              // principale de l'application, via --primary-base et NON
+              // --primary : cette dernière est réécrite par
+              // module_couleur_css_vars() à la couleur du module courant, ce
+              // qui ferait changer de teinte l'icône du tableau de bord au fil
+              // de la navigation — alors qu'elle doit rester un repère
+              // constant, exactement comme les icônes de module. ?>
+        <a href="?p=resumes" class="rail-btn <?= $cur === 'resumes' ? 'on' : '' ?>" title="Tableau de bord" style="--rail-accent: var(--primary-base)">
             <?= icon('circle-gauge') ?>
             <span class="rail-label">Tableau de bord</span>
         </a>
@@ -54,14 +70,6 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
             <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
         </a>
         <?php endforeach; ?>
-        <div class="rail-spacer"></div>
-        <?php if (peut_lire('coeur')): ?>
-        <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
-        <a href="?p=maj" class="rail-btn <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres">
-            <?= icon('settings') ?>
-            <span class="rail-label">Paramètres</span>
-        </a>
-        <?php endif; ?>
     </nav>
     <?php
     $prenom = trim((string)($u['prenom'] ?? ''));
@@ -79,9 +87,21 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     }
     ?>
     <div class="side-avatar-wrap" id="side-avatar-wrap">
-        <button class="side-avatar" id="side-avatar-btn" aria-haspopup="true" aria-expanded="false">
-            <?= e($initiales) ?>
-        </button>
+        <?php // Paramètres tient compagnie à la pastille du compte plutôt que de
+              // figurer dans le rail : ce n'est pas un module, et l'y afficher
+              // comme les autres lui donnait le même poids visuel qu'un domaine
+              // métier. Les deux sont des réglages, pas du contenu. ?>
+        <div class="side-bottom">
+            <button class="side-avatar" id="side-avatar-btn" aria-haspopup="true" aria-expanded="false">
+                <?= e($initiales) ?>
+            </button>
+            <?php if (peut_lire('coeur')): ?>
+            <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
+            <a href="?p=maj" class="side-cog <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres" aria-label="Paramètres">
+                <?= icon('settings') ?>
+            </a>
+            <?php endif; ?>
+        </div>
         <div class="side-avatar-menu" id="side-avatar-menu" hidden>
             <div class="side-avatar-id">
                 <strong><?= e($nomComplet) ?></strong>

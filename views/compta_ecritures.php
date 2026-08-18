@@ -92,9 +92,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="compta_ecritures">
-            <label class="search-label">
-                <input type="search" name="q" id="compta-search" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-            </label>
+            <?= champ_recherche(['id' => 'compta-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php if (peut_ecrire('compta')): ?>
         <div class="head-actions">

@@ -50,10 +50,22 @@ check('brouillon (pas d\'échéance) → brouillon', 'brouillon', facturation_st
 ]));
 
 echo "4) Code pays ISO 3166-1 alpha-2\n";
-check('Suisse → CH', 'CH', facturation_pays_iso2('Suisse'));
-check('France → FR', 'FR', facturation_pays_iso2('France'));
-check('déjà un code à 2 lettres → inchangé (maj)', 'CH', facturation_pays_iso2('ch'));
-check('pays inconnu → repli CH', 'CH', facturation_pays_iso2('Ruritanie'));
+// Liste de pays passée explicitement (facturation_pays_iso2() la lit en base
+// quand on ne la fournit pas) : ce fichier de tests ne touche jamais la base de
+// l'application.
+$paysConfig = [
+    ['nom' => 'Suisse',   'code_iso2' => 'CH'],
+    ['nom' => 'Belgique', 'code_iso2' => 'BE'],
+];
+check('Suisse → CH', 'CH', facturation_pays_iso2('Suisse', $paysConfig));
+check('France → FR (table figée, absent de la liste configurée)', 'FR', facturation_pays_iso2('France', $paysConfig));
+check('déjà un code à 2 lettres → inchangé (maj)', 'CH', facturation_pays_iso2('ch', $paysConfig));
+check('pays inconnu → repli CH', 'CH', facturation_pays_iso2('Ruritanie', $paysConfig));
+// Le cas qui motive la liste configurable : un pays absent de la table figée
+// doit prendre son code ISO2 exact et non retomber sur CH.
+check('Belgique (liste configurée) → BE, pas le repli CH', 'BE', facturation_pays_iso2('Belgique', $paysConfig));
+check('casse et espaces ignorés dans la liste configurée', 'BE', facturation_pays_iso2('  belgique ', $paysConfig));
+check('liste vide → table figée seule', 'IT', facturation_pays_iso2('Italie', []));
 
 echo "5) Référence structurée SCOR (ISO 11649)\n";
 $ref1 = facturation_generer_reference('2026-001');

@@ -492,6 +492,35 @@ function route_maj(): void
 
 // Diagnostic du serveur (section propre de l'onglet « Application ») : indique
 // quelles méthodes de mise à jour automatique sont disponibles. Lecture seule.
+// État d'OPcache. Déterminant pour la performance : sans lui, PHP réanalyse à
+// chaque requête l'ensemble des fichiers chargés par index.php (~11 000 lignes).
+// Avec lui, le bytecode est mis en cache et ce coût disparaît — c'est la
+// première chose à vérifier avant d'envisager tout chargement à la demande.
+// opcache_get_status() peut être désactivée (restrict_api) alors même
+// qu'OPcache tourne : on retombe alors sur la directive INI.
+function maj_opcache_etat(): array
+{
+    if (!function_exists('opcache_get_status') && !ini_get('opcache.enable')) {
+        return ['actif' => false, 'detail' => 'extension absente'];
+    }
+    $st = function_exists('opcache_get_status') ? @opcache_get_status(false) : false;
+    if (is_array($st)) {
+        $actif = !empty($st['opcache_enabled']);
+        $memo  = $st['memory_usage']['used_memory'] ?? null;
+        return [
+            'actif'  => $actif,
+            'detail' => $actif
+                ? ($memo !== null ? sprintf('%.1f Mo de bytecode en cache', $memo / 1048576) : 'actif')
+                : 'extension chargée mais désactivée',
+        ];
+    }
+    $iniActif = (bool) ini_get('opcache.enable');
+    return [
+        'actif'  => $iniActif,
+        'detail' => $iniActif ? 'actif (état détaillé non consultable)' : 'désactivé',
+    ];
+}
+
 function route_diagnostic(): void
 {
     require_login();
@@ -502,5 +531,10 @@ function route_diagnostic(): void
         'targzDispo'      => maj_targz_dispo(),
         'appWritable'     => maj_app_writable(),
         'archivePossible' => maj_archive_possible(),
+        'opcache'         => maj_opcache_etat(),
+        'phpVersion'      => PHP_VERSION,
+        'appEnv'          => APP_ENV,
+        'httpsForce'      => (bool) FORCE_HTTPS,
+        'setupProtege'    => setup_secret_defini(),
     ], 'Diagnostic du serveur');
 }

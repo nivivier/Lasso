@@ -195,6 +195,21 @@ function peut_lire(string $module): bool
     return permission_donne_lecture(permissions_utilisateur_courant(), $module);
 }
 
+// « Ce module est activé ET l'utilisateur courant a le droit de le lire. »
+//
+// Les deux conditions sont indépendantes et doivent TOUJOURS être posées
+// ensemble pour décider d'afficher quelque chose : module_actif() est un
+// réglage global de l'installation, peut_lire() un droit propre au compte.
+// Tester le premier seul laisse fuiter les données d'un module vers un
+// utilisateur qui n'y a pas accès — c'était exactement le cas du tableau de
+// bord, qui affichait fiches de salaire, factures et événements sur la seule
+// foi de module_actif(), alors que le rail de navigation, lui, vérifiait bien
+// les deux. Un compte limité au booking y voyait les salaires.
+function module_accessible(string $id): bool
+{
+    return module_actif($id) && peut_lire($id);
+}
+
 function peut_ecrire(string $module): bool
 {
     return permission_donne_ecriture(permissions_utilisateur_courant(), $module);
@@ -284,18 +299,33 @@ function ajouter_routes_module(array &$handlers, array &$routeModules, string $m
 // mutation (POST ; convention stricte du projet, voir index.php). Plusieurs
 // modules = accès si l'un d'eux suffit (ex. comptes bancaires, partagés
 // compta/facturation).
-function route_autorisee(array $modules): bool
+// Cœur de la décision, sans base ni superglobale — testable en isolation
+// (tests/permissions_test.php), même découpage que
+// permission_donne_lecture()/peut_lire() plus haut. C'est ici que vit
+// l'invariante centrale du modèle de droits : lecture pour un affichage,
+// écriture pour une mutation, et « au moins un des modules suffit » quand une
+// route en couvre plusieurs. $niveaux : module => 'lecture'|'ecriture'.
+function route_autorisee_pour(array $niveaux, array $modules, string $methode): bool
 {
     $lecture  = false;
     $ecriture = false;
     foreach ($modules as $m) {
-        $lecture  = $lecture || peut_lire($m);
-        $ecriture = $ecriture || peut_ecrire($m);
+        $lecture  = $lecture  || permission_donne_lecture($niveaux, $m);
+        $ecriture = $ecriture || permission_donne_ecriture($niveaux, $m);
     }
     if (!$lecture) {
         return false;
     }
-    return $_SERVER['REQUEST_METHOD'] !== 'POST' || $ecriture;
+    return $methode !== 'POST' || $ecriture;
+}
+
+function route_autorisee(array $modules): bool
+{
+    return route_autorisee_pour(
+        permissions_utilisateur_courant(),
+        $modules,
+        (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')
+    );
 }
 
 // --- Navigation (rail d'icônes + bandeau d'onglets) -------------------------

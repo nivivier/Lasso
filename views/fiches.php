@@ -25,9 +25,7 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="fiches">
-            <label class="search-label">
-                <input type="search" name="q" placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher" value="<?= e($recherche) ?>">
-            </label>
+            <?= champ_recherche(['name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
