@@ -31,8 +31,16 @@ jobs:
       # pdo_sqlite est indispensable (base de l'application et bases en mémoire
       # des tests). Présent par défaut sur le runner ; on échoue explicitement
       # plutôt que de laisser un test planter avec un message obscur.
+      # Bloc « run: | » obligatoire ici, et non un scalaire sur une seule ligne :
+      # la commande contient « : » suivi d'une espace (l'opérateur ternaire
+      # « ? 0 : 1 »), que YAML interprète alors comme un séparateur clé/valeur.
+      # Le fichier entier devenait inanalysable et GitHub refusait le workflow
+      # avant même de démarrer un job — un échec qui ne ressemble pas à un test
+      # rouge : le run s'affiche sans aucun job et porte le chemin du fichier
+      # au lieu de son nom.
       - name: Vérifier pdo_sqlite
-        run: php -r 'exit(extension_loaded("pdo_sqlite") ? 0 : 1);' || { echo "pdo_sqlite manquant"; exit 1; }
+        run: |
+          php -r 'exit(extension_loaded("pdo_sqlite") ? 0 : 1);' || { echo "pdo_sqlite manquant"; exit 1; }
 
       - name: Analyse syntaxique et tests
         run: php tests/run.php
