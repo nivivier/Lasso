@@ -21,7 +21,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Version de PHP et extensions
         run: |
@@ -42,5 +42,20 @@ jobs:
         run: |
           php -r 'exit(extension_loaded("pdo_sqlite") ? 0 : 1);' || { echo "pdo_sqlite manquant"; exit 1; }
 
+      # La sortie est répétée en « ::error:: » quand la suite échoue : ces
+      # lignes deviennent des annotations, visibles sur la page du run et
+      # lisibles par l'API sans authentification — contrairement au journal
+      # complet, qui exige un jeton. Sans ça, un échec ne se résume qu'à
+      # « Process completed with exit code 1 », ce qui n'apprend rien.
       - name: Analyse syntaxique et tests
-        run: php tests/run.php
+        run: |
+          set +e
+          php tests/run.php 2>&1 | tee sortie.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            grep -aE 'ÉCHEC|FAIL|Fatal|Parse error|Errors parsing|attendu' sortie.txt \
+              | head -25 | while IFS= read -r ligne; do echo "::error::$ligne"; done
+            echo "::error::php tests/run.php a échoué (code $code)"
+          fi
+          exit "$code"
