@@ -112,8 +112,15 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 - Promotion d'une version stable : `./release.sh stable X.Y.Z` (fige `VERSION`, pose
   le tag `vX.Y.Z`, avance la branche `stable`, pousse).
 - **Paramètres → Mises à jour** affiche la version installée, la version disponible
-  sur le canal choisi, et un diagnostic `exec()`/`git` du serveur. *(La mise à jour
-  en un clic depuis l'interface est prévue mais pas encore active.)*
+  sur le canal choisi, et un diagnostic `exec()`/`git` du serveur.
+- **Mise à jour en un clic** depuis cette page (`maj_executer()`, `lib/maj.php`) :
+  sauvegarde de la base, téléchargement de l'archive de la branche du canal,
+  extraction, puis migrations au premier chargement. `lib/config.local.php`,
+  `data/` et `uploads/` sont préservés (non versionnés).
+  Deux conditions : le serveur doit savoir décompresser une archive
+  (`maj_archive_possible()`), et la mise à jour web ne doit pas avoir été
+  désactivée par `define('ALLOW_WEB_UPDATE', false)` dans `lib/config.local.php`.
+  Sinon, la page l'indique et le déploiement se fait par `git pull`.
 
 ---
 
