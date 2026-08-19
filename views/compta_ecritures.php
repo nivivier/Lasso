@@ -153,7 +153,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </div>
     </form>
     <?php if ($isEdit): ?>
-    <form id="del-ecr-form" method="post" action="?p=compta_ecritures<?= $qs ?>" onsubmit="return confirm('Supprimer cette écriture ?');" hidden>
+    <form id="del-ecr-form" method="post" action="?p=compta_ecritures<?= $qs ?>" data-confirm="Supprimer cette écriture ?" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="delete_manual">
         <input type="hidden" name="id" value="<?= (int) $editEcr['id'] ?>">
@@ -385,7 +385,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php endforeach; ?>
 </ul>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const bulkBar = document.getElementById('bulk-bar');
     function updateBulkBar() {

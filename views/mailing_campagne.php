@@ -165,7 +165,7 @@ $critHiddenInputs = function (array $criteres): string {
             <span class="badge">
                 <a href="?p=mailing_campagne&ciblage=<?= (int) $cb['id'] ?>"><?= e($cb['nom']) ?></a>
                 <?php if (peut_ecrire('booking')): ?>
-                <form method="post" action="?p=mailing_campagne" class="d-inline" onsubmit="return confirm('Supprimer le ciblage « <?= e($cb['nom']) ?> » ?');">
+                <form method="post" action="?p=mailing_campagne" class="d-inline" data-confirm="Supprimer le ciblage « <?= e($cb['nom']) ?> » ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="ciblage_delete">
                     <input type="hidden" name="id" value="<?= (int) $cb['id'] ?>">
@@ -198,7 +198,7 @@ $critHiddenInputs = function (array $criteres): string {
     <?php endif; ?>
 
     <?php
-    // Ancre invisible pour syncCriteres() (voir le <script> en bas de page) :
+    // Ancre invisible pour syncCriteres() (voir le <script nonce="<?= e(csp_nonce()) ?>"> en bas de page) :
     // au moment de soumettre le formulaire d'enregistrement du ciblage ou de
     // création de la campagne, on relit l'état COURANT des filtres depuis ce
     // <form> (hidden inputs, jamais affichés — sans bouton visible depuis que
@@ -287,14 +287,14 @@ $critHiddenInputs = function (array $criteres): string {
         </div>
 
         <div class="form-actions">
-            <button type="submit" onclick="return confirm('Ajouter ces destinataires à la file d\'attente d\'envoi ?');"><?= icon('send') ?> Créer la campagne<?= $apercu !== null ? ' (' . count($apercu) . ' destinataires)' : '' ?></button>
+            <button type="submit" data-confirm="Ajouter ces destinataires à la file d'attente d'envoi ?"><?= icon('send') ?> Créer la campagne<?= $apercu !== null ? ' (' . count($apercu) . ' destinataires)' : '' ?></button>
             <button type="submit" name="section" value="modele_save" formaction="?p=mailing_modeles" formnovalidate class="btn ghost" id="camp-save-modele"><?= icon('save') ?> Enregistrer comme modèle</button>
         </div>
     </form>
 </div>
 <?php endif; ?>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     // Enregistrer un ciblage / créer une campagne SANS avoir cliqué « Prévisualiser » :
     // au moment de soumettre, on recopie l'état COURANT des filtres dans les

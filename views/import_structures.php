@@ -96,7 +96,7 @@
             <button type="submit"><?= icon('save') ?> Importer</button>
         </div>
     </form>
-    <script>
+    <script nonce="<?= e(csp_nonce()) ?>">
     (function () {
         var form = document.getElementById('form-resoudre');
         if (!form) { return; }

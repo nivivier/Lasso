@@ -11,7 +11,7 @@
 </head>
 <body class="print-page">
     <div class="print-toolbar">
-        <button onclick="window.print()"><?= icon('printer') ?> Imprimer / PDF</button>
+        <button data-print><?= icon('printer') ?> Imprimer / PDF</button>
     </div>
     <div class="sheet">
         <div class="compta-print">
@@ -69,6 +69,6 @@
             <?php endif; ?>
         </div>
     </div>
-<script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
+<script nonce="<?= e(csp_nonce()) ?>">document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
 </body>
 </html>

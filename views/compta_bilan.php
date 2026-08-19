@@ -73,7 +73,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
             <form method="get" class="filters">
                 <input type="hidden" name="p" value="compta_bilan">
                 <label>Année
-                    <select name="annee" onchange="this.form.submit()">
+                    <select name="annee" data-submit-on-change>
                         <?php foreach ($annees as $a): ?>
                             <option value="<?= (int) $a ?>" <?= $annee === (int) $a ? 'selected' : '' ?>><?= (int) $a ?></option>
                         <?php endforeach; ?>
@@ -89,7 +89,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
                 ?>
                 <label>
                     Comparer jusqu'à
-                    <select class="inline-year-select" onchange="location.href='?p=compta_bilan&annee=<?= (int) $annee ?>&jusqua='+this.value">
+                    <select class="inline-year-select" data-go-on-change="?p=compta_bilan&annee=<?= (int) $annee ?>&jusqua=">
                         <option value="aucune" <?= $jusquaEff === 0 ? 'selected' : '' ?>>-</option>
                         <?php foreach ($anneesPrec as $y): ?>
                             <option value="<?= $y ?>" <?= $jusquaEff === $y ? 'selected' : '' ?>><?= $y ?></option>
@@ -165,7 +165,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
 
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     // Clic (ou Entrée/Espace) sur une catégorie → déplie ses écritures.
     function toggle(row) {

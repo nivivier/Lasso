@@ -36,7 +36,7 @@
                 <td class="num"><?= chf((float) $th['montant']) ?> CHF/h</td>
                 <td class="actions">
                     <?php if (peut_ecrire('salaires')): ?>
-                    <form method="post" action="?p=taux_horaires" onsubmit="return confirm('Supprimer ce taux horaire ?');" class="d-inline">
+                    <form method="post" action="?p=taux_horaires" data-confirm="Supprimer ce taux horaire ?" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $th['id'] ?>">
@@ -111,7 +111,7 @@
                 <td class="num"><?= nombre_court($u['heures']) ?> h</td>
                 <td class="actions">
                     <?php if (peut_ecrire('salaires')): ?>
-                    <form method="post" action="?p=taux_horaires" onsubmit="return confirm('Supprimer cette unité ?');" class="d-inline">
+                    <form method="post" action="?p=taux_horaires" data-confirm="Supprimer cette unité ?" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="unite_del">
                         <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
@@ -151,7 +151,7 @@
     <?php endif; ?>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     // Crayon → bascule la ligne (salaire horaire ou unité) en mode édition du libellé.
     document.addEventListener('click', e => {

@@ -81,7 +81,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                     <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $p['est_dernier'] ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
                 </form>
                 <?php $nbUsage = (int) ($usageRegion[$pid] ?? 0); if ($estPays || $nbUsage === 0): ?>
-                <form method="post" action="?p=parametres_pays" onsubmit="return confirm('Supprimer <?= $estPays ? 'ce pays' : 'cette région' ?> ?');" class="d-inline">
+                <form method="post" action="?p=parametres_pays" data-confirm="Supprimer <?= $estPays ? 'ce pays' : 'cette région' ?> ?" class="d-inline">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $pid ?>">
@@ -143,7 +143,7 @@ $paysOptions = function (?int $selected) use ($map): string {
     </div>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     lassoPlanArbre({
         containerSelector: '#pays-card',

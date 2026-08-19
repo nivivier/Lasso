@@ -148,7 +148,7 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
     <?php require __DIR__ . '/_import_evenements_section.php'; ?>
 <?php endif; ?>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     var configs = <?= json_encode($types, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     var sel = document.getElementById('import-type');
@@ -175,9 +175,10 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
         document.querySelectorAll('.import-extra').forEach(function (d) { d.hidden = d.dataset.for !== sel.value; });
         try { localStorage.setItem('importType', sel.value); } catch (e) {}
     }
-    btnGo.addEventListener('click', function (e) {
-        if (this.dataset.confirm && !confirm(this.dataset.confirm)) e.preventDefault();
-    });
+    // La confirmation elle-même est prise en charge par l'écouteur global de
+    // [data-confirm] (assets/app.js) : la dupliquer ici afficherait deux boîtes
+    // de dialogue à la suite. Seule la VALEUR du message est posée ici, car
+    // elle dépend du type d'import sélectionné (voir applique() ci-dessus).
     sel.addEventListener('change', applique);
 
     // Sélection initiale : le type dont les résultats viennent de s'afficher,

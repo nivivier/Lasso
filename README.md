@@ -222,8 +222,14 @@ ou copiez directement le fichier par SFTP. À conserver régulièrement en lieu 
   (`SESSION_IDLE` / `SESSION_ABSOLUTE`) ; cookie `HttpOnly` + `SameSite=Lax` +
   `Secure` en HTTPS.
 - **CSRF** sur tous les formulaires.
-- **HTTPS forcé** + en-tête HSTS ; en-têtes de sécurité (CSP, X-Frame-Options,
+- **HTTPS forcé** + en-tête HSTS ; en-têtes de sécurité (X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy).
+- **CSP à nonce** : `script-src` n'accepte plus `'unsafe-inline'`. Chaque `<script>`
+  inline porte un jeton aléatoire propre à la requête (`csp_nonce()`), qu'un script
+  injecté ne peut pas deviner. Les comportements des vues sont déclaratifs
+  (`data-confirm`, `data-print`…) et implémentés dans `assets/app.js` — un attribut
+  `onclick=` réintroduirait le trou, aussi `tests/csp_test.php` en interdit-il
+  l'apparition.
 - **Écran d'installation** protégé par `SETUP_SECRET`.
 - **Base de données hors racine web** (via `APP_DB_PATH`). En complément,
   `.htaccess` refuse l'accès direct : `data/` et `lib/` en entier, l'exécution de

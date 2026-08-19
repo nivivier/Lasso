@@ -12,7 +12,7 @@ $tx = fn(string $k) => e(number_format((float) ($taux[$k] ?? 0) * 100, 4, '.', '
             "Les taux sont propres à chaque année. Une fiche déjà créée conserve les taux figés à sa création."
         ) ?></h2>
         <label class="inline">
-            <select onchange="location.href='?p=taux&annee='+this.value">
+            <select data-go-on-change="?p=taux&annee=">
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
                 <?php endforeach; ?>

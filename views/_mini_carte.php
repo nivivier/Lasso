@@ -14,7 +14,7 @@ $geo = geocodage_lire($miniCarteVille, $miniCarteDepartementCanton, $miniCartePa
     <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
     <div id="mini-carte" class="mini-carte"></div>
     <script src="assets/vendor/leaflet/leaflet.js"></script>
-    <script>
+    <script nonce="<?= e(csp_nonce()) ?>">
     (function () {
         var map = L.map('mini-carte', { zoomControl: false, scrollWheelZoom: false });
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {

@@ -27,7 +27,7 @@
             <td class="muted small"><?= e(date('d.m.Y', strtotime($x['cree_le']))) ?></td>
             <td class="actions">
                 <?php if (peut_ecrire('booking')): ?>
-                <form method="post" action="?p=mailing_exclusions" class="d-inline" onsubmit="return confirm('Retirer cette adresse de la liste d\'exclusion ?');">
+                <form method="post" action="?p=mailing_exclusions" class="d-inline" data-confirm="Retirer cette adresse de la liste d'exclusion ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="retirer">
                     <input type="hidden" name="id" value="<?= (int) $x['id'] ?>">
@@ -54,7 +54,7 @@
         <tr class="row-link" tabindex="0" role="link" data-href="?p=structure&id=<?= (int) $c['structure_id'] ?>">
             <td><?= e($c['email']) ?></td>
             <td class="muted small"><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?: '—' ?></td>
-            <td><a href="?p=structure&id=<?= (int) $c['structure_id'] ?>" onclick="event.stopPropagation()"><?= e($c['structure_nom']) ?></a></td>
+            <td><a href="?p=structure&id=<?= (int) $c['structure_id'] ?>"><?= e($c['structure_nom']) ?></a></td>
         </tr>
     <?php endforeach; ?>
     </tbody>

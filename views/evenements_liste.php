@@ -277,7 +277,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 </table>
 </div>
 <?php if ($evenements): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const bulkBar = document.getElementById('bulk-bar');
     if (bulkBar) {

@@ -29,7 +29,7 @@ $peutEcrireBooking = peut_ecrire('booking');
             <button type="button" class="btn ghost btn-sm icon-only titre-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>
     </div>
-    <script>
+    <script nonce="<?= e(csp_nonce()) ?>">
     (function () {
         var row = document.querySelector('.titre-row');
         if (!row) return;
@@ -52,7 +52,7 @@ $peutEcrireBooking = peut_ecrire('booking');
     <?php endif; ?>
     <?php if ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0): ?>
     <div class="head-actions">
-        <form method="post" action="?p=structure_delete" onsubmit="return confirm('Supprimer définitivement cette structure ?');" class="d-inline">
+        <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la structure"><?= icon('trash') ?></button>
@@ -174,7 +174,7 @@ $bookingOkCreation = module_actif('booking') && peut_lire('booking');
     </div>
 </form>
 <?php if ($bookingOkCreation): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     var chk = document.getElementById('periode-toute-annee-creation');
     var champs = document.getElementById('periode-mois-champs-creation');
@@ -354,7 +354,7 @@ lassoInitTagSuggest();
         <?php foreach ($tags as $t): ?>
             <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
                 <?php if ($peutEcrireBooking): ?>
-                <form method="post" action="?p=structure_tag_retirer" class="d-inline" onsubmit="return confirm('Retirer cette étiquette ?');">
+                <form method="post" action="?p=structure_tag_retirer" class="d-inline" data-confirm="Retirer cette étiquette ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
@@ -383,7 +383,7 @@ lassoInitTagSuggest();
     </form>
     <?php endif; ?>
 </div>
-<?php if ($peutEcrireBooking): ?><script>lassoInitStatutToggle(); lassoInitTagSuggest();</script><?php endif; ?>
+<?php if ($peutEcrireBooking): ?><script nonce="<?= e(csp_nonce()) ?>">lassoInitStatutToggle(); lassoInitTagSuggest();</script><?php endif; ?>
 
 <div class="card card-editable">
     <?php
@@ -501,7 +501,7 @@ lassoInitTagSuggest();
         </div>
     </form>
 </div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     var chk = document.getElementById('periode-toute-annee');
     var champs = document.getElementById('periode-mois-champs');
@@ -537,7 +537,7 @@ lassoInitTagSuggest();
                     <div class="muted small"><?= e((string) $l['type']) ?>
                     <?php if ($l['ville']): ?> · <?= e($l['ville']) ?><?php endif; ?></div>
                 </span>
-                <form method="post" action="?p=structure_lieu_delier" class="edit-only" onsubmit="return confirm('Délier ?');">
+                <form method="post" action="?p=structure_lieu_delier" class="edit-only" data-confirm="Délier ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">
@@ -605,7 +605,7 @@ lassoInitTagSuggest();
                 <label>Pays <input name="nl_pays" placeholder="Suisse"></label>
             </div>
         </form>
-        <script>
+        <script nonce="<?= e(csp_nonce()) ?>">
         (function () {
             var wrapLieu = document.querySelector('.lieu-search');
             var nouveauLieu = document.getElementById('lieu-nouveau');
@@ -684,11 +684,11 @@ lassoInitTagSuggest();
                     <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
                     <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
                     <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
-                    <?php if ($c['formulaire_url']): ?><div class="muted small"> — <a href="<?= e($c['formulaire_url']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()">Formulaire</a></div><?php endif; ?>
+                    <?php if ($c['formulaire_url']): ?><div class="muted small"> — <a href="<?= e($c['formulaire_url']) ?>" target="_blank" rel="noopener">Formulaire</a></div><?php endif; ?>
                     <?php if ($c['langue']): ?><span class="muted small"><?= e($c['langue']) ?></span><?php endif; ?>
                 </span>
                 <button type="button" class="btn ghost btn-sm icon-only contact-edit-btn edit-only" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                <form method="post" action="?p=structure_contact_delete" class="edit-only" onsubmit="return confirm('Supprimer ce contact ?');">
+                <form method="post" action="?p=structure_contact_delete" class="edit-only" data-confirm="Supprimer ce contact ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
@@ -755,7 +755,7 @@ lassoInitTagSuggest();
             <button type="button" class="btn ghost btn-sm" data-hide="nouveau-contact-form">Annuler</button>
         </div>
     </form>
-    <script>
+    <script nonce="<?= e(csp_nonce()) ?>">
     (function () {
         document.querySelectorAll('.contact-edit-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -936,7 +936,7 @@ $villeHtmlS = ville_departement_canton_html(
             <p class="muted small">Aucune entrée pour l'instant.</p>
         <?php endif; ?>
     </div>
-    <script>
+    <script nonce="<?= e(csp_nonce()) ?>">
     (function () {
         var btn = document.querySelector('.hist-voir-plus-btn');
         var reste = document.querySelector('.hist-reste');

@@ -85,7 +85,7 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
 </div>
 <?php if ($factures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
 </div></div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 <?php if ($modeClient): ?>
 lassoListeClient({
     tableSelector: '.list-wide',

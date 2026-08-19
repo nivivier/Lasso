@@ -86,13 +86,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <summary title="Plus de filtres" aria-label="Plus de filtres"><?= icon('funnel-plus') ?></summary>
                 <div class="filters-more-body">
                     <label class="jauge-filtre">Jauge min
-                        <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" onchange="this.form.submit()" placeholder="200">
+                        <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" data-submit-on-change placeholder="200">
                     </label>
                     <label class="jauge-filtre">Jauge max
-                        <input type="number" name="lieu_jauge_max" min="0" value="<?= $lieuJaugeMax !== null ? (int) $lieuJaugeMax : '' ?>" onchange="this.form.submit()" placeholder="1000">
+                        <input type="number" name="lieu_jauge_max" min="0" value="<?= $lieuJaugeMax !== null ? (int) $lieuJaugeMax : '' ?>" data-submit-on-change placeholder="1000">
                     </label>
                     <label>Mois d'événement
-                        <select name="lieu_mois_evenement" onchange="this.form.submit()">
+                        <select name="lieu_mois_evenement" data-submit-on-change>
                             <option value="0">Tous</option>
                             <?php for ($m = 1; $m <= 12; $m++): ?>
                                 <option value="<?= $m ?>" <?= $lieuMoisEvenement === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
@@ -100,7 +100,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                         </select>
                     </label>
                     <label>Mois de programmation
-                        <select name="lieu_mois_prog" onchange="this.form.submit()">
+                        <select name="lieu_mois_prog" data-submit-on-change>
                             <option value="0">Tous</option>
                             <?php for ($m = 1; $m <= 12; $m++): ?>
                                 <option value="<?= $m ?>" <?= $lieuMoisProg === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
@@ -289,7 +289,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
     <?php foreach ($structures as $d): ?>
         <?php $hrefLigne = '?p=structure&id=' . (int) $d['id'] . $suffixeDepuis . suffixe_retour_liste($recherche, $pgPage); ?>
         <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check" onclick="event.stopPropagation()"></td><?php endif; ?>
+            <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
             <td>
                 <?php if ($peutEcrireStruct): ?><?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?><?php endif; ?>
@@ -308,7 +308,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                     ) : [];
                 ?>
                 <?php if ($lieesPaires): ?>
-                    <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?><?= $suffixeDepuis ?>" onclick="event.stopPropagation()"><?= e((string) $ln) ?></a><?php endforeach; ?>
+                    <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?><?= $suffixeDepuis ?>"><?= e((string) $ln) ?></a><?php endforeach; ?>
                 <?php else: ?><span class="muted">—</span><?php endif; ?>
             </td>
             <td class="small">
@@ -345,7 +345,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <td class="muted tiny"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
             <td class="small">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
-                    <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>" onclick="event.stopPropagation()"><?= (int) $d['nb_factures'] ?></a>
+                    <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>
                 <?php else: ?>
                     0
                 <?php endif; ?>
@@ -362,7 +362,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <?php if ($structures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
 <?php endif; ?>
 </div></div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 <?php if ($modeClient && $vue !== 'carte'): ?>
 lassoListeClient({
     tableSelector: '.list-wide',

@@ -64,6 +64,22 @@ function start_session(): void
 }
 
 // En-têtes de sécurité (appelés au tout début de chaque requête).
+// Nonce de la politique de sécurité de contenu : une valeur aléatoire par
+// requête, reprise sur chaque balise <script> inline et dans l'en-tête CSP.
+// C'est ce qui permet de retirer 'unsafe-inline' de script-src : le navigateur
+// n'exécute un script inline que si son nonce correspond, donc un script
+// injecté par une faille XSS — qui ne peut pas deviner la valeur — est refusé.
+//
+// Mémoïsé : send_security_headers() et les vues doivent voir la MÊME valeur.
+function csp_nonce(): string
+{
+    static $nonce = null;
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(16));
+    }
+    return $nonce;
+}
+
 function send_security_headers(): void
 {
     header('X-Frame-Options: SAMEORIGIN');
@@ -82,16 +98,21 @@ function send_security_headers(): void
     // (voir le @font-face en tête de assets/app.css). Restent les tuiles
     // OpenStreetMap (vue carte des lieux, lib/geocodage.php).
     //
-    // script-src conserve 'unsafe-inline', ce qui limite fortement la valeur de
-    // cette CSP contre le XSS. Le retirer suppose de passer aux nonces — et un
-    // nonce ne couvre QUE les balises <script> : dès qu'il est présent, le
-    // navigateur ignore 'unsafe-inline', donc les 85 gestionnaires inline encore
-    // présents dans les vues (onsubmit/onclick/onchange, notamment les
-    // confirmations de suppression) cesseraient tous de fonctionner. Le passage
-    // au nonce impose donc de les réécrire d'abord en addEventListener ; tant que
-    // ce n'est pas fait, ajouter un nonce casserait l'application sans rien
-    // sécuriser. Les autres directives ci-dessous ne dépendent pas de ce chantier
-    // et sont posées dès maintenant :
+    // script-src n'accepte plus 'unsafe-inline' : chaque <script> inline porte le
+    // nonce de la requête (csp_nonce()), et le navigateur ignore 'unsafe-inline'
+    // dès qu'un nonce est présent. Ce passage supposait de supprimer d'abord les
+    // 85 attributs de gestionnaire (onclick/onsubmit/onchange) que les vues
+    // portaient : un nonce ne couvre QUE les balises <script>, jamais ces
+    // attributs, qui auraient donc tous cessé de fonctionner. Ils vivent
+    // désormais en écouteurs délégués (data-confirm, data-print… dans
+    // assets/app.js).
+    //
+    // style-src garde 'unsafe-inline' : les attributs style= restent utilisés
+    // (couleur d'accent d'un module, largeurs de barres), et un nonce ne
+    // s'applique pas davantage aux attributs de style. Le risque est sans commune
+    // mesure avec celui d'un script.
+    //
+    // Les autres directives :
     //   object-src 'none'      — plus de <object>/<embed>, vecteur classique ;
     //   frame-ancestors 'self' — équivalent moderne de X-Frame-Options, qui reste
     //                            envoyé plus haut pour les navigateurs anciens.
@@ -99,7 +120,7 @@ function send_security_headers(): void
         "Content-Security-Policy: default-src 'self'; "
         . "style-src 'self' 'unsafe-inline'; "
         . "font-src 'self'; "
-        . "script-src 'self' 'unsafe-inline'; "
+        . "script-src 'self' 'nonce-" . csp_nonce() . "'; "
         . "object-src 'none'; "
         . "frame-ancestors 'self'; "
         . "img-src 'self' data: https://tile.openstreetmap.org; base-uri 'self'; form-action 'self'"
@@ -2196,7 +2217,7 @@ function carte_banner_geocodage_html(
         $h .= '<p class="muted small" id="geocoder-auto-msg" hidden>Géocodage en cours (service Nominatim/OpenStreetMap, 1 ville par seconde)… vous pouvez quitter la page à tout moment, il reprendra où il s\'est arrêté au prochain clic.</p>';
         $h .= '</div>';
         if ($geocodeDemande) {
-            $h .= '<script>(function () {'
+            $h .= '<script nonce="' . e(csp_nonce()) . '">(function () {'
                 . 'var msg = document.getElementById("geocoder-auto-msg"); if (msg) { msg.hidden = false; }'
                 . 'setTimeout(function () { var f = document.getElementById("geocoder-form"); if (f) { f.requestSubmit(); } }, 400);'
                 . '})();</script>';

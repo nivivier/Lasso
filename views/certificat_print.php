@@ -8,12 +8,12 @@
 </head>
 <body class="print-page">
     <div class="print-toolbar">
-        <button onclick="window.print()"><?= icon('printer') ?> Imprimer / PDF</button>
+        <button data-print><?= icon('printer') ?> Imprimer / PDF</button>
     </div>
     <div class="sheet">
         <?php require __DIR__ . '/_certificat_body.php'; ?>
     </div>
 
-<script>document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
+<script nonce="<?= e(csp_nonce()) ?>">document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
 </body>
 </html>

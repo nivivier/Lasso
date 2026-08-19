@@ -26,7 +26,7 @@
                     <?php if (!$p['compte']): ?>
                         <label>Nom du compte <input type="text" name="nom_compte" value="<?= e($p['nomSuggere']) ?>" required></label>
                     <?php endif; ?>
-                    <button type="submit" name="appliquer" value="1" onclick="return confirm('Importer réellement ces écritures ?');"><?= icon('import') ?> Importer réellement</button>
+                    <button type="submit" name="appliquer" value="1" data-confirm="Importer réellement ces écritures ?"><?= icon('import') ?> Importer réellement</button>
                 </form>
             <?php endif; ?>
         </div>

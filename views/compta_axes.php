@@ -32,7 +32,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
                         <label class="regle-toggle" title="<?= $a['actif'] ? 'Désactiver' : 'Activer' ?>">
                             <input type="checkbox" name="actif" value="1" <?= $a['actif'] ? 'checked' : '' ?>
-                                   class="regle-actif-cb" onchange="this.closest('form').submit()">
+                                   class="regle-actif-cb" data-submit-on-change>
                             <span class="regle-toggle-pill"></span>
                         </label>
                     </form>
@@ -73,7 +73,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
                     </form>
                     <button type="button" class="btn ghost btn-sm icon-only axe-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                     <button type="button" class="btn ghost btn-sm icon-only axe-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
-                    <form method="post" action="?p=compta_axes" onsubmit="return confirm('Supprimer cet axe ? Les écritures associées ne seront pas supprimées.');" class="d-inline">
+                    <form method="post" action="?p=compta_axes" data-confirm="Supprimer cet axe ? Les écritures associées ne seront pas supprimées." class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="delete">
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
@@ -102,7 +102,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
     </table>
     </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     document.querySelectorAll('.axe-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {

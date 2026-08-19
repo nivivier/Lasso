@@ -40,7 +40,7 @@
         </label>
     <?php endforeach; ?>
     <div class="form-actions mt-16">
-        <button type="submit" onclick="return confirm('Fusionner ces structures ? Les structures non conservées seront définitivement supprimées.');"><?= icon('save') ?> Fusionner</button>
+        <button type="submit" data-confirm="Fusionner ces structures ? Les structures non conservées seront définitivement supprimées."><?= icon('save') ?> Fusionner</button>
         <a class="btn ghost" href="?p=structures">Annuler</a>
     </div>
 </form>

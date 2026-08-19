@@ -75,7 +75,7 @@ $lienFiche = function (string $type, int $id): string {
     <form method="get" class="mb-16">
         <input type="hidden" name="p" value="dev">
         <label class="d-inline">Type
-            <select name="type" onchange="this.form.submit()">
+            <select name="type" data-submit-on-change>
                 <?php foreach ($libellesType as $v => $lib): ?>
                     <option value="<?= e($v) ?>" <?= $type === $v ? 'selected' : '' ?>><?= e($lib) ?></option>
                 <?php endforeach; ?>
@@ -110,7 +110,7 @@ $lienFiche = function (string $type, int $id): string {
         <?php endforeach; ?>
 
         <form method="post" action="?p=dev" class="mt-16" id="dev-doublons-form"
-              onsubmit="return confirm('Fusionner les groupes de doublons cochés ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.');">
+              data-confirm="Fusionner les groupes de doublons cochés ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="doublons_fusionner">
             <input type="hidden" name="type" value="<?= e($type) ?>">
@@ -171,7 +171,7 @@ $lienFiche = function (string $type, int $id): string {
                 </tbody>
             </table>
             <form method="post" action="?p=dev" class="mt-16" id="dev-dates-form"
-                  onsubmit="return confirm('Enregistrer les écritures cochées ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.');">
+                  data-confirm="Enregistrer les écritures cochées ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="dates_appliquer">
                 <input type="hidden" name="depuis_session" value="1">
@@ -228,7 +228,7 @@ $lienFiche = function (string $type, int $id): string {
         </table>
         </div>
         <form method="post" action="?p=dev" class="mt-16" id="dev-gr-form"
-              onsubmit="return confirm('Mettre à jour les fiches cochées ci-dessus avec la grande région déduite ? Une sauvegarde de la base sera faite automatiquement avant.');">
+              data-confirm="Mettre à jour les fiches cochées ci-dessus avec la grande région déduite ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="grandes_regions_appliquer">
             <button type="submit"><?= icon('map-pin') ?> Appliquer aux fiches cochées</button>
@@ -275,7 +275,7 @@ $lienFiche = function (string $type, int $id): string {
         </table>
         </div>
         <form method="post" action="?p=dev" class="mt-16" id="dev-evlier-form"
-              onsubmit="return confirm('Rattacher les événements cochés ci-dessus au lieu proposé ? Une sauvegarde de la base sera faite automatiquement avant.');">
+              data-confirm="Rattacher les événements cochés ci-dessus au lieu proposé ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="evenements_lieux_lier">
             <button type="submit"><?= icon('merge') ?> Rattacher les événements cochés</button>
@@ -339,7 +339,7 @@ $lienFiche = function (string $type, int $id): string {
         </table>
         </div>
         <form method="post" action="?p=dev" class="mt-16" id="dev-evcreer-form"
-              onsubmit="return confirm('Créer une structure+lieu pour chaque salle cochée ci-dessus et y rattacher ses événements ? Une sauvegarde de la base sera faite automatiquement avant.');">
+              data-confirm="Créer une structure+lieu pour chaque salle cochée ci-dessus et y rattacher ses événements ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="evenements_lieux_creer">
             <button type="submit"><?= icon('building-2') ?> Créer les structures+lieux cochés</button>
@@ -348,7 +348,7 @@ $lienFiche = function (string $type, int $id): string {
     <?php endif; ?>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 // Case « tout cocher » de chaque tableau de l'onglet Dev : ne coche/décoche
 // que les cases de SON PROPRE tableau (plusieurs tableaux indépendants sur
 // cette page, contrairement aux listes lieux/structures/événements qui n'en

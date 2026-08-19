@@ -36,7 +36,7 @@
         <div class="fieldset-groupe mb-16">
             <div class="card-head-row">
                 <strong><?= e($m['nom']) ?></strong>
-                <form method="post" action="?p=mailing_modeles" class="d-inline ml-auto" onsubmit="return confirm('Supprimer le modèle « <?= e($m['nom']) ?> » ?');">
+                <form method="post" action="?p=mailing_modeles" class="d-inline ml-auto" data-confirm="Supprimer le modèle « <?= e($m['nom']) ?> » ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="modele_delete">
                     <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">

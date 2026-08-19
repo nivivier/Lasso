@@ -40,9 +40,9 @@
                 <button type="button" class="btn ghost btn-sm icon-only tag-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                 <button type="button" class="btn ghost btn-sm icon-only tag-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
                 <form method="post" action="?p=parametres_tags" class="d-inline tag-delete-form" hidden
-                      onsubmit="return confirm(<?= e(json_encode($nb > 0
+                      data-confirm="<?= e($nb > 0
                           ? "Supprimer l'étiquette « " . $t['nom'] . " » ? Elle sera retirée de $nb structure(s)."
-                          : "Supprimer l'étiquette « " . $t['nom'] . " » ?", JSON_UNESCAPED_UNICODE)) ?>);">
+                          : "Supprimer l'étiquette « " . $t['nom'] . " » ?") ?>">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $tid ?>">
@@ -70,7 +70,7 @@
 </table>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     // Le crayon révèle les champs éditables (nom + couleur) et les actions
     // Enregistrer/Supprimer/Annuler ; Annuler restaure les valeurs d'origine.

@@ -83,7 +83,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
         <form method="get">
             <input type="hidden" name="p" value="compta_analyse_axe">
             <input type="hidden" name="axe" value="<?= (int) $axe['id'] ?>">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+            <select name="annee" class="inline-year-select" data-submit-on-change>
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>
@@ -226,7 +226,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 </table>
 <span id="axe-ecritures-search-count" class="muted small"></span>
 </div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const search = document.getElementById('axe-ecritures-search');
     const count  = document.getElementById('axe-ecritures-search-count');

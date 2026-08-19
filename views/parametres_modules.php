@@ -28,7 +28,7 @@ désactivées disparaissent du menu, sans perte de données. Les réactiver rest
             <input type="hidden" name="module" value="<?= e($id) ?>">
             <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : ($bloque ? 'Active d\'abord la comptabilité' : 'Activer') ?>">
                 <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?> <?= $bloque ? 'disabled' : '' ?>
-                       class="regle-actif-cb" onchange="this.closest('form').submit()">
+                       class="regle-actif-cb" data-submit-on-change>
                 <span class="regle-toggle-pill"></span>
             </label>
         </form>

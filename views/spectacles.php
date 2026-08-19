@@ -29,10 +29,10 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <?php endif; ?>
         <div class="head-actions">
             <?php if ($lignes): ?>
-            <button type="button" class="btn ghost export-copy" onclick="event.stopPropagation()"
+            <button type="button" class="btn ghost export-copy"
                                 data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
                                 title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?><span class="lbl"> Sync JSON</span></button>
-            <button type="button" class="btn ghost export-copy" onclick="event.stopPropagation()"
+            <button type="button" class="btn ghost export-copy"
                                 data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
                                 title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?><span class="lbl"> Sync iCal</span></button>
             <?php endif; ?>
@@ -90,7 +90,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=spectacle&id=<?= $sid ?>">
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
-                        <span class="plan-grip" draggable="true" onclick="event.stopPropagation()" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                        <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                         <span class="plan-puce" aria-hidden="true"><?= $s['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                         <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?>"><?= e($s['nom']) ?></a>
                         <?php if ($peutEcrireSpec): ?>
@@ -103,7 +103,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                         </form>
                         <?php endif; ?>
                         <?php if ($s['suisa_feuille_fichier']): ?>
-                            <a class="muted small" href="<?= e($s['suisa_feuille_fichier']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()">PDF</a>
+                            <a class="muted small" href="<?= e($s['suisa_feuille_fichier']) ?>" target="_blank" rel="noopener">PDF</a>
                         <?php endif; ?>
                     </div>
                 </td>
@@ -111,10 +111,10 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 <td class="num"><?= $compteLien('option', $c['option']) ?></td>
                 <td class="num"><?= $compteLien('annule', $c['annule']) ?></td>
                 <td class="actions nowrap">
-                    <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+                    <button type="button" class="btn ghost btn-sm icon-only export-copy"
                             data-url="<?= e(evenements_export_url('evenements_json', $token, $sid)) ?>"
                             title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only export-copy" onclick="event.stopPropagation()"
+                    <button type="button" class="btn ghost btn-sm icon-only export-copy"
                             data-url="<?= e(evenements_export_url('evenements_ical', $token, $sid)) ?>"
                             title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
                     <?php if ($peutEcrireSpec): ?>
@@ -122,7 +122,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <?php endif; ?>
                     <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
                     <?php if ($peutEcrireSpec && !$s['a_enfants'] && $total === 0): ?>
-                    <form method="post" action="?p=spectacle_delete" onsubmit="return confirm('Supprimer ce <?= e($termeSingulier) ?> ?');" class="d-inline">
+                    <form method="post" action="?p=spectacle_delete" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= $sid ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
@@ -151,7 +151,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php endif; ?>
 </div></div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     lassoPlanArbre({
         containerSelector: '#spectacles-card',

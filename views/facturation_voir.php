@@ -41,12 +41,12 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <?php if ($brouillon): ?>
             <?php if (peut_ecrire('facturation')): ?>
             <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
-            <form method="post" action="?p=facture_emettre<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Émettre cette facture ? Le numéro et la référence de paiement seront figés.');">
+            <form method="post" action="?p=facture_emettre<?= $depuisQs ?>" class="d-inline" data-confirm="Émettre cette facture ? Le numéro et la référence de paiement seront figés.">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                 <button type="submit" class="btn"><?= icon('check') ?> <span class="lbl">Émettre</span></button>
             </form>
-            <form method="post" action="?p=facture_delete" class="d-inline" onsubmit="return confirm('Supprimer ce brouillon ?');">
+            <form method="post" action="?p=facture_delete" class="d-inline" data-confirm="Supprimer ce brouillon ?">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                 <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
@@ -59,14 +59,14 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <?php endif; ?>
             <?php if (peut_ecrire('facturation')): ?>
             <?php if ($peutEmail): ?>
-                <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?');">
+                <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" data-confirm="Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
                 </form>
             <?php endif; ?>
             <?php if ($peutAnnuler): ?>
-                <form method="post" action="?p=facture_annuler<?= $depuisQs ?>" class="d-inline" onsubmit="return confirm('Annuler cette facture ?');">
+                <form method="post" action="?p=facture_annuler<?= $depuisQs ?>" class="d-inline" data-confirm="Annuler cette facture ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn danger">Annuler</button>
@@ -218,7 +218,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 </div>
 </div></div>
 <?php if ($peutPayer && $ecrituresLibres && peut_ecrire('facturation')): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const wrap = document.querySelector('.ecr-search');
     const input = wrap.querySelector('.cat-search-input');
@@ -266,7 +266,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 </script>
 <?php endif; ?>
 <?php if (module_actif('evenements') && peut_ecrire('facturation')): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const btn = document.querySelector('.evenement-edit-btn');
     if (!btn) return;

@@ -50,7 +50,7 @@
                   // (route_apparence_fond_supprimer()), sans toucher couleurs/effets — un
                   // <form> imbriqué serait invalide en HTML. ?>
             <button type="submit" formaction="?p=apparence_fond_supprimer" formnovalidate class="btn ghost btn-sm"
-                    onclick="return confirm('Supprimer l\'image de fond personnalisée et revenir au fond par défaut ?');">
+                    data-confirm="Supprimer l'image de fond personnalisée et revenir au fond par défaut ?">
                 <?= icon('trash') ?> Supprimer l'image de fond
             </button>
         </div>
@@ -63,7 +63,7 @@
         </div>
     </form>
 </div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
     document.querySelectorAll('.color-field input[type=color]').forEach(function (input) {
         var hex = document.getElementById(input.id + '-hex');
         if (hex) input.addEventListener('input', function () { hex.textContent = this.value; });

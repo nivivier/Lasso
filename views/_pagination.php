@@ -22,7 +22,7 @@ $pagesAffichees = pagination_pages_affichees($pgPage, $nbPages);
         <input type="hidden" name="p" value="<?= e($pgRoute) ?>">
         <?= hidden_inputs_html($pgParams) ?>
         <label>Par&nbsp;page
-            <select name="taille" onchange="this.form.submit()">
+            <select name="taille" data-submit-on-change>
                 <?php foreach (PAGINATION_TAILLES as $t): ?>
                     <option value="<?= $t ?>" <?= $pgTaille === $t ? 'selected' : '' ?>><?= $t ?></option>
                 <?php endforeach; ?>

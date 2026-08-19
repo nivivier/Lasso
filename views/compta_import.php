@@ -20,7 +20,7 @@
         </div>
         <div class="form-actions">
             <button type="submit" name="simuler" value="1" class="btn ghost"><?= icon('bar-chart') ?> Simuler</button>
-            <button type="submit" name="appliquer" value="1" onclick="return confirm('Importer réellement ces écritures ?');"><?= icon('import') ?> Importer directement</button>
+            <button type="submit" name="appliquer" value="1" data-confirm="Importer réellement ces écritures ?"><?= icon('import') ?> Importer directement</button>
         </div>
         <p class="muted small">« Simuler » montre ce qui serait importé (et permet de nommer un nouveau compte) sans rien enregistrer.</p>
     </form>
@@ -50,7 +50,7 @@
                     $confirm = "Annuler cet import ?\\n\\n$nbAct écriture(s) seront supprimées"
                         . ($nbLet > 0 ? " (dont $nbLet déjà lettrée(s) — leur lettrage sera perdu)" : '') . '.';
                     ?>
-                    <form method="post" action="?p=compta_import" onsubmit="return confirm('<?= e($confirm) ?>');" class="d-inline">
+                    <form method="post" action="?p=compta_import" data-confirm="<?= e($confirm) ?>" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">

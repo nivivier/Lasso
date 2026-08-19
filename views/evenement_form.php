@@ -75,7 +75,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
     <?php if ($isEdit && $peutEcrireEv): ?>
     <div class="head-actions">
-        <form method="post" action="?p=evenement_delete" class="d-inline" onsubmit="return confirm(<?= e(json_encode($confirmSuppr, JSON_UNESCAPED_UNICODE)) ?>);">
+        <form method="post" action="?p=evenement_delete" class="d-inline" data-confirm="<?= e($confirmSuppr) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
@@ -436,7 +436,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                     <td><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
                     <td class="epf-actions-cell">
                         <?php if ($peutEcrireEv): ?>
-                        <form method="post" action="?p=evenement_employe_delier<?= $depuisQs ?>" onsubmit="return confirm('Retirer cet employé de l\'événement ?');">
+                        <form method="post" action="?p=evenement_employe_delier<?= $depuisQs ?>" data-confirm="Retirer cet employé de l'événement ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="employe_id" value="<?= (int) $emp['id'] ?>">
@@ -626,7 +626,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                     <td><?= facturation_badge($fa) ?></td>
                     <td>
                         <?php if ($peutEcrireEv): ?>
-                        <form method="post" action="?p=evenement_facture_delier<?= $depuisQs ?>" onsubmit="return confirm('Délier cette facture de l\'événement ?');">
+                        <form method="post" action="?p=evenement_facture_delier<?= $depuisQs ?>" data-confirm="Délier cette facture de l'événement ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="facture_id" value="<?= (int) $fa['id'] ?>">
@@ -662,7 +662,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <?php endif; ?>
 </div></div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     // Cadres lecture/édition (Informations, Organisation, Localisation) :
     // script générique partagé (assets/app.js, window DOMContentLoaded) —

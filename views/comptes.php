@@ -70,7 +70,7 @@ $flashErr = [
                 <td class="muted small nowrap"><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
                 <td>
                     <form method="post" action="?p=compte_reset" class="reset-form"
-                          onsubmit="return confirm('Réinitialiser le mot de passe de <?= e($c['email']) ?> ?');">
+                          data-confirm="Réinitialiser le mot de passe de <?= e($c['email']) ?> ?">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                         <input type="password" name="nouveau_mot_de_passe" placeholder="Nouveau mot de passe"
@@ -81,7 +81,7 @@ $flashErr = [
                 <td class="actions">
                     <?php if (!$estMoi): ?>
                     <form method="post" action="?p=compte_delete" class="d-inline"
-                          onsubmit="return confirm('Supprimer définitivement le compte <?= e($c['email']) ?> ?');">
+                          data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                         <button type="submit" class="btn danger icon-only btn-sm" title="Supprimer le compte" aria-label="Supprimer le compte"><?= icon('trash') ?></button>
@@ -109,7 +109,7 @@ $flashErr = [
         <div class="form-actions"><button type="submit"><?= icon('user-plus') ?> Créer le compte</button></div>
     </form>
 </div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.querySelectorAll('.perm-toggle').forEach(group => {
     const hidden = group.querySelector('input[type=hidden]');
     group.querySelectorAll('.perm-btn').forEach(btn => {

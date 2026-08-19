@@ -102,7 +102,7 @@ $flashErr = [
                     <button type="button" class="btn ghost btn-sm icon-only plan-del-btn" title="Supprimer"
                             aria-label="Supprimer" data-id="<?= $pid ?>" data-nom="<?= e($p['libelle']) ?>" data-nb="<?= $nbEcr ?>"><?= icon('trash') ?></button>
                     <?php else: ?>
-                    <form method="post" action="?p=compta_plan" onsubmit="return confirm('Supprimer cette catégorie ?');" class="d-inline">
+                    <form method="post" action="?p=compta_plan" data-confirm="Supprimer cette catégorie ?" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= $pid ?>">
@@ -160,7 +160,7 @@ $flashErr = [
     </div>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     lassoPlanArbre({
         containerSelector: '#plan-card',

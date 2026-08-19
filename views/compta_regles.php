@@ -186,7 +186,7 @@ $peutEcrireRegles = peut_ecrire('compta');
                 <!-- Toggle actif/inactif -->
                 <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
                     <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?> <?= $peutEcrireRegles ? '' : 'disabled' ?>
-                           class="regle-actif-cb" onchange="this.closest('form').submit()">
+                           class="regle-actif-cb" data-submit-on-change>
                     <span class="regle-toggle-pill"></span>
                 </label>
                 <?php if ($peutEcrireRegles): ?>
@@ -226,7 +226,7 @@ $peutEcrireRegles = peut_ecrire('compta');
                 <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
                 <button type="submit" name="section" value="edit" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
                 <button type="submit" name="section" value="del" class="btn ghost btn-sm danger"
-                        onclick="return confirm('Supprimer cette règle ?')"><?= icon('trash') ?></button>
+                        data-confirm="Supprimer cette règle ?"><?= icon('trash') ?></button>
                 <?php endif; ?>
             </div>
             <div class="regle-conds" id="conds-<?= $rid ?>">
@@ -246,7 +246,7 @@ $peutEcrireRegles = peut_ecrire('compta');
 
 </div></div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const tpl = document.getElementById('cond-tpl');
 

@@ -50,7 +50,7 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
                     <?php if ($peutEcrireComptes): ?>
                     <button type="button" class="btn ghost btn-sm icon-only compte-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                     <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
-                    <form method="post" action="?p=compta_comptes" onsubmit="return confirm('Supprimer ce compte ?');" class="d-inline">
+                    <form method="post" action="?p=compta_comptes" data-confirm="Supprimer ce compte ?" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
@@ -81,7 +81,7 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
     </div>
 </div></div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     // Basculer une ligne compte entre lecture et édition.
     document.querySelectorAll('.compte-edit-btn').forEach(btn => {

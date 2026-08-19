@@ -12,7 +12,7 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
         <h1>Suggérer une ventilation de charges</h1>
         <form method="get">
             <input type="hidden" name="p" value="compta_suggestion_ventilation">
-            <select name="annee" class="inline-year-select" onchange="this.form.submit()">
+            <select name="annee" class="inline-year-select" data-submit-on-change>
                 <?php foreach ($anneesEcr as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>
                 <?php endforeach; ?>
@@ -192,7 +192,7 @@ $_axesJson   = json_encode(array_values(array_map(
     fn($a) => ['id' => (int) $a['id'], 'label' => $a['code'] ?: $a['libelle']], $axes
 )));
 ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const MONTANT_ECR = <?= $_montantEcr ?>;
     const AXES = <?= $_axesJson ?>;

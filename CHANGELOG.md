@@ -7,6 +7,28 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.2.0] — 2026-08-19
+
+### Sécurité
+- **Politique de sécurité de contenu à nonce** : `script-src` n'accepte plus
+  `'unsafe-inline'`, ce qui la rendait largement inopérante contre l'injection de
+  script. Chaque `<script>` inline porte désormais un jeton aléatoire par requête ;
+  un script injecté, ne pouvant le deviner, est refusé par le navigateur — vérifié.
+- Préalable indispensable : les **85 attributs de gestionnaire**
+  (`onclick`/`onsubmit`/`onchange`) que portaient les vues ont été supprimés. Un
+  nonce ne les couvre pas, ils auraient tous cessé de fonctionner. Ils sont
+  remplacés par des comportements déclaratifs (`data-confirm`, `data-print`,
+  `data-submit-on-change`, `data-submit-form`, `data-go-on-change`) implémentés en
+  écouteurs délégués dans `assets/app.js`.
+- `tests/csp_test.php` interdit la réapparition d'un `<script>` sans nonce ou d'un
+  attribut de gestionnaire — les deux fautes étant silencieuses à l'écriture.
+
+### Modifié
+- README : section Sécurité complétée, et onze affirmations périmées corrigées
+  (plancher PHP, longueurs de mot de passe, durées de session, portée de
+  l'anti-force-brute, dépendances embarquées, commande de test, mise à jour en un
+  clic annoncée à tort comme inactive).
+
 ## [2.1.1] — 2026-08-19
 
 ### Corrigé

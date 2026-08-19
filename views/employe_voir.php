@@ -13,7 +13,7 @@
     <div class="head-actions">
         <a class="btn ghost" href="?p=employe&id=<?= (int) $emp['id'] ?>"><?= icon('pencil') ?> Modifier l'employé</a>
         <?php if (!$fiches): ?>
-            <form method="post" action="?p=employe_delete" onsubmit="return confirm('Supprimer définitivement cet employé ?');" class="d-inline">
+            <form method="post" action="?p=employe_delete" data-confirm="Supprimer définitivement cet employé ?" class="d-inline">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
                 <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer l'employé"><?= icon('trash') ?></button>

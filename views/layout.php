@@ -124,7 +124,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         <iframe id="preview-modal-frame" src="" title="Aperçu"></iframe>
     </div>
 </div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const body = document.body, burger = document.getElementById('burger'),
           close = document.getElementById('side-close'), scrim = document.getElementById('scrim');
@@ -184,7 +184,11 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     // suggestions apparaisse un jour hors d'un <form> dans une ligne.
     function go(el) { const u = el.getAttribute('data-href'); if (u) location.href = u; }
     document.querySelectorAll('tr.row-link[data-href]').forEach(row => {
-        row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list')) go(row); });
+        // .plan-grip : poignée de glisser-déposer (?p=spectacles). Elle portait
+        // un onclick="event.stopPropagation()" ; les attributs de gestionnaire
+        // ayant été supprimés pour permettre le durcissement de la CSP, son
+        // exclusion se déclare ici, comme celle des autres éléments interactifs.
+        row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list,.plan-grip')) go(row); });
         row.addEventListener('keydown', e => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(row); }
         });

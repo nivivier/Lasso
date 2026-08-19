@@ -15,7 +15,7 @@
                 <form method="post" action="?p=import_factures" class="mt-0">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="depuis_session" value="1">
-                    <button type="submit" name="appliquer" value="1" onclick="return confirm('Importer réellement les factures nouvelles ?');"><?= icon('import') ?> Importer réellement</button>
+                    <button type="submit" name="appliquer" value="1" data-confirm="Importer réellement les factures nouvelles ?"><?= icon('import') ?> Importer réellement</button>
                 </form>
             <?php endif; ?>
         </div>

@@ -96,7 +96,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                     <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $c['est_dernier'] ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
                 </form>
                 <?php if ($nbUsage === 0 || $c['a_enfants']): ?>
-                <form method="post" action="?p=parametres_structures" onsubmit="return confirm('Supprimer <?= $estRacine ? 'cette catégorie' : 'cette sous-catégorie' ?> ?');" class="d-inline">
+                <form method="post" action="?p=parametres_structures" data-confirm="Supprimer <?= $estRacine ? 'cette catégorie' : 'cette sous-catégorie' ?> ?" class="d-inline">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $cid ?>">
@@ -157,7 +157,7 @@ $parentOptions = function (?int $selected) use ($map): string {
     </div>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     lassoPlanArbre({
         containerSelector: '#categories-card',

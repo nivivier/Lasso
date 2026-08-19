@@ -166,7 +166,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 
 <template id="ligne-tpl"><?= $renderRow(['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '', 'evenement' => '']) ?></template>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 const LASSO_TAUX_DATA = <?= json_encode($tauxData, JSON_UNESCAPED_UNICODE) ?>;
 (function () {
     // Valeurs par défaut selon l'employé (impôt + supplément vacances)

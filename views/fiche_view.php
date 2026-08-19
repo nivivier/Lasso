@@ -37,7 +37,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <?php if (peut_ecrire('salaires')): ?>
         <?php if ($peutEnvoyer): ?>
             <form method="post" action="?p=fiche_email<?= $depuisQs ?>" class="d-inline"
-                  onsubmit="return confirm('Envoyer cette fiche par e-mail à <?= e($emailEmploye) ?> ?');">
+                  data-confirm="Envoyer cette fiche par e-mail à <?= e($emailEmploye) ?> ?">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                 <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
@@ -53,7 +53,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?> <span class="lbl">Envoyée</span></span>
         <?php endif; ?>
         <?php if (peut_ecrire('salaires')): ?>
-        <form method="post" action="?p=fiche_delete" onsubmit="return confirm('Supprimer définitivement cette fiche ?');" class="d-inline">
+        <form method="post" action="?p=fiche_delete" data-confirm="Supprimer définitivement cette fiche ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la fiche"><?= icon('trash') ?></button>
@@ -90,7 +90,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <label class="check">
                 <input type="checkbox" name="afficher_cout_emp" value="1"
-                       onchange="document.getElementById('cout-form').submit()"
+                       data-submit-form="cout-form"
                        <?= (int) $f['afficher_cout_emp'] ? 'checked' : '' ?>>
                 Coût employeur
             </label>
@@ -102,7 +102,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     </aside>
 </div>
 <?php if (!empty($axes)): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const CSRF = <?= json_encode(csrf_token()) ?>;
 

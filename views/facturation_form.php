@@ -144,7 +144,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 
 <template id="ligne-tpl"><?= $renderRow(['description' => '', 'quantite' => '1', 'prix' => '', 'axe' => '']) ?></template>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const structureSelect = document.getElementById('structure-select');
     const nouveauStructure = document.getElementById('nouveau-structure');

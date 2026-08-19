@@ -62,7 +62,7 @@ $oui = fn(bool $b) => $b
         <form method="post" action="?p=maj" class="mt-18">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="maj_go" value="1">
-            <button type="submit" onclick="return confirm(<?= e(json_encode($confirm, JSON_UNESCAPED_UNICODE)) ?>);">
+            <button type="submit" data-confirm="<?= e($confirm) ?>">
                 <?= icon('download') ?> <?= $etat === 'a_jour' ? 'Réinstaller la dernière version' : ($downgrade ? 'Installer la version du canal (retour en arrière)' : 'Mettre à jour maintenant') ?>
             </button>
             <?php if ($downgrade): ?><span class="muted small">⚠️ Cette installation serait un retour en arrière.</span><?php endif; ?>
@@ -77,7 +77,7 @@ $oui = fn(bool $b) => $b
     <form method="post" action="?p=maj">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>Canal de mise à jour
-            <select name="canal" onchange="this.form.submit()">
+            <select name="canal" data-submit-on-change>
                 <option value="test" <?= $canal === 'test' ? 'selected' : '' ?>>Test (nouveautés en avant-première)</option>
                 <option value="stable" <?= $canal === 'stable' ? 'selected' : '' ?>>Stable (versions validées)</option>
             </select>

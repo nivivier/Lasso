@@ -143,7 +143,7 @@ $anneeSansToutes = ['certificats' => true];
     <?php endif; ?>
 </div>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     var sel = document.getElementById('export-type');
     var anneeWrap = document.getElementById('export-annee-wrap');

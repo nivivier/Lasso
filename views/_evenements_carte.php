@@ -42,7 +42,7 @@ $lienNonLocalises = '?p=evenements_liste&' . http_build_query([
 </div>
 
 <script src="assets/vendor/leaflet/leaflet.js"></script>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const points = <?= json_encode($points, JSON_UNESCAPED_UNICODE) ?>;
     lassoInitCarteLieux('carte-evenements', points, 'carte-evenements-vue');

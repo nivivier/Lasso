@@ -894,3 +894,61 @@ document.addEventListener('click', e => {
         });
     });
 })();
+
+// ------------------------------------------------- COMPORTEMENTS DÉCLARATIFS
+// Remplacent les 85 attributs onclick/onsubmit/onchange qui parsemaient les
+// vues. Motif : le balisage DÉCLARE l'intention (data-confirm, data-print…) et
+// le comportement vit ici, en un seul endroit.
+//
+// Ce n'est pas qu'une question de style : un attribut de gestionnaire est du
+// script inline, que la politique de sécurité de contenu ne peut autoriser
+// qu'avec 'unsafe-inline' — lequel désarme l'essentiel de la protection contre
+// l'injection de script. Un nonce ne les couvre pas (il ne s'applique qu'aux
+// balises <script>). Les supprimer est donc le préalable au durcissement de la
+// CSP, pas un simple rangement.
+
+// Confirmation avant une action destructrice. Sur un <form> : intercepte l'envoi.
+// Sur un bouton ou un lien : intercepte le clic.
+// Un data-confirm VIDE ne demande rien : certains écrans le posent en JS puis
+// le vident selon le contexte (voir views/import_fiches.php, où le message
+// dépend du type d'import choisi). Sans ce garde-fou, ils afficheraient une
+// boîte de dialogue sans texte.
+document.addEventListener('submit', e => {
+    const message = e.target.getAttribute?.('data-confirm');
+    if (message && !confirm(message)) e.preventDefault();
+});
+document.addEventListener('click', e => {
+    const el = e.target.closest('[data-confirm]');
+    if (!el || el.tagName === 'FORM') return; // les formulaires passent par 'submit'
+    const message = el.getAttribute('data-confirm');
+    if (message && !confirm(message)) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+});
+
+// Soumission du formulaire porteur dès qu'un champ change (filtres par année,
+// sélecteurs de période…).
+document.addEventListener('change', e => {
+    const el = e.target.closest('[data-submit-on-change]');
+    if (el && el.form) el.form.submit();
+});
+
+// Soumission d'un formulaire désigné par son id, quand le champ vit en dehors.
+document.addEventListener('change', e => {
+    const el = e.target.closest('[data-submit-form]');
+    if (!el) return;
+    document.getElementById(el.getAttribute('data-submit-form'))?.submit();
+});
+
+// Navigation vers une URL construite à partir de la valeur choisie : le
+// balisage fournit le préfixe, la valeur est ajoutée telle quelle.
+document.addEventListener('change', e => {
+    const el = e.target.closest('[data-go-on-change]');
+    if (el) location.href = el.getAttribute('data-go-on-change') + encodeURIComponent(el.value);
+});
+
+// Impression de la page (aperçus, fiches).
+document.addEventListener('click', e => {
+    if (e.target.closest('[data-print]')) { e.preventDefault(); window.print(); }
+});

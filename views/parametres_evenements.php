@@ -39,7 +39,7 @@
         Ils exposent en lecture seule les événements publics/privés (jamais les non répertoriés, jamais
         les informations SUISA/facturation/employés) — voir <code>SPEC_EVENEMENTS.md</code> §8.
     </p>
-    <form method="post" action="?p=parametres_evenements" onsubmit="return confirm('Régénérer le jeton invalidera tous les liens déjà copiés (à recopier partout où ils sont utilisés). Continuer ?');">
+    <form method="post" action="?p=parametres_evenements" data-confirm="Régénérer le jeton invalidera tous les liens déjà copiés (à recopier partout où ils sont utilisés). Continuer ?">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="regenerer_token" value="1">
         <div class="form-actions">

@@ -18,7 +18,7 @@
 // verrouille jamais le select ; les autres départements/cantons reconnus le
 // désactivent (grisé).
 ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     var MAP = <?= json_encode(pays_regions_map(), JSON_UNESCAPED_UNICODE) ?>;
     var PAYS_CODE_VERS_NOM = <?= json_encode(array_column(pays_liste(), 'nom', 'code_iso2'), JSON_UNESCAPED_UNICODE) ?>;

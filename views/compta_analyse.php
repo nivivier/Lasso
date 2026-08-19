@@ -10,7 +10,7 @@
     <form method="get" class="filters">
         <input type="hidden" name="p" value="compta_analyse">
         <label>Année
-            <select name="annee" onchange="this.form.submit()">
+            <select name="annee" data-submit-on-change>
                 <option value="0" <?= $annee === 0 ? 'selected' : '' ?>>Toutes</option>
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>

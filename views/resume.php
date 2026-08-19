@@ -32,12 +32,12 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
     <h2 class="mt-0">Résumé</h2>
     <form method="get" class="annee-pick">
         <input type="hidden" name="p" value="resume">
-        <select name="groupe" aria-label="Regroupement" onchange="this.form.submit()">
+        <select name="groupe" aria-label="Regroupement" data-submit-on-change>
             <?php foreach ($groupes as $val => $lib): ?>
                 <option value="<?= $val ?>" <?= $groupe === $val ? 'selected' : '' ?>><?= $lib ?></option>
             <?php endforeach; ?>
         </select>
-        <select name="annee" class="year-select" aria-label="Année" onchange="this.form.submit()" <?= $groupe === 'annee' ? 'disabled' : '' ?>>
+        <select name="annee" class="year-select" aria-label="Année" data-submit-on-change <?= $groupe === 'annee' ? 'disabled' : '' ?>>
             <?php if ($groupe === 'annee'): ?>
                 <option selected>Toutes</option>
             <?php else:
@@ -48,7 +48,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
                 <?php endforeach;
             endif; ?>
         </select>
-        <select name="employe_id" aria-label="Employé" onchange="this.form.submit()">
+        <select name="employe_id" aria-label="Employé" data-submit-on-change>
             <option value="0">Tous les employés</option>
             <?php foreach ($employes as $emp): ?>
                 <option value="<?= (int) $emp['id'] ?>" <?= $employeId === (int) $emp['id'] ? 'selected' : '' ?>>
@@ -105,7 +105,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
         <input type="hidden" name="groupe" value="<?= e($groupe) ?>">
         <input type="hidden" name="annee" value="<?= (int) $annee ?>">
         <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">
-        <select name="ret_annee" aria-label="Année des charges totales" onchange="this.form.submit()">
+        <select name="ret_annee" aria-label="Année des charges totales" data-submit-on-change>
             <?php
             $retOpts = array_unique(array_merge([$retAnnee, (int) date('Y')], array_map('intval', $annees)));
             rsort($retOpts);
