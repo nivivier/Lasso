@@ -7,6 +7,22 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.1.1] — 2026-08-19
+
+### Corrigé
+- **`vendor/` exigeait PHP ≥ 8.4.1** alors que le projet annonçait `>= 8.0` :
+  résolu sur une machine en 8.5, Composer avait tiré `symfony/intl` et
+  `symfony/validator` 8.1 ainsi qu'`endroid/qr-code` 6.1. Sans effet en
+  développement ni en production (toutes deux en 8.5), mais le module
+  facturation était condamné sur tout hébergement plus ancien.
+  `config.platform.php` est désormais figé à `8.3.0`, ce qui force la
+  résolution quelle que soit la machine. `sprain/swiss-qr-bill` et TCPDF sont
+  inchangés.
+- Intégration continue : le workflow était inanalysable (un `:` dans un
+  scalaire YAML d'une seule ligne), donc GitHub le refusait avant de démarrer
+  le moindre job — la CI livrée en 2.1.0 n'avait jamais tourné. Le détail d'un
+  échec est maintenant remonté en annotations, lisibles sans jeton.
+
 ## [2.1.0] — 2026-08-18
 
 ### Sécurité
