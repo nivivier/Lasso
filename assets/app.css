@@ -79,6 +79,12 @@
     --row-ignore-hover: #f3f3f6;
     --glass: rgba(255, 255, 255, .50);
     --glass-hover: rgba(255, 255, 255, .4);
+    /* Surfaces volontairement FONCÉES, qui portent du texte blanc : bulle
+       d'infobulle, barre mobile, barre d'impression, aperçu du logo pour fond
+       sombre. Distinct de --brand : celle-ci sert aussi de couleur de TEXTE
+       (titres, totaux) et s'éclaircit donc en thème sombre — ce qui rendait
+       ces surfaces claires sous un texte blanc, donc illisibles. */
+    --brand-surface: var(--brand);
     
 	/* ---------------- Tailles ---------------- */
     
@@ -214,65 +220,132 @@ h1 * { -webkit-text-fill-color: currentColor; }
    Les surfaces d'impression (.sheet, body.print-page) restent blanches : on
    imprime sur du papier.
    ========================================================================== */
+/* ============================================================================
+   Thème sombre — palette source
+
+   Les valeurs ne sont écrites QU'ICI. Elles ne s'appliquent pas d'elles-mêmes :
+   les deux blocs ci-dessous se contentent de les affecter aux tokens réels,
+   selon le mode choisi dans Paramètres → Apparence.
+
+   Pourquoi deux blocs et non un seul : l'un dépend d'une media query, l'autre
+   d'un attribut — aucun sélecteur CSS ne peut exprimer les deux à la fois. Seule
+   la LISTE d'affectations est donc dupliquée, jamais les couleurs : une teinte
+   se corrige à un seul endroit.
+   ========================================================================== */
+:root {
+    --d-bg: #14131c;
+    --d-card: #1c1b26;
+    --d-ink: #e9e8f0;
+    --d-muted: #9d9bad;
+    --d-line: #2e2c3b;
+    --d-teal: #2fd0ba;
+    --d-teal-d: #24a894;
+    --d-teal-tint: #12312e;
+    --d-amber: #e0a745;
+    --d-amber-tint: #33260f;
+    --d-orange: #f0743f;
+    --d-orange-tint: #3a1e11;
+    --d-danger: #f2685c;
+    --d-danger-d: #d9503f;
+    --d-danger-tint: #3a1c1a;
+    --d-ok: #2fd0ba;
+    --d-row-attention: #2a2417;
+    --d-row-manuelle: #1f1d2c;
+    --d-row-ignore: #191823;
+    --d-row-ignore-hover: #21202c;
+    --d-glass: rgba(255, 255, 255, .05);
+    --d-brand-surface: #0f0e17;
+    --d-glass-hover: rgba(255, 255, 255, .08);
+    --d-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 20px rgba(0,0,0,.45);
+    --d-shadow-sm: 0 1px 3px rgba(0,0,0,.4);
+    --d-surface: #23212e;
+    --d-primary: #9b83ff;
+    --d-primary-base: #9b83ff;
+    --d-primary-d: #b6a4ff;
+    --d-primary-tint: #262046;
+    --d-highlight: #6f9bff;
+    --d-highlight-d: #93b5ff;
+    --d-highlight-tint: #1b2547;
+    --d-brand: #c9bcff;
+}
+
+/* Mode « automatique » : on suit le système. Le :not() est essentiel — sans lui,
+   un thème clair explicitement choisi perdrait face à un système en sombre. */
 @media (prefers-color-scheme: dark) {
-    :root {
-        /* Fonds : le rail et les cartes se détachent du fond de page, comme en
-           clair, mais par une surface PLUS claire que le fond — l'inverse de
-           l'ombre portée, qui ne se voit plus sur sombre. */
-        --bg: #14131c;
-        --card: #1c1b26;
-        --ink: #e9e8f0;
-        --muted: #9d9bad;
-        --line: #2e2c3b;
-
-        /* Teintes de statut : les pastels clairs deviennent des fonds sourds,
-           et les couleurs de trait sont remontées en luminosité pour rester
-           lisibles sur fond sombre. */
-        --teal: #2fd0ba;
-        --teal-d: #24a894;
-        --teal-tint: #12312e;
-        --amber: #e0a745;
-        --amber-tint: #33260f;
-        --orange: #f0743f;
-        --orange-tint: #3a1e11;
-        --danger: #f2685c;
-        --danger-d: #d9503f;
-        --danger-tint: #3a1c1a;
-        --ok: #2fd0ba;
-        --row-attention: #2a2417;
-        --row-manuelle: #1f1d2c;
-        --row-ignore: #191823;
-        --row-ignore-hover: #21202c;
-        /* Le « verre » devient un voile clair très faible : sur fond sombre,
-           un blanc à 50 % produirait un aplat laiteux. */
-        --glass: rgba(255, 255, 255, .05);
-        --glass-hover: rgba(255, 255, 255, .08);
-
-        /* Ombres : sur fond sombre une ombre teintée de violet ne se voit pas.
-           On garde un halo noir, plus dense, pour conserver le relief. */
-        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 20px rgba(0,0,0,.45);
-        --shadow-sm: 0 1px 3px rgba(0,0,0,.4);
-
-        /* Surface légèrement détachée de --card (en-têtes de tableau, pastille
-           du compte, fonds de survol). En clair elle est un peu plus SOMBRE que
-           la carte ; en sombre, un peu plus CLAIRE — sinon l'en-tête de tableau
-           reste un bandeau blanc au milieu d'une page sombre. */
-        --surface: #23212e;
-
-        /* Replis avant injection PHP. couleurs_css_vars() écrase ces quatre
-           valeurs (et leurs variantes sombres) dès que <head> est écrit ; elles
-           ne servent qu'aux pages rendues sans cette injection. Les variantes
-           « -d » s'ÉCLAIRCISSENT ici : un survol doit se rapprocher de la
-           lumière sur fond sombre, pas s'en éloigner. */
-        --primary: #9b83ff;
-        --primary-base: #9b83ff;
-        --primary-d: #b6a4ff;
-        --primary-tint: #262046;
-        --highlight: #6f9bff;
-        --highlight-d: #93b5ff;
-        --highlight-tint: #1b2547;
-        --brand: #c9bcff;
+    :root:not([data-theme="clair"]) {
+        --bg: var(--d-bg);
+        --card: var(--d-card);
+        --ink: var(--d-ink);
+        --muted: var(--d-muted);
+        --line: var(--d-line);
+        --teal: var(--d-teal);
+        --teal-d: var(--d-teal-d);
+        --teal-tint: var(--d-teal-tint);
+        --amber: var(--d-amber);
+        --amber-tint: var(--d-amber-tint);
+        --orange: var(--d-orange);
+        --orange-tint: var(--d-orange-tint);
+        --danger: var(--d-danger);
+        --danger-d: var(--d-danger-d);
+        --danger-tint: var(--d-danger-tint);
+        --ok: var(--d-ok);
+        --row-attention: var(--d-row-attention);
+        --row-manuelle: var(--d-row-manuelle);
+        --row-ignore: var(--d-row-ignore);
+        --row-ignore-hover: var(--d-row-ignore-hover);
+        --glass: var(--d-glass);
+        --brand-surface: var(--d-brand-surface);
+    --glass-hover: var(--d-glass-hover);
+        --shadow: var(--d-shadow);
+        --shadow-sm: var(--d-shadow-sm);
+        --surface: var(--d-surface);
+        --primary: var(--d-primary);
+        --primary-base: var(--d-primary-base);
+        --primary-d: var(--d-primary-d);
+        --primary-tint: var(--d-primary-tint);
+        --highlight: var(--d-highlight);
+        --highlight-d: var(--d-highlight-d);
+        --highlight-tint: var(--d-highlight-tint);
+        --brand: var(--d-brand);
     }
+}
+
+/* Choix explicite « sombre », quel que soit le réglage du système. */
+:root[data-theme="sombre"] {
+    --brand-surface: var(--d-brand-surface);
+    --bg: var(--d-bg);
+    --card: var(--d-card);
+    --ink: var(--d-ink);
+    --muted: var(--d-muted);
+    --line: var(--d-line);
+    --teal: var(--d-teal);
+    --teal-d: var(--d-teal-d);
+    --teal-tint: var(--d-teal-tint);
+    --amber: var(--d-amber);
+    --amber-tint: var(--d-amber-tint);
+    --orange: var(--d-orange);
+    --orange-tint: var(--d-orange-tint);
+    --danger: var(--d-danger);
+    --danger-d: var(--d-danger-d);
+    --danger-tint: var(--d-danger-tint);
+    --ok: var(--d-ok);
+    --row-attention: var(--d-row-attention);
+    --row-manuelle: var(--d-row-manuelle);
+    --row-ignore: var(--d-row-ignore);
+    --row-ignore-hover: var(--d-row-ignore-hover);
+    --glass: var(--d-glass);
+    --glass-hover: var(--d-glass-hover);
+    --shadow: var(--d-shadow);
+    --shadow-sm: var(--d-shadow-sm);
+    --surface: var(--d-surface);
+    --primary: var(--d-primary);
+    --primary-base: var(--d-primary-base);
+    --primary-d: var(--d-primary-d);
+    --primary-tint: var(--d-primary-tint);
+    --highlight: var(--d-highlight);
+    --highlight-d: var(--d-highlight-d);
+    --highlight-tint: var(--d-highlight-tint);
+    --brand: var(--d-brand);
 }
 
 /* =================== Sidebar layout =================== */
@@ -425,7 +498,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .info-tip-bulle {
     position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 60;
     display: none; width: max-content; max-width: min(280px, calc(100vw - 32px));
-    background: var(--brand); color: #fff; font-size: var(--fs-small); font-weight: 400;
+    background: var(--brand-surface); color: #fff; font-size: var(--fs-small); font-weight: 400;
     text-transform: none; letter-spacing: normal; line-height: 1.5;
     padding: 10px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
 }
@@ -2003,7 +2076,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 #preview-modal-close .ico { width: 16px; height: 16px; }
 
 /* =================== Print =================== */
-.print-toolbar { padding: 13px 18px; background: var(--brand); color: #fff; display: flex; gap: 16px; align-items: center; }
+.print-toolbar { padding: 13px 18px; background: var(--brand-surface); color: #fff; display: flex; gap: 16px; align-items: center; }
 
 .print-toolbar button { background: var(--highlight); border-color: var(--highlight); }
 .sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: var(--radius-sm); }
@@ -2069,7 +2142,7 @@ body.print-page { background: #e9e9f2; }
 .logo-preview { display: inline-flex; align-items: center; padding: 8px 10px; border-radius: var(--radius-sm); margin: 4px 0; }
 .logo-preview img { max-height: 40px; max-width: 200px; width: auto; display: block; }
 .logo-preview.clair { background: #fff; border: 1px solid var(--line); }
-.logo-preview.sombre { background: var(--brand); }
+.logo-preview.sombre { background: var(--brand-surface); }
 .fond-preview { display: block; margin: 4px 0 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); max-width: 360px; }
 .fond-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
 /* Sélecteur de couleur principale (Paramètres > Employeur) : :not() en plus pour
@@ -2156,7 +2229,7 @@ abbr {
     /* Barre supérieure fixe avec logo + burger */
     .mobile-bar {
         display: flex; align-items: center; justify-content: space-between;
-        background: var(--brand); padding: 10px 16px;
+        background: var(--brand-surface); padding: 10px 16px;
         position: sticky; top: 0; z-index: 30;
     }
     .mbar-logo { width: 104px; height: auto; }
@@ -2556,37 +2629,63 @@ abbr {
 .recherche-groupe .list tr:last-child td { border-bottom: 0; }
 
 /* ============================================================================
-   Mode sombre — surcharges de COMPOSANTS
+   Thème sombre — surcharges de COMPOSANTS
 
-   Séparées du bloc de tokens en tête de fichier, et placées ici volontairement :
-   redéfinir un token fonctionne où qu'on soit (il est résolu à l'usage), mais
-   une règle de composant ne l'emporte qu'à partir du moment où elle vient APRÈS
-   celle qu'elle corrige. Placées en tête, ces trois règles étaient silencieusement
-   perdues — le libellé du rail actif restait à 3,6:1.
+   Séparées des tokens et placées en fin de fichier volontairement : redéfinir un
+   token vaut où qu'on soit (il est résolu à l'usage), mais une règle de composant
+   ne l'emporte qu'à partir du moment où elle vient APRÈS celle qu'elle corrige.
+   Placées en tête, ces trois règles étaient silencieusement perdues — le libellé
+   du rail actif restait à 3,6:1.
+
+   Dupliquées pour les deux modes, comme les tokens plus haut : une media query et
+   un attribut ne se combinent pas dans un même sélecteur. Le sélecteur est
+   factorisé sur chaque règle pour que les deux versions ne puissent pas diverger.
    ========================================================================== */
 @media (prefers-color-scheme: dark) {
-
-    /* Les deux seules règles où une variante « -d » sert de FOND de survol.
-       Elle est désormais claire (voir couleurs_derivees()), parce que ses
-       quatorze autres usages en font une couleur de texte : la garder comme
-       fond ici donnerait un aplat clair sous un texte blanc. On éclaircit donc
-       l'accent lui-même, ce qui préserve le contraste du libellé. */
-    button:hover, .btn:hover {
-        background: var(--highlight);
-        border-color: var(--highlight);
-        filter: brightness(1.18);
+    :root:not([data-theme="clair"]) {
+        --theme-sombre-actif: 1;
     }
-    .col-filter-apply:hover { background: var(--primary); filter: brightness(1.18); }
-
-    /* Couleurs de module (--rail-accent, posé en style inline par
-       views/layout.php d'après MODULE_COULEURS) : elles sont choisies pour un
-       rail clair et plusieurs sont trop sombres pour servir de texte ici — le
-       libellé actif tombait à 3,6:1. On les éclaircit à l'affichage plutôt que
-       de dédoubler la table de couleurs côté PHP : leur identité (la teinte)
-       est préservée, et un module ajouté demain en bénéficie sans rien à
-       déclarer. */
-    .rail-btn.on, .rail-btn.on .rail-label {
-        color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white);
-    }
-    .rail-btn .ico { color: color-mix(in srgb, var(--rail-accent, var(--muted)) 65%, white); }
 }
+
+/* Choix explicite « sombre ». */
+    /* Les deux seules règles où une variante « -d » sert de FOND de survol. Elle est
+       désormais claire (voir couleurs_derivees()), parce que ses quatorze autres
+       usages en font une couleur de texte : la garder comme fond donnerait ici un
+       aplat clair sous un texte blanc. On éclaircit donc l'accent lui-même. */
+    :root[data-theme="sombre"] button:hover, :root[data-theme="sombre"] .btn:hover { background: var(--highlight); border-color: var(--highlight); filter: brightness(1.18); }
+    :root[data-theme="sombre"] .col-filter-apply:hover { background: var(--primary); filter: brightness(1.18); }
+    /* Couleurs de module (--rail-accent, posé en style inline d'après
+       MODULE_COULEURS) : choisies pour un rail clair, plusieurs sont trop sombres
+       pour servir de texte ici — le libellé actif tombait à 3,6:1. On les
+       éclaircit à l'affichage plutôt que de dédoubler la table côté PHP : la
+       teinte, donc l'identité du module, est préservée. */
+    :root[data-theme="sombre"] .rail-btn.on, :root[data-theme="sombre"] .rail-btn.on .rail-label { color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white); }
+    :root[data-theme="sombre"] .rail-btn .ico { color: color-mix(in srgb, var(--rail-accent, var(--muted)) 65%, white); }
+
+/* Mode « automatique » : mêmes règles, sous la media query. */
+@media (prefers-color-scheme: dark) {
+    /* Les deux seules règles où une variante « -d » sert de FOND de survol. Elle est
+       désormais claire (voir couleurs_derivees()), parce que ses quatorze autres
+       usages en font une couleur de texte : la garder comme fond donnerait ici un
+       aplat clair sous un texte blanc. On éclaircit donc l'accent lui-même. */
+    :root:not([data-theme="clair"]) button:hover, :root:not([data-theme="clair"]) .btn:hover { background: var(--highlight); border-color: var(--highlight); filter: brightness(1.18); }
+    :root:not([data-theme="clair"]) .col-filter-apply:hover { background: var(--primary); filter: brightness(1.18); }
+    /* Couleurs de module (--rail-accent, posé en style inline d'après
+       MODULE_COULEURS) : choisies pour un rail clair, plusieurs sont trop sombres
+       pour servir de texte ici — le libellé actif tombait à 3,6:1. On les
+       éclaircit à l'affichage plutôt que de dédoubler la table côté PHP : la
+       teinte, donc l'identité du module, est préservée. */
+    :root:not([data-theme="clair"]) .rail-btn.on, :root:not([data-theme="clair"]) .rail-btn.on .rail-label { color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white); }
+    :root:not([data-theme="clair"]) .rail-btn .ico { color: color-mix(in srgb, var(--rail-accent, var(--muted)) 65%, white); }
+}
+
+/* Logo du rail : une variante par thème, rendues toutes les deux (voir
+   views/layout.php). Par défaut on montre celle pour fond clair. */
+.side-logo-sombre { display: none; }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .side-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .side-logo-sombre { display: inline; }
+}
+:root[data-theme="sombre"] .side-logo-clair  { display: none; }
+:root[data-theme="sombre"] .side-logo-sombre { display: inline; }

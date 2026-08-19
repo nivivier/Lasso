@@ -10,12 +10,19 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
-- **Mode sombre**, suivant le réglage du système (`prefers-color-scheme`).
+- **Choix du thème** dans Paramètres → Apparence : clair, sombre, ou automatique
+  (suit le réglage du système). Réglage commun à l'installation, comme les
+  couleurs — rendu côté serveur, donc sans scintillement ni JavaScript.
+- **Mode sombre**, appliqué selon ce choix.
   Seule la palette de tokens est redéfinie : aucun composant n'a été retouché,
   ce qui suppose qu'aucune couleur de surface ne soit écrite en dur — quinze
   l'étaient encore et sont devenues des tokens. `tests/theme_test.php` interdit
   la réapparition d'une surface claire en dur, faute silencieuse par nature :
   elle ne se voit que si l'on bascule son système.
+- Le logo de la barre latérale suit le thème : la variante « fond sombre »
+  remplace la variante « fond clair ». Les deux sont rendues, le CSS choisit —
+  seul moyen de rester juste en mode automatique, où le serveur ignore le
+  réglage du système.
 
 ### Modifié
 - Recherche unifiée : une seule requête par source au lieu de deux (le total

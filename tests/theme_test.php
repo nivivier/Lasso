@@ -91,14 +91,31 @@ $helpers = (string) file_get_contents($racine . '/lib/helpers.php');
 foreach (['primary_sombre', 'primary_d_sombre', 'primary_tint_sombre', 'brand_sombre'] as $cle) {
     check("couleurs_derivees() produit « $cle »", true, str_contains($helpers, "'$cle'"));
 }
-// Les deux injecteurs doivent émettre un bloc sombre, sinon la couleur claire
-// de l'employeur (ou du module) écrase la palette sombre : ils sont écrits
-// APRÈS la feuille de style.
+// Les deux injecteurs (employeur et module) doivent émettre une palette sombre,
+// sinon la couleur claire écrase le thème : ils sont écrits APRÈS la feuille de
+// style et l'emportent donc en cascade.
 check(
-    'couleurs_css_vars() émet un bloc sombre',
+    'les deux injecteurs passent par css_palette_sombre()',
     2,
-    substr_count($helpers, '@media (prefers-color-scheme: dark){:root{')
+    substr_count($helpers, 'css_palette_sombre([')
 );
+
+echo "4) Structure à trois états (clair / sombre / automatique)\n";
+// Le mode « automatique » suit le système, mais un choix EXPLICITE doit primer
+// dans les deux sens — d'où le :not() sur la media query, et un bloc dédié à
+// l'attribut. L'oubli du :not() est la faute classique : un thème clair choisi
+// resterait sombre sur un système sombre.
+check('la media query exclut un choix « clair » explicite', true,
+    str_contains($css, ':root:not([data-theme="clair"])'));
+check('un bloc applique le choix « sombre » explicite', true,
+    str_contains($css, ':root[data-theme="sombre"]'));
+check('même garde-fou côté PHP', true,
+    str_contains($helpers, ':root:not([data-theme="clair"])')
+    && str_contains($helpers, ':root[data-theme="sombre"]'));
+// Les valeurs sombres ne doivent exister qu'à un seul endroit : les deux blocs
+// se contentent de les affecter. Sinon une teinte corrigée d'un côté diverge.
+check('les couleurs sombres sont définies une seule fois (tokens --d-*)', true,
+    substr_count($css, '--d-bg:') === 1 && substr_count($css, 'var(--d-bg)') === 2);
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

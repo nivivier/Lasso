@@ -206,10 +206,12 @@ le tableau de bord.
 
 ### Apparence
 
-L'interface suit le **thème clair ou sombre du système** (`prefers-color-scheme`) —
-il n'y a pas de réglage à activer. Les couleurs principale et de mise en évidence
-restent celles de **Paramètres → Employeur** : leurs variantes sombres en sont
-dérivées automatiquement.
+**Paramètres → Apparence** propose trois thèmes : **clair**, **sombre**, ou
+**automatique** (suit le réglage clair/sombre du système). Le choix vaut pour
+toute l'installation, comme les couleurs et le fond, et n'est modifiable que par
+un administrateur. Les couleurs principale et de mise en évidence restent celles
+que vous avez choisies : leurs variantes sombres en sont dérivées
+automatiquement, de même que la variante du logo utilisée dans la barre latérale.
 
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
 tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une

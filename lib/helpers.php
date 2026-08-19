@@ -1030,6 +1030,34 @@ if ($l > 75) {
 // app.css (body.has-sidebar::before). Sans image personnalisée (cas par
 // défaut), rien n'est émis ici : le fond calculé (.wave-decor, voir
 // views/_wave_decor.php) prend le relais, posé par views/layout.php.
+// Émet les deux blocs qui appliquent une palette sombre : l'un sous la media
+// query (mode « automatique »), l'autre sur l'attribut data-theme (choix
+// explicite). $valeurs : tokens réels => valeur sombre.
+//
+// Deux blocs et non un seul parce qu'aucun sélecteur CSS ne combine une media
+// query et un attribut ; la liste est donc construite ici, une fois, pour que
+// les deux versions ne puissent pas diverger. Le :not([data-theme="clair"])
+// est indispensable : sans lui, un thème clair choisi explicitement perdrait
+// face à un système réglé en sombre.
+// Thème choisi dans Paramètres → Apparence : 'auto' (suit le système), 'clair'
+// ou 'sombre'. Réglage commun à l'installation, comme les couleurs et le fond
+// — voir docs/DECISIONS.md § Thème.
+function param_theme(): string
+{
+    $t = (string) param('employeur_theme', 'auto');
+    return in_array($t, ['auto', 'clair', 'sombre'], true) ? $t : 'auto';
+}
+
+function css_palette_sombre(array $valeurs): string
+{
+    $decl = '';
+    foreach ($valeurs as $token => $valeur) {
+        $decl .= $token . ':' . $valeur . ';';
+    }
+    return '@media (prefers-color-scheme: dark){:root:not([data-theme="clair"]){' . $decl . '}}'
+        . ':root[data-theme="sombre"]{' . $decl . '}';
+}
+
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
@@ -1060,14 +1088,17 @@ function couleurs_css_vars(): string
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
         . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}';
 
-    $sombre = '@media (prefers-color-scheme: dark){:root{'
-        . '--primary:' . $c['primary_sombre'] . ';--primary-base:' . $c['primary_sombre']
-        . ';--primary-d:' . $c['primary_d_sombre']
-        . ';--primary-tint:' . $c['primary_tint_sombre']
-        . ';--brand:' . $c['brand_sombre'] . ';--brand-2:' . $c['brand_2_sombre']
-        . ';--highlight:' . $h['primary_sombre'] . ';--highlight-d:' . $h['primary_d_sombre']
-        . ';--highlight-tint:' . $h['primary_tint_sombre']
-        . ';}}';
+    $sombre = css_palette_sombre([
+        '--primary'        => $c['primary_sombre'],
+        '--primary-base'   => $c['primary_sombre'],
+        '--primary-d'      => $c['primary_d_sombre'],
+        '--primary-tint'   => $c['primary_tint_sombre'],
+        '--brand'          => $c['brand_sombre'],
+        '--brand-2'        => $c['brand_2_sombre'],
+        '--highlight'      => $h['primary_sombre'],
+        '--highlight-d'    => $h['primary_d_sombre'],
+        '--highlight-tint' => $h['primary_tint_sombre'],
+    ]);
 
     return '<style>' . $clair . $sombre . $styleFond . '</style>';
 }
@@ -1097,10 +1128,13 @@ function module_couleur_css_vars(?string $module): string
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}'
-        . '@media (prefers-color-scheme: dark){:root{'
-        . '--primary:' . $c['primary_sombre'] . ';--primary-d:' . $c['primary_d_sombre']
-        . ';--primary-tint:' . $c['primary_tint_sombre']
-        . ';--brand:' . $c['brand_sombre'] . ';--brand-2:' . $c['brand_2_sombre'] . ';}}'
+        . css_palette_sombre([
+            '--primary'      => $c['primary_sombre'],
+            '--primary-d'    => $c['primary_d_sombre'],
+            '--primary-tint' => $c['primary_tint_sombre'],
+            '--brand'        => $c['brand_sombre'],
+            '--brand-2'      => $c['brand_2_sombre'],
+        ])
         . '</style>';
 }
 
@@ -2008,6 +2042,10 @@ function icon(string $name): string
         'bar-chart' => '<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/>',
         'layers'    => '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
         'users'     => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+        // Choix de thème (Paramètres → Apparence).
+        'sun'       => '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+        'moon'      => '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>',
+        'monitor'   => '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
         'settings'  => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
         'menu'      => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
         'x'         => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',

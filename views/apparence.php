@@ -7,7 +7,17 @@
     <form method="post" action="?p=apparence" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <h3 class="sub no-mt">Couleur principale <?= info_tip(
+        <h3 class="sub no-mt">Thème <?= info_tip(
+            "« Automatique » suit le réglage clair/sombre de votre système d'exploitation. "
+            . 'Ce choix vaut pour toute l\'installation, comme les couleurs ci-dessous.'
+        ) ?></h3>
+        <?= icon_picker('employeur_theme', [
+            'auto'   => ['icone' => 'monitor', 'label' => 'Automatique (système)'],
+            'clair'  => ['icone' => 'sun',     'label' => 'Clair'],
+            'sombre' => ['icone' => 'moon',    'label' => 'Sombre'],
+        ], param_theme(), 'Thème de l\'interface') ?>
+
+        <h3 class="sub">Couleur principale <?= info_tip(
             "Utilisée pour les accents dans toute l'application (barre latérale, survols, fonds, "
             . 'en-têtes) ; les autres teintes sont calculées automatiquement à partir de celle-ci.'
         ) ?></h3>

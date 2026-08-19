@@ -755,6 +755,12 @@ function route_apparence(): void
         foreach (['employeur_fond_clair', 'employeur_fond_floute'] as $cleEffet) {
             $stmt->execute([$cleEffet, isset($_POST[$cleEffet]) ? '1' : '']);
         }
+        // Thème : liste blanche, une valeur inattendue est ignorée plutôt
+        // qu'écrite (elle finirait en attribut data-theme sur <html>).
+        $theme = (string) ($_POST['employeur_theme'] ?? '');
+        if (in_array($theme, ['auto', 'clair', 'sombre'], true)) {
+            $stmt->execute(['employeur_theme', $theme]);
+        }
         if ($fond !== null) {
             $ancien = param('employeur_fond', '');
             $stmt->execute(['employeur_fond', $fond]);

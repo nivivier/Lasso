@@ -11,7 +11,11 @@ $navGroupes = $u ? nav_groupes() : [];
 $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis'] ?? '')) : null;
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<?php // data-theme n'est posé que pour un choix EXPLICITE : en mode « auto »
+      // l'attribut reste absent, et c'est la media query prefers-color-scheme
+      // qui décide. Rendu côté serveur, donc aucun scintillement au chargement
+      // et aucun JavaScript — c'est l'avantage d'un réglage stocké en base. ?>
+<html lang="fr"<?= param_theme() !== 'auto' ? ' data-theme="' . e(param_theme()) . '"' : '' ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,7 +47,23 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 <aside class="sidebar" id="sidebar">
     <div class="side-brand">
         <div class="side-brand-txt">
-            <?php if ($logoClair !== ''): ?><img src="<?= e(param_logo_data_uri('clair')) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo"><?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+            <?php
+            // Le rail passe d'un fond clair à un fond sombre selon le thème : le
+            // logo doit suivre. En mode « automatique » le serveur ignore le
+            // réglage du système, on rend donc LES DEUX variantes et c'est le CSS
+            // qui montre la bonne (.side-logo-clair / .side-logo-sombre) — sans
+            // JavaScript ni scintillement.
+            //
+            // Repli : si une seule variante est configurée, elle sert aux deux
+            // thèmes ; mieux vaut un logo imparfaitement contrasté que pas de
+            // logo du tout.
+            $logoRailClair  = $logoClair !== '' ? param_logo_data_uri('clair')  : ($logoSombre !== '' ? param_logo_data_uri('sombre') : '');
+            $logoRailSombre = $logoSombre !== '' ? param_logo_data_uri('sombre') : $logoRailClair;
+            ?>
+            <?php if ($logoRailClair !== ''): ?>
+                <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-clair">
+                <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-sombre">
+            <?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
             <span class="side-sub">Gestion des salaires</span>
         </div>
         <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
