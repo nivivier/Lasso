@@ -130,6 +130,36 @@ Le data-URI lui-même est conservé — ce n'est pas une coquetterie : le serveu
 développement (`php -S`) n'envoie aucun en-tête de cache, ce qui faisait
 clignoter le texte `alt` à chaque navigation.
 
+### Index : rien à ajouter, le coût est ailleurs
+
+**Mesuré, pas supposé.** Sur les données réelles (plus grosses tables :
+`structures` 2 965 lignes, `structure_contacts` 2 909), les requêtes des écrans
+de liste coûtent entre **0,004 et 0,42 ms**. À cette échelle SQLite parcourt la
+table plus vite qu'il ne consulterait un index : en ajouter n'apporterait rien
+et alourdirait les écritures. `ecritures`, que l'on croyait la plus grosse
+table, n'en compte que 20.
+
+**Le seul coût notable est la recherche unifiée**, et aucun index ne peut l'aider :
+elle filtre sur une expression calculée (`SANS_ACCENTS(texte)`, un rappel PHP
+appelé pour chaque ligne), donc rien d'indexable. Deux pistes ont été mesurées :
+
+| | ms (source la plus grosse) |
+|---|---|
+| rappel PHP `SANS_ACCENTS()` | 1,74 |
+| chaîne de `replace()` natifs | 7,20 |
+
+Le repli d'accents en `replace()` SQL, pourtant en C, est **4× plus lent** : 25
+`replace()` imbriqués réallouent la chaîne entière à chaque étape, là où le
+rappel PHP ne la traverse qu'une fois. L'implémentation en place était donc déjà
+la bonne.
+
+**Ce qui a été corrigé :** chaque source exécutait DEUX requêtes (un `COUNT`
+puis un `SELECT`), soit deux parcours filtrés identiques. Le total vient
+désormais d'un `COUNT(*) OVER ()` calculé dans la même passe — le fenêtrage
+s'applique avant `LIMIT`, le total reste donc celui de l'ensemble filtré.
+Mesuré : **3,40 ms → 1,72 ms** par source, et 7,0 → 4,1 ms sur une recherche
+complète. Les totaux ont été confrontés un à un à un `COUNT` direct.
+
 ### Chargement de tous les fichiers à chaque requête — chantier abandonné
 
 `index.php` charge treize fichiers (~13 700 lignes, 632 Ko) quelle que soit la

@@ -81,8 +81,21 @@
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
     --row-pad: 10px 12px;              /* padding standard des cellules .list */
-    --content-pad: 48px;               /* respiration horizontale standard (.content, .page-head, .module-content-inner…) */
-    --rail-width: 120px;                /* largeur du rail d'icônes (.sidebar) — voir aussi .carte-lieux-wrap et les débordements .page-head-band/.module-content */
+    /* Respiration horizontale (.content, .page-head, .module-content-inner…).
+       clamp() plutôt qu'une constante : à 48px fixes, un portable 13 pouces
+       perdait 96px de largeur utile, et un téléphone en perdait un quart. La
+       valeur suit la fenêtre entre 20 et 48px, sans nouveau point de rupture —
+       les calculs qui s'en servent (débordements pleine largeur de
+       .page-head-band/.module-content) suivent automatiquement, puisqu'ils
+       référencent la variable. */
+    --content-pad: clamp(20px, 3.2vw, 48px);
+    /* Largeur du rail d'icônes (.sidebar) — voir aussi .carte-lieux-wrap et les
+       débordements .page-head-band/.module-content. Fluide pour la même raison
+       que --content-pad ci-dessus ; le plancher de 104px est dicté par les
+       libellés du rail (« Comptabilité », « Tableau de bord »), qui deviennent
+       illisibles en dessous. Sans effet sous 800px : le rail y devient un
+       tiroir de largeur propre (100px, voir la media query en fin de fichier). */
+    --rail-width: clamp(104px, 8.6vw, 120px);
     /* Boîte de button/.btn (voir plus bas) : point de référence unique pour
        tout contrôle qui doit visuellement matcher la hauteur des boutons
        d'action (champ de recherche, toggle Liste/Carte, bouton « Plus de
