@@ -7,13 +7,12 @@ namespace Endroid\QrCode\Writer;
 use Endroid\QrCode\Label\LabelInterface;
 use Endroid\QrCode\Logo\LogoInterface;
 use Endroid\QrCode\QrCodeInterface;
+use Endroid\QrCode\Writer\Result\GdResult;
 use Endroid\QrCode\Writer\Result\PngResult;
 use Endroid\QrCode\Writer\Result\ResultInterface;
 
-final readonly class PngWriter implements WriterInterface, ValidatingWriterInterface
+final readonly class PngWriter extends AbstractGdWriter
 {
-    use GdTrait;
-
     public const WRITER_OPTION_COMPRESSION_LEVEL = 'compression_level';
     public const WRITER_OPTION_NUMBER_OF_COLORS = 'number_of_colors';
 
@@ -31,7 +30,8 @@ final readonly class PngWriter implements WriterInterface, ValidatingWriterInter
             };
         }
 
-        $gdResult = $this->writeGd($qrCode, $logo, $label, $options);
+        /** @var GdResult $gdResult */
+        $gdResult = parent::write($qrCode, $logo, $label, $options);
 
         return new PngResult(
             $gdResult->getMatrix(),

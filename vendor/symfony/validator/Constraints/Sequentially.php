@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Validator\Constraints;
 
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
 
@@ -29,15 +30,45 @@ class Sequentially extends Composite
      * @param Constraint[]|null $constraints An array of validation constraints
      * @param string[]|null     $groups
      */
-    public function __construct(array|Constraint|null $constraints = null, ?array $groups = null, mixed $payload = null)
+    #[HasNamedArguments]
+    public function __construct(mixed $constraints = null, ?array $groups = null, mixed $payload = null)
     {
         if (null === $constraints || [] === $constraints) {
             throw new MissingOptionsException(\sprintf('The options "constraints" must be set for constraint "%s".', self::class), ['constraints']);
         }
 
-        $this->constraints = $constraints;
+        if (!$constraints instanceof Constraint && !\is_array($constraints) || \is_array($constraints) && !array_is_list($constraints)) {
+            trigger_deprecation('symfony/validator', '7.3', 'Passing an array of options to configure the "%s" constraint is deprecated, use named arguments instead.', static::class);
+            $options = $constraints;
+        } else {
+            $this->constraints = $constraints;
+        }
 
-        parent::__construct(null, $groups, $payload);
+        parent::__construct($options ?? null, $groups, $payload);
+    }
+
+    /**
+     * @deprecated since Symfony 7.4
+     */
+    public function getDefaultOption(): ?string
+    {
+        if (0 === \func_num_args() || func_get_arg(0)) {
+            trigger_deprecation('symfony/validator', '7.4', 'The %s() method is deprecated.', __METHOD__);
+        }
+
+        return 'constraints';
+    }
+
+    /**
+     * @deprecated since Symfony 7.4
+     */
+    public function getRequiredOptions(): array
+    {
+        if (0 === \func_num_args() || func_get_arg(0)) {
+            trigger_deprecation('symfony/validator', '7.4', 'The %s() method is deprecated.', __METHOD__);
+        }
+
+        return ['constraints'];
     }
 
     protected function getCompositeOption(): string

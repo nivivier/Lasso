@@ -11,8 +11,9 @@
 
 namespace Symfony\Component\Validator\Constraints;
 
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\Exception\InvalidArgumentException;
+use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
 
 /**
  * Extend this class to create a reusable set of constraints.
@@ -24,13 +25,14 @@ abstract class Compound extends Composite
     /** @var Constraint[] */
     public array $constraints = [];
 
+    #[HasNamedArguments]
     public function __construct(mixed $options = null, ?array $groups = null, mixed $payload = null)
     {
-        if (null !== $options) {
-            throw new InvalidArgumentException(\sprintf('Passing an array of options to configure the "%s" constraint is no longer supported.', static::class));
+        if (isset($options[$this->getCompositeOption()])) {
+            throw new ConstraintDefinitionException(\sprintf('You can\'t redefine the "%s" option. Use the "%s::getConstraints()" method instead.', $this->getCompositeOption(), __CLASS__));
         }
 
-        $this->constraints = $this->getConstraints([]);
+        $this->constraints = $this->getConstraints($this->normalizeOptions($options));
 
         if (null !== $groups) {
             // reset nested groups so that Composite::__construct() does not run its subset check

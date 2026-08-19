@@ -11,8 +11,6 @@
 
 namespace Symfony\Component\Validator\Constraints;
 
-use Symfony\Component\Clock\ClockInterface;
-use Symfony\Component\Clock\DatePoint;
 use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\PropertyAccess\Exception\UninitializedPropertyException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -27,10 +25,8 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
  */
 class RangeValidator extends ConstraintValidator
 {
-    public function __construct(
-        private ?PropertyAccessorInterface $propertyAccessor = null,
-        private ?ClockInterface $clock = null,
-    ) {
+    public function __construct(private ?PropertyAccessorInterface $propertyAccessor = null)
+    {
     }
 
     public function validate(mixed $value, Constraint $constraint): void
@@ -69,7 +65,7 @@ class RangeValidator extends ConstraintValidator
         if ($value instanceof \DateTimeInterface) {
             if (\is_string($min)) {
                 try {
-                    $min = $this->clock ? $value::createFromInterface(new DatePoint($min, null, $this->clock->now())) : new $value($min);
+                    $min = new $value($min);
                 } catch (\Exception) {
                     throw new ConstraintDefinitionException(\sprintf('The min value "%s" could not be converted to a "%s" instance in the "%s" constraint.', $min, get_debug_type($value), get_debug_type($constraint)));
                 }
@@ -77,7 +73,7 @@ class RangeValidator extends ConstraintValidator
 
             if (\is_string($max)) {
                 try {
-                    $max = $this->clock ? $value::createFromInterface(new DatePoint($max, null, $this->clock->now())) : new $value($max);
+                    $max = new $value($max);
                 } catch (\Exception) {
                     throw new ConstraintDefinitionException(\sprintf('The max value "%s" could not be converted to a "%s" instance in the "%s" constraint.', $max, get_debug_type($value), get_debug_type($constraint)));
                 }

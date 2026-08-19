@@ -7,13 +7,12 @@ namespace Endroid\QrCode\Writer;
 use Endroid\QrCode\Label\LabelInterface;
 use Endroid\QrCode\Logo\LogoInterface;
 use Endroid\QrCode\QrCodeInterface;
+use Endroid\QrCode\Writer\Result\GdResult;
 use Endroid\QrCode\Writer\Result\ResultInterface;
 use Endroid\QrCode\Writer\Result\WebPResult;
 
-final readonly class WebPWriter implements WriterInterface, ValidatingWriterInterface
+final readonly class WebPWriter extends AbstractGdWriter
 {
-    use GdTrait;
-
     public const WRITER_OPTION_QUALITY = 'quality';
 
     public function write(QrCodeInterface $qrCode, ?LogoInterface $logo = null, ?LabelInterface $label = null, array $options = []): ResultInterface
@@ -22,7 +21,8 @@ final readonly class WebPWriter implements WriterInterface, ValidatingWriterInte
             $options[self::WRITER_OPTION_QUALITY] = -1;
         }
 
-        $gdResult = $this->writeGd($qrCode, $logo, $label, $options);
+        /** @var GdResult $gdResult */
+        $gdResult = parent::write($qrCode, $logo, $label, $options);
 
         return new WebPResult($gdResult->getMatrix(), $gdResult->getImage(), $options[self::WRITER_OPTION_QUALITY]);
     }

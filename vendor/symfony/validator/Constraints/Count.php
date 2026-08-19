@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Validator\Constraints;
 
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
 
@@ -43,14 +44,16 @@ class Count extends Constraint
     public ?int $divisibleBy = null;
 
     /**
-     * @param int<0, max>|null  $exactly     The exact expected number of elements
-     * @param int<0, max>|null  $min         Minimum expected number of elements
-     * @param int<0, max>|null  $max         Maximum expected number of elements
-     * @param positive-int|null $divisibleBy The number the collection count should be divisible by
-     * @param string[]|null     $groups
+     * @param int<0, max>|null         $exactly     The exact expected number of elements
+     * @param int<0, max>|null         $min         Minimum expected number of elements
+     * @param int<0, max>|null         $max         Maximum expected number of elements
+     * @param positive-int|null        $divisibleBy The number the collection count should be divisible by
+     * @param string[]|null            $groups
+     * @param array<mixed,string>|null $options
      */
+    #[HasNamedArguments]
     public function __construct(
-        ?int $exactly = null,
+        int|array|null $exactly = null,
         ?int $min = null,
         ?int $max = null,
         ?int $divisibleBy = null,
@@ -60,16 +63,31 @@ class Count extends Constraint
         ?string $divisibleByMessage = null,
         ?array $groups = null,
         mixed $payload = null,
+        ?array $options = null,
     ) {
+        if (\is_array($exactly)) {
+            trigger_deprecation('symfony/validator', '7.3', 'Passing an array of options to configure the "%s" constraint is deprecated, use named arguments instead.', static::class);
+
+            $options = array_merge($exactly, $options ?? []);
+            $exactly = $options['value'] ?? null;
+        } elseif (\is_array($options)) {
+            trigger_deprecation('symfony/validator', '7.3', 'Passing an array of options to configure the "%s" constraint is deprecated, use named arguments instead.', static::class);
+        }
+
+        $min ??= $options['min'] ?? null;
+        $max ??= $options['max'] ?? null;
+
+        unset($options['value'], $options['min'], $options['max']);
+
         if (null !== $exactly && null === $min && null === $max) {
             $min = $max = $exactly;
         }
 
-        parent::__construct(null, $groups, $payload);
+        parent::__construct($options, $groups, $payload);
 
         $this->min = $min;
         $this->max = $max;
-        $this->divisibleBy = $divisibleBy;
+        $this->divisibleBy = $divisibleBy ?? $this->divisibleBy;
         $this->exactMessage = $exactMessage ?? $this->exactMessage;
         $this->minMessage = $minMessage ?? $this->minMessage;
         $this->maxMessage = $maxMessage ?? $this->maxMessage;

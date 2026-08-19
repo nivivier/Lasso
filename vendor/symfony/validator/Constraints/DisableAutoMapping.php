@@ -11,8 +11,9 @@
 
 namespace Symfony\Component\Validator\Constraints;
 
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\Exception\InvalidArgumentException;
+use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
 
 /**
  * Disables auto mapping.
@@ -25,13 +26,18 @@ use Symfony\Component\Validator\Exception\InvalidArgumentException;
 #[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS)]
 class DisableAutoMapping extends Constraint
 {
+    #[HasNamedArguments]
     public function __construct(?array $options = null, mixed $payload = null)
     {
-        if (null !== $options) {
-            throw new InvalidArgumentException(\sprintf('Passing an array of options to configure the "%s" constraint is no longer supported.', static::class));
+        if (\is_array($options)) {
+            trigger_deprecation('symfony/validator', '7.3', 'Passing an array of options to configure the "%s" constraint is deprecated, use named arguments instead.', static::class);
         }
 
-        parent::__construct(null, null, $payload);
+        if (\is_array($options) && \array_key_exists('groups', $options)) {
+            throw new ConstraintDefinitionException(\sprintf('The option "groups" is not supported by the constraint "%s".', __CLASS__));
+        }
+
+        parent::__construct($options, null, $payload);
     }
 
     public function getTargets(): string|array

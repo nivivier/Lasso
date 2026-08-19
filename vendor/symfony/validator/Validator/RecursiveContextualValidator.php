@@ -17,7 +17,6 @@ use Symfony\Component\Validator\Constraints\Composite;
 use Symfony\Component\Validator\Constraints\Existence;
 use Symfony\Component\Validator\Constraints\GroupSequence;
 use Symfony\Component\Validator\Constraints\Valid;
-use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\ConstraintValidatorFactoryInterface;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Context\ExecutionContext;
@@ -62,7 +61,6 @@ class RecursiveContextualValidator implements ContextualValidatorInterface
         private ConstraintValidatorFactoryInterface $validatorFactory,
         private array $objectInitializers = [],
         private ?ContainerInterface $groupProviderLocator = null,
-        private bool $propertyMetadataExistenceCheck = false,
     ) {
         $this->defaultPropertyPath = $context->getPropertyPath();
         $this->defaultGroups = [$context->getGroup() ?: Constraint::DEFAULT_GROUP];
@@ -169,10 +167,6 @@ class RecursiveContextualValidator implements ContextualValidatorInterface
         }
 
         $propertyMetadatas = $classMetadata->getPropertyMetadata($propertyName);
-
-        if ($this->propertyMetadataExistenceCheck && !$propertyMetadatas) {
-            throw new ValidatorException(\sprintf('The property "%s" does not exist in class "%s".', $propertyName, $classMetadata->getClassName()));
-        }
         $groups = $groups ? $this->normalizeGroups($groups) : $this->defaultGroups;
         $cacheKey = $this->generateCacheKey($object);
         $propertyPath = PropertyPath::append($this->defaultPropertyPath, $propertyName);
@@ -214,10 +208,6 @@ class RecursiveContextualValidator implements ContextualValidatorInterface
         }
 
         $propertyMetadatas = $classMetadata->getPropertyMetadata($propertyName);
-
-        if ($this->propertyMetadataExistenceCheck && !$propertyMetadatas) {
-            throw new ValidatorException(\sprintf('The property "%s" does not exist in class "%s".', $propertyName, $classMetadata->getClassName()));
-        }
         $groups = $groups ? $this->normalizeGroups($groups) : $this->defaultGroups;
 
         if (\is_object($objectOrClass)) {
@@ -761,22 +751,14 @@ class RecursiveContextualValidator implements ContextualValidatorInterface
             $context->setConstraint($constraint);
 
             $validator = $this->validatorFactory->getInstance($constraint);
-            if (!$validator instanceof ConstraintValidator && !method_exists($validator, 'validateInContext')) {
-                // BC layer for constraint validators not implementing the new API. DebugClassLoader already triggers a deprecation.
-                $validator->initialize($context);
-            }
+            $validator->initialize($context);
 
             if ($value instanceof LazyProperty) {
                 $value = $value->getPropertyValue();
             }
 
             try {
-                if ($validator instanceof ConstraintValidator || method_exists($validator, 'validateInContext')) {
-                    $validator->validateInContext($value, $constraint, $context);
-                } else {
-                    // BC layer for constraint validators not implementing the new API. DebugClassLoader already triggers a deprecation.
-                    $validator->validate($value, $constraint);
-                }
+                $validator->validate($value, $constraint);
             } catch (UnexpectedValueException $e) {
                 $context->buildViolation('This value should be of type {{ type }}.')
                     ->setParameter('{{ type }}', $e->getExpectedType())

@@ -1,11 +1,6 @@
 CHANGELOG
 =========
 
-8.0
----
-
- * Remove `Symfony\Component\Intl\Transliterator\EmojiTransliterator`, use `Symfony\Component\Emoji\EmojiTransliterator` instead
-
 7.4
 ---
 

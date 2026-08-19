@@ -3,7 +3,7 @@
     "description": "Module facturation Lasso",
     "type": "project",
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.3",
         "sprain/swiss-qr-bill": "^5.3",
         "tecnickcom/tcpdf": "^6.7"
     },
@@ -13,5 +13,10 @@
             "name": "nivivier",
             "email": "it@nvivier.com"
         }
-    ]
+    ],
+    "config": {
+        "platform": {
+            "php": "8.3.0"
+        }
+    }
 }

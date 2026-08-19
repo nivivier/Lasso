@@ -16,6 +16,15 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
   `vendor/` est **commité dans le dépôt** ; aucune commande Composer n'est
   nécessaire en production (déploiement reste `git pull`). Cette dérogation est
   scopée à ce module (PDF + QR-facture), pas un blanc-seing général.
+  ⚠️ **`config.platform.php` est figé à `8.3.0` dans `composer.json`** : sans ce
+  verrou, Composer résout les dépendances pour la version de PHP de la machine
+  qui lance la commande. Une résolution faite sur PHP 8.5 avait tiré
+  `symfony/intl`/`validator` 8.1 (qui exigent PHP ≥ 8.4.1) dans un `vendor/`
+  commité, rendant le module inutilisable sous 8.4 — invisible en local et en
+  prod (toutes deux en 8.5), mais fatal ailleurs, et l'intégration continue
+  (PHP 8.3) l'a révélé. **Ne jamais lancer `composer update` sans ce verrou** ;
+  pour relever le plancher, changer la valeur sciemment et vérifier la
+  génération d'une QR-facture.
 - **Exception actée** : la vue carte des lieux (module booking) utilise
   **Leaflet** (`assets/vendor/leaflet/`, bundlé dans le dépôt, pas de CDN) avec
   des fonds de carte OpenStreetMap. Géocodage ville+pays via Nominatim (OSM),

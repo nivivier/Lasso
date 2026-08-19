@@ -7,13 +7,6 @@ If you have the zlib extension enabled, you can compress the data by running:
 
     php vendor/symfony/intl/Resources/bin/compress
 
-Sponsor
--------
-
-This package is looking for a [backer][1].
-
-Help Symfony by [sponsoring][3] its development!
-
 Resources
 ---------
 
@@ -22,6 +15,3 @@ Resources
  * [Report issues](https://github.com/symfony/symfony/issues) and
    [send Pull Requests](https://github.com/symfony/symfony/pulls)
    in the [main Symfony repository](https://github.com/symfony/symfony)
-
-[1]: https://symfony.com/backers
-[3]: https://symfony.com/sponsor

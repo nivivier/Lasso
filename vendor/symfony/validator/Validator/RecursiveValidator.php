@@ -40,7 +40,6 @@ class RecursiveValidator implements ValidatorInterface
         protected ConstraintValidatorFactoryInterface $validatorFactory,
         protected array $objectInitializers = [],
         protected ?ContainerInterface $groupProviderLocator = null,
-        protected bool $propertyMetadataExistenceCheck = false,
     ) {
     }
 
@@ -52,7 +51,6 @@ class RecursiveValidator implements ValidatorInterface
             $this->validatorFactory,
             $this->objectInitializers,
             $this->groupProviderLocator,
-            $this->propertyMetadataExistenceCheck,
         );
     }
 
@@ -64,7 +62,6 @@ class RecursiveValidator implements ValidatorInterface
             $this->validatorFactory,
             $this->objectInitializers,
             $this->groupProviderLocator,
-            $this->propertyMetadataExistenceCheck,
         );
     }
 

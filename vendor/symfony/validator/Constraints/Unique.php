@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Validator\Constraints;
 
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 
@@ -40,6 +41,7 @@ class Unique extends Constraint
      * @param string[]|null        $groups
      * @param string[]|string|null $fields Defines the key or keys in the collection that should be checked for uniqueness (defaults to null, which ensure uniqueness for all keys)
      */
+    #[HasNamedArguments]
     public function __construct(
         ?array $options = null,
         ?string $message = null,
@@ -50,16 +52,16 @@ class Unique extends Constraint
         ?string $errorPath = null,
         ?bool $stopOnFirstError = null,
     ) {
-        if (null !== $options) {
-            throw new InvalidArgumentException(\sprintf('Passing an array of options to configure the "%s" constraint is no longer supported.', static::class));
+        if (\is_array($options)) {
+            trigger_deprecation('symfony/validator', '7.3', 'Passing an array of options to configure the "%s" constraint is deprecated, use named arguments instead.', static::class);
         }
 
-        parent::__construct(null, $groups, $payload);
+        parent::__construct($options, $groups, $payload);
 
         $this->message = $message ?? $this->message;
-        $this->normalizer = $normalizer;
+        $this->normalizer = $normalizer ?? $this->normalizer;
         $this->fields = $fields ?? $this->fields;
-        $this->errorPath = $errorPath;
+        $this->errorPath = $errorPath ?? $this->errorPath;
         $this->stopOnFirstError = $stopOnFirstError ?? $this->stopOnFirstError;
 
         if (null !== $this->normalizer && !\is_callable($this->normalizer)) {
