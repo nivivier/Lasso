@@ -10,21 +10,38 @@ mensuelles, tableau de bord, certificat de salaire annuel (formulaire 11 + expor
 XML pour l'application « eCertificat de salaire CSI »), envoi des fiches par e-mail
 (SMTP authentifié, repli sur `mail()`).
 
-Elle inclut aussi un **module de comptabilité** (compta de caisse) : import des
-relevés PostFinance (CSV), lettrage des écritures par catégorie, règles de lettrage
-automatiques, comptabilité analytique par axes, et **comptes annuels** (compte de
-résultat + patrimoine, comparaison pluriannuelle).
+L'application est découpée en **modules activables** (Paramètres → Modules), avec
+des **droits de lecture/écriture par utilisateur et par module** :
 
-**Technologie :** PHP 8 + SQLite. Aucun framework, aucune dépendance externe.
+| Module | Contenu |
+|--------|---------|
+| **Fiches de salaire** | employés, fiches mensuelles, certificats, taux |
+| **Comptabilité** | relevés PostFinance (CSV), plan comptable, lettrage, comptes annuels |
+| **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
+| **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
+| **Événements** | dates, spectacles, déclarations SUISA, exports JSON/iCal |
+| **Booking** | structures, contacts, étiquettes, lieux (carte), mailing |
+
+Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
+montrant que ce que le compte a le droit de lire.
+
+**Technologie :** PHP 8.3+ et SQLite, sans framework ni étape de compilation.
+Trois dépendances seulement, **toutes embarquées dans le dépôt** (jamais de CDN) :
+`sprain/swiss-qr-bill` et `tecnickcom/tcpdf` pour la QR-facture (dossier `vendor/`,
+commité), **Leaflet** pour la carte des lieux (`assets/vendor/leaflet/`) et la police
+Inter (`assets/fonts/`).
 
 ---
 
 ## 1. Prérequis
 
-- Un hébergement avec **PHP 8.1 ou plus** et l'extension **PDO SQLite**
-  (souvent natifs sur un hébergement mutualisé).
+- Un hébergement avec **PHP 8.3 ou plus** et l'extension **PDO SQLite**
+  (souvent natifs sur un hébergement mutualisé). Ce plancher est celui des
+  dépendances de la QR-facture : il est verrouillé par `config.platform.php`
+  dans `composer.json`, pour que `vendor/` reste installable partout.
 - Pour le déploiement recommandé : **accès SSH** et **git** sur l'hébergement.
-- Pas de MySQL, pas de Composer, pas de Node.
+- Pas de MySQL, pas de Node. **Aucune commande Composer n'est nécessaire** :
+  `vendor/` est commité dans le dépôt.
 
 ---
 
@@ -50,10 +67,10 @@ define('SETUP_SECRET', '<longue valeur aléatoire>');        // protège l'écra
 
 | Constante | Rôle | Défaut |
 |-----------|------|--------|
-| `APP_ENV` | `prod` : erreurs masquées, e-mails envoyés, HTTPS forcé. `dev` : erreurs affichées, e-mails journalisés. | détecté via le nom d'hôte |
+| `APP_ENV` | `prod` : erreurs masquées, e-mails envoyés, HTTPS forcé. `dev` : erreurs affichées, e-mails journalisés. | variable serveur `APP_ENV`, sinon `dev` en ligne de commande et sous `php -S`, sinon **`prod`** |
 | `APP_DB_PATH` | Chemin absolu du fichier SQLite. **À placer hors de la racine web.** | `data/database.sqlite` |
 | `FORCE_HTTPS` | Redirection 301 vers HTTPS + en-tête HSTS. | `true` en prod |
-| `SETUP_SECRET` | Si défini, l'écran de création du 1ᵉʳ compte exige `?p=setup&key=<secret>`. | vide (désactivé) |
+| `SETUP_SECRET` | L'écran de création du 1ᵉʳ compte exige `?p=setup&key=<secret>`. **En production, son absence bloque l'installation** (réponse 503 explicite) plutôt que de laisser l'écran ouvert. | vide — obligatoire en `prod` |
 
 **Envoi d'e-mails (SMTP)** — beaucoup d'hébergements mutualisés désactivent `mail()`.
 Le serveur d'envoi se règle de préférence dans **Paramètres → E-mails** (stocké en
@@ -91,7 +108,7 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    - Si vous avez transféré votre base, le compte existe déjà → allez directement
      sur la page de connexion.
    - Sinon, ouvrez **`https://votre-domaine/?p=setup&key=<SETUP_SECRET>`** et créez
-     le compte (e-mail + mot de passe d'au moins 12 caractères).
+     le compte (e-mail + mot de passe d'au moins 8 caractères, `PASSWORD_MIN`).
 
 ---
 
@@ -140,12 +157,26 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    (CSV), lettrez les écritures (catégorie du plan comptable), définissez des règles
    de lettrage automatiques, ventilez par axes analytiques, et consultez les
    **comptes annuels** (résultat + patrimoine).
-7. **Paramètres → Importer** : import de fiches de salaire depuis un fichier JSON
-   (correspondance par n° AVS ; les fiches déjà présentes sont ignorées, jamais
-   écrasées). Bouton « Simuler » pour prévisualiser sans rien enregistrer.
+7. **Facturation** : débiteurs, factures avec **zone de paiement QR suisse**
+   conforme (PDF), envoi par e-mail et relances. L'IBAN créancier vient du compte
+   bancaire, partagé avec la comptabilité.
+8. **Événements** : dates de tournée, spectacles (un artiste peut regrouper des
+   sous-spectacles), suivi des déclarations **SUISA**, et **exports publics
+   JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda externe.
+9. **Booking** : structures et contacts, étiquettes, lieux géocodés sur une carte,
+   campagnes de **mailing** avec désinscription.
+10. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
+    employés, structures, contacts, factures, événements et spectacles. Plusieurs
+    mots se cumulent, les accents sont ignorés.
+11. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
+    déjà présentes sont ignorées, jamais écrasées), écritures comptables, structures
+    et agendas de tournée (CSV). Chaque import a un bouton « Simuler » qui
+    prévisualise sans rien enregistrer.
 
-Les comptes utilisateurs se gèrent dans **Paramètres → Comptes** (création,
-réinitialisation de mot de passe, suppression).
+Les comptes se gèrent dans **Paramètres → Comptes**. Chacun reçoit des droits de
+**lecture ou écriture, module par module** ; un nouveau compte démarre **sans aucun
+droit**, et il doit toujours rester au moins un administrateur. Les modules eux-mêmes
+s'activent dans **Paramètres → Modules**, indépendamment de ces droits.
 
 ### Les taux
 
@@ -183,16 +214,24 @@ ou copiez directement le fichier par SFTP. À conserver régulièrement en lieu 
 
 ## 7. Sécurité
 
-- Mots de passe **hachés** (bcrypt, coût 12) ; minimum 12 caractères.
-- **Anti-force-brute** : blocage temporaire après 5 échecs par IP sur 15 minutes.
-- **Sessions** : expiration après 30 min d'inactivité et 12 h de durée de vie max ;
-  cookie `HttpOnly` + `SameSite=Lax` + `Secure` en HTTPS.
+- Mots de passe **hachés** (bcrypt, coût 12) ; minimum 8 caractères (`PASSWORD_MIN`).
+- **Anti-force-brute** : blocage temporaire après 5 échecs sur 15 minutes, compté
+  **par adresse IP et par e-mail** — sinon un attaquant changeant d'IP visait un
+  même compte sans jamais être freiné.
+- **Sessions** : expiration après 60 min d'inactivité et 24 h de durée de vie max
+  (`SESSION_IDLE` / `SESSION_ABSOLUTE`) ; cookie `HttpOnly` + `SameSite=Lax` +
+  `Secure` en HTTPS.
 - **CSRF** sur tous les formulaires.
 - **HTTPS forcé** + en-tête HSTS ; en-têtes de sécurité (CSP, X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy).
 - **Écran d'installation** protégé par `SETUP_SECRET`.
-- **Base de données hors racine web** (via `APP_DB_PATH`) ; `data/`, `lib/`,
-  `uploads/` (scripts) et les `.sqlite` bloqués en accès direct par `.htaccess`.
+- **Base de données hors racine web** (via `APP_DB_PATH`). En complément,
+  `.htaccess` refuse l'accès direct : `data/` et `lib/` en entier, l'exécution de
+  tout script dans `uploads/`, les fichiers `.sqlite`/`.log`/`.bak`/`.md`, les
+  fichiers commençant par un point, ainsi que `composer.json`/`.lock` et
+  `config.local.php`. Le `data/.htaccess` est versionné **et** recréé par
+  l'application s'il manque, pour qu'un déploiement partiel ne laisse pas la base
+  exposée.
 - Uploads de logos validés (type image réel, 2 Mo max).
 
 > Les données employés (`data/`), les logos (`uploads/`) et la config locale
@@ -210,10 +249,11 @@ Puis ouvrez http://127.0.0.1:8000. Sans `lib/config.local.php`, l'environnement 
 détecté comme **dev** (erreurs affichées, e-mails journalisés dans
 `data/emails_envoyes.log` au lieu d'être envoyés).
 
-Lancer les tests de calcul :
+Lancer l'analyse syntaxique de tout le projet **et** toute la suite de tests
+(c'est la commande de l'intégration continue ; code de sortie ≠ 0 au moindre échec) :
 
 ```bash
-php tests/calc_test.php
+php tests/run.php
 ```
 
 > Le serveur intégré de PHP ne lit pas les `.htaccess` : en local, les dossiers
