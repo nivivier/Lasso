@@ -204,6 +204,20 @@ le tableau de bord.
 
 ---
 
+### Apparence
+
+L'interface suit le **thème clair ou sombre du système** (`prefers-color-scheme`) —
+il n'y a pas de réglage à activer. Les couleurs principale et de mise en évidence
+restent celles de **Paramètres → Employeur** : leurs variantes sombres en sont
+dérivées automatiquement.
+
+Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
+tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une
+couleur de fond en dur dans une règle produit un aplat clair au milieu d'une page
+sombre — `php tests/run.php` le refuse.
+
+---
+
 ## 6. Sauvegarde
 
 Toutes les données tiennent dans **un seul fichier SQLite** (`APP_DB_PATH`).

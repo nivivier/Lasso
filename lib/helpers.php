@@ -975,6 +975,38 @@ if ($l > 75) {
         'primary_rgb'  => implode(' ', $rgb),
         'brand'        => hsl_vers_hex($h, min($s + 10, 78), 20),
         'brand_2'      => hsl_vers_hex($h, min($s + 8, 78), 35),
+
+        // Variantes pour le mode sombre. Ces quatre valeurs ne peuvent pas être
+        // écrites dans assets/app.css : elles dérivent d'une couleur choisie en
+        // base (Paramètres → Employeur), et le bloc <style> qui les injecte est
+        // émis APRÈS la feuille de style — il l'emporterait donc sur toute
+        // media query qui s'y trouverait.
+        //
+        // Les teintes (L=95, quasi blanches) servent de FOND aux éléments
+        // actifs : sur sombre elles doivent devenir des fonds sourds, pas des
+        // aplats lumineux. --brand, à l'inverse, sert de couleur de TEXTE et de
+        // fond de barre : assombri en clair (L=20), il doit s'éclaircir.
+        'primary_tint_sombre' => hsl_vers_hex($h, min($s, 45), 22),
+        'brand_sombre'        => hsl_vers_hex($h, min($s + 10, 78), 82),
+        'brand_2_sombre'      => hsl_vers_hex($h, min($s + 8, 78), 68),
+        // Une couleur d'accent très sombre disparaît sur fond sombre : on lui
+        // impose un plancher de luminosité, sans toucher à sa teinte.
+        //
+        // Plancher à 50 et non plus haut : l'accent sert de FOND à des boutons
+        // dont le texte est blanc. Trop éclairci, il satisfait le contraste avec
+        // la page mais ruine celui du texte — mesuré à 3,7:1 avec un plancher à
+        // 62, sous le seuil de 4,5. Un ton moyen tient les deux contraintes,
+        // le fond de page étant lui très sombre.
+        'primary_sombre'      => hsl_vers_hex($h, $s, max($l, 50)),
+        // La variante « -d » sert au SURVOL. En clair elle assombrit ; sur fond
+        // sombre il faut l'inverse, sinon le survol s'enfonce dans le fond — et
+        // le texte des badges, qui l'utilise, devenait illisible.
+        // Sur seize règles qui l'utilisent, quatorze s'en servent comme COULEUR
+        // DE TEXTE sur une teinte (badges, onglets actifs, liens survolés) et
+        // deux seulement comme fond de survol. On l'oriente donc vers l'usage
+        // dominant : clair, pour être lisible sur les teintes sombres. Les deux
+        // fonds de survol sont traités à part dans le bloc sombre d'app.css.
+        'primary_d_sombre'    => hsl_vers_hex($h, min($s + 15, 95), 78),
     ];
 }
 
@@ -1019,13 +1051,25 @@ function couleurs_css_vars(): string
     // couleur principale de l'employeur telle quelle, indépendamment du module
     // consulté — l'icône du tableau de bord (views/layout.php), qui n'appartient
     // à aucun module et doit rester un repère de teinte constante.
-    return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
+    // Bloc clair, puis surcharge sombre. L'ordre compte : la media query vient
+    // après, elle l'emporte donc à spécificité égale quand elle s'applique.
+    $clair = ':root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
         . ';--primary-base:' . $c['primary']
         . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
         . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
-        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}'
-        . $styleFond . '</style>';
+        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}';
+
+    $sombre = '@media (prefers-color-scheme: dark){:root{'
+        . '--primary:' . $c['primary_sombre'] . ';--primary-base:' . $c['primary_sombre']
+        . ';--primary-d:' . $c['primary_d_sombre']
+        . ';--primary-tint:' . $c['primary_tint_sombre']
+        . ';--brand:' . $c['brand_sombre'] . ';--brand-2:' . $c['brand_2_sombre']
+        . ';--highlight:' . $h['primary_sombre'] . ';--highlight-d:' . $h['primary_d_sombre']
+        . ';--highlight-tint:' . $h['primary_tint_sombre']
+        . ';}}';
+
+    return '<style>' . $clair . $sombre . $styleFond . '</style>';
 }
 
 // Bloc <style> qui surcharge --primary*/--brand* (voir couleurs_css_vars()
@@ -1047,9 +1091,17 @@ function module_couleur_css_vars(?string $module): string
         return '';
     }
     $c = couleurs_derivees(MODULE_COULEURS[$module]);
+    // Même dédoublement clair/sombre que couleurs_css_vars() : sans lui, la
+    // couleur du module réintroduirait une teinte quasi blanche en fond des
+    // éléments actifs sur un thème sombre.
     return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
         . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
-        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}</style>';
+        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}'
+        . '@media (prefers-color-scheme: dark){:root{'
+        . '--primary:' . $c['primary_sombre'] . ';--primary-d:' . $c['primary_d_sombre']
+        . ';--primary-tint:' . $c['primary_tint_sombre']
+        . ';--brand:' . $c['brand_sombre'] . ';--brand-2:' . $c['brand_2_sombre'] . ';}}'
+        . '</style>';
 }
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées

@@ -67,6 +67,18 @@
     --danger-d: #c63b31;    /* survol des boutons danger (même convention -d que --highlight-d, --primary-d…) */
     --danger-tint: #fdecea;
     --ok: #0c9486;
+    /* Fond des lignes « non lettrées » (compta) : le seul fond de ligne
+       qui ne soit pas neutre, d'où son propre token — il doit s'assombrir
+       comme les autres. */
+    --row-attention: #fffaf2;
+    /* Fonds de ligne propres au lettrage comptable, et « verre » translucide
+       des cartes du tableau de bord : autant de surfaces claires qui doivent
+       s'inverser en mode sombre. */
+    --row-manuelle: #f9f8ff;
+    --row-ignore: #fafafa;
+    --row-ignore-hover: #f3f3f6;
+    --glass: rgba(255, 255, 255, .50);
+    --glass-hover: rgba(255, 255, 255, .4);
     
 	/* ---------------- Tailles ---------------- */
     
@@ -185,6 +197,83 @@ h1 {background: linear-gradient(150deg, var(--brand), var(--brand-2) 30%);
    un h1 (badge, span .muted, etc.) hérite du "transparent" du dégradé et
    devient invisible (texte présent, sélectionnable, mais non affiché). */
 h1 * { -webkit-text-fill-color: currentColor; }
+
+/* ============================================================================
+   Mode sombre — voir docs/DECISIONS.md § Mode sombre
+
+   Seuls les TOKENS sont redéfinis ici : aucun composant n'est retouché, puisque
+   tous lisent déjà la palette. C'est ce qui rend ce bloc court malgré l'ampleur
+   du changement, et c'est aussi pourquoi il ne faut jamais écrire une couleur
+   en dur dans une règle de composant.
+
+   Ne dépend d'aucune préférence stockée : `prefers-color-scheme` suit le
+   réglage du système. Les couleurs d'accent (--primary, --highlight) viennent
+   des réglages Employeur et sont injectées par couleurs_css_vars() APRÈS cette
+   feuille — leurs variantes sombres sont donc produites côté PHP, pas ici.
+
+   Les surfaces d'impression (.sheet, body.print-page) restent blanches : on
+   imprime sur du papier.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Fonds : le rail et les cartes se détachent du fond de page, comme en
+           clair, mais par une surface PLUS claire que le fond — l'inverse de
+           l'ombre portée, qui ne se voit plus sur sombre. */
+        --bg: #14131c;
+        --card: #1c1b26;
+        --ink: #e9e8f0;
+        --muted: #9d9bad;
+        --line: #2e2c3b;
+
+        /* Teintes de statut : les pastels clairs deviennent des fonds sourds,
+           et les couleurs de trait sont remontées en luminosité pour rester
+           lisibles sur fond sombre. */
+        --teal: #2fd0ba;
+        --teal-d: #24a894;
+        --teal-tint: #12312e;
+        --amber: #e0a745;
+        --amber-tint: #33260f;
+        --orange: #f0743f;
+        --orange-tint: #3a1e11;
+        --danger: #f2685c;
+        --danger-d: #d9503f;
+        --danger-tint: #3a1c1a;
+        --ok: #2fd0ba;
+        --row-attention: #2a2417;
+        --row-manuelle: #1f1d2c;
+        --row-ignore: #191823;
+        --row-ignore-hover: #21202c;
+        /* Le « verre » devient un voile clair très faible : sur fond sombre,
+           un blanc à 50 % produirait un aplat laiteux. */
+        --glass: rgba(255, 255, 255, .05);
+        --glass-hover: rgba(255, 255, 255, .08);
+
+        /* Ombres : sur fond sombre une ombre teintée de violet ne se voit pas.
+           On garde un halo noir, plus dense, pour conserver le relief. */
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 20px rgba(0,0,0,.45);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.4);
+
+        /* Surface légèrement détachée de --card (en-têtes de tableau, pastille
+           du compte, fonds de survol). En clair elle est un peu plus SOMBRE que
+           la carte ; en sombre, un peu plus CLAIRE — sinon l'en-tête de tableau
+           reste un bandeau blanc au milieu d'une page sombre. */
+        --surface: #23212e;
+
+        /* Replis avant injection PHP. couleurs_css_vars() écrase ces quatre
+           valeurs (et leurs variantes sombres) dès que <head> est écrit ; elles
+           ne servent qu'aux pages rendues sans cette injection. Les variantes
+           « -d » s'ÉCLAIRCISSENT ici : un survol doit se rapprocher de la
+           lumière sur fond sombre, pas s'en éloigner. */
+        --primary: #9b83ff;
+        --primary-base: #9b83ff;
+        --primary-d: #b6a4ff;
+        --primary-tint: #262046;
+        --highlight: #6f9bff;
+        --highlight-d: #93b5ff;
+        --highlight-tint: #1b2547;
+        --brand: #c9bcff;
+    }
+}
 
 /* =================== Sidebar layout =================== */
 body.has-sidebar { display: flex; min-height: 100vh; }
@@ -368,7 +457,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-toggle { display: inline-flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .perm-btn {
     display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
-    background: #fff; border: none; border-bottom: 1px solid var(--line); border-radius: 0; color: var(--muted);
+    background: var(--card); border: none; border-bottom: 1px solid var(--line); border-radius: 0; color: var(--muted);
     cursor: pointer; font-weight: 700; padding: 0; box-shadow: none;
 }
 .perm-btn:last-child { border-bottom: none; }
@@ -417,7 +506,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    réutilisé par l'en-tête flottant de la carte « Localisation »
    (?p=evenement, cf. plus bas). */
 .page-head-band,
-.blur-glass { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.blur-glass { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: var(--rail-width); z-index: 1; }
 .carte-lieux { width: 100%; height: 100%; }
 .carte-banner {
@@ -569,7 +658,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-cog:hover { background: var(--line); color: var(--ink); }
 .side-cog.on { background: var(--primary-tint); color: var(--primary); }
 .side-cog:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: #fff; border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
+.side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: var(--card); border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
 .side-avatar-id { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
 .side-avatar-id strong { display: block; font-size: var(--fs-basic); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-avatar-id span { font-size: var(--fs-small); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -815,7 +904,7 @@ body.auth-bg, body.has-sidebar {
    ci-dessus — espace toolbar/tableau supprimé par erreur une première fois
    pour cette raison). Idem padding-top/left/right seulement. */
 .toolbar-opaque {
-    background: #fff;
+    background: var(--card);
     margin-top: -24px; margin-left: calc(-1 * var(--content-pad)); margin-right: calc(-1 * var(--content-pad));
     padding-top: 24px; padding-left: var(--content-pad); padding-right: var(--content-pad);
 }
@@ -898,12 +987,12 @@ body.auth-bg, body.has-sidebar {
     transition: color .12s, background .12s, border-color .12s;
 }
 .module-tab svg { width: 14px; height: 14px; stroke: currentColor; opacity: .55; transition: opacity .12s; }
-.module-tab:hover { color: var(--ink); background: rgba(255,255,255,.4); text-decoration: none; }
+.module-tab:hover { color: var(--ink); background: var(--glass-hover); text-decoration: none; }
 .module-tab.on { color: var(--ink); background: var(--card); border-color: var(--line) var(--line) transparent var(--line); }
 .module-tab.on:hover { background: var(--card); }
 .module-tab.on svg { opacity: 1; color: var(--primary); }
 .module-tab .nav-badge { position: static; }
-.inline-year-select { font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; }
+.inline-year-select { font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); cursor: pointer; }
 .inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Sélecteur d'année à côté du titre (Événements, Écritures, etc.) : même
    hauteur que les .btn.ghost.btn-sm du bandeau (ex. « Export SUISA »). */
@@ -914,7 +1003,7 @@ body.auth-bg, body.has-sidebar {
    plus haut écrasent le chevron global défini sur le sélecteur `select`). */
 select.inline-year-select {
     padding-right: 26px;
-    background-color: #fff;
+    background-color: var(--card);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 7px center; background-size: 13px;
 }
@@ -1035,7 +1124,7 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
        2px de bordure manquants — d'où le -2 * var(--btn-border-w) : sans lui,
        le toggle Liste/Carte serait 2px plus haut que ses boutons voisins. */
     height: calc(var(--action-height) - 2 * var(--btn-border-w));
-    margin: 0; background: #fff; border: none; border-right: 1px solid var(--line); color: var(--muted);
+    margin: 0; background: var(--card); border: none; border-right: 1px solid var(--line); color: var(--muted);
     cursor: pointer; transition: background .15s, color .15s; text-decoration: none; box-shadow: none; border-radius: 0;
 }
 .seg-btn:last-child { border-right: none; }
@@ -1051,7 +1140,7 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
    appearance:none, qui les rend invisibles/inertes. */
 input:not([type="checkbox"]):not([type="radio"]), select, textarea {
     font: inherit; font-size: var(--fs-basic); color: var(--ink); width: 100%;
-    padding: 10px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff;
+    padding: 10px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card);
     transition: border-color .15s, box-shadow .15s;
 }
 input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
@@ -1072,7 +1161,7 @@ select:disabled { cursor: not-allowed; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
 .row-cat-input { font: inherit; font-size: var(--fs-basic); color: var(--ink); width: 100%; min-width: 140px;
-    padding: 4px 8px !important ; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff;
+    padding: 4px 8px !important ; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
     cursor: pointer; transition: border-color .15s, box-shadow .15s;}
 .row-cat-input::placeholder { color: var(--muted); }
 .row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; }
@@ -1098,7 +1187,7 @@ select:disabled { cursor: not-allowed; }
 /* Champ cat-search « pleine boîte » (barre groupée + recherche de facture liée) :
    même style, une seule déclaration. */
 .bulk-cat-search .cat-search-input,
-.facture-search .cat-search-input { font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.facture-search .cat-search-input { font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
 .bulk-cat-search .cat-search-input:focus,
 .facture-search .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Ouvre vers le haut (barre fixée en bas de l'écran) */
@@ -1133,7 +1222,7 @@ select:disabled { cursor: not-allowed; }
 /* Panneau de ventilation multi-axe (flottant, positionné par JS) */
 .axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 300px; }
 .axe-panel-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
-.axe-panel-row .vent-axe { flex: 1; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.axe-panel-row .vent-axe { flex: 1; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
 .axe-panel-row .vent-mont { width: 90px; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: right; }
 .axe-panel-row .vent-axe:focus,
 .axe-panel-row .vent-mont:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
@@ -1220,7 +1309,7 @@ input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: var(-
 .ecr-manuel-form { margin-bottom: 16px; }
 .ecr-manuel-form h3.form-subtitle { margin: 0 0 16px; font-size: var(--fs-large); font-weight: 700; }
 /* Ligne écriture manuelle : légère teinte pour la distinguer des imports */
-.compta-lettrage tr.ecr-manuelle td { background: #f9f8ff; }
+.compta-lettrage tr.ecr-manuelle td { background: var(--row-manuelle); }
 /* Survol des lignes : même teinte calculée (dérivée de la couleur de marque)
    que .row-link:hover ailleurs (tableau de bord, listes…), pas une couleur
    fixe indépendante du thème. */
@@ -1282,7 +1371,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    bandeau flottant de la vue carte d'evenements_liste) plutôt qu'un fond
    blanc plein : cohérent avec le reste de l'appli quand un fond d'écran est
    actif, et transparent par-dessus la couleur unie par défaut. */
-.dash-card { background: rgba(255, 255, 255, .50); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.dash-card { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 /* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
    émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
    padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même
@@ -1308,7 +1397,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 
 /* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
 .pct-input { display: flex; align-items: stretch; max-width: 150px; border: 1px solid var(--line);
-    border-radius: var(--radius-sm); background: #fff; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+    border-radius: var(--radius-sm); background: var(--card); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
 .pct-input:focus-within { border-color: var(--primary); box-shadow: var(--focus-ring); }
 .form .pct-input input { border: none; border-radius: 0; background: transparent; text-align: right;
     font-variant-numeric: tabular-nums; padding-right: 6px; }
@@ -1348,7 +1437,7 @@ button, .btn {
 }
 button:hover, .btn:hover { background: var(--highlight-d); border-color: var(--highlight-d); text-decoration: none; }
 button:active, .btn:active { transform: translateY(1px); }
-.btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); font-weight: 500; box-shadow: none; }
+.btn.ghost { background: var(--card); color: var(--ink); border-color: var(--line); font-weight: 500; box-shadow: none; }
 .btn.ghost:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .btn.danger { background: var(--danger); border-color: var(--danger); }
 .btn.danger:hover { background: var(--danger-d); border-color: var(--danger-d); }
@@ -1477,7 +1566,7 @@ button:active, .btn:active { transform: translateY(1px); }
 .d-inline { display: inline; }
 button:disabled, .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
 button:disabled:hover, .btn:disabled:hover { background: var(--highlight); border-color: var(--highlight); }
-.btn.ghost:disabled:hover { background: #fff; }
+.btn.ghost:disabled:hover { background: var(--card); }
 
 .center { text-align: center; }
 .import-confirm { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -1548,7 +1637,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    items:center recentre le contenu dans la hauteur imposée quoi qu'il arrive. */
 .filters-more summary {
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
-    list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     padding: 9px 11px; height: var(--action-height); transition: background .15s, border-color .15s;
 }
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
@@ -1562,7 +1651,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
     display: none; position: fixed; top: 0; left: 0; z-index: 20;
     width: max-content; max-width: min(640px, calc(100vw - 40px));
     gap: 16px; flex-wrap: wrap;
-    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
     box-shadow: var(--shadow-sm); padding: 16px;
 }
 .filters-more[open] .filters-more-body { display: flex; }
@@ -1576,7 +1665,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .pagination { display: flex; align-items: center; gap: 16px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
 .pagination-taille { display: flex; }
 .pagination-taille label { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: var(--fs-basic); color: var(--muted); }
-.pagination-taille select { font: inherit; font-size: var(--fs-basic); padding: 4px 24px 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff; background-position: right 6px center; background-size: 12px; cursor: pointer; }
+.pagination-taille select { font: inherit; font-size: var(--fs-basic); padding: 4px 24px 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card); background-position: right 6px center; background-size: 12px; cursor: pointer; }
 .pagination-info { font-size: var(--fs-basic); color: var(--muted); }
 .pagination-nav { display: flex; align-items: center; gap: 8px; }
 .pagination-nav [aria-disabled="true"], .pagination-nav button:disabled { opacity: .4; cursor: default; }
@@ -1632,7 +1721,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
        mal placée est visible avant le premier recalcul. */
     position: absolute; top: calc(100% + 4px); left: 0; z-index: 20;
     display: none; flex-direction: column; min-width: 130px; max-width: 200px; gap: 2px;
-    background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     box-shadow: var(--shadow); padding: 6px;
 }
 .col-filter[open] .col-filter-menu { display: flex; }
@@ -1833,7 +1922,7 @@ span + .badge.muted-badge { margin-left: 6px; }
 .card > .section-head:first-child { margin-top: 0; }
 .section-head h2, .section-head h3.sub { margin: 0; }
 .annee-pick { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
-.annee-pick select { width: auto; font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: #fff; }
+.annee-pick select { width: auto; font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card); }
 
 /* =================== Payslip =================== */
 .payslip { max-width: 720px; }
@@ -2031,7 +2120,7 @@ abbr {
 /* Formulaire « Événement lié » : trop étroit pour la ligne select+bouton horizontale par défaut de .linked-add. */
 .facture-aside .linked-add { flex-direction: column; align-items: stretch; gap: 8px; }
 .facture-aside .linked-add select { width: 100%; }
-.facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: var(--fs-basic); background: #fff; }
+.facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: var(--fs-basic); background: var(--card); }
 .facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */
 .ecr-search .cat-search-list { left: auto; right: 0; width: max(100%, 340px); max-width: min(420px, calc(100vw - 32px)); }
@@ -2250,11 +2339,11 @@ abbr {
 
 .compta-lettrage .cat-cell select { margin-bottom: 0; width: 200px; max-width: 200px; padding-top: 5px; padding-bottom: 5px; }
 .compta-lettrage .cat-cell form { margin: 0; }
-.compta-lettrage tr.non-lettre td { background: #fffaf2; }
+.compta-lettrage tr.non-lettre td { background: var(--row-attention); }
 .compta-lettrage tr.non-lettre:hover td { background: var(--amber-tint); }
 /* « Ne pas lettrer » : volontairement exclue → grisée, libellé en italique discret */
-.compta-lettrage tr.ecr-ignore td { background: #fafafa; color: var(--muted); }
-.compta-lettrage tr.ecr-ignore:hover td { background: #f3f3f6; }
+.compta-lettrage tr.ecr-ignore td { background: var(--row-ignore); color: var(--muted); }
+.compta-lettrage tr.ecr-ignore:hover td { background: var(--row-ignore-hover); }
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
 .compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
@@ -2465,3 +2554,39 @@ abbr {
 .recherche-groupe-titre .muted { margin-left: auto; font-weight: 400; }
 .recherche-groupe .list td { padding: var(--row-pad); }
 .recherche-groupe .list tr:last-child td { border-bottom: 0; }
+
+/* ============================================================================
+   Mode sombre — surcharges de COMPOSANTS
+
+   Séparées du bloc de tokens en tête de fichier, et placées ici volontairement :
+   redéfinir un token fonctionne où qu'on soit (il est résolu à l'usage), mais
+   une règle de composant ne l'emporte qu'à partir du moment où elle vient APRÈS
+   celle qu'elle corrige. Placées en tête, ces trois règles étaient silencieusement
+   perdues — le libellé du rail actif restait à 3,6:1.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+
+    /* Les deux seules règles où une variante « -d » sert de FOND de survol.
+       Elle est désormais claire (voir couleurs_derivees()), parce que ses
+       quatorze autres usages en font une couleur de texte : la garder comme
+       fond ici donnerait un aplat clair sous un texte blanc. On éclaircit donc
+       l'accent lui-même, ce qui préserve le contraste du libellé. */
+    button:hover, .btn:hover {
+        background: var(--highlight);
+        border-color: var(--highlight);
+        filter: brightness(1.18);
+    }
+    .col-filter-apply:hover { background: var(--primary); filter: brightness(1.18); }
+
+    /* Couleurs de module (--rail-accent, posé en style inline par
+       views/layout.php d'après MODULE_COULEURS) : elles sont choisies pour un
+       rail clair et plusieurs sont trop sombres pour servir de texte ici — le
+       libellé actif tombait à 3,6:1. On les éclaircit à l'affichage plutôt que
+       de dédoubler la table de couleurs côté PHP : leur identité (la teinte)
+       est préservée, et un module ajouté demain en bénéficie sans rien à
+       déclarer. */
+    .rail-btn.on, .rail-btn.on .rail-label {
+        color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white);
+    }
+    .rail-btn .ico { color: color-mix(in srgb, var(--rail-accent, var(--muted)) 65%, white); }
+}

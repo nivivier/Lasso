@@ -7,6 +7,28 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Ajouté
+- **Mode sombre**, suivant le réglage du système (`prefers-color-scheme`).
+  Seule la palette de tokens est redéfinie : aucun composant n'a été retouché,
+  ce qui suppose qu'aucune couleur de surface ne soit écrite en dur — quinze
+  l'étaient encore et sont devenues des tokens. `tests/theme_test.php` interdit
+  la réapparition d'une surface claire en dur, faute silencieuse par nature :
+  elle ne se voit que si l'on bascule son système.
+
+### Modifié
+- Recherche unifiée : une seule requête par source au lieu de deux (le total
+  vient d'un `COUNT(*) OVER ()` calculé dans la même passe). Mesuré 3,40 → 1,72 ms
+  par source, 7,0 → 4,1 ms sur une recherche complète.
+- La respiration horizontale (`--content-pad`) et la largeur du rail
+  (`--rail-width`) suivent la fenêtre au lieu d'être figées : à 1024 px, 920 px
+  de largeur utile au lieu de 808.
+
+### Notes
+- Index de la base : rien à ajouter, mesure à l'appui (requêtes de liste entre
+  0,004 et 0,42 ms sur les données réelles). Détail dans `docs/DECISIONS.md`.
+
 ## [2.2.0] — 2026-08-19
 
 ### Sécurité
