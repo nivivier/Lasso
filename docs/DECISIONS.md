@@ -130,17 +130,36 @@ Le data-URI lui-même est conservé — ce n'est pas une coquetterie : le serveu
 développement (`php -S`) n'envoie aucun en-tête de cache, ce qui faisait
 clignoter le texte `alt` à chaque navigation.
 
-### Chargement de tous les fichiers à chaque requête
+### Chargement de tous les fichiers à chaque requête — chantier abandonné
 
-`index.php` charge quatorze fichiers (~11 000 lignes) quelle que soit la route.
-Un chargement à la demande est possible mais **conditionné à l'absence
-d'OPcache** : avec OPcache le bytecode est en cache et le gain serait nul. À
-vérifier dans Paramètres → Diagnostic avant d'entreprendre quoi que ce soit.
+`index.php` charge treize fichiers (~13 700 lignes, 632 Ko) quelle que soit la
+route. Le chargement à la demande a été envisagé, **puis écarté sur mesure**.
 
-Contrainte à connaître si le chantier est lancé : `nav_groupes()` s'exécute sur
+**Le chiffre.** Coût réel de ces fichiers, mesuré en processus neufs, OPcache
+hors jeu — donc dans l'hypothèse la plus favorable au chantier :
+
+| | ms par requête |
+|---|---|
+| démarrage PHP nu | 37,5 |
+| + noyau (`config`…`modules`) | 39,5 |
+| + tous les fichiers de routes | 45,7 |
+
+Soit **6,2 ms** imputables aux fichiers de routes, et **~0 avec OPcache actif**
+(le bytecode est déjà compilé en mémoire). Le gain maximal théorique est donc de
+6 ms par requête, dans le seul cas où OPcache serait désactivé.
+
+**Pourquoi c'est non.** Lasso sert un à deux utilisateurs : 6 ms sont
+imperceptibles, et invisibles à côté des 37 ms de démarrage de PHP lui-même, sur
+lesquels on ne peut rien. En face, le chantier fragilise le point le plus
+sensible de l'application — le dispatch et son contrôle de droits — pour un gain
+nul dès qu'OPcache est actif, ce qui est le cas par défaut sur PHP moderne.
+
+**Ce qui coincerait, si la question revient.** `nav_groupes()` s'exécute sur
 chaque page et appelle les compteurs de badge (`nb_factures_en_retard()`,
-`nb_evenements_suisa_a_faire()`…) définis dans les fichiers de **domaine**.
-Seuls les `routes_*.php` (~5 900 lignes) sont réellement différables.
+`nb_evenements_suisa_a_faire()`…) définis dans les fichiers de **domaine** :
+seuls les `routes_*.php` sont réellement différables, pas `booking.php` ni
+`evenements.php`. La bonne raison de rouvrir le dossier serait un changement
+d'échelle (beaucoup d'utilisateurs simultanés), pas la recherche de ces 6 ms.
 
 ---
 
