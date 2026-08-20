@@ -56,7 +56,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   nom porte une empreinte — un téléchargement, puis plus jamais. Page de 100
   structures : 40,4 Ko → 21,4 Ko compressés. Le data-URI est conservé en
   développement, où le serveur intégré n'envoie aucun en-tête de cache.
-- Seuil de bascule liste client/serveur porté à **4000** (à l'essai) : toutes les
+- **Le seuil de bascule liste navigateur/serveur se règle dans Paramètres →
+  Serveur** (onglet renommé, il s'appelait « Diagnostic du serveur »), avec le
+  volume réel de chaque liste et son mode en regard. Il vivait dans une constante
+  du code, donc changer d'avis demandait un déploiement.
+- Seuil porté à **4000** (à l'essai) : toutes les
   listes actuelles filtrent et paginent désormais dans le navigateur, sans
   aller-retour. Sur les 2 965 structures : 207 Ko compressés, 268 ms de
   chargement, recherche en 21 ms par frappe.

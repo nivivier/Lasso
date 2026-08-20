@@ -405,24 +405,34 @@ const PAGINATION_TAILLE_DEFAUT = 100;
 // sans aller-retour serveur — pour du texte pur, un aller-retour par frappe est
 // inutile en dessous de ce volume. Au-delà, voir lassoRechercheServeur() +
 // _pagination.php (aller-retour serveur, pagination + LIMIT SQL).
-// Valeur à l'essai (4000) : elle fait basculer TOUTES les listes actuelles en
-// mode client, structures comprises (2 965 lignes). Mesuré sur cette liste,
-// logos servis par URL : 207 Ko compressés, 268 ms de chargement, 89 600 nœuds
-// DOM — mais seules 100 lignes sont mises en page à la fois (le reste est
-// masqué par la pagination client), d'où un coût de rendu borné. En échange,
-// la recherche filtre en 21 ms par frappe et le changement de page est
-// instantané, sans aller-retour serveur.
-//
-// À surveiller en production : la mémoire sur un appareil modeste, et le
-// transfert des 207 Ko sur une connexion lente. Revenir à 100 suffit à annuler.
+// Valeur PAR DÉFAUT du seuil ; la valeur effective se règle dans
+// Paramètres → Serveur (voir pagination_seuil_client()). Elle vit en base parce
+// que le bon réglage dépend des données et du matériel, pas du code : sur les
+// 2 965 structures, le mode client tient en 207 Ko compressés, 268 ms de
+// chargement et 21 ms par frappe — mais 89 600 nœuds DOM, ce qui peut être trop
+// pour un appareil modeste. Se règle sans redéploiement.
 const PAGINATION_SEUIL_CLIENT = 4000;
+
+// Borne haute du réglage : au-delà, le navigateur garderait en mémoire un DOM
+// que même une machine de bureau peinerait à tenir. Ce n'est pas une limite
+// mesurée au cordeau, c'est un garde-fou contre une saisie absurde.
+const PAGINATION_SEUIL_MAX = 20000;
+
+// Seuil effectif : réglage enregistré, sinon le défaut ci-dessus. Borné des deux
+// côtés — 0 force toutes les listes côté serveur, ce qui est un choix légitime.
+function pagination_seuil_client(): int
+{
+    $v = param('pagination_seuil_client', '');
+    $v = $v === '' ? PAGINATION_SEUIL_CLIENT : (int) $v;
+    return max(0, min(PAGINATION_SEUIL_MAX, $v));
+}
 
 // true si le total (filtres structurés, hors recherche texte) tient sous le
 // seuil client — décide, pour chaque route de liste, si elle doit charger
 // toutes les lignes (mode client) ou paginer/rechercher côté serveur.
 function pagination_mode_client(int $totalSansRecherche): bool
 {
-    return $totalSansRecherche <= PAGINATION_SEUIL_CLIENT;
+    return $totalSansRecherche <= pagination_seuil_client();
 }
 
 // Nombre de lignes par page : GET prioritaire (et mémorisé en session, comme

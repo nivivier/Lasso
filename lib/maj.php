@@ -521,10 +521,53 @@ function maj_opcache_etat(): array
     ];
 }
 
+// Volumes réels des listes paginées, pour donner un repère chiffré à côté du
+// réglage du seuil : sans eux, choisir un nombre revient à deviner.
+//
+// Chaque source est filtrée par module_accessible() AVANT d'être comptée —
+// même règle que la recherche unifiée : cette page appartient au cœur, elle
+// est donc ouverte à des comptes qui n'ont pas forcément accès à ces modules.
+function diagnostic_volumes_listes(): array
+{
+    $sources = [
+        'Structures'  => ['booking', 'facturation', 'structures'],
+        'Événements'  => ['evenements', null, 'evenements'],
+        'Fiches'      => ['salaires', null, 'fiches'],
+        'Factures'    => ['facturation', null, 'factures'],
+        'Écritures'   => ['compta', null, 'ecritures'],
+    ];
+    $out = [];
+    foreach ($sources as $label => [$mod, $modAlt, $table]) {
+        if (!module_accessible($mod) && !($modAlt !== null && module_accessible($modAlt))) {
+            continue;
+        }
+        try {
+            $out[$label] = (int) db()->query('SELECT COUNT(*) FROM ' . $table)->fetchColumn();
+        } catch (Throwable $e) {
+            // Table absente (module jamais utilisé) : on n'affiche rien plutôt
+            // que d'interrompre toute la page de diagnostic.
+        }
+    }
+    return $out;
+}
+
 function route_diagnostic(): void
 {
     require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        require_ecriture('coeur');
+        // Borné à l'écriture ET à la lecture (pagination_seuil_client()) : une
+        // valeur hors bornes arrivée par un autre chemin resterait sans effet.
+        $seuil = max(0, min(PAGINATION_SEUIL_MAX, (int) ($_POST['pagination_seuil_client'] ?? PAGINATION_SEUIL_CLIENT)));
+        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+            ->execute(['pagination_seuil_client', (string) $seuil]);
+        redirect('diagnostic', ['ok' => 1]);
+    }
     render('diagnostic', [
+        'seuilClient'  => pagination_seuil_client(),
+        'volumes'      => diagnostic_volumes_listes(),
+        'enregistre'   => isset($_GET['ok']),
         'gitDispo'        => maj_git_dispo(),
         'dlDispo'         => maj_download_dispo(),
         'zipDispo'        => maj_zip_dispo(),
@@ -536,5 +579,5 @@ function route_diagnostic(): void
         'appEnv'          => APP_ENV,
         'httpsForce'      => (bool) FORCE_HTTPS,
         'setupProtege'    => setup_secret_defini(),
-    ], 'Diagnostic du serveur');
+    ], 'Serveur');
 }

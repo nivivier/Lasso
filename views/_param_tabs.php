@@ -23,7 +23,7 @@ if (peut_ecrire('coeur')) {
         'apparence'          => 'Apparence',
         'parametres_modules' => 'Modules',
         'comptes'            => 'Utilisateurs',
-        'diagnostic'         => 'Diagnostic du serveur',
+        'diagnostic'         => 'Serveur',
     ]];
 }
 

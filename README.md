@@ -128,8 +128,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
   courant) et **stable** (`stable`, avancée uniquement vers les états validés).
 - Promotion d'une version stable : `./release.sh stable X.Y.Z` (fige `VERSION`, pose
   le tag `vX.Y.Z`, avance la branche `stable`, pousse).
-- **Paramètres → Mises à jour** affiche la version installée, la version disponible
-  sur le canal choisi, et un diagnostic `exec()`/`git` du serveur.
+- **Paramètres → Mises à jour** affiche la version installée et la version
+  disponible sur le canal choisi ; **Paramètres → Serveur** donne le diagnostic
+  `exec()`/`git`, l'état d'OPcache, et le réglage du seuil de recherche
+  ci-dessous.
 - **Mise à jour en un clic** depuis cette page (`maj_executer()`, `lib/maj.php`) :
   sauvegarde de la base, téléchargement de l'archive de la branche du canal,
   extraction, puis migrations au premier chargement. `lib/config.local.php`,
@@ -201,6 +203,21 @@ le tableau de bord.
 
 > Les taux par défaut sont indicatifs (valeurs genevoises). **Confirmez-les avec
 > votre affiliation OCAS et votre caisse LPP/LAA.**
+
+---
+
+### Recherche dans les listes
+
+**Paramètres → Serveur** fixe le nombre de lignes en dessous duquel une liste est
+envoyée entière au navigateur : la recherche et le changement de page y sont alors
+instantanés, sans aller-retour. Au-dessus, la liste est paginée par le serveur et
+la recherche part sur **Entrée** (ou un clic sur la loupe).
+
+La page affiche le volume réel de chaque liste et son mode actuel, pour que le
+choix se fasse sur des chiffres. Repères mesurés sur 2 965 structures en mode
+navigateur : 207 Ko transférés, 268 ms de chargement, 21 ms par frappe, mais
+89 600 éléments gardés en mémoire — ce qui peut peser sur un appareil modeste.
+`0` force toutes les listes côté serveur.
 
 ---
 
