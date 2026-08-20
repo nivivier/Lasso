@@ -7,6 +7,30 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **Actions groupées (?p=structures)** : les sept « Modifier le/la … » sont
+  regroupées derrière une entrée **Modifier…**, qui ouvre un second menu listant
+  le champ à changer (statut, flag, ville, département/canton, pays, catégorie,
+  connu via). La liste principale passe de douze à cinq entrées.
+- Le bouton d'validation de ces actions devient une **icône** (disquette,
+  corbeille ou fusion selon l'action), avec un libellé accessible qui suit :
+  « Modifier la sélection » occupait toute la largeur sur un téléphone.
+- Formulaire d'ajout d'étiquette d'une ligne : champ et boutons réduits à 26 px
+  de haut, à l'échelle des badges qui l'entourent.
+
+### Corrigé
+- **Barre d'actions groupées sur mobile** : elle était en `flex-wrap: nowrap` et
+  dimensionnée à son contenu, si bien que tout se tassait sur une ligne et que le
+  champ de saisie devenait inutilisable. Elle s'étale désormais sur la largeur de
+  l'écran et revient à la ligne — le champ passe de quelques pixels à 85 % de la
+  largeur.
+- **Listes de suggestions d'étiquettes** : elles s'ouvraient toujours vers le
+  bas, donc hors écran depuis la barre d'actions groupées, fixée en bas. Le sens
+  d'ouverture est maintenant décidé par la place réellement disponible — ce qui
+  couvre aussi une ligne de tableau en bas de page.
+
 ## [2.3.0] — 2026-08-20
 
 ### Ajouté

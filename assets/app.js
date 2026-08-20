@@ -491,8 +491,20 @@ function lassoInitTagSuggest() {
             const nq = lassoNorm(q);
             items().forEach(li => { li.hidden = nq !== '' && !lassoNorm(li.textContent).includes(nq); });
         }
-        input.addEventListener('focus', () => { filter(input.value); list.hidden = false; });
-        input.addEventListener('input', () => { filter(input.value); list.hidden = false; });
+        // Ouverture vers le HAUT quand il n'y a pas la place en dessous : la
+        // barre d'actions groupées est fixée en bas de l'écran, sa liste de
+        // suggestions sortait donc entièrement du champ de vision. Mesuré à
+        // chaque ouverture plutôt que déduit d'une classe de contexte — une
+        // ligne de tableau en bas de page pose exactement le même problème.
+        function placer() {
+            list.classList.remove('vers-le-haut');
+            if (list.getBoundingClientRect().bottom > window.innerHeight - 8) {
+                list.classList.add('vers-le-haut');
+            }
+        }
+        const ouvrir = () => { filter(input.value); list.hidden = false; placer(); };
+        input.addEventListener('focus', ouvrir);
+        input.addEventListener('input', ouvrir);
         input.addEventListener('blur', () => { setTimeout(() => { list.hidden = true; }, 150); });
         // mousedown (pas click) : se déclenche avant le blur de l'input,
         // même raison que lassoInitCatSearch() plus haut.

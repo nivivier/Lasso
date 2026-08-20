@@ -2701,3 +2701,54 @@ abbr {
 }
 :root[data-theme="sombre"] .side-logo-clair  { display: none; }
 :root[data-theme="sombre"] .side-logo-sombre { display: inline; }
+
+/* Formulaire d'ajout d'étiquette (?p=structures) : il s'ouvre au milieu d'une
+   cellule dense, entre des badges hauts de 17px. Aux tailles standard — champ
+   de 43px, boutons de 37px — il écrasait la ligne. Réduit ici seulement : les
+   mêmes classes gardent leur taille partout ailleurs.
+
+   Sélecteur `input.cat-search-input` et non `.cat-search-input` : la règle
+   générique `input:not([type=checkbox]):not([type=radio])` compte deux
+   sélecteurs d'attribut, donc une spécificité supérieure à une simple classe —
+   sans le qualificateur de type, le padding de 10px l'emporterait. */
+.tag-ajouter-ligne { gap: 6px; }
+.tag-ajouter-ligne input.cat-search-input { padding: 3px 8px; font-size: var(--fs-small); }
+/* 5px de padding vertical, et non 3 : avec l'icône de 14px et la bordure, le
+   bouton fait alors exactement la hauteur du champ (26px). À 3px il tombait à
+   22px — quatre pixels d'écart que le centrage vertical masquait mal. */
+.tag-ajouter-ligne .btn.icon-only { padding: 5px 7px; }
+.tag-ajouter-ligne .btn.icon-only .ico { width: 14px; height: 14px; }
+/* La liste de suggestions suit la même échelle. */
+.tag-ajouter-ligne .cat-search-list li { padding: 4px 8px; font-size: var(--fs-small); }
+
+/* Barre d'actions groupées sur petit écran : elle était en flex-wrap:nowrap,
+   si bien que sur un téléphone tout se comprimait sur une seule ligne — le
+   champ de saisie (nom d'étiquette, ville…) se retrouvait réduit à quelques
+   pixels, inutilisable. On autorise le retour à la ligne et on donne au champ
+   une largeur plancher, pour qu'il occupe sa propre ligne plutôt que de se
+   faire écraser. */
+@media (max-width: 800px) {
+    /* La barre est une pastille flottante centrée (position:fixed, left:50% +
+       translateX). Sa largeur suivait son contenu : sur un téléphone, tout se
+       tassait sur une ligne unique et le champ de saisie tombait à quelques
+       pixels. On l'ancre sur les deux bords — elle occupe alors la largeur
+       disponible — et on autorise le retour à la ligne (white-space compris,
+       sans quoi nowrap continuerait de l'empêcher). */
+    .bulk-bar {
+        left: 12px; right: 12px; transform: none;
+        flex-wrap: wrap; gap: 10px; white-space: normal;
+    }
+    .bulk-bar form { flex-wrap: wrap; width: 100%; }
+    /* Le champ prend sa propre ligne plutôt que de se faire écraser. */
+    .bulk-bar .bulk-field { flex: 1 1 100%; }
+    .bulk-bar .bulk-field input,
+    .bulk-bar .bulk-field select,
+    .bulk-bar .bulk-field .cat-search { width: 100%; min-width: 0; }
+    .bulk-bar #bulk-action { flex: 1 1 auto; min-width: 0; }
+}
+
+/* Liste de suggestions retournée vers le haut (classe posée en JS quand il n'y
+   a pas la place en dessous — voir lassoInitTagSuggest()). Indispensable dans la
+   barre d'actions groupées, fixée en bas de l'écran : la liste s'y ouvrait hors
+   du champ de vision. */
+.cat-search-list.vers-le-haut { top: auto; bottom: 100%; margin-bottom: 4px; }

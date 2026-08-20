@@ -173,21 +173,36 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=structures">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <select name="section" id="bulk-action" class="inline-year-select">
+        <?php // « section » est la valeur que le serveur commute (voir
+              // route_structures()). Elle n'est plus portée par un <select> mais par
+              // ce champ caché, alimenté par le JS depuis l'un OU l'autre des deux
+              // menus : les sept modifications de champ tenaient auparavant sept
+              // lignes dans une liste qui en comptait douze, ce qui la rendait longue
+              // à parcourir pour trouver « Supprimer » ou « Fusionner ». ?>
+        <input type="hidden" name="section" id="bulk-section" value="">
+
+        <select id="bulk-action" class="inline-year-select" aria-label="Action groupée">
             <option value="">— Choisir une action —</option>
-            <option value="categorie">Modifier la catégorie</option>
-            <option value="ville">Modifier la ville</option>
-            <option value="departement_canton">Modifier le département / canton</option>
-            <option value="pays">Modifier le pays</option>
-            <option value="via">Modifier le « via »</option>
-            <option value="flag">Modifier le flag</option>
+            <option value="modifier">Modifier…</option>
             <?php if ($tagsDispo || module_actif('booking')): ?>
             <option value="tag_ajouter">Ajouter une étiquette</option>
             <option value="tag_retirer">Retirer une étiquette</option>
             <?php endif; ?>
-            <option value="statut">Modifier le statut</option>
             <option value="fusionner">Fusionner (2 sélections ou plus)</option>
             <option value="delete">Supprimer</option>
+        </select>
+
+        <?php // Second menu, révélé par « Modifier… » : le champ à changer. Les
+              // valeurs sont exactement celles attendues par le serveur, inchangées. ?>
+        <select id="bulk-champ" class="inline-year-select" aria-label="Champ à modifier" hidden>
+            <option value="">— Choisir un champ —</option>
+            <option value="statut">Statut</option>
+            <option value="flag">Flag</option>
+            <option value="ville">Ville</option>
+            <option value="departement_canton">Département / canton</option>
+            <option value="pays">Pays</option>
+            <option value="categorie">Catégorie</option>
+            <option value="via">Connu via</option>
         </select>
 
         <span class="bulk-field" data-for="categorie" hidden>
@@ -242,7 +257,19 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             </select>
         </span>
 
-        <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
+        <?php // Bouton en icône seule : le libellé « Modifier la sélection » prenait
+              // toute la largeur d'un écran de téléphone, au point de réduire le champ
+              // voisin à rien. Les TROIS états sont rendus ici plutôt qu'injectés en
+              // JS : le sprite d'icônes ne contient que ce qui a été rendu côté
+              // serveur, une icône seulement référencée depuis un script serait
+              // introuvable. Le script se contente de basculer leur visibilité et le
+              // libellé accessible. ?>
+        <button type="submit" class="btn icon-only" id="bulk-submit" disabled
+                title="Modifier la sélection" aria-label="Modifier la sélection">
+            <span data-bulk-icone="modifier"><?= icon('save') ?></span>
+            <span data-bulk-icone="supprimer" hidden><?= icon('trash') ?></span>
+            <span data-bulk-icone="fusionner" hidden><?= icon('merge') ?></span>
+        </button>
     </form>
 </div>
 <?php endif; ?>
@@ -403,28 +430,44 @@ lassoInitTagSuggest();
     const action = document.getElementById('bulk-action');
     const submit = document.getElementById('bulk-submit');
     const fields = document.querySelectorAll('.bulk-field');
+    const champ = document.getElementById('bulk-champ');
+    const sectionInput = document.getElementById('bulk-section');
     function syncAction() {
-        fields.forEach(f => { f.hidden = f.dataset.for !== action.value; });
-        submit.disabled = action.value === '';
-        if (action.value === 'delete') {
-            submit.textContent = 'Supprimer la sélection';
-            submit.classList.add('danger');
-        } else if (action.value === 'fusionner') {
-            submit.textContent = 'Fusionner la sélection';
-            submit.classList.remove('danger');
-        } else {
-            submit.textContent = 'Modifier la sélection';
-            submit.classList.remove('danger');
-        }
+        // « Modifier… » délègue le choix au second menu ; les autres actions sont
+        // elles-mêmes la section. Une seule valeur part au serveur, dans le champ
+        // caché — les deux <select> ne sont que des commandes d'interface.
+        const enModification = action.value === 'modifier';
+        champ.hidden = !enModification;
+        if (!enModification) champ.value = '';
+        const section = enModification ? champ.value : action.value;
+        sectionInput.value = section;
+
+        fields.forEach(f => { f.hidden = f.dataset.for !== section; });
+        submit.disabled = section === '';
+        // L'icône et le libellé accessible suivent l'action choisie. On bascule
+        // des éléments déjà présents : rien n'est construit en JS, donc aucune
+        // icône ne peut manquer au sprite.
+        const etat = section === 'delete' ? 'supprimer'
+                   : section === 'fusionner' ? 'fusionner' : 'modifier';
+        const libelles = { supprimer: 'Supprimer la sélection',
+                           fusionner: 'Fusionner la sélection',
+                           modifier:  'Modifier la sélection' };
+        submit.querySelectorAll('[data-bulk-icone]').forEach(el => {
+            el.hidden = el.dataset.bulkIcone !== etat;
+        });
+        submit.title = libelles[etat];
+        submit.setAttribute('aria-label', libelles[etat]);
+        submit.classList.toggle('danger', etat === 'supprimer');
     }
     action.addEventListener('change', syncAction);
+    champ.addEventListener('change', syncAction);
     syncAction();
 
     document.getElementById('bulkform').addEventListener('submit', e => {
         const n = document.querySelectorAll('.row-check:checked').length;
-        if (action.value === 'delete' && !confirm('Supprimer ' + n + ' structure(s) ? Cette action est irréversible.')) {
+        if (sectionInput.value === 'delete' && !confirm('Supprimer ' + n + ' structure(s) ? Cette action est irréversible.')) {
             e.preventDefault();
-        } else if (action.value === 'fusionner' && n < 2) {
+        } else if (sectionInput.value === 'fusionner' && n < 2) {
             alert('Sélectionnez au moins deux structures à fusionner.');
             e.preventDefault();
         }
