@@ -1716,14 +1716,21 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .filters-more summary::-webkit-details-marker { display: none; }
 .filters-more summary .ico { width: 17px; height: 17px; }
-/* Fond blanc/bordure/ombre : sans ça, une fois position:fixed (donc sorti du
-   flux et de la carte visuelle de .toolbar/.toolbar-opaque), le panneau
-   flottait à nu sur le fond de page (ou la carte, en vue carte) et semblait
-   détaché de la toolbar plutôt que d'en faire partie. */
+/* Sans cadre : le panneau se pose dans l'espace réservé sous la barre d'outils
+   (margin-bottom posé en JS), donc il ne recouvre rien et n'a pas besoin de se
+   distinguer d'un fond. Il portait auparavant fond/bordure/ombre/padding, ce qui
+   en faisait une carte flottante inutile au-dessus d'une zone vide.
+   L'exception est la vue carte, juste en dessous. */
 .filters-more-body {
     display: none; position: fixed; top: 0; left: 0; z-index: 20;
     width: max-content; max-width: min(640px, calc(100vw - 40px));
     gap: 16px; flex-wrap: wrap;
+}
+/* Vue carte : là, le panneau s'ouvre VRAIMENT par-dessus quelque chose — la
+   carte est en position:fixed sur toute la fenêtre, l'espace réservé sous la
+   barre ne la repousse donc pas. Sans fond, les champs se liraient sur les
+   tuiles. Le cadre est conservé pour ce seul cas. */
+.toolbar-carte .filters-more-body {
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
     box-shadow: var(--shadow-sm); padding: 16px;
 }

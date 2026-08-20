@@ -89,7 +89,12 @@ window.addEventListener('DOMContentLoaded', () => {
             // un reflow synchrone (écrire top/left puis relire une taille).
             const r = toolbar.getBoundingClientRect();
             const hauteurPanneau = body.offsetHeight;
-            positionnerPanneauFlottant(r, body, 12);
+            // Aligné sur le bord du CONTENU de la barre, pas sur sa boîte : la
+            // barre porte le padding horizontal de la page (--content-pad), si
+            // bien qu'un ancrage sur rect.left posait le panneau ~41px plus à
+            // gauche que le champ de recherche et le tableau — collé au rail.
+            const padGauche = parseFloat(getComputedStyle(toolbar).paddingLeft) || 0;
+            positionnerPanneauFlottant({ left: r.left + padGauche, bottom: r.bottom }, body, 12);
             toolbar.style.marginBottom = (hauteurPanneau + 12 + 22) + 'px';
         };
         details.addEventListener('toggle', positionner);
@@ -174,23 +179,42 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Recherche texte adossée au serveur (?q=), pour les listes paginées : filtrer
-// seulement les lignes déjà chargées dans le DOM laisserait de côté tout ce
-// qui est sur une autre page. Débounce après la dernière frappe puis recharge
-// avec ?q=... en repartant en page 1 ; Entrée déclenche immédiatement. Les
-// autres paramètres déjà dans l'URL (filtres, taille) sont préservés tels quels.
+// seulement les lignes déjà chargées dans le DOM laisserait de côté tout ce qui
+// est sur une autre page. La recherche part donc au SERVEUR, et recharge la
+// page — d'où le déclenchement explicite.
+//
+// Explicite, et non plus après un délai depuis la dernière frappe : rechercher
+// « Grütli » rechargeait la page en cours de saisie, souvent plusieurs fois, et
+// chaque rechargement remettait le curseur en jeu. Une liste courte, elle, filtre
+// en direct sans aller-retour (lassoListeClient()) — c'est là que la frappe doit
+// répondre à chaque lettre, pas ici.
+//
+// Les autres paramètres de l'URL (filtres de colonnes, taille de page) sont
+// préservés tels quels et la pagination repart en page 1. C'est pourquoi la
+// soumission native du formulaire est interceptée plutôt que laissée faire : le
+// formulaire ne porte que p/vue/depuis, un envoi natif effacerait tous les
+// filtres de colonnes actifs.
 function lassoRechercheServeur(input) {
     if (!input) return;
-    let timer = null;
     const aller = () => {
-        clearTimeout(timer);
         const params = new URLSearchParams(location.search);
         const q = input.value.trim();
         if (q === '') { params.delete('q'); } else { params.set('q', q); }
         params.set('page', '1');
         location.href = '?' + params.toString();
     };
-    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(aller, 400); });
+
+    // Dans un formulaire, Entrée ET le clic sur la loupe (un bouton submit)
+    // passent tous deux par « submit » : un seul écouteur suffit, et rien ne
+    // peut naviguer deux fois.
+    if (input.form) {
+        input.form.addEventListener('submit', e => { e.preventDefault(); aller(); });
+        return;
+    }
+    // Hors formulaire (ex. ?p=employes) : les deux gestes se câblent à la main.
     input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); aller(); } });
+    const loupe = input.parentElement && input.parentElement.querySelector('.search-go');
+    if (loupe) loupe.addEventListener('click', aller);
 }
 
 // Normalise une chaîne pour une recherche insensible à la casse et aux accents.

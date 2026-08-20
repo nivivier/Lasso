@@ -32,6 +32,23 @@ puis sont promues sur le canal **stable** en figeant une version.
   (`--rail-width`) suivent la fenêtre au lieu d'être figées : à 1024 px, 920 px
   de largeur utile au lieu de 808.
 
+### Corrigé
+- **La recherche des listes paginées ne recharge plus la page à chaque lettre.**
+  Un délai de 400 ms après la dernière frappe déclenchait une navigation, souvent
+  plusieurs fois pendant la saisie d'un seul mot. La recherche part désormais sur
+  **Entrée ou clic sur la loupe**. Les listes courtes, elles, continuent de
+  filtrer en direct sans aller-retour serveur. Concerne structures, écritures,
+  factures, événements et employés.
+- Au passage : le clic sur la loupe conservait mal le contexte. Le formulaire ne
+  porte que `p`/`vue`/`depuis`, si bien qu'un envoi natif effaçait les filtres de
+  colonnes actifs ; il est désormais intercepté comme Entrée, filtres préservés
+  et pagination remise en page 1.
+- ?p=structures, « Plus de filtres » : le panneau s'ouvrait ~41 px trop à gauche
+  (ancré sur la boîte de la barre d'outils, sans tenir compte de son padding) et
+  s'affichait dans une carte flottante inutile, posée sur une zone vide. Il
+  s'aligne maintenant sur le champ de recherche et n'a plus de cadre — sauf en
+  vue carte, où il recouvre réellement la carte et doit rester lisible.
+
 ### Notes
 - Index de la base : rien à ajouter, mesure à l'appui (requêtes de liste entre
   0,004 et 0,42 ms sur les données réelles). Détail dans `docs/DECISIONS.md`.
