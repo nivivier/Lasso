@@ -244,7 +244,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                 <?php $totAPayer = 0; foreach ($aPayer as $f): $totAPayer += (float) $f['salaire_net']; ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
                         <td class="small"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
-                        <td><?= e($f['employe_nom']) ?></td>
+                        <td class="dash-nom"><?= e($f['employe_nom']) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -271,7 +271,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                 <?php $totEmises = 0; foreach ($facturesEmises as $fac): $totEmises += (float) $fac['montant_total']; ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard">
                         <td class="small"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
-                        <td><?= e($fac['structure_nom']) ?></td>
+                        <td class="dash-nom"><?= e($fac['structure_nom']) ?></td>
                         <td><?= facturation_badge($fac) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $fac['montant_total']) ?></td>
                     </tr>

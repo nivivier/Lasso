@@ -23,6 +23,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   de haut, à l'échelle des badges qui l'entourent.
 
 ### Corrigé
+- **Tableau de bord : les tableaux débordaient de leur carte.** Le nom (employé,
+  structure) est de longueur libre et ne pouvait pas rétrécir : la mise en page
+  automatique élargissait le tableau au-delà du cadre. Cette colonne absorbe
+  désormais la place restante et se tronque au besoin. Sur petit écran, les
+  marges internes des cellules sont resserrées — elles suffisaient à elles seules
+  à faire déborder de 52 px.
 - **Barre d'actions groupées sur mobile** : elle était en `flex-wrap: nowrap` et
   dimensionnée à son contenu, si bien que tout se tassait sur une ligne et que le
   champ de saisie devenait inutilisable. Elle s'étale désormais sur la largeur de

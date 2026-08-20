@@ -2752,3 +2752,32 @@ abbr {
    barre d'actions groupées, fixée en bas de l'écran : la liste s'y ouvrait hors
    du champ de vision. */
 .cat-search-list.vers-le-haut { top: auto; bottom: 100%; margin-bottom: 4px; }
+
+/* Colonne de nom d'un widget du tableau de bord (employé, structure) : c'est la
+   seule dont la longueur est libre, donc la seule qui puisse pousser le tableau
+   au-delà de sa carte. Elle absorbe la place restante et se tronque au besoin.
+
+   Mesuré : le tableau « Factures émises » réclamait 400,7px de largeur minimale
+   dans une carte qui n'en offre que 398 — le nom de structure ne pouvant pas
+   rétrécir, la mise en page automatique élargissait le tableau au-delà du cadre.
+
+   La troncature est posée ICI et non sur toutes les cellules : appliquée
+   largement, elle rognait aussi « Voir », « Janvier 2024 » ou le badge « En
+   retard », que rien n'obligeait à rétrécir. */
+.dash-card table.list td.dash-nom {
+    max-width: 1px; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Widgets du tableau de bord sur petit écran : les marges généreuses des
+   cellules (26px sur les extrêmes, --row-pad ailleurs) suffisaient à faire
+   déborder le tableau de sa carte — mesuré à 52px de trop sur « Factures
+   émises » à 400px de large, alors même que le nom se tronque déjà. On les
+   resserre ici seulement ; la géométrie du plein cadre (width + marges
+   négatives) reste inchangée, seul l'espacement intérieur diminue. */
+@media (max-width: 800px) {
+    .dash-card table.list tr > :first-child { padding-left: 12px; }
+    .dash-card table.list tr > :last-child { padding-right: 12px; }
+    .dash-card table.list td,
+    .dash-card table.list th { padding-left: 6px; padding-right: 6px; }
+}
