@@ -405,7 +405,17 @@ const PAGINATION_TAILLE_DEFAUT = 100;
 // sans aller-retour serveur — pour du texte pur, un aller-retour par frappe est
 // inutile en dessous de ce volume. Au-delà, voir lassoRechercheServeur() +
 // _pagination.php (aller-retour serveur, pagination + LIMIT SQL).
-const PAGINATION_SEUIL_CLIENT = 100;
+// Valeur à l'essai (4000) : elle fait basculer TOUTES les listes actuelles en
+// mode client, structures comprises (2 965 lignes). Mesuré sur cette liste,
+// logos servis par URL : 207 Ko compressés, 268 ms de chargement, 89 600 nœuds
+// DOM — mais seules 100 lignes sont mises en page à la fois (le reste est
+// masqué par la pagination client), d'où un coût de rendu borné. En échange,
+// la recherche filtre en 21 ms par frappe et le changement de page est
+// instantané, sans aller-retour serveur.
+//
+// À surveiller en production : la mémoire sur un appareil modeste, et le
+// transfert des 207 Ko sur une connexion lente. Revenir à 100 suffit à annuler.
+const PAGINATION_SEUIL_CLIENT = 4000;
 
 // true si le total (filtres structurés, hors recherche texte) tient sous le
 // seuil client — décide, pour chaque route de liste, si elle doit charger
@@ -1301,6 +1311,26 @@ function cache_disque(string $cle, array $fichiersSources, callable $produire): 
         @rename($tmp, $fichier);
     }
     return $valeur;
+}
+
+// Source à utiliser pour AFFICHER un logo employeur.
+//
+// En production : l'URL du fichier. L'hébergeur le sert avec
+// « cache-control: max-age=31536000, immutable » (voir .htaccess), et son nom
+// porte une empreinte (handle_logo_upload()) — un remplacement change donc
+// l'URL. Le navigateur le télécharge une fois, puis plus jamais.
+//
+// En développement : le data-URI. Le serveur intégré de PHP n'envoie aucun
+// en-tête de cache, et le logo clignotait à chaque navigation.
+//
+// Pourquoi ce détour plutôt que d'inliner partout : mesuré sur une page de 100
+// structures, les logos inlinés pesaient 21 Ko une fois la page compressée, soit
+// 52 % de son poids — et sur CHAQUE page. Le base64 gonfle de 33 % et ne se
+// compresse pas, alors que le reste du balisage, très répétitif, se réduit à
+// presque rien. Le thème sombre avait doublé la note en rendant deux variantes.
+function param_logo_src(string $variant): string
+{
+    return APP_ENV === 'dev' ? param_logo_data_uri($variant) : param_logo($variant);
 }
 
 function param_logo_data_uri(string $variant): string

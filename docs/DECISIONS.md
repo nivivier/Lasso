@@ -130,6 +130,44 @@ Le data-URI lui-même est conservé — ce n'est pas une coquetterie : le serveu
 développement (`php -S`) n'envoie aucun en-tête de cache, ce qui faisait
 clignoter le texte `alt` à chaque navigation.
 
+### Le poids qui compte est le poids COMPRESSÉ
+
+**Correction d'une conclusion trop rapide.** Les optimisations de balisage
+ci-dessous (sprite, formulaire mutualisé) ont été annoncées comme « 995 Ko →
+494 Ko ». C'est vrai en octets bruts, et trompeur : la prod envoie
+`content-encoding: gzip` (`text/html` est dans le `AddOutputFilterByType` du
+`.htaccess`). Mesuré sur la même page, mêmes logos :
+
+| | brut | compressé |
+|---|---|---|
+| avant | 548 896 | 43 990 |
+| après | 296 786 | 40 406 |
+
+**−46 % en brut, −8 % sur le fil.** Gzip absorbait déjà la redondance qu'on
+supprimait — cent formulaires identiques et 442 icônes tirées de 30 dessins,
+c'est précisément ce qu'il compresse le mieux. Le gain réel de ces
+optimisations est ailleurs : **52 → 32 nœuds DOM par ligne**, donc du temps
+d'analyse et de la mémoire, sur quoi la compression ne peut rien.
+
+**Conséquence pratique.** Une ligne coûte **74 octets compressés**. Toute
+micro-optimisation du balisage (indentation, noms de classes, attributs) est
+sans objet : supprimer *toute* l'indentation — 27 % d'une ligne en brut — ne
+gagne que **3,2 %** compressé. Ne pas y passer de temps ; viser le nombre de
+nœuds si un jour il faut aller plus loin.
+
+**Le vrai gisement était ailleurs : les logos inlinés.** Deux variantes (thème
+clair et sombre) encodées en base64 dans CHAQUE page pesaient 21 Ko une fois
+compressées, soit **52 % du poids d'une page de liste**. Le base64 gonfle de
+33 % et ne se compresse pas. `param_logo_src()` sert désormais l'URL en
+production — l'hébergeur la renvoie avec `max-age=31536000, immutable` et le
+nom du fichier porte une empreinte, donc un téléchargement unique puis plus
+jamais — et garde le data-URI en développement, où `php -S` n'envoie aucun
+en-tête de cache et où le logo clignotait. Page de 100 structures :
+**40 406 → 21 428 octets compressés**.
+
+Le badge « Lasso » du pied du rail reste inliné : c'est une réduction à 32 px
+d'un fichier de 190 Ko, servir l'original serait pire.
+
 ### Poids des pages de liste : sprite d'icônes et formulaire mutualisé
 
 **Le constat.** Une ligne de `?p=structures` pesait **4 462 octets pour 419

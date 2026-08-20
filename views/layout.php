@@ -57,8 +57,8 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
             // Repli : si une seule variante est configurée, elle sert aux deux
             // thèmes ; mieux vaut un logo imparfaitement contrasté que pas de
             // logo du tout.
-            $logoRailClair  = $logoClair !== '' ? param_logo_data_uri('clair')  : ($logoSombre !== '' ? param_logo_data_uri('sombre') : '');
-            $logoRailSombre = $logoSombre !== '' ? param_logo_data_uri('sombre') : $logoRailClair;
+            $logoRailClair  = $logoClair !== '' ? param_logo_src('clair')  : ($logoSombre !== '' ? param_logo_src('sombre') : '');
+            $logoRailSombre = $logoSombre !== '' ? param_logo_src('sombre') : $logoRailClair;
             ?>
             <?php if ($logoRailClair !== ''): ?>
                 <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-clair">

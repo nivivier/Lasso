@@ -50,6 +50,16 @@ puis sont promues sur le canal **stable** en figeant une version.
   vue carte, où il recouvre réellement la carte et doit rester lisible.
 
 ### Performance
+- **Logos servis par URL en production** au lieu d'être encodés en base64 dans
+  chaque page : ils pesaient 21 Ko compressés par page, soit 52 % du poids d'une
+  page de liste. L'hébergeur les renvoie avec un cache immuable d'un an et leur
+  nom porte une empreinte — un téléchargement, puis plus jamais. Page de 100
+  structures : 40,4 Ko → 21,4 Ko compressés. Le data-URI est conservé en
+  développement, où le serveur intégré n'envoie aucun en-tête de cache.
+- Seuil de bascule liste client/serveur porté à **4000** (à l'essai) : toutes les
+  listes actuelles filtrent et paginent désormais dans le navigateur, sans
+  aller-retour. Sur les 2 965 structures : 207 Ko compressés, 268 ms de
+  chargement, recherche en 21 ms par frappe.
 - **Poids des pages de liste divisé par deux.** Une ligne de `?p=structures`
   pesait 4 462 octets pour 419 octets de texte visible. Les icônes SVG, recopiées
   en entier à chaque occurrence (442 par page pour 30 dessins distincts), passent
