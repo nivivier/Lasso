@@ -399,7 +399,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
     <?php else: ?>
     <?php foreach ($structures as $d): ?>
         <?php $hrefLigne = '?p=structure&id=' . (int) $d['id'] . $suffixeDepuis . suffixe_retour_liste($recherche, $pgPage); ?>
-        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+        <?php // data-statut : seul point d'accroche du statut hors de sa cellule.
+              // En mini-cartes (mobile), l'icône de statut est masquée et c'est la
+              // BORDURE de la case à cocher qui porte la couleur — voir assets/app.css. ?>
+        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" data-statut="<?= e((string) $d['statut']) ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td class="col-statut"><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
             <td class="col-nom">
@@ -446,7 +449,22 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?= $contactsNoms ? e(implode(', ', $contactsNoms)) : '<span class="muted">—</span>' ?>
             </td>
             <td class="muted tiny col-contact-le"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
-            <td class="muted tiny col-maj-le"><?= ($d['mise_a_jour_le'] ?? '') !== '' ? e(date('d.m.Y', strtotime((string) $d['mise_a_jour_le']))) : '—' ?></td>
+            <?php
+                // Repli sur la date de création quand aucune modification n'est
+                // enregistrée : 2160 structures sur 2965 sont dans ce cas et la
+                // colonne y restait vide. En italique et avec son propre libellé
+                // au survol — une création n'est pas une modification, et la
+                // colonne ne doit pas laisser croire le contraire. Le filtre
+                // d'ancienneté de la colonne, lui, porte toujours sur la seule
+                // date de modification (« Jamais » = jamais modifiée).
+                $majLe = (string) ($d['mise_a_jour_le'] ?? '');
+                $creeLe = (string) ($d['cree_le'] ?? '');
+                ?>
+            <td class="muted tiny col-maj-le<?= $majLe === '' && $creeLe !== '' ? ' est-creation' : '' ?>">
+                <?php if ($majLe !== ''): ?><?= e(date('d.m.Y', strtotime($majLe))) ?>
+                <?php elseif ($creeLe !== ''): ?><span title="Créée ou importée le <?= e(date('d.m.Y', strtotime($creeLe))) ?> — aucune modification enregistrée depuis"><?= e(date('d.m.Y', strtotime($creeLe))) ?></span>
+                <?php else: ?>—<?php endif; ?>
+            </td>
             <td class="small col-factures">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
                     <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>

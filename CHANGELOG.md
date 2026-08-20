@@ -9,6 +9,52 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.3] — 2026-08-20
+
+### Ajouté
+- **?p=structure : date de création / d'import** dans la carte d'historique, à
+  côté de « Dernier contact » et « Dernière modification ». `structures.cree_le`
+  vaut `datetime('now')` à l'insertion : pour une fiche importée, c'est donc la
+  date de l'import et non celle de la création chez la source — d'où le libellé
+  « Créée / importée », qui couvre les deux cas.
+
+### Modifié
+- **?p=structures sur téléphone : la fiche est réorganisée.** Le nom puis la
+  ville à gauche, la catégorie puis les deux dates à droite, les étiquettes sur
+  toute la largeur. Chaque information a sa ligne : la ville et la catégorie ne
+  se disputent plus la place, et le nom dispose de toute la largeur restante.
+  Le canton et la catégorie descendent à 10 px, les étiquettes à 9 px.
+- **Le statut passe sur la case à cocher.** L'icône de statut disparaît de la
+  fiche ; c'est la **bordure de la case** qui en prend la couleur — rose, vert,
+  rouge, gris, les mêmes que la colonne « Statut » du bureau. « Ne pas
+  contacter » et « inactif » sont en **pointillés**, de sorte que les deux
+  statuts qui disent de laisser la structure tranquille se reconnaissent sans
+  lire la couleur. La bordure garde sa teinte même quand la ligne est cochée :
+  sélectionner n'efface pas le statut. La cellule de statut reste dans le
+  document, hors du champ visuel, pour que son libellé continue d'exister pour
+  les lecteurs d'écran.
+- **?p=structures sur téléphone : lignes séparées plutôt que cartes
+  encadrées.** Chaque fiche n'est plus dans sa boîte ; un filet les sépare.
+  L'intérieur ne change pas.
+- **Rythme vertical régulier** dans ces lignes : 22 px entre le nom et les
+  dates, puis entre les dates et les étiquettes. Les rangées sont désormais de
+  hauteur fixe — en « auto », c'était le contenu le plus haut de la rangée, donc
+  le bloc de droite, qui décidait où tombaient les dates. Ce bloc (ville,
+  drapeau, canton, catégorie) est **sorti du flux** : ce qui est aligné à droite
+  ne décale plus ce qui est aligné à gauche. Sa largeur reste réservée dans la
+  grille, sans quoi un nom long passerait dessous au lieu de se tronquer.
+- **?p=structure sur téléphone : un nom de structure long passe à la ligne** au
+  lieu d'être tronqué — la fiche est la page qui doit le donner en entier. Vaut
+  aussi pour un nom d'un seul tenant, sans espace.
+- **?p=structures : la colonne « Dernière modification » se replie sur la date
+  de création** quand aucune modification n'est enregistrée — 2160 structures
+  sur 2965 sont dans ce cas et la colonne y restait vide. La date de repli est
+  en **italique**, avec son libellé complet au survol, et la mini-carte mobile
+  y remplace le crayon par une icône de création : une création n'est pas une
+  modification, la colonne ne doit pas laisser croire le contraire. Le filtre
+  d'ancienneté de la colonne continue de porter sur la seule date de
+  modification, « Jamais » gardant donc son sens de « jamais modifiée ».
+
 ## [2.3.2] — 2026-08-20
 
 ### Ajouté

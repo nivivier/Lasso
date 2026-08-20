@@ -900,6 +900,13 @@ $villeHtmlS = ville_departement_canton_html(
                 <th>Dernière modification</th>
                 <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
             </tr>
+            <tr>
+                <?php // structures.cree_le vaut datetime('now') à l'insertion : pour une
+                      // fiche importée, c'est donc la date de l'import, pas celle de la
+                      // création chez la source — d'où le libellé qui couvre les deux. ?>
+                <th>Créée / importée</th>
+                <td><?= !empty($structure['cree_le']) ? e(date('d.m.Y H:i', strtotime((string) $structure['cree_le']))) : '—' ?></td>
+            </tr>
         </table>
     </div>
     <form method="post" id="structure-via-form" action="?p=structure_via" class="card-edit form" hidden>

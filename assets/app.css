@@ -830,6 +830,21 @@ body.auth-bg, body.has-sidebar {
 
 .titre-read { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .titre-read h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sur téléphone, un nom de structure long passe à la ligne au lieu d'être
+   tronqué : la fiche est la page qui doit le donner en entier, et la largeur
+   manque pour l'y tenir sur une ligne. overflow-wrap:anywhere en plus de
+   white-space:normal — un nom d'un seul tenant sans espace (ou une URL) ne se
+   couperait pas autrement et déborderait quand même.
+   align-items passe à flex-start : sur deux lignes, le marque-page et le crayon
+   se centraient sur la hauteur du bloc au lieu de rester sur la première. */
+@media (max-width: 800px) {
+    .titre-read { align-items: flex-start; }
+    .titre-read h1 {
+        overflow: visible; text-overflow: clip;
+        white-space: normal; overflow-wrap: anywhere;
+    }
+    .page-head h1 { overflow-wrap: anywhere; }
+}
 .titre-edit-form { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 480px; }
 .titre-edit-form .input-titre { flex: 1; }
 
@@ -2821,6 +2836,11 @@ abbr {
     .dash-card table.list th { padding-left: 6px; padding-right: 6px; }
 }
 
+/* Colonne « Dernière modification » repliée sur la date de création (aucune
+   modification enregistrée) : mise en italique pour qu'une création ne se lise
+   pas comme une modification. Le libellé complet est au survol. */
+.list-wide td.col-maj-le.est-creation { font-style: italic; }
+
 /* Le bouton « Filtres » n'existe qu'en mobile : au-delà, chaque filtre est
    accroché à son en-tête de colonne, et le doublon prêterait à confusion. */
 .filtres-mobile { display: none; }
@@ -2877,27 +2897,26 @@ abbr {
 
     .list-wide tbody tr {
         display: grid;
-        /* Colonnes 1 et 2 en largeur FIXE. En « auto », la date de la rangée 2
-           les chevauche et les fait grossir juste assez pour elle : une carte
-           dont la date est « — » avait des colonnes plus étroites que sa
-           voisine, et l'icône de statut comme le nom se décalaient d'une carte
-           à l'autre. Figées, tout s'aligne verticalement d'un bout à l'autre
-           de la liste. La colonne 2 est dimensionnée pour la date, pas pour
-           l'icône : celle-ci est posée à son bord gauche et le nom la dégage
-           par un retrait fixe, donc sa largeur ne les concerne ni l'un ni
-           l'autre.
-           Colonne 3 : plancher à min-content, sinon une catégorie longue la
-           réduit sous la largeur d'une date (mesuré 47px pour 78px de texte)
-           et la date déborde sur la catégorie. */
-        grid-template-columns: var(--carte-check, 0px) 62px minmax(min-content, 1fr) auto;
+        /* Trois colonnes : case à cocher | nom et ville | catégorie et dates.
+           La 1re est réservée à la case et n'existe que s'il y en a une (classe
+           posée par la vue selon le droit d'écriture). La 3e a une largeur
+           RÉSERVÉE : son contenu est posé hors flux et n'occupe donc plus de
+           piste — sans cette réserve, un nom long s'étend sur toute la largeur
+           et passe sous la catégorie au lieu de se tronquer. */
+        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr) var(--carte-droite);
         column-gap: 8px;
         align-items: start;
-        margin-bottom: 8px;
-        padding: 11px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--card);
+        /* Repère de positionnement du bloc de droite, posé hors flux. */
+        position: relative;
+        /* Séparateur plutôt que cadre : les fiches se suivent, séparées d'un
+           filet, au lieu d'être chacune dans sa boîte. */
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+        /* De quoi loger la colonne de droite, qui ne pousse plus rien : ses
+           trois lignes plus les marges hautes et basses. */
+        min-height: calc(24px + var(--carte-l-cat) + 2 * var(--carte-l-date));
     }
+    .list-wide tbody tr:last-child { border-bottom: 0; }
     .list-wide tbody tr.inactif { opacity: .62; }
     /* Les bordures de cellule du tableau n'ont plus de sens en carte. */
     .list-wide tbody td {
@@ -2914,111 +2933,145 @@ abbr {
        (classe posée par la vue selon le droit d'écriture) — sinon les cartes
        porteraient une gouttière vide à gauche. */
     .list-wide.avec-check tbody tr { --carte-check: 22px; }
-    /* Remontée de la première ligne. Les quatre cellules (case, icône, nom,
-       ville) ont bien le même bord haut — mesuré à 0 du bord du contenu — mais
-       la case à cocher fait 13px et se pose en haut d'une ligne de 18.9px,
-       tandis que l'icône et les textes sont centrés dans la leur : à l'œil, la
-       case paraît plus haute que le reste. La valeur n'est pas au jugé — c'est
-       l'écart entre le centre de la case (6.5px) et le centre de la ligne
-       (9.45px), soit 3px : au-delà, la case passe visiblement SOUS le nom au
-       lieu de s'aligner avec lui. */
-    .list-wide td.col-statut,
-    .list-wide td.col-nom,
-    .list-wide td.col-ville { margin-top: -3px; }
-    /* text-align:left : la colonne de cases à cocher est centrée en vue
-       tableau, ce qui décalait la case de 9px vers la droite par rapport à la
-       date et aux étiquettes juste en dessous. Aucun décalage vertical non
-       plus : la case doit se poser à l'origine du contenu, comme à gauche, et
-       c'est le padding de la carte — identique sur les quatre côtés — qui fait
-       seul la marge. */
-    .list-wide td.col-check {
-        grid-column: 1; grid-row: 1; align-self: start; padding-top: 0; text-align: left;
-        /* display:flex, et non un simple bloc : dans un bloc, la case est un
-           élément en ligne posé sur la ligne de base de sa boîte de ligne
-           (interligne 1.4 sur 13px), ce qui la faisait descendre de 3.5px sous
-           le bord haut du contenu — alors qu'à gauche elle y était déjà. */
-        display: flex;
+    /* Pas vertical de la colonne de gauche, et hauteurs de ligne du bloc de
+       droite. Ces deux dernières sont en pixels et non en multiple de la taille
+       de police : elles servent à CALCULER la position de la catégorie, posée
+       hors flux — un interligne relatif rendrait ce calcul faux. */
+    .list-wide tbody tr {
+        --carte-date: 78px;
+        /* Interlignes de la colonne de droite, en pixels : ils servent à
+           CALCULER la position de chaque ligne, celle-ci étant posée hors flux
+           (voir plus bas) — un interligne relatif rendrait le calcul faux. */
+        --carte-l-cat: 14px;
+        --carte-l-date: 13px;
+        /* Plafonné en vw pour les écrans étroits : à 320px, une réserve figée à
+           136px ne laisserait plus de place au nom. */
+        --carte-droite: min(136px, 40vw);
     }
-    /* Marges posées par le navigateur sur une case à cocher (3px en haut et en
-       bas, 4px à gauche) : toutes annulées d'un coup — la gauche la décalait
-       des dates et des étiquettes, la haute la faisait descendre sous le bord
-       du contenu. */
-    .list-wide td.col-check input { margin: 0; }
-    /* Case à cocher, première date et étiquettes doivent partager le même bord
-       gauche. Les trois cellules y sont déjà ; ce sont leurs contenus qui s'en
-       écartent — l'étiquette a 6px de marge, la case ses propres marges
-       (traitées avec .col-check ci-dessus). L'espacement entre étiquettes vient
-       du gap de .col-tags, pas de leurs marges. */
-    .list-wide td.col-tags .badge { margin-left: 0; }
-    /* Hauteur calée sur la ligne du nom (14px × 1.35), icône centrée dedans.
-       line-height:1 sur le <span> qui porte l'icône est indispensable : sans
-       lui il garde l'interligne du tableau, sa boîte fait 22.4px au lieu de
-       16, et l'icône se retrouve 3px sous le milieu du nom. */
+
+    /* --- Colonne de gauche : la case à cocher, et elle seule --- */
+    /* L'icône de statut quitte la carte : c'est la BORDURE de la case qui porte
+       désormais le statut (règles plus bas). La cellule reste dans le document,
+       simplement sortie du champ visuel, pour que son libellé — « Contact
+       privilégié », « Inactif »… — continue d'exister pour les lecteurs
+       d'écran ; display:none l'aurait retirée de l'arbre d'accessibilité, et le
+       statut ne serait plus annoncé nulle part. */
     .list-wide td.col-statut {
-        grid-column: 2; grid-row: 1;
-        display: flex; align-items: center; height: calc(14px * 1.35);
+        position: absolute; width: 1px; height: 1px;
+        overflow: hidden; clip-path: inset(50%); white-space: nowrap;
     }
-    .list-wide td.col-statut > span {
-        display: flex; align-items: center; line-height: 1;
+    /* text-align:left : la colonne de cases est centrée en vue tableau, ce qui
+       décalait la case de 9px vers la droite par rapport aux étiquettes en
+       dessous. display:flex : dans un bloc, la case est un élément en ligne
+       posé sur la ligne de base de sa boîte de ligne, ce qui la faisait
+       descendre de 3,5px sous le bord du contenu. */
+    .list-wide td.col-check {
+        grid-column: 1; grid-row: 1; align-self: start; padding-top: 0;
+        text-align: left; display: flex;
     }
+    /* La case est redessinée (appearance:none) : une case native n'accepte pas
+       de couleur de bordure, or c'est elle qui porte le statut ici. Le crochet
+       de l'état coché est donc à redessiner aussi, en masque — sans quoi cocher
+       ne se verrait plus. Les 3px du haut sont un décalage optique : la case
+       fait 15px et se pose en haut d'une ligne de 19px, elle paraît sinon plus
+       haute que le nom. Les autres marges natives sautent. */
+    .list-wide td.col-check input {
+        appearance: none; -webkit-appearance: none;
+        width: 15px; height: 15px; margin: 3px 0 0;
+        border: 2px solid var(--line); border-radius: 4px;
+        background: var(--card); cursor: pointer;
+    }
+    /* Crochet en image de fond, et non en ::before/::after : un <input> est un
+       élément remplacé, ses pseudo-éléments ne sont pas rendus — la coche
+       n'aurait jamais été visible. Tracé blanc sur le fond primary, donc lisible
+       dans les deux thèmes. */
+    .list-wide td.col-check input:checked {
+        background-color: var(--primary); border-color: var(--primary);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: center; background-size: 10px;
+    }
+    /* Le statut, porté par la bordure. Mêmes couleurs que
+       STRUCTURE_STATUTS_CLASSES_ICONE (lib/booking.php) : ico-pink, ico-ok,
+       ico-danger, muted. Les deux statuts qui disent de laisser la structure
+       tranquille passent en pointillés — sans quoi la couleur porterait seule
+       tout le sens, et rien ne resterait pour qui la distingue mal.
+       Ces règles sont plus spécifiques que celle de l'état coché ci-dessus :
+       c'est VOULU. La bordure garde donc la couleur du statut quand la ligne
+       est sélectionnée, seul le fond passe au primary — sans quoi cocher une
+       ligne effacerait son statut. */
+    .list-wide tbody tr[data-statut="contact_privilegie"] td.col-check input { border-color: #f541cc; }
+    .list-wide tbody tr[data-statut="actif"] td.col-check input { border-color: var(--ok); }
+    .list-wide tbody tr[data-statut="ne_pas_contacter"] td.col-check input {
+        border-color: var(--danger); border-style: dashed;
+    }
+    .list-wide tbody tr[data-statut="inactif"] td.col-check input {
+        border-color: var(--muted); border-style: dashed;
+    }
+
+    /* --- Colonne du milieu : le nom, puis la ville --- */
     .list-wide td.col-nom {
-        grid-column: 2 / 4; grid-row: 1;
-        min-width: 0; padding-left: 24px;
-        font-size: 14px; line-height: 1.35;
+        grid-column: 2; grid-row: 1;
+        min-width: 0; font-size: 16px; line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     /* Le marquage rapide (étoile / cœur) sort de la carte : deux icônes de plus
        devant le nom sur un écran de 375px, pour un critère qui reste filtrable
        depuis « Filtres ». Il revient tel quel au-delà de 700px. */
     .list-wide td.col-nom .flag-toggle { display: none; }
-    /* Bloc de droite : ville et drapeau/canton sur la rangée 1, catégorie sur
-       la rangée 2. Plafond en pixels et non en pourcentage — sur une colonne
-       de grille « auto », un max-width en % est circulaire et le bloc s'écrase
-       à quelques pixels de large. */
-    .list-wide td.col-ville,
-    .list-wide td.col-categorie {
-        grid-column: 4; max-width: 136px; text-align: right;
+    .list-wide td.col-ville {
+        grid-column: 2; grid-row: 2;
+        min-width: 0; font-size: 12px; line-height: 1.45;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .list-wide td.col-ville { grid-row: 1; font-size: 12px; }
-    .list-wide td.col-ville .tiny { font-size: 11px; }
-    /* La taille doit être posée sur .row-field-txt, qui impose la sienne
-       (--fs-basic, 13px) : sur la seule cellule, le texte restait à 13px. */
+    /* Ville, drapeau et canton restent sur une seule ligne — le canton au même
+       corps que la catégorie, pour qu'il se lise comme un repère et non comme
+       le nom du lieu. */
+    .list-wide td.col-ville .tiny { font-size: 10px; }
+
+    /* --- Colonne de droite : catégorie, puis les deux dates --- */
+    /* HORS FLUX. Dans la grille, la hauteur de chaque rangée était dictée par
+       la colonne de GAUCHE — nom 19px, ville 17px — et c'est elle qui écartait
+       la catégorie de la date, puis les deux dates entre elles. Détachée, la
+       colonne de droite fixe son propre pas, resserré, et les deux colonnes
+       redeviennent indépendantes. */
     .list-wide td.col-categorie,
-    .list-wide td.col-categorie .row-field-txt { grid-row: 2; font-size: var(--fs-tiny); color: var(--muted); }
-    /* La ville passe sur sa propre ligne, drapeau et canton la suivent. */
-    .list-wide td.col-ville strong { display: block; }
+    .list-wide td.col-maj-le,
+    .list-wide td.col-contact-le {
+        position: absolute; right: 0; text-align: right;
+        max-width: var(--carte-droite);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* Les trois lignes s'empilent à partir du padding haut de la fiche, chacune
+       décalée de la hauteur de celles qui la précèdent. */
+    .list-wide td.col-categorie { top: 12px; line-height: var(--carte-l-cat); }
+    .list-wide td.col-categorie,
+    .list-wide td.col-categorie .row-field-txt { font-size: 10px; color: var(--muted); }
     /* La catégorie ne garde que sa feuille : le préfixe (catégorie parente)
        ferait une deuxième ligne pour une information redondante ici. */
     .list-wide td.col-categorie .row-field-prefix { display: none; }
-    /* La troncature doit être posée sur l'élément qui porte le texte : .row-field-txt
-       est un conteneur flex en overflow:hidden dont l'enfant est en
-       overflow:visible (assets/app.css § champs de ligne), si bien que le
-       texte est coupé net, sans points de suspension. Le préfixe est exclu :
-       il est lui aussi un enfant direct, et la règle le rendrait plus
-       spécifique que le display:none ci-dessus, donc de nouveau visible. */
-    .list-wide td.col-categorie .row-field-txt > span:not(.row-field-prefix),
-    .list-wide td.col-ville strong {
+    /* La troncature doit être posée sur l'élément qui porte le texte :
+       .row-field-txt est un conteneur flex en overflow:hidden dont l'enfant est
+       en overflow:visible (voir § champs de ligne), si bien que le texte est
+       coupé net, sans points de suspension. Le préfixe est exclu : il est lui
+       aussi un enfant direct, et la règle le rendrait plus spécifique que le
+       display:none ci-dessus, donc de nouveau visible. */
+    .list-wide td.col-categorie .row-field-txt > span:not(.row-field-prefix) {
         display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-
-    /* nowrap indispensable : sans lui, une catégorie longue comprime la
-       colonne 3 et la date du dernier contact repasse à la ligne, ce qui fait
-       une carte de 131px au milieu de cartes de 81px. */
     .list-wide td.col-maj-le,
     .list-wide td.col-contact-le {
-        font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap;
+        font-size: 10px; line-height: var(--carte-l-date); font-variant-numeric: tabular-nums;
     }
-    .list-wide td.col-maj-le { grid-column: 1 / 3; grid-row: 2; }
-    .list-wide td.col-contact-le { grid-column: 3; grid-row: 2; }
+    .list-wide td.col-maj-le { top: calc(12px + var(--carte-l-cat)); }
+    .list-wide td.col-contact-le { top: calc(12px + var(--carte-l-cat) + var(--carte-l-date)); }
     /* Crayon = dernière modification, enveloppe = dernier contact. Posés en
        CSS et non dans le balisage : deux icônes par ligne sur 4000 lignes
        pèsent, celles-ci ne coûtent rien. Le masque prend la couleur du texte,
        donc suit le thème sombre sans seconde déclaration. */
     .list-wide td.col-maj-le::before,
     .list-wide td.col-contact-le::before {
-        content: ""; display: inline-block; vertical-align: -2px;
-        width: 12px; height: 12px; margin-right: 3px;
+        content: ""; display: inline-block; vertical-align: -1px;
+        width: 11px; height: 11px; margin-right: 3px;
         background-color: currentColor;
         -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
         -webkit-mask-size: contain; mask-size: contain;
@@ -3026,14 +3079,23 @@ abbr {
     .list-wide td.col-maj-le::before {
         -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon);
     }
+    /* Date de création en repli : le crayon dirait « modifiée », ce qui est
+       faux. Icône de création à la place. */
+    .list-wide td.col-maj-le.est-creation::before {
+        -webkit-mask-image: var(--ico-creation); mask-image: var(--ico-creation);
+    }
     .list-wide td.col-contact-le::before {
         -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe);
     }
 
+    /* --- Dernière rangée : les étiquettes, sur toute la largeur --- */
     .list-wide td.col-tags {
         grid-column: 1 / -1; grid-row: 3;
-        margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+        margin-top: 6px;
+        display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
     }
+    .list-wide td.col-tags .badge { margin-left: 0; font-size: 9px; }
+
     /* Colonnes sans place sur un téléphone : elles restent dans la vue bureau. */
     .list-wide td.col-liees,
     .list-wide td.col-contact,
@@ -3105,4 +3167,6 @@ abbr {
 :root {
     --ico-crayon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E");
     --ico-enveloppe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
+    /* Lucide « circle-plus » — la fiche a été créée, pas modifiée. */
+    --ico-creation: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M8 12h8'/%3E%3Cpath d='M12 8v8'/%3E%3C/svg%3E");
 }
