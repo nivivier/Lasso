@@ -9,14 +9,26 @@
     <h2 class="mt-0">File d'attente</h2>
     <p><strong><?= $enAttente ?></strong> destinataire(s) en attente d'envoi. <strong><?= $envoyes24h ?></strong> / <?= $plafondJour ?> envois dans les dernières 24h.</p>
     <p class="muted small">
-        Traitée automatiquement par le planificateur de tâches de l'hébergeur (URL ci-dessous, à
-        configurer une fois pour toutes) — le délai entre e-mails et le plafond journalier se
-        règlent dans <a href="?p=emails">Paramètres → E-mails</a>.
+        <?php if ($traiterUrl !== ''): ?>
+            Traitée automatiquement par le planificateur de tâches de l'hébergeur (URL ci-dessous, à
+            configurer une fois pour toutes) — le délai entre e-mails et le plafond journalier se
+            règlent dans <a href="?p=emails">Paramètres → E-mails</a>.
+        <?php else: ?>
+            <?php // Sans droit d'écriture : le renvoi à « l'URL ci-dessous » n'aurait
+                  // plus d'objet, puisqu'elle n'est pas affichée. ?>
+            Traitée automatiquement par le planificateur de tâches de l'hébergeur.
+            Son déclenchement manuel demande le droit d'écriture sur le module Booking.
+        <?php endif; ?>
     </p>
+    <?php // Vide pour un compte sans droit d'écriture sur booking (voir
+          // route_mailing()) : ni l'URL ni le bouton ne sont rendus, le jeton
+          // n'existe donc nulle part dans la page. ?>
+    <?php if ($traiterUrl !== ''): ?>
     <div class="linked-add">
         <code class="small"><?= e($traiterUrl) ?></code>
         <a class="btn ghost btn-sm" href="<?= e($traiterUrl) ?>" target="_blank" rel="noopener"><?= icon('send') ?> Traiter maintenant</a>
     </div>
+    <?php endif; ?>
 </div>
 
 <div class="card mt-22">

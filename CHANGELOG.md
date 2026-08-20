@@ -19,6 +19,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Jamais » n'est pas accessoire : 73 % des dates de modification et 78 % des
   dates de contact sont vides.
 
+### Sécurité
+- **?p=mailing : le déclenchement manuel de la file d'envoi exige désormais le
+  droit d'écriture sur Booking.** La page est accessible en lecture seule, et
+  l'URL de traitement — qui porte le jeton autorisant `?p=mailing_traiter`, seule
+  protection de cette route puisqu'elle est appelée sans session par le
+  planificateur — y était affichée à côté du bouton. Un compte en lecture pouvait
+  donc déclencher les envois. Le jeton n'est plus seulement masqué : il n'est plus
+  construit, donc absent de la page.
+
 ### Modifié
 - Le bouton « Plus de filtres » prend l'aspect actif des boutons Liste/Carte
   quand le panneau est ouvert : le panneau s'affichant en position fixe, rien

@@ -667,7 +667,14 @@ function route_mailing(): void
         'enAttente' => $enAttente,
         'envoyes24h' => $envoyes24h,
         'plafondJour' => (int) param('mailing_max_par_jour', '200'),
-        'traiterUrl' => '?p=mailing_traiter&token=' . mailing_traiter_token(),
+        // URL de traitement de la file : réservée à l'écriture sur booking.
+        // Elle n'est pas seulement masquée à l'affichage, elle n'est pas
+        // CONSTRUITE — elle porte le jeton qui autorise route_mailing_traiter(),
+        // laquelle ne vérifie que ce jeton (elle est appelée par le planificateur
+        // de l'hébergeur, sans session). L'envoyer à un compte en lecture seule
+        // reviendrait à lui donner de quoi déclencher les envois, masquée ou non :
+        // il lui suffirait de lire la source de la page.
+        'traiterUrl' => peut_ecrire('booking') ? '?p=mailing_traiter&token=' . mailing_traiter_token() : '',
         'campagnes' => $campagnes,
         'ok' => $_GET['ok'] ?? null,
     ], 'Mailing — Aperçu');
