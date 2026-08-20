@@ -204,8 +204,6 @@ le tableau de bord.
 > Les taux par défaut sont indicatifs (valeurs genevoises). **Confirmez-les avec
 > votre affiliation OCAS et votre caisse LPP/LAA.**
 
----
-
 ### Recherche dans les listes
 
 **Paramètres → Serveur** fixe le nombre de lignes en dessous duquel une liste est
@@ -217,9 +215,9 @@ La page affiche le volume réel de chaque liste et son mode actuel, pour que le
 choix se fasse sur des chiffres. Repères mesurés sur 2 965 structures en mode
 navigateur : 207 Ko transférés, 268 ms de chargement, 21 ms par frappe, mais
 89 600 éléments gardés en mémoire — ce qui peut peser sur un appareil modeste.
-`0` force toutes les listes côté serveur.
-
----
+Par défaut **4000** ; `0` force toutes les listes côté serveur, et la valeur est
+plafonnée à **20 000**. Le réglage vit en base : le modifier ne demande aucun
+déploiement.
 
 ### Apparence
 
