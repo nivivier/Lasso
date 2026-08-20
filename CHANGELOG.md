@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.3.1] — 2026-08-20
 
 ### Modifié
 - **Actions groupées (?p=structures)** : les sept « Modifier le/la … » sont
