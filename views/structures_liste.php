@@ -188,7 +188,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <option value="tag_ajouter">Ajouter une étiquette</option>
             <option value="tag_retirer">Retirer une étiquette</option>
             <?php endif; ?>
-            <option value="fusionner">Fusionner (2 sélections ou plus)</option>
+            <option value="fusionner">Fusionner</option>
             <option value="delete">Supprimer</option>
         </select>
 

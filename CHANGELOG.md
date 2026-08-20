@@ -13,7 +13,9 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Actions groupées (?p=structures)** : les sept « Modifier le/la … » sont
   regroupées derrière une entrée **Modifier…**, qui ouvre un second menu listant
   le champ à changer (statut, flag, ville, département/canton, pays, catégorie,
-  connu via). La liste principale passe de douze à cinq entrées.
+  connu via). La liste principale passe de douze à cinq entrées, et « Fusionner »
+  perd sa précision « (2 sélections ou plus) » — la contrainte reste signalée au
+  moment de valider.
 - Le bouton d'validation de ces actions devient une **icône** (disquette,
   corbeille ou fusion selon l'action), avec un libellé accessible qui suit :
   « Modifier la sélection » occupait toute la largeur sur un téléphone.
