@@ -28,7 +28,7 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
 
 <?php $nbCols = 6 + ($avecEvenements ? 1 : 0); ?>
 <div class="table-scroll">
-<table class="list list-wide">
+<table class="list list-wide liste-cartes cartes-factures">
     <thead><tr>
         <th>Numéro</th><th>Structure</th>
         <th class="col-date">
@@ -64,10 +64,10 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
     <?php endif; ?>
         <?php $hrefLigne = '?p=facture&id=' . (int) $f['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
         <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <td><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
-            <td><strong><?= e($f['structure_nom']) ?></strong></td>
+            <td class="col-numero"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
+            <td class="col-structure"><strong><?= e($f['structure_nom']) ?></strong></td>
             <td class="muted small"><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
-            <td class="muted small"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
+            <td class="muted small col-echeance"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
             <?php if ($avecEvenements): ?>
                 <td class="muted small">
                     <?php if (!empty($f['evenement_date'])): ?>
@@ -75,8 +75,8 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
                     <?php else: ?>—<?php endif; ?>
                 </td>
             <?php endif; ?>
-            <td class="num strong"><?= chf((float) $f['montant_total']) ?></td>
-            <td><?= facturation_badge($f) ?></td>
+            <td class="num strong col-montant"><?= chf((float) $f['montant_total']) ?></td>
+            <td class="col-paiement"><?= facturation_badge($f) ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

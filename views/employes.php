@@ -23,7 +23,7 @@
     <?php endif; ?>
 <?php else: ?>
 <div class="table-scroll">
-<table class="list list-wide">
+<table class="list list-wide liste-cartes cartes-employes">
     <thead>
         <tr>
             <th>Nom</th><th>Adresse</th><th>E-mail</th><th>Dernière fiche</th>
@@ -32,7 +32,7 @@
     <tbody>
     <?php foreach ($employes as $emp): ?>
         <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=employe_voir&id=<?= (int) $emp['id'] ?>">
-            <td>
+            <td class="col-nom-emp">
                 <strong><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></strong>
                 <?php if (!$emp['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
             </td>
@@ -41,7 +41,7 @@
                 <?= !$emp['rue'] && !$emp['npa_localite'] ? '—' : '' ?>
             </td>
             <td class="muted small"><?= $emp['email'] ? e($emp['email']) : '—' ?></td>
-            <td>
+            <td class="col-derniere">
                 <?php $d = $derniere[(int) $emp['id']] ?? null; ?>
                 <?php if (!$d): ?>
                     <span class="muted small">—</span>

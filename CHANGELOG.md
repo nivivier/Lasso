@@ -9,6 +9,64 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.4] — 2026-08-20
+
+### Corrigé
+- **Les listes salaires, employés, événements et factures étaient illisibles sur
+  téléphone** depuis la 2.3.2. La mise en mini-cartes de `?p=structures` ciblait
+  `.list-wide`, une classe que ces quatre listes partagent : leurs lignes
+  passaient en grille sans avoir la moindre classe `col-*`, en-têtes masqués et
+  cellules superposées. Toute la mise en cartes est désormais cloisonnée
+  derrière `.liste-cartes`, une classe que la vue pose explicitement.
+
+### Ajouté
+- **Les quatre autres listes passent aussi en mini-cartes sur téléphone**, avec
+  les champs retenus pour chacune : salaires (employé, mois, brut, net,
+  paiement, accusé d'envoi), employés (nom, dernière fiche), événements (date,
+  spectacle, ville et salle, statut), factures (structure, numéro, échéance,
+  montant, paiement). Même mécanique que les structures — les mêmes `<td>`
+  replacés en grille, aucun gabarit supplémentaire — chaque liste ayant son
+  propre agencement. Les colonnes masquées le sont **par exclusion** : une
+  colonne ajoutée un jour au tableau sera écartée d'office de la carte, plutôt
+  que d'y apparaître sans qu'on l'ait voulu. Chaque liste met en avant ce par
+  quoi on la parcourt : l'employé et le mois au même corps pour les salaires,
+  la date pour l'agenda des événements, le montant pour les factures.
+
+### Modifié
+- **?p=structures&vue=carte : les filtres passent derrière le bouton
+  « Filtres »**, comme en mode mobile, au lieu d'occuper la barre d'outils en
+  permanence. La carte n'a aucun en-tête de colonne où poser les entonnoirs, et
+  le même panneau sert donc les deux cas ; l'entonnoir « Plus de filtres »
+  disparaît, le panneau portant déjà les champs jauge et mois. Le champ de
+  recherche retrouve du coup toute la largeur, comme sur les autres pages — il
+  n'était rétréci que pour laisser la place aux filtres affichés à plat.
+- **?p=evenements_liste : mêmes filtres derrière le même bouton**, en vue carte
+  à toute largeur et en vue liste sur téléphone — son `<thead>` y étant masqué
+  par la mise en mini-cartes, ses filtres seraient sinon devenus inatteignables.
+  Le panneau montre aussi les filtres actifs en pastilles à croix de retrait.
+- **Fonds de carte OpenStreetMap en thème sombre.** Les tuiles sont inversées à
+  l'affichage plutôt que servies par un second fournisseur : pas d'hôte externe
+  supplémentaire, pas de ligne de CSP en plus. Une rotation de teinte rattrape
+  l'inversion — sans elle, la végétation vire au rose et l'eau à l'orange. Le
+  filtre ne porte que sur le calque des tuiles : marqueurs, tracés et infobulles
+  gardent les couleurs de l'application.
+- Les **lignes de séparation par mois ou par année** (salaires, factures,
+  événements, comptabilité) gardent leur retrait à gauche sur téléphone : leur
+  libellé se collait au bord de l'écran. La remise à zéro du retrait de première
+  cellule, qui n'a de sens que dans une liste en cartes — c'est la grille de la
+  fiche qui l'y pose — est du même coup réservée à celles-ci : appliquée à tous
+  les tableaux, elle collait aussi au bord la première colonne de la
+  comptabilité.
+- **?p=structures sur téléphone : les filets de séparation vont d'un bord à
+  l'autre de l'écran**, le tableau reprenant la pleine largeur qu'il a partout
+  ailleurs ; le contenu des fiches reste aligné sur le reste de la page.
+- **Le nom de structure dispose de 29 px de plus.** La colonne de droite était
+  réservée à 136 px quelle que soit la catégorie : « Autres » en occupait 34 et
+  le nom se tronquait alors qu'il restait 60 px de libre à côté. Elle se
+  dimensionne désormais sur la catégorie, avec un plancher à la largeur d'une
+  date — les deux dates étant posées hors flux, elles ne participent pas au
+  calcul et déborderaient sur le nom sans ce plancher.
+
 ## [2.3.3] — 2026-08-20
 
 ### Ajouté

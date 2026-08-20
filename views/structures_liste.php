@@ -79,7 +79,11 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte' : '' ?>">
+    <?php // toolbar-carte-panneau : la vue carte de ?p=structures range ses filtres
+          // dans le panneau « Filtres » et n'a donc plus besoin de rétrécir la
+          // recherche pour leur faire de la place — contrairement à
+          // ?p=evenements_liste, qui les affiche toujours à plat. ?>
+    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
@@ -155,16 +159,12 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode') + $vueExtra, 'Dernier contact') ?>
             <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode') + $vueExtra, 'Dernière modification') ?>
         <?php $filtresColonnes = ob_get_clean(); ?>
-        <?php if ($vue === 'carte'): ?>
-        <!-- .carte-filters est flex:1 1 auto (pas 100%) : il occupe l'espace
-             restant sur la ligne 1 et laisse flex-wrap:wrap (hérité de
-             .filters) rejeter ses PROPRES enfants (chaque filtre) sur une 2e
-             ligne interne si ça ne tient pas — .head-actions reste sur la
-             ligne 1, poussé à droite par margin-left:auto, quelle que soit la
-             hauteur prise par .carte-filters. -->
-        <div class="filters carte-filters"><?= $filtresColonnes ?></div>
-        <?php else: ?>
-        <details class="filters-more filtres-mobile">
+        <?php // Vue carte comme vue liste : un seul bouton « Filtres » qui ouvre
+              // le panneau. La carte n'a aucun en-tête de colonne où poser les
+              // entonnoirs, et la liste les masque en mode mini-cartes — le même
+              // panneau sert donc les deux, à ceci près qu'en carte il s'affiche
+              // à toute largeur (.filtres-carte). ?>
+        <details class="filters-more filtres-mobile<?= $vue === 'carte' ? ' filtres-carte' : '' ?>">
             <summary title="Filtres" aria-label="Filtres"><?= icon('funnel') ?></summary>
             <?php // Les deux moitiés du panneau (filtres de colonne, puis jauge/mois)
                   // vivent dans un conteneur commun : c'est LUI que le CSS détache en
@@ -187,7 +187,6 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?php endif; ?>
             </div>
         </details>
-        <?php endif; ?>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
@@ -328,7 +327,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <?php endif; ?>
 <?php $nbCols = 10 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1); ?>
 <div class="table-scroll">
-<table class="list list-wide<?= $peutEcrireStruct ? ' avec-check' : '' ?>">
+<table class="list list-wide liste-cartes<?= $peutEcrireStruct ? ' avec-check' : '' ?>">
     <thead><tr>
         <?php if ($peutEcrireStruct): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
         <th class="col-petit">

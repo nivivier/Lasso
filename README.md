@@ -166,17 +166,17 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    sous-spectacles), suivi des déclarations **SUISA**, et **exports publics
    JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda externe.
 9. **Booking** : structures et contacts, étiquettes, lieux géocodés sur une carte,
-   campagnes de **mailing** avec désinscription. Sur téléphone, la liste des
-   structures se relit en **fiches** : nom et ville à gauche, catégorie et les
-   deux dates (dernière modification, dernier contact) à droite, étiquettes en
-   dessous. Le **statut est porté par la bordure de la case à cocher** — sa
-   couleur, et un trait pointillé pour « ne pas contacter » et « inactif ». Tous
-   les filtres passent derrière un bouton « Filtres » à côté de la recherche ;
-   au-delà de 700 px de large, le tableau complet reprend.
-10. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
+   campagnes de **mailing** avec désinscription.
+10. **Sur téléphone**, les grandes listes — structures, salaires, employés,
+    événements, factures — se relisent en **fiches** plutôt qu'en tableau à
+    faire défiler, chacune montrant les champs qui comptent pour elle. Les
+    filtres passent derrière un bouton « Filtres » à côté de la recherche, le
+    même qui sert aux vues carte. Au-delà de 700 px de large, les tableaux
+    complets reprennent.
+11. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.
-11. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
+12. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
     déjà présentes sont ignorées, jamais écrasées), écritures comptables, structures
     et agendas de tournée (CSV). Chaque import a un bouton « Simuler » qui
     prévisualise sans rien enregistrer.

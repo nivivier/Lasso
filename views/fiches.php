@@ -36,7 +36,7 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
 
 <?php $nbCols = 10 + ($axesParFiche ? 1 : 0); ?>
 <div class="table-scroll">
-<table class="list list-wide">
+<table class="list list-wide liste-cartes cartes-fiches">
     <thead>
         <tr>
             <th class="col-date">
@@ -81,16 +81,16 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
         <?php $hrefLigne = '?p=fiche&id=' . (int) $f['id']; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <td class="col-date"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></a></td>
-            <td><?= e($f['employe_nom']) ?></td>
+            <td class="col-employe"><?= e($f['employe_nom']) ?></td>
             <?php if ($axesParFiche): ?><td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td><?php endif; ?>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
             <td class="num col-petit"><?= chf((float) $f['total_deductions']) ?></td>
             <td class="num col-petit"><?= chf((float) $f['ded_impot_source']) ?></td>
-            <td class="num strong <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
-            <td><?= badge_paiement($f) ?></td>
+            <td class="num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
+            <td class="col-paiement"><?= badge_paiement($f) ?></td>
             <td class="num col-petit"><?= chf((float) $f['total_charges_emp']) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
-            <td class="center"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
+            <td class="center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

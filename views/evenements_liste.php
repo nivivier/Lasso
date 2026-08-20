@@ -54,33 +54,48 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte' : '' ?>">
+    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="evenements_liste">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <?= champ_recherche(['id' => 'evenements-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
-        <?php if ($vue === 'carte'): ?>
-        <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les
-             mêmes filtres que la vue liste (voir plus bas, thead) restent donc
-             ici, dans la toolbar, ENTRE la recherche et .head-actions (ordre
-             visuel voulu : recherche | filtres | boutons). .carte-filters
-             est flex:1 1 auto (pas 100%) : il occupe l'espace restant sur la
-             ligne 1 et laisse flex-wrap:wrap (hérité de .filters) rejeter ses
-             PROPRES enfants (chaque filtre) sur une 2e ligne interne si ça ne
-             tient pas — .head-actions reste sur la ligne 1, poussé à droite
-             par margin-left:auto, quelle que soit la hauteur prise par
-             .carte-filters. -->
-        <div class="filters carte-filters">
-            <span class="col-th">Date <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee') + ['vue' => 'carte']) ?></span>
-            <span class="col-th"><?= e($termeSingulier) ?> <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Pays <?= filtre_colonne_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Audience <?= filtre_colonne_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Statut <?= filtre_colonne_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Suisa <?= filtre_colonne_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Salariés <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries') + ['vue' => 'carte']) ?></span>
-        </div>
-        <?php endif; ?>
+        <?php
+        // Filtres de colonne hors tableau. Deux cas les réclament : la vue
+        // carte, qui n'a pas de <thead> où les accrocher, et la vue liste sur
+        // téléphone, dont le <thead> est masqué par la mise en mini-cartes.
+        // Même panneau que ?p=structures, au bouton près : en carte il
+        // s'affiche à toute largeur (.filtres-carte), en liste seulement sous
+        // 700px. 'vue' => 'carte' n'est reconduit qu'en carte — chaque filtre
+        // est un <form> qui ne connaît que ses propres champs.
+        $vueExtraEv = $vue === 'carte' ? ['vue' => 'carte'] : [];
+        $filtresEv = [
+            ['annee', 'Date', $anneeLabels, $annee],
+            ['spectacle_id', $termeSingulier, $spectacleLabels, $spectacleId],
+            ['pays', 'Pays', $paysLabels, $pays],
+            ['visibilite', 'Audience', $visibiliteLabels, $visibilite],
+            ['statut', 'Statut', $statutLabels, $statut],
+            ['statut_suisa', 'Suisa', $statutSuisaLabels, $statutSuisa],
+            ['salaries', 'Salariés', $salariesLabels, $salaries],
+        ];
+        $actifsFiltresEv = '';
+        foreach ($filtresEv as [$champ, $lib, $labels, $actives]) {
+            $actifsFiltresEv .= filtre_colonne_actifs_html('evenements_liste', $champ, $labels, $actives, $autresFiltres($champ));
+        }
+        ?>
+        <details class="filters-more filtres-mobile<?= $vue === 'carte' ? ' filtres-carte' : '' ?>">
+            <summary title="Filtres" aria-label="Filtres"><?= icon('funnel') ?></summary>
+            <div class="filtres-mobile-panneau">
+                <div class="filters carte-filters filters-more-body">
+                    <?php foreach ($filtresEv as [$champ, $lib, $labels, $actives]): ?>
+                    <?= filtre_colonne_html('evenements_liste', $champ, $labels, $actives, $autresFiltres($champ) + $vueExtraEv, $lib) ?>
+                    <?php endforeach; ?>
+                </div>
+                <?php if ($actifsFiltresEv !== ''): ?>
+                <div class="filtres-ciblage-actifs"><?= $actifsFiltresEv ?></div>
+                <?php endif; ?>
+            </div>
+        </details>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
@@ -181,7 +196,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 </div>
 <?php endif; ?>
 <div class="table-scroll">
-<table class="list list-wide evenements-liste">
+<table class="list list-wide evenements-liste liste-cartes cartes-evenements<?= peut_ecrire('evenements') ? ' avec-check' : '' ?>">
     <?php $nbCols = 8 - (peut_ecrire('evenements') ? 0 : 1); ?>
     <thead>
         <tr>
@@ -256,15 +271,15 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         <?php $hrefLigne = '?p=evenement&id=' . (int) $ev['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
         <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <?php if (peut_ecrire('evenements')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
-            <td<?= $estAnnule ? ' class="text-strike"' : '' ?>><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></a></td>
-            <td class="small<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
-            <td class="<?= $estAnnule ? 'text-strike' : '' ?>">
+            <td class="col-date-ev<?= $estAnnule ? ' text-strike' : '' ?>"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></a></td>
+            <td class="small col-spectacle<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
+            <td class="col-lieu <?= $estAnnule ? 'text-strike' : '' ?>">
                 <?= ville_departement_canton_html((string) $ev['ville'], $drapeau, (string) $ev['pays'], (string) $ev['departement_canton']) ?>
                 <?php if ($festivalSalle !== ''): ?> <span class="muted small"><?= e($festivalSalle) ?></span><?php endif; ?>
                 <?php if ($ev['ville'] === '' && $festivalSalle === ''): ?>—<?php endif; ?>
             </td>
             <td><?= evenement_icone_visibilite($ev) ?></td>
-            <td><?= evenement_badge_statut($ev) ?></td>
+            <td class="col-statut-ev"><?= evenement_badge_statut($ev) ?></td>
             <td><?= evenement_suisa_badge($ev, true) ?></td>
             <td class="num salaries-cell">
                 <?php if ((int) $ev['production_externe']): ?><span title="Production externe" aria-label="Production externe"><?= icon('handshake') ?></span><?php endif; ?>
