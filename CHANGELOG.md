@@ -49,6 +49,16 @@ puis sont promues sur le canal **stable** en figeant une version.
   s'aligne maintenant sur le champ de recherche et n'a plus de cadre — sauf en
   vue carte, où il recouvre réellement la carte et doit rester lisible.
 
+### Performance
+- **Poids des pages de liste divisé par deux.** Une ligne de `?p=structures`
+  pesait 4 462 octets pour 419 octets de texte visible. Les icônes SVG, recopiées
+  en entier à chaque occurrence (442 par page pour 30 dessins distincts), passent
+  par un sprite ; le formulaire d'ajout d'étiquette, rendu dans chaque ligne avec
+  la liste complète des étiquettes alors qu'un seul sert à la fois, devient un
+  exemplaire unique déplacé dans la ligne cliquée. Page de 200 structures :
+  995 Ko → 494 Ko. Le sprite allège toutes les pages du site, pas seulement les
+  listes.
+
 ### Notes
 - Index de la base : rien à ajouter, mesure à l'appui (requêtes de liste entre
   0,004 et 0,42 ms sur les données réelles). Détail dans `docs/DECISIONS.md`.

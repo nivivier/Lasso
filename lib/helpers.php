@@ -2030,9 +2030,12 @@ function fiche_lignes_de(array $f): array
 }
 
 // Icônes Lucide (https://lucide.dev, licence ISC). SVG en ligne, sans requête externe.
-function icon(string $name): string
+// Table des dessins d'icônes (jeu Lucide), partagée par icon() et par le
+// sprite. Séparée d'icon() pour que les deux lisent la même source : une icône
+// ajoutée ici est aussitôt disponible aux deux rendus.
+function icone_table(): array
 {
-    $paths = [
+    return [
         'file-text' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
         'receipt-swiss-franc' => '<path d="M10 11h4"/><path d="M10 17V7h5"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/><path d="M8 15h5"/>',
         'building-2' => '<path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>',
@@ -2114,9 +2117,88 @@ function icon(string $name): string
         'funnel-x'   => '<path d="M12.531 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14v6a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341l.427-.473"/><path d="m16.5 3.5 5 5"/><path d="m21.5 3.5-5 5"/>',
         'funnel-plus' => '<path d="M13.354 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14v6a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341l1.218-1.348"/><path d="M16 6h6"/><path d="M19 3v6"/>',
     ];
+}
+
+// Chemins SVG bruts d'une icône (sans enveloppe <svg>), pour le sprite.
+function icone_chemins(string $nom): string
+{
+    return icone_table()[$nom] ?? '';
+}
+
+function icon(string $name): string
+{
+    $paths = icone_table();
     $p = $paths[$name] ?? '';
+    if ($p === '') {
+        return '';
+    }
+    // Mode sprite : l'icône n'est plus recopiée, elle référence un <symbol>
+    // défini une seule fois par page (voir icones_sprite()). Sur une liste de
+    // 100 structures, 442 icônes étaient écrites en entier pour 30 dessins
+    // distincts — 129 Ko, contre 29 Ko en référence.
+    if (icones_mode_sprite()) {
+        icones_enregistrer($name);
+        return '<svg class="ico" aria-hidden="true"><use href="#ico-' . $name . '"></use></svg>';
+    }
+    // Hors mode sprite (corps d'e-mail) : l'icône doit être autonome, un client
+    // de messagerie n'aura jamais le sprite de la page.
     return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
         . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $p . '</svg>';
+}
+
+// Vrai pendant le rendu d'une page HTML complète : icon() y émet des
+// références au sprite. Désactivé par défaut — tout ce qui sort du site
+// (e-mails) doit rester autonome.
+function icones_mode_sprite(?bool $actif = null): bool
+{
+    static $mode = false;
+    if ($actif !== null) {
+        $mode = $actif;
+    }
+    return $mode;
+}
+
+// Mémorise les icônes réellement demandées pendant le rendu, pour n'émettre
+// qu'elles. Sans ce tri, le sprite pèserait les 79 icônes de la bibliothèque
+// (24,8 Ko) sur une page qui n'en utilise que cinq.
+function icones_enregistrer(?string $nom = null): array
+{
+    static $vues = [];
+    if ($nom === null) {
+        return array_keys($vues);
+    }
+    $vues[$nom] = true;
+    return [];
+}
+
+// Sprite des seules icônes rendues. Les attributs de tracé (fill, stroke…) ne
+// sont PAS posés ici mais sur .ico en CSS : posés sur le <symbol>, ils
+// l'emporteraient sur toute surcharge CSS ciblant l'icône (ex. la loupe des
+// champs de recherche, volontairement plus épaisse).
+function icones_sprite(): string
+{
+    $noms = icones_enregistrer();
+    if (!$noms) {
+        return '';
+    }
+    $h = '<svg class="ico-sprite" aria-hidden="true" style="display:none">';
+    foreach ($noms as $nom) {
+        $h .= '<symbol id="ico-' . $nom . '" viewBox="0 0 24 24">' . icone_chemins($nom) . '</symbol>';
+    }
+    return $h . '</svg>';
+}
+
+// Insère le sprite juste après <body>, donc AVANT toute référence <use>.
+// Nécessite d'avoir tamponné la page : les icônes utilisées ne sont connues
+// qu'une fois le contenu rendu.
+function injecter_sprite(string $html): string
+{
+    $sprite = icones_sprite();
+    if ($sprite === '') {
+        return $html;
+    }
+    $html2 = preg_replace('/(<body\b[^>]*>)/i', '$1' . $sprite, $html, 1, $n);
+    return $n ? $html2 : $sprite . $html;
 }
 
 // Champ de recherche standard de l'application : la saisie plus une loupe
@@ -2367,17 +2449,27 @@ function nb_ecritures_a_lettrer(): int
     }
 }
 
+// La page est tamponnée pour que le sprite d'icônes puisse être inséré après
+// coup, juste sous <body> : on ne sait quelles icônes ont servi qu'une fois le
+// contenu rendu, et le <symbol> doit précéder les <use> qui le référencent.
 function render(string $view, array $data = [], ?string $title = null): void
 {
     extract($data);
     $contentView = __DIR__ . '/../views/' . $view . '.php';
     $pageTitle   = $title ?? 'Fiches de salaire';
+    icones_mode_sprite(true);
+    ob_start();
     require __DIR__ . '/../views/layout.php';
+    echo injecter_sprite((string) ob_get_clean());
 }
 
-// Rendu d'une vue "nue" (sans layout), pour l'impression.
+// Rendu d'une vue "nue" (sans layout), pour l'impression. Même tampon : ces
+// vues produisent aussi un document complet.
 function render_bare(string $view, array $data = []): void
 {
     extract($data);
+    icones_mode_sprite(true);
+    ob_start();
     require __DIR__ . '/../views/' . $view . '.php';
+    echo injecter_sprite((string) ob_get_clean());
 }

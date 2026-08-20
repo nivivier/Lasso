@@ -146,6 +146,25 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         </div>
     </div>
 
+<?php if (peut_ecrire('booking')): ?>
+<?php // Exemplaire unique du formulaire d'ajout d'étiquette : déplacé dans la
+      // cellule de la ligne cliquée à l'ouverture, son structure_id renseigné à
+      // ce moment-là. Hors du tableau au repos, pour ne peser qu'une fois. ?>
+<form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="tag-ajouter-form" hidden>
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+    <input type="hidden" name="structure_id" value="">
+    <input type="hidden" name="retour" value="structures">
+    <div class="cat-search tag-search">
+        <input type="text" name="nom" class="cat-search-input" placeholder="Étiquette…" autocomplete="off">
+        <ul class="cat-search-list" hidden role="listbox">
+            <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
+        </ul>
+    </div>
+    <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+    <button type="button" class="btn ghost btn-sm icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+</form>
+<?php endif; ?>
+
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php else: ?>
@@ -321,21 +340,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
                 <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
                 <?php if (peut_ecrire('booking')): ?>
-                <?php $tagFormId = 'tag-ajouter-form-' . (int) $d['id']; ?>
-                <button type="button" class="badge tag-ajouter-btn" data-show="<?= e($tagFormId) ?>" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
-                <form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="<?= e($tagFormId) ?>" hidden>
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="structure_id" value="<?= (int) $d['id'] ?>">
-                    <input type="hidden" name="retour" value="structures">
-                    <div class="cat-search tag-search">
-                        <input type="text" name="nom" class="cat-search-input" placeholder="Étiquette…" autocomplete="off">
-                        <ul class="cat-search-list" hidden role="listbox">
-                            <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
-                        </ul>
-                    </div>
-                    <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only" data-hide="<?= e($tagFormId) ?>" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-                </form>
+                <?php // Le formulaire d'ajout n'est PAS rendu ici : un seul, partagé, vit
+                      // en bas de page et vient se placer dans la ligne cliquée (voir
+                      // lassoInitTagAjout(), assets/app.js). Rendu par ligne, il pesait
+                      // 1834 octets — 40 % du poids d'une ligne — dont la liste complète
+                      // des étiquettes recopiée autant de fois qu'il y a de structures,
+                      // pour un formulaire utilisable un seul à la fois. ?>
+                <button type="button" class="badge tag-ajouter-btn" data-tag-structure="<?= (int) $d['id'] ?>" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
                 <?php endif; ?>
             </td>
             <td class="tiny">

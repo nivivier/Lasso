@@ -130,6 +130,63 @@ Le data-URI lui-même est conservé — ce n'est pas une coquetterie : le serveu
 développement (`php -S`) n'envoie aucun en-tête de cache, ce qui faisait
 clignoter le texte `alt` à chaque navigation.
 
+### Poids des pages de liste : sprite d'icônes et formulaire mutualisé
+
+**Le constat.** Une ligne de `?p=structures` pesait **4 462 octets pour 419
+octets de texte visible**. Ventilation mesurée :
+
+| | octets/ligne | part |
+|---|---|---|
+| formulaire caché « ajouter une étiquette » | 1 834 | 40,5 % |
+| icônes SVG recopiées | 1 266 | 28 % |
+| texte visible | 419 | 9 % |
+| balises, classes, liens | ~940 | 22 % |
+
+Deux tiers de la page étaient donc du contenu invisible et redondant.
+
+**Les icônes.** Sur une page de 100 structures : 442 SVG pour **30 dessins
+distincts**, chacun réécrit en entier (~300 octets). `icon()` émet désormais une
+référence `<use href="#ico-…">` (~62 octets) et `render()` injecte, juste sous
+`<body>`, un sprite des seules icônes réellement rendues — d'où le tampon de
+sortie : la liste des icônes utilisées n'est connue qu'une fois le contenu
+produit, et le `<symbol>` doit précéder les `<use>`.
+
+Deux pièges contournés :
+- les attributs de tracé (`fill`, `stroke`, `stroke-width`) sont posés en CSS sur
+  `.ico`, **pas** sur les `<symbol>` : sur le symbole, ils l'emporteraient sur
+  toute surcharge CSS visant l'icône (la loupe des champs de recherche est
+  volontairement plus épaisse) ;
+- `icon()` garde un mode « autonome », actif hors rendu de page : un corps
+  d'e-mail n'aura jamais le sprite de la page.
+
+**Le formulaire d'étiquette.** Il était rendu dans CHAQUE ligne — jeton CSRF et
+liste des onze étiquettes comprises — alors qu'un seul sert à la fois. Un
+exemplaire unique vit maintenant en bas de page et se déplace dans la cellule
+cliquée. Le déplacer plutôt que le recréer conserve ses écouteurs, posés sur
+l'élément par `lassoInitTagSuggest()`.
+
+**Résultat**, sur `?p=structures` :
+
+| | avant | après |
+|---|---|---|
+| octets par ligne | 4 462 | 1 969 |
+| page de 200 lignes | 995 Ko | 494 Ko |
+| nœuds DOM par ligne | ~52 | 32 |
+
+**Ce que ça change pour le seuil client/serveur** (analyse + mise en page
+mesurées en local, transfert non compris) :
+
+| lignes | poids | analyse |
+|---|---|---|
+| 500 | 0,9 Mo | 94 ms |
+| 1 000 | 1,9 Mo | 167 ms |
+| 2 000 | 3,7 Mo | 370 ms |
+| 5 000 | 9,3 Mo | 954 ms |
+
+Le filtrage lui-même n'est jamais en cause : 30 ms à 5 000 lignes. C'est le
+chargement qui décide. Le temps d'analyse suit le nombre de nœuds plus que les
+octets — d'où un gain de poids de 50 % pour seulement ~15 % de temps gagné.
+
 ### Index : rien à ajouter, le coût est ailleurs
 
 **Mesuré, pas supposé.** Sur les données réelles (plus grosses tables :

@@ -976,3 +976,42 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
     if (e.target.closest('[data-print]')) { e.preventDefault(); window.print(); }
 });
+
+// Ajout d'étiquette sur ?p=structures : un seul formulaire pour toute la page,
+// déplacé dans la cellule de la ligne dont on clique le « + ».
+//
+// Il était auparavant rendu DANS CHAQUE LIGNE, avec à chaque fois un jeton
+// CSRF et la liste complète des étiquettes — 1834 octets par ligne, 40 % du
+// poids de la page, pour un formulaire dont un seul sert à la fois.
+//
+// Le déplacer (plutôt que le recréer) conserve ses écouteurs : ceux de
+// l'autocomplétion sont posés sur l'élément lui-même par lassoInitTagSuggest(),
+// et suivent donc le nœud.
+function lassoInitTagAjout() {
+    const form = document.getElementById('tag-ajouter-form');
+    if (!form) return;
+    const champId = form.querySelector('input[name="structure_id"]');
+    const saisie = form.querySelector('.cat-search-input');
+    const rangerForm = () => {
+        form.hidden = true;
+        // Ramené en fin de page : laissé dans une ligne, il aurait été emporté
+        // par un re-rendu de la liste (filtre client, tri) et perdu.
+        document.body.appendChild(form);
+    };
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.tag-ajouter-btn');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();          // ne pas déclencher la ligne cliquable
+            champId.value = btn.dataset.tagStructure || '';
+            btn.parentElement.appendChild(form);
+            form.hidden = false;
+            if (saisie) { saisie.value = ''; saisie.focus(); }
+            return;
+        }
+        if (e.target.closest('.tag-ajouter-annuler')) { e.preventDefault(); rangerForm(); }
+    });
+    // Échap referme, comme pour les autres panneaux du site.
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !form.hidden) rangerForm(); });
+}
+window.addEventListener('DOMContentLoaded', lassoInitTagAjout);
