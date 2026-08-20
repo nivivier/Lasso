@@ -1,5 +1,5 @@
 <?php /** @var array $tags */ /** @var array $regions */ /** @var array $grandesRegions */ /** @var array $villes */
-/** @var array $typesLieu */ /** @var array $categoriesPourSelect */ /** @var array $ciblages */ /** @var array $modeles */
+/** @var array $categoriesPourSelect */ /** @var array $ciblages */ /** @var array $modeles */
 /** @var array $criteres */ /** @var ?array $apercu */ /** @var array $structuresApercu */ /** @var int $totalStructures */
 /** @var string $testEmailDefaut */ /** @var ?string $msg */
 
@@ -19,7 +19,7 @@ if ($criteres['tag_id']) {
     }
     if ($noms) { $resumeCiblage[] = 'Étiquette : ' . implode(', ', $noms); }
 }
-foreach (['pays' => 'Pays', 'grande_region' => 'Région', 'departement_canton' => 'Dépt/canton', 'ville' => 'Ville', 'type_lieu' => 'Type de lieu'] as $k => $lib) {
+foreach (['pays' => 'Pays', 'grande_region' => 'Région', 'departement_canton' => 'Dépt/canton', 'ville' => 'Ville'] as $k => $lib) {
     if ($criteres[$k]) { $resumeCiblage[] = $lib . ' : ' . implode(', ', $criteres[$k]); }
 }
 if ($criteres['mois_evenement_debut'] !== '' && $criteres['mois_evenement_fin'] !== '') {
@@ -43,7 +43,6 @@ $categorieLabels = [];
 foreach ($categoriesPourSelect as $cat) { $categorieLabels[(int) $cat['id']] = str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) . $cat['nom']; }
 $tagLabels = [];
 foreach ($tags as $t) { $tagLabels[(int) $t['id']] = $t['nom']; }
-$typeLieuLabels = array_combine($typesLieu, $typesLieu);
 $paysLabels = [];
 foreach (array_unique(array_merge($criteres['pays'], array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
 $grandeRegionLabels = [];
@@ -58,7 +57,7 @@ foreach (array_unique(array_merge($criteres['ville'], $villes)) as $v) { $villeL
 $tousFiltresCiblage = [
     'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'], 'pays' => $criteres['pays'],
     'grande_region' => $criteres['grande_region'], 'departement_canton' => $criteres['departement_canton'],
-    'ville' => $criteres['ville'], 'type_lieu' => $criteres['type_lieu'],
+    'ville' => $criteres['ville'],
     'mois_debut' => $criteres['mois_debut'], 'mois_fin' => $criteres['mois_fin'],
     'mois_evenement_debut' => $criteres['mois_evenement_debut'], 'mois_evenement_fin' => $criteres['mois_evenement_fin'],
     'contact_avant' => $criteres['contact_avant'], 'contact_jamais' => $criteres['contact_jamais'] ? '1' : '',
@@ -95,22 +94,17 @@ $contacteContenu = '<label class="col-filter-champ">Pas contactées depuis le <i
 // colonne, cette page n'ayant pas de tableau à qui l'accrocher.
 $actifsCiblageHtml = filtre_colonne_actifs_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id'))
     . filtre_colonne_actifs_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id'))
-    . filtre_colonne_actifs_html('mailing_campagne', 'type_lieu', $typeLieuLabels, $criteres['type_lieu'], $autresFiltresCiblage('type_lieu'))
     . filtre_colonne_actifs_html('mailing_campagne', 'pays', $paysLabels, $criteres['pays'], $autresFiltresCiblage('pays'))
     . filtre_colonne_actifs_html('mailing_campagne', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autresFiltresCiblage('grande_region'))
     . filtre_colonne_actifs_html('mailing_campagne', 'departement_canton', $departementCantonLabels, $criteres['departement_canton'], $autresFiltresCiblage('departement_canton'))
     . filtre_colonne_actifs_html('mailing_campagne', 'ville', $villeLabels, $criteres['ville'], $autresFiltresCiblage('ville'));
 
 // Même pastille (.col-th-actif) pour Réalisation/Préparation/Contacté, qui ne
-// sont pas des filtres à cases à cocher (pas de $options/$actives à donner à
-// filtre_colonne_actifs_html()) — une seule pastille par groupe (pas par
-// champ élémentaire : « De »/« à » forment une seule plage, jamais retirés
-// séparément), $sansCles() efface les deux/trois champs du groupe d'un coup.
-$pilleGroupe = function (string $label, array $cles) use ($sansCles): string {
-    $qs = ['p' => 'mailing_campagne'] + $sansCles($cles);
-    return '<span class="col-th-actif-list"><span class="col-th-actif">' . e($label)
-        . '<a href="?' . e(http_build_query($qs)) . '" title="Retirer « ' . e($label) . ' »">' . icon('x') . '</a></span></span>';
-};
+// sont pas des filtres à cases à cocher : filtre_pille_groupe_html() (partagée
+// avec le panneau « Filtres » mobile de ?p=structures), $sansCles() effaçant
+// les deux/trois champs du groupe d'un coup.
+$pilleGroupe = fn (string $label, array $cles): string
+    => filtre_pille_groupe_html('mailing_campagne', $label, $sansCles($cles));
 if ($criteres['mois_evenement_debut'] !== '' && $criteres['mois_evenement_fin'] !== '') {
     $actifsCiblageHtml .= $pilleGroupe('Réalisation : ' . mois_nom((int) $criteres['mois_evenement_debut']) . '–' . mois_nom((int) $criteres['mois_evenement_fin']), ['mois_evenement_debut', 'mois_evenement_fin']);
 }
@@ -179,18 +173,15 @@ $critHiddenInputs = function (array $criteres): string {
 
     <div class="toolbar">
         <div class="filters carte-filters">
-            <span class="col-th">Catégorie <?= filtre_colonne_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id')) ?></span>
-            <?php if ($tags): ?><span class="col-th">Étiquette <?= filtre_colonne_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id')) ?></span><?php endif; ?>
-            <?php if ($typesLieu): ?>
-            <span class="col-th">Type de lieu <?= filtre_colonne_html('mailing_campagne', 'type_lieu', $typeLieuLabels, $criteres['type_lieu'], $autresFiltresCiblage('type_lieu')) ?></span>
-            <?php endif; ?>
-            <span class="col-th">Pays <?= filtre_colonne_html('mailing_campagne', 'pays', $paysLabels, $criteres['pays'], $autresFiltresCiblage('pays')) ?></span>
-            <span class="col-th">Région <?= filtre_colonne_html('mailing_campagne', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autresFiltresCiblage('grande_region')) ?></span>
-            <span class="col-th">Département / canton <?= filtre_colonne_html('mailing_campagne', 'departement_canton', $departementCantonLabels, $criteres['departement_canton'], $autresFiltresCiblage('departement_canton')) ?></span>
-            <span class="col-th">Ville <?= filtre_colonne_html('mailing_campagne', 'ville', $villeLabels, $criteres['ville'], $autresFiltresCiblage('ville')) ?></span>
-            <span class="col-th">Réalisation <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['mois_evenement_debut', 'mois_evenement_fin']), $realisationContenu) ?></span>
-            <span class="col-th">Préparation <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['mois_debut', 'mois_fin']), $preparationContenu) ?></span>
-            <span class="col-th">Contacté <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['contact_avant', 'contact_jamais']), $contacteContenu) ?></span>
+            <?= filtre_colonne_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id'), 'Catégorie') ?>
+            <?php if ($tags): ?><?= filtre_colonne_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id'), 'Étiquettes') ?><?php endif; ?>
+            <?= filtre_colonne_html('mailing_campagne', 'pays', $paysLabels, $criteres['pays'], $autresFiltresCiblage('pays'), 'Pays') ?>
+            <?= filtre_colonne_html('mailing_campagne', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autresFiltresCiblage('grande_region'), 'Région') ?>
+            <?= filtre_colonne_html('mailing_campagne', 'departement_canton', $departementCantonLabels, $criteres['departement_canton'], $autresFiltresCiblage('departement_canton'), 'Département / canton') ?>
+            <?= filtre_colonne_html('mailing_campagne', 'ville', $villeLabels, $criteres['ville'], $autresFiltresCiblage('ville'), 'Ville') ?>
+            <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['mois_evenement_debut', 'mois_evenement_fin']), $realisationContenu, 'Réalisation', $criteres['mois_evenement_debut'] !== '' || $criteres['mois_evenement_fin'] !== '') ?>
+            <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['mois_debut', 'mois_fin']), $preparationContenu, 'Préparation', $criteres['mois_debut'] !== '' || $criteres['mois_fin'] !== '') ?>
+            <?= filtre_colonne_form_html('mailing_campagne', $sansCles(['contact_avant', 'contact_jamais']), $contacteContenu, 'Contacté', $criteres['contact_jamais'] || $criteres['contact_avant'] !== '') ?>
         </div>
     </div>
     <?php if ($actifsCiblageHtml !== ''): ?>
@@ -198,7 +189,10 @@ $critHiddenInputs = function (array $criteres): string {
     <?php endif; ?>
 
     <?php
-    // Ancre invisible pour syncCriteres() (voir le <script nonce="<?= e(csp_nonce()) ?>"> en bas de page) :
+    // Ancre invisible pour syncCriteres() (voir le script à nonce en bas de page) :
+    // ⚠️ ne jamais écrire la balise fermante PHP dans un commentaire — même en
+    // // ligne, elle referme le bloc et le reste du commentaire part en HTML
+    // dans la page (c'est ce qui s'est produit ici pendant longtemps).
     // au moment de soumettre le formulaire d'enregistrement du ciblage ou de
     // création de la campagne, on relit l'état COURANT des filtres depuis ce
     // <form> (hidden inputs, jamais affichés — sans bouton visible depuis que
@@ -210,7 +204,7 @@ $critHiddenInputs = function (array $criteres): string {
         <?= hidden_inputs_html([
             'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'], 'pays' => $criteres['pays'],
             'grande_region' => $criteres['grande_region'], 'departement_canton' => $criteres['departement_canton'],
-            'ville' => $criteres['ville'], 'type_lieu' => $criteres['type_lieu'],
+            'ville' => $criteres['ville'],
             'mois_evenement_debut' => $criteres['mois_evenement_debut'], 'mois_evenement_fin' => $criteres['mois_evenement_fin'],
             'mois_debut' => $criteres['mois_debut'], 'mois_fin' => $criteres['mois_fin'],
             'contact_avant' => $criteres['contact_avant'], 'contact_jamais' => $criteres['contact_jamais'] ? '1' : '',

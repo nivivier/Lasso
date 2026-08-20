@@ -88,58 +88,105 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?php $lieuFiltresActifs = $lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg; ?>
             <details class="filters-more" <?= $lieuFiltresActifs ? 'open' : '' ?>>
                 <summary title="Plus de filtres" aria-label="Plus de filtres"><?= icon('funnel-plus') ?></summary>
-                <div class="filters-more-body">
-                    <label class="jauge-filtre">Jauge min
-                        <input type="number" name="lieu_jauge_min" min="0" value="<?= $lieuJaugeMin !== null ? (int) $lieuJaugeMin : '' ?>" data-submit-on-change placeholder="200">
-                    </label>
-                    <label class="jauge-filtre">Jauge max
-                        <input type="number" name="lieu_jauge_max" min="0" value="<?= $lieuJaugeMax !== null ? (int) $lieuJaugeMax : '' ?>" data-submit-on-change placeholder="1000">
-                    </label>
-                    <label>Mois d'événement
-                        <select name="lieu_mois_evenement" data-submit-on-change>
-                            <option value="0">Tous</option>
-                            <?php for ($m = 1; $m <= 12; $m++): ?>
-                                <option value="<?= $m ?>" <?= $lieuMoisEvenement === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
-                            <?php endfor; ?>
-                        </select>
-                    </label>
-                    <label>Mois de programmation
-                        <select name="lieu_mois_prog" data-submit-on-change>
-                            <option value="0">Tous</option>
-                            <?php for ($m = 1; $m <= 12; $m++): ?>
-                                <option value="<?= $m ?>" <?= $lieuMoisProg === $m ? 'selected' : '' ?>><?= mois_nom($m) ?></option>
-                            <?php endfor; ?>
-                        </select>
-                    </label>
-                </div>
+                <div class="filters-more-body"><?php require __DIR__ . '/_structures_filtres_lieu.php'; ?></div>
             </details>
         </form>
-        <?php if ($vue === 'carte'): ?>
-        <!-- Vue carte : pas de tableau où accrocher un en-tête de colonne, les
-             mêmes filtres que la vue liste (voir plus bas, thead) restent donc
-             ici, dans la toolbar, ENTRE la recherche et .head-actions (ordre
-             visuel voulu : recherche | filtres | boutons). .carte-filters
-             est flex:1 1 auto (pas 100%) : il occupe l'espace restant sur la
-             ligne 1 et laisse flex-wrap:wrap (hérité de .filters) rejeter ses
-             PROPRES enfants (chaque filtre) sur une 2e ligne interne si ça ne
-             tient pas — .head-actions reste sur la ligne 1, poussé à droite
-             par margin-left:auto, quelle que soit la hauteur prise par
-             .carte-filters. -->
-        <div class="filters carte-filters">
-            <span class="col-th">Statut <?= filtre_colonne_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Catégorie <?= filtre_colonne_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Pays <?= filtre_colonne_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Département / canton <?= filtre_colonne_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton') + ['vue' => 'carte']) ?></span>
+        <?php
+        // Bande des filtres actifs du panneau « Filtres » (mobile). Mêmes
+        // pastilles que ?p=mailing_campagne — .filtres-ciblage-actifs /
+        // .col-th-actif, chacune avec sa croix de retrait — pour que les deux
+        // écrans qui filtrent des structures se lisent pareil. En vue bureau,
+        // ces pastilles vivent déjà sous leur en-tête de colonne
+        // (filtre_colonne_actifs_html() dans le <thead>) : la bande n'a de sens
+        // que là où le <thead> est masqué.
+        $actifsFiltres = ''
+            . filtre_colonne_actifs_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut'))
+            . filtre_colonne_actifs_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id'))
+            . filtre_colonne_actifs_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays'))
+            . filtre_colonne_actifs_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton'))
+            . filtre_colonne_actifs_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id'))
+            . filtre_colonne_actifs_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag'))
+            . filtre_colonne_actifs_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements'))
+            . filtre_colonne_actifs_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode'))
+            . filtre_colonne_actifs_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode'));
+        // Jauge et mois ne sont pas des cases à cocher : une pastille par
+        // groupe, dont le lien de retrait remet le ou les champs à vide.
+        // filtre_persistant() écrase la session dès que la clé est présente en
+        // GET, même vide — c'est ce qui rend le retrait effectif.
+        // $autresFiltres('') ne retire rien : il reporte tous les autres
+        // filtres actifs sur le lien.
+        $pilleGroupe = fn (string $label, array $vides): string
+            => filtre_pille_groupe_html('structures', $label, $autresFiltres('') + $vides);
+        if ($lieuJaugeMin !== null || $lieuJaugeMax !== null) {
+            $actifsFiltres .= $pilleGroupe(
+                'Jauge : ' . ($lieuJaugeMin !== null ? (int) $lieuJaugeMin : '…') . '–' . ($lieuJaugeMax !== null ? (int) $lieuJaugeMax : '…'),
+                ['lieu_jauge_min' => '', 'lieu_jauge_max' => '']
+            );
+        }
+        if ($lieuMoisEvenement) {
+            $actifsFiltres .= $pilleGroupe("Mois d'événement : " . mois_nom($lieuMoisEvenement), ['lieu_mois_evenement' => '0']);
+        }
+        if ($lieuMoisProg) {
+            $actifsFiltres .= $pilleGroupe('Mois de programmation : ' . mois_nom($lieuMoisProg), ['lieu_mois_prog' => '0']);
+        }
+        ?>
+        <?php
+        // Filtres de colonne hors tableau. Deux vues en ont besoin : la carte,
+        // qui n'a pas de <thead> où les accrocher, et la liste en mode mobile,
+        // dont le <thead> est masqué par la mise en cartes (@media 700px,
+        // assets/app.css). Même bloc dans les deux cas, à un paramètre près
+        // ($vueExtra : la carte doit se reconduire elle-même, la liste non) ;
+        // il est posé à plat dans la toolbar pour la carte, et replié derrière
+        // un bouton « Filtres » pour la liste — bouton lui-même invisible
+        // au-delà de 700px, où les entonnoirs du <thead> reprennent la main.
+        $vueExtra = $vue === 'carte' ? ['vue' => 'carte'] : [];
+        ob_start(); ?>
+            <?= filtre_colonne_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut') + $vueExtra, 'Statut') ?>
+            <?= filtre_colonne_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id') + $vueExtra, 'Catégorie') ?>
+            <?= filtre_colonne_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays') + $vueExtra, 'Pays') ?>
+            <?= filtre_colonne_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton') + $vueExtra, 'Département / canton') ?>
             <?php if ($tagsDispo): ?>
-            <span class="col-th">Tags <?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id') + ['vue' => 'carte']) ?></span>
+            <?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id') + $vueExtra, 'Étiquettes') ?>
             <?php endif; ?>
-            <span class="col-th">Flag <?= filtre_colonne_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag') + ['vue' => 'carte']) ?></span>
+            <?= filtre_colonne_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag') + $vueExtra, 'Marquage') ?>
             <?php if (module_actif('evenements')): ?>
-            <span class="col-th">Événements <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements') + ['vue' => 'carte']) ?></span>
+            <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements') + $vueExtra, 'Événements') ?>
             <?php endif; ?>
-            <span class="col-th">Dernier contact <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode') + ['vue' => 'carte']) ?></span>
-            <span class="col-th">Dernière modification <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode') + ['vue' => 'carte']) ?></span>
-        </div>
+            <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode') + $vueExtra, 'Dernier contact') ?>
+            <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode') + $vueExtra, 'Dernière modification') ?>
+        <?php $filtresColonnes = ob_get_clean(); ?>
+        <?php if ($vue === 'carte'): ?>
+        <!-- .carte-filters est flex:1 1 auto (pas 100%) : il occupe l'espace
+             restant sur la ligne 1 et laisse flex-wrap:wrap (hérité de
+             .filters) rejeter ses PROPRES enfants (chaque filtre) sur une 2e
+             ligne interne si ça ne tient pas — .head-actions reste sur la
+             ligne 1, poussé à droite par margin-left:auto, quelle que soit la
+             hauteur prise par .carte-filters. -->
+        <div class="filters carte-filters"><?= $filtresColonnes ?></div>
+        <?php else: ?>
+        <details class="filters-more filtres-mobile">
+            <summary title="Filtres" aria-label="Filtres"><?= icon('funnel') ?></summary>
+            <?php // Les deux moitiés du panneau (filtres de colonne, puis jauge/mois)
+                  // vivent dans un conteneur commun : c'est LUI que le CSS détache en
+                  // panneau flottant sous la toolbar, sinon les deux se superposeraient
+                  // au même point d'ancrage. ?>
+            <div class="filtres-mobile-panneau">
+                <div class="filters carte-filters filters-more-body"><?= $filtresColonnes ?></div>
+                <form method="get" class="filters filters-more-body">
+                    <input type="hidden" name="p" value="structures">
+                    <input type="hidden" name="vue" value="<?= e($vue) ?>">
+                    <?php if (($_GET['depuis'] ?? '') !== ''): ?><input type="hidden" name="depuis" value="<?= e((string) $_GET['depuis']) ?>"><?php endif; ?>
+                    <?php if ($recherche !== ''): ?><input type="hidden" name="q" value="<?= e($recherche) ?>"><?php endif; ?>
+                    <?php require __DIR__ . '/_structures_filtres_lieu.php'; ?>
+                </form>
+                <?php if ($actifsFiltres !== ''): ?>
+                <?php // Après tous les contrôles, comme la bande de ?p=mailing_campagne
+                      // sous sa toolbar : elle résume l'ensemble des filtres actifs,
+                      // jauge et mois compris. ?>
+                <div class="filtres-ciblage-actifs"><?= $actifsFiltres ?></div>
+                <?php endif; ?>
+            </div>
+        </details>
         <?php endif; ?>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
@@ -281,7 +328,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <?php endif; ?>
 <?php $nbCols = 10 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1); ?>
 <div class="table-scroll">
-<table class="list list-wide">
+<table class="list list-wide<?= $peutEcrireStruct ? ' avec-check' : '' ?>">
     <thead><tr>
         <?php if ($peutEcrireStruct): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
         <th class="col-petit">
@@ -354,17 +401,17 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <?php $hrefLigne = '?p=structure&id=' . (int) $d['id'] . $suffixeDepuis . suffixe_retour_liste($recherche, $pgPage); ?>
         <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
-            <td><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
-            <td>
+            <td class="col-statut"><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
+            <td class="col-nom">
                 <?php if ($peutEcrireStruct): ?><?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?><?php endif; ?>
                 <strong><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e($d['nom']) ?></a></strong>
             </td>
-            <td class="small">
+            <td class="small col-ville">
                 <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
                 <?= $villeHtml !== '' ? $villeHtml : '—' ?>
             </td>
-            <td><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
-            <td class="tiny">
+            <td class="col-categorie"><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
+            <td class="tiny col-liees">
                 <?php
                     $lieesPaires = ($d['structures_liees'] ?? '') !== '' ? array_map(
                         fn ($p) => explode("\x1f", $p, 3) + ['', '', ''],
@@ -375,7 +422,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                     <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?><?= $suffixeDepuis ?>"><?= e((string) $ln) ?></a><?php endforeach; ?>
                 <?php else: ?><span class="muted">—</span><?php endif; ?>
             </td>
-            <td class="small">
+            <td class="small col-tags">
                 <?php
                     $tagsPaires = ($d['tags_noms'] ?? '') !== '' ? array_map(
                         fn ($p) => explode("\x1f", $p, 2) + ['', ''],
@@ -394,13 +441,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <button type="button" class="badge tag-ajouter-btn" data-tag-structure="<?= (int) $d['id'] ?>" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
                 <?php endif; ?>
             </td>
-            <td class="tiny">
+            <td class="tiny col-contact">
                 <?php $contactsNoms = ($d['contacts_noms'] ?? '') !== '' ? explode("\x1e", (string) $d['contacts_noms']) : []; ?>
                 <?= $contactsNoms ? e(implode(', ', $contactsNoms)) : '<span class="muted">—</span>' ?>
             </td>
-            <td class="muted tiny"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
-            <td class="muted tiny"><?= ($d['mise_a_jour_le'] ?? '') !== '' ? e(date('d.m.Y', strtotime((string) $d['mise_a_jour_le']))) : '—' ?></td>
-            <td class="small">
+            <td class="muted tiny col-contact-le"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
+            <td class="muted tiny col-maj-le"><?= ($d['mise_a_jour_le'] ?? '') !== '' ? e(date('d.m.Y', strtotime((string) $d['mise_a_jour_le']))) : '—' ?></td>
+            <td class="small col-factures">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
                     <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>
                 <?php else: ?>
@@ -408,7 +455,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?php endif; ?>
             </td>
             <?php if (module_actif('evenements')): ?>
-            <td class="muted small"><?php $ne = (int) ($nbEvenements[(int) $d['id']] ?? 0); echo $ne > 0 ? $ne : '—'; ?></td>
+            <td class="muted small col-nb-evenements"><?php $ne = (int) ($nbEvenements[(int) $d['id']] ?? 0); echo $ne > 0 ? $ne : '—'; ?></td>
             <?php endif; ?>
         </tr>
     <?php endforeach; ?>

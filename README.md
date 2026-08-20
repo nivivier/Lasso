@@ -166,7 +166,11 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    sous-spectacles), suivi des déclarations **SUISA**, et **exports publics
    JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda externe.
 9. **Booking** : structures et contacts, étiquettes, lieux géocodés sur une carte,
-   campagnes de **mailing** avec désinscription.
+   campagnes de **mailing** avec désinscription. Sur téléphone, la liste des
+   structures se relit en **mini-cartes** — statut, nom, ville avec drapeau et
+   canton, catégorie, dates de dernière modification et de dernier contact,
+   étiquettes — et tous les filtres passent derrière un bouton « Filtres » à côté
+   de la recherche ; au-delà de 700 px de large, le tableau complet reprend.
 10. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.

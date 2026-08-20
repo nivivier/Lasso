@@ -1713,23 +1713,27 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    padding ci-dessous (9px 11px, purement pour l'espace autour de l'icône
    17px) n'a pas besoin de correspondre exactement à --btn-padding-v — align-
    items:center recentre le contenu dans la hauteur imposée quoi qu'il arrive. */
-.filters-more summary {
+.filters-more > summary {
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
     list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     padding: 9px 11px; height: var(--action-height); transition: background .15s, border-color .15s;
 }
-.filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
-/* Panneau ouvert : le déclencheur prend l'aspect « actif » des boutons segmentés
+.filters-more > summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
+/* Sélecteur d'enfant direct sur les cinq règles ci-dessus et ci-dessous : le
+   panneau « Filtres » de ?p=structures contient lui-même des <details> de
+   filtre, dont un sélecteur descendant teintait les boutons — tous paraissaient
+   actifs.
+   Panneau ouvert : le déclencheur prend l'aspect « actif » des boutons segmentés
    voisins (Liste / Carte), pour qu'on voie d'un coup d'œil que des filtres
    supplémentaires sont en jeu — le panneau lui-même s'ouvre en position fixed,
    donc rien d'autre ne le signale une fois la page défilée. */
-.filters-more[open] summary {
+.filters-more[open] > summary {
     background: var(--highlight-tint);
     border-color: var(--highlight-tint);
     color: var(--highlight-d);
 }
-.filters-more summary::-webkit-details-marker { display: none; }
-.filters-more summary .ico { width: 17px; height: 17px; }
+.filters-more > summary::-webkit-details-marker { display: none; }
+.filters-more > summary .ico { width: 17px; height: 17px; }
 /* Sans cadre : le panneau se pose dans l'espace réservé sous la barre d'outils
    (margin-bottom posé en JS), donc il ne recouvre rien et n'a pas besoin de se
    distinguer d'un fond. Il portait auparavant fond/bordure/ombre/padding, ce qui
@@ -1807,6 +1811,32 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .col-filter-btn .ico { width: 12px; height: 12px; }
 .col-filter-btn:hover { color: var(--primary-d); background: var(--primary-tint); }
+/* Variante nommée du bouton de filtre : hors d'un tableau (panneau « Filtres »
+   mobile de ?p=structures, ciblage de ?p=mailing_campagne), il n'y a pas
+   d'en-tête de colonne pour dire ce que filtre l'entonnoir. Le libellé passe
+   donc dans le bouton — toute la surface devient cliquable au lieu d'un
+   entonnoir de 18px à côté d'un texte inerte — et l'état actif se lit sans
+   ouvrir le menu (fond teinté + nombre de valeurs cochées), même code visuel
+   que .seg-btn.on et .filters-more[open] summary. */
+.col-filter-btn-nomme {
+    width: auto; height: auto; gap: 6px;
+    padding: 6px 10px; border-radius: var(--radius-sm, 7px);
+    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    font-size: var(--fs-basic); font-weight: 500; white-space: nowrap;
+}
+.col-filter-btn-nomme:hover { border-color: var(--primary); color: var(--primary-d); }
+.col-filter-btn-nomme.on {
+    background: var(--primary-tint); border-color: var(--primary); color: var(--primary-d); font-weight: 600;
+}
+.col-filter-btn-nomme .ico { width: 13px; height: 13px; opacity: .75; }
+/* Le chevron pivote à l'ouverture : le bouton dit s'il est déplié. */
+.col-filter[open] > .col-filter-btn-nomme .ico { transform: rotate(180deg); }
+.col-filter-nb {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+    background: var(--primary); color: #fff;
+    font-size: var(--fs-tiny); font-weight: 700; font-variant-numeric: tabular-nums;
+}
 .col-filter > summary.col-filter-btn { list-style: none; }
 .col-filter > summary.col-filter-btn::-webkit-details-marker { display: none; }
 .col-filter-menu {
@@ -2789,4 +2819,290 @@ abbr {
     .dash-card table.list tr > :last-child { padding-right: 12px; }
     .dash-card table.list td,
     .dash-card table.list th { padding-left: 6px; padding-right: 6px; }
+}
+
+/* Le bouton « Filtres » n'existe qu'en mobile : au-delà, chaque filtre est
+   accroché à son en-tête de colonne, et le doublon prêterait à confusion. */
+.filtres-mobile { display: none; }
+
+/* ============================================================
+   ?p=structures en mini-cartes (mobile)
+   ============================================================
+   Sous 700px, le tableau des structures — douze colonnes — se relit en
+   cartes : une par structure, six champs réagencés. Aucune duplication de
+   balisage, ce sont les MÊMES <td> repositionnés en grille (les classes
+   col-* de views/structures_liste.php ne servent qu'à ça) ; à 4000 lignes
+   possibles en mode client, un second gabarit aurait pesé plus que la page
+   entière.
+
+   Composition, calquée sur la maquette validée :
+
+       [x] [statut] Nom de la structure            Ville
+                                                   🇨🇭 GE
+           ✎ 12.03.24  ✉ 28.01.24            Salle de concert
+           [étiquette] [étiquette] [+]
+
+   Grille à quatre colonnes : case à cocher | contenu | contenu | bloc de
+   droite. Le nom couvre les colonnes 2 et 3 et se superpose à l'icône de
+   statut, qu'il dégage par un padding fixe — c'est ce qui permet aux dates
+   de la rangée 2 de commencer exactement au même bord gauche que l'icône,
+   sans que la largeur des dates ne repousse le nom.
+
+   ⚠️ Un <tr> passé en display:grid perd sa sémantique de tableau pour les
+   lecteurs d'écran. Compromis assumé et limité au mobile : le <thead> y est
+   de toute façon masqué (les filtres passent par le bouton « Filtres »), et
+   la vue bureau — celle qui porte les en-têtes de colonne — n'est pas
+   touchée. */
+@media (max-width: 700px) {
+    .list-wide thead { display: none; }
+    .list-wide,
+    .list-wide tbody { display: block; }
+    /* .list-wide impose min-width:680px pour défiler horizontalement en vue
+       liste ; en cartes, cette largeur pousserait le bloc de droite hors de
+       l'écran. */
+    .list-wide { min-width: 0; }
+    /* Les marges pleine largeur du tableau plein cadre ne conviennent pas à
+       des cartes, qui gardent leur propre gouttière. */
+    .module-content-inner .table-scroll { margin: 0; }
+    .module-content-inner .table-scroll .list tr > :first-child,
+    .module-content-inner .table-scroll .list tr > :last-child { padding-left: 0; padding-right: 0; }
+    /* Le conteneur de défilement horizontal n'a plus lieu d'être : les cartes
+       tiennent en largeur, et le laisser actif ferait défiler une carte. */
+    .table-scroll { overflow-x: visible; }
+    /* Le cadre du tableau (fond, bordure, ombre) n'a plus d'objet quand chaque
+       ligne porte le sien : ses bordures haute et basse tiraient un trait entre
+       la barre d'action et la première carte. */
+    .module-content-inner .table-scroll .list-wide,
+    .list-wide { border: 0; background: none; box-shadow: none; }
+
+    .list-wide tbody tr {
+        display: grid;
+        /* Colonnes 1 et 2 en largeur FIXE. En « auto », la date de la rangée 2
+           les chevauche et les fait grossir juste assez pour elle : une carte
+           dont la date est « — » avait des colonnes plus étroites que sa
+           voisine, et l'icône de statut comme le nom se décalaient d'une carte
+           à l'autre. Figées, tout s'aligne verticalement d'un bout à l'autre
+           de la liste. La colonne 2 est dimensionnée pour la date, pas pour
+           l'icône : celle-ci est posée à son bord gauche et le nom la dégage
+           par un retrait fixe, donc sa largeur ne les concerne ni l'un ni
+           l'autre.
+           Colonne 3 : plancher à min-content, sinon une catégorie longue la
+           réduit sous la largeur d'une date (mesuré 47px pour 78px de texte)
+           et la date déborde sur la catégorie. */
+        grid-template-columns: var(--carte-check, 0px) 62px minmax(min-content, 1fr) auto;
+        column-gap: 8px;
+        align-items: start;
+        margin-bottom: 8px;
+        padding: 11px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+    }
+    .list-wide tbody tr.inactif { opacity: .62; }
+    /* Les bordures de cellule du tableau n'ont plus de sens en carte. */
+    .list-wide tbody td {
+        border: 0;
+        padding: 0;
+        line-height: 1.4;
+    }
+
+    /* Case à cocher en haut à gauche, sur la première rangée seulement : à
+       cheval sur toutes les rangées elle se centrait verticalement, loin du nom
+       auquel elle se rapporte. Les rangées suivantes (dates, étiquettes)
+       repartent donc de la colonne 1, au bord gauche du contenu. */
+    /* Colonne 1 réservée à la case à cocher, et seulement quand il y en a une
+       (classe posée par la vue selon le droit d'écriture) — sinon les cartes
+       porteraient une gouttière vide à gauche. */
+    .list-wide.avec-check tbody tr { --carte-check: 22px; }
+    /* Remontée de la première ligne. Les quatre cellules (case, icône, nom,
+       ville) ont bien le même bord haut — mesuré à 0 du bord du contenu — mais
+       la case à cocher fait 13px et se pose en haut d'une ligne de 18.9px,
+       tandis que l'icône et les textes sont centrés dans la leur : à l'œil, la
+       case paraît plus haute que le reste. La valeur n'est pas au jugé — c'est
+       l'écart entre le centre de la case (6.5px) et le centre de la ligne
+       (9.45px), soit 3px : au-delà, la case passe visiblement SOUS le nom au
+       lieu de s'aligner avec lui. */
+    .list-wide td.col-statut,
+    .list-wide td.col-nom,
+    .list-wide td.col-ville { margin-top: -3px; }
+    /* text-align:left : la colonne de cases à cocher est centrée en vue
+       tableau, ce qui décalait la case de 9px vers la droite par rapport à la
+       date et aux étiquettes juste en dessous. Aucun décalage vertical non
+       plus : la case doit se poser à l'origine du contenu, comme à gauche, et
+       c'est le padding de la carte — identique sur les quatre côtés — qui fait
+       seul la marge. */
+    .list-wide td.col-check {
+        grid-column: 1; grid-row: 1; align-self: start; padding-top: 0; text-align: left;
+        /* display:flex, et non un simple bloc : dans un bloc, la case est un
+           élément en ligne posé sur la ligne de base de sa boîte de ligne
+           (interligne 1.4 sur 13px), ce qui la faisait descendre de 3.5px sous
+           le bord haut du contenu — alors qu'à gauche elle y était déjà. */
+        display: flex;
+    }
+    /* Marges posées par le navigateur sur une case à cocher (3px en haut et en
+       bas, 4px à gauche) : toutes annulées d'un coup — la gauche la décalait
+       des dates et des étiquettes, la haute la faisait descendre sous le bord
+       du contenu. */
+    .list-wide td.col-check input { margin: 0; }
+    /* Case à cocher, première date et étiquettes doivent partager le même bord
+       gauche. Les trois cellules y sont déjà ; ce sont leurs contenus qui s'en
+       écartent — l'étiquette a 6px de marge, la case ses propres marges
+       (traitées avec .col-check ci-dessus). L'espacement entre étiquettes vient
+       du gap de .col-tags, pas de leurs marges. */
+    .list-wide td.col-tags .badge { margin-left: 0; }
+    /* Hauteur calée sur la ligne du nom (14px × 1.35), icône centrée dedans.
+       line-height:1 sur le <span> qui porte l'icône est indispensable : sans
+       lui il garde l'interligne du tableau, sa boîte fait 22.4px au lieu de
+       16, et l'icône se retrouve 3px sous le milieu du nom. */
+    .list-wide td.col-statut {
+        grid-column: 2; grid-row: 1;
+        display: flex; align-items: center; height: calc(14px * 1.35);
+    }
+    .list-wide td.col-statut > span {
+        display: flex; align-items: center; line-height: 1;
+    }
+    .list-wide td.col-nom {
+        grid-column: 2 / 4; grid-row: 1;
+        min-width: 0; padding-left: 24px;
+        font-size: 14px; line-height: 1.35;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* Le marquage rapide (étoile / cœur) sort de la carte : deux icônes de plus
+       devant le nom sur un écran de 375px, pour un critère qui reste filtrable
+       depuis « Filtres ». Il revient tel quel au-delà de 700px. */
+    .list-wide td.col-nom .flag-toggle { display: none; }
+    /* Bloc de droite : ville et drapeau/canton sur la rangée 1, catégorie sur
+       la rangée 2. Plafond en pixels et non en pourcentage — sur une colonne
+       de grille « auto », un max-width en % est circulaire et le bloc s'écrase
+       à quelques pixels de large. */
+    .list-wide td.col-ville,
+    .list-wide td.col-categorie {
+        grid-column: 4; max-width: 136px; text-align: right;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .list-wide td.col-ville { grid-row: 1; font-size: 12px; }
+    .list-wide td.col-ville .tiny { font-size: 11px; }
+    /* La taille doit être posée sur .row-field-txt, qui impose la sienne
+       (--fs-basic, 13px) : sur la seule cellule, le texte restait à 13px. */
+    .list-wide td.col-categorie,
+    .list-wide td.col-categorie .row-field-txt { grid-row: 2; font-size: var(--fs-tiny); color: var(--muted); }
+    /* La ville passe sur sa propre ligne, drapeau et canton la suivent. */
+    .list-wide td.col-ville strong { display: block; }
+    /* La catégorie ne garde que sa feuille : le préfixe (catégorie parente)
+       ferait une deuxième ligne pour une information redondante ici. */
+    .list-wide td.col-categorie .row-field-prefix { display: none; }
+    /* La troncature doit être posée sur l'élément qui porte le texte : .row-field-txt
+       est un conteneur flex en overflow:hidden dont l'enfant est en
+       overflow:visible (assets/app.css § champs de ligne), si bien que le
+       texte est coupé net, sans points de suspension. Le préfixe est exclu :
+       il est lui aussi un enfant direct, et la règle le rendrait plus
+       spécifique que le display:none ci-dessus, donc de nouveau visible. */
+    .list-wide td.col-categorie .row-field-txt > span:not(.row-field-prefix),
+    .list-wide td.col-ville strong {
+        display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* nowrap indispensable : sans lui, une catégorie longue comprime la
+       colonne 3 et la date du dernier contact repasse à la ligne, ce qui fait
+       une carte de 131px au milieu de cartes de 81px. */
+    .list-wide td.col-maj-le,
+    .list-wide td.col-contact-le {
+        font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .list-wide td.col-maj-le { grid-column: 1 / 3; grid-row: 2; }
+    .list-wide td.col-contact-le { grid-column: 3; grid-row: 2; }
+    /* Crayon = dernière modification, enveloppe = dernier contact. Posés en
+       CSS et non dans le balisage : deux icônes par ligne sur 4000 lignes
+       pèsent, celles-ci ne coûtent rien. Le masque prend la couleur du texte,
+       donc suit le thème sombre sans seconde déclaration. */
+    .list-wide td.col-maj-le::before,
+    .list-wide td.col-contact-le::before {
+        content: ""; display: inline-block; vertical-align: -2px;
+        width: 12px; height: 12px; margin-right: 3px;
+        background-color: currentColor;
+        -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+        -webkit-mask-size: contain; mask-size: contain;
+    }
+    .list-wide td.col-maj-le::before {
+        -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon);
+    }
+    .list-wide td.col-contact-le::before {
+        -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe);
+    }
+
+    .list-wide td.col-tags {
+        grid-column: 1 / -1; grid-row: 3;
+        margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+    }
+    /* Colonnes sans place sur un téléphone : elles restent dans la vue bureau. */
+    .list-wide td.col-liees,
+    .list-wide td.col-contact,
+    .list-wide td.col-factures,
+    .list-wide td.col-nb-evenements { display: none; }
+
+    /* Un seul bouton de filtres en mobile : « Filtres » reprend les entonnoirs
+       du <thead> masqué ET les champs jauge/mois, ce qui rend l'entonnoir
+       « Plus de filtres » de la toolbar redondant. */
+    .filtres-mobile { display: inline-block; }
+    .toolbar > form > .filters-more { display: none; }
+    /* Une seule ligne : recherche, bouton « Filtres », boutons d'action. C'est
+       le champ de recherche qui cède la place — sans min-width:0 il refuse de
+       descendre sous sa largeur intrinsèque et rejette les icônes d'action à la
+       ligne suivante. */
+    .toolbar { position: relative; gap: 10px 8px; }
+    /* flex-basis à 0, et non auto : avec flex-wrap, le navigateur répartit les
+       éléments sur les lignes d'après leur base AVANT de rétrécir quoi que ce
+       soit. Une base « auto » vaut ici la largeur intrinsèque du champ de
+       recherche (278px mesurés), ce qui suffit à rejeter les boutons d'action
+       à la ligne suivante alors même que le champ était rétrécissable. */
+    .toolbar > form.filters { flex: 1 1 0; min-width: 0; }
+    .toolbar > form.filters .search-label { min-width: 0; flex: 1 1 0; }
+    .toolbar > form.filters .search-label input { min-width: 0; }
+    .toolbar .head-actions { flex: 0 0 auto; margin-left: 0; }
+    /* Le panneau se détache sous la toolbar au lieu de pousser les icônes
+       d'action à la ligne : il flotte par-dessus les cartes, d'où le fond
+       plein. Un seul conteneur ancré (.filtres-mobile-panneau) ; ses deux
+       moitiés coulent normalement à l'intérieur. */
+    .filtres-mobile-panneau {
+        display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+        z-index: 30; padding: 14px;
+        background: var(--card); border: 1px solid var(--line);
+        border-radius: var(--radius); box-shadow: var(--shadow-sm);
+        max-height: 70vh; overflow-y: auto;
+    }
+    .filtres-mobile[open] .filtres-mobile-panneau { display: block; }
+    /* .filters-more-body est en position:fixed par défaut — une carte flottante
+       repositionnée par JS, taillée pour un entonnoir de colonne. Dans ce
+       panneau, c'est le conteneur qui flotte ; les deux moitiés reprennent le
+       flux et s'empilent. */
+    /* Rangée de boutons qui s'enroule — même disposition que le ciblage de
+       ?p=mailing_campagne, pour que les deux zones de filtres se lisent pareil.
+       Un bouton par ligne pleine largeur, comme avant, faisait dix lignes pour
+       dix filtres et repoussait la liste des filtres actifs hors de l'écran. */
+    .filtres-mobile .filters-more-body {
+        display: flex; position: static; width: auto; max-width: none;
+        flex-flow: row wrap; align-items: flex-start; gap: 8px;
+        /* .filters est stylé en carte (fond, bordure, ombre, padding 16/26) :
+           juste dans une toolbar, hors sujet dans un panneau qui a déjà les
+           siens — sans cette remise à plat, le panneau se lisait comme deux
+           cartes empilées séparées par la bande des filtres actifs. */
+        background: none; border: 0; box-shadow: none; padding: 0; margin: 0;
+    }
+    .filtres-mobile .filters-more-body + .filters-more-body {
+        margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+    }
+    /* Marge négative de .filtres-ciblage-actifs annulée : elle sert à remonter
+       la bande sous une toolbar, pas dans un panneau. */
+    .filtres-mobile-panneau .filtres-ciblage-actifs {
+        margin: 0; padding-top: 12px; border-top: 1px solid var(--line);
+    }
+    .filtres-mobile .filters-more-body:last-of-type { margin-bottom: 12px; }
+}
+
+/* Sources des deux icônes de date de la vue en cartes (Lucide « pencil » et
+   « mail », mêmes tracés que icone_chemins() dans lib/helpers.php). Déclarées
+   sur :root pour rester lisibles au milieu des règles qui les emploient. */
+:root {
+    --ico-crayon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E");
+    --ico-enveloppe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
 }

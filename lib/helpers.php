@@ -647,9 +647,34 @@ function periode_anciennete_where(string $colonne, array $tranches): array
     return $conds ? [' AND (' . implode(' OR ', $conds) . ')', $params] : ['', []];
 }
 
-function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams): string
+// $libelle : hors d'un tableau (panneau « Filtres » mobile de ?p=structures,
+// ciblage de ?p=mailing_campagne), il n'y a pas d'en-tête de colonne pour
+// nommer le filtre — le libellé entre alors DANS le <summary>, avec le nombre
+// de valeurs actives. Tout le bouton devient cliquable, au lieu d'un entonnoir
+// de 18px posé à côté d'un texte inerte, et l'état actif se voit sans ouvrir le
+// menu. Laissé vide (le défaut), le bouton reste l'entonnoir seul des <thead>,
+// où le nom de la colonne et les pastilles de valeurs actives font déjà ce
+// travail.
+// Bouton d'ouverture d'un filtre de colonne. Sans libellé : l'entonnoir seul
+// des <thead>. Avec : un vrai bouton nommé, qui porte son état actif et, le cas
+// échéant, le nombre de valeurs cochées.
+function filtre_bouton_html(string $libelle, bool $actif, ?int $nb = null): string
 {
-    $h = '<details class="col-filter"><summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>'
+    if ($libelle === '') {
+        return '<summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>';
+    }
+    $h = '<summary class="col-filter-btn col-filter-btn-nomme' . ($actif ? ' on' : '') . '">'
+       . '<span class="col-filter-lib">' . e($libelle) . '</span>';
+    if ($actif && $nb !== null && $nb > 0) {
+        $h .= '<span class="col-filter-nb">' . $nb . '</span>';
+    }
+    return $h . icon('chevron-down') . '</summary>';
+}
+
+function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams, string $libelle = ''): string
+{
+    $h = '<details class="col-filter">'
+       . filtre_bouton_html($libelle, count($actives) > 0, count($actives))
        . '<form method="get" class="col-filter-menu">'
        . '<input type="hidden" name="p" value="' . e($page) . '">'
        . hidden_inputs_html($autresParams);
@@ -683,6 +708,22 @@ function filtre_colonne_actifs_html(string $page, string $champ, array $options,
     return $h . '</span>';
 }
 
+// Pastille de filtre actif pour un critère qui n'est PAS une case à cocher, et
+// qui ne peut donc pas passer par filtre_colonne_actifs_html() (rien à cocher,
+// donc ni $options ni $actives) : une plage de mois, un encadrement de jauge,
+// une date de dernier contact. Une seule pastille par groupe, jamais une par
+// champ élémentaire — « De »/« à » forment une plage, on ne retire pas l'un
+// sans l'autre ; $autresParams doit donc déjà avoir vidé tous les champs du
+// groupe d'un coup. Même balisage que filtre_colonne_actifs_html() : les deux
+// se mélangent dans la même bande (.filtres-ciblage-actifs, voir
+// ?p=mailing_campagne et le panneau « Filtres » mobile de ?p=structures).
+function filtre_pille_groupe_html(string $page, string $label, array $autresParams): string
+{
+    $qs = ['p' => $page] + $autresParams;
+    return '<span class="col-th-actif-list"><span class="col-th-actif">' . e($label)
+        . '<a href="?' . e(http_build_query($qs)) . '" title="Retirer « ' . e($label) . ' »">' . icon('x') . '</a></span></span>';
+}
+
 // Variante de filtre_colonne_html() pour un panneau au contenu libre (pas des
 // cases à cocher) — même enveloppe .col-filter/.col-filter-menu (bouton
 // entonnoir + <details>, voir assets/app.css), mais $contenu est du HTML déjà
@@ -690,9 +731,10 @@ function filtre_colonne_actifs_html(string $page, string $champ, array $options,
 // mois, un <input type="date"> + une case à cocher pour ?p=mailing_campagne).
 // Pas de marqueur « _set » ni de case « Tout » : ces notions n'ont de sens
 // que pour un filtre à cases à cocher (filtre_coche()).
-function filtre_colonne_form_html(string $page, array $autresParams, string $contenu): string
+function filtre_colonne_form_html(string $page, array $autresParams, string $contenu, string $libelle = '', bool $actif = false): string
 {
-    return '<details class="col-filter"><summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>'
+    return '<details class="col-filter">'
+        . filtre_bouton_html($libelle, $actif)
         . '<form method="get" class="col-filter-menu">'
         . '<input type="hidden" name="p" value="' . e($page) . '">'
         . hidden_inputs_html($autresParams)

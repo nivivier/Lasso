@@ -777,7 +777,6 @@ function route_mailing_campagne(): void
         'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
         'grandesRegions' => pays_regions_map(), // régions groupées par pays (taxonomie, migration_49)
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
-        'typesLieu' => structure_sous_categories_booking_noms(),
         'categoriesPourSelect' => structure_categories_pour_select(),
         'ciblages' => db()->query('SELECT id, nom FROM mailing_ciblages ORDER BY nom')->fetchAll(),
         'modeles' => db()->query('SELECT id, nom, sujet, corps FROM mailing_modeles ORDER BY nom')->fetchAll(),
@@ -836,7 +835,6 @@ function mailing_criteres_depuis(array $src): array
         'grande_region'  => $txt('grande_region'),
         'departement_canton' => $txt('departement_canton'),
         'ville'          => $txt('ville'),
-        'type_lieu'      => $txt('type_lieu'),
         'mois_debut'     => $src['mois_debut'] ?? '',
         'mois_fin'       => $src['mois_fin'] ?? '',
         'mois_evenement_debut' => $src['mois_evenement_debut'] ?? '',
@@ -855,7 +853,7 @@ function mailing_criteres_depuis(array $src): array
 function mailing_criteres_vers_url(array $criteres): array
 {
     $url = [];
-    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'departement_canton', 'ville', 'type_lieu'] as $k) {
+    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'departement_canton', 'ville'] as $k) {
         if (!empty($criteres[$k])) {
             $url[$k] = array_values((array) $criteres[$k]);
         }

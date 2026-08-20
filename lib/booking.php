@@ -596,7 +596,7 @@ function periode_chevauche(int $debut, int $fin, int $filtreDebut, int $filtreFi
 // categorie_id (int[], arbre catégorie/sous-catégorie — mêmes ids que le
 // filtre de ?p=structures, une catégorie racine choisie inclut tout son
 // sous-arbre, résolu ici via structure_categorie_champs() comme dans
-// structures_filtres()), pays/grande_region/departement_canton/ville/type_lieu
+// structures_filtres()), pays/grande_region/departement_canton/ville
 // (string[]), tag_id (int[]), mois_debut/mois_fin (int|null, période de
 // programmation des lieux liés), mois_evenement_debut/fin (int|null, période
 // des événements), contact_jamais (bool), contact_avant (date string|'').
@@ -646,13 +646,6 @@ function mailing_structures_eligibles(array $criteres): array
     if (!empty($criteres['ville'])) {
         $where[] = 's.adresse_localite IN (' . sql_in($criteres['ville']) . ')';
         $params = array_merge($params, $criteres['ville']);
-    }
-    // Type de lieu (sous-catégorie « booking », voir migration_59) : la
-    // structure ELLE-MÊME porte ce champ depuis la fusion lieux→structures.
-    // COLLATE NOCASE sur x lie la collation à x pour tout l'IN (voir doc SQLite).
-    if (!empty($criteres['type_lieu'])) {
-        $where[] = 's.sous_categorie COLLATE NOCASE IN (' . sql_in($criteres['type_lieu']) . ')';
-        $params = array_merge($params, $criteres['type_lieu']);
     }
     if (!empty($criteres['tag_id'])) {
         $where[] = 's.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . sql_in($criteres['tag_id']) . '))';

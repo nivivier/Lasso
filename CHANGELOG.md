@@ -9,7 +9,33 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.2] — 2026-08-20
+
 ### Ajouté
+- **?p=structures en mini-cartes sur téléphone.** Sous 700 px de large, le
+  tableau de douze colonnes se relit en une carte par structure : icône de
+  statut et nom à gauche, ville puis drapeau + canton puis catégorie-feuille
+  empilés à droite, les deux dates (crayon = dernière modification, enveloppe =
+  dernier contact) sous le nom, les étiquettes sur leur propre ligne. Les cases
+  à cocher et la barre d'actions groupées restent disponibles. Aucun gabarit
+  supplémentaire : ce sont les **mêmes `<td>`** repositionnés en grille CSS —
+  à 4000 lignes possibles en mode client, un second balisage aurait pesé plus
+  que la page entière. Les colonnes sans place sur un téléphone (structures
+  liées, contact, factures, événements) et le marquage rapide restent dans la
+  vue bureau, inchangée.
+- **?p=structures : bouton « Filtres » sur téléphone.** Le `<thead>` étant
+  masqué en mode carte, ses entonnoirs de colonne — statut, catégorie, pays,
+  département/canton, étiquettes, marquage, événements, dernier contact,
+  dernière modification — se retrouvent derrière un bouton unique (entonnoir,
+  sans libellé) à côté de la recherche, avec les champs jauge et mois dans le
+  même panneau. Le bouton « Plus de filtres » disparaît alors, pour ne pas
+  laisser deux entonnoirs côte à côte. Recherche, bouton de filtres et boutons
+  d'action tiennent sur une seule ligne, et le panneau se déploie **par-dessus**
+  la liste plutôt que de repousser les boutons d'action à la ligne suivante.
+  Le panneau s'ouvre sur la liste des **filtres actifs**, en pastilles à croix
+  de retrait — mêmes composants que le ciblage de `?p=mailing_campagne`
+  (`.filtres-ciblage-actifs` / `.col-th-actif`), pour que les deux écrans qui
+  filtrent des structures se lisent pareil.
 - **?p=structures : colonne « Dernière modification »** (petit texte, comme
   « Dernier contact »), avec un filtre d'ancienneté sur chacune des deux
   colonnes : moins de 24 h, cette semaine, ce mois, cette année, 1 à 3 ans,
@@ -19,6 +45,42 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Jamais » n'est pas accessoire : 73 % des dates de modification et 78 % des
   dates de contact sont vides.
 
+### Modifié
+- **`?p=mailing_campagne` : le critère « Type de lieu » disparaît**, redondant
+  avec « Catégorie » — il filtrait sur `structures.sous_categorie`, exactement la
+  colonne que la catégorie interroge déjà pour une sous-catégorie. Retiré du
+  formulaire, de la lecture des critères et du SQL de ciblage. Sans effet sur les
+  ciblages enregistrés (aucun ne s'en servait) ; la colonne `type_lieu` de
+  l'import CSV, qui n'a rien à voir, est inchangée.
+- **Zone de filtres unifiée entre `?p=structures` (mobile) et
+  `?p=mailing_campagne`.** Là où les filtres ne sont pas accrochés aux colonnes
+  d'un tableau, le libellé entre dans le bouton : toute sa surface devient
+  cliquable, au lieu d'un entonnoir de 18 px posé à côté d'un texte inerte, et
+  l'état actif se lit sans ouvrir le menu — fond teinté plus le nombre de
+  valeurs cochées. Même disposition des deux côtés (rangée de boutons qui
+  s'enroule, puis la bande des filtres actifs en dessous). Le principe reste le
+  menu déroulant à cases à cocher. Les en-têtes de colonne des tableaux
+  (`?p=fiches`, `?p=compta_ecritures`, `?p=evenements_liste`,
+  `?p=facturation_liste`, `?p=structures` au bureau) gardent l'entonnoir seul :
+  le nom de la colonne et les pastilles de valeurs actives y font déjà ce
+  travail.
+- La pastille de filtre actif « de groupe » (une plage de mois, un encadrement
+  de jauge — les critères qui ne sont pas des cases à cocher) devient
+  `filtre_pille_groupe_html()` dans `lib/helpers.php`, au lieu d'une fermeture
+  locale à `views/mailing_campagne.php`. Les deux écrans la partagent.
+
+- Le bouton « Plus de filtres » prend l'aspect actif des boutons Liste/Carte
+  quand le panneau est ouvert : le panneau s'affichant en position fixe, rien
+  ne signalait plus, une fois la page défilée, que des filtres supplémentaires
+  étaient en jeu.
+
+### Corrigé
+- **`?p=mailing_campagne` affichait un commentaire du code en clair** dans la
+  page, entre le ciblage et le message. Un commentaire `//` citait une balise
+  PHP fermante : `?>` referme le bloc même à l'intérieur d'un commentaire de
+  ligne, et les trois lignes suivantes partaient en HTML. Bug présent depuis
+  longtemps, donc visible en production.
+
 ### Sécurité
 - **?p=mailing : le déclenchement manuel de la file d'envoi exige désormais le
   droit d'écriture sur Booking.** La page est accessible en lecture seule, et
@@ -27,12 +89,6 @@ puis sont promues sur le canal **stable** en figeant une version.
   planificateur — y était affichée à côté du bouton. Un compte en lecture pouvait
   donc déclencher les envois. Le jeton n'est plus seulement masqué : il n'est plus
   construit, donc absent de la page.
-
-### Modifié
-- Le bouton « Plus de filtres » prend l'aspect actif des boutons Liste/Carte
-  quand le panneau est ouvert : le panneau s'affichant en position fixe, rien
-  ne signalait plus, une fois la page défilée, que des filtres supplémentaires
-  étaient en jeu.
 
 ## [2.3.1] — 2026-08-20
 
