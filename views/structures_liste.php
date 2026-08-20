@@ -8,6 +8,7 @@
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
 /** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $flag */
 /** @var bool $nonLocalises */ /** @var array $avecEvenements */
+/** @var array $majPeriode */ /** @var array $contactPeriode */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
@@ -37,6 +38,8 @@ foreach (array_unique(array_merge($pays, array_column(pays_liste(), 'nom'))) as 
 $departementCantonLabels = [];
 foreach (array_unique(array_merge($departementCanton, $regionsDispo)) as $r) { $departementCantonLabels[$r] = $r; }
 $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
+// Mêmes tranches pour les deux colonnes de date (voir PERIODES_ANCIENNETE).
+$periodeLabels = PERIODES_ANCIENNETE;
 // $autresXxx : les AUTRES filtres actifs de la page (jamais celui-ci), à
 // reporter en hidden inputs par chaque panneau — construits une fois depuis
 // $tousFiltres plutôt qu'un littéral quasi identique par filtre. 'depuis' y
@@ -49,6 +52,7 @@ $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans é
 // provenance.
 $tousFiltres = ['categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
     'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche,
+    'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
     'depuis' => (string) ($_GET['depuis'] ?? '')];
 $autresFiltres = autres_filtres_fn($tousFiltres);
 $peutEcrireStruct = peut_ecrire('facturation') || peut_ecrire('booking');
@@ -133,6 +137,8 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?php if (module_actif('evenements')): ?>
             <span class="col-th">Événements <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements') + ['vue' => 'carte']) ?></span>
             <?php endif; ?>
+            <span class="col-th">Dernier contact <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode') + ['vue' => 'carte']) ?></span>
+            <span class="col-th">Dernière modification <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode') + ['vue' => 'carte']) ?></span>
         </div>
         <?php endif; ?>
         <div class="head-actions">
@@ -316,7 +322,19 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             </span>
             <?php if ($tagsDispo): ?><?= filtre_colonne_actifs_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id')) ?><?php endif; ?>
         </th>
-        <th>Contact</th><th class="col-petit">Dernier contact</th>
+        <th>Contact</th>
+        <th class="col-petit">
+            <span class="col-th">Dernier contact
+                <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode')) ?>
+        </th>
+        <th class="col-petit">
+            <span class="col-th">Dernière modification
+                <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode')) ?>
+            </span>
+            <?= filtre_colonne_actifs_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode')) ?>
+        </th>
         <th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th>
         <?php if (module_actif('evenements')): ?>
         <th class="col-evenements">
@@ -381,6 +399,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?= $contactsNoms ? e(implode(', ', $contactsNoms)) : '<span class="muted">—</span>' ?>
             </td>
             <td class="muted tiny"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
+            <td class="muted tiny"><?= ($d['mise_a_jour_le'] ?? '') !== '' ? e(date('d.m.Y', strtotime((string) $d['mise_a_jour_le']))) : '—' ?></td>
             <td class="small">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
                     <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>

@@ -555,6 +555,12 @@ function structures_filtres(): array
     $avecEvenements = module_actif('evenements')
         ? filtre_coche('avec_evenements', 'structures_avec_evenements', ['avec', 'sans'])
         : [];
+    // Ancienneté de la dernière modification / du dernier contact : mêmes
+    // tranches pour les deux (PERIODES_ANCIENNETE, lib/helpers.php), donc même
+    // liste blanche et même traduction en SQL.
+    $trancheKeys = array_keys(PERIODES_ANCIENNETE);
+    $majPeriode = filtre_coche('maj_periode', 'structures_maj_periode', $trancheKeys);
+    $contactPeriode = filtre_coche('contact_periode', 'structures_contact_periode', $trancheKeys);
 
     $where = ' WHERE 1=1';
     $params = [];
@@ -621,6 +627,13 @@ function structures_filtres(): array
     } elseif (count($avecEvenements) === 1 && $avecEvenements[0] === 'sans') {
         $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
     }
+    foreach ([['s.mise_a_jour_le', $majPeriode], ['s.dernier_contact_le', $contactPeriode]] as [$col, $tranches]) {
+        [$condPeriode, $paramsPeriode] = periode_anciennete_where($col, $tranches);
+        if ($condPeriode !== '') {
+            $where .= $condPeriode;
+            $params = array_merge($params, $paramsPeriode);
+        }
+    }
     if ($lieuJaugeMin !== null || $lieuJaugeMax !== null || $lieuMoisEvenement || $lieuMoisProg) {
         // Bornes de jauge/mois injectées telles quelles (déjà validées en
         // entiers), même raison qu'ailleurs : un paramètre PDO serait lié en
@@ -647,6 +660,7 @@ function structures_filtres(): array
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
         'avecEvenements' => $avecEvenements,
+        'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
     ];
 }
 
@@ -693,11 +707,14 @@ function route_structures(): void
     $flag = $f['flag'];
     $nonLocalises = $f['nonLocalises'];
     $avecEvenements = $f['avecEvenements'];
+    $majPeriode = $f['majPeriode'];
+    $contactPeriode = $f['contactPeriode'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
         'avec_evenements' => $avecEvenements,
+        'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
     ];
 
     // Modification groupée (sélection de lignes + barre flottante), même esprit que
@@ -829,6 +846,7 @@ function route_structures(): void
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
             'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
+            'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
@@ -925,6 +943,8 @@ function route_structures(): void
         'flag' => $flag,
         'nonLocalises' => $nonLocalises,
         'avecEvenements' => $avecEvenements,
+        'majPeriode' => $majPeriode,
+        'contactPeriode' => $contactPeriode,
         'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),

@@ -584,6 +584,69 @@ function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, b
 // les AUTRES filtres de la page (jamais celui-ci) à reporter en hidden
 // inputs pour ne pas les perdre en soumettant ce panneau — valeurs
 // scalaires ou tableaux, sérialisées à l'identique.
+// Tranches d'ancienneté d'une date, partagées par les filtres « Dernière
+// modification » et « Dernier contact » (?p=structures).
+//
+// Volontairement DISJOINTES (« cette semaine » exclut les dernières 24 h, etc.)
+// et non emboîtées : le widget de filtre est une liste de cases à cocher unies
+// en OU, or avec des tranches emboîtées cocher « Cette année » et « Ce mois »
+// donnerait exactement le même résultat que « Cette année » seule — les cases
+// ne voudraient plus rien dire. Disjointes, chaque combinaison a un sens.
+//
+// « Jamais » n'est pas un ornement : sur les structures, 73 % des dates de
+// modification et 78 % des dates de contact sont vides. Sans cette tranche,
+// cocher toutes les autres masquerait la majorité des fiches sans expliquer
+// pourquoi.
+const PERIODES_ANCIENNETE = [
+    'j1'     => 'Moins de 24 h',
+    'j7'     => 'Cette semaine',
+    'j30'    => 'Ce mois',
+    'j365'   => 'Cette année',
+    'a3'     => '1 à 3 ans',
+    'plus3'  => 'Plus de 3 ans',
+    'jamais' => 'Jamais',
+];
+
+// Fragment SQL (et paramètres) filtrant $colonne sur les tranches cochées.
+// Renvoie ['', []] si rien n'est coché — aucune restriction, comme les autres
+// filtres de colonne. Les dates sont stockées en « AAAA-MM-JJ » : la
+// comparaison lexicographique suffit, d'où date('now', …) côté SQLite.
+function periode_anciennete_where(string $colonne, array $tranches): array
+{
+    // [jours au plus (borne ancienne, incluse), jours au moins (borne récente, exclue)]
+    $bornes = [
+        'j1'    => [1, null],
+        'j7'    => [7, 1],
+        'j30'   => [30, 7],
+        'j365'  => [365, 30],
+        'a3'    => [1095, 365],
+        'plus3' => [null, 1095],
+    ];
+    $conds = [];
+    $params = [];
+    foreach ($tranches as $t) {
+        if ($t === 'jamais') {
+            $conds[] = "($colonne IS NULL OR $colonne = '')";
+            continue;
+        }
+        if (!isset($bornes[$t])) {
+            continue;
+        }
+        [$plusVieux, $plusRecent] = $bornes[$t];
+        $morceaux = ["$colonne <> ''", "$colonne IS NOT NULL"];
+        if ($plusVieux !== null) {
+            $morceaux[] = "$colonne >= date('now', ?)";
+            $params[] = '-' . $plusVieux . ' days';
+        }
+        if ($plusRecent !== null) {
+            $morceaux[] = "$colonne < date('now', ?)";
+            $params[] = '-' . $plusRecent . ' days';
+        }
+        $conds[] = '(' . implode(' AND ', $morceaux) . ')';
+    }
+    return $conds ? [' AND (' . implode(' OR ', $conds) . ')', $params] : ['', []];
+}
+
 function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams): string
 {
     $h = '<details class="col-filter"><summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>'

@@ -7,6 +7,24 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Ajouté
+- **?p=structures : colonne « Dernière modification »** (petit texte, comme
+  « Dernier contact »), avec un filtre d'ancienneté sur chacune des deux
+  colonnes : moins de 24 h, cette semaine, ce mois, cette année, 1 à 3 ans,
+  plus de 3 ans, jamais. Les tranches sont **disjointes**, de sorte que cocher
+  plusieurs cases donne bien leur union — emboîtées, « Cette année » aurait
+  absorbé « Ce mois » et les cases n'auraient plus rien voulu dire. La tranche
+  « Jamais » n'est pas accessoire : 73 % des dates de modification et 78 % des
+  dates de contact sont vides.
+
+### Modifié
+- Le bouton « Plus de filtres » prend l'aspect actif des boutons Liste/Carte
+  quand le panneau est ouvert : le panneau s'affichant en position fixe, rien
+  ne signalait plus, une fois la page défilée, que des filtres supplémentaires
+  étaient en jeu.
+
 ## [2.3.1] — 2026-08-20
 
 ### Modifié

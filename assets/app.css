@@ -1719,6 +1719,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
     padding: 9px 11px; height: var(--action-height); transition: background .15s, border-color .15s;
 }
 .filters-more summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
+/* Panneau ouvert : le déclencheur prend l'aspect « actif » des boutons segmentés
+   voisins (Liste / Carte), pour qu'on voie d'un coup d'œil que des filtres
+   supplémentaires sont en jeu — le panneau lui-même s'ouvre en position fixed,
+   donc rien d'autre ne le signale une fois la page défilée. */
+.filters-more[open] summary {
+    background: var(--highlight-tint);
+    border-color: var(--highlight-tint);
+    color: var(--highlight-d);
+}
 .filters-more summary::-webkit-details-marker { display: none; }
 .filters-more summary .ico { width: 17px; height: 17px; }
 /* Sans cadre : le panneau se pose dans l'espace réservé sous la barre d'outils
