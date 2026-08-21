@@ -9,6 +9,43 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.8] — 2026-08-21
+
+### Modifié
+- **?p=structures se charge plus vite** : la page passe de 6,99 Mo à 4,12 Mo
+  (−41 %), de 254 Ko à 196 Ko une fois compressée (−23 %), et de 93 593 à
+  79 599 balises dans le tableau (−15 %). Mesuré au navigateur, le temps
+  d'analyse et de construction du DOM tombe de ~157 ms à ~120 ms ; le serveur,
+  lui, répond en autant de temps qu'avant.
+
+  Le corps du tableau fait 98 % de cette page, et une ligne y pesait 2288
+  octets pour 157 octets de texte utile. Cinq sources de répétition ont été
+  retirées, sans qu'aucune fonction disparaisse :
+
+  - **Les icônes de statut et de marquage ne sont plus dans le balisage.**
+    Rendues 5928 fois (deux par ligne), elles coûtaient 439 Ko et 11 856 nœuds
+    pour deux dessins qui ne varient jamais. Elles viennent désormais d'un
+    masque CSS choisi d'après ce que le balisage déclarait déjà — `data-statut`
+    sur la ligne, `.flag-*` sur le bouton. La couleur suit toujours le texte,
+    donc le thème sombre aussi. Le JS n'a plus d'icône à réinjecter au clic :
+    il change la classe, le CSS fait le reste (1,6 Ko de moins dans `app.js`).
+  - **`data-href` sur chaque ligne** recopiait à l'octet près le lien du nom
+    déjà présent dans la ligne : 56 octets par ligne, 15,9 Ko compressés.
+    `go()` retombe sur ce lien quand l'attribut manque ; les autres listes, qui
+    le posent toujours, ne changent pas.
+  - **`data-flag-table` et `data-flag-valeur`** : le premier valait toujours
+    « structure », valeur sur laquelle le JS retombe déjà en son absence ; le
+    second n'était jamais lu.
+  - **L'infobulle « Créée ou importée le… »** de la colonne « Dernière
+    modification », répétée sur 2159 lignes : 203 Ko et autant de `<span>`.
+    L'italique de la colonne dit déjà qu'il s'agit d'un repli.
+  - **L'indentation du gabarit entre les cellules** — 751 Ko d'espaces que le
+    navigateur ne rend pas. Le gabarit reste lisible : c'est sa sortie qui est
+    compactée (`compacter_cellules()`, lib/helpers.php), et seulement aux
+    endroits où le HTML ne rend rien. À l'intérieur d'une cellule, les espaces
+    sont réduites à une seule et non supprimées : elles y séparent deux
+    étiquettes ou une icône et un nom.
+
 ## [2.3.7] — 2026-08-21
 
 ### Ajouté

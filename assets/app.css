@@ -687,6 +687,24 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .ico-danger { color: var(--danger); }
 .ico-pink { color: #f541cc; }
 .ico-label { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Icône de statut de ?p=structures, en masque plutôt qu'en <svg> dans chaque
+   ligne. Le tracé est choisi par le data-statut que la ligne porte déjà (il y
+   sert aussi à colorer la case à cocher en mini-cartes) : la cellule n'a donc
+   plus qu'un <span> vide, avec son title, et la ligne perd deux nœuds.
+   La couleur vient de currentColor, donc des classes .ico-ok/.ico-danger/…
+   posées sur ce même <span> — thème sombre compris, comme avant. */
+.col-statut > span::before {
+    content: ""; display: inline-block; width: 16px; height: 16px; vertical-align: middle;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-position: center; mask-position: center;
+}
+tr[data-statut="actif"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-actif); mask-image: var(--ico-m-actif); }
+tr[data-statut="contact_privilegie"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-privilegie); mask-image: var(--ico-m-privilegie); }
+tr[data-statut="ne_pas_contacter"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-ne-pas-contacter); mask-image: var(--ico-m-ne-pas-contacter); }
+tr[data-statut="inactif"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-inactif); mask-image: var(--ico-m-inactif); }
 /* Fond très légèrement teinté selon le statut de l'événement (carte
    Informations, ?p=evenement) — mêmes couleurs que evenement_statut_icone()/
    les 3 classes .ico-*, à un pourcentage assez faible pour rester discret sur
@@ -2000,12 +2018,26 @@ span + .badge.muted-badge { margin-left: 6px; }
     cursor: pointer; color: var(--muted); opacity: .5; display: inline-flex; align-items: center;
     vertical-align: middle; line-height: 0; flex: 0 0 auto;
 }
-.flag-toggle .ico { width: 16px; height: 16px; }
+/* Le dessin vient d'un masque et non d'un <svg> dans le balisage : le bouton
+   déclare déjà son état par sa classe (.flag-aucun/.flag-star/.flag-heart), et
+   le JS ne fait que la changer au clic — il n'a plus d'icône à réinjecter.
+   background-color: currentColor, donc les couleurs ci-dessus continuent de
+   s'appliquer telles quelles. */
+.flag-toggle::before {
+    content: ""; display: block; width: 16px; height: 16px;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-position: center; mask-position: center;
+    -webkit-mask-image: var(--ico-m-etoile); mask-image: var(--ico-m-etoile);
+}
 .flag-toggle:hover { background: none; opacity: 1; color: var(--highlight); }
 .flag-toggle.flag-star { opacity: 1; color: var(--highlight); }
-.flag-toggle.flag-star .ico { fill: var(--highlight); }
+/* Étoile et cœur PLEINS une fois marqués : en <svg> c'était fill=… ; en masque,
+   c'est un tracé plein qui remplace le contour. */
+.flag-toggle.flag-star::before { -webkit-mask-image: var(--ico-m-etoile-pleine); mask-image: var(--ico-m-etoile-pleine); }
 .flag-toggle.flag-heart { opacity: 1; color: var(--danger); }
-.flag-toggle.flag-heart .ico { fill: var(--danger); }
+.flag-toggle.flag-heart::before { -webkit-mask-image: var(--ico-m-coeur-plein); mask-image: var(--ico-m-coeur-plein); }
 /* Statut d'une structure (carte « Statut ») — .seg-picker (icon_picker(), voir
    plus haut), chaque état avec sa propre couleur une fois actif (« on ») :
    rose Contact privilégié, vert Actif, rouge Ne pas contacter, gris Inactif —
@@ -3396,6 +3428,21 @@ abbr {
 :root {
     --ico-crayon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E");
     --ico-enveloppe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
+    /* Icônes de LIGNE de ?p=structures — statut et marquage. Elles y étaient
+       rendues 5928 fois (deux par ligne, 2959 lignes) en <svg><use>, soit
+       439 Ko de HTML et 11 856 nœuds pour deux dessins qui ne varient jamais.
+       En masque, le balisage n'en porte plus rien : l'état est DÉJÀ déclaré
+       (data-statut sur la ligne, .flag-* sur le bouton), le CSS n'a qu'à
+       choisir le tracé. Mêmes tracés que icone_chemins() (lib/helpers.php).
+       Les variantes « pleines » ne diffèrent que par fill : un masque ne garde
+       que l'alpha du dessin, un contour donnerait un contour. */
+    --ico-m-actif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E");
+    --ico-m-privilegie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5'/%3E%3C/svg%3E");
+    --ico-m-ne-pas-contacter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m15 9-6 6'/%3E%3Cpath d='m9 9 6 6'/%3E%3C/svg%3E");
+    --ico-m-inactif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.1 2.182a10 10 0 0 1 3.8 0'/%3E%3Cpath d='M13.9 21.818a10 10 0 0 1-3.8 0'/%3E%3Cpath d='M17.609 3.721a10 10 0 0 1 2.69 2.7'/%3E%3Cpath d='M2.182 13.9a10 10 0 0 1 0-3.8'/%3E%3Cpath d='M20.279 17.609a10 10 0 0 1-2.7 2.69'/%3E%3Cpath d='M21.818 10.1a10 10 0 0 1 0 3.8'/%3E%3Cpath d='M3.721 6.391a10 10 0 0 1 2.7-2.69'/%3E%3Cpath d='M6.391 20.279a10 10 0 0 1-2.69-2.7'/%3E%3C/svg%3E");
+    --ico-m-etoile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z'/%3E%3C/svg%3E");
+    --ico-m-etoile-pleine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z'/%3E%3C/svg%3E");
+    --ico-m-coeur-plein: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5'/%3E%3C/svg%3E");
     /* Lucide « circle-plus » — la fiche a été créée, pas modifiée. */
     --ico-creation: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M8 12h8'/%3E%3Cpath d='M12 8v8'/%3E%3C/svg%3E");
 }

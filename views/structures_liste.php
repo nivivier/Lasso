@@ -387,6 +387,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <?php endif; ?>
     </tr></thead>
     <tbody>
+    <?php // Le corps du tableau fait 98 % du poids de cette page — 2959 lignes en
+          // mode client. Il est tamponné pour en retirer l'indentation entre
+          // cellules avant l'envoi (compacter_cellules(), lib/helpers.php) : elle
+          // ne rend rien à l'écran et coûtait 254 octets par ligne. Le gabarit
+          // ci-dessous reste donc indenté normalement, c'est la sortie qui est
+          // compactée. ?>
+    <?php ob_start(); ?>
     <?php if (!$structures): ?>
         <tr><td colspan="<?= $nbCols ?>" class="muted"><?= $filtresActifs ? 'Aucune structure ne correspond à cette recherche.' : "Aucune structure pour l'instant. Commencez par en ajouter une." ?></td></tr>
     <?php else: ?>
@@ -394,10 +401,17 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <?php $hrefLigne = '?p=structure&id=' . (int) $d['id'] . $suffixeDepuis . suffixe_retour_liste($recherche, $pgPage); ?>
         <?php // data-statut : seul point d'accroche du statut hors de sa cellule.
               // En mini-cartes (mobile), l'icône de statut est masquée et c'est la
-              // BORDURE de la case à cocher qui porte la couleur — voir assets/app.css. ?>
-        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" data-statut="<?= e((string) $d['statut']) ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+              // BORDURE de la case à cocher qui porte la couleur ; en vue tableau,
+              // c'est lui qui choisit le tracé de l'icône de statut (masque CSS,
+              // voir assets/app.css) — d'où l'absence de <svg> dans la cellule.
+              //
+              // Pas de data-href : il recopiait à l'octet près le href du lien du
+              // nom, 56 octets par ligne (15,9 Ko compressés sur 2959 lignes) pour
+              // une information déjà là. go() (views/layout.php) retombe sur
+              // .titre-lien quand l'attribut manque. ?>
+        <tr class="row-link <?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" data-statut="<?= e((string) $d['statut']) ?>" tabindex="0" role="link">
             <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
-            <td class="col-statut"><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"><?= icon(structure_statut_icone((string) $d['statut'])) ?></span></td>
+            <td class="col-statut"><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"></span></td>
             <td class="col-nom">
                 <?php if ($peutEcrireStruct): ?><?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?><?php endif; ?>
                 <strong><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e($d['nom']) ?></a></strong>
@@ -445,9 +459,12 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?php
                 // Repli sur la date de création quand aucune modification n'est
                 // enregistrée : 2160 structures sur 2965 sont dans ce cas et la
-                // colonne y restait vide. En italique et avec son propre libellé
-                // au survol — une création n'est pas une modification, et la
-                // colonne ne doit pas laisser croire le contraire. Le filtre
+                // colonne y restait vide. En italique (.est-creation) — une
+                // création n'est pas une modification, et la colonne ne doit pas
+                // laisser croire le contraire. Le libellé au survol qui le disait
+                // a été retiré : 76 octets et un <span> par ligne concernée, soit
+                // 203 Ko et 2159 nœuds, pour une infobulle que l'italique et
+                // l'en-tête de colonne suffisent à expliquer. Le filtre
                 // d'ancienneté de la colonne porte sur la date affichée, repli
                 // compris (structures_filtres()) : ce qui se lit ici est ce qui
                 // se filtre là. « Jamais » ne reste donc que pour les lignes
@@ -457,7 +474,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 ?>
             <td class="muted tiny col-maj-le<?= $majLe === '' && $creeLe !== '' ? ' est-creation' : '' ?>">
                 <?php if ($majLe !== ''): ?><?= e(date('d.m.Y', strtotime($majLe))) ?>
-                <?php elseif ($creeLe !== ''): ?><span title="Créée ou importée le <?= e(date('d.m.Y', strtotime($creeLe))) ?> — aucune modification enregistrée depuis"><?= e(date('d.m.Y', strtotime($creeLe))) ?></span>
+                <?php elseif ($creeLe !== ''): ?><?= e(date('d.m.Y', strtotime($creeLe))) ?>
                 <?php else: ?>—<?php endif; ?>
             </td>
             <td class="small col-factures">
@@ -473,6 +490,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>
+    <?= compacter_cellules((string) ob_get_clean()) ?>
     </tbody>
 </table>
 </div>

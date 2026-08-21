@@ -2418,6 +2418,38 @@ function icon_picker(string $name, array $options, string $selected, string $ari
     return $h . '</div>';
 }
 
+// Retire l'indentation du gabarit ENTRE les cellules d'un tableau. Sur
+// ?p=structures elle pesait 751 Ko de HTML (254 octets par ligne, 2959 lignes)
+// pour rien : le navigateur ne rend aucune de ces espaces.
+//
+// Volontairement limité aux frontières où le HTML ne rend jamais rien :
+//   - entre deux cellules, et autour de <tr> (les blancs y sont ignorés) ;
+//   - en tête et en queue de cellule (les blancs de bord d'un bloc sont rognés).
+// À l'INTÉRIEUR d'une cellule, en revanche, l'espace n'est pas supprimée mais
+// RÉDUITE À UNE : là, elle sépare bel et bien deux étiquettes ou une icône et
+// un nom, et la supprimer les collerait — mais le navigateur fond de toute
+// façon toute suite d'espaces en une seule, donc n'en garder qu'une ne change
+// rien à l'affichage (218 Ko de plus, l'indentation du gabarit entre deux
+// éléments d'une même cellule). Cette dernière règle suppose que le contenu
+// n'est pas en white-space: pre — vrai pour les tableaux de listes, à vérifier
+// avant d'employer la fonction ailleurs.
+function compacter_cellules(string $html): string
+{
+    // Trois passes, pas une par cas : le tampon fait plusieurs mégaoctets et
+    // chaque motif le relit en entier. « t[dhr]\b » ne vise que td/th/tr — la
+    // limite de mot écarte thead, tbody, title, track.
+    $html = (string) preg_replace(
+        [
+            '~(</?t[dhr]\b[^>]*>)\s+~', // après l'ouverture ou la fermeture d'une cellule ou d'une ligne
+            '~\s+(</t[dhr]>)~',          // juste avant leur fermeture
+        ],
+        '$1',
+        $html
+    );
+    // Dans la cellule : une seule espace là où le gabarit en laissait vingt.
+    return (string) preg_replace('~>\s{2,}<~', '> <', $html);
+}
+
 // Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton à 3
 // états cyclés au clic (voir assets/app.js lassoInitFlagToggle() +
 // route_lieu_flag()/route_structure_flag()) : aucun (étoile grise) → étoile
@@ -2426,15 +2458,25 @@ function icon_picker(string $name, array $options, string $selected, string $ari
 // 'heart'} — toute autre valeur est traitée comme absente.
 function flag_toggle_html(string $table, int $id, string $flag): string
 {
-    $icone = $flag === 'heart' ? 'heart' : 'star';
     $label = match ($flag) {
         'star'  => 'Marqué (étoile) — cliquer pour retirer le marquage',
         'heart' => 'Marqué (cœur) — cliquer pour retirer le marquage',
         default => 'Non marqué — cliquer pour marquer',
     };
-    return '<button type="button" class="flag-toggle flag-' . e($flag ?: 'aucun') . '"'
-        . ' data-flag-table="' . e($table) . '" data-flag-id="' . $id . '" data-flag-valeur="' . e($flag) . '"'
-        . ' title="' . e($label) . '" aria-label="' . e($label) . '">' . icon($icone) . '</button>';
+    // Balisage réduit au strict nécessaire : sur ?p=structures ce bouton est
+    // rendu une fois par ligne, donc 2959 fois — 289 octets pièce, 855 Ko en
+    // tout. Trois choses en sont sorties :
+    //   - le dessin, désormais posé en masque CSS d'après la classe .flag-*
+    //     que le bouton porte déjà (74 octets et 2 nœuds par bouton) ;
+    //   - data-flag-table, omis pour 'structure' : le JS retombe déjà sur
+    //     structure_flag quand l'attribut manque (voir lassoInitFlagToggle()) ;
+    //   - data-flag-valeur, que rien ne lisait — l'état se lit à la classe.
+    $h = '<button type="button" class="flag-toggle flag-' . e($flag ?: 'aucun') . '"';
+    if ($table !== 'structure') {
+        $h .= ' data-flag-table="' . e($table) . '"';
+    }
+    return $h . ' data-flag-id="' . $id . '"'
+        . ' title="' . e($label) . '" aria-label="' . e($label) . '"></button>';
 }
 
 // Statut d'une structure — sélecteur segmenté horizontal (même style que

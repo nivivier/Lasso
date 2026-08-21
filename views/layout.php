@@ -205,8 +205,15 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     // .cat-search-list répétée à part (déjà couverte par closest('form') vu
     // qu'elle y est nichée aujourd'hui) : au cas où une future liste de
     // suggestions apparaisse un jour hors d'un <form> dans une ligne.
-    function go(el) { const u = el.getAttribute('data-href'); if (u) location.href = u; }
-    document.querySelectorAll('tr.row-link[data-href]').forEach(row => {
+    // Destination d'une ligne cliquable : data-href s'il est posé, sinon le lien
+    // de titre que la ligne contient déjà. ?p=structures ne pose plus l'attribut
+    // — il recopiait ce href à l'identique sur 2959 lignes — et les listes qui
+    // n'ont pas de .titre-lien continuent de le fournir.
+    function go(el) {
+        const u = el.getAttribute('data-href') || el.querySelector('a.titre-lien')?.getAttribute('href');
+        if (u) location.href = u;
+    }
+    document.querySelectorAll('tr.row-link').forEach(row => {
         // .plan-grip : poignée de glisser-déposer (?p=spectacles). Elle portait
         // un onclick="event.stopPropagation()" ; les attributs de gestionnaire
         // ayant été supprimés pour permettre le durcissement de la CSP, son
