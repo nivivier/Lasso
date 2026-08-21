@@ -2868,6 +2868,17 @@ abbr {
 /* La toolbar ancre le panneau, qui se détache sous elle. */
 .toolbar { position: relative; }
 
+/* Panneau fermé mais des filtres actifs : le bouton le dit, fond teinté et
+   nombre de valeurs, comme un filtre nommé (.col-filter-btn-nomme.on). Sans
+   cela, la bande des filtres actifs vivant DANS le panneau, une liste filtrée
+   se lisait comme une liste complète et incomplète. Restreint à l'état fermé :
+   panneau ouvert, .filters-more[open] > summary reprend la main — c'est
+   l'ouverture qui compte alors, et elle est déclarée plus haut. */
+.filtres-mobile:not([open]) > summary.on {
+    background: var(--primary-tint); border-color: var(--primary); color: var(--primary-d);
+}
+.filtres-mobile > summary { gap: 6px; }
+
 /* Le panneau se détache sous la toolbar au lieu de pousser les icônes
    d'action à la ligne : il flotte par-dessus les cartes, d'où le fond
    plein. Un seul conteneur ancré (.filtres-mobile-panneau) ; ses deux

@@ -9,6 +9,37 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.6] — 2026-08-21
+
+### Corrigé
+- **Le filtre « Dernière modification » de `?p=structures` ignorait les dates de
+  création**, alors que la colonne, elle, s'y replie depuis la 2.3.3 quand rien
+  n'a été modifié. Une structure importée la veille s'affichait donc à sa date
+  mais ne sortait sous aucune tranche récente — elle n'était trouvable que sous
+  « Jamais », avec 2160 autres. Le filtre porte désormais sur la date affichée,
+  repli compris : les 2965 structures se répartissent dans les tranches (2158
+  sous « Ce mois »), et « Jamais » ne garde que les lignes sans aucune date.
+  Les dates sont au passage ramenées au jour avant comparaison, sans quoi une
+  création de la veille tombait dans « Moins de 24 h ».
+- **La carte des structures perdait le filtre par étiquette** : la vue ne
+  chargeait pas la liste des étiquettes, si bien que le filtre n'avait pas de
+  bouton dans son panneau — et qu'une étiquette déjà active s'y affichait sous
+  son numéro brut (« 2 ») au lieu de son nom.
+
+### Ajouté
+- **Bouton « Filtres » sur `?p=fiches` et `?p=facturation_liste`** en mode
+  téléphone. La mise en cartes masque le `<thead>`, et avec lui les entonnoirs
+  accrochés aux en-têtes : ces deux listes étaient devenues infiltrables sur
+  téléphone. Même panneau que les structures et les événements — les filtres y
+  portent leur libellé, faute d'en-tête pour les nommer, et la bande des filtres
+  actifs les résume dessous.
+
+### Modifié
+- **Le bouton « Filtres » indique combien de filtres sont actifs**, d'une
+  pastille chiffrée et d'un fond teinté, comme un filtre nommé. Panneau fermé,
+  rien ne le disait : la bande des filtres actifs vit *dans* le panneau, donc
+  une liste filtrée se lisait comme une liste complète.
+
 ## [2.3.5] — 2026-08-21
 
 ### Corrigé

@@ -627,7 +627,15 @@ function structures_filtres(): array
     } elseif (count($avecEvenements) === 1 && $avecEvenements[0] === 'sans') {
         $where .= ' AND NOT EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
     }
-    foreach ([['s.mise_a_jour_le', $majPeriode], ['s.dernier_contact_le', $contactPeriode]] as [$col, $tranches]) {
+    // La colonne « Dernière modification » se replie sur la date de création
+    // quand rien n'a été modifié (2160 structures sur 2965) : le filtre doit
+    // porter sur CE QUI EST AFFICHÉ, sinon une structure importée hier se lit
+    // « 20.08.2026 » mais reste introuvable par « Cette semaine » et ne sort
+    // que sous « Jamais ». date() ramène tout au jour : cree_le est un
+    // datetime, mise_a_jour_le une date, et sans cela une création de la
+    // veille tombait dans « Moins de 24 h ».
+    $colMaj = "date(COALESCE(NULLIF(s.mise_a_jour_le, ''), s.cree_le))";
+    foreach ([[$colMaj, $majPeriode], ['s.dernier_contact_le', $contactPeriode]] as [$col, $tranches]) {
         [$condPeriode, $paramsPeriode] = periode_anciennete_where($col, $tranches);
         if ($condPeriode !== '') {
             $where .= $condPeriode;
@@ -848,7 +856,14 @@ function route_structures(): void
             'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
             'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
-            'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [], 'tagsDispo' => [],
+            // Les étiquettes servent au panneau « Filtres » de la carte comme
+            // à celui de la liste : le filtre tag_id est bel et bien appliqué
+            // ici (structures_filtres()), et sans cette liste il n'avait ni
+            // bouton pour le poser ni libellé pour la pastille — un filtre
+            // actif s'y affichait sous son numéro brut. regionsDispo, lui, ne
+            // sert qu'à un <select> de la vue liste.
+            'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [],
+            'tagsDispo' => module_actif('booking') ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
         ], 'Structures');

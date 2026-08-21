@@ -27,6 +27,22 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
             <input type="hidden" name="p" value="fiches">
             <?= champ_recherche(['name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
+        <?php
+        // Les mêmes filtres qu'en en-tête de colonne, repris derrière le bouton
+        // « Filtres » : sur téléphone la mise en cartes masque le <thead> et les
+        // entonnoirs avec lui. Ils portent ici leur libellé, faute d'en-tête
+        // pour les nommer.
+        ob_start(); ?>
+            <?= filtre_colonne_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee, 'Année') ?>
+            <?= filtre_colonne_html('fiches', 'employe_id', $employeLabels, $employeId, $autresEmploye, 'Employé') ?>
+            <?= filtre_colonne_html('fiches', 'statut', $statutLabels, $statut, $autresStatut, 'Paiement') ?>
+        <?php
+        $fmColonnes = ob_get_clean();
+        $fmActifs = filtre_colonne_actifs_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee)
+            . filtre_colonne_actifs_html('fiches', 'employe_id', $employeLabels, $employeId, $autresEmploye)
+            . filtre_colonne_actifs_html('fiches', 'statut', $statutLabels, $statut, $autresStatut);
+        require __DIR__ . '/_filtres_mobile.php';
+        ?>
         <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
             <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>

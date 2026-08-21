@@ -163,15 +163,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
               // le panneau. La carte n'a aucun en-tête de colonne où poser les
               // entonnoirs, et la liste les masque en mode mini-cartes — le même
               // panneau sert donc les deux, à ceci près qu'en carte il s'affiche
-              // à toute largeur (.filtres-carte). ?>
-        <details class="filters-more filtres-mobile<?= $vue === 'carte' ? ' filtres-carte' : '' ?>">
-            <summary title="Filtres" aria-label="Filtres"><?= icon('funnel') ?></summary>
-            <?php // Les deux moitiés du panneau (filtres de colonne, puis jauge/mois)
-                  // vivent dans un conteneur commun : c'est LUI que le CSS détache en
-                  // panneau flottant sous la toolbar, sinon les deux se superposeraient
-                  // au même point d'ancrage. ?>
-            <div class="filtres-mobile-panneau">
-                <div class="filters carte-filters filters-more-body"><?= $filtresColonnes ?></div>
+              // à toute largeur (.filtres-carte).
+              // Jauge et mois ne sont pas des cases à cocher : leur formulaire
+              // entre dans le panneau en bloc supplémentaire. ?>
+        <?php ob_start(); ?>
                 <form method="get" class="filters filters-more-body">
                     <input type="hidden" name="p" value="structures">
                     <input type="hidden" name="vue" value="<?= e($vue) ?>">
@@ -179,14 +174,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                     <?php if ($recherche !== ''): ?><input type="hidden" name="q" value="<?= e($recherche) ?>"><?php endif; ?>
                     <?php require __DIR__ . '/_structures_filtres_lieu.php'; ?>
                 </form>
-                <?php if ($actifsFiltres !== ''): ?>
-                <?php // Après tous les contrôles, comme la bande de ?p=mailing_campagne
-                      // sous sa toolbar : elle résume l'ensemble des filtres actifs,
-                      // jauge et mois compris. ?>
-                <div class="filtres-ciblage-actifs"><?= $actifsFiltres ?></div>
-                <?php endif; ?>
-            </div>
-        </details>
+        <?php
+        $fmColonnes = $filtresColonnes;
+        $fmActifs = $actifsFiltres;
+        $fmExtra = ob_get_clean();
+        $fmClasse = $vue === 'carte' ? 'filtres-carte' : '';
+        require __DIR__ . '/_filtres_mobile.php';
+        ?>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste"><?= icon('rows-3') ?></a>
@@ -454,8 +448,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 // colonne y restait vide. En italique et avec son propre libellé
                 // au survol — une création n'est pas une modification, et la
                 // colonne ne doit pas laisser croire le contraire. Le filtre
-                // d'ancienneté de la colonne, lui, porte toujours sur la seule
-                // date de modification (« Jamais » = jamais modifiée).
+                // d'ancienneté de la colonne porte sur la date affichée, repli
+                // compris (structures_filtres()) : ce qui se lit ici est ce qui
+                // se filtre là. « Jamais » ne reste donc que pour les lignes
+                // sans aucune date, ni modification ni création.
                 $majLe = (string) ($d['mise_a_jour_le'] ?? '');
                 $creeLe = (string) ($d['cree_le'] ?? '');
                 ?>

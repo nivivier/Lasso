@@ -19,6 +19,18 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
             <input type="hidden" name="p" value="facturation_liste">
             <?= champ_recherche(['id' => 'facturation-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
+        <?php
+        // Voir ?p=fiches : sur téléphone la mise en cartes masque le <thead>,
+        // le bouton « Filtres » reprend les entonnoirs qui y étaient accrochés.
+        ob_start(); ?>
+            <?= filtre_colonne_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee, 'Émission') ?>
+            <?= filtre_colonne_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut, 'Paiement') ?>
+        <?php
+        $fmColonnes = ob_get_clean();
+        $fmActifs = filtre_colonne_actifs_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee)
+            . filtre_colonne_actifs_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut);
+        require __DIR__ . '/_filtres_mobile.php';
+        ?>
         <?php if (peut_ecrire('facturation')): ?>
         <div class="head-actions">
             <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
