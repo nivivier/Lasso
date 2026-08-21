@@ -999,8 +999,15 @@ document.addEventListener('click', e => {
 // Le déplacer (plutôt que le recréer) conserve ses écouteurs : ceux de
 // l'autocomplétion sont posés sur l'élément lui-même par lassoInitTagSuggest(),
 // et suivent donc le nœud.
+// Formulaire d'étiquette MUTUALISÉ de ?p=structures : un seul exemplaire pour
+// toute la liste, déplacé dans la ligne dont on a cliqué le « + ».
+// L'identifiant lui est propre (« -liste ») : la fiche structure a son propre
+// formulaire d'étiquette, et tant qu'ils partageaient « tag-ajouter-form »,
+// c'est celui de la FICHE que ce code attrapait — il y remettait structure_id à
+// vide, faute de data-tag-structure sur son bouton, et l'ajout partait avec un
+// id 0, donc en violation de clé étrangère.
 function lassoInitTagAjout() {
-    const form = document.getElementById('tag-ajouter-form');
+    const form = document.getElementById('tag-ajouter-form-liste');
     if (!form) return;
     const champId = form.querySelector('input[name="structure_id"]');
     const saisie = form.querySelector('.cat-search-input');
@@ -1011,7 +1018,10 @@ function lassoInitTagAjout() {
         document.body.appendChild(form);
     };
     document.addEventListener('click', e => {
-        const btn = e.target.closest('.tag-ajouter-btn');
+        // Le sélecteur exige data-tag-structure : sans lui, ce gestionnaire
+        // répondait aussi au « + » de la fiche structure, qui n'a pas d'id de
+        // structure à donner.
+        const btn = e.target.closest('.tag-ajouter-btn[data-tag-structure]');
         if (btn) {
             e.preventDefault();
             e.stopPropagation();          // ne pas déclencher la ligne cliquable

@@ -9,6 +9,42 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.5] — 2026-08-21
+
+### Corrigé
+- **Ajouter une étiquette depuis la fiche d'une structure échouait** sur une
+  erreur fatale (violation de clé étrangère) : le formulaire d'étiquette de la
+  fiche et celui, mutualisé, de la liste des structures portaient le même
+  identifiant HTML. Le script qui pilote celui de la liste attrapait donc celui
+  de la fiche et y remettait l'identifiant de structure à vide, l'ajout partant
+  alors avec un id 0. Chacun a maintenant son identifiant, et le script ne
+  répond qu'aux boutons « + » qui portent un identifiant de structure.
+  Régression présente depuis la 2.3.0.
+- **Le défilement horizontal des tableaux restés des tableaux sur téléphone
+  était supprimé** — la comptabilité en particulier, dont les colonnes ne
+  tiennent pas dans un écran. La règle qui le désactive n'a de sens que pour les
+  listes en cartes, mais elle n'avait jamais été cloisonnée derrière
+  `.liste-cartes` : elle visait `.table-scroll`, le conteneur commun à tous les
+  tableaux. Elle est simplement retirée — les listes en cartes tiennent dans la
+  largeur d'elles-mêmes et ne défilent donc pas.
+
+### Ajouté
+- **?p=evenement : les structures liées s'affichent en mini-fiches** dans la
+  carte « Organisation », au lieu d'une simple pastille « Nom — Ville ». Même
+  vocabulaire que les fiches de `?p=structures` : nom, ville avec drapeau et
+  canton, catégorie et les deux dates. Le statut y est porté par son **icône**
+  — cœur, coche, croix, cercle pointillé — et non par la bordure d'une case à
+  cocher comme dans la liste : il n'y a rien à cocher ici, et un carré bordé y
+  aurait faussement l'air d'une case. Les étiquettes de chaque structure y
+  figurent aussi, sur leur propre ligne — sans le bouton « + » de la liste : on
+  étiquette une structure depuis sa fiche, pas depuis l'organisation d'un
+  événement.
+
+### Modifié
+- **Le menu burger passe à gauche sur téléphone**, avec le tiroir qui s'ouvre du
+  même côté et son bouton de fermeture au même endroit — la navigation est à
+  gauche sur bureau, elle l'est désormais partout.
+
 ## [2.3.4] — 2026-08-20
 
 ### Corrigé

@@ -202,7 +202,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <?php // Exemplaire unique du formulaire d'ajout d'étiquette : déplacé dans la
       // cellule de la ligne cliquée à l'ouverture, son structure_id renseigné à
       // ce moment-là. Hors du tableau au repos, pour ne peser qu'une fois. ?>
-<form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="tag-ajouter-form" hidden>
+<form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="tag-ajouter-form-liste" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="structure_id" value="">
     <input type="hidden" name="retour" value="structures">

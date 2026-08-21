@@ -332,11 +332,60 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <?php if (!$structuresLiees): ?>
         <p class="muted small">Aucune structure liée.</p>
         <?php else: ?>
-        <p>
+        <?php // Mêmes informations et même vocabulaire visuel que les fiches de
+              // ?p=structures sur téléphone : statut porté par un repère coloré,
+              // nom, ville avec drapeau et canton, catégorie et les deux dates à
+              // droite. Les étiquettes en sont absentes — elles demanderaient une
+              // jointure de plus pour un contexte où l'on cherche qui organise,
+              // pas comment le relancer. ?>
+        <ul class="mini-structures">
             <?php foreach ($structuresLiees as $s): ?>
-                <a href="?p=structure&id=<?= (int) $s['id'] ?><?= $suffixeDepuis ?>" class="badge"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('star') ?></span> <?php endif; ?><?= e($s['nom']) ?><?= trim((string) $s['ville']) !== '' ? ' — ' . e($s['ville']) : '' ?></a>
+            <?php
+                $msVille = ville_departement_canton_html(
+                    (string) $s['adresse_localite'], pays_drapeau_nom((string) $s['adresse_pays']),
+                    (string) $s['adresse_pays'], (string) $s['departement_canton']
+                );
+                $msMaj = trim((string) ($s['mise_a_jour_le'] ?? ''));
+                $msCree = trim((string) ($s['cree_le'] ?? ''));
+                $msVu = trim((string) ($s['dernier_contact_le'] ?? ''));
+            ?>
+            <li class="mini-structure<?= $s['statut'] === 'inactif' ? ' inactif' : '' ?>" data-statut="<?= e((string) $s['statut']) ?>">
+                <a href="?p=structure&id=<?= (int) $s['id'] ?><?= $suffixeDepuis ?>" class="ms-lien">
+                    <?php // L'icône de statut elle-même, et non un carré : il n'y a pas de
+                          // case à cocher ici, et un carré bordé en tenait faussement lieu. ?>
+                    <span class="ms-puce <?= e(structure_statut_icone_classe((string) $s['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $s['statut'])) ?>"><?= icon(structure_statut_icone((string) $s['statut'])) ?></span>
+                    <span class="ms-corps">
+                        <span class="ms-nom"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('star') ?></span> <?php endif; ?><?= e($s['nom']) ?></span>
+                        <span class="ms-lieu"><?= $msVille !== '' ? $msVille : '<span class="muted">—</span>' ?></span>
+                    </span>
+                    <span class="ms-cote">
+                        <span class="ms-cat"><?= e(trim((string) ($s['sous_categorie'] ?: $s['categorie']))) ?></span>
+                        <span class="ms-dates">
+                            <span class="ms-maj<?= $msMaj === '' && $msCree !== '' ? ' est-creation' : '' ?>"><?php
+                                if ($msMaj !== '') { echo e(date('d.m.Y', strtotime($msMaj))); }
+                                elseif ($msCree !== '') { echo e(date('d.m.Y', strtotime($msCree))); }
+                                else { echo '—'; }
+                            ?></span>
+                            <span class="ms-vu"><?= $msVu !== '' ? e(date('d.m.Y', strtotime($msVu))) : '—' ?></span>
+                        </span>
+                    </span>
+                    <?php
+                        $msTags = ($s['tags_noms'] ?? '') !== '' ? array_map(
+                            fn ($paire) => explode("\x1f", $paire, 2) + ['', ''],
+                            explode("\x1e", (string) $s['tags_noms'])
+                        ) : [];
+                    ?>
+                    <?php if ($msTags): ?>
+                    <?php // Pas de bouton « + » ici : cette carte montre l'organisation
+                          // de l'événement, on étiquette une structure depuis sa fiche. ?>
+                    <span class="ms-tags">
+                        <?php foreach ($msTags as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span><?php endforeach; ?>
+                    </span>
+                    <?php endif; ?>
+                </a>
+            </li>
             <?php endforeach; ?>
-        </p>
+        </ul>
         <?php endif; ?>
     </div>
 

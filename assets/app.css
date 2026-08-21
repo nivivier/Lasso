@@ -2293,25 +2293,27 @@ abbr {
     .statut-date-ok, .statut-date-warn, .statut-date-muted { font-size: var(--fs-small); }
     /* Logo déjà affiché dans .mobile-bar : pas besoin de le répéter en haut du
        tiroir, seul le bouton de fermeture reste — au même endroit que le burger
-       (même padding que .mobile-bar, même taille d'icône). */
-    .side-brand { justify-content: flex-end; display: flex; align-items: center; margin: -20px 0 0; padding: 10px 16px; }
+       (même padding que .mobile-bar, même taille d'icône), donc à gauche. */
+    .side-brand { justify-content: flex-start; display: flex; align-items: center; margin: -20px 0 0; padding: 10px 16px; }
     .side-brand-txt { display: none; }
     .side-close { display: inline-flex; }
     .sidebar .side-close .ico { width: 24px; height: 24px; }
 
-    /* Barre supérieure fixe avec logo + burger */
+    /* Barre supérieure fixe : burger puis logo, groupés à gauche. Pas de
+       space-between — il renverrait le logo contre le bord droit, seul. */
     .mobile-bar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex; align-items: center; justify-content: flex-start; gap: 12px;
         background: var(--brand-surface); padding: 10px 16px;
         position: sticky; top: 0; z-index: 30;
     }
     .mbar-logo { width: 104px; height: auto; }
 
-    /* La sidebar devient un tiroir hors écran, ouvert depuis la droite. */
+    /* La sidebar devient un tiroir hors écran, ouvert depuis la GAUCHE — du
+       côté où vit le rail sur bureau, et du côté du burger. */
     body.has-sidebar { flex-direction: column; }
     .sidebar {
-        position: fixed; top: 0; right: 0; left: auto; bottom: 0; height: 100vh; width: 100px;
-        transform: translateX(100%); transition: transform .25s ease; z-index: 50;
+        position: fixed; top: 0; left: 0; right: auto; bottom: 0; height: 100vh; width: 100px;
+        transform: translateX(-100%); transition: transform .25s ease; z-index: 50;
     }
     /* Cibles tactiles un peu plus grandes dans le tiroir */
     .rail-btn { font-size: var(--fs-small); }
@@ -2962,9 +2964,12 @@ abbr {
        sont exclues : leur libellé n'est pas placé par la grille. */
     .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep) > :first-child,
     .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep) > :last-child { padding-left: 0; padding-right: 0; }
-    /* Le conteneur de défilement horizontal n'a plus lieu d'être : les cartes
-       tiennent en largeur, et le laisser actif ferait défiler une carte. */
-    .table-scroll { overflow-x: visible; }
+    /* Rien ici sur .table-scroll : ce conteneur porte le défilement horizontal
+       de TOUS les tableaux, y compris ceux qui restent des tableaux sur
+       téléphone — la comptabilité en particulier. Une règle globale
+       « overflow-x: visible » leur retirait ce défilement. Les listes en cartes
+       n'en ont pas besoin : leurs lignes sont en min-width:0 et tiennent dans
+       la largeur, donc le conteneur ne défile pas de lui-même. */
     /* Le cadre du tableau (fond, bordure, ombre) n'a plus d'objet quand chaque
        ligne porte le sien : ses bordures haute et basse tiraient un trait entre
        la barre d'action et la première carte. */
@@ -3403,3 +3408,75 @@ abbr {
 :root[data-theme="sombre"] .leaflet-tile-pane {
     filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.85);
 }
+
+/* ============================================================
+   Mini-fiches de structure (carte « Organisation » de ?p=evenement)
+   ============================================================
+   Même vocabulaire que les fiches de ?p=structures sur téléphone — statut porté
+   par un repère coloré, nom, ville avec drapeau et canton, catégorie et les deux
+   dates à droite — mais un composant à part : là-bas ce sont des <td> replacés
+   en grille, ici une simple liste de liens, et la mise en cartes de la liste ne
+   vaut que sous 700px. Les valeurs de statut sont les mêmes que
+   STRUCTURE_STATUTS_CLASSES_ICONE (lib/booking.php). */
+.mini-structures { list-style: none; margin: 0; padding: 0; }
+.mini-structure + .mini-structure { border-top: 1px solid var(--line); }
+.mini-structure.inactif { opacity: .62; }
+.ms-lien {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0 11px; padding: 10px 0; color: inherit; text-decoration: none;
+}
+.ms-lien:hover .ms-nom { text-decoration: underline; }
+/* Le statut est porté par son ICÔNE, pas par un carré bordé : dans la liste,
+   c'est la case à cocher qui prend la couleur, mais il n'y a rien à cocher ici
+   — un carré y aurait faussement l'air d'une case. Icône et couleurs de
+   structure_statut_icone() / _classe() (lib/booking.php), comme la colonne
+   « Statut » du tableau. Hauteur calée sur la ligne du nom (15px × 1.3) et
+   line-height:1 sur le porteur, sinon l'icône se pose sous le milieu du texte. */
+.ms-puce {
+    display: flex; align-items: center; height: calc(15px * 1.3); line-height: 1;
+}
+.ms-puce .ico { width: 16px; height: 16px; }
+.ms-corps { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ms-nom {
+    font-size: 15px; font-weight: 600; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-lieu {
+    font-size: 12px; line-height: 1.45;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-lieu .tiny { font-size: 10px; }
+.ms-cote {
+    display: flex; flex-direction: column; align-items: flex-end; text-align: right;
+    max-width: 136px; min-width: 0;
+}
+.ms-cat {
+    font-size: 10px; line-height: 1.4; color: var(--muted); max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-dates {
+    display: flex; flex-direction: column; align-items: flex-end;
+    font-size: 10px; line-height: 1.4; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+/* Crayon = dernière modification, enveloppe = dernier contact, en masque comme
+   dans la liste : la couleur suit le texte, donc le thème sombre aussi. */
+.ms-maj::before, .ms-vu::before {
+    content: ""; display: inline-block; vertical-align: -1px;
+    width: 11px; height: 11px; margin-right: 3px;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+}
+/* Les étiquettes prennent toute la largeur de la mini-fiche, sous les deux
+   colonnes — comme dans les fiches de la liste. */
+.ms-tags {
+    grid-column: 1 / -1; grid-row: 2;
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+}
+.ms-tags .badge { margin-left: 0; font-size: 9px; }
+.ms-maj::before { -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon); }
+/* Repli sur la date de création : le crayon dirait « modifiée », ce qui est faux. */
+.ms-maj.est-creation { font-style: italic; }
+.ms-maj.est-creation::before { -webkit-mask-image: var(--ico-creation); mask-image: var(--ico-creation); }
+.ms-vu::before { -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe); }

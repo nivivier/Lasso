@@ -37,11 +37,14 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 <body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">
 <?php if ($u): ?>
 <?php if (!$fondPersonnalise) { require __DIR__ . '/_wave_decor.php'; } ?>
+<?php // Burger AVANT le logo : la navigation est à gauche sur bureau (le rail),
+      // elle l'est donc aussi sur téléphone — bouton, tiroir et bouton de
+      // fermeture, tous du même côté. ?>
 <header class="mobile-bar">
-    <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
     <button type="button" class="burger" id="burger" aria-label="Menu" aria-expanded="false">
         <?= icon('menu') ?>
     </button>
+    <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
 </header>
 <div class="scrim" id="scrim"></div>
 <aside class="sidebar" id="sidebar">

@@ -914,7 +914,14 @@ function importer_evenements_csv(string $csv, bool $simule): array
 function evenement_structures_liees(int $evenementId): array
 {
     $stmt = db()->prepare(
-        "SELECT s.*, s.adresse_localite AS ville, s.sous_categorie AS type, es.est_facturation FROM structures s
+        // tags_noms : même projection que la liste des structures — nom et
+        // couleur par étiquette, séparateurs char(31)/char(30) — pour que les
+        // mini-fiches de la carte « Organisation » les affichent comme ailleurs.
+        "SELECT s.*, s.adresse_localite AS ville, s.sous_categorie AS type, es.est_facturation,
+                (SELECT GROUP_CONCAT(t.nom || char(31) || COALESCE(t.couleur, ''), char(30))
+                   FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
+                  WHERE tl.structure_id = s.id) AS tags_noms
+           FROM structures s
          JOIN evenement_structures es ON es.structure_id = s.id
          WHERE es.evenement_id = ? ORDER BY es.id"
     );
