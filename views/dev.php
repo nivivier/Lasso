@@ -3,6 +3,9 @@
 /** @var ?string $ok */ /** @var int $ns */ /** @var int $nc */
 /** @var string $datesEtape */ /** @var ?string $datesErr */ /** @var ?array $datesResultat */
 /** @var ?int $datesAppliqueN */
+/** @var int $seuil */ /** @var array $seuils */ /** @var array $potentiels */
+/** @var array $potentielsIgnores */ /** @var ?string $potentielsErr */
+/** @var ?int $potentielsIgnoresN */ /** @var ?int $potentielsRepriseN */
 /** @var array $grandesRegions */ /** @var ?string $grandesRegionsErr */ /** @var ?int $grandesRegionsAppliqueN */
 /** @var array $evenementsLieuxUnivoques */ /** @var array $evenementsLieuxAmbigues */
 /** @var array $evenementsLieuxAucuneGroupes */ /** @var ?string $evenementsLieuxErr */
@@ -24,6 +27,7 @@ $nbEvenementsATraiter = count($evenementsLieuxUnivoques) + count($evenementsLieu
     + array_sum(array_map(fn ($g) => count($g['evenements']), $evenementsLieuxAucuneGroupes));
 $resumeItems = [
     ['id' => 'doublons-exacts', 'libelle' => 'Doublons exacts', 'n' => $totalGroupes],
+    ['id' => 'doublons-potentiels', 'libelle' => 'Doublons potentiels (' . $seuil . ' %)', 'n' => count($potentiels)],
     ['id' => 'grandes-regions', 'libelle' => 'Grandes régions à déduire', 'n' => count($grandesRegions)],
     ['id' => 'evenements-lieux', 'libelle' => 'Événements sans lieu rattaché', 'n' => $nbEvenementsATraiter],
 ];
@@ -117,6 +121,126 @@ $lienFiche = function (string $type, int $id): string {
             <button type="submit"><?= icon('merge') ?> Fusionner les doublons cochés</button>
         </form>
         <p class="muted small">Une sauvegarde de la base est faite automatiquement avant la fusion.</p>
+    <?php endif; ?>
+</div>
+
+<div class="card mt-22" id="doublons-potentiels">
+    <h2 class="mt-0">Doublons potentiels</h2>
+    <p class="muted small">
+        Rapproche les structures dont le <strong>nom se ressemble</strong> à au moins le seuil choisi
+        et dont le <strong>département / canton est identique</strong> — les saisies en double sous une
+        variante, que la détection exacte ci-dessus laisse passer. La comparaison ignore la casse,
+        les accents et la ponctuation. Les fiches <strong>sans canton renseigné</strong> ne sont pas
+        comparées, et les doublons déjà exacts ne sont pas répétés ici.
+        Un rapprochement légitime — une antenne et sa maison mère, deux salles d'un même lieu — se
+        met de côté avec « Ignorer » : il ne reviendra plus.
+    </p>
+
+    <form method="get" class="mb-16">
+        <input type="hidden" name="p" value="dev">
+        <input type="hidden" name="type" value="<?= e($type) ?>">
+        <label class="d-inline">Ressemblance minimale
+            <select name="seuil" data-submit-on-change>
+                <?php foreach ($seuils as $v): ?>
+                    <option value="<?= (int) $v ?>" <?= $seuil === $v ? 'selected' : '' ?>><?= (int) $v ?> %</option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <noscript><button type="submit" class="btn-sm">Appliquer</button></noscript>
+    </form>
+
+    <?php if ($potentielsErr): ?><p class="err"><?= e($potentielsErr) ?></p><?php endif; ?>
+    <?php if ($potentielsIgnoresN !== null): ?>
+        <p class="ok flash"><?= $potentielsIgnoresN ?> rapprochement(s) mis de côté.</p>
+    <?php endif; ?>
+    <?php if ($potentielsRepriseN !== null): ?>
+        <p class="ok flash"><?= $potentielsRepriseN ?> rapprochement(s) remis en jeu.</p>
+    <?php endif; ?>
+
+    <?php if (!$potentiels): ?>
+        <p class="muted">Aucun doublon potentiel à <?= (int) $seuil ?> % de ressemblance.</p>
+    <?php else: ?>
+        <p><?= count($potentiels) ?> rapprochement(s) proposé(s), les plus ressemblants d'abord.</p>
+        <table class="list">
+            <thead><tr>
+                <th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th>
+                <th class="num">Ressemblance</th><th>Conservée</th><th>Absorbée</th><th>Canton</th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($potentiels as $paire): ?>
+                <?php // La fiche au plus petit id (la plus ancienne) est celle que
+                      // conserverait la fusion : la colonne le dit avant qu'on coche. ?>
+                <tr>
+                    <td class="col-check"><input type="checkbox" name="sel[]" value="<?= e($paire['cle']) ?>" form="dev-potentiels-form" class="row-check"></td>
+                    <td class="num"><?= (int) $paire['score'] ?> %</td>
+                    <?php foreach (['a', 'b'] as $cote): ?>
+                        <td>
+                            <?= $lienFiche('structures', (int) $paire[$cote]['id']) ?>
+                            <?= e($paire[$cote]['nom']) ?>
+                            <?php if (trim((string) $paire[$cote]['localite']) !== ''): ?>
+                                <span class="muted small">— <?= e($paire[$cote]['localite']) ?></span>
+                            <?php endif; ?>
+                        </td>
+                    <?php endforeach; ?>
+                    <td class="muted small"><?= e($paire['a']['canton']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <?php // Deux boutons, un seul jeu de cases : l'action part du bouton cliqué
+              // (formaction), pour ne pas demander de re-cocher entre « ignorer » et
+              // « fusionner ». ?>
+        <form method="post" action="?p=dev&amp;seuil=<?= (int) $seuil ?>" class="mt-16" id="dev-potentiels-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <?php // Les deux boutons portent chacun leur action, plutôt qu'un champ
+                  // caché qu'un name= sur le bouton viendrait recouvrir : ici l'action
+                  // envoyée est celle du bouton cliqué, et rien d'autre. « Ignorer »
+                  // vient en premier, c'est donc lui qu'une validation au clavier
+                  // déclenche — le geste sans conséquence sur les fiches. ?>
+            <div class="form-actions">
+                <button type="submit" class="btn ghost" name="action" value="doublons_potentiels_ignorer"><?= icon('eye-off') ?> Ignorer les rapprochements cochés</button>
+                <button type="submit" name="action" value="doublons_potentiels_fusionner"
+                        data-confirm="Fusionner les paires cochées ci-dessus ? La fiche la plus ancienne est conservée, l'autre lui cède ses rattachements avant d'être supprimée. Une sauvegarde de la base sera faite automatiquement avant."><?= icon('merge') ?> Fusionner</button>
+            </div>
+        </form>
+        <p class="muted small">« Ignorer » ne touche à aucune fiche : la paire est simplement écartée des propositions. Une sauvegarde de la base est faite automatiquement avant une fusion.</p>
+    <?php endif; ?>
+
+    <?php if ($potentielsIgnores): ?>
+        <details class="mt-22">
+            <summary><?= count($potentielsIgnores) ?> rapprochement(s) mis de côté</summary>
+            <p class="muted small">Ces paires ne sont plus proposées. Les recocher les remet en jeu à la prochaine détection.</p>
+            <table class="list">
+                <thead><tr>
+                    <th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th>
+                    <th class="num">Ressemblance</th><th>Structure</th><th>Structure</th><th>Mise de côté le</th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ($potentielsIgnores as $paire): ?>
+                    <tr>
+                        <td class="col-check"><input type="checkbox" name="sel[]" value="<?= e($paire['cle']) ?>" form="dev-potentiels-reprise-form" class="row-check"></td>
+                        <td class="num"><?= (int) $paire['score'] ?> %</td>
+                        <?php foreach (['a', 'b'] as $cote): ?>
+                            <td>
+                                <?= $lienFiche('structures', (int) $paire[$cote]['id']) ?>
+                                <?= e($paire[$cote]['nom']) ?>
+                                <?php if (trim((string) $paire[$cote]['localite']) !== ''): ?>
+                                    <span class="muted small">— <?= e($paire[$cote]['localite']) ?></span>
+                                <?php endif; ?>
+                            </td>
+                        <?php endforeach; ?>
+                        <td class="muted small"><?= e(date('d.m.Y', strtotime($paire['cree_le']))) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <form method="post" action="?p=dev&amp;seuil=<?= (int) $seuil ?>" class="mt-16" id="dev-potentiels-reprise-form">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="action" value="doublons_potentiels_reprendre">
+                <button type="submit" class="btn ghost"><?= icon('eye') ?> Remettre en jeu les paires cochées</button>
+            </form>
+        </details>
     <?php endif; ?>
 </div>
 

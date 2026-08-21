@@ -122,6 +122,232 @@ function doublons_fusionner_contacts(array $groupes): int
 
 
 // ===========================================================================
+// Doublons POTENTIELS (structures) — noms voisins dans le même canton.
+//
+// Les doublons EXACTS ci-dessus se détectent par un GROUP BY : même nom, même
+// localité. Restent hors de leur portée les fiches saisies deux fois avec une
+// variante — « Théâtre du Passage » / « Le Théâtre du Passage », une accroche
+// en plus, une faute de frappe — que rien ne rapproche en SQL.
+//
+// Deux critères, tous deux exigés :
+//   1. le département / canton est identique et NON VIDE. C'est le garde-fou
+//      qui rend le balayage réaliste : sans lui, 2965 structures font 4,4
+//      millions de paires, et deux salles homonymes à 500 km l'une de l'autre
+//      remonteraient comme doublon. Les fiches sans canton ne sont donc pas
+//      comparées — l'écran le dit.
+//   2. les noms se ressemblent à au moins $seuil % (similar_text(), sur des
+//      noms mis à plat : minuscules, sans accents ni ponctuation, pour que
+//      « Anti-Concert » et « anti concert » soient la même chaîne).
+//
+// Le résultat est une liste de PAIRES, jamais des groupes transitifs : si A
+// ressemble à B et B à C, A et C peuvent n'avoir rien à voir, et fondre les
+// trois en un seul groupe proposerait une fusion que personne n'a jugée.
+// C'est aussi ce qui rend l'exclusion stable — voir doublons_potentiels_cle().
+// ===========================================================================
+
+// Seuils proposés à l'écran. En dessous de 80 %, le bruit dépasse largement les
+// vraies trouvailles (mesuré sur la base réelle : 338 paires à 80 %, 119 à
+// 85 %, 34 à 90 %).
+const DOUBLONS_POTENTIELS_SEUILS = [80, 85, 90, 95];
+const DOUBLONS_POTENTIELS_SEUIL_DEFAUT = 85;
+
+// Nom mis à plat pour la comparaison. Les accents sont repliés AVANT de retirer
+// la ponctuation : normaliser_nom_structure() (lib/booking.php) ne garde que
+// [a-z0-9] et réduirait « Théâtre » à « thtre », en amputant les deux chaînes
+// d'autant de lettres qu'elles portent d'accents.
+function doublons_potentiels_nom(string $nom): string
+{
+    return (string) preg_replace('/[^a-z0-9]/', '', texte_sans_accents($nom));
+}
+
+// Clé d'une paire, indépendante de l'ordre : « petit:grand ». C'est l'unité
+// mémorisée par les exclusions comme par les cases à cocher de l'écran.
+function doublons_potentiels_cle(int $a, int $b): string
+{
+    return min($a, $b) . ':' . max($a, $b);
+}
+
+// Ressemblance de deux noms mis à plat, en pourcentage — ou null si elle
+// n'atteint pas $seuil. Sortie séparée de la boucle pour être testable :
+// c'est ici que vit le pré-filtre, et un pré-filtre trop gourmand écarterait
+// des paires en silence, sans que rien ne le signale.
+//
+// Le pré-filtre : au mieux, tous les caractères de la plus courte des deux
+// chaînes sont communs, ce qui plafonne similar_text() à 2·min/(la+lb).
+// Quand ce plafond est déjà sous le seuil, l'appel est inutile — et c'est de
+// loin le plus cher de la boucle (il écarte les deux tiers des paires : 40 837
+// comparaisons réelles sur 89 069 paires de la base actuelle).
+function doublons_potentiels_score(string $a, string $b, int $seuil): ?int
+{
+    $la = strlen($a);
+    $lb = strlen($b);
+    if ($la === 0 || $lb === 0) {
+        return null;
+    }
+    if (2 * min($la, $lb) / ($la + $lb) * 100 < $seuil) {
+        return null;
+    }
+    similar_text($a, $b, $pourcent);
+    return $pourcent < $seuil ? null : (int) round($pourcent);
+}
+
+// Paires exclues, indexées par clé (pour un isset() en boucle).
+function doublons_potentiels_exclusions(): array
+{
+    $out = [];
+    foreach (db()->query('SELECT structure_a, structure_b FROM structure_doublons_ignores')->fetchAll() as $r) {
+        $out[doublons_potentiels_cle((int) $r['structure_a'], (int) $r['structure_b'])] = true;
+    }
+    return $out;
+}
+
+// Paires candidates, les plus ressemblantes d'abord. Les paires écartées sont
+// retirées ici même ; doublons_potentiels_ignores() les liste à part.
+function doublons_potentiels_detecter(int $seuil): array
+{
+    $seuil = max(50, min(100, $seuil));
+    $exclues = doublons_potentiels_exclusions();
+
+    // Un seul balayage de la table : les fiches sont regroupées par canton, et
+    // la comparaison ne sort jamais de son groupe.
+    $parCanton = [];
+    foreach (db()->query('SELECT id, nom, adresse_localite, departement_canton, statut FROM structures')->fetchAll() as $r) {
+        $canton = trim((string) $r['departement_canton']);
+        $plat = doublons_potentiels_nom((string) $r['nom']);
+        if ($canton === '' || $plat === '') {
+            continue;
+        }
+        $parCanton[$canton][] = [
+            'id' => (int) $r['id'], 'nom' => (string) $r['nom'], 'plat' => $plat,
+            'localite' => (string) $r['adresse_localite'], 'canton' => $canton, 'statut' => (string) $r['statut'],
+        ];
+    }
+
+    $paires = [];
+    foreach ($parCanton as $fiches) {
+        $n = count($fiches);
+        for ($i = 0; $i < $n; $i++) {
+            for ($j = $i + 1; $j < $n; $j++) {
+                $a = $fiches[$i];
+                $b = $fiches[$j];
+                $score = doublons_potentiels_score($a['plat'], $b['plat'], $seuil);
+                if ($score === null) {
+                    continue;
+                }
+                // Doublons EXACTS au sens de la section précédente (même nom et
+                // même localité, à la casse et aux espaces près) : ils y sont
+                // déjà proposés à la fusion, les répéter ici embrouillerait.
+                // Comparaison faite sur les mêmes clés que doublons_detecter(),
+                // et non sur le nom mis à plat, sinon deux fiches que LUI seul
+                // rend identiques (« Anti-Concert » / « anti concert »)
+                // disparaîtraient des deux listes.
+                if (mb_strtolower(trim($a['nom'])) === mb_strtolower(trim($b['nom']))
+                    && mb_strtolower(trim($a['localite'])) === mb_strtolower(trim($b['localite']))) {
+                    continue;
+                }
+                $cle = doublons_potentiels_cle($a['id'], $b['id']);
+                if (isset($exclues[$cle])) {
+                    continue;
+                }
+                $paires[] = ['cle' => $cle, 'score' => $score, 'a' => $a, 'b' => $b];
+            }
+        }
+    }
+
+    usort($paires, fn ($x, $y) => [$y['score'], $x['a']['nom']] <=> [$x['score'], $y['a']['nom']]);
+    return $paires;
+}
+
+// Paires écartées, telles qu'elles sont enregistrées — lues à la table, jamais
+// redétectées : une exclusion doit rester reprenable même si les deux fiches ne
+// se ressemblent plus (l'une renommée depuis), sans quoi elle deviendrait
+// invisible et définitive. Le score est recalculé pour l'affichage seul, il ne
+// conditionne pas la présence dans la liste.
+function doublons_potentiels_ignores(): array
+{
+    $lignes = db()->query(
+        "SELECT i.structure_a, i.structure_b, i.cree_le,
+                a.nom AS a_nom, a.adresse_localite AS a_localite, a.departement_canton AS a_canton,
+                b.nom AS b_nom, b.adresse_localite AS b_localite, b.departement_canton AS b_canton
+           FROM structure_doublons_ignores i
+           JOIN structures a ON a.id = i.structure_a
+           JOIN structures b ON b.id = i.structure_b
+          ORDER BY i.cree_le DESC, i.structure_a"
+    )->fetchAll();
+    $out = [];
+    foreach ($lignes as $r) {
+        similar_text(
+            doublons_potentiels_nom((string) $r['a_nom']),
+            doublons_potentiels_nom((string) $r['b_nom']),
+            $score
+        );
+        $out[] = [
+            'cle' => doublons_potentiels_cle((int) $r['structure_a'], (int) $r['structure_b']),
+            'score' => (int) round($score),
+            'cree_le' => (string) $r['cree_le'],
+            'a' => ['id' => (int) $r['structure_a'], 'nom' => (string) $r['a_nom'], 'localite' => (string) $r['a_localite'], 'canton' => (string) $r['a_canton']],
+            'b' => ['id' => (int) $r['structure_b'], 'nom' => (string) $r['b_nom'], 'localite' => (string) $r['b_localite'], 'canton' => (string) $r['b_canton']],
+        ];
+    }
+    return $out;
+}
+
+// Décode les clés « a:b » venues du formulaire. Tout ce qui n'a pas la forme
+// attendue est jeté : ces valeurs arrivent du client, et elles finissent en
+// identifiants de fusion.
+function doublons_potentiels_lire_cles(array $cles): array
+{
+    $out = [];
+    foreach ($cles as $cle) {
+        if (!preg_match('/^([0-9]+):([0-9]+)$/', (string) $cle, $m)) {
+            continue;
+        }
+        $a = (int) $m[1];
+        $b = (int) $m[2];
+        if ($a === $b || $a < 1 || $b < 1) {
+            continue;
+        }
+        $out[doublons_potentiels_cle($a, $b)] = [min($a, $b), max($a, $b)];
+    }
+    return array_values($out);
+}
+
+// Écarte des paires de la détection. Renvoie le nombre de paires écartées.
+function doublons_potentiels_ignorer(array $paires): int
+{
+    // INSERT OR IGNORE : réécarter une paire déjà écartée n'est pas une erreur,
+    // et ne doit pas rafraîchir sa date.
+    $st = db()->prepare('INSERT OR IGNORE INTO structure_doublons_ignores (structure_a, structure_b) VALUES (?, ?)');
+    $n = 0;
+    foreach ($paires as [$a, $b]) {
+        $st->execute([$a, $b]);
+        $n += $st->rowCount();
+    }
+    return $n;
+}
+
+// Remet des paires écartées dans la détection.
+function doublons_potentiels_reprendre(array $paires): int
+{
+    $st = db()->prepare('DELETE FROM structure_doublons_ignores WHERE structure_a = ? AND structure_b = ?');
+    $n = 0;
+    foreach ($paires as [$a, $b]) {
+        $st->execute([$a, $b]);
+        $n += $st->rowCount();
+    }
+    return $n;
+}
+
+// Fusionne des paires : la fiche au plus petit id (la plus ancienne) est
+// conservée, l'autre lui cède ses rattachements. Même mécanique que les
+// doublons exacts. Renvoie le nombre de fiches supprimées.
+function doublons_potentiels_fusionner(array $paires): int
+{
+    return doublons_fusionner_structures(array_map(fn ($p) => ['ids' => $p], $paires));
+}
+
+
+// ===========================================================================
 // Mise à jour des dates depuis un CSV — voir scripts/maj_dates_import.php
 // ===========================================================================
 

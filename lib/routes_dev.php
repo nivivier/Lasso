@@ -14,6 +14,15 @@ function route_dev(): void
     $type = in_array($_GET['type'] ?? '', ['structures', 'contacts', 'tous'], true) ? $_GET['type'] : 'tous';
 
     $doublonsErr     = null;
+    // Doublons potentiels : seuil de ressemblance choisi à l'écran, borné à la
+    // liste proposée (la valeur arrive de l'URL).
+    $seuil = (int) ($_GET['seuil'] ?? DOUBLONS_POTENTIELS_SEUIL_DEFAUT);
+    if (!in_array($seuil, DOUBLONS_POTENTIELS_SEUILS, true)) {
+        $seuil = DOUBLONS_POTENTIELS_SEUIL_DEFAUT;
+    }
+    $potentielsErr       = null;
+    $potentielsIgnoresN  = null;
+    $potentielsRepriseN  = null;
     $datesEtape      = 'upload';
     $datesErr        = null;
     $datesResultat   = null;
@@ -34,7 +43,44 @@ function route_dev(): void
         // Format de clé propre à chaque action, voir le filtre correspondant.
         $selection = array_flip(array_map('strval', $_POST['sel'] ?? []));
 
-        if ($action === 'doublons_fusionner') {
+        if ($action === 'doublons_potentiels_ignorer' || $action === 'doublons_potentiels_reprendre') {
+            // Ni l'une ni l'autre ne touche aux fiches : elles n'ajoutent ou ne
+            // retirent que des lignes d'exclusion, d'où l'absence de sauvegarde
+            // préalable — contrairement à la fusion juste en dessous.
+            $paires = doublons_potentiels_lire_cles($_POST['sel'] ?? []);
+            if (!$paires) {
+                $potentielsErr = 'Aucune paire sélectionnée.';
+            } elseif ($action === 'doublons_potentiels_ignorer') {
+                $potentielsIgnoresN = doublons_potentiels_ignorer($paires);
+            } else {
+                $potentielsRepriseN = doublons_potentiels_reprendre($paires);
+            }
+        } elseif ($action === 'doublons_potentiels_fusionner') {
+            // Les clés cochées sont re-confrontées à la détection : une paire
+            // qui n'y figure plus (fiche supprimée entre-temps, seuil changé
+            // dans un autre onglet) ne doit pas être fusionnée sur la seule foi
+            // du formulaire posté.
+            $proposees = [];
+            foreach (doublons_potentiels_detecter($seuil) as $paire) {
+                $proposees[$paire['cle']] = true;
+            }
+            $paires = array_values(array_filter(
+                doublons_potentiels_lire_cles($_POST['sel'] ?? []),
+                fn ($p) => isset($proposees[doublons_potentiels_cle($p[0], $p[1])])
+            ));
+            if (!$paires) {
+                $potentielsErr = 'Aucune paire sélectionnée parmi celles proposées.';
+            } else {
+                $bak = sauvegarder_base('avant_doublons_potentiels');
+                if ($bak === null) {
+                    $potentielsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
+                } else {
+                    $ns = doublons_potentiels_fusionner($paires);
+                    redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nc' => 0, 'seuil' => $seuil]);
+                    return;
+                }
+            }
+        } elseif ($action === 'doublons_fusionner') {
             $type = in_array($_POST['type'] ?? '', ['structures', 'contacts', 'tous'], true) ? $_POST['type'] : 'tous';
             $gr  = doublons_detecter($type);
             foreach (['structures', 'contacts'] as $k) {
@@ -153,6 +199,13 @@ function route_dev(): void
         'type'           => $type,
         'doublons'       => doublons_detecter($type),
         'doublonsErr'    => $doublonsErr,
+        'seuil'              => $seuil,
+        'seuils'             => DOUBLONS_POTENTIELS_SEUILS,
+        'potentiels'         => doublons_potentiels_detecter($seuil),
+        'potentielsIgnores'  => doublons_potentiels_ignores(),
+        'potentielsErr'      => $potentielsErr,
+        'potentielsIgnoresN' => $potentielsIgnoresN,
+        'potentielsRepriseN' => $potentielsRepriseN,
         'ok'             => $_GET['ok'] ?? null,
         'ns'             => (int) ($_GET['ns'] ?? 0),
         'nc'             => (int) ($_GET['nc'] ?? 0),

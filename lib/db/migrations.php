@@ -94,6 +94,7 @@ function run_migrations(PDO $pdo): void
         66 => 'migration_66', // fusion evenement_lieux/evenement_organisateurs → evenement_structures (plus de distinction lieu/organisateur sur ?p=evenement, une structure marquée « à facturer »)
         67 => 'migration_67', // retire structures.type (organisation/particulier) — la catégorie suffit, plus utilisé
         68 => 'migration_68', // index sur login_attempts (comptage anti-force-brute par IP et par compte)
+        69 => 'migration_69', // structure_doublons_ignores : paires de structures écartées de la détection des doublons potentiels
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2102,4 +2103,28 @@ function migration_44(PDO $pdo): void
     if (!in_array('dernier_concert_le', $colsLieux, true)) {
         $pdo->exec("ALTER TABLE lieux ADD COLUMN dernier_concert_le TEXT NOT NULL DEFAULT ''");
     }
+}
+
+// Migration 69 : table des paires de structures écartées de la détection des
+// doublons POTENTIELS (?p=dev, noms voisins dans le même canton). Sans mémoire,
+// l'outil reproposerait indéfiniment les mêmes rapprochements légitimes — une
+// antenne régionale et sa maison mère, deux salles d'un même lieu.
+// L'unité mémorisée est la PAIRE, pas la fiche : écarter « A ≈ B » ne doit rien
+// dire de « A ≈ C ». Invariant tenu côté PHP : structure_a < structure_b, sinon
+// la même paire s'enregistrerait deux fois dans les deux sens.
+// ON DELETE CASCADE : une structure supprimée emporte ses exclusions, qui ne
+// désigneraient plus rien (PRAGMA foreign_keys = ON, voir lib/db.php).
+function migration_69(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS structure_doublons_ignores (
+            structure_a INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            structure_b INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            cree_le     TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (structure_a, structure_b)
+        )
+    ");
+    // La lecture se fait toujours par la clé primaire (paire complète) ; cet
+    // index sert au sens inverse, l'affichage des exclusions d'une structure.
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_doublons_ignores_b ON structure_doublons_ignores(structure_b)');
 }

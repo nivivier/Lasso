@@ -9,6 +9,34 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.7] — 2026-08-21
+
+### Ajouté
+- **Doublons potentiels dans « Paramètres → Incohérences »**, à côté des
+  doublons exacts. Rapproche les structures dont le nom se ressemble à au moins
+  le seuil choisi (80, 85, 90 ou 95 %) et dont le département / canton est
+  identique — les saisies en double sous une variante, qu'un `GROUP BY` ne peut
+  pas voir : « Festival Ça Va Bien S'Passer » et « Festival « Ca va bien
+  s'passer » », « Go out » et « Go Out ». La comparaison ignore la casse, les
+  accents et la ponctuation. Sur la base actuelle : 119 rapprochements à 85 %,
+  34 à 90 %.
+
+  Le canton n'est pas qu'un critère de pertinence, c'est ce qui rend le
+  balayage réaliste : sans lui, 2965 structures font 4,4 millions de paires.
+  Les fiches sans canton renseigné ne sont donc pas comparées, et l'écran le
+  dit. Les doublons déjà exacts ne sont pas répétés.
+
+  Le résultat est une liste de **paires**, jamais des groupes transitifs : si A
+  ressemble à B et B à C, A et C peuvent n'avoir rien à voir, et les fondre
+  proposerait une fusion que personne n'a jugée.
+
+  Chaque paire se **fusionne** (la fiche la plus ancienne est conservée, comme
+  pour les doublons exacts, avec sauvegarde automatique de la base) ou se met
+  **de côté** : un rapprochement légitime — une antenne et sa maison mère, deux
+  salles d'un même lieu — ne sera plus reproposé. Les paires écartées se
+  relisent en bas de la carte et se remettent en jeu d'un clic. « Ignorer » ne
+  touche à aucune fiche.
+
 ## [2.3.6] — 2026-08-21
 
 ### Corrigé
