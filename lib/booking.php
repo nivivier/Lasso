@@ -357,7 +357,67 @@ const HISTORIQUE_TYPES = [
     'note'            => ['Note', 'message-square'],
     'mailing'         => ['Contact / mailing', 'mail'],
     'dernier_concert' => ['Dernier concert', 'music'],
+    // Type SYNTHÉTIQUE : aucune ligne de la table ne le porte, il est fabriqué
+    // à l'affichage par historique_fusionne() à partir de structures.cree_le.
+    'creation'        => ['Créée / importée', 'house-plus'],
 ];
+
+// Icône et couleur d'une entrée d'historique, d'après ce qu'elle RACONTE et
+// non seulement d'après son type. Un flux où tout « Modification » porte le
+// même crayon ne se balaie pas : à l'œil, un changement de statut, une
+// liaison de lieu et un ajout d'étiquette se ressemblent alors qu'ils n'ont
+// rien à voir.
+//
+// La reconnaissance se fait sur le début du contenu, que ce même code écrit
+// (journaliser_diff(), journaliser_lien_structure_lieu(), route_structure_statut()…) :
+// c'est un rapprochement de chaînes, donc faillible si un libellé change — d'où
+// le repli systématique sur l'icône du type, jamais d'entrée sans icône.
+// Renvoie [icône, classe de couleur, libellé au survol].
+function historique_icone(array $entree): array
+{
+    $type = (string) ($entree['type'] ?? '');
+    $hi = HISTORIQUE_TYPES[$type] ?? ['Entrée', 'message-square'];
+    $contenu = trim((string) ($entree['contenu'] ?? ''));
+    $premiere = strtok($contenu, "\n") ?: '';
+
+    // « Statut : Contact privilégié » → l'icône DU statut atteint, avec sa
+    // couleur : c'est l'information, pas le fait qu'il y ait eu modification.
+    if (preg_match('/^Statut\s*:\s*(.+)$/u', $premiere, $m)) {
+        $libelle = trim($m[1]);
+        // Les entrées d'avant migration_63 disent « active »/« inactive » : le
+        // statut n'était alors qu'un booléen, doublé d'un « désinscrite du
+        // mailing ». Elles restent en base telles quelles — c'est de
+        // l'historique, on ne le récrit pas — donc c'est la lecture qui les
+        // traduit. 34 entrées sur 34 dans la base actuelle, contre 3 sans ça.
+        $ancien = ['active' => 'actif', 'inactive' => 'inactif'];
+        $cleAncienne = $ancien[mb_strtolower($libelle)] ?? null;
+        foreach (STRUCTURE_STATUTS_LIBELLES as $cle => $lib) {
+            if ($lib === $libelle || $cle === $cleAncienne) {
+                return [structure_statut_icone($cle), structure_statut_icone_classe($cle), 'Statut : ' . $lib];
+            }
+        }
+    }
+    // Une seule entrée par cas, dans l'ordre où elle est testée : les préfixes
+    // « lié »/« délié » se ressemblent, le plus long d'abord.
+    $prefixes = [
+        'Lieu délié'          => ['unlink', 'Lieu délié'],
+        'Organisateur délié'  => ['unlink', 'Organisateur délié'],
+        'Lieu lié'            => ['link', 'Lieu lié'],
+        'Organisateur lié'    => ['link', 'Organisateur lié'],
+        'Étiquette ajoutée'   => ['tag', 'Étiquette ajoutée'],
+        'Étiquette retirée'   => ['tag', 'Étiquette retirée'],
+        'Contact ajouté'      => ['user-plus', 'Contact ajouté'],
+        'Contact modifié'     => ['user', 'Contact modifié'],
+        'Contact supprimé'    => ['user', 'Contact supprimé'],
+        'Désinscrite du mailing' => ['mail-x', 'Désinscrite du mailing'],
+    ];
+    foreach ($prefixes as $prefixe => [$icone, $libelle]) {
+        if (str_starts_with($premiere, $prefixe)) {
+            return [$icone, 'muted', $libelle];
+        }
+    }
+    return [$hi[1], 'muted', $hi[0]];
+}
 
 // Ajoute une entrée d'historique pour une fiche ($entiteType : 'structure' |
 // 'lieu'). $creeLe permet de dater l'entrée (import) ; sinon = maintenant.
@@ -464,6 +524,25 @@ function historique_fusionne(string $entiteType, int $id): array
                 $e['source_label'] = 'Lieu « ' . (string) $l['nom'] . ' »';
                 $entrees[] = $e;
             }
+        }
+    }
+    // La création de la fiche ouvre le récit : c'est le premier acte, et sans
+    // elle le flux commence au milieu de nulle part. Elle n'est PAS une ligne
+    // de la table historique (structures.cree_le est la seule trace, et les
+    // fiches importées n'ont jamais eu d'entrée), elle est donc synthétisée à
+    // l'affichage — d'où l'id 0, qui la tient hors de tout ce qui se modifie.
+    // Elle se range à sa date, donc en bas d'une liste antichronologique.
+    if ($entiteType === 'structure') {
+        $stmt = db()->prepare('SELECT cree_le FROM structures WHERE id = ?');
+        $stmt->execute([$id]);
+        $creeLe = (string) ($stmt->fetchColumn() ?: '');
+        if ($creeLe !== '') {
+            $entrees[] = [
+                'id' => 0, 'entite_type' => 'structure', 'entite_id' => $id,
+                'type' => 'creation', 'contenu' => 'Fiche créée ou importée',
+                'cree_le' => $creeLe, 'utilisateur_id' => null,
+                'u_prenom' => '', 'u_nom' => '', 'source_label' => '',
+            ];
         }
     }
     usort($entrees, fn ($a, $b) => [(string) $b['cree_le'], (int) $b['id']] <=> [(string) $a['cree_le'], (int) $a['id']]);

@@ -876,7 +876,7 @@ $villeHtmlS = ville_departement_canton_html(
 
 <div class="card card-editable">
     <div class="card-head-row">
-        <h2 class="mt-0">Historique <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+        <h2 class="mt-0">Historique <?= info_tip("Les dates de synthèse de la fiche. Le flux des notes et des contacts est dans « Historique détaillé », plus bas.") ?></h2>
         <?php if ($peutEcrireBooking): ?>
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
@@ -918,26 +918,61 @@ $villeHtmlS = ville_departement_canton_html(
     <?php if (!empty($structure['mise_a_jour_le'])): ?>
         <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
     <?php endif; ?>
+    <?php // Le flux d'entrées vit dans sa propre carte, « Historique détaillé »,
+          // sous la grille de colonnes : à 400px de large, le formulaire de note
+          // et les entrées se comprimaient au point de casser les libellés en
+          // quatre lignes. Cette carte-ci ne garde que les dates de synthèse. ?>
+</div>
+
+</div>
+
+</div>
+
+<?php // Pleine largeur, hors de .card-columns : le flux a besoin de place — une
+      // note fait plusieurs lignes, et le formulaire d'édition d'une entrée
+      // aligne date, case à cocher et boutons sur une seule rangée. ?>
+<div class="card mt-22" id="historique-detaille">
+    <div class="card-head-row">
+        <h2 class="mt-0">Historique détaillé <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+    </div>
     <?php if ($peutEcrireBooking): ?>
-    <form method="post" action="?p=structure_note_ajouter" class="form">
+    <?php // Tout sur une rangée tant que la largeur le permet — date, texte,
+          // prise de contact, bouton — et l'enroulement s'en charge en dessous.
+          // La date d'abord : c'est elle qu'on corrige quand on consigne après
+          // coup, et la lire avant d'écrire évite de s'en apercevoir trop tard.
+          //
+          // Aucun libellé au-dessus des champs : la bande se lit comme une barre
+          // de saisie, l'invite du texte et le format de la date se suffisent, et
+          // tous les contrôles se retrouvent alors à la même hauteur. Chacun
+          // porte un aria-label, pour que son nom existe quand même. ?>
+    <form method="post" action="?p=structure_note_ajouter" class="form hist-note-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
-        <textarea name="contenu" rows="2" placeholder="Ajouter une note…" required></textarea>
-        <div class="form-actions">
-            <label class="check"><input type="checkbox" name="est_contact" value="1"> Marquer comme prise de contact</label>
-            <button type="submit" class="btn ghost btn-sm"><?= icon('message-square') ?> Ajouter</button>
+        <div class="add-row hist-note-row">
+            <?php // Pré-remplie à aujourd'hui : le cas courant reste « je note ce
+                  // qui vient de se passer ». Le champ est là pour l'autre cas —
+                  // consigner après coup un appel de la semaine dernière — sans
+                  // quoi la date du jour serait figée dans l'historique à tort. ?>
+            <input type="date" name="date" class="hist-note-date" value="<?= e(date('Y-m-d')) ?>" aria-label="Date de la note">
+            <textarea name="contenu" rows="1" class="hist-note-texte" placeholder="Ce qui s'est passé, ce qu'il reste à faire…" aria-label="Note" required></textarea>
+            <label class="check hist-note-contact"><input type="checkbox" name="est_contact" value="1"> Prise de contact</label>
+            <button type="submit"><?= icon('message-square') ?> Ajouter</button>
         </div>
     </form>
     <?php endif; ?>
     <div class="mt-16">
         <?php if ($notes): ?>
-            <?php $notesRecentes = array_slice($notes, 0, 2); $notesReste = array_slice($notes, 2); ?>
+            <?php // Cinq entrées d'emblée : la carte est pleine largeur et chacune
+                  // tient sur une ligne, cinq se lisent donc d'un coup d'œil sans
+                  // allonger la page. Le reste attend derrière « Voir les … ». ?>
+            <?php $notesRecentes = array_slice($notes, 0, 5); $notesReste = array_slice($notes, 5); ?>
+            <?php $histoModifiable = $peutEcrireBooking; $histoStructureId = $sid; ?>
             <?php $histoEntrees = $notesRecentes; require __DIR__ . '/_historique.php'; ?>
             <?php if ($notesReste): ?>
                 <div class="hist-reste" hidden>
                     <?php $histoEntrees = $notesReste; require __DIR__ . '/_historique.php'; ?>
                 </div>
-                <button type="button" class="btn ghost btn-sm hist-voir-plus-btn"><?= icon('chevron-down') ?> Voir les <?= count($notesReste) ?> précédente<?= count($notesReste) > 1 ? 's' : '' ?></button>
+                <div class="hist-voir-plus"><button type="button" class="btn ghost btn-sm hist-voir-plus-btn"><?= icon('chevron-down') ?> Voir les <?= count($notesReste) ?> précédente<?= count($notesReste) > 1 ? 's' : '' ?></button></div>
             <?php endif; ?>
         <?php else: ?>
             <p class="muted small">Aucune entrée pour l'instant.</p>
@@ -954,10 +989,6 @@ $villeHtmlS = ville_departement_canton_html(
         });
     })();
     </script>
-</div>
-
-</div>
-
 </div>
 
 <?php endif; ?>

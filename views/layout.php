@@ -276,7 +276,21 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 <?php else: ?>
 <?php require __DIR__ . '/_wave_decor.php'; ?>
 <main class="auth-wrap">
-    <?php if ($logoClair !== ''): ?><img src="<?= e($logoClair) ?>" alt="<?= e($nomEmployeur) ?>" class="auth-logo"><?php else: ?><div class="auth-name"><?= e($nomEmployeur) ?></div><?php endif; ?>
+    <?php
+    // Le fond de connexion s'assombrit avec le thème, exactement comme le rail :
+    // le logo doit suivre, sinon c'est la variante à encre foncée qui se retrouve
+    // sur fond sombre, où elle ne se voit plus. Même mécanique que .side-logo
+    // plus haut : les DEUX variantes sont rendues côté serveur et le CSS montre
+    // la bonne — en mode « automatique », le serveur ignore le réglage système,
+    // et c'est la seule façon de trancher sans JavaScript ni scintillement.
+    // Même repli aussi : une seule variante configurée sert aux deux thèmes.
+    $logoAuthClair  = $logoClair !== '' ? $logoClair : $logoSombre;
+    $logoAuthSombre = $logoSombre !== '' ? $logoSombre : $logoAuthClair;
+    ?>
+    <?php if ($logoAuthClair !== ''): ?>
+        <img src="<?= e($logoAuthClair) ?>" alt="<?= e($nomEmployeur) ?>" class="auth-logo auth-logo-clair">
+        <img src="<?= e($logoAuthSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="auth-logo auth-logo-sombre">
+    <?php else: ?><div class="auth-name"><?= e($nomEmployeur) ?></div><?php endif; ?>
     <?php require $contentView; ?>
     <a class="side-powered auth-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
         <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>

@@ -174,6 +174,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_contact_ajouter' => 'route_structure_contact_ajouter',
     'structure_contact_delete'  => 'route_structure_contact_delete',
     'structure_note_ajouter' => 'route_structure_note_ajouter',
+    'structure_note_modifier' => 'route_structure_note_modifier',
     'structure_tag_ajouter'  => 'route_structure_tag_ajouter',
     'structure_tag_retirer'  => 'route_structure_tag_retirer',
     'structure_lieu_lier'    => 'route_structure_lieu_lier',

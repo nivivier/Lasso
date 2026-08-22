@@ -2707,6 +2707,99 @@ abbr {
 .hist-item.hist-mailing .hist-ico { color: #2b8a5b; }
 .hist-item.hist-note .hist-ico { color: #6b7280; }
 .hist-item.hist-dernier_concert .hist-ico { color: #9b5bb0; }
+/* Couleur portée par l'ENTRÉE et non par son type (historique_icone(),
+   lib/booking.php) : un changement de statut prend la couleur du statut
+   atteint. Trois classes au lieu d'une seule règle générique, parce qu'il faut
+   ici la même spécificité que les quatre règles de type ci-dessus (0,3,0) pour
+   les dépasser — un simple .ico-pink perdait, et le cœur restait gris. */
+.hist-item .hist-ico.ico-ok { color: var(--ok); }
+.hist-item .hist-ico.ico-pink { color: #f541cc; }
+.hist-item .hist-ico.ico-danger { color: var(--danger); }
+/* Le corps d'une entrée prend toute la largeur restante : sans ça, le
+   formulaire d'édition se calait sur la largeur du texte de la note. */
+.hist-corps { flex: 1 1 auto; min-width: 0; }
+/* Une entrée tient sur une ligne : date · contenu · méta. La date en tête
+   parce que le flux est chronologique et qu'une colonne de dates alignées se
+   balaie du regard ; le contenu prend la place restante ; le type et l'auteur
+   partent à droite en gris, ils situent l'entrée sans la disputer.
+   tabular-nums : sans chiffres de chasse fixe, les dates ne s'alignent pas. */
+.hist-ligne {
+    display: flex; align-items: baseline; gap: 4px 14px; flex-wrap: wrap;
+}
+.hist-date {
+    flex: 0 0 auto; font-size: var(--fs-tiny); color: var(--muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.hist-texte { flex: 1 1 220px; min-width: 0; font-size: var(--fs-basic); color: var(--ink); }
+.hist-meta { flex: 0 0 auto; font-size: var(--fs-tiny); color: var(--muted); text-align: right; }
+.hist-meta .badge { margin-left: 4px; }
+/* Les entrées se suivent de près : un filet plutôt qu'un écart, pour que la
+   colonne de dates se lise comme une colonne. */
+.hist-list { gap: 0; }
+.hist-item { padding: 7px 0; }
+.hist-item + .hist-item { border-top: 1px solid var(--line); }
+/* Crayon / enregistrer / annuler en surimpression, en haut à droite de
+   l'entrée — même trio et même bascule que les cartes de la fiche
+   (.card-actions-overlay), à ceci près qu'ici les boutons sont petits et
+   collés au bord : une entrée n'a pas les 26px de marge d'une carte. */
+.hist-actions { position: absolute; top: 0; right: 0; z-index: 1; gap: 6px; }
+/* Réserve la place des boutons : celle du crayon seul en lecture, celle
+   d'« enregistrer + annuler » en édition. Sans cela, une note longue passait
+   sous les boutons. */
+.hist-corps .card-disp { padding-right: 34px; }
+.hist-corps .card-edit:not([hidden]) { padding-right: 76px; }
+/* Le crayon ne se montre qu'au survol de l'entrée — il est offert, pas imposé,
+   dans une liste qui se lit d'abord. Toujours visible au clavier
+   (:focus-visible) et au tactile, où il n'y a pas de survol. */
+.hist-corps .card-edit-btn { opacity: 0; transition: opacity .12s; }
+.hist-item:hover .card-edit-btn,
+.hist-corps .card-edit-btn:focus-visible { opacity: 1; }
+@media (hover: none) {
+    .hist-corps .card-edit-btn { opacity: 1; }
+}
+
+/* La rangée d'ajout est une bande à part : fond légèrement distinct et bords
+   alignés sur ceux de la CARTE, pas sur son contenu — d'où les marges
+   négatives de la valeur exacte du padding de .card (26px). Elle se lit comme
+   une barre de saisie posée sous le titre, distincte du flux qu'elle alimente.
+   Pas de marge négative en haut : .card-head-row garde son espace. */
+.hist-note-form {
+    margin: 0 -26px 18px; padding: 14px 26px;
+    background: var(--surface);
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+/* « Voir les N précédentes » centré sous le flux : c'est une action sur la
+   liste entière, pas sur sa dernière ligne. */
+.hist-voir-plus { display: flex; justify-content: center; margin-top: 12px; }
+
+/* Rangée d'ajout / d'édition d'une note : date, texte, prise de contact, bouton
+   sur une seule ligne tant que la largeur le permet (.add-row s'enroule en
+   dessous). C'est ce qui a motivé la carte « Historique détaillé » pleine
+   largeur : dans une colonne de 400px, ces quatre contrôles se comprimaient au
+   point de casser les libellés en quatre lignes. */
+/* Plus aucun libellé au-dessus : tous les contrôles font la même hauteur et
+   s'alignent sur leur milieu, la bande se lit comme une barre de saisie d'un
+   seul tenant. */
+.hist-note-row { gap: 10px 12px; align-items: center; }
+/* Sélecteurs d'ENFANT DIRECT : .add-row label impose « flex: 1; min-width:
+   160px » à tous ses libellés (même spécificité qu'une classe seule) — sans ça
+   la case à cocher s'étirait autant que le champ de note. */
+.hist-note-row > label { margin-bottom: 0; }
+.hist-note-row > .hist-note-texte { flex: 1 1 320px; min-width: 0; }
+/* « input.hist-note-date » et non la classe seule : la règle de base des champs
+   (input:not([type=checkbox]):not([type=radio])) impose width:100% avec une
+   spécificité de 0,2,1 — une classe seule perdait, et la date prenait toute la
+   ligne à elle. */
+.hist-note-row > input.hist-note-date { flex: 0 0 auto; width: auto; height: var(--action-height); }
+.hist-note-row > .hist-note-contact { flex: 0 0 auto; min-width: 0; white-space: nowrap; }
+.hist-note-row > button { flex: 0 0 auto; }
+/* Le champ de note fait la hauteur d'un bouton : c'est un <textarea> (une note
+   à plusieurs lignes reste possible, la poignée l'agrandit) mais rows=1 seul ne
+   suffit pas — le padding vertical des champs diffère de celui des boutons. */
+.hist-note-row > textarea.hist-note-texte {
+    height: var(--action-height); min-height: var(--action-height);
+    resize: vertical; overflow-y: auto;
+}
 
 /* ---------------- Recherche unifiée (?p=recherche, tableau de bord) --------
    Le champ et son bouton forment une seule ligne ; le champ prend toute la
@@ -2797,6 +2890,17 @@ abbr {
 }
 :root[data-theme="sombre"] .side-logo-clair  { display: none; }
 :root[data-theme="sombre"] .side-logo-sombre { display: inline; }
+
+/* Même chose pour le logo de la page de connexion (views/layout.php) : son
+   fond suit le thème, le logo aussi. display:block et non inline — l'image est
+   un élément flex de .auth-wrap. */
+.auth-logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .auth-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .auth-logo-sombre { display: block; }
+}
+:root[data-theme="sombre"] .auth-logo-clair  { display: none; }
+:root[data-theme="sombre"] .auth-logo-sombre { display: block; }
 
 /* Formulaire d'ajout d'étiquette (?p=structures) : il s'ouvre au milieu d'une
    cellule dense, entre des badges hauts de 17px. Aux tailles standard — champ

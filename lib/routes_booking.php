@@ -74,6 +74,38 @@ function route_structure_contact_delete(): void
 }
 
 // ------------------------------------------------------------- NOTES (flux CRM)
+
+// Seuls types d'entrée qu'on laisse écrire à la main. « edition » est produit
+// par journaliser_diff() et vaut journal d'audit : le laisser modifier ôterait
+// tout son sens. « dernier_concert » est dérivé d'une date de la fiche, il se
+// corrige là-bas.
+const HISTORIQUE_TYPES_MODIFIABLES = ['note', 'mailing'];
+
+// Date de l'entrée telle qu'elle doit être stockée. $saisie est un « AAAA-MM-JJ »
+// venu d'un <input type="date"> ; $reference est l'horodatage d'origine (édition)
+// ou '' (ajout).
+//
+// L'heure n'est jamais demandée — l'écran ne parle que de date — mais elle est
+// PRÉSERVÉE : sans ça, redater une entrée écrirait « 00:00 », une heure fausse
+// que l'affichage (d.m.Y H:i) montrerait comme un fait. À l'ajout, l'heure est
+// celle du moment, ce qui garde l'ordre à l'intérieur d'une journée. Les entrées
+// importées sont stockées en date seule et le restent.
+function historique_date_stockee(string $saisie, string $reference = ''): ?string
+{
+    // checkdate() en plus du format : « 2026-13-45 » a la bonne FORME mais
+    // n'existe pas. Aucun navigateur ne l'enverra, un POST direct oui — et une
+    // date impossible en base fausserait le tri et l'affichage sans rien casser
+    // de visible.
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $saisie, $m)
+        || !checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
+        return null;
+    }
+    if ($reference === '') {
+        return $saisie . ' ' . date('H:i:s');
+    }
+    return strlen($reference) > 10 ? $saisie . substr($reference, 10) : $saisie;
+}
+
 function route_structure_note_ajouter(): void
 {
     require_login();
@@ -84,13 +116,56 @@ function route_structure_note_ajouter(): void
     $structureId = (int) ($_POST['structure_id'] ?? 0);
     $contenu = trim($_POST['contenu'] ?? '');
     $estContact = isset($_POST['est_contact']) ? 1 : 0;
+    // Date libre : une note se rédige souvent après coup (« appelés lundi »).
+    // Vide ou mal formée = maintenant, comme avant.
+    $creeLe = historique_date_stockee((string) ($_POST['date'] ?? ''));
     if ($contenu !== '') {
-        journaliser('structure', $structureId, $estContact ? 'mailing' : 'note', $contenu);
+        journaliser('structure', $structureId, $estContact ? 'mailing' : 'note', $contenu, $creeLe);
         if ($estContact) {
             structure_recalculer_dernier_contact($structureId);
         }
     }
     redirect('structure', ['id' => $structureId]);
+}
+
+// Modifie une entrée d'historique saisie à la main : contenu, date, et bascule
+// note ↔ prise de contact. L'entrée est relue en base plutôt que crue sur
+// parole : c'est elle qui dit à quelle structure elle appartient et si son type
+// autorise la modification — un identifiant posté ne prouve ni l'un ni l'autre.
+function route_structure_note_modifier(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('structures');
+    }
+    check_csrf();
+    $id = (int) ($_POST['entree_id'] ?? 0);
+    $retour = (int) ($_POST['structure_id'] ?? 0);
+    $stmt = db()->prepare("SELECT * FROM historique WHERE id = ? AND entite_type = 'structure'");
+    $stmt->execute([$id]);
+    $entree = $stmt->fetch();
+    if (!$entree || !in_array((string) $entree['type'], HISTORIQUE_TYPES_MODIFIABLES, true)) {
+        redirect('structure', ['id' => $retour]);
+    }
+    $contenu = trim($_POST['contenu'] ?? '');
+    if ($contenu === '') {
+        redirect('structure', ['id' => $retour]);
+    }
+    $type = isset($_POST['est_contact']) ? 'mailing' : 'note';
+    $creeLe = historique_date_stockee((string) ($_POST['date'] ?? ''), (string) $entree['cree_le'])
+        ?? (string) $entree['cree_le'];
+    db()->prepare('UPDATE historique SET contenu = ?, type = ?, cree_le = ? WHERE id = ?')
+        ->execute([$contenu, $type, $creeLe, $id]);
+    // dernier_contact_le est dénormalisé depuis le MAX des entrées « mailing »
+    // (structure_recalculer_dernier_contact()) : changer la date OU le type d'une
+    // entrée le périme. Recalcul sur la structure PORTEUSE, qui n'est pas
+    // forcément celle qu'on regarde — l'historique affiché fusionne celui des
+    // lieux organisés (historique_fusionne()).
+    structure_recalculer_dernier_contact((int) $entree['entite_id']);
+    if ($retour !== (int) $entree['entite_id']) {
+        structure_recalculer_dernier_contact($retour);
+    }
+    redirect('structure', ['id' => $retour ?: (int) $entree['entite_id']]);
 }
 
 // ------------------------------------------------------------- TAGS

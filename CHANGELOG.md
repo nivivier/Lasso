@@ -9,6 +9,73 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.9] — 2026-08-22
+
+### Ajouté
+- **La date d'une entrée d'historique se choisit et se corrige.** Le formulaire
+  d'ajout d'une note porte un champ date, pré-rempli à aujourd'hui : une note
+  se rédige souvent après coup (« appelés lundi ») et se datait jusqu'ici du
+  jour de la saisie. Et chaque entrée saisie à la main s'ouvre en édition sur
+  place — contenu, date, bascule note ↔ prise de contact — d'un crayon qui
+  apparaît au survol de la ligne.
+
+  Seules les entrées « Note » et « Contact / mailing » sont modifiables. Les
+  entrées « Modification » sont produites automatiquement par l'application et
+  valent journal d'audit ; les rendre réinscriptibles leur ôterait leur raison
+  d'être. « Dernier concert » se corrige depuis le champ de la fiche dont elle
+  découle.
+
+  L'heure n'est jamais demandée — l'écran ne parle que de date — mais elle est
+  **préservée** : redater une entrée garde son heure d'origine, au lieu d'écrire
+  un « 00:00 » que l'affichage montrerait comme un fait. À l'ajout, l'heure est
+  celle du moment, ce qui garde l'ordre à l'intérieur d'une journée. Les entrées
+  importées, stockées en date seule, le restent.
+
+  `dernier_contact_le` est recalculé après chaque modification : il est
+  dénormalisé depuis le maximum des entrées « mailing », donc changer la date
+  **ou** le type d'une entrée le périme. Le recalcul porte sur la structure qui
+  PORTE l'entrée, pas forcément celle qu'on regarde — l'historique affiché
+  fusionne celui des lieux organisés.
+
+  **L'acte de création ouvre désormais le flux** : la fiche a une date de
+  création (ou d'import) que seule la table `structures` portait, et sans elle
+  l'historique commençait au milieu de nulle part. Elle est synthétisée à
+  l'affichage, se range à sa date, et n'est pas modifiable.
+
+  **Chaque entrée porte une icône choisie sur ce qu'elle raconte**, non sur son
+  seul type : un changement de statut prend l'icône ET la couleur du statut
+  atteint, une liaison de lieu un maillon, une étiquette son étiquette. Sans
+  cela, les 90 entrées « Modification » d'une fiche portaient toutes le même
+  crayon gris et ne se distinguaient qu'à la lecture. Les entrées d'avant la
+  migration 63 (« Statut : active/inactive », vocabulaire d'alors) sont
+  traduites à la lecture — 34 sur 34 reconnues au lieu de 3.
+
+### Modifié
+- **La fiche structure sépare « Historique » et « Historique détaillé ».** La
+  première garde les dates de synthèse (connu via, dernier contact, dernière
+  modification, création) dans sa colonne ; la seconde, **pleine largeur sous
+  la grille**, accueille l'ajout de note et le flux. Le flux était à l'étroit
+  dans une colonne de 400 px : les libellés se cassaient en quatre lignes et
+  l'ajout de la date a rendu la chose intenable.
+
+  La barre d'ajout est une bande à fond distinct, alignée sur les bords de la
+  carte, où date, note, « prise de contact » et le bouton tiennent sur une
+  seule ligne et à la même hauteur. Les entrées se lisent une par ligne — date,
+  contenu, type et auteur à droite — cinq d'emblée au lieu de deux, le reste
+  derrière « Voir les N précédentes », centré.
+
+  L'édition d'une entrée réutilise telle quelle la bascule des cartes de la
+  fiche (crayon → enregistrer / annuler, mêmes boutons, même animation) : rien
+  de spécifique à l'historique, ni en CSS ni en JavaScript.
+
+### Corrigé
+- **Le logo de la page de connexion restait celui du thème clair en mode
+  sombre**, donc une encre foncée sur un fond foncé — quasi invisible. La page
+  ne rendait qu'une variante, alors que le rail rend les deux depuis toujours
+  et laisse le CSS trancher. Même mécanique désormais, avec le même repli quand
+  une seule variante est configurée. Vérifié dans les quatre états du thème
+  (système clair ou sombre, croisés avec un choix explicite ou aucun).
+
 ## [2.3.8] — 2026-08-21
 
 ### Modifié
