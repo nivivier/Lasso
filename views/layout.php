@@ -87,7 +87,12 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         </a>
         <?php foreach ($navGroupes as $navCle => $navG): ?>
         <?php $navBadge = array_sum(array_column($navG[2], 2)); ?>
-        <a href="?p=<?= array_key_first($navG[2]) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" style="--rail-accent: <?= e(MODULE_COULEURS[$navCle] ?? '') ?>">
+        <?php // &depuis= comme les onglets de module (_module_tabs_render.php) :
+              // ?p=structures appartient à trois groupes (booking, facturation,
+              // événements), et sans ce marqueur le rail y arrivait sans dire d'où,
+              // laissant nav_groupe_actif() deviner — et la liste afficher des
+              // colonnes qui ne concernent pas le module d'où l'on vient. ?>
+        <a href="?p=<?= array_key_first($navG[2]) ?>&depuis=<?= e($navCle) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" style="--rail-accent: <?= e(MODULE_COULEURS[$navCle] ?? '') ?>">
             <?= icon($navG[1]) ?>
             <span class="rail-label"><?= e($navG[0]) ?></span>
             <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>

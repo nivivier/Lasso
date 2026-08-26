@@ -17,7 +17,6 @@ $peutEcrireBooking = peut_ecrire('booking');
     <?php if ($isEdit && $peutEcrireStruct): ?>
     <div class="titre-row">
         <div class="titre-read">
-            <?= flag_toggle_html('structure', $sid, (string) ($structure['flag'] ?? '')) ?>
             <h1><?= $v('nom') ?></h1>
             <button type="button" class="btn ghost btn-sm icon-only titre-edit-btn" title="Modifier le nom" aria-label="Modifier le nom"><?= icon('pencil') ?></button>
         </div>

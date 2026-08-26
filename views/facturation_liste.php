@@ -48,7 +48,6 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
                 Émission
                 <?= filtre_colonne_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
             </span>
-            <?= filtre_colonne_actifs_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
         </th>
         <th>Échéance</th>
         <?php if ($avecEvenements): ?><th>Événement</th><?php endif; ?>
@@ -58,7 +57,6 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
                 Paiement
                 <?= filtre_colonne_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut) ?>
             </span>
-            <?= filtre_colonne_actifs_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut) ?>
         </th>
     </tr></thead>
     <tbody>

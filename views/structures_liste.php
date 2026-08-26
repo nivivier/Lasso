@@ -6,7 +6,7 @@
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
-/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */ /** @var array $flag */
+/** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */
 /** @var bool $nonLocalises */ /** @var array $avecEvenements */
 /** @var array $majPeriode */ /** @var array $contactPeriode */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
@@ -26,13 +26,37 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 // de la toolbar. Colonne Ville : porte à la fois Pays et Département/canton
 // (deux entonnoirs séparés, un composant par filtre). Jauge/mois restent des
 // champs scalaires dans « Plus de filtres », non concernés par ce filtrage.
+// Étiquettes : droit propre au module booking, évalué une fois plutôt qu'à
+// chaque étiquette de chaque ligne (peut_ecrire() interroge les permissions).
+// Déclaré ICI, avant $tagActions plus bas, qui en dépend.
+$peutEcrireTags = peut_ecrire('booking');
+
 $statutLabels = [];
 foreach (STRUCTURE_STATUTS as $s) { $statutLabels[$s] = structure_statut_libelle($s); }
 $tagLabels = [];
 foreach ($tagsDispo as $t) { $tagLabels[(int) $t['id']] = $t['nom']; }
+// Renommage / suppression d'une étiquette depuis son propre filtre : le crayon
+// change le libellé en champ de saisie, et se change lui-même en enregistrer /
+// supprimer / annuler (voir lassoInitTagGerer(), assets/app.js). data-nb porte
+// le nombre de structures concernées, pour l'annoncer avant de supprimer — il
+// est déjà compté par la requête, inutile d'aller le rechercher au moment du
+// clic. Le champ de saisie n'a pas de name : le panneau de filtre est un
+// <form method="get">, un name y ajouterait un paramètre à l'URL de filtrage.
+$tagActions = [];
+if ($peutEcrireTags) {
+    foreach ($tagsDispo as $t) {
+        $tid = (int) $t['id'];
+        $tagActions[$tid] = '<span class="tag-gerer" data-tag="' . $tid . '" data-nb="' . (int) ($t['nb'] ?? 0) . '">'
+            . '<input type="text" class="tag-gerer-nom" value="' . e((string) $t['nom']) . '" aria-label="Nom de l\'étiquette" hidden>'
+            . '<button type="button" class="tag-gerer-btn tag-gerer-crayon" title="Renommer" aria-label="Renommer l\'étiquette">' . icon('pencil') . '</button>'
+            . '<button type="button" class="tag-gerer-btn tag-gerer-ok" title="Enregistrer" aria-label="Enregistrer le nom" hidden>' . icon('save') . '</button>'
+            . '<button type="button" class="tag-gerer-btn tag-gerer-suppr" title="Supprimer" aria-label="Supprimer l\'étiquette" hidden>' . icon('trash') . '</button>'
+            . '<button type="button" class="tag-gerer-btn tag-gerer-annuler" title="Annuler" aria-label="Annuler" hidden>' . icon('x') . '</button>'
+            . '</span>';
+    }
+}
 $categorieLabels = [];
 foreach ($categoriesPourSelect as $cat) { $categorieLabels[(int) $cat['id']] = str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) . $cat['nom']; }
-$flagLabels = ['aucun' => 'Non marquées', 'star' => 'Étoile', 'heart' => 'Cœur'];
 $paysLabels = [];
 foreach (array_unique(array_merge($pays, array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
 $departementCantonLabels = [];
@@ -51,7 +75,7 @@ $periodeLabels = PERIODES_ANCIENNETE;
 // défaut (voir nav_groupe_actif()) au lieu de rester dans le groupe de
 // provenance.
 $tousFiltres = ['categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
-    'tag_id' => $tagId, 'statut' => $statut, 'flag' => $flag, 'avec_evenements' => $avecEvenements, 'q' => $recherche,
+    'tag_id' => $tagId, 'statut' => $statut, 'avec_evenements' => $avecEvenements, 'q' => $recherche,
     'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
     'depuis' => (string) ($_GET['depuis'] ?? '')];
 $autresFiltres = autres_filtres_fn($tousFiltres);
@@ -63,6 +87,16 @@ $peutEcrireStruct = peut_ecrire('facturation') || peut_ecrire('booking');
 // voir nav_groupe_actif()) — reporté sur les liens vers une structure pour que
 // le rail/bandeau y reste dans le même groupe de provenance une fois dessus.
 $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
+
+// Deux colonnes ne concernent pas tous les visiteurs de cette liste, qui est
+// partagée par trois modules : arrivé du booking, on ne vient pas compter des
+// factures ; arrivé de la facturation, la date de dernier contact n'est pas le
+// sujet. On les masque selon la PROVENANCE explicite (?depuis=…) et non selon
+// le groupe de navigation résolu : sans provenance — lien direct, favori,
+// retour d'une fiche — la liste doit tout montrer plutôt que deviner.
+$depuisNav = (string) ($_GET['depuis'] ?? '');
+$montreFactures = $depuisNav !== 'booking';
+$montreContacte = $depuisNav !== 'facturation';
 ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
@@ -109,7 +143,6 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             . filtre_colonne_actifs_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays'))
             . filtre_colonne_actifs_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton'))
             . filtre_colonne_actifs_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id'))
-            . filtre_colonne_actifs_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag'))
             . filtre_colonne_actifs_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements'))
             . filtre_colonne_actifs_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode'))
             . filtre_colonne_actifs_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode'));
@@ -150,14 +183,13 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?= filtre_colonne_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays') + $vueExtra, 'Pays') ?>
             <?= filtre_colonne_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton') + $vueExtra, 'Département / canton') ?>
             <?php if ($tagsDispo): ?>
-            <?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id') + $vueExtra, 'Étiquettes') ?>
+            <?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id') + $vueExtra, 'Étiquettes', $tagActions) ?>
             <?php endif; ?>
-            <?= filtre_colonne_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag') + $vueExtra, 'Marquage') ?>
             <?php if (module_actif('evenements')): ?>
             <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements') + $vueExtra, 'Événements') ?>
             <?php endif; ?>
-            <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode') + $vueExtra, 'Dernier contact') ?>
-            <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode') + $vueExtra, 'Dernière modification') ?>
+            <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode') + $vueExtra, 'Contacté') ?>
+            <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode') + $vueExtra, 'Modifié') ?>
         <?php $filtresColonnes = ob_get_clean(); ?>
         <?php // Vue carte comme vue liste : un seul bouton « Filtres » qui ouvre
               // le panneau. La carte n'a aucun en-tête de colonne où poser les
@@ -206,7 +238,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
         </ul>
     </div>
-    <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+    <?php // Ce bouton ne sert qu'à CRÉER : choisir une étiquette existante dans
+          // la liste l'enregistre au clic (voir lassoInitTagAjout()). D'où le
+          // libellé, qui ne promet plus un simple « Ajouter ». ?>
+    <button type="submit" class="btn ghost btn-sm icon-only" title="Créer cette étiquette" aria-label="Créer cette étiquette et l'ajouter"><?= icon('plus') ?></button>
     <button type="button" class="btn ghost btn-sm icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
 </form>
 <?php endif; ?>
@@ -214,7 +249,7 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php else: ?>
-<?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $tagId || $lieuFiltresActifs || $flag || $avecEvenements; ?>
+<?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
 <?php if ($peutEcrireStruct): ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=structures">
@@ -243,7 +278,6 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         <select id="bulk-champ" class="inline-year-select" aria-label="Champ à modifier" hidden>
             <option value="">— Choisir un champ —</option>
             <option value="statut">Statut</option>
-            <option value="flag">Flag</option>
             <option value="ville">Ville</option>
             <option value="departement_canton">Département / canton</option>
             <option value="pays">Pays</option>
@@ -269,13 +303,6 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
         </span>
         <span class="bulk-field" data-for="via" hidden>
             <input type="text" name="bulk_via" class="inline-year-select" placeholder="Nouveau « via »">
-        </span>
-        <span class="bulk-field" data-for="flag" hidden>
-            <select name="bulk_flag" class="inline-year-select">
-                <option value="">Aucun</option>
-                <option value="star">Étoile</option>
-                <?php /* Cœur temporairement désactivé (voir route_structure_flag()) */ ?>
-            </select>
         </span>
         <?php if ($tagsDispo || module_actif('booking')): ?>
         <span class="bulk-field" data-for="tag_ajouter" hidden>
@@ -319,24 +346,28 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
     </form>
 </div>
 <?php endif; ?>
-<?php $nbCols = 10 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1); ?>
+<?php // Une colonne de moins depuis que « Structures liées » a rejoint la colonne « Nom ».
+$nbCols = 9 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1)
+    - ($montreFactures ? 0 : 1) - ($montreContacte ? 0 : 1); ?>
 <div class="table-scroll">
 <table class="list list-wide liste-cartes<?= $peutEcrireStruct ? ' avec-check' : '' ?>">
     <thead><tr>
         <?php if ($peutEcrireStruct): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
-        <th class="col-petit">
+        <?php // En-tête en icône plutôt qu'en mot : la colonne ne contient que des
+              // icônes, et « Statut » écrit en toutes lettres y occupait deux fois
+              // la largeur de son contenu. Le nom reste porté par title et
+              // aria-label — au survol pour la souris, à la lecture pour les
+              // lecteurs d'écran — comme les colonnes Factures et Événements. ?>
+        <th class="col-petit col-statut-th">
             <span class="col-th">
-                Statut
+                <span title="Statut" aria-label="Statut"><?= icon('circle-dot') ?></span>
                 <?= filtre_colonne_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
             </span>
-            <?= filtre_colonne_actifs_html('structures', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
         </th>
         <th class="col-nom">
             <span class="col-th">
                 Nom
-                <?= filtre_colonne_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag')) ?>
             </span>
-            <?= filtre_colonne_actifs_html('structures', 'flag', $flagLabels, $flag, $autresFiltres('flag')) ?>
         </th>
         <th class="col-ville">
             <span class="col-th">
@@ -344,50 +375,60 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?= filtre_colonne_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
                 <?= filtre_colonne_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton')) ?>
             </span>
-            <?= filtre_colonne_actifs_html('structures', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
-            <?= filtre_colonne_actifs_html('structures', 'departement_canton', $departementCantonLabels, $departementCanton, $autresFiltres('departement_canton')) ?>
         </th>
         <th class="col-categorie">
             <span class="col-th">
                 Catégorie
                 <?= filtre_colonne_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id')) ?>
             </span>
-            <?= filtre_colonne_actifs_html('structures', 'categorie_id', $categorieLabels, $categorieId, $autresFiltres('categorie_id')) ?>
         </th>
-        <th class="col-petit">Structures liées</th>
         <th class="col-tags">
             <span class="col-th">
                 Tags
-                <?php if ($tagsDispo): ?><?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id')) ?><?php endif; ?>
+                <?php if ($tagsDispo): ?><?= filtre_colonne_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id'), '', $tagActions) ?><?php endif; ?>
             </span>
-            <?php if ($tagsDispo): ?><?= filtre_colonne_actifs_html('structures', 'tag_id', $tagLabels, $tagId, $autresFiltres('tag_id')) ?><?php endif; ?>
         </th>
-        <th>Contact</th>
+        <?php // Colonne masquée, mais toujours rendue : la recherche de cette liste
+              // se fait EN JAVASCRIPT sur le texte des lignes (lassoListeClient(),
+              // mode client jusqu'à 4000 fiches), et textContent ignore le CSS —
+              // les noms de contacts restent donc trouvables sans être affichés.
+              // Retirer les cellules aurait supprimé cette recherche du même coup.
+              // Au-delà du seuil, c'est la requête SQL qui cherche, et elle
+              // interroge structure_contacts de son côté. ?>
+        <th class="col-contact">Contact</th>
+        <?php if ($montreContacte): ?>
         <th class="col-petit">
-            <span class="col-th">Dernier contact
+            <span class="col-th">Contacté
                 <?= filtre_colonne_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode')) ?>
             </span>
-            <?= filtre_colonne_actifs_html('structures', 'contact_periode', $periodeLabels, $contactPeriode, $autresFiltres('contact_periode')) ?>
         </th>
-        <th class="col-petit">
-            <span class="col-th">Dernière modification
-                <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode')) ?>
-            </span>
-            <?= filtre_colonne_actifs_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode')) ?>
-        </th>
+        <?php endif; ?>
+        <?php if ($montreFactures): ?>
         <th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th>
+        <?php endif; ?>
         <?php if (module_actif('evenements')): ?>
         <th class="col-evenements">
             <span class="col-th">
                 <span title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></span>
                 <?= filtre_colonne_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements')) ?>
             </span>
-            <?= filtre_colonne_actifs_html('structures', 'avec_evenements', $avecEvenementsLabels, $avecEvenements, $autresFiltres('avec_evenements')) ?>
         </th>
         <?php endif; ?>
+        <?php // « Modifié » en dernière colonne : c'est une date de service,
+              // qu'on consulte rarement et jamais en premier — la reléguer en fin
+              // de ligne laisse la place aux colonnes qu'on parcourt. ?>
+        <th class="col-petit">
+            <span class="col-th">Modifié
+                <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode')) ?>
+            </span>
+        </th>
     </tr></thead>
     <tbody>
-    <?php // Le corps du tableau fait 98 % du poids de cette page — 2959 lignes en
+    <?php // Borne du « contact récent » (moins d'un an), calculée une fois : la
+      // comparer par ligne referait 2959 fois le même calcul de date. Les dates
+      // sont stockées en « AAAA-MM-JJ », la comparaison de chaînes suffit. ?>
+<?php $limiteContactRecent = date('Y-m-d', strtotime('-1 year')); ?>
+<?php // Le corps du tableau fait 98 % du poids de cette page — 2959 lignes en
           // mode client. Il est tamponné pour en retirer l'indentation entre
           // cellules avant l'envoi (compacter_cellules(), lib/helpers.php) : elle
           // ne rend rien à l'écran et coûtait 254 octets par ligne. Le gabarit
@@ -413,49 +454,77 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
             <?php if ($peutEcrireStruct): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $d['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td class="col-statut"><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"></span></td>
             <td class="col-nom">
-                <?php if ($peutEcrireStruct): ?><?= flag_toggle_html('structure', (int) $d['id'], (string) ($d['flag'] ?? '')) ?><?php endif; ?>
                 <strong><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e($d['nom']) ?></a></strong>
-            </td>
-            <td class="small col-ville">
-                <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
-                <?= $villeHtml !== '' ? $villeHtml : '—' ?>
-            </td>
-            <td class="col-categorie"><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
-            <td class="tiny col-liees">
                 <?php
+                    // Structures liées : sous le nom plutôt que dans leur propre
+                    // colonne. Elles qualifient la structure — « organise X »,
+                    // « accueilli par Y » — et se lisent donc avec elle ; isolées
+                    // huit colonnes plus loin, il fallait faire l'aller-retour des
+                    // yeux pour savoir de qui on parlait.
                     $lieesPaires = ($d['structures_liees'] ?? '') !== '' ? array_map(
                         fn ($p) => explode("\x1f", $p, 3) + ['', '', ''],
                         explode("\x1e", (string) $d['structures_liees'])
                     ) : [];
                 ?>
                 <?php if ($lieesPaires): ?>
-                    <?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?><?= $suffixeDepuis ?>"><?= e((string) $ln) ?></a><?php endforeach; ?>
-                <?php else: ?><span class="muted">—</span><?php endif; ?>
+                <div class="nom-liees"><?php foreach ($lieesPaires as $i => [$ln, $lid, $ls]): ?><?= $i > 0 ? ', ' : '' ?><span class="ico-tiny"><?= icon($ls === 'organise' ? 'blocks' : 'building') ?></span> <a href="?p=structure&id=<?= (int) $lid ?><?= $suffixeDepuis ?>"><?= e((string) $ln) ?></a><?php endforeach; ?></div>
+                <?php endif; ?>
             </td>
-            <td class="small col-tags">
+            <td class="small col-ville">
+                <?php $villeHtml = ville_departement_canton_html((string) $d['adresse_localite'], pays_drapeau_nom((string) $d['adresse_pays']), (string) $d['adresse_pays'], (string) $d['departement_canton']); ?>
+                <?= $villeHtml !== '' ? $villeHtml : '—' ?>
+            </td>
+            <td class="col-categorie"><?= categorie_sous_categorie_html((string) $d['categorie'], (string) $d['sous_categorie']) ?></td>
+            <td class="small col-tags" data-structure="<?= (int) $d['id'] ?>">
                 <?php
+                    // Trois champs par étiquette (id, nom, couleur), agrégés pour
+                    // toutes les lignes en une requête (tags_noms). L'id sert à la
+                    // croix de retrait et à la mise à jour AJAX de la cellule.
                     $tagsPaires = ($d['tags_noms'] ?? '') !== '' ? array_map(
-                        fn ($p) => explode("\x1f", $p, 2) + ['', ''],
+                        fn ($p) => array_slice(explode("\x1f", $p, 3) + ['', '', ''], 0, 3),
                         explode("\x1e", (string) $d['tags_noms'])
                     ) : [];
+                    // Rendu par structure_tags_cellule_html() (lib/booking.php), la
+                    // même fonction que les routes d'ajout/retrait renvoient en JSON :
+                    // la cellule mise à jour est identique à celle d'origine, par
+                    // construction et non par recopie.
                 ?>
-                <?php foreach ($tagsPaires as [$tn, $tc]): ?><span class="badge"<?= badge_style_html((string) $tc) ?>><?= e((string) $tn) ?></span> <?php endforeach; ?>
-                <?php if (!$tagsPaires): ?><span class="muted">—</span><?php endif; ?>
-                <?php if (peut_ecrire('booking')): ?>
-                <?php // Le formulaire d'ajout n'est PAS rendu ici : un seul, partagé, vit
-                      // en bas de page et vient se placer dans la ligne cliquée (voir
-                      // lassoInitTagAjout(), assets/app.js). Rendu par ligne, il pesait
-                      // 1834 octets — 40 % du poids d'une ligne — dont la liste complète
-                      // des étiquettes recopiée autant de fois qu'il y a de structures,
-                      // pour un formulaire utilisable un seul à la fois. ?>
-                <button type="button" class="badge tag-ajouter-btn" data-tag-structure="<?= (int) $d['id'] ?>" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
-                <?php endif; ?>
+                <?= structure_tags_cellule_html((int) $d['id'], $tagsPaires, $peutEcrireTags) ?>
             </td>
             <td class="tiny col-contact">
                 <?php $contactsNoms = ($d['contacts_noms'] ?? '') !== '' ? explode("\x1e", (string) $d['contacts_noms']) : []; ?>
                 <?= $contactsNoms ? e(implode(', ', $contactsNoms)) : '<span class="muted">—</span>' ?>
             </td>
-            <td class="muted tiny col-contact-le"><?= $d['dernier_contact_le'] ? e(date('d.m.Y', strtotime($d['dernier_contact_le']))) : '—' ?></td>
+            <?php
+                // Contact de moins d'un an : en vert et en gras. C'est la seule
+                // colonne où l'ancienneté se juge d'un coup d'œil — au-delà d'un
+                // an, la structure est à relancer, et c'est le cas de presque
+                // toutes (1 sur 655 aujourd'hui). Mettre en avant le petit nombre
+                // de fiches encore fraîches est plus utile que de signaler les
+                // autres, qui seraient toutes signalées.
+                $contactLe = (string) ($d['dernier_contact_le'] ?? '');
+                $contactRecent = $contactLe !== '' && $contactLe >= $limiteContactRecent;
+                ?>
+            <?php if ($montreContacte): ?>
+            <?php // L'enveloppe ne précède que les contacts récents — même condition
+                  // que le vert et le gras, une seule notion à retenir. Posée en
+                  // masque CSS (::before) et non en <svg> : sur une colonne rendue
+                  // 2959 fois, un dessin dans le balisage coûterait 74 octets par
+                  // ligne pour une icône qui ne varie jamais. ?>
+            <td class="tiny col-contact-le<?= $contactRecent ? ' contact-recent' : ' muted' ?>"><?= $contactLe !== '' ? e(date('d.m.Y', strtotime($contactLe))) : '—' ?></td>
+            <?php endif; ?>
+            <?php if ($montreFactures): ?>
+            <td class="small col-factures">
+                <?php if ((int) $d['nb_factures'] > 0): ?>
+                    <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>
+                <?php else: ?>
+                    0
+                <?php endif; ?>
+            </td>
+            <?php endif; ?>
+            <?php if (module_actif('evenements')): ?>
+            <td class="muted small col-nb-evenements"><?php $ne = (int) ($nbEvenements[(int) $d['id']] ?? 0); echo $ne > 0 ? $ne : '—'; ?></td>
+            <?php endif; ?>
             <?php
                 // Repli sur la date de création quand aucune modification n'est
                 // enregistrée : 2160 structures sur 2965 sont dans ce cas et la
@@ -477,16 +546,6 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
                 <?php elseif ($creeLe !== ''): ?><?= e(date('d.m.Y', strtotime($creeLe))) ?>
                 <?php else: ?>—<?php endif; ?>
             </td>
-            <td class="small col-factures">
-                <?php if ((int) $d['nb_factures'] > 0): ?>
-                    <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>
-                <?php else: ?>
-                    0
-                <?php endif; ?>
-            </td>
-            <?php if (module_actif('evenements')): ?>
-            <td class="muted small col-nb-evenements"><?php $ne = (int) ($nbEvenements[(int) $d['id']] ?? 0); echo $ne > 0 ? $ne : '—'; ?></td>
-            <?php endif; ?>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>
@@ -506,7 +565,6 @@ lassoListeClient({
 <?php else: ?>
 lassoRechercheServeur(document.getElementById('structures-search'));
 <?php endif; ?>
-lassoInitFlagToggle();
 lassoInitTagSuggest();
 
 (function () {

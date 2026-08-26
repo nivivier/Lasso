@@ -9,6 +9,81 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.10] — 2026-08-23
+
+### Ajouté
+- **Les étiquettes se gèrent depuis la liste des structures.** Une croix sur
+  chaque étiquette la détache de sa structure ; le « + » ouvre la liste
+  complète, et **un clic sur un nom l'attache aussitôt** — deux clics en tout.
+  Le « + » du formulaire ne sert plus qu'à créer une étiquette inexistante dont
+  on vient de taper le nom.
+
+  **Plus aucun rechargement de page** : ajout et retrait passent par une requête
+  de fond et ne remplacent que la cellule concernée. La page pèse 3,9 Mo et
+  75 000 balises, la réponse en fait 356 octets — et on ne perd plus ni la
+  position de défilement, ni la page de pagination, ni la recherche en cours.
+  L'étiquette choisie prend sa place en sourdine le temps de l'aller-retour.
+  La cellule est rendue par une seule fonction, appelée par la vue pour les 2959
+  lignes comme par les routes pour leur réponse : le balisage ne peut pas
+  diverger entre le premier rendu et sa mise à jour.
+
+- **Renommer ou supprimer une étiquette depuis son filtre** (`?p=structures`) :
+  un crayon au survol change le libellé en champ de saisie et se mue en
+  enregistrer / supprimer / annuler. La suppression annonce sa portée exacte —
+  « 129 structures la portent et la perdront ; aucune fiche n'est supprimée » —
+  et le compte vient de la requête qui construit déjà la liste. Le renommage
+  partage sa règle d'unicité avec Paramètres → Étiquettes plutôt que de la
+  redire.
+
+- **La ligne d'en-têtes reste sous les onglets au défilement** (dès 1280 px de
+  large). En dessous, le défilement horizontal des tableaux larges reste
+  indispensable et l'en-tête redevient ordinaire : les deux s'excluent, un
+  conteneur qui défile devenant le point d'ancrage des éléments collants.
+
+- **« Contacté » de moins d'un an ressort en vert, en gras, avec une enveloppe.**
+  C'est la seule colonne où l'ancienneté se juge d'un coup d'œil.
+
+### Modifié
+- **La colonne « Statut » prend une icône pour en-tête** (cercle pointé) : elle
+  ne contient que des icônes, et le mot y occupait deux fois la largeur de son
+  contenu. Le nom reste au survol et pour les lecteurs d'écran.
+- **Un filtre actif se voit sur son entonnoir** — coloré et plus épais. Les
+  pastilles de valeurs actives disparaissent donc des en-têtes de colonne (24
+  en tout, sur cinq écrans) : elles répétaient la barre d'outils et faisaient
+  passer la ligne d'en-tête de **42 à 92 px**.
+- **Les structures liées passent sous le nom**, en ligne secondaire, au lieu
+  d'une colonne à elles. Elles qualifient la structure et se lisent avec elle.
+- **« Dernier contact » devient « Contacté », « Dernière modification » devient
+  « Modifié »**, cette dernière reléguée en fin de ligne : c'est une date de
+  service, qu'on consulte rarement et jamais en premier.
+- **La colonne « Contact » n'est plus affichée**, mais reste **cherchable** : la
+  recherche de cette liste filtre en JavaScript sur le texte des lignes, les
+  noms de contacts y demeurent donc trouvables sans occuper de colonne.
+- **Deux colonnes s'effacent selon la provenance** : arrivé du booking, on ne
+  vient pas compter des factures ; arrivé de la facturation, la date de dernier
+  contact n'est pas le sujet. Sans provenance explicite, la liste montre tout.
+- **Le rail de navigation dit d'où l'on vient** (`&depuis=`), comme les onglets
+  de module le faisaient déjà. `?p=structures` appartient à trois groupes ; sans
+  ce marqueur, le rail y arrivait sans le préciser.
+- **Le « + » d'ajout d'étiquette** n'a plus de fond : un contour pointillé et un
+  chiffre gras. Il cesse de se lire comme une étiquette de plus au bout de la
+  série et dit ce qu'il est — une place vide.
+- **Les étiquettes du tableau passent au plus petit corps**, celui des
+  mini-cartes, et une cellule sans étiquette ne montre plus de tiret.
+
+### Supprimé
+- **Le marquage rapide par étoile**, jugé source de confusion — sur les deux
+  écrans, plus son filtre « Marquage » et son action groupée. Aucune des 2962
+  structures n'était marquée : la fonctionnalité n'avait jamais servi, la
+  retirer ne cache donc rien. Le code devenu mort est supprimé avec elle
+  (fonction de rendu, route, JavaScript, CSS et jetons d'icônes) ; seule la
+  colonne `flag` reste en base, vide.
+
+### Corrigé
+- **La case à cocher et l'icône de statut n'étaient pas alignées** — 2,13 px
+  d'écart mesurés, dus à deux règles d'alignement différentes dans deux cellules
+  voisines. L'écart est désormais nul.
+
 ## [2.3.9] — 2026-08-22
 
 ### Ajouté

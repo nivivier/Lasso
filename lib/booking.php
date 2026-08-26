@@ -469,6 +469,91 @@ function journaliser_diff(string $entiteType, int $id, array $avant, array $apre
     }
 }
 
+// Contenu de la cellule « Étiquettes » d'une ligne de ?p=structures : les
+// badges, leur croix de retrait, et le « + » d'ajout.
+//
+// Une seule fonction pour deux appelants — la vue, qui la rend pour chacune des
+// 2959 lignes, et route_structure_tag_ajouter()/_retirer(), qui la renvoient en
+// JSON après coup. Le balisage ne peut donc pas diverger entre le premier rendu
+// et sa mise à jour.
+//
+// Les étiquettes sont PASSÉES, pas relues : la liste les agrège déjà en une
+// requête pour toutes les lignes (tags_noms), et les rechercher ici ferait
+// 2959 requêtes. structure_tags_paires() sert aux appelants qui n'en ont qu'une.
+function structure_tags_cellule_html(int $structureId, array $paires, bool $peutEcrire): string
+{
+    $h = '';
+    foreach ($paires as [$id, $nom, $couleur]) {
+        $h .= '<span class="badge"' . badge_style_html((string) $couleur) . '>' . e((string) $nom);
+        if ($peutEcrire) {
+            $h .= '<button type="button" class="btn-tag-x" data-tag-retirer="' . (int) $id
+                . '" title="Retirer cette étiquette" aria-label="Retirer cette étiquette">×</button>';
+        }
+        $h .= '</span> ';
+    }
+    // Pas de tiret quand il n'y a aucune étiquette : sur une colonne où la
+    // plupart des cellules en portent une ou deux, une rangée de tirets attirait
+    // l'œil sur ce qui n'existe pas. Une cellule vide se lit d'elle-même — et le
+    // « + » reste là pour qui veut en ajouter une.
+    if ($peutEcrire) {
+        $h .= '<button type="button" class="badge tag-ajouter-btn" data-tag-structure="' . $structureId
+            . '" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>';
+    }
+    return $h;
+}
+
+// Étiquettes d'UNE structure, au format attendu par structure_tags_cellule_html().
+function structure_tags_paires(int $structureId): array
+{
+    $stmt = db()->prepare(
+        'SELECT t.id, t.nom, COALESCE(t.couleur, \'\') AS couleur
+           FROM structure_tag_liens l JOIN structure_tags t ON t.id = l.tag_id
+          WHERE l.structure_id = ? ORDER BY t.nom'
+    );
+    $stmt->execute([$structureId]);
+    return array_map(fn ($r) => [(int) $r['id'], (string) $r['nom'], (string) $r['couleur']], $stmt->fetchAll());
+}
+
+// Renomme une étiquette. Renvoie false si le nom est vide ou déjà pris par une
+// autre (unicité insensible à la casse, comme à la création) — l'appelant en
+// fait ce qu'il veut : message d'erreur ou silence.
+// Le lien structure↔étiquette porte l'id, pas le nom : renommer suffit, il n'y
+// a rien à propager. Partagée par Paramètres → Étiquettes et par le filtre
+// « Étiquettes » de ?p=structures, pour que les deux appliquent la même règle.
+function tag_renommer(int $id, string $nom): bool
+{
+    $nom = trim($nom);
+    if ($id <= 0 || $nom === '') {
+        return false;
+    }
+    $conflit = db()->prepare('SELECT 1 FROM structure_tags WHERE nom = ? COLLATE NOCASE AND id <> ?');
+    $conflit->execute([$nom, $id]);
+    if ($conflit->fetchColumn()) {
+        return false;
+    }
+    db()->prepare('UPDATE structure_tags SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+    return true;
+}
+
+// Nombre de structures portant une étiquette — ce que l'écran annonce avant de
+// confirmer une suppression.
+function tag_nb_structures(int $id): int
+{
+    $stmt = db()->prepare('SELECT COUNT(*) FROM structure_tag_liens WHERE tag_id = ?');
+    $stmt->execute([$id]);
+    return (int) $stmt->fetchColumn();
+}
+
+// Supprime une étiquette. Les liens structure↔étiquette tombent en cascade
+// (structure_tag_liens ON DELETE CASCADE, voir migration_46) : aucune structure
+// n'est supprimée, elles perdent seulement l'étiquette.
+function tag_supprimer(int $id): void
+{
+    if ($id > 0) {
+        db()->prepare('DELETE FROM structure_tags WHERE id = ?')->execute([$id]);
+    }
+}
+
 // Nom d'une structure ou d'un lieu (table en liste blanche). '' si introuvable.
 function nom_entite(string $table, int $id): string
 {

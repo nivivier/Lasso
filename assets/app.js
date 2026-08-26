@@ -421,48 +421,6 @@ function lassoInitCatSearch(wrap, opts = {}) {
     });
 }
 
-// Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton à 3
-// états cyclés au clic (aucun → étoile → cœur → aucun), voir flag_toggle_html()
-// (lib/helpers.php) et route_lieu_flag()/route_structure_flag(). Un seul jeton
-// CSRF récupéré depuis n'importe quel formulaire protégé déjà présent sur la
-// page (pas la peine de le répéter sur chaque bouton — potentiellement des
-// centaines de lignes sur ?p=lieux/?p=structures). Idempotent
-// (data-flag-bound) : peut être rappelé sans dupliquer les écouteurs.
-// Plus d'icônes à réinjecter ici : le dessin vient d'un masque CSS choisi par
-// la classe .flag-* du bouton (voir .flag-toggle::before, assets/app.css), que
-// le clic met déjà à jour. Les deux <svg> qui vivaient dans cette constante
-// pesaient 1,6 Ko de JavaScript pour un dessin que le CSS connaît.
-const LASSO_FLAG_LABELS = {
-    star: 'Marqué (étoile) — cliquer pour retirer le marquage',
-    heart: 'Marqué (cœur) — cliquer pour retirer le marquage',
-    '': 'Non marqué — cliquer pour marquer',
-};
-function lassoInitFlagToggle() {
-    const csrfInput = document.querySelector('input[name="csrf"]');
-    document.querySelectorAll('.flag-toggle').forEach(btn => {
-        if (btn.dataset.flagBound) return;
-        btn.dataset.flagBound = '1';
-        btn.addEventListener('click', async e => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!csrfInput) return;
-            const route = btn.dataset.flagTable === 'lieu' ? 'lieu_flag' : 'structure_flag';
-            const fd = new FormData();
-            fd.append('csrf', csrfInput.value);
-            fd.append('id', btn.dataset.flagId);
-            const data = await fetch('?p=' + route, { method: 'POST', body: fd })
-                .then(r => r.json()).catch(() => null);
-            if (!data || !data.ok) return;
-            const flag = data.flag || '';
-            // La classe suffit : elle porte l'état ET, par le masque, le dessin.
-            btn.className = 'flag-toggle flag-' + (flag || 'aucun');
-            const label = LASSO_FLAG_LABELS[flag] ?? LASSO_FLAG_LABELS[''];
-            btn.title = label;
-            btn.setAttribute('aria-label', label);
-        });
-    });
-}
-
 // Suggestions pour un champ « étiquette » en texte libre (?p=structure,
 // ?p=structures — ajout individuel, ajout groupé, ajout par ligne) :
 // contrairement à lassoInitCatSearch() (sélection fermée dans une liste),
@@ -1016,6 +974,74 @@ function lassoInitTagAjout() {
         // par un re-rendu de la liste (filtre client, tri) et perdu.
         document.body.appendChild(form);
     };
+    // Attacher une étiquette EXISTANTE tient en deux clics : le « + » de la
+    // ligne ouvre la liste (le focus l'affiche entière, voir
+    // lassoInitTagSuggest()), et cliquer un nom enregistre. Le bouton « + » du
+    // formulaire ne sert plus qu'au cas restant : créer une étiquette qui
+    // n'existe pas encore, dont on vient de taper le nom.
+    // « tagselected » est l'événement que lassoInitTagSuggest() émet au clic sur
+    // une suggestion — le composant de saisie reste générique, c'est ici qu'on
+    // décide ce que « choisir une suggestion » veut dire sur cet écran.
+    // Ajout et retrait passent par la même mécanique : on poste, et on remplace
+    // la SEULE cellule des étiquettes par celle que le serveur renvoie. La page
+    // pèse 4 Mo et 79 000 balises ; la recharger entière pour un badge de plus
+    // ou de moins était hors de proportion — et faisait perdre la position de
+    // défilement, la page de pagination et la recherche en cours.
+    // Le repli sans JavaScript reste le formulaire classique (retour=structures).
+    async function majCellule(cellule, route, donnees) {
+        const fd = new FormData();
+        fd.append('csrf', form.querySelector('input[name="csrf"]').value);
+        fd.append('retour', 'json');
+        for (const [k, v] of Object.entries(donnees)) fd.append(k, v);
+        const data = await fetch(route, { method: 'POST', body: fd })
+            .then(r => r.json()).catch(() => null);
+        if (!data || !data.ok) {
+            alert('L\u2019enregistrement a échoué.');
+            location.reload();
+            return;
+        }
+        cellule.innerHTML = data.html;
+    }
+
+    if (saisie) {
+        saisie.addEventListener('tagselected', () => {
+            const nom = saisie.value.trim();
+            if (nom === '') return;
+            // La cellule est lue AVANT de ranger le formulaire : rangerForm() le
+            // renvoie en fin de page, il n'aurait plus de cellule parente.
+            const cellule = form.closest('td');
+            // Le formulaire se ferme tout de suite : le clic a fait son office,
+            // le laisser ouvert pendant l'enregistrement donne l'impression que
+            // rien ne s'est passé. À sa place, l'étiquette choisie s'affiche en
+            // attente — elle existera vraiment quand la page reviendra.
+            rangerForm();
+            if (!cellule) { form.submit(); return; }
+            // L'étiquette prend tout de suite sa place, en sourdine, le temps de
+            // l'aller-retour : le clic doit produire un effet visible sans
+            // attendre la réponse.
+            const attente = document.createElement('span');
+            attente.className = 'badge badge-attente';
+            attente.textContent = nom;
+            attente.title = 'Enregistrement…';
+            cellule.insertBefore(attente, cellule.querySelector('.tag-ajouter-btn') || null);
+            majCellule(cellule, '?p=structure_tag_ajouter', { structure_id: cellule.dataset.structure, nom });
+        });
+        // Créer une étiquette qui n'existe pas : même chemin, déclenché par
+        // l'envoi du formulaire plutôt que par le choix d'une suggestion.
+        form.addEventListener('submit', e => {
+            const cellule = form.closest('td');
+            const nom = saisie.value.trim();
+            if (!cellule || nom === '') return;   // sans cellule, envoi classique
+            e.preventDefault();
+            rangerForm();
+            const attente = document.createElement('span');
+            attente.className = 'badge badge-attente';
+            attente.textContent = nom;
+            attente.title = 'Enregistrement…';
+            cellule.insertBefore(attente, cellule.querySelector('.tag-ajouter-btn') || null);
+            majCellule(cellule, '?p=structure_tag_ajouter', { structure_id: cellule.dataset.structure, nom });
+        });
+    }
     document.addEventListener('click', e => {
         // Le sélecteur exige data-tag-structure : sans lui, ce gestionnaire
         // répondait aussi au « + » de la fiche structure, qui n'a pas d'id de
@@ -1027,12 +1053,137 @@ function lassoInitTagAjout() {
             champId.value = btn.dataset.tagStructure || '';
             btn.parentElement.appendChild(form);
             form.hidden = false;
-            if (saisie) { saisie.value = ''; saisie.focus(); }
+            if (saisie) {
+                saisie.value = '';
+                saisie.focus();
+                // Le champ garde le focus d'une ligne à l'autre (déplacer le
+                // formulaire ne le lui retire pas) : focus() est alors sans
+                // effet, et la liste de suggestions — ouverte par l'événement
+                // focus — ne se rouvrait pas au deuxième « + » cliqué. Un
+                // événement input, que lassoInitTagSuggest() écoute aussi, la
+                // rouvre à coup sûr et refiltre sur la saisie vide.
+                saisie.dispatchEvent(new Event('input'));
+            }
             return;
         }
         if (e.target.closest('.tag-ajouter-annuler')) { e.preventDefault(); rangerForm(); }
+    });
+    // Croix de retrait d'une étiquette, même principe : un seul formulaire pour
+    // la page, rempli au clic. L'id de structure n'est PAS répété sur chaque
+    // croix — il se lit sur le lien de titre de la ligne, seul endroit où il
+    // figure déjà. Sur 5900 étiquettes, l'y recopier coûterait 60 Ko.
+    document.addEventListener('click', e => {
+        const croix = e.target.closest('.btn-tag-x[data-tag-retirer]');
+        if (!croix) return;
+        e.preventDefault();
+        e.stopPropagation();          // ne pas déclencher la ligne cliquable
+        const cellule = croix.closest('td.col-tags');
+        if (!cellule) return;
+        // Pas de confirmation : détacher une étiquette d'une structure ne
+        // détruit rien — l'étiquette existe toujours, et la remettre est un clic
+        // sur le « + ». Demander à chaque fois alourdissait un geste de rangement
+        // qu'on fait en série. La SUPPRESSION d'une étiquette, elle, reste
+        // confirmée (voir lassoInitTagGerer()).
+        croix.closest('.badge')?.classList.add('badge-attente');
+        majCellule(cellule, '?p=structure_tag_retirer', {
+            structure_id: cellule.dataset.structure,
+            tag_id: croix.dataset.tagRetirer,
+        });
     });
     // Échap referme, comme pour les autres panneaux du site.
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !form.hidden) rangerForm(); });
 }
 window.addEventListener('DOMContentLoaded', lassoInitTagAjout);
+
+// Renommage / suppression d'une étiquette depuis le filtre « Étiquettes » de
+// ?p=structures. Le crayon échange le libellé contre un champ de saisie et se
+// change lui-même en enregistrer / supprimer / annuler.
+//
+// En fetch et non par un formulaire : le panneau de filtre EST un
+// <form method="get">, un formulaire POST imbriqué serait du HTML invalide.
+// Même procédé que la bascule de statut (lassoInitStatutToggle()).
+//
+// Le filtre est rendu deux fois sur la page — en-tête de colonne et panneau
+// « Filtres » — donc tout passe par des classes et la délégation, jamais par
+// des identifiants qui seraient en double.
+function lassoInitTagGerer() {
+    const csrfInput = document.querySelector('input[name="csrf"]');
+
+    function basculer(bloc, edition) {
+        bloc.querySelector('.tag-gerer-nom').hidden = !edition;
+        bloc.querySelector('.tag-gerer-crayon').hidden = edition;
+        bloc.querySelector('.tag-gerer-ok').hidden = !edition;
+        bloc.querySelector('.tag-gerer-suppr').hidden = !edition;
+        bloc.querySelector('.tag-gerer-annuler').hidden = !edition;
+        // Le libellé cède la place au champ, il ne se dédouble pas.
+        bloc.closest('.col-filter-opt').querySelector('label').hidden = edition;
+    }
+
+    async function envoyer(bloc, donnees) {
+        if (!csrfInput) return;
+        const fd = new FormData();
+        fd.append('csrf', csrfInput.value);
+        fd.append('id', bloc.dataset.tag);
+        for (const [k, v] of Object.entries(donnees)) fd.append(k, v);
+        const data = await fetch('?p=structure_tag_gerer', { method: 'POST', body: fd })
+            .then(r => r.json()).catch(() => null);
+        if (!data || !data.ok) {
+            alert((data && data.erreur) || 'L\u2019opération a échoué.');
+            return;
+        }
+        // Rechargement plutôt que mise à jour sur place : le nom d'une étiquette
+        // se lit aussi sur chaque ligne du tableau et dans les pastilles de
+        // filtres actifs — les rafraîchir un à un laisserait le reste périmé.
+        location.reload();
+    }
+
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.tag-gerer-btn');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const bloc = btn.closest('.tag-gerer');
+        const champ = bloc.querySelector('.tag-gerer-nom');
+        if (btn.classList.contains('tag-gerer-crayon')) {
+            basculer(bloc, true);
+            champ.focus();
+            champ.select();
+            return;
+        }
+        if (btn.classList.contains('tag-gerer-annuler')) {
+            champ.value = champ.defaultValue;
+            basculer(bloc, false);
+            return;
+        }
+        if (btn.classList.contains('tag-gerer-ok')) {
+            const nom = champ.value.trim();
+            if (nom === '' || nom === champ.defaultValue) { basculer(bloc, false); return; }
+            envoyer(bloc, { action: 'renommer', nom });
+            return;
+        }
+        if (btn.classList.contains('tag-gerer-suppr')) {
+            const nb = parseInt(bloc.dataset.nb, 10) || 0;
+            const portee = nb === 0
+                ? 'Aucune structure ne la porte.'
+                : nb + (nb > 1 ? ' structures la portent' : ' structure la porte') + ' et la perdront\u00A0; aucune fiche n\u2019est supprimée.';
+            if (!confirm('Supprimer définitivement l\u2019étiquette « ' + champ.defaultValue + ' » ?\n\n' + portee)) return;
+            envoyer(bloc, { action: 'supprimer' });
+        }
+    });
+
+    document.addEventListener('keydown', e => {
+        const champ = e.target.closest('.tag-gerer-nom');
+        if (!champ) return;
+        // Entrée validerait le <form method="get"> du panneau de filtre, donc
+        // relancerait un filtrage au lieu d'enregistrer le nom.
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            champ.closest('.tag-gerer').querySelector('.tag-gerer-ok').click();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            champ.closest('.tag-gerer').querySelector('.tag-gerer-annuler').click();
+        }
+    });
+}
+window.addEventListener('DOMContentLoaded', lassoInitTagGerer);

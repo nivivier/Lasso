@@ -1851,6 +1851,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .col-filter-btn .ico { width: 12px; height: 12px; }
 .col-filter-btn:hover { color: var(--primary-d); background: var(--primary-tint); }
+/* Filtre actif : l'entonnoir se colore et s'épaissit. Il porte à lui seul
+   l'information « cette colonne est filtrée », ce qui a permis de retirer la
+   liste des valeurs actives sous l'en-tête — elle répétait la barre d'outils et
+   empilait la ligne d'en-tête jusqu'à 92px. Le trait passe de 2 à 2.6 : à 12px,
+   un changement de couleur seul se remarque mal sur une ligne d'en-têtes gris,
+   et la graisse se voit même quand la couleur, elle, ne se distingue pas. */
+.col-filter-btn.on { color: var(--primary); background: var(--primary-tint); }
+.col-filter-btn.on .ico { stroke-width: 2.6; }
+.col-filter-btn.on:hover { color: var(--primary-d); }
 /* Variante nommée du bouton de filtre : hors d'un tableau (panneau « Filtres »
    mobile de ?p=structures, ciblage de ?p=mailing_campagne), il n'y a pas
    d'en-tête de colonne pour dire ce que filtre l'entonnoir. Le libellé passe
@@ -1918,6 +1927,66 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    contactées depuis le » + date, filtre « Contacté »), repasse en colonne
    plutôt que de laisser le texte s'écraser sur 3 lignes à côté du champ. */
 .col-filter-menu label.col-filter-champ { flex-direction: column; align-items: flex-start; }
+/* Ligne d'option avec actions (filtre « Étiquettes » de ?p=structures) : la
+   case à cocher prend la place restante, les boutons se rangent à droite. Le
+   <label> garde son fond au survol, mais c'est la LIGNE qu'on survole — sinon
+   le crayon, hors du label, éteignait la surbrillance en le survolant. */
+/* Panneau élargi quand ses options portent des actions : le champ de
+   renommage et ses trois icônes ne tiennent pas dans la largeur ordinaire.
+   La marge à droite dégage la barre de défilement de .col-filter-options : sans
+   elle, celle-ci passait PAR-DESSUS les icônes d'action, qui devenaient
+   incliquables dès que la liste dépassait sa hauteur maximale.
+   16px et non 10 : sur macOS la barre est SUPERPOSÉE — elle ne prend aucune
+   largeur de mise en page (offsetWidth - clientWidth vaut 0, la mesure ne la
+   voit donc pas) et s'élargit à ~15px au survol, recouvrant encore la dernière
+   icône. La réserve doit couvrir cette largeur-là, pas celle que le calcul
+   annonce. */
+.col-filter-large .col-filter-menu { max-width: 300px; min-width: 260px; }
+.col-filter-large .col-filter-options { padding-right: 16px; }
+.col-filter-opt { display: flex; align-items: center; gap: 4px; border-radius: 6px; }
+.col-filter-opt > label { flex: 1 1 auto; min-width: 0; }
+.col-filter-opt:hover { background: var(--surface); }
+.col-filter-opt:hover > label { background: none; }
+/* Le champ de renommage prend la place du libellé, à la même hauteur de ligne
+   que lui : la liste ne doit pas sursauter quand on passe en édition. */
+/* min-width:0 : sans lui, un élément flex refuse de descendre sous la largeur
+   de son contenu — la rangée débordait alors de quelques pixels vers la droite
+   en mode édition, et le dernier bouton repassait sous la barre de défilement
+   malgré la gouttière. */
+.tag-gerer { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; min-width: 0; }
+/* Champ au gabarit de la ligne qu'il remplace, pas à celui d'un champ de
+   formulaire : dans une liste d'options à 5px de marge, la hauteur par défaut
+   d'un <input> faisait sauter la ligne du simple au double. */
+/* Sélecteur à trois classes, volontairement : la règle de base des champs
+   (input:not([type=checkbox]):not([type=radio]), 10px de marge interne et la
+   hauteur de ligne du corps de page) l'emporte sur deux — elle vaut deux
+   sélecteurs d'attribut plus un d'élément. Sans ça, le champ mesurait 43px de
+   haut dans une liste dont les lignes en font 31, et la liste sautait. */
+.col-filter-menu .col-filter-opt .tag-gerer-nom {
+    flex: 1 1 auto; min-width: 0; width: auto;
+    font-size: var(--fs-basic); line-height: 1.3;
+    padding: 2px 6px; margin: 0; min-height: 0; height: auto;
+}
+.col-filter-opt:has(.tag-gerer-nom:not([hidden])) .tag-gerer { flex: 1 1 auto; min-width: 0; }
+/* Les icônes ne rétrécissent pas : c'est le champ qui cède la place. */
+.tag-gerer > .tag-gerer-btn { flex: 0 0 auto; }
+/* Boutons d'action : de simples icônes, sans le fond ni l'ombre de .btn — ils
+   vivent dans une liste déroulante dense, pas dans une barre d'outils. */
+.tag-gerer-btn {
+    background: none; border: none; box-shadow: none; padding: 3px; margin: 0;
+    color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; border-radius: 5px;
+}
+.tag-gerer-btn .ico { width: 13px; height: 13px; }
+.tag-gerer-btn:hover { background: var(--primary-tint); color: var(--primary-d); }
+.tag-gerer-suppr:hover { background: var(--danger-tint, var(--surface)); color: var(--danger); }
+/* Le crayon ne se montre qu'au survol de sa ligne : une colonne de crayons
+   ferait de la gestion des étiquettes le sujet du panneau, alors qu'on vient
+   d'abord y filtrer. Toujours atteignable au clavier et au tactile. */
+.tag-gerer-crayon { opacity: 0; transition: opacity .12s; }
+.col-filter-opt:hover .tag-gerer-crayon,
+.tag-gerer-crayon:focus-visible { opacity: 1; }
+@media (hover: none) { .tag-gerer-crayon { opacity: 1; } }
+
 .col-filter-tout { font-weight: 700; }
 .col-filter-sep { height: 1px; background: var(--line); margin: 3px 2px; }
 .col-filter-apply {
@@ -1986,13 +2055,99 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
 .badge { font-size: var(--fs-small); background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-weight: 600; white-space: nowrap; border: none; box-shadow: none; }
-.badge.tag-ajouter-btn { cursor: pointer; margin-left: 6px; }
-.badge.tag-ajouter-btn:hover { background: var(--highlight); color: #fff; }
+/* Le « + » n'est pas une étiquette, c'est une place vide qui en attend une :
+   pas de fond, un contour pointillé. Il cesse ainsi de se lire comme une
+   étiquette de plus au bout de la série — sur une colonne où il apparaît sur
+   les 2959 lignes, il pesait autant que de vraies valeurs. Le pointillé
+   emprunte la même convention que les statuts « inactif » et « ne pas
+   contacter » de la liste, où il dit déjà « pas tout à fait là ». */
+.badge.tag-ajouter-btn {
+    cursor: pointer; margin-left: 6px;
+    background: none; color: var(--muted);
+    /* Gras : sans fond, un « + » maigre au bout d'une file d'étiquettes pleines
+       se voyait à peine — c'est pourtant le seul élément cliquable de la
+       cellule. */
+    font-weight: 800;
+    border: 1px dashed var(--line);
+    /* Le contour ajoute 2px : la marge interne les rend pour que le « + »
+       garde exactement la hauteur des étiquettes à côté de lui. */
+    padding: 1px 8px;
+}
+.badge.tag-ajouter-btn:hover {
+    background: none; color: var(--highlight-d); border-color: var(--highlight);
+}
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
 .badge.orange-badge { background: var(--orange-tint); color: var(--orange); margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
+/* Colonne « Étiquettes » de ?p=structures : au corps le plus petit, en vue
+   tableau comme en mini-cartes. Une structure en porte souvent quatre ou cinq,
+   et au corps courant des badges la colonne pesait visuellement plus que le nom
+   qu'elle qualifie. Le « + » d'ajout est un .badge lui aussi, il suit. */
+/* Structures liées, sous le nom : une ligne secondaire, en retrait sous le
+   titre — assez discrète pour ne pas concurrencer le nom, assez lisible pour
+   qu'on n'ait pas à cliquer pour savoir ce qui est rattaché. */
+.nom-liees {
+    margin-top: 2px; font-size: var(--fs-tiny); line-height: 1.4; color: var(--muted);
+}
+.nom-liees a { color: var(--muted); }
+.nom-liees a:hover { color: var(--primary-d); }
+.nom-liees .ico-tiny { color: var(--muted); }
+
+/* Colonne « Contact » : rendue mais jamais affichée. Elle n'apporte rien à la
+   lecture d'une liste de structures — le contact se lit sur la fiche — mais son
+   texte doit rester dans le DOM, car la recherche du mode client filtre sur
+   textContent, qui ignore le CSS. Masquer plutôt que supprimer, c'est garder la
+   recherche par nom de contact sans occuper une colonne. */
+th.col-contact, td.col-contact { display: none; }
+
+/* Dernier contact de moins d'un an : vert et gras. Le reste de la colonne est
+   en .muted — c'est le contraste entre les deux qui fait l'information, une
+   date fraîche se repérant alors sans lire. Même vert que les autres marqueurs
+   positifs de l'application (--ok, qui a sa variante en thème sombre). */
+.contact-recent { color: var(--ok); font-weight: 700; }
+/* Enveloppe devant les seules dates récentes, à la même condition que la
+   couleur et la graisse : une seule notion à retenir, « contacté depuis moins
+   d'un an ». En masque et non en <svg> dans le balisage — le jeton existe déjà
+   pour les mini-cartes, et sur 2959 lignes un dessin recopié coûterait 74
+   octets par ligne pour une icône qui ne varie jamais. currentColor : elle
+   prend le vert du texte, thème sombre compris. */
+.contact-recent::before {
+    content: ""; display: inline-block; vertical-align: -2px;
+    width: 11px; height: 11px; margin-right: 4px;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe);
+}
+/* -2px et non -1 : l'icône fait 11px pour des chiffres qui n'en font que 6,65
+   (Inter à 9px). Alignée à -1px, son centre passait 1,17px au-dessus du centre
+   optique des chiffres — mesuré en repérant la ligne de base par une boîte de
+   hauteur nulle. À -2px l'écart tombe à 0,17px. */
+
+td.col-tags .badge { font-size: var(--fs-tiny); }
+/* La croix de retrait vit DANS l'étiquette : sans inline-flex, elle se collait
+   au dernier mot, et à sa taille par défaut (13px, .btn-tag-x) elle était plus
+   grosse que le mot qu'elle retire. Discrète au repos, franche au survol —
+   c'est un geste destructeur au milieu d'une liste qu'on parcourt. */
+td.col-tags .badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+/* Étiquette en cours d'enregistrement : elle prend tout de suite la place
+   qu'elle occupera, en sourdine, pendant que la page se recharge. Sans elle, le
+   clic sur une suggestion ne produisait rien de visible jusqu'au rechargement.
+   Le battement dit « en cours » sans ajouter de rouage : c'est l'étiquette
+   elle-même qui pulse, pas un sablier posé à côté. */
+.badge-attente { opacity: .55; }
+@media (prefers-reduced-motion: no-preference) {
+    .badge-attente { animation: badge-attente-pulse 1s ease-in-out infinite; }
+    @keyframes badge-attente-pulse {
+        0%, 100% { opacity: .35; }
+        50% { opacity: .75; }
+    }
+}
+td.col-tags .btn-tag-x { font-size: 11px; line-height: 1; opacity: .5; transition: opacity .12s; }
+td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1; }
+
 /* Étiquettes de structure (booking) : badge + petit bouton de retrait intégré. */
 .tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 0; }
 .tags-liste + * { margin-top: 12px; }
@@ -2005,39 +2160,6 @@ span + .badge.muted-badge { margin-left: 6px; }
 .btn-tag-star .ico { width: 14px; height: 14px; }
 .btn-tag-star.on { color: var(--highlight); }
 .btn-tag-star.on .ico { fill: var(--highlight); }
-/* Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton
-   cyclé au clic, voir flag_toggle_html() (lib/helpers.php) et
-   lassoInitFlagToggle() (assets/app.js). Cœur temporairement désactivé côté
-   cycle (voir route_lieu_flag()/route_structure_flag()) : le code (icône,
-   classe .flag-heart) reste en place pour une réactivation ultérieure. Gris
-   clair = aucun ; couleur de mise en évidence = étoile (fill en plus de la
-   couleur : icônes Lucide en fill="none" par défaut, sinon l'état actif ne se
-   distinguerait pas assez du survol) ; --danger = cœur. */
-.flag-toggle {
-    background: none; border: none; box-shadow: none; padding: 2px; margin: 0;
-    cursor: pointer; color: var(--muted); opacity: .5; display: inline-flex; align-items: center;
-    vertical-align: middle; line-height: 0; flex: 0 0 auto;
-}
-/* Le dessin vient d'un masque et non d'un <svg> dans le balisage : le bouton
-   déclare déjà son état par sa classe (.flag-aucun/.flag-star/.flag-heart), et
-   le JS ne fait que la changer au clic — il n'a plus d'icône à réinjecter.
-   background-color: currentColor, donc les couleurs ci-dessus continuent de
-   s'appliquer telles quelles. */
-.flag-toggle::before {
-    content: ""; display: block; width: 16px; height: 16px;
-    background-color: currentColor;
-    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-    -webkit-mask-size: contain; mask-size: contain;
-    -webkit-mask-position: center; mask-position: center;
-    -webkit-mask-image: var(--ico-m-etoile); mask-image: var(--ico-m-etoile);
-}
-.flag-toggle:hover { background: none; opacity: 1; color: var(--highlight); }
-.flag-toggle.flag-star { opacity: 1; color: var(--highlight); }
-/* Étoile et cœur PLEINS une fois marqués : en <svg> c'était fill=… ; en masque,
-   c'est un tracé plein qui remplace le contour. */
-.flag-toggle.flag-star::before { -webkit-mask-image: var(--ico-m-etoile-pleine); mask-image: var(--ico-m-etoile-pleine); }
-.flag-toggle.flag-heart { opacity: 1; color: var(--danger); }
-.flag-toggle.flag-heart::before { -webkit-mask-image: var(--ico-m-coeur-plein); mask-image: var(--ico-m-coeur-plein); }
 /* Statut d'une structure (carte « Statut ») — .seg-picker (icon_picker(), voir
    plus haut), chaque état avec sa propre couleur une fois actif (« on ») :
    rose Contact privilégié, vert Actif, rouge Ne pas contacter, gris Inactif —
@@ -2063,7 +2185,43 @@ span + .badge.muted-badge { margin-left: 6px; }
    ci-dessous), .table-scroll gère déjà le débordement horizontal en mobile. */
 @media (min-width: 801px) { .col-employe { min-width: 150px; } }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
-.list-wide { min-width: 680px; } /* défile horizontalement dans .table-scroll plutôt que de se comprimer */
+/* En-tête de tableau collant, sous le bandeau de page (lui-même collant, voir
+   .page-head-band).
+   Pourquoi une condition de largeur : .table-scroll porte overflow-x:auto, et la
+   règle CSS veut qu'un axe non-visible rende l'autre « auto ». Le conteneur
+   devient alors le bloc de référence des éléments collants, et l'en-tête se
+   colle au haut DU TABLEAU au lieu de l'écran — mesuré, il partait à -988px
+   après 1200px de défilement. Il faut donc que .table-scroll cesse d'être un
+   conteneur de défilement, ce qu'on ne peut se permettre que si le tableau tient
+   dans la largeur disponible.
+   Mesuré : la largeur minimale des tableaux les plus larges (salaires 1144px,
+   structures 1039px) tient à partir de 1280px de fenêtre — en dessous, le
+   défilement horizontal reste indispensable (régression déjà vécue sur
+   ?p=compta_ecritures) et l'en-tête redevient ordinaire.
+   .list porte de son côté overflow:hidden pour clipper ses coins arrondis :
+   dans ce contexte il n'en a pas, et cet overflow clippait l'en-tête collant. */
+@media (min-width: 1280px) {
+    .module-content-inner .table-scroll { overflow-x: visible; }
+    .module-content-inner .table-scroll .list { overflow: visible; }
+    .module-content-inner .table-scroll .list thead th {
+        position: sticky;
+        /* Sous le bandeau de page, pas sous le haut de la fenêtre : le bandeau
+           est collant lui aussi (.page-head-band) et couvrirait l'en-tête.
+           120px mesurés, identiques sur les six listes du site — même squelette,
+           titre plus rangée d'onglets. Déclaré en variable pour qu'une page au
+           bandeau différent puisse la redéfinir sans toucher à cette règle. */
+        top: var(--hauteur-bandeau, 120px);
+        z-index: 3;
+        /* Fond opaque obligatoire : les lignes défilent DERRIÈRE l'en-tête. */
+        background: var(--surface);
+        /* Aucun trait à ajouter : la bordure de 1px que .list th porte déjà
+           voyage avec la cellule collante, et c'est l'épaisseur de tous les
+           traits du site (69 déclarations « 1px solid var(--line) »). Un trait
+           plus fin ici, ou une ombre portée, ont été essayés puis retirés : le
+           premier détonnait, la seconde ne se voyait pas. */
+    }
+}
+
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
    plusieurs lignes, pour éviter des colonnes larges sous un petit contenu.
    En-têtes : coupure aux espaces (jamais au milieu d'un mot) ; les nombres
@@ -2512,6 +2670,14 @@ abbr {
 .compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
 .compta-lettrage td { padding-top: 5px; padding-bottom: 5px; }
 .list .col-check { width: 34px; text-align: center; }
+/* La case et l'icône de statut occupent deux cellules voisines et doivent se
+   lire sur la même ligne. Elles s'alignaient pourtant selon deux règles
+   différentes : la case sur la ligne de base (défaut du navigateur), l'icône de
+   statut sur le milieu de la hauteur d'x — d'où 2,13 px d'écart entre leurs
+   centres, mesurés. Une seule règle pour les deux, et l'écart tombe à zéro.
+   Vaut aussi pour la case « tout cocher » de l'en-tête, alignée sur les autres
+   entonnoirs de la ligne. */
+.list .col-check input[type="checkbox"] { vertical-align: middle; }
 .compta-lettrage .texte-cell { max-width: 200px; font-size: var(--fs-small); color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
 .compta-lettrage .texte-cell:hover { color: var(--primary); }
@@ -3249,7 +3415,8 @@ abbr {
     /* Le marquage rapide (étoile / cœur) sort de la carte : deux icônes de plus
        devant le nom sur un écran de 375px, pour un critère qui reste filtrable
        depuis « Filtres ». Il revient tel quel au-delà de 700px. */
-    .liste-cartes td.col-nom .flag-toggle { display: none; }
+    /* L'étoile de marquage a rejoint la colonne « Étiquettes » — même
+       traitement qu'avant : masquée en mini-cartes, où la place manque. */
     .liste-cartes td.col-ville {
         grid-column: 2; grid-row: 2;
         min-width: 0; font-size: 12px; line-height: 1.45;
@@ -3328,11 +3495,17 @@ abbr {
         margin-top: 6px;
         display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
     }
-    .liste-cartes td.col-tags .badge { margin-left: 0; font-size: 9px; }
+    .liste-cartes td.col-tags .badge { margin-left: 0; }
+    /* Pas de croix de retrait au doigt : à 11px dans une étiquette de 9px, la
+       cible est trop petite pour être visée sans erreur — et se tromper retire
+       une étiquette. Le retrait se fait depuis la fiche, où il y a la place. */
+    .liste-cartes td.col-tags .btn-tag-x { display: none; }
 
-    /* Colonnes sans place sur un téléphone : elles restent dans la vue bureau. */
-    .liste-cartes td.col-liees,
-    .liste-cartes td.col-contact,
+    /* Sans place sur un téléphone : elles restent dans la vue bureau. La
+       première n'est plus une colonne mais une ligne sous le nom (.nom-liees,
+       déplacée dans la cellule « Nom ») — d'où le sélecteur d'élément et non
+       de cellule. */
+    .liste-cartes .nom-liees,
     .liste-cartes td.col-factures,
     .liste-cartes td.col-nb-evenements { display: none; }
 
@@ -3536,7 +3709,7 @@ abbr {
        rendues 5928 fois (deux par ligne, 2959 lignes) en <svg><use>, soit
        439 Ko de HTML et 11 856 nœuds pour deux dessins qui ne varient jamais.
        En masque, le balisage n'en porte plus rien : l'état est DÉJÀ déclaré
-       (data-statut sur la ligne, .flag-* sur le bouton), le CSS n'a qu'à
+       (data-statut sur la ligne), le CSS n'a qu'à
        choisir le tracé. Mêmes tracés que icone_chemins() (lib/helpers.php).
        Les variantes « pleines » ne diffèrent que par fill : un masque ne garde
        que l'alpha du dessin, un contour donnerait un contour. */
@@ -3544,9 +3717,6 @@ abbr {
     --ico-m-privilegie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5'/%3E%3C/svg%3E");
     --ico-m-ne-pas-contacter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m15 9-6 6'/%3E%3Cpath d='m9 9 6 6'/%3E%3C/svg%3E");
     --ico-m-inactif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.1 2.182a10 10 0 0 1 3.8 0'/%3E%3Cpath d='M13.9 21.818a10 10 0 0 1-3.8 0'/%3E%3Cpath d='M17.609 3.721a10 10 0 0 1 2.69 2.7'/%3E%3Cpath d='M2.182 13.9a10 10 0 0 1 0-3.8'/%3E%3Cpath d='M20.279 17.609a10 10 0 0 1-2.7 2.69'/%3E%3Cpath d='M21.818 10.1a10 10 0 0 1 0 3.8'/%3E%3Cpath d='M3.721 6.391a10 10 0 0 1 2.7-2.69'/%3E%3Cpath d='M6.391 20.279a10 10 0 0 1-2.69-2.7'/%3E%3C/svg%3E");
-    --ico-m-etoile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z'/%3E%3C/svg%3E");
-    --ico-m-etoile-pleine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z'/%3E%3C/svg%3E");
-    --ico-m-coeur-plein: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5'/%3E%3C/svg%3E");
     /* Lucide « circle-plus » — la fiche a été créée, pas modifiée. */
     --ico-creation: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M8 12h8'/%3E%3Cpath d='M12 8v8'/%3E%3C/svg%3E");
 }

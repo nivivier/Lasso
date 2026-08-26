@@ -169,6 +169,24 @@ function route_structure_note_modifier(): void
 }
 
 // ------------------------------------------------------------- TAGS
+
+// Réponse commune aux deux routes d'étiquette quand ?p=structures les appelle
+// en AJAX : la cellule remise à jour, telle que la vue l'aurait rendue.
+// Le droit d'écriture est réévalué ici plutôt que repris du client : c'est lui
+// qui décide si la cellule renvoyée porte des croix et un « + ».
+function structure_tags_reponse_json(int $structureId): void
+{
+    header('Content-Type: application/json');
+    echo json_encode([
+        'ok'   => true,
+        'html' => structure_tags_cellule_html(
+            $structureId,
+            structure_tags_paires($structureId),
+            peut_ecrire('booking')
+        ),
+    ]);
+}
+
 function route_structure_tag_ajouter(): void
 {
     require_login();
@@ -182,9 +200,16 @@ function route_structure_tag_ajouter(): void
         structure_attacher_tag($structureId, $nom);
         journaliser('structure', $structureId, 'edition', 'Étiquette ajoutée : ' . $nom);
     }
+    // retour=json : ?p=structures met à jour la seule cellule des étiquettes,
+    // sans recharger la page. Elle pèse 4 Mo et 79 000 balises — la recharger
+    // pour un badge de plus était hors de proportion.
+    if (($_POST['retour'] ?? '') === 'json') {
+        structure_tags_reponse_json($structureId);
+        return;
+    }
     // retour=structures (posé par le petit "+" par ligne de ?p=structures,
     // ajouté sans quitter la liste) : sinon toujours la fiche structure,
-    // comportement historique de ce formulaire.
+    // comportement historique de ce formulaire. Conservé comme repli sans JS.
     if (($_POST['retour'] ?? '') === 'structures') {
         redirect('structures');
     }
@@ -204,6 +229,16 @@ function route_structure_tag_retirer(): void
         db()->prepare('DELETE FROM structure_tag_liens WHERE structure_id = ? AND tag_id = ?')->execute([$structureId, $tagId]);
         if ($nomTag !== '') {
             journaliser('structure', $structureId, 'edition', 'Étiquette retirée : ' . $nomTag);
+        }
+        // Même convention que route_structure_tag_ajouter() : la croix de la
+        // colonne « Étiquettes » de ?p=structures retire sans quitter la liste,
+        // et en JSON quand le JavaScript est là.
+        if (($_POST['retour'] ?? '') === 'json') {
+            structure_tags_reponse_json($structureId);
+            return;
+        }
+        if (($_POST['retour'] ?? '') === 'structures') {
+            redirect('structures');
         }
         redirect('structure', ['id' => $structureId]);
     }
@@ -243,21 +278,15 @@ function route_parametres_tags(): void
             }
         } elseif ($section === 'edit') {
             $id = (int) ($_POST['id'] ?? 0);
-            $nom = trim($_POST['nom'] ?? '');
             $couleur = tag_couleur_valide($_POST['couleur'] ?? '');
-            if ($nom !== '' && $id) {
-                $conflit = db()->prepare('SELECT 1 FROM structure_tags WHERE nom = ? COLLATE NOCASE AND id <> ?');
-                $conflit->execute([$nom, $id]);
-                if (!$conflit->fetchColumn()) {
-                    // Le lien porte l'id : renommer suffit, rien à propager.
-                    db()->prepare('UPDATE structure_tags SET nom = ?, couleur = ? WHERE id = ?')->execute([$nom, $couleur, $id]);
-                }
+            // Le nom passe par tag_renommer() (unicité insensible à la casse),
+            // partagée avec le filtre « Étiquettes » de ?p=structures ; la
+            // couleur ne se règle que d'ici, elle reste donc à part.
+            if (tag_renommer($id, (string) ($_POST['nom'] ?? '')) && $id) {
+                db()->prepare('UPDATE structure_tags SET couleur = ? WHERE id = ?')->execute([$couleur, $id]);
             }
         } elseif ($section === 'delete') {
-            $id = (int) ($_POST['id'] ?? 0);
-            if ($id) {
-                db()->prepare('DELETE FROM structure_tags WHERE id = ?')->execute([$id]);
-            }
+            tag_supprimer((int) ($_POST['id'] ?? 0));
         }
         redirect('parametres_tags', ['ok' => 1]);
     }
@@ -272,6 +301,51 @@ function route_parametres_tags(): void
         'saved'  => isset($_GET['ok']),
         'lignes' => $lignes,
     ], 'Paramètres — Étiquettes');
+}
+
+// Renommage / suppression d'une étiquette depuis le filtre « Étiquettes » de
+// ?p=structures. Répond en JSON et non par une redirection : le panneau de
+// filtre est lui-même un <form method="get"> — y imbriquer un formulaire POST
+// serait du HTML invalide. Même procédé que route_structure_statut(), qui est
+// dans le même cas.
+//
+// Le client recharge la page après coup : renommer une étiquette change aussi
+// les badges des 2959 lignes du tableau et les pastilles de filtres actifs. Une
+// mise à jour partielle du panneau laisserait le reste de l'écran périmé.
+function route_structure_tag_gerer(): void
+{
+    require_login();
+    header('Content-Type: application/json');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $action = (string) ($_POST['action'] ?? '');
+    if ($id <= 0) {
+        echo json_encode(['ok' => false, 'erreur' => 'Étiquette introuvable.']);
+        return;
+    }
+    if ($action === 'supprimer') {
+        tag_supprimer($id);
+        echo json_encode(['ok' => true]);
+        return;
+    }
+    if ($action === 'renommer') {
+        $nom = trim((string) ($_POST['nom'] ?? ''));
+        if ($nom === '') {
+            echo json_encode(['ok' => false, 'erreur' => 'Le nom ne peut pas être vide.']);
+            return;
+        }
+        if (!tag_renommer($id, $nom)) {
+            echo json_encode(['ok' => false, 'erreur' => 'Une autre étiquette porte déjà ce nom.']);
+            return;
+        }
+        echo json_encode(['ok' => true]);
+        return;
+    }
+    echo json_encode(['ok' => false]);
 }
 
 // ------------------------------------------------------------- LIEUX (salles/festivals)

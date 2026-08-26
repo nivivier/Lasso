@@ -218,7 +218,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     Date
                     <?= filtre_colonne_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
             </th>
             <?php if ($compteColVisible): ?>
             <th class="col-compte">
@@ -226,7 +225,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     Compte
                     <?= filtre_colonne_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte')) ?>
             </th>
             <?php endif; ?>
             <th>Texte</th>
@@ -236,7 +234,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     Catégorie
                     <?= filtre_colonne_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie')) ?>
             </th>
             <?php if ($axes): ?>
             <th class="col-axe">
@@ -244,7 +241,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     Axe
                     <?= filtre_colonne_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe')) ?>
             </th>
             <?php endif; ?>
             <th></th>

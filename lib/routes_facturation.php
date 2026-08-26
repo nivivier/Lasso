@@ -526,9 +526,6 @@ function structures_filtres(): array
     $departementCanton = filtre_coche('departement_canton', 'structures_departement_canton', null, true);
     $tagId = filtre_coche('tag_id', 'structures_tag_id');
     $statut = filtre_coche('statut', 'structures_statut', STRUCTURE_STATUTS, false, ['actif', 'contact_privilegie']);
-    // Marquage rapide (flag_toggle_html()) : 'aucun' = non marquées, 'star'/
-    // 'heart' = marquées ; aucune case cochée = tous.
-    $flag = filtre_coche('flag', 'structures_flag', ['aucun', 'star', 'heart']);
     // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
     // d'appoint, accessible depuis le lien de la vue carte (voir
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
@@ -608,20 +605,6 @@ function structures_filtres(): array
         $where .= ' AND s.statut IN (' . sql_in($statut) . ')';
         $params = array_merge($params, $statut);
     }
-    if ($flag) {
-        $flagConds = [];
-        $flagParams = [];
-        foreach ($flag as $val) {
-            if ($val === 'aucun') {
-                $flagConds[] = "s.flag = ''";
-            } else {
-                $flagConds[] = 's.flag = ?';
-                $flagParams[] = $val;
-            }
-        }
-        $where .= ' AND (' . implode(' OR ', $flagConds) . ')';
-        $params = array_merge($params, $flagParams);
-    }
     if (count($avecEvenements) === 1 && $avecEvenements[0] === 'avec') {
         $where .= ' AND EXISTS (SELECT 1 FROM evenement_structures es WHERE es.structure_id = s.id)';
     } elseif (count($avecEvenements) === 1 && $avecEvenements[0] === 'sans') {
@@ -663,8 +646,7 @@ function structures_filtres(): array
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
-        'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'flag' => $flag,
-        'nonLocalises' => $nonLocalises,
+        'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'nonLocalises' => $nonLocalises,
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
         'avecEvenements' => $avecEvenements,
@@ -712,7 +694,6 @@ function route_structures(): void
     $lieuJaugeMax = $f['lieuJaugeMax'];
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
     $lieuMoisProg = $f['lieuMoisProg'];
-    $flag = $f['flag'];
     $nonLocalises = $f['nonLocalises'];
     $avecEvenements = $f['avecEvenements'];
     $majPeriode = $f['majPeriode'];
@@ -720,8 +701,7 @@ function route_structures(): void
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
-        'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
-        'avec_evenements' => $avecEvenements,
+        'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'avec_evenements' => $avecEvenements,
         'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
     ];
 
@@ -774,13 +754,7 @@ function route_structures(): void
                 bulk_undo_memoriser('structures', $ids, ['adresse_pays'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
-            // 'heart' reste dans la liste bien qu'inatteignable depuis l'UI
-            // (cœur désactivé, voir route_structure_flag()) : simple
-            // validation d'entrée, pas une réactivation de la fonctionnalité.
-            } elseif ($section === 'flag' && in_array($_POST['bulk_flag'] ?? '', ['', 'star', 'heart'], true)) {
-                bulk_undo_memoriser('structures', $ids, ['flag'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET flag = ? WHERE id IN ($in)")
-                    ->execute(array_merge([$_POST['bulk_flag']], $ids));
+
             } elseif ($section === 'via') {
                 bulk_undo_memoriser('structures', $ids, ['via'], 'structures', $retourFiltres);
                 db()->prepare("UPDATE structures SET via = ? WHERE id IN ($in)")
@@ -852,8 +826,7 @@ function route_structures(): void
             'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'departementCanton' => $departementCanton,
             'tagId' => $tagId, 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
-            'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'flag' => $flag,
-            'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
+            'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
             'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             // Les étiquettes servent au panneau « Filtres » de la carte comme
@@ -863,7 +836,7 @@ function route_structures(): void
             // actif s'y affichait sous son numéro brut. regionsDispo, lui, ne
             // sert qu'à un <select> de la vue liste.
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [],
-            'tagsDispo' => module_actif('booking') ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [],
+            'tagsDispo' => module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
         ], 'Structures');
@@ -887,7 +860,7 @@ function route_structures(): void
             SELECT o.nom AS nom, o.id AS id, 'organise_par' AS sens FROM structure_organisateurs so JOIN structures o ON o.id = so.organisateur_id WHERE so.structure_id = s.id
             ORDER BY nom
         )) AS structures_liees,
-        (SELECT GROUP_CONCAT(t.nom || char(31) || COALESCE(t.couleur, ''), char(30)) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
+        (SELECT GROUP_CONCAT(t.id || char(31) || t.nom || char(31) || COALESCE(t.couleur, ''), char(30)) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
         (SELECT GROUP_CONCAT(nom, char(30)) FROM (
             SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
         )) AS contacts_noms,
@@ -937,7 +910,7 @@ function route_structures(): void
     }
 
     $regionsDispo = db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN);
-    $tagsDispo = module_actif('booking') ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [];
+    $tagsDispo = module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [];
 
     render('structures_liste', [
         'vue' => $vue,
@@ -955,7 +928,6 @@ function route_structures(): void
         'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement,
         'lieuMoisProg' => $lieuMoisProg,
-        'flag' => $flag,
         'nonLocalises' => $nonLocalises,
         'avecEvenements' => $avecEvenements,
         'majPeriode' => $majPeriode,
@@ -971,8 +943,7 @@ function route_structures(): void
         'pgParams'  => array_filter([
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
-            'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'flag' => $flag,
-            'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
+            'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
             // Structures est partagée par 3 groupes de nav (booking/facturation/
             // evenements) — reporté dans les liens de pagination pour que le
             // rail/bandeau reste dans le groupe de provenance (voir la même
@@ -1386,7 +1357,7 @@ function route_structure_via(): void
 // STRUCTURE_STATUTS/lib/booking.php) depuis le bloc Statut — sélecteur
 // segmenté, valeur cliquée directement (structure_statut_toggle_html(),
 // lib/helpers.php). Appelé en AJAX (lassoInitStatutToggle(), assets/app.js) :
-// répond en JSON, pas de redirect (même mécanique que route_structure_flag()).
+// répond en JSON, pas de redirect (même mécanique que route_structure_statut()).
 function route_structure_statut(): void
 {
     require_login();
@@ -1414,37 +1385,6 @@ function route_structure_statut(): void
         journaliser('structure', $id, 'edition', 'Statut : ' . structure_statut_libelle($etatSuivant));
     }
     echo json_encode(['ok' => true, 'etat' => $etatSuivant]);
-}
-
-// Bascule le marquage rapide (flag) d'une structure — aucun → étoile → cœur →
-// aucun (voir flag_toggle_html(), lib/helpers.php). Appelé en AJAX depuis
-// lassoInitFlagToggle() (assets/app.js) : répond en JSON, pas de redirect.
-function route_structure_flag(): void
-{
-    require_login();
-    header('Content-Type: application/json');
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        echo json_encode(['ok' => false]);
-        return;
-    }
-    check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    $stmt = db()->prepare('SELECT flag FROM structures WHERE id = ?');
-    $stmt->execute([$id]);
-    $actuel = $stmt->fetchColumn();
-    if ($actuel === false) {
-        echo json_encode(['ok' => false]);
-        return;
-    }
-    // Cœur temporairement désactivé (cycle à 2 états) : réactiver la ligne
-    // 'star' => 'heart' pour reprendre le cycle à 3 états aucun/étoile/cœur.
-    $suivant = match ((string) $actuel) {
-        ''      => 'star',
-        // 'star'  => 'heart',
-        default => '',
-    };
-    db()->prepare('UPDATE structures SET flag = ? WHERE id = ?')->execute([$suivant, $id]);
-    echo json_encode(['ok' => true, 'flag' => $suivant]);
 }
 
 function route_structure_renommer(): void

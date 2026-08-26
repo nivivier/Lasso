@@ -60,14 +60,12 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                     Date
                     <?= filtre_colonne_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
             </th>
             <th class="col-employe">
                 <span class="col-th">
                     Employé
                     <?= filtre_colonne_html('fiches', 'employe_id', $employeLabels, $employeId, $autresEmploye) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('fiches', 'employe_id', $employeLabels, $employeId, $autresEmploye) ?>
             </th>
             <?php if ($axesParFiche): ?><th class="col-petit">Axes</th><?php endif; ?>
             <th class="num">Brut</th><th class="num col-petit">Charges sociales</th><th class="num col-petit">Impôt à la source</th>
@@ -77,7 +75,6 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                     Paiement
                     <?= filtre_colonne_html('fiches', 'statut', $statutLabels, $statut, $autresStatut) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('fiches', 'statut', $statutLabels, $statut, $autresStatut) ?>
             </th>
             <th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
             <th class="center col-petit">Envoyée</th>

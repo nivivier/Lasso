@@ -162,10 +162,9 @@ if (module_actif('facturation') || module_actif('booking')) {
     $handlers['structure']       = 'route_structure';
     $handlers['structure_renommer'] = 'route_structure_renommer';
     $handlers['structure_statut'] = 'route_structure_statut';
-    $handlers['structure_flag']  = 'route_structure_flag';
     $handlers['structure_delete'] = 'route_structure_delete';
     $handlers['structure_fusion'] = 'route_structure_fusion';
-    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_flag', 'structure_delete', 'structure_fusion'] as $r) {
+    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_delete', 'structure_fusion'] as $r) {
         $routeModules[$r] = ['facturation', 'booking'];
     }
 }
@@ -177,6 +176,7 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_note_modifier' => 'route_structure_note_modifier',
     'structure_tag_ajouter'  => 'route_structure_tag_ajouter',
     'structure_tag_retirer'  => 'route_structure_tag_retirer',
+    'structure_tag_gerer'    => 'route_structure_tag_gerer',
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
     'structure_localisation' => 'route_structure_localisation',

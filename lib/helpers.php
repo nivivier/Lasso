@@ -661,7 +661,17 @@ function periode_anciennete_where(string $colonne, array $tranches): array
 function filtre_bouton_html(string $libelle, bool $actif, ?int $nb = null): string
 {
     if ($libelle === '') {
-        return '<summary class="col-filter-btn" title="Filtrer">' . icon('funnel') . '</summary>';
+        // L'entonnoir seul des <thead> porte lui-même son état : coloré et plus
+        // épais dès qu'une valeur est cochée. C'est ce qui permet de ne plus
+        // lister les valeurs actives sous l'en-tête — elles y doublaient une
+        // information déjà donnée par la barre d'outils, et empilées elles
+        // faisaient passer la ligne d'en-tête à 92px de haut.
+        // $nb est nul pour les filtres à contenu libre (filtre_colonne_form_html())
+        // : ils n'ont pas de valeurs cochées à compter, seulement un état.
+        $titre = !$actif ? 'Filtrer'
+            : ($nb ? 'Filtre actif — ' . $nb . ' valeur(s) sélectionnée(s)' : 'Filtre actif');
+        return '<summary class="col-filter-btn' . ($actif ? ' on' : '') . '" title="' . e($titre) . '">'
+            . icon('funnel') . '</summary>';
     }
     $h = '<summary class="col-filter-btn col-filter-btn-nomme' . ($actif ? ' on' : '') . '">'
        . '<span class="col-filter-lib">' . e($libelle) . '</span>';
@@ -671,9 +681,17 @@ function filtre_bouton_html(string $libelle, bool $actif, ?int $nb = null): stri
     return $h . icon('chevron-down') . '</summary>';
 }
 
-function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams, string $libelle = ''): string
+// $actionsParOption (facultatif) : HTML posé À CÔTÉ de chaque case à cocher,
+// indexé par valeur d'option — le crayon de renommage du filtre « Étiquettes »
+// de ?p=structures. Hors du <label> : un bouton à l'intérieur cocherait la case
+// en même temps qu'il s'active. Sans ce paramètre, le balisage reste le <label>
+// nu de tous les autres filtres.
+function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams, string $libelle = '', array $actionsParOption = []): string
 {
-    $h = '<details class="col-filter">'
+    // Un filtre porteur d'actions a besoin de plus de place : un champ de
+    // renommage plus trois icônes ne tiennent pas dans les 200px du panneau
+    // ordinaire (voir .col-filter-menu, assets/app.css).
+    $h = '<details class="col-filter' . ($actionsParOption ? ' col-filter-large' : '') . '">'
        . filtre_bouton_html($libelle, count($actives) > 0, count($actives))
        . '<form method="get" class="col-filter-menu">'
        . '<input type="hidden" name="p" value="' . e($page) . '">'
@@ -684,7 +702,10 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
     $activesTxt = array_map('strval', $actives);
     foreach ($options as $val => $lib) {
         $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
-        $h .= '<label><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e($lib) . '</label>';
+        $case = '<label><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e($lib) . '</label>';
+        $h .= isset($actionsParOption[$val])
+            ? '<div class="col-filter-opt">' . $case . $actionsParOption[$val] . '</div>'
+            : $case;
     }
     return $h . '</div><button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
 }
@@ -2245,6 +2266,10 @@ function icone_table(): array
         'earth'      => '<path d="M21.54 15H17a2 2 0 0 0-2 2v4.54"/><path d="M7 3.34V5a3 3 0 0 0 3 3a2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17"/><path d="M11 21.95V18a2 2 0 0 0-2-2a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05"/><circle cx="12" cy="12" r="10"/>',
         'circle-check' => '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
         'circle-x'     => '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+        // Lucide « circle-dot » — en-tête de la colonne Statut de ?p=structures :
+        // un point dans un cercle, neutre, qui ne préjuge d'aucun des quatre
+        // états (cœur, coche, croix, cercle pointillé) qu'il coiffe.
+        'circle-dot'   => '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/>',
         'circle-ellipsis' => '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
         'circle-dashed' => '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
         'link'       => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
@@ -2448,35 +2473,6 @@ function compacter_cellules(string $html): string
     );
     // Dans la cellule : une seule espace là où le gabarit en laissait vingt.
     return (string) preg_replace('~>\s{2,}<~', '> <', $html);
-}
-
-// Marquage rapide (flag) devant le nom d'une structure/d'un lieu — bouton à 3
-// états cyclés au clic (voir assets/app.js lassoInitFlagToggle() +
-// route_lieu_flag()/route_structure_flag()) : aucun (étoile grise) → étoile
-// (couleur de mise en évidence) → cœur (couleur --danger) → aucun. $table ∈
-// {'lieu', 'structure'} (détermine la route appelée) ; $flag ∈ {'', 'star',
-// 'heart'} — toute autre valeur est traitée comme absente.
-function flag_toggle_html(string $table, int $id, string $flag): string
-{
-    $label = match ($flag) {
-        'star'  => 'Marqué (étoile) — cliquer pour retirer le marquage',
-        'heart' => 'Marqué (cœur) — cliquer pour retirer le marquage',
-        default => 'Non marqué — cliquer pour marquer',
-    };
-    // Balisage réduit au strict nécessaire : sur ?p=structures ce bouton est
-    // rendu une fois par ligne, donc 2959 fois — 289 octets pièce, 855 Ko en
-    // tout. Trois choses en sont sorties :
-    //   - le dessin, désormais posé en masque CSS d'après la classe .flag-*
-    //     que le bouton porte déjà (74 octets et 2 nœuds par bouton) ;
-    //   - data-flag-table, omis pour 'structure' : le JS retombe déjà sur
-    //     structure_flag quand l'attribut manque (voir lassoInitFlagToggle()) ;
-    //   - data-flag-valeur, que rien ne lisait — l'état se lit à la classe.
-    $h = '<button type="button" class="flag-toggle flag-' . e($flag ?: 'aucun') . '"';
-    if ($table !== 'structure') {
-        $h .= ' data-flag-table="' . e($table) . '"';
-    }
-    return $h . ' data-flag-id="' . $id . '"'
-        . ' title="' . e($label) . '" aria-label="' . e($label) . '"></button>';
 }
 
 // Statut d'une structure — sélecteur segmenté horizontal (même style que

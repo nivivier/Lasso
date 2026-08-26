@@ -206,49 +206,42 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                     Date
                     <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
             </th>
             <th class="col-spectacle">
                 <span class="col-th">
                     <?= e($termeSingulier) ?>
                     <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
             </th>
             <th class="col-ville">
                 <span class="col-th">
                     Ville / salle
                     <?= filtre_colonne_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
             </th>
             <th class="col-audience">
                 <span class="col-th">
                     Audience
                     <?= filtre_colonne_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
             </th>
             <th class="col-statut">
                 <span class="col-th">
                     Statut
                     <?= filtre_colonne_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
             </th>
             <th class="col-suisa">
                 <span class="col-th">
                     SUISA
                     <?= filtre_colonne_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
             </th>
             <th class="num col-salaries">
                 <span class="col-th">
                     Salariés
                     <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
                 </span>
-                <?= filtre_colonne_actifs_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
             </th>
         </tr>
     </thead>
