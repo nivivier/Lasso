@@ -1915,6 +1915,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
     display: flex; flex-direction: row; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 6px;
     font-size: var(--fs-basic); font-weight: 600; text-transform: none; letter-spacing: normal;
     color: var(--ink); cursor: pointer;
+    /* --niv : profondeur d'un libellé arborescent, posée par filtre_colonne_html().
+       14px par niveau, soit le double de ce que valaient les deux insécables
+       qu'elle remplace — l'escalier se lit d'un coup d'œil au lieu de se
+       deviner, et la case à cocher suit son texte. */
+    padding-left: calc(6px + var(--niv, 0) * 14px);
 }
 .col-filter-menu label:hover { background: var(--surface); }
 .col-filter-menu input[type="checkbox"] { margin: 0; }

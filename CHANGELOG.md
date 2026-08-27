@@ -9,6 +9,38 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.12] — 2026-08-27
+
+### Modifié
+- **Filtre « Catégorie » de ?p=structures : l'escalier des sous-catégories
+  emmène sa case à cocher.** Les libellés arborescents arrivaient préfixés
+  d'espaces insécables, posées *après* la case — la colonne de cases restait
+  donc parfaitement droite sous une liste visiblement décalée. Le préfixe est
+  maintenant traduit en marge interne sur le `<label>`, et doublé au passage
+  (14px par niveau contre ~7 auparavant) : la hiérarchie se lit d'un coup d'œil
+  au lieu de se deviner. Vaut pour tout filtre à libellés indentés, la
+  conversion étant faite dans `filtre_colonne_html()`.
+
+### Corrigé
+- **Les compteurs « N structures » de Paramètres → Catégories menaient à la
+  mauvaise liste.** Le lien passait `categorie_id=27`, mais `filtre_coche()`
+  n'accepte une valeur de l'URL que si le marqueur `_set` l'accompagne — sans
+  lui, elle relit la SESSION. Le paramètre était donc purement ignoré et la
+  liste s'ouvrait sur le dernier filtre utilisé : après un filtrage sur
+  « Festival », cliquer « 75 structures » depuis « Radio » en affichait 383.
+  `statut=tous` ne faisait rien non plus, cette valeur n'existant pas.
+
+  Second piège, moins visible : les filtres sont mémorisés en session. Ne poser
+  que la catégorie aurait laissé un pays ou une étiquette actifs, et le compte
+  annoncé n'aurait pas été celui obtenu. Le lien remet donc **tous** les filtres
+  à zéro, recherche texte et champs jauge/mois compris, et vide le statut — la
+  page Paramètres compte toutes les structures, inactives incluses.
+
+  Le lien est désormais produit par `lien_structures_categorie()`
+  (lib/booking.php) plutôt qu'écrit à la main dans la vue. Vérifié sur les 51
+  catégories qui portent au moins une structure, session volontairement salie
+  avant chacune : aucun écart entre le nombre annoncé et le nombre obtenu.
+
 ## [2.3.11] — 2026-08-27
 
 ### Modifié

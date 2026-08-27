@@ -514,6 +514,44 @@ function structure_tags_paires(int $structureId): array
     return array_map(fn ($r) => [(int) $r['id'], (string) $r['nom'], (string) $r['couleur']], $stmt->fetchAll());
 }
 
+// Lien vers ?p=structures filtré sur UNE catégorie, tous les autres filtres
+// remis à zéro — pour les compteurs « N structures » de Paramètres → Catégories,
+// qui doivent mener à exactement ces N fiches.
+//
+// Deux pièges que ce lien contournait mal :
+//   - filtre_coche() n'accepte une valeur de l'URL que si le marqueur « _set »
+//     l'accompagne ; sans lui elle relit la SESSION. Un lien « categorie_id=27 »
+//     était donc purement ignoré, et la liste s'ouvrait sur le dernier filtre en
+//     date (mesuré : 383 fiches affichées au lieu de 75).
+//   - les filtres sont mémorisés en session : ne poser que la catégorie
+//     laisserait les autres actifs, et le compte annoncé ne serait pas celui
+//     obtenu. Chaque filtre est donc explicitement vidé — « _set » présent avec
+//     une valeur vide, ce que filtre_coche() interprète comme « aucun ».
+//
+// « statut » vidé et non laissé par défaut : la page Paramètres compte TOUTES
+// les structures, y compris inactives, et son lien doit montrer les mêmes.
+function lien_structures_categorie(int $categorieId): string
+{
+    $params = [
+        'p' => 'structures',
+        'categorie_id' => [$categorieId],
+        'categorie_id_set' => 1,
+    ];
+    foreach (['statut', 'pays', 'departement_canton', 'tag_id', 'avec_evenements',
+              'contact_periode', 'maj_periode'] as $f) {
+        $params[$f . '_set'] = 1;
+    }
+    // Jauge et mois ne sont pas des cases à cocher : filtre_persistant() les
+    // écrase dès que la clé est présente en GET, même vide.
+    foreach (['lieu_jauge_min', 'lieu_jauge_max'] as $f) {
+        $params[$f] = '';
+    }
+    $params['lieu_mois_evenement'] = 0;
+    $params['lieu_mois_prog'] = 0;
+    $params['q'] = '';
+    return '?' . http_build_query($params);
+}
+
 // Renomme une étiquette. Renvoie false si le nom est vide ou déjà pris par une
 // autre (unicité insensible à la casse, comme à la création) — l'appelant en
 // fait ce qu'il veut : message d'erreur ou silence.

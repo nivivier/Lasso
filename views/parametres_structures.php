@@ -81,7 +81,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                     </form>
                     <?php endif; ?>
                     <?php if ($nbUsage > 0): ?>
-                        <a class="badge muted-badge" href="?p=structures&categorie_id=<?= $cid ?>&statut=tous"><?= $nbUsage ?> structure<?= $nbUsage > 1 ? 's' : '' ?></a>
+                        <a class="badge muted-badge" href="<?= e(lien_structures_categorie($cid)) ?>"><?= $nbUsage ?> structure<?= $nbUsage > 1 ? 's' : '' ?></a>
                     <?php endif; ?>
                 </div>
             </td>

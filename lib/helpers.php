@@ -702,7 +702,18 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
     $activesTxt = array_map('strval', $actives);
     foreach ($options as $val => $lib) {
         $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
-        $case = '<label><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e($lib) . '</label>';
+        // Libellés arborescents (les catégories de ?p=structures) : ils arrivent
+        // préfixés d'espaces insécables, deux par niveau. Traduits en marge
+        // interne sur le <label>, ils décalent la case à cocher EN MÊME TEMPS
+        // que son texte ; laissés dans le texte, ils laissaient la colonne de
+        // cases parfaitement droite sous une liste visiblement en escalier.
+        $niveau = 0;
+        if (preg_match('/^\x{00A0}+/u', (string) $lib, $m)) {
+            $niveau = intdiv(mb_strlen($m[0]), 2);
+            $lib = mb_substr((string) $lib, mb_strlen($m[0]));
+        }
+        $case = '<label' . ($niveau > 0 ? ' style="--niv:' . $niveau . '"' : '') . '>'
+              . '<input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e($lib) . '</label>';
         $h .= isset($actionsParOption[$val])
             ? '<div class="col-filter-opt">' . $case . $actionsParOption[$val] . '</div>'
             : $case;
