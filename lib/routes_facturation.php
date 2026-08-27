@@ -860,7 +860,20 @@ function route_structures(): void
             SELECT o.nom AS nom, o.id AS id, 'organise_par' AS sens FROM structure_organisateurs so JOIN structures o ON o.id = so.organisateur_id WHERE so.structure_id = s.id
             ORDER BY nom
         )) AS structures_liees,
-        (SELECT GROUP_CONCAT(t.id || char(31) || t.nom || char(31) || COALESCE(t.couleur, ''), char(30)) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id) AS tags_noms,
+        -- Étiquettes par ordre alphabétique. GROUP_CONCAT n'a pas d'ordre
+        -- garanti : il suit le plan d'exécution. On l'applique donc à une
+        -- sous-requête triée, comme pour contacts_noms juste au-dessus.
+        -- SANS_ACCENTS() et non COLLATE NOCASE : ce dernier ne replie que
+        -- l'ASCII, et « À contacter… » se retrouvait donc après « Ne pas
+        -- contacter » — un ordre alphabétique qui n'en est pas un en français.
+        -- Le même tri est appliqué dans structure_tags_paires() (lib/booking.php)
+        -- qui re-rend la cellule après un ajout : sans cela, l'ordre changerait
+        -- sous les yeux au premier ajout d'étiquette.
+        (SELECT GROUP_CONCAT(paire, char(30)) FROM (
+            SELECT t.id || char(31) || t.nom || char(31) || COALESCE(t.couleur, '') AS paire
+              FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
+             WHERE tl.structure_id = s.id ORDER BY SANS_ACCENTS(t.nom)
+        )) AS tags_noms,
         (SELECT GROUP_CONCAT(nom, char(30)) FROM (
             SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
         )) AS contacts_noms,

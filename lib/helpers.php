@@ -2443,6 +2443,38 @@ function icon_picker(string $name, array $options, string $selected, string $ari
     return $h . '</div>';
 }
 
+// Temps écoulé depuis $date, en toutes lettres — « 3 mois », « 4 ans »,
+// « ce mois-ci ». '' si la date est vide ou illisible.
+//
+// Sans « il y a » devant : l'en-tête de colonne dit déjà de quoi il s'agit, et
+// deux mots de moins par cellule sur 2959 lignes, ça compte. La date exacte
+// reste accessible au survol, posée en title par l'appelant.
+//
+// Pourquoi une durée plutôt qu'une date : la question qu'on se pose devant ces
+// colonnes n'est pas « quand » mais « depuis combien de temps » — « 21.11.2022 »
+// demandait un calcul mental à chaque ligne.
+function duree_depuis(string $date): string
+{
+    if ($date === '') {
+        return '';
+    }
+    $ts = strtotime($date);
+    if ($ts === false) {
+        return '';
+    }
+    // 30,44 = durée moyenne d'un mois sur une année, pour que « 12 mois » et
+    // « 1 an » tombent au même endroit plutôt qu'à trois jours près.
+    $mois = max(0.0, (time() - $ts) / (30.44 * 86400));
+    if ($mois < 1) {
+        return 'ce mois-ci';
+    }
+    if ($mois < 12) {
+        return round($mois) . ' mois';
+    }
+    $ans = (int) round($mois / 12);
+    return $ans . ' an' . ($ans > 1 ? 's' : '');
+}
+
 // Retire l'indentation du gabarit ENTRE les cellules d'un tableau. Sur
 // ?p=structures elle pesait 751 Ko de HTML (254 octets par ligne, 2959 lignes)
 // pour rien : le navigateur ne rend aucune de ces espaces.

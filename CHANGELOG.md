@@ -9,6 +9,48 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.11] — 2026-08-27
+
+### Modifié
+- **« Contacté » et « Modifié » affichent une durée, plus une date.** La question
+  qu'on se pose devant ces colonnes n'est pas *quand* mais *depuis combien de
+  temps* — « 21.11.2022 » demandait un calcul mental à chaque ligne. On lit
+  désormais « 4 ans », « 3 mois », « ce mois-ci ». Sans « il y a » devant :
+  l'en-tête dit déjà de quoi il s'agit. La date exacte reste au survol, seule et
+  sans phrase autour.
+
+  **Une icône dit de quel événement la durée parle** : enveloppe pour un
+  contact, crayon pour une vraie modification, cercle-plus pour une fiche créée
+  à l'import et jamais retouchée. Ce dernier cas concerne 2160 fiches sur 2952 :
+  la colonne y affichait une date de *création* que seul l'italique distinguait,
+  sans légende depuis que l'infobulle avait été retirée en 2.3.8.
+
+  Jamais contactée — 2307 fiches sur 2952 — se lit à un simple trait, sans
+  enveloppe : l'icône annoncerait un échange qui n'a pas eu lieu.
+
+  Les trois icônes existaient déjà pour les mini-cartes ; elles sont désormais
+  déclarées une seule fois pour toutes les largeurs. Posées en masque CSS et non
+  en `<svg>` dans le balisage, elles ne coûtent rien : la page compressée passe
+  de 196 317 à 196 398 octets, soit 81 octets pour l'ensemble.
+
+- **L'échelle typographique du tableau passe de cinq corps à quatre.** Le nom de
+  ville monte à 13 px, la catégorie-feuille, les étiquettes et les deux colonnes
+  de suivi à 11 px. Ne restent à 9 px que le drapeau, le département et la
+  catégorie parente — ce qui lève une ambiguïté, pas ce qu'on lit. Les
+  mini-cartes gardent leur propre échelle, pour que le nom de la structure
+  continue d'y dominer.
+
+- **En mini-carte, « Contacté » passe au-dessus de « Modifié »** : c'est la date
+  de contact qui décide d'une relance, celle de modification n'est qu'un repère
+  de fraîcheur de la fiche.
+
+- **Les étiquettes s'affichent par ordre alphabétique.** Trois requêtes les
+  produisent — la liste, la cellule re-rendue après un ajout, les mini-fiches
+  d'un événement — et elles trient désormais à l'identique : sans cela l'ordre
+  changeait sous les yeux au premier ajout. Le tri replie les accents
+  (`SANS_ACCENTS()`), sans quoi « À contacter… » se retrouvait après « Ne pas
+  contacter » ; `COLLATE NOCASE` ne replie que l'ASCII.
+
 ## [2.3.10] — 2026-08-23
 
 ### Ajouté

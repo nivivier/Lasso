@@ -496,22 +496,24 @@ $nbCols = 9 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1)
                 <?= $contactsNoms ? e(implode(', ', $contactsNoms)) : '<span class="muted">—</span>' ?>
             </td>
             <?php
-                // Contact de moins d'un an : en vert et en gras. C'est la seule
-                // colonne où l'ancienneté se juge d'un coup d'œil — au-delà d'un
-                // an, la structure est à relancer, et c'est le cas de presque
-                // toutes (1 sur 655 aujourd'hui). Mettre en avant le petit nombre
-                // de fiches encore fraîches est plus utile que de signaler les
-                // autres, qui seraient toutes signalées.
+                // Une DURÉE et non une date : la question posée devant cette
+                // colonne n'est pas « quand » mais « depuis combien de temps », et
+                // « 21.11.2022 » demandait un calcul mental à chaque ligne. La date
+                // exacte reste au survol.
+                // Moins d'un an : vert et gras — au-delà, la structure est à
+                // relancer, et c'est le cas de presque toutes (1 sur 655).
+                // Jamais contactée : un trait seul, sans enveloppe. L'icône
+                // annoncerait un échange qui n'a pas eu lieu, et 2307 enveloppes
+                // alignées sur une colonne vide feraient du bruit pour rien.
                 $contactLe = (string) ($d['dernier_contact_le'] ?? '');
                 $contactRecent = $contactLe !== '' && $contactLe >= $limiteContactRecent;
                 ?>
             <?php if ($montreContacte): ?>
-            <?php // L'enveloppe ne précède que les contacts récents — même condition
-                  // que le vert et le gras, une seule notion à retenir. Posée en
-                  // masque CSS (::before) et non en <svg> : sur une colonne rendue
-                  // 2959 fois, un dessin dans le balisage coûterait 74 octets par
-                  // ligne pour une icône qui ne varie jamais. ?>
-            <td class="tiny col-contact-le<?= $contactRecent ? ' contact-recent' : ' muted' ?>"><?= $contactLe !== '' ? e(date('d.m.Y', strtotime($contactLe))) : '—' ?></td>
+            <?php // L'enveloppe est posée en masque CSS (::before sur .a-date) et non
+                  // en <svg> : sur une colonne rendue 2959 fois, un dessin dans le
+                  // balisage coûterait 74 octets par ligne pour une icône qui ne
+                  // varie jamais. ?>
+            <td class="tiny col-contact-le<?= $contactLe !== '' ? ' a-date' : '' ?><?= $contactRecent ? ' contact-recent' : ' muted' ?>"<?= $contactLe !== '' ? ' title="' . e(date('d.m.Y', strtotime($contactLe))) . '"' : '' ?>><?= $contactLe !== '' ? e(duree_depuis($contactLe)) : '—' ?></td>
             <?php endif; ?>
             <?php if ($montreFactures): ?>
             <td class="small col-factures">
@@ -538,14 +540,17 @@ $nbCols = 9 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1)
                 // compris (structures_filtres()) : ce qui se lit ici est ce qui
                 // se filtre là. « Jamais » ne reste donc que pour les lignes
                 // sans aucune date, ni modification ni création.
+                // Même traitement que « Contacté » : une durée, la date au survol.
+                // L'icône distingue les deux cas là où l'italique était seul à le
+                // faire — crayon pour une vraie modification, cercle-plus pour une
+                // fiche créée à l'import et jamais retouchée (2160 sur 2952). Le
+                // libellé qui l'expliquait avait disparu en 2.3.8 pour alléger la
+                // page ; l'icône le redit sans un octet de texte.
                 $majLe = (string) ($d['mise_a_jour_le'] ?? '');
                 $creeLe = (string) ($d['cree_le'] ?? '');
+                $majAffichee = $majLe !== '' ? $majLe : $creeLe;
                 ?>
-            <td class="muted tiny col-maj-le<?= $majLe === '' && $creeLe !== '' ? ' est-creation' : '' ?>">
-                <?php if ($majLe !== ''): ?><?= e(date('d.m.Y', strtotime($majLe))) ?>
-                <?php elseif ($creeLe !== ''): ?><?= e(date('d.m.Y', strtotime($creeLe))) ?>
-                <?php else: ?>—<?php endif; ?>
-            </td>
+            <td class="muted tiny col-maj-le<?= $majAffichee !== '' ? ' a-date' : '' ?><?= $majLe === '' && $creeLe !== '' ? ' est-creation' : '' ?>"<?= $majAffichee !== '' ? ' title="' . e(date('d.m.Y', strtotime($majAffichee))) . '"' : '' ?>><?= $majAffichee !== '' ? e(duree_depuis($majAffichee)) : '—' ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

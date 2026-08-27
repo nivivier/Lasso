@@ -508,7 +508,7 @@ function structure_tags_paires(int $structureId): array
     $stmt = db()->prepare(
         'SELECT t.id, t.nom, COALESCE(t.couleur, \'\') AS couleur
            FROM structure_tag_liens l JOIN structure_tags t ON t.id = l.tag_id
-          WHERE l.structure_id = ? ORDER BY t.nom'
+          WHERE l.structure_id = ? ORDER BY SANS_ACCENTS(t.nom)'
     );
     $stmt->execute([$structureId]);
     return array_map(fn ($r) => [(int) $r['id'], (string) $r['nom'], (string) $r['couleur']], $stmt->fetchAll());

@@ -2095,6 +2095,17 @@ span + .badge.muted-badge { margin-left: 6px; }
 .nom-liees a:hover { color: var(--primary-d); }
 .nom-liees .ico-tiny { color: var(--muted); }
 
+/* Nom de ville un cran au-dessus du reste de sa cellule : c'est lui qu'on
+   cherche, le drapeau et le département ne servent qu'à lever une ambiguïté.
+   Ils restent donc en .tiny, posé par ville_departement_canton_html(). */
+td.col-ville strong { font-size: var(--fs-basic); }
+
+/* Catégorie-feuille au corps « small » : elle héritait du corps de page (16px),
+   ce qui la mettait au même niveau que le nom de la structure alors qu'elle ne
+   fait que le qualifier. Le préfixe (la catégorie parente) reste au plus petit,
+   posé par .row-field-prefix. */
+td.col-categorie .row-field-txt > span:not(.row-field-prefix) { font-size: var(--fs-small); }
+
 /* Colonne « Contact » : rendue mais jamais affichée. Elle n'apporte rien à la
    lecture d'une liste de structures — le contact se lit sur la fiche — mais son
    texte doit rester dans le DOM, car la recherche du mode client filtre sur
@@ -2107,26 +2118,46 @@ th.col-contact, td.col-contact { display: none; }
    date fraîche se repérant alors sans lire. Même vert que les autres marqueurs
    positifs de l'application (--ok, qui a sa variante en thème sombre). */
 .contact-recent { color: var(--ok); font-weight: 700; }
-/* Enveloppe devant les seules dates récentes, à la même condition que la
-   couleur et la graisse : une seule notion à retenir, « contacté depuis moins
-   d'un an ». En masque et non en <svg> dans le balisage — le jeton existe déjà
-   pour les mini-cartes, et sur 2959 lignes un dessin recopié coûterait 74
-   octets par ligne pour une icône qui ne varie jamais. currentColor : elle
-   prend le vert du texte, thème sombre compris. */
-.contact-recent::before {
+
+/* Les deux colonnes de suivi montent d'un cran : à 9px, une durée qu'on lit
+   vraiment était en dessous du seuil de confort. Les mini-cartes gardent leur
+   propre corps (10px), calé sur la hauteur de ligne de la carte. */
+td.col-contact-le, td.col-maj-le { font-size: var(--fs-small); }
+
+/* Icônes des deux colonnes de suivi, à TOUTES les largeurs : enveloppe pour un
+   contact, crayon pour une modification, cercle-plus pour une fiche créée à
+   l'import et jamais retouchée. Elles portent le sens que le texte ne dit plus
+   depuis que ces colonnes affichent une durée et non une date.
+   .a-date les conditionne : une cellule sans date n'affiche qu'un trait, et une
+   icône y annoncerait un événement qui n'a pas eu lieu.
+   En masque et non en <svg> dans le balisage : sur deux colonnes rendues 2959
+   fois, un dessin recopié coûterait 74 octets par ligne pour des icônes qui ne
+   varient jamais. background-color: currentColor, donc elles suivent la couleur
+   du texte — le vert des contacts récents comme le thème sombre. */
+td.col-contact-le.a-date::before,
+td.col-maj-le.a-date::before {
     content: ""; display: inline-block; vertical-align: -2px;
     width: 11px; height: 11px; margin-right: 4px;
     background-color: currentColor;
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
     -webkit-mask-size: contain; mask-size: contain;
+}
+td.col-contact-le.a-date::before {
     -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe);
+}
+td.col-maj-le.a-date::before {
+    -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon);
+}
+/* Fiche seulement importée : le crayon dirait « modifiée », ce qui est faux. */
+td.col-maj-le.a-date.est-creation::before {
+    -webkit-mask-image: var(--ico-creation); mask-image: var(--ico-creation);
 }
 /* -2px et non -1 : l'icône fait 11px pour des chiffres qui n'en font que 6,65
    (Inter à 9px). Alignée à -1px, son centre passait 1,17px au-dessus du centre
    optique des chiffres — mesuré en repérant la ligne de base par une boîte de
    hauteur nulle. À -2px l'écart tombe à 0,17px. */
 
-td.col-tags .badge { font-size: var(--fs-tiny); }
+td.col-tags .badge { font-size: var(--fs-small); }
 /* La croix de retrait vit DANS l'étiquette : sans inline-flex, elle se collait
    au dernier mot, et à sa taille par défaut (13px, .btn-tag-x) elle était plus
    grosse que le mot qu'elle retire. Discrète au repos, franche au survol —
@@ -3426,6 +3457,9 @@ abbr {
        corps que la catégorie, pour qu'il se lise comme un repère et non comme
        le nom du lieu. */
     .liste-cartes td.col-ville .tiny { font-size: 10px; }
+    /* La carte a son propre corps pour la ville : la remonter d'un cran ici la
+       mettrait au niveau du nom de la structure, juste au-dessus. */
+    .liste-cartes td.col-ville strong { font-size: 12px; }
 
     /* --- Colonne de droite : catégorie, puis les deux dates --- */
     .liste-cartes td.col-categorie,
@@ -3458,35 +3492,33 @@ abbr {
        display:none ci-dessus, donc de nouveau visible. */
     .liste-cartes td.col-categorie .row-field-txt > span:not(.row-field-prefix) {
         display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        /* Répété ici parce que la règle de la vue tableau vise le même élément
+           avec une spécificité supérieure à celle qui fixe 10px sur .row-field-txt
+           juste au-dessus — sans cette ligne, la carte hériterait du corps du
+           tableau. */
+        font-size: 10px;
     }
     .liste-cartes td.col-maj-le,
     .liste-cartes td.col-contact-le {
         font-size: 10px; line-height: var(--carte-l-date); font-variant-numeric: tabular-nums;
     }
-    .liste-cartes td.col-maj-le { top: calc(12px + var(--carte-l-cat)); }
-    .liste-cartes td.col-contact-le { top: calc(12px + var(--carte-l-cat) + var(--carte-l-date)); }
+    /* Contacté d'abord, modifié ensuite : c'est la date de contact qui décide
+       d'une relance, celle de modification n'est qu'un repère de fraîcheur de
+       la fiche. L'ordre du tableau, lui, est fixé par les colonnes. */
+    .liste-cartes td.col-contact-le { top: calc(12px + var(--carte-l-cat)); }
+    .liste-cartes td.col-maj-le { top: calc(12px + var(--carte-l-cat) + var(--carte-l-date)); }
     /* Crayon = dernière modification, enveloppe = dernier contact. Posés en
        CSS et non dans le balisage : deux icônes par ligne sur 4000 lignes
        pèsent, celles-ci ne coûtent rien. Le masque prend la couleur du texte,
        donc suit le thème sombre sans seconde déclaration. */
-    .liste-cartes td.col-maj-le::before,
-    .liste-cartes td.col-contact-le::before {
-        content: ""; display: inline-block; vertical-align: -1px;
-        width: 11px; height: 11px; margin-right: 3px;
-        background-color: currentColor;
-        -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-        -webkit-mask-size: contain; mask-size: contain;
-    }
-    .liste-cartes td.col-maj-le::before {
-        -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon);
-    }
-    /* Date de création en repli : le crayon dirait « modifiée », ce qui est
-       faux. Icône de création à la place. */
-    .liste-cartes td.col-maj-le.est-creation::before {
-        -webkit-mask-image: var(--ico-creation); mask-image: var(--ico-creation);
-    }
-    .liste-cartes td.col-contact-le::before {
-        -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe);
+    /* Les trois masques sont déclarés hors de ce bloc — ils valent à toutes
+       les largeurs depuis que les colonnes affichent des durées. Ne restent ici
+       que les réglages propres à la mini-carte : icône un peu plus serrée
+       contre son texte, et calage vertical d'un pixel différent (10px de corps
+       ici contre 9 en tableau). */
+    .liste-cartes td.col-maj-le.a-date::before,
+    .liste-cartes td.col-contact-le.a-date::before {
+        vertical-align: -1px; margin-right: 3px;
     }
 
     /* --- Dernière rangée : les étiquettes, sur toute la largeur --- */
@@ -3495,7 +3527,7 @@ abbr {
         margin-top: 6px;
         display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
     }
-    .liste-cartes td.col-tags .badge { margin-left: 0; }
+    .liste-cartes td.col-tags .badge { margin-left: 0; font-size: var(--fs-tiny); }
     /* Pas de croix de retrait au doigt : à 11px dans une étiquette de 9px, la
        cible est trop petite pour être visée sans erreur — et se tromper retire
        une étiquette. Le retrait se fait depuis la fiche, où il y a la place. */

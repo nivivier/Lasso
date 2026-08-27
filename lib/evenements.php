@@ -918,9 +918,11 @@ function evenement_structures_liees(int $evenementId): array
         // couleur par étiquette, séparateurs char(31)/char(30) — pour que les
         // mini-fiches de la carte « Organisation » les affichent comme ailleurs.
         "SELECT s.*, s.adresse_localite AS ville, s.sous_categorie AS type, es.est_facturation,
-                (SELECT GROUP_CONCAT(t.nom || char(31) || COALESCE(t.couleur, ''), char(30))
-                   FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
-                  WHERE tl.structure_id = s.id) AS tags_noms
+                (SELECT GROUP_CONCAT(paire, char(30)) FROM (
+                    SELECT t.nom || char(31) || COALESCE(t.couleur, '') AS paire
+                      FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
+                     WHERE tl.structure_id = s.id ORDER BY SANS_ACCENTS(t.nom)
+                 )) AS tags_noms
            FROM structures s
          JOIN evenement_structures es ON es.structure_id = s.id
          WHERE es.evenement_id = ? ORDER BY es.id"
