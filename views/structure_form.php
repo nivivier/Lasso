@@ -664,12 +664,15 @@ lassoInitTagSuggest();
 </div>
 <?php endif; ?>
 
-<div class="card section-editable">
+<?php // Pas de bascule « mode édition » sur cette carte : la commande d'ajout est
+      // toujours là, et chaque ligne porte son propre crayon (révélé au survol,
+      // permanent au tactile — voir .contact-read .contact-edit-btn, app.css).
+      // Un mode global obligeait à deux clics avant toute modification. ?>
+<div class="card">
     <div class="card-head-row">
         <h2 class="mt-0">Contacts</h2>
         <?php if ($peutEcrireBooking): ?>
-        <button type="button" class="btn ghost btn-sm icon-only edit-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('plus') ?></button>
-        <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les contacts"><?= icon('pencil') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('user-plus') ?></button>
         <?php endif; ?>
     </div>
     <?php foreach ($contacts as $c): ?>
@@ -677,7 +680,7 @@ lassoInitTagSuggest();
             <div class="linked-add contact-read <?= $c['actif'] ? '' : 'inactif' ?>">
                 <span>
                     <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
-                    <?php if ($c['est_administration']): ?><span class="badge">administration</span><?php endif; ?>
+                    <?php if ($c['est_administration']): ?><span class="badge">facturation</span><?php endif; ?>
                     <?php if ($c['est_booking']): ?><span class="badge">booking</span><?php endif; ?>
                     <?php if ($c['desinscrit']): ?><span class="badge muted-badge">Désinscrit</span><?php endif; ?>
                     <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
@@ -686,31 +689,18 @@ lassoInitTagSuggest();
                     <?php if ($c['formulaire_url']): ?><div class="muted small"> — <a href="<?= e($c['formulaire_url']) ?>" target="_blank" rel="noopener">Formulaire</a></div><?php endif; ?>
                     <?php if ($c['langue']): ?><span class="muted small"><?= e($c['langue']) ?></span><?php endif; ?>
                 </span>
-                <button type="button" class="btn ghost btn-sm icon-only contact-edit-btn edit-only" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                <form method="post" action="?p=structure_contact_delete" class="edit-only" data-confirm="Supprimer ce contact ?">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                    <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                    <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
-                </form>
+                <?php if ($peutEcrireBooking): ?>
+                <button type="button" class="btn ghost btn-sm icon-only contact-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                <?php endif; ?>
             </div>
-            <form method="post" action="?p=structure_contact_ajouter" class="grid3 contact-edit-form" hidden>
+            <?php $cfContact = $c; $cfSid = $sid; require __DIR__ . '/_structure_contact_form.php'; ?>
+            <?php // Suppression : le formulaire vit ICI, à côté du formulaire d'édition
+                  // (jamais dedans, deux <form> ne s'imbriquent pas) ; son bouton est en
+                  // bas du cadre d'édition et le vise par form="contact-del-N". ?>
+            <form method="post" action="?p=structure_contact_delete" id="contact-del-<?= (int) $c['id'] ?>" data-confirm="Supprimer ce contact ?" hidden>
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                <input type="hidden" name="contact_id" value="<?= (int) $c['id'] ?>">
-                <label>Prénom <input name="prenom" value="<?= e($c['prenom']) ?>"></label>
-                <label>Nom <input name="nom" value="<?= e($c['nom']) ?>"></label>
-                <label>Rôle <input name="role" value="<?= e($c['role']) ?>" placeholder="ex. Programmation"></label>
-                <label>E-mail <input name="email" type="email" value="<?= e($c['email']) ?>"></label>
-                <label>Téléphone <input name="telephone" type="tel" value="<?= e($c['telephone']) ?>"></label>
-                <label>Langue <input name="langue" value="<?= e($c['langue']) ?>" placeholder="ex. FR"></label>
-                <label class="grid3-full">Formulaire de contact (URL, optionnel) <input name="formulaire_url" type="url" value="<?= e($c['formulaire_url']) ?>" placeholder="https://…"></label>
-                <label class="check"><input type="checkbox" name="est_administration" value="1" <?= $c['est_administration'] ? 'checked' : '' ?>> Administration <?= info_tip("Contact utilisé par défaut pour l'envoi des factures — un seul à la fois par structure.") ?></label>
-                <label class="check"><input type="checkbox" name="est_booking" value="1" <?= $c['est_booking'] ? 'checked' : '' ?>> Booking <?= info_tip("S'il y a plusieurs contacts, le mailing n'est envoyé qu'à ceux marqués « booking ».") ?></label>
-                <div class="form-actions grid3-full">
-                    <button type="submit" class="btn ghost btn-sm"><?= icon('save') ?> Enregistrer</button>
-                    <button type="button" class="btn ghost btn-sm contact-cancel-btn">Annuler</button>
-                </div>
+                <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
             </form>
         </div>
     <?php endforeach; ?>
@@ -729,31 +719,20 @@ lassoInitTagSuggest();
                     <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
                     <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
                 </span>
+                <?php // Ces contacts appartiennent à une AUTRE structure : on ne les
+                      // modifie pas d'ici (ce serait éditer une fiche qu'on n'a pas
+                      // sous les yeux). Le bouton y mène plutôt, pour qu'aucune ligne
+                      // de la carte ne reste sans commande — une ligne sur deux sans
+                      // bouton laissait croire à un bug d'affichage. Icône « bâtiment »
+                      // et non crayon : il emmène ailleurs, il ne modifie pas ici. ?>
+                <a class="btn ghost btn-sm icon-only contact-lien-btn" href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"
+                   title="Modifier chez « <?= e((string) $c['structure_nom']) ?> »" aria-label="Modifier chez <?= e((string) $c['structure_nom']) ?>"><?= icon('building') ?></a>
             </div>
         <?php endforeach; ?>
     <?php endif; ?>
 
-    <form method="post" action="?p=structure_contact_ajouter" class="grid3" id="nouveau-contact-form" hidden>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="structure_id" value="<?= $sid ?>">
-        <div class="grid2">
-            <label>Prénom <input name="prenom"></label>
-            <label>Nom <input name="nom"></label>
-        </div>
-        <div class="grid2">
-            <label>E-mail <input name="email" type="email"></label>
-            <label>Téléphone <input name="telephone" type="tel"></label>
-        </div>
-        <label>Langue <input name="langue" placeholder="ex. FR"></label>
-        <label class="grid3-full">Formulaire de contact (URL, optionnel) <input name="formulaire_url" type="url" placeholder="https://…"></label>
-        <label class="check"><input type="checkbox" name="est_administration" value="1"> Administration <?= info_tip("Contact utilisé par défaut pour l'envoi des factures — un seul à la fois par structure.") ?></label>
-        <label class="check"><input type="checkbox" name="est_booking" value="1"> Booking <?= info_tip("S'il y a plusieurs contacts, le mailing n'est envoyé qu'à ceux marqués « booking ».") ?></label>
-        <label>Autre rôle<input name="role" placeholder="ex. Programmation"></label>
-        <div class="form-actions grid3-full">
-            <button type="submit" class="btn ghost btn-sm"><?= icon('plus') ?> Ajouter le contact</button>
-            <button type="button" class="btn ghost btn-sm" data-hide="nouveau-contact-form">Annuler</button>
-        </div>
-    </form>
+    <?php $cfContact = null; $cfSid = $sid; require __DIR__ . '/_structure_contact_form.php'; ?>
+
     <script nonce="<?= e(csp_nonce()) ?>">
     (function () {
         document.querySelectorAll('.contact-edit-btn').forEach(function (btn) {
@@ -771,11 +750,12 @@ lassoInitTagSuggest();
             });
         });
 
-        // Crayon d'en-tête : bascule la section en mode édition — seules alors
-        // apparaissent les commandes ajouter/lier/modifier/supprimer (.edit-only,
-        // masquées par défaut, voir app.css). Le crayon devient une croix
-        // (annuler) tant que l'édition est ouverte. En quittant l'édition, on
-        // referme aussi les formulaires d'ajout/édition restés ouverts.
+        // Crayon d'en-tête des AUTRES sections de la fiche (structures liées) :
+        // bascule la section en mode édition — seules alors apparaissent ses
+        // commandes lier/délier (.edit-only, masquées par défaut, voir app.css).
+        // Le crayon devient une croix (annuler) tant que l'édition est ouverte.
+        // La carte Contacts, elle, n'a plus de mode global : chaque ligne porte
+        // son crayon et le formulaire d'ajout est toujours accessible.
         var editToggleIconPencil = <?= json_encode(icon('pencil')) ?>;
         var editToggleIconX = <?= json_encode(icon('x')) ?>;
         document.querySelectorAll('.edit-toggle-btn').forEach(function (btn) {
@@ -787,16 +767,6 @@ lassoInitTagSuggest();
                 btn.innerHTML = on ? editToggleIconX : editToggleIconPencil;
                 btn.title = on ? 'Annuler' : titreDefaut;
                 btn.setAttribute('aria-label', on ? 'Annuler' : titreDefaut);
-                if (!on) {
-                    sec.querySelectorAll('.contact-row').forEach(function (row) {
-                        var ef = row.querySelector('.contact-edit-form');
-                        var rv = row.querySelector('.contact-read');
-                        if (ef) ef.hidden = true;
-                        if (rv) rv.hidden = false;
-                    });
-                    var add = sec.querySelector('#nouveau-contact-form');
-                    if (add) add.hidden = true;
-                }
             });
         });
     })();

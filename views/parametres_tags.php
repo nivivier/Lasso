@@ -22,7 +22,7 @@
             <td>
                 <div class="inline-edit tag-view">
                     <span class="badge tag-apercu"<?= badge_style_html($couleur) ?>><?= e($t['nom']) ?></span>
-                    <span class="muted small"><?= $nb > 0 ? $nb . ' structure' . ($nb > 1 ? 's' : '') : 'inutilisée' ?></span>
+                    <?= compte_structures_html($nb, lien_structures_tag($tid)) ?>
                 </div>
                 <?php if ($peutEcrireTags): ?>
                 <form method="post" action="?p=parametres_tags" class="inline-edit tag-edit-form" hidden>

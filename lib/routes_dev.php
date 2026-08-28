@@ -29,6 +29,8 @@ function route_dev(): void
     $datesAppliqueN  = null;
     $grandesRegionsErr      = null;
     $grandesRegionsAppliqueN = null;
+    $taxonomieErr     = null;
+    $taxonomieCreesN  = null;
     $evenementsLieuxErr        = null;
     $evenementsLieuxLiesN      = null;
     $evenementsLieuxCreesN     = null;
@@ -162,6 +164,18 @@ function route_dev(): void
                     $grandesRegionsAppliqueN = grande_regions_appliquer($lignesSel);
                 }
             }
+        } elseif ($action === 'taxonomie_declarer') {
+            // N'écrit que dans la taxonomie (structure_categories) : aucune
+            // fiche n'est touchée, d'où l'absence de sauvegarde préalable —
+            // contrairement aux actions qui modifient des structures. Les clés
+            // cochées sont reconfrontées à la détection (voir
+            // structures_taxonomie_lire_cles()).
+            $paires = structures_taxonomie_lire_cles($_POST['sel'] ?? []);
+            if (!$paires) {
+                $taxonomieErr = 'Aucune sous-catégorie sélectionnée.';
+            } else {
+                $taxonomieCreesN = structures_taxonomie_synchroniser($paires);
+            }
         } elseif ($action === 'evenements_lieux_lier') {
             $repartition = evenements_lieux_repartir(evenements_lieux_detecter());
             $univoquesSel = array_values(array_filter($repartition['univoques'], fn ($d) => isset($selection[(string) $d['evenement_id']])));
@@ -213,6 +227,9 @@ function route_dev(): void
         'datesErr'       => $datesErr,
         'datesResultat'  => $datesResultat,
         'datesAppliqueN' => $datesAppliqueN,
+        'taxonomieManquantes'    => module_actif('booking') ? structures_taxonomie_manquantes() : [],
+        'taxonomieErr'           => $taxonomieErr,
+        'taxonomieCreesN'        => $taxonomieCreesN,
         'grandesRegions'         => grande_regions_detecter(),
         'grandesRegionsErr'      => $grandesRegionsErr,
         'grandesRegionsAppliqueN' => $grandesRegionsAppliqueN,

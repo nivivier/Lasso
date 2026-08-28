@@ -1,4 +1,4 @@
-<?php /** @var bool $saved */ /** @var ?int $sync */ /** @var ?string $err */ /** @var array $lignes */ /** @var array $map */
+<?php /** @var bool $saved */ /** @var ?string $err */ /** @var array $lignes */ /** @var array $map */
 
 // Options de catégorie racine pour le <select> de repli (reparenter une
 // sous-catégorie sans glisser-déposer) — jamais de « racine » ici, une
@@ -17,17 +17,9 @@ $parentOptions = function (?int $selected) use ($map): string {
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Enregistré.</p><?php endif; ?>
-<?php if ($sync !== null): ?><p class="ok flash"><?= $sync > 0 ? $sync . ' sous-catégorie(s) ajoutée(s) depuis les structures.' : 'Taxonomie déjà à jour — aucune sous-catégorie à ajouter.' ?></p><?php endif; ?>
 <?php if ($err === 'cat_used'): ?><p class="err flash">Suppression impossible : au moins une structure utilise cette catégorie (ou c'est la dernière catégorie restante).</p><?php endif; ?>
 <?php if ($err === 'cat_a_des_enfants'): ?><p class="err flash">Suppression impossible : cette catégorie a encore des sous-catégories — les supprimer ou les déplacer d'abord.</p><?php endif; ?>
 <?php if ($err === 'souscat_used'): ?><p class="err flash">Suppression impossible : au moins une structure utilise cette sous-catégorie.</p><?php endif; ?>
-
-<p class="muted small">
-    Catégories et sous-catégories des structures (booking), utilisées dans les listes de choix des
-    fiches et des filtres. Une sous-catégorie est toujours imbriquée dans une catégorie — glissez une
-    ligne pour la réordonner ou la déplacer vers une autre catégorie. Renommer une entrée met aussi à
-    jour les structures qui l'utilisent déjà.
-</p>
 
 <?php $peutEcrireCat = peut_ecrire('booking'); ?>
 <?php if ($peutEcrireCat): ?>
@@ -44,12 +36,7 @@ $parentOptions = function (?int $selected) use ($map): string {
 <div class="section-head mt-0">
     <h2 class="mt-0">Catégories</h2>
     <?php if ($peutEcrireCat): ?>
-    <form method="post" action="?p=parametres_structures" class="d-inline ml-auto">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="section" value="sync">
-        <button type="submit" class="btn ghost btn-sm" title="Ajouter à la taxonomie les sous-catégories présentes sur des structures (import) mais manquantes ici"><?= icon('calendar-sync') ?> Synchroniser depuis les structures</button>
-    </form>
-    <button type="button" class="btn btn-sm" data-show="cat-add"><?= icon('plus') ?> Nouvelle catégorie</button>
+    <button type="button" class="btn btn-sm ml-auto" data-show="cat-add"><?= icon('plus') ?> Nouvelle catégorie</button>
     <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="categories-card">
@@ -80,9 +67,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                         <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                     <?php endif; ?>
-                    <?php if ($nbUsage > 0): ?>
-                        <a class="badge muted-badge" href="<?= e(lien_structures_categorie($cid)) ?>"><?= $nbUsage ?> structure<?= $nbUsage > 1 ? 's' : '' ?></a>
-                    <?php endif; ?>
+                    <?= compte_structures_html($nbUsage, lien_structures_categorie($cid)) ?>
                 </div>
             </td>
             <td class="actions nowrap">

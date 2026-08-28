@@ -7,6 +7,7 @@
 /** @var array $potentielsIgnores */ /** @var ?string $potentielsErr */
 /** @var ?int $potentielsIgnoresN */ /** @var ?int $potentielsRepriseN */
 /** @var array $grandesRegions */ /** @var ?string $grandesRegionsErr */ /** @var ?int $grandesRegionsAppliqueN */
+/** @var array $taxonomieManquantes */ /** @var ?string $taxonomieErr */ /** @var ?int $taxonomieCreesN */
 /** @var array $evenementsLieuxUnivoques */ /** @var array $evenementsLieuxAmbigues */
 /** @var array $evenementsLieuxAucuneGroupes */ /** @var ?string $evenementsLieuxErr */
 /** @var ?int $evenementsLieuxLiesN */ /** @var ?int $evenementsLieuxCreesN */ /** @var ?int $evenementsLieuxCreesEvN */
@@ -29,6 +30,7 @@ $resumeItems = [
     ['id' => 'doublons-exacts', 'libelle' => 'Doublons exacts', 'n' => $totalGroupes],
     ['id' => 'doublons-potentiels', 'libelle' => 'Doublons potentiels (' . $seuil . ' %)', 'n' => count($potentiels)],
     ['id' => 'grandes-regions', 'libelle' => 'Grandes régions à déduire', 'n' => count($grandesRegions)],
+    ['id' => 'taxonomie', 'libelle' => 'Sous-catégories non déclarées', 'n' => count($taxonomieManquantes)],
     ['id' => 'evenements-lieux', 'libelle' => 'Événements sans lieu rattaché', 'n' => $nbEvenementsATraiter],
 ];
 $resumeTotal = array_sum(array_column($resumeItems, 'n'));
@@ -358,6 +360,47 @@ $lienFiche = function (string $type, int $id): string {
             <button type="submit"><?= icon('map-pin') ?> Appliquer aux fiches cochées</button>
         </form>
         <p class="muted small">Une sauvegarde de la base est faite automatiquement avant l'écriture.</p>
+    <?php endif; ?>
+</div>
+
+<div class="card mt-22" id="taxonomie">
+    <h2 class="mt-0">Sous-catégories non déclarées</h2>
+    <p class="muted small">
+        Sous-catégories portées par des structures (souvent venues d'un import) mais absentes de
+        Paramètres → Catégories : elles s'affichent sur les fiches sans figurer dans les listes de
+        choix ni dans les filtres. Les déclarer les ajoute sous leur catégorie racine, sans toucher
+        aux structures elles-mêmes.
+    </p>
+
+    <?php if ($taxonomieErr): ?><p class="err"><?= e($taxonomieErr) ?></p><?php endif; ?>
+    <?php if ($taxonomieCreesN !== null): ?>
+        <p class="ok flash"><?= $taxonomieCreesN ?> sous-catégorie(s) ajoutée(s) à la taxonomie.</p>
+    <?php endif; ?>
+
+    <?php if (!$taxonomieManquantes): ?>
+        <p class="muted">Aucun écart — toutes les sous-catégories utilisées sont déclarées.</p>
+    <?php else: ?>
+        <p><?= count($taxonomieManquantes) ?> sous-catégorie(s) non déclarée(s).</p>
+        <div class="table-scroll">
+        <table class="list">
+            <thead><tr><th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th><th>Catégorie</th><th>Sous-catégorie</th><th>Structures</th></tr></thead>
+            <tbody>
+            <?php foreach ($taxonomieManquantes as $t): ?>
+                <tr>
+                    <td class="col-check"><input type="checkbox" name="sel[]" value="<?= e($t['cle']) ?>" form="dev-taxo-form" class="row-check"></td>
+                    <td class="muted small"><?= e($t['categorie']) ?></td>
+                    <td><?= e($t['nom']) ?></td>
+                    <td class="muted small"><?= (int) $t['nb'] ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <form method="post" action="?p=dev" class="mt-16" id="dev-taxo-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="taxonomie_declarer">
+            <button type="submit"><?= icon('calendar-sync') ?> Déclarer les sous-catégories cochées</button>
+        </form>
     <?php endif; ?>
 </div>
 

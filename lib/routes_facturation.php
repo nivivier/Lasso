@@ -531,6 +531,14 @@ function structures_filtres(): array
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
     // mémorisé en session : lien ponctuel, pas un mode de travail courant.
     $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
+    // Région (colonne grande_region) : filtre d'appoint porté par les liens de
+    // ?p=parametres_pays, sans entonnoir ni colonne dans la liste. Comme
+    // non_localises, il n'est JAMAIS mémorisé en session — un lien ponctuel,
+    // pas un mode de travail — et un bandeau signale qu'il est actif (sans quoi
+    // la liste paraîtrait amputée sans raison visible). Les liens qui le posent
+    // y joignent toujours le pays : deux pays peuvent avoir une région
+    // homonyme (« Nord » par exemple), et le compte annoncé porte sur le couple.
+    $region = trim((string) ($_GET['region'] ?? ''));
     // Filtres avancés « lieu » (jauge, mois) : depuis la fusion
     // lieux→structures (migration_59/60), ces champs vivent directement sur la
     // structure — filtre simple sur ses propres colonnes, plus d'indirection
@@ -597,6 +605,10 @@ function structures_filtres(): array
     if ($nonLocalises) {
         $where .= geocodage_non_localises_where('s.adresse_localite', 's.departement_canton', 's.adresse_pays');
     }
+    if ($region !== '') {
+        $where .= ' AND s.grande_region = ?';
+        $params[] = $region;
+    }
     if ($tagId) {
         $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . sql_in($tagId) . '))';
         $params = array_merge($params, $tagId);
@@ -647,6 +659,7 @@ function structures_filtres(): array
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
         'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'nonLocalises' => $nonLocalises,
+        'region' => $region,
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
         'avecEvenements' => $avecEvenements,
@@ -695,6 +708,7 @@ function route_structures(): void
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
     $lieuMoisProg = $f['lieuMoisProg'];
     $nonLocalises = $f['nonLocalises'];
+    $region = $f['region'];
     $avecEvenements = $f['avecEvenements'];
     $majPeriode = $f['majPeriode'];
     $contactPeriode = $f['contactPeriode'];
@@ -827,6 +841,7 @@ function route_structures(): void
             'tagId' => $tagId, 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
+            'region' => $region,
             'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             // Les étiquettes servent au panneau « Filtres » de la carte comme
@@ -942,6 +957,7 @@ function route_structures(): void
         'lieuMoisEvenement' => $lieuMoisEvenement,
         'lieuMoisProg' => $lieuMoisProg,
         'nonLocalises' => $nonLocalises,
+        'region' => $region,
         'avecEvenements' => $avecEvenements,
         'majPeriode' => $majPeriode,
         'contactPeriode' => $contactPeriode,
@@ -957,6 +973,7 @@ function route_structures(): void
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
+            'region' => $region,
             // Structures est partagée par 3 groupes de nav (booking/facturation/
             // evenements) — reporté dans les liens de pagination pour que le
             // rail/bandeau reste dans le groupe de provenance (voir la même

@@ -39,7 +39,7 @@ if (module_actif('salaires') && peut_lire('salaires')) {
 
 $ptCatSections = ['parametres_pays' => 'Pays'];
 if (module_actif('booking') && peut_lire('booking')) {
-    $ptCatSections['parametres_structures'] = 'Structures';
+    $ptCatSections['parametres_structures'] = 'Catégories';
     $ptCatSections['parametres_tags']       = 'Étiquettes';
 }
 $ptGroupes['categories'] = ['Catégories', $ptCatSections];
@@ -94,7 +94,31 @@ foreach ($ptGroupes as $ptCle => $ptG) {
     }
 }
 $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [];
+
+// Arrivée depuis un module (?depuis=booking sur Pays/Catégories/Étiquettes,
+// posé par l'onglet « Catégories » du bandeau Booking) : c'est le bandeau DU
+// MODULE qui coiffe la page, pas celui des paramètres — sinon cliquer cet
+// onglet donnait l'impression de quitter le booking. Les sous-onglets
+// (Pays / Catégories / Étiquettes) restent les mêmes et emportent la
+// provenance, pour qu'on ne retombe pas dans Paramètres en passant de l'un à
+// l'autre. Sans ?depuis= valide — lien direct, favori, navigation depuis
+// Paramètres — rien ne change.
+$ptDepuis = (string) ($_GET['depuis'] ?? '');
+$ptDansModule = false;
+if ($ptDepuis !== '') {
+    $ntGroupes = nav_groupes();
+    $ntCle = nav_groupe_actif($ntGroupes, $ptCurParam, $ptDepuis);
+    if ($ntCle === $ptDepuis) {
+        $ptDansModule = true;
+        $ntLabel   = $ntGroupes[$ntCle][0];
+        $ntOnglets = $ntGroupes[$ntCle][2];
+    }
+}
+$ptSuffixeDepuis = $ptDansModule ? '&depuis=' . rawurlencode($ptDepuis) : '';
 ?>
+<?php if ($ptDansModule): ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
+<?php else: ?>
 <div class="page-head-band">
 <div class="page-head">
     <div class="page-head-title">
@@ -107,6 +131,7 @@ $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [
     </nav>
 </div>
 </div>
+<?php endif; ?>
 <?php if (count($ptSectionsActives) > 1): ?>
 <nav class="param-subtabs">
     <?php
@@ -118,7 +143,7 @@ $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [
     ?>
     <?php foreach ($ptSectionsActives as $ptRoute => $ptLib): ?>
         <?php $ptOn = $ptCurParam === $ptRoute || ($ptRoute === $ptPremiereSection && in_array($ptCurParam, $ptAliasesGroupe, true)); ?>
-        <a href="?p=<?= $ptRoute ?>" class="<?= $ptOn ? 'on' : '' ?>"><?= e($ptLib) ?></a>
+        <a href="?p=<?= $ptRoute ?><?= $ptSuffixeDepuis ?>" class="<?= $ptOn ? 'on' : '' ?>"><?= e($ptLib) ?></a>
     <?php endforeach; ?>
 </nav>
 <?php endif; ?>

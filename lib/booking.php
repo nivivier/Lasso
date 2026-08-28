@@ -514,9 +514,10 @@ function structure_tags_paires(int $structureId): array
     return array_map(fn ($r) => [(int) $r['id'], (string) $r['nom'], (string) $r['couleur']], $stmt->fetchAll());
 }
 
-// Lien vers ?p=structures filtré sur UNE catégorie, tous les autres filtres
-// remis à zéro — pour les compteurs « N structures » de Paramètres → Catégories,
-// qui doivent mener à exactement ces N fiches.
+// Lien vers ?p=structures filtré sur UNE valeur (une catégorie, une étiquette,
+// un pays, une région), tous les autres filtres remis à zéro — pour les
+// compteurs « N structures » des trois écrans de Paramètres → Catégories, qui
+// doivent mener à exactement ces N fiches.
 //
 // Deux pièges que ce lien contournait mal :
 //   - filtre_coche() n'accepte une valeur de l'URL que si le marqueur « _set »
@@ -530,16 +531,15 @@ function structure_tags_paires(int $structureId): array
 //
 // « statut » vidé et non laissé par défaut : la page Paramètres compte TOUTES
 // les structures, y compris inactives, et son lien doit montrer les mêmes.
-function lien_structures_categorie(int $categorieId): string
+function lien_structures_filtre(array $filtres): string
 {
-    $params = [
-        'p' => 'structures',
-        'categorie_id' => [$categorieId],
-        'categorie_id_set' => 1,
-    ];
-    foreach (['statut', 'pays', 'departement_canton', 'tag_id', 'avec_evenements',
-              'contact_periode', 'maj_periode'] as $f) {
+    $params = ['p' => 'structures'];
+    foreach (['categorie_id', 'statut', 'pays', 'departement_canton', 'tag_id',
+              'avec_evenements', 'contact_periode', 'maj_periode'] as $f) {
         $params[$f . '_set'] = 1;
+        if (isset($filtres[$f])) {
+            $params[$f] = $filtres[$f];
+        }
     }
     // Jauge et mois ne sont pas des cases à cocher : filtre_persistant() les
     // écrase dès que la clé est présente en GET, même vide.
@@ -549,7 +549,56 @@ function lien_structures_categorie(int $categorieId): string
     $params['lieu_mois_evenement'] = 0;
     $params['lieu_mois_prog'] = 0;
     $params['q'] = '';
+    // « region » n'est pas une case à cocher mais un filtre d'appoint porté par
+    // l'URL seule (voir structures_filtres()) : son absence suffit à l'éteindre,
+    // il n'a donc pas de marqueur « _set » à poser.
+    if (isset($filtres['region'])) {
+        $params['region'] = $filtres['region'];
+    }
     return '?' . http_build_query($params);
+}
+
+function lien_structures_categorie(int $categorieId): string
+{
+    return lien_structures_filtre(['categorie_id' => [$categorieId]]);
+}
+
+function lien_structures_tag(int $tagId): string
+{
+    return lien_structures_filtre(['tag_id' => [$tagId]]);
+}
+
+// Un pays : filtre « pays » ordinaire. Une région : le pays PLUS la région,
+// car deux pays peuvent porter une région homonyme et le compte affiché est
+// lui-même calculé sur le couple (voir route_parametres_pays()).
+function lien_structures_pays(string $pays, string $region = ''): string
+{
+    $filtres = ['pays' => [$pays]];
+    if ($region !== '') {
+        $filtres['region'] = $region;
+    }
+    return lien_structures_filtre($filtres);
+}
+
+// Compte de structures affiché sous une entrée de paramètres — étiquette,
+// catégorie, pays ou région. Même forme sur les trois écrans (celle des
+// étiquettes, la plus ancienne) : un texte discret, cliquable quand la liste
+// des structures est accessible. $vide porte l'accord du mot (« inutilisé »
+// pour un pays, « inutilisée » pour une étiquette).
+function compte_structures_html(int $nb, string $lien = '', string $vide = 'inutilisée'): string
+{
+    if ($nb <= 0) {
+        return '<span class="muted small">' . e($vide) . '</span>';
+    }
+    $txt = $nb . ' structure' . ($nb > 1 ? 's' : '');
+    // ?p=parametres_pays est un écran « cœur » : son visiteur peut très bien
+    // n'avoir aucun droit sur le booking. Le compte reste (il sert aussi à la
+    // réaffectation avant suppression), mais pas le lien vers une liste qui lui
+    // serait refusée.
+    if ($lien === '' || !module_accessible('booking')) {
+        return '<span class="muted small">' . $txt . '</span>';
+    }
+    return '<a class="muted small compte-structures" href="' . e($lien) . '" title="Voir ces structures">' . $txt . '</a>';
 }
 
 // Renomme une étiquette. Renvoie false si le nom est vide ou déjà pris par une
@@ -1434,18 +1483,43 @@ function structures_analyser_import(array $lignes, array $mapping): array
 // le max existant du même parent. Renvoie le nombre de sous-catégories créées.
 function structures_taxonomie_assurer(array $paires): int
 {
+    $aCreer = structures_taxonomie_a_creer($paires);
+    if (!$aCreer) {
+        return 0;
+    }
+    // Ordre : à la suite des sous-catégories déjà présentes sous le même parent.
+    $maxOrdre = [];
+    foreach (structure_categorie_map() as $r) {
+        $pid = plan_pid($r['parent_id'] ?? null);
+        $maxOrdre[$pid] = max($maxOrdre[$pid] ?? 0, (int) $r['ordre']);
+    }
+    $ins = db()->prepare('INSERT OR IGNORE INTO structure_categories (nom, parent_id, ordre) VALUES (?, ?, ?)');
+    foreach ($aCreer as $c) {
+        $ordre = ($maxOrdre[$c['parent']] ?? 0) + 1;
+        $maxOrdre[$c['parent']] = $ordre;
+        $ins->execute([$c['nom'], $c['parent'], $ordre]);
+    }
+    return count($aCreer);
+}
+
+// Ce que structures_taxonomie_assurer() créerait, sans rien écrire : clé pliée
+// « idParent|nom sans accents » => ['parent' => id racine, 'nom' => sous-cat,
+// 'categorie' => nom de la racine]. Séparé pour que ?p=dev puisse MONTRER les
+// manques avant de proposer de les combler.
+function structures_taxonomie_a_creer(array $paires): array
+{
     $map = structure_categorie_map();
     $racineId = [];   // clé pliée d'une racine → id
+    $racineNom = [];  // id d'une racine → nom affichable
     $existants = [];  // "parentId|nom plié" déjà présents
-    $maxOrdre = [];   // parentId (0 = racine) → ordre max actuel
     foreach ($map as $r) {
         $pid = plan_pid($r['parent_id'] ?? null);
         if ($pid === 0) {
             $racineId[texte_sans_accents((string) $r['nom'])] = (int) $r['id'];
+            $racineNom[(int) $r['id']] = (string) $r['nom'];
         } else {
             $existants[$pid . '|' . texte_sans_accents((string) $r['nom'])] = true;
         }
-        $maxOrdre[$pid] = max($maxOrdre[$pid] ?? 0, (int) $r['ordre']);
     }
     $aCreer = [];
     foreach ($paires as $p) {
@@ -1461,18 +1535,9 @@ function structures_taxonomie_assurer(array $paires): int
         if (isset($existants[$cle]) || isset($aCreer[$cle])) {
             continue;
         }
-        $aCreer[$cle] = ['parent' => $rid, 'nom' => $sous];
+        $aCreer[$cle] = ['parent' => $rid, 'nom' => $sous, 'categorie' => $racineNom[$rid] ?? ''];
     }
-    if (!$aCreer) {
-        return 0;
-    }
-    $ins = db()->prepare('INSERT OR IGNORE INTO structure_categories (nom, parent_id, ordre) VALUES (?, ?, ?)');
-    foreach ($aCreer as $c) {
-        $ordre = ($maxOrdre[$c['parent']] ?? 0) + 1;
-        $maxOrdre[$c['parent']] = $ordre;
-        $ins->execute([$c['nom'], $c['parent'], $ordre]);
-    }
-    return count($aCreer);
+    return $aCreer;
 }
 
 // Enregistre les sous-catégories rencontrées à l'import (paires issues de
@@ -1489,12 +1554,68 @@ function structures_import_assurer_sous_categories(array $analyse): int
 // Réparation : enregistre dans la taxonomie toutes les sous-catégories déjà
 // présentes sur des structures mais absentes de structure_categories (ex.
 // données importées avant l'ajout de l'enregistrement automatique). Idempotent.
-function structures_taxonomie_synchroniser(): int
+function structures_taxonomie_synchroniser(?array $paires = null): int
 {
-    $paires = db()->query(
-        "SELECT DISTINCT categorie, sous_categorie AS sous FROM structures WHERE sous_categorie <> ''"
+    return structures_taxonomie_assurer($paires ?? structures_taxonomie_paires_utilisees());
+}
+
+// Paires (catégorie racine, sous-catégorie) réellement portées par des
+// structures, avec le nombre de fiches concernées.
+function structures_taxonomie_paires_utilisees(): array
+{
+    return db()->query(
+        "SELECT categorie, sous_categorie AS sous, COUNT(*) AS nb
+           FROM structures WHERE sous_categorie <> ''
+          GROUP BY categorie, sous_categorie
+          ORDER BY categorie, sous_categorie"
     )->fetchAll(PDO::FETCH_ASSOC);
-    return structures_taxonomie_assurer($paires);
+}
+
+// Sous-catégories vues sur des structures mais absentes de la taxonomie — la
+// détection derrière la section « Sous-catégories non déclarées » de ?p=dev.
+// Chaque entrée : ['cle' => clé stable pour la sélection, 'categorie', 'nom',
+// 'nb' => structures concernées].
+function structures_taxonomie_manquantes(): array
+{
+    $utilisees = structures_taxonomie_paires_utilisees();
+    $nbParPaire = [];
+    foreach ($utilisees as $p) {
+        $nbParPaire[(string) $p['categorie'] . "\0" . (string) $p['sous']] = (int) $p['nb'];
+    }
+    $manques = [];
+    foreach (structures_taxonomie_a_creer($utilisees) as $c) {
+        $manques[] = [
+            'cle'       => structures_taxonomie_cle((string) $c['categorie'], (string) $c['nom']),
+            'categorie' => (string) $c['categorie'],
+            'nom'       => (string) $c['nom'],
+            'nb'        => $nbParPaire[(string) $c['categorie'] . "\0" . (string) $c['nom']] ?? 0,
+        ];
+    }
+    return $manques;
+}
+
+// Clé d'une paire dans les cases à cocher de ?p=dev. Encodée : un nom de
+// catégorie peut contenir n'importe quel caractère, séparateur compris.
+function structures_taxonomie_cle(string $categorie, string $sous): string
+{
+    return base64_encode($categorie . "\0" . $sous);
+}
+
+// Paires correspondant aux clés cochées, RECONFRONTÉES à la détection : une clé
+// forgée ou périmée ne crée rien (même principe que doublons_potentiels_*).
+function structures_taxonomie_lire_cles(array $cles): array
+{
+    $valides = [];
+    foreach (structures_taxonomie_manquantes() as $m) {
+        $valides[$m['cle']] = ['categorie' => $m['categorie'], 'sous' => $m['nom']];
+    }
+    $paires = [];
+    foreach ($cles as $cle) {
+        if (isset($valides[(string) $cle])) {
+            $paires[] = $valides[(string) $cle];
+        }
+    }
+    return $paires;
 }
 
 // Champs d'une structure fusionnés à l'import (colonne DB => libellé). Le nom

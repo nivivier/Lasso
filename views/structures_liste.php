@@ -7,7 +7,7 @@
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
 /** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */
-/** @var bool $nonLocalises */ /** @var array $avecEvenements */
+/** @var bool $nonLocalises */ /** @var array $avecEvenements */ /** @var string $region */
 /** @var array $majPeriode */ /** @var array $contactPeriode */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
@@ -19,6 +19,12 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
 $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
+// Même chose pour le filtre « région », posé par les liens de
+// ?p=parametres_pays : il n'a pas d'entonnoir dans l'en-tête, donc rien ne le
+// signalerait sans ce bandeau ni ne permettrait de le quitter.
+$qsSansRegion = $_GET;
+unset($qsSansRegion['region']);
+$lienQuitterRegion = '?' . http_build_query($qsSansRegion);
 
 // Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
 // filtre_colonne_html()/filtre_colonne_actifs_html() dans lib/helpers.php) :
@@ -100,6 +106,7 @@ $montreContacte = $depuisNav !== 'facturation';
 ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
+<?php if ($region !== ''): ?><p class="warn flash">Filtre : structures de la région « <?= e($region) ?> ». <a href="<?= e($lienQuitterRegion) ?>">Quitter ce filtre</a></p><?php endif; ?>
 <?php if ($tagBulk !== null): ?>
 <p class="ok flash">
     <?php if ($tagBulk > 0): ?>

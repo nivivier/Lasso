@@ -396,13 +396,25 @@ function nav_groupes(): array
         // Mailing n'a plus de sous-onglets propres (voir l'ancien
         // views/_mailing_tabs.php, retiré) : ses 4 pages deviennent des
         // onglets de premier niveau au même titre que Structures.
-        $g['booking'] = ['Booking', 'house', [
+        $ongletsBooking = [
             'structures'         => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'mailing'            => ['Suivi', ['mailing'], 0, 'mail'],
             'mailing_campagne'   => ['Nouvelle campagne', ['mailing_campagne'], 0, 'send'],
             'mailing_modeles'    => ['Modèles', ['mailing_modeles'], 0, 'file-text'],
             'mailing_exclusions' => ["Liste d'exclusion", ['mailing_exclusions'], 0, 'mail-x'],
-        ]];
+        ];
+        // Raccourci vers le groupe « Catégories » des paramètres (Pays,
+        // Catégories, Étiquettes) : ces trois référentiels ne servent
+        // pratiquement qu'au booking, mais vivent dans Paramètres — l'onglet
+        // évite d'en ressortir pour y aller. Il mène à la première sous-page
+        // ACCESSIBLE : Pays relève du module « cœur » et non du booking (voir
+        // index.php), un compte booking sans droit cœur y serait refusé.
+        // Les trois routes restent listées pour la mise en surbrillance : une
+        // fois sur place, c'est la barre d'onglets des paramètres qui prend le
+        // relais pour naviguer entre elles (views/_param_tabs.php).
+        $ongletsBooking[peut_lire('coeur') ? 'parametres_pays' : 'parametres_structures'] =
+            ['Catégories', ['parametres_pays', 'parametres_structures', 'parametres_tags'], 0, 'blocks'];
+        $g['booking'] = ['Booking', 'house', $ongletsBooking];
     }
 
     return $cache = $g;
@@ -430,6 +442,14 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     }
     if (!$candidats) {
         return null;
+    }
+    // Les trois référentiels de Paramètres → Catégories figurent dans le
+    // bandeau Booking (onglet « Catégories »), mais ils VIVENT dans les
+    // paramètres : ils n'appartiennent à un module que si le lien le dit.
+    // Sans ce cas particulier, y arriver par Paramètres allumait quand même
+    // Booking dans le rail, sous un bandeau « Paramètres ».
+    if (in_array($route, ['parametres_pays', 'parametres_structures', 'parametres_tags'], true)) {
+        return $depuis !== '' && in_array($depuis, $candidats, true) ? $depuis : null;
     }
     if ($depuis !== '' && in_array($depuis, $candidats, true)) {
         return $depuis;

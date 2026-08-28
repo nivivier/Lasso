@@ -9,6 +9,82 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.3.13] — 2026-08-28
+
+### Ajouté
+- **Les comptes « N structures » des paramètres mènent tous à la liste
+  correspondante.** Ils étaient cliquables sur Catégories seulement ; ils le
+  sont maintenant sur Étiquettes, et la page Pays & régions, qui n'en affichait
+  aucun, en a un par pays et par région. Les trois écrans partagent la même
+  forme (celle des étiquettes, la plus ancienne) et le même lien, produit par
+  `lien_structures_filtre()` — donc les mêmes garanties qu'en 2.3.12 : tous les
+  autres filtres remis à zéro, statut compris. Vérifié sur les 105 liens que
+  produisent aujourd'hui étiquettes, pays, régions et catégories, session
+  volontairement salie avant chacun : aucun écart entre le compte annoncé et le
+  nombre de lignes obtenues.
+- **Filtre « région » sur ?p=structures**, porté par l'URL seule. Sans lui, le
+  compte d'une région (2823 structures sur 2949 en portent une) n'aurait mené
+  nulle part : la liste n'a pas de colonne `grande_region`. Comme
+  `non_localises`, il n'a pas d'entonnoir, n'est jamais mémorisé en session, et
+  un bandeau signale qu'il est actif avec de quoi le quitter. Les liens qui le
+  posent y joignent toujours le pays — deux pays peuvent avoir une région
+  homonyme.
+- **Onglet « Catégories » dans le module Booking**, vers les trois référentiels
+  Pays / Catégories / Étiquettes. Arrivé par lui (`?depuis=booking`), ces pages
+  sont coiffées du bandeau Booking et non de celui des paramètres, et leurs
+  sous-onglets emportent la provenance : on ne retombe plus dans Paramètres en
+  passant de l'un à l'autre. Sans provenance explicite — lien direct, favori,
+  navigation depuis Paramètres — rien ne change, `nav_groupe_actif()` ne
+  rattachant ces trois routes à un module que si le lien le dit.
+
+### Modifié
+- **Formulaire de contact de ?p=structure, repris entièrement.** L'ajout et la
+  modification avaient divergé (ordre des champs différent, « Rôle » contre
+  « Autre rôle », des `.grid2` imbriqués dans une `.grid3` qui écrasaient
+  Prénom/Nom sur un tiers de largeur) : ils partagent désormais un seul
+  balisage, `views/_structure_contact_form.php`. Surtout, la carte n'avait pas
+  la classe `.form` — sans elle aucun `<label>` n'hérite du style de champ du
+  site, d'où des libellés collés à leur champ et des rangées empilées sans
+  respiration. Quatre rangées maintenant : Prénom/Nom, Rôle, E-mail/Téléphone,
+  puis formulaire de contact (toute la largeur) et langue (la sienne).
+- **« Administration » devient « Facturation »** sur la case comme sur la
+  pastille de la ligne. Le mot change à l'écran, pas la donnée
+  (`est_administration`) ni le comportement.
+- **Rôle en une ligne** : les deux rôles fonctionnels et le rôle en clair
+  répondent à la même question, ils tiennent sous un libellé unique, avec une
+  seule infobulle pour les deux cases au lieu d'une chacune.
+- **Plus de mode « édition » global sur la carte Contacts** : la commande
+  d'ajout est toujours là (icône seule, à droite), et chaque ligne porte son
+  crayon, révélé au survol de sa ligne et permanent au tactile. Il fallait deux
+  clics avant la moindre correction.
+- **Cadre d'édition compacté** : champs à 6px de marge interne au lieu de 10
+  (43px → 35px de haut), rangées resserrées, filet interne supprimé — le cadre
+  s'ouvre au milieu d'une liste, il ne doit pas repousser le reste hors de
+  l'écran. Une seule respiration verticale, 10px : `.fieldset-groupe .grid2`
+  ajoutait 14px sous chaque paire de champs, qui s'empilaient sur les 10px des
+  libellés et donnaient deux écarts à 24px pour trois à 10px.
+- **Annuler et enregistrer en haut à droite du cadre**, en icônes ;
+  **supprimer en bas**, au style `danger` de tous les boutons de suppression du
+  site. Deux `<form>` ne pouvant pas s'imbriquer, la suppression est posée à
+  côté du formulaire d'édition et son bouton la vise par `form="contact-del-N"`.
+- **Les contacts venus des structures liées ont enfin une commande** : une
+  ligne sur deux sans bouton laissait croire à un bug d'affichage. Ils
+  appartiennent à une autre fiche et ne se modifient pas d'ici — le bouton
+  (icône « bâtiment », pas un crayon) mène à leur structure d'origine.
+- **Sous-catégories des filtres de colonne, suite de 2.3.12** : l'onglet
+  « Structures » des paramètres s'appelle maintenant « Catégories », et la page
+  perd son paragraphe d'introduction.
+
+### Déplacé
+- **« Synchroniser depuis les structures » quitte Paramètres → Catégories pour
+  ?p=dev**, où il devient une section « Sous-catégories non déclarées » : au
+  lieu d'un bouton qui agissait à l'aveugle, la liste de ce qui manque
+  (catégorie, sous-catégorie, nombre de structures concernées), des cases à
+  cocher et une application à la seule sélection — mêmes conventions que les
+  autres outils de la page, résumé en tête compris. Les clés cochées sont
+  reconfrontées à la détection avant écriture. Aucune sauvegarde préalable :
+  l'action n'écrit que dans la taxonomie, jamais sur une fiche.
+
 ## [2.3.12] — 2026-08-27
 
 ### Modifié

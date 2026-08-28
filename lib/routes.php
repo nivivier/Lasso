@@ -668,9 +668,19 @@ function route_parametres_pays(): void
     // Usage de chaque région (pour la réaffectation à la suppression), indexé par
     // id : nombre de fiches structures du même pays portant ce nom.
     $map = $paysMap();
+    // Idem pour les pays, mais affiché seulement : un pays encore utilisé ne se
+    // supprime pas (pas de réaffectation possible), le compte y sert de compte.
+    $usageParNom = [];
+    foreach (db()->query('SELECT adresse_pays AS nom, COUNT(*) n FROM structures GROUP BY adresse_pays') as $r) {
+        $usageParNom[(string) $r['nom']] = (int) $r['n'];
+    }
+    $usagePays = [];
     $usageRegion = [];
     foreach ($map as $id => $r) {
-        if (plan_pid($r['parent_id'] ?? null) === 0) { continue; }
+        if (plan_pid($r['parent_id'] ?? null) === 0) {
+            $usagePays[(int) $id] = $usageParNom[(string) $r['nom']] ?? 0;
+            continue;
+        }
         $paysNom = (string) ($map[plan_pid($r['parent_id'] ?? null)]['nom'] ?? '');
         $sS = db()->prepare('SELECT COUNT(*) FROM structures WHERE grande_region = ? AND adresse_pays = ?');
         $sS->execute([$r['nom'], $paysNom]);
@@ -682,6 +692,7 @@ function route_parametres_pays(): void
         'lignes' => plan_liste_ordonnee($map),
         'map' => $map,
         'usageRegion' => $usageRegion,
+        'usagePays' => $usagePays,
     ], 'Paramètres — Pays');
 }
 

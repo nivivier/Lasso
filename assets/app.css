@@ -1528,6 +1528,69 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
 .contact-row { margin-bottom: 0; }
 :is(.linked-add, .contact-row):not(.souscat-row) + * { margin-top: 16px; }
+
+/* Formulaire d'un contact de structure (?p=structure, views/_structure_contact_form.php) :
+   un seul balisage pour l'ajout et la modification. Il porte la classe .form —
+   sans elle, ses <label> n'héritent d'aucun style de champ (« .form label »,
+   plus haut) et les rangées se collent les unes aux autres.
+   Quatre rangées : Prénom/Nom, Rôle, E-mail/Téléphone, puis formulaire + langue. */
+/* Cadre volontairement compact : il s'ouvre À L'INTÉRIEUR d'une liste, entre
+   deux contacts, et doit rester lisible d'un coup d'œil plutôt que repousser
+   le reste de la carte hors de l'écran. D'où des champs plus bas que la norme
+   du site (6px de marge interne au lieu de 10) et des rangées plus serrées.
+   Le sélecteur des champs répète le :not() de la règle générale
+   (input:not([type=checkbox]):not([type=radio]), 0,2,1) : une seule classe ne
+   suffirait pas à l'emporter. */
+.contact-edit { margin: 14px 0 0; padding: 12px 14px 14px; background: var(--surface); }
+.contact-edit input:not([type="checkbox"]):not([type="radio"]),
+.contact-edit select { padding: 6px 9px; }
+.contact-edit label, .contact-edit .field-group { margin-bottom: 10px; gap: 4px; }
+/* Une seule respiration verticale dans tout le cadre : 10px, portés par les
+   champs eux-mêmes. « .fieldset-groupe .grid2 » (plus haut) ajoutait 14px sous
+   chaque paire Prénom/Nom et E-mail/Téléphone, qui s'empilaient sur ces 10px —
+   d'où deux écarts à 24px pour trois à 10px, et l'impression de rangées mal
+   alignées. Le cadre garde .fieldset-groupe pour sa bordure, pas pour ça. */
+.contact-edit .grid2 { margin-bottom: 0; }
+.contact-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.contact-edit-titre { font-weight: 700; color: var(--ink); font-size: var(--fs-basic); }
+.contact-edit-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+/* Le crayon d'une ligne de contact ne se montre qu'au survol de SA ligne : une
+   colonne de crayons ferait de la modification le sujet de la carte, alors
+   qu'on vient d'abord y lire une adresse. Même parti que .tag-gerer-crayon.
+   Au tactile (pas de survol possible) il reste visible en permanence. */
+.contact-read > span { flex: 1 1 auto; min-width: 0; }
+.contact-read :is(.contact-edit-btn, .contact-lien-btn) { flex: 0 0 auto; opacity: 0; transition: opacity .12s; }
+.contact-read:hover :is(.contact-edit-btn, .contact-lien-btn),
+.contact-read :is(.contact-edit-btn, .contact-lien-btn):focus-visible { opacity: 1; }
+@media (hover: none) { .contact-read :is(.contact-edit-btn, .contact-lien-btn) { opacity: 1; } }
+/* Supprimer : en bas du cadre, à l'opposé des commandes courantes, et au
+   style « danger » de tous les autres boutons de suppression du site. */
+/* Les deux rôles fonctionnels (qui reçoit les mailings, qui reçoit les factures)
+   et le rôle en clair tiennent sur une ligne sous un libellé unique : c'est la
+   même question. Le champ libre prend ce qui reste. */
+.role-groupe .role-ligne { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.role-groupe .check { margin-bottom: 0; font-size: var(--fs-basic); white-space: nowrap; }
+/* Base de 80px et non 200 : c'est la largeur en dessous de laquelle le champ
+   passerait à la ligne. Un mot comme « Programmation » y reste lisible une
+   fois saisi, et la ligne Rôle tient d'un seul tenant bien plus longtemps. */
+.role-groupe .role-libre { flex: 1 1 80px; min-width: 0; }
+/* Dernière rangée : l'URL prend toute la largeur, la langue juste la sienne
+   (un code à deux lettres n'a pas besoin d'une demi-carte). */
+.contact-fin { display: flex; align-items: flex-start; gap: 18px; }
+.contact-fin .contact-formulaire { flex: 1 1 auto; min-width: 0; }
+.contact-fin .contact-langue { flex: 0 0 auto; }
+.contact-fin .contact-langue input { width: 6rem; }
+/* Pas de filet au-dessus : le cadre est déjà bordé, un second trait à
+   l'intérieur ne séparait rien qui ne le fût déjà. En revanche un peu plus
+   d'air que la marge inter-champs : entre deux rangées, les 10px de blanc sont
+   suivis d'un libellé qui occupe la place ; ici il n'y a rien, et le bouton
+   remontait contre le dernier champ. 14px de plus rétablissent l'équilibre. */
+.contact-edit-pied { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+@media (max-width: 720px) {
+    .contact-edit .grid2 { grid-template-columns: 1fr; }
+    .contact-fin { flex-direction: column; }
+    .contact-fin .contact-langue { align-self: flex-start; }
+}
 .linked-add select { width: auto; flex: 1; }
 .linked-add .cat-search { flex: 1; }
 /* Le champ occupe toute la largeur disponible → le bouton reste collé à droite. */

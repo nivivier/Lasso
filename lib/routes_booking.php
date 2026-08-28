@@ -753,12 +753,6 @@ function route_parametres_structures(): void
                     }
                 }
             }
-        } elseif ($section === 'sync') {
-            // Enregistre les sous-catégories déjà présentes sur des structures
-            // (ex. importées) mais absentes de la taxonomie. Idempotent.
-            $n = structures_taxonomie_synchroniser();
-            redirect('parametres_structures', ['sync' => $n]);
-            return;
         }
         redirect('parametres_structures', ['ok' => 1]);
     }
@@ -789,7 +783,6 @@ function route_parametres_structures(): void
     }
     render('parametres_structures', [
         'saved' => isset($_GET['ok']),
-        'sync' => isset($_GET['sync']) ? (int) $_GET['sync'] : null,
         'err' => $_GET['err'] ?? null,
         'lignes' => structure_categories_liste_ordonnee($map),
         'map' => $map,

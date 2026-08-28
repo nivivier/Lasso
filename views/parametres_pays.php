@@ -1,4 +1,4 @@
-<?php /** @var bool $saved */ /** @var ?string $err */ /** @var array $lignes */ /** @var array $map */ /** @var array $usageRegion */
+<?php /** @var bool $saved */ /** @var ?string $err */ /** @var array $lignes */ /** @var array $map */ /** @var array $usageRegion */ /** @var array $usagePays */
 
 // Options de PAYS (racines) pour le <select> parent — repli (reparenter une
 // région sans glisser-déposer) et formulaire d'ajout.
@@ -44,7 +44,12 @@ $paysOptions = function (?int $selected) use ($map): string {
     <?php if (!$lignes): ?>
         <tr><td class="muted small">Aucun pays.</td></tr>
     <?php endif; ?>
-    <?php foreach ($lignes as $i => $p): $pid = (int) $p['id']; $prof = (int) $p['profondeur']; $estPays = $prof === 0; ?>
+    <?php foreach ($lignes as $i => $p): $pid = (int) $p['id']; $prof = (int) $p['profondeur']; $estPays = $prof === 0;
+        // Le compte d'une région porte sur le couple (région, pays) — deux pays
+        // peuvent avoir une région homonyme —, celui d'un pays sur le pays seul.
+        $paysParent = $estPays ? (string) $p['nom'] : (string) ($map[plan_pid($p['parent_id'] ?? null)]['nom'] ?? '');
+        $nbStructures = $estPays ? (int) ($usagePays[$pid] ?? 0) : (int) ($usageRegion[$pid] ?? 0);
+        $lienStructures = lien_structures_pays($paysParent, $estPays ? '' : (string) $p['nom']); ?>
         <tr class="plan-row <?= $p['a_enfants'] ? 'plan-groupe' : '' ?>"
             data-id="<?= $pid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>">
             <td>
@@ -68,6 +73,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                         <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
                     </form>
                     <?php endif; ?>
+                    <?= compte_structures_html($nbStructures, $lienStructures, $estPays ? 'inutilisé' : 'inutilisée') ?>
                 </div>
             </td>
             <td class="actions nowrap">
