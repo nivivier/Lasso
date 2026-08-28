@@ -106,6 +106,80 @@ function historique_date_stockee(string $saisie, string $reference = ''): ?strin
     return strlen($reference) > 10 ? $saisie . substr($reference, 10) : $saisie;
 }
 
+// Message écrit depuis une fiche structure : enregistrement du brouillon, ou
+// envoi. Un envoi réussi laisse une trace dans l'historique (type « mailing »,
+// comme une campagne) et met donc à jour la date de dernier contact — c'est le
+// même geste, écrit à une personne plutôt qu'à une liste.
+function route_structure_message(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('structures');
+    }
+    check_csrf();
+    $structureId = (int) ($_POST['structure_id'] ?? 0);
+    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
+    $stmt->execute([$structureId]);
+    $structure = $stmt->fetch();
+    if (!$structure) {
+        redirect('structures');
+    }
+    $contactId = (int) ($_POST['contact_id'] ?? 0);
+    $expediteurId = (int) ($_POST['expediteur_id'] ?? 0);
+    $sujet = trim((string) ($_POST['sujet'] ?? ''));
+    $corps = trim((string) ($_POST['corps'] ?? ''));
+
+    if (($_POST['section'] ?? '') === 'brouillon') {
+        // Destinataire et boîte d'envoi vérifiés avant d'être stockés : un
+        // brouillon garde des références (migration_72), et un identifiant
+        // périmé — contact supprimé, boîte retirée — violerait la clé
+        // étrangère au lieu de simplement retomber sur « à choisir ».
+        $contactValide = null;
+        foreach (structure_contacts_joignables($structureId) as $c) {
+            if ((int) $c['id'] === $contactId) {
+                $contactValide = (int) $c['id'];
+            }
+        }
+        db()->prepare('INSERT OR REPLACE INTO structure_message_brouillons (structure_id, contact_id, expediteur_id, sujet, corps, maj_le)
+                       VALUES (?, ?, ?, ?, ?, datetime(\'now\'))')
+            ->execute([$structureId, $contactValide, mailing_expediteur($expediteurId)['id'] ?? null, $sujet, $corps]);
+        redirect('structure', ['id' => $structureId, 'msg' => 'brouillon']);
+    }
+
+    // Envoi. Le destinataire est revalidé contre la liste des joignables, pas
+    // cru sur parole : un identifiant posté ne prouve ni que le contact
+    // appartient à cette structure, ni qu'il n'a pas été exclu entre-temps.
+    $joignables = structure_contacts_joignables($structureId);
+    $contact = null;
+    foreach ($joignables as $c) {
+        if ((int) $c['id'] === $contactId) {
+            $contact = $c;
+        }
+    }
+    if (!structure_contactable($structure, $joignables) || !$contact || $sujet === '' || $corps === '') {
+        redirect('structure', ['id' => $structureId, 'msg' => 'err']);
+    }
+    // Variables de gabarit résolues côté serveur aussi : le texte peut venir
+    // d'un modèle chargé puis modifié à la main, et un {{prenom}} oublié ne doit
+    // pas partir tel quel.
+    $sujetFinal = mailing_personnaliser($sujet, $structure, $contact);
+    $corpsFinal = mailing_personnaliser($corps, $structure, $contact);
+    $expediteur = mailing_expediteur_ou_defaut($expediteurId);
+    // Copie cachée à l'expéditeur : c'est ce qui tient lieu de « messages
+    // envoyés » pour un message parti d'ici (voir envoyer_mailing_email()).
+    [$ok] = envoyer_mailing_email((string) $contact['email'], $expediteur, $sujetFinal, $corpsFinal, true);
+    if (!$ok) {
+        redirect('structure', ['id' => $structureId, 'msg' => 'envoi_ko']);
+    }
+    $nomContact = trim((string) $contact['prenom'] . ' ' . (string) $contact['nom']);
+    journaliser('structure', $structureId, 'mailing',
+        'E-mail à ' . ($nomContact !== '' ? $nomContact . ' <' . $contact['email'] . '>' : (string) $contact['email'])
+        . ' — ' . $sujetFinal . "\n\n" . $corpsFinal);
+    structure_recalculer_dernier_contact($structureId);
+    db()->prepare('DELETE FROM structure_message_brouillons WHERE structure_id = ?')->execute([$structureId]);
+    redirect('structure', ['id' => $structureId, 'msg' => 'envoye']);
+}
+
 function route_structure_note_ajouter(): void
 {
     require_login();
@@ -527,13 +601,6 @@ function mailing_traiter_token(): string
     return $token;
 }
 
-function mailing_regenerer_token(): string
-{
-    $token = bin2hex(random_bytes(16));
-    db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')->execute(['mailing_traiter_token', $token]);
-    return $token;
-}
-
 function desinscription_secret(): string
 {
     $s = (string) param('desinscription_secret', '');
@@ -855,7 +922,8 @@ function route_mailing_campagne(): void
                 $sujetP = '[TEST] ' . mailing_personnaliser($sujet, $ex['structure'], $ex['contact']);
                 $corpsP = mailing_personnaliser($corps, $ex['structure'], $ex['contact'])
                     . "\n\n---\n(Test — la désinscription réelle figure dans la campagne envoyée.)";
-                [$ok] = envoyer_mailing_email($adresse, (string) param('employeur_email_expediteur'), $sujetP, $corpsP);
+                $expediteurTest = mailing_expediteur_ou_defaut((int) ($_POST['expediteur_id'] ?? 0));
+                [$ok] = envoyer_mailing_email($adresse, $expediteurTest, $sujetP, $corpsP);
                 $res = $ok ? 'test_ok' : 'test_ko';
             }
             redirect('mailing_campagne', mailing_criteres_vers_url(mailing_criteres_depuis($_POST)) + ['previsualiser' => '1', 'msg' => $res]);
@@ -921,12 +989,14 @@ function route_mailing_campagne(): void
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
         'categoriesPourSelect' => structure_categories_pour_select(),
         'ciblages' => db()->query('SELECT id, nom FROM mailing_ciblages ORDER BY nom')->fetchAll(),
-        'modeles' => db()->query('SELECT id, nom, sujet, corps FROM mailing_modeles ORDER BY nom')->fetchAll(),
+        'modeles' => db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll(),
         'criteres' => $criteres,
         'apercu' => $apercu,
         'structuresApercu' => $structuresApercu,
         'totalStructures' => $totalStructures,
         'testEmailDefaut' => (string) param('employeur_email_expediteur'),
+        'expediteurs' => mailing_expediteurs(),
+        'expediteurDefaut' => mailing_expediteur_defaut_libelle(),
         'msg' => $_GET['msg'] ?? null,
     ], 'Mailing — Nouvelle campagne');
 }
@@ -942,9 +1012,32 @@ function route_mailing_modeles(): void
             $nom = trim($_POST['nom'] ?? '');
             $sujet = trim($_POST['sujet'] ?? '');
             $corps = trim($_POST['corps'] ?? '');
-            if ($nom !== '') {
-                db()->prepare('INSERT OR REPLACE INTO mailing_modeles (nom, sujet, corps) VALUES (?, ?, ?)')
-                    ->execute([$nom, $sujet, $corps]);
+            $id = (int) ($_POST['id'] ?? 0);
+            // Expéditeur : jamais la valeur brute du POST — seulement une boîte
+            // déclarée dans Paramètres → E-mails (table mailing_expediteurs).
+            $expediteurId = mailing_expediteur((int) ($_POST['expediteur_id'] ?? 0))['id'] ?? null;
+            if ($nom === '') {
+                // Rien à faire : un modèle sans nom ne peut ni être créé ni
+                // retrouvé (mailing_modeles.nom est UNIQUE et sert de clé).
+            } elseif ($id > 0) {
+                // Modification d'un modèle EXISTANT, donc par identifiant : le
+                // nom peut changer (bouton « Renommer »), il ne peut donc plus
+                // servir de clé. Un INSERT OR REPLACE créerait ici un second
+                // modèle sous le nouveau nom en laissant l'ancien en place.
+                $libre = db()->prepare('SELECT 1 FROM mailing_modeles WHERE nom = ? COLLATE NOCASE AND id <> ?');
+                $libre->execute([$nom, $id]);
+                if ($libre->fetchColumn()) {
+                    redirect('mailing_modeles', ['err' => 'nom_pris']);
+                    return;
+                }
+                db()->prepare('UPDATE mailing_modeles SET nom = ?, sujet = ?, corps = ?, expediteur_id = ? WHERE id = ?')
+                    ->execute([$nom, $sujet, $corps, $expediteurId, $id]);
+            } else {
+                // Création — et écrasement délibéré d'un modèle de même nom :
+                // c'est ce que fait « Enregistrer comme modèle » depuis
+                // ?p=mailing_campagne, qui n'a que le nom saisi à l'écran.
+                db()->prepare('INSERT OR REPLACE INTO mailing_modeles (nom, sujet, corps, expediteur_id) VALUES (?, ?, ?, ?)')
+                    ->execute([$nom, $sujet, $corps, $expediteurId]);
             }
         } elseif ($section === 'modele_delete') {
             db()->prepare('DELETE FROM mailing_modeles WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
@@ -952,8 +1045,11 @@ function route_mailing_modeles(): void
         redirect('mailing_modeles', ['ok' => 1]);
     }
     render('mailing_modeles', [
-        'modeles' => db()->query('SELECT id, nom, sujet, corps FROM mailing_modeles ORDER BY nom')->fetchAll(),
+        'modeles' => db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll(),
+        'expediteurs' => mailing_expediteurs(),
+        'expediteurDefaut' => mailing_expediteur_defaut_libelle(),
         'saved' => isset($_GET['ok']),
+        'err' => $_GET['err'] ?? null,
     ], 'Mailing — Modèles');
 }
 
@@ -1062,15 +1158,19 @@ function route_mailing_envoyer(): void
     $destinataires = mailing_destinataires($criteres);
     // Trace la campagne (historique) puis met chaque destinataire en file en
     // le rattachant à cette campagne (campagne_id) pour les statistiques.
-    db()->prepare('INSERT INTO mailing_campagnes (sujet, corps, criteres, nb_destinataires) VALUES (?, ?, ?, ?)')
-        ->execute([$sujet, $corps, json_encode(mailing_criteres_vers_url($criteres), JSON_UNESCAPED_UNICODE), count($destinataires)]);
+    // Expéditeur figé ici, pas au moment de l'envoi : la file se vide sur
+    // plusieurs jours, et une campagne partie sous une adresse doit finir sous
+    // la même — même si les paramètres changent entre-temps.
+    $expediteurId = mailing_expediteur_ou_defaut((int) ($_POST['expediteur_id'] ?? 0))['id'] ?? null;
+    db()->prepare('INSERT INTO mailing_campagnes (sujet, corps, criteres, nb_destinataires, expediteur_id) VALUES (?, ?, ?, ?, ?)')
+        ->execute([$sujet, $corps, json_encode(mailing_criteres_vers_url($criteres), JSON_UNESCAPED_UNICODE), count($destinataires), $expediteurId]);
     $campagneId = (int) db()->lastInsertId();
-    $ins = db()->prepare('INSERT INTO mailing_file_attente (structure_id, contact_id, sujet, corps, campagne_id) VALUES (?, ?, ?, ?, ?)');
+    $ins = db()->prepare('INSERT INTO mailing_file_attente (structure_id, contact_id, sujet, corps, campagne_id, expediteur_id) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($destinataires as $d) {
         $sujetP = mailing_personnaliser($sujet, $d['structure'], $d['contact']);
         $corpsP = mailing_personnaliser($corps, $d['structure'], $d['contact'])
             . "\n\n---\nPour ne plus recevoir ces e-mails : " . desinscription_url((int) $d['structure']['id'], $d['contact']['id'] ?? null);
-        $ins->execute([(int) $d['structure']['id'], $d['contact']['id'] ?? null, $sujetP, $corpsP, $campagneId]);
+        $ins->execute([(int) $d['structure']['id'], $d['contact']['id'] ?? null, $sujetP, $corpsP, $campagneId, $expediteurId]);
     }
     redirect('mailing', ['ok' => count($destinataires)]);
 }
@@ -1091,7 +1191,6 @@ function route_mailing_traiter(): void
 
     $delai = max(0, (int) param('mailing_delai_secondes', '10'));
     $plafond = max(0, (int) param('mailing_max_par_jour', '200'));
-    $expediteur = (string) param('employeur_email_expediteur');
     $budgetFin = time() + 50; // reste sous un max_execution_time typique d'hébergement mutualisé.
     $dev = APP_ENV === 'dev';
 
@@ -1112,6 +1211,11 @@ function route_mailing_traiter(): void
         $stmtS->execute([(int) $item['structure_id']]);
         $destinataire = $contact['email'] ?? (string) $stmtS->fetchColumn();
 
+        // Chaque ligne porte SA boîte d'envoi (figée à la création de la
+        // campagne) : la file se vide sur plusieurs jours, une campagne partie
+        // sous une adresse doit finir sous la même. Repli sur le premier
+        // expéditeur déclaré pour les lignes antérieures à cette mécanique.
+        $expediteur = mailing_expediteur_ou_defaut((int) ($item['expediteur_id'] ?? 0));
         [$ok] = envoyer_mailing_email($destinataire, $expediteur, $item['sujet'], $item['corps']);
 
         db()->prepare("UPDATE mailing_file_attente SET statut = ? WHERE id = ?")

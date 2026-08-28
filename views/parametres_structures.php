@@ -36,7 +36,7 @@ $parentOptions = function (?int $selected) use ($map): string {
 <div class="section-head mt-0">
     <h2 class="mt-0">Catégories</h2>
     <?php if ($peutEcrireCat): ?>
-    <button type="button" class="btn btn-sm ml-auto" data-show="cat-add"><?= icon('plus') ?> Nouvelle catégorie</button>
+    <button type="button" class="btn ml-auto" data-show="cat-add"><?= icon('plus') ?> Nouvelle catégorie</button>
     <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="categories-card">

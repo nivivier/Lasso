@@ -22,7 +22,7 @@ if ($cfTitre === '') {
 }
 ?>
 <form method="post" action="?p=structure_contact_ajouter"
-      class="form contact-edit fieldset-groupe<?= $cfEdition ? ' contact-edit-form' : '' ?>"
+      class="form cadre-edit fieldset-groupe<?= $cfEdition ? ' contact-edit-form' : '' ?>"
       <?= $cfEdition ? '' : 'id="nouveau-contact-form" ' ?>hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="structure_id" value="<?= (int) $cfSid ?>">
@@ -33,9 +33,9 @@ if ($cfTitre === '') {
     <?php // Annuler et enregistrer en haut à droite du cadre : le formulaire
           // s'ouvre à la place d'une ligne de liste, ses commandes restent donc
           // là où était la ligne, sans faire chercher le bas du bloc. ?>
-    <div class="contact-edit-head">
-        <span class="contact-edit-titre"><?= e($cfTitre) ?></span>
-        <div class="contact-edit-actions">
+    <div class="cadre-edit-head">
+        <span class="cadre-edit-titre"><?= e($cfTitre) ?></span>
+        <div class="cadre-edit-actions">
             <?php if ($cfEdition): ?>
                 <button type="button" class="btn ghost btn-sm icon-only contact-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 <button type="submit" class="btn btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
@@ -81,7 +81,7 @@ if ($cfTitre === '') {
           // pilote un <form> posé À CÔTÉ de celui-ci (attribut form=…) : deux
           // formulaires ne peuvent pas s'imbriquer. Voir views/structure_form.php. ?>
     <?php if ($cfEdition): ?>
-    <div class="contact-edit-pied">
+    <div class="cadre-edit-pied">
         <button type="submit" form="contact-del-<?= (int) $cfC['id'] ?>" class="btn danger btn-sm"><?= icon('trash') ?> Supprimer le contact</button>
     </div>
     <?php endif; ?>

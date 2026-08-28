@@ -37,8 +37,18 @@ const MODULES = [
     ],
     'booking' => [
         'label'       => 'Booking',
-        'description' => 'CRM des structures (salles, festivals, médias) : catégorie, contacts, notes, lieux, mailing ciblé, import CSV. Réutilise les structures (ex-débiteurs) de la Facturation, sans en dépendre.',
+        'description' => 'CRM des structures (salles, festivals, médias) : catégorie, contacts, notes, lieux, messages individuels, import CSV. Réutilise les structures (ex-débiteurs) de la Facturation, sans en dépendre.',
         'requires'    => [],
+    ],
+    // Sous-module : écrire à plusieurs structures d'un coup. Le booking seul
+    // permet déjà d'écrire à UNE structure depuis sa fiche (bouton
+    // « Contacter ») ; celui-ci ajoute le ciblage, la file d'attente et le
+    // suivi des campagnes. Les modèles de message et la liste d'exclusion
+    // restent au booking : le message individuel s'en sert aussi.
+    'mailing' => [
+        'label'       => 'Envois groupés',
+        'description' => "Campagnes de mailing ciblé : sélection des structures, file d'attente à débit maîtrisé, suivi des envois et désinscription.",
+        'requires'    => ['booking'],
     ],
 ];
 
@@ -125,7 +135,7 @@ function route_defaut(): string
 // index.php). Une table de permissions vide pour un utilisateur = aucun
 // accès nulle part ; c'est le premier compte créé (route_setup) qui reçoit
 // tout par défaut, pas les comptes suivants.
-const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking'];
+const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking', 'mailing'];
 
 // --- Fonctions pures (testées sans base de données, tests/permissions_test.php) ---
 
@@ -398,11 +408,17 @@ function nav_groupes(): array
         // onglets de premier niveau au même titre que Structures.
         $ongletsBooking = [
             'structures'         => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
-            'mailing'            => ['Suivi', ['mailing'], 0, 'mail'],
-            'mailing_campagne'   => ['Nouvelle campagne', ['mailing_campagne'], 0, 'send'],
-            'mailing_modeles'    => ['Modèles', ['mailing_modeles'], 0, 'file-text'],
-            'mailing_exclusions' => ["Liste d'exclusion", ['mailing_exclusions'], 0, 'mail-x'],
         ];
+        // Suivi et Nouvelle campagne appartiennent au sous-module « Envois
+        // groupés » : sans lui, le booking garde ses structures, ses modèles de
+        // message et sa liste d'exclusion — dont se sert le bouton
+        // « Contacter » d'une fiche — mais plus le mailing de masse.
+        if (module_actif('mailing') && peut_lire('mailing')) {
+            $ongletsBooking['mailing'] = ['Suivi', ['mailing'], 0, 'mail'];
+            $ongletsBooking['mailing_campagne'] = ['Nouvelle campagne', ['mailing_campagne'], 0, 'send'];
+        }
+        $ongletsBooking['mailing_modeles'] = ['Modèles', ['mailing_modeles'], 0, 'file-text'];
+        $ongletsBooking['mailing_exclusions'] = ["Liste d'exclusion", ['mailing_exclusions'], 0, 'mail-x'];
         // Raccourci vers le groupe « Catégories » des paramètres (Pays,
         // Catégories, Étiquettes) : ces trois référentiels ne servent
         // pratiquement qu'au booking, mais vivent dans Paramètres — l'onglet

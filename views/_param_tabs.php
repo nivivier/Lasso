@@ -28,7 +28,14 @@ if (peut_ecrire('coeur')) {
 }
 
 $ptGroupes['employeur'] = ['Employeur', ['employeur' => 'Employeur']];
-$ptGroupes['emails']    = ['E-mails', ['emails' => 'E-mails']];
+// Deux écrans bien distincts : rien n'est partagé entre les envois généraux
+// (fiches de salaire, factures) et ceux du booking — ni adresses, ni serveur,
+// ni rythme d'envoi.
+$ptEmailsSections = ['emails' => 'Envois généraux'];
+if (module_actif('booking')) {
+    $ptEmailsSections['emails_booking'] = 'Envois pour le booking';
+}
+$ptGroupes['emails']    = ['E-mails', $ptEmailsSections];
 
 if (module_actif('salaires') && peut_lire('salaires')) {
     $ptGroupes['taux'] = ['Taux', [

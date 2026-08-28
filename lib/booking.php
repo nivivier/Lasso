@@ -20,6 +20,13 @@ require_once __DIR__ . '/compta.php'; // plan_pid()/plan_enfants()/plan_est_feui
 // « inactif » en sont toujours exclus.
 const STRUCTURE_STATUTS = ['contact_privilegie', 'actif', 'ne_pas_contacter', 'inactif'];
 
+// Les statuts qui acceptent qu'on écrive à la structure — mailing groupé comme
+// message individuel. UNE seule liste : elle vivait en trois exemplaires (une
+// liste blanche dans mailing_structures_eligibles(), deux listes noires dans le
+// bouton « Contacter » et sa vue), qui ne s'accordaient que parce qu'il n'y a
+// que quatre statuts. Un cinquième les aurait fait diverger en silence.
+const STRUCTURE_STATUTS_CONTACTABLES = ['actif', 'contact_privilegie'];
+
 const STRUCTURE_STATUTS_LIBELLES = [
     'contact_privilegie' => 'Contact privilégié',
     'actif'               => 'Actif',
@@ -107,27 +114,6 @@ function structure_categories_racines(?array $map = null): array
     return array_values(array_filter($map, fn($r) => plan_pid($r['parent_id'] ?? null) === 0));
 }
 
-// Noms des catégories racines — utilisé pour valider structures.categorie
-// (import CSV, formulaire, filtres, bulk change).
-function structure_categories_noms(?array $map = null): array
-{
-    return array_column(structure_categories_racines($map), 'nom');
-}
-
-// Noms de toutes les sous-catégories (tous parents confondus) — utilisé pour
-// valider structures.sous_categorie (filtres).
-function structure_sous_categories_noms(?array $map = null): array
-{
-    $map ??= structure_categorie_map();
-    $noms = [];
-    foreach ($map as $r) {
-        if (plan_pid($r['parent_id'] ?? null) !== 0) {
-            $noms[] = (string) $r['nom'];
-        }
-    }
-    return $noms;
-}
-
 // Résout un id sélectionné dans le dropdown unique (catégorie OU sous-catégorie)
 // en ['categorie' => ..., 'sous_categorie' => ...] — sous_categorie reste vide si
 // une catégorie racine a été choisie directement.
@@ -170,23 +156,6 @@ function structure_categorie_par_defaut(): string
 {
     $racines = structure_categories_racines();
     return $racines ? (string) $racines[0]['nom'] : '';
-}
-
-// Une sous-catégorie est-elle marquée « booking » (décrit un lieu où on peut
-// faire des concerts — Salle, Festival, Théâtre… — voir migration_59) ?
-// Résolution par nom, insensible à la casse : sert notamment à qualifier la
-// sous-catégorie d'une structure au moment de l'import (structure_lier_lieu_importe()
-// devenu obsolète) et à la fusion lieux→structures (lib/dev.php).
-function structure_sous_categorie_est_booking(string $nom): bool
-{
-    if (trim($nom) === '') {
-        return false;
-    }
-    $stmt = db()->prepare(
-        'SELECT est_booking FROM structure_categories WHERE nom = ? COLLATE NOCASE AND parent_id IS NOT NULL LIMIT 1'
-    );
-    $stmt->execute([$nom]);
-    return (bool) $stmt->fetchColumn();
 }
 
 // Noms des sous-catégories « booking » (Salle, Festival, Théâtre…), dans
@@ -622,15 +591,6 @@ function tag_renommer(int $id, string $nom): bool
     return true;
 }
 
-// Nombre de structures portant une étiquette — ce que l'écran annonce avant de
-// confirmer une suppression.
-function tag_nb_structures(int $id): int
-{
-    $stmt = db()->prepare('SELECT COUNT(*) FROM structure_tag_liens WHERE tag_id = ?');
-    $stmt->execute([$id]);
-    return (int) $stmt->fetchColumn();
-}
-
 // Supprime une étiquette. Les liens structure↔étiquette tombent en cascade
 // (structure_tag_liens ON DELETE CASCADE, voir migration_46) : aucune structure
 // n'est supprimée, elles perdent seulement l'étiquette.
@@ -855,8 +815,8 @@ function periode_chevauche(int $debut, int $fin, int $filtreDebut, int $filtreFi
 // non contournable.
 function mailing_structures_eligibles(array $criteres): array
 {
-    $where = ["s.statut IN ('actif','contact_privilegie')"];
-    $params = [];
+    $where = ['s.statut IN (' . sql_in(STRUCTURE_STATUTS_CONTACTABLES) . ')'];
+    $params = STRUCTURE_STATUTS_CONTACTABLES;
 
     // Catégorie/sous-catégorie : une condition par id coché, unies en OR —
     // même logique que structures_filtres() dans lib/routes_facturation.php.
@@ -981,6 +941,114 @@ function mailing_destinataires(array $criteres): array
         }
     }
     return $destinataires;
+}
+
+// Expéditeurs possibles d'un mailing (table mailing_expediteurs, écran
+// Paramètres → E-mails). Un expéditeur n'est pas qu'une adresse : c'est une
+// BOÎTE, avec son propre serveur SMTP — « diffusion@ » et « production@ »
+// peuvent vivre chez deux hébergeurs différents. Les champs SMTP laissés vides
+// retombent sur le profil booking puis sur le profil général
+// (smtp_config_booking(), lib/helpers.php).
+// Le premier de la liste (ordre, puis id) sert de défaut.
+function mailing_expediteurs(): array
+{
+    return db()->query('SELECT * FROM mailing_expediteurs ORDER BY ordre, id')->fetchAll();
+}
+
+// Un expéditeur par identifiant, ou null. Sert aussi de validation : une valeur
+// venue d'un POST qui ne désigne aucune ligne ne donne rien, l'adresse
+// d'expédition n'étant pas un champ libre.
+function mailing_expediteur(?int $id): ?array
+{
+    if (!$id) {
+        return null;
+    }
+    $stmt = db()->prepare('SELECT * FROM mailing_expediteurs WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+// Expéditeur retenu pour un envoi : celui demandé s'il existe, sinon le premier
+// déclaré. Peut être null — aucune boîte déclarée : l'envoi repart alors de
+// l'adresse d'expédition générale, comme avant les expéditeurs multiples.
+function mailing_expediteur_ou_defaut(?int $id): ?array
+{
+    return mailing_expediteur($id) ?? (mailing_expediteurs()[0] ?? null);
+}
+
+// Adresse « De : » d'un expéditeur — « Nom <adresse> » s'il porte un nom, pour
+// que le destinataire voie autre chose qu'une boîte technique.
+function mailing_expediteur_from(?array $expediteur): string
+{
+    if (!$expediteur) {
+        return (string) param('employeur_email_expediteur');
+    }
+    $email = trim((string) $expediteur['email']);
+    $nom = trim((string) $expediteur['nom']);
+    return $nom !== '' ? $nom . ' <' . $email . '>' : $email;
+}
+
+// Libellé du défaut, pour l'option « Par défaut — … » des listes déroulantes.
+function mailing_expediteur_defaut_libelle(): string
+{
+    $d = mailing_expediteurs()[0] ?? null;
+    return $d ? mailing_expediteur_libelle($d) : (string) param('employeur_email_expediteur');
+}
+
+// Libellé d'un expéditeur dans les listes déroulantes.
+function mailing_expediteur_libelle(array $expediteur): string
+{
+    $nom = trim((string) $expediteur['nom']);
+    return $nom !== '' ? $nom . ' — ' . $expediteur['email'] : (string) $expediteur['email'];
+}
+
+// --- Message individuel écrit depuis une fiche structure (bouton « Contacter »)
+
+// Contacts d'une structure joignables par e-mail. Mêmes conditions QUE POUR UN
+// MAILING (mailing_structures_eligibles() ci-dessus) : contact actif, non
+// désinscrit, avec une adresse, et cette adresse hors liste d'exclusion. Se
+// désinscrire d'un mailing pose « desinscrit », pas une ligne d'exclusion (voir
+// route_desinscription()) : ne regarder que la liste d'exclusion aurait laissé
+// écrire à quelqu'un qui vient de demander à ne plus rien recevoir.
+function structure_contacts_joignables(int $structureId): array
+{
+    $stmt = db()->prepare(
+        "SELECT * FROM structure_contacts
+          WHERE structure_id = ? AND actif = 1 AND desinscrit = 0 AND email <> ''
+          ORDER BY est_booking DESC, id"
+    );
+    $stmt->execute([$structureId]);
+    return array_values(array_filter($stmt->fetchAll(), fn ($c) => !mailing_email_exclu((string) $c['email'])));
+}
+
+// Ce qui empêche d'écrire à une structure, en clair — '' si rien ne l'empêche.
+// Une seule fonction pour la décision ET pour sa formulation : le bouton
+// « Contacter » s'affiche désactivé avec cette phrase en infobulle, et la route
+// d'envoi refuse sur la même base. Deux tests séparés auraient fini par ne plus
+// dire la même chose.
+function structure_contact_impossible_raison(array $structure, array $contactsJoignables): string
+{
+    $statut = (string) ($structure['statut'] ?? '');
+    if (!in_array($statut, STRUCTURE_STATUTS_CONTACTABLES, true)) {
+        return 'Structure « ' . structure_statut_libelle($statut) . ' » : on ne la contacte pas.';
+    }
+    if (!$contactsJoignables) {
+        return "Aucun contact joignable : il faut une adresse e-mail hors liste d'exclusion.";
+    }
+    return '';
+}
+
+function structure_contactable(array $structure, array $contactsJoignables): bool
+{
+    return structure_contact_impossible_raison($structure, $contactsJoignables) === '';
+}
+
+// Brouillon en cours pour une structure (un seul, voir migration_72).
+function structure_message_brouillon(int $structureId): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM structure_message_brouillons WHERE structure_id = ?');
+    $stmt->execute([$structureId]);
+    return $stmt->fetch() ?: null;
 }
 
 // Résout les variables {{prenom}}/{{nom_structure}} d'un gabarit de mailing.
@@ -1161,30 +1229,6 @@ function structure_attacher_tag(int $structureId, string $nomTag): void
     }
     db()->prepare('INSERT OR IGNORE INTO structure_tag_liens (structure_id, tag_id) VALUES (?, ?)')
         ->execute([$structureId, (int) $tagId]);
-}
-
-// Structure existante correspondant à une ligne importée : e-mail de contact
-// exact (prioritaire) sinon nom normalisé (casse/espaces/ponctuation ignorés).
-function structure_trouver_correspondance(string $nom, string $emailContact): ?int
-{
-    if ($emailContact !== '') {
-        $stmt = db()->prepare('SELECT structure_id FROM structure_contacts WHERE email = ? COLLATE NOCASE LIMIT 1');
-        $stmt->execute([$emailContact]);
-        $id = $stmt->fetchColumn();
-        if ($id !== false) {
-            return (int) $id;
-        }
-    }
-    $nomNorm = normaliser_nom_structure($nom);
-    if ($nomNorm === '') {
-        return null;
-    }
-    foreach (db()->query('SELECT id, nom FROM structures') as $s) {
-        if (normaliser_nom_structure($s['nom']) === $nomNorm) {
-            return (int) $s['id'];
-        }
-    }
-    return null;
 }
 
 // Mémorise, pour le prochain import, la correspondance choisie sous forme de

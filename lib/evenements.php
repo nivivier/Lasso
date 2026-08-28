@@ -482,16 +482,6 @@ function spectacles_pour_filtre(?array $map = null): array
     return $out;
 }
 
-// Vrai si $id correspond à un spectacle existant — validé avant tout
-// INSERT/UPDATE d'un événement pour éviter une violation de clé étrangère
-// (PRAGMA foreign_keys = ON) sur un id invalide/périmé posté.
-function spectacle_existe(int $id): bool
-{
-    $stmt = db()->prepare('SELECT 1 FROM spectacles WHERE id = ?');
-    $stmt->execute([$id]);
-    return (bool) $stmt->fetchColumn();
-}
-
 // Vrai si $id correspond à un spectacle existant ET assignable (feuille) —
 // un spectacle-parent (groupe/artiste) ne peut jamais être lié directement à
 // un événement. Utilisé côté serveur partout où evenements.spectacle_id est

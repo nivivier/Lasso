@@ -196,8 +196,11 @@ l'historique CRM (visible dans le flux d'une structure) et `dernier_contact_le`.
 ### Paramètres (`parametres`, pas de nouvelle table)
 
 - `smtp_booking_host` / `smtp_booking_port` / `smtp_booking_secure` /
-  `smtp_booking_user` / `smtp_booking_pass` — profil SMTP dédié au booking, facultatif
-  (repli sur le profil SMTP général si vide, §7).
+  `smtp_booking_user` / `smtp_booking_pass` — **hérités**. C'était le profil SMTP
+  unique du booking ; depuis les **boîtes d'expédition multiples** (table
+  `mailing_expediteurs`, migration 71) ils ne sont plus modifiables à l'écran et
+  ne servent plus que de repli intermédiaire entre la boîte choisie et le profil
+  général (§7). La migration reprend cette configuration comme première boîte.
 - `mailing_delai_secondes` — défaut `10`.
 - `mailing_max_par_jour` — défaut `200`.
 - `mailing_traiter_token` — jeton pour la route publique de traitement de la file
@@ -286,15 +289,29 @@ quand aucun SMTP n'est configuré. Pour le booking, l'absence de SMTP configuré
 silencieux — cohérent avec le besoin de maîtriser le débit d'envoi (impossible à garantir
 via `mail()`, qui dépend entièrement des réglages du serveur d'hébergement).
 
-- **Second profil SMTP indépendant**, configurable dans l'onglet Paramètres → E-mails
-  (`views/emails.php`), à côté du profil existant (utilisé aujourd'hui pour
-  fiches/factures) : nouveaux champs `smtp_booking_host`, `smtp_booking_port`,
-  `smtp_booking_secure`, `smtp_booking_user`, `smtp_booking_pass`. **Champs facultatifs**
-  — si laissés vides, le mailing booking retombe sur le profil SMTP général (même
-  logique de repli champ par champ que `smtp_config()` aujourd'hui entre `parametres` et
-  les constantes de `config.local.php`). Permet d'utiliser une boîte d'envoi dédiée pour
-  le booking (volume/réputation distincts d'une boîte RH) sans y être obligé.
-  Nouvelle fonction `smtp_config_booking(): array`, même forme que `smtp_config()`.
+- **Boîtes d'expédition propres au booking**, gérées dans Paramètres → E-mails →
+  *Envois pour le booking* (`views/emails_booking.php`, route `emails_booking`).
+  Table `mailing_expediteurs` : nom affiché, adresse, et **son propre SMTP**
+  (host/port/sécurité/identifiant/mot de passe) — « diffusion@ » et
+  « production@ » peuvent vivre chez deux hébergeurs différents. Chaque champ
+  SMTP laissé vide retombe sur le profil booking hérité, puis sur le profil
+  général : `smtp_config_booking(?array $expediteur = null): array`, même forme
+  que `smtp_config()`.
+  Un **modèle** de message (`mailing_modeles.expediteur_id`) propose une boîte
+  par défaut ; une **campagne** (`mailing_campagnes.expediteur_id`) fixe la
+  sienne, recopiée sur chaque ligne de la file (`mailing_file_attente.expediteur_id`)
+  pour qu'une campagne partie sous une adresse finisse sous la même, même si les
+  réglages changent pendant que la file se vide.
+- **Message individuel depuis une fiche structure** (bouton « Contacter »,
+  route `structure_message`) : même mécanique d'envoi qu'un mailing, mais adressé
+  à un contact précis, avec copie cachée à l'expéditeur (un envoi SMTP ne se range
+  pas tout seul dans le dossier « Envoyés », qui est une notion IMAP). Le bouton
+  est indisponible si la structure est « ne pas contacter »/inactive ou si plus
+  aucun contact n'est joignable — **mêmes conditions que `mailing_destinataires()`** :
+  contact actif, non désinscrit, adresse renseignée et hors liste d'exclusion.
+  Un envoi réussi écrit une entrée d'historique de type `mailing` (donc met à jour
+  la date de dernier contact) ; le message en cours d'écriture est conservé dans
+  `structure_message_brouillons` (un par structure).
 - **Débit d'envoi**, deux réglages dans le même onglet, stockés dans `parametres` :
   - `mailing_delai_secondes` — pause entre deux e-mails, **défaut 10**.
   - `mailing_max_par_jour` — plafond glissant sur 24h, **défaut 200**. Calculé en

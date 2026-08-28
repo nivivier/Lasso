@@ -95,6 +95,10 @@ function run_migrations(PDO $pdo): void
         67 => 'migration_67', // retire structures.type (organisation/particulier) — la catégorie suffit, plus utilisé
         68 => 'migration_68', // index sur login_attempts (comptage anti-force-brute par IP et par compte)
         69 => 'migration_69', // structure_doublons_ignores : paires de structures écartées de la détection des doublons potentiels
+        70 => 'migration_70', // vidée : sa colonne texte « expediteur » est remplacée par « expediteur_id » dès la 71
+        71 => 'migration_71', // mailing_expediteurs : plusieurs boîtes d'envoi, chacune avec son propre SMTP — l'expéditeur devient une référence, plus un texte
+        72 => 'migration_72', // structure_message_brouillons : le message en cours d'écriture depuis une fiche structure (bouton « Contacter »)
+        73 => 'migration_73', // sous-module « Envois groupés » : reprend l'activation et les droits du booking, pour que personne ne perde l'accès au mailing
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2127,4 +2131,125 @@ function migration_69(PDO $pdo): void
     // La lecture se fait toujours par la clé primaire (paire complète) ; cet
     // index sert au sens inverse, l'affichage des exclusions d'une structure.
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_doublons_ignores_b ON structure_doublons_ignores(structure_b)');
+}
+
+// Migration 70 : VIDE, à dessein. Elle ajoutait une colonne texte « expediteur »
+// aux trois tables de mailing, avant qu'un expéditeur ne devienne une BOÎTE avec
+// son propre serveur (migration 71, qui supprime cette colonne et la remplace
+// par « expediteur_id »). Les bases qui l'ont appliquée ont déjà été rattrapées
+// par la 71 ; la vider évite aux bases neuves de créer une colonne pour
+// l'effacer trois lignes plus loin. Le numéro reste occupé : PRAGMA
+// user_version ne se renumérote pas.
+function migration_70(PDO $pdo): void
+{
+}
+
+// Migration 71 : un expéditeur de mailing n'est pas qu'une adresse, c'est une
+// BOÎTE — « diffusion@ » et « production@ » peuvent vivre sur deux serveurs
+// distincts, avec chacun ses identifiants. D'où une table plutôt qu'un
+// paramètre texte (migration_70, qui n'aura vécu qu'un temps), et une référence
+// par identifiant sur les modèles, les campagnes et la file d'attente : renommer
+// une boîte ou changer son mot de passe ne doit pas défaire les campagnes déjà
+// en file.
+// Les champs SMTP laissés vides retombent sur le profil booking, puis sur le
+// profil général (smtp_config_booking(), lib/helpers.php) — une association qui
+// n'a qu'une boîte n'a rien à ressaisir.
+function migration_71(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS mailing_expediteurs (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom         TEXT NOT NULL DEFAULT '',
+            email       TEXT NOT NULL,
+            smtp_host   TEXT NOT NULL DEFAULT '',
+            smtp_port   TEXT NOT NULL DEFAULT '',
+            smtp_secure TEXT NOT NULL DEFAULT '',
+            smtp_user   TEXT NOT NULL DEFAULT '',
+            smtp_pass   TEXT NOT NULL DEFAULT '',
+            ordre       INTEGER NOT NULL DEFAULT 0,
+            cree_le     TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ");
+    // Reprise de la configuration existante : le profil SMTP booking devient le
+    // premier expéditeur, pour que les campagnes continuent de partir de la même
+    // boîte sans intervention. Son adresse : celle d'expédition générale, seule
+    // adresse que le mailing utilisait jusqu'ici.
+    $vide = (int) $pdo->query('SELECT COUNT(*) FROM mailing_expediteurs')->fetchColumn() === 0;
+    if ($vide) {
+        $param = function (string $cle) use ($pdo): string {
+            $st = $pdo->prepare('SELECT valeur FROM parametres WHERE cle = ?');
+            $st->execute([$cle]);
+            return trim((string) $st->fetchColumn());
+        };
+        $email = $param('employeur_email_expediteur') ?: $param('smtp_booking_user');
+        $aConfigBooking = $param('smtp_booking_host') !== '' || $param('smtp_booking_user') !== '';
+        if ($email !== '' && $aConfigBooking) {
+            $pdo->prepare('INSERT INTO mailing_expediteurs (nom, email, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, ordre)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, 0)')
+                ->execute(['', $email, $param('smtp_booking_host'), $param('smtp_booking_port'),
+                           $param('smtp_booking_secure'), $param('smtp_booking_user'), $param('smtp_booking_pass')]);
+        }
+    }
+    foreach (['mailing_modeles', 'mailing_campagnes', 'mailing_file_attente'] as $table) {
+        $cols = array_column($pdo->query("PRAGMA table_info($table)")->fetchAll(), 'name');
+        if (!in_array('expediteur_id', $cols, true)) {
+            $pdo->exec("ALTER TABLE $table ADD COLUMN expediteur_id INTEGER REFERENCES mailing_expediteurs(id) ON DELETE SET NULL");
+        }
+        // La colonne texte de migration_70 n'a plus d'objet. DROP COLUMN
+        // best-effort, comme migration_63/67 (SQLite >= 3.35 seulement).
+        if (in_array('expediteur', $cols, true)) {
+            try { $pdo->exec("ALTER TABLE $table DROP COLUMN expediteur"); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+        }
+    }
+}
+
+// Migration 72 : brouillon du message écrit depuis une fiche structure (bouton
+// « Contacter »). UN brouillon par structure — la clé primaire est la structure
+// elle-même : on écrit à une structure, on s'interrompt, on reprend ; empiler
+// plusieurs brouillons pour un même destinataire n'apporterait qu'un choix de
+// plus à faire en rouvrant la fenêtre.
+// Le contact et l'expéditeur sont des références : un contact supprimé ou une
+// boîte d'envoi retirée ne doivent pas emporter le texte déjà écrit, seulement
+// le destinataire à re-choisir (ON DELETE SET NULL).
+function migration_72(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS structure_message_brouillons (
+            structure_id  INTEGER PRIMARY KEY REFERENCES structures(id) ON DELETE CASCADE,
+            contact_id    INTEGER REFERENCES structure_contacts(id) ON DELETE SET NULL,
+            expediteur_id INTEGER REFERENCES mailing_expediteurs(id) ON DELETE SET NULL,
+            sujet         TEXT NOT NULL DEFAULT '',
+            corps         TEXT NOT NULL DEFAULT '',
+            maj_le        TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ");
+}
+
+// Migration 73 : le mailing de masse devient un sous-module du booking
+// (« mailing », MODULES dans lib/modules.php). Sans reprise, deux régressions
+// silencieuses le jour de la mise à jour :
+//   • « modules_actifs » est une liste EXPLICITE une fois enregistrée — un
+//     identifiant qui n'y figure pas est inactif, donc les pages du mailing
+//     auraient disparu ;
+//   • les droits sont par module (utilisateur_permissions, absence de ligne =
+//     aucun accès) — chaque compte aurait perdu le mailing.
+// On recopie donc l'état du booking : actif s'il l'était, et le même niveau de
+// droit pour chaque compte qui en avait un.
+function migration_73(PDO $pdo): void
+{
+    $st = $pdo->prepare('SELECT valeur FROM parametres WHERE cle = ?');
+    $st->execute(['modules_actifs']);
+    $val = $st->fetchColumn();
+    if ($val !== false) {
+        $ids = array_values(array_filter(array_map('trim', explode(',', (string) $val)), fn ($v) => $v !== ''));
+        if (in_array('booking', $ids, true) && !in_array('mailing', $ids, true)) {
+            $ids[] = 'mailing';
+            $pdo->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+                ->execute(['modules_actifs', implode(',', $ids)]);
+        }
+    }
+    $pdo->exec(
+        "INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau)
+         SELECT utilisateur_id, 'mailing', niveau FROM utilisateur_permissions WHERE module = 'booking'"
+    );
 }

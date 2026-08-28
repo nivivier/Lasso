@@ -1,5 +1,6 @@
 <?php /** @var array $tags */ /** @var array $regions */ /** @var array $grandesRegions */ /** @var array $villes */
 /** @var array $categoriesPourSelect */ /** @var array $ciblages */ /** @var array $modeles */
+/** @var array $expediteurs */ /** @var string $expediteurDefaut */
 /** @var array $criteres */ /** @var ?array $apercu */ /** @var array $structuresApercu */ /** @var int $totalStructures */
 /** @var string $testEmailDefaut */ /** @var ?string $msg */
 
@@ -270,6 +271,20 @@ $critHiddenInputs = function (array $criteres): string {
     <form method="post" action="?p=mailing_envoyer" class="form" id="campagne-form" data-sync-criteres>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <?= $critHiddenInputs($criteres) ?>
+        <?php if ($expediteurs): ?>
+        <?php // Expéditeur de CETTE campagne, choisi parmi les adresses déclarées
+              // dans Paramètres → E-mails. Charger un modèle présélectionne le
+              // sien ; l'expéditeur retenu est figé sur la campagne et sur chaque
+              // ligne de la file d'attente (voir route_mailing_envoyer()). ?>
+        <label>Expéditeur
+            <select name="expediteur_id" id="camp-expediteur">
+                <option value="">Par défaut<?= $expediteurDefaut !== '' ? ' — ' . e($expediteurDefaut) : '' ?></option>
+                <?php foreach ($expediteurs as $ex): ?>
+                    <option value="<?= (int) $ex['id'] ?>"><?= e(mailing_expediteur_libelle($ex)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <?php endif; ?>
         <label>Sujet <input name="sujet" id="camp-sujet" required></label>
         <label><span>Corps <?= info_tip('Variables disponibles : {{prenom}} (contact), {{nom_structure}}.') ?></span>
             <textarea name="corps" id="camp-corps" rows="8" required placeholder="Bonjour {{prenom}},&#10;&#10;…"></textarea>
@@ -315,6 +330,8 @@ $critHiddenInputs = function (array $criteres): string {
         if (!m) return;
         document.getElementById('camp-sujet').value = m.sujet || '';
         document.getElementById('camp-corps').value = m.corps || '';
+        var exp = document.getElementById('camp-expediteur');
+        if (exp) exp.value = m.expediteur_id || '';
     });
     // Enregistrer comme modèle : demande un nom, l'ajoute au POST vers ?p=mailing_modeles.
     var btn = document.getElementById('camp-save-modele');

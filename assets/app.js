@@ -431,8 +431,8 @@ function lassoInitCatSearch(wrap, opts = {}) {
 // notamment ne l'affiche quasiment jamais) — cette version, entièrement
 // rendue en JS (mêmes classes .cat-search-input/.cat-search-list que
 // lassoInitCatSearch(), même mécanique de filtre), fonctionne partout.
-// Boucle sur tous les .tag-search de la page (même idiome que
-// lassoInitFlagToggle()) : plusieurs instances à la fois sur ?p=structures
+// Boucle sur tous les .tag-search de la page : plusieurs instances à la fois
+// sur ?p=structures
 // (une par ligne + la barre de modification groupée), idempotent
 // (data-tag-suggest-bound) pour pouvoir être rappelée sans dupliquer les
 // écouteurs (ex. après l'ajout d'une ligne).
@@ -1106,6 +1106,54 @@ window.addEventListener('DOMContentLoaded', lassoInitTagAjout);
 // Le filtre est rendu deux fois sur la page — en-tête de colonne et panneau
 // « Filtres » — donc tout passe par des classes et la délégation, jamais par
 // des identifiants qui seraient en double.
+// Bascule « lecture ↔ édition » d'un bloc de liste : une ligne se lit, un
+// crayon la remplace par son formulaire, une croix rend la ligne. Quatre écrans
+// la refaisaient à l'identique en JS inline (contacts d'une structure, modèles
+// de mailing, boîtes d'expédition, étiquettes) — d'où ce seul endroit.
+//
+// Annuler REND les valeurs d'ouverture : sans ça, refermer puis rouvrir montrait
+// le texte abandonné, et on pouvait croire qu'il avait été enregistré.
+//
+// opts : { bloc, lecture, edition, ouvrir, annuler } (sélecteurs CSS, le bloc
+// servant de racine aux quatre autres), plus deux listes facultatives de
+// sélecteurs à masquer/montrer pendant l'édition (masquer/montrer) — les
+// étiquettes échangent aussi leurs boutons.
+function lassoInitBlocEdition(opts) {
+    document.querySelectorAll(opts.bloc).forEach(function (bloc) {
+        const lecture = bloc.querySelector(opts.lecture);
+        const edition = bloc.querySelector(opts.edition);
+        const ouvrir = bloc.querySelector(opts.ouvrir);
+        if (!lecture || !edition || !ouvrir) return;
+        const champs = edition.querySelectorAll('input:not([type=hidden]), select, textarea');
+        const origine = Array.prototype.map.call(champs, c => c.value);
+        const bascule = function (enEdition) {
+            lecture.hidden = enEdition;
+            edition.hidden = !enEdition;
+            (opts.masquer || []).forEach(sel => {
+                const el = bloc.querySelector(sel);
+                if (el) el.hidden = enEdition;
+            });
+            (opts.montrer || []).forEach(sel => {
+                const el = bloc.querySelector(sel);
+                if (el) el.hidden = !enEdition;
+            });
+        };
+        ouvrir.addEventListener('click', function () {
+            bascule(true);
+            if (champs.length) {
+                champs[0].focus();
+                champs[0].select();
+            }
+        });
+        bloc.querySelectorAll(opts.annuler).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                champs.forEach((c, i) => { c.value = origine[i]; });
+                bascule(false);
+            });
+        });
+    });
+}
+
 function lassoInitTagGerer() {
     const csrfInput = document.querySelector('input[name="csrf"]');
 

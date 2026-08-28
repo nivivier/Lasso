@@ -1529,11 +1529,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .contact-row { margin-bottom: 0; }
 :is(.linked-add, .contact-row):not(.souscat-row) + * { margin-top: 16px; }
 
-/* Formulaire d'un contact de structure (?p=structure, views/_structure_contact_form.php) :
-   un seul balisage pour l'ajout et la modification. Il porte la classe .form —
+/* Cadre d'édition ouvert DANS une liste, à la place de la ligne qu'il modifie :
+   un contact de structure (views/_structure_contact_form.php) ou un modèle de
+   mailing (views/mailing_modeles.php). Il porte toujours la classe .form —
    sans elle, ses <label> n'héritent d'aucun style de champ (« .form label »,
-   plus haut) et les rangées se collent les unes aux autres.
-   Quatre rangées : Prénom/Nom, Rôle, E-mail/Téléphone, puis formulaire + langue. */
+   plus haut) et les rangées se collent les unes aux autres. */
 /* Cadre volontairement compact : il s'ouvre À L'INTÉRIEUR d'une liste, entre
    deux contacts, et doit rester lisible d'un coup d'œil plutôt que repousser
    le reste de la carte hors de l'écran. D'où des champs plus bas que la norme
@@ -1541,19 +1541,19 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    Le sélecteur des champs répète le :not() de la règle générale
    (input:not([type=checkbox]):not([type=radio]), 0,2,1) : une seule classe ne
    suffirait pas à l'emporter. */
-.contact-edit { margin: 14px 0 0; padding: 12px 14px 14px; background: var(--surface); }
-.contact-edit input:not([type="checkbox"]):not([type="radio"]),
-.contact-edit select { padding: 6px 9px; }
-.contact-edit label, .contact-edit .field-group { margin-bottom: 10px; gap: 4px; }
+.cadre-edit { margin: 14px 0 0; padding: 12px 14px 14px; background: var(--surface); }
+.cadre-edit input:not([type="checkbox"]):not([type="radio"]),
+.cadre-edit select { padding: 6px 9px; }
+.cadre-edit label, .cadre-edit .field-group { margin-bottom: 10px; gap: 4px; }
 /* Une seule respiration verticale dans tout le cadre : 10px, portés par les
    champs eux-mêmes. « .fieldset-groupe .grid2 » (plus haut) ajoutait 14px sous
    chaque paire Prénom/Nom et E-mail/Téléphone, qui s'empilaient sur ces 10px —
    d'où deux écarts à 24px pour trois à 10px, et l'impression de rangées mal
    alignées. Le cadre garde .fieldset-groupe pour sa bordure, pas pour ça. */
-.contact-edit .grid2 { margin-bottom: 0; }
-.contact-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.contact-edit-titre { font-weight: 700; color: var(--ink); font-size: var(--fs-basic); }
-.contact-edit-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.cadre-edit .grid2 { margin-bottom: 0; }
+.cadre-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cadre-edit-titre { font-weight: 700; color: var(--ink); font-size: var(--fs-basic); }
+.cadre-edit-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 /* Le crayon d'une ligne de contact ne se montre qu'au survol de SA ligne : une
    colonne de crayons ferait de la modification le sujet de la carte, alors
    qu'on vient d'abord y lire une adresse. Même parti que .tag-gerer-crayon.
@@ -1585,9 +1585,32 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    d'air que la marge inter-champs : entre deux rangées, les 10px de blanc sont
    suivis d'un libellé qui occupe la place ; ici il n'y a rien, et le bouton
    remontait contre le dernier champ. 14px de plus rétablissent l'équilibre. */
-.contact-edit-pied { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.cadre-edit-pied { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+/* Boîtes d'expédition du mailing (?p=emails_booking) : une ligne par boîte, son
+   cadre d'édition en dessous. Deux commandes en tête de carte, d'où le groupe :
+   .card-head-row ne place que ses enfants directs. */
+.exp-tete-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.exp-lu > span { flex: 1 1 auto; min-width: 0; }
+.exp-lu .exp-editer { flex: 0 0 auto; opacity: 0; transition: opacity .12s; }
+.exp-lu:hover .exp-editer, .exp-lu .exp-editer:focus-visible { opacity: 1; }
+@media (hover: none) { .exp-lu .exp-editer { opacity: 1; } }
+.exp-bloc + .exp-bloc { margin-top: 14px; }
+
+/* Modèles de mailing (?p=mailing_modeles) : bloc en lecture, puis le même
+   cadre d'édition que les contacts. Le nom prend la place du titre en tête du
+   cadre, d'où sa graisse — c'est bien le titre qu'on modifie. */
+.modele-lu .card-head-row { margin-bottom: 8px; }
+.modele-etiquette { font-weight: 700; }
+.modele-corps { white-space: pre-wrap; }
+.cadre-edit .modele-nom-champ { font-weight: 700; color: var(--ink); }
+/* Le titre est un champ comme les autres, libellé compris — mais il partage sa
+   rangée avec annuler/enregistrer : alignement par le BAS, pour que les boutons
+   se posent sur la ligne du champ et non au milieu de l'ensemble libellé+champ. */
+.modele-edit .cadre-edit-head { align-items: flex-end; }
+.cadre-edit .modele-nom-label { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
 @media (max-width: 720px) {
-    .contact-edit .grid2 { grid-template-columns: 1fr; }
+    .cadre-edit .grid2 { grid-template-columns: 1fr; }
     .contact-fin { flex-direction: column; }
     .contact-fin .contact-langue { align-self: flex-start; }
 }
@@ -2870,6 +2893,20 @@ abbr {
 .modal-overlay[hidden] { display: none; }
 .modal-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; max-width: 460px; width: 100%; }
 .modal-card h3 { font-size: var(--fs-large); }
+/* Fenêtre « Contacter » (?p=structure) : on y rédige un message, pas une
+   confirmation en deux lignes — d'où une largeur de lecture confortable et une
+   hauteur bornée à l'écran, le formulaire défilant à l'intérieur. */
+.modal-card.modal-contacter { max-width: 720px; max-height: 92vh; overflow-y: auto; padding: 18px 24px 22px;
+    background: var(--surface); }
+/* Le nom de la structure qu'on s'apprête à contacter est le sujet de la
+   fenêtre : il se lit comme un titre, pas comme une étiquette de champ. */
+.modal-contacter .cadre-edit-head { margin-bottom: 14px; }
+.modal-contacter .cadre-edit-titre { font-size: var(--fs-large); }
+.modal-contacter .contacter-modele { flex: 0 0 auto; margin-bottom: 0; font-size: var(--fs-small); }
+.modal-contacter .contacter-modele select { width: auto; }
+/* Fiche du destinataire choisi, juste sous le sélecteur : elle remplace la
+   marge basse du champ pour rester collée à lui. */
+.modal-contacter .contacter-fiche { margin: -8px 0 16px; min-height: 1.2em; }
 .del-opt { display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; font-size: var(--fs-basic); }
 .del-opt:has(input:checked) { border-color: var(--primary); background: var(--primary-tint); }
 .del-opt input { margin-top: 3px; }
@@ -2894,6 +2931,16 @@ abbr {
 .regle-toggle:has(input:disabled) { cursor: not-allowed; }
 /* Liste de modules (une carte, lignes séparées par un trait) */
 .module-row { display: flex; gap: 14px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+/* Module qui en exige un autre (Comptabilité analytique, Envois groupés) :
+   décalé sous son parent, avec un filet de rattachement. La dépendance se voit
+   alors dans la liste, au lieu de n'exister que dans le badge « nécessite … »
+   qui n'apparaît, lui, que quand le parent est éteint. */
+.module-row-sous { padding-left: 42px; position: relative; }
+.module-row-sous::before {
+    content: ""; position: absolute; left: 20px; top: 0; bottom: 50%;
+    width: 12px; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    border-bottom-left-radius: 6px;
+}
 .module-row:first-child { padding-top: 0; }
 .module-row:last-child { padding-bottom: 0; border-bottom: none; }
 .module-row.module-locked { opacity: .8; }

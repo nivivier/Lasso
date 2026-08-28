@@ -20,7 +20,8 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
 | **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
 | **Événements** | dates, spectacles, déclarations SUISA, exports JSON/iCal |
-| **Booking** | structures, contacts, étiquettes, lieux (carte), mailing |
+| **Booking** | structures, contacts, étiquettes, lieux (carte), message individuel |
+| **Envois groupés** | campagnes de mailing ciblé (dépend de Booking) |
 
 Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
 montrant que ce que le compte a le droit de lire.
@@ -166,7 +167,12 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    sous-spectacles), suivi des déclarations **SUISA**, et **exports publics
    JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda externe.
 9. **Booking** : structures et contacts, étiquettes, lieux géocodés sur une carte,
-   campagnes de **mailing** avec désinscription.
+   et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
+   modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
+   d'historique à l'envoi. Les **campagnes de mailing** avec désinscription
+   forment un sous-module à part (« Envois groupés »), activable séparément.
+   Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec
+   son propre serveur SMTP (Paramètres → E-mails → Envois pour le booking).
 10. **Sur téléphone**, les grandes listes — structures, salaires, employés,
     événements, factures — se relisent en **fiches** plutôt qu'en tableau à
     faire défiler, chacune montrant les champs qui comptent pour elle. Les

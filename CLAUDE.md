@@ -78,7 +78,10 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
 - **Modules & droits** `lib/modules.php` (voir `SPEC_PERMISSIONS.md`) :
   - `MODULES`/`module_actif()` : activation globale par module (salaires/compta/
-    analytique/facturation/evenements), indépendante des droits ci-dessous.
+    analytique/facturation/evenements/booking/mailing), indépendante des droits
+    ci-dessous. Deux modules en dépendent d'un autre (`requires`) : `analytique`
+    → `compta`, `mailing` (« Envois groupés ») → `booking` ; ils s'affichent
+    décalés sous leur parent dans `?p=parametres_modules` et s'éteignent avec lui.
   - Droits par utilisateur, table `utilisateur_permissions` (module → lecture/
     écriture, absence de ligne = aucun accès) : `peut_lire()`/`peut_ecrire()`
     (utilisateur courant), `require_lecture()`/`require_ecriture()`.

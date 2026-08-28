@@ -469,7 +469,7 @@ function facturation_email_parts(string $expediteur, string $html, string $pdfCo
     $entetesMime = implode("\r\n", [
         'MIME-Version: 1.0',
         'From: ' . $expediteur,
-        'Reply-To: ' . $expediteur,
+        'Reply-To: ' . email_repondre_a($expediteur),
         'Content-Type: multipart/mixed; boundary="' . $boundary . '"',
     ]);
     $corps = "--$boundary\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n$html\r\n"

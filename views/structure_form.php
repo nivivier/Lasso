@@ -2,11 +2,22 @@
 /** @var array $categoriesPourSelect */ /** @var int $categorieIdSelectionnee */
 /** @var array $contacts */ /** @var array $notes */ /** @var array $tags */ /** @var array $tagsDispo */
 /** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $organisateurDispo */ /** @var array $categoriesLieu */
+/** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
 $v = fn(string $k, $d = '') => e((string) ($structure[$k] ?? $d));
 $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
 $peutEcrireStruct = peut_ecrire('facturation') || peut_ecrire('booking');
 $peutEcrireBooking = peut_ecrire('booking');
+// Bouton « Contacter » : indisponible plutôt qu'absent, pour que la raison se
+// lise (statut « ne pas contacter »/inactif, ou plus personne de joignable —
+// aucun contact avec une adresse hors liste d'exclusion).
+$peutContacter = $isEdit && module_actif('booking') && $peutEcrireBooking;
+// La raison ET la décision viennent de la même fonction (lib/booking.php) :
+// la vue ne rejuge rien, elle affiche.
+$raisonPasContactable = $peutContacter
+    ? structure_contact_impossible_raison((array) $structure, $contactsJoignables)
+    : '';
+$contactable = $peutContacter && $raisonPasContactable === '';
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -42,25 +53,38 @@ $peutEcrireBooking = peut_ecrire('booking');
             row.querySelector('.titre-read').hidden = false;
         });
     })();
-    lassoInitFlagToggle();
     </script>
     <?php elseif ($isEdit): ?>
     <h1><?= $v('nom') ?></h1>
     <?php else: ?>
     <h1>Nouvelle structure</h1>
     <?php endif; ?>
-    <?php if ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0): ?>
+    <?php if ($peutContacter || ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0)): ?>
     <div class="head-actions">
+        <?php if ($peutContacter): ?>
+            <?php if ($contactable): ?>
+            <button type="button" id="contacter-btn" class="btn"><?= icon('mail') ?> Contacter</button>
+            <?php else: ?>
+            <button type="button" class="btn" disabled title="<?= e($raisonPasContactable) ?>"><?= icon('mail') ?> Contacter</button>
+            <?php endif; ?>
+        <?php endif; ?>
+        <?php if ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0): ?>
         <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la structure"><?= icon('trash') ?></button>
         </form>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
+<?php $msg = (string) ($_GET['msg'] ?? ''); ?>
+<?php if ($msg === 'envoye'): ?><p class="ok flash">Message envoyé — une entrée a été ajoutée à l'historique.</p><?php endif; ?>
+<?php if ($msg === 'brouillon'): ?><p class="ok flash">Brouillon enregistré.</p><?php endif; ?>
+<?php if ($msg === 'envoi_ko'): ?><p class="err flash">L'envoi a échoué. Vérifiez la boîte d'expédition dans Paramètres → E-mails → Envois pour le booking.</p><?php endif; ?>
+<?php if ($msg === 'err'): ?><p class="err flash">Message incomplet ou destinataire indisponible : rien n'a été envoyé.</p><?php endif; ?>
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à cette structure.</p><?php endif; ?>
 <?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, étiquettes et lieux liés ont été repris ici.</p><?php endif; ?><?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
 <?php if (!empty($structure['mise_a_jour_le']) && !$avecAside): ?>
@@ -664,114 +688,8 @@ lassoInitTagSuggest();
 </div>
 <?php endif; ?>
 
-<?php // Pas de bascule « mode édition » sur cette carte : la commande d'ajout est
-      // toujours là, et chaque ligne porte son propre crayon (révélé au survol,
-      // permanent au tactile — voir .contact-read .contact-edit-btn, app.css).
-      // Un mode global obligeait à deux clics avant toute modification. ?>
-<div class="card">
-    <div class="card-head-row">
-        <h2 class="mt-0">Contacts</h2>
-        <?php if ($peutEcrireBooking): ?>
-        <button type="button" class="btn ghost btn-sm icon-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('user-plus') ?></button>
-        <?php endif; ?>
-    </div>
-    <?php foreach ($contacts as $c): ?>
-        <div class="contact-row">
-            <div class="linked-add contact-read <?= $c['actif'] ? '' : 'inactif' ?>">
-                <span>
-                    <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
-                    <?php if ($c['est_administration']): ?><span class="badge">facturation</span><?php endif; ?>
-                    <?php if ($c['est_booking']): ?><span class="badge">booking</span><?php endif; ?>
-                    <?php if ($c['desinscrit']): ?><span class="badge muted-badge">Désinscrit</span><?php endif; ?>
-                    <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
-                    <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
-                    <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
-                    <?php if ($c['formulaire_url']): ?><div class="muted small"> — <a href="<?= e($c['formulaire_url']) ?>" target="_blank" rel="noopener">Formulaire</a></div><?php endif; ?>
-                    <?php if ($c['langue']): ?><span class="muted small"><?= e($c['langue']) ?></span><?php endif; ?>
-                </span>
-                <?php if ($peutEcrireBooking): ?>
-                <button type="button" class="btn ghost btn-sm icon-only contact-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                <?php endif; ?>
-            </div>
-            <?php $cfContact = $c; $cfSid = $sid; require __DIR__ . '/_structure_contact_form.php'; ?>
-            <?php // Suppression : le formulaire vit ICI, à côté du formulaire d'édition
-                  // (jamais dedans, deux <form> ne s'imbriquent pas) ; son bouton est en
-                  // bas du cadre d'édition et le vise par form="contact-del-N". ?>
-            <form method="post" action="?p=structure_contact_delete" id="contact-del-<?= (int) $c['id'] ?>" data-confirm="Supprimer ce contact ?" hidden>
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-            </form>
-        </div>
-    <?php endforeach; ?>
-    <?php if (!$contacts && !$contactsLies): ?><p class="muted small">Aucun contact.</p><?php endif; ?>
+<?php require __DIR__ . '/_structure_contacts.php'; ?>
 
-    <?php
-        $sensParStructure = array_column($lieuxLies, 'sens', 'id');
-    ?>
-    <?php if ($contactsLies): ?>
-        <?php foreach ($contactsLies as $c): ?>
-            <div class="linked-add contact-read <?= $c['actif'] ? '' : 'inactif' ?>">
-                <span>
-                    <strong><?= e(trim($c['prenom'] . ' ' . $c['nom'])) ?></strong>
-                    <?php if ($c['role']): ?><span class="muted small"> — <?= e($c['role']) ?></span><?php endif; ?>
-                    <div class="muted small"><span class="ico-tiny"><?= icon(($sensParStructure[$c['structure_id']] ?? '') === 'organise' ? 'blocks' : 'building') ?></span> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a></div>
-                    <?php if ($c['email']): ?><div class="muted small"><?= e($c['email']) ?></div><?php endif; ?>
-                    <?php if ($c['telephone']): ?><div class="muted small"><?= e($c['telephone']) ?></div><?php endif; ?>
-                </span>
-                <?php // Ces contacts appartiennent à une AUTRE structure : on ne les
-                      // modifie pas d'ici (ce serait éditer une fiche qu'on n'a pas
-                      // sous les yeux). Le bouton y mène plutôt, pour qu'aucune ligne
-                      // de la carte ne reste sans commande — une ligne sur deux sans
-                      // bouton laissait croire à un bug d'affichage. Icône « bâtiment »
-                      // et non crayon : il emmène ailleurs, il ne modifie pas ici. ?>
-                <a class="btn ghost btn-sm icon-only contact-lien-btn" href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"
-                   title="Modifier chez « <?= e((string) $c['structure_nom']) ?> »" aria-label="Modifier chez <?= e((string) $c['structure_nom']) ?>"><?= icon('building') ?></a>
-            </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
-
-    <?php $cfContact = null; $cfSid = $sid; require __DIR__ . '/_structure_contact_form.php'; ?>
-
-    <script nonce="<?= e(csp_nonce()) ?>">
-    (function () {
-        document.querySelectorAll('.contact-edit-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var row = btn.closest('.contact-row');
-                row.querySelector('.contact-read').hidden = true;
-                row.querySelector('.contact-edit-form').hidden = false;
-            });
-        });
-        document.querySelectorAll('.contact-cancel-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var row = btn.closest('.contact-row');
-                row.querySelector('.contact-edit-form').hidden = true;
-                row.querySelector('.contact-read').hidden = false;
-            });
-        });
-
-        // Crayon d'en-tête des AUTRES sections de la fiche (structures liées) :
-        // bascule la section en mode édition — seules alors apparaissent ses
-        // commandes lier/délier (.edit-only, masquées par défaut, voir app.css).
-        // Le crayon devient une croix (annuler) tant que l'édition est ouverte.
-        // La carte Contacts, elle, n'a plus de mode global : chaque ligne porte
-        // son crayon et le formulaire d'ajout est toujours accessible.
-        var editToggleIconPencil = <?= json_encode(icon('pencil')) ?>;
-        var editToggleIconX = <?= json_encode(icon('x')) ?>;
-        document.querySelectorAll('.edit-toggle-btn').forEach(function (btn) {
-            var titreDefaut = btn.title;
-            btn.addEventListener('click', function () {
-                var sec = btn.closest('.section-editable');
-                var on = sec.classList.toggle('editing');
-                btn.classList.toggle('on', on);
-                btn.innerHTML = on ? editToggleIconX : editToggleIconPencil;
-                btn.title = on ? 'Annuler' : titreDefaut;
-                btn.setAttribute('aria-label', on ? 'Annuler' : titreDefaut);
-            });
-        });
-    })();
-    </script>
-</div>
 
 </div>
 
@@ -960,6 +878,10 @@ $villeHtmlS = ville_departement_canton_html(
     </script>
 </div>
 
+<?php endif; ?>
+
+<?php if ($contactable): ?>
+<?php require __DIR__ . '/_structure_contacter.php'; ?>
 <?php endif; ?>
 </div></div>
 <?php require __DIR__ . '/_region_select_js.php'; ?>

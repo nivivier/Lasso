@@ -35,7 +35,7 @@ $paysOptions = function (?int $selected) use ($map): string {
     glissez une ligne pour la réordonner ou la déplacer. Renommer un pays ou une région met aussi à jour
     les fiches qui l'utilisent déjà.") ?> </h2>
     <?php if ($peutEcrirePays): ?>
-    <button type="button" class="btn btn-sm ml-auto" data-show="pays-add"><?= icon('plus') ?> Nouveau pays / région</button>
+    <button type="button" class="btn ml-auto" data-show="pays-add"><?= icon('plus') ?> Nouveau pays / région</button>
     <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="pays-card">

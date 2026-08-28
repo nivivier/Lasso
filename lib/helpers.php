@@ -1949,6 +1949,16 @@ function fiche_email_html(array $f): string
         . '<body>' . $corps . '</body></html>';
 }
 
+// Adresse de réponse d'un envoi applicatif : celle configurée dans
+// Paramètres → E-mails (« Adresse de réponse »), à défaut l'expéditeur. Le
+// paramètre existait, s'annonçait comme un reply-to à l'écran… et n'était posé
+// nulle part : les réponses revenaient toujours à la boîte d'expédition.
+function email_repondre_a(string $expediteur): string
+{
+    $contact = trim((string) param('employeur_email_contact'));
+    return filter_var($contact, FILTER_VALIDATE_EMAIL) ? $contact : $expediteur;
+}
+
 // Envoie une fiche par e-mail. En local, journalise au lieu d'envoyer.
 // Retourne [bool succès, string mode ('local'|'mail')].
 function envoyer_fiche_email(array $f, string $destinataire, string $expediteur): array
@@ -1959,7 +1969,7 @@ function envoyer_fiche_email(array $f, string $destinataire, string $expediteur)
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=UTF-8',
         'From: ' . $expediteur,
-        'Reply-To: ' . $expediteur,
+        'Reply-To: ' . email_repondre_a($expediteur),
     ]);
     $sujetEnc = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
     return envoyer_email($destinataire, $expediteur, $sujetEnc, $entetes, $html, $sujet);
@@ -2011,23 +2021,31 @@ function smtp_config(): array
     ];
 }
 
-// Profil SMTP dédié au mailing booking (onglet Paramètres → E-mails), facultatif :
-// tout champ laissé vide retombe sur le profil SMTP général (smtp_config()) —
-// permet une boîte d'envoi distincte pour le booking sans y être obligé, voir
-// SPEC_BOOKING.md §7.
-function smtp_config_booking(): array
+// Profil SMTP d'un envoi de mailing. Trois niveaux, du plus précis au plus
+// général, chaque champ vide passant la main au suivant :
+//   1. la boîte de l'expéditeur choisi (table mailing_expediteurs) — deux
+//      expéditeurs peuvent vivre chez deux hébergeurs différents ;
+//   2. le profil booking hérité (paramètres smtp_booking_*), pour les
+//      installations qui n'avaient qu'une boîte de mailing ;
+//   3. le profil général (smtp_config()), celui des salaires et des factures.
+// Voir SPEC_BOOKING.md §7.
+function smtp_config_booking(?array $expediteur = null): array
 {
     $general = smtp_config();
-    $val = function (string $cle, string $defaut): string {
-        $v = (string) param($cle, '');
+    $val = function (string $cleExpediteur, string $cleParam, string $defaut) use ($expediteur): string {
+        $v = trim((string) ($expediteur[$cleExpediteur] ?? ''));
+        if ($v !== '') {
+            return $v;
+        }
+        $v = (string) param($cleParam, '');
         return $v !== '' ? $v : $defaut;
     };
     return [
-        'host'   => $val('smtp_booking_host', $general['host']),
-        'port'   => (int) $val('smtp_booking_port', (string) $general['port']),
-        'secure' => $val('smtp_booking_secure', $general['secure']) === 'tls' ? 'tls' : 'ssl',
-        'user'   => $val('smtp_booking_user', $general['user']),
-        'pass'   => $val('smtp_booking_pass', $general['pass']),
+        'host'   => $val('smtp_host', 'smtp_booking_host', $general['host']),
+        'port'   => (int) $val('smtp_port', 'smtp_booking_port', (string) $general['port']),
+        'secure' => $val('smtp_secure', 'smtp_booking_secure', $general['secure']) === 'tls' ? 'tls' : 'ssl',
+        'user'   => $val('smtp_user', 'smtp_booking_user', $general['user']),
+        'pass'   => $val('smtp_pass', 'smtp_booking_pass', $general['pass']),
     ];
 }
 
@@ -2035,14 +2053,29 @@ function smtp_config_booking(): array
 // repli sur mail() — le débit d'envoi (délai/plafond configurés) ne peut être
 // maîtrisé que via SMTP, cf. SPEC_BOOKING.md §7. En dev, journalisé comme les
 // autres e-mails plutôt qu'expédié. Retourne [bool succès, string mode].
-function envoyer_mailing_email(string $destinataire, string $expediteur, string $sujet, string $corps): array
+// $expediteur : ligne de mailing_expediteurs (la boîte choisie) ou null pour
+// l'expéditeur général — c'est elle qui décide À LA FOIS de l'adresse affichée
+// et du serveur par lequel l'e-mail part.
+//
+// $copieExpediteur : ajoute l'expéditeur en copie cachée, pour qu'il garde une
+// trace du message dans sa boîte. Réservé aux messages écrits un par un
+// (bouton « Contacter » d'une fiche structure) — SURTOUT PAS aux campagnes,
+// qui en enverraient une copie par destinataire. Un envoi SMTP ne se range pas
+// tout seul dans le dossier « Envoyés » : ce dossier est une notion IMAP, que
+// seul un logiciel de messagerie alimente. La copie arrive donc dans la boîte
+// de réception, pas dans les envoyés.
+function envoyer_mailing_email(string $destinataire, ?array $expediteur, string $sujet, string $corps, bool $copieExpediteur = false): array
 {
+    $from = mailing_expediteur_from($expediteur);
+    $adresseExpediteur = trim((string) ($expediteur['email'] ?? param('employeur_email_expediteur')));
+    $copie = $copieExpediteur && $adresseExpediteur !== '' && strcasecmp($adresseExpediteur, $destinataire) !== 0;
     if (APP_ENV === 'dev') {
         $log = dirname(APP_DB_PATH) . '/emails_envoyes.log';
-        @file_put_contents($log, '[' . date('c') . "] Mailing To: $destinataire | De: $expediteur | $sujet\n", FILE_APPEND);
+        @file_put_contents($log, '[' . date('c') . "] Mailing To: $destinataire | De: $from"
+            . ($copie ? " | Cci: $adresseExpediteur" : '') . " | $sujet\n", FILE_APPEND);
         return [true, 'local'];
     }
-    $cfg = smtp_config_booking();
+    $cfg = smtp_config_booking($expediteur);
     if ($cfg['user'] === '') {
         error_log('[app] Mailing : SMTP non configuré (écran E-mails, profil booking ou général).');
         return [false, 'smtp'];
@@ -2051,18 +2084,26 @@ function envoyer_mailing_email(string $destinataire, string $expediteur, string 
     $entetes = implode("\r\n", [
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=UTF-8',
-        'From: ' . $expediteur,
-        'Reply-To: ' . $expediteur,
+        'From: ' . $from,
+        // Les réponses reviennent à la boîte qui a écrit, pas à l'adresse de
+        // réponse générale : un mailing part au nom d'une équipe précise.
+        'Reply-To: ' . $from,
     ]);
     $message = 'To: ' . $destinataire . "\r\n" . 'Subject: ' . $sujetEnc . "\r\n" . $entetes . "\r\n\r\n" . $corps;
-    return [smtp_transmettre($cfg, $destinataire, $message), 'smtp'];
+    // La copie passe par l'enveloppe seulement : aucun en-tête « Bcc: » dans le
+    // message, sinon le destinataire la lirait.
+    $adresses = $copie ? [$destinataire, $adresseExpediteur] : $destinataire;
+    return [smtp_transmettre($cfg, $adresses, $message), 'smtp'];
 }
 
 // Transmet un message brut déjà complet (en-têtes To/Subject/… + ligne vide + corps)
 // par SMTP authentifié, en PHP pur (aucune dépendance). Gère SSL implicite
 // (port 465) ou STARTTLS (port 587), AUTH LOGIN. Appelé par envoyer_email(),
 // commun à tous les e-mails applicatifs (fiches simples, factures avec pièce jointe).
-function smtp_transmettre(array $cfg, string $to, string $message): bool
+// $to : une adresse, ou plusieurs (destinataires d'ENVELOPPE — un RCPT TO
+// chacun). Une adresse ajoutée ici et absente des en-têtes est exactement ce
+// qu'est une copie cachée : le serveur la sert, le message ne la nomme pas.
+function smtp_transmettre(array $cfg, string|array $to, string $message): bool
 {
     $echec = function (string $msg): bool {
         error_log('[app] SMTP : ' . $msg);
@@ -2120,7 +2161,9 @@ function smtp_transmettre(array $cfg, string $to, string $message): bool
 
     // Enveloppe : MAIL FROM = compte authentifié (souvent exigé par l'hébergeur / SPF).
     if ($cmd('MAIL FROM:<' . $cfg['user'] . '>', '250') !== true) return false;
-    if ($cmd('RCPT TO:<' . $to . '>', '250') !== true) return false;
+    foreach ((array) $to as $adresse) {
+        if ($cmd('RCPT TO:<' . $adresse . '>', '250') !== true) return false;
+    }
     if ($cmd('DATA', '354') !== true) return false;
 
     // Point-stuffing : une ligne « . » seule terminerait prématurément les données.

@@ -181,16 +181,22 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
     'structure_localisation' => 'route_structure_localisation',
     'structure_via'          => 'route_structure_via',
+    'structure_message'      => 'route_structure_message',
     'structures_options'     => 'route_structures_options',
     'lieux_options'          => 'route_lieux_options',
-    'mailing'                => 'route_mailing',
-    'mailing_campagne'       => 'route_mailing_campagne',
     'mailing_modeles'        => 'route_mailing_modeles',
     'mailing_exclusions'     => 'route_mailing_exclusions',
-    'mailing_envoyer'        => 'route_mailing_envoyer',
     'import_structures'      => 'route_import_structures',
     'parametres_structures'  => 'route_parametres_structures',
     'parametres_tags'        => 'route_parametres_tags',
+]);
+// Envois groupés (sous-module du booking) : le ciblage, la file d'attente et
+// son suivi. Le reste du mailing — modèles de message, liste d'exclusion —
+// reste au booking, dont le message individuel d'une fiche structure se sert.
+ajouter_routes_module($handlers, $routeModules, 'mailing', [
+    'mailing'                => 'route_mailing',
+    'mailing_campagne'       => 'route_mailing_campagne',
+    'mailing_envoyer'        => 'route_mailing_envoyer',
 ]);
 // Traitement de la file d'attente mailing + désinscription : protégés par un
 // jeton dédié (mailing_verifier_token()), pas par une session utilisateur —
@@ -255,10 +261,11 @@ if (peut_lire('coeur')) {
         'parametres'      => 'route_parametres',
         'employeur'       => 'route_employeur',
         'emails'          => 'route_emails',
+        'emails_booking'  => 'route_emails_booking',
         'export'          => 'route_export',
         'parametres_pays' => 'route_parametres_pays',
     ];
-    foreach (['parametres', 'employeur', 'emails', 'export', 'parametres_pays'] as $r) {
+    foreach (['parametres', 'employeur', 'emails', 'emails_booking', 'export', 'parametres_pays'] as $r) {
         $routeModules[$r] = ['coeur'];
     }
 }

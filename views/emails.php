@@ -7,24 +7,33 @@
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php else: ?>
 <div class="card form">
-    <p class="muted small">Ces réglages pilotent l'envoi automatique des fiches de salaire par e-mail.</p>
     <form method="post" action="?p=emails">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <h3 class="sub no-mt">Adresses</h3>
+        <h3 class="sub no-mt">Fiches de salaire et factures</h3>
+        <p class="muted small">Les deux seuls envois qui passent par ici : la <strong>fiche de salaire</strong> d'un
+            employé (bouton « Envoyer par e-mail » sur une fiche) et la <strong>facture</strong> d'un débiteur, avec son
+            PDF joint (bouton « Envoyer » sur une facture).</p>
         <div class="grid2">
-            <label>E-mail d'expéditeur (envois automatiques) <input name="employeur_email_expediteur" type="email" value="<?= e(param('employeur_email_expediteur')) ?>" placeholder="salaires@exemple.ch"></label>
-            <label>E-mail de contact (reply-to) <input name="employeur_email_contact" type="email" value="<?= e(param('employeur_email_contact')) ?>" placeholder="contact@exemple.ch"></label>
+            <label><span>Expéditeur <?= info_tip(
+                "Adresse qui figure en « De : » sur les fiches de salaire et les factures envoyées depuis "
+                . "l'application. Sans elle, le bouton d'envoi d'une fiche refuse de partir."
+            ) ?></span><input name="employeur_email_expediteur" type="email" value="<?= e(param('employeur_email_expediteur')) ?>" placeholder="salaires@exemple.ch"></label>
+            <label><span>Adresse de réponse <?= info_tip(
+                "Posée en « Répondre à : » sur ces mêmes envois — c'est là qu'arrivent les réponses d'un employé "
+                . "ou d'un débiteur. Vide : les réponses reviennent à l'expéditeur ci-contre."
+            ) ?></span><input name="employeur_email_contact" type="email" value="<?= e(param('employeur_email_contact')) ?>" placeholder="contact@exemple.ch"></label>
         </div>
 
-        <h3 class="sub">Serveur d'envoi (SMTP) <?= info_tip(
-            "L'envoi passe par un serveur SMTP authentifié. Indiquez une boîte e-mail réelle (idéalement la même que "
-            . "l'expéditeur ci-dessus). Laissez vide pour utiliser la fonction mail() de l'hébergeur si elle est disponible."
-        ) ?></h3>
+        <p class="muted small mt-16 mb-8"><strong>Boîte d'envoi (SMTP)</strong> — celle par laquelle partent ces deux
+            envois. Indiquez une boîte réelle et authentifiée, idéalement celle de l'expéditeur ci-dessus. Laissée vide,
+            l'application se rabat sur la fonction <code>mail()</code> de l'hébergeur, si elle est disponible.</p>
         <?php $secure = param('smtp_secure') ?: 'ssl'; ?>
         <?php $hasPass = ((string) param('smtp_pass', '') !== '') || (defined('SMTP_PASS') && SMTP_PASS !== ''); ?>
         <div class="grid2">
-            <label>Identifiant (adresse complète de la boîte) <input name="smtp_user" type="email" value="<?= e(param('smtp_user')) ?>" placeholder="salaires@exemple.ch" autocomplete="off"></label>
+            <?php // Pas de type="email" : l'identifiant SMTP n'est pas toujours une
+                  // adresse (« u123456 » chez certains hébergeurs). ?>
+            <label>Identifiant <input name="smtp_user" value="<?= e(param('smtp_user')) ?>" placeholder="salaires@exemple.ch ou u123456" autocomplete="off"></label>
             <label>Mot de passe <input name="smtp_pass" type="password" value="" placeholder="<?= $hasPass ? '•••••••• (inchangé)' : 'mot de passe de la boîte' ?>" autocomplete="new-password"></label>
         </div>
         <div class="grid3">
@@ -37,36 +46,6 @@
                 </select>
             </label>
         </div>
-
-        <?php if (module_actif('booking')): ?>
-        <div class="section-head">
-            <h3 class="sub">Mailing booking <?= info_tip(
-                "Boîte d'envoi et débit distincts pour le mailing ciblé du module booking. Les champs SMTP "
-                . "laissés vides retombent sur le serveur d'envoi général ci-dessus."
-            ) ?></h3>
-            <a class="btn ghost btn-sm ml-auto" href="?p=mailing_exclusions"><?= icon('list-x') ?> Liste d'exclusion</a>
-        </div>
-        <?php $secureBooking = param('smtp_booking_secure') ?: 'ssl'; ?>
-        <?php $hasPassBooking = (string) param('smtp_booking_pass', '') !== ''; ?>
-        <div class="grid2">
-            <label>Identifiant (optionnel) <input name="smtp_booking_user" type="email" value="<?= e(param('smtp_booking_user')) ?>" placeholder="booking@exemple.ch" autocomplete="off"></label>
-            <label>Mot de passe <input name="smtp_booking_pass" type="password" value="" placeholder="<?= $hasPassBooking ? '•••••••• (inchangé)' : 'mot de passe de la boîte' ?>" autocomplete="new-password"></label>
-        </div>
-        <div class="grid3">
-            <label>Serveur SMTP <input name="smtp_booking_host" value="<?= e(param('smtp_booking_host')) ?>" placeholder="mail.votre-hebergeur.ch"></label>
-            <label>Port <input name="smtp_booking_port" type="text" inputmode="numeric" value="<?= e(param('smtp_booking_port')) ?>" placeholder="465"></label>
-            <label>Sécurité
-                <select name="smtp_booking_secure">
-                    <option value="ssl" <?= $secureBooking === 'ssl' ? 'selected' : '' ?>>SSL (port 465)</option>
-                    <option value="tls" <?= $secureBooking === 'tls' ? 'selected' : '' ?>>STARTTLS (port 587)</option>
-                </select>
-            </label>
-        </div>
-        <div class="grid2">
-            <label>Délai entre deux e-mails (secondes) <input name="mailing_delai_secondes" type="number" min="0" value="<?= e(param('mailing_delai_secondes', '10')) ?>"></label>
-            <label>Plafond d'envoi par 24h <input name="mailing_max_par_jour" type="number" min="1" value="<?= e(param('mailing_max_par_jour', '200')) ?>"></label>
-        </div>
-        <?php endif; ?>
 
         <div class="form-actions">
             <button type="submit"><?= icon('save') ?> Enregistrer</button>

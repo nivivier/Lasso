@@ -22,13 +22,16 @@ au sens des permissions (il l'est déjà partiellement : `MODULE_COEUR` existe d
 ## 2. Principe général
 
 - Six portées possibles : les cinq modules existants (`salaires`, `compta`,
-  `analytique`, `facturation`, `evenements`) + `coeur`.
+  `analytique`, `facturation`, `evenements`, `booking`, `mailing`) + `coeur`.
 - Pour chaque paire (utilisateur, module), un niveau : **aucun** (implicite, pas de
   droit accordé), **lecture**, ou **écriture**. Écriture inclut lecture (pas besoin de
   deux droits distincts pour un même module).
 - Un module désactivé globalement (`module_actif()` = faux) reste invisible pour tout le
   monde, indépendamment des permissions individuelles — les deux mécanismes se combinent
   (`module actif ET utilisateur autorisé`), ils ne se remplacent pas.
+- Deux modules dépendent d'un autre (`requires`) : `analytique` de `compta`, et
+  `mailing` (« Envois groupés ») de `booking`. La règle ci-dessous vaut pour les
+  deux — `clamp_permissions_dependantes()` suit `MODULES`, sans liste en dur.
 - `analytique` dépend de `compta` (`requires` existant) : logiquement, un droit sur
   `analytique` ne devrait pas dépasser celui sur `compta` (ex. écriture analytique sans
   aucun accès compta n'a pas de sens) — à valider, voir §10.
@@ -44,7 +47,7 @@ dérivé, voir §1). Une seule nouvelle table.
 |---|---|
 | `id` | |
 | `utilisateur_id` | FK → `utilisateurs`, `ON DELETE CASCADE` |
-| `module` | identifiant texte : `coeur`, `salaires`, `compta`, `analytique`, `facturation`, `evenements` |
+| `module` | identifiant texte : `coeur`, `salaires`, `compta`, `analytique`, `facturation`, `evenements`, `booking`, `mailing` |
 | `niveau` | `lecture` / `ecriture` |
 | | `UNIQUE(utilisateur_id, module)` |
 

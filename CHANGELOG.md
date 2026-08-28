@@ -9,6 +9,101 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.4.0] — 2026-08-28
+
+### Ajouté
+- **Bouton « Contacter » sur une fiche structure** (?p=structure) : écrire à un
+  contact précis sans passer par une campagne. Choix de l'expéditeur et du
+  destinataire (les contacts « booking » d'abord), fiche du destinataire sous le
+  sélecteur, chargement d'un modèle de message dont les variables sont résolues à
+  l'écran — et **suivent le destinataire** si on en change, sauf si le texte a
+  été retouché à la main. Brouillon enregistrable (un par structure), et à
+  l'envoi : copie cachée à l'expéditeur, entrée d'historique de type
+  « mailing » — donc mise à jour de la date de dernier contact.
+
+  Le bouton apparaît **désactivé, avec la raison en infobulle**, si la structure
+  est « ne pas contacter »/inactive ou si plus aucun contact n'est joignable. La
+  définition de « joignable » est celle du mailing (contact actif, non
+  désinscrit, adresse hors liste d'exclusion) : une seule fonction sert à la
+  fois au bouton, au sélecteur de destinataire et au refus côté serveur.
+- **Boîtes d'expédition multiples pour le booking** (table
+  `mailing_expediteurs`) : un expéditeur n'est plus une adresse mais une
+  **boîte**, avec son propre serveur SMTP — « diffusion@ » et « production@ »
+  peuvent vivre chez deux hébergeurs différents. Chaque champ SMTP laissé vide
+  retombe sur le profil hérité puis sur le serveur général. Un modèle propose
+  une boîte par défaut, une campagne fixe la sienne, et la file d'attente la
+  transporte : une campagne partie sous une adresse finit sous la même, même si
+  les réglages changent pendant qu'elle se vide.
+- **Sous-module « Envois groupés »** (dépend de Booking) : les campagnes de
+  mailing s'activent séparément du CRM. Le booking seul garde ses structures,
+  ses modèles de message et sa liste d'exclusion — dont se sert le message
+  individuel. Les modules dépendants (celui-ci, et Comptabilité analytique)
+  s'affichent **décalés sous leur parent** dans Paramètres → Modules.
+- **Paramètres → E-mails scindé en deux écrans** : « Envois généraux » (fiches
+  de salaire et factures — les deux seuls envois qui empruntent ces réglages) et
+  « Envois pour le booking » (boîtes d'expédition, débit d'envoi). Rien n'y est
+  partagé, ni les adresses, ni le serveur, ni le rythme.
+
+### Modifié
+- **Formulaire de contact d'une structure, repris entièrement.** L'ajout et la
+  modification partagent un seul balisage
+  (`views/_structure_contact_form.php`) : ils avaient divergé, et la carte
+  n'avait pas la classe `.form` — sans laquelle aucun `<label>` n'hérite du
+  style de champ du site. Quatre rangées, « Administration » devient
+  « Facturation », plus de mode « édition » global (chaque ligne porte son
+  crayon, révélé au survol), annuler/enregistrer en tête du cadre et supprimer
+  en pied.
+- **Modèles de message (?p=mailing_modeles)** : lecture par défaut, cadre
+  d'édition au crayon, titre renommable — ce que la route ne permettait pas, le
+  nom servant de clé (`INSERT OR REPLACE`) : renommer créait un second modèle.
+  Elle écrit désormais par identifiant.
+- **Comptes de structures cliquables** dans Paramètres → Catégories, Étiquettes
+  et Pays & régions, sous la même forme partout, et l'onglet Booking gagne un
+  raccourci « Catégories » vers ces trois référentiels.
+- **Écran Paramètres → Modules** : le badge « nécessite Comptabilité » et son
+  infobulle étaient écrits en dur ; ils nomment maintenant le module réellement
+  manquant, ce que l'arrivée d'un second module dépendant rendait nécessaire.
+
+### Corrigé
+- **`?p=structure` levait une erreur JavaScript à chaque affichage** : le script
+  du titre appelait encore `lassoInitFlagToggle()`, supprimée avec l'étoile.
+- **Un contact désinscrit restait joignable** depuis le bouton « Contacter » :
+  se désinscrire pose `desinscrit`, sans ligne d'exclusion — ne regarder que la
+  liste d'exclusion laissait écrire à quelqu'un qui venait de demander le
+  contraire.
+- **« Adresse de réponse » ne servait à rien** : le champ existait, s'annonçait
+  comme un reply-to à l'écran, et n'était posé nulle part. Les fiches de salaire
+  et les factures le portent maintenant en « Répondre à : », l'expéditeur
+  servant de repli.
+- **L'identifiant SMTP était validé comme une adresse e-mail** : les hébergeurs
+  qui authentifient sur un login (`u123456`) rendaient la configuration
+  impossible.
+- **Un POST sans section écrasait le débit d'envoi** du mailing par ses valeurs
+  par défaut, sur le nouvel écran booking.
+- Les liens « N structures » des paramètres ouvraient la liste sur le dernier
+  filtre utilisé (suite de 2.3.12, étendu aux étiquettes et aux pays/régions).
+
+### Nettoyé
+- **Règle « qui peut être contacté » unifiée** : elle existait en trois
+  exemplaires sous deux formes contraires (liste blanche en SQL, deux listes
+  noires en PHP), qui ne s'accordaient que parce qu'il y a quatre statuts.
+- **Bascule lecture/édition factorisée** (`lassoInitBlocEdition()`) : quatre
+  écrans la réécrivaient à l'identique en JavaScript en ligne. Tous gagnent au
+  passage la restauration des valeurs à l'annulation, que deux seulement
+  faisaient.
+- **Sept fonctions mortes supprimées**, une boucle de 31 requêtes ramenée à deux
+  agrégats (Paramètres → Pays), et `views/structure_form.php` allégé de 280
+  lignes (carte Contacts et fenêtre « Contacter » extraites en partiels).
+
+### Migrations
+- **71** : table `mailing_expediteurs`, et l'expéditeur devient une référence
+  (`expediteur_id`) sur les modèles, les campagnes et la file d'attente. Reprend
+  le profil SMTP booking existant comme première boîte.
+- **72** : `structure_message_brouillons` — un brouillon par structure.
+- **73** : le sous-module « Envois groupés » reprend l'activation et les droits
+  du booking, faute de quoi la mise à jour aurait éteint le mailing et retiré
+  l'accès à tous les comptes.
+
 ## [2.3.13] — 2026-08-28
 
 ### Ajouté

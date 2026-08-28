@@ -8,7 +8,7 @@
     « Ne pas contacter »…), utilisées dans les filtres et le ciblage des mailings. Renommer une étiquette la met à jour partout ;
     la supprimer la retire des fiches qui la portent (les fiches elles-mêmes ne sont pas touchées).") ?></h2>
     <?php if ($peutEcrireTags): ?>
-    <button type="button" class="btn btn-sm ml-auto" data-show="tag-add"><?= icon('plus') ?> Nouvelle étiquette</button>
+    <button type="button" class="btn ml-auto" data-show="tag-add"><?= icon('plus') ?> Nouvelle étiquette</button>
     <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="tags-card">
@@ -31,7 +31,7 @@
                     <input type="hidden" name="id" value="<?= $tid ?>">
                     <input type="color" name="couleur" value="<?= e($couleur ?: '#2563eb') ?>" title="Couleur" class="tag-input-couleur">
                     <input name="nom" value="<?= e($t['nom']) ?>" class="grow tag-input-nom" required aria-label="Nom">
-                    <button type="submit" class="btn" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
+                    <button type="submit" class="btn btn-sm" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                 </form>
                 <?php endif; ?>
             </td>
@@ -71,37 +71,11 @@
 </div>
 
 <script nonce="<?= e(csp_nonce()) ?>">
-(function () {
-    // Le crayon révèle les champs éditables (nom + couleur) et les actions
-    // Enregistrer/Supprimer/Annuler ; Annuler restaure les valeurs d'origine.
-    document.querySelectorAll('#tags-card .tag-row').forEach(function (row) {
-        var editBtn = row.querySelector('.tag-edit-btn');
-        var cancelBtn = row.querySelector('.tag-cancel-btn');
-        var deleteForm = row.querySelector('.tag-delete-form');
-        var view = row.querySelector('.tag-view');
-        var form = row.querySelector('.tag-edit-form');
-        var nomInput = form.querySelector('.tag-input-nom');
-        var couleurInput = form.querySelector('.tag-input-couleur');
-        var nomOrig = nomInput.value;
-        var couleurOrig = couleurInput.value;
-        editBtn.addEventListener('click', function () {
-            view.hidden = true;
-            form.hidden = false;
-            editBtn.hidden = true;
-            cancelBtn.hidden = false;
-            deleteForm.hidden = false;
-            nomInput.focus();
-            nomInput.select();
-        });
-        cancelBtn.addEventListener('click', function () {
-            nomInput.value = nomOrig;
-            couleurInput.value = couleurOrig;
-            view.hidden = false;
-            form.hidden = true;
-            editBtn.hidden = false;
-            cancelBtn.hidden = true;
-            deleteForm.hidden = true;
-        });
-    });
-})();
+// Le crayon révèle les champs éditables (nom + couleur) et les actions
+// Enregistrer/Supprimer/Annuler ; Annuler restaure les valeurs d'origine.
+lassoInitBlocEdition({
+    bloc: '#tags-card .tag-row', lecture: '.tag-view', edition: '.tag-edit-form',
+    ouvrir: '.tag-edit-btn', annuler: '.tag-cancel-btn',
+    masquer: ['.tag-edit-btn'], montrer: ['.tag-cancel-btn', '.tag-delete-form'],
+});
 </script>

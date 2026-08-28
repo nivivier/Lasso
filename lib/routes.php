@@ -665,26 +665,32 @@ function route_parametres_pays(): void
         redirect('parametres_pays', ['ok' => 1]);
     }
 
-    // Usage de chaque région (pour la réaffectation à la suppression), indexé par
-    // id : nombre de fiches structures du même pays portant ce nom.
+    // Nombre de structures par pays et par région, indexé par id de la ligne :
+    // affiché sur chaque ligne, et pour une région c'est aussi ce qui décide si
+    // sa suppression exige une réaffectation.
+    // DEUX agrégats, pas une requête par région : la boucle en faisait une par
+    // ligne (31 requêtes pour 3,3 ms, contre 0,5 ms ainsi) — et surtout c'est le
+    // motif que le reste du code évite partout ailleurs.
+    // Les régions sont comptées sur le COUPLE (pays, région) : deux pays peuvent
+    // porter une région homonyme.
     $map = $paysMap();
-    // Idem pour les pays, mais affiché seulement : un pays encore utilisé ne se
-    // supprime pas (pas de réaffectation possible), le compte y sert de compte.
-    $usageParNom = [];
+    $usageParPays = [];
     foreach (db()->query('SELECT adresse_pays AS nom, COUNT(*) n FROM structures GROUP BY adresse_pays') as $r) {
-        $usageParNom[(string) $r['nom']] = (int) $r['n'];
+        $usageParPays[(string) $r['nom']] = (int) $r['n'];
+    }
+    $usageParRegion = [];
+    foreach (db()->query("SELECT adresse_pays, grande_region, COUNT(*) n FROM structures WHERE grande_region <> '' GROUP BY 1, 2") as $r) {
+        $usageParRegion[(string) $r['adresse_pays'] . "\0" . (string) $r['grande_region']] = (int) $r['n'];
     }
     $usagePays = [];
     $usageRegion = [];
     foreach ($map as $id => $r) {
         if (plan_pid($r['parent_id'] ?? null) === 0) {
-            $usagePays[(int) $id] = $usageParNom[(string) $r['nom']] ?? 0;
+            $usagePays[(int) $id] = $usageParPays[(string) $r['nom']] ?? 0;
             continue;
         }
         $paysNom = (string) ($map[plan_pid($r['parent_id'] ?? null)]['nom'] ?? '');
-        $sS = db()->prepare('SELECT COUNT(*) FROM structures WHERE grande_region = ? AND adresse_pays = ?');
-        $sS->execute([$r['nom'], $paysNom]);
-        $usageRegion[(int) $id] = (int) $sS->fetchColumn();
+        $usageRegion[(int) $id] = $usageParRegion[$paysNom . "\0" . (string) $r['nom']] ?? 0;
     }
     render('parametres_pays', [
         'saved' => isset($_GET['ok']),
@@ -801,7 +807,32 @@ function route_apparence_fond_supprimer(): void
     redirect('apparence', ['ok' => 1]);
 }
 
-// Paramètres d'envoi des e-mails (expéditeur, contact, SMTP authentifié).
+// Enregistre UNE boîte d'expédition du mailing (?p=emails_booking) : création
+// si $id vaut 0, mise à jour sinon. Le mot de passe n'est écrasé que s'il est
+// saisi — il n'est jamais réaffiché, donc jamais renvoyé par le navigateur, et
+// un champ vide signifie « inchangé », pas « effacé ».
+function emails_enregistrer_expediteur(int $id, array $ligne): void
+{
+    $champ = fn (string $k): string => trim((string) ($ligne[$k] ?? ''));
+    $secure = in_array($champ('smtp_secure'), ['ssl', 'tls'], true) ? $champ('smtp_secure') : '';
+    if ($id > 0) {
+        db()->prepare('UPDATE mailing_expediteurs SET nom = ?, email = ?, smtp_host = ?, smtp_port = ?, smtp_secure = ?, smtp_user = ? WHERE id = ?')
+            ->execute([$champ('nom'), $champ('email'), $champ('smtp_host'), $champ('smtp_port'), $secure, $champ('smtp_user'), $id]);
+        if ($champ('smtp_pass') !== '') {
+            db()->prepare('UPDATE mailing_expediteurs SET smtp_pass = ? WHERE id = ?')->execute([$champ('smtp_pass'), $id]);
+        }
+        return;
+    }
+    $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre), 0) + 1 FROM mailing_expediteurs')->fetchColumn();
+    db()->prepare('INSERT INTO mailing_expediteurs (nom, email, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, ordre)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        ->execute([$champ('nom'), $champ('email'), $champ('smtp_host'), $champ('smtp_port'), $secure,
+                   $champ('smtp_user'), $champ('smtp_pass'), $ordre]);
+}
+
+// Envois généraux : les adresses et le serveur SMTP des fiches de salaire et des
+// factures — les deux seuls envois qui les empruntent. Le mailing du booking a
+// ses propres boîtes, sur ?p=emails_booking.
 function route_emails(): void
 {
     require_login();
@@ -811,12 +842,11 @@ function route_emails(): void
                    'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user'];
         $emailContact = trim($_POST['employeur_email_contact'] ?? '');
         $emailExp     = trim($_POST['employeur_email_expediteur'] ?? '');
-        $smtpUser     = trim($_POST['smtp_user'] ?? '');
-        $smtpBookingUser = trim($_POST['smtp_booking_user'] ?? '');
+        // smtp_user n'est PAS validé comme une adresse : l'identifiant d'une
+        // boîte SMTP n'en est pas toujours une (« u123456 » chez certains
+        // hébergeurs), et le refuser rendait la configuration impossible.
         if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
-            || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))
-            || ($smtpUser !== '' && !filter_var($smtpUser, FILTER_VALIDATE_EMAIL))
-            || ($smtpBookingUser !== '' && !filter_var($smtpBookingUser, FILTER_VALIDATE_EMAIL))) {
+            || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))) {
             render('emails', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'E-mails');
             return;
         }
@@ -829,20 +859,55 @@ function route_emails(): void
         if ($smtpPass !== '') {
             $stmt->execute(['smtp_pass', $smtpPass]);
         }
-        if (module_actif('booking')) {
-            foreach (['smtp_booking_host', 'smtp_booking_port', 'smtp_booking_secure', 'smtp_booking_user'] as $k) {
-                $stmt->execute([$k, trim($_POST[$k] ?? '')]);
-            }
-            $smtpBookingPass = (string) ($_POST['smtp_booking_pass'] ?? '');
-            if ($smtpBookingPass !== '') {
-                $stmt->execute(['smtp_booking_pass', $smtpBookingPass]);
-            }
-            $stmt->execute(['mailing_delai_secondes', (string) max(0, (int) ($_POST['mailing_delai_secondes'] ?? 10))]);
-            $stmt->execute(['mailing_max_par_jour', (string) max(1, (int) ($_POST['mailing_max_par_jour'] ?? 200))]);
-        }
         redirect('emails', ['ok' => 1]);
     }
     render('emails', ['saved' => isset($_GET['ok']), 'err' => null], 'E-mails');
+}
+
+// Envois pour le booking : les boîtes d'expédition des campagnes (chacune avec
+// son propre SMTP) et le débit d'envoi. Écran séparé des envois généraux : rien
+// n'y est partagé, ni les adresses, ni le serveur, ni le rythme.
+function route_emails_booking(): void
+{
+    require_login();
+    if (!module_actif('booking')) {
+        redirect('emails');
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'expediteur_save') {
+            $ligne = (array) ($_POST['exp'] ?? []);
+            $email = trim((string) ($ligne['email'] ?? ''));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                render('emails_booking', [
+                    'saved' => null,
+                    'err' => 'Adresse d\'expéditeur invalide : « ' . $email . ' ».',
+                    'expediteurs' => mailing_expediteurs(),
+                ], 'E-mails — Booking');
+                return;
+            }
+            emails_enregistrer_expediteur((int) ($_POST['id'] ?? 0), $ligne);
+        } elseif ($section === 'expediteur_delete') {
+            // Les modèles et campagnes qui la désignaient repassent à
+            // l'expéditeur par défaut (ON DELETE SET NULL, migration_71) — une
+            // campagne en file ne reste jamais sans boîte d'envoi.
+            db()->prepare('DELETE FROM mailing_expediteurs WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+        } elseif ($section === 'debit') {
+            // Section nommée, et non « tout le reste » : un POST sans section
+            // reconnue écrasait le délai et le plafond par leurs valeurs par
+            // défaut, sans que personne ne l'ait demandé.
+            $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+            $stmt->execute(['mailing_delai_secondes', (string) max(0, (int) ($_POST['mailing_delai_secondes'] ?? 10))]);
+            $stmt->execute(['mailing_max_par_jour', (string) max(1, (int) ($_POST['mailing_max_par_jour'] ?? 200))]);
+        }
+        redirect('emails_booking', ['ok' => 1]);
+    }
+    render('emails_booking', [
+        'saved' => isset($_GET['ok']),
+        'err' => null,
+        'expediteurs' => mailing_expediteurs(),
+    ], 'E-mails — Booking');
 }
 
 function route_taux_horaires(): void

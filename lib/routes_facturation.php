@@ -1018,7 +1018,8 @@ function structure_donnees_crm(int $id): array
         return ['contacts' => [], 'contactsLies' => [], 'notes' => [], 'tags' => [],
                 'tagsDispo' => $creationAvecBooking ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [],
                 'lieuxLies' => [], 'lieuxDispo' => [],
-                'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => []];
+                'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => [],
+                'contactsJoignables' => [], 'expediteurs' => [], 'modelesMessage' => [], 'brouillon' => null];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
@@ -1112,6 +1113,13 @@ function structure_donnees_crm(int $id): array
         'organisateurDispo' => $stmtOrganisateurDispo->fetchAll(),
         'categoriesLieu' => structure_sous_categories_booking_noms(),
         'evenementsLies' => $evenementsLies,
+        // Fenêtre « Contacter » (bouton de l'en-tête) : à qui l'on peut écrire,
+        // depuis quelle boîte, avec quels modèles, et le message resté en
+        // brouillon s'il y en a un.
+        'contactsJoignables' => structure_contacts_joignables($id),
+        'expediteurs' => mailing_expediteurs(),
+        'modelesMessage' => db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll(),
+        'brouillon' => structure_message_brouillon($id),
     ];
 }
 
