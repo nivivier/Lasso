@@ -66,11 +66,16 @@ $handlers = [
     'logout' => 'route_logout',
     'compte' => 'route_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
     'resumes' => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours accessible.
+    // Choix d'étiquette du widget « Suivi du booking » : une préférence
+    // d'AFFICHAGE, pas une écriture sur le booking — un compte qui n'a que la
+    // lecture doit pouvoir changer ce qu'il regarde. D'où l'absence de
+    // $routeModules (la route vérifie elle-même l'accès au booking).
     // Recherche unifiée : traverse plusieurs modules, donc rattachable à aucun.
     // Volontairement absente de $routeModules — le filtrage par module_actif()
     // et peut_lire() se fait source par source dans recherche_globale()
     // (lib/recherche.php), seul endroit qui puisse le faire correctement.
     'recherche' => 'route_recherche',
+    'resumes_suivi_tag' => 'route_resumes_suivi_tag',
 ];
 $routeModules = [];
 
@@ -148,6 +153,7 @@ ajouter_routes_module($handlers, $routeModules, 'facturation', [
     'facture_pdf'           => 'route_facture_pdf',
     'facture_email'         => 'route_facture_email',
     'facture_rappel'        => 'route_facture_rappel',
+    'facture_ligne_axe'     => 'route_facture_ligne_axe',
     'import_factures'       => 'route_import_factures',
 ]);
 

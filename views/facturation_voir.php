@@ -1,11 +1,16 @@
 <?php
 /** @var array $facture */ /** @var array $lignes */ /** @var string $statutEffectif */ /** @var ?string $saved */
-/** @var array $ecrituresLibres */ /** @var array $evenementsListe */
+/** @var array $ecrituresLibres */ /** @var array $evenementsListe */ /** @var array $axes */
 $f = $facture;
 $brouillon = $f['statut'] === 'brouillon';
 $peutAnnuler = !in_array($f['statut'], ['payee', 'annulee'], true);
 $peutEmail = !$brouillon && filter_var($f['structure_email'] ?? '', FILTER_VALIDATE_EMAIL);
-$aDesAxes = (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
+// Colonne « Axe » : affichée dès qu'une ligne en porte un, ET dès qu'on peut en
+// poser un — sinon la première affectation serait impossible, la colonne
+// n'apparaissant qu'une fois l'axe déjà choisi.
+$axesModifiables = $axes && peut_ecrire('facturation');
+$aDesAxes = $axesModifiables || (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
+$axeOpts = $axesModifiables ? options_axes($axes) : '';
 $numeroAffiche = $f['numero'] !== '' ? e($f['numero']) : '(brouillon)';
 
 // Paiement manuel : écriture bancaire à lier (voir route_facture_payee()).
@@ -24,6 +29,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <div class="module-content"><div class="module-content-inner">
 <?php if (($saved ?? null) === 'emise'): ?><p class="ok flash">Facture émise.</p><?php endif; ?>
 <?php if (($saved ?? null) === 'payee'): ?><p class="ok flash">Facture marquée comme payée.</p><?php endif; ?>
+<?php if (($saved ?? null) === 'axe'): ?><p class="ok flash">Axe analytique enregistré.</p><?php endif; ?>
 <?php switch ($_GET['mail'] ?? null) {
     case 'ok':  echo '<p class="ok flash">Facture envoyée par e-mail.</p>'; break;
     case 'err': echo '<p class="err flash">L\'envoi de l\'e-mail a échoué. Réessayez plus tard.</p>'; break;
@@ -132,7 +138,25 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 <td class="num"><?= chf((float) $l['prix_unitaire']) ?></td>
                 <td class="num"><?= chf((float) $l['montant']) ?></td>
                 <?php if ($aDesAxes): ?>
-                    <td class="muted small"><?= e($l['axe_code'] ?: $l['axe_libelle'] ?: '—') ?></td>
+                    <?php // L'axe se change même sur une facture émise : il ne
+                          // figure pas sur le document envoyé au débiteur, c'est
+                          // une donnée de comptabilité analytique. Envoi au
+                          // changement (data-submit-on-change), sans bouton :
+                          // un seul champ, une seule décision. ?>
+                    <td class="muted small col-axe-facture">
+                        <?php if ($axesModifiables): ?>
+                            <form method="post" action="?p=facture_ligne_axe">
+                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
+                                <input type="hidden" name="ligne_id" value="<?= (int) $l['id'] ?>">
+                                <select name="axe_analytique_id" data-submit-on-change title="Axe analytique" aria-label="Axe analytique de la ligne">
+                                    <?= preselectionner_option($axeOpts, (string) ($l['axe_analytique_id'] ?? '')) ?>
+                                </select>
+                            </form>
+                        <?php else: ?>
+                            <?= e($l['axe_code'] ?: $l['axe_libelle'] ?: '—') ?>
+                        <?php endif; ?>
+                    </td>
                 <?php endif; ?>
             </tr>
         <?php endforeach; ?>

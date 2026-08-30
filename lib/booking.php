@@ -1002,6 +1002,52 @@ function mailing_expediteur_libelle(array $expediteur): string
     return $nom !== '' ? $nom . ' — ' . $expediteur['email'] : (string) $expediteur['email'];
 }
 
+// --- Suivi du booking (widget du tableau de bord) ---------------------------
+
+// Répartition des structures portant une étiquette selon l'ancienneté du
+// dernier contact. Les bandes reprennent EXACTEMENT les tranches du filtre
+// « Contacté » de ?p=structures (PERIODES_ANCIENNETE) : chaque segment de la
+// barre est cliquable et doit ouvrir une liste dont le nombre de lignes
+// correspond à ce que la barre annonçait.
+//   mois  = 30 derniers jours          (j1 + j7 + j30)
+//   an    = de 1 mois à 1 an           (j365)
+//   trois = de 1 an à 3 ans            (a3)
+//   vieux = plus de 3 ans, ou jamais   (plus3 + jamais)
+const SUIVI_BOOKING_BANDES = [
+    'mois'  => ['Moins d\'un mois', ['j1', 'j7', 'j30']],
+    'an'    => ['Moins d\'un an',   ['j365']],
+    'trois' => ['Moins de 3 ans',   ['a3']],
+    'vieux' => ['Plus de 3 ans ou jamais', ['plus3', 'jamais']],
+];
+
+function suivi_booking_repartition(int $tagId): array
+{
+    $repartition = array_fill_keys(array_keys(SUIVI_BOOKING_BANDES), 0);
+    if ($tagId <= 0) {
+        return $repartition;
+    }
+    // Comparaison lexicographique sur des dates « AAAA-MM-JJ », comme
+    // periode_anciennete_where() : pas de conversion, donc le même découpage.
+    $stmt = db()->prepare(
+        "SELECT CASE
+                    WHEN s.dernier_contact_le IS NULL OR s.dernier_contact_le = '' THEN 'vieux'
+                    WHEN s.dernier_contact_le >= date('now', '-30 days')   THEN 'mois'
+                    WHEN s.dernier_contact_le >= date('now', '-365 days')  THEN 'an'
+                    WHEN s.dernier_contact_le >= date('now', '-1095 days') THEN 'trois'
+                    ELSE 'vieux'
+                END AS bande, COUNT(*) AS n
+           FROM structures s
+           JOIN structure_tag_liens l ON l.structure_id = s.id
+          WHERE l.tag_id = ?
+          GROUP BY bande"
+    );
+    $stmt->execute([$tagId]);
+    foreach ($stmt as $r) {
+        $repartition[(string) $r['bande']] = (int) $r['n'];
+    }
+    return $repartition;
+}
+
 // --- Message individuel écrit depuis une fiche structure (bouton « Contacter »)
 
 // Contacts d'une structure joignables par e-mail. Mêmes conditions QUE POUR UN

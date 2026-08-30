@@ -2,6 +2,7 @@
 /** @var array $aPayer */ /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaManquant */
+/** @var array $suiviTags */ /** @var int $suiviTagId */ /** @var array $suiviRepartition */
 
 // Génère le SVG du graphique comptable (inline, sans bibliothèque).
 $dash_svg = function (array $series): string {
@@ -281,6 +282,64 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                     <tr class="total-row apayer-row"><td><strong>Total émis</strong></td><td></td><td></td><td class="num strong net-apayer"><?= chf($totEmises) ?></td></tr>
                 </tfoot>
             </table>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (module_accessible('booking')): ?>
+        <?php
+        // Suivi du booking : où en est le démarchage d'une étiquette. Une barre
+        // par tranche d'ancienneté du dernier contact, dans les mêmes couleurs
+        // que partout ailleurs (vert = frais, gris = à reprendre), et chaque
+        // segment mène à la liste filtrée — la barre ne dit pas seulement
+        // « combien », elle donne « lesquels ».
+        $suiviTotal = array_sum($suiviRepartition);
+        ?>
+        <div class="card dash-card">
+            <div class="card-head-row">
+                <h2 class="mt-0">Suivi du booking</h2>
+                <?php if ($suiviTags): ?>
+                <form method="post" action="?p=resumes_suivi_tag" class="suivi-tag-form">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <select name="tag_id" data-submit-on-change aria-label="Étiquette suivie">
+                        <?php foreach ($suiviTags as $t): ?>
+                            <option value="<?= (int) $t['id'] ?>" <?= $suiviTagId === (int) $t['id'] ? 'selected' : '' ?>>
+                                <?= e($t['nom']) ?> (<?= (int) $t['nb'] ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+                <?php endif; ?>
+            </div>
+            <?php if (!$suiviTags): ?>
+                <p class="muted">Aucune étiquette. Posez-en une sur des structures pour suivre leur démarchage.</p>
+            <?php elseif ($suiviTotal === 0): ?>
+                <p class="muted">Aucune structure ne porte cette étiquette.</p>
+            <?php else: ?>
+                <div class="suivi-barre">
+                    <?php foreach (SUIVI_BOOKING_BANDES as $cle => [$libelle, $tranches]): ?>
+                        <?php $n = (int) ($suiviRepartition[$cle] ?? 0); if ($n === 0) { continue; } ?>
+                        <a class="suivi-seg suivi-seg-<?= e($cle) ?>"
+                           style="flex-grow: <?= $n ?>"
+                           href="<?= e(lien_structures_filtre(['tag_id' => [$suiviTagId], 'contact_periode' => $tranches])) ?>&amp;depuis=booking"
+                           title="<?= e($libelle) ?> : <?= $n ?> structure<?= $n > 1 ? 's' : '' ?>">
+                            <span><?= $n ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <ul class="suivi-legende">
+                    <?php foreach (SUIVI_BOOKING_BANDES as $cle => [$libelle, $tranches]): ?>
+                        <?php $n = (int) ($suiviRepartition[$cle] ?? 0); ?>
+                        <li>
+                            <a href="<?= e(lien_structures_filtre(['tag_id' => [$suiviTagId], 'contact_periode' => $tranches])) ?>&amp;depuis=booking">
+                                <span class="suivi-puce suivi-seg-<?= e($cle) ?>"></span>
+                                <?= e($libelle) ?>
+                                <strong><?= $n ?></strong>
+                                <span class="muted"><?= $suiviTotal ? round($n * 100 / $suiviTotal) : 0 ?> %</span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
             <?php endif; ?>
         </div>
         <?php endif; ?>

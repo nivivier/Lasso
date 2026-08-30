@@ -9,6 +9,33 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.4.2] — 2026-08-29
+
+### Ajouté
+- **Carte « Suivi du booking » au tableau de bord.** Pour une étiquette donnée,
+  une barre proportionnelle montre où en est le démarchage : contactées il y a
+  moins d'un mois (vert clair), moins d'un an (vert), moins de trois ans
+  (ambre), plus de trois ans ou jamais (gris). Chaque segment — et chaque ligne
+  de la légende — ouvre la liste correspondante sur ?p=structures.
+
+  Les bandes reprennent **exactement** les tranches du filtre « Contacté », pour
+  que le compte annoncé et la liste ouverte disent la même chose : vérifié sur
+  les 44 segments que produisent toutes les étiquettes de la base, sans écart.
+  L'étiquette suivie est mémorisée **par compte** : chacun retrouve la sienne.
+- **Table `utilisateur_preferences`** (migration 74) : les choix d'affichage
+  propres à un compte, qui survivent à la déconnexion — contrairement aux
+  filtres de liste, qui vivent en session, et aux `parametres`, globaux à
+  l'association. Helpers `preference()` / `preference_definir()`.
+
+### Modifié
+- **L'axe analytique d'une ligne de facture se modifie même sur une facture
+  émise.** Il ne figure pas sur le document envoyé au débiteur : c'est une
+  donnée de comptabilité interne, qu'on affine souvent une fois le rattachement
+  au projet tranché. Les montants, eux, restent figés dès l'émission. La colonne
+  « Axe » s'affiche désormais dès qu'un axe existe et qu'on peut en poser un —
+  auparavant elle n'apparaissait qu'une fois l'axe déjà choisi, ce qui rendait
+  la première affectation impossible depuis cette page.
+
 ## [2.4.1] — 2026-08-29
 
 ### Modifié

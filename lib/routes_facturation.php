@@ -305,6 +305,11 @@ function route_facture(): void
         'statutEffectif' => facturation_statut_effectif($facture),
         'ecrituresLibres' => $ecrituresLibres,
         'evenementsListe' => $evenementsListe,
+        // Axes actifs : la colonne « Axe » du tableau des lignes est modifiable
+        // même sur une facture émise (voir route_facture_ligne_axe()).
+        'axes' => module_actif('analytique')
+            ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
+            : [],
         'saved'   => $_GET['ok'] ?? null,
     ], 'Facture ' . ($facture['numero'] ?: '(brouillon)'));
 }
@@ -416,6 +421,40 @@ function route_facture_delete(): void
     $id = (int) ($_POST['id'] ?? 0);
     db()->prepare("DELETE FROM factures WHERE id = ? AND statut = 'brouillon'")->execute([$id]);
     redirect('facturation_liste');
+}
+
+// Axe analytique d'UNE ligne de facture, modifiable quel que soit le statut —
+// y compris sur une facture déjà émise. L'axe ne figure pas sur le document
+// envoyé au débiteur : c'est une donnée de comptabilité analytique, qu'on
+// affine souvent après coup, une fois le rattachement au projet tranché. Les
+// montants, eux, restent figés dès l'émission (route_facturation_form()).
+function route_facture_ligne_axe(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('analytique')) {
+        redirect('facturation_liste');
+    }
+    check_csrf();
+    $factureId = (int) ($_POST['facture_id'] ?? 0);
+    $ligneId   = (int) ($_POST['ligne_id'] ?? 0);
+    $axeBrut   = trim((string) ($_POST['axe_analytique_id'] ?? ''));
+    // Axe vide = aucun. Sinon il doit exister ET être actif : un axe archivé ne
+    // se choisit plus, même en forgeant la requête.
+    $axeId = null;
+    if ($axeBrut !== '') {
+        $stmt = db()->prepare('SELECT id FROM axes_analytiques WHERE id = ? AND actif = 1');
+        $stmt->execute([(int) $axeBrut]);
+        $axeId = $stmt->fetchColumn();
+        if ($axeId === false) {
+            redirect('facture', ['id' => $factureId]);
+        }
+        $axeId = (int) $axeId;
+    }
+    // La ligne doit appartenir à CETTE facture : un identifiant posté ne le
+    // prouve pas.
+    db()->prepare('UPDATE facture_lignes SET axe_analytique_id = ? WHERE id = ? AND facture_id = ?')
+        ->execute([$axeId, $ligneId, $factureId]);
+    redirect('facture', ['id' => $factureId, 'ok' => 'axe']);
 }
 
 // Construit le PDF d'une facture émise (ou payée/annulée), pour téléchargement/e-mail.

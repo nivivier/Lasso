@@ -99,6 +99,7 @@ function run_migrations(PDO $pdo): void
         71 => 'migration_71', // mailing_expediteurs : plusieurs boîtes d'envoi, chacune avec son propre SMTP — l'expéditeur devient une référence, plus un texte
         72 => 'migration_72', // structure_message_brouillons : le message en cours d'écriture depuis une fiche structure (bouton « Contacter »)
         73 => 'migration_73', // sous-module « Envois groupés » : reprend l'activation et les droits du booking, pour que personne ne perde l'accès au mailing
+        74 => 'migration_74', // utilisateur_preferences : les choix d'affichage propres à un compte (widget « Suivi du booking » du tableau de bord)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2252,4 +2253,26 @@ function migration_73(PDO $pdo): void
         "INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau)
          SELECT utilisateur_id, 'mailing', niveau FROM utilisateur_permissions WHERE module = 'booking'"
     );
+}
+
+// Migration 74 : préférences d'affichage propres à un compte — le dernier
+// choix fait dans un widget, une vue préférée… Une table clé/valeur par
+// utilisateur plutôt qu'une colonne par besoin : ces choix n'ont ni schéma
+// stable ni valeur métier, et une nouvelle préférence ne doit pas coûter une
+// migration.
+// À distinguer de la SESSION, où vivent déjà les filtres de liste
+// (filtre_persistant()) : ce qui est ici survit à la déconnexion, ce qui est en
+// session s'oublie avec elle. Et de « parametres », qui est global à
+// l'association, pas propre à une personne.
+function migration_74(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS utilisateur_preferences (
+            utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+            cle            TEXT NOT NULL,
+            valeur         TEXT NOT NULL DEFAULT '',
+            maj_le         TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (utilisateur_id, cle)
+        )
+    ");
 }

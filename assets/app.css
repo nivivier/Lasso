@@ -1505,6 +1505,34 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    blanc plein : cohérent avec le reste de l'appli quand un fond d'écran est
    actif, et transparent par-dessus la couleur unie par défaut. */
 .dash-card { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* Widget « Suivi du booking » (tableau de bord) : une barre par tranche
+   d'ancienneté du dernier contact, proportionnelle au nombre de structures.
+   Segments en flex-grow plutôt qu'en pourcentages calculés en PHP : la barre
+   reste juste quelle que soit la largeur, et un segment minuscule garde une
+   largeur minimale lisible (min-width) au lieu de disparaître. */
+.suivi-tag-form { margin: 0; }
+.suivi-tag-form select { width: auto; max-width: 220px; font-size: var(--fs-small); }
+.suivi-barre { display: flex; height: 26px; border-radius: var(--radius-sm); overflow: hidden; gap: 2px; }
+.suivi-seg {
+    display: flex; align-items: center; justify-content: center; min-width: 26px;
+    color: #fff; font-size: var(--fs-small); font-weight: 700; text-decoration: none;
+    transition: filter .12s;
+}
+.suivi-seg:hover { filter: brightness(1.08); text-decoration: none; }
+.suivi-seg span { pointer-events: none; }
+/* Vert clair → vert → ambre → gris : du contact frais au démarchage à reprendre.
+   Mêmes teintes que les statuts ailleurs (--ok, --amber, --muted). */
+.suivi-seg-mois  { background: color-mix(in srgb, var(--ok) 55%, white); color: var(--ink); }
+.suivi-seg-an    { background: var(--ok); }
+.suivi-seg-trois { background: var(--amber); }
+.suivi-seg-vieux { background: var(--muted); }
+.suivi-legende { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.suivi-legende a { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink); }
+.suivi-legende a:hover { text-decoration: none; color: var(--highlight-d); }
+.suivi-legende strong { margin-left: auto; font-variant-numeric: tabular-nums; }
+.suivi-legende .muted { min-width: 3.5em; text-align: right; font-variant-numeric: tabular-nums; }
+.suivi-puce { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
 /* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
    émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
    padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même

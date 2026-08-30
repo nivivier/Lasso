@@ -1949,6 +1949,35 @@ function fiche_email_html(array $f): string
         . '<body>' . $corps . '</body></html>';
 }
 
+// --- Préférences d'affichage propres à un compte (migration_74) -------------
+// Le dernier choix fait dans un widget, par exemple. Survit à la déconnexion,
+// contrairement aux filtres de liste qui vivent en session (filtre_persistant()).
+// Sans utilisateur connecté (tâche planifiée, route à jeton), lire rend le
+// défaut et écrire ne fait rien : ces routes n'ont personne à qui associer un
+// choix.
+function preference(string $cle, string $defaut = ''): string
+{
+    $u = current_user();
+    if (!$u) {
+        return $defaut;
+    }
+    $stmt = db()->prepare('SELECT valeur FROM utilisateur_preferences WHERE utilisateur_id = ? AND cle = ?');
+    $stmt->execute([(int) $u['id'], $cle]);
+    $v = $stmt->fetchColumn();
+    return $v === false ? $defaut : (string) $v;
+}
+
+function preference_definir(string $cle, string $valeur): void
+{
+    $u = current_user();
+    if (!$u) {
+        return;
+    }
+    db()->prepare("INSERT OR REPLACE INTO utilisateur_preferences (utilisateur_id, cle, valeur, maj_le)
+                   VALUES (?, ?, ?, datetime('now'))")
+        ->execute([(int) $u['id'], $cle, $valeur]);
+}
+
 // Adresse de réponse d'un envoi applicatif : celle configurée dans
 // Paramètres → E-mails (« Adresse de réponse »), à défaut l'expéditeur. Le
 // paramètre existait, s'annonçait comme un reply-to à l'écran… et n'était posé
