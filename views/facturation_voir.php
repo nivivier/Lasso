@@ -191,26 +191,37 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         $evenementLabel = $evenementActuel ? evenement_label_court($evenementActuel) : '';
     ?>
         <h2>Événement lié</h2>
+        <?php // Rien de lié : le champ de recherche est offert tout de suite —
+              // il n'y a rien à « modifier », seulement quelque chose à lier, et
+              // le cacher derrière un crayon ajoutait un clic pour rien.
+              // Un événement lié : son nom, et le crayon ouvre le même champ,
+              // pré-rempli, dont la ligne « — aucun — » délie. ?>
+        <?php if ($evenementActuel): ?>
         <div class="evenement-lie-disp">
-            <?php if ($evenementActuel): ?>
-                <a class="muted small" href="<?= e(url_avec_retour('?p=evenement&id=' . (int) $f['evenement_id'], 'facture', (int) $f['id'])) ?>"><?= e($evenementLabel) ?></a>
-            <?php else: ?>
-                <span class="muted small">Aucun événement lié.</span>
-            <?php endif; ?>
+            <a class="muted small" href="<?= e(url_avec_retour('?p=evenement&id=' . (int) $f['evenement_id'], 'facture', (int) $f['id'])) ?>"><?= e($evenementLabel) ?></a>
             <button type="button" class="row-edit-btn evenement-edit-btn" title="Modifier le lien"><?= icon('pencil') ?></button>
         </div>
-        <form method="post" action="?p=facture_evenement_lier<?= $depuisQs ?>" class="linked-add evenement-lie-form" hidden>
+        <?php endif; ?>
+        <form method="post" action="?p=facture_evenement_lier<?= $depuisQs ?>" class="linked-add evenement-lie-form"<?= $evenementActuel ? ' hidden' : '' ?>>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
-            <select name="evenement_id">
-                <option value="">— aucun —</option>
-                <?php foreach ($evenementsListe as $ev): ?>
-                    <option value="<?= (int) $ev['id'] ?>" <?= (int) $f['evenement_id'] === (int) $ev['id'] ? 'selected' : '' ?>>
-                        <?= e(evenement_label_court($ev)) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="btn ghost btn-sm"><?= icon('save') ?> Enregistrer</button>
+            <?php // Champ de recherche et non menu déroulant : la liste porte tous
+                  // les événements, du plus récent au plus ancien. ?>
+            <div class="cat-search evenement-search">
+                <input type="text" class="cat-search-input" autocomplete="off"
+                       placeholder="Rechercher un événement…" value="<?= e($evenementLabel) ?>">
+                <input type="hidden" name="evenement_id" class="cat-search-val" value="<?= (int) $f['evenement_id'] ?: '' ?>">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="">— aucun —</li>
+                    <?php foreach ($evenementsListe as $ev): ?>
+                        <li data-val="<?= (int) $ev['id'] ?>"><?= e(evenement_label_court($ev)) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php // Même bouton que la liaison d'une structure à un lieu
+                  // (?p=structure) : l'icône « lien », sans texte, à droite du
+                  // champ — c'est le même geste, il se reconnaît. ?>
+            <button type="submit" class="btn ghost btn-sm icon-only" title="Lier cet événement" aria-label="Lier cet événement"><?= icon('link') ?></button>
         </form>
     <?php endif; ?>
 </aside>
@@ -268,13 +279,18 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php if (module_actif('evenements') && peut_ecrire('facturation')): ?>
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
+    const wrap = document.querySelector('.evenement-search');
+    if (!wrap) return;
+    // showPlaceholderText : « — aucun — » doit s'écrire dans le champ quand on
+    // le choisit, sinon délier ne se voit pas.
+    lassoInitCatSearch(wrap, { clearHiddenOnInput: true, showPlaceholderText: true });
     const btn = document.querySelector('.evenement-edit-btn');
     if (!btn) return;
     btn.addEventListener('click', () => {
         document.querySelector('.evenement-lie-disp').hidden = true;
         const form = document.querySelector('.evenement-lie-form');
         form.hidden = false;
-        form.querySelector('select').focus();
+        wrap.querySelector('.cat-search-input').focus();
     });
 })();
 </script>

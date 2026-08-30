@@ -14,9 +14,15 @@ const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];
 // $prefixe : préfixe des noms de champs POST (ex. 'nd_', 'org_'). Retourne l'id créé.
 function structure_creer_depuis_post(string $prefixe): int
 {
+    // Catégorie : le formulaire poste l'identifiant d'un nœud de la taxonomie,
+    // que structure_categorie_champs() éclate en categorie/sous_categorie —
+    // exactement comme la création depuis ?p=structure. Champ absent ou vide
+    // (formulaire qui ne le propose pas) : les deux colonnes restent vides,
+    // comme avant.
+    $categorie = structure_categorie_champs((int) ($_POST[$prefixe . 'categorie_id'] ?? 0));
     db()->prepare("INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
-                    telephone, personne_contact, statut)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'actif')")
+                    telephone, personne_contact, categorie, sous_categorie, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'actif')")
         ->execute([
             trim($_POST[$prefixe . 'nom'] ?? ''),
             trim($_POST[$prefixe . 'adresse_rue'] ?? ''),
@@ -26,6 +32,8 @@ function structure_creer_depuis_post(string $prefixe): int
             trim($_POST[$prefixe . 'email'] ?? ''),
             trim($_POST[$prefixe . 'telephone'] ?? ''),
             trim($_POST[$prefixe . 'personne_contact'] ?? ''),
+            $categorie['categorie'],
+            $categorie['sous_categorie'],
         ]);
     return (int) db()->lastInsertId();
 }
@@ -396,31 +404,51 @@ function facturation_pdf_entete(TCPDF $pdf, array $facture, array $structure): v
 // réservée à la QR-facture (105 derniers mm d'une page A4).
 function facturation_pdf_lignes(TCPDF $pdf, array $lignes, array $facture): void
 {
+    // Filets HORIZONTAUX seulement, et seulement ENTRE les rangées : chaque
+    // rangée porte un filet en bas ('B'), sauf la dernière (le total). Rien
+    // au-dessus de l'en-tête, rien sous le total — un tableau de facture se lit
+    // mieux ouvert que quadrillé. Aucune bordure verticale, donc aucun 'L'/'R'.
+    // Épaisseur : 1 pt, converti en mm puisque le document est en mm
+    // (new TCPDF('P', 'mm', …)) — TCPDF ne connaît pas les points ici.
+    $largeurTrait = $pdf->getLineWidth();
+    $pdf->SetLineWidth(1 / 72 * 25.4); // 1 pt = 0,3528 mm
+    // Marges internes des cellules : de l'air autour du texte, comme à l'écran.
+    $paddings = $pdf->getCellPaddings();
+    $pdf->SetCellPaddings(2.5, 2, 2.5, 2);
+
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetFillColor(240, 240, 240);
-    $pdf->Cell(95, 7, 'Description', 1, 0, 'L', true);
-    $pdf->Cell(20, 7, 'Qté', 1, 0, 'R', true);
-    $pdf->Cell(30, 7, 'Prix unit.', 1, 0, 'R', true);
-    $pdf->Cell(35, 7, 'Montant', 1, 1, 'R', true);
+    $hEntete = 9;
+    $pdf->Cell(95, $hEntete, 'Description', 'B', 0, 'L', true);
+    $pdf->Cell(20, $hEntete, 'Qté', 'B', 0, 'R', true);
+    $pdf->Cell(30, $hEntete, 'Prix unit.', 'B', 0, 'R', true);
+    $pdf->Cell(35, $hEntete, 'Montant', 'B', 1, 'R', true);
     $pdf->SetFont('helvetica', '', 9);
     foreach ($lignes as $l) {
         $desc  = (string) $l['description'];
-        $rowH  = max(6, $pdf->getStringHeight(95, $desc));
+        // getStringHeight() tient compte des marges internes : le minimum suit
+        // donc la même hauteur qu'une ligne d'en-tête.
+        $rowH  = max($hEntete, $pdf->getStringHeight(95, $desc));
         if ($pdf->GetY() + $rowH > 175) {
             $pdf->AddPage();
         }
         $x = $pdf->GetX();
         $y = $pdf->GetY();
-        $pdf->MultiCell(95, $rowH, $desc, 1, 'L', false, 0, $x, $y);
+        $pdf->MultiCell(95, $rowH, $desc, 'B', 'L', false, 0, $x, $y);
         $pdf->SetXY($x + 95, $y);
-        $pdf->Cell(20, $rowH, nombre_court((float) $l['quantite']), 1, 0, 'R');
-        $pdf->Cell(30, $rowH, facturation_chf_pdf((float) $l['prix_unitaire']), 1, 0, 'R');
-        $pdf->Cell(35, $rowH, facturation_chf_pdf((float) $l['montant']), 1, 1, 'R');
+        $pdf->Cell(20, $rowH, nombre_court((float) $l['quantite']), 'B', 0, 'R');
+        $pdf->Cell(30, $rowH, facturation_chf_pdf((float) $l['prix_unitaire']), 'B', 0, 'R');
+        $pdf->Cell(35, $rowH, facturation_chf_pdf((float) $l['montant']), 'B', 1, 'R');
         $pdf->SetXY($x, $y + $rowH);
     }
     $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(145, 7, 'Total (CHF)', 1, 0, 'R', true);
-    $pdf->Cell(35, 7, facturation_chf_pdf((float) $facture['montant_total']), 1, 1, 'R', true);
+    $pdf->Cell(145, $hEntete, 'Total (CHF)', 0, 0, 'R', true);
+    $pdf->Cell(35, $hEntete, facturation_chf_pdf((float) $facture['montant_total']), 0, 1, 'R', true);
+
+    // Réglages rendus tels qu'ils étaient : la zone de paiement QR qui suit est
+    // normée et ne doit rien hériter de ce tableau.
+    $pdf->SetLineWidth($largeurTrait);
+    $pdf->SetCellPaddings($paddings['L'], $paddings['T'], $paddings['R'], $paddings['B']);
 }
 
 // Génère le PDF complet de la facture (contenu + zone de paiement QR normée),

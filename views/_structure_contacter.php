@@ -60,9 +60,14 @@ $expediteurDefautId = $brouillon && $brouillon['expediteur_id'] ? (int) $brouill
                 <textarea name="corps" id="contacter-corps" rows="9" required><?= e((string) ($brouillon['corps'] ?? '')) ?></textarea>
             </label>
 
+            <?php // Sur écran étroit, les deux commandes secondaires se réduisent à
+                  // leur icône (.btn-compact-mobile) : à trois boutons libellés, la
+                  // rangée passait à la ligne et « Envoyer » — le seul qu'on
+                  // cherche — se retrouvait n'importe où. Le titre et l'aria-label
+                  // portent le libellé, qui n'est plus lisible une fois masqué. ?>
             <div class="modal-actions">
-                <button type="button" class="btn ghost" id="contacter-annuler"><?= icon('x') ?> Annuler</button>
-                <button type="submit" name="section" value="brouillon" class="btn ghost" formnovalidate><?= icon('save') ?> Enregistrer le brouillon</button>
+                <button type="button" class="btn ghost btn-compact-mobile" id="contacter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?> <span class="btn-txt">Annuler</span></button>
+                <button type="submit" name="section" value="brouillon" class="btn ghost btn-compact-mobile" formnovalidate title="Enregistrer le brouillon" aria-label="Enregistrer le brouillon"><?= icon('save') ?> <span class="btn-txt">Enregistrer le brouillon</span></button>
                 <button type="submit" name="section" value="envoyer" data-confirm="Envoyer ce message ? Il partira immédiatement, avec une copie cachée à l'expéditeur, et sera consigné dans l'historique."><?= icon('mail') ?> Envoyer</button>
             </div>
         </form>

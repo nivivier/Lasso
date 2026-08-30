@@ -9,6 +9,40 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.4.1] — 2026-08-29
+
+### Modifié
+- **Facture : lier un événement se fait depuis un champ de recherche**, offert
+  d'emblée quand rien n'est lié — il n'y a rien à « modifier », seulement
+  quelque chose à lier, et le crayon coûtait un clic pour rien. Un événement
+  déjà lié garde son nom cliquable, et le crayon rouvre le même champ,
+  pré-rempli, dont la ligne « — aucun — » délie. Le bouton d'enregistrement
+  devient l'icône « lien » des liaisons de structures, à droite du champ.
+- **Formulaire de facture : la structure se cherche** au lieu de se dérouler.
+  Le menu portait près de 3000 entrées ; « + Nouvelle structure » reste la
+  première ligne de la liste.
+- **Une structure créée depuis une facture peut recevoir sa catégorie**, dans
+  le même arbre que la fiche structure. Elle naissait sans, donc absente des
+  filtres et des listes qui s'y appuient.
+- **Tableau des lignes du PDF** : marges internes plus généreuses, filets
+  horizontaux seulement — ni au-dessus de l'en-tête ni sous le total — aucune
+  bordure verticale, et un trait de 1 pt.
+- **Fenêtre « Contacter » sur téléphone** : « Annuler » et « Enregistrer le
+  brouillon » se réduisent à leur icône, pour que les trois commandes tiennent
+  sur une ligne sans reléguer « Envoyer ».
+
+### Corrigé
+- **Un tableau placé dans une carte débordait de son cadre** de 14 px de chaque
+  côté (?p=facture, employés d'un événement, résultat d'import d'événements) :
+  la marge négative qui fait courir les grandes listes jusqu'aux bords de la
+  page s'appliquait aussi à eux.
+- **Un carré gris précédait l'en-tête « Statut » de ?p=evenements_liste** :
+  l'icône de statut de ?p=structures s'y invitait faute de masque à appliquer
+  dans un en-tête. Elle est désormais réservée aux lignes qui portent un statut.
+- **Le bouton « Contacter » n'avait plus d'espace entre son icône et son texte
+  sur téléphone** : les boutons d'en-tête y sont réduits à leur icône, avec un
+  écart nul — celui-ci garde son libellé, donc son écart.
+
 ## [2.4.0] — 2026-08-28
 
 ### Ajouté

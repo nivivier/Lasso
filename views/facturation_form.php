@@ -74,17 +74,35 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <?php endif; ?>
 
     <div class="grid2">
+        <?php
+        // Champ de recherche plutôt qu'un menu déroulant : la liste compte
+        // toutes les structures actives (près de 3000) et un <select> s'y
+        // parcourt à l'aveugle. Même composant que le plan comptable et les
+        // écritures (lassoInitCatSearch(), assets/app.js) : on tape quelques
+        // lettres, la liste se filtre, la valeur retenue va dans le champ caché.
+        // « + Nouvelle structure » reste la première ligne de la liste.
+        $structureLabel = '';
+        if ($nouveauStructure) {
+            $structureLabel = '+ Nouvelle structure';
+        } else {
+            foreach ($structures as $d) {
+                if ($structureCourant === (string) $d['id']) { $structureLabel = (string) $d['nom']; }
+            }
+        }
+        ?>
         <label>Structure
-            <select name="structure_id" id="structure-select" required>
-                <option value="">— choisir —</option>
-                <option value="__new__" <?= $nouveauStructure ? 'selected' : '' ?>>+ Nouvelle structure</option>
-                <?php foreach ($structures as $d): ?>
-                    <option value="<?= (int) $d['id'] ?>"
-                        <?= $structureCourant === (string) $d['id'] ? 'selected' : '' ?>>
-                        <?= e($d['nom']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+            <div class="cat-search structure-search">
+                <input type="text" class="cat-search-input" id="structure-recherche" autocomplete="off"
+                       placeholder="Rechercher une structure…" value="<?= e($structureLabel) ?>">
+                <input type="hidden" name="structure_id" class="cat-search-val" id="structure-select"
+                       value="<?= e($nouveauStructure ? '__new__' : $structureCourant) ?>">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="__new__">+ Nouvelle structure</li>
+                    <?php foreach ($structures as $d): ?>
+                        <li data-val="<?= (int) $d['id'] ?>"><?= e($d['nom']) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         </label>
         <label>Compte bancaire créancier
             <select name="compte_bancaire_id" required>
@@ -101,7 +119,22 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 
     <div id="nouveau-structure" <?= $nouveauStructure ? '' : 'hidden' ?>>
         <h3 class="sub">Nouvelle structure</h3>
-        <label>Nom / raison sociale <input name="nd_nom" value="<?= $pv('nd_nom') ?>"></label>
+        <div class="grid2">
+            <label>Nom / raison sociale <input name="nd_nom" value="<?= $pv('nd_nom') ?>"></label>
+            <?php // Même arbre de catégories que la fiche structure : une structure
+                  // créée depuis une facture n'a pas de raison de rester sans
+                  // catégorie, elle apparaît dans les mêmes listes que les autres. ?>
+            <label>Catégorie
+                <select name="nd_categorie_id">
+                    <option value="">— aucune —</option>
+                    <?php foreach (structure_categories_pour_select() as $cat): ?>
+                        <option value="<?= (int) $cat['id'] ?>" <?= (string) ($post['nd_categorie_id'] ?? '') === (string) $cat['id'] ? 'selected' : '' ?>>
+                            <?= str_repeat("\u{00A0}\u{00A0}", (int) $cat['profondeur']) ?><?= e($cat['nom']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+        </div>
         <div class="grid3">
             <label>Rue et numéro <input name="nd_adresse_rue" value="<?= $pv('nd_adresse_rue') ?>"></label>
             <label>NPA <input name="nd_adresse_npa" value="<?= $pv('nd_adresse_npa') ?>"></label>
@@ -146,11 +179,22 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
+    // Le bloc « Nouvelle structure » suit la valeur retenue, qu'elle vienne d'un
+    // clic dans la liste (onSelect) ou du champ vidé à la saisie
+    // (clearHiddenOnInput : tant qu'on tape, plus rien n'est sélectionné, il
+    // faut re-choisir — sinon on croirait avoir changé de structure en ayant
+    // seulement changé le texte affiché).
     const structureSelect = document.getElementById('structure-select');
     const nouveauStructure = document.getElementById('nouveau-structure');
-    structureSelect.addEventListener('change', () => {
+    const majNouveauStructure = () => {
         nouveauStructure.hidden = structureSelect.value !== '__new__';
+    };
+    lassoInitCatSearch(document.querySelector('.structure-search'), {
+        clearHiddenOnInput: true,
+        showPlaceholderText: true,
+        onSelect: majNouveauStructure,
     });
+    document.getElementById('structure-recherche').addEventListener('input', majNouveauStructure);
 
     const lignes = document.getElementById('lignes');
     const tpl = document.getElementById('ligne-tpl');

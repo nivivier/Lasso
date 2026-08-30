@@ -63,9 +63,9 @@ $contactable = $peutContacter && $raisonPasContactable === '';
     <div class="head-actions">
         <?php if ($peutContacter): ?>
             <?php if ($contactable): ?>
-            <button type="button" id="contacter-btn" class="btn"><?= icon('mail') ?> Contacter</button>
+            <button type="button" id="contacter-btn" class="btn btn-contacter"><?= icon('mail') ?> Contacter</button>
             <?php else: ?>
-            <button type="button" class="btn" disabled title="<?= e($raisonPasContactable) ?>"><?= icon('mail') ?> Contacter</button>
+            <button type="button" class="btn btn-contacter" disabled title="<?= e($raisonPasContactable) ?>"><?= icon('mail') ?> Contacter</button>
             <?php endif; ?>
         <?php endif; ?>
         <?php if ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0): ?>

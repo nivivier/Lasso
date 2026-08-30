@@ -694,7 +694,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    plus qu'un <span> vide, avec son title, et la ligne perd deux nœuds.
    La couleur vient de currentColor, donc des classes .ico-ok/.ico-danger/…
    posées sur ce même <span> — thème sombre compris, comme avant. */
-.col-statut > span::before {
+/* Sélecteur ancré sur tr[data-statut] : la classe .col-statut sert aussi à
+   l'EN-TÊTE « Statut » de ?p=evenements_liste, dont le <span> se voyait alors
+   coiffé de ce bloc de 16px — un carré gris plein, faute de masque à lui
+   appliquer. Seule une ligne portant un statut mérite l'icône. */
+tr[data-statut] .col-statut > span::before {
     content: ""; display: inline-block; width: 16px; height: 16px; vertical-align: middle;
     background-color: currentColor;
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
@@ -1090,6 +1094,17 @@ body.auth-bg, body.has-sidebar {
 .module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
 .module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
 .module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
+/* … sauf dans une CARTE. La marge négative ci-dessus vise les tableaux posés à
+   même la zone blanche (les listes) ; appliquée à un tableau de fiche
+   (?p=facture, lignes de la facture), elle le faisait dépasser du cadre de la
+   carte — d'un --content-pad de chaque côté — et alignait ses cellules sur le
+   retrait de la PAGE au lieu de celui de la carte. */
+.module-content-inner .card .table-scroll { margin: 0; border-radius: var(--radius); }
+.module-content-inner .card .table-scroll .list { border-left: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: var(--radius); }
+/* --row-pad est un raccourci (« 10px 12px ») : on repose le padding complet
+   plutôt qu'un padding-left/right, qui n'accepterait pas deux valeurs. */
+.module-content-inner .card .table-scroll .list tr > :first-child,
+.module-content-inner .card .table-scroll .list tr > :last-child { padding: var(--row-pad); }
 /* Bandeau d'onglets de module, niveau intermédiaire entre le rail (module)
    et la page (onglet) — voir
    views/_module_tabs.php. Réutilisé tel quel par les onglets principaux de
@@ -1613,8 +1628,19 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
     .cadre-edit .grid2 { grid-template-columns: 1fr; }
     .contact-fin { flex-direction: column; }
     .contact-fin .contact-langue { align-self: flex-start; }
+    /* Commandes secondaires réduites à leur icône : trois boutons libellés ne
+       tiennent pas sur la largeur d'un téléphone, et la rangée se cassait
+       autour d'« Envoyer ». Voir views/_structure_contacter.php. */
+    .btn-compact-mobile .btn-txt { display: none; }
+    .btn-compact-mobile { padding: 9px 11px; gap: 0; }
 }
 .linked-add select { width: auto; flex: 1; }
+/* Champ de recherche dans une rangée « lier » : il prend la place, le bouton
+   garde la sienne à droite. min-width:0 sinon un champ flex refuse de descendre
+   sous la largeur de son contenu et pousse le bouton à la ligne — ce qui
+   arrivait dans la colonne étroite d'une fiche facture. */
+.linked-add .cat-search { flex: 1 1 auto; min-width: 0; }
+.linked-add .cat-search .cat-search-input { width: 100%; }
 .linked-add .cat-search { flex: 1; }
 /* Le champ occupe toute la largeur disponible → le bouton reste collé à droite. */
 .linked-add input[type="text"], .linked-add input[type="search"] { flex: 1; min-width: 0; }
@@ -2575,9 +2601,13 @@ abbr {
 /* Aside "Marquer comme payée" (facture) : même style que la sidebar fiche, un peu plus large pour le champ écriture */
 .facture-aside { flex-basis: 260px; }
 .facture-aside h3.sub { margin-bottom: 4px; }
-/* Formulaire « Événement lié » : trop étroit pour la ligne select+bouton horizontale par défaut de .linked-add. */
-.facture-aside .linked-add { flex-direction: column; align-items: stretch; gap: 8px; }
-.facture-aside .linked-add select { width: 100%; }
+/* Formulaire « Événement lié » : champ de recherche et bouton « lier » sur une
+   même ligne. L'empilement d'avant venait du couple <select> + bouton libellé,
+   qui ne tenait pas dans les 260px de la colonne ; l'icône seule, si.
+   Le width:100% des boutons de sidebar (.fiche-aside button) est neutralisé
+   ici, sinon l'icône s'étirerait sur toute la largeur. */
+.facture-aside .linked-add { flex-direction: row; align-items: center; gap: 8px; }
+.facture-aside .linked-add button { width: auto; margin-top: 0; flex: 0 0 auto; }
 .facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: var(--fs-basic); background: var(--card); }
 .facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */
@@ -2746,6 +2776,10 @@ abbr {
        deuxième ligne — min-height laisse le bouton grandir librement au-delà
        du minimum dès que son contenu l'exige. */
     .head-actions .btn { min-height: var(--action-height); padding: 0 11px; gap: 0; }
+    /* … sauf ceux qui gardent leur libellé en mobile : le gap:0 ci-dessus vaut
+       pour les boutons réduits à leur icône, et collait ici l'enveloppe au mot
+       « Contacter ». */
+    .head-actions .btn.btn-contacter { gap: 7px; }
     .head-actions .mail-sent { gap: 0; }
     /* justify-content:flex-start + text-align:left (pas center, contrairement
        à button/.btn) : sur deux lignes, un texte centré ligne à ligne (« Écri-
