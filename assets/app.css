@@ -1506,6 +1506,58 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    actif, et transparent par-dessus la couleur unie par défaut. */
 .dash-card { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
+/* Médaillon d'état posé sur une carte du tableau de bord : le nombre de
+   choses qui restent à faire, et le lien vers la liste correspondante.
+   Chevauche le bord haut de la carte, à droite.
+
+   Levé par un transform et NON par position:absolute : dans .dash-cols
+   (column-count), une boîte absolue est fragmentée par le multicol et
+   Chromium en peint une COPIE fantôme en bas de la colonne précédente
+   (constaté sur les cartes en tête de colonne). Le transform ne touche pas
+   au flux, donc rien à fragmenter.
+
+   align-items: flex-start sur la rangée de titre : le médaillon est plus haut
+   que le <h2>, et un centrage vertical poussait le titre à 31px du haut de la
+   carte au lieu des 26px du padding — les cartes avec et sans médaillon
+   n'alignaient plus leurs titres. */
+/* Pas d'overflow à rétablir : .card n'en déclare aucun, donc le médaillon
+   dépasse déjà librement du cadre. */
+.dash-card .card-head-row:has(.dash-medaillon) { align-items: flex-start; flex-wrap: wrap; }
+.dash-card .card-head-row:has(.dash-medaillon) > form { margin-left: auto; width: 100%; }
+/* L'enveloppe ne pèse rien dans la rangée de titre (height: 0), le médaillon
+   garde sa taille naturelle à l'intérieur et déborde. Sans cela la rangée
+   passait de 22px (hauteur du h2) à 30px : le titre restait bien à 26px du
+   haut, mais tout ce qui suit descendait d'autant, et le haut des cartes à
+   médaillon paraissait plus aéré que celui des autres. height: 0 posé sur le
+   médaillon lui-même l'aplatissait — c'est lui qui porte le fond coloré.
+   align-items: flex-start pour que l'enveloppe n'étire pas son contenu à 0. */
+.dash-medaillon-slot { display: inline-flex; align-items: flex-start; height: 0;
+    margin-left: auto; transform: translateY(-38px); }
+.dash-medaillon {
+    display: inline-flex; align-items: baseline; gap: 5px;
+    padding: 6px 15px; border-radius: var(--radius-pill);
+    border: 2px solid var(--card); box-shadow: 0 3px 12px rgb(0 0 0 / .16);
+    font-size: var(--fs-small); font-weight: 600; line-height: 1.2;
+    white-space: nowrap; color: #fff; text-decoration: none; transition: filter .15s;
+}
+.dash-medaillon:hover { filter: brightness(1.08); text-decoration: none; color: #fff; }
+.dash-medaillon b { font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+.dash-medaillon-retard { background: var(--danger); }
+.dash-medaillon-attente { background: var(--amber); }
+/* Une colonne fait ~215px à 1500px de large : deux médaillons n'y tiennent
+   pas et cassent le titre sur deux lignes. Seul le premier (le plus urgent)
+   s'affiche ; sous 1400px la mise en page passe à 2 colonnes (~500px) et le
+   second réapparaît. */
+.dash-medaillon-slot ~ .dash-medaillon-slot { display: none; margin-left: 8px; }
+@media (max-width: 1400px) {
+    .dash-medaillon-slot ~ .dash-medaillon-slot { display: inline-flex; margin-left: 8px; }
+}
+
+/* Nombres colorés par gravité dans les tableaux du tableau de bord (carte
+   Suisa) — mêmes teintes que les médaillons et que les statuts ailleurs. */
+.dash-card td.num-attente { color: var(--amber); }
+.dash-card td.num-retard { color: var(--danger); }
+
 /* Widget « Suivi du booking » (tableau de bord) : une barre par tranche
    d'ancienneté du dernier contact, proportionnelle au nombre de structures.
    Segments en flex-grow plutôt qu'en pourcentages calculés en PHP : la barre
@@ -1549,6 +1601,13 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .dash-card table.list tr > :first-child { padding-left: 26px; }
 .dash-card table.list tr > :last-child { padding-right: 26px; }
 .dash-chart { width: 100%; height: auto; display: block; }
+/* Décor du graphique comptable : posé ici et non dans le SVG (views/resumes.php)
+   pour suivre le thème. Les valeurs claires reprennent à l'identique celles qui
+   étaient codées en dur (--line = #e8e9f1, --muted = #6b7280) — le changement
+   ne se voit qu'en sombre, où elles étaient restées celles du thème clair. */
+.dash-chart .ch-grille { stroke: var(--line); }
+.dash-chart .ch-zero { stroke: var(--muted); opacity: .55; }
+.dash-chart .ch-label { font-size: 12px; font-family: inherit; fill: var(--muted); }
 @media (max-width: 1400px) {
     .dash-cols { column-count: 2; }
 }
@@ -2833,6 +2892,10 @@ abbr {
 .inline-edit input { margin-bottom: 0; }
 .inline-edit .grow { flex: 1 1 auto; min-width: 8rem; }
 .inline-edit .w-iban { flex: 0 0 auto; width: 17rem; max-width: 40vw; }
+/* max-width en rem et non en vw : les champs voisins se laissent étirer par la
+   règle de largeur générale des input et ne sont bornés que par leur vw, ce qui
+   donnerait 30vw à un simple nom de banque. */
+.inline-edit .w-banque { flex: 0 0 auto; width: 10rem; max-width: 12rem; }
 .inline-edit button { flex: 0 0 auto; }
 /* Sous ~480px, plusieurs champs côte à côte en nowrap débordent ou s'écrasent
    (ex. taux_horaires.php, compta_axes.php) — repli en colonne. */
@@ -2850,7 +2913,7 @@ abbr {
 .bulk-bar { display: flex; gap: 16px; align-items: center; flex-wrap: nowrap; background: var(--card); border: 1px solid var(--primary-tint); border-radius: var(--radius); padding: 12px 16px; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 24px rgb(var(--primary-rgb) / .22); z-index: 100; white-space: nowrap; }
 .bulk-bar form { display: flex; align-items: center; gap: 10px; }
 .bulk-field { display: flex; align-items: center; }
-.compta-lettrage { min-width: 760px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
+.compta-lettrage { min-width: 900px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
 .compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
 .compta-lettrage td { padding-top: 5px; padding-bottom: 5px; }
 .list .col-check { width: 34px; text-align: center; }
@@ -2862,9 +2925,20 @@ abbr {
    Vaut aussi pour la case « tout cocher » de l'en-tête, alignée sur les autres
    entonnoirs de la ligne. */
 .list .col-check input[type="checkbox"] { vertical-align: middle; }
+/* Contre-partie : sa propre colonne, en petit et en gris — elle situe
+   l'écriture sans concurrencer le texte, qui reste la colonne principale. */
+.compta-lettrage .tiers-cell { max-width: 170px; font-size: var(--fs-small); color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell { max-width: 200px; font-size: var(--fs-small); color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
 .compta-lettrage .texte-cell:hover { color: var(--primary); }
+/* Contre-partie / communication sous le texte : sa propre ligne, tronquée
+   pour son compte (la cellule est en nowrap + ellipsis, un enfant en bloc
+   hérite du nowrap et doit donc gérer son propre débordement). Se déplie avec
+   la cellule au clic, comme le texte au-dessus. */
+.compta-lettrage .ecr-details { display: block; font-size: var(--fs-tiny); color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; }
+.compta-lettrage .texte-cell.expanded .ecr-details { white-space: normal; overflow: visible; }
 .ecr-facture-lien { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--highlight); }
 .ecr-facture-lien .ico { width: 14px; height: 14px; }
 

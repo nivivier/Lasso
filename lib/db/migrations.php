@@ -100,6 +100,9 @@ function run_migrations(PDO $pdo): void
         72 => 'migration_72', // structure_message_brouillons : le message en cours d'écriture depuis une fiche structure (bouton « Contacter »)
         73 => 'migration_73', // sous-module « Envois groupés » : reprend l'activation et les droits du booking, pour que personne ne perde l'accès au mailing
         74 => 'migration_74', // utilisateur_preferences : les choix d'affichage propres à un compte (widget « Suivi du booking » du tableau de bord)
+        75 => 'migration_75', // ecritures : champs structurés camt.053 (référence QR, IBAN de la contre-partie, référence bancaire, nature) — voir parse_camt053()
+        76 => 'migration_76', // ecritures.tiers_source : d'où vient la contre-partie (champ structuré ou déduite du libellé), donc à quel point s'y fier
+        77 => 'migration_77', // comptes_bancaires.banque : l'établissement, contre-partie des frais bancaires que le relevé n'attribue à personne
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2264,6 +2267,69 @@ function migration_73(PDO $pdo): void
 // (filtre_persistant()) : ce qui est ici survit à la déconnexion, ce qui est en
 // session s'oublie avec elle. Et de « parametres », qui est global à
 // l'association, pas propre à une personne.
+// Migration 77 : nom de l'établissement sur le compte bancaire. Les frais de
+// tenue de compte n'ont aucune contre-partie dans le relevé — ni nom ni IBAN —
+// alors qu'ils sont bien versés à la banque. Aucune ligne ne permet de la
+// deviner (« PRIX POUR LA GESTION DU COMPTE » ne nomme personne) : elle se
+// renseigne donc une fois, sur le compte.
+function migration_77(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(comptes_bancaires)') as $row) {
+        $cols[$row['name']] = true;
+    }
+    if (!isset($cols['banque'])) {
+        $pdo->exec("ALTER TABLE comptes_bancaires ADD COLUMN banque TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Migration 76 : provenance de la contre-partie. « tiers » mélangeait deux
+// choses de fiabilité très différente — ce que le relevé déclare en clair
+// (RltdPties) et ce qu'on devine de son libellé — sans qu'on puisse les
+// distinguer après coup. Les autres colonnes ajoutées en 75 (iban_tiers,
+// reference, nature, ref_bancaire) sont, elles, de purs miroirs du fichier :
+// « tiers » était devenue l'exception du groupe.
+// Reprise de l'existant, seulement là où c'est certain : une écriture qui porte
+// une « nature » vient d'un import camt postérieur au correctif, où la déduction
+// depuis le libellé n'existait pas encore — sa contre-partie est donc structurée.
+// Le reste garde une provenance vide plutôt qu'une supposition.
+function migration_76(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(ecritures)') as $row) {
+        $cols[$row['name']] = true;
+    }
+    if (!isset($cols['tiers_source'])) {
+        $pdo->exec("ALTER TABLE ecritures ADD COLUMN tiers_source TEXT NOT NULL DEFAULT ''");
+    }
+    $pdo->exec("UPDATE ecritures SET tiers_source = 'camt'
+                 WHERE tiers_source = '' AND tiers <> '' AND nature <> ''");
+    $pdo->exec("UPDATE ecritures SET tiers_source = 'csv'
+                 WHERE tiers_source = '' AND tiers <> '' AND nature = '' AND import_id IS NOT NULL");
+}
+
+// Migration 75 : les champs structurés d'un relevé camt.053 que l'import
+// laissait tomber (référence QR, IBAN de la contre-partie, référence bancaire
+// unique, nature de l'opération). Colonnes seulement : les écritures déjà
+// importées gardent leurs valeurs vides — les réimporter n'est pas souhaitable
+// (leur « hash » est inchangé, elles seraient reconnues comme doublons, ce qui
+// est le comportement voulu).
+function migration_75(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(ecritures)') as $row) {
+        $cols[$row['name']] = true;
+    }
+    foreach (['reference', 'iban_tiers', 'ref_bancaire', 'nature'] as $nom) {
+        if (!isset($cols[$nom])) {
+            $pdo->exec("ALTER TABLE ecritures ADD COLUMN $nom TEXT NOT NULL DEFAULT ''");
+        }
+    }
+    // Index partiel : voir schema.php pour le pourquoi du WHERE.
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_ecritures_ref_bancaire
+                ON ecritures (compte_bancaire_id, ref_bancaire) WHERE ref_bancaire <> ''");
+}
+
 function migration_74(PDO $pdo): void
 {
     $pdo->exec("

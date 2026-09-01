@@ -100,13 +100,17 @@ function geocodage_geocoder_ville(string $ville, string $departementCanton, stri
 // de $table mais absents du cache. $villeCol/$paysCol doivent stocker le
 // pays en NOM (structures) — pour une table qui le stocke en code
 // ISO2 (événements), voir geocodage_villes_manquantes_evenements() à la place.
+// ⚠️ Même invariante que geocodage_non_localises_where() ci-dessous : la clé
+// reconstruite doit être celle de geocodage_cle(), accents repliés sur ville
+// et pays. Sinon toute ville accentuée est réputée absente du cache et
+// réinterrogée auprès de Nominatim à chaque passe.
 function geocodage_villes_manquantes(string $table = 'structures', string $villeCol = 'adresse_localite', string $departementCantonCol = 'departement_canton', string $paysCol = 'adresse_pays'): array
 {
     return db()->query(
         "SELECT DISTINCT TRIM($villeCol) AS ville, TRIM($departementCantonCol) AS departement_canton, TRIM($paysCol) AS pays
          FROM $table
          WHERE TRIM($villeCol) <> ''
-           AND LOWER_UTF8(TRIM($villeCol)) || '|' || LOWER_UTF8(TRIM($departementCantonCol)) || '|' || LOWER_UTF8(TRIM($paysCol))
+           AND SANS_ACCENTS(TRIM($villeCol)) || '|' || LOWER_UTF8(TRIM($departementCantonCol)) || '|' || SANS_ACCENTS(TRIM($paysCol))
                NOT IN (SELECT cle FROM lieux_geocodage)
          ORDER BY ville"
     )->fetchAll();
@@ -118,9 +122,16 @@ function geocodage_villes_manquantes(string $table = 'structures', string $ville
 // traiter les cas où Nominatim ne trouve pas la ville (typo, lieu-dit trop
 // précis…), accessible depuis le lien « Voir la liste » de la vue carte (voir
 // carte_banner_geocodage_html(), lib/helpers.php).
+// ⚠️ La clé reconstruite ici doit être IDENTIQUE à celle de geocodage_cle() :
+// ville et pays repliés sans accents (SANS_ACCENTS(), qui appelle la même
+// fonction PHP), département simplement en minuscules. Avec LOWER_UTF8() sur
+// les trois — l'état d'avant migration_65, resté ici après le recléage du
+// cache — « genève|ge|suisse » ne retrouvait jamais « geneve|ge|suisse » : les
+// villes accentuées étaient annoncées comme jamais géolocalisées alors qu'elles
+// l'étaient (mesuré : 57 structures, Genève et Mâcon en tête).
 function geocodage_non_localises_where(string $villeCol, string $departementCantonCol, string $paysCol): string
 {
-    return " AND TRIM($villeCol) <> '' AND (LOWER_UTF8(TRIM($villeCol)) || '|' || LOWER_UTF8(TRIM($departementCantonCol)) || '|' || LOWER_UTF8(TRIM($paysCol))) NOT IN "
+    return " AND TRIM($villeCol) <> '' AND (SANS_ACCENTS(TRIM($villeCol)) || '|' || LOWER_UTF8(TRIM($departementCantonCol)) || '|' || SANS_ACCENTS(TRIM($paysCol))) NOT IN "
         . "(SELECT cle FROM lieux_geocodage WHERE statut = 'ok')";
 }
 

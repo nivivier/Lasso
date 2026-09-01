@@ -380,6 +380,7 @@ function route_compta_comptes(): void
         $section = $_POST['section'] ?? '';
         if ($section === 'add' || $section === 'edit') {
             $libelle      = trim($_POST['libelle'] ?? '');
+            $banque       = trim($_POST['banque'] ?? '');
             $iban         = strtoupper(preg_replace('/\s+/', '', $_POST['iban'] ?? ''));
             $soldeInitial = (float) str_replace(["'", ' '], '', $_POST['solde_initial'] ?? '0');
             if ($libelle === '') {
@@ -387,12 +388,12 @@ function route_compta_comptes(): void
             } else {
                 try {
                     if ($section === 'edit') {
-                        db()->prepare('UPDATE comptes_bancaires SET libelle=?, iban=?, solde_initial=? WHERE id=?')
-                            ->execute([$libelle, $iban, $soldeInitial, (int) ($_POST['id'] ?? 0)]);
+                        db()->prepare('UPDATE comptes_bancaires SET libelle=?, banque=?, iban=?, solde_initial=? WHERE id=?')
+                            ->execute([$libelle, $banque, $iban, $soldeInitial, (int) ($_POST['id'] ?? 0)]);
                     } else {
                         $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM comptes_bancaires')->fetchColumn();
-                        db()->prepare('INSERT INTO comptes_bancaires (libelle, iban, solde_initial, ordre) VALUES (?, ?, ?, ?)')
-                            ->execute([$libelle, $iban, $soldeInitial, $ordre]);
+                        db()->prepare('INSERT INTO comptes_bancaires (libelle, banque, iban, solde_initial, ordre) VALUES (?, ?, ?, ?, ?)')
+                            ->execute([$libelle, $banque, $iban, $soldeInitial, $ordre]);
                     }
                     redirect('compta_comptes', ['ok' => 1]);
                 } catch (PDOException $ex) {
@@ -785,7 +786,10 @@ function route_compta_ecritures(): void
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$rechSql, $rechParams] = recherche_sql(['e.texte', 'cb.libelle', 'p.libelle', 'e.date_op', 'CAST(e.montant AS TEXT)']);
+        // tiers/communication cherchés aussi : ils sont affichés sous le texte
+        // (views/compta_ecritures.php) et sont parfois la SEULE mention du
+        // destinataire, « Texte » pouvant se réduire à une référence.
+        [$rechSql, $rechParams] = recherche_sql(['e.texte', 'e.tiers', 'e.communication', 'cb.libelle', 'p.libelle', 'e.date_op', 'CAST(e.montant AS TEXT)']);
         $where .= $rechSql;
         $params = array_merge($params, $rechParams);
 

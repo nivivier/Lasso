@@ -408,10 +408,14 @@ function facturation_pdf_lignes(TCPDF $pdf, array $lignes, array $facture): void
     // rangée porte un filet en bas ('B'), sauf la dernière (le total). Rien
     // au-dessus de l'en-tête, rien sous le total — un tableau de facture se lit
     // mieux ouvert que quadrillé. Aucune bordure verticale, donc aucun 'L'/'R'.
-    // Épaisseur : 1 pt, converti en mm puisque le document est en mm
-    // (new TCPDF('P', 'mm', …)) — TCPDF ne connaît pas les points ici.
+    //
+    // DEUX épaisseurs : 1 pt sous l'en-tête, qui referme le bandeau de titres,
+    // et 0,5 pt entre les lignes, qui ne font que les séparer. Converties en mm,
+    // le document étant en mm (new TCPDF('P', 'mm', …)) — TCPDF ne connaît pas
+    // les points ici.
+    $pt = 25.4 / 72; // 1 pt en millimètres
     $largeurTrait = $pdf->getLineWidth();
-    $pdf->SetLineWidth(1 / 72 * 25.4); // 1 pt = 0,3528 mm
+    $pdf->SetLineWidth($pt);
     // Marges internes des cellules : de l'air autour du texte, comme à l'écran.
     $paddings = $pdf->getCellPaddings();
     $pdf->SetCellPaddings(2.5, 2, 2.5, 2);
@@ -423,6 +427,8 @@ function facturation_pdf_lignes(TCPDF $pdf, array $lignes, array $facture): void
     $pdf->Cell(20, $hEntete, 'Qté', 'B', 0, 'R', true);
     $pdf->Cell(30, $hEntete, 'Prix unit.', 'B', 0, 'R', true);
     $pdf->Cell(35, $hEntete, 'Montant', 'B', 1, 'R', true);
+    // À partir d'ici, le filet de séparation entre lignes, deux fois plus fin.
+    $pdf->SetLineWidth($pt / 2);
     $pdf->SetFont('helvetica', '', 9);
     foreach ($lignes as $l) {
         $desc  = (string) $l['description'];
@@ -441,9 +447,14 @@ function facturation_pdf_lignes(TCPDF $pdf, array $lignes, array $facture): void
         $pdf->Cell(35, $rowH, facturation_chf_pdf((float) $l['montant']), 'B', 1, 'R');
         $pdf->SetXY($x, $y + $rowH);
     }
+    // Filet en HAUT de la rangée de total, et non seulement en bas de la
+    // dernière ligne : le fond gris du total est peint APRÈS ce filet et en
+    // recouvrait la moitié basse — le trait y paraissait deux fois plus fin
+    // que les autres (mesuré : 2px contre 4 à 300 dpi). Redessiné par-dessus le
+    // fond, il retrouve son épaisseur. Toujours rien sous le total.
     $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(145, $hEntete, 'Total (CHF)', 0, 0, 'R', true);
-    $pdf->Cell(35, $hEntete, facturation_chf_pdf((float) $facture['montant_total']), 0, 1, 'R', true);
+    $pdf->Cell(145, $hEntete, 'Total (CHF)', 'T', 0, 'R', true);
+    $pdf->Cell(35, $hEntete, facturation_chf_pdf((float) $facture['montant_total']), 'T', 1, 'R', true);
 
     // Réglages rendus tels qu'ils étaient : la zone de paiement QR qui suit est
     // normée et ne doit rien hériter de ce tableau.

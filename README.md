@@ -156,10 +156,14 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 5. **Certificat de salaire** (page d'un employé) : récapitulatif annuel au format du
    formulaire 11, impression PDF, et **export XML** à importer dans l'application
    officielle *eCertificat de salaire CSI* pour produire les PDF certifiés.
-6. **Comptabilité** : créez vos comptes bancaires, importez les relevés PostFinance
-   (CSV), lettrez les écritures (catégorie du plan comptable), définissez des règles
-   de lettrage automatiques, ventilez par axes analytiques, et consultez les
-   **comptes annuels** (résultat + patrimoine).
+6. **Comptabilité** : créez vos comptes bancaires, importez les relevés au format
+   **camt.053** (XML ISO 20022) ou l'export **CSV PostFinance**, lettrez les écritures
+   (catégorie du plan comptable), définissez des règles de lettrage automatiques,
+   ventilez par axes analytiques, et consultez les **comptes annuels** (résultat +
+   patrimoine). D'un relevé camt.053 sont repris la contre-partie, la communication,
+   la référence QR et la nature de l'opération ; l'écriture garde la trace de la
+   provenance de sa contre-partie, selon qu'elle est déclarée par le relevé ou
+   déduite de son libellé.
 7. **Facturation** : débiteurs, factures avec **zone de paiement QR suisse**
    conforme (PDF), envoi par e-mail et relances. L'IBAN créancier vient du compte
    bancaire, partagé avec la comptabilité.

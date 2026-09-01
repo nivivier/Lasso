@@ -133,6 +133,10 @@ function init_schema(PDO $pdo): void
         CREATE TABLE IF NOT EXISTS comptes_bancaires (
             id      INTEGER PRIMARY KEY AUTOINCREMENT,
             libelle TEXT NOT NULL,
+            -- Nom de l'établissement, facultatif. Sert de contre-partie aux
+            -- frais bancaires, que le relevé n'attribue à personne alors qu'ils
+            -- sont bien payés à la banque (voir compta_inserer_ecritures()).
+            banque  TEXT NOT NULL DEFAULT '',
             iban    TEXT NOT NULL DEFAULT '' UNIQUE,
             ordre   INTEGER NOT NULL DEFAULT 0,
             actif   INTEGER NOT NULL DEFAULT 1,
@@ -175,6 +179,18 @@ function init_schema(PDO $pdo): void
             texte              TEXT NOT NULL DEFAULT '',
             tiers              TEXT NOT NULL DEFAULT '',  -- contre-partie extraite (donneur d'ordre / expéditeur)
             communication      TEXT NOT NULL DEFAULT '',  -- communication / référence extraite
+            -- Champs structurés d'un relevé ISO 20022 (camt.053), vides pour un
+            -- import CSV PostFinance qui ne les porte pas. Voir parse_camt053().
+            -- Provenance de « tiers », donc sa fiabilité : 'camt' = champ
+            -- structuré du relevé (sûr) ; 'csv' = reconnu dans le libellé d'un
+            -- export PostFinance ; 'texte' = déduit du libellé d'un relevé ISO
+            -- (achat par carte, voir marchand_carte()) ; '' = pas de
+            -- contre-partie, ou écriture antérieure à la migration 76.
+            tiers_source       TEXT NOT NULL DEFAULT '',
+            reference          TEXT NOT NULL DEFAULT '',  -- référence QR (QRR) ou créancier (SCOR)
+            iban_tiers         TEXT NOT NULL DEFAULT '',  -- IBAN de la contre-partie
+            ref_bancaire       TEXT NOT NULL DEFAULT '',  -- AcctSvcrRef : identifiant unique donné par la banque
+            nature             TEXT NOT NULL DEFAULT '',  -- BkTxCd, ex. « PMNT/RCDT/ATXN » ou « ACMT/ADOP/CHRG »
             montant            REAL NOT NULL DEFAULT 0,
             solde              REAL,
             plan_compte_id     INTEGER REFERENCES plan_comptes(id) ON DELETE SET NULL,
@@ -182,6 +198,11 @@ function init_schema(PDO $pdo): void
             hash               TEXT NOT NULL UNIQUE,
             cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
         );
+        -- L'index unique partiel idx_ecritures_ref_bancaire n'est PAS créé ici
+        -- mais dans migration_75 : ce bloc est joué AVANT run_migrations(), donc
+        -- sur une base existante il tomberait sur une colonne ref_bancaire pas
+        -- encore ajoutée (« no such column »). La migration couvre les deux cas,
+        -- base neuve comprise, puisqu'elle part toujours de user_version = 0.
 
         -- Règles de lettrage automatique. compte_bancaire_id NULL = globale.
         -- motif/type_match/sens_filtre conservés pour compatibilité ascendante (migration_10 → conditions_lettrage).

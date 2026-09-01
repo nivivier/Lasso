@@ -1182,6 +1182,20 @@ function route_fiches(): void
         $where .= ' AND f.employe_id IN (' . sql_in($employeId) . ')';
         $params = array_merge($params, $employeId);
     }
+    // Médaillons du tableau de bord : une fiche du mois M se verse pendant
+    // M+1 (« à faire ») et n'est « en retard » qu'à partir de M+2. Les cases
+    // « Paiement » ne savent pas exprimer cette nuance, qui ne vaut que pour
+    // les liens de la carte : filtre d'appoint porté par l'URL seule, jamais
+    // mémorisé en session — même régime que « region » sur ?p=structures.
+    // Se combine avec statut[]=apayer, qui écarte déjà les payées et les
+    // fiches à venir. Sans lui, le médaillon annoncerait 8 et ouvrirait 13.
+    $echeance = in_array($_GET['echeance'] ?? '', ['afaire', 'retard'], true)
+        ? (string) $_GET['echeance'] : '';
+    if ($echeance !== '') {
+        $ecoules = "((CAST(strftime('%Y','now') AS INTEGER) - f.annee) * 12"
+            . " + (CAST(strftime('%m','now') AS INTEGER) - f.mois))";
+        $where .= $echeance === 'afaire' ? " AND $ecoules = 1" : " AND $ecoules >= 2";
+    }
     [$rechSql, $rechParams] = recherche_sql(['e.nom', 'e.prenom']);
     $where .= $rechSql;
     $params = array_merge($params, $rechParams);
@@ -2012,11 +2026,23 @@ function route_resumes(): void
     // navigation posait déjà les deux conditions ; cette page ne posait que la
     // première. Les conditions de views/resumes.php ont été alignées.
     $aPayer = [];
+    // Une fiche du mois M se verse pendant M+1 : elle est « à faire » tout ce
+    // mois-là, et « en retard » seulement à partir de M+2. Une fiche du mois
+    // courant n'est donc encore ni l'un ni l'autre — elle figure dans la liste
+    // (elle reste à verser) mais ne compte dans aucune pastille d'alerte.
+    $aPayerAFaire = 0;
+    $aPayerRetard = 0;
     if (module_accessible('salaires')) {
         foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
-            $estFutur = (int) $f['annee'] > $aujAnnee || ((int) $f['annee'] === $aujAnnee && (int) $f['mois'] > $aujMois);
-            if (!$estFutur) {
-                $aPayer[] = $f;
+            $moisEcoules = ($aujAnnee - (int) $f['annee']) * 12 + ($aujMois - (int) $f['mois']);
+            if ($moisEcoules < 0) {
+                continue; // fiche d'un mois à venir
+            }
+            $aPayer[] = $f;
+            if ($moisEcoules === 1) {
+                $aPayerAFaire++;
+            } elseif ($moisEcoules >= 2) {
+                $aPayerRetard++;
             }
         }
     }
@@ -2050,7 +2076,8 @@ function route_resumes(): void
         $suiviRepartition = suivi_booking_repartition($suiviTagId);
     }
     render('resumes', [
-        'aPayer' => $aPayer, 'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
+        'aPayer' => $aPayer, 'aPayerAFaire' => $aPayerAFaire, 'aPayerRetard' => $aPayerRetard,
+        'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaManquant' => $suisaManquant,
         'suiviTags' => $suiviTags, 'suiviTagId' => $suiviTagId, 'suiviRepartition' => $suiviRepartition,
     ], 'Tableau de bord');

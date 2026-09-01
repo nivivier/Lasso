@@ -8,6 +8,9 @@
 // le même mécanisme que le reste de l'app (global db()) et ne sont pas
 // couvertes ici, comme pour les autres modules (cf. facturation_test.php,
 // evenements_test.php, qui ne testent que les fonctions paramétrées par $pdo).
+// Exception assumée : la section 11 monte une base SQLite EN MÉMOIRE (jamais
+// celle de l'app) pour confronter un fragment SQL à la clé construite en PHP —
+// c'est justement la cohérence des deux qui est en cause.
 
 require_once __DIR__ . '/../lib/booking.php';
 
@@ -148,6 +151,39 @@ check('sous-cat en colonne catégorie → parent + sous', ['categorie' => 'Media
 check('sous-cat mais sous déjà fournie → ne pas écraser', ['categorie' => 'Media', 'sous_categorie' => 'Perso'], $rc('Radio', 'Perso', ''));
 check('type de lieu → parent, pas de sous réinjectée', ['categorie' => 'Organisateur', 'sous_categorie' => ''], $rc('Festival', '', 'Festival'));
 check('inconnu → défaut, sous conservée', ['categorie' => 'Organisateur', 'sous_categorie' => 'X'], $rc('Bidule', 'X', ''));
+
+echo "11) geocodage — la clé reconstruite en SQL est celle de geocodage_cle()\n";
+// Régression : le filtre « non localisées » repliait les accents côté cache
+// (geocodage_cle(), depuis migration_65) mais pas côté SQL (LOWER_UTF8 sur les
+// trois colonnes) — « Genève » et « Mâcon » étaient donc listées comme jamais
+// géolocalisées alors qu'elles l'étaient. Base en mémoire, pas celle de l'app.
+require_once __DIR__ . '/../lib/geocodage.php';
+$pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+// @ : dépréciée depuis PHP 8.5, comme dans lib/db.php (même raison).
+@$pdo->sqliteCreateFunction('LOWER_UTF8', fn ($v) => mb_strtolower((string) $v, 'UTF-8'), 1);
+@$pdo->sqliteCreateFunction('SANS_ACCENTS', fn ($v) => texte_sans_accents((string) $v), 1);
+$pdo->exec('CREATE TABLE lieux_geocodage (cle TEXT PRIMARY KEY, statut TEXT)');
+$pdo->exec('CREATE TABLE s (nom TEXT, ville TEXT, dep TEXT, pays TEXT)');
+$villes = [
+    ['Genève', 'GE', 'Suisse', 'ok'],       // accentuée, géolocalisée
+    ['Mâcon', '71', 'France', 'ok'],        // accentuée, géolocalisée
+    ['Lyon', '69', 'France', 'ok'],         // sans accent, géolocalisée
+    ['Bienne', 'BE', 'Suisse', 'echec'],    // en cache mais jamais localisée
+];
+$ins = $pdo->prepare('INSERT INTO lieux_geocodage (cle, statut) VALUES (?, ?)');
+$insS = $pdo->prepare('INSERT INTO s (nom, ville, dep, pays) VALUES (?, ?, ?, ?)');
+foreach ($villes as [$v, $d, $pa, $st]) {
+    $ins->execute([geocodage_cle($v, $d, $pa), $st]);
+    $insS->execute([$v, $v, $d, $pa]);
+}
+$insS->execute(['Sion', 'Sion', 'VS', 'Suisse']); // absente du cache
+$nonLoc = $pdo->query('SELECT nom FROM s WHERE 1 = 1' . geocodage_non_localises_where('ville', 'dep', 'pays') . ' ORDER BY nom')->fetchAll(PDO::FETCH_COLUMN);
+check('ville accentuée en cache « ok » -> pas listée', false, in_array('Genève', $nonLoc, true));
+check('ville accentuée, accent circonflexe -> pas listée', false, in_array('Mâcon', $nonLoc, true));
+check('ville sans accent en cache « ok » -> pas listée', false, in_array('Lyon', $nonLoc, true));
+check('échec de géocodage -> listée', true, in_array('Bienne', $nonLoc, true));
+check('jamais tentée -> listée', true, in_array('Sion', $nonLoc, true));
+check('total', ['Bienne', 'Sion'], $nonLoc);
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

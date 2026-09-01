@@ -47,7 +47,11 @@
                     <?php
                     $nbAct = (int) $i['nb_actuelles'];
                     $nbLet = (int) $i['nb_lettrees'];
-                    $confirm = "Annuler cet import ?\\n\\n$nbAct écriture(s) seront supprimées"
+                    // Vrais sauts de ligne et non « \\n » : la chaîne part dans un
+                    // attribut data-confirm, lu tel quel par confirm() (app.js).
+                    // Échappée, la séquence s'affichait littéralement dans la
+                    // boîte de dialogue.
+                    $confirm = "Annuler cet import ?\n\n$nbAct écriture(s) seront supprimées"
                         . ($nbLet > 0 ? " (dont $nbLet déjà lettrée(s) — leur lettrage sera perdu)" : '') . '.';
                     ?>
                     <form method="post" action="?p=compta_import" data-confirm="<?= e($confirm) ?>" class="d-inline">

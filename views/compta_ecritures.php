@@ -209,7 +209,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
 <div class="table-scroll">
 <table class="list compta-lettrage">
-    <?php $nbCols = 6 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
+    <?php // 7 = case + Date + Contre-partie + Texte + Montant + Catégorie + actions ?>
+    <?php $nbCols = 7 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
     <thead>
         <tr>
             <?php if (peut_ecrire('compta')): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
@@ -227,6 +228,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 </span>
             </th>
             <?php endif; ?>
+            <?php // Colonne à part plutôt que noyée dans le texte : c'est la
+                  // réponse à « qui ? », que le relevé donne en clair. ?>
+            <th class="col-tiers">Contre-partie</th>
             <th>Texte</th>
             <th class="num">Montant</th>
             <th class="col-categorie">
@@ -279,11 +283,77 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php if (peut_ecrire('compta')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteColVisible): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
-            <td class="texte-cell" title="<?= e($ecr['texte']) ?>">
+            <?php
+            // Contre-partie et communication : un relevé camt.053 les porte en
+            // champs structurés, et elles ne se retrouvent pas forcément dans
+            // « Texte » — celui-ci peut se réduire à une référence (« 2026-10 »)
+            // quand la banque remplit Ustrd. Sans cette ligne, l'écriture
+            // n'affichait ni son destinataire ni sa communication, alors que
+            // les deux étaient en base. Écartées si elles répètent déjà le
+            // texte, ce qui est le cas des imports CSV où elles en sont
+            // extraites.
+            $ecrTiers = trim((string) ($ecr['tiers'] ?? ''));
+            $ecrResume = resumer_texte_postfinance($ecr['texte']);
+            // Sur un import CSV, resumer_texte_postfinance() met déjà le nom en
+            // tête du résumé (« Jean Martin — DON ANNUEL ») : il ferait doublon
+            // avec la colonne Contre-partie. On le retire du résumé, la colonne
+            // le porte mieux.
+            if ($ecrTiers !== '') {
+                $ecrResume = preg_replace(
+                    '/^' . preg_quote($ecrTiers, '/') . '\s*(?:—\s*)?/iu',
+                    '',
+                    $ecrResume
+                ) ?: $ecrResume;
+                $ecrResume = trim($ecrResume);
+            }
+            $ecrDetails = [];
+            // Chaque morceau est jugé séparément : une communication peut
+            // réunir plusieurs mentions (« 2026-10 — HoR Frais de booking »)
+            // dont une seule figure déjà dans le texte. Filtrer la chaîne
+            // entière les aurait toutes gardées, donc répété « 2026-10 ».
+            $ecrAjoute = function (string $v) use (&$ecrDetails, $ecrResume, $ecr): void {
+                $v = trim($v);
+                if ($v === '' || in_array($v, $ecrDetails, true)) {
+                    return;
+                }
+                if (stripos($ecrResume, $v) !== false || stripos((string) $ecr['texte'], $v) !== false) {
+                    return;
+                }
+                $ecrDetails[] = $v;
+            };
+            foreach (explode(' — ', (string) ($ecr['communication'] ?? '')) as $ecrMorceau) {
+                $ecrAjoute($ecrMorceau);
+            }
+            // La référence QR n'a pas sa place dans la colonne (27 chiffres),
+            // mais elle mérite d'être retrouvable au survol.
+            $ecrTitre = trim((string) $ecr['texte']);
+            foreach ([$ecr['tiers'] ?? '', $ecr['communication'] ?? '', $ecr['reference'] ?? ''] as $v) {
+                if (trim((string) $v) !== '') {
+                    $ecrTitre .= "\n" . trim((string) $v);
+                }
+            }
+            ?>
+            <?php
+            // Une contre-partie déduite du libellé n'a pas la fiabilité d'un
+            // champ déclaré par la banque : l'infobulle le dit, plutôt qu'un
+            // signe visuel qui alourdirait une colonne déjà discrète.
+            $ecrTiersTitre = match ((string) ($ecr['tiers_source'] ?? '')) {
+                'camt'  => $ecrTiers . ' — contre-partie déclarée par le relevé',
+                'texte' => $ecrTiers . ' — déduite du libellé',
+                'csv'   => $ecrTiers . ' — reconnue dans le libellé de l\'export',
+                'compte' => $ecrTiers . ' — établissement du compte bancaire (frais)',
+                default => $ecrTiers,
+            };
+            ?>
+            <td class="tiers-cell" title="<?= e($ecrTiersTitre) ?>"><?= $ecrTiers !== '' ? e($ecrTiers) : '<span class="muted">—</span>' ?></td>
+            <td class="texte-cell" title="<?= e($ecrTitre) ?>">
                 <?php if (!empty($ecr['facture_id'])): ?>
                     <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
                 <?php endif; ?>
-                <span class="texte-cell-txt" data-summary="<?= e(resumer_texte_postfinance($ecr['texte'])) ?>"><?= e(resumer_texte_postfinance($ecr['texte'])) ?></span>
+                <span class="texte-cell-txt" data-summary="<?= e($ecrResume) ?>"><?= e($ecrResume) ?></span>
+                <?php if ($ecrDetails): ?>
+                    <span class="ecr-details"><?= e(implode(' · ', $ecrDetails)) ?></span>
+                <?php endif; ?>
             </td>
             <td class="num <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
             <td class="cat-cell">

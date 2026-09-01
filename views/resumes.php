@@ -1,10 +1,34 @@
 <?php
-/** @var array $aPayer */ /** @var array $facturesEmises */ /** @var array $comptaSeries */
+/** @var array $aPayer */ /** @var int $aPayerAFaire */ /** @var int $aPayerRetard */
+/** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaManquant */
 /** @var array $suiviTags */ /** @var int $suiviTagId */ /** @var array $suiviRepartition */
 
+// Médaillon d'état posé sur une carte : le chiffre de ce qu'il reste à faire,
+// et le lien vers la liste correspondante. Rien à signaler = pas de médaillon
+// (un « 0 » sur chaque carte ne dit rien et fait du bruit). Les médaillons
+// s'écrivent du plus urgent au moins urgent : à trois colonnes, seul le
+// premier tient (voir .dash-medaillon dans app.css).
+$dash_medaillon = function (int $nb, string $libelle, string $ton, string $href): string {
+    if ($nb <= 0) {
+        return '';
+    }
+    // Enveloppe de hauteur nulle : c'est elle qui est neutralisée dans la
+    // rangée de titre, pas le médaillon — celui-ci porte le fond coloré et
+    // s'aplatirait si on lui mettait height: 0 (voir app.css).
+    return '<span class="dash-medaillon-slot">'
+        . '<a class="dash-medaillon dash-medaillon-' . e($ton) . '" href="' . e($href) . '">'
+        . '<b>' . $nb . '</b> ' . e($libelle) . '</a></span>';
+};
+
 // Génère le SVG du graphique comptable (inline, sans bibliothèque).
+// Les couleurs de décor (grille, ligne du zéro, libellés d'axes et de légende)
+// ne sont PAS écrites ici mais portées par des classes stylées dans app.css
+// (.dash-chart .ch-grille/.ch-zero/.ch-label) : codées en dur, elles ne
+// suivaient pas le thème — en sombre, les libellés tombaient à 3.54:1 (sous le
+// seuil AA) et la grille, presque blanche, passait devant les courbes. Seules
+// les couleurs des SÉRIES restent ici : ce sont des données, pas du décor.
 $dash_svg = function (array $series): string {
     if (count($series) < 1) return '';
 
@@ -62,22 +86,21 @@ $dash_svg = function (array $series): string {
     // Grille horizontale
     for ($v = $gmin; $v <= $gmax + $step * 0.01; $v += $step) {
         $y   = round($yOf((float) $v), 1);
-        $col = abs($v) < 0.01 ? '#a0a0c0' : '#e8e9f1';
-        $w   = abs($v) < 0.01 ? '1.5'     : '1';
+        $zero = abs($v) < 0.01;
         $o  .= '<line x1="' . $ml . '" y1="' . $y . '" x2="' . ($W - $mr) . '" y2="' . $y
-             . '" stroke="' . $col . '" stroke-width="' . $w . '"/>';
+             . '" class="' . ($zero ? 'ch-zero' : 'ch-grille') . '" stroke-width="' . ($zero ? '1.5' : '1') . '"/>';
         $o  .= '<text x="' . ($ml - 6) . '" y="' . ($y + 4) . '" text-anchor="end"'
-             . ' font-size="12" fill="#6b7280" font-family="inherit">' . $fmtY((float) $v) . '</text>';
+             . ' class="ch-label">' . $fmtY((float) $v) . '</text>';
     }
 
     // Étiquettes X (années)
     foreach ($annees as $i => $a) {
         $x  = round($xOf($i), 1);
         $o .= '<text x="' . $x . '" y="' . ($H - $mb + 16) . '" text-anchor="middle"'
-            . ' font-size="12" fill="#6b7280" font-family="inherit">' . (int) $a . '</text>';
+            . ' class="ch-label">' . (int) $a . '</text>';
         // Tick vertical
         $o .= '<line x1="' . $x . '" y1="' . ($mt + $ph) . '" x2="' . $x . '" y2="' . ($mt + $ph + 4)
-            . '" stroke="#e8e9f1" stroke-width="1"/>';
+            . '" class="ch-grille" stroke-width="1"/>';
     }
 
     // Séries — ordre : patrimoine (dessous), produits, charges, résultat (dessus).
@@ -123,8 +146,7 @@ $dash_svg = function (array $series): string {
         $o .= '<line x1="' . ($x - 14) . '" y1="' . $ly . '" x2="' . ($x - 2) . '" y2="' . $ly
             . '" stroke="' . $col . '" stroke-width="2"' . $da . '/>';
         $o .= '<circle cx="' . ($x - 8) . '" cy="' . $ly . '" r="2.5" fill="' . $col . '"/>';
-        $o .= '<text x="' . $x . '" y="' . ($ly + 4) . '" font-size="12" fill="#6b7280"'
-            . ' font-family="inherit">' . $label . '</text>';
+        $o .= '<text x="' . $x . '" y="' . ($ly + 4) . '" class="ch-label">' . $label . '</text>';
     }
 
     $o .= '</svg>';
@@ -192,7 +214,11 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             <?php endif; ?>
         </div>
         <div class="card dash-card">
-            <h2 class="mt-0">Suisa</h2>
+            <div class="card-head-row">
+                <h2 class="mt-0">Suisa</h2>
+                <?= $dash_medaillon($suisaAFaire, 'à faire', 'attente',
+                    '?p=evenements_liste&vue=liste&statut_suisa[]=a_faire&statut_suisa_set=1') ?>
+            </div>
             <table class="list">
                 <thead>
                     <tr><th>Statut</th><th class="num">Nombre</th><th></th><th></th></tr>
@@ -209,13 +235,16 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                     ?>
                     <tr>
                         <td>À faire</td>
-                        <td class="num strong"><?= $suisaAFaire ?></td>
+                        <?php // Le nombre porte la gravité : ambre pour ce qui
+                              // attend, rouge pour ce qui manque. Un zéro reste
+                              // neutre — il n'y a rien à signaler. ?>
+                        <td class="num strong<?= $suisaAFaire > 0 ? ' num-attente' : '' ?>"><?= $suisaAFaire ?></td>
                         <td><a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>"><?= icon('calendar') ?> Voir</a></td>
                         <td><a class="btn ghost btn-sm icon-only" href="?p=evenements_export_suisa<?= $suisaLien('a_faire') ?>" title="Exporter" aria-label="Exporter"><?= icon('download') ?></a></td>
                     </tr>
                     <tr>
                         <td>Manquants</td>
-                        <td class="num strong"><?= $suisaManquant ?></td>
+                        <td class="num strong<?= $suisaManquant > 0 ? ' num-retard' : '' ?>"><?= $suisaManquant ?></td>
                         <td><a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>"><?= icon('calendar') ?> Voir</a></td>
                         <td><a class="btn ghost btn-sm icon-only" href="?p=evenements_export_suisa<?= $suisaLien('manquant') ?>" title="Exporter" aria-label="Exporter"><?= icon('download') ?></a></td>
                     </tr>
@@ -232,8 +261,32 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         <?php endif; ?>
 
         <?php if (module_accessible('salaires')): ?>
+        <?php
+        // Carte plafonnée. La route renvoie TOUTES les fiches impayées — le
+        // total doit rester exact — mais la carte les affichait toutes et
+        // s'étirait sans limite : 11 fiches faisaient 792 px contre 390 px pour
+        // le graphique voisin, ce qui déséquilibrait les colonnes de .dash-cols
+        // (832 / 824 / 526 px mesurés à 1800 px de large). Les plus anciennes
+        // sont en tête (ORDER BY annee, mois dans route_resumes()), donc la
+        // troncature garde les plus urgentes et renvoie le reste à la liste.
+        $aPayerMax      = 8;
+        $aPayerVisibles = array_slice($aPayer, 0, $aPayerMax);
+        $aPayerTronque  = count($aPayer) > count($aPayerVisibles);
+        $totAPayer      = array_sum(array_map(fn ($f) => (float) $f['salaire_net'], $aPayer));
+        // Mêmes fiches que la carte : « à payer » = non payée ET pas à venir,
+        // exactement le statut « apayer » de route_fiches(). Format de
+        // filtre_coche() obligatoire (marqueur _set), sinon le filtre retombe
+        // silencieusement sur la session — voir la note du lien Suisa ci-dessus.
+        // « echeance » affine sur le retard (filtre d'appoint, route_fiches()) :
+        // sans lui le médaillon annoncerait 8 et ouvrirait les 13.
+        $aPayerLien = '?p=fiches&statut[]=apayer&statut_set=1';
+        ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Salaires à verser</h2>
+            <div class="card-head-row">
+                <h2 class="mt-0">Salaires à verser</h2>
+                <?= $dash_medaillon($aPayerRetard, 'en retard', 'retard', $aPayerLien . '&echeance=retard')
+                  . $dash_medaillon($aPayerAFaire, 'à faire',   'attente', $aPayerLien . '&echeance=afaire') ?>
+            </div>
             <?php if (!$aPayer): ?>
                 <p class="muted">Vous êtes à jour.</p>
             <?php else: ?>
@@ -242,7 +295,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                     <tr><th>Mois</th><th>Employé</th><th class="num">Net à payer</th></tr>
                 </thead>
                 <tbody>
-                <?php $totAPayer = 0; foreach ($aPayer as $f): $totAPayer += (float) $f['salaire_net']; ?>
+                <?php foreach ($aPayerVisibles as $f): ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
                         <td class="small"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
                         <td class="dash-nom"><?= e($f['employe_nom']) ?></td>
@@ -251,7 +304,16 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                 <?php endforeach; ?>
                 </tbody>
                 <tfoot>
-                    <tr class="total-row apayer-row"><td colspan="2"><strong>Total à verser</strong></td><td class="num strong net-apayer"><?= chf($totAPayer) ?></td></tr>
+                    <?php // Le total porte sur TOUTES les fiches, pas sur les seules
+                          // lignes visibles : quand la carte est tronquée, le libellé
+                          // annonce le nombre réel, sinon le total paraîtrait faux face
+                          // aux lignes affichées. Simple mention, pas un lien : la liste
+                          // complète s'atteint par le médaillon, et un lien dans une
+                          // ligne de total n'existe nulle part ailleurs dans l'app. ?>
+                    <tr class="total-row apayer-row">
+                        <td colspan="2"><strong>Total à verser</strong><?= $aPayerTronque ? ' <span class="muted small">(' . count($aPayer) . ' fiches)</span>' : '' ?></td>
+                        <td class="num strong net-apayer"><?= chf($totAPayer) ?></td>
+                    </tr>
                 </tfoot>
             </table>
             <?php endif; ?>
@@ -259,8 +321,21 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         <?php endif; ?>
         
         <?php if (module_accessible('facturation')): ?>
+        <?php
+        // Compté sur les factures déjà chargées plutôt que par une requête de
+        // plus : facturation_statut_effectif() porte la règle « émise dont
+        // l'échéance est passée », la même que le filtre en_retard de la liste.
+        $facturesRetard = count(array_filter(
+            $facturesEmises,
+            fn ($f) => facturation_statut_effectif($f) === 'en_retard'
+        ));
+        ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Factures émises</h2>
+            <div class="card-head-row">
+                <h2 class="mt-0">Factures émises</h2>
+                <?= $dash_medaillon($facturesRetard, 'en retard', 'retard',
+                    '?p=facturation_liste&statut[]=en_retard&statut_set=1') ?>
+            </div>
             <?php if (!$facturesEmises): ?>
                 <p class="muted">Aucune facture émise en attente de paiement.</p>
             <?php else: ?>
@@ -279,7 +354,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                 <?php endforeach; ?>
                 </tbody>
                 <tfoot>
-                    <tr class="total-row apayer-row"><td><strong>Total émis</strong></td><td></td><td></td><td class="num strong net-apayer"><?= chf($totEmises) ?></td></tr>
+                    <tr class="total-row apayer-row"><td><strong>Total</strong></td><td></td><td></td><td class="num strong net-apayer"><?= chf($totEmises) ?></td></tr>
                 </tfoot>
             </table>
             <?php endif; ?>
@@ -298,6 +373,13 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         <div class="card dash-card">
             <div class="card-head-row">
                 <h2 class="mt-0">Suivi du booking</h2>
+                <?= $suiviTags ? $dash_medaillon(
+                    (int) ($suiviRepartition['vieux'] ?? 0), 'à contacter', 'attente',
+                    lien_structures_filtre([
+                        'tag_id' => [$suiviTagId],
+                        'contact_periode' => SUIVI_BOOKING_BANDES['vieux'][1],
+                    ]) . '&depuis=booking'
+                ) : '' ?>
                 <?php if ($suiviTags): ?>
                 <form method="post" action="?p=resumes_suivi_tag" class="suivi-tag-form">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

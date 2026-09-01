@@ -161,6 +161,152 @@ check('sous-total groupe Charges (−470)', -470.0, plan_sous_total(10, $byParen
 check('non lettrées : nb (ignore exclu)', 1, $agg['non_lettrees']['nb']);
 check('non lettrées : montant (ignore exclu)', -9.0, $agg['non_lettrees']['montant']);
 
+// ---------------------------------------------------------------------------
+// parse_camt053() — relevé ISO 20022. Aucune couverture jusqu'ici, ce qui a
+// laissé passer une régression silencieuse : à partir de camt.053.001.06, le
+// nom de la contre-partie descend d'un cran (Dbtr/Pty/Nm au lieu de Dbtr/Nm),
+// et « tiers » ressortait vide sur TOUT fichier récent sans la moindre erreur.
+// La fixture couvre les deux emplacements, un lot de deux transactions, la
+// référence QR, les marqueurs techniques PostFinance et les frais bancaires.
+$camt = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08"><BkToCstmrStmt><Stmt>
+<Id>T1</Id><Acct><Id><IBAN>CH8609000000158716885</IBAN></Id><Ccy>CHF</Ccy></Acct>
+<Bal><Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">1000.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>2026-08-01</Dt></Dt></Bal>
+<Ntry><Amt Ccy="CHF">470.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><BookgDt><Dt>2026-08-05</Dt></BookgDt>
+  <AcctSvcrRef>REF-DEBIT</AcctSvcrRef>
+  <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>ICDT</Cd><SubFmlyCd>BOOK</SubFmlyCd></Fmly></Domn></BkTxCd>
+  <NtryDtls><TxDtls><Amt Ccy="CHF">470.00</Amt><CdtDbtInd>DBIT</CdtDbtInd>
+    <RltdPties><Cdtr><Pty><Nm>DAUDIN et Cie SA</Nm></Pty></Cdtr><CdtrAcct><Id><IBAN>CH8330000002120006136</IBAN></Id></CdtrAcct></RltdPties>
+    <RmtInf><Strd><CdtrRefInf><Ref>000000000000601000052100001</Ref></CdtrRefInf><AddtlRmtInf>Av. des Morgines 35</AddtlRmtInf></Strd></RmtInf>
+  </TxDtls></NtryDtls><AddtlNtryInf>DEBIT ORDRE PERMANENT</AddtlNtryInf></Ntry>
+<Ntry><Amt Ccy="CHF">120.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-08-10</Dt></BookgDt>
+  <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>ATXN</SubFmlyCd></Fmly></Domn></BkTxCd>
+  <NtryDtls><TxDtls><Refs><AcctSvcrRef>REF-CREDIT</AcctSvcrRef></Refs><Amt Ccy="CHF">120.00</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+    <RltdPties><Dbtr><Pty><Nm>Germain Umdenstock</Nm></Pty></Dbtr><DbtrAcct><Id><IBAN>CH750024024072584329P</IBAN></Id></DbtrAcct></RltdPties>
+    <RmtInf><Ustrd>2026-10</Ustrd><Strd><AddtlRmtInf>HoR Frais de booking Coquette</AddtlRmtInf><AddtlRmtInf>?REJECT?0</AddtlRmtInf><AddtlRmtInf>?ERROR?000</AddtlRmtInf></Strd></RmtInf>
+  </TxDtls></NtryDtls><AddtlNtryInf>CREDIT DONNEUR D ORDRE</AddtlNtryInf></Ntry>
+<Ntry><Amt Ccy="CHF">200.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-08-12</Dt></BookgDt>
+  <AcctSvcrRef>REF-LOT</AcctSvcrRef>
+  <NtryDtls><Btch><NbOfTxs>2</NbOfTxs></Btch>
+    <TxDtls><Refs><AcctSvcrRef>TX-A</AcctSvcrRef></Refs><Amt Ccy="CHF">120.00</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+      <RltdPties><Dbtr><Pty><Nm>Theatre Alpha</Nm></Pty></Dbtr></RltdPties>
+      <RmtInf><Strd><CdtrRefInf><Ref>210000000003139471430009017</Ref></CdtrRefInf></Strd></RmtInf></TxDtls>
+    <TxDtls><Refs><AcctSvcrRef>TX-B</AcctSvcrRef></Refs><Amt Ccy="CHF">80.00</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+      <RltdPties><Dbtr><Nm>Ancien Schema SA</Nm></Dbtr></RltdPties>
+      <RmtInf><Ustrd>Facture 2026-014</Ustrd></RmtInf></TxDtls>
+  </NtryDtls><AddtlNtryInf>CREDIT GROUPE</AddtlNtryInf></Ntry>
+<Ntry><Amt Ccy="CHF">5.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><BookgDt><Dt>2026-08-31</Dt></BookgDt>
+  <AcctSvcrRef>REF-FRAIS</AcctSvcrRef>
+  <BkTxCd><Domn><Cd>ACMT</Cd><Fmly><Cd>ADOP</Cd><SubFmlyCd>CHRG</SubFmlyCd></Fmly></Domn></BkTxCd>
+  <NtryDtls><TxDtls><Amt Ccy="CHF">5.00</Amt><CdtDbtInd>DBIT</CdtDbtInd></TxDtls></NtryDtls>
+  <AddtlNtryInf>PRIX POUR LA GESTION DU COMPTE</AddtlNtryInf></Ntry>
+</Stmt></BkToCstmrStmt></Document>
+XML;
+
+echo "\nparse_camt053() — relevé ISO 20022\n";
+$r = parse_camt053($camt);
+$l = $r['lignes'];
+check('IBAN du relevé', 'CH8609000000158716885', $r['iban']);
+check('un lot de 2 transactions donne 2 lignes (4 écritures -> 5 lignes)', 5, count($l));
+
+check('contre-partie, schéma récent (Cdtr/Pty/Nm)', 'DAUDIN et Cie SA', $l[0]['tiers']);
+check('contre-partie, schéma récent (Dbtr/Pty/Nm)', 'Germain Umdenstock', $l[1]['tiers']);
+check('contre-partie, ancien schéma (Dbtr/Nm) toujours lue', 'Ancien Schema SA', $l[3]['tiers']);
+// Le parseur reste un miroir du fichier : il ne déclare « camt » que sur ce
+// qu'il a effectivement lu, jamais sur une valeur déduite (celle-ci naît à
+// l'insertion et s'y déclare « texte »).
+check('provenance déclarée quand le champ structuré existe', 'camt', $l[0]['tiers_source']);
+check('provenance vide quand le relevé ne dit rien', '', $l[4]['tiers_source']);
+check('débit -> montant négatif', -470.0, $l[0]['montant']);
+check('crédit -> montant positif', 120.0, $l[1]['montant']);
+
+check('référence QR lue', '000000000000601000052100001', $l[0]['reference']);
+check('IBAN de la contre-partie lu', 'CH8330000002120006136', $l[0]['iban_tiers']);
+check('nature (BkTxCd) aplatie', 'PMNT/ICDT/BOOK', $l[0]['nature']);
+check('frais bancaires reconnaissables à leur nature', 'ACMT/ADOP/CHRG', $l[4]['nature']);
+check('communication structurée lue', 'Av. des Morgines 35', $l[0]['communication']);
+// Ustrd et Strd/AddtlRmtInf sont complémentaires : ne lire le second qu'à
+// défaut du premier faisait perdre la moitié de la communication.
+check('communication : Ustrd ET AddtlRmtInf réunis, marqueurs techniques écartés',
+    '2026-10 — HoR Frais de booking Coquette', $l[1]['communication']);
+check('texte inchangé malgré la communication enrichie (hash stable)', '2026-10', $l[1]['texte']);
+
+check('référence bancaire de la transaction', 'REF-CREDIT', $l[1]['ref_bancaire']);
+check('référence bancaire au niveau écriture quand la transaction n\'en a pas', 'REF-DEBIT', $l[0]['ref_bancaire']);
+check('dans un lot, chaque ligne garde SA référence', ['TX-A', 'TX-B'], [$l[2]['ref_bancaire'], $l[3]['ref_bancaire']]);
+// Régression : la recherche « .// » depuis l'écriture traversait toutes ses
+// transactions et recopiait la valeur d'une voisine sur celles qui n'en ont pas.
+check('dans un lot, pas de fuite de la référence QR du voisin', '', $l[3]['reference']);
+check('dans un lot, pas de fuite de la communication du voisin', '', $l[2]['communication']);
+check('dans un lot, les montants somment à celui de l\'écriture', 200.0, $l[2]['montant'] + $l[3]['montant']);
+
+// « texte » entre dans le hash de dédoublonnage : sa règle (Ustrd, sinon
+// AddtlNtryInf) ne doit pas bouger, sans quoi tout l'historique déjà importé
+// reviendrait en doublon au prochain import.
+check('texte : repli sur AddtlNtryInf quand pas de Ustrd', 'DEBIT ORDRE PERMANENT', $l[0]['texte']);
+check('texte : Ustrd prioritaire', 'Facture 2026-014', $l[3]['texte']);
+
+check('solde recalculé depuis le solde d\'ouverture', 845.0, $l[4]['solde']);
+
+echo "\nresumer_texte_postfinance() — résumé affiché dans la colonne Texte\n";
+// Aucune couverture jusqu'ici. La règle « achat en ligne » prenait toute la fin
+// de ligne pour le marchand : sur un relevé camt.053 la banque y intercale le
+// change, les frais et le numéro de carte, et la colonne affichait « Montant
+// Dans La Monnaie Du Compte 6.18 1.5% Frais De Traitement… » au lieu du marchand.
+$achatCamt = 'ACHAT/SHOPPING EN LIGNE DU 30.08.2026 MONTANT DANS LA MONNAIE DU COMPTE 6.18 1.5% FRAIS DE TRAITEMENT CHF 0.09 CARTE N° XXXX7174 PAYPAL *FACEBOOK 4029357733';
+$achatCsv  = 'ACHAT/SHOPPING EN LIGNE DU 12.03.2025 MIGROS GENEVE';
+// Le commerçant a sa propre colonne : le résumé décrit l'opération, pas lui.
+check('achat par carte : le résumé décrit l\'opération', 'Achat en ligne du 30.08.2026', resumer_texte_postfinance($achatCamt));
+check('achat par carte CSV : même traitement', 'Achat en ligne du 12.03.2025', resumer_texte_postfinance($achatCsv));
+check(
+    'frais bancaires : le n° du compte débité, déjà en colonne « Compte », est retiré',
+    'PRIX POUR LA GESTION DU COMPTE',
+    resumer_texte_postfinance("PRIX POUR LA GESTION DU COMPTE NUMÉRO DE COMPTE D'ORIGINE: CH8609000000158716885")
+);
+
+echo "\nmarchand_carte() — contre-partie d'un achat par carte\n";
+// Une transaction carte n'a pas de RltdPties dans un relevé camt.053 : le
+// commerçant n'existe que dans le libellé, derrière le change, les frais et le
+// numéro de carte.
+check('camt : change, frais et n° de carte écartés', 'PAYPAL *FACEBOOK', marchand_carte($achatCamt));
+check('CSV : commerçant en clair', 'MIGROS GENEVE', marchand_carte($achatCsv));
+check('n\'est pas un achat par carte -> rien', '', marchand_carte('CRÉDIT DONNEUR D ORDRE: JEAN MARTIN COMMUNICATIONS: DON'));
+check('frais bancaires -> rien', '', marchand_carte("PRIX POUR LA GESTION DU COMPTE NUMÉRO DE COMPTE D'ORIGINE: CH86"));
+check(
+    'donneur d\'ordre + communication',
+    'Jean Martin — DON ANNUEL',
+    resumer_texte_postfinance('CRÉDIT DONNEUR D ORDRE: JEAN MARTIN RUE DU LAC 4 1200 GENEVE COMMUNICATIONS: DON ANNUEL')
+);
+check(
+    'nom après IBAN + référence de l\'expéditeur',
+    'Daudin Et Cie Sa — LOYER',
+    resumer_texte_postfinance('DÉBIT ORDRE PERMANENT: 90-18511263 CH8330000002120006136 DAUDIN ET CIE SA ROUTE DE CHANCY 59 1213 PETIT-LANCY 1 REFERENCE DE L EXPEDITEUR: LOYER')
+);
+check('texte court : rendu tel quel', '2026-10', resumer_texte_postfinance('2026-10'));
+
+echo "\ncontrepartie_ligne() — qui est en face, et à quel point s'y fier\n";
+$cp = fn (array $ligne, bool $camt = true, string $releve = '', string $compte = '')
+    => contrepartie_ligne($ligne, $camt, $releve, $compte);
+
+check('champ structuré du relevé', ['Séverine Gonzalez', 'camt'],
+    array_slice($cp(['tiers' => 'Séverine Gonzalez', 'tiers_source' => 'camt', 'texte' => '2026-10']), 0, 2));
+check('achat par carte : commerçant déduit du libellé', ['PAYPAL *FACEBOOK', 'texte'],
+    array_slice($cp(['tiers' => '', 'texte' => $achatCamt, 'nature' => 'PMNT/CCRD/POSD']), 0, 2));
+check('export CSV : reconnaissance PostFinance', ['MIGROS GENEVE', 'csv'],
+    array_slice($cp(['texte' => $achatCsv], false), 0, 2));
+
+$frais = ['tiers' => '', 'texte' => 'PRIX POUR LA GESTION DU COMPTE', 'nature' => 'ACMT/ADOP/CHRG'];
+check('frais bancaires : banque du compte, faute de mieux', ['PostFinance', 'compte'],
+    array_slice($cp($frais, true, '', 'PostFinance'), 0, 2));
+check('frais bancaires : le relevé prime sur la saisie', ['PostFinance AG', 'camt'],
+    array_slice($cp($frais, true, 'PostFinance AG', 'PostFinance'), 0, 2));
+check('frais bancaires sans banque connue : rien d\'inventé', ['', ''],
+    array_slice($cp($frais), 0, 2));
+check('une écriture ordinaire ne reçoit pas la banque',
+    ['', ''],
+    array_slice($cp(['tiers' => '', 'texte' => 'VERSEMENT AU GUICHET', 'nature' => 'PMNT/CCRD/CDPT'], true, '', 'PostFinance'), 0, 2));
+
 echo "\n";
 if ($fails === 0) {
     echo "✅ TOUS LES TESTS PASSENT ($tests assertions)\n";

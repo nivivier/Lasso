@@ -113,6 +113,69 @@ function parse_postfinance_csv(string $contenu): array
     return $meta + ['lignes' => $lignes];
 }
 
+// Commerçant d'une opération par carte, lu dans le texte libre.
+// Une transaction carte n'a PAS de contre-partie structurée dans un relevé
+// camt.053 : en ISO 20022 la contre-partie d'un paiement par carte est
+// l'acquéreur, pas le commerçant, et les banques omettent RltdPties (vérifié :
+// ni nom ni IBAN sur ces écritures). Le nom du commerçant n'existe donc que
+// dans le libellé, en queue de ligne, derrière le change, les frais et le
+// numéro de carte — qu'il faut écarter. Motif volontairement étroit : ce n'est
+// pas la reconnaissance générique d'extraire_tiers(), taillée pour le CSV
+// PostFinance, dont l'application au texte camt inventait des contre-parties.
+// Renvoie '' si la ligne n'est pas un achat par carte.
+function marchand_carte(string $texte): string
+{
+    $t = preg_replace('/\s+/', ' ', $texte);
+    if (!preg_match('/SHOPPING\s+EN\s+LIGNE\s+DU\s+\d{2}\.\d{2}\.\d{4}\s+(.+?)(?:\s+REFERENCES?\s*:|$)/iu', $t, $m)) {
+        return '';
+    }
+    $nom = preg_replace([
+        '/MONTANT\s+DANS\s+LA\s+MONNAIE\s+DU\s+COMPTE\s+[\d.,]+/iu',
+        '/[\d.,]+\s*%\s*FRAIS\s+DE\s+TRAITEMENT(\s+[A-Z]{3}\s*[\d.,]+)?/iu',
+        '/CARTE\s+N[°ᵒ]?O?\.?\s*[A-Z0-9*]+/iu',
+        '/\b\d{8,}\b/',
+    ], ' ', $m[1]);
+    return trim(preg_replace('/\s+/', ' ', $nom));
+}
+
+// Date d'un achat par carte, pour libeller l'opération elle-même — le
+// commerçant, lui, vit dans sa propre colonne (« Contre-partie »).
+function date_achat_carte(string $texte): string
+{
+    return preg_match('/SHOPPING\s+EN\s+LIGNE\s+DU\s+(\d{2}\.\d{2}\.\d{4})/iu', $texte, $m) ? $m[1] : '';
+}
+
+// Nature d'une opération, aplatie depuis BkTxCd : « PMNT/RCDT/ATXN » (paiement
+// reçu), « PMNT/ICDT/BOOK » (virement émis), « ACMT/ADOP/CHRG » (frais
+// bancaires)… Conservée telle quelle, sans traduction : c'est un code
+// normalisé ISO 20022, utile pour pré-catégoriser sans rien interpréter ici.
+function camt_nature(SimpleXMLElement $bkTxCd, callable $path): string
+{
+    $morceaux = [];
+    foreach (['//c:Domn/c:Cd', '//c:Fmly/c:Cd', '//c:Fmly/c:SubFmlyCd'] as $p) {
+        $n = $bkTxCd->xpath($path('.' . $p));
+        if ($n) {
+            $morceaux[] = trim((string) $n[0]);
+        }
+    }
+    return implode('/', array_filter($morceaux, fn ($m) => $m !== ''));
+}
+
+// Écarte les marqueurs techniques que certaines banques glissent parmi les
+// compléments de communication : PostFinance y place « ?REJECT?0 » et
+// « ?ERROR?000 », qui ne disent rien au comptable.
+function camt_textes_utiles(array $noeuds): array
+{
+    $out = [];
+    foreach ($noeuds as $n) {
+        $t = trim((string) $n);
+        if ($t !== '' && !preg_match('/^\?[A-Z]+\?/', $t)) {
+            $out[] = $t;
+        }
+    }
+    return $out;
+}
+
 // Lit un relevé bancaire au format ISO 20022 camt.053 (XML), toutes versions
 // de schéma courantes (001.02 à 001.08 — le préfixe de namespace est détecté
 // dynamiquement, jamais supposé fixe). Renvoie le même format que
@@ -123,7 +186,12 @@ function parse_postfinance_csv(string $contenu): array
 // un export mono-compte ; un fichier multi-comptes serait hors d'usage ici).
 function parse_camt053(string $contenu): array
 {
-    $vide = ['iban' => '', 'monnaie' => '', 'date_debut' => '', 'date_fin' => '', 'lignes' => []];
+    // « source » : l'import s'en sert pour NE PAS appliquer extraire_tiers() aux
+    // lignes camt (voir compta_inserer_ecritures()). Cette reconnaissance est
+    // taillée pour le vocabulaire fixe du CSV PostFinance ; lâchée sur le texte
+    // libre d'un relevé ISO, elle produit des contre-parties absurdes — un achat
+    // par carte s'était vu attribuer « MONTANT DANS LA MONNAIE DU » comme tiers.
+    $vide = ['source' => 'camt053', 'iban' => '', 'monnaie' => '', 'banque' => '', 'date_debut' => '', 'date_fin' => '', 'lignes' => []];
 
     $precedent = libxml_use_internal_errors(true);
     // NONET : pas de résolution réseau (DTD/entités externes) — le parseur
@@ -166,6 +234,11 @@ function parse_camt053(string $contenu): array
 
     $iban = $get('/c:Acct/c:Id/c:IBAN');
     $monnaie = $get('/c:Acct/c:Ccy');
+    // Établissement teneur du compte, quand le relevé le déclare (Acct/Svcr) —
+    // c'est la contre-partie des frais bancaires. Facultatif dans la norme et
+    // absent des relevés PostFinance, d'où le repli sur comptes_bancaires.banque
+    // à l'insertion (voir compta_inserer_ecritures()).
+    $banque = $get('/c:Acct/c:Svcr/c:FinInstnId/c:Nm');
 
     // Solde d'ouverture : point de départ du solde courant recalculé ligne à
     // ligne (camt.053 ne porte pas de solde après chaque écriture). Code OPBD
@@ -195,25 +268,12 @@ function parse_camt053(string $contenu): array
         if (!$amtNode) {
             continue;
         }
-        $montant = montant_float((string) $amtNode[0]);
-        $indNode = $xp('/c:CdtDbtInd');
-        $estDebit = $indNode && (string) $indNode[0] === 'DBIT';
-        if ($estDebit) {
-            $montant = -$montant;
-        }
-
-        // Contre-partie structurée (Débiteur si crédit reçu, Créancier si débit
-        // envoyé) — bien plus fiable que la reconnaissance par expression
-        // régulière utilisée pour le CSV PostFinance (extraire_tiers(), non
-        // pertinente ici : le texte libre Ustrd/AddtlNtryInf n'a pas le
-        // vocabulaire fixe de PostFinance).
-        $partieNode = $estDebit ? $xp('//c:RltdPties/c:Cdtr/c:Nm') : $xp('//c:RltdPties/c:Dbtr/c:Nm');
-        $tiers = $partieNode ? trim((string) $partieNode[0]) : '';
 
         // Dt (date seule) ou DtTm (horodatage) : les deux formes sont légales
         // pour BookgDt/ValDt en ISO 20022 (DateAndDateTimeChoice) — repli sur
         // chacune, dans cet ordre, avant de tronquer aux 10 premiers caractères
-        // (YYYY-MM-DD, communs aux deux formats).
+        // (YYYY-MM-DD, communs aux deux formats). La date vit au niveau de
+        // l'écriture : les transactions d'un lot la partagent.
         $dateNode = $xp('/c:BookgDt//c:Dt') ?: $xp('/c:BookgDt//c:DtTm')
             ?: $xp('/c:ValDt//c:Dt') ?: $xp('/c:ValDt//c:DtTm');
         $dateOp = $dateNode ? substr((string) $dateNode[0], 0, 10) : '';
@@ -221,23 +281,131 @@ function parse_camt053(string $contenu): array
             continue; // ligne non datée/invalide → ignorée (même politique que le CSV PostFinance)
         }
 
-        $ustrd = $xp('//c:RmtInf/c:Ustrd');
-        $texte = $ustrd ? implode(' ', array_map(fn($u) => trim((string) $u), $ustrd)) : '';
-        if ($texte === '') {
-            $addtl = $xp('/c:AddtlNtryInf');
-            $texte = $addtl ? trim((string) $addtl[0]) : '';
-        }
+        // Repli au niveau écriture, quand la transaction ne porte pas l'info.
+        $addtlNode = $xp('/c:AddtlNtryInf');
+        $texteEntree = $addtlNode ? trim((string) $addtlNode[0]) : '';
+        $refEntreeNode = $xp('/c:AcctSvcrRef');
+        $refEntree = $refEntreeNode ? trim((string) $refEntreeNode[0]) : '';
 
-        if ($soldeCourant !== null) {
-            $soldeCourant = r2($soldeCourant + $montant);
-        }
+        // Une écriture peut regrouper PLUSIEURS transactions (Btch/NbOfTxs > 1,
+        // fréquent pour les encaissements QR groupés) : chaque TxDtls est alors
+        // un paiement distinct, avec son propre montant, son propre donneur
+        // d'ordre et sa propre référence. Ne lire que le niveau Ntry les aurait
+        // agrégés en une seule ligne, impossible à lettrer.
+        $txs = $xp('/c:NtryDtls/c:TxDtls');
+        $lot = count($txs) > 1;
+        foreach ($txs ?: [null] as $tx) {
+            $txp = $tx !== null
+                ? fn(string $p) => $reg($tx)->xpath($path('.' . $p))
+                : fn(string $p) => [];
+            // Repli au niveau de l'écriture pour les champs PROPRES à une
+            // transaction — interdit dans un lot : la recherche « .// » depuis
+            // l'écriture traverse TOUTES ses transactions et rapporterait la
+            // valeur d'une voisine (constaté : la référence QR du premier
+            // paiement recopiée sur les deux suivants). Hors lot, écriture et
+            // transaction désignent la même opération, le repli est sûr.
+            $fb = $lot ? fn(string $p) => [] : $xp;
 
-        $lignes[] = ['date_op' => $dateOp, 'texte' => $texte, 'montant' => $montant, 'solde' => $soldeCourant, 'tiers' => $tiers];
+            // Montant : celui de la transaction dans un lot, celui de
+            // l'écriture sinon (les deux coïncident hors lot).
+            $mNode = $txp('/c:Amt') ?: $amtNode;
+            $montant = montant_float((string) $mNode[0]);
+            $iNode = $txp('/c:CdtDbtInd') ?: $xp('/c:CdtDbtInd');
+            $estDebit = $iNode && (string) $iNode[0] === 'DBIT';
+            if ($estDebit) {
+                $montant = -$montant;
+            }
+
+            // Contre-partie structurée (Débiteur si crédit reçu, Créancier si
+            // débit envoyé) — bien plus fiable que la reconnaissance par
+            // expression régulière utilisée pour le CSV PostFinance
+            // (extraire_tiers(), non pertinente ici : le texte libre
+            // Ustrd/AddtlNtryInf n'a pas le vocabulaire fixe de PostFinance).
+            // ⚠️ DEUX EMPLACEMENTS selon la version du schéma : jusqu'à
+            // camt.053.001.04 le nom est sous Dbtr/Nm ; à partir de la 001.06
+            // un niveau « Pty » s'intercale (Dbtr/Pty/Nm). Ne chercher que le
+            // premier laissait « tiers » vide sur TOUT fichier récent, sans
+            // erreur visible — l'import se rabattait alors silencieusement sur
+            // extraire_tiers() et sur le texte libre en capitales.
+            $role = $estDebit ? 'Cdtr' : 'Dbtr';
+            $nomNode = $txp("//c:RltdPties/c:$role/c:Pty/c:Nm") ?: $txp("//c:RltdPties/c:$role/c:Nm")
+                ?: $fb("//c:RltdPties/c:$role/c:Pty/c:Nm") ?: $fb("//c:RltdPties/c:$role/c:Nm");
+            $tiers = $nomNode ? trim((string) $nomNode[0]) : '';
+
+            $ibanNode = $txp("//c:{$role}Acct/c:Id/c:IBAN") ?: $fb("//c:{$role}Acct/c:Id/c:IBAN");
+            $ibanTiers = $ibanNode ? trim((string) $ibanNode[0]) : '';
+
+            // Référence structurée : QRR (référence QR) ou SCOR (référence
+            // créancier ISO). C'est la clé la plus sûre pour rattacher un
+            // encaissement à une facture émise.
+            $refInfNode = $txp('//c:RmtInf/c:Strd/c:CdtrRefInf/c:Ref')
+                ?: $fb('//c:RmtInf/c:Strd/c:CdtrRefInf/c:Ref');
+            $reference = $refInfNode ? trim((string) $refInfNode[0]) : '';
+
+            $natureNode = $txp('/c:BkTxCd') ?: $xp('/c:BkTxCd');
+            $nature = $natureNode ? camt_nature($reg($natureNode[0]), $path) : '';
+
+            // Référence bancaire unique. Celle de la transaction d'abord : dans
+            // un lot, l'unique référence de l'écriture serait partagée par
+            // toutes les lignes et ne dédoublonnerait plus rien.
+            $refTxNode = $txp('/c:Refs/c:AcctSvcrRef');
+            $refBancaire = $refTxNode ? trim((string) $refTxNode[0]) : ($lot ? '' : $refEntree);
+
+            // Communication : Ustrd (message libre du payeur) ET
+            // Strd/AddtlRmtInf (complément du bloc structuré) sont
+            // COMPLÉMENTAIRES, pas alternatifs — une même écriture peut porter
+            // « 2026-10 » dans l'un et « HoR Frais de booking Coquette » dans
+            // l'autre. Ne lire le second qu'à défaut du premier faisait perdre
+            // la moitié de la communication sans que rien ne le signale.
+            // Les compléments structurés charrient aussi des marqueurs
+            // techniques (« ?REJECT?0 », « ?ERROR?000 » chez PostFinance) : ce
+            // ne sont pas des communications, camt_textes_utiles() les écarte.
+            $ustrd = $txp('//c:RmtInf/c:Ustrd') ?: $fb('//c:RmtInf/c:Ustrd');
+            $strd = $txp('//c:RmtInf/c:Strd/c:AddtlRmtInf') ?: $fb('//c:RmtInf/c:Strd/c:AddtlRmtInf');
+            $morceaux = camt_textes_utiles($ustrd);
+            foreach (camt_textes_utiles($strd) as $c) {
+                // Certaines banques répètent le message libre dans le bloc
+                // structuré : ne pas l'afficher deux fois.
+                if (!in_array($c, $morceaux, true)) {
+                    $morceaux[] = $c;
+                }
+            }
+            $communication = implode(' — ', $morceaux);
+
+            // « texte » garde EXACTEMENT sa règle d'origine (Ustrd, sinon
+            // AddtlNtryInf) : il entre dans le hash de dédoublonnage, et le
+            // changer ferait réapparaître en doublons toutes les écritures déjà
+            // importées. Les informations nouvelles vont dans les colonnes
+            // ajoutées par la migration 75, pas ici.
+            $texte = implode(' ', array_map(fn ($u) => trim((string) $u), $ustrd));
+            if ($texte === '') {
+                $texte = $texteEntree;
+            }
+
+            // Solde recalculé ligne à ligne : les montants d'un lot somment à
+            // celui de l'écriture, donc le solde final reste juste même si les
+            // soldes intermédiaires d'un lot n'ont pas d'existence bancaire.
+            if ($soldeCourant !== null) {
+                $soldeCourant = r2($soldeCourant + $montant);
+            }
+
+            $lignes[] = [
+                'date_op' => $dateOp, 'texte' => $texte, 'montant' => $montant,
+                'solde' => $soldeCourant, 'tiers' => $tiers,
+                // Le parseur ne déclare que ce qu'il a LU : rien de déduit ici,
+                // pour que le résultat reste un miroir exact du fichier. La
+                // déduction éventuelle vit à l'insertion, et se déclare 'texte'.
+                'tiers_source' => $tiers !== '' ? 'camt' : '',
+                'communication' => $communication, 'reference' => $reference,
+                'iban_tiers' => $ibanTiers, 'ref_bancaire' => $refBancaire, 'nature' => $nature,
+            ];
+        }
     }
 
     $dates = array_column($lignes, 'date_op');
     return [
-        'iban' => $iban, 'monnaie' => $monnaie,
+        'source' => 'camt053',
+        'iban' => $iban, 'monnaie' => $monnaie, 'banque' => $banque,
         'date_debut' => $dates ? min($dates) : '', 'date_fin' => $dates ? max($dates) : '',
         'lignes' => $lignes,
     ];
@@ -825,10 +993,18 @@ function resumer_texte_postfinance(string $texte): string
         }
     }
 
-    // Shopping en ligne du DD.MM.YYYY [marchand]
-    if ($nom === null && preg_match('/SHOPPING\s+EN\s+LIGNE\s+DU\s+\d{2}\.\d{2}\.\d{4}\s+(.+?)(?:\s+REFERENCES?\s*:|$)/iu', $t, $m)) {
-        $nom = trim($m[1]);
+    // Achat par carte : le résumé décrit l'OPÉRATION, le commerçant étant porté
+    // par la colonne « Contre-partie » (marchand_carte(), utilisé à l'import).
+    // Sans quoi les deux colonnes répétaient le même nom.
+    $dateAchat = date_achat_carte($t);
+    if ($dateAchat !== '') {
+        return 'Achat en ligne du ' . $dateAchat;
     }
+
+    // Frais bancaires : « NUMÉRO DE COMPTE D'ORIGINE : CH… » n'est que le
+    // compte débité, celui de la colonne « Compte ». Rien à en tirer, et il
+    // noyait le seul mot utile (« Prix pour la gestion du compte »).
+    $t = trim(preg_replace("/NUM[ÉE]RO\s+DE\s+COMPTE\s+D.(?:UNE\s+)?ORIGINE\s*:?\s*[A-Z0-9]+/iu", '', $t));
 
     // --- Construction du résumé ---
     $parts = [];
@@ -840,12 +1016,58 @@ function resumer_texte_postfinance(string $texte): string
     }
 
     if (!$parts) {
-        // Fallback : début du texte brut
-        return mb_strlen($texte) > 80 ? mb_substr($texte, 0, 80, 'UTF-8') . '…' : $texte;
+        // Repli : début du texte, nettoyé de ses mentions inutiles ($t).
+        return mb_strlen($t, 'UTF-8') > 80 ? mb_substr($t, 0, 80, 'UTF-8') . '…' : $t;
     }
 
     $resume = implode(' — ', $parts);
     return mb_strlen($resume, 'UTF-8') > 120 ? mb_substr($resume, 0, 120, 'UTF-8') . '…' : $resume;
+}
+
+// Contre-partie d'une ligne importée, sa provenance et sa communication.
+// Renvoie [tiers, tiers_source, communication]. Quatre origines, de la plus
+// sûre à la moins sûre — la provenance est conservée en base (ecritures.
+// tiers_source) précisément parce qu'elles ne se valent pas :
+//   'camt'   champ structuré du relevé (RltdPties), ou établissement qu'il
+//            déclare lui-même (Acct/Svcr) pour ses frais ;
+//   'csv'    reconnu dans le libellé d'un export PostFinance (extraire_tiers) ;
+//   'texte'  déduit du libellé d'un relevé ISO — achat par carte, dont la
+//            norme ne donne jamais le commerçant (voir marchand_carte()) ;
+//   'compte' établissement renseigné sur le compte bancaire, pour des frais
+//            bancaires que rien dans la ligne ne permet d'attribuer.
+function contrepartie_ligne(array $ligne, bool $estCamt, string $banqueReleve, string $banqueCompte): array
+{
+    $texte = (string) ($ligne['texte'] ?? '');
+    if ($estCamt) {
+        $tiers = (string) ($ligne['tiers'] ?? '');
+        $source = (string) ($ligne['tiers_source'] ?? '');
+        $communication = (string) ($ligne['communication'] ?? '');
+    } else {
+        // extraire_tiers() est taillée pour le vocabulaire fixe du CSV
+        // PostFinance ; lâchée sur le texte libre d'un relevé ISO, elle invente
+        // des contre-parties — d'où la séparation stricte des deux chemins.
+        $ex = extraire_tiers($texte);
+        $tiers = $ex['tiers'];
+        $source = $tiers !== '' ? 'csv' : '';
+        $communication = $ex['communication'];
+    }
+    if ($tiers === '') {
+        $tiers = marchand_carte($texte);
+        $source = $tiers !== '' ? 'texte' : '';
+    }
+    // Frais bancaires : le relevé ne leur donne aucune contre-partie — ni nom
+    // ni IBAN — alors qu'ils sont bien versés à la banque, et aucun libellé ne
+    // la nomme de façon fiable (« PRIX POUR LA GESTION DU COMPTE » ne nomme
+    // personne). L'établissement déclaré par le relevé prime sur celui saisi
+    // sur le compte : le premier vient du fichier, le second d'une saisie.
+    if ($tiers === '' && str_contains((string) ($ligne['nature'] ?? ''), 'CHRG')) {
+        if ($banqueReleve !== '') {
+            [$tiers, $source] = [$banqueReleve, 'camt'];
+        } elseif ($banqueCompte !== '') {
+            [$tiers, $source] = [$banqueCompte, 'compte'];
+        }
+    }
+    return [$tiers, $source, $communication];
 }
 
 // Insère les écritures parsées dans la base (dédoublonnage par hash).
@@ -861,24 +1083,26 @@ function compta_inserer_ecritures(array $compte, array $parse, string $nomFichie
     $importId = (int) db()->lastInsertId();
 
     $ins = db()->prepare('INSERT OR IGNORE INTO ecritures
-        (compte_bancaire_id, import_id, date_op, texte, tiers, communication, montant, solde, hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        (compte_bancaire_id, import_id, date_op, texte, tiers, tiers_source, communication,
+         reference, iban_tiers, ref_bancaire, nature, montant, solde, hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $nbIns = 0;
+    // camt.053 fournit la contre-partie et la communication en clair (champs
+    // structurés, voir parse_camt053()). extraire_tiers() ne doit PAS servir de
+    // repli sur ces lignes : elle reconnaît le vocabulaire fixe du CSV
+    // PostFinance et, lâchée sur le texte libre d'un relevé ISO, invente des
+    // contre-parties (un achat par carte s'était vu attribuer « MONTANT DANS LA
+    // MONNAIE DU »). Une écriture camt sans contre-partie structurée — frais
+    // bancaires, achat par carte — n'en a tout simplement pas.
+    $estCamt = ($parse['source'] ?? '') === 'camt053';
+    $banqueReleve = trim((string) ($parse['banque'] ?? ''));
+    $banqueCompte = trim((string) ($compte['banque'] ?? ''));
     foreach ($parse['lignes'] as $i => $l) {
-        // camt.053 fournit directement la contre-partie (champ structuré
-        // Débiteur/Créancier, voir parse_camt053()) — plus fiable que la
-        // reconnaissance par expression régulière ci-dessous, taillée pour le
-        // vocabulaire fixe du CSV PostFinance et non pertinente sur un texte
-        // libre bancaire quelconque.
-        if (!empty($l['tiers'])) {
-            $tiers = $l['tiers'];
-            $communication = '';
-        } else {
-            $ex = extraire_tiers((string) $l['texte']);
-            $tiers = $ex['tiers'];
-            $communication = $ex['communication'];
-        }
-        $ins->execute([$compteId, $importId, $l['date_op'], $l['texte'], $tiers, $communication,
+        [$tiers, $tiersSource, $communication] =
+            contrepartie_ligne($l, $estCamt, $banqueReleve, $banqueCompte);
+        $ins->execute([$compteId, $importId, $l['date_op'], $l['texte'], $tiers, $tiersSource, $communication,
+            (string) ($l['reference'] ?? ''), (string) ($l['iban_tiers'] ?? ''),
+            (string) ($l['ref_bancaire'] ?? ''), (string) ($l['nature'] ?? ''),
             $l['montant'], $l['solde'], $hashes[$i]]);
         $nbIns += $ins->rowCount();
     }

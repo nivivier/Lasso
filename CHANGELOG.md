@@ -9,6 +9,109 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.4.3] — 2026-09-01
+
+Une passe sur l'import des relevés bancaires, qui laissait tomber en silence la
+moitié de ce que les fichiers contiennent, et sur la lisibilité du tableau de
+bord.
+
+### Corrigé
+- **Import camt.053 : la contre-partie n'était plus lue depuis des mois.** À
+  partir du schéma 001.06, le nom du débiteur/créancier descend d'un cran
+  (`Dbtr/Pty/Nm` au lieu de `Dbtr/Nm`) ; le parseur ne connaissait que l'ancien
+  emplacement et ressortait un champ vide, sans la moindre erreur. L'import se
+  rabattait alors sur la reconnaissance par expression régulière taillée pour le
+  CSV PostFinance, qui rendait le nom en capitales quand elle le trouvait — et
+  inventait des contre-parties absurdes quand elle ne le trouvait pas (un achat
+  par carte s'était vu attribuer « MONTANT DANS LA MONNAIE DU »). Les deux
+  emplacements sont désormais lus, l'ancien schéma reste couvert, et ce repli ne
+  s'applique plus jamais à une ligne camt.
+- **Import camt.053 : la moitié de la communication partait à la poubelle.**
+  `Ustrd` (message libre) et `Strd/AddtlRmtInf` (complément structuré) sont
+  **complémentaires**, pas alternatifs — une même écriture peut porter « 2026-10 »
+  dans l'un et « Frais de booking » dans l'autre. Le second n'était lu qu'à
+  défaut du premier. Les deux sont maintenant réunis, sans doublon, et les
+  marqueurs techniques (`?REJECT?`, `?ERROR?`) écartés.
+- **Import camt.053 : les lots étaient aplatis.** Une écriture regroupant
+  plusieurs transactions (`Btch/NbOfTxs` > 1, fréquent pour les encaissements QR)
+  n'en produisait qu'une seule ligne, impossible à lettrer. Chaque transaction
+  donne désormais sa propre écriture, avec son montant, son donneur d'ordre et sa
+  référence — sans que les champs d'une transaction ne fuient sur ses voisines.
+- **Filtre « villes non localisées » : les villes accentuées y figuraient
+  toutes.** La clé du cache de géocodage replie les accents depuis la
+  migration 65, mais le fragment SQL du filtre était resté en simples
+  minuscules : « genève » ne retrouvait jamais « geneve ». Mesuré sur la base :
+  57 structures annoncées « jamais géolocalisées » alors qu'elles l'étaient,
+  Genève et Mâcon en tête. Même défaut sur la liste des villes à géocoder, qui
+  faisait réinterroger Nominatim inutilement à chaque passe.
+- **Résumé d'une écriture : les frais étaient pris pour le marchand.** Sur un
+  achat par carte, la règle prenait toute la fin de ligne comme nom du
+  commerçant — vrai dans le CSV, faux en camt où la banque intercale le change,
+  les frais et le numéro de carte. La colonne affichait « Montant Dans La Monnaie
+  Du Compte 6.18 1.5% Frais De Traitement… » au lieu de « Paypal *Facebook ».
+- **Graphique « Évolution financière » illisible en thème sombre.** Grille,
+  libellés d'axes et ligne du zéro étaient codés en dur dans le SVG : en sombre,
+  les libellés tombaient à 3.54:1 (sous le seuil AA) et la grille, presque
+  blanche, passait devant les courbes. Ils suivent maintenant les jetons du
+  thème — 6.26:1 — sans rien changer en thème clair.
+- **Annuler un import affichait « \n » en toutes lettres** dans sa demande de
+  confirmation.
+- **Frais bancaires : le libellé noyait le seul mot utile.** « NUMÉRO DE COMPTE
+  D'ORIGINE : CH… » n'est que le compte débité, déjà en colonne « Compte ».
+
+### Ajouté
+- **Colonne « Contre-partie » dans les écritures**, en petit et en gris, et une
+  ligne de détail sous le texte pour la communication. L'ordre de lecture devient
+  quand · quel compte · **qui** · quoi · combien. Rien n'y est répété : ce qui
+  figure déjà dans le texte n'est pas réaffiché. La recherche porte désormais
+  aussi sur la contre-partie et la communication, sans quoi un nom visible à
+  l'écran serait resté introuvable.
+- **Champs structurés du relevé conservés** (migration 75) : référence QR (QRR)
+  ou créancier (SCOR), IBAN de la contre-partie, référence bancaire unique et
+  nature de l'opération (`PMNT/RCDT/ATXN`, `ACMT/ADOP/CHRG`…). La référence
+  bancaire donne un **dédoublonnage exact** via un index unique partiel, sans
+  toucher au `hash` existant — vérifié : les écritures déjà importées ne
+  reviennent pas en doublon.
+- **Provenance de la contre-partie** (migration 76, `ecritures.tiers_source`).
+  Le champ mélangeait ce que le relevé déclare et ce qu'on devine de son
+  libellé, sans qu'on puisse les distinguer après coup — alors que les autres
+  colonnes du groupe sont de purs miroirs du fichier. Quatre origines :
+  `camt` (champ structuré), `csv` (libellé d'un export PostFinance), `texte`
+  (déduit du libellé d'un relevé ISO) et `compte` (établissement du compte).
+  L'infobulle de la colonne le dit en clair.
+- **Contre-partie des achats par carte.** La norme ne donne jamais le
+  commerçant — la contre-partie d'un paiement par carte y est l'acquéreur — mais
+  il figure dans le libellé. Motif étroit et testé, restreint à ce cas, et non
+  la reconnaissance générique qui avait montré ses limites.
+- **Champ « Banque » sur un compte bancaire** (migration 77) : les frais de
+  tenue de compte n'ont aucune contre-partie dans le relevé alors qu'ils sont
+  bien versés à la banque, et aucun libellé ne la nomme de façon fiable. Il sert
+  aussi de repli à l'établissement que certains relevés déclarent eux-mêmes
+  (`Acct/Svcr`), qui prime toujours.
+- **Médaillons d'état sur les cartes du tableau de bord** : ce qu'il reste à
+  faire, en couleur, avec le lien vers la liste correspondante. Une fiche de
+  salaire du mois M se verse pendant M+1 (« à faire ») et n'est « en retard »
+  qu'à partir de M+2 ; les factures échues et les déclarations SUISA suivent la
+  même logique. Chaque chiffre ouvre **exactement** ce qu'il annonce, ce qui a
+  demandé un filtre d'appoint sur la liste des fiches.
+- **Tests** sur `parse_camt053()`, `resumer_texte_postfinance()`,
+  `marchand_carte()`, `contrepartie_ligne()` et le filtre de géocodage —
+  aucun n'était couvert, ce qui explique qu'un changement de version de schéma
+  soit passé inaperçu.
+
+### Modifié
+- **« Salaires à verser » plafonné à huit lignes.** La carte affichait toutes
+  les fiches impayées et s'étirait sans limite, déséquilibrant les colonnes du
+  tableau de bord. Les plus anciennes restent en tête et le total porte toujours
+  sur l'ensemble, ce que le libellé précise quand la carte est tronquée.
+- **Carte Suisa** : le nombre porte la gravité — ambre pour ce qui attend, rouge
+  pour ce qui manque, neutre à zéro.
+- **Carte « Factures émises »** : « Total » remplace « Total émis ».
+- **Tableau de détail des factures PDF** : filet d'un point sous l'en-tête, d'un
+  demi-point entre les lignes. Le filet du total est redessiné par-dessus son
+  fond gris, qui en recouvrait la moitié basse et le faisait paraître deux fois
+  plus fin que les autres.
+
 ## [2.4.2] — 2026-08-29
 
 ### Ajouté
