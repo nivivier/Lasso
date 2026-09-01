@@ -1557,6 +1557,23 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    Suisa) — mêmes teintes que les médaillons et que les statuts ailleurs. */
 .dash-card td.num-attente { color: var(--amber); }
 .dash-card td.num-retard { color: var(--danger); }
+/* Factures émises (tableau de bord) : le retard se lit à la couleur, l'étiquette
+   « Émise »/« En retard » ayant été retirée — elle disait en mots ce que la
+   couleur montre déjà. Une facture pas encore échue reste à l'encre du texte :
+   pas de couleur, donc pas d'alerte pour ce qui va bien. */
+/* Totaux des cartes du tableau de bord à l'encre : l'ambre signale ce qui
+   attend une action, et un total n'est pas une alerte. Il faut le dire
+   explicitement — « .list .strong » (0,2,0) colore les nombres en gras en teal
+   et l'emporte sur « .list tfoot td » (0,1,2), le nombre de classes primant.
+   Règle limitée à .dash-card : les totaux des autres listes gardent leur teal. */
+.dash-card .total-row td.num { color: var(--ink); }
+/* « et X autres » : la suite des lignes, pas un bouton — discrète, alignée sur
+   le texte des lignes au-dessus, et cliquable sur toute sa hauteur. */
+.dash-card .dash-reste td { padding-top: 7px; padding-bottom: 7px; }
+.dash-card .dash-reste a { font-size: var(--fs-small); color: var(--muted); }
+.dash-card .dash-reste a:hover { color: var(--highlight-d); }
+.dash-card td.facture-retard { color: var(--amber); }
+.dash-card td.facture-retard-long { color: var(--danger); }
 
 /* Widget « Suivi du booking » (tableau de bord) : une barre par tranche
    d'ancienneté du dernier contact, proportionnelle au nombre de structures.
@@ -1573,12 +1590,15 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 }
 .suivi-seg:hover { filter: brightness(1.08); text-decoration: none; }
 .suivi-seg span { pointer-events: none; }
-/* Vert clair → vert → ambre → gris : du contact frais au démarchage à reprendre.
-   Mêmes teintes que les statuts ailleurs (--ok, --amber, --muted). */
+/* Vert clair → vert → gris → ambre. L'ambre est réservé à la dernière bande,
+   la seule qui appelle une action : plus de trois ans sans contact, ou jamais
+   contacté. « Moins de 3 ans » passe en gris — c'est ancien, mais ça n'alerte
+   pas. Même teinte que le médaillon « à contacter » de la carte, qui compte
+   précisément cette bande. Jetons partagés avec les statuts ailleurs. */
 .suivi-seg-mois  { background: color-mix(in srgb, var(--ok) 55%, white); color: var(--ink); }
 .suivi-seg-an    { background: var(--ok); }
-.suivi-seg-trois { background: var(--amber); }
-.suivi-seg-vieux { background: var(--muted); }
+.suivi-seg-trois { background: var(--muted); }
+.suivi-seg-vieux { background: var(--amber); }
 .suivi-legende { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .suivi-legende a { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink); }
 .suivi-legende a:hover { text-decoration: none; color: var(--highlight-d); }

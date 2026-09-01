@@ -9,6 +9,45 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.4.4] — 2026-09-01
+
+Lisibilité du tableau de bord, et l'outil qui manquait pour rattraper les
+écritures importées avant la 2.4.3.
+
+### Modifié
+- **« Salaires à verser » et « Factures émises » s'arrêtent à cinq lignes**,
+  suivies d'un « et X autres » qui ouvre la liste complète. Les cartes ne
+  s'étirent plus au rythme des données, ce qui rééquilibre les colonnes. La
+  mention « (13 fiches) » après le total disparaît : la nouvelle ligne dit déjà
+  ce qui n'est pas montré. Le lien des factures ouvre **exactement** les mêmes
+  lignes que la carte — « en retard » est dérivé de la date, jamais stocké, donc
+  le filtre `emise` les recouvre toutes.
+- **L'étiquette « Émise » / « En retard » quitte la carte des factures** : elle
+  répétait en mots ce que la couleur dit déjà, dans une carte où la place est
+  comptée. Trois degrés, portés par l'échéance **et** le montant pour que la
+  ligne se lise d'un bloc : à échoir (encre), échue depuis moins d'un mois
+  (ambre), au-delà (rouge). Un vrai mois calendaire, pas trente jours. Une
+  infobulle nomme l'état, une information portée par la seule couleur étant
+  invisible pour qui la distingue mal.
+- **Suivi du booking : l'ambre passe de « moins de 3 ans » à « plus de 3 ans ou
+  jamais ».** Il est ainsi réservé à la seule bande qui appelle une action, et
+  s'accorde avec le médaillon « à contacter » de la même carte, qui compte
+  précisément cette bande. « Moins de 3 ans » passe en gris : c'est ancien, mais
+  ça n'alerte pas.
+- **Totaux des deux cartes à l'encre.** L'ambre signale ce qui attend une
+  action ; un total n'est pas une alerte.
+
+### Ajouté
+- **`scripts/maj_contreparties.php`** : rejoue la déduction de contre-partie sur
+  les écritures déjà importées, sans les réimporter. Les corrections d'import de
+  la 2.4.3 ne valaient que pour les imports suivants, et réimporter le même
+  relevé ne suffit pas — les écritures sont reconnues comme doublons et laissées
+  telles quelles ; il aurait fallu supprimer l'import puis le refaire, au prix du
+  lettrage. Dry-run par défaut ; avec `--appliquer`, sauvegarde de la base puis
+  écriture de `tiers` et `tiers_source` **seulement**, jamais d'une contre-partie
+  déjà renseignée. Idempotent, et il signale les frais bancaires laissés de côté
+  faute d'établissement renseigné sur le compte.
+
 ## [2.4.3] — 2026-09-01
 
 Une passe sur l'import des relevés bancaires, qui laissait tomber en silence la

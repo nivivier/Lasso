@@ -22,6 +22,19 @@ $dash_medaillon = function (int $nb, string $libelle, string $ton, string $href)
         . '<b>' . $nb . '</b> ' . e($libelle) . '</a></span>';
 };
 
+// Dernière ligne d'une carte tronquée : ce qui n'est pas montré, et le lien
+// vers la liste complète. Posée DANS le tableau plutôt qu'à côté, parce que
+// c'est la suite des lignes au-dessus — et la ligne de total, juste en dessous,
+// n'a plus besoin de préciser un nombre que celle-ci annonce.
+$dash_reste = function (int $reste, int $colonnes, string $href): string {
+    if ($reste <= 0) {
+        return '';
+    }
+    return '<tr class="dash-reste"><td colspan="' . $colonnes . '">'
+        . '<a href="' . e($href) . '">et ' . $reste . ' autre' . ($reste > 1 ? 's' : '') . '</a>'
+        . '</td></tr>';
+};
+
 // Génère le SVG du graphique comptable (inline, sans bibliothèque).
 // Les couleurs de décor (grille, ligne du zéro, libellés d'axes et de légende)
 // ne sont PAS écrites ici mais portées par des classes stylées dans app.css
@@ -269,7 +282,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         // (832 / 824 / 526 px mesurés à 1800 px de large). Les plus anciennes
         // sont en tête (ORDER BY annee, mois dans route_resumes()), donc la
         // troncature garde les plus urgentes et renvoie le reste à la liste.
-        $aPayerMax      = 8;
+        $aPayerMax      = 5;
         $aPayerVisibles = array_slice($aPayer, 0, $aPayerMax);
         $aPayerTronque  = count($aPayer) > count($aPayerVisibles);
         $totAPayer      = array_sum(array_map(fn ($f) => (float) $f['salaire_net'], $aPayer));
@@ -302,17 +315,18 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
                     </tr>
                 <?php endforeach; ?>
+                <?= $dash_reste(count($aPayer) - count($aPayerVisibles), 3, $aPayerLien) ?>
                 </tbody>
                 <tfoot>
                     <?php // Le total porte sur TOUTES les fiches, pas sur les seules
-                          // lignes visibles : quand la carte est tronquée, le libellé
-                          // annonce le nombre réel, sinon le total paraîtrait faux face
-                          // aux lignes affichées. Simple mention, pas un lien : la liste
-                          // complète s'atteint par le médaillon, et un lien dans une
-                          // ligne de total n'existe nulle part ailleurs dans l'app. ?>
+                          // lignes visibles. Il n'a plus à le préciser : la ligne
+                          // « et X autres » juste au-dessus rend l'écart lisible. ?>
                     <tr class="total-row apayer-row">
-                        <td colspan="2"><strong>Total à verser</strong><?= $aPayerTronque ? ' <span class="muted small">(' . count($aPayer) . ' fiches)</span>' : '' ?></td>
-                        <td class="num strong net-apayer"><?= chf($totAPayer) ?></td>
+                        <td colspan="2"><strong>Total à verser</strong></td>
+                        <?php // Total à l'encre, pas en ambre : l'ambre signale ce qui
+                              // attend une action, or un total n'est pas une alerte —
+                              // les lignes au-dessus, elles, la portent déjà. ?>
+                        <td class="num strong"><?= chf($totAPayer) ?></td>
                     </tr>
                 </tfoot>
             </table>
@@ -329,6 +343,16 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             $facturesEmises,
             fn ($f) => facturation_statut_effectif($f) === 'en_retard'
         ));
+        // Même plafond que « Salaires à verser », pour la même raison : une
+        // carte du tableau de bord ne doit pas s'étirer au rythme des données.
+        // Les plus proches de l'échéance sont en tête (ORDER BY date_echeance).
+        $facturesVisibles = array_slice($facturesEmises, 0, 5);
+        // « emise » est le statut RÉELLEMENT stocké, y compris pour une facture
+        // échue (« en retard » est dérivé de la date, voir
+        // facturation_statut_effectif()) : le lien ouvre donc exactement les
+        // mêmes factures que la carte.
+        $facturesLien = '?p=facturation_liste&statut[]=emise&statut_set=1';
+        $totEmises = array_sum(array_map(fn ($f) => (float) $f['montant_total'], $facturesEmises));
         ?>
         <div class="card dash-card">
             <div class="card-head-row">
@@ -339,22 +363,38 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             <?php if (!$facturesEmises): ?>
                 <p class="muted">Aucune facture émise en attente de paiement.</p>
             <?php else: ?>
+            <?php
+            // Pas d'étiquette de statut ici : elle répétait en mots ce que la
+            // couleur dit déjà, dans une carte où la place est comptée. Trois
+            // degrés, portés par l'échéance ET le montant pour que la ligne se
+            // lise d'un bloc : à échoir (encre), échue depuis moins d'un mois
+            // (ambre), au-delà (rouge). Un vrai mois calendaire, pas 30 jours.
+            $ilYaUnMois = date('Y-m-d', strtotime('-1 month'));
+            $factEtat = function (array $fac) use ($ilYaUnMois): string {
+                $ech = trim((string) $fac['date_echeance']);
+                if ($ech === '' || $ech >= date('Y-m-d')) {
+                    return '';
+                }
+                return $ech < $ilYaUnMois ? ' facture-retard-long' : ' facture-retard';
+            };
+            ?>
             <table class="list">
                 <thead>
-                    <tr><th>Échéance</th><th>Structure</th><th></th><th class="num">Montant</th></tr>
+                    <tr><th>Échéance</th><th>Structure</th><th class="num">Montant</th></tr>
                 </thead>
                 <tbody>
-                <?php $totEmises = 0; foreach ($facturesEmises as $fac): $totEmises += (float) $fac['montant_total']; ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard">
-                        <td class="small"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
+                <?php foreach ($facturesVisibles as $fac): $cl = $factEtat($fac); ?>
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
+                        title="<?= e(facturation_statut_effectif($fac) === 'en_retard' ? 'Échéance dépassée' : 'Émise, pas encore échue') ?>">
+                        <td class="small<?= $cl ?>"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
                         <td class="dash-nom"><?= e($fac['structure_nom']) ?></td>
-                        <td><?= facturation_badge($fac) ?></td>
-                        <td class="num strong net-apayer"><?= chf((float) $fac['montant_total']) ?></td>
+                        <td class="num strong<?= $cl ?>"><?= chf((float) $fac['montant_total']) ?></td>
                     </tr>
                 <?php endforeach; ?>
+                <?= $dash_reste(count($facturesEmises) - count($facturesVisibles), 3, $facturesLien) ?>
                 </tbody>
                 <tfoot>
-                    <tr class="total-row apayer-row"><td><strong>Total</strong></td><td></td><td></td><td class="num strong net-apayer"><?= chf($totEmises) ?></td></tr>
+                    <tr class="total-row apayer-row"><td><strong>Total</strong></td><td></td><td class="num strong"><?= chf($totEmises) ?></td></tr>
                 </tfoot>
             </table>
             <?php endif; ?>
