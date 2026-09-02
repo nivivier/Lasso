@@ -1,4 +1,4 @@
-<?php /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */ /** @var bool $modeClient */
+<?php /** @var array $actif */ /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -26,14 +26,25 @@
 <table class="list list-wide liste-cartes cartes-employes">
     <thead>
         <tr>
-            <th>Nom</th><th>Adresse</th><th>E-mail</th><th>Dernière fiche</th>
+            <th>
+                <span class="col-th">
+                    Nom
+                    <?= filtre_colonne_html('employes', 'actif', ['1' => 'Actif', '0' => 'Inactif'], $actif,
+                        $recherche !== '' ? ['q' => $recherche] : []) ?>
+                </span>
+            </th>
+            <th>Adresse</th><th>E-mail</th><th>Dernière fiche</th>
         </tr>
     </thead>
     <tbody>
     <?php foreach ($employes as $emp): ?>
         <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=employe_voir&id=<?= (int) $emp['id'] ?>">
             <td class="col-nom-emp">
-                <strong><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></strong>
+                <span class="emp-nom-ligne"><?= avatar_initiales(
+                        $emp['prenom'] . ' ' . $emp['nom'],
+                        (string) ($emp['avatar_couleur'] ?? ''),
+                        (string) ($emp['avatar_photo'] ?? '')
+                    ) ?><strong><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></strong></span>
                 <?php if (!$emp['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
             </td>
             <td class="muted small">

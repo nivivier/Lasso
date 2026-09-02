@@ -85,6 +85,7 @@ ajouter_routes_module($handlers, $routeModules, 'salaires', [
     'employe_voir' => 'route_employe_voir',
     'employe'      => 'route_employe',
     'employe_delete' => 'route_employe_delete',
+    'employe_avatar' => 'route_employe_avatar',
     'taux_horaires' => 'route_taux_horaires',
     'unites'        => 'route_unites',
     'taux'          => 'route_taux',

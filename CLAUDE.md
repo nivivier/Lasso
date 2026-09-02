@@ -25,6 +25,13 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
   (PHP 8.3) l'a révélé. **Ne jamais lancer `composer update` sans ce verrou** ;
   pour relever le plancher, changer la valeur sciemment et vérifier la
   génération d'une QR-facture.
+- **Exception actée** : le recadrage de la photo d'un employé
+  (`?p=employe_voir`) utilise **Cropper.js** (`assets/vendor/cropperjs/`,
+  bundlé dans le dépôt, pas de CDN, MIT), chargé sur cette seule page. Le
+  navigateur produit une vignette carrée de 256 px envoyée en data URI ; le
+  serveur la revalide comme un upload de fichier (`getimagesizefromstring()`,
+  formats en liste blanche, 2 Mo max) avant de l'écrire dans `uploads/`.
+  Dérogation scopée au recadrage.
 - **Exception actée** : la vue carte des lieux (module booking) utilise
   **Leaflet** (`assets/vendor/leaflet/`, bundlé dans le dépôt, pas de CDN) avec
   des fonds de carte OpenStreetMap. Géocodage ville+pays via Nominatim (OSM),

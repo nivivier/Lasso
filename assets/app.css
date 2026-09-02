@@ -2486,6 +2486,50 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
 .resume thead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
 .resume tbody td.num, .resume tfoot td.num { white-space: nowrap; }
 .resume tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--brand); }
+/* Pastille d'initiales (avatar_initiales(), lib/helpers.php) : point d'accroche
+   en début de ligne, pour repérer un nom sans le lire. La teinte vient du nom,
+   elle est donc stable d'un écran à l'autre — c'est ce qui la rend utile. */
+.avatar-ini { display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; margin-right: 9px;
+    font-size: var(--fs-tiny); font-weight: 700; color: #fff; letter-spacing: .02em; }
+.list td.col-employe { display: flex; align-items: center; }
+/* Photo : elle remplit la pastille, le rond venant du conteneur. */
+.avatar-ini.avatar-photo { background: var(--line); overflow: hidden; }
+.avatar-ini.avatar-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Liste des employés : la pastille et le nom sur une même ligne. */
+.emp-nom-ligne { display: inline-flex; align-items: center; }
+
+/* Pastille au format du titre (?p=employe_voir), avec son bouton de réglage. */
+.titre-avatar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.avatar-titre { position: relative; display: inline-flex; flex: 0 0 auto; }
+.avatar-titre .avatar-ini { width: 46px; height: 46px; font-size: var(--fs-basic); margin-right: 0; }
+.avatar-regler { position: absolute; right: -6px; bottom: -6px; padding: 0; width: 24px; height: 24px;
+    border-radius: 50%; background: var(--card); color: var(--muted); border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; justify-content: center; }
+.avatar-regler:hover { background: var(--card); color: var(--primary-d); border-color: var(--primary); }
+.avatar-regler .ico { width: 13px; height: 13px; }
+
+/* Panneau de réglage : la palette, puis la photo. */
+.avatar-couleurs { display: flex; gap: 9px; flex-wrap: wrap; margin: 0 0 4px; }
+.avatar-choix { width: 30px; height: 30px; border-radius: 50%; padding: 0; border: 2px solid transparent;
+    box-shadow: none; outline: 1px solid var(--line); outline-offset: 1px; }
+.avatar-choix:hover { transform: translateY(-1px); }
+.avatar-choix.on { outline: 2px solid var(--primary); outline-offset: 2px; }
+.avatar-choix-auto { background: var(--surface); color: var(--muted); }
+.avatar-choix-auto:hover { background: var(--surface); color: var(--primary-d); }
+.avatar-choix-auto .ico { width: 15px; height: 15px; }
+.avatar-photo-zone { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.avatar-fichier { cursor: pointer; }
+/* Hauteur bornée : sans cela une photo verticale déroule la page entière. */
+.avatar-crop-zone { max-width: 420px; margin: 14px 0 4px; }
+.avatar-crop-zone img { max-width: 100%; max-height: 340px; display: block; }
+
+/* Un zéro n'a pas à peser autant qu'un montant (chf_ou_zero()). */
+.montant-zero { color: color-mix(in srgb, var(--muted) 45%, transparent); }
+/* Axes en étiquettes : plus petites qu'ailleurs, la colonne est étroite. */
+.list td.col-axes { white-space: normal; }
+.list td.col-axes .badge { font-size: var(--fs-tiny); padding: 1px 7px; margin: 1px 3px 1px 0; }
+
 .col-petit { font-size: var(--fs-small); color: var(--muted); }
 /* Sur un <th>, .list thead th (font-size 11.5px) est plus spécifique que
    .col-petit seul et l'emporterait sinon — titre de colonne secondaire
@@ -2970,6 +3014,8 @@ abbr {
 .compta-lettrage tr.ecr-ignore td { background: var(--row-ignore); color: var(--muted); }
 .compta-lettrage tr.ecr-ignore:hover td { background: var(--row-ignore-hover); }
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
+/* Bandeau d'année/mois : un repère, pas un filet — il structure une liste
+   longue et donne à l'œil où se raccrocher en défilant. */
 .compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */

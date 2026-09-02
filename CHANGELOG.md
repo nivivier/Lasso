@@ -9,6 +9,51 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.5.0] — 2026-09-02
+
+Les écrans de listes deviennent lisibles, et une fiche de salaire se rapproche
+de l'écriture bancaire qui l'a payée.
+
+### Ajouté
+- **Pastille d'identité des employés** (migration 78). Initiales sur une couleur
+  **déduite du nom** : stable d'un écran et d'une session à l'autre, donc utile
+  sans que personne ait rien à régler. C'est le point d'accroche qui manquait en
+  début de ligne — une liste de trente fiches obligeait à *lire* chaque nom pour
+  repérer le sien. La couleur se change dans une palette de huit, ou se remplace
+  par une **photo recadrée** depuis la page de l'employé. Affichée dans la liste
+  des employés et dans celle des fiches.
+- **Filtre « Actif / Inactif » sur la liste des employés**, dans l'entonnoir de
+  la colonne « Nom », avec les actifs seuls par défaut : c'est la liste dont on
+  se sert, et les anciens employés attendent derrière le filtre plutôt que de
+  disparaître.
+- **Rapprochement d'une fiche de salaire et d'une écriture bancaire**
+  (migration 79) : le pendant exact de ce que fait déjà la facture. Le champ vit
+  dans le formulaire « Date de paiement », parce que c'est le même geste —
+  constater le versement. Choisir une écriture reporte sa date, et la case
+  « Montant exact » pré-filtre sur le net à payer. Les candidates sont les
+  **débits** : une facture encaisse, un salaire décaisse. Le lien est écrit des
+  deux côtés dans la même transaction, et la liste des écritures affiche une
+  icône de retour vers la fiche.
+
+### Modifié
+- **La liste des fiches passe de onze à huit colonnes.** Charges sociales, impôt
+  à la source et charges patronales la quittent : onze colonnes de même poids
+  visuel ne se lisaient plus, et ce détail se consulte sur la fiche elle-même ou
+  dans « Cotisations ». Les zéros deviennent un tiret pâle — ce qui vaut zéro
+  cessait rarement de peser autant qu'un montant. Les axes analytiques passent
+  en étiquettes.
+- **Le champ de recherche d'écriture est désormais partagé** entre la facture et
+  la fiche de salaire (`lassoInitRechercheEcriture`) : le même geste des deux
+  côtés, un seul code plutôt qu'une copie.
+
+### Technique
+- **Cropper.js 1.6.2** (MIT) embarqué dans `assets/vendor/cropperjs/`, chargé sur
+  la seule page qui recadre une image. Le navigateur produit une vignette carrée
+  de 256 px ; le serveur la revalide comme un upload de fichier
+  (`getimagesizefromstring()`, formats en liste blanche, 2 Mo max) — un data URI
+  reste une entrée utilisateur, et rien n'oblige un client à passer par notre
+  formulaire. Dérogation notée dans `CLAUDE.md`.
+
 ## [2.4.4] — 2026-09-01
 
 Lisibilité du tableau de bord, et l'outil qui manquait pour rattraper les

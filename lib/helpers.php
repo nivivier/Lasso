@@ -774,6 +774,110 @@ function filtre_colonne_form_html(string $page, array $autresParams, string $con
         . '<button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
 }
 
+// Pastille d'initiales colorée, posée devant un nom dans une liste. Elle donne
+// à chaque ligne un point d'accroche en début de rangée : sans elle, une liste
+// de trente lignes oblige à LIRE chaque nom pour repérer le sien.
+//
+// La teinte est dérivée du nom, donc stable : la même personne garde sa couleur
+// d'un écran à l'autre et d'une session à l'autre. Palette fixe et non dérivée
+// de la couleur d'employeur : ces pastilles doivent se distinguer ENTRE ELLES,
+// pas s'accorder à la marque, et toutes portent du blanc lisible.
+const AVATAR_TEINTES = ['#6d4ade', '#0c9486', '#e0473c', '#9a6700', '#2563eb', '#b8397f', '#3f7d3a', '#7a4bd6'];
+
+// $couleur et $photo, quand ils sont renseignés, remplacent la teinte dérivée :
+// la photo d'abord, la couleur choisie ensuite, le nom en dernier recours.
+function avatar_initiales(string $nom, string $couleur = '', string $photo = ''): string
+{
+    $nom = trim($nom);
+    if ($nom === '') {
+        return '';
+    }
+    $photo = trim($photo);
+    if ($photo !== '' && str_starts_with($photo, 'uploads/')) {
+        return '<span class="avatar-ini avatar-photo" aria-hidden="true">'
+            . '<img src="' . e($photo) . '" alt=""></span>';
+    }
+    $mots = preg_split('/\s+/u', $nom) ?: [];
+    $ini = '';
+    foreach (array_slice($mots, 0, 2) as $m) {
+        $ini .= mb_strtoupper(mb_substr($m, 0, 1, 'UTF-8'), 'UTF-8');
+    }
+    return '<span class="avatar-ini" style="background:' . e(avatar_teinte($nom, $couleur)) . '" aria-hidden="true">'
+        . e($ini) . '</span>';
+}
+
+// Enregistre la photo recadrée envoyée par le formulaire, sous forme de data
+// URI produit par le cropper (assets/vendor/cropperjs). Renvoie le chemin web
+// (uploads/…).
+//
+// Le recadrage se fait dans le navigateur : ce qui arrive ici est déjà une
+// vignette carrée de quelques dizaines de Ko, pas la photo d'origine. On la
+// valide malgré tout comme un upload de fichier — un data URI reste une entrée
+// utilisateur, et rien n'oblige un client à passer par notre formulaire.
+function avatar_photo_enregistrer(string $dataUri): string
+{
+    if (!preg_match('#^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$#', trim($dataUri), $m)) {
+        throw new RuntimeException('Image invalide.');
+    }
+    $binaire = base64_decode($m[2], true);
+    if ($binaire === false || $binaire === '' || strlen($binaire) > 2 * 1024 * 1024) {
+        throw new RuntimeException('Image invalide ou trop lourde (2 Mo maximum).');
+    }
+    // getimagesizefromstring() : même garde-fou que handle_logo_upload(), la
+    // déclaration « data:image/… » du client ne prouve rien.
+    $info = @getimagesizefromstring($binaire);
+    $exts = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_WEBP => 'webp'];
+    if ($info === false || !isset($exts[$info[2]])) {
+        throw new RuntimeException('Format non supporté (PNG, JPG ou WebP).');
+    }
+    $dir = __DIR__ . '/../uploads';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+    $nom = 'avatar_' . bin2hex(random_bytes(6)) . '.' . $exts[$info[2]];
+    if (file_put_contents($dir . '/' . $nom, $binaire) === false) {
+        throw new RuntimeException("Impossible d'enregistrer le fichier.");
+    }
+    @chmod($dir . '/' . $nom, 0644);
+    return 'uploads/' . $nom;
+}
+
+// Efface une ancienne photo de pastille. Le préfixe est vérifié : la valeur
+// vient de la base, mais rien ne coûte de s'assurer qu'on ne supprime que dans
+// uploads/ (même précaution que pour les logos, route_apparence()).
+function avatar_photo_supprimer(string $chemin): void
+{
+    $chemin = trim($chemin);
+    if ($chemin === '' || !str_starts_with($chemin, 'uploads/') || str_contains($chemin, '..')) {
+        return;
+    }
+    $fs = __DIR__ . '/../' . $chemin;
+    if (is_file($fs)) {
+        @unlink($fs);
+    }
+}
+
+// Teinte d'une pastille : celle qu'on a choisie si elle fait partie de la
+// palette, sinon celle que le nom désigne. La validation n'est pas cosmétique —
+// la valeur part dans un attribut style.
+// crc32 plutôt qu'une somme de caractères : deux noms proches (« Vivier »,
+// « Voide ») donneraient sinon souvent la même teinte.
+function avatar_teinte(string $nom, string $couleur = ''): string
+{
+    $couleur = strtolower(trim($couleur));
+    return in_array($couleur, AVATAR_TEINTES, true)
+        ? $couleur
+        : AVATAR_TEINTES[crc32(trim($nom)) % count(AVATAR_TEINTES)];
+}
+
+// Montant CHF, mais un zéro s'efface : dans une colonne de montants, « 0.00 »
+// pèse autant qu'une vraie somme alors qu'il ne dit rien. Le tiret garde la
+// colonne alignée sans attirer l'œil.
+function chf_ou_zero(float $v): string
+{
+    return abs($v) < 0.005 ? '<span class="montant-zero">–</span>' : e(chf($v));
+}
+
 // Montant CHF : "1 234.55"
 function chf(float $v): string
 {
@@ -2301,6 +2405,9 @@ function icone_table(): array
         'settings'  => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
         'menu'      => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
         'x'         => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+        // Réglage de la pastille d'identité d'un employé (?p=employe_voir).
+        'sparkles'  => '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
+        'image'     => '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
         'list-x'    => '<path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="m19 10-4 4"/><path d="m15 10 4 4"/>',
         'building'  => '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
         'blocks'    => '<path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2"/><rect x="14" y="2" width="8" height="8" rx="1"/>',

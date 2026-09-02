@@ -50,7 +50,8 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
         <?php endif; ?>
     </div>
 
-<?php $nbCols = 10 + ($axesParFiche ? 1 : 0); ?>
+<?php // 7 = Date, Employé, Brut, Net, Paiement, Coût employeur, Envoyée. ?>
+<?php $nbCols = 7 + ($axesParFiche ? 1 : 0); ?>
 <div class="table-scroll">
 <table class="list list-wide liste-cartes cartes-fiches">
     <thead>
@@ -68,7 +69,11 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                 </span>
             </th>
             <?php if ($axesParFiche): ?><th class="col-petit">Axes</th><?php endif; ?>
-            <th class="num">Brut</th><th class="num col-petit">Charges sociales</th><th class="num col-petit">Impôt à la source</th>
+            <?php // Charges sociales, impôt à la source et charges patronales ne
+                  // figurent plus ici : onze colonnes de même poids ne se lisaient
+                  // plus. Ce détail reste sur la fiche elle-même, où on le consulte
+                  // vraiment, et dans les totaux de « Cotisations ». ?>
+            <th class="num">Brut</th>
             <th class="num">Net</th>
             <th class="col-paiement">
                 <span class="col-th">
@@ -76,7 +81,7 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                     <?= filtre_colonne_html('fiches', 'statut', $statutLabels, $statut, $autresStatut) ?>
                 </span>
             </th>
-            <th class="num col-petit">Charges patronales</th><th class="num">Coût employeur</th>
+            <th class="num">Coût employeur</th>
             <th class="center col-petit">Envoyée</th>
         </tr>
     </thead>
@@ -94,14 +99,16 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
         <?php $hrefLigne = '?p=fiche&id=' . (int) $f['id']; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <td class="col-date"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></a></td>
-            <td class="col-employe"><?= e($f['employe_nom']) ?></td>
-            <?php if ($axesParFiche): ?><td class="muted small"><?= e($axesParFiche[(int) $f['id']] ?? '') ?></td><?php endif; ?>
-            <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
-            <td class="num col-petit"><?= chf((float) $f['total_deductions']) ?></td>
-            <td class="num col-petit"><?= chf((float) $f['ded_impot_source']) ?></td>
-            <td class="num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
+            <td class="col-employe"><?= avatar_initiales((string) $f['employe_nom'], (string) ($f['avatar_couleur'] ?? ''), (string) ($f['avatar_photo'] ?? '')) ?><?= e($f['employe_nom']) ?></td>
+            <?php if ($axesParFiche): ?>
+            <?php // Étiquettes plutôt qu'une liste séparée par des virgules : un axe
+                  // est une catégorie, pas une phrase — même composant que les
+                  // étiquettes de structures. ?>
+            <td class="col-axes"><?php foreach (array_filter(array_map('trim', explode(',', (string) ($axesParFiche[(int) $f['id']] ?? '')))) as $axe): ?><span class="badge muted-badge"><?= e($axe) ?></span><?php endforeach; ?></td>
+            <?php endif; ?>
+            <td class="num col-brut"><?= chf_ou_zero((float) $f['salaire_brut']) ?></td>
+            <td class="num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf_ou_zero((float) $f['salaire_net']) ?></td>
             <td class="col-paiement"><?= badge_paiement($f) ?></td>
-            <td class="num col-petit"><?= chf((float) $f['total_charges_emp']) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
             <td class="center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
@@ -112,9 +119,9 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
     <tfoot>
         <?php
             $totBrut       = (float) $totaux['brut'];
-            $totDed        = (float) $totaux['ded'];
-            $totImpot      = (float) $totaux['impot'];
             $totNet        = (float) $totaux['net'];
+            // Toujours lu, bien que sa colonne ait disparu : il décide si le coût
+            // employeur a un sens à afficher (voir cout_emp_affiche()).
             $totChargesEmp = (float) $totaux['charges_emp'];
             $totCoutEmp    = (float) $totaux['cout_emp'];
         ?>
@@ -123,11 +130,8 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
             <td>Total</td>
             <?php if ($axesParFiche): ?><td></td><?php endif; ?>
             <td class="num"><?= chf($totBrut) ?></td>
-            <td class="num col-petit"><?= chf($totDed) ?></td>
-            <td class="num col-petit"><?= chf($totImpot) ?></td>
             <td class="num"><?= chf($totNet) ?></td>
             <td></td>
-            <td class="num col-petit"><?= chf($totChargesEmp) ?></td>
             <td class="num"><?= $totChargesEmp > 0 ? chf($totCoutEmp) : '—' ?></td>
             <td></td>
         </tr>

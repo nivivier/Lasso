@@ -350,6 +350,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <?php if (!empty($ecr['facture_id'])): ?>
                     <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
                 <?php endif; ?>
+                <?php // Pendant du lien vers la facture : une écriture peut aussi
+                      // payer une fiche de salaire (route_fiche_date()). ?>
+                <?php if (!empty($ecr['fiche_id'])): ?>
+                    <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ecr['fiche_id'], 'compta_ecritures')) ?>" title="Voir la fiche de salaire liée"><?= icon('file-text') ?></a>
+                <?php endif; ?>
                 <span class="texte-cell-txt" data-summary="<?= e($ecrResume) ?>"><?= e($ecrResume) ?></span>
                 <?php if ($ecrDetails): ?>
                     <span class="ecr-details"><?= e(implode(' · ', $ecrDetails)) ?></span>

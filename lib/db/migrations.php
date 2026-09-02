@@ -103,6 +103,8 @@ function run_migrations(PDO $pdo): void
         75 => 'migration_75', // ecritures : champs structurés camt.053 (référence QR, IBAN de la contre-partie, référence bancaire, nature) — voir parse_camt053()
         76 => 'migration_76', // ecritures.tiers_source : d'où vient la contre-partie (champ structuré ou déduite du libellé), donc à quel point s'y fier
         77 => 'migration_77', // comptes_bancaires.banque : l'établissement, contre-partie des frais bancaires que le relevé n'attribue à personne
+        78 => 'migration_78', // employes.avatar_couleur / avatar_photo : la pastille d'identité des listes, personnalisable
+        79 => 'migration_79', // rapprochement fiche de salaire ↔ écriture bancaire (fiches.ecriture_id + ecritures.fiche_id), symétrique de la facture
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2267,6 +2269,51 @@ function migration_73(PDO $pdo): void
 // (filtre_persistant()) : ce qui est ici survit à la déconnexion, ce qui est en
 // session s'oublie avec elle. Et de « parametres », qui est global à
 // l'association, pas propre à une personne.
+// Migration 79 : rapprochement d'une fiche de salaire avec l'écriture bancaire
+// qui l'a payée — le pendant exact de ce que fait déjà la facture
+// (migration_19). Lien des DEUX côtés, comme pour la facture : la fiche pointe
+// son écriture (affichage sur ?p=fiche), l'écriture pointe sa fiche (icône de
+// retour dans la liste des écritures), et les deux sont écrits dans la même
+// transaction. ON DELETE SET NULL des deux côtés : supprimer un import
+// d'écritures ne doit pas emporter des fiches de salaire.
+function migration_79(PDO $pdo): void
+{
+    $colonnes = function (string $table) use ($pdo): array {
+        $out = [];
+        foreach ($pdo->query("PRAGMA table_info($table)") as $c) {
+            $out[$c['name']] = true;
+        }
+        return $out;
+    };
+    if (!isset($colonnes('fiches')['ecriture_id'])) {
+        $pdo->exec('ALTER TABLE fiches ADD COLUMN ecriture_id INTEGER REFERENCES ecritures(id) ON DELETE SET NULL');
+    }
+    if (!isset($colonnes('ecritures')['fiche_id'])) {
+        $pdo->exec('ALTER TABLE ecritures ADD COLUMN fiche_id INTEGER REFERENCES fiches(id) ON DELETE SET NULL');
+    }
+    // Même raison que l'index de migration_20 sur ecritures.facture_id : la
+    // liste des écritures libres l'interroge à chaque ouverture d'une fiche.
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ecritures_fiche ON ecritures(fiche_id)');
+}
+
+// Migration 78 : pastille d'identité d'un employé. La teinte par défaut est
+// dérivée de son nom (avatar_initiales(), lib/helpers.php) et n'a donc rien à
+// stocker ; ces colonnes ne servent qu'à la remplacer — une couleur choisie, ou
+// une photo recadrée. Vides pour tout le monde au départ, l'affichage ne change
+// pas tant que personne n'y touche.
+function migration_78(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(employes)') as $row) {
+        $cols[$row['name']] = true;
+    }
+    foreach (['avatar_couleur', 'avatar_photo'] as $nom) {
+        if (!isset($cols[$nom])) {
+            $pdo->exec("ALTER TABLE employes ADD COLUMN $nom TEXT NOT NULL DEFAULT ''");
+        }
+    }
+}
+
 // Migration 77 : nom de l'établissement sur le compte bancaire. Les frais de
 // tenue de compte n'ont aucune contre-partie dans le relevé — ni nom ni IBAN —
 // alors qu'ils sont bien versés à la banque. Aucune ligne ne permet de la

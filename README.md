@@ -147,10 +147,16 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 ## 5. Utilisation
 
 1. **Employés** : ajoutez chaque salarié (canton, supplément vacances, procédure de
-   décompte, éventuel taux d'impôt à la source, date de naissance, N° AVS).
+   décompte, éventuel taux d'impôt à la source, date de naissance, N° AVS). La liste
+   n'affiche par défaut que les employés **actifs** ; l'entonnoir de la colonne « Nom »
+   montre les inactifs. Chaque employé porte une **pastille d'identité** — initiales sur
+   une couleur déduite de son nom, remplaçable par une autre couleur ou par une photo
+   recadrée depuis sa page.
 2. **Fiches → Nouvelle fiche** : choisissez l'employé, le mois, les prestations
    (lignes quantité × unité × taux horaire). Le décompte est calculé et **figé**.
-3. Sur une fiche : **Imprimer / PDF**, **Envoyer** par e-mail à l'employé.
+3. Sur une fiche : **Imprimer / PDF**, **Envoyer** par e-mail à l'employé, et — si la
+   comptabilité est active — **lier l'écriture bancaire** qui l'a payée, comme on le fait
+   pour une facture.
 4. **Tableau de bord** : totaux par trimestre / semestre / année et « Salaires à
    verser ».
 5. **Certificat de salaire** (page d'un employé) : récapitulatif annuel au format du

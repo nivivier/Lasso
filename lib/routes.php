@@ -282,28 +282,44 @@ function route_employes(): void
     $recherche = trim((string) ($_GET['q'] ?? ''));
     $pgTaille = pagination_taille('employes_taille');
 
-    // Aucun filtre structuré sur cette page (juste la recherche texte) : le
-    // total "sans recherche" est simplement le total de la table.
-    $totalSansRecherche = (int) db()->query('SELECT COUNT(*) FROM employes')->fetchColumn();
+    // Filtre de colonne « Nom » : actif / inactif. Par défaut seuls les actifs,
+    // parce que c'est la liste dont on se sert — les anciens employés ne
+    // disparaissent pas, ils attendent derrière l'entonnoir. Aucune case cochée
+    // = tout le monde, comme partout ailleurs (filtre_coche()).
+    $actif = filtre_coche('actif', 'employes_actif', ['1', '0'], true, ['1']);
+    $where  = ' WHERE 1=1';
+    $params = [];
+    if ($actif && count($actif) < 2) {
+        $where .= ' AND actif = ?';
+        $params[] = (int) $actif[0];
+    }
+
+    // Total « sans recherche » : avec le filtre structuré, mais sans le texte
+    // saisi — c'est lui qui décide du mode de pagination (client ou serveur).
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes' . $where);
+    $stmtTot->execute($params);
+    $totalSansRecherche = (int) $stmtTot->fetchColumn();
     $modeClient = pagination_mode_client($totalSansRecherche);
 
     if ($modeClient) {
         // Mode client (voir pagination_mode_client()) : toutes les lignes,
         // recherche/pagination 100% en JS (lassoListeClient()) — pas de
         // requête LIKE ni de LIMIT ici.
-        $employes = db()->query('SELECT * FROM employes ORDER BY actif DESC, nom, prenom')->fetchAll();
+        $stmt = db()->prepare('SELECT * FROM employes' . $where . ' ORDER BY actif DESC, nom, prenom');
+        $stmt->execute($params);
+        $employes = $stmt->fetchAll();
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
         [$rechSql, $rechParams] = recherche_sql(['nom', 'prenom', 'rue', 'npa_localite', 'email']);
-        $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes WHERE 1=1' . $rechSql);
-        $stmtTot->execute($rechParams);
+        $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes' . $where . $rechSql);
+        $stmtTot->execute(array_merge($params, $rechParams));
         $pgTotal = (int) $stmtTot->fetchColumn();
 
         $pgPage = pagination_page();
         [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-        $stmt = db()->prepare('SELECT * FROM employes WHERE 1=1' . $rechSql . ' ORDER BY actif DESC, nom, prenom' . $limitSql);
-        $stmt->execute(array_merge($rechParams, $limitParams));
+        $stmt = db()->prepare('SELECT * FROM employes' . $where . $rechSql . ' ORDER BY actif DESC, nom, prenom' . $limitSql);
+        $stmt->execute(array_merge($params, $rechParams, $limitParams));
         $employes = $stmt->fetchAll();
     }
 
@@ -324,9 +340,17 @@ function route_employes(): void
             }
         }
     }
+    // Le filtre doit survivre à la pagination et à la recherche : il voyage
+    // dans les liens de page, au format attendu par filtre_coche() (marqueur
+    // « _set », sans quoi il retomberait sur la session au clic suivant).
+    $pgParams = $recherche !== '' ? ['q' => $recherche] : [];
+    if ($actif) {
+        $pgParams['actif']     = $actif;
+        $pgParams['actif_set'] = 1;
+    }
     render('employes', ['employes' => $employes, 'derniere' => $derniere, 'recherche' => $recherche,
-        'modeClient' => $modeClient,
-        'pgRoute' => 'employes', 'pgParams' => $recherche !== '' ? ['q' => $recherche] : [],
+        'modeClient' => $modeClient, 'actif' => $actif,
+        'pgRoute' => 'employes', 'pgParams' => $pgParams,
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
 }
 
@@ -344,6 +368,53 @@ function route_employe_voir(): void
     $stmt->execute([$id]);
     $fiches = $stmt->fetchAll();
     render('employe_voir', ['emp' => $emp, 'fiches' => $fiches], $emp['prenom'] . ' ' . $emp['nom']);
+}
+
+// Pastille d'identité d'un employé (?p=employe_voir) : une couleur choisie dans
+// la palette, ou une photo recadrée. Trois actions exclusives, distinguées par
+// « action » — une seule route plutôt que trois, elles écrivent les deux mêmes
+// colonnes et partagent le nettoyage de l'ancienne photo.
+function route_employe_avatar(): void
+{
+    require_ecriture('salaires');
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('employes');
+    }
+    check_csrf();
+    $stmt = db()->prepare('SELECT id, prenom, nom, avatar_photo FROM employes WHERE id = ?');
+    $stmt->execute([$id]);
+    $emp = $stmt->fetch();
+    if (!$emp) {
+        redirect('employes');
+    }
+    $ancienne = (string) $emp['avatar_photo'];
+    $action = (string) ($_POST['action'] ?? '');
+    $err = null;
+
+    if ($action === 'couleur') {
+        // La valeur part dans un attribut style : hors palette, elle est
+        // ignorée plutôt qu'écrite (avatar_teinte() refuserait de toute façon
+        // à l'affichage, mais autant ne pas stocker n'importe quoi).
+        $couleur = strtolower(trim((string) ($_POST['couleur'] ?? '')));
+        if (!in_array($couleur, AVATAR_TEINTES, true)) {
+            $couleur = '';
+        }
+        db()->prepare('UPDATE employes SET avatar_couleur = ? WHERE id = ?')->execute([$couleur, $id]);
+    } elseif ($action === 'photo') {
+        try {
+            $chemin = avatar_photo_enregistrer((string) ($_POST['photo_data'] ?? ''));
+            db()->prepare('UPDATE employes SET avatar_photo = ? WHERE id = ?')->execute([$chemin, $id]);
+            avatar_photo_supprimer($ancienne);
+        } catch (RuntimeException $ex) {
+            $err = $ex->getMessage();
+        }
+    } elseif ($action === 'photo_supprimer') {
+        db()->prepare("UPDATE employes SET avatar_photo = '' WHERE id = ?")->execute([$id]);
+        avatar_photo_supprimer($ancienne);
+    }
+
+    redirect('employe_voir', $err === null ? ['id' => $id] : ['id' => $id, 'err_avatar' => $err]);
 }
 
 function route_employe(): void
@@ -1220,7 +1291,10 @@ function route_fiches(): void
     $pgTaille = pagination_taille('fiches_taille');
     [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
-    $sql = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel
+    // avatar_* : la pastille d'identité affichée devant le nom (liste des
+    // fiches). Elle vit sur l'employé, pas sur la fiche — une fiche fige ses
+    // montants, pas l'apparence de la personne.
+    $sql = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel, e.avatar_couleur, e.avatar_photo
             FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where;
     $sql  .= ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
     $sql  .= $limitSql;
@@ -1501,11 +1575,24 @@ function route_fiche(): void
     $axes = module_actif('analytique')
         ? db()->query('SELECT id, code, libelle FROM axes_analytiques WHERE actif = 1 ORDER BY code, libelle')->fetchAll()
         : [];
+    // Écritures rapprochables : les DÉBITS (un salaire sort du compte) encore
+    // libres, plus celle déjà liée à cette fiche. Même principe que le
+    // rapprochement d'une facture (route_facture(), lib/routes_facturation.php),
+    // au signe près — une facture encaisse, un salaire décaisse.
+    $ecrituresLibres = [];
+    if (module_accessible('compta')) {
+        $stmt = db()->prepare(
+            'SELECT id, date_op, texte, tiers, montant FROM ecritures
+              WHERE (fiche_id IS NULL OR fiche_id = ?) AND montant < 0 ORDER BY date_op DESC'
+        );
+        $stmt->execute([$id]);
+        $ecrituresLibres = $stmt->fetchAll();
+    }
     render('fiche_view', [
         'f' => $f, 'modifiable' => $modifiable, 'saved' => $_GET['ok'] ?? null,
         'mail' => $_GET['mail'] ?? null,
         'emailEmploye' => $emailEmploye, 'emailExp' => $emailExp,
-        'axes' => $axes,
+        'axes' => $axes, 'ecrituresLibres' => $ecrituresLibres,
     ], 'Fiche ' . mois_nom((int) $f['mois']) . ' ' . $f['annee']);
 }
 
@@ -1891,6 +1978,9 @@ function route_fiche_edit(): void
     ], 'Modifier la fiche');
 }
 
+// Date de paiement d'une fiche, et l'écriture bancaire qui l'a payée. Les deux
+// dans le même formulaire — et donc la même route — parce que c'est le même
+// geste : constater le versement. Symétrique de route_facture_payee().
 function route_fiche_date(): void
 {
     require_login();
@@ -1898,7 +1988,39 @@ function route_fiche_date(): void
         check_csrf();
         $id   = (int) ($_POST['id'] ?? 0);
         $date = trim($_POST['date_paiement'] ?? '');
-        db()->prepare('UPDATE fiches SET date_paiement = ? WHERE id = ?')->execute([$date, $id]);
+
+        $stmt = db()->prepare('SELECT ecriture_id FROM fiches WHERE id = ?');
+        $stmt->execute([$id]);
+        $ancienne = (int) ($stmt->fetchColumn() ?: 0);
+
+        // L'écriture proposée doit être un débit encore libre (ou déjà celle de
+        // cette fiche) : sans cette vérification, un identifiant forgé
+        // détournerait l'écriture d'une autre fiche.
+        $ecritureId = null;
+        $brut = (int) ($_POST['ecriture_id'] ?? 0);
+        if ($brut && module_accessible('compta')) {
+            $stmt = db()->prepare(
+                'SELECT 1 FROM ecritures WHERE id = ? AND montant < 0 AND (fiche_id IS NULL OR fiche_id = ?)'
+            );
+            $stmt->execute([$brut, $id]);
+            if ($stmt->fetchColumn()) {
+                $ecritureId = $brut;
+            }
+        }
+
+        db()->beginTransaction();
+        db()->prepare('UPDATE fiches SET date_paiement = ?, ecriture_id = ? WHERE id = ?')
+            ->execute([$date, $ecritureId, $id]);
+        // Le lien inverse suit, dans la même transaction : une écriture délaissée
+        // redevient libre, la nouvelle pointe cette fiche.
+        if ($ancienne && $ancienne !== $ecritureId) {
+            db()->prepare('UPDATE ecritures SET fiche_id = NULL WHERE id = ? AND fiche_id = ?')
+                ->execute([$ancienne, $id]);
+        }
+        if ($ecritureId) {
+            db()->prepare('UPDATE ecritures SET fiche_id = ? WHERE id = ?')->execute([$id, $ecritureId]);
+        }
+        db()->commit();
         redirect('fiche', ['id' => $id, 'ok' => 'date']);
     }
     redirect('fiches');

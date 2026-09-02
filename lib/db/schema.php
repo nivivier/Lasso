@@ -66,6 +66,10 @@ function init_schema(PDO $pdo): void
             prenom             TEXT NOT NULL,
             nom                TEXT NOT NULL,
             email              TEXT NOT NULL DEFAULT '',
+            -- Pastille d'identité affichée dans les listes (avatar_initiales()).
+            -- Vide = teinte dérivée du nom, donc stable sans rien saisir.
+            avatar_couleur     TEXT NOT NULL DEFAULT '',
+            avatar_photo       TEXT NOT NULL DEFAULT '',  -- uploads/… , prime sur la couleur
             rue                TEXT NOT NULL DEFAULT '',
             npa_localite       TEXT NOT NULL DEFAULT '',
             numero_avs         TEXT NOT NULL DEFAULT '',
@@ -122,6 +126,10 @@ function init_schema(PDO $pdo): void
             cout_total_emp      REAL NOT NULL DEFAULT 0,
             afficher_cout_emp   INTEGER NOT NULL DEFAULT 0,
             email_envoye_le     TEXT NOT NULL DEFAULT '',
+            -- Écriture bancaire qui a payé cette fiche (rapprochement manuel,
+            -- symétrique de factures.ecriture_id). ecritures.fiche_id porte le
+            -- lien inverse ; les deux s'écrivent ensemble (route_fiche_date()).
+            ecriture_id         INTEGER REFERENCES ecritures(id) ON DELETE SET NULL,
             -- Taux utilisés (figés), JSON
             taux_json           TEXT NOT NULL DEFAULT '{}',
             cree_le             TEXT NOT NULL DEFAULT (datetime('now')),
@@ -189,6 +197,7 @@ function init_schema(PDO $pdo): void
             tiers_source       TEXT NOT NULL DEFAULT '',
             reference          TEXT NOT NULL DEFAULT '',  -- référence QR (QRR) ou créancier (SCOR)
             iban_tiers         TEXT NOT NULL DEFAULT '',  -- IBAN de la contre-partie
+            fiche_id           INTEGER REFERENCES fiches(id) ON DELETE SET NULL, -- fiche de salaire payée par cette écriture
             ref_bancaire       TEXT NOT NULL DEFAULT '',  -- AcctSvcrRef : identifiant unique donné par la banque
             nature             TEXT NOT NULL DEFAULT '',  -- BkTxCd, ex. « PMNT/RCDT/ATXN » ou « ACMT/ADOP/CHRG »
             montant            REAL NOT NULL DEFAULT 0,

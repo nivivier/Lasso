@@ -1,4 +1,18 @@
-<?php /** @var array $f */ /** @var ?string $saved */ /** @var ?string $mail */ /** @var string $emailEmploye */ /** @var string $emailExp */ /** @var array $axes */ $paye = trim((string) $f['date_paiement']) !== ''; ?>
+<?php /** @var array $f */ /** @var ?string $saved */ /** @var ?string $mail */ /** @var string $emailEmploye */ /** @var string $emailExp */ /** @var array $axes */ /** @var array $ecrituresLibres */ $paye = trim((string) $f['date_paiement']) !== ''; ?>
+<?php
+// Rapprochement bancaire : l'écriture qui a payé cette fiche. Même dispositif
+// que sur une facture (facturation_voir.php) — au signe près, un salaire sort
+// du compte. Le libellé reprend la contre-partie quand le relevé la donne :
+// sur un virement de salaire, c'est le nom de l'employé, donc le plus parlant.
+$libelleEcr = function (array $e): string {
+    $tiers = trim((string) ($e['tiers'] ?? ''));
+    return date('d.m.Y', strtotime((string) $e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' CHF'
+        . ($tiers !== '' ? ' — ' . $tiers : ' — ' . mb_substr((string) $e['texte'], 0, 50));
+};
+$ecrActuelleId = (int) ($f['ecriture_id'] ?? 0);
+$ecrActuelle   = array_values(array_filter($ecrituresLibres, fn ($e) => (int) $e['id'] === $ecrActuelleId));
+$ecrActuelleLabel = $ecrActuelle ? $libelleEcr($ecrActuelle[0]) : '';
+?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
@@ -82,6 +96,36 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                 <button type="submit" class="btn paiement-save" title="Enregistrer"><?= icon('save') ?><span class="lbl">Enregistrer</span></button>
             </div>
 
+            <?php if ($ecrituresLibres): ?>
+            <div class="ecr-liee-box">
+                <h3 class="sub no-mt">Écriture liée</h3>
+                <div class="cat-search ecr-search">
+                    <input type="text" class="cat-search-input" id="ecriture-recherche" autocomplete="off"
+                           placeholder="— aucune —" value="<?= e($ecrActuelleLabel) ?>">
+                    <input type="hidden" name="ecriture_id" id="ecriture-select" value="<?= $ecrActuelleId ?: '' ?>">
+                    <ul class="cat-search-list" hidden role="listbox">
+                        <li data-val="">— aucune —</li>
+                        <?php foreach ($ecrituresLibres as $e):
+                            $libelle = $libelleEcr($e);
+                        ?>
+                            <li data-val="<?= (int) $e['id'] ?>"
+                                data-montant="<?= (float) $e['montant'] ?>"
+                                data-date="<?= e($e['date_op']) ?>"
+                                data-label="<?= e($libelle) ?>"
+                                data-recherche="<?= e(mb_strtolower($libelle . ' ' . (string) $e['texte'], 'UTF-8')) ?>">
+                                <span class="ecr-opt-top"><?= e($libelle) ?></span>
+                                <span class="ecr-opt-texte"><?= e(mb_substr((string) $e['texte'], 0, 90)) ?></span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <label class="check small">
+                    <input type="checkbox" id="ecriture-meme-montant" checked>
+                    Montant exact (<?= chf((float) $f['salaire_net']) ?> CHF)
+                </label>
+                <p class="muted small" id="ecriture-compte"></p>
+            </div>
+            <?php endif; ?>
         </form>
 
                     <h2>Affichage avancé</h2>
@@ -98,6 +142,10 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <?php else: ?>
         <h2>Date de paiement</h2>
         <p><?= !empty($f['date_paiement']) ? e(date('d.m.Y', strtotime((string) $f['date_paiement']))) : '<span class="muted">À payer</span>' ?></p>
+        <?php if ($ecrActuelleLabel !== ''): ?>
+            <h3 class="sub">Écriture liée</h3>
+            <p class="muted small"><?= e($ecrActuelleLabel) ?></p>
+        <?php endif; ?>
         <?php endif; ?>
     </aside>
 </div>
@@ -167,6 +215,21 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             sel.hidden  = true;
         }
     }
+})();
+</script>
+<?php endif; ?>
+<?php if ($ecrituresLibres && peut_ecrire('salaires')): ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+(function () {
+    // Composant partagé avec la facture (lassoInitRechercheEcriture, app.js) :
+    // c'est le même rapprochement bancaire des deux côtés.
+    lassoInitRechercheEcriture(document.querySelector('.ecr-search'), {
+        hidden:      document.getElementById('ecriture-select'),
+        memeMontant: document.getElementById('ecriture-meme-montant'),
+        compteur:    document.getElementById('ecriture-compte'),
+        dateCible:   document.querySelector('.paiement-date'),
+        montant:     <?= json_encode(round((float) $f['salaire_net'], 2)) ?>,
+    });
 })();
 </script>
 <?php endif; ?>

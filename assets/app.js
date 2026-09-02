@@ -346,6 +346,66 @@ function lassoListeClient(config) {
     filtrer(); // applique tout de suite une valeur de recherche déjà présente (lien profond ?q=...)
 }
 
+// Rapprochement bancaire : champ de recherche d'une écriture à lier, partagé
+// par la facture (facturation_voir.php) et la fiche de salaire (fiche_view.php).
+// Il ne dérive pas de lassoInitCatSearch() : il filtre sur DEUX critères — le
+// texte saisi et une case « montant exact » —, affiche un décompte, et reporte
+// la date de l'écriture choisie dans le champ de date du paiement. Les deux
+// écrans font exactement le même geste, à un signe près (une facture encaisse,
+// un salaire décaisse) : un seul code pour les deux.
+//
+// $wrap : le .cat-search ; opts.hidden / opts.memeMontant / opts.compteur /
+// opts.dateCible : éléments ; opts.montant : le montant de référence (positif).
+function lassoInitRechercheEcriture(wrap, opts) {
+    if (!wrap) { return; }
+    const input  = wrap.querySelector('.cat-search-input');
+    const list   = wrap.querySelector('.cat-search-list');
+    const items  = Array.from(list.querySelectorAll('li'));
+    const hidden = opts.hidden;
+
+    function filtrer(q) {
+        if (q === undefined) { q = input.value.trim().toLowerCase(); }
+        let visibles = 0;
+        items.forEach(li => {
+            if (li.dataset.val === '') { return; } // « aucune » toujours visible
+            const okTexte = !q || li.dataset.recherche.includes(q);
+            // Comparaison en valeur absolue : un débit est négatif en base, le
+            // montant de référence est toujours donné positif.
+            const okMontant = !opts.memeMontant || !opts.memeMontant.checked
+                || Math.abs(Math.abs(parseFloat(li.dataset.montant)) - opts.montant) < 0.01;
+            li.hidden = !(okTexte && okMontant);
+            if (!li.hidden) visibles++;
+        });
+        if (opts.compteur) {
+            opts.compteur.textContent = visibles + ' écriture(s) correspondante(s) sur ' + (items.length - 1) + '.';
+        }
+    }
+
+    input.addEventListener('focus', () => { input.value = ''; filtrer(''); list.hidden = false; });
+    input.addEventListener('input', () => { filtrer(); list.hidden = false; });
+    input.addEventListener('blur', () => {
+        // Différé : un clic dans la liste déclenche le blur avant le mousedown.
+        setTimeout(() => {
+            list.hidden = true;
+            const cur = items.find(li => li.dataset.val === hidden.value);
+            input.value = cur && cur.dataset.val !== '' ? cur.dataset.label : '';
+        }, 150);
+    });
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            hidden.value = li.dataset.val;
+            input.value = li.dataset.val !== '' ? li.dataset.label : '';
+            if (li.dataset.date && opts.dateCible) { opts.dateCible.value = li.dataset.date; }
+            list.hidden = true;
+        });
+    });
+    if (opts.memeMontant) { opts.memeMontant.addEventListener('change', () => filtrer()); }
+    // État initial : reflète la case « montant exact » sans tenir compte du
+    // libellé déjà présent dans le champ.
+    filtrer('');
+}
+
 // Dropdown « catégorie/axe cherchable » (texte + valeur cachée + liste
 // filtrée au clavier). Couvre les variantes utilisées dans compta_ecritures.php
 // (formulaire manuel, barre de modification groupée), compta_regles.php et

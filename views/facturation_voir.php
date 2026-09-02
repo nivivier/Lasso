@@ -255,48 +255,15 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php if ($peutPayer && $ecrituresLibres && peut_ecrire('facturation')): ?>
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
-    const wrap = document.querySelector('.ecr-search');
-    const input = wrap.querySelector('.cat-search-input');
-    const hidden = document.getElementById('ecriture-select');
-    const list = wrap.querySelector('.cat-search-list');
-    const items = Array.from(list.querySelectorAll('li'));
-    const memeMontant = document.getElementById('ecriture-meme-montant');
-    const compteur = document.getElementById('ecriture-compte');
-    const datePaiement = document.getElementById('payee-le');
-    const montantFacture = <?= json_encode(round((float) $f['montant_total'], 2)) ?>;
-
-    function filtrer(q) {
-        if (q === undefined) { q = input.value.trim().toLowerCase(); }
-        let visibles = 0;
-        items.forEach(li => {
-            if (li.dataset.val === '') { return; } // « aucune » toujours visible
-            const okTexte = !q || li.dataset.recherche.includes(q);
-            const okMontant = !memeMontant.checked || Math.abs(parseFloat(li.dataset.montant) - montantFacture) < 0.01;
-            li.hidden = !(okTexte && okMontant);
-            if (!li.hidden) visibles++;
-        });
-        compteur.textContent = visibles + ' écriture(s) correspondante(s) sur ' + (items.length - 1) + '.';
-    }
-    input.addEventListener('focus', () => { input.value = ''; filtrer(''); list.hidden = false; });
-    input.addEventListener('input',  () => { filtrer(); list.hidden = false; });
-    input.addEventListener('blur', () => {
-        setTimeout(() => {
-            list.hidden = true;
-            const cur = items.find(li => li.dataset.val === hidden.value);
-            input.value = cur && cur.dataset.val !== '' ? cur.dataset.label : '';
-        }, 150);
+    // Composant partagé avec la fiche de salaire (lassoInitRechercheEcriture,
+    // assets/app.js) : c'est le même rapprochement bancaire des deux côtés.
+    lassoInitRechercheEcriture(document.querySelector('.ecr-search'), {
+        hidden:      document.getElementById('ecriture-select'),
+        memeMontant: document.getElementById('ecriture-meme-montant'),
+        compteur:    document.getElementById('ecriture-compte'),
+        dateCible:   document.getElementById('payee-le'),
+        montant:     <?= json_encode(round((float) $f['montant_total'], 2)) ?>,
     });
-    items.forEach(li => {
-        li.addEventListener('mousedown', e => {
-            e.preventDefault();
-            hidden.value = li.dataset.val;
-            input.value = li.dataset.val !== '' ? li.dataset.label : '';
-            if (li.dataset.date) { datePaiement.value = li.dataset.date; }
-            list.hidden = true;
-        });
-    });
-    memeMontant.addEventListener('change', () => filtrer());
-    filtrer(''); // état initial : reflète la case « Montant exact » sans tenir compte du libellé pré-rempli
 })();
 </script>
 <?php endif; ?>
