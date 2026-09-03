@@ -179,7 +179,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 9. **Booking** : structures et contacts, étiquettes, lieux géocodés sur une carte,
    et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
    modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
-   d'historique à l'envoi. Les **campagnes de mailing** avec désinscription
+   d'historique à l'envoi. Une structure rattachée à une autre (salle d'un festival,
+   antenne d'une faîtière) propose aussi les contacts de celle qui l'organise. Les **campagnes de mailing** avec désinscription
    forment un sous-module à part (« Envois groupés »), activable séparément.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec
    son propre serveur SMTP (Paramètres → E-mails → Envois pour le booking).

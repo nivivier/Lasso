@@ -1155,7 +1155,7 @@ function structure_donnees_crm(int $id): array
         // Fenêtre « Contacter » (bouton de l'en-tête) : à qui l'on peut écrire,
         // depuis quelle boîte, avec quels modèles, et le message resté en
         // brouillon s'il y en a un.
-        'contactsJoignables' => structure_contacts_joignables($id),
+        'contactsJoignables' => structure_contacts_joignables_etendus($id),
         'expediteurs' => mailing_expediteurs(),
         'modelesMessage' => db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll(),
         'brouillon' => structure_message_brouillon($id),

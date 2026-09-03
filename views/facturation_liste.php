@@ -42,7 +42,7 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
 <div class="table-scroll">
 <table class="list list-wide liste-cartes cartes-factures">
     <thead><tr>
-        <th>Numéro</th><th>Structure</th>
+        <th class="col-reinit-hote"><?= bouton_reinit_filtres('facturation_liste', ['statut', 'annee'], (bool) ($statut || $annee)) ?>Numéro</th><th>Structure</th>
         <th class="col-date">
             <span class="col-th">
                 Émission
@@ -57,7 +57,7 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
                 Paiement
                 <?= filtre_colonne_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut) ?>
             </span>
-        </th>
+            </th>
     </tr></thead>
     <tbody>
     <?php if (!$factures): ?>

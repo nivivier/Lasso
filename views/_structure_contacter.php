@@ -44,8 +44,12 @@ $expediteurDefautId = $brouillon && $brouillon['expediteur_id'] ? (int) $brouill
             <label>Destinataire
                 <select name="contact_id" id="contacter-destinataire" required>
                     <?php foreach ($contactsJoignables as $c): ?>
+                        <?php // Un contact repris d'une structure mère porte son nom :
+                              // sans cela on écrirait à quelqu'un d'une autre
+                              // organisation sans le savoir. ?>
                         <option value="<?= (int) $c['id'] ?>" <?= $contactDefaut === (int) $c['id'] ? 'selected' : '' ?>>
-                            <?= e(trim((string) $c['prenom'] . ' ' . (string) $c['nom']) ?: (string) $c['email']) ?>
+                            <?= e(trim((string) $c['prenom'] . ' ' . (string) $c['nom']) ?: (string) $c['email']) ?><?php
+                                if (trim((string) ($c['structure_nom'] ?? '')) !== ''): ?> — <?= e((string) $c['structure_nom']) ?><?php endif; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -88,6 +92,7 @@ $expediteurDefautId = $brouillon && $brouillon['expediteur_id'] ? (int) $brouill
         'langue' => (string) $c['langue'],
         'booking' => (bool) $c['est_booking'],
         'facturation' => (bool) $c['est_administration'],
+        'structure' => (string) ($c['structure_nom'] ?? ''),
     ], $contactsJoignables), null, 'id'), JSON_UNESCAPED_UNICODE) ?>;
     var modeles = <?= json_encode(array_column($modelesMessage, null, 'id'), JSON_UNESCAPED_UNICODE) ?>;
     var nomStructure = <?= json_encode((string) $structure['nom'], JSON_UNESCAPED_UNICODE) ?>;
@@ -101,6 +106,9 @@ $expediteurDefautId = $brouillon && $brouillon['expediteur_id'] ? (int) $brouill
         var c = contacts[destinataire.value];
         if (!c) { fiche.textContent = ''; return; }
         var bouts = [c.email];
+        // La structure d'origine en tête : c'est l'information qui change le
+        // sens du message quand le contact vient de la structure mère.
+        if (c.structure) bouts.unshift('Contact de « ' + c.structure + ' »');
         if (c.role) bouts.push(c.role);
         if (c.telephone) bouts.push(c.telephone);
         if (c.langue) bouts.push(c.langue);

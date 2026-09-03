@@ -9,6 +9,36 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.5.1] — 2026-09-02
+
+### Corrigé
+- **Impossible de taper une espace dans le champ « nouvelle étiquette »**
+  (?p=structures) : la frappe naviguait vers la fiche de la structure, et les
+  étiquettes en deux mots étaient donc inatteignables. Le gestionnaire clavier
+  des lignes cliquables ne faisait aucune exclusion, alors que celui du clic
+  écartait déjà les champs et les formulaires de la ligne ; il ne s'active plus
+  que si la ligne elle-même a le focus. Le correctif vaut pour **toutes** les
+  listes à lignes cliquables, pas seulement les étiquettes.
+
+### Ajouté
+- **Écrire à un contact de la structure mère depuis une structure fille.**
+  Une salle rattachée à un festival, une antenne rattachée à sa faîtière :
+  l'interlocuteur n'est souvent pas sur la fiche fille, et il fallait changer de
+  page pour lui écrire — quand le bouton « Contacter » n'était pas simplement
+  désactivé faute de contact propre, ce qui est le cas de trois structures de la
+  base. Les contacts de l'organisatrice complètent désormais la liste des
+  destinataires, chacun portant le nom de son organisation d'origine : on ne peut
+  pas écrire à quelqu'un d'ailleurs sans le voir. Un seul niveau — la mère, pas
+  la grand-mère. La revalidation à l'envoi suit la même règle.
+- **Bouton « retirer tous les filtres »** (entonnoir barré) dans la marge gauche
+  de la ligne de titres des cinq listes filtrables : structures, événements,
+  factures, écritures, fiches. Il n'apparaît que si quelque chose est
+  effectivement filtré — un bouton qui ne ferait rien serait du bruit dans un
+  en-tête déjà chargé d'entonnoirs. À gauche et non à droite, où l'ascenseur de
+  la page pouvait le recouvrir ; sur les listes à cases à cocher, la colonne
+  s'élargit en-tête **et** corps pour que les cases restent alignées. La
+  recherche texte survit : l'entonnoir parle des filtres, pas de ce qu'on a tapé.
+
 ## [2.5.0] — 2026-09-02
 
 Les écrans de listes deviennent lisibles, et une fiche de salaire se rapproche

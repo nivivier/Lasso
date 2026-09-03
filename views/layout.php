@@ -225,6 +225,14 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         // exclusion se déclare ici, comme celle des autres éléments interactifs.
         row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list,.plan-grip')) go(row); });
         row.addEventListener('keydown', e => {
+            // e.target !== row : la ligne ne s'active au clavier que si c'est
+            // ELLE qui a le focus. Sans ce test, une frappe dans un champ de la
+            // ligne remontait jusqu'ici — taper une espace dans le champ
+            // « nouvelle étiquette » de ?p=structures naviguait vers la fiche
+            // au lieu d'écrire l'espace, et les étiquettes en deux mots étaient
+            // impossibles à saisir. Le gestionnaire de clic juste au-dessus
+            // faisait déjà cette exclusion ; celui-ci l'avait oubliée.
+            if (e.target !== row) return;
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(row); }
         });
     });

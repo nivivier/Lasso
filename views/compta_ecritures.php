@@ -213,7 +213,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php $nbCols = 7 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
     <thead>
         <tr>
-            <?php if (peut_ecrire('compta')): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php if (peut_ecrire('compta')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('compta_ecritures', ['annee', 'compte', 'categorie', 'axe'], (bool) ($annee || $compteId || $categorieFilter || $axeFilter)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <th class="col-date">
                 <span class="col-th">
                     Date
@@ -247,7 +247,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 </span>
             </th>
             <?php endif; ?>
-            <th></th>
+            <th>
+            </th>
         </tr>
     </thead>
     <tbody>

@@ -2530,6 +2530,33 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
 .list td.col-axes { white-space: normal; }
 .list td.col-axes .badge { font-size: var(--fs-tiny); padding: 1px 7px; margin: 1px 3px 1px 0; }
 
+/* « Retirer tous les filtres » : dans la marge GAUCHE de la ligne de titres —
+   à droite, l'ascenseur de la page pouvait le recouvrir.
+   En absolu DANS un <th> plutôt que dans une colonne à lui : une colonne de
+   plus obligerait à toucher au colspan des séparateurs et au nombre de
+   cellules de chaque ligne, pour un bouton sans contenu à aligner. Le <th>
+   porte déjà position: sticky sur certaines listes, ce qui suffit à servir de
+   référence ; .col-reinit-hote couvre les autres.
+   Il occupe la première colonne PORTANT UN LIBELLÉ, jamais celle des cases à
+   cocher : il y recouvrirait le « tout cocher ». Le libellé de cette colonne
+   se décale d'autant — seul l'intitulé bouge, les données restent alignées. */
+.list thead th.col-reinit-hote, .list-wide thead th.col-reinit-hote { position: relative; }
+/* Colonne ordinaire : c'est son libellé qui se décale — seul l'intitulé bouge,
+   les données de la colonne restent où elles sont. */
+.list thead th.col-reinit-hote:not(.col-check),
+.list-wide thead th.col-reinit-hote:not(.col-check) { padding-left: 30px; }
+/* Colonne des cases à cocher : le bouton se place AVANT la case, il faut donc
+   élargir la colonne — en-tête ET corps, sinon la case de l'en-tête ne serait
+   plus alignée sur celles des lignes. Le :has() vise les seules listes qui
+   portent le bouton, pour ne pas élargir les autres tableaux à cases. */
+.list:has(thead th.col-check.col-reinit-hote) .col-check,
+.list-wide:has(thead th.col-check.col-reinit-hote) .col-check { width: 62px; padding-left: 28px; }
+.reinit-filtres { position: absolute; left: 3px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: var(--radius-sm); color: var(--muted); }
+.reinit-filtres:hover { color: var(--danger); background: var(--danger-tint); text-decoration: none; }
+.reinit-filtres .ico { width: 15px; height: 15px; }
+
 .col-petit { font-size: var(--fs-small); color: var(--muted); }
 /* Sur un <th>, .list thead th (font-size 11.5px) est plus spécifique que
    .col-petit seul et l'emporterait sinon — titre de colonne secondaire

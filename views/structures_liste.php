@@ -67,6 +67,17 @@ $paysLabels = [];
 foreach (array_unique(array_merge($pays, array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
 $departementCantonLabels = [];
 foreach (array_unique(array_merge($departementCanton, $regionsDispo)) as $r) { $departementCantonLabels[$r] = $r; }
+// Le filtre de statut n'est jamais vide : il démarre sur « actif +
+// contact privilégié » (voir structures_filtres()). Le comparer à ce défaut
+// évite d'annoncer un filtre là où l'écran est dans son état normal — sans
+// quoi le bouton « retirer les filtres » resterait allumé en permanence.
+$structStatutDefaut = ['actif', 'contact_privilegie'];
+$structStatutSort = $statut; sort($structStatutSort);
+$structDefautSort = $structStatutDefaut; sort($structDefautSort);
+$structFiltreActif = $categorieId || $pays || $departementCanton || $tagId
+    || $avecEvenements || $contactPeriode || $majPeriode || $nonLocalises || $region !== ''
+    || ($statut && $structStatutSort !== $structDefautSort);
+
 $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
 // Mêmes tranches pour les deux colonnes de date (voir PERIODES_ANCIENNETE).
 $periodeLabels = PERIODES_ANCIENNETE;
@@ -359,7 +370,7 @@ $nbCols = 9 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1)
 <div class="table-scroll">
 <table class="list list-wide liste-cartes<?= $peutEcrireStruct ? ' avec-check' : '' ?>">
     <thead><tr>
-        <?php if ($peutEcrireStruct): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+        <?php if ($peutEcrireStruct): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('structures', ['categorie_id', 'statut', 'pays', 'departement_canton', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode'], $structFiltreActif, ['lieu_jauge_min', 'lieu_jauge_max', 'lieu_mois_evenement', 'lieu_mois_prog', 'non_localises', 'region']) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
         <?php // En-tête en icône plutôt qu'en mot : la colonne ne contient que des
               // icônes, et « Statut » écrit en toutes lettres y occupait deux fois
               // la largeur de son contenu. Le nom reste porté par title et
@@ -428,7 +439,7 @@ $nbCols = 9 + (module_actif('evenements') ? 1 : 0) - ($peutEcrireStruct ? 0 : 1)
             <span class="col-th">Modifié
                 <?= filtre_colonne_html('structures', 'maj_periode', $periodeLabels, $majPeriode, $autresFiltres('maj_periode')) ?>
             </span>
-        </th>
+            </th>
     </tr></thead>
     <tbody>
     <?php // Borne du « contact récent » (moins d'un an), calculée une fois : la

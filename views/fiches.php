@@ -56,7 +56,7 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
 <table class="list list-wide liste-cartes cartes-fiches">
     <thead>
         <tr>
-            <th class="col-date">
+            <th class="col-reinit-hote col-date"><?= bouton_reinit_filtres('fiches', ['statut', 'annee', 'employe_id'], (bool) ($statut || $annee || $employeId)) ?>
                 <span class="col-th">
                     Date
                     <?= filtre_colonne_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
@@ -82,7 +82,8 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                 </span>
             </th>
             <th class="num">Coût employeur</th>
-            <th class="center col-petit">Envoyée</th>
+            <th class="center col-petit">Envoyée
+            </th>
         </tr>
     </thead>
     <tbody>

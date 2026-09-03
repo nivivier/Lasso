@@ -1067,6 +1067,46 @@ function structure_contacts_joignables(int $structureId): array
     return array_values(array_filter($stmt->fetchAll(), fn ($c) => !mailing_email_exclu((string) $c['email'])));
 }
 
+// Contacts joignables d'une structure ET de celles qui l'organisent — sa
+// « structure mère » au sens de structure_organisateurs. Une salle rattachée à
+// un festival, une antenne rattachée à sa faîtière : l'interlocuteur n'est
+// souvent pas sur la fiche fille mais sur la mère, et il fallait jusqu'ici
+// changer de page pour lui écrire.
+//
+// Chaque contact repris porte le nom de sa structure d'origine, pour que la
+// liste des destinataires ne laisse aucun doute sur qui l'on contacte. Les
+// contacts propres à la fiche restent en tête.
+//
+// Un seul niveau : la mère, pas la grand-mère. Remonter toute la chaîne
+// mélangerait des interlocuteurs de plus en plus lointains dans une liste
+// destinée à un message individuel.
+function structure_contacts_joignables_etendus(int $structureId): array
+{
+    $propres = structure_contacts_joignables($structureId);
+    foreach ($propres as &$c) {
+        $c['structure_nom'] = '';
+    }
+    unset($c);
+
+    $stmt = db()->prepare(
+        'SELECT organisateur_id FROM structure_organisateurs WHERE structure_id = ?'
+    );
+    $stmt->execute([$structureId]);
+    $meres = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+
+    $repris = [];
+    foreach ($meres as $mere) {
+        $nom = db()->prepare('SELECT nom FROM structures WHERE id = ?');
+        $nom->execute([$mere]);
+        $nomMere = (string) $nom->fetchColumn();
+        foreach (structure_contacts_joignables($mere) as $c) {
+            $c['structure_nom'] = $nomMere;
+            $repris[] = $c;
+        }
+    }
+    return array_merge($propres, $repris);
+}
+
 // Ce qui empêche d'écrire à une structure, en clair — '' si rien ne l'empêche.
 // Une seule fonction pour la décision ET pour sa formulation : le bouton
 // « Contacter » s'affiche désactivé avec cette phrase en infobulle, et la route

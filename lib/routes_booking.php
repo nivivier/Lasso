@@ -135,7 +135,7 @@ function route_structure_message(): void
         // périmé — contact supprimé, boîte retirée — violerait la clé
         // étrangère au lieu de simplement retomber sur « à choisir ».
         $contactValide = null;
-        foreach (structure_contacts_joignables($structureId) as $c) {
+        foreach (structure_contacts_joignables_etendus($structureId) as $c) {
             if ((int) $c['id'] === $contactId) {
                 $contactValide = (int) $c['id'];
             }
@@ -149,7 +149,7 @@ function route_structure_message(): void
     // Envoi. Le destinataire est revalidé contre la liste des joignables, pas
     // cru sur parole : un identifiant posté ne prouve ni que le contact
     // appartient à cette structure, ni qu'il n'a pas été exclu entre-temps.
-    $joignables = structure_contacts_joignables($structureId);
+    $joignables = structure_contacts_joignables_etendus($structureId);
     $contact = null;
     foreach ($joignables as $c) {
         if ((int) $c['id'] === $contactId) {

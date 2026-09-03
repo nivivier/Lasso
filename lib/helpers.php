@@ -686,6 +686,39 @@ function filtre_bouton_html(string $libelle, bool $actif, ?int $nb = null): stri
 // de ?p=structures. Hors du <label> : un bouton à l'intérieur cocherait la case
 // en même temps qu'il s'active. Sans ce paramètre, le balisage reste le <label>
 // nu de tous les autres filtres.
+// Bouton « retirer tous les filtres », posé au bout de la ligne de titres d'une
+// liste. N'apparaît que si quelque chose est effectivement filtré : un bouton
+// qui ne ferait rien serait du bruit dans un en-tête déjà chargé d'entonnoirs.
+//
+// $champsCoches : les filtres de colonne (filtre_coche()) — chacun reçoit son
+// marqueur « _set » sans valeur, ce qui vide sa mémoire de session ; sans ce
+// marqueur, la session reprendrait la main au chargement suivant.
+// $champsVides : les filtres à valeur simple (filtre_persistant()), qu'on
+// remet à '' — leur absence de l'URL ne suffit pas à les éteindre.
+// La recherche texte et le contexte de retour survivent : l'entonnoir barré
+// parle des filtres, pas de ce qu'on a tapé ni d'où l'on vient.
+function bouton_reinit_filtres(string $page, array $champsCoches, bool $actif, array $champsVides = []): string
+{
+    if (!$actif) {
+        return '';
+    }
+    $params = ['p' => $page];
+    foreach ($champsCoches as $c) {
+        $params[$c . '_set'] = 1;
+    }
+    foreach ($champsVides as $c) {
+        $params[$c] = '';
+    }
+    foreach (['q', 'vue', 'depuis'] as $c) {
+        if (isset($_GET[$c]) && (string) $_GET[$c] !== '') {
+            $params[$c] = (string) $_GET[$c];
+        }
+    }
+    return '<a class="reinit-filtres" href="' . e('?' . http_build_query($params)) . '"'
+        . ' title="Retirer tous les filtres" aria-label="Retirer tous les filtres">'
+        . icon('funnel-x') . '</a>';
+}
+
 function filtre_colonne_html(string $page, string $champ, array $options, array $actives, array $autresParams, string $libelle = '', array $actionsParOption = []): string
 {
     // Un filtre porteur d'actions a besoin de plus de place : un champ de

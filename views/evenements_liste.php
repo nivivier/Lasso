@@ -200,7 +200,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
     <?php $nbCols = 8 - (peut_ecrire('evenements') ? 0 : 1); ?>
     <thead>
         <tr>
-            <?php if (peut_ecrire('evenements')): ?><th class="col-check"><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements_liste', ['annee', 'statut', 'statut_suisa', 'spectacle_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $spectacleId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <th class="col-date">
                 <span class="col-th">
                     Date
