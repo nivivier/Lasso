@@ -67,16 +67,13 @@ $paysLabels = [];
 foreach (array_unique(array_merge($pays, array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
 $departementCantonLabels = [];
 foreach (array_unique(array_merge($departementCanton, $regionsDispo)) as $r) { $departementCantonLabels[$r] = $r; }
-// Le filtre de statut n'est jamais vide : il démarre sur « actif +
-// contact privilégié » (voir structures_filtres()). Le comparer à ce défaut
-// évite d'annoncer un filtre là où l'écran est dans son état normal — sans
-// quoi le bouton « retirer les filtres » resterait allumé en permanence.
-$structStatutDefaut = ['actif', 'contact_privilegie'];
-$structStatutSort = $statut; sort($structStatutSort);
-$structDefautSort = $structStatutDefaut; sort($structDefautSort);
-$structFiltreActif = $categorieId || $pays || $departementCanton || $tagId
-    || $avecEvenements || $contactPeriode || $majPeriode || $nonLocalises || $region !== ''
-    || ($statut && $structStatutSort !== $structDefautSort);
+// Le filtre de statut démarre sur « actif + contact privilégié » plutôt que
+// vide (voir structures_filtres()) : c'est bien un filtre, il masque les
+// structures inactives ou à ne pas contacter. Le bouton doit donc être là dès
+// l'ouverture, sinon on ne pourrait pas le retirer. Après un clic, le statut
+// est vide comme le reste et le bouton disparaît.
+$structFiltreActif = $categorieId || $statut || $pays || $departementCanton || $tagId
+    || $avecEvenements || $contactPeriode || $majPeriode || $nonLocalises || $region !== '';
 
 $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
 // Mêmes tranches pour les deux colonnes de date (voir PERIODES_ANCIENNETE).

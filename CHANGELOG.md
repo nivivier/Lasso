@@ -9,6 +9,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.5.2] — 2026-09-02
+
+### Corrigé
+- **Le bouton « retirer tous les filtres » manquait sur ?p=structures à
+  l'ouverture.** Il était masqué tant que le filtre de statut valait son défaut
+  — or ce défaut *est* un filtre : il masque les structures inactives et celles
+  à ne pas contacter. Le bouton n'apparaissait donc jamais dans l'état où l'on
+  avait justement besoin de lui. Il est là dès l'ouverture, et disparaît après
+  le clic, quand plus rien n'est filtré.
+
 ## [2.5.1] — 2026-09-02
 
 ### Corrigé
