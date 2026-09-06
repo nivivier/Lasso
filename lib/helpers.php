@@ -272,6 +272,111 @@ function login_clear_failures(string $ip, string $email = ''): void
     }
 }
 
+// --- Mot de passe oublié -----------------------------------------------------
+//
+// Le jeton part en clair dans l'e-mail et n'existe QUE là : la base n'en garde
+// que l'empreinte, comme pour un mot de passe. Il vaut une heure (RESET_TTL),
+// ne sert qu'une fois, et toute demande annule les jetons précédents du compte.
+
+function reinit_hash(string $jeton): string
+{
+    return hash('sha256', $jeton);
+}
+
+// Crée un jeton pour ce compte et renvoie sa valeur en clair (à ne jamais
+// journaliser ni afficher : elle ne doit vivre que dans l'e-mail).
+function reinit_creer_jeton(int $utilisateurId, string $ip): string
+{
+    $jeton = bin2hex(random_bytes(32));
+    db()->prepare('DELETE FROM reinit_motdepasse WHERE utilisateur_id = ? AND utilise_le IS NULL')
+        ->execute([$utilisateurId]);
+    db()->prepare('INSERT INTO reinit_motdepasse (utilisateur_id, jeton_hash, ip, expire_le, cree_le)
+                   VALUES (?, ?, ?, ?, ?)')
+        ->execute([$utilisateurId, reinit_hash($jeton), $ip, time() + RESET_TTL, time()]);
+    // Purge opportuniste : les jetons périmés depuis un jour n'ont plus d'usage.
+    db()->prepare('DELETE FROM reinit_motdepasse WHERE expire_le < ?')->execute([time() - 86400]);
+    return $jeton;
+}
+
+// Demande valide correspondant à ce jeton, ou null. Une seule requête décide :
+// jamais expirée, jamais déjà utilisée.
+function reinit_demande(string $jeton): ?array
+{
+    if ($jeton === '') {
+        return null;
+    }
+    $stmt = db()->prepare(
+        'SELECT r.*, u.email FROM reinit_motdepasse r
+           JOIN utilisateurs u ON u.id = r.utilisateur_id
+          WHERE r.jeton_hash = ? AND r.utilise_le IS NULL AND r.expire_le > ?'
+    );
+    $stmt->execute([reinit_hash($jeton), time()]);
+    return $stmt->fetch() ?: null;
+}
+
+// Trop de demandes récentes ? On compte par IP et par compte visé : sans le
+// second volet, on pourrait noyer une boîte aux lettres depuis plusieurs IP.
+// Ce comptage n'a rien à voir avec celui des échecs de connexion — il ne doit
+// SURTOUT pas bloquer la connexion du compte visé, sinon demander une
+// réinitialisation deviendrait une manière d'enfermer quelqu'un dehors.
+function reinit_trop_de_demandes(string $ip, int $utilisateurId): bool
+{
+    $depuis = time() - 3600;
+    $parIp = db()->prepare('SELECT COUNT(*) FROM reinit_motdepasse WHERE ip = ? AND cree_le > ?');
+    $parIp->execute([$ip, $depuis]);
+    if ((int) $parIp->fetchColumn() >= RESET_MAX_PAR_HEURE) {
+        return true;
+    }
+    $parCompte = db()->prepare('SELECT COUNT(*) FROM reinit_motdepasse WHERE utilisateur_id = ? AND cree_le > ?');
+    $parCompte->execute([$utilisateurId, $depuis]);
+    return (int) $parCompte->fetchColumn() >= RESET_MAX_PAR_HEURE;
+}
+
+// Adresse publique du site. APP_URL fait foi quand elle est définie ; sinon on
+// retombe sur l'en-tête Host — pratique en local, mais il vient du client (voir
+// le commentaire d'APP_URL dans lib/config.php).
+function url_site(): string
+{
+    if (APP_URL !== '') {
+        return rtrim(APP_URL, '/');
+    }
+    $scheme = is_https() ? 'https' : 'http';
+    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+}
+
+// Envoie le lien de réinitialisation. Retourne [succès, mode], comme les autres
+// envois applicatifs.
+function envoyer_email_reinit(string $destinataire, string $lien): array
+{
+    $expediteur = trim((string) param('employeur_email_expediteur'));
+    if (!filter_var($expediteur, FILTER_VALIDATE_EMAIL)) {
+        error_log('[app] Réinitialisation : aucune adresse d\'expédition configurée (Paramètres → E-mails).');
+        return [false, 'config'];
+    }
+    $minutes = (int) round(RESET_TTL / 60);
+    $sujet = 'Réinitialisation de votre mot de passe';
+    $html = '<!doctype html><html lang="fr"><head><meta charset="utf-8"></head><body>'
+        . '<p>Bonjour,</p>'
+        . '<p>Une réinitialisation du mot de passe a été demandée pour ce compte sur '
+        . e(param('employeur_nom', 'l\'application')) . '.</p>'
+        . '<p><a href="' . e($lien) . '">Choisir un nouveau mot de passe</a></p>'
+        . '<p>Ce lien est valable ' . $minutes . ' minutes et ne fonctionne qu\'une fois.</p>'
+        . '<p>Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message : '
+        . 'votre mot de passe actuel reste valable.</p>'
+        . '<p style="color:#666;font-size:12px">' . e($lien) . '</p>'
+        . '</body></html>';
+    $entetes = implode("\r\n", [
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        'From: ' . $expediteur,
+        'Reply-To: ' . email_repondre_a($expediteur),
+    ]);
+    // Le résumé journalisé en dev ne contient pas le lien : le jeton n'a rien à
+    // faire dans un fichier de log.
+    return envoyer_email($destinataire, $expediteur, '=?UTF-8?B?' . base64_encode($sujet) . '?=',
+        $entetes, $html, $sujet);
+}
+
 function redirect(string $route, array $params = []): void
 {
     // Propage ?depuis=type:id (lien de retour contextuel, voir lien_retour_contextuel())
@@ -2459,6 +2564,7 @@ function icone_table(): array
         'mail'      => '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
         'mail-x'    => '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="m17 17 4 4"/><path d="m21 17-4 4"/>',
         'check'     => '<polyline points="20 6 9 17 4 12"/>',
+        'refresh-cw' => '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
         'save'      => '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
         'user-plus' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
         'file-plus' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/>',

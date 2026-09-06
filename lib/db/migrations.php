@@ -105,6 +105,8 @@ function run_migrations(PDO $pdo): void
         77 => 'migration_77', // comptes_bancaires.banque : l'établissement, contre-partie des frais bancaires que le relevé n'attribue à personne
         78 => 'migration_78', // employes.avatar_couleur / avatar_photo : la pastille d'identité des listes, personnalisable
         79 => 'migration_79', // rapprochement fiche de salaire ↔ écriture bancaire (fiches.ecriture_id + ecritures.fiche_id), symétrique de la facture
+        80 => 'migration_80', // postes salariaux : les lignes d'un décompte deviennent des enregistrements, et chaque fiche en fige une copie (étape 1, aucun changement de comportement)
+        81 => 'migration_81', // reinit_motdepasse : jetons à usage unique du « mot de passe oublié » (empreinte seule, jamais le jeton)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2269,6 +2271,129 @@ function migration_73(PDO $pdo): void
 // (filtre_persistant()) : ce qui est ici survit à la déconnexion, ce qui est en
 // session s'oublie avec elle. Et de « parametres », qui est global à
 // l'association, pas propre à une personne.
+// Migration 80 — ÉTAPE 1 du passage aux postes salariaux configurables.
+//
+// Ne change AUCUN comportement : elle crée les tables, y déclare les quinze
+// lignes actuellement en dur dans calculer_fiche(), et recopie les fiches
+// existantes dans fiche_postes. Le calcul et l'affichage continuent de lire les
+// colonnes ded_*/emp_* ; la bascule viendra aux étapes suivantes.
+//
+// Les libellés reprennent MOT POUR MOT ceux de views/_fiche_body.php : la copie
+// figée doit se lire exactement comme la fiche d'origine, sans quoi rouvrir un
+// décompte de 2024 après la bascule montrerait des intitulés différents.
+//
+// Les taux, eux, viennent de fiches.taux_json — jamais des taux de l'année
+// courante : une fiche a figé les siens à sa création, c'est la règle.
+function migration_80(PDO $pdo): void
+{
+    // [code, libellé, sens, mode, base, rubrique certificat, groupe compta,
+    //  masquer si zéro, ordre]
+    // Rubriques : 9 = AVS/AC/A.mat/LAA, 10.1 = LPP, 12 = impôt à la source.
+    // masquer_si_zero à 0 pour AVS/AC/LAA/LPP côté employé : un décompte les
+    // montre même nulles, c'est la règle actuelle de views/_fiche_body.php.
+    $postes = [
+        ['avs',          'AVS / AI / APG',         'deduction', 'taux',         'brut',      '9',    '',     0,  10],
+        ['ac',           'AC',                     'deduction', 'taux',         'brut',      '9',    '',     0,  20],
+        ['amat',         'Assurance maternité',    'deduction', 'taux',         'brut',      '9',    '',     1,  30],
+        ['laa',          'LAA',                    'deduction', 'laa_seuil',    'brut',      '9',    '',     0,  40],
+        ['lpp',          'LPP',                    'deduction', 'taux',         'coordonne', '10.1', '',     0,  50],
+        ['impot_source', 'Impôt à la source',      'deduction', 'taux_employe', 'brut',      '12',   '',     1,  60],
+        ['emp_avs',      'AVS / AI / APG',         'charge',    'taux',         'brut',      '',     'ocas', 1, 110],
+        ['emp_ac',       'AC',                     'charge',    'taux',         'brut',      '',     'ocas', 1, 120],
+        ['emp_amat',     'Assurance maternité',    'charge',    'taux',         'brut',      '',     'ocas', 1, 130],
+        ['emp_af',       'Allocations familiales', 'charge',    'taux',         'brut',      '',     'ocas', 1, 140],
+        ['emp_laa',      'LAA (accidents prof.)',  'charge',    'laa_seuil',    'brut',      '',     '',     1, 150],
+        ['emp_frais',    "Frais d'administration", 'charge',    'taux',         'brut',      '',     '',     1, 160],
+        ['emp_cpe',      'CPE',                    'charge',    'taux',         'brut',      '',     '',     1, 170],
+        ['emp_lfp',      'Formation pro. (LFP)',   'charge',    'taux',         'brut',      '',     '',     1, 180],
+        ['emp_lpp',      'LPP',                    'charge',    'taux',         'coordonne', '',     '',     1, 190],
+    ];
+    $ins = $pdo->prepare(
+        'INSERT OR IGNORE INTO postes_salariaux
+            (code, libelle, sens, mode, base, rubrique_certificat, groupe_compta, masquer_si_zero, ordre)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    foreach ($postes as $p) {
+        $ins->execute($p);
+    }
+
+    // Reprise des taux déjà configurés par année. Les clés de taux_par_annee
+    // portent le préfixe « taux_ » côté employé et « emp_taux_ » côté
+    // employeur ; le poste, lui, s'appelle « avs » ou « emp_avs ».
+    $cleTaux = function (string $code): string {
+        return str_starts_with($code, 'emp_')
+            ? 'emp_taux_' . substr($code, 4)
+            : 'taux_' . $code;
+    };
+    $ids = [];
+    foreach ($pdo->query('SELECT id, code, mode FROM postes_salariaux') as $r) {
+        $ids[$r['code']] = ['id' => (int) $r['id'], 'mode' => (string) $r['mode']];
+    }
+    $anciens = [];
+    foreach ($pdo->query('SELECT annee, cle, valeur FROM taux_par_annee') as $r) {
+        $anciens[(int) $r['annee']][(string) $r['cle']] = (float) $r['valeur'];
+    }
+    $insTaux = $pdo->prepare(
+        'INSERT OR IGNORE INTO poste_taux (poste_id, annee, valeur, valeur_alt) VALUES (?, ?, ?, ?)'
+    );
+    foreach ($anciens as $annee => $valeurs) {
+        foreach ($ids as $code => $poste) {
+            if ($code === 'impot_source') {
+                continue; // taux porté par l'employé, pas par l'année
+            }
+            if ($poste['mode'] === 'laa_seuil') {
+                // Deux taux : réduit dans « valeur », plein dans « valeur_alt ».
+                $reduit = $valeurs[$cleTaux($code) . '_reduit'] ?? null;
+                $plein  = $valeurs[$cleTaux($code) . '_plein'] ?? null;
+                if ($reduit !== null || $plein !== null) {
+                    $insTaux->execute([$poste['id'], $annee, (float) ($reduit ?? 0), $plein]);
+                }
+                continue;
+            }
+            if (isset($valeurs[$cleTaux($code)])) {
+                $insTaux->execute([$poste['id'], $annee, $valeurs[$cleTaux($code)], null]);
+            }
+        }
+    }
+
+    // Copie figée des fiches existantes. Idempotente : une fiche déjà recopiée
+    // est laissée telle quelle (la migration peut être rejouée sans doubler).
+    $dejaFait = (int) $pdo->query('SELECT COUNT(*) FROM fiche_postes')->fetchColumn();
+    if ($dejaFait > 0) {
+        return;
+    }
+    $insLigne = $pdo->prepare(
+        'INSERT INTO fiche_postes
+            (fiche_id, poste_id, code, libelle, sens, rubrique_certificat, groupe_compta,
+             masquer_si_zero, taux, montant, ordre)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    $meta = [];
+    foreach ($pdo->query('SELECT * FROM postes_salariaux') as $r) {
+        $meta[(string) $r['code']] = $r;
+    }
+    foreach ($pdo->query('SELECT * FROM fiches') as $f) {
+        $taux = json_decode((string) ($f['taux_json'] ?? '{}'), true) ?: [];
+        foreach ($meta as $code => $p) {
+            // La colonne de montant porte le même nom que le poste, sauf pour
+            // l'impôt à la source (ded_impot_source) : les codes ont été choisis
+            // pour que la correspondance soit directe partout ailleurs.
+            $colonne = str_starts_with($code, 'emp_') ? $code : 'ded_' . $code;
+            if (!array_key_exists($colonne, $f)) {
+                continue;
+            }
+            // Toutes les lignes sont recopiées, y compris à zéro : c'est
+            // l'affichage qui décide de les montrer (masquer_si_zero), pas la
+            // copie. Une fiche à 0 garde ainsi ses rubriques AVS/AC/LAA/LPP.
+            $insLigne->execute([
+                (int) $f['id'], (int) $p['id'], $code, (string) $p['libelle'], (string) $p['sens'],
+                (string) $p['rubrique_certificat'], (string) $p['groupe_compta'],
+                (int) $p['masquer_si_zero'], $taux[$code] ?? null, (float) $f[$colonne], (int) $p['ordre'],
+            ]);
+        }
+    }
+}
+
 // Migration 79 : rapprochement d'une fiche de salaire avec l'écriture bancaire
 // qui l'a payée — le pendant exact de ce que fait déjà la facture
 // (migration_19). Lien des DEUX côtés, comme pour la facture : la fiche pointe
@@ -2388,4 +2513,23 @@ function migration_74(PDO $pdo): void
             PRIMARY KEY (utilisateur_id, cle)
         )
     ");
+}
+
+// Réinitialisation de mot de passe en libre-service. Le jeton part par e-mail ;
+// la base n'en garde que l'empreinte SHA-256, donc une copie de la base ne
+// permet pas de prendre la main sur un compte.
+function migration_81(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS reinit_motdepasse (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+            jeton_hash     TEXT NOT NULL,
+            ip             TEXT NOT NULL DEFAULT '',
+            expire_le      INTEGER NOT NULL,
+            utilise_le     INTEGER,
+            cree_le        INTEGER NOT NULL
+        )
+    ");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_reinit_jeton ON reinit_motdepasse(jeton_hash)');
 }

@@ -32,12 +32,105 @@ function init_schema(PDO $pdo): void
             cree_le INTEGER NOT NULL
         );
 
+        -- Réinitialisation de mot de passe : un jeton à usage unique, envoyé par
+        -- e-mail. Seule son EMPREINTE est stockée — la base volée ne permet donc
+        -- pas de réinitialiser un compte, exactement comme pour les mots de passe.
+        CREATE TABLE IF NOT EXISTS reinit_motdepasse (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+            jeton_hash     TEXT NOT NULL,
+            ip             TEXT NOT NULL DEFAULT '',
+            expire_le      INTEGER NOT NULL,
+            utilise_le     INTEGER,
+            cree_le        INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_reinit_jeton ON reinit_motdepasse(jeton_hash);
+
         CREATE TABLE IF NOT EXISTS taux_par_annee (
             annee  INTEGER NOT NULL,
             cle    TEXT NOT NULL,
             valeur TEXT NOT NULL,
             PRIMARY KEY (annee, cle)
         );
+
+        -- ---------------------------------------------------------------
+        -- Postes salariaux : les lignes d'un décompte, configurables.
+        -- Remplacent progressivement les quinze lignes en dur de
+        -- calculer_fiche() (voir docs/DECISIONS.md § Postes salariaux).
+        --
+        -- « mode » n'est PAS un langage de formules : quatre comportements
+        -- connus, parce qu'une ligne de salaire suisse n'est jamais une
+        -- expression arbitraire.
+        --   taux          montant = base × taux de l'année
+        --   taux_employe  le taux vit sur l'employé (impôt à la source)
+        --   laa_seuil     deux taux, réduit ou plein selon les heures du mois
+        --   bareme_age    taux par tranche d'âge (LPP), voir poste_bareme_age
+        --
+        -- « base » : le brut, ou le salaire coordonné (brut moins la déduction
+        -- de coordination, borné). Déduction à 0 et bornes à 0 = coordonné
+        -- identique au brut, ce qui est le réglage de départ.
+        --
+        -- « rubrique_certificat » : la case du certificat de salaire que cette
+        -- ligne alimente ('9', '10.1', '12', ou vide). Sans elle, ajouter une
+        -- ligne fausserait un formulaire officiel sans prévenir.
+        -- « groupe_compta » : regroupement des charges patronales dans les
+        -- récapitulatifs ('ocas' pour AVS/AC/A.mat/AF, comme aujourd'hui).
+        CREATE TABLE IF NOT EXISTS postes_salariaux (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            code    TEXT NOT NULL UNIQUE,
+            libelle TEXT NOT NULL,
+            sens    TEXT NOT NULL DEFAULT 'deduction', -- 'deduction' | 'charge'
+            mode    TEXT NOT NULL DEFAULT 'taux',
+            base    TEXT NOT NULL DEFAULT 'brut',      -- 'brut' | 'coordonne'
+            rubrique_certificat TEXT NOT NULL DEFAULT '',
+            groupe_compta       TEXT NOT NULL DEFAULT '',
+            -- Une ligne à zéro se masque-t-elle ? Vrai pour presque tout, faux
+            -- pour AVS/AC/LAA/LPP côté employé, qu'un décompte montre même
+            -- nulles — un salaire à 0 doit garder ses rubriques visibles.
+            masquer_si_zero INTEGER NOT NULL DEFAULT 1,
+            ordre   INTEGER NOT NULL DEFAULT 0,
+            actif   INTEGER NOT NULL DEFAULT 1,
+            cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        -- Taux d'un poste pour une année. valeur_alt : second taux du mode
+        -- laa_seuil (le taux « plein »), inutilisé ailleurs.
+        CREATE TABLE IF NOT EXISTS poste_taux (
+            poste_id   INTEGER NOT NULL REFERENCES postes_salariaux(id) ON DELETE CASCADE,
+            annee      INTEGER NOT NULL,
+            valeur     REAL NOT NULL DEFAULT 0,
+            valeur_alt REAL,
+            PRIMARY KEY (poste_id, annee)
+        );
+        -- Paliers d'âge (mode bareme_age). Bornes saisies par l'employeur : les
+        -- minima légaux changent, et une caisse applique souvent mieux.
+        CREATE TABLE IF NOT EXISTS poste_bareme_age (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            poste_id INTEGER NOT NULL REFERENCES postes_salariaux(id) ON DELETE CASCADE,
+            annee    INTEGER NOT NULL,
+            age_min  INTEGER NOT NULL DEFAULT 0,
+            age_max  INTEGER NOT NULL DEFAULT 999,
+            valeur   REAL NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_poste_bareme_age ON poste_bareme_age(poste_id, annee);
+        -- Lignes FIGÉES d'une fiche : la copie, libellé compris. C'est elle que
+        -- lisent l'affichage, le certificat et la comptabilité — jamais
+        -- postes_salariaux, qui ne sert qu'à calculer les fiches à venir.
+        -- Renommer ou désactiver un poste ne doit pas réécrire une fiche de 2024.
+        CREATE TABLE IF NOT EXISTS fiche_postes (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            fiche_id INTEGER NOT NULL REFERENCES fiches(id) ON DELETE CASCADE,
+            poste_id INTEGER REFERENCES postes_salariaux(id) ON DELETE SET NULL,
+            code     TEXT NOT NULL,
+            libelle  TEXT NOT NULL,
+            sens     TEXT NOT NULL DEFAULT 'deduction',
+            rubrique_certificat TEXT NOT NULL DEFAULT '',
+            groupe_compta       TEXT NOT NULL DEFAULT '',
+            masquer_si_zero     INTEGER NOT NULL DEFAULT 1,
+            taux     REAL,
+            montant  REAL NOT NULL DEFAULT 0,
+            ordre    INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_fiche_postes_fiche ON fiche_postes(fiche_id);
 
         CREATE TABLE IF NOT EXISTS taux_horaires (
             id      INTEGER PRIMARY KEY AUTOINCREMENT,

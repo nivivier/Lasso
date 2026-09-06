@@ -64,6 +64,9 @@ $handlers = [
     'setup'  => 'route_setup',
     'login'  => 'route_login',
     'logout' => 'route_logout',
+    // Mot de passe oublié : publiques par nature, comme la connexion.
+    'motdepasse_oublie' => 'route_motdepasse_oublie',
+    'motdepasse_reinit' => 'route_motdepasse_reinit',
     'compte' => 'route_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
     'resumes' => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours accessible.
     // Choix d'étiquette du widget « Suivi du booking » : une préférence
@@ -89,6 +92,7 @@ ajouter_routes_module($handlers, $routeModules, 'salaires', [
     'taux_horaires' => 'route_taux_horaires',
     'unites'        => 'route_unites',
     'taux'          => 'route_taux',
+    'postes'        => 'route_postes',
     'import_fiches' => 'route_import_fiches',
     'fiches'       => 'route_fiches',
     'fiche_new'    => 'route_fiche_new',
@@ -96,6 +100,7 @@ ajouter_routes_module($handlers, $routeModules, 'salaires', [
     'fiche_print'  => 'route_fiche_print',
     'fiche_delete' => 'route_fiche_delete',
     'fiche_edit'   => 'route_fiche_edit',
+    'fiches_recalcul' => 'route_fiches_recalcul',
     'fiche_date'   => 'route_fiche_date',
     'fiche_cout'   => 'route_fiche_cout',
     'fiche_email'  => 'route_fiche_email',

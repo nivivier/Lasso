@@ -103,6 +103,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                         data-impot="<?= e(number_format((float) $emp['impot_source_taux'] * 100, 2, '.', '')) ?>"
                         data-source="<?= $emp['procedure'] === 'Ordinaire avec impôt à la source' ? '1' : '0' ?>"
                         data-supp="<?= e(number_format((float) $emp['supplement_vacances'] * 100, 4, '.', '')) ?>"
+                        data-naissance="<?= e((string) $emp['date_naissance']) ?>"
                         <?= (string) ($post['employe_id'] ?? '') === (string) $emp['id'] ? 'selected' : '' ?>>
                     <?= e($emp['prenom'] . ' ' . $emp['nom']) ?>
                 </option>
@@ -215,24 +216,50 @@ const LASSO_TAUX_DATA = <?= json_encode($tauxData, JSON_UNESCAPED_UNICODE) ?>;
         years.forEach(y => { if (y <= annee) choisie = y; });
         return choisie !== null ? LASSO_TAUX_DATA.parAnnee[choisie] : LASSO_TAUX_DATA.defaut;
     }
-    function calculerFiche(salaireTravail, heures, annee, mois, estSource, tauxImpot, tauxSupp) {
+    // Taux d'un poste au barème d'âge : mêmes paliers et même repli d'année que
+    // bareme_age_taux() côté serveur.
+    function tauxBareme(code, annee, naissance) {
+        const parAnnee = (LASSO_TAUX_DATA.bareme || {})[code];
+        if (!parAnnee || !naissance) return 0;
+        const ans = Object.keys(parAnnee).map(Number).filter(y => y <= annee).sort((a, b) => a - b);
+        if (!ans.length) return 0;
+        const ne = new Date(naissance);
+        if (isNaN(ne)) return 0;
+        const age = LASSO_TAUX_DATA.ageRef === 'anniversaire'
+            ? annee - ne.getFullYear() - (ne.getMonth() + 1 > (num(moisSelect.value) || 12) ? 1 : 0)
+            : annee - ne.getFullYear();
+        const palier = parAnnee[ans[ans.length - 1]].find(p => age >= p[0] && age <= p[1]);
+        return palier ? palier[2] : 0;
+    }
+    function calculerFiche(salaireTravail, heures, annee, mois, estSource, tauxImpot, tauxSupp, naissance) {
         const taux = Object.assign({}, tauxPourAnnee(annee));
         const plein = heures > seuilHeures(annee, mois);
-        taux.laa = plein ? (taux.laa_plein || 0) : (taux.laa_reduit || 0);
-        taux.emp_laa = plein ? (taux.emp_laa_plein || 0) : (taux.emp_laa_reduit || 0);
+        // Les modes laa_seuil : deux taux, le mois d'heures départage.
+        (LASSO_TAUX_DATA.postes || []).forEach(p => {
+            if (p.mode === 'laa_seuil') {
+                taux[p.code] = plein ? (taux[p.code + '_plein'] || 0) : (taux[p.code + '_reduit'] || 0);
+            } else if (p.mode === 'bareme_age') {
+                taux[p.code] = tauxBareme(p.code, annee, naissance);
+            }
+        });
 
         salaireTravail = r2(salaireTravail);
         const suppMontant = r2(salaireTravail * tauxSupp);
         const brut = r2(salaireTravail + suppMontant);
+        let coord = brut - (taux.coord_deduction || 0) / 12;
+        const plafond = (taux.coord_plafond || 0) / 12;
+        if (plafond > 0 && coord > plafond) coord = plafond;
+        coord = r2(Math.max(0, coord));
 
-        const dedAvs = r2(brut * taux.avs), dedAc = r2(brut * taux.ac), dedAmat = r2(brut * taux.amat);
-        const dedLaa = r2(brut * taux.laa), dedLpp = r2(brut * taux.lpp);
-        const dedImpot = estSource ? r2(brut * tauxImpot) : 0;
-        const net = r2(brut - r2(dedAvs + dedAc + dedAmat + dedLaa + dedLpp + dedImpot));
-
-        const empCles = ['emp_avs', 'emp_ac', 'emp_amat', 'emp_af', 'emp_laa', 'emp_frais', 'emp_cpe', 'emp_lfp', 'emp_lpp'];
-        const empTotal = r2(empCles.reduce((s, k) => s + r2(brut * (taux[k] || 0)), 0));
-        return { net, brut, cout: r2(brut + empTotal) };
+        let dedTotal = 0, empTotal = 0;
+        (LASSO_TAUX_DATA.postes || []).forEach(p => {
+            const base = p.base === 'coordonne' ? coord : brut;
+            const m = p.mode === 'taux_employe'
+                ? (estSource ? r2(base * tauxImpot) : 0)
+                : r2(base * (taux[p.code] || 0));
+            if (p.sens === 'charge') empTotal += m; else dedTotal += m;
+        });
+        return { net: r2(brut - r2(dedTotal)), brut, cout: r2(brut + r2(empTotal)) };
     }
     function recalcCouts(heures, salaireTravail) {
         const opt = sel.options[sel.selectedIndex];
@@ -241,7 +268,8 @@ const LASSO_TAUX_DATA = <?= json_encode($tauxData, JSON_UNESCAPED_UNICODE) ?>;
         const mois  = num(moisSelect.value) || (new Date().getMonth() + 1);
         const tauxSupp  = suppInput.value.trim() !== '' ? num(suppInput.value) / 100 : (opt ? num(opt.dataset.supp) / 100 : 0);
         const tauxImpot = impotInput.value.trim() !== '' ? num(impotInput.value) / 100 : (opt ? num(opt.dataset.impot) / 100 : 0);
-        const c = calculerFiche(salaireTravail, heures, annee, mois, estSource, tauxImpot, tauxSupp);
+        const c = calculerFiche(salaireTravail, heures, annee, mois, estSource, tauxImpot, tauxSupp,
+                                opt ? opt.dataset.naissance : '');
         estNet.textContent  = c.net.toFixed(2) + ' CHF';
         estBrut.textContent = c.brut.toFixed(2) + ' CHF';
         estCout.textContent = c.cout.toFixed(2) + ' CHF';

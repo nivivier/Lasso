@@ -1172,6 +1172,7 @@ h3.sub.no-mt { margin-top: 0; }
 .card > p:last-child, .card-block > p:last-child, .card-disp > p:last-child { margin-bottom: 0; }
 .card.auth { width: 100%; padding: 30px; }
 .card.auth h1 { margin: 0 0 18px; font-size: var(--fs-big); }
+.auth-lien { margin: 14px 0 0; text-align: center; }
 .fieldset-groupe { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 16px 16px; margin: 0 0 18px; }
 .fieldset-groupe legend { padding: 0 8px; font-size: var(--fs-small); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .fieldset-groupe .grid2, .fieldset-groupe .grid3 { margin-bottom: 14px; }
@@ -3151,6 +3152,11 @@ abbr {
 .regle-head .flex-spacer { flex: 1 1 auto; }
 /* Toggle actif/inactif : pill CSS */
 .regle-toggle { cursor: pointer; display: flex; align-items: center; }
+/* L'interrupteur est un <label> : dans une carte .form il héritait des 16 px de
+   marge basse des libellés (règle .form label), ce qui donnait à sa boîte 33 px
+   pour 17 px visibles — il remontait donc en haut de sa cellule au lieu d'être
+   centré sur la ligne. Sélecteur au moins aussi spécifique que celui-là. */
+.form .regle-toggle, .form label.regle-toggle { margin-bottom: 0; }
 .regle-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
 .regle-toggle-pill { display: inline-block; width: 30px; height: 17px; border-radius: 9px; background: var(--line); border: 1px solid rgba(0,0,0,.12); transition: background .15s, border-color .15s; cursor: pointer; position: relative; flex-shrink: 0; }
 .regle-toggle-pill::after { content: ''; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
@@ -4188,3 +4194,46 @@ abbr {
 .ms-maj.est-creation { font-style: italic; }
 .ms-maj.est-creation::before { -webkit-mask-image: var(--ico-creation); mask-image: var(--ico-creation); }
 .ms-vu::before { -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe); }
+
+/* ---------------------------------------------------------------------------
+   ?p=postes — les lignes du décompte de salaire.
+   Une ligne y est plus haute qu'ailleurs (libellé + description sur deux
+   niveaux, champ de taux) : les interrupteurs et le champ de taux se centrent
+   donc explicitement sur la hauteur utile de la ligne, le vertical-align de la
+   cellule ne suffit pas quand son contenu est un formulaire.
+--------------------------------------------------------------------------- */
+.postes-table .toggle-cell,
+.postes-table .taux-form { display: flex; align-items: center; min-height: 30px; }
+.postes-table .taux-form .pct-input { margin: 0; }
+/* En édition, les deux taux de la LAA se replient plutôt que de se comprimer :
+   la colonne est dimensionnée par la lecture, plus courte. */
+.postes-table .taux-form { gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.postes-table .taux-form .pct-input { flex: 0 0 auto; max-width: 8rem; }
+.postes-table .taux-form .pct-input input { min-width: 4rem; }
+.postes-table .td-taux { white-space: nowrap; }
+/* Mode édition : la ligne porte beaucoup de champs — ils passent à la ligne
+   plutôt que d'élargir le tableau au-delà de l'écran. Chaque champ garde sa
+   largeur naturelle (les champs de formulaire font 100 % par défaut, ce qui
+   mettrait chacun sur sa propre ligne). */
+.postes-table .plan-edit { flex-wrap: wrap; row-gap: 6px; }
+.postes-table .plan-edit > select { width: auto; max-width: 14rem; }
+.postes-table .plan-edit > input[name="libelle"] { flex: 1 1 12rem; min-width: 10rem; }
+.postes-table .plan-edit > input[name="groupe_compta"] { width: auto; }
+/* Le taux, « masquer à 0 » et la suppression ne s'ouvrent qu'en mode édition :
+   en lecture, la ligne se lit et ne se modifie pas par inadvertance. Même
+   bascule que .plan-nom / .plan-edit, pilotée par .editing. */
+.dnd-on .cell-edition { display: none; }
+.dnd-on .plan-row.editing .cell-edition { display: inline-flex; }
+.dnd-on .plan-row.editing .cell-lecture { display: none; }
+/* « Masquer à 0 » vit dans l'édition de la ligne : un interrupteur avec son
+   libellé, pas une colonne de plus à lire sur chaque ligne. */
+.edit-toggle { gap: 7px; font-size: var(--fs-small); color: var(--muted); font-weight: 600; white-space: nowrap; }
+.edit-usage { white-space: nowrap; }
+/* Enregistrer, Annuler et Supprimer se lisent ensemble, à droite de la ligne. */
+.actions-edition { align-items: center; gap: 6px; }
+/* Paliers d'âge, édités dans la ligne à laquelle ils appartiennent. */
+.bareme-bloc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; width: 100%; padding: 4px 0; }
+.bareme-note { flex: 1 0 100%; }
+.bareme-palier { display: inline-flex; align-items: center; gap: 4px; }
+.bareme-palier input[type="number"] { width: 4rem; }
+.bareme-bloc .pct-input { max-width: 6.5rem; }

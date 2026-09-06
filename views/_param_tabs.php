@@ -39,9 +39,9 @@ $ptGroupes['emails']    = ['E-mails', $ptEmailsSections];
 
 if (module_actif('salaires') && peut_lire('salaires')) {
     $ptGroupes['taux'] = ['Taux', [
-        'taux'          => 'Charges sociales et patronales',
+        'postes'        => 'Lignes du décompte',
         'taux_horaires' => 'Salaires horaires et unités',
-    ]];
+    ], ['taux']];
 }
 
 $ptCatSections = ['parametres_pays' => 'Pays'];

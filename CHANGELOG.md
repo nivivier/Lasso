@@ -9,6 +9,74 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.6.0] — 2026-09-06
+
+### Ajouté
+- **« J'ai oublié mon mot de passe »**, depuis l'écran de connexion. On saisit
+  l'adresse de son compte et l'on reçoit par e-mail un lien à usage unique,
+  valable une heure, qui mène au choix d'un nouveau mot de passe. L'écran
+  répond la même chose que le compte existe ou non — il ne dit pas quelles
+  adresses ont un compte —, la base ne garde que l'empreinte du jeton (jamais
+  le jeton, ni dans le journal d'e-mails), une nouvelle demande annule la
+  précédente, et cinq demandes par heure au plus, par IP et par compte. Ce
+  compteur est séparé de l'anti-force-brute de la connexion : demander une
+  réinitialisation ne peut pas enfermer quelqu'un dehors. En production,
+  définissez `APP_URL` dans `lib/config.local.php` pour que le lien ne dépende
+  pas de l'en-tête `Host` de la requête.
+- **Les lignes du décompte de salaire sont configurables.** Les quinze lignes
+  jusqu'ici écrites en dur (AVS, AC, A.mat, LAA, LPP, impôt à la source et les
+  neuf charges patronales) vivent désormais dans **Paramètres → Taux → Lignes
+  du décompte**, une page unique qui a absorbé l'ancienne « grille de taux » :
+  les lignes et ce que chacune prélève pour l'année choisie s'y lisent et s'y
+  règlent ensemble, en deux parties — déductions employé, charges patronales.
+  On peut ajouter une ligne, la renommer, la réordonner en la glissant ou
+  l'éteindre d'un interrupteur, pour une paie d'un autre canton ou d'une autre
+  caisse — mêmes gestes que les axes analytiques et les pays. La liste
+  s'affiche en lecture ; le crayon ouvre l'édition d'une ligne, seul endroit
+  d'où se modifient son taux, ses paliers d'âge, l'option « masquer à 0 » et sa
+  suppression. Chaque poste déclare sa nature, son mode de calcul, sa base, la
+  case du certificat de salaire qu'il alimente et son regroupement comptable —
+  de sorte qu'une ligne ajoutée n'échappe ni au formulaire officiel ni aux
+  récapitulatifs.
+- **LPP par tranche d'âge et salaire coordonné.** Un poste peut être calculé
+  par barème d'âge : les tranches, leurs taux et l'âge de référence (âge
+  atteint dans l'année, ou âge révolu au mois de la fiche) sont saisis par
+  l'employeur, année par année. La base d'un poste peut être le **salaire
+  coordonné** — déduction de coordination et plafond, en francs par an, tous
+  deux à 0 par défaut, auquel cas le coordonné vaut le brut.
+- **Recalcul explicite de fiches déjà enregistrées** (`?p=fiches_recalcul`).
+  Une fiche fige ses montants et ses taux à sa création : changer un taux n'a
+  jamais réécrit le passé, et cela ne change pas. La nouvelle page liste, pour
+  l'année choisie, les seules fiches dont les montants changeraient, avec
+  l'avant et l'après côte à côte et le nombre de fiches concernées ; les fiches
+  déjà payées ne sont pas cochées par défaut, et la base est sauvegardée
+  automatiquement juste avant l'écriture.
+
+### Corrigé
+- **Les interrupteurs des listes n'étaient pas alignés sur leur ligne.** Étant
+  des `<label>`, ils héritaient dans une carte de formulaire des 16 px de marge
+  basse des libellés : leur boîte faisait 33 px pour 17 px visibles, ce qui les
+  poussait en haut de leur cellule. Visible sur les axes analytiques et les
+  règles de lettrage comme sur la nouvelle page des lignes du décompte.
+
+### Modifié
+- **Le recalcul ne réécrit que l'année prévisualisée.** Le lot envoyé est
+  borné à l'année affichée : ce que l'aperçu a montré est exactement ce qui
+  est écrit.
+- **Le code d'une ligne suit désormais sa nature.** C'est le préfixe `emp_`
+  qui désigne la colonne visée : une charge patronale nommée « caf » aurait
+  écrit dans la colonne des déductions employé, et inversement. Le code est
+  aligné à la création (`emp_` ajouté pour une charge, retiré pour une
+  déduction), ce qui ferme la collision.
+- **Un code déjà pris ne se perd plus en silence** : l'écran l'annonce au
+  lieu d'afficher « Enregistré » sans avoir rien créé.
+- **Une fiche fige aussi le libellé de chacune de ses lignes.** L'écran,
+  l'impression, l'e-mail, le certificat de salaire et les agrégats analytiques
+  lisent cette copie : renommer ou désactiver un poste ne modifie plus rien à
+  une fiche de 2024. Les montants existants sont inchangés — 53 rendus de
+  fiches et de certificats, 24 rendus de certificats et de pages analytiques,
+  et les 38 fiches recalculées donnent exactement les mêmes valeurs qu'avant.
+
 ## [2.5.2] — 2026-09-02
 
 ### Corrigé

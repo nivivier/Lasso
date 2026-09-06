@@ -115,6 +115,9 @@ function route_login(): void
         return;
     }
     $msg = isset($_GET['expired']) ? 'Session expirée. Reconnectez-vous.' : null;
+    if (isset($_GET['reinit'])) {
+        $msg = 'Mot de passe modifié. Connectez-vous avec le nouveau.';
+    }
     render('login', ['err' => null, 'info' => $msg, 'email' => ''], 'Connexion');
 }
 
@@ -122,6 +125,90 @@ function route_logout(): void
 {
     logout_session();
     redirect('login');
+}
+
+// « J'ai oublié mon mot de passe » : on demande l'adresse, on envoie un lien.
+//
+// La réponse est TOUJOURS la même, que le compte existe ou non : sinon ce
+// formulaire deviendrait un moyen de vérifier quelles adresses ont un compte.
+// C'est aussi pour cela qu'aucune erreur d'envoi n'est montrée à l'écran.
+function route_motdepasse_oublie(): void
+{
+    if (current_user()) {
+        redirect('compte');
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        render('motdepasse_oublie', ['envoye' => isset($_GET['envoye'])], 'Mot de passe oublié');
+        return;
+    }
+    check_csrf();
+    $email = trim($_POST['email'] ?? '');
+    usleep(random_int(200000, 500000)); // même ralentissement que la connexion
+    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $stmt = db()->prepare('SELECT id, email FROM utilisateurs WHERE email = ?');
+        $stmt->execute([$email]);
+        $u = $stmt->fetch();
+        $ip = client_ip();
+        if ($u && !reinit_trop_de_demandes($ip, (int) $u['id'])) {
+            $jeton = reinit_creer_jeton((int) $u['id'], $ip);
+            $lien  = url_site() . '/?p=motdepasse_reinit&jeton=' . rawurlencode($jeton);
+            [$ok] = envoyer_email_reinit((string) $u['email'], $lien);
+            if (!$ok) {
+                // Journalisé côté serveur uniquement : l'écran ne dit rien de
+                // plus, mais l'exploitant doit pouvoir diagnostiquer.
+                error_log('[app] Réinitialisation : échec de l\'envoi.');
+            }
+        }
+    }
+    redirect('motdepasse_oublie', ['envoye' => 1]);
+}
+
+// Choix du nouveau mot de passe, sur présentation du jeton reçu par e-mail.
+// Le jeton est revalidé à l'affichage ET à l'enregistrement : entre les deux,
+// il a pu expirer ou servir ailleurs.
+function route_motdepasse_reinit(): void
+{
+    if (current_user()) {
+        redirect('compte');
+    }
+    $jeton   = (string) ($_POST['jeton'] ?? $_GET['jeton'] ?? '');
+    $demande = reinit_demande($jeton);
+    if (!$demande) {
+        render('motdepasse_reinit', ['jeton' => '', 'err' => null, 'invalide' => true], 'Nouveau mot de passe');
+        return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        render('motdepasse_reinit', ['jeton' => $jeton, 'err' => null, 'invalide' => false], 'Nouveau mot de passe');
+        return;
+    }
+    check_csrf();
+    $nouveau = $_POST['mot_de_passe'] ?? '';
+    $confirm = $_POST['confirmer'] ?? '';
+    $err = null;
+    if (strlen($nouveau) < PASSWORD_MIN) {
+        $err = 'Le mot de passe doit faire au moins ' . PASSWORD_MIN . ' caractères.';
+    } elseif ($nouveau !== $confirm) {
+        $err = 'La confirmation ne correspond pas.';
+    }
+    if ($err) {
+        render('motdepasse_reinit', ['jeton' => $jeton, 'err' => $err, 'invalide' => false], 'Nouveau mot de passe');
+        return;
+    }
+    db()->beginTransaction();
+    db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
+        ->execute([hacher_mot_de_passe($nouveau), (int) $demande['utilisateur_id']]);
+    // Le jeton est consommé, et les autres demandes en attente du compte sont
+    // annulées : une seule des demandes envoyées doit pouvoir servir.
+    db()->prepare('UPDATE reinit_motdepasse SET utilise_le = ? WHERE id = ?')
+        ->execute([time(), (int) $demande['id']]);
+    db()->prepare('DELETE FROM reinit_motdepasse WHERE utilisateur_id = ? AND utilise_le IS NULL')
+        ->execute([(int) $demande['utilisateur_id']]);
+    // Le compte a pu être bloqué par les tentatives ratées qui ont mené jusqu'ici.
+    login_clear_failures(client_ip(), (string) $demande['email']);
+    db()->commit();
+    // Pas de connexion automatique : celui qui ouvre le lien prouve qu'il a
+    // accès à la boîte, pas qu'il est devant le bon écran.
+    redirect('login', ['reinit' => 1]);
 }
 
 function route_compte(): void
@@ -1188,34 +1275,361 @@ function importer_fiches_salaire(array $fiches, bool $simule): array
     return [$resultats, $resume];
 }
 
+// Ancienne page « Taux » : ses réglages ont rejoint ?p=postes, où l'on voit du
+// même coup la ligne et ce qu'elle prélève. La route reste, pour les liens et
+// les favoris déjà posés.
 function route_taux(): void
 {
     require_login();
+    redirect('postes', isset($_GET['annee']) ? ['annee' => (int) $_GET['annee']] : []);
+}
+
+// Paliers d'âge d'une année, par poste : [poste_id => [[min, max, valeur], …]].
+// Repli sur la dernière année configurée avant elle, comme les taux — sinon
+// ouvrir une nouvelle année afficherait une grille vide à remplir de zéro.
+function baremes_age_annee(int $annee): array
+{
+    $stmt = db()->prepare(
+        'SELECT b.poste_id, b.age_min, b.age_max, b.valeur
+           FROM poste_bareme_age b
+          WHERE b.annee = (SELECT MAX(annee) FROM poste_bareme_age
+                            WHERE poste_id = b.poste_id AND annee <= ?)
+          ORDER BY b.poste_id, b.age_min'
+    );
+    $stmt->execute([$annee]);
+    $out = [];
+    foreach ($stmt as $r) {
+        $out[(int) $r['poste_id']][] = [(int) $r['age_min'], (int) $r['age_max'], (float) $r['valeur']];
+    }
+    return $out;
+}
+
+// Réécrit les paliers d'âge d'UN poste pour une année : c'est une grille, on la
+// remplace en entier plutôt que de tenter des mises à jour ligne à ligne.
+// $paliers : [['min' =>, 'max' =>, 'taux' =>], …].
+function enregistrer_baremes_age(int $posteId, int $annee, array $paliers): void
+{
+    db()->prepare('DELETE FROM poste_bareme_age WHERE poste_id = ? AND annee = ?')
+        ->execute([$posteId, $annee]);
+    $ins = db()->prepare(
+        'INSERT INTO poste_bareme_age (poste_id, annee, age_min, age_max, valeur) VALUES (?, ?, ?, ?, ?)'
+    );
+    foreach ($paliers as $palier) {
+        $min = (int) ($palier['min'] ?? 0);
+        $max = (int) ($palier['max'] ?? 0);
+        $val = (float) str_replace(',', '.', (string) ($palier['taux'] ?? '0')) / 100;
+        if ($max < $min || ($min === 0 && $max === 0)) {
+            continue; // ligne laissée vide, ou bornes incohérentes
+        }
+        $ins->execute([$posteId, $annee, $min, $max, $val]);
+    }
+}
+
+// ------------------------------------------------------- RECALCUL DE FICHES
+//
+// Une fiche fige ses montants ET ses taux à la création : changer un taux ou un
+// poste ne réécrit RIEN. Le recalcul est donc un geste explicite, ici, sur des
+// fiches choisies une par une — avec un aperçu avant/après, un avertissement
+// sur le nombre de fiches touchées, et une sauvegarde automatique de la base
+// avant d'écrire. Les fiches déjà payées ne sont jamais cochées par défaut.
+
+// Recalcule une fiche avec les postes et les taux ACTUELS de son année, à
+// partir de ses propres lignes de prestation et de son propre instantané
+// employé (supplément vacances, procédure, taux d'impôt à la source figé).
+// N'écrit rien : rend [montants, taux].
+function recalculer_fiche(array $f): array
+{
+    $stmt = db()->prepare('SELECT * FROM fiche_lignes WHERE fiche_id = ?');
+    $stmt->execute([(int) $f['id']]);
+    $heures = 0.0;
+    $salaireTravail = 0.0;
+    foreach ($stmt as $l) {
+        $h = (float) $l['heures_unite'] * (float) $l['quantite'];
+        $heures += $h;
+        $salaireTravail += $h * (float) $l['taux_horaire'];
+    }
+    $annee = (int) $f['annee'];
+    $mois  = (int) $f['mois'];
+    $fige  = json_decode((string) $f['taux_json'], true) ?: [];
+    // La date de naissance ne fait pas partie de l'instantané de la fiche : les
+    // barèmes d'âge la relisent sur l'employé.
+    $st = db()->prepare('SELECT date_naissance FROM employes WHERE id = ?');
+    $st->execute([(int) $f['employe_id']]);
+    $emp = [
+        'supplement_vacances' => (float) $f['supplement_taux'],
+        'procedure'           => (string) $f['procedure'],
+        // Le taux d'impôt à la source reste celui figé sur la fiche : il est
+        // propre à l'employé et à sa situation d'alors, pas à la grille.
+        'impot_source_taux'   => (float) ($fige['impot_source'] ?? 0),
+        'date_naissance'      => (string) ($st->fetchColumn() ?: ''),
+    ];
+    $taux = taux_pour_annee($annee);
+    $taux = array_merge($taux, laa_effectif($taux, $heures, $annee, $mois));
+    $taux = array_merge($taux, bareme_age_effectif($emp, $annee, $mois));
+    $c = calculer_fiche($emp, $salaireTravail, $taux);
+    return [$c, $taux + ['impot_source' => $emp['impot_source_taux']]];
+}
+
+// Colonnes de la fiche qu'un recalcul réécrit. Les instantanés (nom, adresse,
+// procédure, salaire horaire) et la date de paiement n'en font pas partie.
+const RECALCUL_COLONNES = [
+    'salaire_travail', 'supplement_montant', 'salaire_brut',
+    'ded_avs', 'ded_ac', 'ded_amat', 'ded_laa', 'ded_lpp', 'ded_impot_source', 'ded_caf',
+    'total_deductions', 'salaire_net',
+    'emp_avs', 'emp_ac', 'emp_amat', 'emp_af', 'emp_laa',
+    'emp_frais', 'emp_cpe', 'emp_lfp', 'emp_lpp',
+    'total_charges_emp', 'cout_total_emp',
+];
+
+function route_fiches_recalcul(): void
+{
+    require_login();
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $annee = (int) ($_POST['annee'] ?? date('Y'));
-        $insT = db()->prepare('INSERT OR REPLACE INTO taux_par_annee (annee, cle, valeur) VALUES (?, ?, ?)');
-        foreach (array_keys(TAUX_DEFAUT) as $k) {
-            $val = (float) str_replace(',', '.', $_POST[$k] ?? '0') / 100;
-            $insT->execute([$annee, $k, (string) $val]);
+        $ids = array_values(array_unique(array_map('intval', (array) ($_POST['fiches'] ?? []))));
+        if (!$ids) {
+            redirect('fiches_recalcul', ['annee' => $annee, 'vide' => 1]);
         }
-        redirect('taux', ['annee' => $annee, 'ok' => 1]);
+        // Borné à l'année affichée : on ne réécrit que ce que l'aperçu a montré.
+        $stmt = db()->prepare('SELECT * FROM fiches WHERE annee = ? AND id IN (' . sql_in($ids) . ')');
+        $stmt->execute(array_merge([$annee], $ids));
+        $fiches = $stmt->fetchAll();
+        if (!$fiches) {
+            redirect('fiches_recalcul', ['annee' => $annee, 'vide' => 1]);
+        }
+
+        // Sauvegarde AVANT d'écrire : un recalcul touche des documents déjà
+        // remis à des employés, on veut pouvoir revenir en arrière.
+        $sauvegarde = sauvegarder_base('avant_recalcul');
+        $set = implode(' = ?, ', RECALCUL_COLONNES) . ' = ?, taux_json = ?';
+        $upd = db()->prepare("UPDATE fiches SET $set WHERE id = ?");
+        db()->beginTransaction();
+        foreach ($fiches as $f) {
+            [$c, $taux] = recalculer_fiche($f);
+            $vals = array_map(fn ($col) => (float) ($c[$col] ?? 0), RECALCUL_COLONNES);
+            $vals[] = json_encode((object) $taux, JSON_UNESCAPED_UNICODE);
+            $vals[] = (int) $f['id'];
+            $upd->execute($vals);
+            fiche_postes_ecrire((int) $f['id'], $c, $taux);
+        }
+        db()->commit();
+        redirect('fiches_recalcul', ['annee' => $annee, 'faites' => count($fiches),
+                                     'sauv' => $sauvegarde ? basename($sauvegarde) : '']);
     }
-    $anneesTaux   = db()->query('SELECT DISTINCT annee FROM taux_par_annee')->fetchAll(PDO::FETCH_COLUMN);
-    $anneesFiches = db()->query('SELECT DISTINCT annee FROM fiches')->fetchAll(PDO::FETCH_COLUMN);
-    $annees = array_unique(array_map('intval', array_merge(
-        $anneesTaux, $anneesFiches,
-        [$annee, (int) date('Y') - 1, (int) date('Y'), (int) date('Y') + 1]
-    )));
+
+    $stmt = db()->prepare(
+        'SELECT f.*, e.prenom, e.nom FROM fiches f
+           JOIN employes e ON e.id = f.employe_id
+          WHERE f.annee = ? ORDER BY f.mois, e.nom, e.prenom'
+    );
+    $stmt->execute([$annee]);
+    $lignes = [];
+    foreach ($stmt->fetchAll() as $f) {
+        [$c] = recalculer_fiche($f);
+        $ecarts = [];
+        foreach (RECALCUL_COLONNES as $col) {
+            if (abs((float) ($c[$col] ?? 0) - (float) ($f[$col] ?? 0)) > 0.005) {
+                $ecarts[$col] = [(float) $f[$col], (float) $c[$col]];
+            }
+        }
+        $lignes[] = ['fiche' => $f, 'apres' => $c, 'ecarts' => $ecarts,
+                     'payee' => trim((string) $f['date_paiement']) !== ''];
+    }
+    $annees = array_map('intval', db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN));
+    if (!in_array($annee, $annees, true)) {
+        $annees[] = $annee;
+        rsort($annees);
+    }
+    render('fiches_recalcul', [
+        'annee'  => $annee,
+        'annees' => $annees,
+        'lignes' => $lignes,
+        'faites' => (int) ($_GET['faites'] ?? 0),
+        'sauv'   => (string) ($_GET['sauv'] ?? ''),
+        'vide'   => isset($_GET['vide']),
+    ], 'Recalcul des fiches');
+}
+
+// Taux d'un poste pour une année, depuis son formulaire d'édition. Un poste au
+// barème d'âge ou au taux propre à l'employé n'en a pas : il n'y a rien à
+// écrire, et surtout rien à écraser.
+function enregistrer_poste_taux(int $id, int $annee, array $post): void
+{
+    $st = db()->prepare('SELECT mode FROM postes_salariaux WHERE id = ?');
+    $st->execute([$id]);
+    $mode = (string) $st->fetchColumn();
+    if ($mode === '' || $mode === 'taux_employe' || $mode === 'bareme_age') {
+        return;
+    }
+    $pct = fn (string $v): float => (float) str_replace(',', '.', $v) / 100;
+    db()->prepare('INSERT OR REPLACE INTO poste_taux (poste_id, annee, valeur, valeur_alt) VALUES (?, ?, ?, ?)')
+        ->execute([$id, $annee, $pct((string) ($post['valeur'] ?? '0')),
+            $mode === 'laa_seuil' ? $pct((string) ($post['valeur_alt'] ?? '0')) : null]);
+}
+
+// ------------------------------------------------------- POSTES SALARIAUX
+// Les lignes d'un décompte : ce que l'employeur peut ajouter, renommer,
+// réordonner ou désactiver. Ne touche JAMAIS aux fiches déjà enregistrées, qui
+// portent leur propre copie (fiche_postes) — d'où le recalcul explicite, à part.
+function route_postes(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        $section = $_POST['section'] ?? '';
+        if ($section === 'add') {
+            // Un code déjà pris ne crée rien (INSERT OR IGNORE) : sans ce
+            // retour, l'écran affichait « Enregistré » et la ligne manquait.
+            if (!enregistrer_poste(0, $_POST)) {
+                redirect('postes', ['annee' => (int) ($_POST['annee'] ?? date('Y')), 'err' => 'code']);
+            }
+        } elseif ($section === 'edit') {
+            // Un seul enregistrement pour toute la ligne : sa définition, son
+            // taux de l'année affichée, et « masquer à 0 ». C'est le mode
+            // édition qui ouvre l'ensemble, rien ne se modifie en lecture.
+            $id = (int) ($_POST['id'] ?? 0);
+            enregistrer_poste($id, $_POST);
+            enregistrer_poste_taux($id, (int) ($_POST['annee'] ?? date('Y')), $_POST);
+            // Les paliers d'âge se saisissent dans l'édition de LEUR ligne :
+            // ils n'ont de sens que pour elle, et pour l'année affichée.
+            if (($_POST['mode'] ?? '') === 'bareme_age') {
+                enregistrer_baremes_age($id, (int) ($_POST['annee'] ?? date('Y')),
+                    (array) ($_POST['bareme'] ?? []));
+                db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+                    ->execute(['lpp_age_reference',
+                        ($_POST['lpp_age_reference'] ?? '') === 'anniversaire' ? 'anniversaire' : 'annee']);
+            }
+        } elseif ($section === 'reglages') {
+            // Le seul réglage qui vaut pour toute l'année sans appartenir à une
+            // ligne : la base « salaire coordonné », partagée par les postes
+            // qui s'y adossent.
+            $annee = (int) ($_POST['annee'] ?? date('Y'));
+            $chf = fn (string $v): float => (float) str_replace([',', "'", ' '], ['.', '', ''], $v);
+            $insT = db()->prepare('INSERT OR REPLACE INTO taux_par_annee (annee, cle, valeur) VALUES (?, ?, ?)');
+            db()->beginTransaction();
+            foreach (['coord_deduction', 'coord_plafond'] as $k) {
+                $insT->execute([$annee, $k, (string) $chf((string) ($_POST[$k] ?? '0'))]);
+            }
+            db()->commit();
+            redirect('postes', ['annee' => $annee, 'ok' => 1]);
+        } elseif ($section === 'toggle_actif') {
+            // Le seul réglage qui s'applique en lecture : allumer ou éteindre
+            // une ligne, comme pour un axe analytique (?p=compta_axes).
+            db()->prepare('UPDATE postes_salariaux SET actif = ? WHERE id = ?')
+                ->execute([isset($_POST['actif']) ? 1 : 0, (int) ($_POST['id'] ?? 0)]);
+        } elseif ($section === 'reorder') {
+            // Glisser-déposer : la liste est plate, on renumérote dans l'ordre
+            // reçu (le poste déplacé compris).
+            $order = array_values(array_filter(array_map('intval', explode(',', (string) ($_POST['order'] ?? '')))));
+            if ($order) {
+                $upd = db()->prepare('UPDATE postes_salariaux SET ordre = ? WHERE id = ?');
+                db()->beginTransaction();
+                foreach ($order as $i => $pid) {
+                    $upd->execute([($i + 1) * 10, $pid]);
+                }
+                db()->commit();
+            }
+        } elseif ($section === 'del') {
+            // Un poste déjà figé dans une fiche ne se supprime pas : le
+            // désactiver suffit, et l'historique garde son libellé.
+            $id = (int) ($_POST['id'] ?? 0);
+            $st = db()->prepare('SELECT COUNT(*) FROM fiche_postes WHERE poste_id = ?');
+            $st->execute([$id]);
+            if ((int) $st->fetchColumn() === 0) {
+                db()->prepare('DELETE FROM postes_salariaux WHERE id = ?')->execute([$id]);
+            } else {
+                db()->prepare('UPDATE postes_salariaux SET actif = 0 WHERE id = ?')->execute([$id]);
+            }
+        }
+        postes_oublier();
+        redirect('postes', ['annee' => (int) ($_POST['annee'] ?? date('Y')), 'ok' => 1]);
+    }
+    $postes = db()->query('SELECT * FROM postes_salariaux ORDER BY ordre, id')->fetchAll();
+    $st = db()->query('SELECT poste_id, COUNT(*) n FROM fiche_postes GROUP BY poste_id');
+    $usages = [];
+    foreach ($st as $r) {
+        $usages[(int) $r['poste_id']] = (int) $r['n'];
+    }
+    // Une ligne et ce qu'elle prélève se lisent — et se règlent — au même
+    // endroit : le taux appartient à une année, d'où le sélecteur d'année.
+    $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
+    $anneesTaux   = array_map('intval', db()->query('SELECT DISTINCT annee FROM poste_taux')->fetchAll(PDO::FETCH_COLUMN));
+    $anneesFiches = array_map('intval', db()->query('SELECT DISTINCT annee FROM fiches')->fetchAll(PDO::FETCH_COLUMN));
+    $annees = array_unique(array_merge($anneesTaux, $anneesFiches,
+        [$annee, (int) date('Y') - 1, (int) date('Y'), (int) date('Y') + 1]));
     rsort($annees);
-    render('taux', [
+    render('postes', [
         'saved'      => isset($_GET['ok']),
+        'err'        => ($_GET['err'] ?? '') === 'code'
+            ? 'Ce code est déjà utilisé par une autre ligne — choisissez-en un autre.' : null,
+        'postes'     => $postes,
+        'usages'     => $usages,
         'annee'      => $annee,
         'annees'     => $annees,
-        'taux'       => taux_stockes($annee),
-        'configuree' => in_array($annee, array_map('intval', $anneesTaux), true),
-    ], 'Taux');
+        'taux'       => taux_pour_annee($annee),
+        'baremes'    => baremes_age_annee($annee),
+        'ageRef'     => param('lpp_age_reference', 'annee'),
+        'configuree' => in_array($annee, $anneesTaux, true),
+    ], 'Lignes du décompte');
+}
+
+// Crée ($id = 0) ou met à jour un poste depuis un POST. Le code n'est jamais
+// modifiable après coup : c'est lui qui relie une ligne figée à son poste.
+// Renvoie false si rien n'a été écrit (libellé vide, code vide ou déjà pris).
+function enregistrer_poste(int $id, array $post): bool
+{
+    $libelle = trim((string) ($post['libelle'] ?? ''));
+    if ($libelle === '') {
+        return false;
+    }
+    $dans = fn (string $v, array $ok) => in_array($v, $ok, true) ? $v : $ok[0];
+    $champs = [
+        'libelle' => $libelle,
+        'sens'    => $dans((string) ($post['sens'] ?? ''), ['deduction', 'charge']),
+        'mode'    => $dans((string) ($post['mode'] ?? ''), ['taux', 'laa_seuil', 'taux_employe', 'bareme_age']),
+        'base'    => $dans((string) ($post['base'] ?? ''), ['brut', 'coordonne']),
+        'rubrique_certificat' => $dans((string) ($post['rubrique_certificat'] ?? ''), ['', '9', '10.1', '12']),
+        'groupe_compta'       => trim((string) ($post['groupe_compta'] ?? '')),
+        'masquer_si_zero'     => isset($post['masquer_si_zero']) ? 1 : 0,
+    ];
+    // « actif » et l'ordre ne passent pas par ce formulaire : ce sont
+    // l'interrupteur de la liste et le glisser-déposer.
+    if ($id > 0) {
+        $set = implode(' = ?, ', array_keys($champs)) . ' = ?';
+        db()->prepare("UPDATE postes_salariaux SET $set WHERE id = ?")
+            ->execute([...array_values($champs), $id]);
+        return true;
+    }
+    $code = strtolower(trim((string) ($post['code'] ?? '')));
+    $code = preg_replace('/[^a-z0-9_]+/', '_', $code);
+    $code = trim((string) $code, '_');
+    if ($code === '') {
+        return false;
+    }
+    // Le préfixe « emp_ » n'est pas décoratif : c'est lui qui décide de la
+    // colonne visée (poste_colonne_montant()). Une charge nommée « caf »
+    // écrirait dans ded_caf, une déduction nommée « emp_frais » dans les
+    // charges patronales. On aligne donc le code sur la nature de la ligne, au
+    // lieu de laisser cette collision possible.
+    $code = preg_replace('/^emp_/', '', $code);
+    if ($champs['sens'] === 'charge') {
+        $code = 'emp_' . $code;
+    }
+    if ($code === '' || $code === 'emp_') {
+        return false;
+    }
+    $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre), 0) FROM postes_salariaux')->fetchColumn();
+    $champs = ['code' => $code] + $champs + [
+        'ordre' => $ordre + 10, // en fin de liste, à glisser ensuite
+        'actif' => 1,
+    ];
+    $ins = db()->prepare('INSERT OR IGNORE INTO postes_salariaux (' . implode(', ', array_keys($champs)) . ')
+                          VALUES (' . implode(', ', array_fill(0, count($champs), '?')) . ')');
+    $ins->execute(array_values($champs));
+    return $ins->rowCount() > 0;
 }
 
 // ---------------------------------------------------------------- FICHES
@@ -1382,8 +1796,11 @@ function sauvegarder_fiche(array $emp, int $annee, int $mois, string $datePaieme
         $salaireTravail += $h * (float) $l['taux_horaire'];
     }
 
-    $taux = taux_pour_annee($annee); // taux figés selon l'année de la fiche
+    // Taux figés selon l'année de la fiche, puis les deux résolutions qui
+    // dépendent du contexte : le seuil d'heures (LAA) et l'âge (barèmes LPP).
+    $taux = taux_pour_annee($annee);
     $taux = array_merge($taux, laa_effectif($taux, $heures, $annee, $mois));
+    $taux = array_merge($taux, bareme_age_effectif($emp, $annee, $mois));
     $c    = calculer_fiche($emp, $salaireTravail, $taux);
 
     $data = [
@@ -1402,7 +1819,7 @@ function sauvegarder_fiche(array $emp, int $annee, int $mois, string $datePaieme
         'supplement_taux'=> $emp['supplement_vacances'],
         'afficher_cout_emp' => $afficherCoutEmp,
         'taux_json'      => json_encode($taux + ['impot_source' => (float) $emp['impot_source_taux']]),
-    ] + $c;
+    ] + fiche_montants_stockables($c);
 
     $cols  = implode(',', array_keys($data));
     $marks = ':' . implode(',:', array_keys($data));
@@ -1427,6 +1844,10 @@ function sauvegarder_fiche(array $emp, int $annee, int $mois, string $datePaieme
             db()->prepare("INSERT INTO fiches ($cols) VALUES ($marks)")->execute($data);
             $ficheId = (int) db()->lastInsertId();
         }
+        // Copie figée des lignes du décompte, dans la même transaction que la
+        // fiche : l'une sans l'autre laisserait un décompte muet.
+        fiche_postes_ecrire($ficheId, $c, $taux + ['impot_source' => (float) $emp['impot_source_taux']]);
+
         $insL = db()->prepare('INSERT INTO fiche_lignes (fiche_id, libelle, heures_unite, quantite, taux_horaire, axe_analytique_id, evenement_id, ordre) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
         foreach ($lignes as $ordre => $l) {
             $insL->execute([$ficheId, $l['libelle'], $l['heures_unite'], $l['quantite'], $l['taux_horaire'], $l['axe_analytique_id'] ?? null, $l['evenement_id'] ?? null, $ordre]);
@@ -1631,6 +2052,34 @@ function agreger_certificat(array $fiches): array
     return $tot;
 }
 
+// Totaux par rubrique du certificat de salaire, lus sur les lignes FIGÉES des
+// fiches (fiche_postes.rubrique_certificat). C'est le poste qui déclare la case
+// qu'il alimente — 9 pour AVS/AC/A.mat/LAA, 10.1 pour la LPP, 12 pour l'impôt à
+// la source. Sans cette déclaration, ajouter une ligne fausserait un formulaire
+// officiel sans prévenir.
+//
+// Renvoie [] si aucune fiche n'a de copie figée : l'appelant retombe alors sur
+// les colonnes, comme partout ailleurs pendant la bascule.
+function agreger_rubriques_certificat(array $fiches): array
+{
+    $ids = array_map(fn ($f) => (int) $f['id'], $fiches);
+    if (!$ids) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT rubrique_certificat AS r, SUM(montant) AS total
+           FROM fiche_postes
+          WHERE fiche_id IN (' . sql_in($ids) . ") AND rubrique_certificat <> ''
+          GROUP BY rubrique_certificat"
+    );
+    $stmt->execute($ids);
+    $out = [];
+    foreach ($stmt as $l) {
+        $out[(string) $l['r']] = (float) $l['total'];
+    }
+    return $out;
+}
+
 // Charge un employé + ses fiches d'une année + les totaux. Renvoie null si employé introuvable.
 function certificat_contexte(int $empId, ?int $annee): ?array
 {
@@ -1650,7 +2099,8 @@ function certificat_contexte(int $empId, ?int $annee): ?array
     $fiches = $stmt->fetchAll();
 
     return ['emp' => $emp, 'annee' => $annee, 'annees' => $annees,
-        'fiches' => $fiches, 'tot' => agreger_certificat($fiches)];
+        'fiches' => $fiches, 'tot' => agreger_certificat($fiches),
+        'rubriques' => agreger_rubriques_certificat($fiches)];
 }
 
 function route_certificat(): void

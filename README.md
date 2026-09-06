@@ -198,29 +198,88 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     et agendas de tournée (CSV). Chaque import a un bouton « Simuler » qui
     prévisualise sans rien enregistrer.
 
+### Mot de passe oublié
+
+L'écran de connexion porte un lien **« J'ai oublié mon mot de passe »**. On y saisit
+l'adresse du compte ; un lien à **usage unique**, valable **une heure**, est envoyé par
+e-mail et mène à un écran de choix du nouveau mot de passe.
+
+- L'écran répond **la même chose que le compte existe ou non** : ce formulaire ne doit
+  pas permettre de savoir quelles adresses ont un compte.
+- La base ne stocke que l'**empreinte** du jeton, jamais le jeton lui-même — comme pour
+  un mot de passe. Il n'apparaît pas non plus dans le journal d'e-mails de développement.
+- Une nouvelle demande **annule la précédente**, et le lien utilisé ne sert plus.
+- Cinq demandes par heure au maximum, par adresse IP et par compte visé. Ce compteur est
+  distinct de l'anti-force-brute de la connexion : demander une réinitialisation ne peut
+  pas servir à enfermer quelqu'un dehors.
+- En production, définissez **`APP_URL`** dans `lib/config.local.php`
+  (`define('APP_URL', 'https://salaires.exemple.ch');`). Sans elle, le lien est construit
+  depuis l'en-tête `Host` de la requête, que le client contrôle.
+
 Les comptes se gèrent dans **Paramètres → Comptes**. Chacun reçoit des droits de
 **lecture ou écriture, module par module** ; un nouveau compte démarre **sans aucun
 droit**, et il doit toujours rester au moins un administrateur. Les modules eux-mêmes
 s'activent dans **Paramètres → Modules**, indépendamment de ces droits.
 
+### Les lignes du décompte (postes salariaux)
+
+Tout se règle sur une seule page, **Paramètres → Taux → Lignes du décompte** : les
+lignes elles-mêmes *et* le taux que chacune applique, pour l'**année choisie en haut
+de page**. On peut ajouter une ligne, la renommer, la réordonner **en la glissant**,
+ou l'éteindre d'un interrupteur — ce qui permet d'adapter la paie à un autre canton
+ou à une autre caisse. Les lignes sont séparées en deux parties, **déductions
+employé** et **charges patronales**, comme sur le décompte.
+
+La liste s'affiche en lecture, réduite à l'essentiel : son état, son libellé, son
+taux. Le **crayon** ouvre le formulaire d'une ligne : c'est là que se modifient son
+taux de l'année, ses paliers d'âge s'il en a, l'option « masquer à 0 » — et là que
+se trouve la suppression, à côté d'Enregistrer. Chaque poste déclare :
+
+- sa **nature** (déduction employé ou charge patronale) ;
+- son **mode de calcul** : taux de l'année, deux taux selon le seuil d'heures (LAA),
+  taux propre à l'employé (impôt à la source), ou barème par tranche d'âge (LPP) ;
+- sa **base** : le salaire brut ou le **salaire coordonné** ;
+- la **case du certificat de salaire** qu'il alimente (9, 10.1, 12) et son
+  **regroupement comptable** (OCAS…), pour que l'ajout d'une ligne n'échappe ni au
+  formulaire officiel ni aux récapitulatifs.
+
+Un poste déjà utilisé par une fiche n'est jamais supprimé, seulement désactivé :
+l'historique reste lisible.
+
 ### Les taux
 
-Les taux (AVS, AC, LAA, LPP, etc.) se règlent dans **Paramètres → Taux**. Ils sont
-**propres à chaque année**.
+Les taux sont **propres à chaque année** : le sélecteur en haut de la page choisit
+celle qu'on regarde et qu'on modifie. Une année jamais configurée reprend les valeurs
+de la précédente jusqu'à ce qu'on en enregistre une.
 
 - **Impôt à la source** : prélevé uniquement si la procédure « Ordinaire avec impôt
   à la source » est choisie, au taux défini sur la fiche employé.
 - **LAA** : deux taux selon le total d'heures du mois (réduit si ≤ jours ÷ 7 × 8,
   sinon plein) ; le bon taux est choisi automatiquement à la création de la fiche.
-- **LPP** : taux unique.
+- **LPP** : taux unique par défaut, ou **barème par âge** — les tranches et leurs
+  taux sont saisis par l'employeur, année par année, ainsi que l'**âge de référence**
+  (âge atteint dans l'année, ou âge révolu au mois de la fiche).
+- **Salaire coordonné** : déduction de coordination et plafond, en **francs par an**.
+  Tous deux à **0** par défaut : le salaire coordonné vaut alors le brut.
 
-> Une fiche déjà créée **conserve les taux figés à sa création**. Modifier la grille
+> Une fiche déjà créée **conserve ses montants ET ses taux figés à sa création**,
+> ainsi que le libellé de chacune de ses lignes. Modifier la grille ou un poste
 > n'affecte que les fiches futures — les montants passés restent exacts.
+
+### Recalculer des fiches existantes
+
+Pour appliquer un changement de taux ou de poste à des fiches **déjà enregistrées**,
+il faut le demander explicitement : **Paramètres → Taux → recalcul des fiches**
+(`?p=fiches_recalcul`). La page liste, pour l'année choisie, les seules fiches dont
+les montants changeraient, avec l'**avant et l'après** côte à côte et le nombre de
+fiches concernées. Les fiches **déjà payées ne sont pas cochées par défaut**, et la
+base est **sauvegardée automatiquement** juste avant l'écriture.
 
 ### Charges patronales (employeur)
 
 La part employeur (AVS/AI/APG, AC, allocations familiales, maternité, LAA, frais,
-CPE, LFP, LPP) se saisit dans la même page. Elle alimente le **coût total employeur**
+CPE, LFP, LPP — et tout poste ajouté) se saisit dans la même page, sous
+« Charge patronale ». Elle alimente le **coût total employeur**
 sur chaque fiche et les **charges à verser** par destinataire (OCAS, LPP, LAA) dans
 le tableau de bord.
 
@@ -325,6 +384,9 @@ php tests/run.php
 
 - L'impôt à la source utilise un **taux unique** par employé (pas de barème officiel
   par tranche) — à confirmer avec une fiducaire si nécessaire.
-- Un administrateur peut réinitialiser le mot de passe d'un compte (Paramètres →
-  Comptes), mais il n'y a pas de « mot de passe oublié » en libre-service par e-mail.
+- Le lien « J'ai oublié mon mot de passe » suppose que **l'envoi d'e-mails fonctionne**
+  (adresse d'expédition renseignée dans Paramètres → E-mails, et SMTP configuré en
+  production). Sans cela, l'écran répond la même chose mais aucun message ne part —
+  l'échec n'est visible que dans le journal d'erreurs du serveur. Un administrateur
+  peut toujours réinitialiser un mot de passe depuis Paramètres → Comptes.
 - Les sauvegardes ne sont pas chiffrées (le fichier exporté est en clair).

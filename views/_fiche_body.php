@@ -56,7 +56,31 @@ $sousSeuil = (float) $f['nombre_heures'] <= $seuilH;
 $seuilTxt  = ($sousSeuil ? '≤' : '>') . ' 8 h/sem.';
 
 // Lignes de déduction : [libellé, taux affiché ou null, montant, visible?]
-$deductions = [
+//
+// Elles viennent de la copie FIGÉE de la fiche (fiche_postes) : c'est elle qui
+// porte les libellés et les taux tels qu'ils étaient à l'enregistrement. Les
+// colonnes ded_*/emp_* restent le repli pour une fiche sans copie — aucun
+// décompte ne doit devenir muet parce qu'une ligne manque en base.
+$lignesFigees = fiche_postes_lire((int) $f['id']);
+$figees = ['deduction' => [], 'charge' => []];
+foreach ($lignesFigees as $l) {
+    $montant = (float) $l['montant'];
+    // masquer_si_zero porte la règle d'affichage, poste par poste. Exception
+    // assumée pour l'impôt à la source : sa ligne suit la PROCÉDURE de
+    // l'employé, pas son montant — un employé imposé à la source dont le taux
+    // est nul garde sa rubrique, c'est ce qu'il attend d'y voir.
+    $visible = (string) $l['code'] === 'impot_source'
+        ? $estImpot
+        : (!(int) $l['masquer_si_zero'] || abs($montant) > 0.005);
+    $figees[(string) $l['sens']][] = [
+        (string) $l['libelle'],
+        $l['taux'] === null ? null : (float) $l['taux'],
+        $montant,
+        $visible,
+    ];
+}
+
+$deductions = $figees['deduction'] ?: [
     ['AVS / AI / APG', $taux['avs'] ?? null,  (float) $f['ded_avs'], true],
     ['AC',             $taux['ac'] ?? null,   (float) $f['ded_ac'], true],
     ['Assurance maternité', $taux['amat'] ?? null, (float) $f['ded_amat'], ((float) $f['ded_amat']) > 0],
@@ -182,7 +206,8 @@ $deductions = [
     </p>
 
     <?php
-    $chargesEmp = [
+    // Copie figée d'abord, colonnes en repli — voir $deductions plus haut.
+    $chargesEmp = array_map(fn ($l) => [$l[0], $l[1], $l[2]], $figees['charge']) ?: [
         ['AVS / AI / APG', $taux['emp_avs'] ?? null,  (float) ($f['emp_avs'] ?? 0)],
         ['AC',             $taux['emp_ac'] ?? null,   (float) ($f['emp_ac'] ?? 0)],
         ['Assurance maternité', $taux['emp_amat'] ?? null, (float) ($f['emp_amat'] ?? 0)],

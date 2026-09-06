@@ -71,6 +71,21 @@ if (!defined('SESSION_ABSOLUTE'))  define('SESSION_ABSOLUTE', 86400);// 24 h de 
 if (!defined('LOGIN_MAX_ATTEMPTS')) define('LOGIN_MAX_ATTEMPTS', 5); // échecs tolérés…
 if (!defined('LOGIN_WINDOW'))       define('LOGIN_WINDOW', 900);     // …par fenêtre de 15 min
 
+// Réinitialisation de mot de passe : durée de vie du lien reçu par e-mail, et
+// nombre de demandes tolérées par heure (par adresse IP, et par compte visé).
+if (!defined('RESET_TTL'))          define('RESET_TTL', 3600);       // 1 h
+if (!defined('RESET_MAX_PAR_HEURE')) define('RESET_MAX_PAR_HEURE', 5);
+
+// APP_URL : adresse publique du site, utilisée pour fabriquer le lien de
+// réinitialisation envoyé par e-mail. À définir en production dans
+// lib/config.local.php :
+//   define('APP_URL', 'https://salaires.exemple.ch');
+// Laissée vide, le lien est construit depuis l'en-tête Host de la requête —
+// pratique en local, mais cet en-tête vient du client : un attaquant pourrait
+// le forger pour se faire adresser un lien pointant chez lui. La renseigner
+// ferme cette porte.
+if (!defined('APP_URL')) define('APP_URL', '');
+
 // --- Sécurité : secret d'installation -------------------------------------
 // Si NON vide, l'écran de création du premier compte (setup) n'est accessible
 // qu'avec l'URL  ?p=setup&key=<ce secret>. Empêche un inconnu de créer le compte

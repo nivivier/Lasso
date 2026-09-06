@@ -77,6 +77,23 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   sur toute la chaîne, donc une rechute est détectée en CI.
 - **Calcul** `lib/calc.php` : `calculer_fiche()`, `r2()` (arrondi 2 déc.),
   `seuil_heures()`, `laa_effectif()`, `taux_pour_annee()`, `taux_stockes()`, `TAUX_DEFAUT`.
+- **Postes salariaux** (lignes du décompte, configurables — `docs/DECISIONS.md §
+  Postes salariaux`) : `postes_salariaux` définit les lignes, `poste_taux` leurs
+  taux par année (**fait foi** ; `taux_par_annee` n'est plus qu'un repli),
+  `poste_bareme_age` les paliers d'âge. Tout se règle sur `?p=postes` (« Lignes
+  du décompte »), qui a absorbé l'ancienne page `?p=taux` — celle-ci n'est plus
+  qu'une redirection, pour les liens déjà posés. `calculer_fiche()` boucle sur
+  `postes_actifs()` ; `poste_montant()` connaît quatre modes (`taux`,
+  `taux_employe`, `laa_seuil`, `bareme_age`) et deux bases (`brut`,
+  `coordonne`). **À l'enregistrement, une fiche FIGE ses lignes dans
+  `fiche_postes` — libellé compris** ; tout ce qui lit une fiche (écran,
+  impression, e-mail, certificat via `rubrique_certificat`, agrégats compta via
+  `groupe_compta`) lit cette copie, jamais `postes_salariaux`. Changer un taux
+  ou un poste ne réécrit donc rien : le recalcul est explicite
+  (`?p=fiches_recalcul`, aperçu avant/après + sauvegarde auto). **Invariante :
+  les totaux sont la somme des montants arrondis, jamais recalculés depuis la
+  copie figée** (16 fiches sur 38 suivent une règle d'arrondi plus ancienne et
+  se décaleraient d'un centime).
 - **Helpers** `lib/helpers.php` : `e()` (échappement), `param()` (paramètres, cachés),
   `csrf_token()/check_csrf()`, `icon()` (SVG Lucide inline), `chf()`, `pct()`,
   `param_logo()`, throttle login, etc.
@@ -121,10 +138,11 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 ## Domaine (paie suisse) — à respecter
 - Déductions employé : AVS/AI/APG, AC, A.mat (GE), **LAA** (deux taux : *réduit* si
   heures ≤ seuil mensuel = jours ÷ 7 × 8, sinon *plein* ; choix auto à la création),
-  **LPP** (taux unique), impôt à la source (si procédure concernée).
+  **LPP** (taux unique par défaut, ou barème par âge sur le salaire coordonné),
+  impôt à la source (si procédure concernée).
 - **CAF** : vestigiale, toujours 0 (ne pas réactiver sans demande).
 - Charges patronales (`emp_*`) : AVS/AC/A.mat/AF/LAA/frais/CPE/LFP/LPP.
-- **Taux propres à chaque année** (`taux_par_annee`). Valider avec OCAS / caisse LPP-LAA.
+- **Taux propres à chaque année** (`poste_taux`). Valider avec OCAS / caisse LPP-LAA.
 - Impôt à la source = **taux unique** par employé (pas de barème par tranche).
 
 ## Règles importantes (gotchas)
@@ -138,6 +156,12 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 - **Sécurité** : `check_csrf()` sur tout POST ; `e()` sur toute sortie ; requêtes
   **toujours** préparées (paramétrées). bcrypt coût 12 ; anti-force-brute ; sessions
   expirantes ; secret d'installation ; base hors webroot en prod.
+  **Mot de passe oublié** (`?p=motdepasse_oublie` / `?p=motdepasse_reinit`, routes
+  publiques) : jeton à usage unique d'1 h, **seule son empreinte SHA-256 est en
+  base** (`reinit_motdepasse`), réponse identique que le compte existe ou non,
+  quota propre (`RESET_MAX_PAR_HEURE`) qui ne doit **jamais** alimenter le
+  compteur d'échecs de connexion. Lien construit depuis `APP_URL` si définie,
+  sinon l'en-tête `Host`.
 - **E-mails** : en `dev`, journalisés dans `data/emails_envoyes.log` ; en `prod`,
   `mail()` réel (expéditeur = `employeur_email_expediteur`).
 - **Uploads** logos : validés par `getimagesize()` (image réelle), 2 Mo max, stockés

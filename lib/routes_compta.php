@@ -115,7 +115,8 @@ function compta_lettrer_par_regles(?int $compteId, ?int $annee): int
 function charges_sociales_axe(int $axeId, int $annee): array
 {
     $stmt = db()->prepare(
-        'SELECT f.salaire_travail,
+        'SELECT f.id,
+                f.salaire_travail,
                 f.ded_avs, f.ded_ac, f.ded_amat, f.ded_laa, f.ded_lpp, f.ded_impot_source,
                 f.total_deductions, f.salaire_brut, f.salaire_net,
                 f.emp_avs, f.emp_ac, f.emp_amat, f.emp_af, f.emp_laa,
@@ -136,18 +137,48 @@ function charges_sociales_axe(int $axeId, int $annee): array
                'total_charges_emp', 'cout_total_emp'];
     $tot = array_fill_keys($champs, 0.0);
 
-    foreach ($stmt as $r) {
+    $lignes = $stmt->fetchAll();
+    $ratios = [];
+    foreach ($lignes as $r) {
         $st = (float) $r['salaire_travail'];
-        $ratio = $st > 0 ? (float) $r['montant_axe'] / $st : 0.0;
+        $ratios[(int) $r['id']] = $st > 0 ? (float) $r['montant_axe'] / $st : 0.0;
+    }
+    $postes = fiches_postes_prorata($ratios);
+
+    foreach ($lignes as $r) {
+        $ratio = $ratios[(int) $r['id']];
+        $figee = isset($postes['couvertes'][(int) $r['id']]);
         foreach ($champs as $c) {
+            // Les postes d'une fiche à copie figée arrivent par $postes ; on ne
+            // reprend ses colonnes que pour les totaux, qui n'en sont pas.
+            if ($figee && isset($postes['montants'][$c])) {
+                continue;
+            }
             $tot[$c] += (float) $r[$c] * $ratio;
         }
     }
+    foreach ($postes['montants'] as $c => $v) {
+        $tot[$c] = ($tot[$c] ?? 0.0) + $v;
+    }
     foreach ($tot as &$v) { $v = round($v, 2); }
     unset($v);
-    // Regroupement OCAS patronale (AVS+AC+Amat+AF) calculé après arrondi des composantes.
-    $tot['emp_ocas'] = round($tot['emp_avs'] + $tot['emp_ac'] + $tot['emp_amat'] + $tot['emp_af'], 2);
+    // Regroupement OCAS patronale calculé après arrondi des composantes.
+    $tot['emp_ocas'] = charges_groupe_total($tot, $postes['groupes'], 'ocas',
+        ['emp_avs', 'emp_ac', 'emp_amat', 'emp_af']);
     return $tot;
+}
+
+// Total d'un regroupement comptable (« ocas »…) : somme des composantes DÉJÀ
+// arrondies, comme historiquement. Les composantes viennent des postes quand
+// ils déclarent le groupe, sinon de la liste de repli.
+function charges_groupe_total(array $tot, array $groupes, string $groupe, array $repli): float
+{
+    $colonnes = $groupes[$groupe] ?? $repli;
+    $somme = 0.0;
+    foreach ($colonnes as $c) {
+        $somme += $tot[$c] ?? 0.0;
+    }
+    return round($somme, 2);
 }
 
 // Agrège les charges sociales proratisées PAR AXE sur une période (mois/année de début → fin).
@@ -156,6 +187,7 @@ function charges_sociales_par_axe(int $aD, int $mD, int $aF, int $mF): array
 {
     $stmt = db()->prepare(
         'SELECT a.id AS axe_id, a.code AS axe_code, a.libelle AS axe_libelle,
+                f.id AS fiche_id,
                 f.salaire_travail,
                 f.ded_avs, f.ded_ac, f.ded_amat, f.ded_laa, f.ded_lpp,
                 f.emp_avs, f.emp_ac, f.emp_amat, f.emp_af, f.emp_laa, f.emp_lpp,
@@ -170,8 +202,25 @@ function charges_sociales_par_axe(int $aD, int $mD, int $aF, int $mF): array
 
     $champs = ['ded_avs', 'ded_ac', 'ded_amat', 'ded_laa', 'ded_lpp',
                'emp_avs', 'emp_ac', 'emp_amat', 'emp_af', 'emp_laa', 'emp_lpp'];
-    $cumul = [];
-    foreach ($stmt as $r) {
+    $cumul  = [];
+    $lignes = $stmt->fetchAll();
+    // Les lignes figées de TOUTES les fiches en une requête, puis proratisées
+    // couple par couple : une fiche apparaît une fois par axe, avec un ratio
+    // propre à chaque fois, mais ce n'est pas une raison pour interroger la
+    // base à chaque ligne.
+    $figees = fiches_postes_par_fiche(array_map(fn ($r) => (int) $r['fiche_id'], $lignes));
+    $groupes = [];
+    foreach ($figees as $lignesFiche) {
+        foreach ($lignesFiche as $l) {
+            if ($l['groupe'] !== '') {
+                $groupes[$l['groupe']][$l['colonne']] = true;
+            }
+        }
+    }
+    foreach ($groupes as &$cols) { $cols = array_keys($cols); }
+    unset($cols);
+
+    foreach ($lignes as $r) {
         $id = (int) $r['axe_id'];
         if (!isset($cumul[$id])) {
             $cumul[$id] = ['code' => (string) $r['axe_code'], 'libelle' => (string) $r['axe_libelle']]
@@ -179,11 +228,21 @@ function charges_sociales_par_axe(int $aD, int $mD, int $aF, int $mF): array
         }
         $st    = (float) $r['salaire_travail'];
         $ratio = $st > 0 ? (float) $r['montant_axe'] / $st : 0.0;
-        foreach ($champs as $c) { $cumul[$id][$c] += (float) $r[$c] * $ratio; }
+        $propres = $figees[(int) $r['fiche_id']] ?? [];
+        $montants = [];
+        foreach ($propres as $l) {
+            $montants[$l['colonne']] = ($montants[$l['colonne']] ?? 0.0) + $l['montant'] * $ratio;
+        }
+        foreach ($champs as $c) {
+            $cumul[$id][$c] += array_key_exists($c, $montants)
+                ? $montants[$c]
+                : (float) $r[$c] * $ratio;
+        }
     }
     foreach ($cumul as &$c) {
         foreach ($champs as $f2) { $c[$f2] = round($c[$f2], 2); }
-        $c['emp_ocas'] = round($c['emp_avs'] + $c['emp_ac'] + $c['emp_amat'] + $c['emp_af'], 2);
+        $c['emp_ocas'] = charges_groupe_total($c, $groupes, 'ocas',
+            ['emp_avs', 'emp_ac', 'emp_amat', 'emp_af']);
     }
     unset($c);
     return $cumul;

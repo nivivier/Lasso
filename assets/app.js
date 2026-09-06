@@ -815,6 +815,96 @@ function lassoPlanArbre(opts) {
     document.addEventListener('dragend', hideIndic);
 }
 
+// Liste PLATE réordonnable par glisser-déposer — variante sans hiérarchie de
+// lassoPlanArbre() (?p=postes). Même vocabulaire visuel : .plan-row / .plan-grip
+// / .plan-indic, .dnd-on qui bascule la ligne en lecture (le crayon .plan-edit-btn
+// ouvre le formulaire, .plan-annuler-btn le referme), et les replis .plan-fallback
+// masqués dès que le glisser-déposer est actif.
+//
+// Le dépôt renseigne #reorder-form (id + ordre complet) et l'envoie : c'est le
+// serveur qui renumérote, la page n'invente aucun ordre local.
+function lassoOrdreListe(opts) {
+    const { containerSelector, rowsSelector, scrollKey, formAction, groupAttr = null } = opts;
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    const memo = sessionStorage.getItem(scrollKey);
+    if (memo !== null) { sessionStorage.removeItem(scrollKey); window.scrollTo(0, parseInt(memo, 10) || 0); }
+    const saveScroll = () => sessionStorage.setItem(scrollKey, window.scrollY);
+    document.querySelectorAll('form[action="' + formAction + '"]').forEach(f => f.addEventListener('submit', saveScroll));
+    document.querySelectorAll(containerSelector).forEach(el => el.classList.add('dnd-on'));
+
+    document.querySelectorAll('.plan-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const row = btn.closest(rowsSelector);
+            row.classList.add('editing');
+            row.querySelector('.plan-edit input, .plan-edit select')?.focus();
+        });
+    });
+    document.querySelectorAll('.plan-annuler-btn').forEach(btn => {
+        btn.addEventListener('click', () => btn.closest(rowsSelector).classList.remove('editing'));
+    });
+
+    let dragId = null, indic = null;
+    document.querySelectorAll('.plan-grip').forEach(g => {
+        g.addEventListener('dragstart', e => {
+            dragId = g.closest(rowsSelector).dataset.id;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', dragId);
+        });
+    });
+
+    // Projette un dépôt : la ligne survolée, et si le curseur est dans sa moitié
+    // haute, l'insertion se fait AVANT elle (sinon après). Avec groupAttr, on
+    // refuse de déposer dans un autre groupe (déductions / charges) : l'ordre
+    // renvoyé reste celui de TOUTE la liste, dans l'ordre du document.
+    function projeter(e) {
+        if (!dragId) return null;
+        const over = e.target.closest(rowsSelector);
+        if (!over || over.dataset.id === dragId) return null;
+        if (groupAttr) {
+            const source = document.querySelector(rowsSelector + '[data-id="' + dragId + '"]');
+            if (!source || over.dataset[groupAttr] !== source.dataset[groupAttr]) return null;
+        }
+        const r = over.getBoundingClientRect();
+        const avant = e.clientY < r.top + r.height * 0.5;
+        const ids = [...document.querySelectorAll(rowsSelector)].map(x => x.dataset.id).filter(i => i !== dragId);
+        const k = ids.indexOf(over.dataset.id);
+        const order = [...ids.slice(0, avant ? k : k + 1), dragId, ...ids.slice(avant ? k : k + 1)];
+        return { order, el: over, avant };
+    }
+    function showIndic(p) {
+        if (!indic) {
+            indic = document.createElement('div');
+            indic.className = 'plan-indic';
+            document.body.appendChild(indic);
+        }
+        const r = p.el.getBoundingClientRect();
+        indic.style.display = 'block';
+        indic.style.top = ((p.avant ? r.top : r.bottom) - 1) + 'px';
+        indic.style.left = r.left + 'px';
+        indic.style.width = Math.max(40, r.width - 12) + 'px';
+    }
+    function hideIndic() { if (indic) indic.style.display = 'none'; }
+
+    document.addEventListener('dragover', e => {
+        const p = projeter(e);
+        if (!p) { hideIndic(); return; }
+        e.preventDefault();
+        showIndic(p);
+    });
+    document.addEventListener('drop', e => {
+        const p = projeter(e);
+        hideIndic();
+        if (!p) return;
+        e.preventDefault();
+        const f = document.getElementById('reorder-form');
+        f.querySelector('[name=id]').value = dragId;
+        f.querySelector('[name=order]').value = p.order.join(',');
+        saveScroll();
+        f.submit();
+    });
+    document.addEventListener('dragend', hideIndic);
+}
+
 // Raccourci « / » : place le curseur dans le champ de recherche de la page
 // (recherche unifiée du tableau de bord, ou recherche d'une liste). Ignoré dès
 // que l'utilisateur est déjà en train de saisir quelque part — sinon taper « / »

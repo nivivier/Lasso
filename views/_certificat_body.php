@@ -1,5 +1,5 @@
 <?php
-/** @var array $emp */ /** @var int $annee */ /** @var array $fiches */ /** @var array $tot */
+/** @var array $rubriques */ /** @var array $emp */ /** @var int $annee */ /** @var array $fiches */ /** @var array $tot */
 // Certificat de salaire — structure officielle Formulaire 11 (AFC / CSI).
 // Correspondance des rubriques avec nos données :
 //   1  Salaire (pas de chiffres 2 à 7 dans notre cas) = total brut
@@ -10,10 +10,13 @@
 //   12 Retenue de l'impôt à la source
 $c1   = $tot['salaire_brut'];
 $c8   = $tot['salaire_brut'];
-$c9   = $tot['ded_avs'] + $tot['ded_ac'] + $tot['ded_amat'] + $tot['ded_laa'];
-$c10  = $tot['ded_lpp'];
+// Les rubriques viennent des lignes figées, qui déclarent chacune la case
+// qu'elles alimentent ; les colonnes restent le repli pour une fiche sans copie.
+$rubriques = $rubriques ?? [];
+$c9   = $rubriques['9']    ?? ($tot['ded_avs'] + $tot['ded_ac'] + $tot['ded_amat'] + $tot['ded_laa']);
+$c10  = $rubriques['10.1'] ?? $tot['ded_lpp'];
 $c11  = $c8 - $c9 - $c10;
-$c12  = $tot['ded_impot_source'];
+$c12  = $rubriques['12'] ?? $tot['ded_impot_source'];
 
 // Période d'engagement déduite des mois présents dans l'année.
 $moisList = array_map(fn($f) => (int) $f['mois'], $fiches);

@@ -53,6 +53,67 @@ relatif de la chaîne (`migration_8` → `compta.php`) a dû remonter d'un cran.
 
 ---
 
+### Postes salariaux : des lignes configurables, sans réécrire le passé
+
+Le décompte avait quinze lignes en dur dans `calculer_fiche()` (AVS, AC, A.mat,
+LAA, LPP, impôt à la source, puis neuf charges patronales). Cela tenait tant
+qu'il n'y avait qu'un employeur genevois ; un autre canton, une autre caisse, et
+la liste change. Les lignes vivent désormais dans `postes_salariaux`.
+
+**Le point dur n'est pas le calcul, c'est l'historique.** Une fiche de mars 2024
+doit rester lisible telle qu'elle a été remise à l'employé, même si le poste a
+été renommé, désactivé ou supprimé depuis. D'où la table `fiche_postes` : à
+l'enregistrement, chaque fiche fige sa propre copie des lignes — code, **libellé**,
+taux, montant, rubrique du certificat, groupe comptable. Tout ce qui *lit* une
+fiche lit cette copie : l'écran, l'impression, l'e-mail, le certificat de salaire,
+les agrégats analytiques. Rien ne lit `postes_salariaux`, qui ne sert qu'à
+calculer les fiches **à venir**. C'est ce qui permet de modifier la grille sans
+craindre de réécrire quoi que ce soit.
+
+Conséquence assumée : un changement de taux ne se propage pas. Le recalcul est un
+geste séparé et explicite (`?p=fiches_recalcul`), avec aperçu avant/après, le
+nombre de fiches touchées annoncé, les fiches déjà payées décochées par défaut,
+et une sauvegarde automatique de la base juste avant l'écriture.
+
+Une seule page les porte (`?p=postes`), et pas deux : séparer « les lignes » de
+« leurs taux » obligeait à faire l'aller-retour pour une question aussi simple que
+« combien prélève cette ligne cette année ? », et laissait deux endroits
+responsables du même objet. Le taux appartenant à une année, la page porte un
+sélecteur d'année. Elle se lit d'abord ; le crayon ouvre l'édition d'UNE ligne,
+seul endroit d'où se modifient son taux, ses paliers d'âge, son option « masquer à
+0 » et sa suppression — un seul enregistrement pour toute la ligne, via l'attribut
+`form=` qui rattache les champs des autres colonnes au formulaire de la ligne.
+Seul l'interrupteur « actif » reste actionnable en lecture, comme pour un axe
+analytique.
+
+`mode` n'est volontairement **pas** un langage de formules — quatre
+comportements connus (`taux`, `taux_employe`, `laa_seuil`, `bareme_age`), parce
+qu'une ligne de salaire suisse n'est jamais une expression arbitraire, et qu'un
+mini-langage aurait été impossible à valider et à figer.
+
+Trois points où la bascule aurait pu changer des montants, et ce qui les tient :
+
+- **Les totaux restent la somme des montants arrondis**, poste par poste, jamais
+  recalculés depuis la copie figée. Sur les 38 fiches réelles, 16 suivent une
+  règle d'arrondi plus ancienne (arrondi de la somme non arrondie) et diffèrent
+  d'un centime de la somme de leurs propres lignes. Recalculer le total depuis
+  les lignes aurait silencieusement déplacé ces centimes.
+- **Les colonnes `ded_*` / `emp_*` de `fiches` restent**, alimentées comme avant.
+  Elles ne sont plus la source de vérité mais un cache dénormalisé : tout le SQL
+  d'agrégation (analytique, exports, imports) s'appuie dessus, et les retirer
+  aurait coûté beaucoup pour ne rien gagner. Un poste ajouté par l'employeur n'a
+  pas de colonne : il ne vit que dans `fiche_postes`, ce qui suffit.
+- **`poste_taux` fait foi pour les taux**, `taux_par_annee` ne reste qu'un repli
+  pour une année ou un poste jamais configuré là. `migration_80` a recopié l'un
+  dans l'autre, donc la bascule n'a rien déplacé : les taux résolus sur neuf
+  années sont identiques à ceux d'avant, aux deux réglages du salaire coordonné
+  près (à 0, donc sans effet).
+
+Vérifications faites au moment de la bascule, à reproduire si l'on y retouche :
+53 rendus de fiches et de certificats identiques à l'octet près, 24 rendus de
+certificats et de pages analytiques idem, et les 38 fiches recalculées par le
+nouveau moteur donnant exactement les mêmes montants que l'ancien.
+
 ## Sécurité
 
 ### L'environnement ne doit jamais dépendre de la requête

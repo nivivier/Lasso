@@ -13,4 +13,5 @@
         </label>
         <button type="submit">Se connecter</button>
     </form>
+    <p class="muted small auth-lien"><a href="?p=motdepasse_oublie">J'ai oublié mon mot de passe</a></p>
 </div>
