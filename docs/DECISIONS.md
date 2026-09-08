@@ -114,6 +114,35 @@ Vérifications faites au moment de la bascule, à reproduire si l'on y retouche 
 certificats et de pages analytiques idem, et les 38 fiches recalculées par le
 nouveau moteur donnant exactement les mêmes montants que l'ancien.
 
+### Le SQLite d'un hébergement mutualisé n'est pas celui du poste de travail
+
+Deux fois, du SQL parfaitement valide en local a échoué en production, et les
+deux fois la cause était la même : la version de SQLite de l'hébergeur, plus
+ancienne que celle du Mac de développement.
+
+- **`ALTER TABLE … DROP COLUMN`** exige SQLite ≥ 3.35 (2021). En production :
+  « near "DROP": syntax error ». D'où le `try/catch` de `migration_63` puis de
+  `migration_84` : le retrait d'une colonne est un confort, jamais une
+  condition. Sans ce filet, l'exception empêchait `PRAGMA user_version`
+  d'avancer, et **toute** requête HTTP plantait sur `db()`.
+- **Un sous-select dans une clause `JOIN … ON` ne peut pas y référencer l'alias
+  d'une autre table jointe.** L'aperçu de l'export SUISA (v2.6.3) choisissait le
+  contact d'une structure ainsi ; en production : « no such column: d.id », à la
+  préparation de la requête, donc avant même de l'exécuter. Référencer la
+  PREMIÈRE table du `FROM` fonctionne, elle (le même export résout ainsi la
+  structure organisatrice depuis `evenements`) — c'est bien l'alias d'une
+  jointure qui n'est pas visible là.
+
+La leçon n'est pas « écrire du SQL plus pauvre », c'est **choisir où placer la
+logique**. Quand une règle de sélection devient une acrobatie SQL, elle vit
+mieux en PHP : `structures_contact_reference()` (lib/booking.php) résout le
+contact d'un lot de structures en trois requêtes à listes `IN`, portables
+partout, et produit un export identique au caractère près à la version SQL.
+
+Les tests ne rattrapent pas cette classe de bogue : ils tournent sur le SQLite
+du poste de travail. Seul le déploiement la révèle — d'où l'intérêt de garder
+ces deux cas écrits ici.
+
 ## Sécurité
 
 ### L'environnement ne doit jamais dépendre de la requête

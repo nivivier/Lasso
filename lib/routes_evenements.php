@@ -385,48 +385,33 @@ function evenements_export_suisa_donnees(): array
     // coordonnées. On garde la même priorité — la structure de facturation
     // d'abord — puis la première structure liée.
     //
-    // Les coordonnées de la personne à contacter viennent des CONTACTS de cette
-    // structure (structure_contacts), pas des champs de la structure elle-même,
-    // qui ne sont plus remplis : celui coché « administration » d'abord, sinon
-    // le premier contact actif.
-    //
-    // Une salle sans contact propre reprend celui de sa ou ses structures mères
-    // (structure_organisateurs) — c'est souvent l'association organisatrice qui
-    // porte l'interlocuteur. D'où le premier critère de tri : un contact de la
-    // structure elle-même passe TOUJOURS avant un contact repris de la mère,
-    // même non coché « administration ».
-
+    // Les coordonnées de la personne à contacter viennent des CONTACTS de la
+    // structure, pas de ses propres champs : structures_contact_reference()
+    // (lib/booking.php) applique la règle — « administration » d'abord, sinon
+    // le premier contact, sinon celui de la structure mère — en PHP, parce que
+    // le SQLite de production refuse un alias de jointure dans un sous-select
+    // de clause ON. Voir docs/DECISIONS.md § SQLite d'un hébergement mutualisé.
     $from = ' FROM evenements e
               LEFT JOIN spectacles s ON s.id = e.spectacle_id
               LEFT JOIN structures d ON d.id = (
                   SELECT es.structure_id FROM evenement_structures es
                    WHERE es.evenement_id = e.id
-                   ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)
-              LEFT JOIN structure_contacts ct ON ct.id = (
-                  SELECT c2.id FROM structure_contacts c2
-                   WHERE c2.actif = 1
-                     AND (c2.structure_id = d.id
-                          OR c2.structure_id IN (SELECT so.organisateur_id
-                                                   FROM structure_organisateurs so
-                                                  WHERE so.structure_id = d.id))
-                   ORDER BY (c2.structure_id <> d.id),
-                            c2.est_administration DESC,
-                            c2.id ASC
-                   LIMIT 1)';
+                   ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)';
     $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
+                   d.id AS org_id,
                    d.nom AS org_nom, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
-                   d.adresse_localite AS org_localite, d.adresse_pays AS org_pays,
-                   ct.email AS org_email, ct.telephone AS org_telephone,
-                   TRIM(COALESCE(ct.prenom, \'\') || \' \' || COALESCE(ct.nom, \'\')) AS org_contact'
+                   d.adresse_localite AS org_localite, d.adresse_pays AS org_pays'
          . $from . $where . ' ORDER BY e.date DESC, e.id DESC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
+    $contacts = structures_contact_reference(array_column($rows, 'org_id'));
 
     $dateAffichee = fn (string $d): string => $d !== '' ? date('d.m.Y', strtotime($d)) : '';
     $lignes = [];
     foreach ($rows as $r) {
+        $ct = $contacts[(int) ($r['org_id'] ?? 0)] ?? [];
         $lignes[] = [
             $dateAffichee((string) $r['date']),
             $r['spectacle_nom'] ?? '',
@@ -443,9 +428,9 @@ function evenements_export_suisa_donnees(): array
             $r['org_npa'] ?? '',
             $r['org_localite'] ?? '',
             $r['org_pays'] ?? '',
-            $r['org_email'] ?? '',
-            $r['org_telephone'] ?? '',
-            $r['org_contact'] ?? '',
+            $ct['email'] ?? '',
+            $ct['telephone'] ?? '',
+            trim(((string) ($ct['prenom'] ?? '')) . ' ' . ((string) ($ct['nom'] ?? ''))),
         ];
     }
     return [

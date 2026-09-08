@@ -9,6 +9,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.6.4] — 2026-09-08
+
+### Corrigé
+- **L'aperçu de l'export SUISA échouait en production** (« Une erreur est
+  survenue »). Le choix du contact d'une structure passait par un sous-select
+  dans une clause `JOIN … ON` qui y référençait l'alias d'une autre table
+  jointe : la version de SQLite de l'hébergement ne le permet pas et refusait
+  la requête avant même de l'exécuter. Cette sélection se fait désormais en
+  PHP, en trois requêtes portables — l'export produit exactement le même
+  fichier. Voir `docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé`.
+
 ## [2.6.3] — 2026-09-08
 
 ### Ajouté

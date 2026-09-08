@@ -50,6 +50,62 @@ const STRUCTURE_STATUTS_CLASSES_ICONE = [
     'inactif'             => 'muted',
 ];
 
+// Interlocuteur retenu pour un lot de structures : [structure_id => contact].
+//
+// La règle, du plus prioritaire au moins : le contact coché « administration »
+// de la structure, sinon son premier contact actif, sinon — la structure n'en
+// ayant aucun — le contact de sa ou ses structures mères, avec la même
+// priorité entre elles. Un contact propre passe TOUJOURS avant un contact
+// repris de la mère, même non coché.
+//
+// Résolu en PHP, et non par un sous-select dans une clause ON : le SQLite de
+// certains hébergements mutualisés ne sait pas y référencer l'alias d'une autre
+// table jointe (« no such column: d.id », constaté en production). Trois
+// requêtes à listes IN, portables partout, valent mieux qu'une requête élégante
+// qui ne tourne qu'ici.
+function structures_contact_reference(array $structureIds): array
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', $structureIds))));
+    if (!$ids) {
+        return [];
+    }
+    // Les mères, dont on reprendra le contact à défaut.
+    $meres = [];
+    $stmt = db()->prepare('SELECT structure_id, organisateur_id FROM structure_organisateurs
+                            WHERE structure_id IN (' . sql_in($ids) . ')');
+    $stmt->execute($ids);
+    foreach ($stmt as $l) {
+        $meres[(int) $l['structure_id']][] = (int) $l['organisateur_id'];
+    }
+
+    // Contacts actifs de toutes les structures concernées, mères comprises,
+    // déjà triés : l'« administration » d'abord, puis l'ordre de création.
+    $aChercher = array_values(array_unique(array_merge($ids, array_merge([], ...array_values($meres)))));
+    $stmt = db()->prepare('SELECT * FROM structure_contacts
+                            WHERE actif = 1 AND structure_id IN (' . sql_in($aChercher) . ')
+                            ORDER BY est_administration DESC, id ASC');
+    $stmt->execute($aChercher);
+    $parStructure = [];
+    foreach ($stmt as $c) {
+        $parStructure[(int) $c['structure_id']][] = $c;
+    }
+
+    $out = [];
+    foreach ($ids as $id) {
+        $contact = $parStructure[$id][0] ?? null;
+        foreach ($meres[$id] ?? [] as $mere) {
+            if ($contact !== null) {
+                break;
+            }
+            $contact = $parStructure[$mere][0] ?? null;
+        }
+        if ($contact !== null) {
+            $out[$id] = $contact;
+        }
+    }
+    return $out;
+}
+
 // Jauge d'une structure, telle qu'on l'écrit à l'écran.
 //
 // jauge_min et jauge_max sont la PLUS PETITE et la PLUS GRANDE jauge de la
