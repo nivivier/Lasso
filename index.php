@@ -225,6 +225,7 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenements_liste'   => 'route_evenements_liste',
     'evenements_geocoder' => 'route_evenements_geocoder',
     'evenements_export_suisa' => 'route_evenements_export_suisa',
+    'evenements_export_suisa_apercu' => 'route_evenements_export_suisa_apercu',
     'evenement'          => 'route_evenement',
     'evenement_informations' => 'route_evenement_informations',
     'evenement_localisation' => 'route_evenement_localisation',

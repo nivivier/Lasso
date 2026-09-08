@@ -9,6 +9,39 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.6.3] — 2026-09-08
+
+### Ajouté
+- **L'export SUISA s'ouvre d'abord en aperçu.** Le bouton de la liste des
+  événements — désormais une icône d'œil — affiche le tableau exact qui partira
+  dans le fichier, avec le nombre d'événements concernés. Sa barre d'outils
+  porte « Télécharger en CSV » et « Copier » — ce dernier met le tableau dans
+  le presse-papiers, collable tel quel dans un tableur. C'est la fenêtre
+  d'aperçu déjà utilisée par les fiches de salaire, les certificats et les
+  bilans : rien de spécifique n'a été écrit pour elle. Cette fenêtre connaît
+  désormais **deux formats** — « A4 » par défaut, pour un document destiné au
+  papier (facture, fiche de salaire, certificat, bilan), et « ajusté », qui
+  prend la largeur disponible et la seule hauteur de son contenu, pour ce qui
+  n'est pas une feuille.
+
+### Modifié
+- **Les coordonnées d'une structure vivent désormais uniquement dans ses
+  contacts.** Trois colonnes (`email`, `telephone`, `personne_contact`) en
+  portaient encore d'anciennes valeurs : invisibles sur la fiche depuis
+  l'arrivée de la carte « Contacts », mais toujours inscriptibles par les
+  formulaires de création rapide — on pouvait donc saisir des coordonnées qui
+  devenaient aussitôt inaccessibles. Ces formulaires (nouvelle structure d'un
+  événement, nouveau débiteur d'une facture) créent maintenant un **contact**,
+  avec prénom et nom séparés. Les valeurs existantes ont été reprises en
+  contacts pour les structures qui n'en avaient aucun, puis les colonnes ont
+  été retirées.
+
+### Corrigé
+- **L'export SUISA reprend le contact de la structure mère** quand la salle
+  n'en a aucun : c'est souvent l'association organisatrice qui porte
+  l'interlocuteur. Un contact de la structure elle-même passe toujours avant,
+  même s'il n'est pas coché « administration ».
+
 ## [2.6.2] — 2026-09-08
 
 ### Ajouté

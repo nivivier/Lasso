@@ -8,7 +8,8 @@
 // contacter vivent dans les CONTACTS de la structure (structure_contacts), pas
 // dans les champs de la structure — l'export sortait donc e-mail, téléphone et
 // personne de contact vides même quand ils étaient renseignés. On prend le
-// contact coché « administration », sinon le premier contact actif.
+// contact coché « administration », sinon le premier contact actif — et, si la
+// structure n'a aucun contact, celui de sa structure mère.
 //
 // Ce que ce test protège : l'export lisait l'organisateur dans le miroir
 // evenements.organisateur_structure_id, que evenement_resynchroniser_miroirs()
@@ -58,13 +59,13 @@ db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)')
 $_SESSION = ['uid' => 1, 'last_activity' => time(), 'login_time' => time()];
 
 // Deux structures identiques dans leur contenu : seul leur rattachement diffère.
-$insS = db()->prepare('INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite,
-                       adresse_pays, email, telephone, personne_contact) VALUES (?,?,?,?,?,?,?,?)');
-$insS->execute(['Salle des Fêtes', 'Rue du Test 3', '1200', 'Genève', 'Suisse',
-                'contact@salle.test', '+41 22 000 00 00', 'Camille Dupuis']);
+// Les coordonnées ne vivent plus sur la structure (migration_84) mais dans ses
+// contacts, créés juste après.
+$insS = db()->prepare('INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays)
+                       VALUES (?,?,?,?,?)');
+$insS->execute(['Salle des Fêtes', 'Rue du Test 3', '1200', 'Genève', 'Suisse']);
 $avecFacturation = (int) db()->lastInsertId();
-$insS->execute(['Association Sans Facture', 'Chemin Neuf 7', '1400', 'Yverdon', 'Suisse',
-                'info@asso.test', '+41 24 111 11 11', 'Dominique Favre']);
+$insS->execute(['Association Sans Facture', 'Chemin Neuf 7', '1400', 'Yverdon', 'Suisse']);
 $sansFacturation = (int) db()->lastInsertId();
 
 // Contacts : la structure « à facturer » en a deux, dont un coché
@@ -75,6 +76,15 @@ $insC->execute([$avecFacturation, 'Alex', 'Premier', 'alex@salle.test', '+41 22 
 $insC->execute([$avecFacturation, 'Bruno', 'Administration', 'admin@salle.test', '+41 22 999 88 77', 1, 1]);
 $insC->execute([$sansFacturation, 'Chris', 'Seul', 'chris@asso.test', '+41 24 555 44 33', 0, 1]);
 
+// Une salle sans contact propre, rattachée à une association mère qui en a un.
+$insS->execute(['Salle Sans Contact', 'Route Haute 12', '1800', 'Vevey', 'Suisse']);
+$salleFille = (int) db()->lastInsertId();
+$insS->execute(['Association Mère', 'Grand-Rue 1', '1800', 'Vevey', 'Suisse']);
+$mere = (int) db()->lastInsertId();
+db()->prepare('INSERT INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
+    ->execute([$salleFille, $mere]);
+$insC->execute([$mere, 'Elodie', 'Mère', 'elodie@mere.test', '+41 21 777 66 55', 0, 1]);
+
 $insE = db()->prepare("INSERT INTO evenements (date, ville, pays, statut) VALUES (?, ?, 'CH', 'confirme')");
 $insE->execute(['2026-05-01', 'Genève']);
 $ev1 = (int) db()->lastInsertId();
@@ -82,12 +92,16 @@ $insE->execute(['2026-05-02', 'Yverdon']);
 $ev2 = (int) db()->lastInsertId();
 $insE->execute(['2026-05-03', 'Nulle part']);
 $ev3 = (int) db()->lastInsertId(); // aucune structure liée
+$insE->execute(['2026-05-04', 'Vevey']);
+$ev4 = (int) db()->lastInsertId(); // salle sans contact, mère avec contact
 
 $insL = db()->prepare('INSERT INTO evenement_structures (evenement_id, structure_id, est_facturation) VALUES (?, ?, ?)');
 $insL->execute([$ev1, $avecFacturation, 1]);   // cas nº 1 : marquée « à facturer »
 $insL->execute([$ev2, $sansFacturation, 0]);   // cas nº 2 : liée, mais pas marquée
+$insL->execute([$ev4, $salleFille, 0]);       // cas nº 4 : contact repris de la mère
 evenement_resynchroniser_miroirs($ev1);
 evenement_resynchroniser_miroirs($ev2);
+evenement_resynchroniser_miroirs($ev4);
 
 $miroir2 = db()->query("SELECT organisateur_structure_id FROM evenements WHERE id = $ev2")->fetchColumn();
 
@@ -136,6 +150,13 @@ function verifier(string $csv, $miroir2): void
     check('aucun « administration » : e-mail du 1er contact', 'chris@asso.test', $parVille['Yverdon'][15] ?? '');
     check('aucun « administration » : téléphone du 1er contact', '+41 24 555 44 33', $parVille['Yverdon'][16] ?? '');
     check('aucun « administration » : nom du 1er contact', 'Chris Seul', $parVille['Yverdon'][17] ?? '');
+    // Cas nº 4 : la salle n'a aucun contact, on reprend celui de sa mère — mais
+    // l'adresse reste celle de la salle, c'est elle l'organisateur déclaré.
+    check('sans contact propre : nom du contact de la mère', 'Elodie Mère', $parVille['Vevey'][17] ?? '');
+    check('sans contact propre : e-mail de la mère', 'elodie@mere.test', $parVille['Vevey'][15] ?? '');
+    check('sans contact propre : téléphone de la mère', '+41 21 777 66 55', $parVille['Vevey'][16] ?? '');
+    check('la structure déclarée reste la salle', 'Salle Sans Contact', $parVille['Vevey'][10] ?? '');
+    check('avec l\'adresse de la salle', 'Route Haute 12', $parVille['Vevey'][11] ?? '');
     // Cas nº 3 : sans structure liée, il n'y a rien à inventer.
     check('aucune structure liée : colonnes vides', '', $parVille['Nulle part'][10] ?? 'absent');
 

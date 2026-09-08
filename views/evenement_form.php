@@ -421,9 +421,13 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <label>NPA <input name="org_adresse_npa"></label>
             <label>Localité <input name="org_adresse_localite"></label>
             <label>Pays <select name="org_adresse_pays"><?= pays_options_nom('Suisse') ?></select></label>
+            <?php // Ces quatre champs créent un CONTACT de la structure, pas des
+                  // champs de la structure : c'est dans sa carte « Contacts »
+                  // qu'ils se relisent et se corrigent. ?>
+            <label>Prénom du contact (optionnel) <input name="org_prenom"></label>
+            <label>Nom du contact (optionnel) <input name="org_nom_contact"></label>
             <label>E-mail (optionnel) <input name="org_email" type="email"></label>
             <label>Téléphone (optionnel) <input name="org_telephone" type="tel"></label>
-            <label>Personne de contact (optionnel) <input name="org_personne_contact"></label>
         </div>
         <?php endif; ?>
     </form>

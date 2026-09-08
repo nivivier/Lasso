@@ -20,22 +20,43 @@ function structure_creer_depuis_post(string $prefixe): int
     // (formulaire qui ne le propose pas) : les deux colonnes restent vides,
     // comme avant.
     $categorie = structure_categorie_champs((int) ($_POST[$prefixe . 'categorie_id'] ?? 0));
-    db()->prepare("INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays, email,
-                    telephone, personne_contact, categorie, sous_categorie, statut)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'actif')")
+    db()->prepare("INSERT INTO structures (nom, adresse_rue, adresse_npa, adresse_localite, adresse_pays,
+                    categorie, sous_categorie, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'actif')")
         ->execute([
             trim($_POST[$prefixe . 'nom'] ?? ''),
             trim($_POST[$prefixe . 'adresse_rue'] ?? ''),
             trim($_POST[$prefixe . 'adresse_npa'] ?? ''),
             trim($_POST[$prefixe . 'adresse_localite'] ?? ''),
             trim($_POST[$prefixe . 'adresse_pays'] ?? '') ?: 'Suisse',
-            trim($_POST[$prefixe . 'email'] ?? ''),
-            trim($_POST[$prefixe . 'telephone'] ?? ''),
-            trim($_POST[$prefixe . 'personne_contact'] ?? ''),
             $categorie['categorie'],
             $categorie['sous_categorie'],
         ]);
-    return (int) db()->lastInsertId();
+    $structureId = (int) db()->lastInsertId();
+    // Les coordonnées saisies deviennent un CONTACT de la structure, et non des
+    // champs de la structure : c'est là qu'elles se relisent et se corrigent
+    // ensuite (carte « Contacts » de la fiche). Les remplir sur la structure
+    // les rendait invisibles dès l'enregistrement.
+    structure_contact_creer_depuis_post($structureId, $prefixe);
+    return $structureId;
+}
+
+// Contact issu d'un formulaire de création rapide de structure. Ne crée rien si
+// les quatre champs sont vides — une structure sans interlocuteur connu n'a pas
+// besoin d'un contact fantôme.
+function structure_contact_creer_depuis_post(int $structureId, string $prefixe): void
+{
+    $val = fn (string $c): string => trim((string) ($_POST[$prefixe . $c] ?? ''));
+    $prenom    = $val('prenom');
+    $nom       = $val('nom_contact');
+    $email     = $val('email');
+    $telephone = $val('telephone');
+    if ($prenom === '' && $nom === '' && $email === '' && $telephone === '') {
+        return;
+    }
+    db()->prepare('INSERT INTO structure_contacts (structure_id, prenom, nom, email, telephone)
+                   VALUES (?, ?, ?, ?, ?)')
+        ->execute([$structureId, $prenom, $nom, $email, $telephone]);
 }
 
 // Montant d'une ligne (quantité × prix unitaire), arrondi à 2 décimales.

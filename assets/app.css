@@ -2683,7 +2683,16 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
     overflow: hidden;
     display: flex; flex-direction: column;
 }
+/* Format « a4 » (défaut) : la fenêtre a la largeur d'une feuille, quel que
+   soit l'écran — un document ne gagne rien à s'étaler. */
 #preview-modal-frame { border: none; width: 860px; max-width: calc(100vw - 48px); flex: 1; min-height: 400px; }
+/* Format « ajuste » : le contenu n'est pas une feuille (tableau d'export…). La
+   fenêtre prend toute la largeur disponible, mais seulement la HAUTEUR de son
+   contenu — mesurée au chargement (ajusterHauteur(), views/layout.php) — et se
+   centre verticalement. Le min-height du format A4 ne s'applique donc pas. */
+#preview-modal.preview-ajuste { align-items: center; }
+#preview-modal.preview-ajuste #preview-modal-inner { width: 100%; max-height: 100%; }
+#preview-modal.preview-ajuste #preview-modal-frame { width: 100%; max-width: none; min-height: 0; flex: 0 0 auto; }
 #preview-modal-close {
     position: absolute; top: 10px; right: 10px; z-index: 502;
     width: 30px; height: 30px; border-radius: 50%; padding: 0;
@@ -2697,7 +2706,14 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
 /* =================== Print =================== */
 .print-toolbar { padding: 13px 18px; background: var(--brand-surface); color: #fff; display: flex; gap: 16px; align-items: center; }
 
+/* Les barres d'aperçu n'ont longtemps porté qu'un bouton, d'où cette mise en
+   évidence systématique. Dès qu'il y en a plusieurs, une seule action doit
+   ressortir : « ghost » redevient discret, sur fond sombre. */
 .print-toolbar button { background: var(--highlight); border-color: var(--highlight); }
+.print-toolbar .btn.ghost {
+    background: transparent; border-color: rgba(255,255,255,.5); color: #fff; box-shadow: none;
+}
+.print-toolbar .btn.ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.8); color: #fff; }
 .sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: var(--radius-sm); }
 body.print-page { background: #e9e9f2; }
 
@@ -3171,6 +3187,12 @@ abbr {
 .del-opt input { margin-top: 3px; }
 .del-opt select { margin: 6px 0 0; max-width: 100%; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+/* Contenu « ajusté » : une page d'aperçu qui n'est pas une feuille A4 (le
+   tableau de l'export SUISA), affichée dans la fenêtre du même nom. */
+.sheet-ajuste { max-width: none; }
+.export-titre { font-size: var(--fs-large); margin: 0 0 12px; }
+.export-apercu-table { font-size: var(--fs-small); white-space: nowrap; }
+.export-apercu-table th { position: sticky; top: 0; background: var(--card); z-index: 1; }
 
 /* Règles : disposition en cartes (une carte par règle) */
 .regle-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 8px; margin-bottom: 10px; background: var(--card); }

@@ -40,9 +40,12 @@ function facturation_charger(int $id): ?array
 {
     $stmt = db()->prepare("SELECT f.*, d.nom AS structure_nom, d.adresse_rue, d.adresse_npa, d.adresse_localite,
                                    d.adresse_pays,
+                                   -- Contact « administration » d'abord, sinon le
+                                   -- premier qui a une adresse : même règle que
+                                   -- la liste des structures et l'export SUISA.
                                    COALESCE(
-                                       (SELECT email FROM structure_contacts WHERE structure_id = d.id AND est_administration = 1 LIMIT 1),
-                                       NULLIF(d.email, '')
+                                       (SELECT email FROM structure_contacts WHERE structure_id = d.id AND est_administration = 1 AND email <> '' LIMIT 1),
+                                       (SELECT email FROM structure_contacts WHERE structure_id = d.id AND email <> '' ORDER BY id LIMIT 1)
                                    ) AS structure_email,
                                    c.libelle AS compte_libelle, c.iban
                             FROM factures f
@@ -712,9 +715,9 @@ function structures_filtres(): array
 // [points, nbNonGeolocalises].
 function structures_carte_points(string $where, array $params): array
 {
-    [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email',
+    [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite',
         '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)',
-        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom)) FROM structure_contacts WHERE structure_id = s.id)"]);
+        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom) || ' ' || email) FROM structure_contacts WHERE structure_id = s.id)"]);
     $stmt = db()->prepare(
         "SELECT s.id, s.nom, s.categorie, s.adresse_localite AS ville, s.departement_canton, s.adresse_pays AS pays
          FROM structures s" . $where . " AND s.adresse_localite <> ''" . $rechSql . ' ORDER BY s.adresse_localite, s.nom'
@@ -933,8 +936,7 @@ function route_structures(): void
         )) AS contacts_noms,
         COALESCE(
             (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
-            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1),
-            NULLIF(s.email, '')
+            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1)
         ) AS email_affiche";
     // « Contact privilégié » puis « actif » d'abord, « ne_pas_contacter » puis
     // « inactif » en dernier (même esprit que l'ancien ORDER BY s.actif DESC).
@@ -958,9 +960,9 @@ function route_structures(): void
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite', 's.email',
+        [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite',
         '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)',
-        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom)) FROM structure_contacts WHERE structure_id = s.id)"]);
+        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom) || ' ' || email) FROM structure_contacts WHERE structure_id = s.id)"]);
         $where .= $rechSql;
         $params = array_merge($params, $rechParams);
 
@@ -1213,9 +1215,9 @@ function route_structure(): void
         // statut : géré à part (bloc « Statut », bascule immédiate via
         // route_structure_statut()) — jamais touché par cet enregistrement,
         // sinon toute sauvegarde de la fiche le réinitialiserait.
-        // email/telephone/personne_contact : plus dans ce formulaire (remplacés par
-        // la card Contacts) — colonnes conservées mais volontairement absentes des
-        // requêtes ci-dessous, pour ne jamais écraser une valeur historique.
+        // email/telephone/personne_contact : ces colonnes n'existent plus
+        // (migration_84) — leurs valeurs sont devenues des contacts de la
+        // structure, qui se gèrent dans la card Contacts de sa fiche.
         $err = $champs['nom'] === '' ? 'Le nom est obligatoire.' : null;
         if ($id) {
             if ($err) {

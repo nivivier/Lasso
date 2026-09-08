@@ -247,11 +247,20 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         txt.textContent = expanded ? td.title : txt.dataset.summary;
     });
 
-    // Modal plein écran pour les aperçus d'impression (liens [data-preview]).
+    // Fenêtre d'aperçu (liens [data-preview]). DEUX formats, et pas un de plus :
+    //   « a4 » (défaut) — un document destiné au papier : facture, fiche de
+    //          salaire, certificat, bilan. La fenêtre a la largeur d'une feuille.
+    //   « ajuste »      — un contenu qui n'est pas une feuille : le tableau de
+    //          l'export SUISA, par exemple. La fenêtre prend la place disponible.
+    // Le format se déclare sur le lien (data-preview="ajuste"), et non dans la
+    // page cible : la fenêtre s'ouvre avant que l'iframe ait chargé, elle doit
+    // donc connaître sa taille tout de suite.
     const previewModal = document.getElementById('preview-modal');
     const previewFrame = document.getElementById('preview-modal-frame');
     const previewClose = document.getElementById('preview-modal-close');
-    function openPreview(url) {
+    function openPreview(url, format) {
+        previewModal.classList.toggle('preview-ajuste', format === 'ajuste');
+        previewFrame.style.height = '';   // remis à la hauteur du format courant
         previewFrame.src = url;
         previewModal.removeAttribute('hidden');
         document.body.style.overflow = 'hidden';
@@ -259,13 +268,25 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     function closePreview() {
         previewModal.setAttribute('hidden', '');
         previewFrame.src = '';
+        previewFrame.style.height = '';
         document.body.style.overflow = '';
+    }
+    // Format « ajuste » : la hauteur du cadre suit celle du contenu, plafonnée à
+    // la place disponible. Sans cette mesure, l'iframe occuperait toute la
+    // fenêtre même pour trois lignes de tableau — un cadre vide sous le contenu.
+    function ajusterHauteur() {
+        if (!previewModal.classList.contains('preview-ajuste')) return;
+        try {
+            const doc = previewFrame.contentDocument;
+            const dispo = previewModal.clientHeight - 64; // padding 32px en haut et en bas
+            previewFrame.style.height = Math.min(doc.documentElement.scrollHeight + 2, dispo) + 'px';
+        } catch (err) {}
     }
     document.addEventListener('click', e => {
         const a = e.target.closest('a[data-preview]');
         if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
         e.preventDefault();
-        openPreview(a.href);
+        openPreview(a.href, a.dataset.preview);
     });
     previewClose.addEventListener('click', closePreview);
     previewModal.addEventListener('click', e => { if (e.target === previewModal) closePreview(); });
@@ -274,9 +295,13 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     });
     // Intercepte "Fermer" et Escape dans l'iframe (même origine → accès DOM autorisé).
     previewFrame.addEventListener('load', () => {
+        ajusterHauteur();
         try {
             const doc = previewFrame.contentDocument;
-            doc.querySelectorAll('.print-toolbar a').forEach(a => {
+            // Seuls les liens marqués « fermer » referment la fenêtre : la barre
+            // d'outils d'un aperçu peut aussi porter un téléchargement, qui doit
+            // suivre son cours (voir l'aperçu de l'export SUISA).
+            doc.querySelectorAll('.print-toolbar a[data-fermer]').forEach(a => {
                 a.addEventListener('click', ev => { ev.preventDefault(); closePreview(); });
             });
             doc.addEventListener('keydown', ev => {

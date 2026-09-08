@@ -144,9 +144,15 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
             <label>Pays <select name="nd_adresse_pays"><?= pays_options_nom((string) ($post['nd_adresse_pays'] ?? 'Suisse')) ?></select></label>
             <label>E-mail (optionnel) <input name="nd_email" type="email" value="<?= $pv('nd_email') ?>"></label>
         </div>
+        <?php // Ces quatre champs créent un CONTACT de la structure, pas des champs
+              // de la structure : c'est dans sa carte « Contacts » qu'ils se
+              // relisent et se corrigent. ?>
         <div class="grid2">
             <label>Téléphone (optionnel) <input name="nd_telephone" type="tel" value="<?= $pv('nd_telephone') ?>"></label>
-            <label>Personne de contact (optionnel) <input name="nd_personne_contact" value="<?= $pv('nd_personne_contact') ?>"></label>
+            <label>Prénom du contact (optionnel) <input name="nd_prenom" value="<?= $pv('nd_prenom') ?>"></label>
+        </div>
+        <div class="grid2">
+            <label>Nom du contact (optionnel) <input name="nd_nom_contact" value="<?= $pv('nd_nom_contact') ?>"></label>
         </div>
     </div>
 

@@ -69,8 +69,7 @@ function recherche_sources(): array
                                       coalesce(s.categorie,'')) AS sous_titre,
                                  0 AS tri,
                                  trim(coalesce(s.nom,'') || ' ' || coalesce(s.adresse_localite,'') || ' ' ||
-                                      coalesce(s.email,'') || ' ' || coalesce(s.personne_contact,'') || ' ' ||
-                                      coalesce(s.telephone,'') || ' ' || coalesce(s.categorie,'')) AS texte
+                                      coalesce(s.categorie,'')) AS texte
                           FROM structures s",
         ],
         // Contacts d'une structure. Deux particularités :

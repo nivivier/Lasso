@@ -106,8 +106,12 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                 'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
                 'q' => $recherche,
             ]); ?>
-            <a class="btn ghost" href="?p=evenements_export_suisa&<?= $exportQs ?>" title="Exporter les événements filtrés actuellement (SUISA + organisateur)">
-                <?= icon('download') ?> <span class="lbl">Export SUISA</span>
+            <?php // Même mécanique que « Aperçu » sur une fiche, un certificat ou un
+                  // bilan : [data-preview] ouvre la page dans la fenêtre partagée
+                  // (views/layout.php), et le téléchargement part de sa barre d'outils. ?>
+            <a class="btn ghost" href="?p=evenements_export_suisa_apercu&amp;<?= $exportQs ?>" data-preview="ajuste" target="_blank"
+               title="Voir puis exporter les événements filtrés actuellement (SUISA + organisateur)">
+                <?= icon('eye') ?> <span class="lbl">Export SUISA</span>
             </a>
             <?php if (peut_ecrire('evenements')): ?>
             <a class="btn" href="?p=evenement"><?= icon('calendar-plus') ?><span class="lbl"> Nouvel événement</span></a>

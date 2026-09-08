@@ -108,6 +108,8 @@ function run_migrations(PDO $pdo): void
         80 => 'migration_80', // postes salariaux : les lignes d'un décompte deviennent des enregistrements, et chaque fiche en fige une copie (étape 1, aucun changement de comportement)
         81 => 'migration_81', // reinit_motdepasse : jetons à usage unique du « mot de passe oublié » (empreinte seule, jamais le jeton)
         82 => 'migration_82', // utilisateurs.derniere_connexion_le : la dernière connexion réussie, affichée dans ?p=comptes
+        83 => 'migration_83', // structures.email/telephone/personne_contact → un contact de la structure (structure_contacts)
+        84 => 'migration_84', // …puis retrait de ces trois colonnes, devenues sans lecteur
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2546,5 +2548,62 @@ function migration_82(PDO $pdo): void
     }
     if (!in_array('derniere_connexion_le', $cols, true)) {
         $pdo->exec("ALTER TABLE utilisateurs ADD COLUMN derniere_connexion_le TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Les coordonnées d'une structure vivent dans ses CONTACTS depuis la carte
+// « Contacts » de sa fiche. Trois colonnes en portaient encore d'anciennes
+// valeurs : invisibles à l'écran, mais toujours lues en dernier repli par la
+// facturation, l'export SUISA et la recherche. On les reprend en contacts, ce
+// qui unifie le modèle et permet à migration_84 de supprimer les colonnes.
+//
+// Seules les structures SANS aucun contact sont reprises : là où un contact
+// existe déjà, c'est lui qui fait foi, et une reprise créerait un doublon.
+//
+// « personne_contact » est un seul champ texte : on coupe au premier espace
+// (« Marie Dupont » → prénom « Marie », nom « Dupont »), et une valeur en un
+// seul mot part dans le nom — c'est ainsi qu'on lit « Dupont » ou « Accueil ».
+function migration_83(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
+    foreach (['email', 'telephone', 'personne_contact'] as $c) {
+        if (!in_array($c, $cols, true)) {
+            return; // colonnes déjà retirées : rien à reprendre
+        }
+    }
+    $lignes = $pdo->query(
+        "SELECT id, email, telephone, personne_contact FROM structures s
+          WHERE (TRIM(COALESCE(email, '')) <> ''
+                 OR TRIM(COALESCE(telephone, '')) <> ''
+                 OR TRIM(COALESCE(personne_contact, '')) <> '')
+            AND NOT EXISTS (SELECT 1 FROM structure_contacts c WHERE c.structure_id = s.id)"
+    )->fetchAll();
+    $ins = $pdo->prepare('INSERT INTO structure_contacts (structure_id, prenom, nom, email, telephone)
+                          VALUES (?, ?, ?, ?, ?)');
+    foreach ($lignes as $l) {
+        $personne = trim((string) $l['personne_contact']);
+        $prenom = '';
+        $nom    = $personne;
+        if ($personne !== '' && str_contains($personne, ' ')) {
+            [$prenom, $nom] = explode(' ', $personne, 2);
+        }
+        $ins->execute([(int) $l['id'], $prenom, $nom,
+            trim((string) $l['email']), trim((string) $l['telephone'])]);
+    }
+}
+
+// Retrait des trois colonnes reprises par migration_83. DROP COLUMN direct
+// (aucune clé étrangère ni index dessus, pas de RENAME de table — ce n'est pas
+// le cas à risque documenté en tête de fichier), mais il exige SQLite ≥ 3.35 :
+// best-effort, jamais bloquant, exactement comme migration_63 qui a rencontré
+// une version plus ancienne en production. Si le DROP échoue, les colonnes
+// restent en base, inertes — plus aucun code ne les lit ni ne les écrit.
+function migration_84(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
+    foreach (['email', 'telephone', 'personne_contact'] as $c) {
+        if (in_array($c, $cols, true)) {
+            try { $pdo->exec("ALTER TABLE structures DROP COLUMN $c"); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+        }
     }
 }

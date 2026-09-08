@@ -368,9 +368,12 @@ function route_evenements_geocoder(): void
 // sans pagination : date, spectacle, ville, région/canton, pays, salle, festival,
 // suivi SUISA (envoyé à/date d'envoi/date du décompte), et tous les champs de
 // l'organisateur lié le cas échéant.
-function route_evenements_export_suisa(): void
+// Données de l'export SUISA pour les filtres courants : l'en-tête et les lignes
+// déjà mises en forme (dates en jj.mm.aaaa, libellés lisibles). Une seule
+// source pour le fichier CSV et pour son aperçu à l'écran — sans quoi les deux
+// finiraient par ne plus montrer la même chose.
+function evenements_export_suisa_donnees(): array
 {
-    require_login();
     $spectacleMap = spectacle_map();
     $f = evenements_lire_filtres();
     [$where, $params] = evenements_where_filtres($f, $spectacleMap);
@@ -385,8 +388,14 @@ function route_evenements_export_suisa(): void
     // Les coordonnées de la personne à contacter viennent des CONTACTS de cette
     // structure (structure_contacts), pas des champs de la structure elle-même,
     // qui ne sont plus remplis : celui coché « administration » d'abord, sinon
-    // le premier contact actif. Les champs de la structure restent le dernier
-    // repli, pour les fiches anciennes qui les portent encore.
+    // le premier contact actif.
+    //
+    // Une salle sans contact propre reprend celui de sa ou ses structures mères
+    // (structure_organisateurs) — c'est souvent l'association organisatrice qui
+    // porte l'interlocuteur. D'où le premier critère de tri : un contact de la
+    // structure elle-même passe TOUJOURS avant un contact repris de la mère,
+    // même non coché « administration ».
+
     $from = ' FROM evenements e
               LEFT JOIN spectacles s ON s.id = e.spectacle_id
               LEFT JOIN structures d ON d.id = (
@@ -395,41 +404,30 @@ function route_evenements_export_suisa(): void
                    ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)
               LEFT JOIN structure_contacts ct ON ct.id = (
                   SELECT c2.id FROM structure_contacts c2
-                   WHERE c2.structure_id = d.id AND c2.actif = 1
-                   ORDER BY c2.est_administration DESC, c2.id ASC LIMIT 1)';
+                   WHERE c2.actif = 1
+                     AND (c2.structure_id = d.id
+                          OR c2.structure_id IN (SELECT so.organisateur_id
+                                                   FROM structure_organisateurs so
+                                                  WHERE so.structure_id = d.id))
+                   ORDER BY (c2.structure_id <> d.id),
+                            c2.est_administration DESC,
+                            c2.id ASC
+                   LIMIT 1)';
     $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
                    d.nom AS org_nom, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
                    d.adresse_localite AS org_localite, d.adresse_pays AS org_pays,
-                   COALESCE(NULLIF(ct.email, \'\'), d.email) AS org_email,
-                   COALESCE(NULLIF(ct.telephone, \'\'), d.telephone) AS org_telephone,
-                   COALESCE(NULLIF(TRIM(COALESCE(ct.prenom, \'\') || \' \' || COALESCE(ct.nom, \'\')), \'\'),
-                            d.personne_contact) AS org_contact'
+                   ct.email AS org_email, ct.telephone AS org_telephone,
+                   TRIM(COALESCE(ct.prenom, \'\') || \' \' || COALESCE(ct.nom, \'\')) AS org_contact'
          . $from . $where . ' ORDER BY e.date DESC, e.id DESC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
-    $nomEmployeur = (string) param('employeur_nom');
-    $filename = 'export-suisa-' . date('Y-m-d')
-        . ($nomEmployeur !== '' ? '-' . preg_replace('/[^a-z0-9]/i', '-', $nomEmployeur) : '') . '.csv';
-
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Cache-Control: no-cache');
-
-    $out = fopen('php://output', 'w');
-    fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour compatibilité Excel
     $dateAffichee = fn (string $d): string => $d !== '' ? date('d.m.Y', strtotime($d)) : '';
-    fputcsv($out, [
-        'Date', 'Spectacle', 'Ville', 'Région/canton', 'Pays', 'Salle', 'Festival',
-        'SUISA envoyée à', "SUISA date d'envoi", 'SUISA date du décompte',
-        'Organisateur — Nom', 'Organisateur — Rue', 'Organisateur — NPA',
-        'Organisateur — Localité', 'Organisateur — Pays', 'Organisateur — E-mail',
-        'Organisateur — Téléphone', 'Organisateur — Personne de contact',
-    ], ';', '"', '\\');
+    $lignes = [];
     foreach ($rows as $r) {
-        fputcsv($out, [
+        $lignes[] = [
             $dateAffichee((string) $r['date']),
             $r['spectacle_nom'] ?? '',
             $r['ville'],
@@ -448,10 +446,57 @@ function route_evenements_export_suisa(): void
             $r['org_email'] ?? '',
             $r['org_telephone'] ?? '',
             $r['org_contact'] ?? '',
-        ], ';', '"', '\\');
+        ];
+    }
+    return [
+        'entetes' => [
+            'Date', 'Spectacle', 'Ville', 'Région/canton', 'Pays', 'Salle', 'Festival',
+            'SUISA envoyée à', "SUISA date d'envoi", 'SUISA date du décompte',
+            'Organisateur — Nom', 'Organisateur — Rue', 'Organisateur — NPA',
+            'Organisateur — Localité', 'Organisateur — Pays', 'Organisateur — E-mail',
+            'Organisateur — Téléphone', 'Organisateur — Personne de contact',
+        ],
+        'lignes' => $lignes,
+    ];
+}
+
+function route_evenements_export_suisa(): void
+{
+    require_login();
+    ['entetes' => $entetes, 'lignes' => $lignes] = evenements_export_suisa_donnees();
+
+    $nomEmployeur = (string) param('employeur_nom');
+    $filename = 'export-suisa-' . date('Y-m-d')
+        . ($nomEmployeur !== '' ? '-' . preg_replace('/[^a-z0-9]/i', '-', $nomEmployeur) : '') . '.csv';
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache');
+
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour compatibilité Excel
+    fputcsv($out, $entetes, ';', '"', '\\');
+    foreach ($lignes as $ligne) {
+        fputcsv($out, $ligne, ';', '"', '\\');
     }
     fclose($out);
     exit;
+}
+
+// Aperçu de l'export : une page d'impression ordinaire, ouverte dans la fenêtre
+// partagée des aperçus (lien [data-preview], voir views/layout.php) — la même
+// que « Aperçu » sur une fiche de salaire, un certificat ou un bilan. Rien de
+// spécifique ici : la fenêtre, la fermeture et la touche Échap sont déjà
+// gérées une fois pour toutes.
+function route_evenements_export_suisa_apercu(): void
+{
+    require_login();
+    // Les filtres courants, à reporter sur le lien de téléchargement de la
+    // barre d'outils pour qu'il exporte exactement ce qui est affiché.
+    $filtres = $_GET;
+    unset($filtres['p']);
+    render_bare('evenements_export_suisa_print',
+        evenements_export_suisa_donnees() + ['exportQs' => http_build_query($filtres)]);
 }
 
 function route_evenement(): void
