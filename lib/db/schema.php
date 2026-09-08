@@ -17,6 +17,10 @@ function init_schema(PDO $pdo): void
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             email        TEXT NOT NULL UNIQUE,
             mot_de_passe TEXT NOT NULL,
+            -- Horodatage de la dernière connexion réussie, écrit par PHP (et
+            -- non par datetime('now'), qui rend de l'UTC) : il est affiché à
+            -- l'heure, avec date(), donc il doit venir de la même horloge.
+            derniere_connexion_le TEXT NOT NULL DEFAULT '',
             cree_le      TEXT NOT NULL DEFAULT (datetime('now'))
         );
 

@@ -107,6 +107,7 @@ function run_migrations(PDO $pdo): void
         79 => 'migration_79', // rapprochement fiche de salaire ↔ écriture bancaire (fiches.ecriture_id + ecritures.fiche_id), symétrique de la facture
         80 => 'migration_80', // postes salariaux : les lignes d'un décompte deviennent des enregistrements, et chaque fiche en fige une copie (étape 1, aucun changement de comportement)
         81 => 'migration_81', // reinit_motdepasse : jetons à usage unique du « mot de passe oublié » (empreinte seule, jamais le jeton)
+        82 => 'migration_82', // utilisateurs.derniere_connexion_le : la dernière connexion réussie, affichée dans ?p=comptes
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2532,4 +2533,18 @@ function migration_81(PDO $pdo): void
         )
     ");
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_reinit_jeton ON reinit_motdepasse(jeton_hash)');
+}
+
+// Dernière connexion réussie d'un compte, affichée dans ?p=comptes. Vide pour
+// les comptes existants jusqu'à leur prochaine connexion : on ne peut pas
+// inventer une date qui n'a jamais été enregistrée.
+function migration_82(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(utilisateurs)') as $col) {
+        $cols[] = $col['name'];
+    }
+    if (!in_array('derniere_connexion_le', $cols, true)) {
+        $pdo->exec("ALTER TABLE utilisateurs ADD COLUMN derniere_connexion_le TEXT NOT NULL DEFAULT ''");
+    }
 }

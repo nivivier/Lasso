@@ -510,10 +510,6 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .info-tip:hover .info-tip-bulle, .info-tip:focus .info-tip-bulle, .info-tip.open .info-tip-bulle { display: block; }
 
 /* Réinitialisation de mot de passe : champ, bouton en dessous */
-.reset-form { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.reset-form input { flex: 1 1 auto; min-width: 0; max-width: 240px; }
-.reset-form .btn-sm { flex: 0 0 auto; }
-
 /* Matrice de permissions (écran Utilisateurs) : colonnes de module réduites
    au strict nécessaire et de largeur strictement identique. table-layout:
    fixed est nécessaire — en layout auto, un mot non coupable comme
@@ -524,9 +520,14 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    (E-mail prend le reste de la place, seule colonne sans largeur fixée). */
 .perm-table { table-layout: fixed; }
 .perm-table th:first-child, .perm-table td:first-child { width: auto; }
-.perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 90px; }
-.perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 160px; }
-.perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 46px; }
+/* Largeurs des trois dernières colonnes (table-layout: fixed) : dernière
+   connexion — qui porte une date ET une heure —, création, puis les actions
+   (crayon + corbeille). */
+.perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 132px; }
+.perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 88px; }
+.perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 78px; }
+/* La ligne d'édition occupe toute la largeur : elle échappe aux largeurs fixes. */
+.perm-table .compte-edit-row > td { width: auto; }
 .perm-col {
     width: 70px; white-space: normal; overflow-wrap: break-word; text-align: center;
     -webkit-hyphens: auto; hyphens: auto; /* coupure avec trait d'union plutôt qu'en plein milieu d'un mot */
@@ -1894,6 +1895,30 @@ button:active, .btn:active { transform: translateY(1px); }
 .mt-18 { margin-top: 18px; }
 .mt-22 { margin-top: 22px; }
 .mb-0 { margin-bottom: 0; }
+
+/* ?p=comptes — l'identité d'un compte en tête de ligne, et son édition dans une
+   ligne dépliée par le crayon (aucun champ modifiable tant qu'elle est fermée,
+   comme sur les axes analytiques ou les lignes du décompte). */
+.compte-identite { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.compte-nom { font-weight: 600; }
+/* La ligne d'édition épouse les colonnes du tableau : les droits restent sous
+   l'en-tête de LEUR module, l'identité tient dans la première colonne, et les
+   boutons se posent tout à droite, sous le crayon qui a ouvert l'édition. */
+.compte-edit-row > td { background: var(--surface); vertical-align: top; padding-top: 10px; padding-bottom: 12px; }
+.compte-edit-identite { display: flex; flex-direction: column; gap: 8px; white-space: normal; }
+.compte-edit-identite label { margin-bottom: 0; display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
+.compte-edit-identite input { width: 100%; min-width: 0; }
+/* Sélecteur assez spécifique pour battre « .list th, .list td { text-align:
+   left } », sans quoi les boutons restaient collés au bord gauche de leur
+   cellule fusionnée. */
+.perm-table td.compte-edit-actions { text-align: right; white-space: nowrap; }
+/* Droit en lecture seule : l'icône du niveau accordé, sans cadre ni cible de
+   clic. Le refus se distingue au premier coup d'œil de l'accès accordé. */
+.perm-lecture { display: inline-flex; align-items: center; justify-content: center; }
+.perm-lecture .ico { width: 14px; height: 14px; }
+.perm-lecture.perm-aucun { color: var(--line); }
+.perm-lecture.perm-lecture-niv { color: var(--muted); }
+.perm-lecture.perm-ecriture { color: var(--primary); }
 .mb-8 { margin-bottom: 8px; }
 .mb-16 { margin-bottom: 16px; }
 .mt-16 { margin-top: 16px; }

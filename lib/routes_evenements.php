@@ -381,17 +381,30 @@ function route_evenements_export_suisa(): void
     // renseigné mais non coché « à facturer » sortait donc sans aucune de ses
     // coordonnées. On garde la même priorité — la structure de facturation
     // d'abord — puis la première structure liée.
+    //
+    // Les coordonnées de la personne à contacter viennent des CONTACTS de cette
+    // structure (structure_contacts), pas des champs de la structure elle-même,
+    // qui ne sont plus remplis : celui coché « administration » d'abord, sinon
+    // le premier contact actif. Les champs de la structure restent le dernier
+    // repli, pour les fiches anciennes qui les portent encore.
     $from = ' FROM evenements e
               LEFT JOIN spectacles s ON s.id = e.spectacle_id
               LEFT JOIN structures d ON d.id = (
                   SELECT es.structure_id FROM evenement_structures es
                    WHERE es.evenement_id = e.id
-                   ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)';
+                   ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)
+              LEFT JOIN structure_contacts ct ON ct.id = (
+                  SELECT c2.id FROM structure_contacts c2
+                   WHERE c2.structure_id = d.id AND c2.actif = 1
+                   ORDER BY c2.est_administration DESC, c2.id ASC LIMIT 1)';
     $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
                    d.nom AS org_nom, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
-                   d.adresse_localite AS org_localite, d.adresse_pays AS org_pays, d.email AS org_email,
-                   d.telephone AS org_telephone, d.personne_contact AS org_contact'
+                   d.adresse_localite AS org_localite, d.adresse_pays AS org_pays,
+                   COALESCE(NULLIF(ct.email, \'\'), d.email) AS org_email,
+                   COALESCE(NULLIF(ct.telephone, \'\'), d.telephone) AS org_telephone,
+                   COALESCE(NULLIF(TRIM(COALESCE(ct.prenom, \'\') || \' \' || COALESCE(ct.nom, \'\')), \'\'),
+                            d.personne_contact) AS org_contact'
          . $from . $where . ' ORDER BY e.date DESC, e.id DESC';
     $stmt = db()->prepare($sql);
     $stmt->execute($params);

@@ -104,6 +104,11 @@ function route_login(): void
             // essai, jusqu'à expiration de la fenêtre.
             login_clear_failures($ip, $email);
             rehacher_si_necessaire((int) $u['id'], $mdp, (string) $u['mot_de_passe']);
+            // Horodaté par PHP, pas par SQLite : la valeur est relue et affichée
+            // avec date(), donc elle doit venir de la même horloge (datetime('now')
+            // rend de l'UTC, ce qui décalerait l'heure affichée).
+            db()->prepare('UPDATE utilisateurs SET derniere_connexion_le = ? WHERE id = ?')
+                ->execute([date('Y-m-d H:i:s'), (int) $u['id']]);
             session_regenerate_id(true);
             $_SESSION['uid']           = (int) $u['id'];
             $_SESSION['login_time']    = time();
@@ -287,7 +292,8 @@ function route_comptes(): void
             redirect('comptes', ['ok' => 'created']);
         }
     }
-    $comptes = db()->query('SELECT id, email, cree_le FROM utilisateurs ORDER BY cree_le, id')->fetchAll();
+    $comptes = db()->query('SELECT id, email, prenom, nom, derniere_connexion_le, cree_le
+                            FROM utilisateurs ORDER BY cree_le, id')->fetchAll();
     $permissions = [];
     foreach ($comptes as $c) {
         $permissions[(int) $c['id']] = permissions_utilisateur((int) $c['id']);
@@ -303,21 +309,63 @@ function route_comptes(): void
     ], 'Paramètres — Comptes');
 }
 
-function route_compte_reset(): void
+// Édition d'un compte depuis ?p=comptes : identité, adresse de connexion, et
+// mot de passe si l'on en saisit un. Un seul enregistrement pour toute la
+// ligne — c'est le crayon qui ouvre l'ensemble, rien n'est modifiable en
+// lecture. Cette route n'existe que pour un administrateur (écriture sur
+// « cœur », voir index.php).
+function route_compte_modifier(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         redirect('comptes');
     }
     check_csrf();
-    $id  = (int) ($_POST['id'] ?? 0);
-    $mdp = $_POST['nouveau_mot_de_passe'] ?? '';
-    if (strlen($mdp) < PASSWORD_MIN) {
+    $id    = (int) ($_POST['id'] ?? 0);
+    $mdp   = (string) ($_POST['nouveau_mot_de_passe'] ?? '');
+    $email = trim((string) ($_POST['email'] ?? ''));
+
+    $stmt = db()->prepare('SELECT email FROM utilisateurs WHERE id = ?');
+    $stmt->execute([$id]);
+    $ancienEmail = $stmt->fetchColumn();
+    if ($ancienEmail === false) {
+        redirect('comptes');
+    }
+    if ($mdp !== '' && strlen($mdp) < PASSWORD_MIN) {
         redirect('comptes', ['err' => 'short']);
     }
-    db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
-        ->execute([hacher_mot_de_passe($mdp), $id]);
-    redirect('comptes', ['ok' => 'reset']);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        redirect('comptes', ['err' => 'email']);
+    }
+    $dejaPris = db()->prepare('SELECT id FROM utilisateurs WHERE email = ? AND id <> ?');
+    $dejaPris->execute([$email, $id]);
+    if ($dejaPris->fetch()) {
+        redirect('comptes', ['err' => 'email_pris']);
+    }
+
+    // Les droits font partie de la ligne : un seul enregistrement pour tout ce
+    // que le crayon a ouvert. Le refus (dernier administrateur) est vérifié
+    // AVANT d'écrire quoi que ce soit, pour ne pas laisser la ligne à moitié
+    // enregistrée.
+    $niveaux = is_array($_POST['niveaux'] ?? null) ? $_POST['niveaux'] : [];
+    if (!enregistrer_permissions_utilisateur($id, $niveaux)) {
+        redirect('comptes', ['err' => 'last_admin']);
+    }
+    db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ? WHERE id = ?')
+        ->execute([trim((string) ($_POST['prenom'] ?? '')), trim((string) ($_POST['nom'] ?? '')), $email, $id]);
+    // L'adresse a changé : les liens de réinitialisation en attente ont été
+    // envoyés à l'ancienne, ils ne doivent plus ouvrir ce compte.
+    if ((string) $ancienEmail !== $email) {
+        db()->prepare('DELETE FROM reinit_motdepasse WHERE utilisateur_id = ? AND utilise_le IS NULL')
+            ->execute([$id]);
+    }
+    // Mot de passe laissé vide = inchangé : on ne réinitialise que sur demande.
+    if ($mdp !== '') {
+        db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
+            ->execute([hacher_mot_de_passe($mdp), $id]);
+        redirect('comptes', ['ok' => 'reset']);
+    }
+    redirect('comptes', ['ok' => 'modified']);
 }
 
 function route_compte_delete(): void
@@ -349,19 +397,6 @@ function route_compte_delete(): void
 // POST { id, niveaux[module] = ''|'lecture'|'ecriture' }. Refuse (message
 // d'erreur dédié) si l'opération viderait le dernier compte administrateur —
 // voir enregistrer_permissions_utilisateur().
-function route_compte_permissions(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('comptes');
-    }
-    check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    $niveaux = is_array($_POST['niveaux'] ?? null) ? $_POST['niveaux'] : [];
-    $ok = enregistrer_permissions_utilisateur($id, $niveaux);
-    redirect('comptes', $ok ? ['ok' => 'permissions'] : ['err' => 'last_admin']);
-}
-
 // -------------------------------------------------------------- EMPLOYÉS
 function route_employes(): void
 {

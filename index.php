@@ -287,9 +287,8 @@ if (peut_ecrire('coeur')) {
     // conditionnées par leur présence même dans $handlers, ci-dessus).
     $handlers += [
         'comptes'             => 'route_comptes',
-        'compte_reset'        => 'route_compte_reset',
+        'compte_modifier'     => 'route_compte_modifier',
         'compte_delete'       => 'route_compte_delete',
-        'compte_permissions'  => 'route_compte_permissions',
         'parametres_modules'  => 'route_parametres_modules',
         'maj'                 => 'route_maj',
         'diagnostic'          => 'route_diagnostic',

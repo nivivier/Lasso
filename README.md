@@ -221,6 +221,12 @@ Les comptes se gèrent dans **Paramètres → Comptes**. Chacun reçoit des droi
 droit**, et il doit toujours rester au moins un administrateur. Les modules eux-mêmes
 s'activent dans **Paramètres → Modules**, indépendamment de ces droits.
 
+La liste se lit d'abord : identité, droits par module, dernière connexion, date de
+création. Le **crayon** ouvre l'édition d'une ligne — prénom, nom, adresse e-mail,
+mot de passe et droits s'y règlent d'un seul enregistrement (un mot de passe laissé
+vide reste inchangé). Changer l'adresse d'un compte invalide les liens de
+réinitialisation encore en attente, envoyés à l'ancienne.
+
 ### Les lignes du décompte (postes salariaux)
 
 Tout se règle sur une seule page, **Paramètres → Taux → Lignes du décompte** : les

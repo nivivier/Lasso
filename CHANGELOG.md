@@ -9,6 +9,38 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.6.2] — 2026-09-08
+
+### Ajouté
+- **La date de dernière connexion de chaque compte** (Paramètres →
+  Utilisateurs), enregistrée à chaque connexion réussie. Les comptes existants
+  affichent « jamais » jusqu'à leur prochaine connexion : rien ne permet de
+  reconstituer une date qui n'a jamais été notée.
+- **Le prénom, le nom et l'adresse e-mail d'un compte se modifient** depuis
+  cette page, ce qui n'était possible que par son titulaire depuis « Mon
+  compte ». Changer l'adresse invalide les liens de réinitialisation encore en
+  attente, qui avaient été envoyés à l'ancienne.
+
+### Modifié
+- **La page des comptes se lit avant de se modifier.** Le champ de
+  réinitialisation du mot de passe était ouvert en permanence sur chaque
+  ligne ; il n'y a plus aucun champ modifiable tant qu'on n'a pas cliqué sur
+  le crayon, comme partout ailleurs dans l'application. L'édition déplie une
+  ligne — elle remplace la ligne de lecture — qui réunit prénom, nom, adresse,
+  mot de passe et droits, avec un seul enregistrement ; un mot de passe laissé
+  vide reste inchangé. **Les droits ne se modifient plus d'un clic sur la ligne
+  de lecture** : ils s'y lisent, une icône par module, et leurs interrupteurs
+  n'apparaissent qu'en édition, chacun restant dans la colonne de son module.
+  La ligne montre l'identité du compte avec son adresse en dessous.
+
+### Corrigé
+- **L'export SUISA sortait sans les coordonnées de la personne à contacter**
+  (e-mail, téléphone, nom) même lorsqu'elles étaient renseignées. Il lisait les
+  champs de la structure, alors que ces informations vivent dans ses
+  **contacts**. Il prend maintenant le contact coché « administration », sinon
+  le premier contact actif — et retombe sur les champs de la structure pour les
+  fiches anciennes qui les portent encore.
+
 ## [2.6.1] — 2026-09-08
 
 ### Ajouté

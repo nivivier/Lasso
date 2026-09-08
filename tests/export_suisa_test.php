@@ -4,6 +4,12 @@
 //
 // Base TEMPORAIRE, comme tests/migrations_test.php.
 //
+// Ce que ce test protège, deuxième couche : les coordonnées de la personne à
+// contacter vivent dans les CONTACTS de la structure (structure_contacts), pas
+// dans les champs de la structure — l'export sortait donc e-mail, téléphone et
+// personne de contact vides même quand ils étaient renseignés. On prend le
+// contact coché « administration », sinon le premier contact actif.
+//
 // Ce que ce test protège : l'export lisait l'organisateur dans le miroir
 // evenements.organisateur_structure_id, que evenement_resynchroniser_miroirs()
 // ne remplit QUE depuis la structure marquée « à facturer ». Ce marquage étant
@@ -61,6 +67,14 @@ $insS->execute(['Association Sans Facture', 'Chemin Neuf 7', '1400', 'Yverdon', 
                 'info@asso.test', '+41 24 111 11 11', 'Dominique Favre']);
 $sansFacturation = (int) db()->lastInsertId();
 
+// Contacts : la structure « à facturer » en a deux, dont un coché
+// « administration » (le second) ; l'autre structure n'en a qu'un, non coché.
+$insC = db()->prepare('INSERT INTO structure_contacts (structure_id, prenom, nom, email, telephone, est_administration, actif)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)');
+$insC->execute([$avecFacturation, 'Alex', 'Premier', 'alex@salle.test', '+41 22 111 22 33', 0, 1]);
+$insC->execute([$avecFacturation, 'Bruno', 'Administration', 'admin@salle.test', '+41 22 999 88 77', 1, 1]);
+$insC->execute([$sansFacturation, 'Chris', 'Seul', 'chris@asso.test', '+41 24 555 44 33', 0, 1]);
+
 $insE = db()->prepare("INSERT INTO evenements (date, ville, pays, statut) VALUES (?, ?, 'CH', 'confirme')");
 $insE->execute(['2026-05-01', 'Genève']);
 $ev1 = (int) db()->lastInsertId();
@@ -109,14 +123,19 @@ function verifier(string $csv, $miroir2): void
     // Cas nº 1 : inchangé, la structure de facturation reste prioritaire.
     check('structure « à facturer » : nom', 'Salle des Fêtes', $parVille['Genève'][10] ?? '');
     check('structure « à facturer » : rue', 'Rue du Test 3', $parVille['Genève'][11] ?? '');
+    // Le contact coché « administration » l'emporte, même s'il n'est pas le premier.
+    check('contact « administration » : e-mail', 'admin@salle.test', $parVille['Genève'][15] ?? '');
+    check('contact « administration » : téléphone', '+41 22 999 88 77', $parVille['Genève'][16] ?? '');
+    check('contact « administration » : nom complet', 'Bruno Administration', $parVille['Genève'][17] ?? '');
     // Cas nº 2 : c'est ce qui sortait vide avant le correctif.
     check('organisateur simplement lié : nom', 'Association Sans Facture', $parVille['Yverdon'][10] ?? '');
     check('organisateur simplement lié : rue', 'Chemin Neuf 7', $parVille['Yverdon'][11] ?? '');
     check('organisateur simplement lié : NPA', '1400', $parVille['Yverdon'][12] ?? '');
     check('organisateur simplement lié : localité', 'Yverdon', $parVille['Yverdon'][13] ?? '');
-    check('organisateur simplement lié : e-mail', 'info@asso.test', $parVille['Yverdon'][15] ?? '');
-    check('organisateur simplement lié : téléphone', '+41 24 111 11 11', $parVille['Yverdon'][16] ?? '');
-    check('organisateur simplement lié : personne de contact', 'Dominique Favre', $parVille['Yverdon'][17] ?? '');
+    // Aucun contact coché : on prend le premier, pas les champs de la structure.
+    check('aucun « administration » : e-mail du 1er contact', 'chris@asso.test', $parVille['Yverdon'][15] ?? '');
+    check('aucun « administration » : téléphone du 1er contact', '+41 24 555 44 33', $parVille['Yverdon'][16] ?? '');
+    check('aucun « administration » : nom du 1er contact', 'Chris Seul', $parVille['Yverdon'][17] ?? '');
     // Cas nº 3 : sans structure liée, il n'y a rien à inventer.
     check('aucune structure liée : colonnes vides', '', $parVille['Nulle part'][10] ?? 'absent');
 
