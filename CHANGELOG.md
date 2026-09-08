@@ -9,6 +9,39 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [2.6.1] — 2026-09-08
+
+### Ajouté
+- **Un filtre sur la colonne « Montant » des écritures** (`?p=compta_ecritures`),
+  comme sur Date, Compte, Catégorie et Axe : crédit, débit, ou les deux. Les deux
+  options se partagent toute la liste — une écriture à zéro compte comme un
+  crédit —, si bien que tout cocher revient à ne rien filtrer.
+
+### Modifié
+- **La structure « à facturer » d'un événement se marque avec l'icône de
+  facture**, celle des factures dans tout le reste de l'application, au lieu
+  d'une étoile qui ne disait pas de quoi il s'agissait.
+
+### Corrigé
+- **La jauge d'une structure s'affichait comme un encadrement.** « Jauge min »
+  et « Jauge max » sont la plus petite et la plus grande jauge d'une structure,
+  qui peut avoir plusieurs salles — pas les bornes d'un intervalle. Une salle
+  unique n'en renseigne qu'une, et la fiche affichait alors « ≥ 200 », ce qui
+  laissait croire à une jauge inconnue supérieure à 200. Elle affiche
+  maintenant simplement « 200 ». Les deux champs sont renommés « Plus petite
+  jauge » et « Plus grande jauge », avec un mot d'explication sous eux, et une
+  saisie inversée est remise dans l'ordre à l'affichage au lieu de sortir
+  « 550 – 80 ».
+- **L'export SUISA sortait sans les coordonnées de l'organisateur** (adresse,
+  NPA, localité, e-mail, téléphone, personne de contact) pour une bonne part
+  des événements. L'export lisait l'organisateur dans une colonne miroir que
+  l'application ne remplit qu'à partir de la structure cochée « à facturer » —
+  or ce marquage est facultatif. Un événement dont l'organisateur était
+  pourtant renseigné ressortait donc avec toutes ces colonnes vides. L'export
+  résout maintenant l'organisateur directement depuis les structures liées à
+  l'événement, en gardant la même priorité : la structure « à facturer »
+  d'abord, sinon la première structure liée.
+
 ## [2.6.0] — 2026-09-06
 
 ### Ajouté

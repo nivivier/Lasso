@@ -445,19 +445,8 @@ lassoInitTagSuggest();
                 <tr>
                     <th>Jauge</th>
                     <td>
-                        <?php
-                        $jaugeMinAff = $structure['jauge_min'] ?? null;
-                        $jaugeMaxAff = $structure['jauge_max'] ?? null;
-                        if ($jaugeMinAff !== null && $jaugeMinAff !== '' && $jaugeMaxAff !== null && $jaugeMaxAff !== ''):
-                            echo (int) $jaugeMinAff . ' – ' . (int) $jaugeMaxAff;
-                        elseif ($jaugeMinAff !== null && $jaugeMinAff !== ''):
-                            echo '≥ ' . (int) $jaugeMinAff;
-                        elseif ($jaugeMaxAff !== null && $jaugeMaxAff !== ''):
-                            echo '≤ ' . (int) $jaugeMaxAff;
-                        else:
-                            echo '—';
-                        endif;
-                        ?>
+                        <?php $jaugeAff = structure_jauge_texte($structure['jauge_min'] ?? null, $structure['jauge_max'] ?? null); ?>
+                        <?= $jaugeAff !== '' ? e($jaugeAff) : '—' ?>
                     </td>
                 </tr>
                 <tr>
@@ -500,9 +489,10 @@ lassoInitTagSuggest();
             <input type="hidden" name="via" value="<?= $v('via') ?>">
             <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
             <div class="grid2">
-                <label>Jauge min <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
-                <label>Jauge max <input name="jauge_max" type="number" min="0" value="<?= ($structure['jauge_max'] ?? '') !== '' ? (int) $structure['jauge_max'] : '' ?>" placeholder="ex. 800"></label>
+                <label>Plus petite jauge <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
+                <label>Plus grande jauge <input name="jauge_max" type="number" min="0" value="<?= ($structure['jauge_max'] ?? '') !== '' ? (int) $structure['jauge_max'] : '' ?>" placeholder="ex. 800"></label>
             </div>
+            <p class="muted small">Une structure peut avoir plusieurs salles : indiquez la plus petite et la plus grande jauge. S'il n'y en a qu'une, remplissez un seul des deux champs.</p>
             <label class="check"><input type="checkbox" id="periode-toute-annee" <?= $periodeVide ? 'checked' : '' ?>> Toute l'année</label>
             <div id="periode-mois-champs" class="grid3" <?= $periodeVide ? 'hidden' : '' ?>>
                 <label>Début de réalisation

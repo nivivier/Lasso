@@ -185,5 +185,21 @@ check('échec de géocodage -> listée', true, in_array('Bienne', $nonLoc, true)
 check('jamais tentée -> listée', true, in_array('Sion', $nonLoc, true));
 check('total', ['Bienne', 'Sion'], $nonLoc);
 
+// --- Jauge d'une structure -------------------------------------------------
+// jauge_min / jauge_max = la plus petite et la plus grande jauge de la
+// structure, pas un encadrement. Une salle unique n'en renseigne qu'une : on
+// affiche alors ce nombre, jamais « ≥ 200 », qui laissait croire à une borne.
+echo "\n12) Affichage de la jauge d'une structure\n";
+check('deux salles : la plage', '200 – 800', structure_jauge_texte(200, 800));
+check('une seule jauge, saisie en min', '200', structure_jauge_texte(200, null));
+check('une seule jauge, saisie en max', '800', structure_jauge_texte(null, 800));
+check('même valeur des deux côtés', '450', structure_jauge_texte(450, 450));
+check('saisie inversée : remise dans l\'ordre', '200 – 800', structure_jauge_texte(800, 200));
+check('aucune jauge connue', '', structure_jauge_texte(null, null));
+check('chaînes vides = aucune jauge', '', structure_jauge_texte('', ''));
+check('zéro ne vaut pas une jauge', '', structure_jauge_texte(0, 0));
+check('zéro d\'un côté, valeur de l\'autre', '300', structure_jauge_texte(0, 300));
+check('valeurs en chaînes (POST / SQLite)', '150 – 600', structure_jauge_texte('150', '600'));
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

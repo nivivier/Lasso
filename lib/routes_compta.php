@@ -643,11 +643,15 @@ function route_compta_ecritures(): void
     $annee    = filtre_coche('annee', 'ecr_annee');
     $categorieFilter = filtre_coche('categorie', 'ecr_categorie', null, true);
     $axeFilter        = filtre_coche('axe', 'ecr_axe', null, true);
+    // Sens du montant : deux valeurs qui se partagent toute la liste, d'où le
+    // « ou égal » côté crédit — cocher les deux revient à tout afficher, et une
+    // écriture manuelle à 0 n'est jamais escamotée.
+    $sensFiltre = filtre_coche('sens', 'ecr_sens', ['credit', 'debit']);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $section = $_POST['section'] ?? '';
-        $retour  = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter];
+        $retour  = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre];
         if ($section === 'bulk_undo') {
             $r = bulk_undo_appliquer();
             redirect($r['route'] ?? 'compta_ecritures', ($r['retour'] ?? $retour) + ($r ? ['ok' => 'annule'] : []));
@@ -800,6 +804,13 @@ function route_compta_ecritures(): void
             $params = array_merge($params, $catParams);
         }
     }
+    if ($sensFiltre) {
+        $sensConds = [];
+        foreach ($sensFiltre as $val) {
+            $sensConds[] = $val === 'credit' ? 'e.montant >= 0' : 'e.montant < 0';
+        }
+        $where .= ' AND (' . implode(' OR ', $sensConds) . ')';
+    }
     if (module_actif('analytique') && $axeFilter) {
         $axeConds  = [];
         $axeParams = [];
@@ -897,6 +908,7 @@ function route_compta_ecritures(): void
         'categorieFilter'    => $categorieFilter,
         'categoriesArbre'    => $categoriesArbre,
         'axeFilter'          => $axeFilter,
+        'sensFiltre'         => $sensFiltre,
         'ecritures'          => $ecritures,
         'ventilationsParEcr' => $ventilationsParEcr,
         'feuilles'           => $feuilles,
@@ -909,7 +921,7 @@ function route_compta_ecritures(): void
         'recherche'       => $recherche,
         'modeClient' => $modeClient,
         'pgRoute' => 'compta_ecritures',
-        'pgParams' => array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche]),
+        'pgParams' => array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'q' => $recherche]),
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
     ], 'Comptabilité — Lettrage');
 }

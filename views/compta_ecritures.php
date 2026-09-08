@@ -1,6 +1,6 @@
 <?php
 /** @var array $comptes */ /** @var array $compteId */ /** @var array $annee */ /** @var array $annees */
-/** @var array $categorieFilter */ /** @var array $axeFilter */ /** @var array $ecritures */
+/** @var array $categorieFilter */ /** @var array $axeFilter */ /** @var array $sensFiltre */ /** @var array $ecritures */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */ /** @var bool $modeClient */
@@ -36,7 +36,7 @@ $isEdit   = $editEcr !== null;
 // http_build_query gère aussi bien les valeurs scalaires que les tableaux
 // (compte[0]=1&compte[1]=2 — reparsable tel quel par PHP), donc pas besoin
 // de distinguer les filtres à valeur unique des filtres multi-valeurs ici.
-$qs = '&' . http_build_query(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter]);
+$qs = '&' . http_build_query(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre]);
 $axeLabel = fn(array $ax): string => ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
 
 // Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
@@ -50,12 +50,15 @@ $categorieLabels = ['a_lettrer' => '— À lettrer —', 'ignore' => '— Ne pas
 foreach ($categoriesArbre as $c) {
     $categorieLabels[(int) $c['id']] = str_repeat("\u{00A0}\u{00A0}", (int) $c['profondeur']) . $c['libelle'] . (!empty($c['a_enfants']) ? ' (et sous-catégories)' : '');
 }
+// Même vocabulaire que les règles de lettrage (?p=compta_regles) : le signe
+// vient du relevé bancaire, où une entrée d'argent CRÉDITE le compte.
+$sensLabels = ['credit' => 'Crédit (+)', 'debit' => 'Débit (−)'];
 $axeLabels = ['sans_axe' => '— Sans axe —'];
 foreach ($axes as $ax) { $axeLabels[(int) $ax['id']] = $axeLabel($ax); }
 // $autresFiltres('champ') : les AUTRES filtres actifs de la page (jamais
 // celui-ci), à reporter en hidden inputs par chaque panneau — voir
 // autres_filtres_fn(), lib/helpers.php.
-$tousFiltres = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'q' => $recherche];
+$tousFiltres = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'q' => $recherche];
 $autresFiltres = autres_filtres_fn($tousFiltres);
 // Colonne Compte masquée quand le filtre la rend redondante (un seul compte
 // coché) — généralise l'ancien "$compteId === 0" (affiché) / valeur unique
@@ -213,7 +216,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php $nbCols = 7 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
     <thead>
         <tr>
-            <?php if (peut_ecrire('compta')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('compta_ecritures', ['annee', 'compte', 'categorie', 'axe'], (bool) ($annee || $compteId || $categorieFilter || $axeFilter)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php if (peut_ecrire('compta')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('compta_ecritures', ['annee', 'compte', 'categorie', 'axe', 'sens'], (bool) ($annee || $compteId || $categorieFilter || $axeFilter || $sensFiltre)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <th class="col-date">
                 <span class="col-th">
                     Date
@@ -232,7 +235,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // réponse à « qui ? », que le relevé donne en clair. ?>
             <th class="col-tiers">Contre-partie</th>
             <th>Texte</th>
-            <th class="num">Montant</th>
+            <th class="num">
+                <span class="col-th">
+                    Montant
+                    <?= filtre_colonne_html('compta_ecritures', 'sens', $sensLabels, $sensFiltre, $autresFiltres('sens')) ?>
+                </span>
+            </th>
             <th class="col-categorie">
                 <span class="col-th">
                     Catégorie

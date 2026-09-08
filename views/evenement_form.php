@@ -355,7 +355,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                           // case à cocher ici, et un carré bordé en tenait faussement lieu. ?>
                     <span class="ms-puce <?= e(structure_statut_icone_classe((string) $s['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $s['statut'])) ?>"><?= icon(structure_statut_icone((string) $s['statut'])) ?></span>
                     <span class="ms-corps">
-                        <span class="ms-nom"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('star') ?></span> <?php endif; ?><?= e($s['nom']) ?></span>
+                        <span class="ms-nom"><?php if ($s['est_facturation']): ?><span class="ico-tiny" title="Structure à facturer / SUISA"><?= icon('receipt-swiss-franc') ?></span> <?php endif; ?><?= e($s['nom']) ?></span>
                         <span class="ms-lieu"><?= $msVille !== '' ? $msVille : '<span class="muted">—</span>' ?></span>
                     </span>
                     <span class="ms-cote">
@@ -396,7 +396,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <div class="tags-liste" id="organisation-structures-chips">
             <?php foreach ($structuresLiees as $s): ?>
                 <span class="badge" data-id="<?= (int) $s['id'] ?>">
-                    <button type="button" class="btn-tag-star<?= $s['est_facturation'] ? ' on' : '' ?>" title="Marquer comme structure à facturer / SUISA" aria-label="Marquer comme structure à facturer"><?= icon('star') ?></button>
+                    <button type="button" class="btn-tag-facturation<?= $s['est_facturation'] ? ' on' : '' ?>" title="Marquer comme structure à facturer / SUISA" aria-label="Marquer comme structure à facturer"><?= icon('receipt-swiss-franc') ?></button>
                     <?= e($s['nom']) ?><?= trim((string) $s['ville']) !== '' ? ' — ' . e($s['ville']) : '' ?>
                     <input type="hidden" name="structure_ids[]" value="<?= (int) $s['id'] ?>">
                     <button type="button" class="btn-tag-x chip-remove" aria-label="Retirer">×</button>
@@ -867,7 +867,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     // seule à la fois, reflétée dans le champ caché facturation_id.
     const facturationHidden = document.getElementById('organisation-facturation-id');
     function definirFacturation(chips, id) {
-        chips.querySelectorAll('.btn-tag-star').forEach(btn => {
+        chips.querySelectorAll('.btn-tag-facturation').forEach(btn => {
             btn.classList.toggle('on', btn.closest('.badge').dataset.id === String(id));
         });
         if (facturationHidden) facturationHidden.value = id;
@@ -877,12 +877,12 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         const chip = document.createElement('span');
         chip.className = 'badge';
         chip.dataset.id = id;
-        const starBtn = document.createElement('button');
-        starBtn.type = 'button'; starBtn.className = 'btn-tag-star';
-        starBtn.title = 'Marquer comme structure à facturer / SUISA';
-        starBtn.setAttribute('aria-label', 'Marquer comme structure à facturer');
-        starBtn.innerHTML = <?= json_encode(icon('star')) ?>;
-        chip.appendChild(starBtn);
+        const factBtn = document.createElement('button');
+        factBtn.type = 'button'; factBtn.className = 'btn-tag-facturation';
+        factBtn.title = 'Marquer comme structure à facturer / SUISA';
+        factBtn.setAttribute('aria-label', 'Marquer comme structure à facturer');
+        factBtn.innerHTML = <?= json_encode(icon('receipt-swiss-franc')) ?>;
+        chip.appendChild(factBtn);
         chip.appendChild(document.createTextNode(' ' + label + ' '));
         const hidden = document.createElement('input');
         hidden.type = 'hidden'; hidden.name = 'structure_ids[]'; hidden.value = id;
@@ -899,16 +899,16 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         }
     }
     document.addEventListener('click', ev => {
-        const starBtn = ev.target.closest('.btn-tag-star');
-        if (starBtn) {
-            definirFacturation(starBtn.closest('.tags-liste'), starBtn.closest('.badge').dataset.id);
+        const factBtn = ev.target.closest('.btn-tag-facturation');
+        if (factBtn) {
+            definirFacturation(factBtn.closest('.tags-liste'), factBtn.closest('.badge').dataset.id);
             return;
         }
         const removeBtn = ev.target.closest('.chip-remove');
         if (removeBtn) {
             const chip = removeBtn.closest('.badge');
             const chips = chip.closest('.tags-liste');
-            const etaitFacturation = chip.querySelector('.btn-tag-star')?.classList.contains('on');
+            const etaitFacturation = chip.querySelector('.btn-tag-facturation')?.classList.contains('on');
             chip.remove();
             // La structure retirée était la référence facture/SUISA : reporte
             // automatiquement sur la première restante, plutôt que de laisser

@@ -2412,10 +2412,14 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
 /* Étoile « à facturer » (carte Organisation, ?p=evenement) : une seule active
    à la fois par liste de structures liées — voir definirFacturation() dans
    views/evenement_form.php. */
-.btn-tag-star { border: none; background: none; color: var(--muted); cursor: pointer; padding: 0; display: inline-flex; align-items: center; }
-.btn-tag-star .ico { width: 14px; height: 14px; }
-.btn-tag-star.on { color: var(--highlight); }
-.btn-tag-star.on .ico { fill: var(--highlight); }
+/* « Structure à facturer / SUISA » sur une puce de l'organisation d'un
+   événement. L'icône est celle des factures dans toute l'application
+   (receipt-swiss-franc) et non une étoile, qui ne disait pas de quoi il
+   s'agissait. Pas de « fill » à l'état actif : le glyphe est un tracé, le
+   remplir en ferait une tache — c'est la couleur qui marque la sélection. */
+.btn-tag-facturation { border: none; background: none; color: var(--muted); cursor: pointer; padding: 0; display: inline-flex; align-items: center; }
+.btn-tag-facturation .ico { width: 14px; height: 14px; }
+.btn-tag-facturation.on { color: var(--highlight); }
 /* Statut d'une structure (carte « Statut ») — .seg-picker (icon_picker(), voir
    plus haut), chaque état avec sa propre couleur une fois actif (« on ») :
    rose Contact privilégié, vert Actif, rouge Ne pas contacter, gris Inactif —

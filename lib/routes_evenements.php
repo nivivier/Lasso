@@ -374,9 +374,19 @@ function route_evenements_export_suisa(): void
     $spectacleMap = spectacle_map();
     $f = evenements_lire_filtres();
     [$where, $params] = evenements_where_filtres($f, $spectacleMap);
+    // L'organisateur est résolu depuis evenement_structures, pas depuis le
+    // miroir evenements.organisateur_structure_id : celui-ci ne reprend QUE la
+    // structure marquée « à facturer » (evenement_resynchroniser_miroirs()), et
+    // ce marquage est facultatif. Un événement dont l'organisateur est
+    // renseigné mais non coché « à facturer » sortait donc sans aucune de ses
+    // coordonnées. On garde la même priorité — la structure de facturation
+    // d'abord — puis la première structure liée.
     $from = ' FROM evenements e
               LEFT JOIN spectacles s ON s.id = e.spectacle_id
-              LEFT JOIN structures d ON d.id = e.organisateur_structure_id';
+              LEFT JOIN structures d ON d.id = (
+                  SELECT es.structure_id FROM evenement_structures es
+                   WHERE es.evenement_id = e.id
+                   ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)';
     $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
                    d.nom AS org_nom, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,

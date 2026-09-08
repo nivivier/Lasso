@@ -50,6 +50,36 @@ const STRUCTURE_STATUTS_CLASSES_ICONE = [
     'inactif'             => 'muted',
 ];
 
+// Jauge d'une structure, telle qu'on l'écrit à l'écran.
+//
+// jauge_min et jauge_max sont la PLUS PETITE et la PLUS GRANDE jauge de la
+// structure — une salle peut en avoir plusieurs. Le cas le plus courant est
+// celui d'une salle unique : une seule des deux valeurs est renseignée, et il
+// faut alors afficher ce nombre tel quel. L'écrire « ≥ 200 » laissait croire à
+// une borne, c'est-à-dire à une jauge inconnue plus grande que 200.
+//
+// Renvoie '' quand aucune jauge n'est connue ; l'appelant décide de ce qu'il
+// met à la place (un tiret, rien du tout).
+function structure_jauge_texte($min, $max): string
+{
+    $nombre = function ($v): ?int {
+        return ($v === null || $v === '' || (int) $v <= 0) ? null : (int) $v;
+    };
+    $a = $nombre($min);
+    $b = $nombre($max);
+    if ($a === null && $b === null) {
+        return '';
+    }
+    if ($a === null || $b === null) {
+        return (string) ($a ?? $b);           // une seule salle connue
+    }
+    if ($a === $b) {
+        return (string) $a;                   // deux valeurs, une seule jauge
+    }
+    // Saisie inversée : on remet dans l'ordre plutôt que d'afficher « 800 – 200 ».
+    return $a < $b ? "$a – $b" : "$b – $a";
+}
+
 function structure_statut_libelle(string $statut): string
 {
     return STRUCTURE_STATUTS_LIBELLES[$statut] ?? $statut;
