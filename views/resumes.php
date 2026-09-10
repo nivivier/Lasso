@@ -429,7 +429,11 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                         <td>
                             <span class="dash-campagne">
                                 <?= $c['projets_pastilles'][0] ?? '' ?>
-                                <span class="dash-campagne-nom"><?= e($c['nom']) ?></span>
+                                <?php // Gras et teal pour ce qui demande du travail, encre
+                                      // pour le reste : même partage que la liste des
+                                      // campagnes, où seule une campagne en cours garde
+                                      // la couleur d'accent. ?>
+                                <span class="dash-campagne-nom<?= $c['statut'] === 'en_cours' ? ' strong' : '' ?>"><?= e($c['nom']) ?></span>
                             </span>
                         </td>
                         <?php // Une seule colonne pour les deux questions, parce

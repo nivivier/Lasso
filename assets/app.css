@@ -2554,6 +2554,13 @@ td.col-maj-le.a-date.est-creation::before {
 .plan-icone:hover, .plan-icone:focus-visible {
     background: none; outline: 2px solid var(--primary); outline-offset: 2px;
 }
+/* Un lien qui ne réclame rien : il garde son comportement de lien (survol,
+   focus) mais prend la couleur du texte. Sert aux campagnes qui ne sont plus ou
+   pas encore en cours, dans la liste des campagnes. Trois classes : « .list
+   .strong » colore déjà ces noms en teal (0,2,0), il faut passer devant. */
+.list .strong.lien-encre { color: var(--ink); }
+.list .strong.lien-encre:hover, .list .strong.lien-encre:focus-visible { color: var(--highlight-d); }
+
 /* Carte de tête d'une campagne (?p=campagne) : l'icône du premier projet en
    grand, puis ce qu'il reste à faire, puis le compte en gros. Elle répond à
    deux questions d'un coup d'œil — où en est le démarchage, et qu'ont répondu
@@ -3449,9 +3456,13 @@ abbr {
 .hist-actions { position: absolute; top: 0; right: 0; z-index: 1; gap: 6px; }
 /* Réserve la place des boutons : celle du crayon seul en lecture, celle
    d'« enregistrer + annuler » en édition. Sans cela, une note longue passait
-   sous les boutons. */
-.hist-corps .card-disp { padding-right: 34px; }
-.hist-corps .card-edit:not([hidden]) { padding-right: 76px; }
+   sous les boutons.
+   Mesuré : le crayon fait 41px, le couple enregistrer/annuler 88px — la réserve
+   ajoute une douzaine de pixels pour que le texte ne vienne pas les frôler.
+   Les valeurs précédentes (34 et 76px) étaient plus étroites que les boutons
+   eux-mêmes : le contenu passait dessous de quelques pixels. */
+.hist-corps .card-disp { padding-right: 54px; }
+.hist-corps .card-edit:not([hidden]) { padding-right: 102px; }
 /* Le crayon ne se montre qu'au survol de l'entrée — il est offert, pas imposé,
    dans une liste qui se lit d'abord. Toujours visible au clavier
    (:focus-visible) et au tactile, où il n'y a pas de survol. */

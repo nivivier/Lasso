@@ -7,6 +7,28 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.2] — 2026-09-10
+
+### Corrigé
+- **Appliquer un filtre effaçait encore la saisie d'une campagne neuve.** Les
+  champs voyageaient bien avec les filtres depuis 2.7.1, mais avec les valeurs
+  que le SERVEUR connaissait au moment du rendu : ce qu'on venait de taper sans
+  l'avoir enregistré n'en faisait pas partie. Le panneau recopie désormais l'état
+  réel du formulaire au moment de l'envoi.
+- **Les boutons d'une entrée d'historique passaient sous son contenu.** La place
+  réservée à leur gauche (34 px en lecture, 76 px en édition) était plus étroite
+  que les boutons eux-mêmes (41 et 88 px) : le texte les frôlait de quelques
+  pixels.
+- **Le lien retour d'une structure ouverte depuis une campagne** ramenait à la
+  liste des structures — où l'on n'était pas passé. Il ramène maintenant à la
+  campagne, et la nomme.
+
+### Modifié
+- **Seul le nom d'une campagne en cours garde la couleur d'accent**, dans la
+  liste des campagnes comme sur le tableau de bord : gras et teal tant qu'il
+  reste du travail, encre pour ce qui est à venir, en retard ou terminé. Dans la
+  liste, le nom reste un lien — il n'appelle simplement plus.
+
 ## [2.7.1] — 2026-09-10
 
 ### Corrigé

@@ -101,7 +101,10 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
                     <span class="muted">Aucun projet</span>
                 <?php endif; ?>
             </td>
-            <td><a class="strong" href="?p=campagne&id=<?= $cid ?>"><?= e($c['nom']) ?></a></td>
+            <?php // La couleur d'accent est réservée à ce qui demande du travail :
+                  // une campagne en cours. À venir, en retard ou terminée, son nom
+                  // s'écrit à l'encre — il reste un lien, il n'appelle plus. ?>
+            <td><a class="strong<?= $c['statut'] === 'en_cours' ? '' : ' lien-encre' ?>" href="?p=campagne&id=<?= $cid ?>"><?= e($c['nom']) ?></a></td>
             <td class="muted small nowrap">
                 <?php $d = $jour($c['date_debut']); $f = $jour($c['date_fin']); ?>
                 <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?>

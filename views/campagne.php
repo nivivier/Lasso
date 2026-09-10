@@ -158,8 +158,10 @@ $stStructures = $structures;
 $stVide = $sfActif
     ? 'Aucune structure de cette campagne ne correspond à ces filtres.'
     : 'Aucune structure dans cette campagne.';
-$stHref = fn (array $d): string => '?p=structure&id=' . (int) $d['id'] . '&depuis=booking';
-$stSuffixeDepuis = '&depuis=booking';
+// depuis=campagne:<id> : le lien retour de la fiche ramène à CETTE campagne
+// (lien_retour_contextuel()), et le rail reste sur Booking (nav_groupe_actif()).
+$stHref = fn (array $d): string => '?p=structure&id=' . (int) $d['id'] . '&depuis=campagne:' . (int) $campagne['id'];
+$stSuffixeDepuis = '&depuis=campagne:' . (int) $campagne['id'];
 // Ligne non cliquable : elle porte des boutons, un clic à côté ne doit pas
 // emporter sur la fiche au milieu d'un démarchage. Étiquettes en lecture seule
 // pour la même raison — on les modifie sur la fiche.

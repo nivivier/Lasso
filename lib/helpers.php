@@ -2112,7 +2112,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     if (isset($statiques[$depuis])) {
         return lien_retour($avecExtras($statiques[$depuis][0]), $statiques[$depuis][1]);
     }
-    if (preg_match('/^(facture|evenement|fiche|employe|structure):(\d+)$/', $depuis, $m)) {
+    if (preg_match('/^(facture|evenement|fiche|employe|structure|campagne):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];
         if ($m[1] === 'structure') {
             $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
@@ -2142,6 +2142,13 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             $ev = $stmt->fetch();
             if ($ev) {
                 return lien_retour('?p=evenement&id=' . $id, evenement_label_court($ev));
+            }
+        } elseif ($m[1] === 'campagne') {
+            // Arrivé sur une structure depuis le suivi d'une campagne, on y
+            // retourne — pas sur la liste des structures, où l'on n'était pas.
+            $c = campagne_charger($id);
+            if ($c) {
+                return lien_retour('?p=campagne&id=' . $id, (string) $c['nom']);
             }
         } elseif ($m[1] === 'fiche') {
             $stmt = db()->prepare('SELECT mois, annee, employe_nom FROM fiches WHERE id = ?');

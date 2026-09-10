@@ -165,3 +165,43 @@ $autres = autres_filtres_fn($tousFiltres);
     majCompte();
 })();
 </script>
+
+<script nonce="<?= e(csp_nonce()) ?>">
+// Un panneau de filtre est un formulaire GET : il recharge la page avec ce qu'il
+// porte, et rien d'autre. Les champs de la campagne y sont bien reportés en
+// champs cachés — mais écrits AU RENDU, donc avec les valeurs que le serveur
+// connaissait. Ce qu'on vient de taper sans avoir encore rien enregistré ne s'y
+// trouve pas : appliquer un filtre effaçait alors le nom, les dates et les
+// projets. On recopie donc l'état réel du formulaire au moment de l'envoi.
+//
+// Le report côté serveur reste en place : c'est le repli quand JavaScript
+// manque, où l'on perd au pire ce qui n'a pas été enregistré.
+(function () {
+    const form = document.getElementById('campagne-form');
+    if (!form) { return; }
+    const champs = ['nom', 'date_debut', 'date_fin'];
+    document.querySelectorAll('.col-filter-menu').forEach(panneau => {
+        panneau.addEventListener('submit', () => {
+            // On retire ce que le rendu avait posé avant d'y remettre l'actuel :
+            // sans cela, deux valeurs partiraient pour le même nom.
+            panneau.querySelectorAll('[data-report-campagne]').forEach(e => e.remove());
+            champs.forEach(nom => {
+                panneau.querySelectorAll('input[type="hidden"][name="' + nom + '"]').forEach(e => e.remove());
+                const valeur = (form.elements[nom]?.value || '').trim();
+                if (valeur !== '') { poser(panneau, nom, valeur); }
+            });
+            panneau.querySelectorAll('input[type="hidden"][name="spectacle_ids[]"]').forEach(e => e.remove());
+            form.querySelectorAll('input[name="spectacle_ids[]"]:checked')
+                .forEach(c => poser(panneau, 'spectacle_ids[]', c.value));
+        });
+    });
+    function poser(panneau, nom, valeur) {
+        const i = document.createElement('input');
+        i.type = 'hidden';
+        i.name = nom;
+        i.value = valeur;
+        i.setAttribute('data-report-campagne', '');
+        panneau.appendChild(i);
+    }
+})();
+</script>
