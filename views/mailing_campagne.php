@@ -18,7 +18,7 @@ if ($criteres['tag_id']) {
     foreach ($tags as $t) {
         if (in_array((int) $t['id'], $criteres['tag_id'], true)) { $noms[] = $t['nom']; }
     }
-    if ($noms) { $resumeCiblage[] = 'Étiquette : ' . implode(', ', $noms); }
+    if ($noms) { $resumeCiblage[] = 'Tag : ' . implode(', ', $noms); }
 }
 foreach (['pays' => 'Pays', 'grande_region' => 'Région', 'departement_canton' => 'Dépt/canton', 'ville' => 'Ville'] as $k => $lib) {
     if ($criteres[$k]) { $resumeCiblage[] = $lib . ' : ' . implode(', ', $criteres[$k]); }
@@ -175,7 +175,7 @@ $critHiddenInputs = function (array $criteres): string {
     <div class="toolbar">
         <div class="filters carte-filters">
             <?= filtre_colonne_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id'), 'Catégorie') ?>
-            <?php if ($tags): ?><?= filtre_colonne_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id'), 'Étiquettes') ?><?php endif; ?>
+            <?php if ($tags): ?><?= filtre_colonne_html('mailing_campagne', 'tag_id', $tagLabels, $criteres['tag_id'], $autresFiltresCiblage('tag_id'), 'Tags') ?><?php endif; ?>
             <?= filtre_colonne_html('mailing_campagne', 'pays', $paysLabels, $criteres['pays'], $autresFiltresCiblage('pays'), 'Pays') ?>
             <?= filtre_colonne_html('mailing_campagne', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autresFiltresCiblage('grande_region'), 'Région') ?>
             <?= filtre_colonne_html('mailing_campagne', 'departement_canton', $departementCantonLabels, $criteres['departement_canton'], $autresFiltresCiblage('departement_canton'), 'Département / canton') ?>

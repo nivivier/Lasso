@@ -2,9 +2,10 @@
 /** @var array $campagnes */ /** @var int $nbTotal */ /** @var bool $saved */ /** @var bool $supprimee */
 /** @var array $projet */ /** @var array $annee */ /** @var array $statut */ /** @var string $recherche */
 /** @var array $anneesDispo */ /** @var array $projetsDispo */
-// Les campagnes de contact : passées, en cours et à venir dans une seule liste,
-// la plus récente en tête. La jauge dit l'essentiel — combien de structures
-// restent à démarcher.
+// Les campagnes de contact, en trois tranches séparées : en cours, à venir,
+// passées — la plus récente en tête, sauf parmi celles à venir, où c'est la
+// plus proche. La jauge dit l'essentiel — combien de structures restent à
+// démarcher.
 $statutClasse = [
     'a_venir'   => 'muted-badge',
     'en_cours'  => 'ok-badge',
@@ -88,7 +89,15 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
             <?php else: ?>Aucune campagne pour cette sélection.<?php endif; ?>
         </td></tr>
     <?php endif; ?>
-    <?php foreach ($campagnes as $c): $cid = (int) $c['id']; ?>
+    <?php // Trois tranches : en cours, à venir, passées (campagnes_groupees()).
+          // La ligne de séparation est celle des autres listes de l'application
+          // — .mois-sep, du nom de son premier usage, est le séparateur de
+          // section des tableaux larges (?p=fiches, ?p=evenements,
+          // ?p=compta_ecritures). Les tranches vides ne sont pas rendues du
+          // tout, séparateur compris. ?>
+    <?php foreach (campagnes_groupees($campagnes) as $groupe): ?>
+        <tr class="mois-sep"><td colspan="5"><?= e($groupe['titre']) ?></td></tr>
+    <?php foreach ($groupe['campagnes'] as $c): $cid = (int) $c['id']; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
             <td>
                 <?php if ($c['projets']): ?>
@@ -122,6 +131,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
                 <span class="badge <?= $statutClasse[$c['statut']] ?? 'muted-badge' ?>"><?= e(CAMPAGNE_STATUTS[$c['statut']] ?? $c['statut']) ?></span>
             </td>
         </tr>
+    <?php endforeach; ?>
     <?php endforeach; ?>
     </tbody>
 </table>

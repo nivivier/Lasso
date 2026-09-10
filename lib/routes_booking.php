@@ -362,7 +362,16 @@ function route_structure_campagne(): void
         ]);
         return;
     }
-    redirect(($_POST['retour'] ?? '') === 'structures' ? 'structures' : 'structure', ($_POST['retour'] ?? '') === 'structures' ? [] : ['id' => $structureId]);
+    // D'où l'on vient : la liste des structures, le suivi d'une campagne, ou la
+    // fiche de la structure — c'est là qu'on retourne.
+    $retour = (string) ($_POST['retour'] ?? '');
+    if ($retour === 'structures') {
+        redirect('structures');
+    }
+    if ($retour === 'campagne' && $campagne) {
+        redirect('campagne', ['id' => $campagneId]);
+    }
+    redirect('structure', ['id' => $structureId]);
 }
 
 function route_structure_tag_ajouter(): void
@@ -376,7 +385,7 @@ function route_structure_tag_ajouter(): void
     $nom = trim($_POST['nom'] ?? '');
     if ($nom !== '') {
         structure_attacher_tag($structureId, $nom);
-        journaliser('structure', $structureId, 'edition', 'Étiquette ajoutée : ' . $nom);
+        journaliser('structure', $structureId, 'edition', 'Tag ajouté : ' . $nom);
     }
     // retour=json : ?p=structures met à jour la seule cellule des étiquettes,
     // sans recharger la page. Elle pèse 4 Mo et 79 000 balises — la recharger
@@ -406,10 +415,10 @@ function route_structure_tag_retirer(): void
         $nomTag = (string) ($stmtT->fetchColumn() ?: '');
         db()->prepare('DELETE FROM structure_tag_liens WHERE structure_id = ? AND tag_id = ?')->execute([$structureId, $tagId]);
         if ($nomTag !== '') {
-            journaliser('structure', $structureId, 'edition', 'Étiquette retirée : ' . $nomTag);
+            journaliser('structure', $structureId, 'edition', 'Tag retiré : ' . $nomTag);
         }
         // Même convention que route_structure_tag_ajouter() : la croix de la
-        // colonne « Étiquettes » de ?p=structures retire sans quitter la liste,
+        // colonne « Tags » de ?p=structures retire sans quitter la liste,
         // et en JSON quand le JavaScript est là.
         if (($_POST['retour'] ?? '') === 'json') {
             structure_tags_reponse_json($structureId);
@@ -423,8 +432,8 @@ function route_structure_tag_retirer(): void
     redirect('structures');
 }
 
-// ------------------------------------------------------------- ÉTIQUETTES
-// Gestion des étiquettes de structures (Paramètres → Catégories → Étiquettes) :
+// -------------------------------------------------------------------- TAGS
+// Gestion des tags de structures (Paramètres → Catégories → Tags) :
 // ajout, renommage, suppression. Liste plate triée par nom (pas d'ordre manuel).
 // Les liens structure↔étiquette tombent en cascade à la suppression
 // (structure_tag_liens ON DELETE CASCADE) : l'écran annonce le nombre de fiches
@@ -458,7 +467,7 @@ function route_parametres_tags(): void
             $id = (int) ($_POST['id'] ?? 0);
             $couleur = tag_couleur_valide($_POST['couleur'] ?? '');
             // Le nom passe par tag_renommer() (unicité insensible à la casse),
-            // partagée avec le filtre « Étiquettes » de ?p=structures ; la
+            // partagée avec le filtre « Tags » de ?p=structures ; la
             // couleur ne se règle que d'ici, elle reste donc à part.
             if (tag_renommer($id, (string) ($_POST['nom'] ?? '')) && $id) {
                 db()->prepare('UPDATE structure_tags SET couleur = ? WHERE id = ?')->execute([$couleur, $id]);
@@ -481,7 +490,7 @@ function route_parametres_tags(): void
     ], 'Paramètres — Tags');
 }
 
-// Renommage / suppression d'une étiquette depuis le filtre « Étiquettes » de
+// Renommage / suppression d'une étiquette depuis le filtre « Tags » de
 // ?p=structures. Répond en JSON et non par une redirection : le panneau de
 // filtre est lui-même un <form method="get"> — y imbriquer un formulaire POST
 // serait du HTML invalide. Même procédé que route_structure_statut(), qui est
@@ -502,7 +511,7 @@ function route_structure_tag_gerer(): void
     $id = (int) ($_POST['id'] ?? 0);
     $action = (string) ($_POST['action'] ?? '');
     if ($id <= 0) {
-        echo json_encode(['ok' => false, 'erreur' => 'Étiquette introuvable.']);
+        echo json_encode(['ok' => false, 'erreur' => 'Tag introuvable.']);
         return;
     }
     if ($action === 'supprimer') {
@@ -517,7 +526,7 @@ function route_structure_tag_gerer(): void
             return;
         }
         if (!tag_renommer($id, $nom)) {
-            echo json_encode(['ok' => false, 'erreur' => 'Une autre étiquette porte déjà ce nom.']);
+            echo json_encode(['ok' => false, 'erreur' => 'Un autre tag porte déjà ce nom.']);
             return;
         }
         echo json_encode(['ok' => true]);

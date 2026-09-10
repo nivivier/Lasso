@@ -53,9 +53,17 @@ $sfReinit = bouton_reinit_filtres(
 <?php require __DIR__ . '/_flash_contacter.php'; ?>
 
 <div class="page-head">
-    <h1><?= e($campagne['nom']) ?>
+    <?php // Le badge est À CÔTÉ du <h1>, pas dedans : le titre de page peint son
+          // texte en dégradé (background-clip: text), et un enfant niché là-dedans
+          // dépend du bon vouloir du moteur de rendu pour son propre fond — d'où
+          // le liseré fantôme vu autour de la pastille. .page-head-title est la
+          // rangée prévue pour ça (toutes les autres pages l'utilisent déjà), et
+          // elle centre la pastille sur le titre au lieu de la poser sur sa
+          // ligne de base. ?>
+    <div class="page-head-title">
+        <h1><?= e($campagne['nom']) ?></h1>
         <span class="badge <?= $statutClasse[$statut] ?? 'muted-badge' ?>"><?= e(CAMPAGNE_STATUTS[$statut] ?? $statut) ?></span>
-    </h1>
+    </div>
     <?php if ($peutEcrire): ?>
     <div class="head-actions">
     <a class="btn ghost" href="?p=campagne_form&id=<?= (int) $campagne['id'] ?>"><?= icon('pencil') ?> Modifier</a>
@@ -217,6 +225,24 @@ $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string 
         $h .= ' <button type="button" class="btn ghost btn-sm icon-only" data-noter="' . $sid . '"'
             . ' data-noter-nom="' . e((string) $d['nom']) . '" title="Marquer comme contacté"'
             . ' aria-label="Marquer ' . e((string) $d['nom']) . ' comme contactée">' . icon('check') . '</button>';
+    }
+    if ($peutEcrire) {
+        // Retirer la structure de la campagne : on délie, on ne supprime rien —
+        // la structure et son historique restent. La réponse notée, elle, part
+        // avec la ligne qui la porte, d'où la confirmation. Disponible même sur
+        // une ligne déjà contactée et sur une campagne pas encore ouverte :
+        // corriger une sélection n'a pas d'heure.
+        $h .= ' <form method="post" action="?p=structure_campagne" class="d-inline"'
+            . ' data-confirm="Retirer ' . e((string) $d['nom']) . ' de la campagne « ' . e((string) $campagne['nom'])
+            . ' » ? La réponse qui y est notée sera perdue.">'
+            . '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">'
+            . '<input type="hidden" name="structure_id" value="' . $sid . '">'
+            . '<input type="hidden" name="campagne_id" value="' . (int) $campagne['id'] . '">'
+            . '<input type="hidden" name="action" value="retirer">'
+            . '<input type="hidden" name="retour" value="campagne">'
+            . '<button type="submit" class="btn ghost btn-sm icon-only" title="Retirer de la campagne"'
+            . ' aria-label="Retirer ' . e((string) $d['nom']) . ' de la campagne">' . icon('unlink') . '</button>'
+            . '</form>';
     }
 
     $h .= ($peutEcrire ? '</td>' : '') . '<td class="nowrap col-reponse">';

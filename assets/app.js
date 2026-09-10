@@ -1438,7 +1438,7 @@ function lassoInitTagAjout() {
 }
 window.addEventListener('DOMContentLoaded', lassoInitTagAjout);
 
-// Renommage / suppression d'une étiquette depuis le filtre « Étiquettes » de
+// Renommage / suppression d'une étiquette depuis le filtre « Tags » de
 // ?p=structures. Le crayon échange le libellé contre un champ de saisie et se
 // change lui-même en enregistrer / supprimer / annuler.
 //
@@ -1557,7 +1557,7 @@ function lassoInitTagGerer() {
             const portee = nb === 0
                 ? 'Aucune structure ne la porte.'
                 : nb + (nb > 1 ? ' structures la portent' : ' structure la porte') + ' et la perdront\u00A0; aucune fiche n\u2019est supprimée.';
-            if (!confirm('Supprimer définitivement l\u2019étiquette « ' + champ.defaultValue + ' » ?\n\n' + portee)) return;
+            if (!confirm('Supprimer définitivement le tag « ' + champ.defaultValue + ' » ?\n\n' + portee)) return;
             envoyer(bloc, { action: 'supprimer' });
         }
     });

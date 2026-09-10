@@ -877,7 +877,7 @@ function route_structures(): void
                 foreach ($ids as $sid) {
                     $ins->execute([$sid, (int) $tagId]);
                     if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
-                        journaliser('structure', (int) $sid, 'edition', 'Étiquette ajoutée : ' . $nomTag);
+                        journaliser('structure', (int) $sid, 'edition', 'Tag ajouté : ' . $nomTag);
                         $n++;
                     }
                 }
@@ -897,7 +897,7 @@ function route_structures(): void
                     $del->execute([$sid, $tagId]);
                     if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
                         if ($nomTag !== '') {
-                            journaliser('structure', (int) $sid, 'edition', 'Étiquette retirée : ' . $nomTag);
+                            journaliser('structure', (int) $sid, 'edition', 'Tag retiré : ' . $nomTag);
                         }
                         $n++;
                     }
@@ -1075,7 +1075,7 @@ function structure_donnees_crm(int $id): array
     if (!$id || !module_actif('booking')) {
         // tagsDispo indépendant de $id (toutes les étiquettes existantes, pas
         // celles d'une structure précise) : renseigné même à la création
-        // (?p=structure sans id), pour les suggestions du champ « Étiquettes »
+        // (?p=structure sans id), pour les suggestions du champ « Tags »
         // du formulaire de création (views/structure_form.php) — mais pas si
         // $id est set (structure existante) avec le module booking inactif,
         // seul autre cas menant ici : rien à suggérer, la carte qui les

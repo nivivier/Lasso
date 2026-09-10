@@ -20,7 +20,7 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
 | **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
 | **Événements** | dates, spectacles, déclarations SUISA, exports JSON/iCal |
-| **Booking** | structures, contacts, étiquettes, lieux (carte), message individuel |
+| **Booking** | structures, contacts, tags, lieux (carte), message individuel |
 | **Envois groupés** | campagnes de mailing ciblé (dépend de Booking) |
 
 Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
@@ -190,10 +190,13 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    ailleurs. Sa jauge compte les prises de contact déjà consignées pour ces
    projets — e-mail comme appel noté à la main —, et chaque ligne porte la
    réponse reçue (aucune, pas intéressé, intéressé), qu'on retrouve sur la fiche
-   de la structure dans un cadre « Campagnes ». La liste des campagnes se
-   cherche (nom, projet) et se filtre (projet, année, état) ; la sélection d'une
-   campagne et son suivi affichent le tableau des structures, le même qu'en 9,
-   avec ses filtres — auxquels le suivi ajoute la réponse reçue. Les
+   de la structure dans un cadre « Campagnes » ; une icône « délier » l'en
+   retire sans rien supprimer d'autre. La liste des campagnes se cherche (nom,
+   projet), se filtre (projet, année, état) et se lit en trois tranches — en
+   cours, à venir, passées, les plus proches d'abord parmi celles à venir ; la
+   sélection d'une campagne et son suivi affichent le tableau des structures,
+   le même qu'en 9, avec ses filtres — auxquels le suivi ajoute la réponse
+   reçue. Les
    **campagnes de mailing** avec désinscription, elles, envoient en masse et
    forment un sous-module à part (« Envois groupés »), activable séparément.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec

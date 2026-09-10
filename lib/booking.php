@@ -391,6 +391,54 @@ function campagnes_liste(): array
     return $out;
 }
 
+// Les trois tranches de la liste des campagnes : ce qui demande du travail
+// maintenant, ce qui vient, ce qui est derrière.
+//
+// « En retard » est rangée avec « en cours », comme sur le tableau de bord
+// (CAMPAGNES_DASHBOARD_ORDRE) : ce sont les deux états où il reste des
+// structures à contacter. La classer dans « passées » aurait rangé du travail
+// à faire avec ce qui est fini.
+const CAMPAGNES_GROUPES = [
+    ['titre' => 'En cours', 'statuts' => ['en_retard', 'en_cours']],
+    ['titre' => 'À venir',  'statuts' => ['a_venir']],
+    ['titre' => 'Passées',  'statuts' => ['terminee']],
+];
+
+// Les campagnes à venir se lisent dans l'autre sens que le reste : la plus
+// PROCHE d'abord. Ailleurs, c'est la plus récente qui ouvre la liste (date de
+// début décroissante, campagnes_liste()) — ce qui, pour ce qui n'a pas encore
+// commencé, mettait l'échéance la plus lointaine en tête. L'id départage deux
+// mêmes dates, pour que l'ordre ne dépende pas de celui de la requête.
+// Partagé par la liste (campagnes_groupees()) et le tableau de bord
+// (campagnes_dashboard()), pour que les deux rangent pareil.
+function campagne_cmp_a_venir(array $a, array $b): int
+{
+    return [(string) $a['date_debut'], (int) $a['id']] <=> [(string) $b['date_debut'], (int) $b['id']];
+}
+
+// Range une liste de campagnes dans ces tranches, dans l'ordre, en sautant
+// celles qui n'ont rien : [['titre' => …, 'campagnes' => [...]], …]. L'ordre
+// interne de $campagnes est conservé (la plus récente d'abord), sauf la
+// tranche « à venir » — voir campagne_cmp_a_venir().
+function campagnes_groupees(array $campagnes): array
+{
+    $out = [];
+    foreach (CAMPAGNES_GROUPES as $groupe) {
+        $lot = array_values(array_filter(
+            $campagnes,
+            fn ($c) => in_array((string) $c['statut'], $groupe['statuts'], true)
+        ));
+        if (!$lot) {
+            continue;
+        }
+        if ($groupe['statuts'] === ['a_venir']) {
+            usort($lot, 'campagne_cmp_a_venir');
+        }
+        $out[] = ['titre' => $groupe['titre'], 'campagnes' => $lot];
+    }
+    return $out;
+}
+
 // Campagnes d'un lot de structures : [structure_id => [[id, nom], …]]. Agrégées
 // en une requête pour toute une liste, comme les étiquettes — les rechercher
 // ligne à ligne ferait une requête par structure affichée.
@@ -854,8 +902,13 @@ function historique_icone(array $entree): array
         'Organisateur délié'  => ['unlink', 'Organisateur délié'],
         'Lieu lié'            => ['link', 'Lieu lié'],
         'Organisateur lié'    => ['link', 'Organisateur lié'],
-        'Étiquette ajoutée'   => ['tag', 'Étiquette ajoutée'],
-        'Étiquette retirée'   => ['tag', 'Étiquette retirée'],
+        'Tag ajouté'          => ['tag', 'Tag ajouté'],
+        'Tag retiré'          => ['tag', 'Tag retiré'],
+        // Entrées écrites quand ces libellés disaient « Étiquette » : elles
+        // restent en base telles quelles — c'est de l'historique — donc c'est
+        // la lecture qui les harmonise avec le mot employé aujourd'hui.
+        'Étiquette ajoutée'   => ['tag', 'Tag ajouté'],
+        'Étiquette retirée'   => ['tag', 'Tag retiré'],
         'Contact ajouté'      => ['user-plus', 'Contact ajouté'],
         'Contact modifié'     => ['user', 'Contact modifié'],
         'Contact supprimé'    => ['user', 'Contact supprimé'],
@@ -919,7 +972,7 @@ function journaliser_diff(string $entiteType, int $id, array $avant, array $apre
     }
 }
 
-// Contenu de la cellule « Étiquettes » d'une ligne de ?p=structures : les
+// Contenu de la cellule « Tags » d'une ligne de ?p=structures : les
 // badges, leur croix de retrait, et le « + » d'ajout.
 //
 // Une seule fonction pour deux appelants — la vue, qui la rend pour chacune des
@@ -1004,7 +1057,7 @@ function structure_tags_cellule_html(int $structureId, array $paires, bool $peut
         $h .= '<span class="badge"' . badge_style_html((string) $couleur) . '>' . e((string) $nom);
         if ($peutEcrire) {
             $h .= '<button type="button" class="btn-tag-x" data-tag-retirer="' . (int) $id
-                . '" title="Retirer cette étiquette" aria-label="Retirer cette étiquette">×</button>';
+                . '" title="Retirer ce tag" aria-label="Retirer ce tag">×</button>';
         }
         $h .= '</span> ';
     }
@@ -1014,7 +1067,7 @@ function structure_tags_cellule_html(int $structureId, array $paires, bool $peut
     // « + » reste là pour qui veut en ajouter une.
     if ($peutEcrire) {
         $h .= '<button type="button" class="badge tag-ajouter-btn" data-tag-structure="' . $structureId
-            . '" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>';
+            . '" title="Ajouter un tag" aria-label="Ajouter un tag">+</button>';
     }
     return $h;
 }
@@ -1122,8 +1175,8 @@ function compte_structures_html(int $nb, string $lien = '', string $vide = 'inut
 // autre (unicité insensible à la casse, comme à la création) — l'appelant en
 // fait ce qu'il veut : message d'erreur ou silence.
 // Le lien structure↔étiquette porte l'id, pas le nom : renommer suffit, il n'y
-// a rien à propager. Partagée par Paramètres → Étiquettes et par le filtre
-// « Étiquettes » de ?p=structures, pour que les deux appliquent la même règle.
+// a rien à propager. Partagée par Paramètres → Tags et par le filtre
+// « Tags » de ?p=structures, pour que les deux appliquent la même règle.
 function tag_renommer(int $id, string $nom): bool
 {
     $nom = trim($nom);
@@ -1584,8 +1637,17 @@ function campagnes_dashboard(int $max = 9): array
     $rang = array_flip(CAMPAGNES_DASHBOARD_ORDRE);
     $liste = campagnes_liste();
     // Tri stable : à état égal, l'ordre de campagnes_liste() est conservé
-    // (la plus récente d'abord).
-    usort($liste, fn ($a, $b) => ($rang[$a['statut']] ?? 9) <=> ($rang[$b['statut']] ?? 9));
+    // (la plus récente d'abord) — sauf entre campagnes à venir, où c'est la
+    // plus proche qui passe devant (campagne_cmp_a_venir()). Sans quoi la
+    // carte, qui ne montre que les neuf premières, gardait les échéances
+    // lointaines et coupait celles qui arrivent.
+    usort($liste, function (array $a, array $b) use ($rang): int {
+        $c = ($rang[$a['statut']] ?? 9) <=> ($rang[$b['statut']] ?? 9);
+        if ($c !== 0) {
+            return $c;
+        }
+        return $a['statut'] === 'a_venir' ? campagne_cmp_a_venir($a, $b) : 0;
+    });
     return array_slice($liste, 0, $max);
 }
 
@@ -1719,7 +1781,7 @@ const STRUCTURE_IMPORT_CHAMPS = [
     'mise_a_jour'      => 'Dernière mise à jour (date, JJ/MM/AAAA)',
     'jauge_min'        => 'Jauge min (salle/festival)',
     'jauge_max'        => 'Jauge max (salle/festival)',
-    'tags_statut'      => 'Étiquettes (colonne codée, ex. « & E T »)',
+    'tags_statut'      => 'Tags (colonne codée, ex. « & E T »)',
 ];
 
 // Dictionnaire des symboles de statut utilisés dans certains carnets

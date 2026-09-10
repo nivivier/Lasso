@@ -4,9 +4,9 @@
 <?php $peutEcrireTags = peut_ecrire('booking'); ?>
 
 <div class="section-head mt-0">
-    <h2 class="mt-0">Tags<?= info_tip("Étiquettes libres posées sur les structures (« À contacter en cas de tournée »,
-    « Ne pas contacter »…), utilisées dans les filtres et le ciblage des mailings. Renommer une étiquette la met à jour partout ;
-    la supprimer la retire des fiches qui la portent (les fiches elles-mêmes ne sont pas touchées).") ?></h2>
+    <h2 class="mt-0">Tags<?= info_tip("Tags libres posés sur les structures (« À contacter en cas de tournée »,
+    « Ne pas contacter »…), utilisés dans les filtres et le ciblage des mailings. Renommer un tag le met à jour partout ;
+    le supprimer le retire des fiches qui le portent (les fiches elles-mêmes ne sont pas touchées).") ?></h2>
     <?php if ($peutEcrireTags): ?>
     <button type="button" class="btn ml-auto" data-show="tag-add"><?= icon('plus') ?> Nouveau tag</button>
     <?php endif; ?>
@@ -15,7 +15,7 @@
 <table class="list mb-16 plan-table">
     <tbody>
     <?php if (!$lignes): ?>
-        <tr><td class="muted small">Aucune étiquette.</td></tr>
+        <tr><td class="muted small">Aucun tag.</td></tr>
     <?php endif; ?>
     <?php foreach ($lignes as $t): $tid = (int) $t['id']; $nb = (int) $t['nb']; $couleur = (string) ($t['couleur'] ?? ''); ?>
         <tr class="tag-row" data-id="<?= $tid ?>">
@@ -41,8 +41,8 @@
                 <button type="button" class="btn ghost btn-sm icon-only tag-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
                 <form method="post" action="?p=parametres_tags" class="d-inline tag-delete-form" hidden
                       data-confirm="<?= e($nb > 0
-                          ? "Supprimer l'étiquette « " . $t['nom'] . " » ? Elle sera retirée de $nb structure(s)."
-                          : "Supprimer l'étiquette « " . $t['nom'] . " » ?") ?>">
+                          ? "Supprimer le tag « " . $t['nom'] . " » ? Il sera retiré de $nb structure(s)."
+                          : "Supprimer le tag « " . $t['nom'] . " » ?") ?>">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $tid ?>">

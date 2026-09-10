@@ -423,7 +423,7 @@ function nav_groupes(): array
         $ongletsBooking['mailing_modeles'] = ['Modèles', ['mailing_modeles'], 0, 'file-text'];
         $ongletsBooking['mailing_exclusions'] = ["Liste d'exclusion", ['mailing_exclusions'], 0, 'mail-x'];
         // Raccourci vers le groupe « Catégories » des paramètres (Pays,
-        // Catégories, Étiquettes) : ces trois référentiels ne servent
+        // Catégories, Tags) : ces trois référentiels ne servent
         // pratiquement qu'au booking, mais vivent dans Paramètres — l'onglet
         // évite d'en ressortir pour y aller. Il mène à la première sous-page
         // ACCESSIBLE : Pays relève du module « cœur » et non du booking (voir

@@ -7,6 +7,42 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.3] — 2026-09-10
+
+### Ajouté
+- **Retirer une structure d'une campagne depuis son suivi** : une icône « délier »
+  en fin de ligne, à côté des actions de démarchage. On délie, on ne supprime
+  rien — la structure et son historique restent. La réponse notée, elle, part
+  avec le lien qui la portait : le retrait est donc confirmé.
+
+### Modifié
+- **La liste des campagnes est rangée en trois tranches** — en cours, à venir,
+  passées — séparées comme les mois le sont dans les factures ou les
+  événements. Une tranche sans campagne ne laisse pas de séparateur derrière
+  elle. « En retard » figure avec « en cours » : il y reste des structures à
+  contacter.
+- **Les campagnes à venir se lisent de la plus proche à la plus lointaine**,
+  dans la liste comme sur le tableau de bord. Partout ailleurs c'est la plus
+  récente qui ouvre la marche, ce qui, pour ce qui n'a pas encore commencé,
+  mettait l'échéance la plus lointaine en tête — et la faisait passer devant
+  celles qui arrivent dans les neuf lignes de la carte du tableau de bord.
+- **« Étiquette » devient « tag » partout dans l'interface.** L'onglet des
+  paramètres, la colonne et le filtre de `?p=structures`, la fiche d'une
+  structure, les actions de masse, le ciblage des envois groupés, l'export et
+  la fusion employaient les deux mots pour la même chose. Les entrées
+  d'historique déjà écrites restent en base telles quelles — c'est leur lecture
+  qui les harmonise.
+
+### Corrigé
+- **Un liseré fantôme autour de la pastille d'état d'une campagne.** Elle était
+  posée DANS le titre de page, dont le texte est peint en dégradé
+  (`background-clip: text`) : le fond propre d'un élément niché là dépend du
+  moteur de rendu. Elle est passée à côté du titre, dans la rangée prévue pour
+  ça — et s'y centre au lieu de s'asseoir sur la ligne de base.
+- **Une campagne « En retard » portait une pastille violette**, celle par
+  défaut : la classe `err-badge` que lui donnaient la liste, la fiche et le
+  tableau de bord n'existait pas dans la feuille de style.
+
 ## [2.7.2] — 2026-09-10
 
 ### Corrigé

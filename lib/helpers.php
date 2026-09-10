@@ -801,7 +801,7 @@ function filtre_bouton_html(string $libelle, bool $actif, ?int $nb = null): stri
 }
 
 // $actionsParOption (facultatif) : HTML posé À CÔTÉ de chaque case à cocher,
-// indexé par valeur d'option — le crayon de renommage du filtre « Étiquettes »
+// indexé par valeur d'option — le crayon de renommage du filtre « Tags »
 // de ?p=structures. Hors du <label> : un bouton à l'intérieur cocherait la case
 // en même temps qu'il s'active. Sans ce paramètre, le balisage reste le <label>
 // nu de tous les autres filtres.

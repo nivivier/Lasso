@@ -54,7 +54,7 @@ $anneeSansToutes = ['certificats' => true];
         <p class="muted small mb-8">Copie intégrale de la base dans un seul fichier <code>.sqlite</code> : <strong>toutes les tables</strong>, quels que soient les modules activés —
             salaires (employés, fiches, taux, unités), comptabilité (écritures, plan comptable, règles, axes analytiques),
             facturation (factures, structures), événements (événements, spectacles),
-            booking (lieux, contacts, étiquettes, notes et historique, mailings, ciblages),
+            booking (lieux, contacts, tags, notes et historique, mailings, ciblages),
             ainsi que les paramètres, les comptes utilisateurs et les catégories (pays, régions, types de lieu).
             À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
         <p class="muted small mb-0"><?= icon('info') ?> Ne sont pas inclus : les <strong>logos</strong> déposés dans <code>uploads/</code>

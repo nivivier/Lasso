@@ -87,7 +87,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 <?php require __DIR__ . '/_flash_contacter.php'; ?>
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à cette structure.</p><?php endif; ?>
-<?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, étiquettes et lieux liés ont été repris ici.</p><?php endif; ?><?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
+<?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, tags et lieux liés ont été repris ici.</p><?php endif; ?><?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
 
 <?php if (!$isEdit && !$peutEcrireStruct): ?>
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
@@ -131,16 +131,16 @@ $bookingOkCreation = module_actif('booking') && peut_lire('booking');
 
             <?php if ($bookingOkCreation && peut_ecrire('booking')): ?>
             <div class="field-group mt-16">
-                <span>Étiquettes</span>
+                <span>Tags</span>
                 <div class="tags-liste" id="tags-nouvelles-liste"></div>
                 <div class="linked-add mt-10">
                     <div class="cat-search tag-search">
-                        <input type="text" id="tag-nouveau-input" class="cat-search-input" placeholder="Ajouter une étiquette…" autocomplete="off">
+                        <input type="text" id="tag-nouveau-input" class="cat-search-input" placeholder="Ajouter un tag…" autocomplete="off">
                         <ul class="cat-search-list" hidden role="listbox">
                             <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
                         </ul>
                     </div>
-                    <button type="button" id="tag-nouveau-btn" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+                    <button type="button" id="tag-nouveau-btn" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter le tag"><?= icon('plus') ?></button>
                 </div>
             </div>
             <?php endif; ?>
@@ -375,7 +375,7 @@ lassoInitTagSuggest();
         <?php foreach ($tags as $t): ?>
             <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
                 <?php if ($peutEcrireBooking): ?>
-                <form method="post" action="?p=structure_tag_retirer" class="d-inline" data-confirm="Retirer cette étiquette ?">
+                <form method="post" action="?p=structure_tag_retirer" class="d-inline" data-confirm="Retirer ce tag ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
@@ -384,9 +384,9 @@ lassoInitTagSuggest();
                 <?php endif; ?>
             </span>
         <?php endforeach; ?>
-        <?php if (!$tags): ?><span class="muted small">Aucune étiquette.</span><?php endif; ?>
+        <?php if (!$tags): ?><span class="muted small">Aucun tag.</span><?php endif; ?>
         <?php if ($peutEcrireBooking): ?>
-        <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter une étiquette" aria-label="Ajouter une étiquette">+</button>
+        <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter un tag" aria-label="Ajouter un tag">+</button>
         <?php endif; ?>
     </div>
     <?php if ($peutEcrireBooking): ?>
@@ -394,12 +394,12 @@ lassoInitTagSuggest();
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
         <div class="cat-search tag-search">
-            <input type="text" name="nom" class="cat-search-input" placeholder="Ajouter une étiquette…" autocomplete="off">
+            <input type="text" name="nom" class="cat-search-input" placeholder="Ajouter un tag…" autocomplete="off">
             <ul class="cat-search-list" hidden role="listbox">
                 <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
             </ul>
         </div>
-        <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter l'étiquette"><?= icon('plus') ?></button>
+        <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter le tag"><?= icon('plus') ?></button>
         <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </form>
     <?php endif; ?>

@@ -102,11 +102,11 @@ foreach ($ptGroupes as $ptCle => $ptG) {
 }
 $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [];
 
-// Arrivée depuis un module (?depuis=booking sur Pays/Catégories/Étiquettes,
+// Arrivée depuis un module (?depuis=booking sur Pays/Catégories/Tags,
 // posé par l'onglet « Catégories » du bandeau Booking) : c'est le bandeau DU
 // MODULE qui coiffe la page, pas celui des paramètres — sinon cliquer cet
 // onglet donnait l'impression de quitter le booking. Les sous-onglets
-// (Pays / Catégories / Étiquettes) restent les mêmes et emportent la
+// (Pays / Catégories / Tags) restent les mêmes et emportent la
 // provenance, pour qu'on ne retombe pas dans Paramètres en passant de l'un à
 // l'autre. Sans ?depuis= valide — lien direct, favori, navigation depuis
 // Paramètres — rien ne change.

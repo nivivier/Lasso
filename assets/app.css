@@ -2185,7 +2185,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    contactées depuis le » + date, filtre « Contacté »), repasse en colonne
    plutôt que de laisser le texte s'écraser sur 3 lignes à côté du champ. */
 .col-filter-menu label.col-filter-champ { flex-direction: column; align-items: flex-start; }
-/* Ligne d'option avec actions (filtre « Étiquettes » de ?p=structures) : la
+/* Ligne d'option avec actions (filtre « Tags » de ?p=structures) : la
    case à cocher prend la place restante, les boutons se rangent à droite. Le
    <label> garde son fond au survol, mais c'est la LIGNE qu'on survole — sinon
    le crayon, hors du label, éteignait la surbrillance en le survolant. */
@@ -2336,10 +2336,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
 .badge.warn-badge { background: var(--amber-tint); color: var(--amber); margin-left: 0; }
+.badge.err-badge { background: var(--danger-tint); color: var(--danger-d); margin-left: 0; }
 .badge.orange-badge { background: var(--orange-tint); color: var(--orange); margin-left: 0; }
 .badge.muted-badge { background: var(--line); color: var(--muted); margin-left: 0; }
 span + .badge.muted-badge { margin-left: 6px; }
-/* Colonne « Étiquettes » de ?p=structures : au corps le plus petit, en vue
+/* Colonne « Tags » de ?p=structures : au corps le plus petit, en vue
    tableau comme en mini-cartes. Une structure en porte souvent quatre ou cinq,
    et au corps courant des badges la colonne pesait visuellement plus que le nom
    qu'elle qualifie. Le « + » d'ajout est un .badge lui aussi, il suit. */
@@ -3964,7 +3965,7 @@ abbr {
     /* Le marquage rapide (étoile / cœur) sort de la carte : deux icônes de plus
        devant le nom sur un écran de 375px, pour un critère qui reste filtrable
        depuis « Filtres ». Il revient tel quel au-delà de 700px. */
-    /* L'étoile de marquage a rejoint la colonne « Étiquettes » — même
+    /* L'étoile de marquage a rejoint la colonne « Tags » — même
        traitement qu'avant : masquée en mini-cartes, où la place manque. */
     .liste-cartes td.col-ville {
         grid-column: 2; grid-row: 2;

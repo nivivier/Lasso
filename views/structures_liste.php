@@ -51,10 +51,10 @@ if ($peutEcrireTags) {
     foreach ($tagsDispo as $t) {
         $tid = (int) $t['id'];
         $tagActions[$tid] = '<span class="tag-gerer" data-tag="' . $tid . '" data-nb="' . (int) ($t['nb'] ?? 0) . '">'
-            . '<input type="text" class="tag-gerer-nom" value="' . e((string) $t['nom']) . '" aria-label="Nom de l\'étiquette" hidden>'
-            . '<button type="button" class="tag-gerer-btn tag-gerer-crayon" title="Renommer" aria-label="Renommer l\'étiquette">' . icon('pencil') . '</button>'
+            . '<input type="text" class="tag-gerer-nom" value="' . e((string) $t['nom']) . '" aria-label="Nom du tag" hidden>'
+            . '<button type="button" class="tag-gerer-btn tag-gerer-crayon" title="Renommer" aria-label="Renommer le tag">' . icon('pencil') . '</button>'
             . '<button type="button" class="tag-gerer-btn tag-gerer-ok" title="Enregistrer" aria-label="Enregistrer le nom" hidden>' . icon('save') . '</button>'
-            . '<button type="button" class="tag-gerer-btn tag-gerer-suppr" title="Supprimer" aria-label="Supprimer l\'étiquette" hidden>' . icon('trash') . '</button>'
+            . '<button type="button" class="tag-gerer-btn tag-gerer-suppr" title="Supprimer" aria-label="Supprimer le tag" hidden>' . icon('trash') . '</button>'
             . '<button type="button" class="tag-gerer-btn tag-gerer-annuler" title="Annuler" aria-label="Annuler" hidden>' . icon('x') . '</button>'
             . '</span>';
     }
@@ -116,9 +116,9 @@ $montreContacte = $depuisNav !== 'facturation';
 <?php if ($tagBulk !== null): ?>
 <p class="ok flash">
     <?php if ($tagBulk > 0): ?>
-        Étiquette « <?= e($tagBulkNom) ?> » <?= $tagBulkAction === 'retrait' ? 'retirée de' : 'ajoutée à' ?> <strong><?= (int) $tagBulk ?></strong> structure(s).
+        Tag « <?= e($tagBulkNom) ?> » <?= $tagBulkAction === 'retrait' ? 'retiré de' : 'ajouté à' ?> <strong><?= (int) $tagBulk ?></strong> structure(s).
     <?php else: ?>
-        Aucune structure modifiée (étiquette <?= $tagBulkAction === 'retrait' ? 'déjà absente' : 'déjà présente' ?>).
+        Aucune structure modifiée (tag <?= $tagBulkAction === 'retrait' ? 'déjà absent' : 'déjà présent' ?>).
     <?php endif; ?>
 </p>
 <?php endif; ?>
@@ -228,7 +228,7 @@ $montreContacte = $depuisNav !== 'facturation';
     <input type="hidden" name="structure_id" value="">
     <input type="hidden" name="retour" value="structures">
     <div class="cat-search tag-search">
-        <input type="text" name="nom" class="cat-search-input" placeholder="Étiquette…" autocomplete="off">
+        <input type="text" name="nom" class="cat-search-input" placeholder="Tag…" autocomplete="off">
         <ul class="cat-search-list" hidden role="listbox">
             <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
         </ul>
@@ -236,7 +236,7 @@ $montreContacte = $depuisNav !== 'facturation';
     <?php // Ce bouton ne sert qu'à CRÉER : choisir une étiquette existante dans
           // la liste l'enregistre au clic (voir lassoInitTagAjout()). D'où le
           // libellé, qui ne promet plus un simple « Ajouter ». ?>
-    <button type="submit" class="btn ghost btn-sm icon-only" title="Créer cette étiquette" aria-label="Créer cette étiquette et l'ajouter"><?= icon('plus') ?></button>
+    <button type="submit" class="btn ghost btn-sm icon-only" title="Créer ce tag" aria-label="Créer ce tag et l'ajouter"><?= icon('plus') ?></button>
     <button type="button" class="btn ghost btn-sm icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
 </form>
 <?php endif; ?>
@@ -281,8 +281,8 @@ $montreContacte = $depuisNav !== 'facturation';
             <option value="">— Choisir une action —</option>
             <option value="modifier">Modifier…</option>
             <?php if ($tagsDispo || module_actif('booking')): ?>
-            <option value="tag_ajouter">Ajouter une étiquette</option>
-            <option value="tag_retirer">Retirer une étiquette</option>
+            <option value="tag_ajouter">Ajouter un tag</option>
+            <option value="tag_retirer">Retirer un tag</option>
             <?php endif; ?>
             <option value="fusionner">Fusionner</option>
             <option value="delete">Supprimer</option>
@@ -323,7 +323,7 @@ $montreContacte = $depuisNav !== 'facturation';
         <span class="bulk-field" data-for="tag_ajouter" hidden>
             <div class="cat-search tag-search">
                 <input type="text" name="bulk_tag_ajouter" class="cat-search-input inline-year-select"
-                       placeholder="Étiquette à ajouter" autocomplete="off">
+                       placeholder="Tag à ajouter" autocomplete="off">
                 <ul class="cat-search-list" hidden role="listbox">
                     <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
                 </ul>
