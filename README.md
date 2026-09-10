@@ -197,7 +197,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    campagnes se cherche (nom, projet), se filtre (projet, année, état) et se lit
    en trois tranches — en cours, à venir, passées, les plus proches d'abord
    parmi celles à venir ; la sélection d'une campagne et son suivi affichent le
-   tableau des structures, le même qu'en 9, avec ses filtres — auxquels le suivi
+   tableau des structures, le même qu'en 9, avec ses filtres, ses tags
+   modifiables sur place et sa **modification groupée** — auxquels le suivi
    ajoute la réponse reçue. Les
    **campagnes de mailing** avec désinscription, elles, envoient en masse et
    forment un sous-module à part (« Envois groupés »), activable séparément.

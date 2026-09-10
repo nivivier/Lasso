@@ -1629,6 +1629,21 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    d'un écran à l'autre. */
 .dash-campagne .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); margin: 0; flex: 0 0 auto; }
 .dash-campagne-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sur téléphone, le nom passe à la ligne au lieu de rester sur une seule.
+   Tronqué d'un « … », il gardait quand même sa largeur de texte entier comme
+   largeur minimale : la colonne s'étirait, et le tableau sortait de la carte de
+   deux cents pixels. Deux lignes au plus, pour que neuf campagnes tiennent
+   encore dans une carte. */
+@media (max-width: 700px) {
+    .dash-campagne-nom {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+}
 /* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
    émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
    padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même
@@ -2603,7 +2618,11 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    mais qui ne prétend représenter personne — d'où le gris. */
 .camp-icone .camp-icone-plus { background: var(--surface); color: var(--muted); font-size: var(--fs-basic); }
 .camp-corps { flex: 1 1 auto; min-width: 0; }
-.camp-projets { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin-bottom: 14px; }
+/* Les projets de la carte : la même rangée que dans la liste
+   (.projet-pastilles, plus bas), à l'écart près — la carte est large, ses
+   pastilles y respirent. Sélecteur à deux classes pour l'emporter sur le gap
+   de .projet-pastilles quel que soit l'ordre des règles. */
+.projet-pastilles.camp-projets { gap: 4px 24px; margin-bottom: 14px; }
 /* Une seule barre, quatre segments. Le reste à contacter n'est pas un segment :
    c'est le fond de la piste, ce qui n'a pas encore été rempli. */
 .camp-barre { display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
@@ -2636,6 +2655,28 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .camp-avancement-txt { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 9px; }
 .camp-avancement-txt b { color: var(--ink); }
 .camp-note { margin: -14px 0 22px; }
+/* Le badge d'état replié dans la colonne « Avancement » : rendu par la liste des
+   campagnes, invisible tant qu'il y a la place de garder les deux colonnes. */
+.camp-etat-repli { display: none; }
+
+/* Liste des campagnes sur téléphone. Le tableau reste un tableau (il n'a que
+   cinq colonnes, la mise en cartes n'y gagnerait rien) mais se resserre :
+   — le nom du projet s'efface, son icône suffit à le reconnaître ;
+   — la période sort, c'est le détail qu'on va chercher sur la campagne ;
+   — « État » rejoint « Avancement », comme sur la carte du tableau de bord : la
+     progression si la campagne est en cours, son état sinon — une seule des
+     deux questions se pose à la fois. */
+@media (max-width: 700px) {
+    .campagnes-table :is(th, td).col-periode,
+    .campagnes-table :is(th, td).col-etat { display: none; }
+    .campagnes-table .projet-nom { display: none; }
+    /* Réduites à leurs icônes, les pastilles se serrent : à l'écart de bureau,
+       deux d'entre elles demandaient 70px pour une colonne qui en offrait 69,
+       et la seconde passait à la ligne pour rien. */
+    .campagnes-table .projet-pastilles { gap: 6px; }
+    .campagnes-table .camp-avancement-etat :is(.camp-barre, .camp-avancement-txt) { display: none; }
+    .campagnes-table .camp-avancement-etat .camp-etat-repli { display: inline-block; }
+}
 /* Sur écran étroit, la carte s'empile : l'icône et le compte passent sur une
    ligne à part plutôt que d'écraser la barre entre eux. */
 @media (max-width: 700px) {
@@ -2659,6 +2700,15 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 /* Pastille de projet posée devant un nom (colonne « Projet » des campagnes) :
    plus petite que celle d'une liste de personnes, où elle sert de repère de
    ligne — ici elle accompagne un nom déjà lisible. */
+/* La RANGÉE de pastilles est un conteneur flex, jamais une suite d'éléments en
+   ligne. Posée dans un flux inline, une pastille (elle-même inline-flex) se
+   cale sur SA ligne de base — celle de son icône, que chaque moteur de rendu
+   synthétise à sa façon quand l'élément n'a pas de texte propre. D'où des
+   rangées plus hautes et des pastilles décalées dans un navigateur et pas dans
+   l'autre, d'autant plus visible qu'il y a plusieurs projets. En flex, la
+   position ne dépend plus que du conteneur. */
+.projet-pastilles { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 10px; }
+
 /* Quand la colonne se resserre, un nom de projet passe sur deux lignes. L'icône
    doit alors accompagner la PREMIÈRE ligne et non flotter au milieu du bloc,
    d'où flex-start plutôt que center — et une interligne calée sur la taille de
@@ -2668,10 +2718,9 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    presque tous. --pastille-taille tient les deux valeurs ensemble. */
 .projet-pastille {
     --pastille-taille: 20px;
-    display: inline-flex; align-items: flex-start; gap: 6px; margin-right: 10px;
+    display: flex; align-items: flex-start; gap: 6px;
     line-height: var(--pastille-taille);
 }
-.projet-pastille:last-child { margin-right: 0; }
 .projet-pastille .avatar-ini {
     width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: 9px;
 }

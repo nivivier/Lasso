@@ -770,6 +770,125 @@ function structures_carte_points(string $where, array $params): array
     );
 }
 
+// Modification groupée d'une sélection de structures (cases à cocher + barre
+// flottante), même esprit que le lettrage ou l'axe analytique en masse sur les
+// écritures. Partagée par ?p=structures et par le suivi d'une campagne : même
+// barre, mêmes actions, même annulation — seul le retour change, d'où $route et
+// $retour, qui disent où revenir (et où l'annulation ramènera).
+//
+// Ne rend jamais la main : chaque chemin redirige. À n'appeler que sur un POST.
+function structures_bulk_appliquer(string $route, array $retour): void
+{
+    check_csrf();
+    $section = $_POST['section'] ?? '';
+    if ($section === 'bulk_undo') {
+        $r = bulk_undo_appliquer();
+        redirect($r['route'] ?? $route, ($r['retour'] ?? $retour) + ($r ? ['ok' => 'annule'] : []));
+    }
+    $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+    if ($ids) {
+        $in = sql_in($ids);
+        unset($_SESSION['bulk_undo']);
+        if ($section === 'delete') {
+            // Une structure référencée par une facture est ignorée (jamais supprimée
+            // en masse par erreur) plutôt que de bloquer toute la sélection.
+            $stmtRef = db()->prepare("SELECT DISTINCT structure_id FROM factures WHERE structure_id IN ($in)");
+            $stmtRef->execute($ids);
+            $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
+            $idsSupprimables = array_values(array_diff($ids, $refs));
+            if ($idsSupprimables) {
+                $inSup = sql_in($idsSupprimables);
+                db()->prepare("DELETE FROM structures WHERE id IN ($inSup)")->execute($idsSupprimables);
+            }
+            if ($refs) {
+                $retour['structBloquees'] = count($refs);
+            }
+        } elseif ($section === 'categorie') {
+            $bulkCategorieChamps = structure_categorie_champs((int) ($_POST['bulk_categorie_id'] ?? 0));
+            if ($bulkCategorieChamps['categorie'] !== '') {
+                bulk_undo_memoriser('structures', $ids, ['categorie', 'sous_categorie'], $route, $retour);
+                db()->prepare("UPDATE structures SET categorie = ?, sous_categorie = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$bulkCategorieChamps['categorie'], $bulkCategorieChamps['sous_categorie']], $ids));
+            }
+        } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', STRUCTURE_STATUTS, true)) {
+            bulk_undo_memoriser('structures', $ids, ['statut'], $route, $retour);
+            db()->prepare("UPDATE structures SET statut = ? WHERE id IN ($in)")->execute(array_merge([$_POST['bulk_statut']], $ids));
+        } elseif ($section === 'ville') {
+            bulk_undo_memoriser('structures', $ids, ['adresse_localite'], $route, $retour);
+            db()->prepare("UPDATE structures SET adresse_localite = ? WHERE id IN ($in)")
+                ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
+        } elseif ($section === 'departement_canton') {
+            bulk_undo_memoriser('structures', $ids, ['departement_canton'], $route, $retour);
+            db()->prepare("UPDATE structures SET departement_canton = ? WHERE id IN ($in)")
+                ->execute(array_merge([trim($_POST['bulk_departement_canton'] ?? '')], $ids));
+        } elseif ($section === 'pays') {
+            bulk_undo_memoriser('structures', $ids, ['adresse_pays'], $route, $retour);
+            db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
+                ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
+
+        } elseif ($section === 'via') {
+            bulk_undo_memoriser('structures', $ids, ['via'], $route, $retour);
+            db()->prepare("UPDATE structures SET via = ? WHERE id IN ($in)")
+                ->execute(array_merge([trim($_POST['bulk_via'] ?? '')], $ids));
+        } elseif ($section === 'tag_ajouter' && trim($_POST['bulk_tag_ajouter'] ?? '') !== '') {
+            // Étiquette posée sur toute la sélection : créée si elle n'existe
+            // pas encore (comme depuis une fiche). Pas d'annulation groupée
+            // (les liens ne sont pas des colonnes de structures) — le retrait
+            // groupé fait l'inverse ; chaque fiche garde une trace en historique.
+            $nomTag = trim($_POST['bulk_tag_ajouter']);
+            $stmtT = db()->prepare('SELECT id FROM structure_tags WHERE nom = ? COLLATE NOCASE');
+            $stmtT->execute([$nomTag]);
+            $tagId = $stmtT->fetchColumn();
+            if ($tagId === false) {
+                db()->prepare('INSERT INTO structure_tags (nom) VALUES (?)')->execute([$nomTag]);
+                $tagId = (int) db()->lastInsertId();
+            }
+            $ins = db()->prepare('INSERT OR IGNORE INTO structure_tag_liens (structure_id, tag_id) VALUES (?, ?)');
+            $n = 0;
+            db()->beginTransaction();
+            foreach ($ids as $sid) {
+                $ins->execute([$sid, (int) $tagId]);
+                if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
+                    journaliser('structure', (int) $sid, 'edition', 'Tag ajouté : ' . $nomTag);
+                    $n++;
+                }
+            }
+            db()->commit();
+            $retour['tagbulk'] = $n;
+            $retour['tagact'] = 'ajout';
+            $retour['tagnom'] = $nomTag;
+        } elseif ($section === 'tag_retirer' && (int) ($_POST['bulk_tag_retirer'] ?? 0) > 0) {
+            $tagId = (int) $_POST['bulk_tag_retirer'];
+            $stmtT = db()->prepare('SELECT nom FROM structure_tags WHERE id = ?');
+            $stmtT->execute([$tagId]);
+            $nomTag = (string) ($stmtT->fetchColumn() ?: '');
+            $del = db()->prepare('DELETE FROM structure_tag_liens WHERE structure_id = ? AND tag_id = ?');
+            $n = 0;
+            db()->beginTransaction();
+            foreach ($ids as $sid) {
+                $del->execute([$sid, $tagId]);
+                if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
+                    if ($nomTag !== '') {
+                        journaliser('structure', (int) $sid, 'edition', 'Tag retiré : ' . $nomTag);
+                    }
+                    $n++;
+                }
+            }
+            db()->commit();
+            $retour['tagbulk'] = $n;
+            $retour['tagact'] = 'retrait';
+            $retour['tagnom'] = $nomTag;
+        } elseif ($section === 'fusionner' && count($ids) >= 2) {
+            $_SESSION['fusion_ids'] = $ids;
+            redirect('structure_fusion');
+        }
+        if ($section !== '' && $section !== 'delete' && $section !== 'fusionner' && isset($_SESSION['bulk_undo'])) {
+            $retour['bulk'] = count($ids);
+        }
+    }
+    redirect($route, $retour);
+}
+
 function route_structures(): void
 {
     require_login();
@@ -804,117 +923,10 @@ function route_structures(): void
         'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
     ];
 
-    // Modification groupée (sélection de lignes + barre flottante), même esprit que
-    // le lettrage/l'axe analytique en masse sur les écritures ou les événements.
+    // Modification groupée : le corps est partagé avec le suivi d'une campagne
+    // (structures_bulk_appliquer(), juste au-dessus) — il ne rend pas la main.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $section = $_POST['section'] ?? '';
-        if ($section === 'bulk_undo') {
-            $r = bulk_undo_appliquer();
-            redirect($r['route'] ?? 'structures', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
-        }
-        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
-        if ($ids) {
-            $in = sql_in($ids);
-            unset($_SESSION['bulk_undo']);
-            if ($section === 'delete') {
-                // Une structure référencée par une facture est ignorée (jamais supprimée
-                // en masse par erreur) plutôt que de bloquer toute la sélection.
-                $stmtRef = db()->prepare("SELECT DISTINCT structure_id FROM factures WHERE structure_id IN ($in)");
-                $stmtRef->execute($ids);
-                $refs = array_map('intval', $stmtRef->fetchAll(PDO::FETCH_COLUMN));
-                $idsSupprimables = array_values(array_diff($ids, $refs));
-                if ($idsSupprimables) {
-                    $inSup = sql_in($idsSupprimables);
-                    db()->prepare("DELETE FROM structures WHERE id IN ($inSup)")->execute($idsSupprimables);
-                }
-                if ($refs) {
-                    $retourFiltres['structBloquees'] = count($refs);
-                }
-            } elseif ($section === 'categorie') {
-                $bulkCategorieChamps = structure_categorie_champs((int) ($_POST['bulk_categorie_id'] ?? 0));
-                if ($bulkCategorieChamps['categorie'] !== '') {
-                    bulk_undo_memoriser('structures', $ids, ['categorie', 'sous_categorie'], 'structures', $retourFiltres);
-                    db()->prepare("UPDATE structures SET categorie = ?, sous_categorie = ? WHERE id IN ($in)")
-                        ->execute(array_merge([$bulkCategorieChamps['categorie'], $bulkCategorieChamps['sous_categorie']], $ids));
-                }
-            } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', STRUCTURE_STATUTS, true)) {
-                bulk_undo_memoriser('structures', $ids, ['statut'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET statut = ? WHERE id IN ($in)")->execute(array_merge([$_POST['bulk_statut']], $ids));
-            } elseif ($section === 'ville') {
-                bulk_undo_memoriser('structures', $ids, ['adresse_localite'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET adresse_localite = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_ville'] ?? '')], $ids));
-            } elseif ($section === 'departement_canton') {
-                bulk_undo_memoriser('structures', $ids, ['departement_canton'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET departement_canton = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_departement_canton'] ?? '')], $ids));
-            } elseif ($section === 'pays') {
-                bulk_undo_memoriser('structures', $ids, ['adresse_pays'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET adresse_pays = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_pays'] ?? '')], $ids));
-
-            } elseif ($section === 'via') {
-                bulk_undo_memoriser('structures', $ids, ['via'], 'structures', $retourFiltres);
-                db()->prepare("UPDATE structures SET via = ? WHERE id IN ($in)")
-                    ->execute(array_merge([trim($_POST['bulk_via'] ?? '')], $ids));
-            } elseif ($section === 'tag_ajouter' && trim($_POST['bulk_tag_ajouter'] ?? '') !== '') {
-                // Étiquette posée sur toute la sélection : créée si elle n'existe
-                // pas encore (comme depuis une fiche). Pas d'annulation groupée
-                // (les liens ne sont pas des colonnes de structures) — le retrait
-                // groupé fait l'inverse ; chaque fiche garde une trace en historique.
-                $nomTag = trim($_POST['bulk_tag_ajouter']);
-                $stmtT = db()->prepare('SELECT id FROM structure_tags WHERE nom = ? COLLATE NOCASE');
-                $stmtT->execute([$nomTag]);
-                $tagId = $stmtT->fetchColumn();
-                if ($tagId === false) {
-                    db()->prepare('INSERT INTO structure_tags (nom) VALUES (?)')->execute([$nomTag]);
-                    $tagId = (int) db()->lastInsertId();
-                }
-                $ins = db()->prepare('INSERT OR IGNORE INTO structure_tag_liens (structure_id, tag_id) VALUES (?, ?)');
-                $n = 0;
-                db()->beginTransaction();
-                foreach ($ids as $sid) {
-                    $ins->execute([$sid, (int) $tagId]);
-                    if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
-                        journaliser('structure', (int) $sid, 'edition', 'Tag ajouté : ' . $nomTag);
-                        $n++;
-                    }
-                }
-                db()->commit();
-                $retourFiltres['tagbulk'] = $n;
-                $retourFiltres['tagact'] = 'ajout';
-                $retourFiltres['tagnom'] = $nomTag;
-            } elseif ($section === 'tag_retirer' && (int) ($_POST['bulk_tag_retirer'] ?? 0) > 0) {
-                $tagId = (int) $_POST['bulk_tag_retirer'];
-                $stmtT = db()->prepare('SELECT nom FROM structure_tags WHERE id = ?');
-                $stmtT->execute([$tagId]);
-                $nomTag = (string) ($stmtT->fetchColumn() ?: '');
-                $del = db()->prepare('DELETE FROM structure_tag_liens WHERE structure_id = ? AND tag_id = ?');
-                $n = 0;
-                db()->beginTransaction();
-                foreach ($ids as $sid) {
-                    $del->execute([$sid, $tagId]);
-                    if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
-                        if ($nomTag !== '') {
-                            journaliser('structure', (int) $sid, 'edition', 'Tag retiré : ' . $nomTag);
-                        }
-                        $n++;
-                    }
-                }
-                db()->commit();
-                $retourFiltres['tagbulk'] = $n;
-                $retourFiltres['tagact'] = 'retrait';
-                $retourFiltres['tagnom'] = $nomTag;
-            } elseif ($section === 'fusionner' && count($ids) >= 2) {
-                $_SESSION['fusion_ids'] = $ids;
-                redirect('structure_fusion');
-            }
-            if ($section !== '' && $section !== 'delete' && $section !== 'fusionner' && isset($_SESSION['bulk_undo'])) {
-                $retourFiltres['bulk'] = count($ids);
-            }
-        }
-        redirect('structures', $retourFiltres);
+        structures_bulk_appliquer('structures', $retourFiltres);
     }
 
     if ($vue === 'carte') {

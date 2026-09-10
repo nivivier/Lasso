@@ -7,6 +7,38 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.6] — 2026-09-10
+
+### Ajouté
+- **Le suivi d'une campagne gagne les cases à cocher et la barre d'action
+  groupée de `?p=structures`** : on modifie les fiches d'une sélection — tag,
+  statut, ville, catégorie… — sans quitter le démarchage. Même barre, mêmes
+  actions, même annulation ; côté serveur c'est le même code qui les applique.
+- **Les tags se posent et se retirent depuis le suivi d'une campagne**, comme
+  dans la liste des structures. En démarchant on range (« déjà relancé », « à
+  rappeler en janvier ») : aller-retourner sur chaque fiche pour poser un mot
+  n'avait pas de sens.
+
+### Modifié
+- **La liste des campagnes se resserre sur téléphone** : le nom du projet
+  s'efface au profit de sa seule icône, la période sort, et « État » rejoint
+  « Avancement » — la progression si la campagne est en cours, son état sinon.
+  La même fusion que la carte du tableau de bord.
+
+### Corrigé
+- **Le tableau de la carte « Campagnes » débordait de sa carte sur téléphone.**
+  Le nom, tronqué d'un « … », gardait quand même sa largeur de texte entier
+  comme largeur minimale : la colonne s'étirait de deux cents pixels. Il passe
+  désormais sur deux lignes au plus.
+- **Les pastilles de projet, encore mal centrées dans `?p=campagnes`** — et
+  d'autant plus visiblement qu'une campagne portait plusieurs projets. Le
+  correctif de 2.7.5 ne traitait que le nom passé sur deux lignes ; la rangée
+  elle-même restait un flux de texte, où chaque pastille se cale sur la ligne de
+  base de son icône. Une icône sans texte propre n'en a pas : chaque navigateur
+  en synthétise une à sa façon, d'où des rangées plus hautes et des pastilles
+  décalées ici et pas là. La rangée est devenue un conteneur flex : sa géométrie
+  ne dépend plus du moteur de rendu.
+
 ## [2.7.5] — 2026-09-10
 
 ### Ajouté

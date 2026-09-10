@@ -510,6 +510,80 @@ function lassoInitCatSearch(wrap, opts = {}) {
     });
 }
 
+
+// Barre d'action groupée d'une liste de structures (views/_structures_bulk_bar.php).
+// Deux pages la montrent — ?p=structures et le suivi d'une campagne — et elle s'y
+// comporte pareil : d'où cette fonction plutôt qu'un script recopié dans chaque
+// vue. Elle ne fait rien si la page n'a pas de barre (droits en lecture seule).
+function lassoInitBulkBar() {
+    const bulkBar = document.getElementById('bulk-bar');
+    if (!bulkBar) return;
+    function updateBulkBar() {
+        bulkBar.hidden = document.querySelectorAll('.row-check:checked').length === 0;
+    }
+    const all = document.getElementById('check-all');
+    if (!all) return;
+    all.addEventListener('change', () => {
+        document.querySelectorAll('.row-check').forEach(c => {
+            // Ne coche que ce qui est À L'ÉCRAN : les deux listes qui montrent
+            // cette barre filtrent côté client, l'une en posant display:none
+            // (?p=structures), l'autre l'attribut hidden (le suivi d'une
+            // campagne). Cocher « tout » ne doit jamais emporter des lignes que
+            // la recherche vient d'écarter.
+            const tr = c.closest('tr');
+            if (!tr.hidden && tr.style.display !== 'none') c.checked = all.checked;
+        });
+        updateBulkBar();
+    });
+    document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
+
+    const action = document.getElementById('bulk-action');
+    const submit = document.getElementById('bulk-submit');
+    const fields = document.querySelectorAll('.bulk-field');
+    const champ = document.getElementById('bulk-champ');
+    const sectionInput = document.getElementById('bulk-section');
+    function syncAction() {
+        // « Modifier… » délègue le choix au second menu ; les autres actions sont
+        // elles-mêmes la section. Une seule valeur part au serveur, dans le champ
+        // caché — les deux <select> ne sont que des commandes d'interface.
+        const enModification = action.value === 'modifier';
+        champ.hidden = !enModification;
+        if (!enModification) champ.value = '';
+        const section = enModification ? champ.value : action.value;
+        sectionInput.value = section;
+
+        fields.forEach(f => { f.hidden = f.dataset.for !== section; });
+        submit.disabled = section === '';
+        // L'icône et le libellé accessible suivent l'action choisie. On bascule
+        // des éléments déjà présents : rien n'est construit en JS, donc aucune
+        // icône ne peut manquer au sprite.
+        const etat = section === 'delete' ? 'supprimer'
+                   : section === 'fusionner' ? 'fusionner' : 'modifier';
+        const libelles = { supprimer: 'Supprimer la sélection',
+                           fusionner: 'Fusionner la sélection',
+                           modifier:  'Modifier la sélection' };
+        submit.querySelectorAll('[data-bulk-icone]').forEach(el => {
+            el.hidden = el.dataset.bulkIcone !== etat;
+        });
+        submit.title = libelles[etat];
+        submit.setAttribute('aria-label', libelles[etat]);
+        submit.classList.toggle('danger', etat === 'supprimer');
+    }
+    action.addEventListener('change', syncAction);
+    champ.addEventListener('change', syncAction);
+    syncAction();
+
+    document.getElementById('bulkform').addEventListener('submit', e => {
+        const n = document.querySelectorAll('.row-check:checked').length;
+        if (sectionInput.value === 'delete' && !confirm('Supprimer ' + n + ' structure(s) ? Cette action est irréversible.')) {
+            e.preventDefault();
+        } else if (sectionInput.value === 'fusionner' && n < 2) {
+            alert('Sélectionnez au moins deux structures à fusionner.');
+            e.preventDefault();
+        }
+    });
+}
+
 // Suggestions pour un champ « étiquette » en texte libre (?p=structure,
 // ?p=structures — ajout individuel, ajout groupé, ajout par ligne) :
 // contrairement à lassoInitCatSearch() (sélection fermée dans une liste),

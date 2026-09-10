@@ -6,9 +6,13 @@
 /** @var array $campagneProjets */ /** @var array $spectacles */ /** @var array $projetIds */
 /** @var array $repartition */ /** @var array $filtres */ /** @var array $reponseFiltre */ /** @var int $nbAffichees */
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
+/** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 // Une campagne : ses structures, et pour chacune le bouton qui ouvre la fenêtre
-// « Contacter » — ici même, sans quitter la liste. Rien ne part d'ici en masse :
-// c'est le principe, on démarche une structure à la fois.
+// « Contacter » — ici même, sans quitter la liste. Aucun MESSAGE ne part d'ici en
+// masse : c'est le principe, on démarche une structure à la fois. La barre
+// d'action groupée, elle, est celle de ?p=structures : elle modifie des fiches
+// (tag, statut, ville…), elle n'écrit à personne.
 $spectacleLabels = [];
 foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
 $statutClasse = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
@@ -51,6 +55,19 @@ $sfReinit = bouton_reinit_filtres(
 <a class="back-link" href="?p=campagnes"><?= icon('arrow-left') ?> Campagnes</a>
 <?php if ($saved): ?><p class="ok flash">Enregistré.</p><?php endif; ?>
 <?php require __DIR__ . '/_flash_contacter.php'; ?>
+<?php // Retours d'une modification groupée : les mêmes bandeaux que
+      // ?p=structures, puisque c'est la même barre et le même code serveur. ?>
+<?php $actionUrl = '?p=campagne&id=' . (int) $campagne['id']; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?php if ($tagBulk !== null): ?>
+<p class="ok flash">
+    <?php if ($tagBulk > 0): ?>
+        Tag « <?= e($tagBulkNom) ?> » <?= $tagBulkAction === 'retrait' ? 'retiré de' : 'ajouté à' ?> <strong><?= (int) $tagBulk ?></strong> structure(s).
+    <?php else: ?>
+        Aucune structure modifiée (tag <?= $tagBulkAction === 'retrait' ? 'déjà absent' : 'déjà présent' ?>).
+    <?php endif; ?>
+</p>
+<?php endif; ?>
+<?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
 
 <div class="page-head">
     <?php // Le badge est À CÔTÉ du <h1>, pas dedans : le titre de page peint son
@@ -106,10 +123,10 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
     <?php endif; ?>
 
     <div class="camp-corps">
-        <div class="camp-projets">
+        <div class="camp-projets projet-pastilles">
             <?php if (!$projets): ?><span class="muted">Aucun projet</span><?php endif; ?>
             <?php foreach ($projets as $i => $nomProjet): ?>
-                <span class="projet-pastille"><?= $projetsPastilles[$i] ?? '' ?><?= e($nomProjet) ?></span>
+                <span class="projet-pastille"><?= $projetsPastilles[$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
             <?php endforeach; ?>
         </div>
 
@@ -158,11 +175,32 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
         ? (int) $nbAffichees . ' structure(s) sur ' . (int) $nbTotal : '' ?></span>
 </div>
 
+<?php if ($peutEcrire): ?>
+<?php
+// L'exemplaire unique du formulaire d'ajout de tag, celui de ?p=structures : la
+// colonne « Tags » se modifie ici aussi.
+$taTags = $tagsDispo;
+$taRetour = ['retour' => 'campagne', 'campagne_id' => (int) $campagne['id']];
+require __DIR__ . '/_tag_ajouter_ligne.php';
+?>
+<?php
+// La barre d'action groupée de ?p=structures, telle quelle : on modifie ici les
+// fiches d'une sélection sans quitter le démarchage. Elle poste sur cette page,
+// qui délègue à structures_bulk_appliquer() — même code, même annulation.
+$bbAction = '?p=campagne&id=' . (int) $campagne['id'];
+$bbTagsDispo = $tagsDispo;
+$bbCategories = $categoriesPourSelect;
+require __DIR__ . '/_structures_bulk_bar.php';
+?>
+<?php endif; ?>
 <?php
 // Le tableau est celui de ?p=structures (views/_structures_table.php) : mêmes
 // colonnes, même code. La campagne y ajoute les deux siennes, tout à droite —
 // ce qu'on fait à cette ligne, puis ce qu'elle a répondu.
 $stStructures = $structures;
+// Cases à cocher de l'action groupée, mêmes noms que sur ?p=structures : c'est
+// le même script (lassoInitBulkBar()) qui les écoute.
+$stCheck = $peutEcrire ? ['name' => 'ids[]', 'form' => 'bulkform', 'classe' => 'row-check', 'tout' => 'check-all'] : null;
 $stVide = $sfActif
     ? 'Aucune structure de cette campagne ne correspond à ces filtres.'
     : 'Aucune structure dans cette campagne.';
@@ -171,10 +209,13 @@ $stVide = $sfActif
 $stHref = fn (array $d): string => '?p=structure&id=' . (int) $d['id'] . '&depuis=campagne:' . (int) $campagne['id'];
 $stSuffixeDepuis = '&depuis=campagne:' . (int) $campagne['id'];
 // Ligne non cliquable : elle porte des boutons, un clic à côté ne doit pas
-// emporter sur la fiche au milieu d'un démarchage. Étiquettes en lecture seule
-// pour la même raison — on les modifie sur la fiche.
+// emporter sur la fiche au milieu d'un démarchage.
 $stLigneCliquable = false;
-$stTagsActifs = false;
+// Tags modifiables sur place, comme sur ?p=structures : en démarchant, on range
+// — « déjà relancé », « à rappeler en janvier » — et aller-retourner sur chaque
+// fiche pour poser un mot n'avait pas de sens. Même croix, même « + », même
+// formulaire mutualisé (views/_tag_ajouter_ligne.php).
+$stTagsActifs = $peutEcrire;
 $stNbEvenements = $nbEvenements;
 // Pas de colonne « Factures » : on est dans le booking, et ?p=structures la
 // masque déjà quand on y arrive par ce module. Même tableau, même choix.
@@ -322,6 +363,8 @@ require __DIR__ . '/_structures_table.php';
     };
     champ.addEventListener('input', filtrer);
 })();
+lassoInitBulkBar();
+lassoInitTagSuggest();
 </script>
 
 <?php if ($peutEcrire && $ouverte): ?>

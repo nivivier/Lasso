@@ -370,6 +370,24 @@ function route_structure_campagne(): void
     );
 }
 
+// Où revenir après un ajout ou un retrait de tag SANS JavaScript : la liste d'où
+// l'on vient — ?p=structures, ou le suivi d'une campagne, qui posent tous deux
+// des tags depuis leur tableau. À défaut, la fiche de la structure, comportement
+// historique de ce formulaire. Avec JavaScript, rien de tout cela : la requête
+// part en JSON et seule la cellule est remplacée (retour=json, plus haut).
+function tag_retour_redirect(int $structureId): void
+{
+    $retour = (string) ($_POST['retour'] ?? '');
+    $campagneId = (int) ($_POST['campagne_id'] ?? 0);
+    if ($retour === 'structures') {
+        redirect('structures');
+    }
+    if ($retour === 'campagne' && $campagneId > 0) {
+        redirect('campagne', ['id' => $campagneId]);
+    }
+    redirect('structure', ['id' => $structureId]);
+}
+
 function route_structure_tag_ajouter(): void
 {
     require_login();
@@ -390,13 +408,7 @@ function route_structure_tag_ajouter(): void
         structure_tags_reponse_json($structureId);
         return;
     }
-    // retour=structures (posé par le petit "+" par ligne de ?p=structures,
-    // ajouté sans quitter la liste) : sinon toujours la fiche structure,
-    // comportement historique de ce formulaire. Conservé comme repli sans JS.
-    if (($_POST['retour'] ?? '') === 'structures') {
-        redirect('structures');
-    }
-    redirect('structure', ['id' => $structureId]);
+    tag_retour_redirect($structureId);
 }
 
 function route_structure_tag_retirer(): void
@@ -420,10 +432,7 @@ function route_structure_tag_retirer(): void
             structure_tags_reponse_json($structureId);
             return;
         }
-        if (($_POST['retour'] ?? '') === 'structures') {
-            redirect('structures');
-        }
-        redirect('structure', ['id' => $structureId]);
+        tag_retour_redirect($structureId);
     }
     redirect('structures');
 }
@@ -1737,6 +1746,15 @@ function route_campagne(): void
     if (!$campagne) {
         redirect('campagnes');
     }
+    // Modification groupée : la même barre et les mêmes actions que
+    // ?p=structures, appliquées par le même code (structures_bulk_appliquer(),
+    // lib/routes_facturation.php) — il ne rend pas la main. Le retour ramène
+    // ici : les entonnoirs de cette page ont leur propre mémoire de session, il
+    // n'y a que l'id à reporter.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_ecriture('booking');
+        structures_bulk_appliquer('campagne', ['id' => $id]);
+    }
     $map = spectacle_map();
     $projets = spectacles_lies('campagne_spectacles', $id);
     $contactees = array_flip(campagne_structures_contactees($id));
@@ -1855,7 +1873,15 @@ function route_campagne(): void
         // L'état se calcule lui aussi sur la campagne entière, pas sur l'écran filtré.
         'statut'      => campagne_statut((string) $campagne['date_debut'], (string) $campagne['date_fin'], $nbTotal, $faits, date('Y-m-d')),
         'ouverte'     => $ouverte,
-        'saved'       => isset($_GET['ok']),
+        'saved'       => isset($_GET['ok']) && $_GET['ok'] !== 'annule',
+        // Retour d'une modification groupée : le bandeau « N ligne(s) modifiée(s)
+        // — Annuler », commun à toutes les listes qui en proposent une.
+        'bulkCount'   => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
+        'okAnnule'    => ($_GET['ok'] ?? '') === 'annule',
+        'tagBulk'     => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
+        'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
+        'tagBulkNom'  => (string) ($_GET['tagnom'] ?? ''),
+        'structBloquees' => (int) ($_GET['structBloquees'] ?? 0),
     ], 'Campagne — ' . $campagne['nom']);
 }
 

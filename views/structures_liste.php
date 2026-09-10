@@ -220,25 +220,13 @@ $montreContacte = $depuisNav !== 'facturation';
     </div>
 
 <?php if (peut_ecrire('booking')): ?>
-<?php // Exemplaire unique du formulaire d'ajout d'étiquette : déplacé dans la
-      // cellule de la ligne cliquée à l'ouverture, son structure_id renseigné à
-      // ce moment-là. Hors du tableau au repos, pour ne peser qu'une fois. ?>
-<form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="tag-ajouter-form-liste" hidden>
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <input type="hidden" name="structure_id" value="">
-    <input type="hidden" name="retour" value="structures">
-    <div class="cat-search tag-search">
-        <input type="text" name="nom" class="cat-search-input" placeholder="Tag…" autocomplete="off">
-        <ul class="cat-search-list" hidden role="listbox">
-            <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
-        </ul>
-    </div>
-    <?php // Ce bouton ne sert qu'à CRÉER : choisir une étiquette existante dans
-          // la liste l'enregistre au clic (voir lassoInitTagAjout()). D'où le
-          // libellé, qui ne promet plus un simple « Ajouter ». ?>
-    <button type="submit" class="btn ghost btn-sm icon-only" title="Créer ce tag" aria-label="Créer ce tag et l'ajouter"><?= icon('plus') ?></button>
-    <button type="button" class="btn ghost btn-sm icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-</form>
+<?php
+// Le formulaire d'ajout de tag par ligne est partagé avec le suivi d'une
+// campagne : views/_tag_ajouter_ligne.php.
+$taTags = $tagsDispo;
+$taRetour = ['retour' => 'structures'];
+require __DIR__ . '/_tag_ajouter_ligne.php';
+?>
 <?php endif; ?>
 
 <?php if ($peutEcrireTags && $campagnesDispo): ?>
@@ -266,100 +254,14 @@ $montreContacte = $depuisNav !== 'facturation';
 <?php else: ?>
 <?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
 <?php if ($peutEcrireStruct): ?>
-<div class="bulk-bar" id="bulk-bar" hidden>
-    <form method="post" id="bulkform" action="?p=structures">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <?php // « section » est la valeur que le serveur commute (voir
-              // route_structures()). Elle n'est plus portée par un <select> mais par
-              // ce champ caché, alimenté par le JS depuis l'un OU l'autre des deux
-              // menus : les sept modifications de champ tenaient auparavant sept
-              // lignes dans une liste qui en comptait douze, ce qui la rendait longue
-              // à parcourir pour trouver « Supprimer » ou « Fusionner ». ?>
-        <input type="hidden" name="section" id="bulk-section" value="">
-
-        <select id="bulk-action" class="inline-year-select" aria-label="Action groupée">
-            <option value="">— Choisir une action —</option>
-            <option value="modifier">Modifier…</option>
-            <?php if ($tagsDispo || module_actif('booking')): ?>
-            <option value="tag_ajouter">Ajouter un tag</option>
-            <option value="tag_retirer">Retirer un tag</option>
-            <?php endif; ?>
-            <option value="fusionner">Fusionner</option>
-            <option value="delete">Supprimer</option>
-        </select>
-
-        <?php // Second menu, révélé par « Modifier… » : le champ à changer. Les
-              // valeurs sont exactement celles attendues par le serveur, inchangées. ?>
-        <select id="bulk-champ" class="inline-year-select" aria-label="Champ à modifier" hidden>
-            <option value="">— Choisir un champ —</option>
-            <option value="statut">Statut</option>
-            <option value="ville">Ville</option>
-            <option value="departement_canton">Département / canton</option>
-            <option value="pays">Pays</option>
-            <option value="categorie">Catégorie</option>
-            <option value="via">Connu via</option>
-        </select>
-
-        <span class="bulk-field" data-for="categorie" hidden>
-            <select name="bulk_categorie_id" class="inline-year-select">
-                <?php foreach ($categoriesPourSelect as $cat): ?>
-                    <option value="<?= (int) $cat['id'] ?>"><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </span>
-        <span class="bulk-field" data-for="ville" hidden>
-            <input type="text" name="bulk_ville" class="inline-year-select" placeholder="Nouvelle ville">
-        </span>
-        <span class="bulk-field" data-for="departement_canton" hidden>
-            <input type="text" name="bulk_departement_canton" class="inline-year-select" placeholder="Nouveau département / canton">
-        </span>
-        <span class="bulk-field" data-for="pays" hidden>
-            <select name="bulk_pays" class="inline-year-select"><?= pays_options_nom('') ?></select>
-        </span>
-        <span class="bulk-field" data-for="via" hidden>
-            <input type="text" name="bulk_via" class="inline-year-select" placeholder="Nouveau « via »">
-        </span>
-        <?php if ($tagsDispo || module_actif('booking')): ?>
-        <span class="bulk-field" data-for="tag_ajouter" hidden>
-            <div class="cat-search tag-search">
-                <input type="text" name="bulk_tag_ajouter" class="cat-search-input inline-year-select"
-                       placeholder="Tag à ajouter" autocomplete="off">
-                <ul class="cat-search-list" hidden role="listbox">
-                    <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
-                </ul>
-            </div>
-        </span>
-        <span class="bulk-field" data-for="tag_retirer" hidden>
-            <select name="bulk_tag_retirer" class="inline-year-select">
-                <?php foreach ($tagsDispo as $t): ?>
-                    <option value="<?= (int) $t['id'] ?>"><?= e($t['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </span>
-        <?php endif; ?>
-        <span class="bulk-field" data-for="statut" hidden>
-            <select name="bulk_statut" class="inline-year-select">
-                <?php foreach (STRUCTURE_STATUTS as $s): ?>
-                    <option value="<?= e($s) ?>"><?= e(structure_statut_libelle($s)) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </span>
-
-        <?php // Bouton en icône seule : le libellé « Modifier la sélection » prenait
-              // toute la largeur d'un écran de téléphone, au point de réduire le champ
-              // voisin à rien. Les TROIS états sont rendus ici plutôt qu'injectés en
-              // JS : le sprite d'icônes ne contient que ce qui a été rendu côté
-              // serveur, une icône seulement référencée depuis un script serait
-              // introuvable. Le script se contente de basculer leur visibilité et le
-              // libellé accessible. ?>
-        <button type="submit" class="btn icon-only" id="bulk-submit" disabled
-                title="Modifier la sélection" aria-label="Modifier la sélection">
-            <span data-bulk-icone="modifier"><?= icon('save') ?></span>
-            <span data-bulk-icone="supprimer" hidden><?= icon('trash') ?></span>
-            <span data-bulk-icone="fusionner" hidden><?= icon('merge') ?></span>
-        </button>
-    </form>
-</div>
+<?php
+// La barre d'action groupée vit dans son propre fichier : le suivi d'une
+// campagne montre la même (views/_structures_bulk_bar.php).
+$bbAction = '?p=structures';
+$bbTagsDispo = $tagsDispo;
+$bbCategories = $categoriesPourSelect;
+require __DIR__ . '/_structures_bulk_bar.php';
+?>
 <?php endif; ?>
 <?php
 // Le tableau lui-même est partagé avec la sélection d'une campagne : il vit dans
@@ -401,65 +303,5 @@ lassoRechercheServeur(document.getElementById('structures-search'));
 <?php endif; ?>
 lassoInitTagSuggest();
 
-(function () {
-    const bulkBar = document.getElementById('bulk-bar');
-    if (!bulkBar) return;
-    function updateBulkBar() {
-        bulkBar.hidden = document.querySelectorAll('.row-check:checked').length === 0;
-    }
-    const all = document.getElementById('check-all');
-    all.addEventListener('change', () => {
-        document.querySelectorAll('.row-check').forEach(c => {
-            if (c.closest('tr').style.display !== 'none') c.checked = all.checked;
-        });
-        updateBulkBar();
-    });
-    document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBar));
-
-    const action = document.getElementById('bulk-action');
-    const submit = document.getElementById('bulk-submit');
-    const fields = document.querySelectorAll('.bulk-field');
-    const champ = document.getElementById('bulk-champ');
-    const sectionInput = document.getElementById('bulk-section');
-    function syncAction() {
-        // « Modifier… » délègue le choix au second menu ; les autres actions sont
-        // elles-mêmes la section. Une seule valeur part au serveur, dans le champ
-        // caché — les deux <select> ne sont que des commandes d'interface.
-        const enModification = action.value === 'modifier';
-        champ.hidden = !enModification;
-        if (!enModification) champ.value = '';
-        const section = enModification ? champ.value : action.value;
-        sectionInput.value = section;
-
-        fields.forEach(f => { f.hidden = f.dataset.for !== section; });
-        submit.disabled = section === '';
-        // L'icône et le libellé accessible suivent l'action choisie. On bascule
-        // des éléments déjà présents : rien n'est construit en JS, donc aucune
-        // icône ne peut manquer au sprite.
-        const etat = section === 'delete' ? 'supprimer'
-                   : section === 'fusionner' ? 'fusionner' : 'modifier';
-        const libelles = { supprimer: 'Supprimer la sélection',
-                           fusionner: 'Fusionner la sélection',
-                           modifier:  'Modifier la sélection' };
-        submit.querySelectorAll('[data-bulk-icone]').forEach(el => {
-            el.hidden = el.dataset.bulkIcone !== etat;
-        });
-        submit.title = libelles[etat];
-        submit.setAttribute('aria-label', libelles[etat]);
-        submit.classList.toggle('danger', etat === 'supprimer');
-    }
-    action.addEventListener('change', syncAction);
-    champ.addEventListener('change', syncAction);
-    syncAction();
-
-    document.getElementById('bulkform').addEventListener('submit', e => {
-        const n = document.querySelectorAll('.row-check:checked').length;
-        if (sectionInput.value === 'delete' && !confirm('Supprimer ' + n + ' structure(s) ? Cette action est irréversible.')) {
-            e.preventDefault();
-        } else if (sectionInput.value === 'fusionner' && n < 2) {
-            alert('Sélectionnez au moins deux structures à fusionner.');
-            e.preventDefault();
-        }
-    });
-})();
+lassoInitBulkBar();
 </script>

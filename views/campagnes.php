@@ -76,9 +76,9 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
                   // elles-mêmes, et n'existent donc pas tant qu'il n'y en a aucune. ?>
             <th class="col-reinit-hote"><span class="col-th"><?= bouton_reinit_filtres('campagnes', ['projet_id', 'annee', 'statut'], $filtreActif) ?>Projet <?= $projetsDispo ? filtre_colonne_html('campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id')) : '' ?></span></th>
             <th>Campagne</th>
-            <th class="nowrap"><span class="col-th">Période <?= $anneesDispo ? filtre_colonne_html('campagnes', 'annee', $anneesDispo, $annee, $autres('annee')) : '' ?></span></th>
+            <th class="nowrap col-periode"><span class="col-th">Période <?= $anneesDispo ? filtre_colonne_html('campagnes', 'annee', $anneesDispo, $annee, $autres('annee')) : '' ?></span></th>
             <th>Avancement</th>
-            <th class="nowrap"><span class="col-th">État <?= filtre_colonne_html('campagnes', 'statut', $statutLabels, $statut, $autres('statut')) ?></span></th>
+            <th class="nowrap col-etat"><span class="col-th">État <?= filtre_colonne_html('campagnes', 'statut', $statutLabels, $statut, $autres('statut')) ?></span></th>
         </tr>
     </thead>
     <tbody>
@@ -100,25 +100,31 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
     <?php foreach ($groupe['campagnes'] as $c): $cid = (int) $c['id']; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
             <td>
+                <div class="projet-pastilles">
                 <?php if ($c['projets']): ?>
                     <?php // Chaque projet avec son icône : c'est elle qu'on
                           // reconnaît d'un coup d'œil dans une liste de campagnes. ?>
                     <?php foreach ($c['projets'] as $i => $nomProjet): ?>
-                        <span class="projet-pastille"><?= $c['projets_pastilles'][$i] ?? '' ?><?= e($nomProjet) ?></span>
+                        <span class="projet-pastille"><?= $c['projets_pastilles'][$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <span class="muted">Aucun projet</span>
                 <?php endif; ?>
+                </div>
             </td>
             <?php // La couleur d'accent est réservée à ce qui demande du travail :
                   // une campagne en cours. À venir, en retard ou terminée, son nom
                   // s'écrit à l'encre — il reste un lien, il n'appelle plus. ?>
             <td><a class="strong<?= $c['statut'] === 'en_cours' ? '' : ' lien-encre' ?>" href="?p=campagne&id=<?= $cid ?>"><?= e($c['nom']) ?></a></td>
-            <td class="muted small nowrap">
+            <td class="muted small nowrap col-periode">
                 <?php $d = $jour($c['date_debut']); $f = $jour($c['date_fin']); ?>
                 <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?>
             </td>
-            <td class="camp-avancement">
+            <?php // Sur écran étroit, « État » disparaît et son badge se replie
+                  // ici : la même fusion que la carte du tableau de bord — la
+                  // progression quand la campagne est en cours, son état sinon.
+                  // Les deux sont rendus, le CSS choisit (assets/app.css). ?>
+            <td class="camp-avancement<?= $c['statut'] === 'en_cours' ? '' : ' camp-avancement-etat' ?>">
                 <?php // La même barre que la carte d'une campagne, en plus étroit :
                       // ce qui reste à faire ET ce qu'on a obtenu, sans compter.
                       // La légende ne tient pas dans une ligne de tableau — le
@@ -126,8 +132,9 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
                       // lecteurs d'écran (campagne_barre_html()). ?>
                 <?= campagne_barre_html($c['repartition'], (int) $c['nb_total'], 'camp-barre-liste') ?>
                 <span class="camp-avancement-txt"><b><?= (int) $c['nb_faits'] ?></b> / <?= (int) $c['nb_total'] ?></span>
+                <span class="camp-etat-repli badge <?= $statutClasse[$c['statut']] ?? 'muted-badge' ?>"><?= e(CAMPAGNE_STATUTS[$c['statut']] ?? $c['statut']) ?></span>
             </td>
-            <td class="nowrap">
+            <td class="nowrap col-etat">
                 <span class="badge <?= $statutClasse[$c['statut']] ?? 'muted-badge' ?>"><?= e(CAMPAGNE_STATUTS[$c['statut']] ?? $c['statut']) ?></span>
             </td>
         </tr>
