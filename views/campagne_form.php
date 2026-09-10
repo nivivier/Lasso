@@ -1,6 +1,7 @@
 <?php
 /** @var ?array $campagne */ /** @var array $projets */ /** @var array $spectacles */
 /** @var array $criteres */ /** @var array $apercu */ /** @var array $retenues */
+/** @var array $ajouts */
 /** @var bool $previsualise */ /** @var array $tags */ /** @var array $regions */
 /** @var array $grandesRegions */ /** @var array $villes */ /** @var array $categoriesPourSelect */
 /** @var array $nbEvenements */ /** @var ?string $err */
@@ -39,13 +40,24 @@ $saisie = array_filter([
     'date_debut' => (string) ($campagne['date_debut'] ?? ''),
     'date_fin' => (string) ($campagne['date_fin'] ?? ''),
     'spectacle_ids' => array_map('strval', $projets),
+    // Les structures ajoutées à la main voyagent avec le reste : un entonnoir
+    // recharge la page, et sans elles l'ajout disparaîtrait au filtre suivant.
+    'ajout' => array_map('strval', $ajouts),
 ]);
-$tousFiltres = array_filter([
+$criteresActifs = array_filter([
     'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'],
     'pays' => $criteres['pays'], 'grande_region' => $criteres['grande_region'],
     'departement_canton' => $criteres['departement_canton'], 'ville' => $criteres['ville'],
-] + $saisie + array_filter($base));
+]);
+$tousFiltres = array_filter($criteresActifs + $saisie + array_filter($base));
 $autres = autres_filtres_fn($tousFiltres);
+// Le formulaire d'ajout emporte l'état de la page, moins « previsualiser »
+// tant qu'aucun critère n'est posé : sans critère, prévisualiser veut dire
+// TOUTES les structures — ce n'est pas ce qu'on demande en cherchant un nom.
+$ajoutParams = $tousFiltres;
+if (!$criteresActifs) {
+    unset($ajoutParams['previsualiser']);
+}
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -109,6 +121,26 @@ $autres = autres_filtres_fn($tousFiltres);
         <?= filtre_colonne_html('campagne_form', 'departement_canton', $labels($regions), $criteres['departement_canton'], $autres('departement_canton'), 'Département / canton') ?>
         <?= filtre_colonne_html('campagne_form', 'ville', $labels($villes), $criteres['ville'], $autres('ville'), 'Ville') ?>
     </div>
+    <?php // Chercher une structure par son nom, pour l'ajouter à la sélection
+          // sans avoir à trouver le filtre qui la fait apparaître — une salle
+          // dont on se souvient au dernier moment n'a pas de critère commun
+          // avec le reste du ciblage. Formulaire GET, comme les entonnoirs :
+          // l'ajout part dans l'URL et la page se recompose avec. ?>
+    <form method="get" class="filters ajout-structure" id="campagne-ajout-form">
+        <input type="hidden" name="p" value="campagne_form">
+        <?= hidden_inputs_html($ajoutParams) ?>
+        <div class="cat-search" id="campagne-ajout-search">
+            <input type="text" class="cat-search-input" placeholder="Ajouter une structure par son nom…" autocomplete="off"
+                   aria-label="Ajouter une structure à la sélection">
+            <input type="hidden" class="cat-search-val" name="ajout[]" value="">
+            <ul class="cat-search-list" hidden role="listbox"></ul>
+        </div>
+        <?php // Repli sans JavaScript : la liste des noms se peuple au premier
+              // focus (?p=lieux_options), ce bouton reste le moyen d'envoyer
+              // le choix si le clic sur une suggestion n'a pas déjà soumis. ?>
+        <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter à la sélection"
+                aria-label="Ajouter à la sélection"><?= icon('plus') ?></button>
+    </form>
 </div>
 
 <?php // Le tableau est celui de ?p=structures, mêmes colonnes et même code
@@ -116,7 +148,7 @@ $autres = autres_filtres_fn($tousFiltres);
       // l'habitude de lire, sans avoir à réapprendre où regarder. Il prend toute
       // la largeur pour la même raison que là-bas. ?>
 <?php if (!$apercu): ?>
-    <p class="muted">Choisissez des filtres ci-dessus pour composer la sélection.</p>
+    <p class="muted">Choisissez des filtres ci-dessus pour composer la sélection, ou ajoutez une structure par son nom.</p>
 <?php else: ?>
     <p class="muted small mb-8" id="campagne-compte"></p>
     <?php
@@ -127,7 +159,10 @@ $autres = autres_filtres_fn($tousFiltres);
     $stCheck = [
         'name' => 'structure_ids[]', 'form' => 'campagne-form',
         'classe' => 'campagne-case', 'tout' => 'campagne-tout',
-        'coche' => fn (array $d): bool => !$id || !$retenues || in_array((int) $d['id'], $retenues, true),
+        // Une structure ajoutée à la main est cochée d'office : on ne la
+        // cherche pas par son nom pour la laisser hors de la campagne.
+        'coche' => fn (array $d): bool => in_array((int) $d['id'], $ajouts, true)
+            || !$id || !$retenues || in_array((int) $d['id'], $retenues, true),
     ];
     // Ni entonnoirs ni bouton de réinitialisation dans les en-têtes : le ciblage
     // se fait au-dessus, en un seul endroit. Le nom mène à la fiche, mais la
@@ -163,6 +198,54 @@ $autres = autres_filtres_fn($tousFiltres);
     tout?.addEventListener('change', () => { cases.forEach(c => { c.checked = tout.checked; }); majCompte(); });
     cases.forEach(c => c.addEventListener('change', majCompte));
     majCompte();
+})();
+</script>
+
+<script nonce="<?= e(csp_nonce()) ?>">
+// Recherche d'une structure à ajouter. Les noms ne sont pas écrits dans la
+// page : il y en a plusieurs milliers, et la page pèse déjà lourd. Ils sont
+// chargés au PREMIER focus (?p=lieux_options, la route qui sert déjà le même
+// choix à ?p=evenement_form), puis filtrés à la frappe par lassoInitCatSearch().
+//
+// Choisir une suggestion envoie le formulaire : l'ajout part dans l'URL avec
+// les filtres et la saisie en cours, et la page revient avec la structure à sa
+// place alphabétique, cochée. Sans JavaScript, la liste reste vide — le champ
+// ne propose alors rien, et le ciblage par filtres reste le chemin.
+(function () {
+    const wrap = document.getElementById('campagne-ajout-search');
+    const form = document.getElementById('campagne-ajout-form');
+    if (!wrap || !form || !window.lassoInitCatSearch) { return; }
+    const champ = wrap.querySelector('.cat-search-input');
+    const liste = wrap.querySelector('.cat-search-list');
+    lassoInitCatSearch(wrap, {
+        clearHiddenOnInput: true,
+        onSelect: () => form.submit(),
+    });
+    let chargee = false;
+    champ.addEventListener('focus', function () {
+        if (chargee) { return; }
+        chargee = true;
+        fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(function (opts) {
+                // Celles déjà dans le tableau ne sont pas proposées : les
+                // rajouter ne ferait rien, et la suggestion serait un leurre.
+                const dejaLa = new Set(
+                    [...document.querySelectorAll('.campagne-case')].map(c => c.value)
+                );
+                const frag = document.createDocumentFragment();
+                opts.forEach(function (o) {
+                    if (dejaLa.has(String(o.id))) { return; }
+                    const li = document.createElement('li');
+                    li.dataset.val = o.id;
+                    li.textContent = o.nom;
+                    frag.appendChild(li);
+                });
+                liste.appendChild(frag);
+                champ.dispatchEvent(new Event('input'));
+            })
+            .catch(function () { chargee = false; });
+    });
 })();
 </script>
 

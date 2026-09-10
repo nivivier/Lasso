@@ -7,6 +7,38 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.4] — 2026-09-10
+
+### Ajouté
+- **Ajouter une structure à une campagne en la cherchant par son nom**
+  (`?p=campagne_form`, au bout de la rangée d'entonnoirs). Une salle dont on se
+  souvient au dernier moment n'a pas forcément de critère commun avec le reste
+  du ciblage : plutôt que de chercher le filtre qui la fait apparaître, on tape
+  son nom. Elle rejoint le tableau à sa place alphabétique, cochée, et reste là
+  quand on change de filtre.
+- **Les campagnes des structures liées, sur la fiche d'une structure.** Le cadre
+  « Campagnes » montre désormais, sous un intertitre « Structures liées », les
+  campagnes qui visent son organisateur ou les salles et festivals qu'elle
+  organise — comme le font déjà ses contacts et ses événements. En lecture
+  seule : la réponse qu'on y lit appartient à l'autre structure, et c'est depuis
+  sa fiche qu'elle se change.
+
+### Supprimé
+- **Le bouton « délier » de `?p=campagne`.** Composer la sélection se fait sur
+  `?p=campagne_form`, où l'on décoche — et désormais où l'on ajoute. Cette
+  page-là sert à démarcher, pas à refaire la liste.
+
+### Modifié
+- **Le médaillon de la carte « Campagnes » compte ce qui reste à faire**, et
+  non plus les campagnes ouvertes : « 95 à contacter » plutôt que « 2 en
+  cours ». Savoir qu'il y a deux campagnes en cours n'apprenait rien tant qu'on
+  ignorait s'il y restait trois structures ou trois cents. C'est le même « à
+  contacter » que le dernier segment des barres d'avancement, sommé sur toutes
+  les campagnes ouvertes — pas seulement sur les neuf que la carte montre.
+- **Les icônes de projet de cette même carte passent de 22 à 30 px**, la taille
+  qu'elles ont dans `?p=campagnes` : c'est la même icône pour le même projet,
+  elle se reconnaît maintenant pareil d'un écran à l'autre.
+
 ## [2.7.3] — 2026-09-10
 
 ### Ajouté

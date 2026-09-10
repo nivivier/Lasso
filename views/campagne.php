@@ -226,24 +226,10 @@ $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string 
             . ' data-noter-nom="' . e((string) $d['nom']) . '" title="Marquer comme contacté"'
             . ' aria-label="Marquer ' . e((string) $d['nom']) . ' comme contactée">' . icon('check') . '</button>';
     }
-    if ($peutEcrire) {
-        // Retirer la structure de la campagne : on délie, on ne supprime rien —
-        // la structure et son historique restent. La réponse notée, elle, part
-        // avec la ligne qui la porte, d'où la confirmation. Disponible même sur
-        // une ligne déjà contactée et sur une campagne pas encore ouverte :
-        // corriger une sélection n'a pas d'heure.
-        $h .= ' <form method="post" action="?p=structure_campagne" class="d-inline"'
-            . ' data-confirm="Retirer ' . e((string) $d['nom']) . ' de la campagne « ' . e((string) $campagne['nom'])
-            . ' » ? La réponse qui y est notée sera perdue.">'
-            . '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">'
-            . '<input type="hidden" name="structure_id" value="' . $sid . '">'
-            . '<input type="hidden" name="campagne_id" value="' . (int) $campagne['id'] . '">'
-            . '<input type="hidden" name="action" value="retirer">'
-            . '<input type="hidden" name="retour" value="campagne">'
-            . '<button type="submit" class="btn ghost btn-sm icon-only" title="Retirer de la campagne"'
-            . ' aria-label="Retirer ' . e((string) $d['nom']) . ' de la campagne">' . icon('unlink') . '</button>'
-            . '</form>';
-    }
+    // Pas de retrait ici : la composition de la sélection se fait sur
+    // ?p=campagne_form, où l'on décoche — et où l'on ajoute. Cette page-ci sert
+    // à démarcher, pas à refaire la liste ; un « délier » au bout de chaque
+    // ligne de démarchage n'y avait pas sa place.
 
     $h .= ($peutEcrire ? '</td>' : '') . '<td class="nowrap col-reponse">';
     // Réponse reçue : trois icônes enregistrées au clic. Elle est propre à CETTE

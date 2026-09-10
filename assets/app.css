@@ -1004,6 +1004,17 @@ body.auth-bg, body.has-sidebar {
    doit rester géré uniquement par sa propre règle. */
 .toolbar > form.filters { flex-grow: 1; }
 .toolbar > .head-actions { margin-left: auto; }
+/* Champ « Ajouter une structure » de ?p=campagne_form : au bout de la rangée
+   d'entonnoirs, comme les actions des autres barres d'outils. Il ne s'étire
+   pas (contrairement à .toolbar > form.filters juste au-dessus) — large et au
+   milieu d'une barre de filtres, il se lirait comme le filtre principal, alors
+   qu'il ne filtre rien : il ajoute. */
+.toolbar > form.ajout-structure { flex-grow: 0; margin-left: auto; gap: 6px; }
+.ajout-structure .cat-search { width: 260px; max-width: 100%; }
+/* Les suggestions s'alignent sur le bord DROIT du champ : il est lui-même
+   collé à droite de la barre, et une liste plus large que lui déborderait
+   sinon hors de la zone du module. */
+.ajout-structure .cat-search-list { left: auto; right: 0; }
 /* ?p=evenements_liste / ?p=structures (vues liste ET carte, voir
    views/*_liste.php — .toolbar-opaque posé sans condition sur $vue) : la
    toolbar garde le placement/marge habituel de .module-content-inner — pas
@@ -1613,7 +1624,10 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    son projet en tête pour la reconnaître sans lire. La barre d'avancement est
    celle des listes (.camp-barre-liste). */
 .dash-campagne { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.dash-campagne .avatar-ini { width: 22px; height: 22px; font-size: 9px; margin: 0; flex: 0 0 auto; }
+/* Même taille que dans ?p=campagnes (.campagnes-table .projet-pastille) :
+   c'est la même icône pour le même projet, elle doit se reconnaître pareil
+   d'un écran à l'autre. */
+.dash-campagne .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); margin: 0; flex: 0 0 auto; }
 .dash-campagne-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
    émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
@@ -3203,7 +3217,7 @@ abbr {
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
 /* Bandeau d'année/mois : un repère, pas un filet — il structure une liste
    longue et donne à l'œil où se raccrocher en défilant. */
-.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
+.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .campagnes-fiche tr.mois-sep td, .list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
 
 /* Compte de résultat */
 .compta-cr td { padding: 5px 12px; }

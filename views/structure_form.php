@@ -2,7 +2,7 @@
 /** @var array $categoriesPourSelect */ /** @var int $categorieIdSelectionnee */
 /** @var array $contacts */ /** @var array $notes */ /** @var array $tags */ /** @var array $tagsDispo */
 /** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $organisateurDispo */ /** @var array $categoriesLieu */
-/** @var array $campagnesStructure */ /** @var array $campagnesDispo */ /** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
+/** @var array $campagnesStructure */ /** @var array $campagnesLiees */ /** @var array $campagnesDispo */ /** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
 /** @var array $spectacles */ /** @var array $campagneProjets */
 // Projets proposés dans les menus « Projet » (note d'historique, fenêtre
 // « Contacter ») — vides si le module Événements est éteint.
@@ -789,11 +789,11 @@ $villeHtmlS = ville_departement_canton_html(
       //
       // Le cadre s'affiche même sans campagne, dès qu'on peut écrire : c'est de
       // là qu'on range la structure dans une campagne. ?>
-<?php if (module_accessible('booking') && ($campagnesStructure || ($peutEcrireBooking && $campagnesDispo))): ?>
+<?php if (module_accessible('booking') && ($campagnesStructure || $campagnesLiees || ($peutEcrireBooking && $campagnesDispo))): ?>
 <div class="card">
     <div class="card-block">
         <div class="card-head-row">
-            <h2 class="mt-0">Campagnes<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Les campagnes de démarchage où cette structure a été retenue, la plus récente d'abord. La réponse se note ici comme depuis la campagne.") ?></h2>
+            <h2 class="mt-0">Campagnes<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Les campagnes de démarchage où cette structure a été retenue, la plus récente d'abord. La réponse se note ici comme depuis la campagne. Sous « Structures liées » figurent les campagnes qui visent son organisateur ou les salles et festivals qu'elle organise : en lecture seule, la réponse y est celle de l'autre structure.") ?></h2>
             <?php if ($peutEcrireBooking && $campagnesDispo): ?>
             <div class="head-actions">
                 <?php // Une icône seule, comme les autres en-têtes de cadre de la
@@ -823,37 +823,50 @@ $villeHtmlS = ville_departement_canton_html(
         </form>
         <?php endif; ?>
 
-        <?php if (!$campagnesStructure): ?>
+        <?php if (!$campagnesStructure && !$campagnesLiees): ?>
         <p class="muted mb-0 mt-16">Cette structure ne fait partie d'aucune campagne.</p>
         <?php else: ?>
         <?php // Le tableau remplit la carte, bord à bord (.table-flush) : à cette
               // largeur, deux retraits de 26px de plus coûtaient une ligne de
               // repli sur presque chaque nom de projet. ?>
+        <?php
+        // Période et réponse s'écrivent pareil pour les campagnes de la fiche et
+        // pour celles des structures liées, plus bas : deux fermetures plutôt
+        // que deux copies.
+        $campPeriode = function (array $c): string {
+            $d = $c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : '';
+            $f = $c['date_fin'] ? date('d.m.Y', strtotime((string) $c['date_fin'])) : '';
+            return ($d !== '' ? e($d) : '—') . ($f !== '' ? ' → ' . e($f) : '');
+        };
+        // En lecture, la réponse tient en UNE icône : le sélecteur à trois
+        // branches n'a d'intérêt qu'au moment de choisir. Les trois sont
+        // rendues, une seule visible — c'est ce qui permet de suivre un
+        // changement sans reconstruire de HTML.
+        $campReponseLecture = function (string $reponse): string {
+            $h = '<span class="camp-reponse-lecture">';
+            foreach (CAMPAGNE_REPONSES as $val => $lib) {
+                $h .= '<span class="' . e(CAMPAGNE_REPONSES_CLASSES_ICONE[$val]) . '" data-reponse-vue="' . e((string) $val) . '"'
+                    . ' title="' . e($lib) . '" aria-label="' . e($lib) . '"' . ((string) $val === $reponse ? '' : ' hidden') . '>'
+                    . icon(CAMPAGNE_REPONSES_ICONES[$val]) . '</span>';
+            }
+            return $h . '</span>';
+        };
+        ?>
         <div class="table-scroll table-flush">
         <table class="list mb-0 campagnes-fiche">
             <thead><tr><th>Campagne</th><th>Projet</th><th class="nowrap">Période</th><th class="nowrap">Réponse</th><th></th></tr></thead>
             <tbody>
+            <?php if (!$campagnesStructure): ?>
+                <tr><td colspan="5" class="muted small">Cette structure ne fait partie d'aucune campagne.</td></tr>
+            <?php endif; ?>
             <?php foreach ($campagnesStructure as $c): $cid = (int) $c['id']; ?>
                 <?php $reponse = (string) ($c['reponse'] ?? ''); ?>
                 <tr class="camp-ligne">
                     <td><a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a></td>
                     <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
-                    <td class="muted small nowrap">
-                        <?php $cd = $c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : ''; ?>
-                        <?php $cf = $c['date_fin'] ? date('d.m.Y', strtotime((string) $c['date_fin'])) : ''; ?>
-                        <?= $cd !== '' ? e($cd) : '—' ?><?= $cf !== '' ? ' → ' . e($cf) : '' ?>
-                    </td>
+                    <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
                     <td class="nowrap">
-                        <?php // En lecture, la réponse tient en UNE icône : le sélecteur
-                              // à trois branches n'a d'intérêt qu'au moment de choisir.
-                              // Les trois sont rendues, une seule visible — c'est ce qui
-                              // permet de suivre un changement sans reconstruire de HTML. ?>
-                        <span class="camp-reponse-lecture">
-                            <?php foreach (CAMPAGNE_REPONSES as $val => $lib): ?>
-                            <span class="<?= e(CAMPAGNE_REPONSES_CLASSES_ICONE[$val]) ?>" data-reponse-vue="<?= e((string) $val) ?>"
-                                  title="<?= e($lib) ?>" aria-label="<?= e($lib) ?>"<?= (string) $val === $reponse ? '' : ' hidden' ?>><?= icon(CAMPAGNE_REPONSES_ICONES[$val]) ?></span>
-                            <?php endforeach; ?>
-                        </span>
+                        <?= $campReponseLecture($reponse) ?>
                         <?php if ($peutEcrireBooking): ?>
                         <span class="camp-ligne-edition" hidden><?= campagne_reponse_toggle_html($cid, $sid, $reponse) ?></span>
                         <?php endif; ?>
@@ -878,6 +891,30 @@ $villeHtmlS = ville_departement_canton_html(
                     </td>
                 </tr>
             <?php endforeach; ?>
+            <?php if ($campagnesLiees): ?>
+            <?php // Les campagnes qui visent l'organisateur, ou les salles et
+                  // festivals que cette structure organise. En lecture seule :
+                  // la réponse qui s'y lit appartient à l'autre structure, et
+                  // c'est depuis SA fiche qu'on la change. Même marqueur que la
+                  // carte Événements pour dire de qui il s'agit (.ico-tiny +
+                  // blocks/building). ?>
+            <tr class="mois-sep"><td colspan="5">Structures liées</td></tr>
+            <?php foreach ($campagnesLiees as $c): $cid = (int) $c['id']; ?>
+                <tr>
+                    <td>
+                        <a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
+                        <div class="muted small">
+                            <span class="ico-tiny"><?= icon($c['structure_sens'] === 'organise' ? 'blocks' : 'building') ?></span>
+                            <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a>
+                        </div>
+                    </td>
+                    <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
+                    <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
+                    <td class="nowrap"><?= $campReponseLecture((string) ($c['reponse'] ?? '')) ?></td>
+                    <td></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php endif; ?>
             </tbody>
         </table>
         </div>

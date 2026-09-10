@@ -184,19 +184,19 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    antenne d'une faîtière) propose aussi les contacts de celle qui l'organise. Une
    **campagne** est une sélection de structures à démarcher pour un ou plusieurs
    projets, entre deux dates : on la compose avec les filtres de la liste des
-   structures, on décoche ce qu'on ne veut pas, puis on contacte ligne à ligne
-   depuis la campagne elle-même — la fenêtre « Contacter » s'y ouvre, ou l'on
-   marque la structure comme contactée à la main quand le démarchage s'est fait
-   ailleurs. Sa jauge compte les prises de contact déjà consignées pour ces
+   structures, on décoche ce qu'on ne veut pas, on ajoute au besoin une
+   structure en cherchant son nom, puis on contacte ligne à ligne depuis la
+   campagne elle-même — la fenêtre « Contacter » s'y ouvre, ou l'on marque la
+   structure comme contactée à la main quand le démarchage s'est fait ailleurs. Sa jauge compte les prises de contact déjà consignées pour ces
    projets — e-mail comme appel noté à la main —, et chaque ligne porte la
    réponse reçue (aucune, pas intéressé, intéressé), qu'on retrouve sur la fiche
-   de la structure dans un cadre « Campagnes » ; une icône « délier » l'en
-   retire sans rien supprimer d'autre. La liste des campagnes se cherche (nom,
-   projet), se filtre (projet, année, état) et se lit en trois tranches — en
-   cours, à venir, passées, les plus proches d'abord parmi celles à venir ; la
-   sélection d'une campagne et son suivi affichent le tableau des structures,
-   le même qu'en 9, avec ses filtres — auxquels le suivi ajoute la réponse
-   reçue. Les
+   de la structure dans un cadre « Campagnes » — avec, en dessous, celles qui
+   visent son organisateur ou les salles qu'elle organise. La liste des
+   campagnes se cherche (nom, projet), se filtre (projet, année, état) et se lit
+   en trois tranches — en cours, à venir, passées, les plus proches d'abord
+   parmi celles à venir ; la sélection d'une campagne et son suivi affichent le
+   tableau des structures, le même qu'en 9, avec ses filtres — auxquels le suivi
+   ajoute la réponse reçue. Les
    **campagnes de mailing** avec désinscription, elles, envoient en masse et
    forment un sous-module à part (« Envois groupés »), activable séparément.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec

@@ -2645,13 +2645,17 @@ function route_resumes(): void
     // Widget « Suivi du booking » : étiquettes disponibles, celle que ce compte
     // suivait la dernière fois (à défaut la première de la liste), et la
     // répartition de ses structures par ancienneté de contact.
-    // Campagnes du tableau de bord : celles qui demandent du travail d'abord.
-    $campagnesDash = module_accessible('booking') ? campagnes_dashboard() : [];
+    // Campagnes du tableau de bord : celles qui demandent du travail d'abord,
+    // et — comme les autres médaillons de la page — un décompte qui porte sur
+    // TOUTES les campagnes, pas seulement sur les neuf que la carte montre.
+    $campagnesToutes = module_accessible('booking') ? campagnes_liste() : [];
+    $campagnesDash = $campagnesToutes ? campagnes_dashboard(9, $campagnesToutes) : [];
+    $campagnesAContacter = campagnes_a_contacter($campagnesToutes);
     render('resumes', [
         'aPayer' => $aPayer, 'aPayerAFaire' => $aPayerAFaire, 'aPayerRetard' => $aPayerRetard,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaManquant' => $suisaManquant,
-        'campagnesDash' => $campagnesDash,
+        'campagnesDash' => $campagnesDash, 'campagnesAContacter' => $campagnesAContacter,
     ], 'Tableau de bord');
 }
 

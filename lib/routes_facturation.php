@@ -1086,7 +1086,7 @@ function structure_donnees_crm(int $id): array
                 'lieuxLies' => [], 'lieuxDispo' => [],
                 'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => [],
                 'contactsJoignables' => [], 'expediteurs' => [], 'modelesMessage' => [], 'brouillon' => null,
-            'campagnesStructure' => [], 'campagnesDispo' => [],
+            'campagnesStructure' => [], 'campagnesLiees' => [], 'campagnesDispo' => [],
                 'spectacles' => [], 'campagneProjets' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
@@ -1194,6 +1194,11 @@ function structure_donnees_crm(int $id): array
         // Campagnes où figure la structure : ce qu'on lui a déjà proposé, et ce
         // qu'elle en a dit. Vide si le booking est éteint — les campagnes en font partie.
         'campagnesStructure' => module_actif('booking') ? campagnes_de_structure($id) : [],
+        // Et celles des structures liées (organisateur, salles/festivals
+        // organisés) : la même information que les événements et les contacts
+        // liés, déjà repris sur cette fiche. En lecture seule — la réponse qui
+        // s'y lit est celle de l'autre structure.
+        'campagnesLiees' => module_actif('booking') ? campagnes_de_structures_liees($lieuxLies) : [],
         // Les campagnes où l'on peut encore la ranger : celles où elle n'est pas.
         'campagnesDispo' => module_actif('booking')
             ? db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll() : [],

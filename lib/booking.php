@@ -266,6 +266,63 @@ function campagnes_de_structure(int $structureId): array
     return $out;
 }
 
+// Campagnes où figurent les structures LIÉES à celle-ci : celles qu'elle
+// organise, et celle(s) qui l'organisent (structure_organisateurs, les deux
+// sens). Une salle démarchée pour un projet dit quelque chose du festival qui
+// la programme, et réciproquement — c'est la même information que les
+// événements et les contacts liés, déjà repris sur la fiche.
+//
+// À part de campagnes_de_structure() et non fondues dedans : ce ne sont pas
+// les campagnes de CETTE fiche. La réponse qu'on y lit est celle de l'autre
+// structure, on ne peut ni la modifier ici ni retirer la ligne.
+//
+// Prend $liees telles que la route les a déjà lues (id, nom, sens) plutôt que
+// de refaire la requête. Une ligne par couple (campagne, structure liée) : la
+// même campagne peut viser la salle ET son organisateur, avec deux réponses
+// différentes.
+function campagnes_de_structures_liees(array $liees): array
+{
+    $infos = [];
+    foreach ($liees as $l) {
+        $infos[(int) $l['id']] = $l;
+    }
+    if (!$infos) {
+        return [];
+    }
+    $map = spectacle_map();
+    $projets = [];
+    $out = [];
+    foreach (lots_ids(array_keys($infos)) as $lot) {
+        $stmt = db()->prepare(
+            'SELECT c.id, c.nom, c.date_debut, c.date_fin, cs.reponse, cs.structure_id
+               FROM campagnes c
+               JOIN campagne_structures cs ON cs.campagne_id = c.id
+              WHERE cs.structure_id IN (' . sql_in($lot) . ')'
+        );
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll() as $c) {
+            $cid = (int) $c['id'];
+            // Les projets ne sont lus qu'une fois par campagne, même si
+            // plusieurs structures liées y figurent.
+            $projets[$cid] ??= array_map(
+                fn ($sid) => spectacle_chemin($sid, $map),
+                spectacles_lies('campagne_spectacles', $cid)
+            );
+            $lie = $infos[(int) $c['structure_id']];
+            $out[] = $c + [
+                'projets'        => $projets[$cid],
+                'structure_nom'  => (string) $lie['nom'],
+                'structure_sens' => (string) ($lie['sens'] ?? ''),
+            ];
+        }
+    }
+    // Même ordre que campagnes_de_structure() (la plus récente d'abord), le nom
+    // de la structure liée départageant deux lignes de la même campagne.
+    usort($out, fn ($a, $b) => [$b['date_debut'], (int) $b['id'], $a['structure_nom']]
+        <=> [$a['date_debut'], (int) $a['id'], $b['structure_nom']]);
+    return $out;
+}
+
 // Répartition d'une campagne en quatre parts qui somment TOUJOURS au total :
 // intéressé, pas intéressé, contactées sans réponse, reste à contacter.
 //
@@ -398,11 +455,33 @@ function campagnes_liste(): array
 // (CAMPAGNES_DASHBOARD_ORDRE) : ce sont les deux états où il reste des
 // structures à contacter. La classer dans « passées » aurait rangé du travail
 // à faire avec ce qui est fini.
+//
+// Ces deux états-là forment le démarchage ouvert : une campagne « en retard »
+// n'est qu'une campagne en cours dont la date de fin est passée. Une seule
+// définition, pour que la tranche de la liste et le décompte du tableau de
+// bord (campagnes_a_contacter()) parlent des mêmes campagnes.
+const CAMPAGNE_STATUTS_OUVERTS = ['en_retard', 'en_cours'];
+
 const CAMPAGNES_GROUPES = [
-    ['titre' => 'En cours', 'statuts' => ['en_retard', 'en_cours']],
+    ['titre' => 'En cours', 'statuts' => CAMPAGNE_STATUTS_OUVERTS],
     ['titre' => 'À venir',  'statuts' => ['a_venir']],
     ['titre' => 'Passées',  'statuts' => ['terminee']],
 ];
+
+// Ce qu'il reste à démarcher : les structures encore à contacter dans les
+// campagnes ouvertes. Prend la liste en argument plutôt que de la relire —
+// le tableau de bord la tient déjà pour sa carte, et campagnes_liste() coûte
+// quatre requêtes d'agrégat.
+function campagnes_a_contacter(array $campagnes): int
+{
+    $n = 0;
+    foreach ($campagnes as $c) {
+        if (in_array((string) $c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)) {
+            $n += (int) ($c['repartition']['aContacter'] ?? 0);
+        }
+    }
+    return $n;
+}
 
 // Les campagnes à venir se lisent dans l'autre sens que le reste : la plus
 // PROCHE d'abord. Ailleurs, c'est la plus récente qui ouvre la liste (date de
@@ -1632,10 +1711,12 @@ function mailing_expediteur_libelle(array $expediteur): string
 // reste des structures à contacter, et le retard mérite d'être vu en premier.
 const CAMPAGNES_DASHBOARD_ORDRE = ['en_retard', 'en_cours', 'a_venir', 'terminee'];
 
-function campagnes_dashboard(int $max = 9): array
+// $liste évite de relire la base quand l'appelant tient déjà les campagnes
+// (le tableau de bord s'en sert aussi pour campagnes_a_contacter()).
+function campagnes_dashboard(int $max = 9, ?array $liste = null): array
 {
     $rang = array_flip(CAMPAGNES_DASHBOARD_ORDRE);
-    $liste = campagnes_liste();
+    $liste ??= campagnes_liste();
     // Tri stable : à état égal, l'ordre de campagnes_liste() est conservé
     // (la plus récente d'abord) — sauf entre campagnes à venir, où c'est la
     // plus proche qui passe devant (campagne_cmp_a_venir()). Sans quoi la

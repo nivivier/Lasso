@@ -3,7 +3,7 @@
 /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaManquant */
-/** @var array $campagnesDash */
+/** @var array $campagnesDash */ /** @var int $campagnesAContacter */
 
 // Médaillon d'état posé sur une carte : le chiffre de ce qu'il reste à faire,
 // et le lien vers la liste correspondante. Rien à signaler = pas de médaillon
@@ -408,13 +408,17 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         // ensuite, les terminées en dernier — et seulement ce qui tient ici.
         // La barre est celle de ?p=campagnes et de la carte d'une campagne :
         // même segments, mêmes couleurs, une seule définition (campagne_barre_html()).
+        // Le médaillon compte ce qui RESTE À FAIRE, pas les campagnes ouvertes :
+        // savoir qu'il y a deux campagnes en cours n'apprend rien tant qu'on
+        // ignore s'il y reste trois structures ou trois cents. C'est le même
+        // « à contacter » que le dernier segment des barres ci-dessous, sommé
+        // sur toutes les campagnes ouvertes (campagnes_a_contacter()).
         $statutClasseDash = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
-        $enCoursDash = count(array_filter($campagnesDash, fn ($c) => in_array($c['statut'], ['en_cours', 'en_retard'], true)));
         ?>
         <div class="card dash-card">
             <div class="card-head-row">
                 <h2 class="mt-0">Campagnes</h2>
-                <?= $campagnesDash ? $dash_medaillon($enCoursDash, 'en cours', 'attente', '?p=campagnes') : '' ?>
+                <?= $campagnesDash ? $dash_medaillon($campagnesAContacter, 'à contacter', 'attente', '?p=campagnes') : '' ?>
             </div>
             <?php if (!$campagnesDash): ?>
                 <p class="muted">Aucune campagne. <a href="?p=campagne_form">Créez-en une</a> pour suivre un démarchage.</p>

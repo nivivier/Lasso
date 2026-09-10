@@ -362,16 +362,12 @@ function route_structure_campagne(): void
         ]);
         return;
     }
-    // D'où l'on vient : la liste des structures, le suivi d'une campagne, ou la
-    // fiche de la structure — c'est là qu'on retourne.
-    $retour = (string) ($_POST['retour'] ?? '');
-    if ($retour === 'structures') {
-        redirect('structures');
-    }
-    if ($retour === 'campagne' && $campagne) {
-        redirect('campagne', ['id' => $campagneId]);
-    }
-    redirect('structure', ['id' => $structureId]);
+    // D'où l'on vient : la liste des structures, ou la fiche de la structure —
+    // c'est là qu'on retourne.
+    redirect(
+        ($_POST['retour'] ?? '') === 'structures' ? 'structures' : 'structure',
+        ($_POST['retour'] ?? '') === 'structures' ? [] : ['id' => $structureId]
+    );
 }
 
 function route_structure_tag_ajouter(): void
@@ -1602,6 +1598,26 @@ function route_campagne_form(): void
         }
         usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
     }
+    // Structures ajoutées une à une par la recherche du formulaire : elles
+    // rejoignent la liste au même titre que le résultat du ciblage, et y sont
+    // cochées — on ne va pas chercher une structure pour la décocher.
+    //
+    // Elles voyagent dans l'URL (?ajout[]=), comme les filtres et comme la
+    // saisie en cours : le moindre entonnoir recharge la page, et sans ça
+    // l'ajout serait perdu au filtre suivant.
+    $ajouts = array_values(array_unique(array_filter(array_map('intval', (array) ($_GET['ajout'] ?? [])))));
+    if ($ajouts) {
+        $manquants = array_diff($ajouts, array_map(fn ($s) => (int) $s['id'], $apercu));
+        foreach (lots_ids($manquants) as $lot) {
+            $stmt = db()->prepare('SELECT * FROM structures WHERE id IN (' . sql_in($lot) . ')');
+            $stmt->execute($lot);
+            $apercu = array_merge($apercu, $stmt->fetchAll());
+        }
+        // Même ordre que les deux sources ci-dessus (ORDER BY nom) : une
+        // structure ajoutée se retrouve à sa place alphabétique, pas en bout
+        // de liste où il faudrait la chercher.
+        usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
+    }
     // Le tableau de sélection est celui de ?p=structures (views/_structures_table.php) :
     // ses colonnes viennent donc des mêmes agrégats, complétés ici pour les seules
     // lignes affichées — le ciblage passe par mailing_structures_eligibles(), qui
@@ -1621,6 +1637,7 @@ function route_campagne_form(): void
         'criteres'   => $criteres,
         'apercu'     => $apercu,
         'retenues'   => $retenues,
+        'ajouts'     => $ajouts,
         'previsualise' => $previsualise,
         'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
         'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
