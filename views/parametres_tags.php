@@ -4,11 +4,11 @@
 <?php $peutEcrireTags = peut_ecrire('booking'); ?>
 
 <div class="section-head mt-0">
-    <h2 class="mt-0">Étiquettes<?= info_tip("Étiquettes libres posées sur les structures (« À contacter en cas de tournée »,
+    <h2 class="mt-0">Tags<?= info_tip("Étiquettes libres posées sur les structures (« À contacter en cas de tournée »,
     « Ne pas contacter »…), utilisées dans les filtres et le ciblage des mailings. Renommer une étiquette la met à jour partout ;
     la supprimer la retire des fiches qui la portent (les fiches elles-mêmes ne sont pas touchées).") ?></h2>
     <?php if ($peutEcrireTags): ?>
-    <button type="button" class="btn ml-auto" data-show="tag-add"><?= icon('plus') ?> Nouvelle étiquette</button>
+    <button type="button" class="btn ml-auto" data-show="tag-add"><?= icon('plus') ?> Nouveau tag</button>
     <?php endif; ?>
 </div>
 <div class="card form table-scroll" id="tags-card">

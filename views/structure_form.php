@@ -2,7 +2,12 @@
 /** @var array $categoriesPourSelect */ /** @var int $categorieIdSelectionnee */
 /** @var array $contacts */ /** @var array $notes */ /** @var array $tags */ /** @var array $tagsDispo */
 /** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $organisateurDispo */ /** @var array $categoriesLieu */
-/** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
+/** @var array $campagnesStructure */ /** @var array $campagnesDispo */ /** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
+/** @var array $spectacles */ /** @var array $campagneProjets */
+// Projets proposés dans les menus « Projet » (note d'historique, fenêtre
+// « Contacter ») — vides si le module Événements est éteint.
+$spectacleLabels = [];
+foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
 $v = fn(string $k, $d = '') => e((string) ($structure[$k] ?? $d));
 $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
@@ -63,7 +68,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
     <div class="head-actions">
         <?php if ($peutContacter): ?>
             <?php if ($contactable): ?>
-            <button type="button" id="contacter-btn" class="btn btn-contacter"><?= icon('mail') ?> Contacter</button>
+            <button type="button" data-contacter="<?= $sid ?>" class="btn btn-contacter"><?= icon('mail') ?> Contacter</button>
             <?php else: ?>
             <button type="button" class="btn btn-contacter" disabled title="<?= e($raisonPasContactable) ?>"><?= icon('mail') ?> Contacter</button>
             <?php endif; ?>
@@ -80,16 +85,9 @@ $contactable = $peutContacter && $raisonPasContactable === '';
 </div>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
-<?php $msg = (string) ($_GET['msg'] ?? ''); ?>
-<?php if ($msg === 'envoye'): ?><p class="ok flash">Message envoyé — une entrée a été ajoutée à l'historique.</p><?php endif; ?>
-<?php if ($msg === 'brouillon'): ?><p class="ok flash">Brouillon enregistré.</p><?php endif; ?>
-<?php if ($msg === 'envoi_ko'): ?><p class="err flash">L'envoi a échoué. Vérifiez la boîte d'expédition dans Paramètres → E-mails → Envois pour le booking.</p><?php endif; ?>
-<?php if ($msg === 'err'): ?><p class="err flash">Message incomplet ou destinataire indisponible : rien n'a été envoyé.</p><?php endif; ?>
+<?php require __DIR__ . '/_flash_contacter.php'; ?>
 <?php if (($_GET['err'] ?? null) === 'used'): ?><p class="err flash">Suppression impossible : des factures sont rattachées à cette structure.</p><?php endif; ?>
 <?php if (($_GET['ok'] ?? null) === 'fusion'): ?><p class="ok flash">Structures fusionnées : contacts, notes, factures, étiquettes et lieux liés ont été repris ici.</p><?php endif; ?><?php $avecAside = $isEdit && module_actif('booking') && peut_lire('booking'); ?>
-<?php if (!empty($structure['mise_a_jour_le']) && !$avecAside): ?>
-    <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
-<?php endif; ?>
 
 <?php if (!$isEdit && !$peutEcrireStruct): ?>
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
@@ -463,6 +461,35 @@ lassoInitTagSuggest();
                         <?php else: ?><?= !empty($structure['mois_debut']) ? e(mois_nom((int) $structure['mois_debut'])) : '—' ?> – <?= !empty($structure['mois_fin']) ? e(mois_nom((int) $structure['mois_fin'])) : '—' ?><?php endif; ?>
                     </td>
                 </tr>
+                <?php // Ce que disait la carte « Historique » : d'où vient ce contact,
+                      // et les dates de synthèse de la fiche. Elles se lisent avec le
+                      // reste — c'est la même fiche — et se modifient donc du même
+                      // crayon. Le flux des notes reste dans « Historique détaillé ». ?>
+                <tr>
+                    <th>Connu via</th>
+                    <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
+                </tr>
+                <tr>
+                    <th>Dernier contact</th>
+                    <td><?= !empty($structure['dernier_contact_le']) ? e(date('d.m.Y', strtotime($structure['dernier_contact_le']))) : '—' ?></td>
+                </tr>
+                <tr>
+                    <th>Dernière modification</th>
+                    <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
+                </tr>
+                <tr>
+                    <?php // structures.cree_le vaut datetime('now') à l'insertion : pour une
+                          // fiche importée, c'est donc la date de l'import, pas celle de la
+                          // création chez la source — d'où le libellé qui couvre les deux. ?>
+                    <th>Créée / importée</th>
+                    <td><?= !empty($structure['cree_le']) ? e(date('d.m.Y H:i', strtotime((string) $structure['cree_le']))) : '—' ?></td>
+                </tr>
+                <?php if (!empty($structure['mise_a_jour_le'])): ?>
+                <tr>
+                    <th>Mise à jour (import)</th>
+                    <td><?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                     <th>Remarques</th>
                     <td>
@@ -486,7 +513,10 @@ lassoInitTagSuggest();
                     <?php endforeach; ?>
                 </select>
             </label>
-            <input type="hidden" name="via" value="<?= $v('via') ?>">
+            <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+            <?php if ($peutEcrireBooking): ?>
+            <label><span>Dernier contact <?= info_tip("Rattrapage manuel — sera écrasé par la prochaine prise de contact enregistrée (note ou mailing).") ?></span> <input type="date" name="dernier_contact_le" value="<?= !empty($structure['dernier_contact_le']) ? e(date('Y-m-d', strtotime($structure['dernier_contact_le']))) : '' ?>"></label>
+            <?php endif; ?>
             <label>Site web <input name="site_web" type="url" value="<?= $v('site_web') ?>" placeholder="https://…"></label>
             <div class="grid2">
                 <label>Plus petite jauge <input name="jauge_min" type="number" min="0" value="<?= ($structure['jauge_min'] ?? '') !== '' ? (int) $structure['jauge_min'] : '' ?>" placeholder="ex. 200"></label>
@@ -751,55 +781,136 @@ $villeHtmlS = ville_departement_canton_html(
     </form>
 </div>
 
-<div class="card card-editable">
-    <div class="card-head-row">
-        <h2 class="mt-0">Historique <?= info_tip("Les dates de synthèse de la fiche. Le flux des notes et des contacts est dans « Historique détaillé », plus bas.") ?></h2>
-        <?php if ($peutEcrireBooking): ?>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="structure-via-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+<?php // Campagnes de démarchage où figure cette structure : ce qu'on lui a déjà
+      // proposé, quand, et ce qu'elle a répondu. La réponse appartient à la
+      // campagne et non à la fiche — la même salle peut décliner une tournée et
+      // prendre la suivante —, mais elle se règle d'ici comme depuis la campagne :
+      // c'est le même sélecteur, la même donnée.
+      //
+      // Le cadre s'affiche même sans campagne, dès qu'on peut écrire : c'est de
+      // là qu'on range la structure dans une campagne. ?>
+<?php if (module_accessible('booking') && ($campagnesStructure || ($peutEcrireBooking && $campagnesDispo))): ?>
+<div class="card">
+    <div class="card-block">
+        <div class="card-head-row">
+            <h2 class="mt-0">Campagnes<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Les campagnes de démarchage où cette structure a été retenue, la plus récente d'abord. La réponse se note ici comme depuis la campagne.") ?></h2>
+            <?php if ($peutEcrireBooking && $campagnesDispo): ?>
+            <div class="head-actions">
+                <?php // Une icône seule, comme les autres en-têtes de cadre de la
+                      // fiche : le titre du cadre dit déjà de quoi il s'agit. ?>
+                <button type="button" class="btn ghost icon-only" data-show="campagne-ajouter-fiche"
+                        title="Ajouter à une campagne" aria-label="Ajouter à une campagne"><?= icon('message-circle-plus') ?></button>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($peutEcrireBooking && $campagnesDispo): ?>
+        <?php // Liste fermée : on range la structure dans une campagne existante,
+              // on n'en crée pas d'ici. Celles où elle figure déjà n'y sont pas. ?>
+        <?php $dejaDedans = array_map(fn ($c) => (int) $c['id'], $campagnesStructure); ?>
+        <form method="post" action="?p=structure_campagne" class="linked-add" id="campagne-ajouter-fiche" hidden>
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="structure_id" value="<?= $sid ?>">
+            <select name="campagne_id" required aria-label="Campagne">
+                <option value="">— Choisir une campagne —</option>
+                <?php foreach ($campagnesDispo as $c): ?>
+                    <?php if (in_array((int) $c['id'], $dejaDedans, true)) { continue; } ?>
+                    <option value="<?= (int) $c['id'] ?>"><?= e($c['nom']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
+            <button type="button" class="btn ghost btn-sm" data-hide="campagne-ajouter-fiche"><?= icon('x') ?> Annuler</button>
+        </form>
+        <?php endif; ?>
+
+        <?php if (!$campagnesStructure): ?>
+        <p class="muted mb-0 mt-16">Cette structure ne fait partie d'aucune campagne.</p>
+        <?php else: ?>
+        <?php // Le tableau remplit la carte, bord à bord (.table-flush) : à cette
+              // largeur, deux retraits de 26px de plus coûtaient une ligne de
+              // repli sur presque chaque nom de projet. ?>
+        <div class="table-scroll table-flush">
+        <table class="list mb-0 campagnes-fiche">
+            <thead><tr><th>Campagne</th><th>Projet</th><th class="nowrap">Période</th><th class="nowrap">Réponse</th><th></th></tr></thead>
+            <tbody>
+            <?php foreach ($campagnesStructure as $c): $cid = (int) $c['id']; ?>
+                <?php $reponse = (string) ($c['reponse'] ?? ''); ?>
+                <tr class="camp-ligne">
+                    <td><a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a></td>
+                    <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
+                    <td class="muted small nowrap">
+                        <?php $cd = $c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : ''; ?>
+                        <?php $cf = $c['date_fin'] ? date('d.m.Y', strtotime((string) $c['date_fin'])) : ''; ?>
+                        <?= $cd !== '' ? e($cd) : '—' ?><?= $cf !== '' ? ' → ' . e($cf) : '' ?>
+                    </td>
+                    <td class="nowrap">
+                        <?php // En lecture, la réponse tient en UNE icône : le sélecteur
+                              // à trois branches n'a d'intérêt qu'au moment de choisir.
+                              // Les trois sont rendues, une seule visible — c'est ce qui
+                              // permet de suivre un changement sans reconstruire de HTML. ?>
+                        <span class="camp-reponse-lecture">
+                            <?php foreach (CAMPAGNE_REPONSES as $val => $lib): ?>
+                            <span class="<?= e(CAMPAGNE_REPONSES_CLASSES_ICONE[$val]) ?>" data-reponse-vue="<?= e((string) $val) ?>"
+                                  title="<?= e($lib) ?>" aria-label="<?= e($lib) ?>"<?= (string) $val === $reponse ? '' : ' hidden' ?>><?= icon(CAMPAGNE_REPONSES_ICONES[$val]) ?></span>
+                            <?php endforeach; ?>
+                        </span>
+                        <?php if ($peutEcrireBooking): ?>
+                        <span class="camp-ligne-edition" hidden><?= campagne_reponse_toggle_html($cid, $sid, $reponse) ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="actions nowrap">
+                        <?php if ($peutEcrireBooking): ?>
+                        <?php // Lecture d'abord : le crayon ouvre ce qui modifie — le
+                              // sélecteur de réponse et le retrait de la campagne. ?>
+                        <button type="button" class="btn ghost btn-sm icon-only camp-ligne-crayon" title="Modifier" aria-label="Modifier cette campagne"><?= icon('pencil') ?></button>
+                        <span class="camp-ligne-edition" hidden>
+                            <form method="post" action="?p=structure_campagne" class="d-inline"
+                                  data-confirm="Retirer cette structure de la campagne « <?= e((string) $c['nom']) ?> » ? La réponse qui y est notée sera perdue.">
+                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="structure_id" value="<?= $sid ?>">
+                                <input type="hidden" name="campagne_id" value="<?= $cid ?>">
+                                <input type="hidden" name="action" value="retirer">
+                                <button type="submit" class="btn danger btn-sm icon-only" title="Retirer de la campagne" aria-label="Retirer de la campagne"><?= icon('trash') ?></button>
+                            </form>
+                            <button type="button" class="btn ghost btn-sm icon-only camp-ligne-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                        </span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
         </div>
         <?php endif; ?>
     </div>
-    <?php if (($_GET['ok'] ?? null) === 'via'): ?><p class="ok flash">Enregistré.</p><?php endif; ?>
-    <div class="card-disp">
-        <table class="kv-table">
-            <tr>
-                <th>Connu via</th>
-                <td><?= trim((string) ($structure['via'] ?? '')) !== '' ? $v('via') : '—' ?></td>
-            </tr>
-            <tr>
-                <th>Dernier contact</th>
-                <td><?= !empty($structure['dernier_contact_le']) ? e(date('d.m.Y', strtotime($structure['dernier_contact_le']))) : '—' ?></td>
-            </tr>
-            <tr>
-                <th>Dernière modification</th>
-                <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
-            </tr>
-            <tr>
-                <?php // structures.cree_le vaut datetime('now') à l'insertion : pour une
-                      // fiche importée, c'est donc la date de l'import, pas celle de la
-                      // création chez la source — d'où le libellé qui couvre les deux. ?>
-                <th>Créée / importée</th>
-                <td><?= !empty($structure['cree_le']) ? e(date('d.m.Y H:i', strtotime((string) $structure['cree_le']))) : '—' ?></td>
-            </tr>
-        </table>
-    </div>
-    <form method="post" id="structure-via-form" action="?p=structure_via" class="card-edit form" hidden>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= $sid ?>">
-        <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
-        <label><span>Dernier contact <?= info_tip("Rattrapage manuel — sera écrasé par la prochaine prise de contact enregistrée (note ou mailing).") ?></span> <input type="date" name="dernier_contact_le" value="<?= !empty($structure['dernier_contact_le']) ? e(date('Y-m-d', strtotime($structure['dernier_contact_le']))) : '' ?>"></label>
-    </form>
-    <?php if (!empty($structure['mise_a_jour_le'])): ?>
-        <p class="muted small">Dernière mise à jour connue (import) : <?= e(date('d.m.Y', strtotime($structure['mise_a_jour_le']))) ?></p>
-    <?php endif; ?>
-    <?php // Le flux d'entrées vit dans sa propre carte, « Historique détaillé »,
-          // sous la grille de colonnes : à 400px de large, le formulaire de note
-          // et les entrées se comprimaient au point de casser les libellés en
-          // quatre lignes. Cette carte-ci ne garde que les dates de synthèse. ?>
 </div>
+<?php if ($peutEcrireBooking): ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+(function () {
+    // Lecture ↔ édition, ligne par ligne : le crayon révèle ce qui modifie et
+    // s'efface, la croix rend la ligne à son état de lecture. Rien à enregistrer
+    // — le sélecteur de réponse écrit au clic — d'où l'absence de bouton
+    // « Enregistrer », et « Annuler » qui ne défait rien : il referme.
+    document.querySelectorAll('.campagnes-fiche .camp-ligne').forEach(function (tr) {
+        var basculer = function (edition) {
+            tr.querySelectorAll('.camp-ligne-edition').forEach(function (e) { e.hidden = !edition; });
+            tr.querySelector('.camp-reponse-lecture').hidden = edition;
+            tr.querySelector('.camp-ligne-crayon').hidden = edition;
+        };
+        tr.querySelector('.camp-ligne-crayon').addEventListener('click', function () { basculer(true); });
+        tr.querySelector('.camp-ligne-annuler').addEventListener('click', function () { basculer(false); });
+        // La réponse change sous le sélecteur : l'icône de lecture doit dire la
+        // même chose quand on referme (segchange, voir lassoInitSegToggleAjax()).
+        tr.addEventListener('segchange', function (e) {
+            tr.querySelectorAll('[data-reponse-vue]').forEach(function (icone) {
+                icone.hidden = icone.getAttribute('data-reponse-vue') !== e.detail.apres;
+            });
+        });
+    });
+})();
+</script>
+<?php endif; ?>
+<?php endif; ?>
 
 </div>
 
@@ -833,6 +944,12 @@ $villeHtmlS = ville_departement_canton_html(
             <input type="date" name="date" class="hist-note-date" value="<?= e(date('Y-m-d')) ?>" aria-label="Date de la note">
             <textarea name="contenu" rows="1" class="hist-note-texte" placeholder="Ce qui s'est passé, ce qu'il reste à faire…" aria-label="Note" required></textarea>
             <label class="check hist-note-contact"><input type="checkbox" name="est_contact" value="1"> Prise de contact</label>
+            <?php // Projet concerné, juste après « Prise de contact » : c'est lui qui
+                  // fait avancer la jauge d'une campagne, y compris pour un appel
+                  // téléphonique noté ici à la main. ?>
+            <?php if (!empty($spectacles)): ?>
+                <?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Projet') ?>
+            <?php endif; ?>
             <button type="submit"><?= icon('message-square') ?> Ajouter</button>
         </div>
     </form>
@@ -843,7 +960,7 @@ $villeHtmlS = ville_departement_canton_html(
                   // tient sur une ligne, cinq se lisent donc d'un coup d'œil sans
                   // allonger la page. Le reste attend derrière « Voir les … ». ?>
             <?php $notesRecentes = array_slice($notes, 0, 5); $notesReste = array_slice($notes, 5); ?>
-            <?php $histoModifiable = $peutEcrireBooking; $histoStructureId = $sid; ?>
+            <?php $histoModifiable = $peutEcrireBooking; $histoStructureId = $sid; $histoSpectacles = $spectacleLabels; ?>
             <?php $histoEntrees = $notesRecentes; require __DIR__ . '/_historique.php'; ?>
             <?php if ($notesReste): ?>
                 <div class="hist-reste" hidden>
@@ -871,6 +988,9 @@ $villeHtmlS = ville_departement_canton_html(
 <?php endif; ?>
 
 <?php if ($contactable): ?>
+<?php // Une seule cible ici : la structure de la fiche. La même fenêtre en sert
+      // plusieurs sur la page d'une campagne. ?>
+<?php $contacterCibles = [$sid => ['nom' => (string) $structure['nom'], 'contacts' => $contactsJoignables, 'brouillon' => $brouillon]]; ?>
 <?php require __DIR__ . '/_structure_contacter.php'; ?>
 <?php endif; ?>
 </div></div>

@@ -511,6 +511,19 @@ function spectacle_map(): array
     return $map;
 }
 
+// Pastille d'un spectacle : son icône si elle en a une, sinon ses initiales sur
+// fond coloré — la même pastille que celle d'un employé (avatar_initiales(),
+// lib/helpers.php), donc le même rendu et la même feuille de style.
+//
+// Le nom retenu est celui de la FEUILLE (« Anti-concert ») et non le chemin
+// entier : deux lettres suffisent, et « Hector ou rien › Anti-concert »
+// donnerait « HO », qui ne désigne rien.
+function spectacle_pastille_html(int $id, array $map): string
+{
+    $s = $map[$id] ?? null;
+    return $s ? avatar_initiales((string) $s['nom'], '', (string) ($s['image'] ?? '')) : '';
+}
+
 // Chemin lisible « Artiste › Spectacle » d'un spectacle.
 function spectacle_chemin(int $id, array $map, string $sep = ' › '): string
 {

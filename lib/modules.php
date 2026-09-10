@@ -377,7 +377,7 @@ function nav_groupes(): array
             'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import'], nb_ecritures_a_lettrer(), 'banknote'],
             'compta_comptes'   => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
             'compta_plan'      => ['Plan comptable', ['compta_plan'], 0, 'rows-3'],
-            'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'settings'],
+            'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'pencil-sparkles'],
             'compta_bilan'     => ['Comptes annuels', ['compta_bilan'], 0, 'book-open'],
         ];
         if ($analytiqueOk) {
@@ -408,6 +408,9 @@ function nav_groupes(): array
         // onglets de premier niveau au même titre que Structures.
         $ongletsBooking = [
             'structures'         => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
+            // Campagnes de contact : indépendantes du sous-module « Envois
+            // groupés », puisqu'on y démarche structure par structure.
+            'campagnes'          => ['Campagnes', ['campagnes', 'campagne', 'campagne_form'], 0, 'target'],
         ];
         // Suivi et Nouvelle campagne appartiennent au sous-module « Envois
         // groupés » : sans lui, le booking garde ses structures, ses modèles de

@@ -548,7 +548,14 @@ function route_facture_rappel(): void
 // evenements_lire_filtres()/lieux_filtres()) : revenir sur ?p=structures sans
 // query string (lien de la sidebar, retour contextuel…) rouvre les derniers
 // filtres actifs. Seule la recherche texte (q) ne l'est jamais.
-function structures_filtres(): array
+// $prefixeSession : où ces filtres sont mémorisés. ?p=structures et le suivi
+// d'une campagne montrent le même tableau avec les mêmes entonnoirs, mais pas la
+// même mémoire — filtrer une campagne ne doit pas changer ce que la liste des
+// structures affichera à la prochaine visite.
+// $statutDefaut : statuts pré-cochés au tout premier affichage. Vide pour une
+// campagne : ses structures ont été retenues à un moment donné, en masquer
+// d'office celles devenues « ne pas contacter » amputerait la liste sans le dire.
+function structures_filtres(string $prefixeSession = 'structures', array $statutDefaut = ['actif', 'contact_privilegie']): array
 {
     // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
     // filtre_coche() dans lib/helpers.php) : cases à cocher, 0 à N valeurs
@@ -563,11 +570,17 @@ function structures_filtres(): array
     // cases cochées ensemble par défaut — cocher "Actif" seul ne montre
     // désormais plus que les actifs, cohérent avec les autres cases.
     $categorieMap = structure_categorie_map();
-    $categorieId = filtre_coche('categorie_id', 'structures_categorie_id');
-    $pays = filtre_coche('pays', 'structures_pays', null, true);
-    $departementCanton = filtre_coche('departement_canton', 'structures_departement_canton', null, true);
-    $tagId = filtre_coche('tag_id', 'structures_tag_id');
-    $statut = filtre_coche('statut', 'structures_statut', STRUCTURE_STATUTS, false, ['actif', 'contact_privilegie']);
+    $categorieId = filtre_coche('categorie_id', $prefixeSession . '_categorie_id');
+    $pays = filtre_coche('pays', $prefixeSession . '_pays', null, true);
+    $departementCanton = filtre_coche('departement_canton', $prefixeSession . '_departement_canton', null, true);
+    // texteLibre pour ces deux-là : leurs valeurs mêlent des identifiants et la
+    // sentinelle « aucun » (les structures qui n'en portent aucun), qu'un
+    // intval() écraserait — même procédé que « sans_axe » en analytique.
+    $tagId = filtre_coche('tag_id', $prefixeSession . '_tag_id', null, true);
+    // Campagnes de démarchage où figure la structure — la colonne du même nom,
+    // qui n'existe que sur ?p=structures.
+    $campagneId = filtre_coche('campagne_id', $prefixeSession . '_campagne_id', null, true);
+    $statut = filtre_coche('statut', $prefixeSession . '_statut', STRUCTURE_STATUTS, false, $statutDefaut);
     // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
     // d'appoint, accessible depuis le lien de la vue carte (voir
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
@@ -600,14 +613,14 @@ function structures_filtres(): array
     // des deux : équivalent à "tous" (toute ligne vaut forcément l'un ou
     // l'autre), généralise l'ancienne case à cocher unique.
     $avecEvenements = module_actif('evenements')
-        ? filtre_coche('avec_evenements', 'structures_avec_evenements', ['avec', 'sans'])
+        ? filtre_coche('avec_evenements', $prefixeSession . '_avec_evenements', ['avec', 'sans'])
         : [];
     // Ancienneté de la dernière modification / du dernier contact : mêmes
     // tranches pour les deux (PERIODES_ANCIENNETE, lib/helpers.php), donc même
     // liste blanche et même traduction en SQL.
     $trancheKeys = array_keys(PERIODES_ANCIENNETE);
-    $majPeriode = filtre_coche('maj_periode', 'structures_maj_periode', $trancheKeys);
-    $contactPeriode = filtre_coche('contact_periode', 'structures_contact_periode', $trancheKeys);
+    $majPeriode = filtre_coche('maj_periode', $prefixeSession . '_maj_periode', $trancheKeys);
+    $contactPeriode = filtre_coche('contact_periode', $prefixeSession . '_contact_periode', $trancheKeys);
 
     $where = ' WHERE 1=1';
     $params = [];
@@ -651,10 +664,37 @@ function structures_filtres(): array
         $where .= ' AND s.grande_region = ?';
         $params[] = $region;
     }
-    if ($tagId) {
-        $where .= ' AND s.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . sql_in($tagId) . '))';
-        $params = array_merge($params, $tagId);
-    }
+    // Ces deux filtres acceptent « aucun » à côté des identifiants. Les
+    // conditions sont unies en OR : cocher « Aucun tag » ET une étiquette montre
+    // les structures sans étiquette ET celles qui portent celle-là — c'est ce
+    // que des cases à cocher promettent partout ailleurs dans l'application.
+    $filtreLiaison = function (array $valeurs, string $sql, string $sansLien) use (&$where, &$params): void {
+        if (!$valeurs) {
+            return;
+        }
+        $ids = array_values(array_filter(array_map('intval', $valeurs)));
+        $conds = [];
+        if ($ids) {
+            $conds[] = str_replace('%IN%', sql_in($ids), $sql);
+            $params = array_merge($params, $ids);
+        }
+        if (in_array('aucun', $valeurs, true)) {
+            $conds[] = $sansLien;
+        }
+        if ($conds) {
+            $where .= ' AND (' . implode(' OR ', $conds) . ')';
+        }
+    };
+    $filtreLiaison(
+        $tagId,
+        's.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (%IN%))',
+        'NOT EXISTS (SELECT 1 FROM structure_tag_liens tl0 WHERE tl0.structure_id = s.id)'
+    );
+    $filtreLiaison(
+        $campagneId,
+        's.id IN (SELECT structure_id FROM campagne_structures WHERE campagne_id IN (%IN%))',
+        'NOT EXISTS (SELECT 1 FROM campagne_structures cs0 WHERE cs0.structure_id = s.id)'
+    );
     if ($statut) {
         $where .= ' AND s.statut IN (' . sql_in($statut) . ')';
         $params = array_merge($params, $statut);
@@ -700,7 +740,8 @@ function structures_filtres(): array
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
-        'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'statut' => $statut, 'nonLocalises' => $nonLocalises,
+        'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'campagneId' => $campagneId,
+        'statut' => $statut, 'nonLocalises' => $nonLocalises,
         'region' => $region,
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
@@ -744,6 +785,7 @@ function route_structures(): void
     $pays = $f['pays'];
     $departementCanton = $f['departementCanton'];
     $tagId = $f['tagId'];
+    $campagneId = $f['campagneId'];
     $statut = $f['statut'];
     $lieuJaugeMin = $f['lieuJaugeMin'];
     $lieuJaugeMax = $f['lieuJaugeMax'];
@@ -756,6 +798,7 @@ function route_structures(): void
     $contactPeriode = $f['contactPeriode'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
+        'campagne_id' => $campagneId,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'avec_evenements' => $avecEvenements,
         'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
@@ -880,7 +923,7 @@ function route_structures(): void
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'structures' => [], 'nbEvenements' => [],
             'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'departementCanton' => $departementCanton,
-            'tagId' => $tagId, 'statut' => $statut,
+            'tagId' => $tagId, 'campagneId' => [], 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
             'region' => $region,
@@ -893,6 +936,7 @@ function route_structures(): void
             // actif s'y affichait sous son numéro brut. regionsDispo, lui, ne
             // sert qu'à un <select> de la vue liste.
             'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [],
+            'campagnesParStructure' => [], 'campagnesDispo' => [],
             'tagsDispo' => module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
@@ -910,34 +954,7 @@ function route_structures(): void
     // et celle(s) qui l'organisent (sens='organise_par', si c'est elle-même un
     // lieu) — fusionnées dans une seule colonne « Structures liées », affichage
     // distingué par icône (voir views/structures_liste.php).
-    $selectCols = "s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures,
-        (SELECT GROUP_CONCAT(nom || char(31) || id || char(31) || sens, char(30)) FROM (
-            SELECT l.nom AS nom, l.id AS id, 'organise' AS sens FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id WHERE so.organisateur_id = s.id
-            UNION ALL
-            SELECT o.nom AS nom, o.id AS id, 'organise_par' AS sens FROM structure_organisateurs so JOIN structures o ON o.id = so.organisateur_id WHERE so.structure_id = s.id
-            ORDER BY nom
-        )) AS structures_liees,
-        -- Étiquettes par ordre alphabétique. GROUP_CONCAT n'a pas d'ordre
-        -- garanti : il suit le plan d'exécution. On l'applique donc à une
-        -- sous-requête triée, comme pour contacts_noms juste au-dessus.
-        -- SANS_ACCENTS() et non COLLATE NOCASE : ce dernier ne replie que
-        -- l'ASCII, et « À contacter… » se retrouvait donc après « Ne pas
-        -- contacter » — un ordre alphabétique qui n'en est pas un en français.
-        -- Le même tri est appliqué dans structure_tags_paires() (lib/booking.php)
-        -- qui re-rend la cellule après un ajout : sans cela, l'ordre changerait
-        -- sous les yeux au premier ajout d'étiquette.
-        (SELECT GROUP_CONCAT(paire, char(30)) FROM (
-            SELECT t.id || char(31) || t.nom || char(31) || COALESCE(t.couleur, '') AS paire
-              FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
-             WHERE tl.structure_id = s.id ORDER BY SANS_ACCENTS(t.nom)
-        )) AS tags_noms,
-        (SELECT GROUP_CONCAT(nom, char(30)) FROM (
-            SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
-        )) AS contacts_noms,
-        COALESCE(
-            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
-            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1)
-        ) AS email_affiche";
+    $selectCols = 's.*, ' . structures_colonnes_liste_sql();
     // « Contact privilégié » puis « actif » d'abord, « ne_pas_contacter » puis
     // « inactif » en dernier (même esprit que l'ancien ORDER BY s.actif DESC).
     // Tri alphabétique sans tenir compte d'un article initial (« le/la/les/l' » —
@@ -992,6 +1009,7 @@ function route_structures(): void
         'pays' => $pays,
         'departementCanton' => $departementCanton,
         'tagId' => $tagId,
+        'campagneId' => $campagneId,
         'statut' => $statut,
         'lieuJaugeMin' => $lieuJaugeMin,
         'lieuJaugeMax' => $lieuJaugeMax,
@@ -1008,6 +1026,13 @@ function route_structures(): void
         'categoriesPourSelect' => structure_categories_pour_select(),
         'regionsDispo' => $regionsDispo,
         'tagsDispo' => $tagsDispo,
+        // Colonne « Campagnes » : les campagnes de chaque structure affichée, et
+        // la liste où piocher pour l'ajouter à l'une d'elles. Vides si le
+        // booking n'est pas accessible — la colonne disparaît alors.
+        'campagnesParStructure' => module_accessible('booking')
+            ? structures_campagnes(array_column($structures, 'id')) : [],
+        'campagnesDispo' => module_accessible('booking')
+            ? db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll() : [],
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
         'pgParams'  => array_filter([
@@ -1060,7 +1085,9 @@ function structure_donnees_crm(int $id): array
                 'tagsDispo' => $creationAvecBooking ? db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll() : [],
                 'lieuxLies' => [], 'lieuxDispo' => [],
                 'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => [],
-                'contactsJoignables' => [], 'expediteurs' => [], 'modelesMessage' => [], 'brouillon' => null];
+                'contactsJoignables' => [], 'expediteurs' => [], 'modelesMessage' => [], 'brouillon' => null,
+            'campagnesStructure' => [], 'campagnesDispo' => [],
+                'spectacles' => [], 'campagneProjets' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
@@ -1159,8 +1186,25 @@ function structure_donnees_crm(int $id): array
         // brouillon s'il y en a un.
         'contactsJoignables' => structure_contacts_joignables_etendus($id),
         'expediteurs' => mailing_expediteurs(),
-        'modelesMessage' => db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll(),
+        'modelesMessage' => array_map(
+            fn ($m) => $m + ['spectacle_ids' => spectacles_lies('mailing_modele_spectacles', (int) $m['id'])],
+            db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll()
+        ),
         'brouillon' => structure_message_brouillon($id),
+        // Campagnes où figure la structure : ce qu'on lui a déjà proposé, et ce
+        // qu'elle en a dit. Vide si le booking est éteint — les campagnes en font partie.
+        'campagnesStructure' => module_actif('booking') ? campagnes_de_structure($id) : [],
+        // Les campagnes où l'on peut encore la ranger : celles où elle n'est pas.
+        'campagnesDispo' => module_actif('booking')
+            ? db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll() : [],
+        // Projets : le menu à cocher de la fenêtre « Contacter » et des notes
+        // d'historique. Vide si le module Événements est éteint — il n'y a
+        // alors pas de spectacles à proposer.
+        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
+        // Arrivée depuis une campagne (?campagne=) : ses projets sont cochés
+        // d'emblée dans la fenêtre « Contacter ».
+        'campagneProjets' => isset($_GET['campagne'])
+            ? spectacles_lies('campagne_spectacles', (int) $_GET['campagne']) : [],
     ];
 }
 
@@ -1230,6 +1274,24 @@ function route_structure(): void
                 'nom' => 'Nom', 'categorie' => 'Catégorie', 'sous_categorie' => 'Sous-catégorie',
                 'site_web' => 'Site web', 'via' => 'Via', 'notes' => 'Remarques',
             ];
+            // « Dernier contact » : rattrapage manuel, réservé au booking — c'est
+            // lui qui le renseigne autrement (note ou message), et la prochaine
+            // prise de contact l'écrasera. Comme le statut plus bas, il n'est
+            // écrit que si le formulaire pouvait porter le champ : sans cette
+            // garde, un enregistrement depuis un écran qui ne l'affiche pas le
+            // viderait sans que personne l'ait demandé.
+            if (module_actif('booking') && peut_ecrire('booking')) {
+                $dernierContact = trim((string) ($_POST['dernier_contact_le'] ?? ''));
+                // Une date impossible ne vide pas le champ : elle laisse en place
+                // celle qui y était. $structure porte la fiche telle qu'elle est
+                // AVANT cet enregistrement — elle a été lue en début de route.
+                if ($dernierContact !== '' && !date_valide($dernierContact)) {
+                    $dernierContact = (string) ($structure['dernier_contact_le'] ?? '');
+                }
+                $champs['dernier_contact_le'] = $dernierContact;
+                $sqlSet .= ', dernier_contact_le=:dernier_contact_le';
+                $diffChamps['dernier_contact_le'] = 'Dernier contact';
+            }
             // Jauge min/max + période (Réalisation/Préparation, fusionnée
             // dans cette même carte « Informations générales ») : uniquement
             // avec $avecAside (booking actif + lecture) — même condition que
@@ -1397,39 +1459,6 @@ function route_structure_localisation(): void
         ]);
     }
     redirect('structure', ['id' => $id, 'ok' => 'localisation']);
-}
-
-// Édition des champs « Connu via » et « Dernier contact » (manuel), depuis le
-// tableau récapitulatif de la carte Historique (?p=structure) — même principe
-// que route_structure_localisation(). Le dernier contact saisi ici sera
-// écrasé par le prochain recalcul automatique (structure_recalculer_dernier_contact(),
-// note « prise de contact » ou mailing envoyé) : accepté, c'est un simple
-// rattrapage manuel, pas une source de vérité durable.
-function route_structure_via(): void
-{
-    require_login();
-    $id = (int) ($_POST['id'] ?? 0);
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$id) {
-        redirect('structures');
-    }
-    $stmt = db()->prepare('SELECT * FROM structures WHERE id = ?');
-    $stmt->execute([$id]);
-    $structureAvant = $stmt->fetch();
-    if (!$structureAvant) {
-        redirect('structures');
-    }
-    check_csrf();
-    $via = trim($_POST['via'] ?? '');
-    $dernierContact = trim($_POST['dernier_contact_le'] ?? '');
-    if ($dernierContact !== '' && !date_valide($dernierContact)) {
-        $dernierContact = (string) $structureAvant['dernier_contact_le'];
-    }
-    db()->prepare('UPDATE structures SET via = ?, dernier_contact_le = ? WHERE id = ?')->execute([$via, $dernierContact, $id]);
-    if (module_actif('booking')) {
-        journaliser_diff('structure', $id, $structureAvant, ['via' => $via, 'dernier_contact_le' => $dernierContact],
-            ['via' => 'Connu via', 'dernier_contact_le' => 'Dernier contact']);
-    }
-    redirect('structure', ['id' => $id, 'ok' => 'via']);
 }
 
 // Bascule immédiate du statut d'une structure (structures.statut, voir

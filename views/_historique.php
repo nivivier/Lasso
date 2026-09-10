@@ -63,6 +63,11 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                         <?= e($hi[0]) ?>
                         <?php if ($auteur !== ''): ?> · <?= e($auteur) ?><?php endif; ?>
                         <?php if (($he['source_label'] ?? '') !== ''): ?> <span class="badge muted-badge"><?= e((string) $he['source_label']) ?></span><?php endif; ?>
+                        <?php // Projets concernés : c'est par eux qu'une prise de contact
+                              // compte dans une campagne, autant les voir dans le flux. ?>
+                        <?php foreach ((array) ($he['spectacles'] ?? []) as $spNom): ?>
+                            <span class="badge hist-projet"><?= e((string) $spNom) ?></span>
+                        <?php endforeach; ?>
                     </span>
                 </div>
                 <?php if ($editable): ?>
@@ -80,6 +85,11 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                         <input type="date" name="date" class="hist-note-date" value="<?= e($creeLe !== '' ? date('Y-m-d', strtotime($creeLe)) : '') ?>" aria-label="Date de l'entrée">
                         <textarea name="contenu" rows="1" class="hist-note-texte" aria-label="Contenu" required><?= e((string) $he['contenu']) ?></textarea>
                         <label class="check hist-note-contact"><input type="checkbox" name="est_contact" value="1" <?= $he['type'] === 'mailing' ? 'checked' : '' ?>> Prise de contact</label>
+                        <?php // Projet : juste après « Prise de contact », c'est lui qui
+                              // rattache l'entrée à une campagne. ?>
+                        <?php if (!empty($histoSpectacles)): ?>
+                            <?= choix_coches_html('spectacle_ids', $histoSpectacles, array_keys((array) ($he['spectacles'] ?? [])), 'Projet') ?>
+                        <?php endif; ?>
                     </div>
                 </form>
                 <?php endif; ?>

@@ -50,6 +50,401 @@ const STRUCTURE_STATUTS_CLASSES_ICONE = [
     'inactif'             => 'muted',
 ];
 
+// --- Campagnes de contact ----------------------------------------------------
+//
+// Une campagne est une sélection de structures à contacter pour un ou plusieurs
+// projets, entre deux dates. Elle n'envoie rien elle-même : on contacte structure
+// par structure, et la jauge compte les prises de contact déjà consignées.
+
+const CAMPAGNE_STATUTS = [
+    'a_venir'  => 'À venir',
+    'en_cours' => 'En cours',
+    'en_retard' => 'En retard',
+    'terminee' => 'Terminée',
+];
+
+// Réponse reçue d'une structure démarchée. Portée par le lien campagne↔structure
+// (migration_86) et non par la structure elle-même : la même salle peut décliner
+// une tournée et prendre la suivante. « Aucune » est l'absence de réponse, donc
+// la chaîne vide — c'est l'état de départ de toute ligne.
+const CAMPAGNE_REPONSES = [
+    ''              => 'Aucune réponse',
+    'pas_interesse' => 'Pas intéressé',
+    'interesse'     => 'Intéressé',
+];
+
+// Une bulle de discussion, parce qu'il s'agit de ce que la structure a RÉPONDU :
+// pointillée tant qu'elle n'a rien dit, barrée d'une croix quand c'est non, un
+// cœur quand c'est oui. Les couleurs restent celles du statut d'une structure
+// (STRUCTURE_STATUTS_CLASSES_ICONE) — gris, rouge, vert.
+const CAMPAGNE_REPONSES_ICONES = [
+    ''              => 'message-circle-dashed',
+    'pas_interesse' => 'message-circle-x',
+    'interesse'     => 'message-circle-heart',
+];
+const CAMPAGNE_REPONSES_CLASSES_ICONE = [
+    ''              => 'muted',
+    'pas_interesse' => 'ico-danger',
+    'interesse'     => 'ico-ok',
+];
+
+// État d'une campagne, dans cet ordre de priorité :
+//   terminée   — toutes les structures sélectionnées ont été contactées ;
+//   à venir    — la date de début n'est pas arrivée (aucun envoi possible) ;
+//   en retard  — la date de fin est passée sans que tout soit contacté ;
+//   en cours   — le reste.
+//
+// Fonction pure : la date du jour est passée en argument, pour que le test
+// n'ait pas à jouer avec l'horloge. Une campagne vide n'est jamais « terminée »,
+// sinon elle s'annoncerait finie avant d'avoir commencé.
+function campagne_statut(string $dateDebut, string $dateFin, int $nbTotal, int $nbContactes, string $aujourdhui): string
+{
+    if ($nbTotal > 0 && $nbContactes >= $nbTotal) {
+        return 'terminee';
+    }
+    if ($dateDebut !== '' && $dateDebut > $aujourdhui) {
+        return 'a_venir';
+    }
+    if ($dateFin !== '' && $dateFin < $aujourdhui) {
+        return 'en_retard';
+    }
+    return 'en_cours';
+}
+
+// Date d'une campagne : jour seul, validé. Vide si la saisie n'est pas une date
+// réelle — « 2026-13-45 » a la bonne forme mais n'existe pas, et une date
+// impossible fausserait silencieusement le statut.
+function campagne_date(string $saisie): string
+{
+    return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $saisie, $m)
+        && checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $saisie : '';
+}
+
+// Une campagne n'ouvre à l'envoi qu'une fois sa date de début atteinte : on
+// prépare une campagne à l'avance sans risquer de partir trop tôt.
+function campagne_ouverte(string $dateDebut, string $aujourdhui): bool
+{
+    return $dateDebut === '' || $dateDebut <= $aujourdhui;
+}
+
+// Projets d'une campagne, d'une entrée d'historique ou d'un modèle : la même
+// forme de table de liaison partout, donc une seule fonction.
+// $table => sa colonne porteuse : campagne_id, historique_id, modele_id.
+const SPECTACLES_LIAISONS = [
+    'campagne_spectacles'       => 'campagne_id',
+    'historique_spectacles'     => 'historique_id',
+    'mailing_modele_spectacles' => 'modele_id',
+];
+
+function spectacles_lies(string $table, int $id): array
+{
+    $col = SPECTACLES_LIAISONS[$table] ?? null;
+    if ($col === null || $id <= 0) {
+        return [];
+    }
+    $stmt = db()->prepare("SELECT spectacle_id FROM $table WHERE $col = ? ORDER BY spectacle_id");
+    $stmt->execute([$id]);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+// Réécrit les projets liés : c'est une sélection, on la remplace en entier.
+// Les identifiants sont filtrés contre les spectacles existants — un id forgé
+// violerait la clé étrangère au lieu d'être simplement ignoré.
+function spectacles_lier(string $table, int $id, array $spectacleIds): void
+{
+    $col = SPECTACLES_LIAISONS[$table] ?? null;
+    if ($col === null || $id <= 0) {
+        return;
+    }
+    db()->prepare("DELETE FROM $table WHERE $col = ?")->execute([$id]);
+    $ids = array_values(array_unique(array_filter(array_map('intval', $spectacleIds))));
+    if (!$ids) {
+        return;
+    }
+    $stmt = db()->prepare('SELECT id FROM spectacles WHERE id IN (' . sql_in($ids) . ')');
+    $stmt->execute($ids);
+    $ins = db()->prepare("INSERT OR IGNORE INTO $table ($col, spectacle_id) VALUES (?, ?)");
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
+        $ins->execute([$id, (int) $sid]);
+    }
+}
+
+// Structures d'une campagne déjà contactées POUR SES PROJETS : une entrée
+// d'historique « prise de contact » (type « mailing »), liée à l'un de ses
+// projets, datée du début de la campagne ou après.
+//
+// La borne de date est délibérée : un contact de l'an dernier sur le même
+// projet ne doit pas faire passer pour faite une campagne qui commence.
+function campagne_structures_contactees(int $campagneId): array
+{
+    $c = campagne_charger($campagneId);
+    if (!$c) {
+        return [];
+    }
+    $spectacles = spectacles_lies('campagne_spectacles', $campagneId);
+    if (!$spectacles) {
+        return []; // sans projet, rien ne peut être rattaché à cette campagne
+    }
+    $params = $spectacles;
+    $sql = "SELECT DISTINCT h.entite_id
+              FROM historique h
+              JOIN historique_spectacles hs ON hs.historique_id = h.id
+              JOIN campagne_structures cs ON cs.structure_id = h.entite_id AND cs.campagne_id = ?
+             WHERE h.entite_type = 'structure' AND h.type = 'mailing'
+               AND hs.spectacle_id IN (" . sql_in($spectacles) . ')';
+    array_unshift($params, $campagneId);
+    if ((string) $c['date_debut'] !== '') {
+        $sql .= ' AND h.cree_le >= ?';
+        $params[] = (string) $c['date_debut'];
+    }
+    $stmt = db()->prepare($sql);
+    $stmt->execute($params);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+function campagne_charger(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM campagnes WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+// Années couvertes par une campagne : de celle de son début à celle de sa fin.
+// Une campagne à cheval sur deux ans appartient donc aux deux — c'est ce que le
+// filtre « Période » de ?p=campagnes doit dire. Une campagne sans aucune date
+// n'appartient à aucune année : filtrer par année l'écarte, à raison, puisque
+// rien ne la situe dans le temps.
+function campagne_annees(string $dateDebut, string $dateFin): array
+{
+    $an = fn (string $d): ?int => preg_match('/^(\d{4})-\d{2}-\d{2}$/', trim($d), $m) ? (int) $m[1] : null;
+    $debut = $an($dateDebut);
+    $fin = $an($dateFin);
+    if ($debut === null && $fin === null) {
+        return [];
+    }
+    $debut = $debut ?? $fin;
+    $fin = $fin ?? $debut;
+    // Dates inversées (saisie fautive) : on prend l'intervalle dans l'ordre
+    // plutôt que de rendre une liste vide, qui ferait disparaître la campagne.
+    return range(min($debut, $fin), max($debut, $fin));
+}
+
+// Recherche texte sur une campagne : son nom et le nom de ses projets — les
+// deux colonnes qu'on lit dans la liste. Insensible à la casse, comme la
+// recherche des autres listes (recherche_sql() → LIKE).
+function campagne_correspond(array $campagne, string $q): bool
+{
+    if (trim($q) === '') {
+        return true;
+    }
+    $foin = (string) ($campagne['nom'] ?? '') . ' ' . implode(' ', (array) ($campagne['projets'] ?? []));
+    return mb_stripos($foin, trim($q)) !== false;
+}
+
+// Campagnes où figure une structure, la plus récente d'abord, avec la réponse
+// qu'elle y a donnée. Lue depuis la fiche de la structure : on y voit d'un coup
+// d'œil ce qu'on lui a déjà proposé, et ce qu'elle en a dit.
+function campagnes_de_structure(int $structureId): array
+{
+    $map = spectacle_map();
+    $stmt = db()->prepare(
+        'SELECT c.id, c.nom, c.date_debut, c.date_fin, cs.reponse
+           FROM campagnes c
+           JOIN campagne_structures cs ON cs.campagne_id = c.id
+          WHERE cs.structure_id = ?
+          ORDER BY c.date_debut DESC, c.id DESC'
+    );
+    $stmt->execute([$structureId]);
+    $out = [];
+    foreach ($stmt->fetchAll() as $c) {
+        $c['projets'] = array_map(
+            fn ($sid) => spectacle_chemin($sid, $map),
+            spectacles_lies('campagne_spectacles', (int) $c['id'])
+        );
+        $out[] = $c;
+    }
+    return $out;
+}
+
+// Répartition d'une campagne en quatre parts qui somment TOUJOURS au total :
+// intéressé, pas intéressé, contactées sans réponse, reste à contacter.
+//
+// « Sans réponse » n'est pas la colonne `reponse` vide — celle-ci couvre aussi
+// ce qui n'a pas encore été contacté : c'est ce qui a été contacté moins ce qui
+// a répondu. Le plancher à zéro n'est pas décoratif : on peut noter une réponse
+// sans avoir consigné de prise de contact, et sans lui les segments
+// dépasseraient la largeur de la barre.
+function campagne_repartition(int $total, int $faits, int $interesse, int $refus): array
+{
+    $sansReponse = max(0, $faits - $interesse - $refus);
+    return [
+        'interesse'   => $interesse,
+        'refus'       => $refus,
+        'sansReponse' => $sansReponse,
+        'aContacter'  => max(0, $total - $interesse - $refus - $sansReponse),
+    ];
+}
+
+// La barre d'avancement d'une campagne : une piste, trois segments posés dessus
+// (le quatrième — ce qui reste — EST la piste). Rendue ici plutôt que dans
+// chaque vue : la carte de ?p=campagne et la liste de ?p=campagnes montrent la
+// même chose, elles doivent la montrer pareil.
+function campagne_barre_html(array $parts, int $total, string $classe = ''): string
+{
+    $pct = fn (int $n): float => $total > 0 ? round($n * 100 / $total, 2) : 0;
+    $titre = $parts['interesse'] . ' intéressé, ' . $parts['refus'] . ' pas intéressé, '
+           . $parts['sansReponse'] . ' sans réponse, ' . $parts['aContacter'] . ' à contacter';
+    // data-part sur chaque segment : ?p=campagne repeint la barre sans recharger
+    // quand on note une réponse dans la liste (voir le script de views/campagne.php).
+    $h = '<span class="camp-barre' . ($classe !== '' ? ' ' . e($classe) : '') . '"'
+       . ' role="img" title="' . e($titre) . '" aria-label="' . e($titre) . '">';
+    foreach (['interesse' => 'camp-oui', 'refus' => 'camp-non', 'sansReponse' => 'camp-attente'] as $cle => $cl) {
+        $h .= '<span class="camp-seg ' . $cl . '" data-part="' . $cle . '"'
+            . ' style="width:' . $pct((int) $parts[$cle]) . '%"></span>';
+    }
+    return $h . '</span>';
+}
+
+// Réponses reçues, comptées pour TOUTES les campagnes en une requête — de quoi
+// dresser la liste sans une requête par ligne. [campagne_id => [réponse => n]].
+function campagnes_reponses_comptes(): array
+{
+    $out = [];
+    foreach (db()->query('SELECT campagne_id, reponse, COUNT(*) AS n FROM campagne_structures GROUP BY campagne_id, reponse') as $l) {
+        $out[(int) $l['campagne_id']][(string) $l['reponse']] = (int) $l['n'];
+    }
+    return $out;
+}
+
+// Avancement de TOUTES les campagnes en une requête : [campagne_id => nombre de
+// structures déjà contactées]. Même définition que
+// campagne_structures_contactees() — une prise de contact (historique de type
+// « mailing ») portant l'un des projets de la campagne, datée de son début ou
+// après — mais posée une fois pour l'ensemble, au lieu d'une poignée de
+// requêtes par ligne de l'onglet.
+//
+// Les conditions qui croisent plusieurs alias sont dans le WHERE et non dans
+// les JOIN … ON : le SQLite d'un hébergement mutualisé est difficile là-dessus
+// (docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé).
+function campagnes_contactees_comptes(): array
+{
+    $sql = "SELECT cs.campagne_id AS cid, COUNT(DISTINCT cs.structure_id) AS n
+              FROM campagne_structures cs
+              JOIN campagnes c ON c.id = cs.campagne_id
+              JOIN campagne_spectacles cp ON cp.campagne_id = cs.campagne_id
+              JOIN historique_spectacles hs ON hs.spectacle_id = cp.spectacle_id
+              JOIN historique h ON h.id = hs.historique_id
+             WHERE h.entite_type = 'structure'
+               AND h.type = 'mailing'
+               AND h.entite_id = cs.structure_id
+               AND (c.date_debut = '' OR h.cree_le >= c.date_debut)
+             GROUP BY cs.campagne_id";
+    $out = [];
+    foreach (db()->query($sql) as $l) {
+        $out[(int) $l['cid']] = (int) $l['n'];
+    }
+    return $out;
+}
+
+// Les campagnes avec, pour chacune, ses projets, son effectif et son avancement
+// — en quatre requêtes pour tout l'onglet, quel qu'en soit le nombre.
+function campagnes_liste(): array
+{
+    $map = spectacle_map();
+    // Projets et effectifs de toutes les campagnes, groupés d'avance.
+    $projetsParCampagne = [];
+    foreach (db()->query('SELECT campagne_id, spectacle_id FROM campagne_spectacles ORDER BY spectacle_id') as $l) {
+        $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['spectacle_id'];
+    }
+    $totaux = [];
+    foreach (db()->query('SELECT campagne_id, COUNT(*) AS n FROM campagne_structures GROUP BY campagne_id') as $l) {
+        $totaux[(int) $l['campagne_id']] = (int) $l['n'];
+    }
+    $faitsParCampagne = campagnes_contactees_comptes();
+    $reponsesParCampagne = campagnes_reponses_comptes();
+
+    $aujourdhui = date('Y-m-d');
+    $out = [];
+    foreach (db()->query('SELECT * FROM campagnes ORDER BY date_debut DESC, id DESC') as $c) {
+        $id = (int) $c['id'];
+        $projetIds = $projetsParCampagne[$id] ?? [];
+        $total = $totaux[$id] ?? 0;
+        $faits = $faitsParCampagne[$id] ?? 0;
+        $out[] = $c + [
+            'projets'    => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projetIds),
+            // Les pastilles des mêmes projets, dans le même ordre : une icône
+            // se repère plus vite qu'un nom dans une liste de campagnes.
+            'projets_pastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projetIds),
+            // Les mêmes projets en identifiants : c'est sur eux que filtre la liste.
+            'projet_ids' => $projetIds,
+            'annees'     => campagne_annees((string) $c['date_debut'], (string) $c['date_fin']),
+            'nb_total'   => $total,
+            'nb_faits'   => $faits,
+            'repartition' => campagne_repartition(
+                $total, $faits,
+                $reponsesParCampagne[$id]['interesse'] ?? 0,
+                $reponsesParCampagne[$id]['pas_interesse'] ?? 0
+            ),
+            'statut'     => campagne_statut((string) $c['date_debut'], (string) $c['date_fin'], $total, $faits, $aujourdhui),
+        ];
+    }
+    return $out;
+}
+
+// Campagnes d'un lot de structures : [structure_id => [[id, nom], …]]. Agrégées
+// en une requête pour toute une liste, comme les étiquettes — les rechercher
+// ligne à ligne ferait une requête par structure affichée.
+function structures_campagnes(array $ids): array
+{
+    $out = [];
+    foreach (lots_ids($ids) as $lot) {
+        $stmt = db()->prepare(
+            'SELECT cs.structure_id, c.id, c.nom
+               FROM campagne_structures cs JOIN campagnes c ON c.id = cs.campagne_id
+              WHERE cs.structure_id IN (' . sql_in($lot) . ')
+              ORDER BY c.date_debut DESC, c.id DESC'
+        );
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll() as $l) {
+            $out[(int) $l['structure_id']][] = [(int) $l['id'], (string) $l['nom']];
+        }
+    }
+    return $out;
+}
+
+// Les campagnes d'UNE structure — après un ajout ou un retrait, pour re-rendre
+// sa seule cellule.
+function structure_campagnes(int $structureId): array
+{
+    return structures_campagnes([$structureId])[$structureId] ?? [];
+}
+
+// Cellule « Campagnes » d'une ligne de ?p=structures : une pastille par
+// campagne, sa croix de retrait, et le « + » qui ouvre la liste des autres.
+// Même forme et même mécanique que la cellule des étiquettes
+// (structure_tags_cellule_html()) — c'est le même geste, sur une autre liaison.
+function structure_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire): string
+{
+    $h = '';
+    foreach ($campagnes as [$id, $nom]) {
+        $h .= '<span class="badge"><a href="?p=campagne&id=' . $id . '">' . e($nom) . '</a>';
+        if ($peutEcrire) {
+            $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
+                . '" data-campagne-nom="' . e($nom) . '"'
+                . ' title="Retirer de cette campagne" aria-label="Retirer de la campagne ' . e($nom) . '">×</button>';
+        }
+        $h .= '</span> ';
+    }
+    // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
+    // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
+    // n'existe pas — même choix que pour les étiquettes.
+    if ($peutEcrire) {
+        $h .= '<button type="button" class="badge campagne-ajouter-btn" data-campagne-structure="' . $structureId
+            . '" title="Ajouter à une campagne" aria-label="Ajouter à une campagne">+</button>';
+    }
+    return $h;
+}
+
 // Interlocuteur retenu pour un lot de structures : [structure_id => contact].
 //
 // La règle, du plus prioritaire au moins : le contact coché « administration »
@@ -535,6 +930,73 @@ function journaliser_diff(string $entiteType, int $id, array $avant, array $apre
 // Les étiquettes sont PASSÉES, pas relues : la liste les agrège déjà en une
 // requête pour toutes les lignes (tags_noms), et les rechercher ici ferait
 // 2959 requêtes. structure_tags_paires() sert aux appelants qui n'en ont qu'une.
+// Colonnes d'affichage d'une ligne de structure — étiquettes, contacts,
+// structures liées, nombre de factures, adresse retenue. Ce sont celles que rend
+// views/_structures_table.php, et elles sont écrites ICI plutôt que dans chaque
+// requête : ?p=structures, la sélection d'une campagne et son suivi montrent le
+// même tableau, il n'y a donc qu'une définition de ses colonnes.
+//
+// Sous-requêtes corrélées à l'alias `s`, qui doit être la PREMIÈRE table du FROM :
+// le SQLite d'un hébergement mutualisé refuse qu'une sous-requête vise l'alias
+// d'une table jointe plus loin (docs/DECISIONS.md § Le SQLite d'un hébergement
+// mutualisé). L'appelant préfixe de « s.*, » s'il veut aussi la structure entière.
+//
+// Structures liées, DANS LES DEUX SENS (même principe que structure_donnees_crm()) :
+// celles que la structure organise (sens='organise', ex. ses salles/festivals)
+// et celle(s) qui l'organisent (sens='organise_par', si c'est elle-même un
+// lieu) — fusionnées dans une seule colonne, affichage distingué par icône.
+function structures_colonnes_liste_sql(): string
+{
+    return "(SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures,
+        (SELECT GROUP_CONCAT(nom || char(31) || id || char(31) || sens, char(30)) FROM (
+            SELECT l.nom AS nom, l.id AS id, 'organise' AS sens FROM structure_organisateurs so JOIN structures l ON l.id = so.structure_id WHERE so.organisateur_id = s.id
+            UNION ALL
+            SELECT o.nom AS nom, o.id AS id, 'organise_par' AS sens FROM structure_organisateurs so JOIN structures o ON o.id = so.organisateur_id WHERE so.structure_id = s.id
+            ORDER BY nom
+        )) AS structures_liees,
+        -- Étiquettes par ordre alphabétique. GROUP_CONCAT n'a pas d'ordre
+        -- garanti : il suit le plan d'exécution. On l'applique donc à une
+        -- sous-requête triée, comme pour contacts_noms juste au-dessus.
+        -- SANS_ACCENTS() et non COLLATE NOCASE : ce dernier ne replie que
+        -- l'ASCII, et « À contacter… » se retrouvait donc après « Ne pas
+        -- contacter » — un ordre alphabétique qui n'en est pas un en français.
+        -- Le même tri est appliqué dans structure_tags_paires() (lib/booking.php)
+        -- qui re-rend la cellule après un ajout : sans cela, l'ordre changerait
+        -- sous les yeux au premier ajout d'étiquette.
+        (SELECT GROUP_CONCAT(paire, char(30)) FROM (
+            SELECT t.id || char(31) || t.nom || char(31) || COALESCE(t.couleur, '') AS paire
+              FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
+             WHERE tl.structure_id = s.id ORDER BY SANS_ACCENTS(t.nom)
+        )) AS tags_noms,
+        (SELECT GROUP_CONCAT(nom, char(30)) FROM (
+            SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
+        )) AS contacts_noms,
+        COALESCE(
+            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
+            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1)
+        ) AS email_affiche";
+}
+
+// Les mêmes colonnes, pour un lot d'identifiants déjà connus : une seule requête
+// qui complète des lignes obtenues ailleurs (le ciblage d'une campagne passe par
+// mailing_structures_eligibles(), qui ne rend que `structures`). Rendu : id => colonnes.
+function structures_colonnes_liste(array $ids): array
+{
+    // En lots : le ciblage d'une campagne en compte des milliers, et lier un
+    // paramètre par identifiant dépasserait le plafond de SQLite (lots_ids()).
+    $out = [];
+    foreach (lots_ids($ids) as $lot) {
+        $stmt = db()->prepare(
+            'SELECT s.id, ' . structures_colonnes_liste_sql() . ' FROM structures s WHERE s.id IN (' . sql_in($lot) . ')'
+        );
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll() as $ligne) {
+            $out[(int) $ligne['id']] = $ligne;
+        }
+    }
+    return $out;
+}
+
 function structure_tags_cellule_html(int $structureId, array $paires, bool $peutEcrire): string
 {
     $h = '';
@@ -720,7 +1182,26 @@ function historique_entite(string $entiteType, int $id): array
          ORDER BY h.cree_le DESC, h.id DESC"
     );
     $stmt->execute([$entiteType, $id]);
-    return $stmt->fetchAll();
+    $entrees = $stmt->fetchAll();
+    // Projets de chaque entrée, en UNE requête : c'est ce qui rattache une
+    // prise de contact à une campagne, et ce que la fiche affiche.
+    $parEntree = [];
+    foreach (lots_ids(array_map(fn ($e) => (int) $e['id'], $entrees)) as $lot) {
+        $stmtS = db()->prepare(
+            'SELECT hs.historique_id, hs.spectacle_id, sp.nom
+               FROM historique_spectacles hs JOIN spectacles sp ON sp.id = hs.spectacle_id
+              WHERE hs.historique_id IN (' . sql_in($lot) . ') ORDER BY sp.nom'
+        );
+        $stmtS->execute($lot);
+        foreach ($stmtS as $l) {
+            $parEntree[(int) $l['historique_id']][(int) $l['spectacle_id']] = (string) $l['nom'];
+        }
+    }
+    foreach ($entrees as &$e) {
+        $e['spectacles'] = $parEntree[(int) $e['id']] ?? [];
+    }
+    unset($e);
+    return $entrees;
 }
 
 // Historique FUSIONNÉ pour l'affichage : celui de la fiche + celui des lieux
@@ -1088,50 +1569,24 @@ function mailing_expediteur_libelle(array $expediteur): string
     return $nom !== '' ? $nom . ' — ' . $expediteur['email'] : (string) $expediteur['email'];
 }
 
-// --- Suivi du booking (widget du tableau de bord) ---------------------------
+// --- Campagnes du tableau de bord -------------------------------------------
+//
+// Ce que le tableau de bord montre du démarchage : les campagnes qui demandent
+// du travail d'abord, celles qui viennent ensuite, celles qui sont derrière en
+// dernier — et seulement ce qui tient dans la carte.
+//
+// « En retard » est rangée avec « en cours » : ce sont les deux états où il
+// reste des structures à contacter, et le retard mérite d'être vu en premier.
+const CAMPAGNES_DASHBOARD_ORDRE = ['en_retard', 'en_cours', 'a_venir', 'terminee'];
 
-// Répartition des structures portant une étiquette selon l'ancienneté du
-// dernier contact. Les bandes reprennent EXACTEMENT les tranches du filtre
-// « Contacté » de ?p=structures (PERIODES_ANCIENNETE) : chaque segment de la
-// barre est cliquable et doit ouvrir une liste dont le nombre de lignes
-// correspond à ce que la barre annonçait.
-//   mois  = 30 derniers jours          (j1 + j7 + j30)
-//   an    = de 1 mois à 1 an           (j365)
-//   trois = de 1 an à 3 ans            (a3)
-//   vieux = plus de 3 ans, ou jamais   (plus3 + jamais)
-const SUIVI_BOOKING_BANDES = [
-    'mois'  => ['Moins d\'un mois', ['j1', 'j7', 'j30']],
-    'an'    => ['Moins d\'un an',   ['j365']],
-    'trois' => ['Moins de 3 ans',   ['a3']],
-    'vieux' => ['Plus de 3 ans ou jamais', ['plus3', 'jamais']],
-];
-
-function suivi_booking_repartition(int $tagId): array
+function campagnes_dashboard(int $max = 9): array
 {
-    $repartition = array_fill_keys(array_keys(SUIVI_BOOKING_BANDES), 0);
-    if ($tagId <= 0) {
-        return $repartition;
-    }
-    // Comparaison lexicographique sur des dates « AAAA-MM-JJ », comme
-    // periode_anciennete_where() : pas de conversion, donc le même découpage.
-    $stmt = db()->prepare(
-        "SELECT CASE
-                    WHEN s.dernier_contact_le IS NULL OR s.dernier_contact_le = '' THEN 'vieux'
-                    WHEN s.dernier_contact_le >= date('now', '-30 days')   THEN 'mois'
-                    WHEN s.dernier_contact_le >= date('now', '-365 days')  THEN 'an'
-                    WHEN s.dernier_contact_le >= date('now', '-1095 days') THEN 'trois'
-                    ELSE 'vieux'
-                END AS bande, COUNT(*) AS n
-           FROM structures s
-           JOIN structure_tag_liens l ON l.structure_id = s.id
-          WHERE l.tag_id = ?
-          GROUP BY bande"
-    );
-    $stmt->execute([$tagId]);
-    foreach ($stmt as $r) {
-        $repartition[(string) $r['bande']] = (int) $r['n'];
-    }
-    return $repartition;
+    $rang = array_flip(CAMPAGNES_DASHBOARD_ORDRE);
+    $liste = campagnes_liste();
+    // Tri stable : à état égal, l'ordre de campagnes_liste() est conservé
+    // (la plus récente d'abord).
+    usort($liste, fn ($a, $b) => ($rang[$a['statut']] ?? 9) <=> ($rang[$b['statut']] ?? 9));
+    return array_slice($liste, 0, $max);
 }
 
 // --- Message individuel écrit depuis une fiche structure (bouton « Contacter »)

@@ -150,7 +150,11 @@ document.addEventListener('toggle', e => {
 window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.col-filter [data-check-tout]').forEach(tout => {
         tout.addEventListener('change', () => {
-            tout.closest('form').querySelectorAll('input[type="checkbox"]:not([data-check-tout])').forEach(cb => { cb.checked = tout.checked; });
+            // Portée : le panneau lui-même, pas le formulaire. Un menu de ce
+            // type peut vivre DANS un formulaire (choix_coches_html() : projets
+            // d'une prise de contact) — viser le <form> cocherait alors toutes
+            // les autres cases de la page.
+            tout.closest('.col-filter').querySelectorAll('input[type="checkbox"]:not([data-check-tout])').forEach(cb => { cb.checked = tout.checked; });
         });
     });
 });
@@ -542,36 +546,81 @@ function lassoInitTagSuggest() {
     });
 }
 
-// Statut d'une structure (fiche, carte « Statut ») — sélecteur segmenté
-// (même style visuel que le champ Type de « Informations générales », voir
-// icon_picker()/.seg-picker), mais cliqué en AJAX au lieu d'être soumis avec
-// le reste du formulaire (voir structure_statut_toggle_html(), lib/helpers.php,
-// et route_structure_statut()).
-function lassoInitStatutToggle() {
+// Sélecteur segmenté enregistré à la volée (.seg-picker cliqué en AJAX au lieu
+// d'être soumis avec le reste d'un formulaire). Deux usages aujourd'hui : le
+// statut d'une structure et la réponse reçue dans une campagne — d'où ce socle
+// commun, paramétré par la classe du conteneur, l'attribut qui porte la valeur
+// d'un bouton, la route, et les champs à poster avec elle.
+//
+// `champs` reçoit le conteneur et rend l'objet à envoyer : ce qui identifie la
+// ligne (l'id d'une structure, ou le couple campagne+structure) vit dans les
+// data-* du conteneur, jamais dans un identifiant global.
+// La route répond en JSON { ok, <cleReponse>: valeur } ; les boutons ne sont
+// repeints qu'avec la valeur RENVOYÉE, jamais celle cliquée — si le serveur
+// refuse, l'écran continue de dire la vérité.
+function lassoInitSegToggleAjax(classe, attrValeur, route, champs, cleReponse) {
     const csrfInput = document.querySelector('input[name="csrf"]');
-    document.querySelectorAll('.statut-toggle').forEach(picker => {
-        if (picker.dataset.statutBound) return;
-        picker.dataset.statutBound = '1';
+    document.querySelectorAll('.' + classe).forEach(picker => {
+        if (picker.dataset.segBound) return;
+        picker.dataset.segBound = '1';
         const boutons = picker.querySelectorAll('.seg-btn');
-        boutons.forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (!csrfInput || btn.classList.contains('on')) return;
-                const fd = new FormData();
-                fd.append('csrf', csrfInput.value);
-                fd.append('id', picker.dataset.statutId);
-                fd.append('etat', btn.dataset.statutValeur);
-                const data = await fetch('?p=structure_statut', { method: 'POST', body: fd })
-                    .then(r => r.json()).catch(() => null);
-                if (!data || !data.ok) return;
-                boutons.forEach(b => {
-                    const on = b.dataset.statutValeur === data.etat;
-                    b.classList.toggle('on', on);
-                    b.setAttribute('aria-checked', on ? 'true' : 'false');
-                });
+        // UN écouteur par sélecteur, posé sur le conteneur : le suivi d'une
+        // campagne en affiche un par ligne, soit trois fois plus d'écouteurs que
+        // de lignes si chaque bouton avait le sien.
+        picker.addEventListener('click', async e => {
+            const btn = e.target.closest('.seg-btn');
+            if (!btn || !picker.contains(btn) || !csrfInput || btn.classList.contains('on')) return;
+            const fd = new FormData();
+            fd.append('csrf', csrfInput.value);
+            const donnees = champs(picker);
+            Object.keys(donnees).forEach(k => fd.append(k, donnees[k]));
+            fd.append(cleReponse, btn.dataset[attrValeur]);
+            const data = await fetch(route, { method: 'POST', body: fd })
+                .then(r => r.json()).catch(() => null);
+            if (!data || !data.ok) return;
+            // La valeur qui QUITTE le sélecteur, avant de repeindre : un écran
+            // qui totalise ces valeurs (la carte d'une campagne) a besoin des
+            // deux bouts du changement pour se mettre à jour sans recharger.
+            const avant = [...boutons].find(b => b.classList.contains('on'));
+            boutons.forEach(b => {
+                const on = b.dataset[attrValeur] === data[cleReponse];
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-checked', on ? 'true' : 'false');
             });
+            picker.dispatchEvent(new CustomEvent('segchange', {
+                bubbles: true,
+                detail: { avant: avant ? avant.dataset[attrValeur] : null, apres: data[cleReponse] },
+            }));
         });
     });
 }
+
+// Statut d'une structure (fiche, carte « Statut ») — même style visuel que le
+// champ Type de « Informations générales » (icon_picker()/.seg-picker). Voir
+// structure_statut_toggle_html(), lib/helpers.php, et route_structure_statut().
+function lassoInitStatutToggle() {
+    lassoInitSegToggleAjax(
+        'statut-toggle', 'statutValeur', '?p=structure_statut',
+        picker => ({ id: picker.dataset.statutId }), 'etat'
+    );
+}
+
+// Réponse reçue d'une structure dans une campagne — le suivi d'une campagne, et
+// le cadre « Campagnes » d'une fiche structure. Voir
+// campagne_reponse_toggle_html() et route_campagne_reponse().
+//
+// Branché sur DOMContentLoaded et non par un appel dans la page : sur la fiche
+// structure, le script des cadres s'exécute AVANT que le cadre « Campagnes »
+// n'existe dans le document, et les sélecteurs n'étaient alors jamais reliés —
+// cliquer une réponse n'y faisait rien. L'ordre des blocs cesse ainsi de compter.
+function lassoInitReponseToggle() {
+    lassoInitSegToggleAjax(
+        'reponse-toggle', 'reponseValeur', '?p=campagne_reponse',
+        picker => ({ campagne_id: picker.dataset.campagneId, structure_id: picker.dataset.structureId }),
+        'reponse'
+    );
+}
+window.addEventListener('DOMContentLoaded', lassoInitReponseToggle);
 
 // Carte Leaflet des vues carte (lieux/structures/événements) — factorisé,
 // même init pour les 3 pages (voir views/_lieux_carte.php,
@@ -1113,6 +1162,104 @@ document.addEventListener('click', e => {
 // c'est celui de la FICHE que ce code attrapait — il y remettait structure_id à
 // vide, faute de data-tag-structure sur son bouton, et l'ajout partait avec un
 // id 0, donc en violation de clé étrangère.
+// Poster une modification et remplacer la SEULE cellule concernée par celle que
+// le serveur renvoie. Deux colonnes de ?p=structures s'en servent — les
+// étiquettes et les campagnes : la page pèse plusieurs mégaoctets, la recharger
+// entière pour un badge de plus ou de moins était hors de proportion, et faisait
+// perdre la position de défilement, la page de pagination et la recherche en
+// cours. Le repli sans JavaScript reste le formulaire classique.
+async function lassoMajCellule(cellule, route, donnees, csrf) {
+    const fd = new FormData();
+    fd.append('csrf', csrf);
+    fd.append('retour', 'json');
+    for (const [k, v] of Object.entries(donnees)) fd.append(k, v);
+    const data = await fetch(route, { method: 'POST', body: fd })
+        .then(r => r.json()).catch(() => null);
+    if (!data || !data.ok) {
+        alert('L\u2019enregistrement a échoué.');
+        location.reload();
+        return;
+    }
+    cellule.innerHTML = data.html;
+}
+
+// Colonne « Campagnes » de ?p=structures : rattacher la structure à une campagne
+// existante, ou l'en retirer, sans quitter la liste. Même mécanique que les
+// étiquettes (lassoInitTagAjout()), avec un menu déroulant à la place du champ à
+// suggestions : on choisit dans une liste fermée, on ne crée pas de campagne ici.
+function lassoInitCampagneCellule() {
+    const form = document.getElementById('campagne-ajouter-form');
+    if (!form) return;
+    const champId = form.querySelector('input[name="structure_id"]');
+    const choix = form.querySelector('select[name="campagne_id"]');
+    const csrf = () => form.querySelector('input[name="csrf"]').value;
+    const rangerForm = () => {
+        form.hidden = true;
+        choix.value = '';
+        // Ramené en fin de page : laissé dans une ligne, il serait emporté par
+        // un re-rendu de la liste (filtre client, tri) et perdu.
+        document.body.appendChild(form);
+    };
+
+    function ajouter() {
+        const cellule = form.closest('td');
+        const id = choix.value;
+        if (!cellule || id === '') { return false; }
+        const nom = choix.options[choix.selectedIndex].textContent;
+        const structureId = cellule.dataset.structure;
+        rangerForm();
+        // La campagne prend tout de suite sa place, en sourdine, le temps de
+        // l'aller-retour : le geste doit produire un effet visible sans attendre.
+        const attente = document.createElement('span');
+        attente.className = 'badge badge-attente';
+        attente.textContent = nom;
+        attente.title = 'Enregistrement…';
+        cellule.insertBefore(attente, cellule.querySelector('.campagne-ajouter-btn') || null);
+        lassoMajCellule(cellule, '?p=structure_campagne', { structure_id: structureId, campagne_id: id }, csrf());
+        return true;
+    }
+    // Choisir dans le menu suffit : le bouton « + » du formulaire reste là pour
+    // le clavier et pour le repli sans JavaScript.
+    choix.addEventListener('change', ajouter);
+    form.addEventListener('submit', e => { if (ajouter()) { e.preventDefault(); } });
+
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.campagne-ajouter-btn[data-campagne-structure]');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();          // ne pas déclencher la ligne cliquable
+            champId.value = btn.dataset.campagneStructure || '';
+            btn.parentElement.appendChild(form);
+            form.hidden = false;
+            choix.focus();
+            return;
+        }
+        if (e.target.closest('.campagne-ajouter-annuler')) { e.preventDefault(); rangerForm(); return; }
+        const croix = e.target.closest('.btn-tag-x[data-campagne-retirer]');
+        if (!croix) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const cellule = croix.closest('td.col-campagnes');
+        if (!cellule) return;
+        // Retirer une structure d'une campagne efface la réponse qui y était
+        // notée : la ligne campagne↔structure la porte. D'où la confirmation,
+        // contrairement au retrait d'une étiquette, qui ne détruit rien.
+        // La campagne est nommée : une ligne peut en porter plusieurs, et l'on
+        // clique une croix parmi d'autres. Même phrase que sur la fiche structure.
+        const nom = croix.dataset.campagneNom || '';
+        if (!confirm('Retirer cette structure de la campagne' + (nom ? ' « ' + nom + ' »' : '')
+            + ' ? La réponse qui y est notée sera perdue.')) { return; }
+        croix.closest('.badge')?.classList.add('badge-attente');
+        lassoMajCellule(cellule, '?p=structure_campagne', {
+            structure_id: cellule.dataset.structure,
+            campagne_id: croix.dataset.campagneRetirer,
+            action: 'retirer',
+        }, csrf());
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !form.hidden) rangerForm(); });
+}
+window.addEventListener('DOMContentLoaded', lassoInitCampagneCellule);
+
 function lassoInitTagAjout() {
     const form = document.getElementById('tag-ajouter-form-liste');
     if (!form) return;
@@ -1138,20 +1285,8 @@ function lassoInitTagAjout() {
     // ou de moins était hors de proportion — et faisait perdre la position de
     // défilement, la page de pagination et la recherche en cours.
     // Le repli sans JavaScript reste le formulaire classique (retour=structures).
-    async function majCellule(cellule, route, donnees) {
-        const fd = new FormData();
-        fd.append('csrf', form.querySelector('input[name="csrf"]').value);
-        fd.append('retour', 'json');
-        for (const [k, v] of Object.entries(donnees)) fd.append(k, v);
-        const data = await fetch(route, { method: 'POST', body: fd })
-            .then(r => r.json()).catch(() => null);
-        if (!data || !data.ok) {
-            alert('L\u2019enregistrement a échoué.');
-            location.reload();
-            return;
-        }
-        cellule.innerHTML = data.html;
-    }
+    const majCellule = (cellule, route, donnees) =>
+        lassoMajCellule(cellule, route, donnees, form.querySelector('input[name="csrf"]').value);
 
     if (saisie) {
         saisie.addEventListener('tagselected', () => {

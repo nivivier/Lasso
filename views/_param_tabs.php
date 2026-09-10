@@ -47,7 +47,7 @@ if (module_actif('salaires') && peut_lire('salaires')) {
 $ptCatSections = ['parametres_pays' => 'Pays'];
 if (module_actif('booking') && peut_lire('booking')) {
     $ptCatSections['parametres_structures'] = 'Catégories';
-    $ptCatSections['parametres_tags']       = 'Étiquettes';
+    $ptCatSections['parametres_tags']       = 'Tags';
 }
 $ptGroupes['categories'] = ['Catégories', $ptCatSections];
 

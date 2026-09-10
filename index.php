@@ -78,7 +78,6 @@ $handlers = [
     // et peut_lire() se fait source par source dans recherche_globale()
     // (lib/recherche.php), seul endroit qui puisse le faire correctement.
     'recherche' => 'route_recherche',
-    'resumes_suivi_tag' => 'route_resumes_suivi_tag',
 ];
 $routeModules = [];
 
@@ -192,11 +191,20 @@ ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
     'structure_lieu_delier'  => 'route_structure_lieu_delier',
     'structure_localisation' => 'route_structure_localisation',
-    'structure_via'          => 'route_structure_via',
     'structure_message'      => 'route_structure_message',
     'structures_options'     => 'route_structures_options',
     'lieux_options'          => 'route_lieux_options',
     'mailing_modeles'        => 'route_mailing_modeles',
+    // Campagnes de contact : une sélection de structures à démarcher, contact
+    // par contact. Rattachées au booking et non au sous-module « Envois
+    // groupés » — elles fonctionnent sans le mailing de masse.
+    'campagnes'              => 'route_campagnes',
+    'campagne'               => 'route_campagne',
+    'campagne_form'          => 'route_campagne_form',
+    'campagne_enregistrer'   => 'route_campagne_enregistrer',
+    'campagne_delete'        => 'route_campagne_delete',
+    'campagne_reponse'       => 'route_campagne_reponse',
+    'structure_campagne'     => 'route_structure_campagne',
     'mailing_exclusions'     => 'route_mailing_exclusions',
     'import_structures'      => 'route_import_structures',
     'parametres_structures'  => 'route_parametres_structures',
@@ -243,6 +251,7 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'spectacles'         => 'route_spectacles',
     'spectacle'          => 'route_spectacle',
     'spectacle_delete'   => 'route_spectacle_delete',
+    'spectacle_image'    => 'route_spectacle_image',
     'parametres_evenements' => 'route_parametres_evenements',
     'import_evenements'  => 'route_import_evenements',
 ]);

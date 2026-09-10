@@ -3,7 +3,7 @@
 /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaManquant */
-/** @var array $suiviTags */ /** @var int $suiviTagId */ /** @var array $suiviRepartition */
+/** @var array $campagnesDash */
 
 // Médaillon d'état posé sur une carte : le chiffre de ce qu'il reste à faire,
 // et le lien vers la liste correspondante. Rien à signaler = pas de médaillon
@@ -403,65 +403,54 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
 
         <?php if (module_accessible('booking')): ?>
         <?php
-        // Suivi du booking : où en est le démarchage d'une étiquette. Une barre
-        // par tranche d'ancienneté du dernier contact, dans les mêmes couleurs
-        // que partout ailleurs (vert = frais, gris = à reprendre), et chaque
-        // segment mène à la liste filtrée — la barre ne dit pas seulement
-        // « combien », elle donne « lesquels ».
-        $suiviTotal = array_sum($suiviRepartition);
+        // Campagnes : où en est le démarchage, campagne par campagne. Celles qui
+        // demandent du travail d'abord (en retard, puis en cours), les prochaines
+        // ensuite, les terminées en dernier — et seulement ce qui tient ici.
+        // La barre est celle de ?p=campagnes et de la carte d'une campagne :
+        // même segments, mêmes couleurs, une seule définition (campagne_barre_html()).
+        $statutClasseDash = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
+        $enCoursDash = count(array_filter($campagnesDash, fn ($c) => in_array($c['statut'], ['en_cours', 'en_retard'], true)));
         ?>
         <div class="card dash-card">
             <div class="card-head-row">
-                <h2 class="mt-0">Suivi du booking</h2>
-                <?= $suiviTags ? $dash_medaillon(
-                    (int) ($suiviRepartition['vieux'] ?? 0), 'à contacter', 'attente',
-                    lien_structures_filtre([
-                        'tag_id' => [$suiviTagId],
-                        'contact_periode' => SUIVI_BOOKING_BANDES['vieux'][1],
-                    ]) . '&depuis=booking'
-                ) : '' ?>
-                <?php if ($suiviTags): ?>
-                <form method="post" action="?p=resumes_suivi_tag" class="suivi-tag-form">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <select name="tag_id" data-submit-on-change aria-label="Étiquette suivie">
-                        <?php foreach ($suiviTags as $t): ?>
-                            <option value="<?= (int) $t['id'] ?>" <?= $suiviTagId === (int) $t['id'] ? 'selected' : '' ?>>
-                                <?= e($t['nom']) ?> (<?= (int) $t['nb'] ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
-                <?php endif; ?>
+                <h2 class="mt-0">Campagnes</h2>
+                <?= $campagnesDash ? $dash_medaillon($enCoursDash, 'en cours', 'attente', '?p=campagnes') : '' ?>
             </div>
-            <?php if (!$suiviTags): ?>
-                <p class="muted">Aucune étiquette. Posez-en une sur des structures pour suivre leur démarchage.</p>
-            <?php elseif ($suiviTotal === 0): ?>
-                <p class="muted">Aucune structure ne porte cette étiquette.</p>
+            <?php if (!$campagnesDash): ?>
+                <p class="muted">Aucune campagne. <a href="?p=campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
             <?php else: ?>
-                <div class="suivi-barre">
-                    <?php foreach (SUIVI_BOOKING_BANDES as $cle => [$libelle, $tranches]): ?>
-                        <?php $n = (int) ($suiviRepartition[$cle] ?? 0); if ($n === 0) { continue; } ?>
-                        <a class="suivi-seg suivi-seg-<?= e($cle) ?>"
-                           style="flex-grow: <?= $n ?>"
-                           href="<?= e(lien_structures_filtre(['tag_id' => [$suiviTagId], 'contact_periode' => $tranches])) ?>&amp;depuis=booking"
-                           title="<?= e($libelle) ?> : <?= $n ?> structure<?= $n > 1 ? 's' : '' ?>">
-                            <span><?= $n ?></span>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-                <ul class="suivi-legende">
-                    <?php foreach (SUIVI_BOOKING_BANDES as $cle => [$libelle, $tranches]): ?>
-                        <?php $n = (int) ($suiviRepartition[$cle] ?? 0); ?>
-                        <li>
-                            <a href="<?= e(lien_structures_filtre(['tag_id' => [$suiviTagId], 'contact_periode' => $tranches])) ?>&amp;depuis=booking">
-                                <span class="suivi-puce suivi-seg-<?= e($cle) ?>"></span>
-                                <?= e($libelle) ?>
-                                <strong><?= $n ?></strong>
-                                <span class="muted"><?= $suiviTotal ? round($n * 100 / $suiviTotal) : 0 ?> %</span>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+            <table class="list">
+                <thead>
+                    <tr><th>Campagne</th><th class="nowrap">Avancement</th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ($campagnesDash as $c): $cid = (int) $c['id']; ?>
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
+                        <td>
+                            <span class="dash-campagne">
+                                <?= $c['projets_pastilles'][0] ?? '' ?>
+                                <span class="dash-campagne-nom"><?= e($c['nom']) ?></span>
+                            </span>
+                        </td>
+                        <?php // Une seule colonne pour les deux questions, parce
+                              // qu'une seule des deux se pose à la fois : sur une
+                              // campagne en cours, ce qui compte est où elle en est ;
+                              // sur les autres, c'est leur état — une barre n'apprend
+                              // rien d'une campagne pas commencée, et sur une campagne
+                              // dont la date de fin est passée, « En retard » est
+                              // l'information, pas le décompte. ?>
+                        <td class="camp-avancement">
+                            <?php if ($c['statut'] === 'en_cours'): ?>
+                                <?= campagne_barre_html($c['repartition'], (int) $c['nb_total'], 'camp-barre-liste') ?>
+                                <span class="camp-avancement-txt"><b><?= (int) $c['nb_faits'] ?></b> / <?= (int) $c['nb_total'] ?></span>
+                            <?php else: ?>
+                                <span class="badge <?= $statutClasseDash[$c['statut']] ?? 'muted-badge' ?>"><?= e(CAMPAGNE_STATUTS[$c['statut']] ?? $c['statut']) ?></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
             <?php endif; ?>
         </div>
         <?php endif; ?>

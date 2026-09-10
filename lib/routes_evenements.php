@@ -1325,6 +1325,45 @@ function route_spectacle_delete(): void
     redirect('spectacles');
 }
 
+// Icône d'un spectacle : la vignette carrée recadrée dans le navigateur, ou son
+// retrait. Deux actions dans une seule route — elles écrivent la même colonne et
+// partagent le nettoyage de l'ancien fichier — sur le modèle de
+// route_employe_avatar(), qui fait cela pour la photo d'un employé.
+function route_spectacle_image(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('spectacles');
+    }
+    check_csrf();
+    require_ecriture('evenements');
+    $id = (int) ($_POST['id'] ?? 0);
+    $stmt = db()->prepare('SELECT id, image FROM spectacles WHERE id = ?');
+    $stmt->execute([$id]);
+    $spectacle = $stmt->fetch();
+    if (!$spectacle) {
+        redirect('spectacles');
+    }
+    $ancienne = (string) $spectacle['image'];
+    $err = null;
+
+    if (($_POST['action'] ?? '') === 'supprimer') {
+        db()->prepare("UPDATE spectacles SET image = '' WHERE id = ?")->execute([$id]);
+        avatar_photo_supprimer($ancienne);
+    } else {
+        try {
+            // Le fichier n'est remplacé qu'une fois le nouveau écrit : si
+            // l'image est refusée, l'ancienne icône est toujours là.
+            $chemin = avatar_photo_enregistrer((string) ($_POST['image_data'] ?? ''), 'spectacle');
+            db()->prepare('UPDATE spectacles SET image = ? WHERE id = ?')->execute([$chemin, $id]);
+            avatar_photo_supprimer($ancienne);
+        } catch (RuntimeException $ex) {
+            $err = $ex->getMessage();
+        }
+    }
+    redirect('spectacles', $err === null ? [] : ['err_image' => $err]);
+}
+
 // --- Paramètres — onglet Événements -------------------------------------------
 function route_parametres_evenements(): void
 {

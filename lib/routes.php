@@ -2600,27 +2600,6 @@ function periode_cle(string $groupe, int $mois, int $annee): array
 }
 
 // Tableau de bord : salaires à verser + factures émises.
-// Étiquette suivie par le widget « Suivi du booking » du tableau de bord.
-// Mémorisée par COMPTE (utilisateur_preferences, migration_74) : chacun suit
-// l'étiquette qui le concerne, et la retrouve à la prochaine visite.
-function route_resumes_suivi_tag(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('resumes');
-    }
-    check_csrf();
-    if (module_accessible('booking')) {
-        // Étiquette vérifiée : une valeur inconnue reviendrait à afficher une
-        // barre vide sans qu'on comprenne pourquoi.
-        $id = (int) ($_POST['tag_id'] ?? 0);
-        $stmt = db()->prepare('SELECT 1 FROM structure_tags WHERE id = ?');
-        $stmt->execute([$id]);
-        preference_definir('dashboard_suivi_tag', $stmt->fetchColumn() ? (string) $id : '');
-    }
-    redirect('resumes');
-}
-
 function route_resumes(): void
 {
     require_login();
@@ -2666,27 +2645,13 @@ function route_resumes(): void
     // Widget « Suivi du booking » : étiquettes disponibles, celle que ce compte
     // suivait la dernière fois (à défaut la première de la liste), et la
     // répartition de ses structures par ancienneté de contact.
-    $suiviTags = [];
-    $suiviTagId = 0;
-    $suiviRepartition = [];
-    if (module_accessible('booking')) {
-        $suiviTags = db()->query(
-            'SELECT t.id, t.nom, COUNT(l.structure_id) AS nb
-               FROM structure_tags t LEFT JOIN structure_tag_liens l ON l.tag_id = t.id
-              GROUP BY t.id ORDER BY SANS_ACCENTS(t.nom)'
-        )->fetchAll();
-        $suiviTagId = (int) preference('dashboard_suivi_tag', '');
-        $connus = array_map('intval', array_column($suiviTags, 'id'));
-        if (!in_array($suiviTagId, $connus, true)) {
-            $suiviTagId = (int) ($suiviTags[0]['id'] ?? 0);
-        }
-        $suiviRepartition = suivi_booking_repartition($suiviTagId);
-    }
+    // Campagnes du tableau de bord : celles qui demandent du travail d'abord.
+    $campagnesDash = module_accessible('booking') ? campagnes_dashboard() : [];
     render('resumes', [
         'aPayer' => $aPayer, 'aPayerAFaire' => $aPayerAFaire, 'aPayerRetard' => $aPayerRetard,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaManquant' => $suisaManquant,
-        'suiviTags' => $suiviTags, 'suiviTagId' => $suiviTagId, 'suiviRepartition' => $suiviRepartition,
+        'campagnesDash' => $campagnesDash,
     ], 'Tableau de bord');
 }
 

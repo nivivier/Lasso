@@ -51,6 +51,24 @@ $oui = fn(bool $b) => $b
             <dd><?= $oui($setupProtege) ?></dd>
         </div>
         <div><dt>Version de PHP</dt><dd><code><?= e($phpVersion) ?></code></dd></div>
+        <?php // La version de SQLite décide de ce que le serveur sait faire — deux
+              // écarts entre le poste de travail et l'hébergement ont déjà coûté
+              // une correction en production (voir docs/DECISIONS.md). En dessous
+              // de 3.35, « ALTER TABLE … DROP COLUMN » n'existe pas : les
+              // migrations qui retirent une colonne passent alors sans effet, et
+              // la colonne reste en base, inerte. ?>
+        <div>
+            <dt>Version de SQLite</dt>
+            <dd>
+                <code><?= e($sqliteVersion) ?></code>
+                <?php if (version_compare($sqliteVersion, '3.35', '<')): ?>
+                    <span class="badge warn-badge">ancienne</span>
+                    <span class="muted small">— antérieure à 3.35 : le retrait d'une colonne
+                    (<code>DROP COLUMN</code>) n'y est pas possible ; les migrations concernées
+                    laissent la colonne en place, sans conséquence pour l'application.</span>
+                <?php endif; ?>
+            </dd>
+        </div>
         <div>
             <dt>OPcache <span class="muted small">(cache de bytecode)</span></dt>
             <dd>

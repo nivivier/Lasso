@@ -576,6 +576,7 @@ function route_diagnostic(): void
         'archivePossible' => maj_archive_possible(),
         'opcache'         => maj_opcache_etat(),
         'phpVersion'      => PHP_VERSION,
+        'sqliteVersion'   => (string) db()->query('SELECT sqlite_version()')->fetchColumn(),
         'appEnv'          => APP_ENV,
         'httpsForce'      => (bool) FORCE_HTTPS,
         'setupProtege'    => setup_secret_defini(),

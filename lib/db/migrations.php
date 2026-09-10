@@ -110,6 +110,9 @@ function run_migrations(PDO $pdo): void
         82 => 'migration_82', // utilisateurs.derniere_connexion_le : la dernière connexion réussie, affichée dans ?p=comptes
         83 => 'migration_83', // structures.email/telephone/personne_contact → un contact de la structure (structure_contacts)
         84 => 'migration_84', // …puis retrait de ces trois colonnes, devenues sans lecteur
+        85 => 'migration_85', // campagnes de contact du booking : sélection de structures, projets concernés, et le projet sur un contact / un modèle
+        86 => 'migration_86', // réponse reçue d'une structure démarchée, propre à la campagne
+        87 => 'migration_87', // icône (image recadrée) d'un spectacle
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2605,5 +2608,87 @@ function migration_84(PDO $pdo): void
         if (in_array($c, $cols, true)) {
             try { $pdo->exec("ALTER TABLE structures DROP COLUMN $c"); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
         }
+    }
+}
+
+// Campagnes de contact du booking : une sélection de structures à contacter
+// pour un ou plusieurs projets, sur une période. Distinctes de
+// « mailing_campagnes », qui est l'historique des envois groupés — ici on suit
+// un travail de démarchage, contact par contact.
+//
+// Le projet devient aussi une propriété d'une PRISE DE CONTACT
+// (historique_spectacles) et d'un MODÈLE de message : c'est ce qui permet à la
+// jauge d'une campagne de compter un appel téléphonique noté à la main, et pas
+// seulement un e-mail parti depuis la campagne.
+function migration_85(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS campagnes (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom        TEXT NOT NULL,
+            -- Avant la date de début, la campagne se prépare : aucun message ne
+            -- part. Après la date de fin sans avoir tout contacté, elle est en
+            -- retard. Voir campagne_statut().
+            date_debut TEXT NOT NULL DEFAULT '',
+            date_fin   TEXT NOT NULL DEFAULT '',
+            -- Le ciblage d'origine, gardé pour mémoire : la sélection réelle
+            -- vit dans campagne_structures, qu'on peut élaguer à la main.
+            criteres   TEXT NOT NULL DEFAULT '',
+            cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS campagne_spectacles (
+            campagne_id  INTEGER NOT NULL REFERENCES campagnes(id) ON DELETE CASCADE,
+            spectacle_id INTEGER NOT NULL REFERENCES spectacles(id) ON DELETE CASCADE,
+            PRIMARY KEY (campagne_id, spectacle_id)
+        );
+        CREATE TABLE IF NOT EXISTS campagne_structures (
+            campagne_id  INTEGER NOT NULL REFERENCES campagnes(id) ON DELETE CASCADE,
+            structure_id INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            PRIMARY KEY (campagne_id, structure_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_campagne_structures_structure ON campagne_structures(structure_id);
+        -- Projets concernés par une entrée d'historique (une prise de contact).
+        CREATE TABLE IF NOT EXISTS historique_spectacles (
+            historique_id INTEGER NOT NULL REFERENCES historique(id) ON DELETE CASCADE,
+            spectacle_id  INTEGER NOT NULL REFERENCES spectacles(id) ON DELETE CASCADE,
+            PRIMARY KEY (historique_id, spectacle_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_historique_spectacles_spectacle ON historique_spectacles(spectacle_id);
+        -- Projets par défaut d'un modèle de message : charger le modèle coche
+        -- ces projets dans la fenêtre « Contacter ».
+        CREATE TABLE IF NOT EXISTS mailing_modele_spectacles (
+            modele_id    INTEGER NOT NULL REFERENCES mailing_modeles(id) ON DELETE CASCADE,
+            spectacle_id INTEGER NOT NULL REFERENCES spectacles(id) ON DELETE CASCADE,
+            PRIMARY KEY (modele_id, spectacle_id)
+        );
+    ");
+}
+
+// Réponse reçue d'une structure pour UNE campagne : aucune (défaut), pas
+// intéressé, intéressé. Portée par le lien campagne↔structure et non par la
+// structure : la même salle peut décliner une tournée et prendre la suivante,
+// et c'est le démarchage en cours que la campagne suit.
+function migration_86(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(campagne_structures)') as $col) {
+        $cols[] = $col['name'];
+    }
+    if (!in_array('reponse', $cols, true)) {
+        $pdo->exec("ALTER TABLE campagne_structures ADD COLUMN reponse TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+// Icône d'un spectacle : le chemin web d'une vignette carrée recadrée dans le
+// navigateur, comme la photo d'un employé (avatar_photo_enregistrer()). Vide =
+// pas d'icône, la pastille retombe alors sur les initiales du nom.
+function migration_87(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(spectacles)') as $col) {
+        $cols[] = $col['name'];
+    }
+    if (!in_array('image', $cols, true)) {
+        $pdo->exec("ALTER TABLE spectacles ADD COLUMN image TEXT NOT NULL DEFAULT ''");
     }
 }

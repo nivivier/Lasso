@@ -94,7 +94,7 @@ $peutEcrireRegles = peut_ecrire('compta');
             <form method="post" action="?p=compta_ecritures">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="section" value="apply_rules">
-                <button type="submit" class="btn ghost"><?= icon('tag') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
+                <button type="submit" class="btn ghost"><?= icon('refresh-cw') ?> <span>Appliquer<span class="lbl"> les règles</span></span></button>
             </form>
             <button type="button" id="btn-new-rule" class="btn"><?= icon('plus') ?><span class="lbl"> Nouvelle règle</span></button>
         </div>

@@ -985,6 +985,14 @@ body.auth-bg, body.has-sidebar {
    — sans passer la barre en positionnée elle-même, un élément fixed passe
    toujours au-dessus d'un élément statique, quel que soit l'ordre du DOM. */
 .toolbar { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px 20px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 2px; }
+/* Un menu de filtre ouvert doit passer AU-DESSUS de la ligne d'en-tête du
+   tableau, collante et posée à z-index:3 (voir plus bas, @media 1280px). La
+   barre d'outils étant elle-même un contexte d'empilement (position:relative +
+   z-index:2), le z-index:20 de .col-filter-menu ne vaut qu'À L'INTÉRIEUR
+   d'elle : le menu passait donc sous l'en-tête, quel que soit son propre
+   z-index. On relève la barre entière, et seulement tant qu'un menu y est
+   ouvert — au repos elle reprend sa place sous l'en-tête collant. */
+.toolbar:has(details[open]) { z-index: 5; }
 .toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
 /* form.filters (pas .carte-filters, qui est un <div>) : le <form> qui
    enveloppe .search-label doit lui-même grandir dans .toolbar pour que le
@@ -1106,6 +1114,30 @@ body.auth-bg, body.has-sidebar {
    plutôt qu'un padding-left/right, qui n'accepterait pas deux valeurs. */
 .module-content-inner .card .table-scroll .list tr > :first-child,
 .module-content-inner .card .table-scroll .list tr > :last-child { padding: var(--row-pad); }
+/* … sauf s'il est déclaré .table-flush : un tableau qui REMPLIT sa carte, bord
+   à bord (les campagnes d'une structure, ?p=structure). La marge négative
+   annule le padding de .card (26px), et ce même retrait est reposé sur la
+   première et la dernière cellule pour que le contenu reste aligné sur le titre
+   du cadre — exactement le procédé des listes pleine largeur plus haut, à
+   l'échelle d'une carte. Quatre classes pour passer devant la règle ci-dessus,
+   qui en compte trois. */
+/* … y compris en bas : le tableau finit AVEC la carte, sans bande vide sous sa
+   dernière ligne. Les coins du BAS gardent l'arrondi de la carte — c'est le
+   conteneur qui découpe (il défile déjà en overflow, lequel respecte le rayon),
+   pas les cellules : posé sur elles, l'arrondi laissait le fond du tableau
+   dépasser dans l'angle. En haut, rien à arrondir : le tableau y est coupé net
+   sous le titre du cadre. */
+.module-content-inner .card .table-scroll.table-flush { margin: 0 -26px -26px; border-radius: 0 0 var(--radius) var(--radius); }
+/* La dernière ligne ne porte plus sa propre bordure : celle de la carte est
+   juste dessous, et les deux se doublaient sur un trait de 2px. */
+.module-content-inner .card .table-scroll.table-flush .list tr:last-child > * { border-bottom: 0; }
+/* Le tableau lui-même porte aussi l'arrondi du bas : à partir de 1280px le
+   conteneur repasse en overflow:visible (pour l'en-tête collant des listes) et
+   ne découpe donc plus rien — c'est alors le fond du <table>, carré, qui
+   déborderait dans l'angle de la carte. .list a son propre overflow:hidden. */
+.module-content-inner .card .table-scroll.table-flush .list { border-left: 0; border-right: 0; border-radius: 0 0 var(--radius) var(--radius); box-shadow: none; }
+.module-content-inner .card .table-scroll.table-flush .list tr > :first-child { padding: var(--row-pad); padding-left: 26px; }
+.module-content-inner .card .table-scroll.table-flush .list tr > :last-child { padding: var(--row-pad); padding-right: 26px; }
 /* Bandeau d'onglets de module, niveau intermédiaire entre le rail (module)
    et la page (onglet) — voir
    views/_module_tabs.php. Réutilisé tel quel par les onglets principaux de
@@ -1577,36 +1609,12 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .dash-card td.facture-retard { color: var(--amber); }
 .dash-card td.facture-retard-long { color: var(--danger); }
 
-/* Widget « Suivi du booking » (tableau de bord) : une barre par tranche
-   d'ancienneté du dernier contact, proportionnelle au nombre de structures.
-   Segments en flex-grow plutôt qu'en pourcentages calculés en PHP : la barre
-   reste juste quelle que soit la largeur, et un segment minuscule garde une
-   largeur minimale lisible (min-width) au lieu de disparaître. */
-.suivi-tag-form { margin: 0; }
-.suivi-tag-form select { width: auto; max-width: 220px; font-size: var(--fs-small); }
-.suivi-barre { display: flex; height: 26px; border-radius: var(--radius-sm); overflow: hidden; gap: 2px; }
-.suivi-seg {
-    display: flex; align-items: center; justify-content: center; min-width: 26px;
-    color: #fff; font-size: var(--fs-small); font-weight: 700; text-decoration: none;
-    transition: filter .12s;
-}
-.suivi-seg:hover { filter: brightness(1.08); text-decoration: none; }
-.suivi-seg span { pointer-events: none; }
-/* Vert clair → vert → gris → ambre. L'ambre est réservé à la dernière bande,
-   la seule qui appelle une action : plus de trois ans sans contact, ou jamais
-   contacté. « Moins de 3 ans » passe en gris — c'est ancien, mais ça n'alerte
-   pas. Même teinte que le médaillon « à contacter » de la carte, qui compte
-   précisément cette bande. Jetons partagés avec les statuts ailleurs. */
-.suivi-seg-mois  { background: color-mix(in srgb, var(--ok) 55%, white); color: var(--ink); }
-.suivi-seg-an    { background: var(--ok); }
-.suivi-seg-trois { background: var(--muted); }
-.suivi-seg-vieux { background: var(--amber); }
-.suivi-legende { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.suivi-legende a { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink); }
-.suivi-legende a:hover { text-decoration: none; color: var(--highlight-d); }
-.suivi-legende strong { margin-left: auto; font-variant-numeric: tabular-nums; }
-.suivi-legende .muted { min-width: 3.5em; text-align: right; font-variant-numeric: tabular-nums; }
-.suivi-puce { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+/* Carte « Campagnes » du tableau de bord : une ligne par campagne, l'icône de
+   son projet en tête pour la reconnaître sans lire. La barre d'avancement est
+   celle des listes (.camp-barre-liste). */
+.dash-campagne { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.dash-campagne .avatar-ini { width: 22px; height: 22px; font-size: 9px; margin: 0; flex: 0 0 auto; }
+.dash-campagne-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
    émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
    padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même
@@ -2311,7 +2319,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    les 2959 lignes, il pesait autant que de vraies valeurs. Le pointillé
    emprunte la même convention que les statuts « inactif » et « ne pas
    contacter » de la liste, où il dit déjà « pas tout à fait là ». */
-.badge.tag-ajouter-btn {
+.badge:is(.tag-ajouter-btn, .campagne-ajouter-btn) {
     cursor: pointer; margin-left: 6px;
     background: none; color: var(--muted);
     /* Gras : sans fond, un « + » maigre au bout d'une file d'étiquettes pleines
@@ -2323,7 +2331,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
        garde exactement la hauteur des étiquettes à côté de lui. */
     padding: 1px 8px;
 }
-.badge.tag-ajouter-btn:hover {
+.badge:is(.tag-ajouter-btn, .campagne-ajouter-btn):hover {
     background: none; color: var(--highlight-d); border-color: var(--highlight);
 }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }
@@ -2407,12 +2415,16 @@ td.col-maj-le.a-date.est-creation::before {
    optique des chiffres — mesuré en repérant la ligne de base par une boîte de
    hauteur nulle. À -2px l'écart tombe à 0,17px. */
 
-td.col-tags .badge { font-size: var(--fs-small); }
+:is(td.col-tags, td.col-campagnes) .badge { font-size: var(--fs-small); }
 /* La croix de retrait vit DANS l'étiquette : sans inline-flex, elle se collait
    au dernier mot, et à sa taille par défaut (13px, .btn-tag-x) elle était plus
    grosse que le mot qu'elle retire. Discrète au repos, franche au survol —
    c'est un geste destructeur au milieu d'une liste qu'on parcourt. */
-td.col-tags .badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+:is(td.col-tags, td.col-campagnes) .badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+/* Le nom d'une campagne mène à sa page : le lien prend la couleur de sa
+   pastille, sinon il trancherait en bleu au milieu d'une file de badges. */
+:is(td.col-tags, td.col-campagnes) .badge a { color: inherit; }
+:is(td.col-tags, td.col-campagnes) .badge a:hover { text-decoration: underline; }
 /* Étiquette en cours d'enregistrement : elle prend tout de suite la place
    qu'elle occupera, en sourdine, pendant que la page se recharge. Sans elle, le
    clic sur une suggestion ne produisait rien de visible jusqu'au rechargement.
@@ -2426,8 +2438,8 @@ td.col-tags .badge { display: inline-flex; align-items: center; gap: 5px; vertic
         50% { opacity: .75; }
     }
 }
-td.col-tags .btn-tag-x { font-size: 11px; line-height: 1; opacity: .5; transition: opacity .12s; }
-td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1; }
+:is(td.col-tags, td.col-campagnes) .btn-tag-x { font-size: 11px; line-height: 1; opacity: .5; transition: opacity .12s; }
+:is(td.col-tags, td.col-campagnes) .btn-tag-x:hover, :is(td.col-tags, td.col-campagnes) .btn-tag-x:focus-visible { opacity: 1; }
 
 /* Étiquettes de structure (booking) : badge + petit bouton de retrait intégré. */
 .tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 0; }
@@ -2486,6 +2498,11 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
    .list porte de son côté overflow:hidden pour clipper ses coins arrondis :
    dans ce contexte il n'en a pas, et cet overflow clippait l'en-tête collant. */
 @media (min-width: 1280px) {
+    /* … sauf un tableau qui remplit sa carte : il doit DÉCOUPER, pour que ses
+       coins du bas suivent ceux de la carte. Il n'a pas d'en-tête collant à
+       laisser dépasser — c'est une carte, pas une liste qu'on fait défiler. */
+    .module-content-inner .card .table-scroll.table-flush .list { overflow: hidden; }
+    .module-content-inner .card .table-scroll.table-flush .list thead th { position: static; }
     .module-content-inner .table-scroll { overflow-x: visible; }
     .module-content-inner .table-scroll .list { overflow: visible; }
     .module-content-inner .table-scroll .list thead th {
@@ -2528,6 +2545,95 @@ td.col-tags .btn-tag-x:hover, td.col-tags .btn-tag-x:focus-visible { opacity: 1;
 .avatar-ini.avatar-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Liste des employés : la pastille et le nom sur une même ligne. */
 .emp-nom-ligne { display: inline-flex; align-items: center; }
+
+/* La pastille d'un spectacle (?p=spectacles) est un BOUTON : elle ouvre le
+   cadreur d'icône. Elle ne doit pas en avoir l'air — ni fond, ni bordure, ni
+   ombre —, seulement se signaler au survol et au clavier. */
+.plan-icone { background: none; border: 0; padding: 0; box-shadow: none; line-height: 0; border-radius: 50%; }
+.plan-icone .avatar-ini { margin-right: 0; }
+.plan-icone:hover, .plan-icone:focus-visible {
+    background: none; outline: 2px solid var(--primary); outline-offset: 2px;
+}
+/* Carte de tête d'une campagne (?p=campagne) : l'icône du premier projet en
+   grand, puis ce qu'il reste à faire, puis le compte en gros. Elle répond à
+   deux questions d'un coup d'œil — où en est le démarchage, et qu'ont répondu
+   ceux qu'on a déjà contactés. */
+.camp-carte { display: flex; align-items: center; gap: 22px; }
+/* Les icônes des projets en pile : elles se chevauchent, chacune cernée du fond
+   de la carte pour qu'on distingue où l'une finit et où l'autre commence. Le
+   liseré est une ombre portée et non une bordure — il ne doit pas entrer dans
+   la largeur, sinon les pastilles ne seraient plus rondes du même diamètre. */
+.camp-icone { display: flex; align-items: center; flex: 0 0 auto; }
+/* position:relative : sans elle le z-index ne s'applique pas, et l'ordre de
+   superposition retomberait sur l'ordre du marquage — la DERNIÈRE icône
+   passerait devant, alors que c'est la première qui doit mener. */
+.camp-icone-item { display: inline-flex; border-radius: 50%; position: relative; }
+.camp-icone-item:has(.camp-icone-plus) { z-index: 0; }
+.camp-icone-item + .camp-icone-item { margin-left: -24px; }
+.camp-icone .avatar-ini { width: 64px; height: 64px; font-size: 22px; margin: 0;
+    box-shadow: 0 0 0 3px var(--card); }
+/* Le compte des projets qu'on n'affiche pas : une pastille comme les autres,
+   mais qui ne prétend représenter personne — d'où le gris. */
+.camp-icone .camp-icone-plus { background: var(--surface); color: var(--muted); font-size: var(--fs-basic); }
+.camp-corps { flex: 1 1 auto; min-width: 0; }
+.camp-projets { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin-bottom: 14px; }
+/* Une seule barre, quatre segments. Le reste à contacter n'est pas un segment :
+   c'est le fond de la piste, ce qui n'a pas encore été rempli. */
+.camp-barre { display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+.camp-seg { display: block; height: 100%; }
+/* Mêmes couleurs que les réponses elles-mêmes (CAMPAGNE_REPONSES_CLASSES_ICONE) :
+   vert pour oui, rouge pour non — et l'accent pour « contacté, en attente ». */
+.camp-oui { background: var(--ok); }
+.camp-non { background: var(--danger); }
+.camp-attente { background: var(--highlight); }
+.camp-legende { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 22px;
+    margin: 12px 0 0; padding: 0; font-size: var(--fs-small); align-items: center; }
+.camp-legende li { display: inline-flex; align-items: center; }
+.camp-legende b { font-variant-numeric: tabular-nums; margin-right: 5px; }
+.camp-legende-fin { margin-left: auto; gap: 6px; }
+.camp-pip { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; flex: 0 0 auto; }
+.camp-pip.camp-reste { background: var(--line); border: 1px solid var(--muted); }
+.camp-chiffre { flex: 0 0 auto; display: flex; flex-direction: column; text-align: right; }
+.camp-chiffre b { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.camp-chiffre span { font-size: var(--fs-small); }
+/* La même barre dans une ligne de liste : largeur fixe, pour que les campagnes
+   se comparent d'une ligne à l'autre — une barre qui s'étire au gré de la
+   colonne ne comparerait plus rien. */
+.camp-avancement { white-space: nowrap; }
+.camp-barre-liste { display: inline-flex; width: 120px; height: 12px; border-radius: 6px; vertical-align: middle; }
+/* Dans la liste des campagnes, l'icône du projet mène la ligne : elle y est
+   plus grande qu'une pastille posée au fil du texte (la carte, où elle
+   accompagne un nom déjà lisible sous une icône de 64 px). */
+.campagnes-table .projet-pastille .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); }
+.camp-avancement-txt { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 9px; }
+.camp-avancement-txt b { color: var(--ink); }
+.camp-note { margin: -14px 0 22px; }
+/* Sur écran étroit, la carte s'empile : l'icône et le compte passent sur une
+   ligne à part plutôt que d'écraser la barre entre eux. */
+@media (max-width: 700px) {
+    .camp-carte { flex-wrap: wrap; gap: 14px; }
+    .camp-corps { flex-basis: 100%; order: 3; }
+    .camp-chiffre { margin-left: auto; text-align: right; }
+    .camp-legende-fin { margin-left: 0; flex-basis: 100%; }
+}
+
+/* Suivi d'une campagne : ses deux colonnes propres sont centrées, en-tête
+   compris. Leur contenu est fait de boutons et d'icônes de largeur fixe — aligné
+   à gauche, il flottait loin d'un en-tête que la largeur de la colonne écarte.
+   Deux classes plus l'élément : de quoi passer devant « .list th, .list td »,
+   qui aligne tout à gauche. Le centrage ne vaut qu'en vue tableau — en cartes
+   (≤700px) ces cellules passent en flex et se rangent sous le nom. */
+.campagne-structures th.col-actions, .campagne-structures td.col-actions,
+.campagne-structures th.col-reponse, .campagne-structures td.col-reponse { text-align: center; }
+/* Le libellé de l'en-tête et son entonnoir se centrent ensemble. */
+.campagne-structures th.col-reponse .col-th { justify-content: center; }
+
+/* Pastille de projet posée devant un nom (colonne « Projet » des campagnes) :
+   plus petite que celle d'une liste de personnes, où elle sert de repère de
+   ligne — ici elle accompagne un nom déjà lisible. */
+.projet-pastille { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
+.projet-pastille:last-child { margin-right: 0; }
+.projet-pastille .avatar-ini { width: 20px; height: 20px; margin-right: 0; font-size: 9px; }
 
 /* Pastille au format du titre (?p=employe_voir), avec son bouton de réglage. */
 .titre-avatar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -3923,16 +4029,16 @@ abbr {
     }
 
     /* --- Dernière rangée : les étiquettes, sur toute la largeur --- */
-    .liste-cartes td.col-tags {
+    .liste-cartes :is(td.col-tags, td.col-campagnes) {
         grid-column: 1 / -1; grid-row: 3;
         margin-top: 6px;
         display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
     }
-    .liste-cartes td.col-tags .badge { margin-left: 0; font-size: var(--fs-tiny); }
+    .liste-cartes :is(td.col-tags, td.col-campagnes) .badge { margin-left: 0; font-size: var(--fs-tiny); }
     /* Pas de croix de retrait au doigt : à 11px dans une étiquette de 9px, la
        cible est trop petite pour être visée sans erreur — et se tromper retire
        une étiquette. Le retrait se fait depuis la fiche, où il y a la place. */
-    .liste-cartes td.col-tags .btn-tag-x { display: none; }
+    .liste-cartes :is(td.col-tags, td.col-campagnes) .btn-tag-x { display: none; }
 
     /* Sans place sur un téléphone : elles restent dans la vue bureau. La
        première n'est plus une colonne mais une ligne sous le nom (.nom-liees,
@@ -3941,6 +4047,19 @@ abbr {
     .liste-cartes .nom-liees,
     .liste-cartes td.col-factures,
     .liste-cartes td.col-nb-evenements { display: none; }
+    /* Les deux colonnes du suivi d'une campagne (?p=campagne) : la grille de la
+       carte ne connaît que les colonnes de ?p=structures, et sans place assignée
+       elles se rangeaient d'elles-mêmes dans la première case libre — par-dessus
+       le nom. Elles prennent donc leur propre rangée, sous le nom et jusqu'au
+       bord droit. Une ligne à la fois en pratique : une structure contactée n'a
+       plus d'actions, une structure à contacter n'a pas encore de réponse. */
+    .liste-cartes td.col-actions,
+    .liste-cartes td.col-reponse {
+        grid-column: 2 / -1;
+        display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    }
+    .liste-cartes td.col-actions:empty,
+    .liste-cartes td.col-reponse:empty { display: none; margin: 0; }
 
     /* ============================================================
        ?p=fiches (salaires) en mini-cartes
@@ -4288,3 +4407,30 @@ abbr {
 .bareme-palier { display: inline-flex; align-items: center; gap: 4px; }
 .bareme-palier input[type="number"] { width: 4rem; }
 .bareme-bloc .pct-input { max-width: 6.5rem; }
+
+/* Jauge d'avancement d'une campagne de contact : la barre dit d'un coup d'œil
+   ce qui reste, le compte donne le chiffre exact. Verte une fois complète. */
+
+/* Menu à cocher vivant dans un formulaire (choix_coches_html()) : même
+   apparence que les filtres de colonne, sans le bouton « Appliquer » — la
+   sélection part avec le formulaire qui l'entoure. */
+.choix-coches .col-filter-menu { padding-bottom: 8px; }
+/* Le bouton nomme ce qui est coché : un nom de spectacle, ou deux, peuvent être
+   longs — ils sont coupés plutôt que de déborder du champ qui les contient. */
+.choix-coches > .col-filter-btn-nomme { max-width: 100%; }
+.choix-coches .col-filter-lib { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* … et la chaîne des min-width:0 jusqu'à la colonne de grille. Sans elle, le
+   libellé en white-space:nowrap impose sa largeur intrinsèque comme minimum :
+   le champ débordait sur son voisin de droite au lieu d'être coupé. */
+.choix-coches { min-width: 0; }
+.form label:has(.choix-coches) { min-width: 0; }
+
+/* Page d'une campagne : l'en-tête en paires libellé/valeur sur une rangée, et
+   les structures déjà contactées en retrait — la ligne se lit alors comme
+   « faite », sans avoir à chercher une colonne d'état. */
+.kv-inline { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 0; }
+.kv-inline > div { display: flex; flex-direction: column; gap: 2px; }
+.kv-inline dt { font-size: var(--fs-tiny); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.kv-inline dd { margin: 0; }
+.campagne-coche { color: var(--ok); display: inline-flex; vertical-align: -2px; margin-right: 4px; }
+.campagne-coche .ico { width: 14px; height: 14px; }

@@ -7,7 +7,107 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.7.0] — 2026-09-10
+
+### Modifié
+- **Le tableau de bord montre les campagnes** à la place de la carte « Suivi du
+  booking », qui donnait la répartition d'UNE étiquette par ancienneté de
+  contact. Neuf campagnes au plus, les plus urgentes d'abord : en retard, puis
+  en cours, puis à venir, les terminées en dernier — et seulement ce qui tient
+  dans la carte. Chacune avec l'icône de son projet, sa barre d'avancement en
+  quatre segments — ou son état, quand une barre n'aurait rien à dire : sur une
+  campagne pas encore commencée, en retard ou terminée, c'est l'état qui est
+  l'information, et les deux colonnes n'en font donc qu'une. Le choix d'étiquette suivie et sa mémorisation
+  par compte disparaissent avec l'ancienne carte.
+
+### Ajouté
+- **Une icône par spectacle** (Événements → Spectacles). On choisit une image,
+  on la cadre sur place — le même cadreur que la photo d'un employé —, et elle
+  remplace la pastille d'initiales partout où le spectacle apparaît, à commencer
+  par la colonne « Projet » des campagnes : dans une liste, une image se
+  reconnaît plus vite qu'un nom. Sans icône, la pastille garde les initiales et
+  sa couleur dérivée du nom. Le recadrage se fait dans le navigateur ; le
+  serveur revalide la vignette comme un vrai fichier avant de l'écrire.
+- **Les campagnes de démarchage (Booking → Campagnes).** Une campagne est une
+  sélection de structures à contacter pour un ou plusieurs projets, entre deux
+  dates. On la compose avec les mêmes filtres que la liste des structures, puis
+  on décoche à la main ce qu'on n'y veut pas — le ciblage propose, il ne décide
+  pas. La liste des campagnes montre pour chacune son projet et sa jauge
+  « contactées / à contacter » — la même barre en quatre segments que la carte,
+  au survol de laquelle le détail s'affiche ; en ouvrant l'une d'elles, une carte de tête
+  porte l'icône de son projet en grand, le compte des structures contactées en
+  gros, et une barre en quatre segments — intéressé, pas intéressé, contactées
+  sans réponse, reste à contacter — qui dit d'un coup d'œil non seulement où en
+  est le démarchage, mais ce qu'on a obtenu. Noter une réponse dans la liste met
+  la barre et ses nombres à jour sur-le-champ : ils décrivent cette liste, ils ne
+  peuvent pas la contredire jusqu'au prochain rechargement. On démarche ensuite ligne à ligne, la fenêtre
+  « Contacter » s'ouvrant sur la campagne elle-même, projets déjà cochés, sans
+  passer par la fiche de chaque structure. Une prise de contact compte pour la
+  campagne dès lors qu'elle porte l'un de ses projets, qu'elle soit partie par
+  e-mail ou notée à la main après un appel. Avant la date de début rien ne part
+  (« À venir ») ; passée la date de fin sans avoir tout contacté, la campagne
+  est signalée « En retard ».
+- **Chercher et filtrer dans les campagnes** : un champ de recherche sur le nom
+  et le projet, et trois filtres de colonne — Projet, Période (par année, une
+  campagne à cheval sur deux ans figurant dans les deux) et État. Mêmes
+  composants et mêmes conventions que la liste des structures : les filtres sont
+  mémorisés d'une visite à l'autre, la recherche ne l'est jamais.
+- **La liste des structures d'une campagne se cherche et se filtre** — la
+  recherche (nom, ville, catégorie, étiquette) filtre les lignes affichées sans
+  quitter la page, et les entonnoirs sont ceux de la liste des structures :
+  statut, pays, département/canton, catégorie, étiquettes, événements liés,
+  dernier contact, modification — plus un filtre propre à la campagne, la
+  **réponse reçue**. Ces filtres ont leur mémoire à eux : filtrer une campagne
+  ne change pas ce que la liste des structures affichera ensuite, et aucun
+  statut n'y est masqué par défaut (une structure retenue reste visible même
+  devenue « ne pas contacter »). La jauge et l'état continuent de décrire la
+  campagne entière, jamais l'écran filtré.
+- **Le tableau des structures est désormais le même partout** : la sélection
+  d'une campagne et son suivi montrent les colonnes de la liste des structures
+  (statut, structures liées, ville et drapeau, catégorie, étiquettes, dernier
+  contact, factures, événements, modification), parce que c'est littéralement le
+  même code — `views/_structures_table.php`. On choisit et on démarche dans la
+  liste qu'on a l'habitude de lire.
+- **Une colonne « Campagnes » dans la liste des structures**, à droite des tags :
+  elle montre les campagnes où figure chaque structure, se filtre comme les
+  autres colonnes — avec, comme le filtre des tags, une valeur « Aucune » pour
+  retrouver ce qui n'a encore été rangé nulle part —, et permet d'ajouter la structure à une campagne ou de l'en
+  retirer sans quitter la liste — même geste et même mécanique que les tags. Le retrait est confirmé, lui : il efface la réponse notée pour
+  cette campagne, puisque c'est la ligne campagne↔structure qui la porte.
+- **L'onglet « Étiquettes » des paramètres s'appelle « Tags »**, comme la colonne
+  et le filtre de la liste des structures — une seule chose, un seul mot.
+- **La fiche d'une structure se lit d'une pièce.** Les dates de synthèse — connu
+  via, dernier contact, dernière modification, création ou import — quittent leur
+  carte « Historique » pour rejoindre « Informations générales » : c'est la même
+  fiche, elle se lit d'un bloc et se modifie d'un seul crayon. Le flux des notes
+  reste dans « Historique détaillé », en pleine largeur. La carte « Campagnes »
+  passe à droite, sous l'emplacement.
+- **Les campagnes d'une structure, sur sa fiche** : un cadre « Campagnes » liste
+  celles où elle a été retenue, avec le projet, la période et la réponse reçue.
+  On l'y ajoute à une campagne existante, et chaque ligne se lit avant de se
+  modifier — la réponse tient en une icône, un crayon en fin de ligne ouvre ce
+  qui change : le choix de la réponse, le retrait de la campagne, et de quoi
+  refermer.
+- **Marquer une structure comme contactée à la main, depuis la campagne.** Tout
+  démarchage ne part pas de l'application : un appel, une rencontre, un message
+  envoyé depuis sa propre boîte se consignent en deux champs — la date et ce qui
+  s'est passé — et comptent pour la campagne comme un e-mail envoyé d'ici,
+  puisque l'entrée écrite dans l'historique de la structure porte les projets de
+  la campagne.
+- **La réponse reçue, notée sur chaque ligne d'une campagne** : aucune, pas
+  intéressé, intéressé. Trois icônes, un clic, rien à enregistrer. La réponse
+  appartient à la campagne et non à la structure — la même salle peut décliner
+  une tournée et prendre la suivante.
+- **Le projet concerné par une prise de contact.** La fenêtre « Contacter », les
+  notes d'historique d'une structure et les modèles de message portent
+  désormais un menu « Projet » à cocher. C'est lui qui rattache un contact à une
+  campagne ; un modèle peut pré-cocher ses projets.
+- **La version de SQLite dans Paramètres → Serveur.** C'est elle qui décide de
+  ce que le serveur sait faire, et deux écarts entre le poste de développement
+  et l'hébergement ont déjà coûté une correction en production. En dessous de
+  3.35, l'écran le signale et explique la conséquence : le retrait d'une
+  colonne (`DROP COLUMN`) n'y est pas possible, les migrations concernées
+  laissent la colonne en place, sans conséquence pour l'application.
 
 ## [2.6.4] — 2026-09-08
 

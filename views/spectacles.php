@@ -42,6 +42,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         </div>
     </div>
     <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
+    <?php if (($_GET['err_image'] ?? '') !== ''): ?><p class="err flash"><?= e((string) $_GET['err_image']) ?></p><?php endif; ?>
 
 <?php $peutEcrireSpec = peut_ecrire('evenements'); ?>
 <?php if ($peutEcrireSpec): ?>
@@ -92,6 +93,17 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                         <span class="plan-puce" aria-hidden="true"><?= $s['a_enfants'] ? icon('chevron-down') : '•' ?></span>
+                        <?php // Icône du spectacle : la même pastille que les employés
+                              // (avatar_initiales()), image si elle en a une, initiales
+                              // sinon. Cliquable pour la changer — le cadreur s'ouvre
+                              // ici, sans quitter la liste. ?>
+                        <?php if ($peutEcrireSpec): ?>
+                        <button type="button" class="plan-icone" data-image="<?= $sid ?>"
+                                data-image-nom="<?= e($s['nom']) ?>" data-image-a="<?= trim((string) ($s['image'] ?? '')) !== '' ? '1' : '' ?>"
+                                title="Changer l'icône" aria-label="Changer l'icône de <?= e($s['nom']) ?>"><?= spectacle_pastille_html($sid, $map) ?></button>
+                        <?php else: ?>
+                        <?= spectacle_pastille_html($sid, $map) ?>
+                        <?php endif; ?>
                         <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?>"><?= e($s['nom']) ?></a>
                         <?php if ($peutEcrireSpec): ?>
                         <form method="post" action="?p=spectacles" class="inline-edit plan-edit">
@@ -184,3 +196,109 @@ $parentOptions = function (int $excludeId) use ($map): string {
     }
 })();
 </script>
+
+<?php if ($peutEcrireSpec): ?>
+<?php // Cadreur d'icône : UNE fenêtre pour toute la liste, remplie à
+      // l'ouverture — en poser une par ligne aurait recopié le même formulaire
+      // autant de fois qu'il y a de spectacles. Même geste et même traitement
+      // que la photo d'un employé (?p=employe_voir) : le recadrage se fait dans
+      // le navigateur, le serveur revalide la vignette comme un vrai fichier. ?>
+<div id="spectacle-image-modal" class="modal-overlay" hidden>
+    <div class="modal-card">
+        <form method="post" action="?p=spectacle_image" class="form" id="spectacle-image-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" id="spectacle-image-id" value="">
+            <input type="hidden" name="image_data" id="spectacle-image-data">
+            <div class="cadre-edit-head">
+                <span class="cadre-edit-titre" id="spectacle-image-titre">Icône</span>
+            </div>
+            <p class="muted small">Choisissez une image et cadrez-la. Sans icône, la pastille montre les initiales du nom.</p>
+            <div class="avatar-photo-zone">
+                <label class="btn ghost btn-sm avatar-fichier">
+                    <?= icon('image') ?> Choisir une image
+                    <input type="file" accept="image/png,image/jpeg,image/webp" id="spectacle-image-fichier" hidden>
+                </label>
+            </div>
+            <div class="avatar-crop-zone" id="spectacle-image-zone" hidden><img id="spectacle-image-img" alt=""></div>
+            <div class="modal-actions">
+                <button type="button" class="btn ghost" id="spectacle-image-annuler"><?= icon('x') ?> Annuler</button>
+                <button type="submit" name="action" value="supprimer" class="btn danger btn-sm" id="spectacle-image-retirer"
+                        formnovalidate hidden data-confirm="Retirer l'icône ? La pastille reviendra aux initiales."><?= icon('trash') ?> Retirer l'icône</button>
+                <button type="submit" id="spectacle-image-ok" disabled><?= icon('save') ?> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php // Cropper.js, bundlé dans le dépôt (pas de CDN) — voir CLAUDE.md, § Stack. ?>
+<link rel="stylesheet" href="assets/vendor/cropperjs/cropper.min.css">
+<script src="assets/vendor/cropperjs/cropper.min.js"></script>
+<script nonce="<?= e(csp_nonce()) ?>">
+(function () {
+    var modal   = document.getElementById('spectacle-image-modal');
+    var form    = document.getElementById('spectacle-image-form');
+    var fichier = document.getElementById('spectacle-image-fichier');
+    var zone    = document.getElementById('spectacle-image-zone');
+    var img     = document.getElementById('spectacle-image-img');
+    var champ   = document.getElementById('spectacle-image-data');
+    var titre   = document.getElementById('spectacle-image-titre');
+    var champId = document.getElementById('spectacle-image-id');
+    var retirer = document.getElementById('spectacle-image-retirer');
+    var valider = document.getElementById('spectacle-image-ok');
+    if (!modal || typeof Cropper === 'undefined') { return; }
+    var cropper = null;
+
+    function reinit() {
+        if (cropper) { cropper.destroy(); cropper = null; }
+        zone.hidden = true;
+        img.removeAttribute('src');
+        fichier.value = '';
+        champ.value = '';
+        // Rien à enregistrer tant qu'aucune image n'est cadrée : le bouton le dit.
+        valider.disabled = true;
+    }
+    function fermer() { reinit(); modal.setAttribute('hidden', ''); }
+
+    document.querySelectorAll('[data-image]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            reinit();
+            champId.value = b.getAttribute('data-image');
+            titre.textContent = 'Icône — ' + b.getAttribute('data-image-nom');
+            // « Retirer » n'a de sens que s'il y a une icône à retirer.
+            retirer.hidden = b.getAttribute('data-image-a') !== '1';
+            modal.removeAttribute('hidden');
+        });
+    });
+
+    fichier.addEventListener('change', function () {
+        var f = fichier.files && fichier.files[0];
+        if (!f) { return; }
+        var lecteur = new FileReader();
+        lecteur.onload = function (e) {
+            if (cropper) { cropper.destroy(); }
+            img.src = e.target.result;
+            zone.hidden = false;
+            // aspectRatio 1 : la pastille est ronde, le cadre doit être carré.
+            // viewMode 1 empêche de sortir le cadre de l'image.
+            cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false });
+            valider.disabled = false;
+        };
+        lecteur.readAsDataURL(f);
+    });
+
+    form.addEventListener('submit', function (e) {
+        // Le retrait n'a pas d'image à produire : il part tel quel.
+        if (e.submitter && e.submitter.value === 'supprimer') { return; }
+        if (!cropper) { e.preventDefault(); return; }
+        // 256px, comme la photo d'un employé : deux fois la plus grande taille
+        // d'affichage, net sur un écran haute densité sans envoyer l'original.
+        var toile = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
+        if (!toile) { e.preventDefault(); return; }
+        champ.value = toile.toDataURL('image/jpeg', 0.85);
+    });
+
+    document.getElementById('spectacle-image-annuler').addEventListener('click', fermer);
+    modal.addEventListener('click', function (e) { if (e.target === modal) fermer(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) fermer(); });
+})();
+</script>
+<?php endif; ?>

@@ -124,6 +124,15 @@ function route_structure_message(): void
     if (!$structure) {
         redirect('structures');
     }
+    // Écrire depuis une campagne y ramène : c'est là qu'on enchaîne les
+    // structures, pas sur la fiche de celle qu'on vient de contacter.
+    $retourCampagne = (int) ($_POST['retour_campagne'] ?? 0);
+    $retour = function (string $msg) use ($structureId, $retourCampagne): void {
+        redirect(
+            $retourCampagne ? 'campagne' : 'structure',
+            ['id' => $retourCampagne ?: $structureId, 'msg' => $msg]
+        );
+    };
     $contactId = (int) ($_POST['contact_id'] ?? 0);
     $expediteurId = (int) ($_POST['expediteur_id'] ?? 0);
     $sujet = trim((string) ($_POST['sujet'] ?? ''));
@@ -143,7 +152,7 @@ function route_structure_message(): void
         db()->prepare('INSERT OR REPLACE INTO structure_message_brouillons (structure_id, contact_id, expediteur_id, sujet, corps, maj_le)
                        VALUES (?, ?, ?, ?, ?, datetime(\'now\'))')
             ->execute([$structureId, $contactValide, mailing_expediteur($expediteurId)['id'] ?? null, $sujet, $corps]);
-        redirect('structure', ['id' => $structureId, 'msg' => 'brouillon']);
+        $retour('brouillon');
     }
 
     // Envoi. Le destinataire est revalidé contre la liste des joignables, pas
@@ -157,7 +166,7 @@ function route_structure_message(): void
         }
     }
     if (!structure_contactable($structure, $joignables) || !$contact || $sujet === '' || $corps === '') {
-        redirect('structure', ['id' => $structureId, 'msg' => 'err']);
+        $retour('err');
     }
     // Variables de gabarit résolues côté serveur aussi : le texte peut venir
     // d'un modèle chargé puis modifié à la main, et un {{prenom}} oublié ne doit
@@ -169,15 +178,17 @@ function route_structure_message(): void
     // envoyés » pour un message parti d'ici (voir envoyer_mailing_email()).
     [$ok] = envoyer_mailing_email((string) $contact['email'], $expediteur, $sujetFinal, $corpsFinal, true);
     if (!$ok) {
-        redirect('structure', ['id' => $structureId, 'msg' => 'envoi_ko']);
+        $retour('envoi_ko');
     }
     $nomContact = trim((string) $contact['prenom'] . ' ' . (string) $contact['nom']);
     journaliser('structure', $structureId, 'mailing',
         'E-mail à ' . ($nomContact !== '' ? $nomContact . ' <' . $contact['email'] . '>' : (string) $contact['email'])
         . ' — ' . $sujetFinal . "\n\n" . $corpsFinal);
+    // Projets concernés : c'est ce qui fait avancer la jauge d'une campagne.
+    spectacles_lier('historique_spectacles', (int) db()->lastInsertId(), (array) ($_POST['spectacle_ids'] ?? []));
     structure_recalculer_dernier_contact($structureId);
     db()->prepare('DELETE FROM structure_message_brouillons WHERE structure_id = ?')->execute([$structureId]);
-    redirect('structure', ['id' => $structureId, 'msg' => 'envoye']);
+    $retour('envoye');
 }
 
 function route_structure_note_ajouter(): void
@@ -195,11 +206,52 @@ function route_structure_note_ajouter(): void
     $creeLe = historique_date_stockee((string) ($_POST['date'] ?? ''));
     if ($contenu !== '') {
         journaliser('structure', $structureId, $estContact ? 'mailing' : 'note', $contenu, $creeLe);
+        // Une note peut porter ses projets, prise de contact ou non : c'est ce
+        // qui permet à un appel téléphonique de compter dans une campagne.
+        spectacles_lier('historique_spectacles', (int) db()->lastInsertId(), (array) ($_POST['spectacle_ids'] ?? []));
         if ($estContact) {
             structure_recalculer_dernier_contact($structureId);
         }
     }
-    redirect('structure', ['id' => $structureId]);
+    // Noter depuis une campagne y ramène, comme pour un message envoyé.
+    $retourCampagne = (int) ($_POST['retour_campagne'] ?? 0);
+    redirect(
+        $retourCampagne ? 'campagne' : 'structure',
+        $retourCampagne ? ['id' => $retourCampagne, 'msg' => 'note'] : ['id' => $structureId]
+    );
+}
+
+// Réponse reçue d'une structure dans une campagne — enregistrée à la volée par
+// le sélecteur segmenté de la ligne, sans formulaire (même procédé que
+// route_structure_statut()). Réponse en JSON : l'appelant repeint les boutons.
+function route_campagne_reponse(): void
+{
+    require_login();
+    header('Content-Type: application/json');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    check_csrf();
+    require_ecriture('booking');
+    $campagneId = (int) ($_POST['campagne_id'] ?? 0);
+    $structureId = (int) ($_POST['structure_id'] ?? 0);
+    $reponse = (string) ($_POST['reponse'] ?? '');
+    if (!array_key_exists($reponse, CAMPAGNE_REPONSES)) {
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    // La mise à jour ne crée rien : elle ne touche qu'une ligne existante de la
+    // campagne, ce qui vaut vérification que la structure y est bien.
+    $stmt = db()->prepare('UPDATE campagne_structures SET reponse = ? WHERE campagne_id = ? AND structure_id = ?');
+    $stmt->execute([$reponse, $campagneId, $structureId]);
+    if ($stmt->rowCount() === 0) {
+        // Structure absente de cette campagne : rien n'a été écrit, et la
+        // réponse ne renvoie donc aucune valeur à afficher.
+        echo json_encode(['ok' => false]);
+        return;
+    }
+    echo json_encode(['ok' => true, 'reponse' => $reponse]);
 }
 
 // Modifie une entrée d'historique saisie à la main : contenu, date, et bascule
@@ -259,6 +311,52 @@ function structure_tags_reponse_json(int $structureId): void
             peut_ecrire('booking')
         ),
     ]);
+}
+
+// Rattacher une structure à une campagne, ou l'en retirer, depuis la colonne
+// « Campagnes » de ?p=structures. Une seule route pour les deux gestes : ils
+// écrivent la même table et renvoient la même cellule.
+//
+// Le retrait supprime la ligne campagne↔structure, donc AUSSI la réponse qui y
+// était notée — c'est le sens même du geste : cette structure ne fait plus
+// partie de cette campagne. Le message de confirmation le dit.
+function route_structure_campagne(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('structures');
+    }
+    check_csrf();
+    require_ecriture('booking');
+    $structureId = (int) ($_POST['structure_id'] ?? 0);
+    $campagneId = (int) ($_POST['campagne_id'] ?? 0);
+    $campagne = campagne_charger($campagneId);
+    $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
+    $stmt->execute([$structureId]);
+    $nomStructure = (string) ($stmt->fetchColumn() ?: '');
+
+    if ($campagne && $nomStructure !== '') {
+        if (($_POST['action'] ?? '') === 'retirer') {
+            db()->prepare('DELETE FROM campagne_structures WHERE campagne_id = ? AND structure_id = ?')
+                ->execute([$campagneId, $structureId]);
+            journaliser('structure', $structureId, 'edition', 'Retirée de la campagne : ' . $campagne['nom']);
+        } else {
+            db()->prepare('INSERT OR IGNORE INTO campagne_structures (campagne_id, structure_id) VALUES (?, ?)')
+                ->execute([$campagneId, $structureId]);
+            journaliser('structure', $structureId, 'edition', 'Ajoutée à la campagne : ' . $campagne['nom']);
+        }
+    }
+    // Même convention que les étiquettes : en JSON quand le JavaScript est là,
+    // pour ne remplacer que la cellule d'une liste qui pèse plusieurs mégaoctets.
+    if (($_POST['retour'] ?? '') === 'json') {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok'   => true,
+            'html' => structure_campagnes_cellule_html($structureId, structure_campagnes($structureId), peut_ecrire('booking')),
+        ]);
+        return;
+    }
+    redirect(($_POST['retour'] ?? '') === 'structures' ? 'structures' : 'structure', ($_POST['retour'] ?? '') === 'structures' ? [] : ['id' => $structureId]);
 }
 
 function route_structure_tag_ajouter(): void
@@ -374,7 +472,7 @@ function route_parametres_tags(): void
     render('parametres_tags', [
         'saved'  => isset($_GET['ok']),
         'lignes' => $lignes,
-    ], 'Paramètres — Étiquettes');
+    ], 'Paramètres — Tags');
 }
 
 // Renommage / suppression d'une étiquette depuis le filtre « Étiquettes » de
@@ -1032,20 +1130,28 @@ function route_mailing_modeles(): void
                 }
                 db()->prepare('UPDATE mailing_modeles SET nom = ?, sujet = ?, corps = ?, expediteur_id = ? WHERE id = ?')
                     ->execute([$nom, $sujet, $corps, $expediteurId, $id]);
+                spectacles_lier('mailing_modele_spectacles', $id, (array) ($_POST['spectacle_ids'] ?? []));
             } else {
                 // Création — et écrasement délibéré d'un modèle de même nom :
                 // c'est ce que fait « Enregistrer comme modèle » depuis
                 // ?p=mailing_campagne, qui n'a que le nom saisi à l'écran.
                 db()->prepare('INSERT OR REPLACE INTO mailing_modeles (nom, sujet, corps, expediteur_id) VALUES (?, ?, ?, ?)')
                     ->execute([$nom, $sujet, $corps, $expediteurId]);
+                spectacles_lier('mailing_modele_spectacles', (int) db()->lastInsertId(), (array) ($_POST['spectacle_ids'] ?? []));
             }
         } elseif ($section === 'modele_delete') {
             db()->prepare('DELETE FROM mailing_modeles WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
         }
         redirect('mailing_modeles', ['ok' => 1]);
     }
+    $modeles = db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll();
+    foreach ($modeles as &$m) {
+        $m['spectacle_ids'] = spectacles_lies('mailing_modele_spectacles', (int) $m['id']);
+    }
+    unset($m);
     render('mailing_modeles', [
-        'modeles' => db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll(),
+        'modeles' => $modeles,
+        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
         'expediteurs' => mailing_expediteurs(),
         'expediteurDefaut' => mailing_expediteur_defaut_libelle(),
         'saved' => isset($_GET['ok']),
@@ -1370,4 +1476,336 @@ function route_import_structures(): void
     }
 
     render('import_structures', $vars, 'Importer');
+}
+
+// ------------------------------------------------------------- CAMPAGNES
+//
+// Une campagne de contact : une sélection de structures à démarcher pour un ou
+// plusieurs projets, entre deux dates. Elle n'envoie rien elle-même — on
+// contacte structure par structure depuis sa page, et la jauge compte les
+// prises de contact déjà consignées, e-mail comme appel noté à la main.
+//
+// À ne pas confondre avec ?p=mailing_campagne, qui prépare un envoi GROUPÉ :
+// les deux se rejoindront peut-être un jour, ce n'est pas le sujet ici.
+function route_campagnes(): void
+{
+    require_login();
+    // Filtres de colonne mémorisés en session (filtre_coche(), lib/helpers.php)
+    // et recherche texte jamais mémorisée : les mêmes conventions que les
+    // autres listes. Le tri se fait en PHP et non en SQL — l'état d'une
+    // campagne se calcule (campagne_statut()) et n'existe dans aucune colonne.
+    $projet = filtre_coche('projet_id', 'campagnes_projet_id');
+    $annee = filtre_coche('annee', 'campagnes_annee');
+    $statut = filtre_coche('statut', 'campagnes_statut', array_keys(CAMPAGNE_STATUTS));
+    $recherche = trim((string) ($_GET['q'] ?? ''));
+
+    $toutes = campagnes_liste();
+    // Les valeurs proposées viennent des campagnes elles-mêmes : filtrer sur
+    // une année ou un projet qu'aucune ne porte n'aurait rien à montrer.
+    $anneesDispo = [];
+    $projetsDispo = [];
+    foreach ($toutes as $c) {
+        foreach ($c['annees'] as $a) {
+            $anneesDispo[$a] = (string) $a;
+        }
+        foreach ($c['projet_ids'] as $i => $pid) {
+            $projetsDispo[(int) $pid] = (string) $c['projets'][$i];
+        }
+    }
+    krsort($anneesDispo);
+    asort($projetsDispo);
+
+    $campagnes = array_values(array_filter($toutes, function (array $c) use ($projet, $annee, $statut, $recherche): bool {
+        return ($projet === [] || array_intersect($projet, array_map('intval', $c['projet_ids'])) !== [])
+            && ($annee === [] || array_intersect($annee, $c['annees']) !== [])
+            && ($statut === [] || in_array($c['statut'], $statut, true))
+            && campagne_correspond($c, $recherche);
+    }));
+
+    render('campagnes', [
+        'campagnes'    => $campagnes,
+        'nbTotal'      => count($toutes),
+        'projet'       => $projet,
+        'annee'        => $annee,
+        'statut'       => $statut,
+        'recherche'    => $recherche,
+        'anneesDispo'  => $anneesDispo,
+        'projetsDispo' => $projetsDispo,
+        'saved'        => isset($_GET['ok']),
+        'supprimee'    => ($_GET['ok'] ?? '') === 'suppr',
+    ], 'Booking — Campagnes');
+}
+
+// Création / modification. Le ciblage réutilise celui du mailing groupé
+// (mailing_criteres_depuis + mailing_structures_eligibles) : c'est la même
+// question — « quelles structures ? » — et deux implémentations finiraient par
+// diverger. La sélection obtenue est ensuite figée dans campagne_structures,
+// où elle peut être élaguée à la main.
+function route_campagne_form(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? 0);
+    $campagne = $id ? campagne_charger($id) : null;
+    if ($id && !$campagne) {
+        redirect('campagnes');
+    }
+    $criteres = mailing_criteres_depuis($_GET);
+    $apercu = isset($_GET['previsualiser'])
+        ? mailing_structures_eligibles($criteres)
+        : [];
+    // Structures déjà retenues : à la modification, ce sont elles qui sont
+    // cochées — pas le résultat du ciblage, qui a pu bouger depuis.
+    $retenues = [];
+    if ($id) {
+        $stmt = db()->prepare('SELECT structure_id FROM campagne_structures WHERE campagne_id = ?');
+        $stmt->execute([$id]);
+        $retenues = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+    // Les structures à cocher : celles du ciblage si l'on vient de prévisualiser,
+    // sinon celles déjà retenues.
+    if (!$apercu && $retenues) {
+        // En lots : une campagne peut retenir plusieurs milliers de structures,
+        // et tout lier d'un coup dépasserait le plafond de paramètres de SQLite.
+        $apercu = [];
+        foreach (lots_ids($retenues) as $lot) {
+            $stmt = db()->prepare('SELECT * FROM structures WHERE id IN (' . sql_in($lot) . ')');
+            $stmt->execute($lot);
+            $apercu = array_merge($apercu, $stmt->fetchAll());
+        }
+        usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
+    }
+    // Le tableau de sélection est celui de ?p=structures (views/_structures_table.php) :
+    // ses colonnes viennent donc des mêmes agrégats, complétés ici pour les seules
+    // lignes affichées — le ciblage passe par mailing_structures_eligibles(), qui
+    // ne rend que la table `structures`.
+    $ids = array_map(fn ($s) => (int) $s['id'], $apercu);
+    $colonnes = structures_colonnes_liste($ids);
+    foreach ($apercu as &$ligne) {
+        $ligne += $colonnes[(int) $ligne['id']] ?? [];
+    }
+    unset($ligne);
+
+    render('campagne_form', [
+        'campagne'   => $campagne,
+        'nbEvenements' => module_actif('evenements') ? structures_nb_evenements($ids) : [],
+        'projets'    => $campagne ? spectacles_lies('campagne_spectacles', $id) : [],
+        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
+        'criteres'   => $criteres,
+        'apercu'     => $apercu,
+        'retenues'   => $retenues,
+        'previsualise' => isset($_GET['previsualiser']),
+        'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
+        'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
+        'grandesRegions' => pays_regions_map(),
+        'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
+        'categoriesPourSelect' => structure_categories_pour_select(),
+        'err'        => $_GET['err'] ?? null,
+    ], $campagne ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne');
+}
+
+function route_campagne_enregistrer(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('campagnes');
+    }
+    check_csrf();
+    require_ecriture('booking');
+    $id   = (int) ($_POST['id'] ?? 0);
+    $nom  = trim((string) ($_POST['nom'] ?? ''));
+    $debut = campagne_date((string) ($_POST['date_debut'] ?? ''));
+    $fin   = campagne_date((string) ($_POST['date_fin'] ?? ''));
+    if ($nom === '') {
+        redirect('campagne_form', ($id ? ['id' => $id] : []) + ['err' => 'nom']);
+    }
+    // Les structures retenues : ce que l'écran a coché, et rien d'autre. On
+    // n'infère pas depuis les critères, sinon la désélection manuelle serait
+    // perdue au premier enregistrement.
+    $structures = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['structure_ids'] ?? [])))));
+
+    db()->beginTransaction();
+    if ($id && campagne_charger($id)) {
+        db()->prepare('UPDATE campagnes SET nom = ?, date_debut = ?, date_fin = ?, criteres = ? WHERE id = ?')
+            ->execute([$nom, $debut, $fin, json_encode(mailing_criteres_vers_url(mailing_criteres_depuis($_POST)), JSON_UNESCAPED_UNICODE), $id]);
+    } else {
+        db()->prepare('INSERT INTO campagnes (nom, date_debut, date_fin, criteres) VALUES (?, ?, ?, ?)')
+            ->execute([$nom, $debut, $fin, json_encode(mailing_criteres_vers_url(mailing_criteres_depuis($_POST)), JSON_UNESCAPED_UNICODE)]);
+        $id = (int) db()->lastInsertId();
+    }
+    spectacles_lier('campagne_spectacles', $id, (array) ($_POST['spectacle_ids'] ?? []));
+
+    // Mise à niveau, et non table rasée : la ligne campagne↔structure PORTE la
+    // réponse reçue (migration_86). La supprimer pour la réinsérer effaçait
+    // toutes les réponses notées au premier enregistrement — renommer une
+    // campagne suffisait à perdre le travail de démarchage.
+    //
+    // Les identifiants postés sont filtrés contre les structures existantes :
+    // un identifiant forgé violerait la clé étrangère au lieu d'être ignoré. En
+    // lots, car une sélection large en compte des milliers (lots_ids()).
+    $valides = [];
+    foreach (lots_ids($structures) as $lot) {
+        $stmt = db()->prepare('SELECT id FROM structures WHERE id IN (' . sql_in($lot) . ')');
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
+            $valides[] = (int) $sid;
+        }
+    }
+    $stmt = db()->prepare('SELECT structure_id FROM campagne_structures WHERE campagne_id = ?');
+    $stmt->execute([$id]);
+    $avant = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+
+    $supp = db()->prepare('DELETE FROM campagne_structures WHERE campagne_id = ? AND structure_id = ?');
+    foreach (array_diff($avant, $valides) as $sid) {
+        $supp->execute([$id, $sid]);
+    }
+    $ins = db()->prepare('INSERT OR IGNORE INTO campagne_structures (campagne_id, structure_id) VALUES (?, ?)');
+    foreach (array_diff($valides, $avant) as $sid) {
+        $ins->execute([$id, $sid]);
+    }
+    db()->commit();
+    redirect('campagne', ['id' => $id, 'ok' => 1]);
+}
+
+// Une campagne et ses structures, avec pour chacune l'état « à contacter » ou
+// « contactée » et le bouton qui ouvre la fenêtre d'envoi.
+function route_campagne(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? 0);
+    $campagne = campagne_charger($id);
+    if (!$campagne) {
+        redirect('campagnes');
+    }
+    $map = spectacle_map();
+    $projets = spectacles_lies('campagne_spectacles', $id);
+    $contactees = array_flip(campagne_structures_contactees($id));
+
+    // Ouverte à l'envoi ? La réponse conditionne l'écran ET le travail de
+    // préparation de la fenêtre « Contacter » plus bas.
+    $ouverte = campagne_ouverte((string) $campagne['date_debut'], date('Y-m-d'));
+
+    // Jauge : elle décrit la CAMPAGNE, pas l'écran. Elle se compte donc avant
+    // les filtres — sinon masquer trois lignes ferait « avancer » le démarchage.
+    $stmtTotal = db()->prepare('SELECT COUNT(*) FROM campagne_structures WHERE campagne_id = ?');
+    $stmtTotal->execute([$id]);
+    $nbTotal = (int) $stmtTotal->fetchColumn();
+
+    // Mêmes filtres que ?p=structures, sur le même tableau — mais leur propre
+    // mémoire de session : filtrer une campagne ne doit pas changer ce que la
+    // liste des structures montrera ensuite. Préfixe « campagne_struct » et non
+    // « campagne » : l'onglet des campagnes mémorise de son côté un
+    // « campagnes_statut » qui désigne l'ÉTAT d'une campagne, quand celui-ci
+    // désigne le STATUT d'une structure — deux sens à une lettre d'écart. Sans statut pré-coché : ses
+    // structures ont été retenues à un moment donné, en masquer d'office
+    // celles devenues « ne pas contacter » amputerait la liste sans le dire.
+    $f = structures_filtres('campagne_struct', []);
+    // Le filtre propre à la campagne : la réponse reçue. Elle vit sur le lien
+    // campagne↔structure, d'où la condition sur `cs` et non sur `s`.
+    $reponseFiltre = filtre_coche('reponse', 'campagne_struct_reponse', array_keys(CAMPAGNE_REPONSES));
+    $where = $f['where'];
+    $params = $f['params'];
+    if ($reponseFiltre) {
+        $where .= ' AND cs.reponse IN (' . sql_in($reponseFiltre) . ')';
+        $params = array_merge($params, $reponseFiltre);
+    }
+
+    // Les colonnes d'affichage sont celles de ?p=structures — c'est le même
+    // tableau (views/_structures_table.php). « structures » doit être la
+    // PREMIÈRE table du FROM : les sous-requêtes s'y réfèrent, et le SQLite d'un
+    // hébergement mutualisé refuse qu'une sous-requête vise l'alias d'une table
+    // jointe plus loin (docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé).
+    $stmt = db()->prepare(
+        'SELECT s.*, cs.reponse, ' . structures_colonnes_liste_sql() . '
+           FROM structures s
+           JOIN campagne_structures cs ON cs.structure_id = s.id AND cs.campagne_id = ?'
+        . $where . ' ORDER BY s.nom COLLATE NOCASE'
+    );
+    $stmt->execute(array_merge([$id], $params));
+    $structures = [];
+    // Fenêtre « Contacter » : elle s'ouvre ici, sur la campagne — on enchaîne
+    // les structures sans quitter la liste. Une seule fenêtre pour toutes les
+    // lignes (views/_structure_contacter.php), remplie à l'ouverture ; d'où les
+    // destinataires de chacune, préparés ci-dessous.
+    //
+    // Sauf quand elle ne sera pas rendue : sans droit d'écriture, ou avant la
+    // date de début, il n'y a ni bouton ni fenêtre. Les préparer quand même
+    // coûtait quatre requêtes par ligne — plusieurs centaines pour une campagne
+    // ordinaire — dont aucune n'atteignait l'écran.
+    $avecContact = $ouverte && peut_ecrire('booking');
+    $cibles = [];
+    foreach ($stmt->fetchAll() as $s) {
+        $sid = (int) $s['id'];
+        $s['contactee'] = isset($contactees[$sid]);
+        $s['contact_impossible'] = '';
+        if ($avecContact) {
+            $joignables = structure_contacts_joignables_etendus($sid);
+            // La même règle que sur la fiche : statut contactable ET quelqu'un à
+            // qui écrire. La ligne dit pourquoi, plutôt que d'offrir un bouton mort.
+            $s['contact_impossible'] = structure_contact_impossible_raison($s, $joignables);
+            if ($s['contact_impossible'] === '') {
+                $cibles[$sid] = ['nom' => (string) $s['nom'], 'contacts' => $joignables, 'brouillon' => structure_message_brouillon($sid)];
+            }
+        }
+        $structures[] = $s;
+    }
+    $faits = count($contactees);
+    // Répartition des réponses, en une requête : c'est ce que la carte du haut
+    // montre en segments (campagne_repartition() pose la règle, la même que
+    // pour la liste des campagnes).
+    $stmtRep = db()->prepare('SELECT reponse, COUNT(*) AS n FROM campagne_structures WHERE campagne_id = ? GROUP BY reponse');
+    $stmtRep->execute([$id]);
+    $parReponse = [];
+    foreach ($stmtRep->fetchAll() as $l) {
+        $parReponse[(string) $l['reponse']] = (int) $l['n'];
+    }
+    render('campagne', [
+        'repartition' => campagne_repartition(
+            $nbTotal, $faits,
+            $parReponse['interesse'] ?? 0,
+            $parReponse['pas_interesse'] ?? 0
+        ),
+        // Filtres : les valeurs actives, et de quoi peupler leurs menus.
+        'filtres'     => $f,
+        'reponseFiltre' => $reponseFiltre,
+        'categoriesPourSelect' => structure_categories_pour_select(),
+        'regionsDispo' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
+        'tagsDispo'   => db()->query('SELECT t.* FROM structure_tags t ORDER BY t.nom')->fetchAll(),
+        'campagne'    => $campagne,
+        'projets'     => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projets),
+        'projetsPastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projets),
+        // Les mêmes projets, en identifiants : la fenêtre « Marquer comme
+        // contacté » les rattache à l'entrée d'historique qu'elle crée.
+        'projetIds'   => $projets,
+        'structures'  => $structures,
+        'nbTotal'     => $nbTotal,
+        'nbAffichees' => count($structures),
+        'nbFaits'     => $faits,
+        'contacterCibles' => $cibles,
+        'nbEvenements' => module_actif('evenements') ? structures_nb_evenements(array_column($structures, 'id')) : [],
+        'expediteurs' => mailing_expediteurs(),
+        'modelesMessage' => array_map(
+            fn ($m) => $m + ['spectacle_ids' => spectacles_lies('mailing_modele_spectacles', (int) $m['id'])],
+            db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll()
+        ),
+        // Les projets de la campagne sont cochés d'emblée : c'est par eux que la
+        // prise de contact la fera avancer.
+        'campagneProjets' => $projets,
+        'spectacles'  => module_actif('evenements') ? spectacles_pour_selection() : [],
+        // L'état se calcule lui aussi sur la campagne entière, pas sur l'écran filtré.
+        'statut'      => campagne_statut((string) $campagne['date_debut'], (string) $campagne['date_fin'], $nbTotal, $faits, date('Y-m-d')),
+        'ouverte'     => $ouverte,
+        'saved'       => isset($_GET['ok']),
+    ], 'Campagne — ' . $campagne['nom']);
+}
+
+function route_campagne_delete(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('campagnes');
+    }
+    check_csrf();
+    require_ecriture('booking');
+    db()->prepare('DELETE FROM campagnes WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+    redirect('campagnes', ['ok' => 'suppr']);
 }

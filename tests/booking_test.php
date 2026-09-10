@@ -201,5 +201,75 @@ check('zéro ne vaut pas une jauge', '', structure_jauge_texte(0, 0));
 check('zéro d\'un côté, valeur de l\'autre', '300', structure_jauge_texte(0, 300));
 check('valeurs en chaînes (POST / SQLite)', '150 – 600', structure_jauge_texte('150', '600'));
 
+// --- État d'une campagne de contact -----------------------------------------
+// L'ordre de priorité compte autant que les cas eux-mêmes : « terminée » passe
+// avant tout, sinon une campagne finie en avance s'annoncerait « en retard ».
+echo "\n13) État d'une campagne de contact\n";
+$st = fn (string $d, string $f, int $tot, int $fait) => campagne_statut($d, $f, $tot, $fait, '2026-06-15');
+check('début à venir', 'a_venir', $st('2026-07-01', '2026-08-01', 10, 0));
+check('dans la période, rien de fait', 'en_cours', $st('2026-06-01', '2026-07-01', 10, 0));
+check('dans la période, à moitié', 'en_cours', $st('2026-06-01', '2026-07-01', 10, 5));
+check('tout contacté', 'terminee', $st('2026-06-01', '2026-07-01', 10, 10));
+check('tout contacté, même en avance', 'terminee', $st('2026-06-01', '2026-12-01', 10, 10));
+check('fin dépassée, reste du monde', 'en_retard', $st('2026-01-01', '2026-05-01', 10, 4));
+check('fin dépassée mais tout fait', 'terminee', $st('2026-01-01', '2026-05-01', 10, 10));
+check('sans date de fin, jamais en retard', 'en_cours', $st('2026-01-01', '', 10, 4));
+check('sans aucune date', 'en_cours', $st('', '', 10, 0));
+check('campagne vide : jamais « terminée »', 'en_cours', $st('2026-06-01', '2026-07-01', 0, 0));
+check('début aujourd\'hui : déjà en cours', 'en_cours', $st('2026-06-15', '2026-07-01', 10, 0));
+check('fin aujourd\'hui : pas encore en retard', 'en_cours', $st('2026-06-01', '2026-06-15', 10, 0));
+// L'ouverture à l'envoi suit la seule date de début.
+check('avant le début : fermée', false, campagne_ouverte('2026-07-01', '2026-06-15'));
+check('le jour du début : ouverte', true, campagne_ouverte('2026-06-15', '2026-06-15'));
+check('après le début : ouverte', true, campagne_ouverte('2026-06-01', '2026-06-15'));
+check('sans date de début : ouverte', true, campagne_ouverte('', '2026-06-15'));
+// Dates : une saisie impossible ne doit pas entrer en base, elle fausserait le statut.
+check('date valide conservée', '2026-06-15', campagne_date('2026-06-15'));
+check('mois inexistant rejeté', '', campagne_date('2026-13-01'));
+check('jour inexistant rejeté', '', campagne_date('2026-02-30'));
+check('format libre rejeté', '', campagne_date('15.06.2026'));
+check('vide reste vide', '', campagne_date(''));
+
+// --- Réponse reçue dans une campagne ----------------------------------------
+// Trois états seulement, dont « aucune » qui est l'absence de réponse : la
+// chaîne vide, valeur par défaut de la colonne. Le sélecteur doit donc savoir
+// marquer actif un choix dont la valeur est vide — c'est le piège du composant.
+echo "\n14) Réponse reçue dans une campagne\n";
+check('trois réponses possibles', ['', 'pas_interesse', 'interesse'], array_keys(CAMPAGNE_REPONSES));
+check('« aucune » est la valeur par défaut de la colonne', true, array_key_exists('', CAMPAGNE_REPONSES));
+check('chaque réponse a son icône', [], array_diff_key(CAMPAGNE_REPONSES, CAMPAGNE_REPONSES_ICONES));
+check('chaque réponse a sa couleur', [], array_diff_key(CAMPAGNE_REPONSES, CAMPAGNE_REPONSES_CLASSES_ICONE));
+$toggle = campagne_reponse_toggle_html(4, 9, 'interesse');
+check('le sélecteur porte la campagne et la structure', 1, (int) (bool) preg_match('~data-campagne-id="4" data-structure-id="9"~', $toggle));
+check('trois boutons', 3, substr_count($toggle, '<button'));
+check('la réponse en cours est active', 1, substr_count($toggle, 'seg-btn on'));
+check('et c\'est la bonne', 1, (int) (bool) preg_match('~seg-btn on" data-reponse-valeur="interesse"~', $toggle));
+$vide = campagne_reponse_toggle_html(4, 9, '');
+check('sans réponse, « aucune » est active', 1, (int) (bool) preg_match('~seg-btn on" data-reponse-valeur=""~', $vide));
+check('un seul actif à la fois', 1, substr_count($vide, 'seg-btn on'));
+check('valeur inconnue : aucun bouton actif', 0, substr_count(campagne_reponse_toggle_html(4, 9, 'peut_etre'), 'seg-btn on'));
+
+// --- Filtres de la liste des campagnes ---------------------------------------
+// « Période » filtre sur les ANNÉES : une campagne à cheval sur deux ans doit
+// se retrouver dans les deux, sans quoi on la chercherait en vain dans l'une.
+echo "\n15) Filtres de la liste des campagnes\n";
+check('une seule année', [2026], campagne_annees('2026-03-01', '2026-09-30'));
+check('à cheval sur deux ans', [2025, 2026], campagne_annees('2025-11-01', '2026-02-28'));
+check('trois ans couverts', [2024, 2025, 2026], campagne_annees('2024-06-01', '2026-01-15'));
+check('sans date de fin : la seule année de début', [2026], campagne_annees('2026-03-01', ''));
+check('sans date de début : la seule année de fin', [2026], campagne_annees('', '2026-03-01'));
+check('sans aucune date : aucune année', [], campagne_annees('', ''));
+check('dates inversées : intervalle quand même', [2025, 2026], campagne_annees('2026-02-01', '2025-11-01'));
+check('date mal formée ignorée', [2026], campagne_annees('2026-03-01', '01.09.2026'));
+// La recherche porte sur ce qu'on lit dans la liste : le nom et les projets.
+$camp = ['nom' => 'Tournée Automne', 'projets' => ['Hector ou rien', 'Kaceo']];
+check('recherche vide : tout passe', true, campagne_correspond($camp, ''));
+check('sur le nom', true, campagne_correspond($camp, 'automne'));
+check('insensible à la casse', true, campagne_correspond($camp, 'TOURNÉE'));
+check('sur un projet', true, campagne_correspond($camp, 'kaceo'));
+check('sur un fragment de projet', true, campagne_correspond($camp, 'hector'));
+check('ce qui ne figure ni dans l\'un ni dans l\'autre', false, campagne_correspond($camp, 'bratislava'));
+check('campagne sans projet', false, campagne_correspond(['nom' => 'Vide', 'projets' => []], 'kaceo'));
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

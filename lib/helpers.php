@@ -444,6 +444,20 @@ function e(?string $s): string
 // la main : implode(',', array_fill(0, count($x), '?'))) plus de 40 fois
 // dans lib/. Prend le tableau lui-même (pas juste sa taille) pour que
 // l'appelant n'ait pas à écrire count($x) séparément.
+// Découpe une liste d'identifiants en lots, pour les requêtes « IN (…) » qui
+// lient un paramètre par valeur. SQLite plafonne le nombre de paramètres d'une
+// requête (SQLITE_MAX_VARIABLE_NUMBER : 999 avant SQLite 3.32, 32766 ensuite)
+// et le serveur d'un hébergement mutualisé n'a pas la version du poste de
+// travail (docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé) : une
+// liste de quelques milliers de structures passe ici et échoue là-bas, avec un
+// « too many SQL variables » que rien ne laissait prévoir. 500 par lot laisse
+// de la place aux autres paramètres de la requête.
+function lots_ids(array $ids, int $taille = 500): array
+{
+    $ids = array_values(array_unique(array_map('intval', $ids)));
+    return $ids ? array_chunk($ids, $taille) : [];
+}
+
 function sql_in(array $valeurs): string
 {
     return implode(',', array_fill(0, count($valeurs), '?'));
@@ -802,12 +816,15 @@ function filtre_bouton_html(string $libelle, bool $actif, ?int $nb = null): stri
 // remet à '' — leur absence de l'URL ne suffit pas à les éteindre.
 // La recherche texte et le contexte de retour survivent : l'entonnoir barré
 // parle des filtres, pas de ce qu'on a tapé ni d'où l'on vient.
-function bouton_reinit_filtres(string $page, array $champsCoches, bool $actif, array $champsVides = []): string
+// $params : paramètres à garder dans le lien en plus de q/vue/depuis — l'id de
+// la campagne dont on filtre les structures, par exemple, sans lequel « retirer
+// les filtres » ramènerait à la liste des campagnes.
+function bouton_reinit_filtres(string $page, array $champsCoches, bool $actif, array $champsVides = [], array $params = []): string
 {
     if (!$actif) {
         return '';
     }
-    $params = ['p' => $page];
+    $params = ['p' => $page] + $params;
     foreach ($champsCoches as $c) {
         $params[$c . '_set'] = 1;
     }
@@ -857,6 +874,43 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
             : $case;
     }
     return $h . '</div><button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
+}
+
+// Menu déroulant à cases à cocher, destiné à vivre DANS un formulaire existant
+// (fenêtre « Contacter », note d'historique, modèle de message) — même
+// apparence que les filtres de colonne, mais sans <form> à lui : un formulaire
+// imbriqué dans un autre n'existe pas en HTML.
+//
+// « Tout » n'est pas une valeur : c'est l'absence de case cochée, comme pour les
+// filtres — le bouton affiche alors $libelleVide. Dès qu'une case est cochée, il
+// NOMME ce qui l'est (voir plus bas) : dans un formulaire, un entonnoir muet ne
+// dirait pas ce qu'on a choisi.
+function choix_coches_html(string $champ, array $options, array $actives, string $libelleVide = 'Tout'): string
+{
+    $activesTxt = array_map('strval', $actives);
+    // Le bouton porte TOUJOURS un nom, et celui de ce qui est coché. Dans un
+    // en-tête de colonne, l'entonnoir seul suffit : la colonne dit déjà de quoi
+    // il s'agit. Dans un formulaire, il ne dit rien — on lisait « Projet » puis
+    // un entonnoir muet, sans savoir quel spectacle était choisi sans dérouler.
+    $choisis = [];
+    foreach ($options as $val => $lib) {
+        if (in_array((string) $val, $activesTxt, true)) {
+            $choisis[] = (string) $lib;
+        }
+    }
+    $libelle = $choisis
+        ? implode(' · ', array_slice($choisis, 0, 2)) . (count($choisis) > 2 ? ' +' . (count($choisis) - 2) : '')
+        : $libelleVide;
+    $h = '<details class="col-filter choix-coches">'
+       . filtre_bouton_html($libelle, $activesTxt !== [], null)
+       . '<div class="col-filter-menu">'
+       . '<label class="col-filter-tout"><input type="checkbox" data-check-tout' . (count($activesTxt) === count($options) && $options ? ' checked' : '') . '> Tout</label>'
+       . '<div class="col-filter-sep"></div><div class="col-filter-options">';
+    foreach ($options as $val => $lib) {
+        $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
+        $h .= '<label><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e((string) $lib) . '</label>';
+    }
+    return $h . '</div></div></details>';
 }
 
 // Pastilles des valeurs actives d'un filtre_colonne_html() — une par valeur,
@@ -952,7 +1006,10 @@ function avatar_initiales(string $nom, string $couleur = '', string $photo = '')
 // vignette carrée de quelques dizaines de Ko, pas la photo d'origine. On la
 // valide malgré tout comme un upload de fichier — un data URI reste une entrée
 // utilisateur, et rien n'oblige un client à passer par notre formulaire.
-function avatar_photo_enregistrer(string $dataUri): string
+// $prefixe : de quoi reconnaître le fichier dans uploads/ — « avatar » pour la
+// photo d'un employé, « spectacle » pour l'icône d'un spectacle. Le reste du
+// traitement est le même, d'où une seule fonction.
+function avatar_photo_enregistrer(string $dataUri, string $prefixe = 'avatar'): string
 {
     if (!preg_match('#^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$#', trim($dataUri), $m)) {
         throw new RuntimeException('Image invalide.');
@@ -972,7 +1029,8 @@ function avatar_photo_enregistrer(string $dataUri): string
     if (!is_dir($dir)) {
         mkdir($dir, 0775, true);
     }
-    $nom = 'avatar_' . bin2hex(random_bytes(6)) . '.' . $exts[$info[2]];
+    $prefixe = preg_match('/^[a-z]+$/', $prefixe) ? $prefixe : 'avatar';
+    $nom = $prefixe . '_' . bin2hex(random_bytes(6)) . '.' . $exts[$info[2]];
     if (file_put_contents($dir . '/' . $nom, $binaire) === false) {
         throw new RuntimeException("Impossible d'enregistrer le fichier.");
     }
@@ -2564,6 +2622,7 @@ function icone_table(): array
         'mail'      => '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
         'mail-x'    => '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="m17 17 4 4"/><path d="m21 17-4 4"/>',
         'check'     => '<polyline points="20 6 9 17 4 12"/>',
+        'target'    => '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
         'copy'      => '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
         'refresh-cw' => '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
         'save'      => '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
@@ -2584,6 +2643,11 @@ function icone_table(): array
         'archive'   => '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
         'grip'      => '<circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/>',
         'book-open' => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+        // Écrire une règle qui écrira ensuite à notre place : le crayon pour la
+        // règle qu'on rédige, les étincelles pour l'automatisme qui en découle.
+        // Sert aux DEUX bouts du même geste — créer une règle depuis une
+        // écriture, et l'onglet où on les gère.
+        'pencil-sparkles' => '<path d="M10 3H8"/><path d="m15.007 5.008 3.987 3.986"/><path d="M20 15v4"/><path d="M21.174 6.813a2.82 2.82 0 0 0-3.986-3.987L3.842 16.175a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="M22 17h-4"/><path d="M4 5v4"/><path d="M6 7H2"/><path d="M9 2v2"/>',
         'wand'      => '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
         'lock'      => '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
         'circle-gauge' => '<path d="M15.6 2.7a10 10 0 1 0 5.7 5.7"/><circle cx="12" cy="12" r="2"/><path d="M13.4 10.6 19 5"/>',
@@ -2602,6 +2666,20 @@ function icone_table(): array
         'circle-dot'   => '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/>',
         'circle-ellipsis' => '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
         'circle-dashed' => '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
+        // Réponse reçue dans une campagne (CAMPAGNE_REPONSES_ICONES, lib/booking.php) :
+        // une bulle de discussion, parce qu'il s'agit de ce que la structure a
+        // répondu — pointillée tant qu'elle n'a rien dit, barrée d'une croix
+        // quand c'est non, portant un cœur quand c'est oui.
+        'message-circle-heart' => '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M7.828 13.07A3 3 0 0 1 12 8.764a3 3 0 0 1 5.004 2.224 3 3 0 0 1-.832 2.083l-3.447 3.62a1 1 0 0 1-1.45-.001z"/>',
+        // Ranger une structure dans une campagne : la même bulle que les
+        // réponses, un « + » dedans — c'est un démarchage de plus.
+        'message-circle-plus' => '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+        // Le contact a eu lieu : la bulle de la famille « échange », avec une
+        // coche. Distincte du check nu, qui reste l'action de valider — sur le
+        // suivi d'une campagne, l'état et le bouton se côtoyaient avec le même dessin.
+        'message-circle-check' => '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="m16 9-5.5 5.5L8 12"/>',
+        'message-circle-x' => '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+        'message-circle-dashed' => '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.72a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.28 17.61a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="m6.163 21.117-2.906.85a1 1 0 0 1-1.236-1.169l.965-2.98"/>',
         'link'       => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
         'unlink'     => '<path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/>',
         'earth-lock' => '<path d="M7 3.34V5a3 3 0 0 0 3 3"/><path d="M11 21.95V18a2 2 0 0 0-2-2 2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05"/><path d="M21.54 15H17a2 2 0 0 0-2 2v4.54"/><path d="M12 2a10 10 0 1 0 9.54 13"/><path d="M20 6V4a2 2 0 1 0-4 0v2"/><rect width="8" height="5" x="14" y="6" rx="1"/>',
@@ -2854,6 +2932,23 @@ function structure_statut_toggle_html(int $id, string $statut): string
         $h .= '<button type="button" class="seg-btn' . ($on ? ' on' : '') . '" data-statut-valeur="' . e($val) . '"'
             . ' role="radio" aria-checked="' . ($on ? 'true' : 'false') . '" title="' . e($label) . '" aria-label="' . e($label) . '">'
             . icon(structure_statut_icone($val)) . '</button>';
+    }
+    return $h . '</div>';
+}
+
+// Réponse reçue d'une structure dans une campagne — même sélecteur segmenté que
+// le statut d'une structure (structure_statut_toggle_html() ci-dessus), et même
+// enregistrement à la volée : un clic écrit, sans formulaire ni rechargement
+// (route_campagne_reponse() + lassoInitReponseToggle(), assets/app.js).
+function campagne_reponse_toggle_html(int $campagneId, int $structureId, string $reponse): string
+{
+    $h = '<div class="seg-picker reponse-toggle" role="radiogroup" aria-label="Réponse reçue"'
+       . ' data-campagne-id="' . $campagneId . '" data-structure-id="' . $structureId . '">';
+    foreach (CAMPAGNE_REPONSES as $val => $label) {
+        $on = $reponse === $val;
+        $h .= '<button type="button" class="seg-btn' . ($on ? ' on' : '') . '" data-reponse-valeur="' . e((string) $val) . '"'
+            . ' role="radio" aria-checked="' . ($on ? 'true' : 'false') . '" title="' . e($label) . '" aria-label="' . e($label) . '">'
+            . icon(CAMPAGNE_REPONSES_ICONES[$val]) . '</button>';
     }
     return $h . '</div>';
 }

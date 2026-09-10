@@ -131,8 +131,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
   le tag `vX.Y.Z`, avance la branche `stable`, pousse).
 - **Paramètres → Mises à jour** affiche la version installée et la version
   disponible sur le canal choisi ; **Paramètres → Serveur** donne le diagnostic
-  `exec()`/`git`, l'état d'OPcache, et le réglage du seuil de recherche
-  ci-dessous.
+  `exec()`/`git`, les versions de PHP et de SQLite, l'état d'OPcache, et le
+  réglage du seuil de recherche ci-dessous.
 - **Mise à jour en un clic** depuis cette page (`maj_executer()`, `lib/maj.php`) :
   sauvegarde de la base, téléchargement de l'archive de la branche du canal,
   extraction, puis migrations au premier chargement. `lib/config.local.php`,
@@ -174,13 +174,27 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    conforme (PDF), envoi par e-mail et relances. L'IBAN créancier vient du compte
    bancaire, partagé avec la comptabilité.
 8. **Événements** : dates de tournée, spectacles (un artiste peut regrouper des
-   sous-spectacles), suivi des déclarations **SUISA**, et **exports publics
+   sous-spectacles, et chacun peut porter une **icône** recadrée sur place, qui
+   le représente ensuite dans les listes — notamment les campagnes), suivi des déclarations **SUISA**, et **exports publics
    JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda externe.
-9. **Booking** : structures et contacts, étiquettes, lieux géocodés sur une carte,
+9. **Booking** : structures et contacts, tags, lieux géocodés sur une carte,
    et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
    modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
    d'historique à l'envoi. Une structure rattachée à une autre (salle d'un festival,
-   antenne d'une faîtière) propose aussi les contacts de celle qui l'organise. Les **campagnes de mailing** avec désinscription
+   antenne d'une faîtière) propose aussi les contacts de celle qui l'organise. Une
+   **campagne** est une sélection de structures à démarcher pour un ou plusieurs
+   projets, entre deux dates : on la compose avec les filtres de la liste des
+   structures, on décoche ce qu'on ne veut pas, puis on contacte ligne à ligne
+   depuis la campagne elle-même — la fenêtre « Contacter » s'y ouvre, ou l'on
+   marque la structure comme contactée à la main quand le démarchage s'est fait
+   ailleurs. Sa jauge compte les prises de contact déjà consignées pour ces
+   projets — e-mail comme appel noté à la main —, et chaque ligne porte la
+   réponse reçue (aucune, pas intéressé, intéressé), qu'on retrouve sur la fiche
+   de la structure dans un cadre « Campagnes ». La liste des campagnes se
+   cherche (nom, projet) et se filtre (projet, année, état) ; la sélection d'une
+   campagne et son suivi affichent le tableau des structures, le même qu'en 9,
+   avec ses filtres — auxquels le suivi ajoute la réponse reçue. Les
+   **campagnes de mailing** avec désinscription, elles, envoient en masse et
    forment un sous-module à part (« Envois groupés »), activable séparément.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec
    son propre serveur SMTP (Paramètres → E-mails → Envois pour le booking).

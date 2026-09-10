@@ -1,4 +1,8 @@
-<?php /** @var array $modeles */ /** @var bool $saved */ /** @var ?string $err */
+<?php /** @var array $modeles */ /** @var array $spectacles */
+// Projets par défaut d'un modèle : charger le modèle dans la fenêtre
+// « Contacter » coche ces projets, qu'on peut encore changer avant d'envoyer.
+$spectacleLabels = [];
+foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; } /** @var bool $saved */ /** @var ?string $err */
 /** @var array $expediteurs */ /** @var string $expediteurDefaut */
 
 // Liste déroulante des expéditeurs possibles (Paramètres → E-mails). L'option
@@ -38,6 +42,11 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
             <label>Nom du modèle <input name="nom" required placeholder="ex. Relance festivals"></label>
             <?php if ($expediteurs): ?>
             <label>Expéditeur <select name="expediteur_id"><?= $optionsExpediteur(null) ?></select></label>
+            <?php endif; ?>
+            <?php if ($spectacleLabels): ?>
+            <label><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle. Ils rattachent la prise de contact à une campagne.") ?></span>
+                <?= choix_coches_html('spectacle_ids', $spectacleLabels, [], 'Aucun') ?>
+            </label>
             <?php endif; ?>
             <label>Sujet <input name="sujet"></label>
             <label>Corps <textarea name="corps" rows="6" placeholder="Bonjour {{prenom}},&#10;&#10;…"></textarea></label>
@@ -87,6 +96,11 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
                 </div>
                 <?php if ($expediteurs): ?>
                 <label>Expéditeur <select name="expediteur_id"><?= $optionsExpediteur($m['expediteur_id'] !== null ? (int) $m['expediteur_id'] : null) ?></select></label>
+                <?php endif; ?>
+                <?php if ($spectacleLabels): ?>
+                <label><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle.") ?></span>
+                    <?= choix_coches_html('spectacle_ids', $spectacleLabels, (array) ($m['spectacle_ids'] ?? []), 'Aucun') ?>
+                </label>
                 <?php endif; ?>
                 <label>Objet <input name="sujet" value="<?= e($m['sujet']) ?>"></label>
                 <label>Corps <textarea name="corps" rows="5"><?= e($m['corps']) ?></textarea></label>
