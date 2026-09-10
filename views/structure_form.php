@@ -448,17 +448,20 @@ lassoInitTagSuggest();
                     </td>
                 </tr>
                 <tr>
+                    <?php // Une seule borne, ou les deux sur le même mois : ce mois
+                          // tout seul, sans tiret (structure_periode_texte()). Rien
+                          // de renseigné veut dire toute l'année, pas « inconnu ». ?>
                     <th>Réalisation</th>
                     <td>
-                        <?php if (empty($structure['mois_evenement_debut']) && empty($structure['mois_evenement_fin'])): ?>Toute l'année
-                        <?php else: ?><?= !empty($structure['mois_evenement_debut']) ? e(mois_nom((int) $structure['mois_evenement_debut'])) : '—' ?> – <?= !empty($structure['mois_evenement_fin']) ? e(mois_nom((int) $structure['mois_evenement_fin'])) : '—' ?><?php endif; ?>
+                        <?php $realisation = structure_periode_texte($structure['mois_evenement_debut'] ?? null, $structure['mois_evenement_fin'] ?? null); ?>
+                        <?= $realisation !== '' ? e($realisation) : 'Toute l\'année' ?>
                     </td>
                 </tr>
                 <tr>
                     <th>Préparation</th>
                     <td>
-                        <?php if (empty($structure['mois_debut']) && empty($structure['mois_fin'])): ?>Toute l'année
-                        <?php else: ?><?= !empty($structure['mois_debut']) ? e(mois_nom((int) $structure['mois_debut'])) : '—' ?> – <?= !empty($structure['mois_fin']) ? e(mois_nom((int) $structure['mois_fin'])) : '—' ?><?php endif; ?>
+                        <?php $preparation = structure_periode_texte($structure['mois_debut'] ?? null, $structure['mois_fin'] ?? null); ?>
+                        <?= $preparation !== '' ? e($preparation) : 'Toute l\'année' ?>
                     </td>
                 </tr>
                 <?php // Ce que disait la carte « Historique » : d'où vient ce contact,

@@ -518,11 +518,45 @@ function campagnes_groupees(array $campagnes): array
     return $out;
 }
 
-// Campagnes d'un lot de structures : [structure_id => [[id, nom], …]]. Agrégées
-// en une requête pour toute une liste, comme les étiquettes — les rechercher
+// Les campagnes actuellement EN COURS, en [id => true]. Trois requêtes pour
+// toutes les campagnes, quel qu'en soit le nombre.
+//
+// Passe par campagne_statut() plutôt que par une comparaison de dates : « en
+// cours » veut aussi dire « il reste des structures à contacter » — une
+// campagne entièrement démarchée est terminée avant sa date de fin. Une seule
+// définition, pour qu'une campagne ne soit pas « en cours » ici et « terminée »
+// sur ?p=campagnes.
+function campagnes_en_cours_ids(): array
+{
+    $totaux = [];
+    foreach (db()->query('SELECT campagne_id, COUNT(*) AS n FROM campagne_structures GROUP BY campagne_id') as $l) {
+        $totaux[(int) $l['campagne_id']] = (int) $l['n'];
+    }
+    $faits = campagnes_contactees_comptes();
+    $aujourdhui = date('Y-m-d');
+    $out = [];
+    foreach (db()->query('SELECT id, date_debut, date_fin FROM campagnes') as $c) {
+        $id = (int) $c['id'];
+        $statut = campagne_statut(
+            (string) $c['date_debut'],
+            (string) $c['date_fin'],
+            $totaux[$id] ?? 0,
+            $faits[$id] ?? 0,
+            $aujourdhui
+        );
+        if ($statut === 'en_cours') {
+            $out[$id] = true;
+        }
+    }
+    return $out;
+}
+
+// Campagnes d'un lot de structures : [structure_id => [[id, nom, en_cours], …]].
+// Agrégées en une requête pour toute une liste, comme les tags — les rechercher
 // ligne à ligne ferait une requête par structure affichée.
 function structures_campagnes(array $ids): array
 {
+    $enCours = campagnes_en_cours_ids();
     $out = [];
     foreach (lots_ids($ids) as $lot) {
         $stmt = db()->prepare(
@@ -533,7 +567,9 @@ function structures_campagnes(array $ids): array
         );
         $stmt->execute($lot);
         foreach ($stmt->fetchAll() as $l) {
-            $out[(int) $l['structure_id']][] = [(int) $l['id'], (string) $l['nom']];
+            $out[(int) $l['structure_id']][] = [
+                (int) $l['id'], (string) $l['nom'], isset($enCours[(int) $l['id']]),
+            ];
         }
     }
     return $out;
@@ -553,8 +589,12 @@ function structure_campagnes(int $structureId): array
 function structure_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire): string
 {
     $h = '';
-    foreach ($campagnes as [$id, $nom]) {
-        $h .= '<span class="badge"><a href="?p=campagne&id=' . $id . '">' . e($nom) . '</a>';
+    foreach ($campagnes as [$id, $nom, $enCours]) {
+        // Teal pour une campagne en cours, comme son nom sur ?p=campagnes : dans
+        // une file de pastilles, c'est celle qui appelle du travail. Les autres
+        // restent au ton neutre — elles sont du contexte, pas une tâche.
+        $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
+            . '<a href="?p=campagne&id=' . $id . '">' . e($nom) . '</a>';
         if ($peutEcrire) {
             $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
                 . '" data-campagne-nom="' . e($nom) . '"'
@@ -656,6 +696,34 @@ function structure_jauge_texte($min, $max): string
     }
     // Saisie inversée : on remet dans l'ordre plutôt que d'afficher « 800 – 200 ».
     return $a < $b ? "$a – $b" : "$b – $a";
+}
+
+// Période d'une structure (réalisation, préparation), telle qu'on l'écrit à
+// l'écran : « Juin – Septembre », ou « Juillet » tout court.
+//
+// UN SEUL MOIS quand les deux bornes se rejoignent — un festival qui tient sur
+// trois jours a la même en début et en fin — ou quand une seule est renseignée.
+// « Juillet – Juillet » et « Juillet – — » disaient tous deux moins bien la
+// même chose : que ça n'a lieu que ce mois-là.
+//
+// Pas de remise en ordre, contrairement à structure_jauge_texte() : les mois
+// tournent, « Novembre – Février » est une saison d'hiver, pas une saisie
+// inversée.
+//
+// Renvoie '' quand aucun mois n'est connu ; l'appelant décide de ce qu'il met à
+// la place (« Toute l'année » sur la fiche).
+function structure_periode_texte($debut, $fin): string
+{
+    $mois = fn ($v): ?int => ($v === null || $v === '' || (int) $v < 1 || (int) $v > 12) ? null : (int) $v;
+    $a = $mois($debut);
+    $b = $mois($fin);
+    if ($a === null && $b === null) {
+        return '';
+    }
+    if ($a === null || $b === null || $a === $b) {
+        return mois_nom($a ?? $b);
+    }
+    return mois_nom($a) . ' – ' . mois_nom($b);
 }
 
 function structure_statut_libelle(string $statut): string
@@ -1514,8 +1582,24 @@ function periode_chevauche(int $debut, int $fin, int $filtreDebut, int $filtreFi
 // non contournable.
 function mailing_structures_eligibles(array $criteres): array
 {
-    $where = ['s.statut IN (' . sql_in(STRUCTURE_STATUTS_CONTACTABLES) . ')'];
-    $params = STRUCTURE_STATUTS_CONTACTABLES;
+    // Un ciblage ne sort JAMAIS des statuts contactables : « ne pas contacter »
+    // et « inactif » n'entrent pas dans une campagne, quoi qu'on coche. Le
+    // critère de statut ne fait donc que resserrer à l'intérieur de ceux-là —
+    // par exemple aux seuls contacts privilégiés. Une sélection entièrement
+    // hors de ces statuts (URL forgée, critères enregistrés devenus caducs) est
+    // ignorée plutôt que de vider la liste sans rien dire.
+    $statuts = STRUCTURE_STATUTS_CONTACTABLES;
+    if (!empty($criteres['statut'])) {
+        $choisis = array_values(array_intersect(
+            array_map('strval', (array) $criteres['statut']),
+            STRUCTURE_STATUTS_CONTACTABLES
+        ));
+        if ($choisis) {
+            $statuts = $choisis;
+        }
+    }
+    $where = ['s.statut IN (' . sql_in($statuts) . ')'];
+    $params = $statuts;
 
     // Catégorie/sous-catégorie : une condition par id coché, unies en OR —
     // même logique que structures_filtres() dans lib/routes_facturation.php.
@@ -1557,9 +1641,29 @@ function mailing_structures_eligibles(array $criteres): array
         $where[] = 's.adresse_localite IN (' . sql_in($criteres['ville']) . ')';
         $params = array_merge($params, $criteres['ville']);
     }
+    // Tags et campagnes : mêmes règles, et « aucun » y est une option à part
+    // entière — cochée avec des identifiants, elle les REJOINT (OU), elle ne les
+    // annule pas : « sans tag, ou avec celui-là » est une question qu'on pose.
+    $lien = function (array $valeurs, string $table, string $colonne) use (&$where, &$params): void {
+        $valeurs = array_map('strval', $valeurs);
+        $ids = array_values(array_filter($valeurs, fn ($v) => $v !== 'aucun'));
+        $conds = [];
+        if (in_array('aucun', $valeurs, true)) {
+            $conds[] = "s.id NOT IN (SELECT structure_id FROM $table)";
+        }
+        if ($ids) {
+            $conds[] = "s.id IN (SELECT structure_id FROM $table WHERE $colonne IN (" . sql_in($ids) . '))';
+            $params = array_merge($params, $ids);
+        }
+        if ($conds) {
+            $where[] = '(' . implode(' OR ', $conds) . ')';
+        }
+    };
     if (!empty($criteres['tag_id'])) {
-        $where[] = 's.id IN (SELECT structure_id FROM structure_tag_liens WHERE tag_id IN (' . sql_in($criteres['tag_id']) . '))';
-        $params = array_merge($params, $criteres['tag_id']);
+        $lien($criteres['tag_id'], 'structure_tag_liens', 'tag_id');
+    }
+    if (!empty($criteres['campagne_id'])) {
+        $lien($criteres['campagne_id'], 'campagne_structures', 'campagne_id');
     }
     if (!empty($criteres['contact_jamais'])) {
         $where[] = "s.dernier_contact_le = ''";

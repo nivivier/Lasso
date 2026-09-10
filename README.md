@@ -184,10 +184,12 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    antenne d'une faîtière) propose aussi les contacts de celle qui l'organise. Une
    **campagne** est une sélection de structures à démarcher pour un ou plusieurs
    projets, entre deux dates : on la compose avec les filtres de la liste des
-   structures, on décoche ce qu'on ne veut pas, on ajoute au besoin une
-   structure en cherchant son nom, puis on contacte ligne à ligne depuis la
-   campagne elle-même — la fenêtre « Contacter » s'y ouvre, ou l'on marque la
-   structure comme contactée à la main quand le démarchage s'est fait ailleurs. Sa jauge compte les prises de contact déjà consignées pour ces
+   structures (dont « aucun tag » et « aucune campagne », pour n'approcher que
+   ce qui ne l'a jamais été), on décoche ce qu'on ne veut pas, on ajoute au
+   besoin une structure en cherchant son nom, puis on contacte ligne à ligne
+   depuis la campagne elle-même — la fenêtre « Contacter » s'y ouvre, ou l'on
+   marque la structure comme contactée à la main quand le démarchage s'est fait
+   ailleurs. Sa jauge compte les prises de contact déjà consignées pour ces
    projets — e-mail comme appel noté à la main —, et chaque ligne porte la
    réponse reçue (aucune, pas intéressé, intéressé), qu'on retrouve sur la fiche
    de la structure dans un cadre « Campagnes » — avec, en dessous, celles qui

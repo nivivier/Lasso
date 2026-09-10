@@ -2,7 +2,8 @@
 /** @var ?array $campagne */ /** @var array $projets */ /** @var array $spectacles */
 /** @var array $criteres */ /** @var array $apercu */ /** @var array $retenues */
 /** @var array $ajouts */
-/** @var bool $previsualise */ /** @var array $tags */ /** @var array $regions */
+/** @var bool $previsualise */ /** @var array $tags */ /** @var array $campagnesDispo */
+/** @var array $regions */
 /** @var array $grandesRegions */ /** @var array $villes */ /** @var array $categoriesPourSelect */
 /** @var array $nbEvenements */ /** @var ?string $err */
 // Création / modification d'une campagne. Le ciblage est celui du mailing
@@ -20,8 +21,21 @@ $categorieLabels = [];
 foreach ($categoriesPourSelect as $c) {
     $categorieLabels[(int) $c['id']] = str_repeat("\u{00A0}\u{00A0}", (int) ($c['profondeur'] ?? 0)) . $c['nom'];
 }
+// « Aucun » en tête des deux listes de liaison, comme sur ?p=structures
+// (views/_structures_filtres.php) : « lesquelles n'ont encore aucun tag ? »,
+// « lesquelles ne sont dans aucune campagne ? » sont justement les questions
+// qu'on pose en composant un démarchage.
 $tagLabels = [];
 foreach ($tags as $t) { $tagLabels[(int) $t['id']] = $t['nom']; }
+if ($tagLabels) { $tagLabels = ['aucun' => 'Aucun tag'] + $tagLabels; }
+$campagneLabels = [];
+foreach ($campagnesDispo as $c) { $campagneLabels[(int) $c['id']] = $c['nom']; }
+if ($campagneLabels) { $campagneLabels = ['aucun' => 'Aucune campagne'] + $campagneLabels; }
+// Statut : seulement les statuts contactables. Un ciblage ne sort jamais de
+// ceux-là (mailing_structures_eligibles()) — proposer « Inactif » aurait offert
+// un filtre qui ne rend jamais rien.
+$statutLabels = [];
+foreach (STRUCTURE_STATUTS_CONTACTABLES as $st) { $statutLabels[$st] = structure_statut_libelle($st); }
 $paysLabels = [];
 foreach (array_keys($grandesRegions) as $p) { $paysLabels[$p] = $p; }
 $grandeRegionLabels = [];
@@ -46,6 +60,7 @@ $saisie = array_filter([
 ]);
 $criteresActifs = array_filter([
     'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'],
+    'campagne_id' => $criteres['campagne_id'], 'statut' => $criteres['statut'],
     'pays' => $criteres['pays'], 'grande_region' => $criteres['grande_region'],
     'departement_canton' => $criteres['departement_canton'], 'ville' => $criteres['ville'],
 ]);
@@ -82,11 +97,7 @@ if (!$criteresActifs) {
     <input type="hidden" name="id" value="<?= $id ?>">
     <?php // Les critères repartent avec l'enregistrement : ils sont gardés en
           // mémoire sur la campagne, pour savoir d'où venait la sélection. ?>
-    <?= hidden_inputs_html(array_filter([
-        'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'],
-        'pays' => $criteres['pays'], 'grande_region' => $criteres['grande_region'],
-        'departement_canton' => $criteres['departement_canton'], 'ville' => $criteres['ville'],
-    ])) ?>
+    <?= hidden_inputs_html($criteresActifs) ?>
 
     <div class="grid4">
         <label>Nom <input name="nom" value="<?= $val('nom') ?>" required placeholder="ex. Tournée automne 2026"></label>
@@ -114,8 +125,10 @@ if (!$criteresActifs) {
 ) ?></h2>
 <div class="toolbar">
     <div class="filters">
+        <?= filtre_colonne_html('campagne_form', 'statut', $statutLabels, $criteres['statut'], $autres('statut'), 'Statut') ?>
         <?= filtre_colonne_html('campagne_form', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autres('categorie_id'), 'Catégorie') ?>
-        <?= filtre_colonne_html('campagne_form', 'tag_id', $tagLabels, $criteres['tag_id'], $autres('tag_id'), 'Tags') ?>
+        <?= $tagLabels ? filtre_colonne_html('campagne_form', 'tag_id', $tagLabels, $criteres['tag_id'], $autres('tag_id'), 'Tags') : '' ?>
+        <?= $campagneLabels ? filtre_colonne_html('campagne_form', 'campagne_id', $campagneLabels, $criteres['campagne_id'], $autres('campagne_id'), 'Campagnes') : '' ?>
         <?= filtre_colonne_html('campagne_form', 'pays', $paysLabels, $criteres['pays'], $autres('pays'), 'Pays') ?>
         <?= filtre_colonne_html('campagne_form', 'grande_region', $grandeRegionLabels, $criteres['grande_region'], $autres('grande_region'), 'Région') ?>
         <?= filtre_colonne_html('campagne_form', 'departement_canton', $labels($regions), $criteres['departement_canton'], $autres('departement_canton'), 'Département / canton') ?>

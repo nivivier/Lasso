@@ -201,6 +201,22 @@ check('zéro ne vaut pas une jauge', '', structure_jauge_texte(0, 0));
 check('zéro d\'un côté, valeur de l\'autre', '300', structure_jauge_texte(0, 300));
 check('valeurs en chaînes (POST / SQLite)', '150 – 600', structure_jauge_texte('150', '600'));
 
+// --- Période d'une structure ------------------------------------------------
+// Un festival de trois jours a le même mois en début et en fin : il doit
+// s'écrire « Juillet », pas « Juillet – Juillet ». Une seule borne renseignée
+// dit la même chose. Les mois tournent : pas de remise en ordre.
+echo "\n12b) Affichage de la période d'une structure\n";
+check('une plage', 'Juin – Septembre', structure_periode_texte(6, 9));
+check('même mois des deux côtés', 'Juillet', structure_periode_texte(7, 7));
+check('début seul', 'Juillet', structure_periode_texte(7, null));
+check('fin seule', 'Juillet', structure_periode_texte(null, 7));
+check('rien de renseigné', '', structure_periode_texte(null, null));
+check('chaînes vides', '', structure_periode_texte('', ''));
+check('zéro ne vaut pas un mois', '', structure_periode_texte(0, 0));
+check('saison à cheval sur l\'année', 'Novembre – Février', structure_periode_texte(11, 2));
+check('valeurs en chaînes (POST / SQLite)', 'Mars – Mai', structure_periode_texte('3', '5'));
+check('mois hors bornes ignoré', 'Mars', structure_periode_texte(3, 13));
+
 // --- État d'une campagne de contact -----------------------------------------
 // L'ordre de priorité compte autant que les cas eux-mêmes : « terminée » passe
 // avant tout, sinon une campagne finie en avance s'annoncerait « en retard ».

@@ -2438,6 +2438,11 @@ td.col-maj-le.a-date.est-creation::before {
 :is(td.col-tags, td.col-campagnes) .badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
 /* Le nom d'une campagne mène à sa page : le lien prend la couleur de sa
    pastille, sinon il trancherait en bleu au milieu d'une file de badges. */
+/* Pastille d'une campagne EN COURS : le teal du reste de l'application pour
+   ce qui appelle du travail (le nom teal de ?p=campagnes, le médaillon du
+   tableau de bord). Les couleurs seulement, sans passer par .ok-badge, qui
+   remet aussi la marge à zéro et décalerait cette pastille-là dans la file. */
+td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var(--teal-d); }
 :is(td.col-tags, td.col-campagnes) .badge a { color: inherit; }
 :is(td.col-tags, td.col-campagnes) .badge a:hover { text-decoration: underline; }
 /* Étiquette en cours d'enregistrement : elle prend tout de suite la place
@@ -2626,7 +2631,8 @@ td.col-maj-le.a-date.est-creation::before {
 /* Dans la liste des campagnes, l'icône du projet mène la ligne : elle y est
    plus grande qu'une pastille posée au fil du texte (la carte, où elle
    accompagne un nom déjà lisible sous une icône de 64 px). */
-.campagnes-table .projet-pastille .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); }
+.campagnes-table .projet-pastille { --pastille-taille: 30px; }
+.campagnes-table .projet-pastille .avatar-ini { font-size: var(--fs-tiny); }
 .camp-avancement-txt { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 9px; }
 .camp-avancement-txt b { color: var(--ink); }
 .camp-note { margin: -14px 0 22px; }
@@ -2653,9 +2659,22 @@ td.col-maj-le.a-date.est-creation::before {
 /* Pastille de projet posée devant un nom (colonne « Projet » des campagnes) :
    plus petite que celle d'une liste de personnes, où elle sert de repère de
    ligne — ici elle accompagne un nom déjà lisible. */
-.projet-pastille { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
+/* Quand la colonne se resserre, un nom de projet passe sur deux lignes. L'icône
+   doit alors accompagner la PREMIÈRE ligne et non flotter au milieu du bloc,
+   d'où flex-start plutôt que center — et une interligne calée sur la taille de
+   l'icône, pour que cette première ligne fasse exactement sa hauteur. Sans
+   cette interligne, flex-start posait l'icône (plus haute que la ligne) deux
+   pixels trop haut sur les noms qui tiennent sur une seule ligne, c'est-à-dire
+   presque tous. --pastille-taille tient les deux valeurs ensemble. */
+.projet-pastille {
+    --pastille-taille: 20px;
+    display: inline-flex; align-items: flex-start; gap: 6px; margin-right: 10px;
+    line-height: var(--pastille-taille);
+}
 .projet-pastille:last-child { margin-right: 0; }
-.projet-pastille .avatar-ini { width: 20px; height: 20px; margin-right: 0; font-size: 9px; }
+.projet-pastille .avatar-ini {
+    width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: 9px;
+}
 
 /* Pastille au format du titre (?p=employe_voir), avec son bouton de réglage. */
 .titre-avatar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

@@ -16,7 +16,9 @@ if ($criteres['categorie_id']) {
 if ($criteres['tag_id']) {
     $noms = [];
     foreach ($tags as $t) {
-        if (in_array((int) $t['id'], $criteres['tag_id'], true)) { $noms[] = $t['nom']; }
+        // Comparaison en chaînes : depuis que le filtre accepte la sentinelle
+        // « aucun », tag_id porte des chaînes et non des entiers.
+        if (in_array((string) $t['id'], array_map('strval', $criteres['tag_id']), true)) { $noms[] = $t['nom']; }
     }
     if ($noms) { $resumeCiblage[] = 'Tag : ' . implode(', ', $noms); }
 }

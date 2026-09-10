@@ -1183,9 +1183,21 @@ function mailing_criteres_depuis(array $src): array
 {
     $ids = fn (string $k): array => array_values(array_unique(array_filter(array_map('intval', (array) ($src[$k] ?? [])), fn ($v) => $v > 0)));
     $txt = fn (string $k): array => array_values(array_unique(array_filter(array_map('strval', (array) ($src[$k] ?? [])), fn ($v) => $v !== '')));
+    // Tags et campagnes acceptent en plus la sentinelle « aucun » — « lesquelles
+    // n'en ont pas encore ? » est la question qu'on pose en composant une
+    // campagne. Elle n'est pas un identifiant, d'où ce filtre-ci plutôt que $ids.
+    $idsOuAucun = fn (string $k): array => array_values(array_unique(array_filter(
+        array_map('strval', (array) ($src[$k] ?? [])),
+        fn ($v) => $v === 'aucun' || (int) $v > 0
+    )));
     return [
         'categorie_id'   => $ids('categorie_id'),
-        'tag_id'         => $ids('tag_id'),
+        'tag_id'         => $idsOuAucun('tag_id'),
+        'campagne_id'    => $idsOuAucun('campagne_id'),
+        // Statut de la structure. Le ciblage ne sort de toute façon jamais des
+        // statuts contactables (mailing_structures_eligibles()) : ce critère ne
+        // fait que resserrer à l'intérieur de ceux-là.
+        'statut'         => $txt('statut'),
         'pays'           => $txt('pays'),
         'grande_region'  => $txt('grande_region'),
         'departement_canton' => $txt('departement_canton'),
@@ -1208,7 +1220,7 @@ function mailing_criteres_depuis(array $src): array
 function mailing_criteres_vers_url(array $criteres): array
 {
     $url = [];
-    foreach (['categorie_id', 'tag_id', 'pays', 'grande_region', 'departement_canton', 'ville'] as $k) {
+    foreach (['categorie_id', 'tag_id', 'campagne_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'ville'] as $k) {
         if (!empty($criteres[$k])) {
             $url[$k] = array_values((array) $criteres[$k]);
         }
@@ -1640,6 +1652,10 @@ function route_campagne_form(): void
         'ajouts'     => $ajouts,
         'previsualise' => $previsualise,
         'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
+        // Pour l'entonnoir « Campagnes » du ciblage : composer une campagne en
+        // écartant les structures déjà démarchées par une autre, ou au contraire
+        // en les reprenant, est une question qu'on se pose souvent.
+        'campagnesDispo' => db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll(),
         'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
         'grandesRegions' => pays_regions_map(),
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),

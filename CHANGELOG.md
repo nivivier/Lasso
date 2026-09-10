@@ -7,6 +7,33 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.5] — 2026-09-10
+
+### Ajouté
+- **Les entonnoirs « Statut » et « Campagnes » dans le ciblage d'une campagne**
+  (`?p=campagne_form`), et l'option **« Aucun tag »** dans celui des tags — les
+  trois manquaient par rapport à `?p=structures`. « Aucune campagne » permet de
+  composer un démarchage sur ce qui n'a encore jamais été approché ; cochée avec
+  des campagnes, elle les rejoint (OU) au lieu de les annuler. Le filtre de
+  statut ne propose que les statuts contactables : un ciblage ne sort jamais de
+  ceux-là, et offrir « Inactif » aurait été offrir un filtre sans résultat.
+
+### Corrigé
+- **L'icône d'un projet flottait au milieu de son nom** quand celui-ci passait
+  sur deux lignes (`?p=campagnes`, et la carte de `?p=campagne`) : elle
+  accompagne maintenant la première ligne. Les noms qui tiennent sur une ligne
+  ne bougent pas.
+
+### Modifié
+- **Une période d'un seul mois s'écrit sans tiret** sur la fiche d'une
+  structure : « Juillet » et non « Juillet – Juillet » ni « Juillet – — ». Un
+  festival qui tient sur trois jours a le même mois en début et en fin de
+  réalisation — le tiret laissait croire à une plage.
+- **Les campagnes en cours ressortent en teal** dans la colonne « Campagnes »
+  de `?p=structures`. Dans une file de pastilles, c'est celle-là qui appelle du
+  travail ; les autres restent au ton neutre. Même règle qu'ailleurs : une
+  campagne entièrement démarchée est terminée, même avant sa date de fin.
+
 ## [2.7.4] — 2026-09-10
 
 ### Ajouté
