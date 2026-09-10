@@ -191,6 +191,13 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         [].forEach.call(casesProjets(), function (c) {
             c.checked = projetsDefaut.indexOf(parseInt(c.value, 10)) !== -1;
         });
+        majLibelleProjets();
+    }
+    // Cocher par code n'émet pas d'événement : le bouton du menu ne saurait pas
+    // qu'il doit se renommer (lassoInitChoixCoches(), assets/app.js).
+    function majLibelleProjets() {
+        var bloc = blocProjets && blocProjets.querySelector('.choix-coches');
+        if (bloc && bloc.majChoix) { bloc.majChoix(); }
     }
 
     function ouvrir(sid) {
@@ -266,6 +273,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                 [].forEach.call(cases, function (c) {
                     c.checked = m.spectacle_ids.indexOf(parseInt(c.value, 10)) !== -1;
                 });
+                majLibelleProjets();
             }
         }
     });

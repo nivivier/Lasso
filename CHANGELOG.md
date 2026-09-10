@@ -7,6 +7,30 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.1] — 2026-09-10
+
+### Corrigé
+- **Choisir un filtre dans le formulaire d'une campagne effaçait ce qu'on venait
+  d'y écrire** — nom, projet, dates. Les filtres rechargent la page (ils ne
+  doivent rien enregistrer), et la saisie en cours ne voyageait pas avec eux :
+  elle repartait donc de la base, ou de rien pour une nouvelle campagne. Elle est
+  maintenant reportée dans chaque panneau de filtre et relue au retour.
+- **Le projet n'était pas enregistré quand on modifiait une prise de contact**
+  dans l'historique détaillé d'une structure : le menu était bien là, la
+  sélection partait bien en POST, personne ne l'écrivait — l'entrée gardait ses
+  projets d'origine. C'est par eux qu'un contact compte dans une campagne : les
+  oublier faussait une jauge.
+- **Un menu déroulant s'ouvre vers le haut quand il ne tient pas en dessous.**
+  Sur la dernière ligne d'un tableau, le menu des projets s'ouvrait sous le bas
+  de la fenêtre et son contenu restait invisible. Le sens est maintenant décidé à
+  l'ouverture, en comparant la place disponible de part et d'autre.
+- **Le menu « Projet » continuait d'annoncer « Aucun projet »** après qu'on en
+  eut coché un, et jusqu'à l'enregistrement : son bouton était écrit par le
+  serveur au rendu, jamais remis à jour ensuite. Il se renomme désormais à chaque
+  case cochée, selon la même règle qu'au rendu — les deux premiers noms, puis
+  « +N ». Vaut pour tous les menus de ce type : fenêtre « Contacter », note
+  d'historique, modèles de message.
+
 ## [2.7.0] — 2026-09-10
 
 ### Modifié

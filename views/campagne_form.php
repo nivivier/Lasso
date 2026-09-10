@@ -8,7 +8,7 @@
 // groupé — même question, même code (mailing_criteres_depuis) — mais son
 // résultat n'est qu'une PROPOSITION : chaque structure garde sa case, qu'on
 // décoche pour la sortir de la campagne.
-$id = $campagne ? (int) $campagne['id'] : 0;
+$id = (int) ($campagne['id'] ?? 0);
 $val = fn (string $c, $d = '') => e((string) ($campagne[$c] ?? $d));
 $spectacleLabels = [];
 foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
@@ -27,13 +27,24 @@ $grandeRegionLabels = [];
 foreach ($grandesRegions as $pays => $rs) { foreach ($rs as $r) { $grandeRegionLabels[$r] = $r; } }
 
 // Les filtres pilotent l'URL (GET) et non le formulaire d'enregistrement :
-// prévisualiser ne doit rien écrire. Les champs déjà saisis voyagent avec eux.
+// prévisualiser ne doit rien écrire.
+//
+// Ce qui est déjà saisi voyage AVEC eux, en paramètres reportés dans chaque
+// panneau : sans cela, cocher une catégorie rechargeait la page et effaçait le
+// nom, les dates et les projets qu'on venait de choisir. La route les relit
+// (route_campagne_form) et réaffiche cette version-là plutôt que celle de la base.
 $base = ['id' => $id ?: null, 'previsualiser' => '1'];
+$saisie = array_filter([
+    'nom' => (string) ($campagne['nom'] ?? ''),
+    'date_debut' => (string) ($campagne['date_debut'] ?? ''),
+    'date_fin' => (string) ($campagne['date_fin'] ?? ''),
+    'spectacle_ids' => array_map('strval', $projets),
+]);
 $tousFiltres = array_filter([
     'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'],
     'pays' => $criteres['pays'], 'grande_region' => $criteres['grande_region'],
     'departement_canton' => $criteres['departement_canton'], 'ville' => $criteres['ville'],
-] + array_filter($base));
+] + $saisie + array_filter($base));
 $autres = autres_filtres_fn($tousFiltres);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>

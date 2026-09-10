@@ -901,7 +901,10 @@ function choix_coches_html(string $champ, array $options, array $actives, string
     $libelle = $choisis
         ? implode(' · ', array_slice($choisis, 0, 2)) . (count($choisis) > 2 ? ' +' . (count($choisis) - 2) : '')
         : $libelleVide;
-    $h = '<details class="col-filter choix-coches">'
+    // data-vide : ce que le bouton affiche quand plus rien n'est coché. Le
+    // libellé est refait côté navigateur à chaque case cochée (lassoInitChoixCoches(),
+    // assets/app.js) — sans quoi il ne disait la vérité qu'après enregistrement.
+    $h = '<details class="col-filter choix-coches" data-vide="' . e($libelleVide) . '">'
        . filtre_bouton_html($libelle, $activesTxt !== [], null)
        . '<div class="col-filter-menu">'
        . '<label class="col-filter-tout"><input type="checkbox" data-check-tout' . (count($activesTxt) === count($options) && $options ? ' checked' : '') . '> Tout</label>'

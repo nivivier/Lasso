@@ -47,9 +47,34 @@ window.addEventListener('DOMContentLoaded', () => {
 // dans un requestAnimationFrame (après le prochain rendu), pas
 // immédiatement, pour ne pas forcer un reflow synchrone juste après avoir
 // écrit top/left.
-function positionnerPanneauFlottant(anchorRect, panel, offsetTop) {
-    panel.style.top = (anchorRect.bottom + offsetTop) + 'px';
+// $auDessusSiBesoin : le panneau bascule AU-DESSUS de son ancre quand il ne
+// tient pas en dessous — un menu ouvert sur la dernière ligne d'un tableau
+// s'ouvrait sous le bas de la fenêtre, et son contenu restait invisible. Réservé
+// aux menus de colonne : .filters-more, lui, réserve explicitement sa place en
+// dessous (margin-bottom sur la toolbar), le faire remonter décollerait le
+// panneau de l'espace qu'il vient de se ménager.
+function positionnerPanneauFlottant(anchorRect, panel, offsetTop, auDessusSiBesoin) {
     panel.style.left = anchorRect.left + 'px';
+    let top = anchorRect.bottom + offsetTop;
+    if (auDessusSiBesoin) {
+        // Hauteur lue TOUT DE SUITE, contrairement à la largeur plus bas : le
+        // panneau est déjà affiché (details[open]) au moment où l'on arrive ici,
+        // et de quel côté il s'ouvre décide s'il est lisible ou hors de l'écran.
+        // Une lecture différée au prochain rendu le ferait sauter sous les yeux,
+        // et ne se ferait pas du tout dans un onglet que le navigateur ne dessine
+        // pas. Le reflow que cela coûte est payé une fois par ouverture.
+        const hauteur = panel.offsetHeight;
+        const dessous = window.innerHeight - anchorRect.bottom - offsetTop - 8;
+        const dessus = anchorRect.top - offsetTop - 8;
+        // On ne remonte que si ça tient mieux en haut : sur une fenêtre trop
+        // courte des deux côtés, autant garder le sens habituel.
+        if (hauteur > dessous && dessus > dessous) {
+            top = Math.max(8, anchorRect.top - offsetTop - hauteur);
+        }
+    }
+    panel.style.top = top + 'px';
+    // La largeur, elle, n'est connue qu'une fois le panneau positionné : lue au
+    // prochain rendu, pour ne pas forcer un second reflow synchrone.
     requestAnimationFrame(() => {
         const maxLeft = window.innerWidth - panel.offsetWidth - 8;
         panel.style.left = Math.max(8, Math.min(anchorRect.left, maxLeft)) + 'px';
@@ -135,7 +160,7 @@ document.addEventListener('toggle', e => {
     const btn = details.querySelector('.col-filter-btn');
     if (!menu || !btn) { return; }
     menu.style.position = 'fixed';
-    positionnerPanneauFlottant(btn.getBoundingClientRect(), menu, 4);
+    positionnerPanneauFlottant(btn.getBoundingClientRect(), menu, 4, true);
 }, true);
 // Cases à cocher du filtre : la sélection ne part que sur clic explicite du
 // bouton "Appliquer" (bouton submit du formulaire, voir views/fiches.php) —
@@ -1162,6 +1187,39 @@ document.addEventListener('click', e => {
 // c'est celui de la FICHE que ce code attrapait — il y remettait structure_id à
 // vide, faute de data-tag-structure sur son bouton, et l'ajout partait avec un
 // id 0, donc en violation de clé étrangère.
+// Menu à cocher posé DANS un formulaire (choix_coches_html(), lib/helpers.php) :
+// son bouton nomme ce qui est coché. Le serveur l'écrit au rendu ; ici on le
+// refait à chaque case, sinon il continuait d'annoncer « Aucun projet » alors
+// qu'on venait d'en choisir un — et jusqu'à l'enregistrement.
+//
+// Même règle que la version PHP : les deux premiers noms, puis « +N ». La
+// recomposition est différée d'un tour de boucle, parce que « Tout » coche les
+// autres cases APRÈS avoir déclenché son propre événement.
+function lassoInitChoixCoches() {
+    document.querySelectorAll('.choix-coches').forEach(bloc => {
+        if (bloc.dataset.choixBound) return;
+        bloc.dataset.choixBound = '1';
+        const bouton = bloc.querySelector('.col-filter-btn');
+        const lib = bloc.querySelector('.col-filter-lib');
+        if (!bouton || !lib) return;
+        const vide = bloc.getAttribute('data-vide') || 'Tout';
+        const majuscule = () => {
+            const noms = [...bloc.querySelectorAll('.col-filter-options input[type="checkbox"]:checked')]
+                .map(c => c.parentElement.textContent.trim());
+            bouton.classList.toggle('on', noms.length > 0);
+            lib.textContent = noms.length
+                ? noms.slice(0, 2).join(' · ') + (noms.length > 2 ? ' +' + (noms.length - 2) : '')
+                : vide;
+        };
+        bloc.addEventListener('change', () => setTimeout(majuscule, 0));
+        // Les cases posées par du code (fenêtre « Contacter » : projets d'une
+        // campagne, projets d'un modèle) n'émettent pas d'événement de leur
+        // propre chef — l'appelant émet alors un « change » sur le bloc.
+        bloc.majChoix = majuscule;
+    });
+}
+window.addEventListener('DOMContentLoaded', lassoInitChoixCoches);
+
 // Poster une modification et remplacer la SEULE cellule concernée par celle que
 // le serveur renvoie. Deux colonnes de ?p=structures s'en servent — les
 // étiquettes et les campagnes : la page pèse plusieurs mégaoctets, la recharger

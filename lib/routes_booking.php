@@ -282,6 +282,12 @@ function route_structure_note_modifier(): void
         ?? (string) $entree['cree_le'];
     db()->prepare('UPDATE historique SET contenu = ?, type = ?, cree_le = ? WHERE id = ?')
         ->execute([$contenu, $type, $creeLe, $id]);
+    // Les projets concernés se modifient comme le reste de l'entrée : sans cette
+    // ligne, le menu « Projet » du formulaire d'édition ne servait à rien — la
+    // sélection partait bien en POST, personne ne l'écrivait, et l'entrée gardait
+    // ses projets d'origine. C'est par eux qu'une prise de contact compte dans
+    // une campagne : les oublier fausse une jauge.
+    spectacles_lier('historique_spectacles', $id, (array) ($_POST['spectacle_ids'] ?? []));
     // dernier_contact_le est dénormalisé depuis le MAX des entrées « mailing »
     // (structure_recalculer_dernier_contact()) : changer la date OU le type d'une
     // entrée le périme. Recalcul sur la structure PORTEUSE, qui n'est pas
@@ -1550,9 +1556,22 @@ function route_campagne_form(): void
         redirect('campagnes');
     }
     $criteres = mailing_criteres_depuis($_GET);
-    $apercu = isset($_GET['previsualiser'])
-        ? mailing_structures_eligibles($criteres)
-        : [];
+    $previsualise = isset($_GET['previsualiser']);
+    $apercu = $previsualise ? mailing_structures_eligibles($criteres) : [];
+
+    // Choisir un filtre recharge la page (GET) : ce qui est déjà saisi dans le
+    // formulaire voyage donc avec lui, en paramètres d'URL, et c'est cette
+    // version-là qu'on réaffiche. Sans quoi cocher une catégorie effaçait le
+    // nom et les dates qu'on venait d'écrire — et, sur une campagne existante,
+    // les faisait revenir à leur valeur enregistrée.
+    $projets = $id ? spectacles_lies('campagne_spectacles', $id) : [];
+    if ($previsualise) {
+        $campagne = (array) $campagne + ['id' => $id];
+        foreach (['nom', 'date_debut', 'date_fin'] as $champ) {
+            $campagne[$champ] = trim((string) ($_GET[$champ] ?? ''));
+        }
+        $projets = array_values(array_filter(array_map('intval', (array) ($_GET['spectacle_ids'] ?? []))));
+    }
     // Structures déjà retenues : à la modification, ce sont elles qui sont
     // cochées — pas le résultat du ciblage, qui a pu bouger depuis.
     $retenues = [];
@@ -1586,21 +1605,21 @@ function route_campagne_form(): void
     unset($ligne);
 
     render('campagne_form', [
-        'campagne'   => $campagne,
+        'campagne'   => $campagne ?: null,
         'nbEvenements' => module_actif('evenements') ? structures_nb_evenements($ids) : [],
-        'projets'    => $campagne ? spectacles_lies('campagne_spectacles', $id) : [],
+        'projets'    => $projets,
         'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
         'criteres'   => $criteres,
         'apercu'     => $apercu,
         'retenues'   => $retenues,
-        'previsualise' => isset($_GET['previsualiser']),
+        'previsualise' => $previsualise,
         'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
         'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
         'grandesRegions' => pays_regions_map(),
         'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
         'categoriesPourSelect' => structure_categories_pour_select(),
         'err'        => $_GET['err'] ?? null,
-    ], $campagne ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne');
+    ], $id ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne');
 }
 
 function route_campagne_enregistrer(): void
