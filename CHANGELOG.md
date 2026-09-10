@@ -7,6 +7,38 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.7] — 2026-09-10
+
+### Ajouté
+- **Un entonnoir « Région »** dans la colonne « Ville » de `?p=structures` et du
+  suivi d'une campagne, à côté de Pays et Département/canton — du plus large au
+  plus fin. Il remplace le filtre de région qui n'existait que sous forme de
+  lien depuis Paramètres → Pays : invisible dans la liste, il demandait un
+  bandeau pour signaler qu'il était actif. C'est maintenant un filtre comme les
+  autres, qui se coche, se lit dans les filtres actifs et se mémorise.
+- **« Ajouter à une campagne » et « Retirer d'une campagne » dans la
+  modification groupée**, sur `?p=structures` comme sur le suivi d'une
+  campagne : le pendant des deux actions de tag, sur l'autre liaison. Ranger
+  vingt salles dans une tournée ne demande plus vingt allers-retours. Le retrait
+  est confirmé — le lien campagne↔structure porte la réponse reçue, le défaire
+  l'efface ; l'ajout, lui, ne détruit rien et ne demande rien.
+
+### Corrigé
+- **La carte « Campagnes » du tableau de bord débordait de sa carte.** Deux
+  causes, chacune une largeur minimale qu'aucune troncature ne réduit : le nom
+  de campagne tenait sur une seule ligne (tronquer d'un « … » ne raccourcit pas
+  le texte aux yeux du calcul de largeur) et la colonne « Avancement »
+  réclamait la jauge PLUS son compte, côte à côte et insécables. Le nom passe
+  sur deux lignes au plus, la jauge de 120 à 80 px, le compte sous elle plutôt
+  qu'à côté. Sans `@media` : ce qui compte n'est pas la largeur de l'écran mais
+  celle de la carte, et le tableau de bord en range trois par rangée — sur un
+  grand écran, une carte de tableau de bord est déjà étroite. Vérifié de 300 à
+  2560 px.
+- **Un lien de région depuis Paramètres → Pays laissait le filtre de campagnes
+  actif**, et menait donc à moins de fiches que le nombre annoncé juste à côté.
+  Ces liens vident tous les filtres pour que le compte soit exact ; celui-là
+  avait été oublié à l'ajout de la colonne « Campagnes ».
+
 ## [2.7.6] — 2026-09-10
 
 ### Ajouté

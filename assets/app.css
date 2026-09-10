@@ -1628,22 +1628,28 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    c'est la même icône pour le même projet, elle doit se reconnaître pareil
    d'un écran à l'autre. */
 .dash-campagne .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); margin: 0; flex: 0 0 auto; }
-.dash-campagne-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Sur téléphone, le nom passe à la ligne au lieu de rester sur une seule.
-   Tronqué d'un « … », il gardait quand même sa largeur de texte entier comme
-   largeur minimale : la colonne s'étirait, et le tableau sortait de la carte de
-   deux cents pixels. Deux lignes au plus, pour que neuf campagnes tiennent
-   encore dans une carte. */
-@media (max-width: 700px) {
-    .dash-campagne-nom {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-    }
+/* Ce qui tenait le tableau de cette carte trop large, des deux côtés :
+   — le NOM était sur une seule ligne, tronqué d'un « … ». Or tronquer ne réduit
+     pas la largeur MINIMALE d'un texte : la colonne réclamait quand même la
+     place du nom entier. Il passe sur deux lignes au plus — au-delà, neuf
+     campagnes ne tiendraient plus dans une carte.
+   — la colonne « Avancement » demandait la largeur de la barre PLUS celle de
+     son compte, les deux côte à côte et insécables. La barre rétrécit et le
+     compte passe dessous.
+   Aucune de ces règles n'est sous @media : ce qui compte n'est pas la largeur
+   de l'ÉCRAN mais celle de la CARTE, et le tableau de bord en range trois par
+   rangée — sur un grand écran, une carte de tableau de bord est déjà étroite. */
+.dash-campagne-nom {
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
 }
+.dash-card .camp-avancement { white-space: normal; }
+.dash-card .camp-barre-liste { width: 80px; }
+.dash-card .camp-avancement-txt { display: block; margin-left: 0; }
 /* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
    émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
    padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même

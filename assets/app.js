@@ -577,6 +577,11 @@ function lassoInitBulkBar() {
         const n = document.querySelectorAll('.row-check:checked').length;
         if (sectionInput.value === 'delete' && !confirm('Supprimer ' + n + ' structure(s) ? Cette action est irréversible.')) {
             e.preventDefault();
+        } else if (sectionInput.value === 'campagne_retirer'
+                   && !confirm('Retirer ' + n + ' structure(s) de la campagne choisie ? Les réponses qui y sont notées seront perdues.')) {
+            // Le lien campagne↔structure porte la réponse reçue : le défaire
+            // l'efface. L'ajout, lui, ne détruit rien — il ne demande rien.
+            e.preventDefault();
         } else if (sectionInput.value === 'fusionner' && n < 2) {
             alert('Sélectionnez au moins deux structures à fusionner.');
             e.preventDefault();

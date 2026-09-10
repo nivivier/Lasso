@@ -1848,6 +1848,7 @@ function route_campagne(): void
         'reponseFiltre' => $reponseFiltre,
         'categoriesPourSelect' => structure_categories_pour_select(),
         'regionsDispo' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
+        'grandesRegionsDispo' => db()->query("SELECT DISTINCT grande_region FROM structures WHERE grande_region <> '' ORDER BY grande_region")->fetchAll(PDO::FETCH_COLUMN),
         'tagsDispo'   => db()->query('SELECT t.* FROM structure_tags t ORDER BY t.nom')->fetchAll(),
         'campagne'    => $campagne,
         'projets'     => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projets),
@@ -1881,6 +1882,12 @@ function route_campagne(): void
         'tagBulk'     => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom'  => (string) ($_GET['tagnom'] ?? ''),
+        'campBulk'    => isset($_GET['campbulk']) ? (int) $_GET['campbulk'] : null,
+        'campBulkAction' => (string) ($_GET['campact'] ?? ''),
+        'campBulkNom' => (string) ($_GET['campnom'] ?? ''),
+        // Pour les deux actions groupées « campagne » de la barre : ranger une
+        // sélection dans une autre campagne, ou la sortir de celle-ci.
+        'campagnesDispo' => db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll(),
         'structBloquees' => (int) ($_GET['structBloquees'] ?? 0),
     ], 'Campagne — ' . $campagne['nom']);
 }

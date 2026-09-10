@@ -573,6 +573,9 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
     $categorieId = filtre_coche('categorie_id', $prefixeSession . '_categorie_id');
     $pays = filtre_coche('pays', $prefixeSession . '_pays', null, true);
     $departementCanton = filtre_coche('departement_canton', $prefixeSession . '_departement_canton', null, true);
+    // Région (colonne grande_region : Romandie, Normandie…) — un entonnoir de
+    // plus dans la colonne « Ville », à côté de Pays et Département/canton.
+    $grandeRegion = filtre_coche('grande_region', $prefixeSession . '_grande_region', null, true);
     // texteLibre pour ces deux-là : leurs valeurs mêlent des identifiants et la
     // sentinelle « aucun » (les structures qui n'en portent aucun), qu'un
     // intval() écraserait — même procédé que « sans_axe » en analytique.
@@ -586,14 +589,6 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
     // views/_structures_carte.php, carte_banner_geocodage_html()). Jamais
     // mémorisé en session : lien ponctuel, pas un mode de travail courant.
     $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
-    // Région (colonne grande_region) : filtre d'appoint porté par les liens de
-    // ?p=parametres_pays, sans entonnoir ni colonne dans la liste. Comme
-    // non_localises, il n'est JAMAIS mémorisé en session — un lien ponctuel,
-    // pas un mode de travail — et un bandeau signale qu'il est actif (sans quoi
-    // la liste paraîtrait amputée sans raison visible). Les liens qui le posent
-    // y joignent toujours le pays : deux pays peuvent avoir une région
-    // homonyme (« Nord » par exemple), et le compte annoncé porte sur le couple.
-    $region = trim((string) ($_GET['region'] ?? ''));
     // Filtres avancés « lieu » (jauge, mois) : depuis la fusion
     // lieux→structures (migration_59/60), ces champs vivent directement sur la
     // structure — filtre simple sur ses propres colonnes, plus d'indirection
@@ -657,12 +652,12 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
         $where .= ' AND s.departement_canton IN (' . sql_in($departementCanton) . ')';
         $params = array_merge($params, $departementCanton);
     }
+    if ($grandeRegion) {
+        $where .= ' AND s.grande_region IN (' . sql_in($grandeRegion) . ')';
+        $params = array_merge($params, $grandeRegion);
+    }
     if ($nonLocalises) {
         $where .= geocodage_non_localises_where('s.adresse_localite', 's.departement_canton', 's.adresse_pays');
-    }
-    if ($region !== '') {
-        $where .= ' AND s.grande_region = ?';
-        $params[] = $region;
     }
     // Ces deux filtres acceptent « aucun » à côté des identifiants. Les
     // conditions sont unies en OR : cocher « Aucun tag » ET une étiquette montre
@@ -740,9 +735,9 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
-        'pays' => $pays, 'departementCanton' => $departementCanton, 'tagId' => $tagId, 'campagneId' => $campagneId,
+        'pays' => $pays, 'departementCanton' => $departementCanton, 'grandeRegion' => $grandeRegion,
+        'tagId' => $tagId, 'campagneId' => $campagneId,
         'statut' => $statut, 'nonLocalises' => $nonLocalises,
-        'region' => $region,
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
         'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg,
         'avecEvenements' => $avecEvenements,
@@ -878,6 +873,43 @@ function structures_bulk_appliquer(string $route, array $retour): void
             $retour['tagbulk'] = $n;
             $retour['tagact'] = 'retrait';
             $retour['tagnom'] = $nomTag;
+        } elseif (in_array($section, ['campagne_ajouter', 'campagne_retirer'], true)
+                  && (int) ($_POST['bulk_' . $section] ?? 0) > 0) {
+            // Ranger une sélection entière dans une campagne, ou l'en sortir.
+            // Même mécanique que les tags juste au-dessus, sur l'autre liaison —
+            // à ceci près qu'un lien campagne↔structure PORTE la réponse reçue
+            // (migration_86) : le retirer l'efface, d'où la confirmation côté
+            // écran (lassoInitBulkBar()). Pas d'annulation groupée : ce ne sont
+            // pas des colonnes de `structures`, et chaque fiche en garde une
+            // trace dans son historique.
+            $campagneId = (int) $_POST['bulk_' . $section];
+            $stmtC = db()->prepare('SELECT nom FROM campagnes WHERE id = ?');
+            $stmtC->execute([$campagneId]);
+            $nomCampagne = (string) ($stmtC->fetchColumn() ?: '');
+            if ($nomCampagne !== '') {
+                $ajout = $section === 'campagne_ajouter';
+                $req = $ajout
+                    ? db()->prepare('INSERT OR IGNORE INTO campagne_structures (campagne_id, structure_id) VALUES (?, ?)')
+                    : db()->prepare('DELETE FROM campagne_structures WHERE campagne_id = ? AND structure_id = ?');
+                $n = 0;
+                db()->beginTransaction();
+                foreach ($ids as $sid) {
+                    $req->execute([$campagneId, $sid]);
+                    if ((int) db()->query('SELECT changes()')->fetchColumn() > 0) {
+                        journaliser(
+                            'structure',
+                            (int) $sid,
+                            'edition',
+                            ($ajout ? 'Ajoutée à la campagne : ' : 'Retirée de la campagne : ') . $nomCampagne
+                        );
+                        $n++;
+                    }
+                }
+                db()->commit();
+                $retour['campbulk'] = $n;
+                $retour['campact'] = $ajout ? 'ajout' : 'retrait';
+                $retour['campnom'] = $nomCampagne;
+            }
         } elseif ($section === 'fusionner' && count($ids) >= 2) {
             $_SESSION['fusion_ids'] = $ids;
             redirect('structure_fusion');
@@ -911,13 +943,13 @@ function route_structures(): void
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
     $lieuMoisProg = $f['lieuMoisProg'];
     $nonLocalises = $f['nonLocalises'];
-    $region = $f['region'];
+    $grandeRegion = $f['grandeRegion'];
     $avecEvenements = $f['avecEvenements'];
     $majPeriode = $f['majPeriode'];
     $contactPeriode = $f['contactPeriode'];
     $retourFiltres = [
         'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
-        'campagne_id' => $campagneId,
+        'campagne_id' => $campagneId, 'grande_region' => $grandeRegion,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'avec_evenements' => $avecEvenements,
         'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
@@ -938,9 +970,10 @@ function route_structures(): void
             'tagId' => $tagId, 'campagneId' => [], 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
-            'region' => $region,
+            'grandeRegion' => $grandeRegion, 'grandesRegionsDispo' => [],
             'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
+            'campBulk' => null, 'campBulkAction' => '', 'campBulkNom' => '',
             // Les étiquettes servent au panneau « Filtres » de la carte comme
             // à celui de la liste : le filtre tag_id est bel et bien appliqué
             // ici (structures_filtres()), et sans cette liste il n'avait ni
@@ -1008,6 +1041,9 @@ function route_structures(): void
     }
 
     $regionsDispo = db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN);
+    // Les régions RÉELLEMENT portées par des structures, comme regionsDispo
+    // au-dessus (qui, malgré son nom, tient les départements/cantons).
+    $grandesRegionsDispo = db()->query("SELECT DISTINCT grande_region FROM structures WHERE grande_region <> '' ORDER BY grande_region")->fetchAll(PDO::FETCH_COLUMN);
     $tagsDispo = module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [];
 
     render('structures_liste', [
@@ -1028,15 +1064,18 @@ function route_structures(): void
         'lieuMoisEvenement' => $lieuMoisEvenement,
         'lieuMoisProg' => $lieuMoisProg,
         'nonLocalises' => $nonLocalises,
-        'region' => $region,
+        'grandeRegion' => $grandeRegion,
         'avecEvenements' => $avecEvenements,
         'majPeriode' => $majPeriode,
         'contactPeriode' => $contactPeriode,
         'tagBulk' => isset($_GET['tagbulk']) ? (int) $_GET['tagbulk'] : null,
         'tagBulkAction' => (string) ($_GET['tagact'] ?? ''),
         'tagBulkNom' => (string) ($_GET['tagnom'] ?? ''),
+        'campBulk' => isset($_GET['campbulk']) ? (int) $_GET['campbulk'] : null,
+        'campBulkAction' => (string) ($_GET['campact'] ?? ''),
+        'campBulkNom' => (string) ($_GET['campnom'] ?? ''),
         'categoriesPourSelect' => structure_categories_pour_select(),
-        'regionsDispo' => $regionsDispo,
+        'regionsDispo' => $regionsDispo, 'grandesRegionsDispo' => $grandesRegionsDispo,
         'tagsDispo' => $tagsDispo,
         // Colonne « Campagnes » : les campagnes de chaque structure affichée, et
         // la liste où piocher pour l'ajouter à l'une d'elles. Vides si le
@@ -1051,7 +1090,7 @@ function route_structures(): void
             'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
-            'region' => $region,
+            'grande_region' => $grandeRegion,
             // Structures est partagée par 3 groupes de nav (booking/facturation/
             // evenements) — reporté dans les liens de pagination pour que le
             // rail/bandeau reste dans le groupe de provenance (voir la même

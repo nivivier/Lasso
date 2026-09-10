@@ -10,11 +10,14 @@
 //                  faut pour y revenir (l'id de la campagne, par exemple).
 //   $bbTagsDispo   (array)  les tags existants, pour les deux actions de tag.
 //   $bbCategories  (array)  structure_categories_pour_select(), pour « Catégorie ».
+//   $bbCampagnes   (array)  les campagnes existantes ; vide, les deux actions
+//                  de campagne disparaissent de la liste.
 //
 // Le comportement (les deux menus, l'icône du bouton, les confirmations) est
 // dans lassoInitBulkBar(), assets/app.js : il est identique sur les deux pages.
 $bbTagsDispo = $bbTagsDispo ?? [];
 $bbCategories = $bbCategories ?? [];
+$bbCampagnes = $bbCampagnes ?? [];
 ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="<?= e($bbAction) ?>">
@@ -33,6 +36,13 @@ $bbCategories = $bbCategories ?? [];
             <?php if ($bbTagsDispo || module_actif('booking')): ?>
             <option value="tag_ajouter">Ajouter un tag</option>
             <option value="tag_retirer">Retirer un tag</option>
+            <?php endif; ?>
+            <?php // Ranger une sélection dans une campagne, ou l'en sortir : le
+                  // pendant des tags sur l'autre liaison. Rien à proposer tant
+                  // qu'aucune campagne n'existe. ?>
+            <?php if ($bbCampagnes): ?>
+            <option value="campagne_ajouter">Ajouter à une campagne</option>
+            <option value="campagne_retirer">Retirer d'une campagne</option>
             <?php endif; ?>
             <option value="fusionner">Fusionner</option>
             <option value="delete">Supprimer</option>
@@ -86,6 +96,20 @@ $bbCategories = $bbCategories ?? [];
                 <?php endforeach; ?>
             </select>
         </span>
+        <?php endif; ?>
+        <?php if ($bbCampagnes): ?>
+        <?php // Un menu par action, et donc un NOM par action, comme pour les
+              // tags : masquer un champ ne l'empêche pas d'être envoyé, et deux
+              // menus de même nom auraient posté deux valeurs pour une. ?>
+        <?php foreach (['campagne_ajouter', 'campagne_retirer'] as $bbSection): ?>
+        <span class="bulk-field" data-for="<?= $bbSection ?>" hidden>
+            <select name="bulk_<?= $bbSection ?>" class="inline-year-select" aria-label="Campagne">
+                <?php foreach ($bbCampagnes as $c): ?>
+                    <option value="<?= (int) $c['id'] ?>"><?= e((string) $c['nom']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </span>
+        <?php endforeach; ?>
         <?php endif; ?>
         <span class="bulk-field" data-for="statut" hidden>
             <select name="bulk_statut" class="inline-year-select">

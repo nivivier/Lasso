@@ -8,9 +8,12 @@
 // Attendu de l'appelant (préfixe « sf ») :
 //   $sfPage        (string) la route qui reçoit les panneaux ('structures', 'campagne').
 //   $sfVals        (array)  valeurs actives, telles que rendues par structures_filtres() :
-//                  categorieId, pays, departementCanton, tagId, statut,
+//                  categorieId, pays, departementCanton, grandeRegion, tagId,
+//                  statut,
 //                  avecEvenements, contactPeriode, majPeriode.
-//   $sfSources     (array)  categoriesPourSelect, tagsDispo, regionsDispo, et
+//   $sfSources     (array)  categoriesPourSelect, tagsDispo, regionsDispo
+//                  (les départements/cantons, malgré son nom),
+//                  grandesRegionsDispo, et
 //                  campagnesDispo pour la colonne « Campagnes » — vide ailleurs,
 //                  l'entonnoir disparaît alors avec elle.
 //   $sfAutresParams(array)  paramètres reportés dans CHAQUE panneau (q, depuis,
@@ -37,6 +40,7 @@ $sfStatut = $sfVals['statut'] ?? [];
 $sfCategorieId = $sfVals['categorieId'] ?? [];
 $sfPays = $sfVals['pays'] ?? [];
 $sfDepartementCanton = $sfVals['departementCanton'] ?? [];
+$sfGrandeRegion = $sfVals['grandeRegion'] ?? [];
 $sfTagId = $sfVals['tagId'] ?? [];
 $sfCampagneId = $sfVals['campagneId'] ?? [];
 $sfAvecEvenements = $sfVals['avecEvenements'] ?? [];
@@ -62,12 +66,18 @@ $paysLabels = [];
 foreach (array_unique(array_merge($sfPays, array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
 $departementCantonLabels = [];
 foreach (array_unique(array_merge($sfDepartementCanton, $sfSources['regionsDispo'] ?? [])) as $r) { $departementCantonLabels[$r] = $r; }
+// Région = grande_region (Romandie, Normandie…), à ne pas confondre avec le
+// département/canton juste au-dessus. Les valeurs actives sont réunies aux
+// valeurs disponibles : une région qui n'est plus portée par aucune structure
+// doit rester décochable.
+$grandeRegionLabels = [];
+foreach (array_unique(array_merge($sfGrandeRegion, $sfSources['grandesRegionsDispo'] ?? [])) as $r) { $grandeRegionLabels[$r] = $r; }
 $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
 // Mêmes tranches pour les deux colonnes de date (voir PERIODES_ANCIENNETE).
 $periodeLabels = PERIODES_ANCIENNETE;
 $sfLabels = [
     'statut' => $statutLabels, 'tag' => $tagLabels, 'campagne' => $campagneLabels, 'categorie' => $categorieLabels,
-    'pays' => $paysLabels, 'departementCanton' => $departementCantonLabels,
+    'pays' => $paysLabels, 'departementCanton' => $departementCantonLabels, 'grandeRegion' => $grandeRegionLabels,
     'avecEvenements' => $avecEvenementsLabels, 'periode' => $periodeLabels,
 ];
 
@@ -76,6 +86,7 @@ $sfLabels = [
 // identique par filtre.
 $sfTousFiltres = [
     'categorie_id' => $sfCategorieId, 'pays' => $sfPays, 'departement_canton' => $sfDepartementCanton,
+    'grande_region' => $sfGrandeRegion,
     'tag_id' => $sfTagId, 'campagne_id' => $sfCampagneId, 'statut' => $sfStatut, 'avec_evenements' => $sfAvecEvenements,
     'maj_periode' => $sfMajPeriode, 'contact_periode' => $sfContactPeriode,
 ] + $sfAutresParams;
@@ -84,7 +95,7 @@ $sfAutres = autres_filtres_fn($sfTousFiltres);
 // Le filtre de statut peut démarrer sur « actif + contact privilégié » plutôt
 // que vide (voir structures_filtres()) : c'est bien un filtre, il masque des
 // structures. Le bouton de retrait doit donc être là dès l'ouverture.
-$sfActif = $sfCategorieId || $sfStatut || $sfPays || $sfDepartementCanton || $sfTagId
+$sfActif = $sfCategorieId || $sfStatut || $sfPays || $sfDepartementCanton || $sfGrandeRegion || $sfTagId
     || $sfCampagneId || $sfAvecEvenements || $sfContactPeriode || $sfMajPeriode || $sfActifSupp;
 
 $sfMontreEvenements = module_actif('evenements');
@@ -98,7 +109,9 @@ $sfCol = fn (string $champ, array $options, array $actives, string $libelle = ''
 
 $sfFiltres = [
     'statut'     => $sfCol('statut', $statutLabels, $sfStatut),
+    // Trois entonnoirs sur la colonne « Ville » : du plus large au plus fin.
     'ville'      => $sfCol('pays', $paysLabels, $sfPays)
+                  . ($grandeRegionLabels ? $sfCol('grande_region', $grandeRegionLabels, $sfGrandeRegion) : '')
                   . $sfCol('departement_canton', $departementCantonLabels, $sfDepartementCanton),
     'categorie'  => $sfCol('categorie_id', $categorieLabels, $sfCategorieId),
     'tags'       => $sfTags ? $sfCol('tag_id', $tagLabels, $sfTagId, '', $sfTagActions) : '',
@@ -114,6 +127,7 @@ $sfFiltres = [
 $sfColonnes = $sfCol('statut', $statutLabels, $sfStatut, 'Statut')
     . $sfCol('categorie_id', $categorieLabels, $sfCategorieId, 'Catégorie')
     . $sfCol('pays', $paysLabels, $sfPays, 'Pays')
+    . ($grandeRegionLabels ? $sfCol('grande_region', $grandeRegionLabels, $sfGrandeRegion, 'Région') : '')
     . $sfCol('departement_canton', $departementCantonLabels, $sfDepartementCanton, 'Département / canton')
     . ($sfTags ? $sfCol('tag_id', $tagLabels, $sfTagId, 'Tags', $sfTagActions) : '')
     . ($sfCampagnes ? $sfCol('campagne_id', $campagneLabels, $sfCampagneId, 'Campagnes') : '')
@@ -128,6 +142,7 @@ $sfAct = fn (string $champ, array $options, array $actives): string
 $sfActifs = $sfAct('statut', $statutLabels, $sfStatut)
     . $sfAct('categorie_id', $categorieLabels, $sfCategorieId)
     . $sfAct('pays', $paysLabels, $sfPays)
+    . $sfAct('grande_region', $grandeRegionLabels, $sfGrandeRegion)
     . $sfAct('departement_canton', $departementCantonLabels, $sfDepartementCanton)
     . $sfAct('tag_id', $tagLabels, $sfTagId)
     . $sfAct('campagne_id', $campagneLabels, $sfCampagneId)
@@ -137,7 +152,7 @@ $sfActifs = $sfAct('statut', $statutLabels, $sfStatut)
 
 $sfReinit = bouton_reinit_filtres(
     $sfPage,
-    ['categorie_id', 'statut', 'pays', 'departement_canton', 'tag_id', 'campagne_id', 'avec_evenements', 'contact_periode', 'maj_periode'],
+    ['categorie_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'tag_id', 'campagne_id', 'avec_evenements', 'contact_periode', 'maj_periode'],
     (bool) $sfActif,
     $sfReinitVides,
     // Les vides ne voyagent pas : un « q= » ou un « depuis= » sans valeur dans

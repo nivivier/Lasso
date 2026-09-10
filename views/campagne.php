@@ -6,8 +6,11 @@
 /** @var array $campagneProjets */ /** @var array $spectacles */ /** @var array $projetIds */
 /** @var array $repartition */ /** @var array $filtres */ /** @var array $reponseFiltre */ /** @var int $nbAffichees */
 /** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
+/** @var array $grandesRegionsDispo */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
+/** @var ?int $campBulk */ /** @var string $campBulkAction */ /** @var string $campBulkNom */
+/** @var array $campagnesDispo */
 // Une campagne : ses structures, et pour chacune le bouton qui ouvre la fenêtre
 // « Contacter » — ici même, sans quitter la liste. Aucun MESSAGE ne part d'ici en
 // masse : c'est le principe, on démarche une structure à la fois. La barre
@@ -26,7 +29,8 @@ $peutEcrire = peut_ecrire('booking');
 // campagne, et vit sur le lien campagne↔structure.
 $sfPage = 'campagne';
 $sfVals = $filtres;
-$sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo, 'regionsDispo' => $regionsDispo];
+$sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
+    'regionsDispo' => $regionsDispo, 'grandesRegionsDispo' => $grandesRegionsDispo];
 $sfAutresParams = ['id' => (int) $campagne['id'], 'reponse' => $reponseFiltre];
 $sfActifSupp = $reponseFiltre !== [];
 require __DIR__ . '/_structures_filtres.php';
@@ -41,7 +45,7 @@ $sfActifs .= filtre_colonne_actifs_html('campagne', 'reponse', CAMPAGNE_REPONSES
 // Le bouton de retrait doit vider la réponse comme le reste.
 $sfReinit = bouton_reinit_filtres(
     'campagne',
-    ['categorie_id', 'statut', 'pays', 'departement_canton', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'reponse'],
+    ['categorie_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'reponse'],
     (bool) $sfActif,
     [],
     ['id' => (int) $campagne['id']]
@@ -58,15 +62,7 @@ $sfReinit = bouton_reinit_filtres(
 <?php // Retours d'une modification groupée : les mêmes bandeaux que
       // ?p=structures, puisque c'est la même barre et le même code serveur. ?>
 <?php $actionUrl = '?p=campagne&id=' . (int) $campagne['id']; require __DIR__ . '/_bulk_undo_flash.php'; ?>
-<?php if ($tagBulk !== null): ?>
-<p class="ok flash">
-    <?php if ($tagBulk > 0): ?>
-        Tag « <?= e($tagBulkNom) ?> » <?= $tagBulkAction === 'retrait' ? 'retiré de' : 'ajouté à' ?> <strong><?= (int) $tagBulk ?></strong> structure(s).
-    <?php else: ?>
-        Aucune structure modifiée (tag <?= $tagBulkAction === 'retrait' ? 'déjà absent' : 'déjà présent' ?>).
-    <?php endif; ?>
-</p>
-<?php endif; ?>
+<?php require __DIR__ . '/_bulk_liaison_flash.php'; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
 
 <div class="page-head">
@@ -190,6 +186,7 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 $bbAction = '?p=campagne&id=' . (int) $campagne['id'];
 $bbTagsDispo = $tagsDispo;
 $bbCategories = $categoriesPourSelect;
+$bbCampagnes = $campagnesDispo;
 require __DIR__ . '/_structures_bulk_bar.php';
 ?>
 <?php endif; ?>

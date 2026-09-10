@@ -5,10 +5,12 @@
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
+/** @var ?int $campBulk */ /** @var string $campBulkAction */ /** @var string $campBulkNom */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
 /** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */
-/** @var bool $nonLocalises */ /** @var array $avecEvenements */ /** @var string $region */
+/** @var bool $nonLocalises */ /** @var array $avecEvenements */
+/** @var array $grandeRegion */ /** @var array $grandesRegionsDispo */
 /** @var array $majPeriode */ /** @var array $contactPeriode */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
@@ -20,12 +22,6 @@ $lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['
 $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
-// Même chose pour le filtre « région », posé par les liens de
-// ?p=parametres_pays : il n'a pas d'entonnoir dans l'en-tête, donc rien ne le
-// signalerait sans ce bandeau ni ne permettrait de le quitter.
-$qsSansRegion = $_GET;
-unset($qsSansRegion['region']);
-$lienQuitterRegion = '?' . http_build_query($qsSansRegion);
 
 // Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
 // filtre_colonne_html()/filtre_colonne_actifs_html() dans lib/helpers.php) :
@@ -66,10 +62,12 @@ if ($peutEcrireTags) {
 // « non localisées » et « région », et les liens Liste/Carte.
 $sfPage = 'structures';
 $sfVals = ['statut' => $statut, 'categorieId' => $categorieId, 'pays' => $pays,
-    'departementCanton' => $departementCanton, 'tagId' => $tagId, 'campagneId' => $campagneId,
+    'departementCanton' => $departementCanton, 'grandeRegion' => $grandeRegion,
+    'tagId' => $tagId, 'campagneId' => $campagneId,
     'avecEvenements' => $avecEvenements, 'contactPeriode' => $contactPeriode, 'majPeriode' => $majPeriode];
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
-    'regionsDispo' => $regionsDispo, 'campagnesDispo' => $campagnesDispo];
+    'regionsDispo' => $regionsDispo, 'grandesRegionsDispo' => $grandesRegionsDispo,
+    'campagnesDispo' => $campagnesDispo];
 // 'depuis' est reporté par chaque panneau : Structures est partagée par 3
 // groupes de nav (booking/facturation/evenements) et sans lui, soumettre un
 // panneau — un simple <form method="get"> qui ne connaît que ses propres
@@ -79,14 +77,15 @@ $sfAutresParams = ['q' => $recherche, 'depuis' => (string) ($_GET['depuis'] ?? '
 // La vue carte doit se reconduire elle-même dans chaque panneau, la liste non.
 $sfExtra = $vue === 'carte' ? ['vue' => 'carte'] : [];
 $sfTagActions = $tagActions;
-$sfReinitVides = ['lieu_jauge_min', 'lieu_jauge_max', 'lieu_mois_evenement', 'lieu_mois_prog', 'non_localises', 'region'];
-$sfActifSupp = $nonLocalises || $region !== '';
+$sfReinitVides = ['lieu_jauge_min', 'lieu_jauge_max', 'lieu_mois_evenement', 'lieu_mois_prog', 'non_localises'];
+$sfActifSupp = $nonLocalises;
 require __DIR__ . '/_structures_filtres.php';
 $statutLabels = $sfLabels['statut'];
 $tagLabels = $sfLabels['tag'];
 $categorieLabels = $sfLabels['categorie'];
 $paysLabels = $sfLabels['pays'];
 $departementCantonLabels = $sfLabels['departementCanton'];
+$grandeRegionLabels = $sfLabels['grandeRegion'];
 $avecEvenementsLabels = $sfLabels['avecEvenements'];
 $periodeLabels = $sfLabels['periode'];
 $autresFiltres = $sfAutres;
@@ -112,16 +111,7 @@ $montreContacte = $depuisNav !== 'facturation';
 ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
-<?php if ($region !== ''): ?><p class="warn flash">Filtre : structures de la région « <?= e($region) ?> ». <a href="<?= e($lienQuitterRegion) ?>">Quitter ce filtre</a></p><?php endif; ?>
-<?php if ($tagBulk !== null): ?>
-<p class="ok flash">
-    <?php if ($tagBulk > 0): ?>
-        Tag « <?= e($tagBulkNom) ?> » <?= $tagBulkAction === 'retrait' ? 'retiré de' : 'ajouté à' ?> <strong><?= (int) $tagBulk ?></strong> structure(s).
-    <?php else: ?>
-        Aucune structure modifiée (tag <?= $tagBulkAction === 'retrait' ? 'déjà absent' : 'déjà présent' ?>).
-    <?php endif; ?>
-</p>
-<?php endif; ?>
+<?php require __DIR__ . '/_bulk_liaison_flash.php'; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
 <?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
@@ -252,7 +242,7 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php else: ?>
-<?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
+<?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $grandeRegion || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
 <?php if ($peutEcrireStruct): ?>
 <?php
 // La barre d'action groupée vit dans son propre fichier : le suivi d'une
@@ -260,6 +250,7 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 $bbAction = '?p=structures';
 $bbTagsDispo = $tagsDispo;
 $bbCategories = $categoriesPourSelect;
+$bbCampagnes = $campagnesDispo;
 require __DIR__ . '/_structures_bulk_bar.php';
 ?>
 <?php endif; ?>

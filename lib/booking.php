@@ -1251,8 +1251,8 @@ function structure_tags_paires(int $structureId): array
 function lien_structures_filtre(array $filtres): string
 {
     $params = ['p' => 'structures'];
-    foreach (['categorie_id', 'statut', 'pays', 'departement_canton', 'tag_id',
-              'avec_evenements', 'contact_periode', 'maj_periode'] as $f) {
+    foreach (['categorie_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'tag_id',
+              'campagne_id', 'avec_evenements', 'contact_periode', 'maj_periode'] as $f) {
         $params[$f . '_set'] = 1;
         if (isset($filtres[$f])) {
             $params[$f] = $filtres[$f];
@@ -1266,12 +1266,6 @@ function lien_structures_filtre(array $filtres): string
     $params['lieu_mois_evenement'] = 0;
     $params['lieu_mois_prog'] = 0;
     $params['q'] = '';
-    // « region » n'est pas une case à cocher mais un filtre d'appoint porté par
-    // l'URL seule (voir structures_filtres()) : son absence suffit à l'éteindre,
-    // il n'a donc pas de marqueur « _set » à poser.
-    if (isset($filtres['region'])) {
-        $params['region'] = $filtres['region'];
-    }
     return '?' . http_build_query($params);
 }
 
@@ -1292,7 +1286,7 @@ function lien_structures_pays(string $pays, string $region = ''): string
 {
     $filtres = ['pays' => [$pays]];
     if ($region !== '') {
-        $filtres['region'] = $region;
+        $filtres['grande_region'] = [$region];
     }
     return lien_structures_filtre($filtres);
 }
