@@ -876,6 +876,70 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
     return $h . '</div><button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
 }
 
+// Entonnoir « Lieu » : le seul filtre de l'application dont les valeurs se
+// CHERCHENT au lieu de se parcourir. Pays, régions et départements tiennent dans
+// une liste (165 lignes) et sont écrits ici ; les villes, plus de quinze cents,
+// sont demandées à ?p=structures_lieux au premier clic dans le champ et
+// ajoutées à la volée (lassoInitFiltreLieu(), assets/app.js). Sans JavaScript,
+// on filtre donc par pays, région et département — ce que faisaient les trois
+// entonnoirs d'avant — et la ville, qui n'a jamais été filtrable, demande le
+// script.
+//
+// Les valeurs déjà cochées sont rendues en tête, quel que soit leur niveau :
+// c'est la seule façon de pouvoir en retirer une ville sans avoir à la
+// retrouver.
+//
+// $options : ['pays' => [jeton => ['libelle', 'pays', 'n']], …] (lieux_options()).
+function filtre_colonne_lieu_html(string $page, array $actifs, array $autresParams, array $options, string $libelle = ''): string
+{
+    $actifs = array_values(array_filter(array_map('strval', $actifs)));
+    $h = '<details class="col-filter col-filter-large col-filter-lieu">'
+       . filtre_bouton_html($libelle, $actifs !== [], count($actifs))
+       . '<form method="get" class="col-filter-menu">'
+       . '<input type="hidden" name="p" value="' . e($page) . '">'
+       . hidden_inputs_html($autresParams)
+       . '<input type="hidden" name="lieu_set" value="1">'
+       . '<div class="lieu-champ"><input type="search" class="lieu-recherche" autocomplete="off"'
+       . ' placeholder="Pays, région, département, ville…" aria-label="Chercher un lieu"></div>'
+       . '<div class="col-filter-options">';
+
+    $case = function (string $jeton, array $o, bool $coche) use (&$h): void {
+        $h .= '<label' . ($coche ? ' class="lieu-coche"' : '') . ' data-lieu-niveau="' . e(explode(':', $jeton)[0]) . '">'
+            . '<input type="checkbox" name="lieu[]" value="' . e($jeton) . '"' . ($coche ? ' checked' : '') . '> '
+            . '<span class="lieu-nom">' . e($o['libelle']) . '</span>'
+            . ($o['pays'] !== $o['libelle'] ? '<span class="lieu-pays">' . e($o['pays']) . '</span>' : '')
+            . ($o['n'] > 0 ? '<span class="lieu-n">' . (int) $o['n'] . '</span>' : '')
+            . '</label>';
+    };
+
+    // Ce qui est coché, en tête, dans l'ordre où on l'a coché.
+    $connus = array_merge(...array_values($options)) ?: [];
+    if ($actifs) {
+        $h .= '<div class="lieu-groupe">Sélection</div>';
+        foreach ($actifs as $jeton) {
+            $l = lieu_decoder($jeton);
+            if (!$l) {
+                continue;
+            }
+            // Une ville cochée n'est pas dans $options (elles n'y sont pas
+            // écrites) : son libellé se relit dans le jeton lui-même.
+            $case($jeton, $connus[$jeton] ?? ['libelle' => $l['valeur'], 'pays' => $l['pays'], 'n' => 0], true);
+        }
+    }
+    foreach ($options as $niveau => $liste) {
+        $liste = array_diff_key($liste, array_flip($actifs));
+        if (!$liste) {
+            continue;
+        }
+        $h .= '<div class="lieu-groupe" data-lieu-groupe="' . e($niveau) . '">' . e(LIEU_NIVEAUX[$niveau] ?? $niveau) . '</div>';
+        foreach ($liste as $jeton => $o) {
+            $case((string) $jeton, $o, false);
+        }
+    }
+    $h .= '</div><p class="lieu-aide muted small">Tapez pour chercher une ville.</p>';
+    return $h . '<button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
+}
+
 // Menu déroulant à cases à cocher, destiné à vivre DANS un formulaire existant
 // (fenêtre « Contacter », note d'historique, modèle de message) — même
 // apparence que les filtres de colonne, mais sans <form> à lui : un formulaire
@@ -2288,6 +2352,76 @@ function preference_definir(string $cle, string $valeur): void
         ->execute([(int) $u['id'], $cle, $valeur]);
 }
 
+// --- Disposition des cartes du tableau de bord ------------------------------
+//
+// L'ordre des cartes et celles qu'on ne veut pas voir : un choix d'AFFICHAGE,
+// propre à chaque compte (preference(), ci-dessus), pas un paramètre de
+// l'association. Deux personnes qui partagent l'installation ne suivent pas le
+// même travail.
+//
+// Stocké en une seule chaîne, l'ordre des identifiants séparés par des
+// virgules, un « - » devant celles qui sont masquées :
+//     campagnes,-suisa,evenements
+// Lisible d'un coup d'œil dans la base, et ne demande pas de table.
+//
+// Les identifiants sont ceux que la vue donne à ses cartes, et elle seule :
+// dashboard_ordre() reçoit la liste de celles qui ont RÉELLEMENT quelque chose
+// à montrer (module actif, droits, données) et ne fait que la réordonner. Une
+// carte ajoutée ou retirée là-bas n'a donc rien à déclarer ici.
+const DASHBOARD_PREFERENCE = 'dashboard_cartes';
+
+// Les cartes disponibles, dans l'ordre choisi par ce compte, les masquées
+// exclues. $dispo est l'ordre par défaut (celui de la vue).
+//
+// Une carte inconnue de la préférence — parce qu'elle vient d'apparaître, ou
+// qu'un module vient d'être activé — passe à la fin, visible : mieux vaut la
+// voir arriver au bas du tableau de bord que de la faire disparaître.
+function dashboard_ordre(array $dispo): array
+{
+    [$ordre, $cachees] = dashboard_disposition($dispo);
+    return array_values(array_filter($ordre, fn (string $id) => !in_array($id, $cachees, true)));
+}
+
+// [ordre complet (masquées comprises), identifiants masqués] — ce qu'il faut au
+// panneau de réglages, qui montre aussi ce qui est caché pour pouvoir le
+// remontrer.
+function dashboard_disposition(array $dispo): array
+{
+    $ordre = [];
+    $cachees = [];
+    foreach (explode(',', preference(DASHBOARD_PREFERENCE)) as $jeton) {
+        $jeton = trim($jeton);
+        $cachee = str_starts_with($jeton, '-');
+        $id = $cachee ? substr($jeton, 1) : $jeton;
+        // Une carte enregistrée mais plus disponible (module éteint, droit
+        // retiré) est ignorée sans être oubliée : la préférence n'est pas
+        // réécrite, elle reprendra sa place si le module revient.
+        if ($id === '' || !in_array($id, $dispo, true) || in_array($id, $ordre, true)) {
+            continue;
+        }
+        $ordre[] = $id;
+        if ($cachee) {
+            $cachees[] = $id;
+        }
+    }
+    foreach ($dispo as $id) {
+        if (!in_array($id, $ordre, true)) {
+            $ordre[] = $id;
+        }
+    }
+    return [$ordre, $cachees];
+}
+
+// Enregistre la disposition. $ordre porte TOUTES les cartes connues, $cachees
+// celles à masquer.
+function dashboard_disposition_definir(array $ordre, array $cachees): void
+{
+    preference_definir(DASHBOARD_PREFERENCE, implode(',', array_map(
+        fn (string $id) => (in_array($id, $cachees, true) ? '-' : '') . $id,
+        $ordre
+    )));
+}
+
 // Adresse de réponse d'un envoi applicatif : celle configurée dans
 // Paramètres → E-mails (« Adresse de réponse »), à défaut l'expéditeur. Le
 // paramètre existait, s'annonçait comme un reply-to à l'écran… et n'était posé
@@ -2608,6 +2742,9 @@ function icone_table(): array
         'sun'       => '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
         'moon'      => '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>',
         'monitor'   => '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
+        // Réglage d'un affichage en colonnes — le bouton « Organiser les cartes »
+        // du tableau de bord.
+        'columns-3-cog' => '<path d="M10.6 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5.6"/><path d="m14.305 19.53.923-.382"/><path d="M15 3v7.6"/><path d="m15.229 16.852-.924-.383"/><path d="m16.852 15.228-.383-.923"/><path d="m16.852 20.772-.383.924"/><path d="m19.148 15.228.383-.923"/><path d="m19.53 21.696-.382-.924"/><path d="m20.773 16.852.922-.383"/><path d="m20.773 19.148.922.383"/><path d="M9 3v18"/><circle cx="18" cy="18" r="3"/>',
         'settings'  => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
         'menu'      => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
         'x'         => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',

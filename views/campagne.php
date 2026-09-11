@@ -5,8 +5,7 @@
 /** @var array $contacterCibles */ /** @var array $expediteurs */ /** @var array $modelesMessage */
 /** @var array $campagneProjets */ /** @var array $spectacles */ /** @var array $projetIds */
 /** @var array $repartition */ /** @var array $filtres */ /** @var array $reponseFiltre */ /** @var int $nbAffichees */
-/** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
-/** @var array $grandesRegionsDispo */
+/** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 /** @var ?int $campBulk */ /** @var string $campBulkAction */ /** @var string $campBulkNom */
@@ -30,7 +29,7 @@ $peutEcrire = peut_ecrire('booking');
 $sfPage = 'campagne';
 $sfVals = $filtres;
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
-    'regionsDispo' => $regionsDispo, 'grandesRegionsDispo' => $grandesRegionsDispo];
+    'lieuxOptions' => $lieuxOptions];
 $sfAutresParams = ['id' => (int) $campagne['id'], 'reponse' => $reponseFiltre];
 $sfActifSupp = $reponseFiltre !== [];
 require __DIR__ . '/_structures_filtres.php';
@@ -45,7 +44,7 @@ $sfActifs .= filtre_colonne_actifs_html('campagne', 'reponse', CAMPAGNE_REPONSES
 // Le bouton de retrait doit vider la réponse comme le reste.
 $sfReinit = bouton_reinit_filtres(
     'campagne',
-    ['categorie_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'reponse'],
+    ['categorie_id', 'statut', 'lieu', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'reponse'],
     (bool) $sfActif,
     [],
     ['id' => (int) $campagne['id']]

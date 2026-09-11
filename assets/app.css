@@ -1549,6 +1549,32 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    bandeau flottant de la vue carte d'evenements_liste) plutôt qu'un fond
    blanc plein : cohérent avec le reste de l'appli quand un fond d'écran est
    actif, et transparent par-dessus la couleur unie par défaut. */
+/* « Organiser les cartes » : le panneau du bouton d'engrenage du tableau de
+   bord. Même dessin que les panneaux de filtre de colonne (.col-filter-menu) —
+   c'est le même geste, un réglage qu'on ouvre au-dessus de la page et qui se
+   referme tout seul — sans en reprendre la mécanique de placement, qui sert à
+   suivre une cellule de tableau. Ici l'ancre ne bouge pas. */
+.dash-reglages { position: relative; }
+.dash-reglages > summary { list-style: none; cursor: pointer; }
+.dash-reglages > summary::-webkit-details-marker { display: none; }
+.dash-reglages-panneau {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+    min-width: 330px; max-width: min(380px, calc(100vw - 32px));
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 14px 16px;
+}
+.dash-reglage-ligne { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+/* Les deux groupes de boutons gardent leur largeur quoi qu'il arrive : sans
+   nowrap, « Prochains événements » faisait passer ses chevrons l'un sous
+   l'autre et la ligne à double hauteur. */
+.dash-reglage-ligne > form { flex: 0 0 auto; white-space: nowrap; }
+/* Le nom prend la place restante : les deux groupes de boutons restent alignés
+   d'une ligne à l'autre, quelle que soit la longueur du titre. */
+.dash-reglage-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: var(--fs-basic); }
+/* Une carte masquée reste lisible — on doit pouvoir la retrouver pour la
+   remontrer — mais s'annonce comme absente du tableau de bord. */
+.dash-reglage-ligne.est-cachee .dash-reglage-nom { color: var(--muted); font-weight: 500; text-decoration: line-through; }
+
 .dash-card { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
 /* Médaillon d'état posé sur une carte du tableau de bord : le nombre de
@@ -2186,6 +2212,14 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
     box-shadow: var(--shadow); padding: 6px;
 }
 .col-filter[open] .col-filter-menu { display: flex; }
+/* Un en-tête collant est son PROPRE contexte d'empilement (position + z-index) :
+   le z-index: 20 du panneau ne vaut qu'à l'intérieur de celui-ci, et son
+   position: fixed — qui sert à échapper au rognage de .table-scroll — n'y change
+   rien. À z-index égal entre en-têtes, l'ordre du document décide : le panneau
+   du filtre « Ville » passait donc sous « Catégorie », « Tags » et les
+   suivantes. On élève l'en-tête qui porte un panneau OUVERT, pas le panneau. */
+.module-content-inner .table-scroll .list thead th:has(.col-filter[open]),
+.compta-lettrage thead th:has(.col-filter[open]) { z-index: 5; }
 /* Options dans un conteneur scrollable dédié (pas tout .col-filter-menu) :
    "Tout" et "Appliquer" restent visibles même quand la liste est longue
    (ex. filtre Employé, un nom par employé). */
@@ -2234,6 +2268,36 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    voit donc pas) et s'élargit à ~15px au survol, recouvrant encore la dernière
    icône. La réserve doit couvrir cette largeur-là, pas celle que le calcul
    annonce. */
+/* Entonnoir « Lieu » : le seul panneau de filtre où l'on CHERCHE au lieu de
+   parcourir — quatre niveaux et plus de quinze cents villes ne se lisent pas en
+   liste. Champ en haut, résultats groupés par niveau en dessous, chaque groupe
+   plafonné et disant combien il en reste. */
+.lieu-champ { margin-bottom: 4px; }
+.lieu-champ input {
+    width: 100%; font: inherit; font-size: var(--fs-basic); color: var(--ink);
+    padding: 7px 10px; margin: 0;
+    border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
+}
+.lieu-champ input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* En-tête de niveau : le même corps que les autres intertitres de l'application
+   (.mois-sep, .geo-groupe des listes), sans son bandeau — dans un panneau de
+   200 pixels, un fond plein alourdirait. */
+.lieu-groupe {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 8px 6px 3px; font-size: var(--fs-tiny); font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.lieu-groupe:first-child { padding-top: 2px; }
+.lieu-reste { margin-left: auto; font-weight: 600; letter-spacing: normal; text-transform: none; }
+/* Le nom prend la place, le pays et l'effectif se rangent à droite : deux
+   « Genève » (le canton, la ville) ne se distinguent que par leur groupe et par
+   leur pays, qui doit donc rester lisible. */
+.lieu-nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lieu-pays { font-size: var(--fs-tiny); font-weight: 500; color: var(--muted); }
+.lieu-n { font-size: var(--fs-tiny); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.col-filter-menu label.lieu-coche { background: var(--primary-tint); }
+.lieu-aide { margin: 6px 6px 0; }
+
 .col-filter-large .col-filter-menu { max-width: 300px; min-width: 260px; }
 .col-filter-large .col-filter-options { padding-right: 16px; }
 .col-filter-opt { display: flex; align-items: center; gap: 4px; border-radius: 6px; }
@@ -2555,6 +2619,10 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
            bandeau différent puisse la redéfinir sans toucher à cette règle. */
         top: var(--hauteur-bandeau, 120px);
         z-index: 3;
+        /* Tous au MÊME z-index : à égalité, c'est l'ordre du document qui
+           tranche, donc chaque en-tête passe devant celui de sa gauche. Voir la
+           règle :has(.col-filter[open]) plus bas — c'est ce qui faisait passer
+           un panneau de filtre SOUS les colonnes suivantes. */
         /* Fond opaque obligatoire : les lignes défilent DERRIÈRE l'en-tête. */
         background: var(--surface);
         /* Aucun trait à ajouter : la bordure de 1px que .list th porte déjà

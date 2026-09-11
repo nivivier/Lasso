@@ -78,6 +78,10 @@ $handlers = [
     // et peut_lire() se fait source par source dans recherche_globale()
     // (lib/recherche.php), seul endroit qui puisse le faire correctement.
     'recherche' => 'route_recherche',
+    // Les villes de l'entonnoir « Lieu » (JSON). Rattachée à aucun module pour
+    // la même raison que ?p=structures elle-même : trois modules s'en servent,
+    // et la route ne rend qu'une liste de noms de lieux, sans donnée de fiche.
+    'structures_lieux' => 'route_structures_lieux',
 ];
 $routeModules = [];
 

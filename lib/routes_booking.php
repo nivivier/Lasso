@@ -665,6 +665,29 @@ function route_structures_options(): void
 // est un rôle choisi via le sélecteur utilisé, pas une propriété de la
 // structure (cf. retrait du filtre est_booking équivalent sur le CRM
 // facturation). Lecture seule, GET.
+// Les VILLES pour l'entonnoir « Lieu », en JSON. Elles ne sont pas écrites dans
+// la page : plus de quinze cents lignes, sur un écran qui en pèse déjà quatre
+// mégaoctets, et rendues deux fois (l'en-tête de colonne et le panneau mobile).
+// Le champ de recherche les demande au premier clic (lassoInitFiltreLieu()).
+//
+// Route de lecture rattachée à aucun module : ce sont les mêmes villes que la
+// colonne « Ville » du tableau, que trois modules partagent.
+function route_structures_lieux(): void
+{
+    require_login();
+    header('Content-Type: application/json; charset=utf-8');
+    $villes = lieux_options(['ville'])['ville'];
+    echo json_encode(
+        array_map(
+            fn (string $jeton, array $o) => ['jeton' => $jeton, 'libelle' => $o['libelle'], 'pays' => $o['pays'], 'n' => $o['n']],
+            array_keys($villes),
+            array_values($villes)
+        ),
+        JSON_UNESCAPED_UNICODE
+    );
+    exit;
+}
+
 function route_lieux_options(): void
 {
     require_login();
@@ -1847,8 +1870,9 @@ function route_campagne(): void
         'filtres'     => $f,
         'reponseFiltre' => $reponseFiltre,
         'categoriesPourSelect' => structure_categories_pour_select(),
-        'regionsDispo' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
-        'grandesRegionsDispo' => db()->query("SELECT DISTINCT grande_region FROM structures WHERE grande_region <> '' ORDER BY grande_region")->fetchAll(PDO::FETCH_COLUMN),
+        // Pays / régions / départements de l'entonnoir « Lieu » ; les villes
+        // arrivent par ?p=structures_lieux (voir filtre_colonne_lieu_html()).
+        'lieuxOptions' => lieux_options(['pays', 'region', 'dept']),
         'tagsDispo'   => db()->query('SELECT t.* FROM structure_tags t ORDER BY t.nom')->fetchAll(),
         'campagne'    => $campagne,
         'projets'     => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projets),

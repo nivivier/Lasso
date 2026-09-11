@@ -571,11 +571,13 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
     // désormais plus que les actifs, cohérent avec les autres cases.
     $categorieMap = structure_categorie_map();
     $categorieId = filtre_coche('categorie_id', $prefixeSession . '_categorie_id');
-    $pays = filtre_coche('pays', $prefixeSession . '_pays', null, true);
-    $departementCanton = filtre_coche('departement_canton', $prefixeSession . '_departement_canton', null, true);
-    // Région (colonne grande_region : Romandie, Normandie…) — un entonnoir de
-    // plus dans la colonne « Ville », à côté de Pays et Département/canton.
-    $grandeRegion = filtre_coche('grande_region', $prefixeSession . '_grande_region', null, true);
+    // « Où ? » en un seul entonnoir : pays, région, département ou ville, des
+    // jetons « niveau:pays|valeur » unis en OU (voir lieu_where(),
+    // lib/booking.php). Remplace les trois filtres Pays / Région /
+    // Département-canton, qui posaient trois fois la même question sans jamais
+    // répondre à « dans quelle ville ? ». texteLibre : ce ne sont pas des
+    // identifiants numériques.
+    $lieu = filtre_coche('lieu', $prefixeSession . '_lieu', null, true);
     // texteLibre pour ces deux-là : leurs valeurs mêlent des identifiants et la
     // sentinelle « aucun » (les structures qui n'en portent aucun), qu'un
     // intval() écraserait — même procédé que « sans_axe » en analytique.
@@ -644,17 +646,10 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
             $params = array_merge($params, $catParams);
         }
     }
-    if ($pays) {
-        $where .= ' AND s.adresse_pays IN (' . sql_in($pays) . ')';
-        $params = array_merge($params, $pays);
-    }
-    if ($departementCanton) {
-        $where .= ' AND s.departement_canton IN (' . sql_in($departementCanton) . ')';
-        $params = array_merge($params, $departementCanton);
-    }
-    if ($grandeRegion) {
-        $where .= ' AND s.grande_region IN (' . sql_in($grandeRegion) . ')';
-        $params = array_merge($params, $grandeRegion);
+    [$lieuSql, $lieuParams] = lieu_where($lieu);
+    if ($lieuSql !== '') {
+        $where .= ' AND ' . $lieuSql;
+        $params = array_merge($params, $lieuParams);
     }
     if ($nonLocalises) {
         $where .= geocodage_non_localises_where('s.adresse_localite', 's.departement_canton', 's.adresse_pays');
@@ -735,7 +730,7 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
 
     return [
         'where' => $where, 'params' => $params, 'categorieId' => $categorieId,
-        'pays' => $pays, 'departementCanton' => $departementCanton, 'grandeRegion' => $grandeRegion,
+        'lieu' => $lieu,
         'tagId' => $tagId, 'campagneId' => $campagneId,
         'statut' => $statut, 'nonLocalises' => $nonLocalises,
         'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
@@ -933,8 +928,7 @@ function route_structures(): void
     $where = $f['where'];
     $params = $f['params'];
     $categorieId = $f['categorieId'];
-    $pays = $f['pays'];
-    $departementCanton = $f['departementCanton'];
+    $lieu = $f['lieu'];
     $tagId = $f['tagId'];
     $campagneId = $f['campagneId'];
     $statut = $f['statut'];
@@ -943,13 +937,12 @@ function route_structures(): void
     $lieuMoisEvenement = $f['lieuMoisEvenement'];
     $lieuMoisProg = $f['lieuMoisProg'];
     $nonLocalises = $f['nonLocalises'];
-    $grandeRegion = $f['grandeRegion'];
     $avecEvenements = $f['avecEvenements'];
     $majPeriode = $f['majPeriode'];
     $contactPeriode = $f['contactPeriode'];
     $retourFiltres = [
-        'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
-        'campagne_id' => $campagneId, 'grande_region' => $grandeRegion,
+        'q' => $recherche, 'categorie_id' => $categorieId, 'lieu' => $lieu, 'tag_id' => $tagId, 'statut' => $statut,
+        'campagne_id' => $campagneId,
         'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
         'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'avec_evenements' => $avecEvenements,
         'maj_periode' => $majPeriode, 'contact_periode' => $contactPeriode,
@@ -966,11 +959,10 @@ function route_structures(): void
         render('structures_liste', [
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'structures' => [], 'nbEvenements' => [],
-            'recherche' => $recherche, 'categorieId' => $categorieId, 'pays' => $pays, 'departementCanton' => $departementCanton,
+            'recherche' => $recherche, 'categorieId' => $categorieId, 'lieu' => $lieu,
             'tagId' => $tagId, 'campagneId' => [], 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
-            'grandeRegion' => $grandeRegion, 'grandesRegionsDispo' => [],
             'majPeriode' => $majPeriode, 'contactPeriode' => $contactPeriode,
             'tagBulk' => null, 'tagBulkAction' => '', 'tagBulkNom' => '',
             'campBulk' => null, 'campBulkAction' => '', 'campBulkNom' => '',
@@ -980,7 +972,10 @@ function route_structures(): void
             // bouton pour le poser ni libellé pour la pastille — un filtre
             // actif s'y affichait sous son numéro brut. regionsDispo, lui, ne
             // sert qu'à un <select> de la vue liste.
-            'categoriesPourSelect' => structure_categories_pour_select(), 'regionsDispo' => [],
+            'categoriesPourSelect' => structure_categories_pour_select(),
+            // Pays / régions / départements de l'entonnoir « Lieu » ; les villes
+            // arrivent par ?p=structures_lieux (voir filtre_colonne_lieu_html()).
+            'lieuxOptions' => lieux_options(['pays', 'region', 'dept']),
             'campagnesParStructure' => [], 'campagnesDispo' => [],
             'tagsDispo' => module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
@@ -1040,10 +1035,10 @@ function route_structures(): void
         $structures = $stmt->fetchAll();
     }
 
-    $regionsDispo = db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN);
-    // Les régions RÉELLEMENT portées par des structures, comme regionsDispo
-    // au-dessus (qui, malgré son nom, tient les départements/cantons).
-    $grandesRegionsDispo = db()->query("SELECT DISTINCT grande_region FROM structures WHERE grande_region <> '' ORDER BY grande_region")->fetchAll(PDO::FETCH_COLUMN);
+    // Pays / régions / départements de l'entonnoir « Lieu », avec leur effectif.
+    // Les villes n'y sont pas : plus de quinze cents, elles arrivent par
+    // ?p=structures_lieux quand on ouvre le panneau (filtre_colonne_lieu_html()).
+    $lieuxOptions = lieux_options(['pays', 'region', 'dept']);
     $tagsDispo = module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [];
 
     render('structures_liste', [
@@ -1054,8 +1049,7 @@ function route_structures(): void
         'nbEvenements' => structures_nb_evenements(array_column($structures, 'id')),
         'recherche' => $recherche,
         'categorieId' => $categorieId,
-        'pays' => $pays,
-        'departementCanton' => $departementCanton,
+        'lieu' => $lieu,
         'tagId' => $tagId,
         'campagneId' => $campagneId,
         'statut' => $statut,
@@ -1064,7 +1058,6 @@ function route_structures(): void
         'lieuMoisEvenement' => $lieuMoisEvenement,
         'lieuMoisProg' => $lieuMoisProg,
         'nonLocalises' => $nonLocalises,
-        'grandeRegion' => $grandeRegion,
         'avecEvenements' => $avecEvenements,
         'majPeriode' => $majPeriode,
         'contactPeriode' => $contactPeriode,
@@ -1075,7 +1068,7 @@ function route_structures(): void
         'campBulkAction' => (string) ($_GET['campact'] ?? ''),
         'campBulkNom' => (string) ($_GET['campnom'] ?? ''),
         'categoriesPourSelect' => structure_categories_pour_select(),
-        'regionsDispo' => $regionsDispo, 'grandesRegionsDispo' => $grandesRegionsDispo,
+        'lieuxOptions' => $lieuxOptions,
         'tagsDispo' => $tagsDispo,
         // Colonne « Campagnes » : les campagnes de chaque structure affichée, et
         // la liste où piocher pour l'ajouter à l'une d'elles. Vides si le
@@ -1087,10 +1080,9 @@ function route_structures(): void
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
         'pgParams'  => array_filter([
-            'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton, 'tag_id' => $tagId, 'statut' => $statut,
+            'q' => $recherche, 'categorie_id' => $categorieId, 'lieu' => $lieu, 'tag_id' => $tagId, 'statut' => $statut,
             'lieu_jauge_min' => $lieuJaugeMin ?? '', 'lieu_jauge_max' => $lieuJaugeMax ?? '',
             'lieu_mois_evenement' => $lieuMoisEvenement ?: '', 'lieu_mois_prog' => $lieuMoisProg ?: '', 'non_localises' => $nonLocalises ? 1 : '', 'avec_evenements' => $avecEvenements,
-            'grande_region' => $grandeRegion,
             // Structures est partagée par 3 groupes de nav (booking/facturation/
             // evenements) — reporté dans les liens de pagination pour que le
             // rail/bandeau reste dans le groupe de provenance (voir la même
@@ -1114,7 +1106,7 @@ function route_structures_geocoder(): void
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('structures', ['vue' => 'carte']); }
     check_csrf();
     $n = geocodage_traiter_lot(fn () => geocodage_villes_manquantes('structures', 'adresse_localite', 'departement_canton', 'adresse_pays'));
-    $retour = array_intersect_key($_POST, array_flip(['q', 'categorie_id', 'pays', 'departement_canton', 'tag_id', 'statut']));
+    $retour = array_intersect_key($_POST, array_flip(['q', 'categorie_id', 'lieu', 'tag_id', 'statut']));
     redirect('structures', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 

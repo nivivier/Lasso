@@ -2600,9 +2600,60 @@ function periode_cle(string $groupe, int $mois, int $annee): array
 }
 
 // Tableau de bord : salaires à verser + factures émises.
+// Applique une action du panneau « Organiser les cartes » puis revient au
+// tableau de bord, panneau ouvert. Les cartes disponibles sont postées par le
+// panneau lui-même (`dispo[]`) : c'est la vue qui sait lesquelles ont quelque
+// chose à montrer, et elle seule — voir dashboard_ordre().
+function route_resumes_reglages(): void
+{
+    $dispo = array_values(array_unique(array_filter(
+        array_map('strval', (array) ($_POST['dispo'] ?? [])),
+        fn (string $id) => $id !== ''
+    )));
+    if ($_POST['section'] === 'reinit') {
+        preference_definir(DASHBOARD_PREFERENCE, '');
+        redirect('resumes', ['reglages' => 1]);
+    }
+    [$ordre, $cachees] = dashboard_disposition($dispo);
+    $carte = (string) ($_POST['carte'] ?? '');
+    $i = array_search($carte, $ordre, true);
+    if ($i === false) {
+        redirect('resumes', ['reglages' => 1]);
+    }
+    if ($_POST['section'] === 'visible') {
+        $k = array_search($carte, $cachees, true);
+        if ($k === false) {
+            $cachees[] = $carte;
+        } else {
+            array_splice($cachees, $k, 1);
+        }
+    } elseif ($_POST['section'] === 'deplacer') {
+        // Échange avec la voisine, comme partout ailleurs dans l'application.
+        // Les bornes ne sont pas gardées ici : le panneau désactive déjà les
+        // boutons du haut et du bas, et un indice hors liste ne ferait rien.
+        $j = $i + (($_POST['dir'] ?? '') === 'up' ? -1 : 1);
+        if ($j >= 0 && $j < count($ordre)) {
+            [$ordre[$i], $ordre[$j]] = [$ordre[$j], $ordre[$i]];
+        }
+    }
+    dashboard_disposition_definir($ordre, $cachees);
+    redirect('resumes', ['reglages' => 1]);
+}
+
 function route_resumes(): void
 {
     require_login();
+    // Organisation des cartes : un choix d'AFFICHAGE propre au compte, pas une
+    // écriture sur un module. D'où le POST accepté ici, sur une route du cœur —
+    // il ne touche qu'à utilisateur_preferences, et seulement pour son auteur.
+    //
+    // Un aller-retour par déplacement, comme le rangement des pays ou du plan
+    // comptable (?p=parametres_pays, section=move) : même geste, même code
+    // d'apparence, et rien à faire fonctionner en JavaScript.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        route_resumes_reglages();
+    }
     $aujAnnee = (int) date('Y');
     $aujMois  = (int) date('n');
     // module_accessible() et non module_actif() : le tableau de bord fait partie

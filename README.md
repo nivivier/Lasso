@@ -181,8 +181,11 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
    modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
    d'historique à l'envoi. Une structure rattachée à une autre (salle d'un festival,
-   antenne d'une faîtière) propose aussi les contacts de celle qui l'organise. Une
-   **campagne** est une sélection de structures à démarcher pour un ou plusieurs
+   antenne d'une faîtière) propose aussi les contacts de celle qui l'organise.
+   La colonne « Ville » de la liste porte un entonnoir **« Lieu »** unique où
+   l'on cherche un pays, une région, un département ou une ville, et où les
+   valeurs cochées se cumulent (« Suisse ou Lyon »).
+   Une **campagne** est une sélection de structures à démarcher pour un ou plusieurs
    projets, entre deux dates : on la compose avec les filtres de la liste des
    structures (dont « aucun tag » et « aucune campagne », pour n'approcher que
    ce qui ne l'a jamais été), on décoche ce qu'on ne veut pas, on ajoute au
@@ -210,10 +213,16 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     filtres passent derrière un bouton « Filtres » à côté de la recherche, le
     même qui sert aux vues carte. Au-delà de 700 px de large, les tableaux
     complets reprennent.
-11. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
+11. **Tableau de bord** : une carte par sujet — prochains événements, SUISA,
+    évolution financière, salaires à verser, factures émises, campagnes —
+    chacune n'apparaissant que si son module est actif et lisible par le compte.
+    Le bouton en haut à droite ouvre « Organiser les cartes » : leur
+    ordre et celles qu'on ne veut pas voir. C'est un réglage **par compte**, pas
+    un paramètre de l'association.
+12. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.
-12. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
+13. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
     déjà présentes sont ignorées, jamais écrasées), écritures comptables, structures
     et agendas de tournée (CSV). Chaque import a un bouton « Simuler » qui
     prévisualise sans rien enregistrer.

@@ -20,7 +20,7 @@ $points = array_map(function (array $p): array {
 // géocoder automatiquement (typo, ville introuvable pour Nominatim…) — voir
 // views/_lieux_carte.php pour le même principe.
 $lienNonLocalises = '?p=structures&' . http_build_query([
-    'vue' => 'liste', 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
+    'vue' => 'liste', 'categorie_id' => $categorieId, 'lieu' => $lieu,
     'tag_id' => $tagId, 'statut' => $statut, 'non_localises' => 1,
 ]);
 ?>
@@ -33,7 +33,7 @@ $lienNonLocalises = '?p=structures&' . http_build_query([
         $lienNonLocalises,
         '?p=structures_geocoder',
         [
-            'q' => $recherche, 'categorie_id' => $categorieId, 'pays' => $pays, 'departement_canton' => $departementCanton,
+            'q' => $recherche, 'categorie_id' => $categorieId, 'lieu' => $lieu,
             'tag_id' => $tagId, 'statut' => $statut,
         ],
         isset($_GET['geocode'])

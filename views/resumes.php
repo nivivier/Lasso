@@ -166,36 +166,20 @@ $dash_svg = function (array $series): string {
     return $o;
 };
 ?>
-<?php if (($_GET['refuse'] ?? null) === '1'): ?><p class="err flash">Accès refusé : vous n'avez pas les droits nécessaires pour cette page.</p><?php endif; ?>
-<div class="page-head"><h1>Tableau de bord</h1></div>
-
-<?php // Recherche unifiée. Les sources interrogées dépendent des droits du
-      // compte (voir lib/recherche.php) : le champ s'affiche pour tout le monde,
-      // les résultats sont filtrés. Raccourci « / » posé dans assets/app.js. ?>
-<form class="recherche-form recherche-dash" method="get" action="">
-    <input type="hidden" name="p" value="recherche">
-    <?= champ_recherche([
-        'id'          => 'recherche-globale',
-        'name'        => 'q',
-        'classe'      => 'recherche-champ',
-        'placeholder' => 'Rechercher partout',
-        'aria'        => "Rechercher dans toute l'application",
-        'submit'      => true,
-    ]) ?>
-</form>
-
 <?php
-// Dérivé des mêmes conditions que chaque widget ci-dessous (pas une liste à
-// part) : un widget ajouté/retiré ne peut pas désynchroniser ce garde-fou.
+// Chaque carte est rendue dans un tampon plutôt que directement : c'est cette
+// liste — son ordre est l'ordre par défaut — qui sert ensuite à les écrire dans
+// l'ordre choisi par le compte (dashboard_ordre()), et à peupler le panneau
+// « Organiser les cartes ». Les conditions d'accès restent EXACTEMENT où elles
+// étaient, autour de la carte qu'elles gouvernent : une carte figure dans
+// $cartes si et seulement si elle a quelque chose à montrer, et c'est aussi ce
+// qui dit au tableau de bord s'il est vide.
 $dashComptaActif = module_accessible('compta') && count($comptaSeries) >= 1;
-$dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_accessible('facturation') || module_accessible('evenements');
+$cartes = [];
 ?>
-<?php if (!$dashModuleActif): ?>
-    <p class="muted">Aucun module actif n'alimente le tableau de bord pour l'instant. Active
-    des modules dans <a href="?p=parametres_modules">Paramètres → Modules</a>.</p>
-<?php else: ?>
-<div class="dash-cols">
+
     <?php if (module_accessible('evenements')): ?>
+        <?php ob_start(); ?>
         <div class="card dash-card">
             <h2 class="mt-0">Prochains événements</h2>
             <?php if (!$prochainsEvenements): ?>
@@ -226,6 +210,8 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             </table>
             <?php endif; ?>
         </div>
+        <?php $cartes['evenements'] = ['titre' => 'Prochains événements', 'html' => ob_get_clean()]; ?>
+        <?php ob_start(); ?>
         <div class="card dash-card">
             <div class="card-head-row">
                 <h2 class="mt-0">Suisa</h2>
@@ -264,13 +250,16 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
                 </tbody>
             </table>
         </div>
+        <?php $cartes['suisa'] = ['titre' => 'Suisa', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
 
         <?php if ($dashComptaActif): ?>
+        <?php ob_start(); ?>
         <div class="card dash-card">
             <h2 class="mt-0">Évolution financière</h2>
             <?= $dash_svg($comptaSeries) ?>
         </div>
+        <?php $cartes['compta'] = ['titre' => 'Évolution financière', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
 
         <?php if (module_accessible('salaires')): ?>
@@ -294,6 +283,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         // sans lui le médaillon annoncerait 8 et ouvrirait les 13.
         $aPayerLien = '?p=fiches&statut[]=apayer&statut_set=1';
         ?>
+        <?php ob_start(); ?>
         <div class="card dash-card">
             <div class="card-head-row">
                 <h2 class="mt-0">Salaires à verser</h2>
@@ -332,6 +322,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             </table>
             <?php endif; ?>
         </div>
+        <?php $cartes['salaires'] = ['titre' => 'Salaires à verser', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
         
         <?php if (module_accessible('facturation')): ?>
@@ -354,6 +345,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         $facturesLien = '?p=facturation_liste&statut[]=emise&statut_set=1';
         $totEmises = array_sum(array_map(fn ($f) => (float) $f['montant_total'], $facturesEmises));
         ?>
+        <?php ob_start(); ?>
         <div class="card dash-card">
             <div class="card-head-row">
                 <h2 class="mt-0">Factures émises</h2>
@@ -399,6 +391,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             </table>
             <?php endif; ?>
         </div>
+        <?php $cartes['factures'] = ['titre' => 'Factures émises', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
 
         <?php if (module_accessible('booking')): ?>
@@ -415,6 +408,7 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
         // sur toutes les campagnes ouvertes (campagnes_a_contacter()).
         $statutClasseDash = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
         ?>
+        <?php ob_start(); ?>
         <div class="card dash-card">
             <div class="card-head-row">
                 <h2 class="mt-0">Campagnes</h2>
@@ -461,6 +455,83 @@ $dashModuleActif = $dashComptaActif || module_accessible('salaires') || module_a
             </table>
             <?php endif; ?>
         </div>
+        <?php $cartes['campagnes'] = ['titre' => 'Campagnes', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
+
+<?php // L'ordre retenu, les cartes masquées en moins. ?>
+<?php $cartesVisibles = dashboard_ordre(array_keys($cartes)); ?>
+<?php if (($_GET['refuse'] ?? null) === '1'): ?><p class="err flash">Accès refusé : vous n'avez pas les droits nécessaires pour cette page.</p><?php endif; ?>
+<div class="page-head">
+    <h1>Tableau de bord</h1>
+    <?php if ($cartes): ?>
+    <?php
+    // Organiser les cartes. Panneau ouvert/fermé par <details>, donc sans une
+    // ligne de JavaScript ; il se rouvre après chaque déplacement grâce au
+    // ?reglages=1 que pose la redirection.
+    [$dashOrdre, $dashCachees] = dashboard_disposition(array_keys($cartes));
+    $dashDernier = count($dashOrdre) - 1;
+    ?>
+    <details class="head-actions dash-reglages"<?= isset($_GET['reglages']) ? ' open' : '' ?>>
+        <summary class="btn ghost icon-only" title="Organiser les cartes" aria-label="Organiser les cartes"><?= icon('columns-3-cog') ?></summary>
+        <div class="dash-reglages-panneau">
+            <p class="muted small mb-8">L'ordre des cartes et celles que vous voulez voir. Ce réglage
+            n'est qu'à vous : il ne change rien pour les autres comptes.</p>
+            <?php foreach ($dashOrdre as $dashRang => $dashId): ?>
+            <?php $dashCachee = in_array($dashId, $dashCachees, true); ?>
+            <div class="dash-reglage-ligne<?= $dashCachee ? ' est-cachee' : '' ?>">
+                <form method="post" action="?p=resumes" class="d-inline">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="section" value="visible">
+                    <input type="hidden" name="carte" value="<?= e($dashId) ?>">
+                    <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
+                    <button type="submit" class="btn ghost btn-sm icon-only"
+                            title="<?= $dashCachee ? 'Afficher' : 'Masquer' ?>"
+                            aria-label="<?= $dashCachee ? 'Afficher' : 'Masquer' ?> la carte <?= e($cartes[$dashId]['titre']) ?>"><?= icon($dashCachee ? 'eye-off' : 'eye') ?></button>
+                </form>
+                <span class="dash-reglage-nom"><?= e($cartes[$dashId]['titre']) ?></span>
+                <form method="post" action="?p=resumes" class="d-inline">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="section" value="deplacer">
+                    <input type="hidden" name="carte" value="<?= e($dashId) ?>">
+                    <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
+                    <button type="submit" name="dir" value="up" class="btn ghost btn-sm icon-only" title="Monter" aria-label="Monter <?= e($cartes[$dashId]['titre']) ?>" <?= $dashRang === 0 ? 'disabled' : '' ?>><?= icon('chevron-up') ?></button>
+                    <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre <?= e($cartes[$dashId]['titre']) ?>" <?= $dashRang === $dashDernier ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
+                </form>
+            </div>
+            <?php endforeach; ?>
+            <form method="post" action="?p=resumes" class="mt-10">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="section" value="reinit">
+                <button type="submit" class="btn ghost btn-sm">Rétablir l'ordre par défaut</button>
+            </form>
+        </div>
+    </details>
+    <?php endif; ?>
+</div>
+
+<?php // Recherche unifiée. Les sources interrogées dépendent des droits du
+      // compte (voir lib/recherche.php) : le champ s'affiche pour tout le monde,
+      // les résultats sont filtrés. Raccourci « / » posé dans assets/app.js. ?>
+<form class="recherche-form recherche-dash" method="get" action="">
+    <input type="hidden" name="p" value="recherche">
+    <?= champ_recherche([
+        'id'          => 'recherche-globale',
+        'name'        => 'q',
+        'classe'      => 'recherche-champ',
+        'placeholder' => 'Rechercher partout',
+        'aria'        => "Rechercher dans toute l'application",
+        'submit'      => true,
+    ]) ?>
+</form>
+
+
+<?php if (!$cartes): ?>
+    <p class="muted">Aucun module actif n'alimente le tableau de bord pour l'instant. Active
+    des modules dans <a href="?p=parametres_modules">Paramètres → Modules</a>.</p>
+<?php elseif (!$cartesVisibles): ?>
+    <p class="muted">Toutes les cartes sont masquées. Le bouton ci-dessus permet d'en rétablir.</p>
+<?php else: ?>
+<div class="dash-cols">
+<?php foreach ($cartesVisibles as $dashId) { echo $cartes[$dashId]['html']; } ?>
 </div>
 <?php endif; ?>

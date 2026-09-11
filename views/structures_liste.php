@@ -1,6 +1,6 @@
 <?php /** @var array $structures */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var array $categorieId */
-/** @var array $pays */ /** @var array $departementCanton */ /** @var array $tagId */ /** @var array $statut */
-/** @var array $categoriesPourSelect */ /** @var array $regionsDispo */ /** @var array $tagsDispo */
+/** @var array $lieu */ /** @var array $tagId */ /** @var array $statut */
+/** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var array $campagnesParStructure */ /** @var array $campagnesDispo */ /** @var array $campagneId */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
@@ -10,7 +10,6 @@
 /** @var ?int $lieuJaugeMin */ /** @var ?int $lieuJaugeMax */
 /** @var int $lieuMoisEvenement */ /** @var int $lieuMoisProg */
 /** @var bool $nonLocalises */ /** @var array $avecEvenements */
-/** @var array $grandeRegion */ /** @var array $grandesRegionsDispo */
 /** @var array $majPeriode */ /** @var array $contactPeriode */
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
@@ -61,13 +60,11 @@ if ($peutEcrireTags) {
 // les actions de renommage sur le filtre d'étiquettes, les filtres d'appoint
 // « non localisées » et « région », et les liens Liste/Carte.
 $sfPage = 'structures';
-$sfVals = ['statut' => $statut, 'categorieId' => $categorieId, 'pays' => $pays,
-    'departementCanton' => $departementCanton, 'grandeRegion' => $grandeRegion,
+$sfVals = ['statut' => $statut, 'categorieId' => $categorieId, 'lieu' => $lieu,
     'tagId' => $tagId, 'campagneId' => $campagneId,
     'avecEvenements' => $avecEvenements, 'contactPeriode' => $contactPeriode, 'majPeriode' => $majPeriode];
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
-    'regionsDispo' => $regionsDispo, 'grandesRegionsDispo' => $grandesRegionsDispo,
-    'campagnesDispo' => $campagnesDispo];
+    'lieuxOptions' => $lieuxOptions, 'campagnesDispo' => $campagnesDispo];
 // 'depuis' est reporté par chaque panneau : Structures est partagée par 3
 // groupes de nav (booking/facturation/evenements) et sans lui, soumettre un
 // panneau — un simple <form method="get"> qui ne connaît que ses propres
@@ -83,9 +80,6 @@ require __DIR__ . '/_structures_filtres.php';
 $statutLabels = $sfLabels['statut'];
 $tagLabels = $sfLabels['tag'];
 $categorieLabels = $sfLabels['categorie'];
-$paysLabels = $sfLabels['pays'];
-$departementCantonLabels = $sfLabels['departementCanton'];
-$grandeRegionLabels = $sfLabels['grandeRegion'];
 $avecEvenementsLabels = $sfLabels['avecEvenements'];
 $periodeLabels = $sfLabels['periode'];
 $autresFiltres = $sfAutres;
@@ -242,7 +236,7 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
 <?php else: ?>
-<?php $filtresActifs = $recherche !== '' || $categorieId || $pays || $departementCanton || $grandeRegion || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
+<?php $filtresActifs = $recherche !== '' || $categorieId || $lieu || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
 <?php if ($peutEcrireStruct): ?>
 <?php
 // La barre d'action groupée vit dans son propre fichier : le suivi d'une

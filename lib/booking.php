@@ -1231,6 +1231,132 @@ function structure_tags_paires(int $structureId): array
     return array_map(fn ($r) => [(int) $r['id'], (string) $r['nom'], (string) $r['couleur']], $stmt->fetchAll());
 }
 
+// --- Le filtre « Lieu » -----------------------------------------------------
+//
+// Une seule question — « où ? » — au lieu des trois entonnoirs Pays, Région et
+// Département/canton qu'elle remplace, et la ville en plus, qui n'était pas
+// filtrable. Chaque valeur cochée est un JETON « niveau:pays|valeur » :
+//
+//     pays:Suisse            region:Suisse|Romandie
+//     dept:France|69         ville:Suisse|Genève
+//
+// Le pays accompagne tout ce qui est sous lui : deux pays peuvent porter une
+// région, un département ou une ville de même nom (une seule ville homonyme
+// dans la base actuelle, mais le compte affiché sous Paramètres → Pays est déjà
+// calculé sur le couple — voir lien_structures_pays()). La barre verticale n'a
+// jamais à être échappée : aucune valeur n'en contient, et lieu_jeton() écarte
+// celles qui en contiendraient.
+//
+// Les jetons sont unis en OU, contrairement aux trois entonnoirs d'avant qui se
+// combinaient en ET : dans une liste unique, cocher « Suisse » puis « Lyon »
+// demande manifestement les deux, pas leur intersection — qui serait vide.
+const LIEU_NIVEAUX = [
+    'pays'   => 'Pays',
+    'region' => 'Région',
+    'dept'   => 'Département / canton',
+    'ville'  => 'Ville',
+];
+
+// Colonne de `structures` correspondant à chaque niveau.
+const LIEU_COLONNES = [
+    'pays'   => 'adresse_pays',
+    'region' => 'grande_region',
+    'dept'   => 'departement_canton',
+    'ville'  => 'adresse_localite',
+];
+
+function lieu_jeton(string $niveau, string $pays, string $valeur): string
+{
+    if (!isset(LIEU_NIVEAUX[$niveau]) || $valeur === '' || str_contains($valeur, '|') || str_contains($pays, '|')) {
+        return '';
+    }
+    return $niveau === 'pays' ? 'pays:' . $valeur : $niveau . ':' . $pays . '|' . $valeur;
+}
+
+// ['niveau', 'pays', 'valeur'] ou null si le jeton ne dit rien de lisible —
+// une URL bricolée à la main, un niveau disparu.
+function lieu_decoder(string $jeton): ?array
+{
+    $p = strpos($jeton, ':');
+    if ($p === false) {
+        return null;
+    }
+    $niveau = substr($jeton, 0, $p);
+    $reste = substr($jeton, $p + 1);
+    if (!isset(LIEU_NIVEAUX[$niveau]) || $reste === '') {
+        return null;
+    }
+    if ($niveau === 'pays') {
+        return ['niveau' => 'pays', 'pays' => $reste, 'valeur' => $reste];
+    }
+    $b = strpos($reste, '|');
+    if ($b === false || $b === 0 || $b === strlen($reste) - 1) {
+        return null;
+    }
+    return ['niveau' => $niveau, 'pays' => substr($reste, 0, $b), 'valeur' => substr($reste, $b + 1)];
+}
+
+// La condition SQL d'un lot de jetons, et ses paramètres. Les jetons illisibles
+// sont ignorés ; si aucun ne tient debout, la condition est vide et le filtre ne
+// s'applique pas — mieux vaut tout montrer qu'une liste vide inexplicable.
+// $alias est celui de la table `structures` dans la requête appelante.
+function lieu_where(array $jetons, string $alias = 's'): array
+{
+    $conds = [];
+    $params = [];
+    foreach ($jetons as $jeton) {
+        $l = lieu_decoder((string) $jeton);
+        if (!$l) {
+            continue;
+        }
+        $col = $alias . '.' . LIEU_COLONNES[$l['niveau']];
+        if ($l['niveau'] === 'pays') {
+            $conds[] = "$col = ?";
+            $params[] = $l['valeur'];
+            continue;
+        }
+        $conds[] = "($alias." . LIEU_COLONNES['pays'] . ' = ? AND ' . $col . ' = ?)';
+        $params[] = $l['pays'];
+        $params[] = $l['valeur'];
+    }
+    return $conds ? ['(' . implode(' OR ', $conds) . ')', $params] : ['', []];
+}
+
+// Tous les lieux connus des structures, par niveau :
+//   ['pays' => [jeton => ['libelle', 'pays', 'n']], 'region' => …]
+// Une seule requête, groupée sur les quatre colonnes. $niveaux restreint le
+// travail — la liste des villes (plus de quinze cents) n'est pas écrite dans la
+// page, elle est demandée à part quand on ouvre le panneau.
+function lieux_options(array $niveaux = ['pays', 'region', 'dept', 'ville']): array
+{
+    $out = array_fill_keys($niveaux, []);
+    $sql = 'SELECT adresse_pays AS pays, grande_region AS region, departement_canton AS dept,
+                   adresse_localite AS ville, COUNT(*) AS n
+              FROM structures WHERE adresse_pays <> ""
+             GROUP BY adresse_pays, grande_region, departement_canton, adresse_localite';
+    foreach (db()->query($sql) as $l) {
+        foreach ($niveaux as $niveau) {
+            $valeur = trim((string) $l[$niveau]);
+            // « - » est la valeur que certains imports ont laissée pour « rien » :
+            // ce n'est pas un lieu, et l'offrir en option ne filtrerait rien d'utile.
+            if ($valeur === '' || $valeur === '-') {
+                continue;
+            }
+            $jeton = lieu_jeton($niveau, (string) $l['pays'], $valeur);
+            if ($jeton === '') {
+                continue;
+            }
+            $out[$niveau][$jeton] ??= ['libelle' => $valeur, 'pays' => (string) $l['pays'], 'n' => 0];
+            $out[$niveau][$jeton]['n'] += (int) $l['n'];
+        }
+    }
+    foreach ($out as &$liste) {
+        uasort($liste, fn ($a, $b) => strcoll($a['libelle'], $b['libelle']) ?: strcmp($a['pays'], $b['pays']));
+    }
+    unset($liste);
+    return $out;
+}
+
 // Lien vers ?p=structures filtré sur UNE valeur (une catégorie, une étiquette,
 // un pays, une région), tous les autres filtres remis à zéro — pour les
 // compteurs « N structures » des trois écrans de Paramètres → Catégories, qui
@@ -1251,7 +1377,7 @@ function structure_tags_paires(int $structureId): array
 function lien_structures_filtre(array $filtres): string
 {
     $params = ['p' => 'structures'];
-    foreach (['categorie_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'tag_id',
+    foreach (['categorie_id', 'statut', 'lieu', 'tag_id',
               'campagne_id', 'avec_evenements', 'contact_periode', 'maj_periode'] as $f) {
         $params[$f . '_set'] = 1;
         if (isset($filtres[$f])) {
@@ -1279,16 +1405,14 @@ function lien_structures_tag(int $tagId): string
     return lien_structures_filtre(['tag_id' => [$tagId]]);
 }
 
-// Un pays : filtre « pays » ordinaire. Une région : le pays PLUS la région,
-// car deux pays peuvent porter une région homonyme et le compte affiché est
-// lui-même calculé sur le couple (voir route_parametres_pays()).
+// Un pays, ou une région DE ce pays : un seul jeton de l'entonnoir « Lieu »
+// (lieu_jeton()), qui porte déjà le couple — deux pays peuvent nommer
+// pareillement une région, et le compte affiché à côté du lien est lui-même
+// calculé sur le couple (voir route_parametres_pays()).
 function lien_structures_pays(string $pays, string $region = ''): string
 {
-    $filtres = ['pays' => [$pays]];
-    if ($region !== '') {
-        $filtres['grande_region'] = [$region];
-    }
-    return lien_structures_filtre($filtres);
+    $jeton = $region !== '' ? lieu_jeton('region', $pays, $region) : lieu_jeton('pays', $pays, $pays);
+    return lien_structures_filtre($jeton !== '' ? ['lieu' => [$jeton]] : []);
 }
 
 // Compte de structures affiché sous une entrée de paramètres — étiquette,

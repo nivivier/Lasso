@@ -8,12 +8,11 @@
 // Attendu de l'appelant (préfixe « sf ») :
 //   $sfPage        (string) la route qui reçoit les panneaux ('structures', 'campagne').
 //   $sfVals        (array)  valeurs actives, telles que rendues par structures_filtres() :
-//                  categorieId, pays, departementCanton, grandeRegion, tagId,
-//                  statut,
+//                  categorieId, lieu, tagId, statut,
 //                  avecEvenements, contactPeriode, majPeriode.
-//   $sfSources     (array)  categoriesPourSelect, tagsDispo, regionsDispo
-//                  (les départements/cantons, malgré son nom),
-//                  grandesRegionsDispo, et
+//   $sfSources     (array)  categoriesPourSelect, tagsDispo, lieuxOptions
+//                  (pays/régions/départements pour l'entonnoir « Lieu » —
+//                  les villes, elles, arrivent par ?p=structures_lieux), et
 //                  campagnesDispo pour la colonne « Campagnes » — vide ailleurs,
 //                  l'entonnoir disparaît alors avec elle.
 //   $sfAutresParams(array)  paramètres reportés dans CHAQUE panneau (q, depuis,
@@ -23,7 +22,7 @@
 //   $sfExtra       (array)  paramètres ajoutés en plus à chaque panneau (vue=carte).
 //   $sfTagActions  (array)  actions par étiquette (renommer/supprimer) ; [] ailleurs.
 //   $sfReinitVides (array)  champs à vider dans le lien « retirer les filtres ».
-//   $sfActifSupp   (bool)   un filtre hors panneau est actif (non_localises, région).
+//   $sfActifSupp   (bool)   un filtre hors panneau est actif (non_localises…).
 //
 // Produit : $sfLabels (les listes d'options), $sfAutres (closure), $sfFiltres
 // (par colonne du <thead>), $sfColonnes (les mêmes, nommés, pour le panneau
@@ -38,9 +37,7 @@ $sfActifSupp = $sfActifSupp ?? false;
 
 $sfStatut = $sfVals['statut'] ?? [];
 $sfCategorieId = $sfVals['categorieId'] ?? [];
-$sfPays = $sfVals['pays'] ?? [];
-$sfDepartementCanton = $sfVals['departementCanton'] ?? [];
-$sfGrandeRegion = $sfVals['grandeRegion'] ?? [];
+$sfLieu = $sfVals['lieu'] ?? [];
 $sfTagId = $sfVals['tagId'] ?? [];
 $sfCampagneId = $sfVals['campagneId'] ?? [];
 $sfAvecEvenements = $sfVals['avecEvenements'] ?? [];
@@ -62,22 +59,27 @@ $categorieLabels = [];
 foreach ($sfSources['categoriesPourSelect'] ?? [] as $cat) {
     $categorieLabels[(int) $cat['id']] = str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) . $cat['nom'];
 }
-$paysLabels = [];
-foreach (array_unique(array_merge($sfPays, array_column(pays_liste(), 'nom'))) as $nom) { $paysLabels[$nom] = $nom; }
-$departementCantonLabels = [];
-foreach (array_unique(array_merge($sfDepartementCanton, $sfSources['regionsDispo'] ?? [])) as $r) { $departementCantonLabels[$r] = $r; }
-// Région = grande_region (Romandie, Normandie…), à ne pas confondre avec le
-// département/canton juste au-dessus. Les valeurs actives sont réunies aux
-// valeurs disponibles : une région qui n'est plus portée par aucune structure
-// doit rester décochable.
-$grandeRegionLabels = [];
-foreach (array_unique(array_merge($sfGrandeRegion, $sfSources['grandesRegionsDispo'] ?? [])) as $r) { $grandeRegionLabels[$r] = $r; }
+$lieuxOptions = $sfSources['lieuxOptions'] ?? [];
+// Libellés des lieux, pour la bande des filtres actifs uniquement : le panneau,
+// lui, sait se rendre tout seul (filtre_colonne_lieu_html()). Une ville cochée
+// n'est PAS dans $lieuxOptions — elles n'y sont pas écrites — son libellé se
+// relit donc dans le jeton.
+$lieuLabels = [];
+foreach ($lieuxOptions as $lieuNiveau => $lieuListe) {
+    foreach ($lieuListe as $lieuJeton => $lieuOpt) {
+        $lieuLabels[$lieuJeton] = $lieuOpt['libelle'] . ($lieuNiveau === 'pays' ? '' : ' · ' . $lieuOpt['pays']);
+    }
+}
+foreach ($sfLieu as $lieuJeton) {
+    if (!isset($lieuLabels[$lieuJeton]) && ($lieuDec = lieu_decoder((string) $lieuJeton))) {
+        $lieuLabels[$lieuJeton] = $lieuDec['valeur'] . ($lieuDec['niveau'] === 'pays' ? '' : ' · ' . $lieuDec['pays']);
+    }
+}
 $avecEvenementsLabels = ['avec' => 'Avec événements liés', 'sans' => 'Sans événement lié'];
 // Mêmes tranches pour les deux colonnes de date (voir PERIODES_ANCIENNETE).
 $periodeLabels = PERIODES_ANCIENNETE;
 $sfLabels = [
     'statut' => $statutLabels, 'tag' => $tagLabels, 'campagne' => $campagneLabels, 'categorie' => $categorieLabels,
-    'pays' => $paysLabels, 'departementCanton' => $departementCantonLabels, 'grandeRegion' => $grandeRegionLabels,
     'avecEvenements' => $avecEvenementsLabels, 'periode' => $periodeLabels,
 ];
 
@@ -85,8 +87,7 @@ $sfLabels = [
 // cachés par chaque panneau — construits une fois plutôt qu'un littéral quasi
 // identique par filtre.
 $sfTousFiltres = [
-    'categorie_id' => $sfCategorieId, 'pays' => $sfPays, 'departement_canton' => $sfDepartementCanton,
-    'grande_region' => $sfGrandeRegion,
+    'categorie_id' => $sfCategorieId, 'lieu' => $sfLieu,
     'tag_id' => $sfTagId, 'campagne_id' => $sfCampagneId, 'statut' => $sfStatut, 'avec_evenements' => $sfAvecEvenements,
     'maj_periode' => $sfMajPeriode, 'contact_periode' => $sfContactPeriode,
 ] + $sfAutresParams;
@@ -95,7 +96,7 @@ $sfAutres = autres_filtres_fn($sfTousFiltres);
 // Le filtre de statut peut démarrer sur « actif + contact privilégié » plutôt
 // que vide (voir structures_filtres()) : c'est bien un filtre, il masque des
 // structures. Le bouton de retrait doit donc être là dès l'ouverture.
-$sfActif = $sfCategorieId || $sfStatut || $sfPays || $sfDepartementCanton || $sfGrandeRegion || $sfTagId
+$sfActif = $sfCategorieId || $sfStatut || $sfLieu || $sfTagId
     || $sfCampagneId || $sfAvecEvenements || $sfContactPeriode || $sfMajPeriode || $sfActifSupp;
 
 $sfMontreEvenements = module_actif('evenements');
@@ -106,13 +107,15 @@ $sfCampagnes = $campagneLabels !== [];
 // de plus — et $sfExtra, que la vue carte ajoute pour se reconduire elle-même.
 $sfCol = fn (string $champ, array $options, array $actives, string $libelle = '', array $actions = []): string
     => filtre_colonne_html($sfPage, $champ, $options, $actives, $sfAutres($champ) + $sfExtra, $libelle, $actions);
+$sfLieuCol = fn (string $libelle = ''): string
+    => filtre_colonne_lieu_html($sfPage, $sfLieu, $sfAutres('lieu') + $sfExtra, $lieuxOptions, $libelle);
 
 $sfFiltres = [
     'statut'     => $sfCol('statut', $statutLabels, $sfStatut),
-    // Trois entonnoirs sur la colonne « Ville » : du plus large au plus fin.
-    'ville'      => $sfCol('pays', $paysLabels, $sfPays)
-                  . ($grandeRegionLabels ? $sfCol('grande_region', $grandeRegionLabels, $sfGrandeRegion) : '')
-                  . $sfCol('departement_canton', $departementCantonLabels, $sfDepartementCanton),
+    // Un seul entonnoir pour « où ? » : pays, région, département ou ville.
+    // Trois entonnoirs y posaient la même question sans jamais répondre à la
+    // dernière (filtre_colonne_lieu_html(), lib/helpers.php).
+    'ville'      => $sfLieuCol(),
     'categorie'  => $sfCol('categorie_id', $categorieLabels, $sfCategorieId),
     'tags'       => $sfTags ? $sfCol('tag_id', $tagLabels, $sfTagId, '', $sfTagActions) : '',
     'campagnes'  => $sfCampagnes ? $sfCol('campagne_id', $campagneLabels, $sfCampagneId) : '',
@@ -126,9 +129,7 @@ $sfFiltres = [
 // nommés cette fois.
 $sfColonnes = $sfCol('statut', $statutLabels, $sfStatut, 'Statut')
     . $sfCol('categorie_id', $categorieLabels, $sfCategorieId, 'Catégorie')
-    . $sfCol('pays', $paysLabels, $sfPays, 'Pays')
-    . ($grandeRegionLabels ? $sfCol('grande_region', $grandeRegionLabels, $sfGrandeRegion, 'Région') : '')
-    . $sfCol('departement_canton', $departementCantonLabels, $sfDepartementCanton, 'Département / canton')
+    . $sfLieuCol('Lieu')
     . ($sfTags ? $sfCol('tag_id', $tagLabels, $sfTagId, 'Tags', $sfTagActions) : '')
     . ($sfCampagnes ? $sfCol('campagne_id', $campagneLabels, $sfCampagneId, 'Campagnes') : '')
     . ($sfMontreEvenements ? $sfCol('avec_evenements', $avecEvenementsLabels, $sfAvecEvenements, 'Événements') : '')
@@ -141,9 +142,7 @@ $sfAct = fn (string $champ, array $options, array $actives): string
     => filtre_colonne_actifs_html($sfPage, $champ, $options, $actives, $sfAutres($champ) + $sfExtra);
 $sfActifs = $sfAct('statut', $statutLabels, $sfStatut)
     . $sfAct('categorie_id', $categorieLabels, $sfCategorieId)
-    . $sfAct('pays', $paysLabels, $sfPays)
-    . $sfAct('grande_region', $grandeRegionLabels, $sfGrandeRegion)
-    . $sfAct('departement_canton', $departementCantonLabels, $sfDepartementCanton)
+    . $sfAct('lieu', $lieuLabels, $sfLieu)
     . $sfAct('tag_id', $tagLabels, $sfTagId)
     . $sfAct('campagne_id', $campagneLabels, $sfCampagneId)
     . $sfAct('avec_evenements', $avecEvenementsLabels, $sfAvecEvenements)
@@ -152,7 +151,7 @@ $sfActifs = $sfAct('statut', $statutLabels, $sfStatut)
 
 $sfReinit = bouton_reinit_filtres(
     $sfPage,
-    ['categorie_id', 'statut', 'pays', 'grande_region', 'departement_canton', 'tag_id', 'campagne_id', 'avec_evenements', 'contact_periode', 'maj_periode'],
+    ['categorie_id', 'statut', 'lieu', 'tag_id', 'campagne_id', 'avec_evenements', 'contact_periode', 'maj_periode'],
     (bool) $sfActif,
     $sfReinitVides,
     // Les vides ne voyagent pas : un « q= » ou un « depuis= » sans valeur dans

@@ -511,6 +511,120 @@ function lassoInitCatSearch(wrap, opts = {}) {
 }
 
 
+// Entonnoir « Lieu » (filtre_colonne_lieu_html(), lib/helpers.php) : le seul
+// filtre dont les valeurs se cherchent au lieu de se parcourir.
+//
+// Pays, régions et départements sont déjà dans la page ; les villes — plus de
+// quinze cents — sont demandées à ?p=structures_lieux au PREMIER clic dans le
+// champ, puis ajoutées à la liste. Écrites d'emblée, elles auraient pesé deux
+// cents kilo-octets par panneau, et il y en a deux par page (l'en-tête de
+// colonne et le panneau mobile).
+//
+// La frappe ne fait que masquer/montrer des <label> déjà présents : même
+// mécanique que les autres panneaux de filtre, et les cases cochées survivent
+// donc à la recherche sans rien à mémoriser. Chaque groupe est plafonné —
+// « Ville » seul en compte quinze cents — et le dit.
+function lassoInitFiltreLieu() {
+    const MAX_PAR_GROUPE = 8;
+    let villes = null;          // partagé par tous les panneaux de la page
+    let enCours = null;
+
+    document.querySelectorAll('.col-filter-lieu').forEach(panneau => {
+        const champ = panneau.querySelector('.lieu-recherche');
+        const liste = panneau.querySelector('.col-filter-options');
+        const aide = panneau.querySelector('.lieu-aide');
+        if (!champ || !liste) return;
+
+        const filtrer = () => {
+            const q = lassoNorm(champ.value.trim());
+            // Compte par groupe : les en-têtes suivent ce qu'ils coiffent, et
+            // disparaissent quand il ne reste rien sous eux.
+            let entete = null;
+            let vus = 0;
+            let caches = 0;
+            const finirGroupe = () => {
+                if (!entete) return;
+                const sup = entete.querySelector('.lieu-reste');
+                if (sup) sup.remove();
+                if (caches > 0) {
+                    const n = document.createElement('span');
+                    n.className = 'lieu-reste';
+                    n.textContent = '+' + caches;
+                    n.title = caches + ' autre(s) — précisez la recherche';
+                    entete.appendChild(n);
+                }
+                entete.hidden = vus === 0;
+            };
+            liste.querySelectorAll('.lieu-groupe, label').forEach(el => {
+                if (el.classList.contains('lieu-groupe')) {
+                    finirGroupe();
+                    entete = el; vus = 0; caches = 0;
+                    return;
+                }
+                // Une case cochée reste toujours visible : c'est le seul endroit
+                // d'où l'on peut la décocher.
+                const coche = el.querySelector('input').checked;
+                const correspond = q === '' || lassoNorm(el.textContent).includes(q);
+                if (coche) { el.hidden = false; vus++; return; }
+                // Sans recherche, les villes ne s'affichent pas : elles
+                // noieraient les 165 autres lignes.
+                const villeSansRecherche = q === '' && el.dataset.lieuNiveau === 'ville';
+                if (!correspond || villeSansRecherche) { el.hidden = true; return; }
+                if (vus >= MAX_PAR_GROUPE) { el.hidden = true; caches++; return; }
+                el.hidden = false; vus++;
+            });
+            finirGroupe();
+            if (aide) aide.hidden = q !== '';
+        };
+
+        champ.addEventListener('input', filtrer);
+        champ.addEventListener('focus', () => {
+            if (villes) return;
+            if (!enCours) {
+                enCours = fetch('?p=structures_lieux', { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.json())
+                    .catch(() => { enCours = null; return null; });
+            }
+            enCours.then(v => {
+                if (!v) return;
+                villes = v;
+                document.querySelectorAll('.col-filter-lieu').forEach(p2 => lassoLieuAjouterVilles(p2, villes));
+                filtrer();
+            });
+        });
+        filtrer();
+    });
+}
+
+// Ajoute les villes reçues à un panneau, sous leur propre en-tête, en sautant
+// celles qui y sont déjà cochées (elles figurent alors dans « Sélection »).
+function lassoLieuAjouterVilles(panneau, villes) {
+    const liste = panneau.querySelector('.col-filter-options');
+    if (!liste || liste.querySelector('[data-lieu-groupe="ville"]')) return;
+    const deja = new Set([...liste.querySelectorAll('input[name="lieu[]"]')].map(i => i.value));
+    const entete = document.createElement('div');
+    entete.className = 'lieu-groupe';
+    entete.dataset.lieuGroupe = 'ville';
+    entete.textContent = 'Ville';
+    const frag = document.createDocumentFragment();
+    frag.appendChild(entete);
+    villes.forEach(v => {
+        if (deja.has(v.jeton)) return;
+        const l = document.createElement('label');
+        l.dataset.lieuNiveau = 'ville';
+        l.hidden = true;
+        l.innerHTML = '<input type="checkbox" name="lieu[]" value="">'
+            + '<span class="lieu-nom"></span><span class="lieu-pays"></span><span class="lieu-n"></span>';
+        l.querySelector('input').value = v.jeton;
+        l.querySelector('.lieu-nom').textContent = v.libelle;
+        l.querySelector('.lieu-pays').textContent = v.pays;
+        l.querySelector('.lieu-n').textContent = v.n;
+        frag.appendChild(l);
+    });
+    liste.appendChild(frag);
+}
+window.addEventListener('DOMContentLoaded', lassoInitFiltreLieu);
+
 // Barre d'action groupée d'une liste de structures (views/_structures_bulk_bar.php).
 // Deux pages la montrent — ?p=structures et le suivi d'une campagne — et elle s'y
 // comporte pareil : d'où cette fonction plutôt qu'un script recopié dans chaque

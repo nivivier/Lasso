@@ -7,6 +7,37 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.8] — 2026-09-11
+
+### Ajouté
+- **Un seul entonnoir « Lieu »** dans la colonne « Ville » de `?p=structures` et
+  du suivi d'une campagne, à la place des trois (Pays, Région,
+  Département/canton) qui posaient la même question sans jamais répondre à la
+  dernière : **la ville est enfin filtrable**. On tape « genè » et on obtient le
+  canton *et* la ville, chacun annoncé par son niveau ; on coche ce qu'on veut,
+  de n'importe quel niveau, et les valeurs se cumulent en **OU** — « Suisse ou
+  Lyon » est la question qu'on pose à une liste unique, pas leur intersection.
+  Les pays, régions et départements sont dans la page ; les quinze cents villes
+  arrivent au premier clic dans le champ, pour ne pas alourdir un écran qui pèse
+  déjà quatre mégaoctets. Sans JavaScript, on filtre comme avant — pays, région,
+  département.
+- **Organiser les cartes du tableau de bord** : un bouton d'engrenage en haut à
+  droite ouvre la liste des cartes, où l'on change leur ordre et masque celles
+  dont on n'a pas l'usage. C'est un réglage **par compte** — deux personnes qui
+  partagent l'installation ne suivent pas le même travail — enregistré dans
+  `utilisateur_preferences`. Une carte qui apparaît plus tard (module activé,
+  droit accordé) se range à la fin, visible : mieux vaut la voir arriver que la
+  manquer.
+
+### Corrigé
+- **Un panneau de filtre passait sous les en-têtes des colonnes suivantes.**
+  Chaque en-tête est collant, donc son propre contexte d'empilement : le
+  `z-index` du panneau ne valait qu'à l'intérieur du sien, et à égalité entre
+  en-têtes c'est l'ordre du document qui tranche — le filtre « Ville » passait
+  sous « Catégorie », « Tags » et les suivantes. C'est l'en-tête qui porte un
+  panneau ouvert qu'on élève désormais, pas le panneau. Vérifié sur les
+  vingt-cinq entonnoirs des cinq listes concernées.
+
 ## [2.7.7] — 2026-09-10
 
 ### Ajouté
