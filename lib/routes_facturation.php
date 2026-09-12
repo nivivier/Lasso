@@ -125,7 +125,20 @@ function route_facturation_liste(): void
 
     $pgTaille = pagination_taille('facturation_taille');
     $selectCols = 'f.*, d.nom AS structure_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '');
-    $orderBy = ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC';
+    // Tri de colonne. L'ordre naturel — la plus récemment émise d'abord —
+    // reste celui de l'arrivée sur la page. Le numéro se trie en TEXTE : il est
+    // de la forme « 2026-014 », un tri alphabétique y est chronologique.
+    $tri = tri_colonne('facturation_liste', [
+        'numero'    => 'f.numero COLLATE NOCASE',
+        'structure' => 'd.nom COLLATE NOCASE',
+        'emission'  => "COALESCE(NULLIF(f.date_emission, ''), f.cree_le)",
+        'echeance'  => 'f.date_echeance',
+        'montant'   => 'f.montant_total',
+        'paiement'  => "COALESCE(NULLIF(f.date_paiement, ''), '')",
+    ]);
+    $orderBy = $tri['sql'] !== ''
+        ? $tri['sql'] . ', f.id DESC'
+        : ' ORDER BY COALESCE(NULLIF(f.date_emission,\'\'), f.cree_le) DESC, f.id DESC';
 
     if ($modeClient) {
         $stmt = db()->prepare('SELECT ' . $selectCols . $from . $where . $orderBy);
@@ -159,6 +172,7 @@ function route_facturation_liste(): void
         'avecEvenements' => $avecEvenements,
         'recherche'      => $recherche,
         'modeClient'     => $modeClient,
+        'tri'            => $tri,
         'pgRoute'        => 'facturation_liste',
         'pgParams'       => array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]),
         'pgPage'         => $pgPage,
@@ -960,6 +974,7 @@ function route_structures(): void
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'structures' => [], 'nbEvenements' => [],
             'recherche' => $recherche, 'categorieId' => $categorieId, 'lieu' => $lieu,
+            'tri' => ['cle' => '', 'sens' => 'asc', 'sql' => ''],
             'tagId' => $tagId, 'campagneId' => [], 'statut' => $statut,
             'lieuJaugeMin' => $lieuJaugeMin, 'lieuJaugeMax' => $lieuJaugeMax,
             'lieuMoisEvenement' => $lieuMoisEvenement, 'lieuMoisProg' => $lieuMoisProg, 'nonLocalises' => $nonLocalises, 'avecEvenements' => $avecEvenements,
@@ -1009,6 +1024,22 @@ function route_structures(): void
             WHEN s.nom LIKE 'l’%' THEN substr(s.nom, 3)
             ELSE s.nom
         END";
+    // Tri de colonne. L'ordre naturel ci-dessus — les contacts privilégiés
+    // d'abord, puis l'alphabet sans l'article — est celui qu'on veut en
+    // arrivant ; il n'est remplacé que sur demande explicite.
+    $tri = tri_colonne('structures', [
+        'statut'  => "CASE s.statut WHEN 'contact_privilegie' THEN 0 WHEN 'actif' THEN 1 WHEN 'ne_pas_contacter' THEN 2 ELSE 3 END",
+        'nom'     => 's.nom COLLATE NOCASE',
+        'ville'   => ['s.adresse_localite COLLATE NOCASE', 's.departement_canton COLLATE NOCASE'],
+        'categorie' => ['s.categorie COLLATE NOCASE', 's.sous_categorie COLLATE NOCASE'],
+        'contacte'  => "COALESCE(NULLIF(s.dernier_contact_le, ''), '')",
+        'factures'  => 'nb_factures',
+        'evenements' => '(SELECT COUNT(*) FROM evenement_structures es WHERE es.structure_id = s.id)',
+        'maj'       => "date(COALESCE(NULLIF(s.mise_a_jour_le, ''), s.cree_le))",
+    ]);
+    if ($tri['sql'] !== '') {
+        $orderBy = $tri['sql'] . ', s.nom COLLATE NOCASE';
+    }
 
     if ($modeClient) {
         $stmt = db()->prepare('SELECT ' . $selectCols . ' FROM structures s' . $where . $orderBy);
@@ -1048,6 +1079,7 @@ function route_structures(): void
         'structures' => $structures,
         'nbEvenements' => structures_nb_evenements(array_column($structures, 'id')),
         'recherche' => $recherche,
+        'tri' => $tri,
         'categorieId' => $categorieId,
         'lieu' => $lieu,
         'tagId' => $tagId,

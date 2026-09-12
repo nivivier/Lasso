@@ -8,6 +8,10 @@
 // vue hôte, qui inclut ce fichier dans sa propre portée) :
 //   $stStructures       les lignes, avec les colonnes ci-dessus.
 //   $stVide             la phrase affichée quand il n'y en a aucune.
+//   $stTri              (?array) rend les en-têtes triables : le tri courant
+//                       (tri_colonne()) plus 'page' (la route) et 'params' (les
+//                       filtres à emporter dans les liens). null = en-têtes en
+//                       texte, comme sur la sélection et le suivi d'une campagne.
 //   $stCheck            (?array) colonne de cases à cocher :
 //                       ['name', 'form', 'classe', 'tout' (id du « tout cocher »),
 //                        'coche' => Closure(array): bool] ; null = pas de colonne.
@@ -33,6 +37,18 @@
 //   $stExtraTd          (?Closure) les cellules correspondantes, pour une ligne.
 //                       C'est par là que le suivi d'une campagne ajoute ses
 //                       actions et la réponse reçue sans redéfinir le tableau.
+// $stTri : ['cle','sens','sql'] + ['page','params'] quand la liste est triable.
+// null ailleurs — la sélection et le suivi d'une campagne gardent leurs en-têtes
+// en texte : leur ordre est celui du démarchage, pas une question qu'on pose.
+$stTri = $stTri ?? null;
+// L'en-tête d'une colonne : un lien de tri quand la liste est triable, le
+// libellé nu sinon. Une seule fabrique, pour que les deux cas se lisent pareil
+// plus bas dans le <thead>.
+$stTh = function (string $cle, string $libelle) use ($stTri): string {
+    return $stTri === null
+        ? $libelle
+        : tri_entete_html($stTri['page'], $cle, $libelle, $stTri, $stTri['params']);
+};
 $stCheck = $stCheck ?? null;
 $stFiltres = $stFiltres ?? [];
 $stReinit = $stReinit ?? '';
@@ -66,24 +82,24 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
               // lecteurs d'écran — comme les colonnes Factures et Événements. ?>
         <th class="col-petit col-statut-th<?= $stCheck ? '' : ' col-reinit-hote' ?>"><?php if (!$stCheck): ?><?= $stReinit ?><?php endif; ?>
             <span class="col-th">
-                <span title="Statut" aria-label="Statut"><?= icon('circle-dot') ?></span>
+                <?= $stTh('statut', '<span title="Statut" aria-label="Statut">' . icon('circle-dot') . '</span>') ?>
                 <?= $stFiltres['statut'] ?? '' ?>
             </span>
         </th>
         <th class="col-nom">
             <span class="col-th">
-                Nom
+                <?= $stTh('nom', 'Nom') ?>
             </span>
         </th>
         <th class="col-ville">
             <span class="col-th">
-                Ville
+                <?= $stTh('ville', 'Ville') ?>
                 <?= $stFiltres['ville'] ?? '' ?>
             </span>
         </th>
         <th class="col-categorie">
             <span class="col-th">
-                Catégorie
+                <?= $stTh('categorie', 'Catégorie') ?>
                 <?= $stFiltres['categorie'] ?? '' ?>
             </span>
         </th>
@@ -111,18 +127,18 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
         <th class="col-contact">Contact</th>
         <?php if ($stMontreContacte): ?>
         <th class="col-petit">
-            <span class="col-th">Contacté
+            <span class="col-th"><?= $stTh('contacte', 'Contacté') ?>
                 <?= $stFiltres['contacte'] ?? '' ?>
             </span>
         </th>
         <?php endif; ?>
         <?php if ($stMontreFactures): ?>
-        <th title="Factures liées" aria-label="Factures liées"><?= icon('receipt-swiss-franc') ?></th>
+        <th><?= $stTh('factures', '<span title="Factures liées" aria-label="Factures liées">' . icon('receipt-swiss-franc') . '</span>') ?></th>
         <?php endif; ?>
         <?php if ($stMontreEvenements): ?>
         <th class="col-evenements">
             <span class="col-th">
-                <span title="Événements liés" aria-label="Événements liés"><?= icon('calendar') ?></span>
+                <?= $stTh('evenements', '<span title="Événements liés" aria-label="Événements liés">' . icon('calendar') . '</span>') ?>
                 <?= $stFiltres['evenements'] ?? '' ?>
             </span>
         </th>
@@ -131,7 +147,7 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
               // qu'on consulte rarement et jamais en premier — la reléguer en fin
               // de ligne laisse la place aux colonnes qu'on parcourt. ?>
         <th class="col-petit">
-            <span class="col-th">Modifié
+            <span class="col-th"><?= $stTh('maj', 'Modifié') ?>
                 <?= $stFiltres['maj'] ?? '' ?>
             </span>
             </th>

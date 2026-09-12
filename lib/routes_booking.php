@@ -1816,11 +1816,28 @@ function route_campagne(): void
     // PREMIÈRE table du FROM : les sous-requêtes s'y réfèrent, et le SQLite d'un
     // hébergement mutualisé refuse qu'une sous-requête vise l'alias d'une table
     // jointe plus loin (docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé).
+    // Tri de colonne, celui de ?p=structures plus la réponse reçue, qui n'existe
+    // que sur une campagne. Sa mémoire est propre à cet écran (« campagne_struct »,
+    // comme les filtres) : trier un démarchage ne doit pas ranger la liste des
+    // structures. L'ordre naturel reste l'alphabet.
+    $tri = tri_colonne('campagne_struct', [
+        'statut'  => "CASE s.statut WHEN 'contact_privilegie' THEN 0 WHEN 'actif' THEN 1 WHEN 'ne_pas_contacter' THEN 2 ELSE 3 END",
+        'nom'     => 's.nom COLLATE NOCASE',
+        'ville'   => ['s.adresse_localite COLLATE NOCASE', 's.departement_canton COLLATE NOCASE'],
+        'categorie' => ['s.categorie COLLATE NOCASE', 's.sous_categorie COLLATE NOCASE'],
+        'contacte'  => "COALESCE(NULLIF(s.dernier_contact_le, ''), '')",
+        'evenements' => '(SELECT COUNT(*) FROM evenement_structures es WHERE es.structure_id = s.id)',
+        'maj'       => "date(COALESCE(NULLIF(s.mise_a_jour_le, ''), s.cree_le))",
+        // « Aucune réponse » est la chaîne vide : elle se range donc en tête en
+        // croissant, ce qui met en premier ce qu'il reste à noter.
+        'reponse'   => 'cs.reponse',
+    ]);
+    $orderByStruct = $tri['sql'] !== '' ? $tri['sql'] . ', s.nom COLLATE NOCASE' : ' ORDER BY s.nom COLLATE NOCASE';
     $stmt = db()->prepare(
         'SELECT s.*, cs.reponse, ' . structures_colonnes_liste_sql() . '
            FROM structures s
            JOIN campagne_structures cs ON cs.structure_id = s.id AND cs.campagne_id = ?'
-        . $where . ' ORDER BY s.nom COLLATE NOCASE'
+        . $where . $orderByStruct
     );
     $stmt->execute(array_merge([$id], $params));
     $structures = [];
@@ -1881,6 +1898,11 @@ function route_campagne(): void
         // contacté » les rattache à l'entrée d'historique qu'elle crée.
         'projetIds'   => $projets,
         'structures'  => $structures,
+        'tri'         => $tri,
+        // Colonne « Campagnes » : les AUTRES campagnes où figurent ces
+        // structures. Utile ici justement — savoir qu'une salle est déjà
+        // démarchée ailleurs change la façon de l'aborder.
+        'campagnesParStructure' => structures_campagnes(array_column($structures, 'id')),
         'nbTotal'     => $nbTotal,
         'nbAffichees' => count($structures),
         'nbFaits'     => $faits,

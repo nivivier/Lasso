@@ -847,9 +847,22 @@ function route_compta_ecritures(): void
 
     $pgTaille = pagination_taille('ecr_taille');
 
+    // Tri de colonne. L'ordre naturel — la plus récente d'abord — reste celui de
+    // l'arrivée sur la page. Le montant se trie sur sa valeur SIGNÉE : un débit
+    // est négatif, et c'est bien « du plus gros retrait au plus gros
+    // encaissement » qu'on demande en cliquant, pas un tri sur la valeur absolue.
+    $tri = tri_colonne('compta_ecritures', [
+        'date'      => 'e.date_op',
+        'compte'    => 'cb.libelle COLLATE NOCASE',
+        'tiers'     => 'e.tiers COLLATE NOCASE',
+        'texte'     => 'e.texte COLLATE NOCASE',
+        'montant'   => 'e.montant',
+        'categorie' => 'p.libelle COLLATE NOCASE',
+    ]);
+    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', e.id ASC' : ' ORDER BY e.date_op DESC, e.id ASC';
+
     if ($modeClient) {
-        $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . $from . $where
-             . ' ORDER BY e.date_op DESC, e.id ASC';
+        $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . $from . $where . $orderBy;
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
         $ecritures = $stmt->fetchAll();
@@ -871,7 +884,7 @@ function route_compta_ecritures(): void
         [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
         $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . $from . $where;
-        $sql .= ' ORDER BY e.date_op DESC, e.id ASC';
+        $sql .= $orderBy;
         $sql .= $limitSql;
         $stmt = db()->prepare($sql);
         $stmt->execute(array_merge($params, $limitParams));
@@ -901,6 +914,7 @@ function route_compta_ecritures(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
     render('compta_ecritures', [
+        'tri'                => $tri,
         'comptes'            => $comptes,
         'compteId'           => $compteId,
         'annee'              => $annee,

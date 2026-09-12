@@ -1,5 +1,5 @@
 <?php
-/** @var array $comptes */ /** @var array $compteId */ /** @var array $annee */ /** @var array $annees */
+/** @var array $tri */ /** @var array $comptes */ /** @var array $compteId */ /** @var array $annee */ /** @var array $annees */
 /** @var array $categorieFilter */ /** @var array $axeFilter */ /** @var array $sensFiltre */ /** @var array $ecritures */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
@@ -217,33 +217,37 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <thead>
         <tr>
             <?php if (peut_ecrire('compta')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('compta_ecritures', ['annee', 'compte', 'categorie', 'axe', 'sens'], (bool) ($annee || $compteId || $categorieFilter || $axeFilter || $sensFiltre)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php // La dernière colonne (les boutons de lettrage) et « Axe » ne se
+                  // trient pas : l'une ne porte pas de donnée, l'autre affiche
+                  // plusieurs ventilations par écriture. ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('compta_ecritures', $cle, $lib, $tri, $autresFiltres('')); ?>
             <th class="col-date">
                 <span class="col-th">
-                    Date
+                    <?= $triCol('date', 'Date') ?>
                     <?= filtre_colonne_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
             </th>
             <?php if ($compteColVisible): ?>
             <th class="col-compte">
                 <span class="col-th">
-                    Compte
+                    <?= $triCol('compte', 'Compte') ?>
                     <?= filtre_colonne_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte')) ?>
                 </span>
             </th>
             <?php endif; ?>
             <?php // Colonne à part plutôt que noyée dans le texte : c'est la
                   // réponse à « qui ? », que le relevé donne en clair. ?>
-            <th class="col-tiers">Contre-partie</th>
-            <th>Texte</th>
+            <th class="col-tiers"><?= $triCol('tiers', 'Contre-partie') ?></th>
+            <th><?= $triCol('texte', 'Texte') ?></th>
             <th class="num">
                 <span class="col-th">
-                    Montant
+                    <?= $triCol('montant', 'Montant') ?>
                     <?= filtre_colonne_html('compta_ecritures', 'sens', $sensLabels, $sensFiltre, $autresFiltres('sens')) ?>
                 </span>
             </th>
             <th class="col-categorie">
                 <span class="col-th">
-                    Catégorie
+                    <?= $triCol('categorie', 'Catégorie') ?>
                     <?= filtre_colonne_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie')) ?>
                 </span>
             </th>
@@ -270,9 +274,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     foreach ($axes as $ax) {
         $axeOptsHtml .= '<option value="' . (int) $ax['id'] . '">' . e($ax['code'] ?: $ax['libelle']) . '</option>';
     }
+    // Les intertitres de mois n'ont de sens que sur une liste rangée par date :
+    // triée par montant ou par contre-partie, le mois change à chaque ligne.
+    $moisSepares = $tri['cle'] === '' || $tri['cle'] === 'date';
     foreach ($ecritures as $ecr): $neg = (float) $ecr['montant'] < 0;
         $moisCle = substr((string) $ecr['date_op'], 0, 7);
-        if ($moisCle !== $prevMois):
+        if ($moisSepares && $moisCle !== $prevMois):
             $prevMois = $moisCle;
     ?>
         <tr class="ecr-mois-sep"><td colspan="<?= $nbCols ?>">

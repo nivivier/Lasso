@@ -7,6 +7,28 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.9] — 2026-09-12
+
+### Ajouté
+- **Trier les listes en cliquant sur un en-tête de colonne.** Sept listes le
+  portent — structures, suivi d'une campagne, fiches de salaire, employés,
+  événements, factures, écritures — soit **44 colonnes**. Le tri se fait en SQL
+  et non sur la page affichée : ces listes sont paginées, et trier les cent
+  lignes qu'on a sous les yeux, sur trente pages, ne dirait rien.
+  Il est mémorisé comme les filtres et la taille de page — il
+  survit à un changement de page, de filtre ou de recherche. Trois états au
+  clic : croissant, décroissant, puis **retour à l'ordre par défaut** de la
+  liste, sans quoi on ne retrouverait plus jamais « la plus récente d'abord »
+  une fois qu'on a trié.
+  Les intertitres de mois ou d'année s'effacent quand le tri n'est plus
+  chronologique : ils ne sépareraient plus rien.
+  Le suivi d'une campagne le porte aussi, avec une colonne de plus : **Réponse**
+  — la trier remonte ce qu'il reste à noter.
+- **La colonne « Campagnes » dans le suivi d'une campagne.** Elle n'y figurait
+  pas, au motif qu'on est déjà dans l'une d'elles ; mais ce sont les AUTRES
+  qu'elle montre, et savoir qu'une salle est déjà démarchée ailleurs change la
+  façon de l'aborder.
+
 ## [2.7.8] — 2026-09-11
 
 ### Ajouté

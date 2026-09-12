@@ -1,4 +1,5 @@
 <?php /** @var array $actif */ /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */ /** @var bool $modeClient */
+/** @var array $tri */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -26,14 +27,20 @@
 <table class="list list-wide liste-cartes cartes-employes">
     <thead>
         <tr>
+            <?php // Les en-têtes triables portent un lien (tri_entete_html()) ; les
+                  // autres — « Dernière fiche », qui est une synthèse calculée hors
+                  // de la requête — restent du texte. ?>
+            <?php $triParams = $recherche !== '' ? ['q' => $recherche] : []; ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('employes', $cle, $lib, $tri, $triParams); ?>
             <th>
                 <span class="col-th">
-                    Nom
-                    <?= filtre_colonne_html('employes', 'actif', ['1' => 'Actif', '0' => 'Inactif'], $actif,
-                        $recherche !== '' ? ['q' => $recherche] : []) ?>
+                    <?= $triCol('nom', 'Nom') ?>
+                    <?= filtre_colonne_html('employes', 'actif', ['1' => 'Actif', '0' => 'Inactif'], $actif, $triParams) ?>
                 </span>
             </th>
-            <th>Adresse</th><th>E-mail</th><th>Dernière fiche</th>
+            <th><?= $triCol('adresse', 'Adresse') ?></th>
+            <th><?= $triCol('email', 'E-mail') ?></th>
+            <th>Dernière fiche</th>
         </tr>
     </thead>
     <tbody>

@@ -416,6 +416,16 @@ function route_employes(): void
         $params[] = (int) $actif[0];
     }
 
+    // Tri de colonne. L'ordre naturel garde les actifs en tête : c'est la
+    // liste dont on se sert, et la trier par nom ne doit pas remonter les
+    // anciens au milieu tant qu'on ne l'a pas demandé.
+    $tri = tri_colonne('employes', [
+        'nom'     => ['nom COLLATE NOCASE', 'prenom COLLATE NOCASE'],
+        'adresse' => ['npa_localite COLLATE NOCASE', 'rue COLLATE NOCASE'],
+        'email'   => 'email COLLATE NOCASE',
+    ]);
+    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', id' : ' ORDER BY actif DESC, nom, prenom';
+
     // Total « sans recherche » : avec le filtre structuré, mais sans le texte
     // saisi — c'est lui qui décide du mode de pagination (client ou serveur).
     $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes' . $where);
@@ -427,7 +437,7 @@ function route_employes(): void
         // Mode client (voir pagination_mode_client()) : toutes les lignes,
         // recherche/pagination 100% en JS (lassoListeClient()) — pas de
         // requête LIKE ni de LIMIT ici.
-        $stmt = db()->prepare('SELECT * FROM employes' . $where . ' ORDER BY actif DESC, nom, prenom');
+        $stmt = db()->prepare('SELECT * FROM employes' . $where . $orderBy);
         $stmt->execute($params);
         $employes = $stmt->fetchAll();
         $pgPage  = 1;
@@ -440,7 +450,7 @@ function route_employes(): void
 
         $pgPage = pagination_page();
         [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-        $stmt = db()->prepare('SELECT * FROM employes' . $where . $rechSql . ' ORDER BY actif DESC, nom, prenom' . $limitSql);
+        $stmt = db()->prepare('SELECT * FROM employes' . $where . $rechSql . $orderBy . $limitSql);
         $stmt->execute(array_merge($params, $rechParams, $limitParams));
         $employes = $stmt->fetchAll();
     }
@@ -471,7 +481,7 @@ function route_employes(): void
         $pgParams['actif_set'] = 1;
     }
     render('employes', ['employes' => $employes, 'derniere' => $derniere, 'recherche' => $recherche,
-        'modeClient' => $modeClient, 'actif' => $actif,
+        'modeClient' => $modeClient, 'actif' => $actif, 'tri' => $tri,
         'pgRoute' => 'employes', 'pgParams' => $pgParams,
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
 }
@@ -1736,6 +1746,21 @@ function route_fiches(): void
     $stmtSum->execute($params);
     $totaux = $stmtSum->fetch();
 
+    // Tri de colonne. L'ordre naturel — la plus récente d'abord — est celui
+    // qu'on veut en arrivant ; les montants, eux, ne se comparent qu'une fois
+    // triés, d'où leur présence ici.
+    $tri = tri_colonne('fiches', [
+        'date'     => ['f.annee', 'f.mois'],
+        'employe'  => ['e.nom COLLATE NOCASE', 'e.prenom COLLATE NOCASE'],
+        'brut'     => 'f.salaire_brut',
+        'net'      => 'f.salaire_net',
+        'cout'     => 'f.cout_total_emp',
+        // Une fiche payée porte une date, une fiche à payer non : trier sur la
+        // date range donc aussi par état, ce qu'on cherche en cliquant.
+        'paiement' => "COALESCE(NULLIF(f.date_paiement, ''), '')",
+    ]);
+    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', f.id DESC' : ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
+
     $pgPage   = pagination_page();
     $pgTaille = pagination_taille('fiches_taille');
     [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
@@ -1745,7 +1770,7 @@ function route_fiches(): void
     // montants, pas l'apparence de la personne.
     $sql = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel, e.avatar_couleur, e.avatar_photo
             FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where;
-    $sql  .= ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
+    $sql  .= $orderBy;
     $sql  .= $limitSql;
     $stmt  = db()->prepare($sql);
     $stmt->execute(array_merge($params, $limitParams));
@@ -1772,7 +1797,7 @@ function route_fiches(): void
 
     render('fiches', ['fiches' => $fiches, 'annee' => $annee, 'annees' => $annees, 'statut' => $statut,
         'employes' => $employes, 'employeId' => $employeId, 'recherche' => $recherche,
-        'axesParFiche' => $axesParFiche, 'totaux' => $totaux,
+        'axesParFiche' => $axesParFiche, 'totaux' => $totaux, 'tri' => $tri,
         'pgRoute' => 'fiches',
         'pgParams' => array_filter(['annee' => $annee, 'statut' => $statut, 'employe_id' => $employeId, 'q' => $recherche]),
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Fiches de salaire');

@@ -1,6 +1,6 @@
 <?php /** @var array $fiches */ /** @var array $annee */ /** @var array $annees */ /** @var array $statut */
 /** @var array $employes */ /** @var array $employeId */ /** @var string $recherche */
-/** @var array $axesParFiche */ /** @var array $totaux */
+/** @var array $axesParFiche */ /** @var array $totaux */ /** @var array $tri */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
 <?php
 // Filtres de colonne (EXPÉRIMENTAL) : Statut/Date/Employé vivent chacun à
@@ -17,6 +17,10 @@ foreach ($employes as $emp) { $employeLabels[(int) $emp['id']] = trim($emp['pren
 $autresStatut  = array_filter(['annee' => $annee, 'employe_id' => $employeId, 'q' => $recherche]);
 $autresAnnee   = array_filter(['statut' => $statut, 'employe_id' => $employeId, 'q' => $recherche]);
 $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]);
+// Les liens de tri emportent TOUS les filtres actifs — comme les entonnoirs, un
+// lien ne connaît que ce qu'on lui écrit. Le marqueur « _set » est inutile ici :
+// les valeurs sont présentes, filtre_coche() les lit telles quelles.
+$tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id' => $employeId, 'q' => $recherche]);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -56,15 +60,20 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
 <table class="list list-wide liste-cartes cartes-fiches">
     <thead>
         <tr>
+            <?php // Les en-têtes triables portent un lien (tri_entete_html()). « Axes »
+                  // et « Envoyée » n'en sont pas : le premier est un agrégat calculé
+                  // après coup, le second une icône d'état à deux valeurs que
+                  // l'entonnoir « Paiement » dit déjà mieux. ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('fiches', $cle, $lib, $tri, $tousFiltres); ?>
             <th class="col-reinit-hote col-date"><?= bouton_reinit_filtres('fiches', ['statut', 'annee', 'employe_id'], (bool) ($statut || $annee || $employeId)) ?>
                 <span class="col-th">
-                    Date
+                    <?= $triCol('date', 'Date') ?>
                     <?= filtre_colonne_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
                 </span>
             </th>
             <th class="col-employe">
                 <span class="col-th">
-                    Employé
+                    <?= $triCol('employe', 'Employé') ?>
                     <?= filtre_colonne_html('fiches', 'employe_id', $employeLabels, $employeId, $autresEmploye) ?>
                 </span>
             </th>
@@ -73,15 +82,15 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
                   // figurent plus ici : onze colonnes de même poids ne se lisaient
                   // plus. Ce détail reste sur la fiche elle-même, où on le consulte
                   // vraiment, et dans les totaux de « Cotisations ». ?>
-            <th class="num">Brut</th>
-            <th class="num">Net</th>
+            <th class="num"><?= $triCol('brut', 'Brut') ?></th>
+            <th class="num"><?= $triCol('net', 'Net') ?></th>
             <th class="col-paiement">
                 <span class="col-th">
-                    Paiement
+                    <?= $triCol('paiement', 'Paiement') ?>
                     <?= filtre_colonne_html('fiches', 'statut', $statutLabels, $statut, $autresStatut) ?>
                 </span>
             </th>
-            <th class="num">Coût employeur</th>
+            <th class="num"><?= $triCol('cout', 'Coût employeur') ?></th>
             <th class="center col-petit">Envoyée
             </th>
         </tr>
@@ -90,11 +99,15 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
     <?php if (!$fiches): ?>
         <tr><td colspan="<?= $nbCols ?>" class="muted">Aucune fiche pour cette sélection.</td></tr>
     <?php else: ?>
+    <?php // Les intertitres d'année n'ont de sens que sur une liste rangée par
+          // date : triée par montant ou par employé, l'année se remet à changer à
+          // chaque ligne et le séparateur ne sépare plus rien.
+          $anneesSeparees = $tri['cle'] === '' || $tri['cle'] === 'date'; ?>
     <?php $anneePrec = null;
     foreach ($fiches as $f):
         $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f);
         $anneeCourante = (int) $f['annee'];
-        if ($anneeCourante !== $anneePrec): $anneePrec = $anneeCourante; ?>
+        if ($anneesSeparees && $anneeCourante !== $anneePrec): $anneePrec = $anneeCourante; ?>
         <tr class="fiche-mois-sep"><td colspan="<?= $nbCols ?>"><?= $anneeCourante ?></td></tr>
     <?php endif; ?>
         <?php $hrefLigne = '?p=fiche&id=' . (int) $f['id']; ?>

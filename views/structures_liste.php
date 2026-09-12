@@ -1,5 +1,5 @@
 <?php /** @var array $structures */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var array $categorieId */
-/** @var array $lieu */ /** @var array $tagId */ /** @var array $statut */
+/** @var array $lieu */ /** @var array $tri */ /** @var array $tagId */ /** @var array $statut */
 /** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var array $campagnesParStructure */ /** @var array $campagnesDispo */ /** @var array $campagneId */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
@@ -272,6 +272,11 @@ $stNbEvenements = $nbEvenements;
 // Colonne « Campagnes » : ici seulement. Sur la sélection ou le suivi d'une
 // campagne, on est déjà dans l'une d'elles — la colonne n'y apprendrait rien.
 $stCampagnes = $campagnesDispo ? $campagnesParStructure : null;
+// En-têtes triables : ici seulement. Sur la sélection et le suivi d'une
+// campagne, l'ordre est celui du démarchage — on n'y trie pas.
+// Les liens de tri emportent les filtres actifs comme les entonnoirs, plus la
+// provenance (?depuis=…) que cette liste partage entre trois modules.
+$stTri = $tri + ['page' => 'structures', 'params' => $sfTousFiltres];
 require __DIR__ . '/_structures_table.php';
 ?>
 <?php if ($structures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>

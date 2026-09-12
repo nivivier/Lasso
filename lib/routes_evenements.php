@@ -258,6 +258,19 @@ function route_evenements_liste(): void
 
     $spectacleMap = spectacle_map();
 
+    // Tri de colonne — lu avant la branche carte, qui rend la même vue et doit
+    // donc recevoir $tri comme la liste. L'ordre naturel (la date la plus
+    // récente d'abord) reste celui de l'arrivée sur la page.
+    $tri = tri_colonne('evenements_liste', [
+        'date'      => 'e.date',
+        'spectacle' => 's.nom COLLATE NOCASE',
+        'ville'     => ['e.ville COLLATE NOCASE', 'e.salle COLLATE NOCASE'],
+        'audience'  => 'e.visibilite',
+        'statut'    => 'e.statut',
+        'suisa'     => 'e.statut_suisa',
+        'salaries'  => 'nb_salaries',
+    ]);
+
     if ($vue === 'carte') {
         [$whereCarte, $paramsCarte] = evenements_where_filtres($f, $spectacleMap, true);
         [$cartePoints, $carteVillesManquantes] = evenements_carte_points($whereCarte, $paramsCarte);
@@ -267,7 +280,7 @@ function route_evenements_liste(): void
             'statutSuisa' => $statutSuisa, 'spectacleId' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
             'spectacles' => [], 'spectaclesFiltre' => spectacles_pour_filtre($spectacleMap),
             'paysDisponibles' => evenements_pays_disponibles(), 'pays' => $pays, 'salaries' => $salaries,
-            'recherche' => $recherche, 'modeClient' => true, 'nonLocalises' => $nonLocalises,
+            'recherche' => $recherche, 'modeClient' => true, 'nonLocalises' => $nonLocalises, 'tri' => $tri,
             'bulkCount' => null, 'okAnnule' => false, 'prodExterneOk' => null, 'prodExterneBloques' => null,
             'pgRoute' => 'evenements_liste', 'pgParams' => $retourFiltres, 'pgPage' => 1, 'pgTaille' => pagination_taille('evenements_taille'), 'pgTotal' => 0,
         ], 'Événements');
@@ -277,7 +290,7 @@ function route_evenements_liste(): void
     $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
     $selectCols = "e.*, s.nom AS spectacle_nom,
                    (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries";
-    $orderBy = ' ORDER BY e.date DESC, e.id DESC';
+    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', e.id DESC' : ' ORDER BY e.date DESC, e.id DESC';
 
     // Total avec les seuls filtres structurés (hors recherche texte) : décide du
     // mode client vs serveur, voir pagination_mode_client() dans lib/helpers.php.
@@ -337,6 +350,7 @@ function route_evenements_liste(): void
         'recherche'       => $recherche,
         'modeClient'      => $modeClient,
         'nonLocalises'    => $nonLocalises,
+        'tri'             => $tri,
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
         'prodExterneOk'      => isset($_GET['prodExterneOk']) ? (int) $_GET['prodExterneOk'] : null,

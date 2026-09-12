@@ -9,7 +9,7 @@
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
 /** @var ?int $campBulk */ /** @var string $campBulkAction */ /** @var string $campBulkNom */
-/** @var array $campagnesDispo */
+/** @var array $campagnesDispo */ /** @var array $campagnesParStructure */ /** @var array $tri */
 // Une campagne : ses structures, et pour chacune le bouton qui ouvre la fenêtre
 // « Contacter » — ici même, sans quitter la liste. Aucun MESSAGE ne part d'ici en
 // masse : c'est le principe, on démarche une structure à la fois. La barre
@@ -29,7 +29,7 @@ $peutEcrire = peut_ecrire('booking');
 $sfPage = 'campagne';
 $sfVals = $filtres;
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
-    'lieuxOptions' => $lieuxOptions];
+    'lieuxOptions' => $lieuxOptions, 'campagnesDispo' => $campagnesDispo];
 $sfAutresParams = ['id' => (int) $campagne['id'], 'reponse' => $reponseFiltre];
 $sfActifSupp = $reponseFiltre !== [];
 require __DIR__ . '/_structures_filtres.php';
@@ -219,8 +219,19 @@ $stMontreFactures = false;
 $stClasses = 'campagne-structures';
 $stFiltres = $sfFiltres;
 $stReinit = $sfReinit;
+// Colonne « Campagnes » : les AUTRES campagnes où figurent ces structures.
+// Savoir qu'une salle est déjà démarchée ailleurs change la façon de l'aborder.
+$stCampagnes = $campagnesDispo ? $campagnesParStructure : null;
+// En-têtes triables, comme sur ?p=structures. Les liens emportent les filtres
+// de cet écran, l'id de la campagne et le filtre de réponse — sans quoi trier
+// renverrait à la liste des campagnes, filtres perdus.
+$stTri = $tri + ['page' => 'campagne', 'params' => $sfTousFiltres];
+// « Actions » ne se trie pas — ce sont des boutons, pas une donnée. « Réponse »
+// si : c'est la question de l'écran, et la trier remonte ce qu'il reste à noter.
 $stExtraTh = ($peutEcrire ? '<th class="nowrap col-actions">Actions</th>' : '')
-    . '<th class="nowrap col-reponse"><span class="col-th">Réponse ' . $reponseFiltreHtml . '</span></th>';
+    . '<th class="nowrap col-reponse"><span class="col-th">'
+    . tri_entete_html('campagne', 'reponse', 'Réponse', $stTri, $stTri['params'])
+    . ' ' . $reponseFiltreHtml . '</span></th>';
 $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string {
     $sid = (int) $d['id'];
     // Les deux colonnes s'excluent, parce que les deux gestes se suivent : tant

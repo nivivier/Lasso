@@ -511,6 +511,78 @@ function filtre_persistant(string $cleGet, string $cleSession, $defaut)
     return $_SESSION[$cleSession] ?? $defaut;
 }
 
+// --- Tri par colonne d'une liste -------------------------------------------
+//
+// Six listes le portent : structures, fiches, employés, événements, factures,
+// écritures. Ce sont les seules paginées côté serveur, donc les seules où un
+// tri ait un enjeu — trier la page qu'on a sous les yeux, sur trente pages,
+// dirait n'importe quoi.
+//
+// Le tri est donc SQL, et mémorisé en session comme les filtres et la taille de
+// page : il survit à un changement de page, de filtre ou de recherche. Deux
+// paramètres, `tri` (la clé de colonne) et `sens` (asc|desc).
+//
+// $colonnes est une liste blanche « clé => expression SQL », l'expression
+// pouvant être un TABLEAU quand la colonne se trie sur plusieurs champs (nom
+// puis prénom). La clé seule voyage dans l'URL ; l'expression n'en vient
+// JAMAIS. C'est ce qui permet d'écrire l'ORDER BY par concaténation sans ouvrir
+// une injection.
+//
+// Le sens est appliqué à CHAQUE terme, pas au dernier : « ORDER BY nom, prenom
+// DESC » trie les noms en croissant et ne renverse que les prénoms — une erreur
+// silencieuse, la liste ayant l'air triée.
+//
+// Renvoie ['cle', 'sens', 'sql'] — 'sql' vide quand aucun tri n'est choisi,
+// l'appelant garde alors l'ordre naturel de sa liste.
+function tri_colonne(string $cleSession, array $colonnes): array
+{
+    $cle = (string) filtre_persistant('tri', $cleSession . '_tri', '');
+    $sens = (string) filtre_persistant('sens', $cleSession . '_sens', 'asc');
+    if (!isset($colonnes[$cle])) {
+        $cle = '';
+    }
+    if ($sens !== 'desc') {
+        $sens = 'asc';
+    }
+    $sql = '';
+    if ($cle !== '') {
+        $dir = $sens === 'desc' ? ' DESC' : ' ASC';
+        $sql = ' ORDER BY ' . implode(', ', array_map(
+            fn (string $expr) => $expr . $dir,
+            (array) $colonnes[$cle]
+        ));
+    }
+    return ['cle' => $cle, 'sens' => $sens, 'sql' => $sql];
+}
+
+// L'en-tête cliquable d'une colonne triable. Trois états qui s'enchaînent au
+// clic : croissant, décroissant, puis retour à l'ordre naturel de la liste —
+// sans ce troisième, on ne pourrait plus jamais retrouver l'ordre d'origine
+// (la date la plus récente en tête, par exemple) une fois qu'on a trié.
+//
+// La flèche ne s'affiche que sur la colonne active : une flèche pâle sur chaque
+// en-tête ferait une rangée de chevrons là où il n'y a qu'une information.
+// C'est le survol qui révèle qu'une colonne est cliquable.
+//
+// $autresParams : tout ce que la page doit emporter avec elle (filtres actifs,
+// recherche, id…), comme pour les panneaux de filtre — un lien ne connaît que
+// ce qu'on lui écrit.
+function tri_entete_html(string $page, string $cle, string $libelle, array $tri, array $autresParams = []): string
+{
+    $actif = $tri['cle'] === $cle;
+    $suivant = !$actif ? ['tri' => $cle, 'sens' => 'asc']
+             : ($tri['sens'] === 'asc' ? ['tri' => $cle, 'sens' => 'desc'] : ['tri' => '', 'sens' => 'asc']);
+    // `tri` vide et non absent : filtre_persistant() n'écrase la session que si
+    // la clé est PRÉSENTE en GET. Absente, on retomberait sur le tri mémorisé.
+    $url = '?' . http_build_query(['p' => $page] + $suivant + array_filter($autresParams, fn ($v) => $v !== '' && $v !== []));
+    $titre = !$actif ? 'Trier par « ' . strip_tags($libelle) . ' »'
+           : ($tri['sens'] === 'asc' ? 'Trier en ordre décroissant' : "Revenir à l'ordre par défaut");
+    return '<a class="col-tri' . ($actif ? ' on' : '') . '" href="' . e($url) . '" title="' . e($titre) . '">'
+        . $libelle
+        . ($actif ? icon($tri['sens'] === 'asc' ? 'chevron-up' : 'chevron-down') : '')
+        . '</a>';
+}
+
 // --- Pagination générique (listes potentiellement longues : fiches, écritures,
 // factures, débiteurs, employés, événements) -------------------------------
 

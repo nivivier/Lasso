@@ -3,7 +3,7 @@
 /** @var array $statutSuisa */ /** @var array $spectacleId */ /** @var array $statut */
 /** @var array $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
 /** @var array $paysDisponibles */ /** @var array $pays */ /** @var array $salaries */ /** @var string $recherche */
-/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */
+/** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */ /** @var array $tri */
 /** @var ?int $prodExterneOk */ /** @var ?int $prodExterneBloques */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
@@ -205,45 +205,50 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
     <thead>
         <tr>
             <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements_liste', ['annee', 'statut', 'statut_suisa', 'spectacle_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $spectacleId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php // Chaque en-tête est à la fois triable (le libellé, un lien) et
+                  // filtrable (l'entonnoir à côté) : deux gestes distincts sur la
+                  // même colonne. Le lien emporte les filtres actifs, d'où
+                  // $autresFiltres('') — la closure sans clé à retirer. ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('evenements_liste', $cle, $lib, $tri, $autresFiltres('')); ?>
             <th class="col-date">
                 <span class="col-th">
-                    Date
+                    <?= $triCol('date', 'Date') ?>
                     <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
             </th>
             <th class="col-spectacle">
                 <span class="col-th">
-                    <?= e($termeSingulier) ?>
+                    <?= $triCol('spectacle', e($termeSingulier)) ?>
                     <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
                 </span>
             </th>
             <th class="col-ville">
                 <span class="col-th">
-                    Ville / salle
+                    <?= $triCol('ville', 'Ville / salle') ?>
                     <?= filtre_colonne_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
                 </span>
             </th>
             <th class="col-audience">
                 <span class="col-th">
-                    Audience
+                    <?= $triCol('audience', 'Audience') ?>
                     <?= filtre_colonne_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
                 </span>
             </th>
             <th class="col-statut">
                 <span class="col-th">
-                    Statut
+                    <?= $triCol('statut', 'Statut') ?>
                     <?= filtre_colonne_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
                 </span>
             </th>
             <th class="col-suisa">
                 <span class="col-th">
-                    SUISA
+                    <?= $triCol('suisa', 'SUISA') ?>
                     <?= filtre_colonne_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
                 </span>
             </th>
             <th class="num col-salaries">
                 <span class="col-th">
-                    Salariés
+                    <?= $triCol('salaries', 'Salariés') ?>
                     <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
                 </span>
             </th>
@@ -253,9 +258,13 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
     <?php if (!$evenements): ?>
         <tr><td colspan="<?= $nbCols ?>" class="muted">Aucun événement pour cette sélection.</td></tr>
     <?php else: ?>
+    <?php // Les intertitres de mois ne veulent dire quelque chose que sur une
+          // liste rangée par date : triée par ville ou par statut, le mois
+          // change à chaque ligne et le séparateur ne sépare plus rien.
+          $moisSepares = $tri['cle'] === '' || $tri['cle'] === 'date'; ?>
     <?php $moisPrecedent = null; foreach ($evenements as $ev):
         $moisCle = substr((string) $ev['date'], 0, 7); // "AAAA-MM"
-        if ($moisCle !== $moisPrecedent):
+        if ($moisSepares && $moisCle !== $moisPrecedent):
             $moisPrecedent = $moisCle;
     ?>
         <tr class="mois-sep"><td colspan="8"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>

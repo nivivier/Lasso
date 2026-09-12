@@ -200,29 +200,36 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    campagnes se cherche (nom, projet), se filtre (projet, année, état) et se lit
    en trois tranches — en cours, à venir, passées, les plus proches d'abord
    parmi celles à venir ; la sélection d'une campagne et son suivi affichent le
-   tableau des structures, le même qu'en 9, avec ses filtres, ses tags
+   tableau des structures, le même qu'en 9, avec ses filtres, son tri, ses tags
    modifiables sur place et sa **modification groupée** — auxquels le suivi
-   ajoute la réponse reçue. Les
+   ajoute la réponse reçue et les autres campagnes de chaque structure. Les
    **campagnes de mailing** avec désinscription, elles, envoient en masse et
    forment un sous-module à part (« Envois groupés »), activable séparément.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec
    son propre serveur SMTP (Paramètres → E-mails → Envois pour le booking).
-10. **Sur téléphone**, les grandes listes — structures, salaires, employés,
+10. **Tri des listes** : un clic sur un en-tête de colonne trie la liste
+    (structures, suivi d'une campagne, fiches, employés, événements, factures,
+    écritures). Le tri se fait en base, pas sur la page affichée — il vaut donc
+    pour tout le résultat, pagination comprise — et se mémorise comme les
+    filtres, chaque liste ayant la sienne. Un troisième clic rend la liste à son
+    ordre par défaut. Sur téléphone, où l'en-tête laisse place aux fiches, le
+    tri n'est pas accessible.
+11. **Sur téléphone**, les grandes listes — structures, salaires, employés,
     événements, factures — se relisent en **fiches** plutôt qu'en tableau à
     faire défiler, chacune montrant les champs qui comptent pour elle. Les
     filtres passent derrière un bouton « Filtres » à côté de la recherche, le
     même qui sert aux vues carte. Au-delà de 700 px de large, les tableaux
     complets reprennent.
-11. **Tableau de bord** : une carte par sujet — prochains événements, SUISA,
+12. **Tableau de bord** : une carte par sujet — prochains événements, SUISA,
     évolution financière, salaires à verser, factures émises, campagnes —
     chacune n'apparaissant que si son module est actif et lisible par le compte.
     Le bouton en haut à droite ouvre « Organiser les cartes » : leur
     ordre et celles qu'on ne veut pas voir. C'est un réglage **par compte**, pas
     un paramètre de l'association.
-12. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
+13. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.
-13. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
+14. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
     déjà présentes sont ignorées, jamais écrasées), écritures comptables, structures
     et agendas de tournée (CSV). Chaque import a un bouton « Simuler » qui
     prévisualise sans rien enregistrer.
