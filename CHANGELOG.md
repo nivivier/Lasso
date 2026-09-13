@@ -7,6 +7,69 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.10] — 2026-09-13
+
+### Ajouté
+- **« À contacter » dans le filtre de la colonne « Suivi »**, et avec lui les
+  quatre états du démarchage : à contacter, sans réponse, pas intéressé,
+  intéressé — ceux-là mêmes que découpe la barre d'avancement. Trois vivent sur
+  le lien campagne↔structure ; le quatrième n'est pas une valeur mais l'absence
+  de prise de contact, d'où une condition SQL partagée avec le compte de la
+  barre. La colonne se trie dans le même ordre.
+
+### Modifié
+- **Les couleurs du démarchage s'alignent sur la jauge** : teal pour
+  « intéressé » — la couleur de ce qui est acquis partout ailleurs —, rouge pour
+  « pas intéressé », ambre pour « sans réponse » — l'ambre de ce qui est en
+  suspens, comme « à payer » ou « SUISA à faire » —, gris pour ce qui reste à
+  contacter. Le sélecteur de réponse, les segments de la barre et sa légende
+  disent désormais la même chose de la même façon, et la légende porte les
+  icônes du tableau : elle en devient la clé de lecture.
+- **La bulle « déjà contactée » disparaît devant le sélecteur de réponse** : ce
+  sélecteur n'apparaît que sur une structure contactée, sa seule présence le
+  disait déjà.
+- **« Actions » et « Réponse » n'en font plus qu'une, « Suivi »**, dans le suivi
+  d'une campagne. Les deux gestes se suivent : tant que le contact reste à
+  faire, on agit et il n'y a pas de réponse à noter ; une fois qu'il a eu lieu,
+  il n'y a plus rien à déclencher et c'est la réponse qui compte. Une ligne
+  n'avait donc jamais les deux — c'étaient deux demi-colonnes vides côte à côte.
+  Le tableau, qui débordait de 64 px depuis l'ajout de la colonne
+  « Campagnes », tient de nouveau dans sa zone.
+- **Le suivi d'une campagne se resserre sur téléphone** : le type de structure
+  et la date de dernière modification sortent de la fiche — sur cet écran on
+  démarche, et ces deux-là ne décident de rien — et les boutons prennent leur
+  place à droite, à portée de pouce en bout de ligne plutôt qu'à la ligne
+  suivante. La date du dernier contact, elle, reste : c'est elle qui décide
+  d'une relance, et elle se range sous les boutons qui la déclenchent.
+- **« Contacté » passe après « Modifié »** dans les listes de structures : elle
+  jouxte désormais la colonne « Suivi » du démarchage, qui prolonge la même
+  question — à quand remonte l'échange, et où en est-il. La date de
+  modification, qu'on consulte rarement, passe devant.
+
+### Corrigé
+- **Les tags et les campagnes se recouvraient en mini-carte** (`?p=structures`
+  comme le suivi d'une campagne) : les deux cellules étaient posées sur la même
+  rangée de la grille, la seconde masquait la première. Chacune a la sienne.
+- **Les boutons d'ajout et de retrait de campagne ne faisaient rien dans le
+  suivi d'une campagne** : le « + » et la croix de la colonne « Campagnes »
+  ouvrent un formulaire unique, posé une seule fois hors du tableau, et cet
+  exemplaire n'existait que sur `?p=structures`. Il est désormais partagé par
+  les deux écrans, avec son repli sans JavaScript — qui ramène à la campagne
+  d'où l'on vient, et non plus à la fiche de la structure.
+- **Le nom se décollait de la ville de 22 px en mini-carte**, dans le suivi
+  d'une campagne : les boutons et la date du dernier contact font 61 px à eux
+  deux quand le nom et la ville n'en font que 38 en vis-à-vis, et ce surplus
+  étirait les rangées de la grille — en blanc, tantôt entre le nom et la ville,
+  tantôt avant les étiquettes. Cette colonne est désormais posée hors flux,
+  comme les dates qu'elle remplace : elle ne pousse plus rien, et les étiquettes
+  reprennent juste sous la ville, le long de la date. Au passage, la date prend
+  l'air : elle touchait les boutons et se lisait avec eux comme un seul bloc.
+- **Le champ de recherche du suivi d'une campagne s'arrêtait 20 px avant le
+  bord** : le compte de structures qui le suit reste vide tant que rien n'est
+  filtré ni cherché, mais un élément vide occupe quand même sa place dans la
+  barre d'outils — l'espacement qui le précède était compté. Il en sort tant
+  qu'il n'a rien à dire.
+
 ## [2.7.9] — 2026-09-12
 
 ### Ajouté

@@ -67,6 +67,11 @@
     --danger-d: #c63b31;    /* survol des boutons danger (même convention -d que --highlight-d, --primary-d…) */
     --danger-tint: #fdecea;
     --ok: #0c9486;
+    /* Le rose du « contact privilégié » : son icône, sa case cochée, son état
+       dans le sélecteur de statut. Défini une seule fois ici et non redéfini en
+       thème sombre — il se tient sur les deux fonds, seul token dans ce cas. */
+    --rose: #f541cc;
+    --rose-tint: #f541cc1a;
     /* Fond des lignes « non lettrées » (compta) : le seul fond de ligne
        qui ne soit pas neutre, d'où son propre token — il doit s'assombrir
        comme les autres. */
@@ -686,7 +691,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .ico-amber { color: var(--amber); }
 .ico-ok { color: var(--ok); }
 .ico-danger { color: var(--danger); }
-.ico-pink { color: #f541cc; }
+.ico-pink { color: var(--rose); }
 .ico-label { display: inline-flex; align-items: center; gap: 6px; }
 
 /* Icône de statut de ?p=structures, en masque plutôt qu'en <svg> dans chaque
@@ -2580,11 +2585,20 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    rose Contact privilégié, vert Actif, rouge Ne pas contacter, gris Inactif —
    voir structure_statut_toggle_html() (lib/helpers.php), mêmes valeurs que
    STRUCTURE_STATUTS (lib/booking.php). */
-.statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on { background: #f541cc1a; color: #f541cc; }
+.statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on { background: var(--rose-tint); color: var(--rose); }
 .statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on .ico { fill: currentColor; }
 .statut-toggle .seg-btn[data-statut-valeur="actif"].on { background: var(--teal-tint); color: var(--ok); }
 .statut-toggle .seg-btn[data-statut-valeur="ne_pas_contacter"].on { background: var(--danger-tint); color: var(--danger); }
 .statut-toggle .seg-btn[data-statut-valeur="inactif"].on { background: var(--line); color: var(--muted); }
+
+/* Le sélecteur de réponse d'une campagne, sur le même principe et avec les
+   couleurs de la jauge : ambre « sans réponse », rouge « pas intéressé », teal
+   « intéressé ». La valeur vide est celle d'un contact établi qui n'a pas
+   encore répondu — d'où l'ambre de ce qui est en suspens, et non le gris de ce
+   qu'on n'a pas encore touché. */
+.reponse-toggle .seg-btn[data-reponse-valeur=""].on { background: var(--amber-tint); color: var(--amber); }
+.reponse-toggle .seg-btn[data-reponse-valeur="pas_interesse"].on { background: var(--danger-tint); color: var(--danger); }
+.reponse-toggle .seg-btn[data-reponse-valeur="interesse"].on { background: var(--teal-tint); color: var(--ok); }
 
 /* Flux de notes (fiche structure, booking) : liste chronologique inversée. */
 .notes-flux { display: flex; flex-direction: column; gap: 14px; }
@@ -2714,18 +2728,22 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    c'est le fond de la piste, ce qui n'a pas encore été rempli. */
 .camp-barre { display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
 .camp-seg { display: block; height: 100%; }
-/* Mêmes couleurs que les réponses elles-mêmes (CAMPAGNE_REPONSES_CLASSES_ICONE) :
-   vert pour oui, rouge pour non — et l'accent pour « contacté, en attente ». */
+/* Mêmes couleurs que les icônes de réponse (CAMPAGNE_REPONSES_CLASSES_ICONE) :
+   teal pour un oui — la couleur de ce qui est acquis partout ailleurs —, rouge
+   pour un non, ambre pour un contact établi dont la réponse se fait attendre.
+   Le gris de la piste, lui, dit ce qui n'a pas encore été approché. */
 .camp-oui { background: var(--ok); }
 .camp-non { background: var(--danger); }
-.camp-attente { background: var(--highlight); }
+.camp-attente { background: var(--amber); }
 .camp-legende { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 22px;
     margin: 12px 0 0; padding: 0; font-size: var(--fs-small); align-items: center; }
 .camp-legende li { display: inline-flex; align-items: center; }
+/* Les icônes de la légende au gabarit des pastilles qu'elles remplacent : elles
+   accompagnent un chiffre, elles ne le concurrencent pas. */
+.camp-legende li > span:first-child { display: inline-flex; margin-right: 6px; }
+.camp-legende li > span:first-child .ico { width: 14px; height: 14px; }
 .camp-legende b { font-variant-numeric: tabular-nums; margin-right: 5px; }
 .camp-legende-fin { margin-left: auto; gap: 6px; }
-.camp-pip { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; flex: 0 0 auto; }
-.camp-pip.camp-reste { background: var(--line); border: 1px solid var(--muted); }
 .camp-chiffre { flex: 0 0 auto; display: flex; flex-direction: column; text-align: right; }
 .camp-chiffre b { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .camp-chiffre span { font-size: var(--fs-small); }
@@ -2779,10 +2797,21 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    Deux classes plus l'élément : de quoi passer devant « .list th, .list td »,
    qui aligne tout à gauche. Le centrage ne vaut qu'en vue tableau — en cartes
    (≤700px) ces cellules passent en flex et se rangent sous le nom. */
-.campagne-structures th.col-actions, .campagne-structures td.col-actions,
-.campagne-structures th.col-reponse, .campagne-structures td.col-reponse { text-align: center; }
+/* Le compte de structures reste vide tant que rien n'est filtré ni cherché. Un
+   élément vide est malgré tout un élément de la barre d'outils : l'espacement
+   qui le précède (gap) était compté, et le champ de recherche s'arrêtait 20px
+   avant le bord. display:none le retire de la rangée — il revient de lui-même
+   dès que le script y écrit un nombre. */
+#campagne-compte:empty { display: none; }
+
+.campagne-structures th.col-suivi, .campagne-structures td.col-suivi { text-align: center; }
+/* Les deux moitiés de « Suivi » — les boutons d'un côté, la bulle et la réponse
+   de l'autre — ne sont jamais là ensemble, mais elles s'alignent de la même
+   façon : au centre, sur une seule ligne. Le flex vit sur cette enveloppe et
+   non sur le <td>, qui cesserait alors d'être une cellule de tableau. */
+.suivi-cell { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 /* Le libellé de l'en-tête et son entonnoir se centrent ensemble. */
-.campagne-structures th.col-reponse .col-th { justify-content: center; }
+.campagne-structures th.col-suivi .col-th { justify-content: center; }
 
 /* Pastille de projet posée devant un nom (colonne « Projet » des campagnes) :
    plus petite que celle d'une liste de personnes, où elle sert de repère de
@@ -3594,7 +3623,7 @@ abbr {
    ici la même spécificité que les quatre règles de type ci-dessus (0,3,0) pour
    les dépasser — un simple .ico-pink perdait, et le cœur restait gris. */
 .hist-item .hist-ico.ico-ok { color: var(--ok); }
-.hist-item .hist-ico.ico-pink { color: #f541cc; }
+.hist-item .hist-ico.ico-pink { color: var(--rose); }
 .hist-item .hist-ico.ico-danger { color: var(--danger); }
 /* Le corps d'une entrée prend toute la largeur restante : sans ça, le
    formulaire d'édition se calait sur la largeur du texte de la note. */
@@ -4116,7 +4145,7 @@ abbr {
        c'est VOULU. La bordure garde donc la couleur du statut quand la ligne
        est sélectionnée, seul le fond passe au primary — sans quoi cocher une
        ligne effacerait son statut. */
-    .liste-cartes tbody tr[data-statut="contact_privilegie"] td.col-check input { border-color: #f541cc; }
+    .liste-cartes tbody tr[data-statut="contact_privilegie"] td.col-check input { border-color: var(--rose); }
     .liste-cartes tbody tr[data-statut="actif"] td.col-check input { border-color: var(--ok); }
     .liste-cartes tbody tr[data-statut="ne_pas_contacter"] td.col-check input {
         border-color: var(--danger); border-style: dashed;
@@ -4210,11 +4239,15 @@ abbr {
     }
 
     /* --- Dernière rangée : les étiquettes, sur toute la largeur --- */
+    /* Chacune sa rangée : posées toutes deux sur la troisième, elles se
+       recouvraient — la seconde masquait la première. */
     .liste-cartes :is(td.col-tags, td.col-campagnes) {
-        grid-column: 1 / -1; grid-row: 3;
+        grid-column: 1 / -1;
         margin-top: 6px;
         display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
     }
+    .liste-cartes td.col-tags { grid-row: 3; }
+    .liste-cartes td.col-campagnes { grid-row: 4; }
     .liste-cartes :is(td.col-tags, td.col-campagnes) .badge { margin-left: 0; font-size: var(--fs-tiny); }
     /* Pas de croix de retrait au doigt : à 11px dans une étiquette de 9px, la
        cible est trop petite pour être visée sans erreur — et se tromper retire
@@ -4228,19 +4261,67 @@ abbr {
     .liste-cartes .nom-liees,
     .liste-cartes td.col-factures,
     .liste-cartes td.col-nb-evenements { display: none; }
-    /* Les deux colonnes du suivi d'une campagne (?p=campagne) : la grille de la
-       carte ne connaît que les colonnes de ?p=structures, et sans place assignée
-       elles se rangeaient d'elles-mêmes dans la première case libre — par-dessus
-       le nom. Elles prennent donc leur propre rangée, sous le nom et jusqu'au
-       bord droit. Une ligne à la fois en pratique : une structure contactée n'a
-       plus d'actions, une structure à contacter n'a pas encore de réponse. */
-    .liste-cartes td.col-actions,
-    .liste-cartes td.col-reponse {
-        grid-column: 2 / -1;
-        display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    /* La colonne « Suivi » du démarchage (?p=campagne) : la grille de la carte
+       ne connaît que les colonnes de ?p=structures, et sans place assignée elle
+       se rangerait d'elle-même dans la première case libre — par-dessus le nom. */
+    .liste-cartes td.col-suivi:empty { display: none; margin: 0; }
+
+    /* Le suivi d'une campagne, sur téléphone : la piste de droite change de
+       locataire. Le type de structure et les deux dates (dernier contact,
+       dernière modification) en sortent — sur cet écran on démarche, et ces
+       trois-là ne décident de rien —, et les boutons prennent leur place, à
+       portée de pouce en bout de ligne plutôt qu'à la ligne suivante.
+       Une seule des deux cellules est remplie à la fois : une structure
+       contactée n'a plus d'actions, une structure à contacter n'a pas encore de
+       réponse. Elles peuvent donc viser la même case. */
+    .campagne-structures.liste-cartes td.col-categorie,
+    .campagne-structures.liste-cartes td.col-maj-le { display: none; }
+    /* La piste de droite porte deux blocs l'un sous l'autre — les boutons, puis
+       la date du dernier contact — pour 61px, quand le nom et la ville n'en
+       font que 38 en vis-à-vis. Elle est donc posée HORS FLUX, comme les dates
+       qu'elle remplace : en flux, elle étirait les rangées de la grille et son
+       surplus retombait à gauche, en blanc — 22px entre le nom et la ville, ou
+       autant avant les étiquettes selon la rangée qui l'absorbait. Détachée,
+       elle ne pousse plus rien : la colonne de gauche garde son pas, et les
+       étiquettes reprennent juste sous la ville, à côté de la date. */
+    .campagne-structures.liste-cartes tbody tr {
+        /* La piste de droite n'a plus rien en flux pour lui donner sa largeur :
+           sans ce plancher elle retomberait à la largeur d'une date et les
+           boutons recouvriraient le nom. C'est la largeur que le sélecteur de
+           réponse prenait de lui-même — rien ne bouge à l'écran. */
+        --carte-date: 140px;
+        /* Hauteur du bloc de boutons. En pixels et non en multiple de la taille
+           de police : elle sert à CALCULER la position de la date, posée hors
+           flux, comme --carte-l-cat et --carte-l-date plus haut. */
+        --carte-l-suivi: 43px;
     }
-    .liste-cartes td.col-actions:empty,
-    .liste-cartes td.col-reponse:empty { display: none; margin: 0; }
+    .campagne-structures.liste-cartes td.col-suivi {
+        position: absolute; top: 12px; right: var(--content-pad);
+        margin-top: 0; max-width: none;
+    }
+    /* En mini-carte, la cellule n'est plus une cellule de tableau : c'est elle
+       qui porte l'alignement, l'enveloppe se contente de suivre. */
+    .campagne-structures.liste-cartes td.col-suivi .suivi-cell {
+        display: flex; justify-content: flex-end; align-items: center;
+        /* Les deux blocs possibles n'ont pas la même hauteur — le sélecteur de
+           réponse 43px, les deux boutons 37 — et la date qui suit se posait donc
+           6px plus haut d'une carte à l'autre. Une hauteur commune, celle du
+           plus grand, les aligne toutes. */
+        min-height: var(--carte-l-suivi);
+    }
+    /* La date de dernier contact reste, elle : c'est elle qui décide d'une
+       relance, et le bouton qui la déclenche est juste au-dessus — d'où les 5px
+       qui les séparent, sans quoi les deux blocs se touchaient et se lisaient
+       comme un seul. La règle générale la cale sur une ligne de catégorie qui
+       n'existe plus sur cet écran. */
+    .campagne-structures.liste-cartes td.col-contact-le {
+        top: calc(12px + var(--carte-l-suivi) + 5px);
+        max-width: none;
+    }
+    /* Les étiquettes s'arrêtent avant la piste de droite au lieu de courir d'un
+       bord à l'autre : elles longent la date du dernier contact, qui occupe la
+       même hauteur. Sur toute la largeur, elles seraient passées dessous. */
+    .campagne-structures.liste-cartes td.col-tags { grid-column: 1 / 3; }
 
     /* ============================================================
        ?p=fiches (salaires) en mini-cartes
@@ -4613,5 +4694,3 @@ abbr {
 .kv-inline > div { display: flex; flex-direction: column; gap: 2px; }
 .kv-inline dt { font-size: var(--fs-tiny); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
 .kv-inline dd { margin: 0; }
-.campagne-coche { color: var(--ok); display: inline-flex; vertical-align: -2px; margin-right: 4px; }
-.campagne-coche .ico { width: 14px; height: 14px; }

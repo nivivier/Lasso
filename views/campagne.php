@@ -4,7 +4,7 @@
 /** @var bool $ouverte */ /** @var bool $saved */
 /** @var array $contacterCibles */ /** @var array $expediteurs */ /** @var array $modelesMessage */
 /** @var array $campagneProjets */ /** @var array $spectacles */ /** @var array $projetIds */
-/** @var array $repartition */ /** @var array $filtres */ /** @var array $reponseFiltre */ /** @var int $nbAffichees */
+/** @var array $repartition */ /** @var array $filtres */ /** @var array $suiviFiltre */ /** @var int $nbAffichees */
 /** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
@@ -30,21 +30,22 @@ $sfPage = 'campagne';
 $sfVals = $filtres;
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
     'lieuxOptions' => $lieuxOptions, 'campagnesDispo' => $campagnesDispo];
-$sfAutresParams = ['id' => (int) $campagne['id'], 'reponse' => $reponseFiltre];
-$sfActifSupp = $reponseFiltre !== [];
+$sfAutresParams = ['id' => (int) $campagne['id'], 'suivi' => $suiviFiltre];
+$sfActifSupp = $suiviFiltre !== [];
 require __DIR__ . '/_structures_filtres.php';
-// Le filtre propre à la campagne, bâti avec les mêmes composants. « Aucune
-// réponse » est la chaîne vide : c'est une valeur comme une autre, on doit
-// pouvoir demander à ne voir que les structures qui n'ont pas répondu.
-$reponseAutres = $sfAutres('reponse');
-$reponseFiltreHtml = filtre_colonne_html('campagne', 'reponse', CAMPAGNE_REPONSES, $reponseFiltre, $reponseAutres);
+// Le filtre propre à la campagne, bâti avec les mêmes composants : les quatre
+// états du démarchage (CAMPAGNE_SUIVI), ceux-là mêmes que découpe la barre
+// d'avancement — « à contacter » compris, qui est la question qu'on se pose en
+// ouvrant cet écran.
+$suiviAutres = $sfAutres('suivi');
+$suiviFiltreHtml = filtre_colonne_html('campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres);
 // Nu dans l'en-tête (la colonne le nomme), nommé dans le panneau hors tableau.
-$sfColonnes .= filtre_colonne_html('campagne', 'reponse', CAMPAGNE_REPONSES, $reponseFiltre, $reponseAutres, 'Réponse');
-$sfActifs .= filtre_colonne_actifs_html('campagne', 'reponse', CAMPAGNE_REPONSES, $reponseFiltre, $reponseAutres);
+$sfColonnes .= filtre_colonne_html('campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres, 'Suivi');
+$sfActifs .= filtre_colonne_actifs_html('campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres);
 // Le bouton de retrait doit vider la réponse comme le reste.
 $sfReinit = bouton_reinit_filtres(
     'campagne',
-    ['categorie_id', 'statut', 'lieu', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'reponse'],
+    ['categorie_id', 'statut', 'lieu', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'suivi'],
     (bool) $sfActif,
     [],
     ['id' => (int) $campagne['id']]
@@ -129,11 +130,15 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
 
         <?php // data-part : le script du bas met ces nombres à jour quand on note
               // une réponse dans la liste, sans recharger la page. ?>
+        <?php // L'icône plutôt qu'une pastille de couleur : c'est celle que porte
+              // la ligne de chaque structure dans le tableau (le sélecteur de
+              // réponse, l'enveloppe du bouton « Contacter »). La légende devient
+              // la clé de lecture du tableau, pas seulement celle de la barre. ?>
         <ul class="camp-legende">
-            <li><i class="camp-pip camp-oui"></i><b data-part="interesse"><?= (int) $repartition['interesse'] ?></b> intéressé</li>
-            <li><i class="camp-pip camp-non"></i><b data-part="refus"><?= (int) $repartition['refus'] ?></b> pas intéressé</li>
-            <li><i class="camp-pip camp-attente"></i><b data-part="sansReponse"><?= (int) $repartition['sansReponse'] ?></b> sans réponse</li>
-            <li><i class="camp-pip camp-reste"></i><b data-part="aContacter"><?= (int) $repartition['aContacter'] ?></b> à contacter</li>
+            <li><span class="ico-ok"><?= icon('message-circle-heart') ?></span><b data-part="interesse"><?= (int) $repartition['interesse'] ?></b> intéressé</li>
+            <li><span class="ico-danger"><?= icon('message-circle-x') ?></span><b data-part="refus"><?= (int) $repartition['refus'] ?></b> pas intéressé</li>
+            <li><span class="ico-amber"><?= icon('message-circle-dashed') ?></span><b data-part="sansReponse"><?= (int) $repartition['sansReponse'] ?></b> sans réponse</li>
+            <li><span class="muted"><?= icon('mail') ?></span><b data-part="aContacter"><?= (int) $repartition['aContacter'] ?></b> à contacter</li>
             <?php $d = $jour($campagne['date_debut']); $f = $jour($campagne['date_fin']); ?>
             <?php if ($d !== '' || $f !== ''): ?>
             <li class="camp-legende-fin muted"><?= icon('clock') ?> <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?></li>
@@ -175,9 +180,18 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
 // L'exemplaire unique du formulaire d'ajout de tag, celui de ?p=structures : la
 // colonne « Tags » se modifie ici aussi.
 $taTags = $tagsDispo;
-$taRetour = ['retour' => 'campagne', 'campagne_id' => (int) $campagne['id']];
+$taRetour = ['retour' => 'campagne', 'retour_campagne_id' => (int) $campagne['id']];
 require __DIR__ . '/_tag_ajouter_ligne.php';
 ?>
+<?php if ($campagnesDispo): ?>
+<?php
+// Idem pour la colonne « Campagnes » : sans cet exemplaire, son « + » et sa
+// croix n'ont rien à ouvrir et ne font rien.
+$caCampagnes = $campagnesDispo;
+$caRetour = ['retour' => 'campagne', 'retour_campagne_id' => (int) $campagne['id']];
+require __DIR__ . '/_campagne_ajouter_ligne.php';
+?>
+<?php endif; ?>
 <?php
 // La barre d'action groupée de ?p=structures, telle quelle : on modifie ici les
 // fiches d'une sélection sans quitter le démarchage. Elle poste sur cette page,
@@ -226,34 +240,45 @@ $stCampagnes = $campagnesDispo ? $campagnesParStructure : null;
 // de cet écran, l'id de la campagne et le filtre de réponse — sans quoi trier
 // renverrait à la liste des campagnes, filtres perdus.
 $stTri = $tri + ['page' => 'campagne', 'params' => $sfTousFiltres];
-// « Actions » ne se trie pas — ce sont des boutons, pas une donnée. « Réponse »
-// si : c'est la question de l'écran, et la trier remonte ce qu'il reste à noter.
-$stExtraTh = ($peutEcrire ? '<th class="nowrap col-actions">Actions</th>' : '')
-    . '<th class="nowrap col-reponse"><span class="col-th">'
-    . tri_entete_html('campagne', 'reponse', 'Réponse', $stTri, $stTri['params'])
-    . ' ' . $reponseFiltreHtml . '</span></th>';
+// UNE seule colonne pour les deux gestes, parce qu'ils se suivent : tant que le
+// contact reste à faire, on agit et il n'y a pas de réponse à noter ; une fois
+// qu'il a eu lieu, il n'y a plus rien à déclencher et c'est la réponse qui
+// compte. Une ligne n'a donc jamais les deux à la fois — deux colonnes, c'était
+// deux demi-colonnes vides côte à côte, et la largeur de l'écran mangée deux
+// fois. « Suivi » les nomme toutes deux : où en est-on avec cette structure.
+//
+// L'entonnoir et le tri restent ceux de la RÉPONSE : c'est la seule des deux
+// moitiés qui porte une donnée.
+$stExtraTh = '<th class="nowrap col-suivi"><span class="col-th">'
+    . tri_entete_html('campagne', 'suivi', 'Suivi', $stTri, $stTri['params'])
+    . ' ' . $suiviFiltreHtml . '</span></th>';
 $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string {
     $sid = (int) $d['id'];
-    // Les deux colonnes s'excluent, parce que les deux gestes se suivent : tant
-    // que le contact reste à faire, on agit et il n'y a pas de réponse à noter ;
-    // une fois qu'il a eu lieu, il n'y a plus rien à déclencher et c'est la
-    // réponse qui compte. Une ligne ne propose donc jamais les deux à la fois.
     $contactee = (bool) $d['contactee'];
+    // Le flex est posé sur une enveloppe et non sur la cellule : un <td> en
+    // display:flex cesse d'être une cellule de tableau, et c'est au bon vouloir
+    // du moteur de rendu qu'il reste aligné sur sa colonne.
+    $h = '<td class="actions nowrap col-suivi"><span class="suivi-cell">';
 
-    // Sans droit d'écriture, pas de colonne d'actions du tout : il n'y a rien à
-    // y faire, et « Réponse » dit déjà si le contact a eu lieu.
-    $h = $peutEcrire ? '<td class="actions nowrap col-actions">' : '';
-    if ($peutEcrire && $contactee) {
-        // La coche remplace les boutons : elle dit pourquoi il n'y en a plus.
-        // Bulle et non coche nue : c'est un échange qui a eu lieu, et « check »
-        // reste l'action de valider — juste à côté, le bouton « Marquer comme
-        // contacté » le porte déjà.
-        $h .= '<span class="campagne-coche" title="Déjà contactée pour un projet de cette campagne">' . icon('message-circle-check') . '</span>';
+    if ($contactee) {
+        // Le sélecteur de réponse EST la marque du contact : il n'apparaît que
+        // sur une structure déjà contactée, et sa présence le dit aussi bien
+        // qu'une bulle cochée posée devant lui — qui ne faisait que répéter
+        // l'information en prenant de la place.
+        //
+        // Réponse reçue : trois icônes enregistrées au clic. Elle est propre à
+        // CETTE campagne — la même salle peut décliner une tournée et prendre
+        // la suivante.
+        $reponse = (string) ($d['reponse'] ?? '');
+        $h .= $peutEcrire
+            ? campagne_reponse_toggle_html((int) $campagne['id'], $sid, $reponse)
+            : '<span class="' . e(CAMPAGNE_REPONSES_CLASSES_ICONE[$reponse] ?? 'muted') . '" title="'
+              . e(CAMPAGNE_REPONSES[$reponse] ?? '') . '">' . icon(CAMPAGNE_REPONSES_ICONES[$reponse] ?? 'circle-dashed') . '</span>';
     } elseif ($peutEcrire && $ouverte) {
-        // Deux boutons en icône seule : le tableau porte déjà les dix colonnes de
-        // ?p=structures, et deux libellés entiers repoussaient « Réponse » hors de
-        // l'écran. Le nom reste porté par title et aria-label, comme les autres
-        // colonnes d'actions de l'application.
+        // Deux boutons en icône seule : le tableau porte déjà les colonnes de
+        // ?p=structures, et deux libellés entiers repoussaient la colonne hors
+        // de l'écran. Le nom reste porté par title et aria-label, comme les
+        // autres colonnes d'actions de l'application.
         //
         // « Contacter » est mis en évidence (fond plein, le .btn par défaut) :
         // c'est le geste de la page, on démarche. Marquer après coup reste en
@@ -276,22 +301,8 @@ $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string 
     }
     // Pas de retrait ici : la composition de la sélection se fait sur
     // ?p=campagne_form, où l'on décoche — et où l'on ajoute. Cette page-ci sert
-    // à démarcher, pas à refaire la liste ; un « délier » au bout de chaque
-    // ligne de démarchage n'y avait pas sa place.
-
-    $h .= ($peutEcrire ? '</td>' : '') . '<td class="nowrap col-reponse">';
-    // Réponse reçue : trois icônes enregistrées au clic. Elle est propre à CETTE
-    // campagne — la même salle peut décliner une tournée et prendre la suivante.
-    // Rien tant que personne n'a été contacté : il n'y a pas de réponse à une
-    // question qu'on n'a pas posée, et la cellule vide se lit d'elle-même.
-    if ($contactee) {
-        $reponse = (string) ($d['reponse'] ?? '');
-        $h .= $peutEcrire
-            ? campagne_reponse_toggle_html((int) $campagne['id'], $sid, $reponse)
-            : '<span class="' . e(CAMPAGNE_REPONSES_CLASSES_ICONE[$reponse] ?? 'muted') . '" title="'
-              . e(CAMPAGNE_REPONSES[$reponse] ?? '') . '">' . icon(CAMPAGNE_REPONSES_ICONES[$reponse] ?? 'circle-dashed') . '</span>';
-    }
-    return $h . '</td>';
+    // à démarcher, pas à refaire la liste.
+    return $h . '</span></td>';
 };
 require __DIR__ . '/_structures_table.php';
 ?>

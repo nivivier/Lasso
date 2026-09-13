@@ -362,23 +362,26 @@ function route_structure_campagne(): void
         ]);
         return;
     }
-    // D'où l'on vient : la liste des structures, ou la fiche de la structure —
-    // c'est là qu'on retourne.
-    redirect(
-        ($_POST['retour'] ?? '') === 'structures' ? 'structures' : 'structure',
-        ($_POST['retour'] ?? '') === 'structures' ? [] : ['id' => $structureId]
-    );
+    // D'où l'on vient, sans JavaScript : la liste des structures, le suivi d'une
+    // campagne — les deux écrans qui montrent la colonne « Campagnes » — ou, à
+    // défaut, la fiche de la structure. Même règle que pour les tags, d'où la
+    // fonction partagée.
+    tag_retour_redirect($structureId);
 }
 
-// Où revenir après un ajout ou un retrait de tag SANS JavaScript : la liste d'où
-// l'on vient — ?p=structures, ou le suivi d'une campagne, qui posent tous deux
-// des tags depuis leur tableau. À défaut, la fiche de la structure, comportement
-// historique de ce formulaire. Avec JavaScript, rien de tout cela : la requête
-// part en JSON et seule la cellule est remplacée (retour=json, plus haut).
+// Où revenir après avoir posé ou retiré une LIAISON depuis une liste, sans
+// JavaScript : un tag, une campagne. La liste d'où l'on vient — ?p=structures ou
+// le suivi d'une campagne, les deux écrans qui portent ces colonnes — et à
+// défaut la fiche de la structure, comportement historique de ces formulaires.
+// Avec JavaScript, rien de tout cela : la requête part en JSON et seule la
+// cellule concernée est remplacée (retour=json).
 function tag_retour_redirect(int $structureId): void
 {
     $retour = (string) ($_POST['retour'] ?? '');
-    $campagneId = (int) ($_POST['campagne_id'] ?? 0);
+    // retour_campagne_id, et non campagne_id : le formulaire d'ajout à une
+    // campagne poste DÉJÀ un campagne_id — celle qu'on rattache. Deux sens
+    // différents ne peuvent pas partager un nom.
+    $campagneId = (int) ($_POST['retour_campagne_id'] ?? $_POST['campagne_id'] ?? 0);
     if ($retour === 'structures') {
         redirect('structures');
     }
@@ -1801,14 +1804,33 @@ function route_campagne(): void
     // structures ont été retenues à un moment donné, en masquer d'office
     // celles devenues « ne pas contacter » amputerait la liste sans le dire.
     $f = structures_filtres('campagne_struct', []);
-    // Le filtre propre à la campagne : la réponse reçue. Elle vit sur le lien
-    // campagne↔structure, d'où la condition sur `cs` et non sur `s`.
-    $reponseFiltre = filtre_coche('reponse', 'campagne_struct_reponse', array_keys(CAMPAGNE_REPONSES));
+    // Le filtre propre à la campagne : où en est le démarchage de cette
+    // structure. Quatre états (CAMPAGNE_SUIVI), les mêmes que les quatre parts
+    // de la barre d'avancement. Trois vivent sur le lien campagne↔structure
+    // (`cs.reponse`) ; le quatrième, « à contacter », n'est pas une valeur mais
+    // l'ABSENCE de prise de contact — d'où campagne_contactee_sql(), qui pose
+    // la même règle que le compte de la barre.
+    $suiviFiltre = filtre_coche('suivi', 'campagne_struct_suivi', array_keys(CAMPAGNE_SUIVI));
+    $contacteeSql = campagne_contactee_sql($id, 's.id');
     $where = $f['where'];
     $params = $f['params'];
-    if ($reponseFiltre) {
-        $where .= ' AND cs.reponse IN (' . sql_in($reponseFiltre) . ')';
-        $params = array_merge($params, $reponseFiltre);
+    if ($suiviFiltre) {
+        // Unies en OU, comme toutes les cases à cocher de l'application :
+        // « à contacter » et « intéressé » cochés ensemble montrent les deux.
+        // La réponse prime sur la prise de contact : une structure dont on a
+        // noté « pas intéressé » SANS avoir consigné de contact (cela arrive —
+        // on apprend un refus autrement) est « pas intéressée », pas « à
+        // contacter ». Sans cette priorité les quatre états se chevauchent, et
+        // une même ligne tombe dans deux cases à cocher.
+        $suiviConds = [];
+        foreach ($suiviFiltre as $etat) {
+            $suiviConds[] = match ($etat) {
+                'a_contacter'  => "(cs.reponse = '' AND NOT " . $contacteeSql . ')',
+                'sans_reponse' => "(cs.reponse = '' AND " . $contacteeSql . ')',
+                default        => 'cs.reponse = ' . db()->quote($etat),
+            };
+        }
+        $where .= ' AND (' . implode(' OR ', $suiviConds) . ')';
     }
 
     // Les colonnes d'affichage sont celles de ?p=structures — c'est le même
@@ -1828,9 +1850,15 @@ function route_campagne(): void
         'contacte'  => "COALESCE(NULLIF(s.dernier_contact_le, ''), '')",
         'evenements' => '(SELECT COUNT(*) FROM evenement_structures es WHERE es.structure_id = s.id)',
         'maj'       => "date(COALESCE(NULLIF(s.mise_a_jour_le, ''), s.cree_le))",
-        // « Aucune réponse » est la chaîne vide : elle se range donc en tête en
-        // croissant, ce qui met en premier ce qu'il reste à noter.
-        'reponse'   => 'cs.reponse',
+        // Le suivi se trie dans l'ordre du démarchage — à contacter, sans
+        // réponse, pas intéressé, intéressé — et non sur la valeur brute de
+        // `reponse`, qui mêlerait les deux premiers sous la même chaîne vide.
+        // Même ordre de priorité que le filtre juste au-dessus, et le même
+        // ordre que la barre d'avancement : à contacter, sans réponse, pas
+        // intéressé, intéressé.
+        'suivi'     => "CASE WHEN cs.reponse = 'interesse' THEN 3"
+                     . " WHEN cs.reponse = 'pas_interesse' THEN 2"
+                     . " WHEN $contacteeSql THEN 1 ELSE 0 END",
     ]);
     $orderByStruct = $tri['sql'] !== '' ? $tri['sql'] . ', s.nom COLLATE NOCASE' : ' ORDER BY s.nom COLLATE NOCASE';
     $stmt = db()->prepare(
@@ -1885,7 +1913,7 @@ function route_campagne(): void
         ),
         // Filtres : les valeurs actives, et de quoi peupler leurs menus.
         'filtres'     => $f,
-        'reponseFiltre' => $reponseFiltre,
+        'suiviFiltre' => $suiviFiltre,
         'categoriesPourSelect' => structure_categories_pour_select(),
         // Pays / régions / départements de l'entonnoir « Lieu » ; les villes
         // arrivent par ?p=structures_lieux (voir filtre_colonne_lieu_html()).

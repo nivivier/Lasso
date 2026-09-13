@@ -67,6 +67,18 @@ const CAMPAGNE_STATUTS = [
 // (migration_86) et non par la structure elle-même : la même salle peut décliner
 // une tournée et prendre la suivante. « Aucune » est l'absence de réponse, donc
 // la chaîne vide — c'est l'état de départ de toute ligne.
+// Les quatre états du suivi d'une structure dans une campagne : les mêmes que
+// les quatre parts de la barre d'avancement (campagne_repartition()), et donc
+// que sa légende. « À contacter » et « Sans réponse » portent tous deux une
+// réponse vide — ce qui les sépare est la prise de contact
+// (campagne_contactee_sql()).
+const CAMPAGNE_SUIVI = [
+    'a_contacter'   => 'À contacter',
+    'sans_reponse'  => 'Sans réponse',
+    'pas_interesse' => 'Pas intéressé',
+    'interesse'     => 'Intéressé',
+];
+
 const CAMPAGNE_REPONSES = [
     ''              => 'Aucune réponse',
     'pas_interesse' => 'Pas intéressé',
@@ -75,15 +87,21 @@ const CAMPAGNE_REPONSES = [
 
 // Une bulle de discussion, parce qu'il s'agit de ce que la structure a RÉPONDU :
 // pointillée tant qu'elle n'a rien dit, barrée d'une croix quand c'est non, un
-// cœur quand c'est oui. Les couleurs restent celles du statut d'une structure
-// (STRUCTURE_STATUTS_CLASSES_ICONE) — gris, rouge, vert.
+// cœur quand c'est oui.
+//
+// Les couleurs sont celles de la barre d'avancement, segment par segment : teal
+// pour un oui — la couleur de ce qui est acquis dans toute l'application —,
+// rouge pour un non, ambre pour un contact établi dont la réponse se fait
+// attendre — l'ambre de ce qui est en suspens, « à payer », « SUISA à faire ».
+// Le gris reste à ce qui n'a pas encore été approché, et qui n'a donc pas de
+// réponse à afficher.
 const CAMPAGNE_REPONSES_ICONES = [
     ''              => 'message-circle-dashed',
     'pas_interesse' => 'message-circle-x',
     'interesse'     => 'message-circle-heart',
 ];
 const CAMPAGNE_REPONSES_CLASSES_ICONE = [
-    ''              => 'muted',
+    ''              => 'ico-amber',
     'pas_interesse' => 'ico-danger',
     'interesse'     => 'ico-ok',
 ];
@@ -175,30 +193,51 @@ function spectacles_lier(string $table, int $id, array $spectacleIds): void
 //
 // La borne de date est délibérée : un contact de l'an dernier sur le même
 // projet ne doit pas faire passer pour faite une campagne qui commence.
-function campagne_structures_contactees(int $campagneId): array
+// « Cette structure a-t-elle déjà été contactée POUR cette campagne ? », en SQL,
+// prête à poser dans un WHERE, un ORDER BY ou un EXISTS. La règle : une prise de
+// contact consignée (historique de type « mailing »), rattachée à l'un des
+// projets de la campagne, et pas antérieure à son ouverture.
+//
+// Les valeurs sont écrites DANS la requête plutôt que liées : ce sont des
+// identifiants de spectacle relus de la base (passés par intval()) et une date
+// citée par PDO, jamais une saisie. Sans cela, la même condition ne pourrait pas
+// servir dans un ORDER BY, où il n'y a pas de paramètres à lier.
+//
+// $colStructureId est l'expression qui désigne la structure dans la requête
+// appelante (« cs.structure_id », « s.id »…), jamais une donnée d'utilisateur.
+//
+// Renvoie « 0 » — faux — quand la campagne n'a aucun projet : rien ne peut alors
+// y être rattaché, donc rien n'y est contacté.
+function campagne_contactee_sql(int $campagneId, string $colStructureId): string
 {
     $c = campagne_charger($campagneId);
-    if (!$c) {
+    $spectacles = $c ? spectacles_lies('campagne_spectacles', $campagneId) : [];
+    if (!$spectacles) {
+        return '0';
+    }
+    $ids = implode(',', array_map('intval', $spectacles));
+    $sql = "EXISTS (SELECT 1 FROM historique h
+                      JOIN historique_spectacles hs ON hs.historique_id = h.id
+                     WHERE h.entite_type = 'structure' AND h.type = 'mailing'
+                       AND h.entite_id = $colStructureId
+                       AND hs.spectacle_id IN ($ids)";
+    if ((string) $c['date_debut'] !== '') {
+        $sql .= ' AND h.cree_le >= ' . db()->quote((string) $c['date_debut']);
+    }
+    return $sql . ')';
+}
+
+function campagne_structures_contactees(int $campagneId): array
+{
+    $cond = campagne_contactee_sql($campagneId, 'cs.structure_id');
+    if ($cond === '0') {
         return [];
     }
-    $spectacles = spectacles_lies('campagne_spectacles', $campagneId);
-    if (!$spectacles) {
-        return []; // sans projet, rien ne peut être rattaché à cette campagne
-    }
-    $params = $spectacles;
-    $sql = "SELECT DISTINCT h.entite_id
-              FROM historique h
-              JOIN historique_spectacles hs ON hs.historique_id = h.id
-              JOIN campagne_structures cs ON cs.structure_id = h.entite_id AND cs.campagne_id = ?
-             WHERE h.entite_type = 'structure' AND h.type = 'mailing'
-               AND hs.spectacle_id IN (" . sql_in($spectacles) . ')';
-    array_unshift($params, $campagneId);
-    if ((string) $c['date_debut'] !== '') {
-        $sql .= ' AND h.cree_le >= ?';
-        $params[] = (string) $c['date_debut'];
-    }
-    $stmt = db()->prepare($sql);
-    $stmt->execute($params);
+    $stmt = db()->prepare(
+        'SELECT cs.structure_id FROM campagne_structures cs
+          WHERE cs.campagne_id = ? AND ' . $cond
+    );
+    $stmt->execute([$campagneId]);
     return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 }
 

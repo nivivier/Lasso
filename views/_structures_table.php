@@ -125,13 +125,6 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
               // Au-delà du seuil, c'est la requête SQL qui cherche, et elle
               // interroge structure_contacts de son côté. ?>
         <th class="col-contact">Contact</th>
-        <?php if ($stMontreContacte): ?>
-        <th class="col-petit">
-            <span class="col-th"><?= $stTh('contacte', 'Contacté') ?>
-                <?= $stFiltres['contacte'] ?? '' ?>
-            </span>
-        </th>
-        <?php endif; ?>
         <?php if ($stMontreFactures): ?>
         <th><?= $stTh('factures', '<span title="Factures liées" aria-label="Factures liées">' . icon('receipt-swiss-franc') . '</span>') ?></th>
         <?php endif; ?>
@@ -143,14 +136,23 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
             </span>
         </th>
         <?php endif; ?>
-        <?php // « Modifié » en dernière colonne : c'est une date de service,
-              // qu'on consulte rarement et jamais en premier — la reléguer en fin
-              // de ligne laisse la place aux colonnes qu'on parcourt. ?>
+        <?php // « Modifié » puis « Contacté », dans cet ordre : « Contacté » est
+              // mitoyenne du « Suivi » de la campagne, qui prolonge la même
+              // question — à quand remonte l'échange, et où en est-il. « Modifié »
+              // est une date de service, qu'on consulte rarement et jamais en
+              // premier ; elle passe devant. ?>
         <th class="col-petit">
             <span class="col-th"><?= $stTh('maj', 'Modifié') ?>
                 <?= $stFiltres['maj'] ?? '' ?>
             </span>
             </th>
+        <?php if ($stMontreContacte): ?>
+        <th class="col-petit">
+            <span class="col-th"><?= $stTh('contacte', 'Contacté') ?>
+                <?= $stFiltres['contacte'] ?? '' ?>
+            </span>
+        </th>
+        <?php endif; ?>
         <?= $stExtraTh ?>
     </tr></thead>
     <tbody>
@@ -246,13 +248,6 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
                 $contactLe = (string) ($d['dernier_contact_le'] ?? '');
                 $contactRecent = $contactLe !== '' && $contactLe >= $limiteContactRecent;
                 ?>
-            <?php if ($stMontreContacte): ?>
-            <?php // L'enveloppe est posée en masque CSS (::before sur .a-date) et non
-                  // en <svg> : sur une colonne rendue 2959 fois, un dessin dans le
-                  // balisage coûterait 74 octets par ligne pour une icône qui ne
-                  // varie jamais. ?>
-            <td class="tiny col-contact-le<?= $contactLe !== '' ? ' a-date' : '' ?><?= $contactRecent ? ' contact-recent' : ' muted' ?>"<?= $contactLe !== '' ? ' title="' . e(date('d.m.Y', strtotime($contactLe))) . '"' : '' ?>><?= $contactLe !== '' ? e(duree_depuis($contactLe)) : '—' ?></td>
-            <?php endif; ?>
             <?php if ($stMontreFactures): ?>
             <td class="small col-factures">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
@@ -289,6 +284,13 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
                 $majAffichee = $majLe !== '' ? $majLe : $creeLe;
                 ?>
             <td class="muted tiny col-maj-le<?= $majAffichee !== '' ? ' a-date' : '' ?><?= $majLe === '' && $creeLe !== '' ? ' est-creation' : '' ?>"<?= $majAffichee !== '' ? ' title="' . e(date('d.m.Y', strtotime($majAffichee))) . '"' : '' ?>><?= $majAffichee !== '' ? e(duree_depuis($majAffichee)) : '—' ?></td>
+            <?php if ($stMontreContacte): ?>
+            <?php // L'enveloppe est posée en masque CSS (::before sur .a-date) et non
+                  // en <svg> : sur une colonne rendue 2959 fois, un dessin dans le
+                  // balisage coûterait 74 octets par ligne pour une icône qui ne
+                  // varie jamais. ?>
+            <td class="tiny col-contact-le<?= $contactLe !== '' ? ' a-date' : '' ?><?= $contactRecent ? ' contact-recent' : ' muted' ?>"<?= $contactLe !== '' ? ' title="' . e(date('d.m.Y', strtotime($contactLe))) . '"' : '' ?>><?= $contactLe !== '' ? e(duree_depuis($contactLe)) : '—' ?></td>
+            <?php endif; ?>
             <?= $stExtraTd ? ($stExtraTd)($d) : '' ?>
         </tr>
     <?php endforeach; ?>

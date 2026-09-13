@@ -214,23 +214,13 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 <?php endif; ?>
 
 <?php if ($peutEcrireTags && $campagnesDispo): ?>
-<?php // Exemplaire unique, comme le formulaire d'étiquette juste au-dessus :
-      // déplacé dans la cellule de la ligne dont on clique le « + ». Une liste
-      // fermée — on rattache à une campagne existante, on n'en crée pas d'ici —
-      // donc un menu déroulant plutôt qu'un champ à suggestions. ?>
-<form method="post" action="?p=structure_campagne" class="linked-add campagne-ajouter-ligne" id="campagne-ajouter-form" hidden>
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <input type="hidden" name="structure_id" value="">
-    <input type="hidden" name="retour" value="structures">
-    <select name="campagne_id" aria-label="Campagne">
-        <option value="">— Choisir une campagne —</option>
-        <?php foreach ($campagnesDispo as $c): ?>
-        <option value="<?= (int) $c['id'] ?>"><?= e($c['nom']) ?></option>
-        <?php endforeach; ?>
-    </select>
-    <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter à cette campagne" aria-label="Ajouter à cette campagne"><?= icon('plus') ?></button>
-    <button type="button" class="btn ghost btn-sm icon-only campagne-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-</form>
+<?php
+// Le formulaire « ajouter à une campagne » par ligne est partagé avec le suivi
+// d'une campagne : views/_campagne_ajouter_ligne.php.
+$caCampagnes = $campagnesDispo;
+$caRetour = ['retour' => 'structures'];
+require __DIR__ . '/_campagne_ajouter_ligne.php';
+?>
 <?php endif; ?>
 
 <?php if ($vue === 'carte'): ?>
