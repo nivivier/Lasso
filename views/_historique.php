@@ -48,7 +48,7 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                           // formulaire est masqué) : l'attribut form= le rattache,
                           // comme le fait déjà la carte « Historique » juste au-dessus. ?>
                     <button type="submit" form="<?= e($editId) ?>" class="btn icon-only btn-sm card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                    <a href="?p=structure&id=<?= (int) $histoStructureId ?>" class="btn ghost icon-only btn-sm card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+                    <a href="?p=structure&id=<?= (int) $histoStructureId ?><?= $depuisQs ?? '' ?>" class="btn ghost icon-only btn-sm card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
                 </div>
                 <?php endif; ?>
                 <?php // Une entrée par ligne : la date qui situe, le contenu qui
@@ -71,7 +71,7 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                     </span>
                 </div>
                 <?php if ($editable): ?>
-                <form method="post" action="?p=structure_note_modifier" class="card-edit form" id="<?= e($editId) ?>" hidden>
+                <form method="post" action="?p=structure_note_modifier<?= $depuisQs ?? '' ?>" class="card-edit form" id="<?= e($editId) ?>" hidden>
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <?php // « entree_id » et non « id » : un champ nommé « id » devient
                           // form.id en JavaScript et masque l'attribut id du <form>

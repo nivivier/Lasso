@@ -39,7 +39,7 @@
             <?php // Suppression : le formulaire vit ICI, à côté du formulaire d'édition
                   // (jamais dedans, deux <form> ne s'imbriquent pas) ; son bouton est en
                   // bas du cadre d'édition et le vise par form="contact-del-N". ?>
-            <form method="post" action="?p=structure_contact_delete" id="contact-del-<?= (int) $c['id'] ?>" data-confirm="Supprimer ce contact ?" hidden>
+            <form method="post" action="?p=structure_contact_delete<?= $depuisQs ?? '' ?>" id="contact-del-<?= (int) $c['id'] ?>" data-confirm="Supprimer ce contact ?" hidden>
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="structure_id" value="<?= $sid ?>">
                 <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">

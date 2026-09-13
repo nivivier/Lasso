@@ -20,7 +20,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
 ?>
 <div id="contacter-modal" class="modal-overlay" hidden>
     <div class="modal-card modal-contacter">
-        <form method="post" action="?p=structure_message" class="form" id="contacter-form">
+        <form method="post" action="?p=structure_message<?= $depuisQs ?? '' ?>" class="form" id="contacter-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" id="contacter-structure" value="">
             <?php // D'où l'on écrit : l'envoi y ramène plutôt que sur la fiche de

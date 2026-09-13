@@ -13,6 +13,14 @@ $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
 $peutEcrireStruct = peut_ecrire('facturation') || peut_ecrire('booking');
 $peutEcrireBooking = peut_ecrire('booking');
+// ?depuis=type:id — le lien de retour contextuel (lien_retour_contextuel()) qui
+// ramène là d'où l'on vient : une campagne, un événement, la recherche. Il vit
+// dans l'URL, or un formulaire poste vers ?p=structure_xxx, sans lui : redirect()
+// le reporte depuis $_GET, qui ne le contient alors plus, et le lien retour
+// disparaissait au premier geste fait sur la fiche — délier une campagne, poser
+// un tag, enregistrer une carte. Chaque action l'emporte donc dans son URL.
+// Même procédé que ?p=fiche, ?p=facture et ?p=evenement.
+$depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode((string) $_GET['depuis']) : '';
 // Bouton « Contacter » : indisponible plutôt qu'absent, pour que la raison se
 // lise (statut « ne pas contacter »/inactif, ou plus personne de joignable —
 // aucun contact avec une adresse hors liste d'exclusion).
@@ -36,7 +44,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
             <h1><?= $v('nom') ?></h1>
             <button type="button" class="btn ghost btn-sm icon-only titre-edit-btn" title="Modifier le nom" aria-label="Modifier le nom"><?= icon('pencil') ?></button>
         </div>
-        <form method="post" action="?p=structure_renommer" class="titre-edit-form" hidden>
+        <form method="post" action="?p=structure_renommer<?= $depuisQs ?>" class="titre-edit-form" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <input type="text" name="nom" class="input-titre" value="<?= $v('nom') ?>" required>
@@ -99,7 +107,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
 // étiquettes seulement s'il est modifiable.
 $bookingOkCreation = module_actif('booking') && peut_lire('booking');
 ?>
-<form method="post" action="?p=structure" class="card form">
+<form method="post" action="?p=structure<?= $depuisQs ?>" class="card form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <div class="form-split">
 
@@ -258,7 +266,7 @@ lassoInitTagSuggest();
 <!-- Sans le module booking (ou sans lecture dessus) : pas de carte
      « Localisation » séparée, les coordonnées restent ici — voir
      route_structure() (lib/routes_facturation.php). -->
-<form method="post" action="?p=structure&id=<?= (int) $structure['id'] ?>" class="card card-editable form" id="structure-details-form">
+<form method="post" action="?p=structure&id=<?= (int) $structure['id'] ?><?= $depuisQs ?>" class="card card-editable form" id="structure-details-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="nom" value="<?= $v('nom') ?>">
 
@@ -266,7 +274,7 @@ lassoInitTagSuggest();
     <div class="head-actions card-actions-overlay">
         <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
         <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-        <a href="?p=structure&id=<?= (int) $structure['id'] ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        <a href="?p=structure&id=<?= (int) $structure['id'] ?><?= $depuisQs ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
     </div>
     <?php endif; ?>
 
@@ -375,7 +383,7 @@ lassoInitTagSuggest();
         <?php foreach ($tags as $t): ?>
             <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
                 <?php if ($peutEcrireBooking): ?>
-                <form method="post" action="?p=structure_tag_retirer" class="d-inline" data-confirm="Retirer ce tag ?">
+                <form method="post" action="?p=structure_tag_retirer<?= $depuisQs ?>" class="d-inline" data-confirm="Retirer ce tag ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
@@ -390,7 +398,7 @@ lassoInitTagSuggest();
         <?php endif; ?>
     </div>
     <?php if ($peutEcrireBooking): ?>
-    <form method="post" action="?p=structure_tag_ajouter" class="linked-add mt-10" id="tag-ajouter-form" hidden>
+    <form method="post" action="?p=structure_tag_ajouter<?= $depuisQs ?>" class="linked-add mt-10" id="tag-ajouter-form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
         <div class="cat-search tag-search">
@@ -415,7 +423,7 @@ lassoInitTagSuggest();
     $periodeVide = empty($structure['mois_evenement_debut']) && empty($structure['mois_evenement_fin'])
         && empty($structure['mois_debut']) && empty($structure['mois_fin']);
     ?>
-    <form method="post" action="?p=structure&id=<?= $sid ?>" class="form" id="structure-details-form">
+    <form method="post" action="?p=structure&id=<?= $sid ?><?= $depuisQs ?>" class="form" id="structure-details-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="nom" value="<?= $v('nom') ?>">
 
@@ -425,7 +433,7 @@ lassoInitTagSuggest();
             <div class="head-actions">
                 <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                 <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+                <a href="?p=structure&id=<?= $sid ?><?= $depuisQs ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
             </div>
             <?php endif; ?>
         </div>
@@ -583,7 +591,7 @@ lassoInitTagSuggest();
                     <div class="muted small"><?= e((string) $l['type']) ?>
                     <?php if ($l['ville']): ?> · <?= e($l['ville']) ?><?php endif; ?></div>
                 </span>
-                <form method="post" action="?p=structure_lieu_delier" class="edit-only" data-confirm="Délier ?">
+                <form method="post" action="?p=structure_lieu_delier<?= $depuisQs ?>" class="edit-only" data-confirm="Délier ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">
@@ -600,7 +608,7 @@ lassoInitTagSuggest();
         <?php foreach ($lieuxOrganises as $l) { $ligneLien($l); } ?>
         <?php if (!$lieuxOrganises): ?><p class="muted small edit-only">Aucune salle ni festival lié.</p><?php endif; ?>
 
-        <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="lieu-form">
+        <form method="post" action="?p=structure_lieu_lier<?= $depuisQs ?>" class="linked-add edit-only" id="lieu-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <input type="hidden" name="sens" value="organise">
@@ -630,7 +638,7 @@ lassoInitTagSuggest();
         <?php foreach ($lieuxOrganisePar as $l) { $ligneLien($l); } ?>
         <?php if (!$lieuxOrganisePar): ?><p class="muted small edit-only">Aucun organisateur lié.</p><?php endif; ?>
 
-        <form method="post" action="?p=structure_lieu_lier" class="linked-add edit-only" id="organisateur-form">
+        <form method="post" action="?p=structure_lieu_lier<?= $depuisQs ?>" class="linked-add edit-only" id="organisateur-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <input type="hidden" name="sens" value="organise_par">
@@ -743,7 +751,7 @@ $villeHtmlS = ville_departement_canton_html(
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="structure-localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="?p=structure&id=<?= $sid ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            <a href="?p=structure&id=<?= $sid ?><?= $depuisQs ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
         </div>
         <?php endif; ?>
     </div>
@@ -765,7 +773,7 @@ $villeHtmlS = ville_departement_canton_html(
         </div>
     </div>
 
-    <form method="post" id="structure-localisation-form" action="?p=structure_localisation" class="card-edit form" hidden>
+    <form method="post" id="structure-localisation-form" action="?p=structure_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= $sid ?>">
         <input name="adresse_rue" value="<?= $v('adresse_rue') ?>" placeholder="Rue et numéro" aria-label="Rue et numéro" class="mb-16">
@@ -811,7 +819,7 @@ $villeHtmlS = ville_departement_canton_html(
         <?php // Liste fermée : on range la structure dans une campagne existante,
               // on n'en crée pas d'ici. Celles où elle figure déjà n'y sont pas. ?>
         <?php $dejaDedans = array_map(fn ($c) => (int) $c['id'], $campagnesStructure); ?>
-        <form method="post" action="?p=structure_campagne" class="linked-add" id="campagne-ajouter-fiche" hidden>
+        <form method="post" action="?p=structure_campagne<?= $depuisQs ?>" class="linked-add" id="campagne-ajouter-fiche" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <select name="campagne_id" required aria-label="Campagne">
@@ -880,7 +888,7 @@ $villeHtmlS = ville_departement_canton_html(
                               // sélecteur de réponse et le retrait de la campagne. ?>
                         <button type="button" class="btn ghost btn-sm icon-only camp-ligne-crayon" title="Modifier" aria-label="Modifier cette campagne"><?= icon('pencil') ?></button>
                         <span class="camp-ligne-edition" hidden>
-                            <form method="post" action="?p=structure_campagne" class="d-inline"
+                            <form method="post" action="?p=structure_campagne<?= $depuisQs ?>" class="d-inline"
                                   data-confirm="Retirer cette structure de la campagne « <?= e((string) $c['nom']) ?> » ? La réponse qui y est notée sera perdue.">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="structure_id" value="<?= $sid ?>">
@@ -973,7 +981,7 @@ $villeHtmlS = ville_departement_canton_html(
           // de saisie, l'invite du texte et le format de la date se suffisent, et
           // tous les contrôles se retrouvent alors à la même hauteur. Chacun
           // porte un aria-label, pour que son nom existe quand même. ?>
-    <form method="post" action="?p=structure_note_ajouter" class="form hist-note-form">
+    <form method="post" action="?p=structure_note_ajouter<?= $depuisQs ?>" class="form hist-note-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
         <div class="add-row hist-note-row">

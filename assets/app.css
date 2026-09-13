@@ -666,11 +666,13 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    le délégué click générique .voir-tout-btn dans assets/app.js. */
 .voir-tout-btn { background: none; border: none; padding: 0; margin-left: 4px; color: var(--highlight); text-decoration: underline; cursor: pointer; font-size: inherit; font-weight: 600; }
 .voir-tout-btn:hover { color: var(--highlight-d); }
-/* Message flash (juste après enregistrement) : positionné comme .loc-header
-   (z-index 1) pour rester peint au-dessus de .loc-map-bg (z-index 0) malgré
-   la marge nulle de la carte — sinon la carte géographique, en position
-   absolue plein cadre, le recouvrirait. */
-.card-flush > .ok, .card-flush > .err { position: relative; z-index: 1; margin: 14px 16px 0; }
+/* Pas de règle de position pour le message d'enregistrement de ce cadre : il
+   porte la classe .flash comme tous les autres de l'application et reste donc
+   une pastille flottante en haut de la page. Une règle le ramenait ici en flux
+   (position:relative) de peur que la carte géographique, en absolu plein cadre,
+   ne le recouvre — mais une pastille en position:fixed, à z-index 200, passe
+   au-dessus de tout, et le message se retrouvait enfermé dans le cadre de la
+   ville au lieu de s'afficher comme partout ailleurs. */
 /* .loc-map-bg enveloppe _mini_carte.php telle quelle (partagée avec ?p=lieu/
    ?p=structure, non modifiée) : sa carte, quand elle existe, remplit tout le
    cadre en absolu (sous l'en-tête flottant) ; sinon (ville pas encore

@@ -7,6 +7,22 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.7.11] — 2026-09-13
+
+### Corrigé
+- **Le lien de retour d'une fiche de structure se perdait au premier geste** :
+  arrivé depuis une campagne, un événement ou la recherche, on garde en haut de
+  page un « ← Test » qui y ramène. Il vit dans l'URL (`?depuis=campagne:5`), or
+  les formulaires de la fiche postaient vers `?p=structure_xxx` sans l'emporter
+  — délier une campagne, poser un tag, enregistrer une carte suffisait donc à le
+  faire disparaître. Chaque action de la fiche le reporte désormais, comme le
+  faisaient déjà les fiches de salaire, les factures et les événements.
+- **La confirmation d'enregistrement de la ville s'affichait dans le cadre de
+  la ville** (`?p=structure`) au lieu de flotter en haut de la page comme
+  toutes les autres. Une règle la ramenait en flux de peur que la carte
+  géographique, en absolu plein cadre, ne la recouvre — mais une pastille
+  flottante passe au-dessus de tout, et la règle ne faisait que l'enfermer.
+
 ## [2.7.10] — 2026-09-13
 
 ### Ajouté

@@ -21,7 +21,7 @@ if ($cfTitre === '') {
     $cfTitre = 'Contact';
 }
 ?>
-<form method="post" action="?p=structure_contact_ajouter"
+<form method="post" action="?p=structure_contact_ajouter<?= $depuisQs ?? '' ?>"
       class="form cadre-edit fieldset-groupe<?= $cfEdition ? ' contact-edit-form' : '' ?>"
       <?= $cfEdition ? '' : 'id="nouveau-contact-form" ' ?>hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
