@@ -1,5 +1,6 @@
 <?php
 /** @var array $lignes */ /** @var array $map */ /** @var array $comptes */ /** @var string $token */ /** @var ?string $flagErr */
+/** @var string $tokenEquipe */
 $termePluriel = evenements_terme_spectacle();
 $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
 
@@ -35,6 +36,14 @@ $parentOptions = function (int $excludeId) use ($map): string {
             <button type="button" class="btn ghost export-copy"
                                 data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
                                 title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?><span class="lbl"> Sync iCal</span></button>
+            <?php // Troisième lien, d'une autre nature : celui de l'ÉQUIPE. Il
+                  // montre les options, les dates non répertoriées et le contenu
+                  // des feuilles de route — adresses d'hôtel et portables
+                  // compris. À ne donner qu'à l'équipe, jamais à un site. ?>
+            <button type="button" class="btn ghost export-copy"
+                                data-url="<?= e(evenements_export_url('evenements_equipe_ical', $tokenEquipe)) ?>"
+                                title="Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)"
+                                aria-label="Copier le lien du calendrier de l'équipe"><?= icon('rows-3') ?><span class="lbl"> Calendrier équipe</span></button>
             <?php endif; ?>
             <?php if (peut_ecrire('evenements')): ?>
             <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
@@ -129,6 +138,10 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <button type="button" class="btn ghost btn-sm icon-only export-copy"
                             data-url="<?= e(evenements_export_url('evenements_ical', $token, $sid)) ?>"
                             title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only export-copy"
+                            data-url="<?= e(evenements_export_url('evenements_equipe_ical', $tokenEquipe, $sid)) ?>"
+                            title="Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)"
+                            aria-label="Copier le lien du calendrier de l'équipe"><?= icon('rows-3') ?></button>
                     <?php if ($peutEcrireSpec): ?>
                     <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
                     <?php endif; ?>

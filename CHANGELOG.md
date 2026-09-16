@@ -7,6 +7,89 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.0] — 2026-09-16
+
+### Ajouté
+- **Feuille de route d'un événement** : une carte « Déroulé » sur la fiche, où
+  l'on empile ce qu'il faut avoir sous les yeux le jour même — **horaires** (get-in,
+  balances, catering, show), **adresses** (salle, hôtel, parking),
+  **contacts** (régisseur, accueil artiste, hébergement), **pièces
+  jointes** (fiche technique, réservation d'hôtel) et **notes**. Une seule liste
+  pour les cinq types — ajoutés depuis un « + » qui les déplie en menu —, dans
+  l'ordre où on la lit : celui de la journée, pas rangée par catégorie, des
+  flèches réordonnant ligne à ligne. Un bouton
+  **« Déroulé type »** pose les cinq moments d'une journée de tournée d'un coup
+  — Départ, Get-in, Soundcheck, Repas, Show — puisque ce sont les mêmes d'une
+  date à l'autre, seules les heures changeant ; on élague ce qui ne sert pas et
+  l'on complète à la ligne, l'intitulé étant proposé à la saisie. Un contact
+  se reprend du carnet d'adresses, et reste alors à jour si la fiche change ;
+  ou se saisit sur place, pour ce qui n'y figure pas — un hébergement chez
+  l'habitant n'est dans aucune structure. Rien de tout cela n'est public : la
+  feuille de route ne part jamais dans l'export du site.
+  Les **pièces jointes** (8 Mo, PDF, image, texte ou bureautique) sont rangées
+  sous `data/`, que le serveur web refuse de servir, et ne se téléchargent que
+  par une route qui vérifie la session — contrairement aux logos, qui vivent
+  dans `uploads/`. Le format est reconnu au contenu du fichier, pas à son nom.
+  Supprimer une pièce jointe efface le fichier avec elle.
+  La feuille **se consulte d'un coup d'œil** : un bouton « Feuille de route » en
+  haut de la fiche, à côté de la suppression, l'ouvre dans la fenêtre d'aperçu
+  partagée de l'application — celle d'un décompte de salaire, d'un certificat ou
+  d'un bilan. Elle y réunit ce que la date dit publiquement (statut, audience,
+  lieu, festival, lien, remarques), les **structures organisatrices avec leurs
+  contacts** — repris du carnet d'adresses, donc toujours à jour —, leurs
+  **structures mères** (l'association qui fait tourner la salle, la faîtière
+  d'un festival : c'est souvent là qu'est l'administration, et la personne qu'on
+  appelle quand la salle ne répond pas) et tout le déroulé. La date, le lieu et
+  la ville sont mis en évidence en tête de feuille : ce sont les trois choses
+  qu'on y cherche des yeux. C'est la page d'impression elle-même qui s'y affiche
+  (`?p=evenement_feuille_imprimer`) : une seule feuille, qu'on lise à l'écran ou
+  qu'on l'emporte sur papier.
+  Fenêtre et papier partagent leur contenu, pour qu'ils ne divergent pas à la
+  première retouche. Les deux restent offerts en lecture seule — consulter
+  n'est pas modifier.
+- **Calendrier iCal de l'équipe**, avec son **propre jeton**, distinct de celui
+  de l'export public. Ce flux-là montre tout ce que l'autre tait : les dates en
+  option, celles qui ne sont pas répertoriées, et le contenu des feuilles de
+  route. Chaque date y figure deux fois — une **bande de journée** qui porte la
+  feuille entière dans sa description et les pièces jointes en `ATTACH`, et un
+  **événement daté par horaire** (get-in, balances, show), pour que la journée
+  se lise dans la vue « jour » d'un téléphone. Les liens se copient depuis la
+  liste des spectacles, globalement ou pour un seul d'entre eux. Un abonnement
+  iCal ne sait pas s'authentifier autrement qu'en portant son secret dans
+  l'URL : ce lien **est** un mot de passe, et régénérer son jeton
+  (Paramètres → Événements) est la seule façon de révoquer — pour tout le monde
+  à la fois. Les pièces jointes qu'il référence se téléchargent avec ce jeton,
+  sans session, et seulement avec lui.
+- **Un événement porte une adresse et un horaire** : rue et code postal dans la
+  carte « Localisation », heures de début et de fin dans « Informations ». Ce
+  sont des champs **publics**, au même titre que la ville, la salle ou le
+  festival : ils partent dans l'export JSON et dans le flux iCal — une adresse
+  de représentation ouvre un itinéraire depuis l'agenda, une heure de spectacle
+  dit quand s'y trouver. Un événement **privé** n'expose toujours que sa date.
+  Les deux restent facultatifs : une date de tournée se pose des mois avant que
+  l'horaire soit connu, et l'événement reste alors une journée entière dans les
+  agendas, comme avant. Les heures se lisent en heure locale du lieu et partent
+  en UTC dans le flux, heure d'été comprise ; une fin antérieure au début se lit
+  comme le lendemain — un concert qui commence à 22 h et finit à 0 h 30 est la
+  nuit même, pas un événement de vingt-trois heures.
+
+### Modifié
+- **La sauvegarde devient complète : la base ET les fichiers déposés**, dans une
+  archive. La base ne mémorise que l'*emplacement* des logos, photos d'employés,
+  icônes de spectacle, feuilles SUISA et pièces jointes — jamais leur contenu :
+  une base restaurée seule rendait une application aux images cassées et aux
+  fichiers introuvables. La page d'export s'en tirait par une consigne — « pense
+  à sauvegarder aussi le dossier `uploads/` » —, du genre dont on se souvient le
+  jour où il est trop tard. L'archive embarque désormais `base.sqlite` (toujours
+  un instantané `VACUUM INTO`, indépendant du WAL), `uploads/`, `data/fichiers/`
+  et une note `SAUVEGARDE.txt` qui explique comment restaurer — pour le jour où
+  on l'ouvre des mois plus tard, sur une autre machine, sans le README sous la
+  main. Format ZIP, ou TAR.GZ sur un hébergement sans l'extension `zip` ; si
+  aucune des deux n'est disponible, le téléchargement retombe sur la base seule
+  et la page le dit au lieu de le laisser croire. Un échec (disque plein, droits
+  manquants) ramène sur la page d'export avec un message, plutôt que de livrer
+  une archive tronquée que rien ne distingue d'une sauvegarde valide.
+
 ## [2.7.11] — 2026-09-13
 
 ### Corrigé

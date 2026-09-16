@@ -15,6 +15,8 @@ require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/routes_booking.php';
 require_once __DIR__ . '/lib/maj.php';
+require_once __DIR__ . '/lib/sauvegarde.php';
+require_once __DIR__ . '/lib/feuille_route.php';
 require_once __DIR__ . '/lib/geocodage.php';
 require_once __DIR__ . '/lib/dev.php';
 require_once __DIR__ . '/lib/routes_dev.php';
@@ -249,6 +251,12 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenement_employe_lier'   => 'route_evenement_employe_lier',
     'evenement_employe_delier' => 'route_evenement_employe_delier',
     'evenement_ligne_ajouter'     => 'route_evenement_ligne_ajouter',
+    'evenement_feuille_ajouter'   => 'route_evenement_feuille_ajouter',
+    'evenement_feuille_deroule'   => 'route_evenement_feuille_deroule',
+    'evenement_feuille_imprimer'  => 'route_evenement_feuille_imprimer',
+    'evenement_feuille_modifier'  => 'route_evenement_feuille_modifier',
+    'evenement_feuille_supprimer' => 'route_evenement_feuille_supprimer',
+    'evenement_feuille_deplacer'  => 'route_evenement_feuille_deplacer',
     'evenement_facture_lier'   => 'route_evenement_facture_lier',
     'evenement_facture_delier' => 'route_evenement_facture_delier',
     'facture_evenement_lier'   => 'route_facture_evenement_lier',
@@ -266,6 +274,12 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
 if (module_actif('evenements')) {
     $handlers['evenements_json'] = 'route_evenements_json';
     $handlers['evenements_ical'] = 'route_evenements_ical';
+    // Calendrier de l'équipe et pièces jointes qu'il référence : hors session,
+    // protégés par leur propre jeton (feuille_jeton_equipe_fourni()). La route
+    // des fichiers accepte AUSSI une session — c'est par elle que la fiche d'un
+    // événement les télécharge.
+    $handlers['evenements_equipe_ical'] = 'route_evenements_equipe_ical';
+    $handlers['evenement_fichier']      = 'route_evenement_fichier';
 }
 
 // Géocodage d'une seule ville (mini-carte de localisation sur ?p=structure,

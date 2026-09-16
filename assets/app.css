@@ -657,6 +657,14 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     line-height: 1.2;
 }
 .info-date { font-size: var(--fs-huge); }
+/* L'horaire suit la date dans la même ligne, d'un corps plus discret : c'est la
+   même information — quand — mais la date reste ce qu'on lit en premier. */
+/* L'horaire, sous la date : son propre interligne, serré, et non celui de la
+   date — hérité, il aurait creusé un blanc de la hauteur du grand corps. */
+.info-heure {
+    font-size: var(--fs-basic); color: var(--muted); font-variant-numeric: tabular-nums;
+    line-height: 1.3; margin-top: 2px; padding-right: 110px;
+}
 .info-spectacle { font-size: var(--fs-large); font-weight: 700; color: var(--ink); margin-top: 2px; }
 .kv-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
 .kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: var(--fs-basic); padding: 11px 14px 11px 0; white-space: nowrap; vertical-align: top; width: 1%; }
@@ -3035,6 +3043,12 @@ body.print-page { background: #e9e9f2; }
     .print-toolbar { display: none; }
     body.print-page { background: #fff; }
     .sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; border-radius: 0; }
+    /* Les <h1> de l'application sont remplis par un DÉGRADÉ en clip-text
+       (-webkit-text-fill-color: transparent, voir la règle h1 plus haut). Or un
+       navigateur n'imprime pas les fonds par défaut : le dégradé disparaît, et
+       le titre avec lui — texte présent, sélectionnable, mais invisible sur le
+       papier. Sur une feuille imprimée, un titre se lit à l'encre. */
+    .sheet h1 { background: none; -webkit-text-fill-color: currentColor; }
     @page { margin: 12mm; }
 
     /* Compression pour tenir sur une seule page A4 */
@@ -4696,3 +4710,199 @@ abbr {
 .kv-inline > div { display: flex; flex-direction: column; gap: 2px; }
 .kv-inline dt { font-size: var(--fs-tiny); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
 .kv-inline dd { margin: 0; }
+
+/* ============================================================
+   Feuille de route d'un événement (?p=evenement, carte « Feuille de route »)
+   ============================================================
+   Une liste d'éléments de types différents, dans l'ordre de la journée. Chaque
+   ligne : son icône de type à gauche, son contenu au milieu, ses boutons de
+   déplacement et de suppression à droite. Tout le dépliage — modifier une
+   ligne, ajouter un élément — passe par <details>, donc sans JavaScript. */
+.feuille-liste { list-style: none; margin: 0 0 18px; padding: 0; }
+/* Trois zones : les flèches de déplacement à gauche, la ligne au milieu, les
+   actions à droite — le crayon tout au bout. Le formulaire de modification
+   occupe une seconde rangée, sur toute la largeur. */
+.feuille-item {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0 8px; align-items: center;
+    padding: 5px 0; border-top: 1px solid var(--line);
+}
+.feuille-fleches { display: flex; gap: 2px; align-items: center; }
+/* Largeur réservée aux flèches : la première et la dernière ligne n'en ont
+   qu'une, et sans réserve la colonne du milieu se décalait d'une ligne à
+   l'autre. C'est la largeur de deux boutons d'icône serrés. */
+.feuille-fleches { min-width: 84px; }
+.feuille-form-ligne { grid-column: 1 / -1; }
+.feuille-liste > .feuille-item:first-child { border-top: 0; }
+/* L'élément tient sur UNE ligne : icône, intitulé, détail, crayon. Le détail
+   passe à la ligne de lui-même quand il déborde, sans décrocher de l'intitulé. */
+.feuille-sommaire { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 3px 0; }
+/* L'icône dit le type sans un mot : une liste où chaque ligne répéterait
+   « Horaire », « Adresse », « Contact » se lirait deux fois plus lentement. */
+.feuille-ico { color: var(--muted); display: flex; flex: 0 0 auto; }
+.feuille-ico .ico { width: 17px; height: 17px; }
+.feuille-corps { min-width: 0; line-height: 1.4; }
+.feuille-titre { font-weight: 600; }
+.feuille-detail { font-size: var(--fs-small); }
+/* Le crayon vit au bout de la ligne, contre les autres boutons : c'est un
+   bouton d'action de plus, et ils se tiennent tous à droite, comme partout
+   ailleurs dans l'application. Un <span> et non un <button> : un <summary> ne
+   peut pas contenir d'élément interactif. */
+/* Le crayon est un <label> sur une case cachée : c'est lui qui ouvre et ferme le
+   formulaire de la ligne, et il peut ainsi se placer APRÈS la corbeille — un
+   <summary> de <details>, lui, précède forcément son contenu. */
+.feuille-crayon { flex: 0 0 auto; opacity: .55; cursor: pointer; position: relative; }
+.feuille-bascule { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.feuille-item:hover .feuille-crayon,
+.feuille-crayon:has(:focus-visible) { opacity: 1; }
+.feuille-crayon:has(:focus-visible) { outline: 2px solid var(--primary); outline-offset: 1px; }
+/* Les boutons de la ligne restent discrets tant qu'on ne survole pas : ils sont
+   là pour le geste occasionnel, pas pour attirer l'œil à chaque ligne. */
+/* Largeur réservée aux boutons de droite, qu'ils soient deux ou trois : sans
+   elle, la première et la dernière ligne — privées d'une flèche — décalaient le
+   crayon qui les précède, et la colonne des crayons ondulait d'une ligne à
+   l'autre. C'est la largeur de trois boutons d'icône serrés. */
+.feuille-actions {
+    display: flex; gap: 2px; align-items: center; justify-content: flex-end;
+    padding: 3px 0; min-width: 127px;
+}
+.feuille-actions .btn { opacity: .55; }
+.feuille-item:hover .feuille-actions .btn,
+.feuille-actions .btn:focus-visible { opacity: 1; }
+
+/* État de la ligne : ouverte en modification ou non. La corbeille ne se montre
+   que sur la ligne ouverte — c'est un geste irréversible, il n'a pas à être à
+   portée de clic quand on ne fait que lire. Les flèches, elles, restent :
+   réordonner ne détruit rien. */
+.feuille-item:not(:has(.feuille-bascule:checked)) .feuille-form-ligne,
+.feuille-item:not(:has(.feuille-bascule:checked)) .feuille-supprimer { display: none; }
+/* Ouvert, le crayon devient une croix : c'est le même contrôle. */
+.feuille-crayon .feuille-edit-x,
+.feuille-crayon:has(:checked) .feuille-edit-lbl { display: none; }
+.feuille-crayon:has(:checked) .feuille-edit-x { display: inline-flex; }
+.feuille-item:has(.feuille-bascule:checked) .feuille-crayon { opacity: 1; }
+
+/* Les champs en RANGÉE, et non empilés : un horaire tient en quatre champs
+   courts — intitulé, début, fin, remarque — qui occupaient quatre lignes pour
+   rien. Chacun dit sa largeur souhaitée par sa classe et passe à la ligne quand
+   la place manque, sans point de rupture codé en dur : c'est la largeur de la
+   carte qui décide, pas celle de l'écran. */
+.feuille-form { display: flex; flex-wrap: wrap; gap: 0 12px; align-items: flex-end; margin-top: 10px; }
+.fr-champ { display: block; margin-bottom: 12px; min-width: 0; }
+.fr-champ input, .fr-champ select { width: 100%; }
+.fr-libelle  { flex: 2 1 170px; }
+.fr-heure    { flex: 0 0 108px; }
+.fr-adresse  { flex: 3 1 220px; }
+.fr-nom      { flex: 1 1 130px; }
+.fr-tel      { flex: 1 1 150px; }
+.fr-email    { flex: 2 1 190px; }
+.fr-remarque { flex: 3 1 190px; }
+/* Le carnet d'adresses est large — ses options portent nom, rôle et structure —
+   mais pas au point de monopoliser une ligne : à 100%, il laissait l'intitulé
+   seul sur la sienne. Le sélecteur de fichier tient dans la rangée comme les
+   autres ; il lui faut seulement de la place, sa largeur étant celle que le
+   navigateur donne à son bouton « Choisir un fichier » plus le nom du fichier. */
+.fr-carnet  { flex: 2 1 260px; }
+.fr-fichier { flex: 3 1 300px; }
+/* La mention des formats accompagne l'intitulé du champ sans peser autant que
+   lui : un sélecteur de fichier n'accepte pas de texte indicatif, c'est le seul
+   endroit où écrire la contrainte. */
+.fr-fichier .fr-precision { font-weight: 400; font-size: var(--fs-tiny); }
+
+/* Les boutons d'ajout vivent à droite de la ligne de titre ; le formulaire
+   qu'ils ouvrent, lui, est rendu sous la liste, où il a toute la largeur. */
+.feuille-head { align-items: center; }
+/* Le bouton d'envoi termine la rangée quand il y reste de la place, et passe à
+   la ligne sinon — comme n'importe quel champ. */
+.feuille-form .form-actions { display: flex; gap: 8px; margin: 0 0 12px auto; }
+
+/* Le menu d'ajout : un « + » qui déplie la liste des types, comme les
+   entonnoirs des colonnes de liste. Cinq boutons alignés encombraient l'en-tête
+   d'une carte qui n'en demandait qu'un. */
+.feuille-ajout { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; justify-content: flex-end; }
+.feuille-menu { position: relative; }
+.feuille-menu > summary { display: inline-flex; cursor: pointer; list-style: none; }
+.feuille-menu > summary::-webkit-details-marker { display: none; }
+/* Aligné à DROITE du « + » : le menu s'ouvre sous le bouton, et le bouton est au
+   bout de la ligne — à gauche, le panneau sortirait de la carte. */
+.feuille-menu-panneau {
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
+    display: flex; flex-direction: column; gap: 2px; min-width: 190px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 6px;
+}
+.feuille-menu-panneau a {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-radius: var(--radius-sm); color: var(--ink); font-size: var(--fs-basic);
+}
+.feuille-menu-panneau a:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
+.feuille-menu-panneau .ico { width: 16px; height: 16px; color: var(--muted); }
+.feuille-menu-panneau a:hover .ico { color: inherit; }
+/* Le formulaire d'ajout, sous la liste : séparé d'un filet, il se distingue des
+   éléments déjà posés sans avoir l'air d'en être un. */
+.feuille-form-ajout { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
+
+@media (max-width: 700px) {
+    /* Les boutons passent sous le contenu : à trois colonnes sur un téléphone,
+       le titre d'un élément n'avait plus que quelques caractères de large. */
+    /* Sur téléphone, la ligne garde ses trois zones : renvoyer les actions à la
+       rangée suivante coûtait une ligne par élément — souvent pour le seul
+       crayon, alors que la place était là. Ce qui se réserve pour aligner les
+       colonnes sur grand écran est simplement rendu au texte. */
+    .feuille-item { gap: 0 4px; }
+    .feuille-fleches, .feuille-actions { min-width: 0; }
+    .feuille-sommaire { gap: 7px; }
+    .feuille-actions .btn, .feuille-crayon { opacity: 1; }
+    /* Les flèches rejoignent la corbeille : visibles seulement sur la ligne
+       ouverte en modification. Deux boutons de 41px prenaient 84px des 285
+       disponibles, et le texte, réduit à 128px, passait à la ligne alors qu'il
+       tenait largement. Réordonner est de toute façon un geste d'édition. */
+    .feuille-item:not(:has(.feuille-bascule:checked)) .feuille-fleches { display: none; }
+    .feuille-menu-panneau { min-width: 170px; }
+}
+
+/* Feuille de route imprimable (?p=evenement_feuille_imprimer) : un document
+   d'une page, sans bouton ni formulaire, qu'on emporte le jour même. */
+/* Une feuille de route se lit en marchant, pas assise : elle tient en une page,
+   serrée. D'où un corps un cran sous celui de l'application et des interlignes
+   resserrés — c'est un document de travail, pas un écran de lecture. */
+.fr-print { font-size: var(--fs-basic); line-height: 1.4; }
+.sheet-feuille { padding: 34px 38px; }
+/* En-tête d'une feuille de route : la DATE, puis OÙ et dans quelle VILLE. Ce
+   sont les trois choses qu'on cherche des yeux en l'ouvrant — le spectacle et
+   l'horaire, on les sait déjà : ils passent en sous-titre. */
+.fr-print-head { margin-bottom: 18px; }
+.fr-print-date { font-size: 25px; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }
+.fr-print-ou { font-size: 18px; margin: 3px 0 2px; font-weight: 600; text-wrap: balance; }
+/* La ville se distingue du lieu sans le concurrencer : même ligne, encre plus
+   claire — « Le Mirage Monthey » se lit alors comme un lieu et sa ville. */
+.fr-print-ville { color: var(--muted); font-weight: 500; }
+.fr-print-titre { font-size: var(--fs-basic); margin: 20px 0 8px; letter-spacing: .02em; text-transform: uppercase; }
+/* Le déroulé, détaché par un filet : c'est la partie qu'on relit dix fois dans
+   la journée. Un fond plein l'aurait alourdi à l'impression ; une bordure fine
+   suffit à en faire un bloc. Les filets du tableau s'arrêtent aux bords du
+   cadre — deux traits superposés en haut feraient une double ligne. */
+.fr-print-cadre {
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 4px 14px 10px; margin: 0 0 18px;
+}
+.fr-print-cadre .fr-print-table tr:first-child th,
+.fr-print-cadre .fr-print-table tr:first-child td { border-top: 0; }
+.fr-print-sub { color: var(--muted); font-size: var(--fs-small); }
+/* Le logo signe la feuille, en pied : il est là pour signer, pas pour ouvrir. */
+.fr-print-logo { height: 18px; width: auto; vertical-align: -4px; margin-right: 8px; opacity: .75; }
+/* Deux colonnes : l'intitulé à gauche, ce qu'il recouvre à droite — c'est ainsi
+   qu'on cherche une information sur une feuille, par son nom. */
+.fr-print-table { width: 100%; border-collapse: collapse; }
+.fr-print-table th {
+    width: 165px; text-align: left; vertical-align: top; font-weight: 600;
+    padding: 6px 12px 6px 0; border-top: 1px solid var(--line);
+}
+.fr-print-table td { vertical-align: top; padding: 6px 0; border-top: 1px solid var(--line); }
+.fr-print-table tr:first-child th, .fr-print-table tr:first-child td { border-top: 0; }
+.fr-print-remarques { margin-top: 16px; }
+.fr-print-pied { margin-top: 20px; color: var(--muted); font-size: var(--fs-small); }
+/* « organisateur de … » sous le nom d'une structure mère : un rappel de son
+   rôle, pas un second nom — d'où un corps plus petit et le poids normal. */
+.fr-print-via { font-weight: 400; font-size: var(--fs-small); }
+

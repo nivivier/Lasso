@@ -102,9 +102,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    **pas** dans le dépôt (données employés exclues du versionnement). Copiez votre
    base locale par SFTP vers le `APP_DB_PATH` choisi. Sinon l'application démarre
    sur une base vide.
-6. **Logos** : le dossier `uploads/` est également hors versionnement. Soit vous
-   re-uploadez les logos via Paramètres → Employeur sur la production, soit vous
-   copiez `uploads/*` par SFTP.
+6. **Fichiers déposés** : les dossiers `uploads/` (logos, photos, icônes) et
+   `data/fichiers/` (pièces jointes) sont également hors versionnement. Soit vous
+   les reprenez d'une archive de sauvegarde (§6), soit vous les copiez par SFTP.
 7. **Compte administrateur** :
    - Si vous avez transféré votre base, le compte existe déjà → allez directement
      sur la page de connexion.
@@ -173,10 +173,35 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 7. **Facturation** : débiteurs, factures avec **zone de paiement QR suisse**
    conforme (PDF), envoi par e-mail et relances. L'IBAN créancier vient du compte
    bancaire, partagé avec la comptabilité.
-8. **Événements** : dates de tournée, spectacles (un artiste peut regrouper des
-   sous-spectacles, et chacun peut porter une **icône** recadrée sur place, qui
-   le représente ensuite dans les listes — notamment les campagnes), suivi des déclarations **SUISA**, et **exports publics
-   JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda externe.
+8. **Événements** : dates de tournée, avec leur **adresse** (rue, code postal)
+   et leurs **heures de début et de fin** — facultatives, une date se pose
+   souvent des mois avant que l'horaire soit connu. Spectacles (un artiste peut
+   regrouper des sous-spectacles, et chacun peut porter une **icône** recadrée
+   sur place, qui le représente ensuite dans les listes — notamment les
+   campagnes), suivi des déclarations **SUISA**, et **exports publics
+   JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda
+   externe. Adresse et horaire y figurent au même titre que la ville ou la
+   salle ; un événement *privé* n'y expose que sa date. Les heures se lisent en
+   heure locale du lieu et partent en UTC dans le flux iCal (heure d'été
+   comprise), l'événement restant une journée entière tant qu'aucune heure
+   n'est renseignée.
+   Chaque date porte aussi sa **feuille de route** : une liste ordonnée
+   d'horaires, d'adresses, de contacts, de pièces jointes et de notes — ce
+   qu'il faut avoir sous les yeux le jour même. Elle n'est **jamais publique**.
+   Les pièces jointes (8 Mo maximum) sont rangées sous `data/`, hors des
+   dossiers servis par le web, et ne se téléchargent que depuis l'application,
+   connecté. Un **calendrier iCal de l'équipe**, avec son propre jeton, diffuse
+   ces feuilles de route : chaque date y est une bande de journée portant la
+   feuille entière, plus un événement daté par horaire. Il montre aussi les
+   dates en option et les non répertoriées, que l'export public tait — ce lien
+   est un mot de passe, et le régénérer (Paramètres → Événements) coupe tous
+   les abonnements d'un coup. Depuis la fiche de l'événement, la feuille se
+   consulte dans la fenêtre d'aperçu partagée — celle d'un décompte de salaire
+   — et s'imprime de là ; elle y reprend aussi les structures organisatrices et
+   leurs contacts et leurs structures mères, pris dans le carnet d'adresses.
+   Le déroulé se compose sur la fiche, dans une carte du même nom ; un bouton
+   « Déroulé type » pose d'un coup les cinq moments d'une journée de tournée
+   (Départ, Get-in, Soundcheck, Repas, Show).
 9. **Booking** : structures et contacts, tags, lieux géocodés sur une carte,
    et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
    modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
@@ -365,9 +390,34 @@ sombre — `php tests/run.php` le refuse.
 
 ## 6. Sauvegarde
 
-Toutes les données tiennent dans **un seul fichier SQLite** (`APP_DB_PATH`).
-Pour sauvegarder : le bouton **Paramètres → Exporter** télécharge une copie cohérente,
-ou copiez directement le fichier par SFTP. À conserver régulièrement en lieu sûr.
+**Paramètres → Exporter → Sauvegarde complète** télécharge une **archive** qui
+contient tout ce qu'il faut pour repartir :
+
+| dans l'archive | contenu |
+| --- | --- |
+| `base.sqlite` | la base entière, instantané cohérent pris par `VACUUM INTO` (indépendant du WAL) |
+| `uploads/` | logos, photos d'employés, icônes de spectacle, feuilles SUISA |
+| `data/fichiers/` | pièces jointes servies par une route authentifiée |
+| `SAUVEGARDE.txt` | ce que contient l'archive et la marche à suivre pour la restaurer |
+
+La base seule ne suffirait pas : elle mémorise l'**emplacement** des fichiers
+déposés, jamais leur contenu. Une base restaurée sans eux rend une application
+aux images cassées et aux pièces jointes introuvables.
+
+Le format est un **ZIP** ; sur un hébergement dépourvu de l'extension `zip`, un
+**TAR.GZ** (extension `phar`, présente par défaut). Si aucune des deux n'est
+disponible, le téléchargement retombe sur la base seule et la page d'export le
+signale — les fichiers déposés sont alors à copier à part.
+
+**Restaurer** : mettre l'application hors ligne, copier `base.sqlite` à
+l'emplacement défini par `APP_DB_PATH` (en supprimant les `-wal`/`-shm` qui
+l'accompagnent), décompresser `uploads/` et `data/fichiers/` à la racine du
+projet, puis rouvrir — les migrations éventuelles se jouent seules.
+
+`lib/config.local.php` n'est **pas** dans l'archive : il contient des mots de
+passe et se conserve à part.
+
+À conserver régulièrement en lieu sûr.
 
 ---
 
@@ -435,4 +485,4 @@ php tests/run.php
   production). Sans cela, l'écran répond la même chose mais aucun message ne part —
   l'échec n'est visible que dans le journal d'erreurs du serveur. Un administrateur
   peut toujours réinitialiser un mot de passe depuis Paramètres → Comptes.
-- Les sauvegardes ne sont pas chiffrées (le fichier exporté est en clair).
+- Les sauvegardes ne sont pas chiffrées : l'archive exportée est en clair, base et fichiers déposés compris.

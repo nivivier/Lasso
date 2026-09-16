@@ -556,6 +556,27 @@ function route_evenement(): void
     // « Organisateur(s) » seule.
     $structuresLiees = $id ? evenement_structures_liees($id) : [];
 
+    // Feuille de route : les éléments de la carte, et les contacts qu'on peut y
+    // rattacher — ceux des structures déjà liées à l'événement (organisateur,
+    // salle), qui sont les gens qu'on appelle le jour même. Un contact qui n'est
+    // dans aucune structure — un hébergement chez l'habitant — se saisit
+    // librement sur la feuille, sans passer par le carnet d'adresses.
+    $feuilleElements = $id ? feuille_elements($id) : [];
+    $feuilleContacts = [];
+    if ($id && module_accessible('booking')) {
+        $idsStructures = array_map(fn (array $st): int => (int) $st['id'], $structuresLiees);
+        if ($idsStructures) {
+            $stmtFC = db()->prepare(
+                'SELECT c.id, c.prenom, c.nom, c.role, s.nom AS structure_nom
+                   FROM structure_contacts c JOIN structures s ON s.id = c.structure_id
+                  WHERE c.actif = 1 AND c.structure_id IN (' . sql_in($idsStructures) . ')
+                  ORDER BY s.nom, c.nom, c.prenom'
+            );
+            $stmtFC->execute($idsStructures);
+            $feuilleContacts = $stmtFC->fetchAll();
+        }
+    }
+
     // Lien vers une structure de la base (module booking) — recherche
     // disponible dès la création (une seule à ce stade) ; d'autres structures
     // ne se gèrent qu'une fois l'événement créé, depuis la carte
@@ -570,7 +591,7 @@ function route_evenement(): void
 
     $renderForm = function (?string $err) use (
         $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
-        $axes, $structuresLiees, $peutLierLieu, $lieuActuel
+        $axes, $structuresLiees, $peutLierLieu, $lieuActuel, $feuilleElements, $feuilleContacts
     ) {
         render('evenement_form', [
             'evenement'      => $evenement,
@@ -586,6 +607,8 @@ function route_evenement(): void
             'factures'       => $id ? evenement_factures_liees($id) : [],
             'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
             'structuresLiees' => $structuresLiees,
+            'feuilleElements' => $feuilleElements,
+            'feuilleContacts' => $feuilleContacts,
             'peutLierLieu'   => $peutLierLieu,
             'lieuActuel'     => $lieuActuel,
             'paysDisponibles' => evenements_pays_disponibles(),
@@ -715,6 +738,11 @@ function route_evenement_informations(): void
     $lienInfos = trim($_POST['lien_infos'] ?? '');
     $lienTexte = trim($_POST['lien_texte'] ?? '');
     $remarques = trim($_POST['remarques'] ?? '');
+    // Normalisées plutôt que validées : une heure incomprise est vidée, pas
+    // refusée. Un horaire pas encore connu est le cas ordinaire d'une date de
+    // tournée, et refuser la saisie bloquerait l'enregistrement du reste.
+    $heureDebut = heure_normalisee((string) ($_POST['heure_debut'] ?? ''));
+    $heureFin = heure_normalisee((string) ($_POST['heure_fin'] ?? ''));
 
     // Un spectacle-parent (groupe/artiste) n'est jamais assignable — sauf s'il
     // s'agit du spectacle déjà en place (édition d'un autre champ sans y toucher :
@@ -733,8 +761,9 @@ function route_evenement_informations(): void
     }
 
     db()->prepare('UPDATE evenements SET spectacle_id=?, date=?, statut=?, visibilite=?, salle=?, festival=?,
-                    lien_infos=?, lien_texte=?, remarques=? WHERE id=?')
-        ->execute([$spectacleId, $date, $statut, $visibilite, $salle, $festival, $lienInfos, $lienTexte, $remarques, $id]);
+                    heure_debut=?, heure_fin=?, lien_infos=?, lien_texte=?, remarques=? WHERE id=?')
+        ->execute([$spectacleId, $date, $statut, $visibilite, $salle, $festival,
+                   $heureDebut, $heureFin, $lienInfos, $lienTexte, $remarques, $id]);
 
     // La date a pu changer : re-dérive dernier_concert_le pour les structures
     // déjà liées (voir structure_recalculer_dernier_concert()).
@@ -759,6 +788,8 @@ function route_evenement_localisation(): void
     check_csrf();
 
     $ville = trim($_POST['ville'] ?? '');
+    $adresseRue = trim($_POST['adresse_rue'] ?? '');
+    $adresseNpa = trim($_POST['adresse_npa'] ?? '');
     $departementCanton = trim($_POST['departement_canton'] ?? '');
     $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
     $grandeRegion = trim($_POST['grande_region'] ?? '');
@@ -770,8 +801,8 @@ function route_evenement_localisation(): void
         $grandeRegion = $grandeRegionDeduite;
     }
 
-    db()->prepare('UPDATE evenements SET ville=?, departement_canton=?, pays=?, grande_region=? WHERE id=?')
-        ->execute([$ville, $departementCanton, $pays, $grandeRegion, $id]);
+    db()->prepare('UPDATE evenements SET ville=?, adresse_rue=?, adresse_npa=?, departement_canton=?, pays=?, grande_region=? WHERE id=?')
+        ->execute([$ville, $adresseRue, $adresseNpa, $departementCanton, $pays, $grandeRegion, $id]);
 
     $paysNom = pays_nom_depuis_code($pays);
     if ($paysNom !== '') {
@@ -1258,6 +1289,10 @@ function route_spectacles(): void
         'map'    => $map,
         'comptes' => $comptes,
         'token'  => evenements_export_token(),
+        // Le jeton de l'équipe est un autre secret, et un autre usage : ce
+        // flux-là montre les options, les dates non répertoriées et les
+        // feuilles de route.
+        'tokenEquipe' => evenements_equipe_token(),
         'flagErr' => $_GET['err'] ?? null,
     ], evenements_terme_spectacle());
 }
@@ -1386,6 +1421,8 @@ function route_parametres_evenements(): void
         check_csrf();
         if (isset($_POST['regenerer_token'])) {
             evenements_regenerer_token();
+        } elseif (isset($_POST['regenerer_token_equipe'])) {
+            evenements_equipe_regenerer_token();
         } else {
             $delai = max(1, (int) ($_POST['suisa_delai_decompte_mois'] ?? 12));
             $delaiAbandon = max(1, (int) ($_POST['suisa_delai_abandon_mois'] ?? 60));
@@ -1513,4 +1550,265 @@ function route_import_evenements(): void
         'msgEcritures' => null,
         'errEvenements' => $err, 'resultatsEvenements' => $resultats, 'resumeEvenements' => $resume, 'simuleEvenements' => $simule,
     ], 'Importer');
+}
+
+// --- Feuille de route -------------------------------------------------------
+// Une carte, une liste ordonnée, cinq types d'éléments (lib/feuille_route.php).
+// Les quatre routes qui suivent écrivent toutes dans la même table et reviennent
+// toutes à la fiche, carte dépliée.
+
+// Retour commun : la fiche de l'événement, sur la carte « Feuille de route ».
+// L'ancre évite de faire remonter la page en haut après chaque geste — on ajoute
+// rarement un seul élément.
+function feuille_retour(int $evenementId, ?string $err = null, string $ajout = ''): void
+{
+    $params = ['id' => $evenementId];
+    if ($err !== null) {
+        $params['errFeuille'] = $err;
+        // Le formulaire se rouvre sur le type qu'on tentait d'ajouter : refermé,
+        // il aurait emporté le message avec la saisie, et il faudrait tout
+        // reprendre pour lire ce qui n'allait pas.
+        if ($ajout !== '') {
+            $params['ajout'] = $ajout;
+        }
+    } else {
+        $params['ok'] = 'feuille';
+    }
+    redirect('evenement', $params, 'carte-feuille');
+}
+
+// Champs postés d'un élément, filtrés selon son type : une ligne ne remplit que
+// les colonnes de son type (voir FEUILLE_TYPES), le reste garde sa valeur vide.
+function feuille_champs_postes(string $type): array
+{
+    $champs = [
+        'libelle'    => trim((string) ($_POST['libelle'] ?? '')),
+        'debut'      => '',
+        'fin'        => '',
+        'adresse'    => '',
+        'prenom'     => '',
+        'nom'        => '',
+        'telephone'  => '',
+        'email'      => '',
+        'structure_id' => null,
+        'contact_id' => null,
+        'remarque'   => trim((string) ($_POST['remarque'] ?? '')),
+    ];
+    if ($type === 'horaire') {
+        $champs['debut'] = heure_normalisee((string) ($_POST['debut'] ?? ''));
+        $champs['fin']   = heure_normalisee((string) ($_POST['fin'] ?? ''));
+    } elseif ($type === 'adresse') {
+        $champs['adresse'] = trim((string) ($_POST['adresse'] ?? ''));
+    } elseif ($type === 'contact') {
+        // Un contact repris du carnet d'adresses efface la saisie libre : deux
+        // sources pour le même numéro, c'est une chance sur deux de lire la
+        // périmée. Le rattachement gagne, et la fiche fait foi.
+        $contactId = (int) ($_POST['contact_id'] ?? 0);
+        if ($contactId > 0) {
+            $stmt = db()->prepare('SELECT structure_id FROM structure_contacts WHERE id = ?');
+            $stmt->execute([$contactId]);
+            $structureId = $stmt->fetchColumn();
+            if ($structureId !== false) {
+                $champs['contact_id']   = $contactId;
+                $champs['structure_id'] = (int) $structureId;
+                return $champs;
+            }
+        }
+        $champs['prenom']    = trim((string) ($_POST['prenom'] ?? ''));
+        $champs['nom']       = trim((string) ($_POST['nom'] ?? ''));
+        $champs['telephone'] = trim((string) ($_POST['telephone'] ?? ''));
+        $champs['email']     = trim((string) ($_POST['email'] ?? ''));
+    }
+    return $champs;
+}
+
+function route_evenement_feuille_ajouter(): void
+{
+    require_login();
+    $evenementId = (int) ($_POST['evenement_id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($evenementId)) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    $type = valeur_autorisee($_POST['type'] ?? '', array_keys(FEUILLE_TYPES));
+    if ($type === '') {
+        feuille_retour($evenementId, 'type');
+    }
+
+    $fichier = null;
+    if ($type === 'fichier') {
+        try {
+            $fichier = feuille_fichier_enregistrer('fichier');
+        } catch (RuntimeException $e) {
+            feuille_retour($evenementId, $e->getMessage(), $type);
+        }
+        if ($fichier === null) {
+            feuille_retour($evenementId, 'Choisissez un fichier à joindre.', $type);
+        }
+    }
+
+    $champs = feuille_champs_postes($type) + [
+        'evenement_id' => $evenementId,
+        'type'         => $type,
+        'ordre'        => feuille_ordre_suivant($evenementId),
+        'fichier'      => $fichier['fichier'] ?? '',
+        'nom_origine'  => $fichier['nom_origine'] ?? '',
+        'mime'         => $fichier['mime'] ?? '',
+        'taille'       => $fichier['taille'] ?? 0,
+    ];
+    $colonnes = array_keys($champs);
+    db()->prepare('INSERT INTO evenement_feuille (' . implode(', ', $colonnes) . ')
+                    VALUES (:' . implode(', :', $colonnes) . ')')
+        ->execute($champs);
+    feuille_retour($evenementId);
+}
+
+function route_evenement_feuille_modifier(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    $el = $id ? feuille_element($id) : null;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$el) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    $evenementId = (int) $el['evenement_id'];
+    // Le type ne se change pas après coup : d'un horaire à une pièce jointe,
+    // aucun champ ne se transpose. On supprime et on rajoute.
+    $champs = feuille_champs_postes((string) $el['type']);
+    $champs['id'] = $id;
+    $sets = [];
+    foreach (array_keys($champs) as $c) {
+        if ($c !== 'id') {
+            $sets[] = "$c = :$c";
+        }
+    }
+    db()->prepare('UPDATE evenement_feuille SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($champs);
+    feuille_retour($evenementId);
+}
+
+function route_evenement_feuille_supprimer(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    $el = $id ? feuille_element($id) : null;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$el) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    feuille_supprimer($id);
+    feuille_retour((int) $el['evenement_id']);
+}
+
+function route_evenement_feuille_deplacer(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    $el = $id ? feuille_element($id) : null;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$el) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    feuille_deplacer($id, valeur_autorisee($_POST['sens'] ?? '', ['monter', 'descendre'], 'descendre'));
+    feuille_retour((int) $el['evenement_id']);
+}
+
+// Sert une pièce jointe. Elle vit hors racine web (data/fichiers/) : c'est cette
+// route, et elle seule, qui décide qui la lit. Aujourd'hui une session avec
+// lecture sur le module ; le calendrier de l'équipe y ajoutera son jeton.
+//
+// Content-Disposition: attachment, toujours : un PDF ou une image ouverts dans
+// l'onglet s'exécuteraient dans l'origine de l'application.
+function route_evenement_fichier(): void
+{
+    // Deux façons d'y avoir droit : une session avec lecture sur le module, ou
+    // le jeton du calendrier de l'équipe — les pièces jointes sont référencées
+    // en ATTACH dans ce flux, et un agenda qui les télécharge n'a pas de session.
+    if (!feuille_jeton_equipe_fourni()) {
+        require_login();
+        if (!module_accessible('evenements')) {
+            redirect('tableau_de_bord');
+        }
+    }
+    $id = (int) ($_GET['id'] ?? 0);
+    $el = $id ? feuille_element($id) : null;
+    if (!$el || (string) $el['type'] !== 'fichier' || trim((string) $el['fichier']) === '') {
+        redirect('evenements_liste');
+    }
+    $chemin = feuille_fichiers_dir() . '/' . basename((string) $el['fichier']);
+    if (!is_file($chemin)) {
+        redirect('evenement', ['id' => (int) $el['evenement_id'], 'errFeuille' => 'Fichier introuvable sur le serveur.']);
+    }
+    header('Content-Type: ' . ((string) $el['mime'] ?: 'application/octet-stream'));
+    header('Content-Disposition: attachment; filename="' . feuille_nom_origine_propre((string) $el['nom_origine']) . '"');
+    header('Content-Length: ' . filesize($chemin));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    readfile($chemin);
+    exit;
+}
+
+// Pose le déroulé type d'une journée — Départ, Get-in, Soundcheck, Repas,
+// Show — en une fois (FEUILLE_HORAIRES_TYPES, lib/feuille_route.php). Les
+// heures se remplissent ensuite, ligne par ligne ; ce qui ne sert pas se
+// supprime comme n'importe quel élément.
+function route_evenement_feuille_deroule(): void
+{
+    require_login();
+    $evenementId = (int) ($_POST['evenement_id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($evenementId)) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    feuille_deroule_type($evenementId);
+    feuille_retour($evenementId);
+}
+
+// --- Calendrier de l'équipe -------------------------------------------------
+// Le jeton est-il fourni et juste ? Sert à deux endroits : le flux lui-même, et
+// le téléchargement d'une pièce jointe référencée par ce flux.
+function feuille_jeton_equipe_fourni(): bool
+{
+    $fourni = (string) ($_GET['token'] ?? '');
+    if ($fourni === '') {
+        return false;
+    }
+    $attendu = (string) param('evenements_equipe_token', '');
+    return $attendu !== '' && hash_equals($attendu, $fourni);
+}
+
+// Flux iCal de l'équipe. Hors session, comme l'export public : un agenda ne sait
+// pas s'authentifier autrement qu'en portant son jeton dans l'URL.
+function route_evenements_equipe_ical(): void
+{
+    if (!feuille_jeton_equipe_fourni()) {
+        http_response_code(403);
+        exit('Jeton invalide.');
+    }
+    $spectacleId = evenements_lire_spectacle_id_export();
+    $base = evenements_export_url('evenement_fichier', evenements_equipe_token());
+    header('Content-Type: text/calendar; charset=utf-8');
+    header('Content-Disposition: inline; filename="feuilles-de-route.ics"');
+    echo feuille_generer_ical_equipe(feuille_evenements_equipe($spectacleId), $base);
+    exit;
+}
+
+
+// Feuille de route imprimable d'une date : la même, mise à plat, sans bouton ni
+// formulaire. S'enregistre en PDF depuis le navigateur — pas de dépendance de
+// plus pour un document d'une page.
+function route_evenement_feuille_imprimer(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? 0);
+    $evenement = evenement_charger($id);
+    if (!$evenement) {
+        redirect('evenements_liste');
+    }
+    render_bare('evenement_feuille_print', [
+        'evenement'     => $evenement,
+        'elements'      => feuille_elements($id),
+        'organisateurs' => feuille_organisateurs($id),
+        'nomEmployeur'  => (string) param('employeur_nom'),
+    ]);
 }

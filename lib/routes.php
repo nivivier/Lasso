@@ -1181,6 +1181,7 @@ function route_export(): void
         'annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta, 'comptesCamt' => $comptesCamt,
         'anneesEvenements' => $anneesEvenements,
         'errCamt' => ($_GET['err'] ?? '') === 'camt_compte',
+        'errSauvegarde' => ($_GET['err'] ?? '') === 'sauvegarde',
     ], 'Exporter les données');
 }
 
@@ -2590,12 +2591,19 @@ function route_fiche_email(): void
 function route_backup(): void
 {
     require_login();
-    // Snapshot cohérent de la base (indépendant du WAL) via VACUUM INTO.
-    $tmp = tempnam(sys_get_temp_dir(), 'bk_') . '.sqlite';
-    @unlink($tmp);
-    db()->exec("VACUUM INTO " . db()->quote($tmp));
+    // La base ET les fichiers déposés, dans une archive (lib/sauvegarde.php) :
+    // la base ne mémorise que l'emplacement des logos, photos, icônes et pièces
+    // jointes, jamais leur contenu.
     $slug = trim(preg_replace('/[^A-Za-z0-9]+/', '_', (string) param('employeur_nom')) ?? '', '_') ?: 'sauvegarde';
-    $nom = $slug . '_' . date('Y-m-d_His') . '.sqlite';
+    try {
+        [$tmp, $nom] = sauvegarde_construire($slug, maj_version_locale());
+    } catch (Throwable $e) {
+        // Disque plein, droits manquants, archive impossible à finaliser : mieux
+        // vaut revenir sur la page d'export avec un message qu'un téléchargement
+        // tronqué que rien ne distingue d'une sauvegarde valide.
+        error_log('Lasso — sauvegarde impossible : ' . $e->getMessage());
+        redirect('export', ['err' => 'sauvegarde']);
+    }
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $nom . '"');
     header('Content-Length: ' . filesize($tmp));

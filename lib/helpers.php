@@ -377,7 +377,10 @@ function envoyer_email_reinit(string $destinataire, string $lien): array
         $entetes, $html, $sujet);
 }
 
-function redirect(string $route, array $params = []): void
+// $ancre : l'identifiant d'une carte de la page d'arrivée (« carte-feuille »).
+// Sur une fiche longue, revenir en haut après chaque geste oblige à redescendre
+// — on ajoute rarement un seul élément à une feuille de route.
+function redirect(string $route, array $params = [], string $ancre = ''): void
 {
     // Propage ?depuis=type:id (lien de retour contextuel, voir lien_retour_contextuel())
     // s'il était présent sur la requête courante et que l'appelant ne l'a pas déjà
@@ -398,6 +401,9 @@ function redirect(string $route, array $params = []): void
             continue;
         }
         $url .= '&' . urlencode($k) . '=' . urlencode((string) $v);
+    }
+    if ($ancre !== '') {
+        $url .= '#' . rawurlencode($ancre);
     }
     header('Location: ' . $url);
     exit;

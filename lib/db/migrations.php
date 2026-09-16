@@ -113,6 +113,8 @@ function run_migrations(PDO $pdo): void
         85 => 'migration_85', // campagnes de contact du booking : sélection de structures, projets concernés, et le projet sur un contact / un modèle
         86 => 'migration_86', // réponse reçue d'une structure démarchée, propre à la campagne
         87 => 'migration_87', // icône (image recadrée) d'un spectacle
+        88 => 'migration_88', // adresse (rue, NPA) et heures de début/fin d'un événement — champs publics, exportés
+        89 => 'migration_89', // feuille de route d'un événement : une liste ordonnée d'éléments de types différents
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2691,4 +2693,80 @@ function migration_87(PDO $pdo): void
     if (!in_array('image', $cols, true)) {
         $pdo->exec("ALTER TABLE spectacles ADD COLUMN image TEXT NOT NULL DEFAULT ''");
     }
+}
+
+// Adresse précise et horaire d'un événement. La ville seule suffisait à situer
+// une date sur une carte ; elle ne suffit pas à s'y rendre, ni à savoir quand.
+//
+// Ces quatre champs sont PUBLICS, au même titre que la ville, la salle ou le
+// festival : ils partent dans l'export JSON et dans le flux iCal d'un événement
+// public — c'est le propre d'une adresse de représentation et d'une heure de
+// spectacle. Ce qui relève de la feuille de route (hôtel, codes d'accès,
+// get-in, balances) ne passera jamais par là.
+//
+// Heures stockées en « HH:MM », chaîne vide quand elles ne sont pas connues :
+// une date de tournée est souvent posée des mois avant que l'horaire le soit.
+function migration_88(PDO $pdo): void
+{
+    $cols = [];
+    foreach ($pdo->query('PRAGMA table_info(evenements)') as $col) {
+        $cols[] = $col['name'];
+    }
+    foreach (['adresse_rue', 'adresse_npa', 'heure_debut', 'heure_fin'] as $nouvelle) {
+        if (!in_array($nouvelle, $cols, true)) {
+            $pdo->exec("ALTER TABLE evenements ADD COLUMN $nouvelle TEXT NOT NULL DEFAULT ''");
+        }
+    }
+}
+
+// Feuille de route d'un événement : ce qu'il faut avoir sous les yeux le jour
+// même — le déroulé des horaires, les adresses et leurs codes, les gens à
+// appeler, les fiches techniques et confirmations d'hôtel.
+//
+// UNE table pour cinq types d'éléments, et non cinq tables. L'ordre d'une
+// feuille de route court à TRAVERS les types — un horaire, puis l'adresse de
+// l'hôtel, puis le contact du régisseur — et cinq tables auraient obligé à
+// recomposer cette liste en PHP à chaque lecture. Le prix est une table large
+// et creuse : chaque ligne ne remplit que les colonnes de son type.
+//
+// Rien de ce qui est ici n'est public : la feuille de route ne part jamais dans
+// l'export du site. Elle alimentera le calendrier de l'équipe, qui a son propre
+// jeton.
+function migration_89(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS evenement_feuille (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        evenement_id  INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+        -- horaire | adresse | contact | fichier | note (voir FEUILLE_TYPES,
+        -- lib/feuille_route.php)
+        type          TEXT NOT NULL,
+        ordre         INTEGER NOT NULL DEFAULT 0,
+        -- Commun à tous : « Get-in », « Hôtel Ibis », « Régisseur général »…
+        libelle       TEXT NOT NULL DEFAULT '',
+        -- type horaire
+        debut         TEXT NOT NULL DEFAULT '',
+        fin           TEXT NOT NULL DEFAULT '',
+        -- type adresse. Pas de colonne pour le code d'entrée : il se note dans
+        -- la remarque, avec l'étage et la place de parking — un champ par
+        -- information de ce genre aurait fini par en faire six.
+        adresse       TEXT NOT NULL DEFAULT '',
+        -- type contact, saisi librement (un hébergement chez l'habitant n'est
+        -- dans aucune structure)…
+        prenom        TEXT NOT NULL DEFAULT '',
+        nom           TEXT NOT NULL DEFAULT '',
+        telephone     TEXT NOT NULL DEFAULT '',
+        email         TEXT NOT NULL DEFAULT '',
+        -- …ou repris du carnet d'adresses, auquel cas il suit la fiche.
+        structure_id  INTEGER REFERENCES structures(id) ON DELETE SET NULL,
+        contact_id    INTEGER REFERENCES structure_contacts(id) ON DELETE SET NULL,
+        -- type fichier : chemin sous data/fichiers/, hors racine web
+        fichier       TEXT NOT NULL DEFAULT '',
+        nom_origine   TEXT NOT NULL DEFAULT '',
+        mime          TEXT NOT NULL DEFAULT '',
+        taille        INTEGER NOT NULL DEFAULT 0,
+        -- commun à tous
+        remarque      TEXT NOT NULL DEFAULT '',
+        cree_le       TEXT NOT NULL DEFAULT (datetime('now'))
+    )");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenement_feuille_evenement ON evenement_feuille(evenement_id, ordre)');
 }

@@ -567,6 +567,87 @@ function spectacle_descendants(int $id, array $map): array
 // date_valide() : déplacée dans lib/helpers.php (partagée avec lib/compta.php,
 // qui en avait besoin pour camt.053 sans dépendre de ce fichier).
 
+// ------------------------------------------------------- HEURES & ADRESSE
+// Fuseau dans lequel se lisent les heures saisies. Les horaires d'un événement
+// se notent en heure LOCALE du lieu ; le flux iCal, lui, doit dire un instant —
+// sans quoi un agenda affiche l'heure de qui le lit. On les convertit donc en
+// UTC depuis ce fuseau, ce qui est exact pour la Suisse, la France, la Belgique
+// et l'Allemagne, soit le terrain de tournée. Une date jouée hors de cette zone
+// décalerait d'autant : il faudra alors un fuseau par événement.
+const EVENEMENTS_FUSEAU = 'Europe/Zurich';
+
+// Heure « HH:MM » normalisée, ou '' si la saisie n'en est pas une. Une heure
+// vide est la règle plus que l'exception : une date de tournée se pose des mois
+// avant que l'horaire soit connu.
+function heure_normalisee(string $s): string
+{
+    $s = trim($s);
+    if (!preg_match('/^(\d{1,2})[:h.](\d{2})$/', $s, $m)) {
+        return '';
+    }
+    $h = (int) $m[1];
+    $min = (int) $m[2];
+    return $h <= 23 && $min <= 59 ? sprintf('%02d:%02d', $h, $min) : '';
+}
+
+// Instant UTC « AAAAMMJJTHHMMSSZ » d'une heure locale posée sur une date.
+function evenement_instant_utc(string $date, string $heure): string
+{
+    $d = DateTimeImmutable::createFromFormat(
+        'Y-m-d H:i',
+        $date . ' ' . $heure,
+        new DateTimeZone(EVENEMENTS_FUSEAU)
+    );
+    return $d === false ? '' : $d->setTimezone(new DateTimeZone('UTC'))->format('Ymd\THis\Z');
+}
+
+// Bornes iCal d'un événement : ['debut' => …, 'fin' => …|null], ou null quand
+// l'heure de début n'est pas connue — l'événement reste alors une journée
+// entière, comme avant l'arrivée de ces champs.
+//
+// Une fin antérieure ou égale au début se lit comme le lendemain : un concert
+// qui commence à 22h et finit à 00h30 est la nuit même, pas un événement de
+// vingt-trois heures et demie.
+function evenement_bornes_utc(array $ev): ?array
+{
+    $date  = (string) ($ev['date'] ?? '');
+    $debut = heure_normalisee((string) ($ev['heure_debut'] ?? ''));
+    if ($date === '' || $debut === '') {
+        return null;
+    }
+    $fin = heure_normalisee((string) ($ev['heure_fin'] ?? ''));
+    $dateFin = $date;
+    if ($fin !== '' && $fin <= $debut) {
+        $dateFin = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
+    }
+    return [
+        'debut' => evenement_instant_utc($date, $debut),
+        'fin'   => $fin !== '' ? evenement_instant_utc($dateFin, $fin) : null,
+    ];
+}
+
+// Horaire d'un événement en une ligne lisible : « 20:30 – 22:00 », « 20:30 »,
+// ou '' si rien n'est connu. Le tiret n'apparaît qu'avec une fin — même règle
+// que les périodes d'une structure.
+function evenement_horaire_texte(array $ev): string
+{
+    $debut = heure_normalisee((string) ($ev['heure_debut'] ?? ''));
+    $fin   = heure_normalisee((string) ($ev['heure_fin'] ?? ''));
+    if ($debut === '') {
+        return $fin !== '' ? 'jusqu\'à ' . $fin : '';
+    }
+    return $fin !== '' ? $debut . ' – ' . $fin : $debut;
+}
+
+// Adresse postale d'un événement en une ligne : « 12 rue des Lilas, 1200 Genève ».
+// Les morceaux absents disparaissent sans laisser de virgule orpheline.
+function evenement_adresse_texte(array $ev): string
+{
+    $rue = trim((string) ($ev['adresse_rue'] ?? ''));
+    $npaVille = trim(trim((string) ($ev['adresse_npa'] ?? '')) . ' ' . trim((string) ($ev['ville'] ?? '')));
+    return implode(', ', array_filter([$rue, $npaVille]));
+}
+
 // --------------------------------------------------------- EXPORT PUBLIC
 // Un événement est exposable (site web / JSON / iCal) si sa visibilité n'est
 // pas « non_repertorie » et que son statut n'est pas « option » (pas encore
@@ -591,6 +672,20 @@ function evenement_export_donnees(array $ev): array
     $donnees['prive']   = false;
     $donnees['annule']  = (string) $ev['statut'] === 'annule';
     $donnees['ville']   = (string) ($ev['ville'] ?? '');
+    // Adresse et horaire : publics au même titre que la ville ou la salle —
+    // c'est ce qui permet de s'y rendre et de savoir quand. Absents du résultat
+    // tant qu'ils ne sont pas renseignés, comme les autres champs facultatifs.
+    foreach (['adresse_rue', 'adresse_npa'] as $champ) {
+        if (trim((string) ($ev[$champ] ?? '')) !== '') {
+            $donnees[$champ] = (string) $ev[$champ];
+        }
+    }
+    foreach (['heure_debut', 'heure_fin'] as $champ) {
+        $heure = heure_normalisee((string) ($ev[$champ] ?? ''));
+        if ($heure !== '') {
+            $donnees[$champ] = $heure;
+        }
+    }
     if (trim((string) ($ev['departement_canton'] ?? '')) !== '') {
         $donnees['departement_canton'] = (string) $ev['departement_canton'];
     }
@@ -661,6 +756,33 @@ function evenements_export_token(): string
     return $token;
 }
 
+// Jeton du calendrier de L'ÉQUIPE, distinct de celui de l'export public : ce
+// flux-ci montre tout — les options, les dates non répertoriées, et le contenu
+// des feuilles de route, adresses d'hôtel et numéros de portable compris. Le
+// donner à un site web reviendrait à publier le carnet de tournée.
+//
+// Un abonnement iCal ne sait pas s'authentifier autrement qu'en portant son
+// secret dans l'URL : ce jeton EST un mot de passe, et le régénérer est la seule
+// façon de révoquer — pour tout le monde à la fois.
+function evenements_equipe_token(): string
+{
+    $token = (string) param('evenements_equipe_token', '');
+    if ($token === '') {
+        $token = bin2hex(random_bytes(16));
+        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+            ->execute(['evenements_equipe_token', $token]);
+    }
+    return $token;
+}
+
+function evenements_equipe_regenerer_token(): string
+{
+    $token = bin2hex(random_bytes(16));
+    db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+        ->execute(['evenements_equipe_token', $token]);
+    return $token;
+}
+
 function evenements_regenerer_token(): string
 {
     $token = bin2hex(random_bytes(16));
@@ -709,11 +831,28 @@ function evenements_generer_ical(array $items): string
         $lignes[] = 'BEGIN:VEVENT';
         $lignes[] = 'UID:evenement-' . $it['id'] . '@lasso';
         $lignes[] = 'DTSTAMP:' . gmdate('Ymd\THis\Z');
-        $lignes[] = 'DTSTART;VALUE=DATE:' . $date;
+        // Heure connue : un instant, en UTC, que chaque agenda réaffiche dans le
+        // fuseau de qui le lit. Sinon la journée entière, comme avant l'arrivée
+        // de ces champs — une date de tournée se pose des mois avant l'horaire.
+        // Un événement privé n'expose que sa date, heure comprise : c'est le
+        // sens même de cette visibilité.
+        $bornes = $it['prive'] ? null : evenement_bornes_utc($it);
+        if ($bornes === null) {
+            $lignes[] = 'DTSTART;VALUE=DATE:' . $date;
+        } else {
+            $lignes[] = 'DTSTART:' . $bornes['debut'];
+            if ($bornes['fin'] !== null) {
+                $lignes[] = 'DTEND:' . $bornes['fin'];
+            }
+        }
         $lignes[] = 'SUMMARY:' . evenements_ical_echap($summary);
         if (!$it['prive']) {
             $suffixe = implode(', ', array_filter([$it['departement_canton'] ?? '', $it['pays'] ?? '']));
-            $ville = trim((string) ($it['ville'] ?? '')) . ($suffixe !== '' ? ' (' . $suffixe . ')' : '');
+            // L'adresse précise remplace la ville seule quand elle est connue :
+            // c'est elle qui ouvre un itinéraire depuis l'agenda.
+            $adresse = evenement_adresse_texte($it);
+            $ville = ($adresse !== '' ? $adresse : trim((string) ($it['ville'] ?? '')))
+                . ($suffixe !== '' ? ' (' . $suffixe . ')' : '');
             $lieu = trim(($it['salle'] ?? '') !== '' ? ($it['salle'] . ', ' . $ville) : $ville);
             if ($lieu !== '') {
                 $lignes[] = 'LOCATION:' . evenements_ical_echap($lieu);

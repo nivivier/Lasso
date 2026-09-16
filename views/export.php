@@ -1,5 +1,6 @@
 <?php
 /** @var array $annees */ /** @var array $anneesCompta */ /** @var array $comptesCamt */ /** @var bool $errCamt */
+/** @var bool $errSauvegarde */
 /** @var array $anneesEvenements */
 
 // Types de données exportables : un seul sélecteur, une seule carte — le
@@ -10,7 +11,12 @@
 // type) : rattaché en JS au formulaire du type actif via l'attribut form=
 // (même principe que les cases à cocher de l'onglet Incohérences), ses
 // options étant reconstruites depuis $anneesParType ci-dessous.
-$typesExport = ['backup' => 'Sauvegarde complète (.sqlite)'];
+// Le format dépend de ce que sait faire le serveur (lib/sauvegarde.php) : une
+// archive quand l'extension zip ou phar est là — le cas courant —, la base
+// seule sinon, auquel cas la carte le dit au lieu de laisser croire que les
+// fichiers déposés sont dedans.
+$formatSauvegarde = sauvegarde_format();
+$typesExport = ['backup' => 'Sauvegarde complète (.' . $formatSauvegarde . ')'];
 if (module_actif('compta')) {
     $typesExport['ecritures_csv']  = 'Écritures comptables — CSV';
     $typesExport['ecritures_camt'] = 'Écritures comptables — CAMT.053';
@@ -51,15 +57,27 @@ $anneeSansToutes = ['certificats' => true];
     <noscript><p class="muted small">JavaScript est requis pour choisir le type de données — sans lui, seule la sauvegarde complète ci-dessous reste disponible.</p></noscript>
 
     <div class="export-bloc mt-16" data-type="backup">
-        <p class="muted small mb-8">Copie intégrale de la base dans un seul fichier <code>.sqlite</code> : <strong>toutes les tables</strong>, quels que soient les modules activés —
+        <?php if ($errSauvegarde ?? false): ?>
+        <p class="err mb-8">La sauvegarde n'a pas pu être créée — disque plein, droits insuffisants, ou archive impossible à finaliser.
+            Le détail est dans le journal d'erreurs du serveur. Rien n'a été téléchargé.</p>
+        <?php endif; ?>
+        <p class="muted small mb-8">Copie intégrale de la base : <strong>toutes les tables</strong>, quels que soient les modules activés —
             salaires (employés, fiches, taux, unités), comptabilité (écritures, plan comptable, règles, axes analytiques),
             facturation (factures, structures), événements (événements, spectacles),
             booking (lieux, contacts, tags, notes et historique, mailings, ciblages),
             ainsi que les paramètres, les comptes utilisateurs et les catégories (pays, régions, types de lieu).
             À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
-        <p class="muted small mb-0"><?= icon('info') ?> Ne sont pas inclus : les <strong>logos</strong> déposés dans <code>uploads/</code>
-            (la base ne mémorise que leur emplacement) et le fichier de configuration du serveur. Pour une restauration complète,
-            sauvegarde aussi le dossier <code>uploads/</code>.</p>
+        <?php if ($formatSauvegarde === 'sqlite'): ?>
+        <p class="warn small mb-0"><?= icon('info') ?> Ce serveur ne sait produire ni archive ZIP ni archive TAR
+            (extensions <code>zip</code> et <code>phar</code> absentes) : le téléchargement ne contient que la base.
+            Les <strong>fichiers déposés</strong> — logos, photos, icônes, pièces jointes — sont à sauvegarder à part,
+            en copiant les dossiers <code>uploads/</code> et <code>data/fichiers/</code>.</p>
+        <?php else: ?>
+        <p class="muted small mb-0"><?= icon('info') ?> L'archive contient aussi les <strong>fichiers déposés</strong> —
+            logos, photos d'employés, icônes, feuilles SUISA, pièces jointes —, que la base ne fait que désigner sans
+            les contenir. Une note de restauration est jointe à l'intérieur. Seul le fichier de
+            <strong>configuration du serveur</strong> en est absent : il contient des mots de passe et se conserve à part.</p>
+        <?php endif; ?>
         <div class="form-actions">
             <a class="btn" href="?p=backup"><?= icon('download') ?> Télécharger la sauvegarde</a>
         </div>

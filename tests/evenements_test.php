@@ -236,5 +236,47 @@ check('« anticoncert » == « Anti-concert »', normaliser_nom_spectacle('Anti-
 check('espaces et casse ignorés', normaliser_nom_spectacle('Le Grand Spectacle'), normaliser_nom_spectacle(' le  grand-spectacle '));
 check('noms réellement différents restent différents', false, normaliser_nom_spectacle('Anti-concert') === normaliser_nom_spectacle('Autre spectacle'));
 
+echo "9) Heures et adresse d'un événement (champs publics)\n";
+check('« 20:30 » normalisée', '20:30', heure_normalisee('20:30'));
+check('« 20h30 » acceptée', '20:30', heure_normalisee('20h30'));
+check('« 9:05 » complétée sur deux chiffres', '09:05', heure_normalisee('9:05'));
+check('espaces ignorés', '20:30', heure_normalisee(' 20:30 '));
+check('« 25:00 » rejetée (pas une heure)', '', heure_normalisee('25:00'));
+check('« 20:75 » rejetée (pas des minutes)', '', heure_normalisee('20:75'));
+check('vide reste vide — l\'horaire est souvent inconnu', '', heure_normalisee(''));
+
+echo "\n10) Bornes iCal : heure locale du lieu convertie en UTC\n";
+$bornes = fn (string $d, string $hd, string $hf) => evenement_bornes_utc(['date' => $d, 'heure_debut' => $hd, 'heure_fin' => $hf]);
+check('sans heure de début : journée entière (null)', null, $bornes('2026-09-16', '', '22:00'));
+check('été — 20:30 à Zurich = 18:30 UTC', '20260716T183000Z', $bornes('2026-07-16', '20:30', '')['debut']);
+check('hiver — 20:30 à Zurich = 19:30 UTC', '20260116T193000Z', $bornes('2026-01-16', '20:30', '')['debut']);
+check('sans heure de fin : pas de DTEND', null, $bornes('2026-07-16', '20:30', '')['fin']);
+check('fin après minuit : le lendemain', '20260717T000000Z', $bornes('2026-07-16', '22:00', '02:00')['fin']);
+check('fin égale au début : le lendemain aussi', '20260717T183000Z', $bornes('2026-07-16', '20:30', '20:30')['fin']);
+check('fin ordinaire : même jour', '20260716T200000Z', $bornes('2026-07-16', '20:30', '22:00')['fin']);
+
+echo "\n11) Horaire et adresse en une ligne\n";
+check('début et fin', '20:30 – 22:00', evenement_horaire_texte(['heure_debut' => '20:30', 'heure_fin' => '22:00']));
+check('début seul : pas de tiret orphelin', '20:30', evenement_horaire_texte(['heure_debut' => '20:30', 'heure_fin' => '']));
+check('fin seule', 'jusqu\'à 22:00', evenement_horaire_texte(['heure_debut' => '', 'heure_fin' => '22:00']));
+check('rien', '', evenement_horaire_texte(['heure_debut' => '', 'heure_fin' => '']));
+check('adresse complète', '12 rue des Lilas, 1200 Genève',
+    evenement_adresse_texte(['adresse_rue' => '12 rue des Lilas', 'adresse_npa' => '1200', 'ville' => 'Genève']));
+check('sans rue : pas de virgule orpheline', '1200 Genève',
+    evenement_adresse_texte(['adresse_rue' => '', 'adresse_npa' => '1200', 'ville' => 'Genève']));
+check('ville seule', 'Genève', evenement_adresse_texte(['adresse_rue' => '', 'adresse_npa' => '', 'ville' => 'Genève']));
+check('rien du tout', '', evenement_adresse_texte(['adresse_rue' => '', 'adresse_npa' => '', 'ville' => '']));
+
+echo "\n12) Export public : les nouveaux champs suivent la visibilité\n";
+$evPublic = ['id' => 1, 'date' => '2026-07-16', 'visibilite' => 'public', 'statut' => 'confirme',
+    'ville' => 'Genève', 'adresse_rue' => '12 rue des Lilas', 'adresse_npa' => '1200',
+    'heure_debut' => '20h30', 'heure_fin' => '22:00', 'spectacle_nom' => 'Kaceo'];
+$exp = evenement_export_donnees($evPublic);
+check('la rue est exportée', '12 rue des Lilas', $exp['adresse_rue'] ?? null);
+check('le NPA est exporté', '1200', $exp['adresse_npa'] ?? null);
+check('l\'heure est exportée normalisée', '20:30', $exp['heure_debut'] ?? null);
+$expPrive = evenement_export_donnees(['id' => 2, 'date' => '2026-07-16', 'visibilite' => 'prive'] + $evPublic);
+check('un événement privé n\'expose ni heure ni adresse', ['id', 'date', 'prive'], array_keys($expPrive));
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

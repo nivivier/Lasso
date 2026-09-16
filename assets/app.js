@@ -133,13 +133,16 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Filtre de colonne (.col-filter, ex. "Paiement" sur ?p=fiches) : <details>
-// natif, comme .filters-more ci-dessus, mais celui-ci ne se ferme pas tout
-// seul au clic dehors (comportement natif de <details> — reste ouvert tant
-// qu'on ne reclique pas sur son <summary>). Un seul écouteur global : ferme
-// tout .col-filter ouvert dont le clic n'a pas eu lieu à l'intérieur.
+// Menus déroulants bâtis sur <details> : le filtre d'une colonne (.col-filter,
+// ex. « Paiement » sur ?p=fiches) et le « + » du déroulé d'un événement
+// (.feuille-menu). Un <details> natif ne se referme pas au clic dehors — il
+// reste ouvert tant qu'on ne reclique pas sur son <summary> —, or c'est ce
+// qu'on attend d'un menu. Un seul écouteur global les couvre tous : il ferme
+// tout menu ouvert dont le clic n'a pas eu lieu à l'intérieur. Un nouveau menu
+// n'a qu'à s'ajouter à ce sélecteur.
+const LASSO_MENUS = '.col-filter[open], .feuille-menu[open]';
 document.addEventListener('click', e => {
-    document.querySelectorAll('.col-filter[open]').forEach(details => {
+    document.querySelectorAll(LASSO_MENUS).forEach(details => {
         if (!details.contains(e.target)) { details.open = false; }
     });
 });

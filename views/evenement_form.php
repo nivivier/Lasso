@@ -15,6 +15,7 @@ $retour = $isEdit ? '?p=evenement&id=' . (int) $id : '?p=evenements_liste';
 // un enregistrement (voir redirect() dans lib/helpers.php).
 $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 $ok = $_GET['ok'] ?? null;
+$errFeuille = trim((string) ($_GET['errFeuille'] ?? ''));
 $errLigne = $_GET['errLigne'] ?? null;
 $errEmploye = $_GET['errEmploye'] ?? null;
 $errOrganisation = ($_GET['errOrganisation'] ?? null) === '1';
@@ -73,13 +74,28 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <div class="module-content"><div class="module-content-inner">
 <div class="page-head">
     <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
-    <?php if ($isEdit && $peutEcrireEv): ?>
+    <?php if ($isEdit): ?>
     <div class="head-actions">
+        <?php // La feuille de route se consulte d'ici, sans descendre la page :
+              // c'est ce qu'on ouvre avant de partir. Disponible aussi en
+              // lecture seule — consulter n'est pas modifier.
+              //
+              // [data-preview] : la fenêtre d'aperçu partagée (views/layout.php),
+              // celle d'un décompte de salaire, d'un certificat ou d'un bilan.
+              // Elle affiche la page d'impression dans un cadre à la largeur
+              // d'une feuille, avec sa croix de fermeture, Échap et le clic hors
+              // cadre — et c'est la barre de cette page-là qui porte
+              // « Imprimer / PDF ». Sans JavaScript, le lien ouvre simplement
+              // la page. ?>
+        <a class="btn ghost" href="?p=evenement_feuille_imprimer&id=<?= (int) $id ?>" data-preview target="_blank" rel="noopener"
+           title="Voir la feuille de route"><?= icon('eye') ?><span class="lbl"> Feuille de route</span></a>
+        <?php if ($peutEcrireEv): ?>
         <form method="post" action="?p=evenement_delete" class="d-inline" data-confirm="<?= e($confirmSuppr) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
         </form>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
@@ -184,6 +200,12 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 
     <div class="card-disp">
         <div class="info-date"><?= e(date('d.m.Y', strtotime((string) $evenement['date']))) ?></div>
+        <?php // L'horaire sur sa propre ligne, sous la date : c'est la même
+              // information — quand —, mais la date reste ce qu'on lit en
+              // premier. Accolé, il passait à la ligne de lui-même, la date
+              // occupant déjà la largeur laissée par les boutons flottants. ?>
+        <?php $horaireEv = evenement_horaire_texte((array) $evenement); ?>
+        <?php if ($horaireEv !== ''): ?><div class="info-heure"><?= e($horaireEv) ?></div><?php endif; ?>
         <div class="info-spectacle"><?= $evenement['spectacle_nom'] ? e($evenement['spectacle_nom']) : '—' ?></div>
         <table class="kv-table">
             <tr>
@@ -219,6 +241,13 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
+        <?php // Heures facultatives : une date de tournée se pose des mois avant
+              // que l'horaire soit connu. Publiques comme la date — elles partent
+              // dans l'export et le flux iCal d'un événement public. ?>
+        <div class="grid2">
+            <label>Début <input type="time" name="heure_debut" value="<?= $v('heure_debut') ?>"></label>
+            <label>Fin <input type="time" name="heure_fin" value="<?= $v('heure_fin') ?>"></label>
+        </div>
         <label><?= e(evenements_terme_spectacle(false)) ?>
             <select name="spectacle_id">
                 <option value="">—</option>
@@ -261,6 +290,10 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <?php $drapeauEv = pays_drapeau((string) $evenement['pays']); ?>
             <?php $villeHtmlEv = ville_departement_canton_html((string) $evenement['ville'], $drapeauEv, (string) $evenement['pays'], (string) $evenement['departement_canton']); ?>
             <div><?= $villeHtmlEv !== '' ? $villeHtmlEv : '<span class="muted small">Ville non renseignée.</span>' ?></div>
+            <?php // Rue et NPA sous la ville, comme sur une fiche structure :
+                  // c'est l'adresse à laquelle on se rend le jour même. ?>
+            <?php $adresseEv = evenement_adresse_texte((array) $evenement); ?>
+            <?php if ($adresseEv !== '' && $adresseEv !== trim((string) $evenement['ville'])): ?><div class="muted small"><?= e($adresseEv) ?></div><?php endif; ?>
             <?php if (trim((string) $evenement['grande_region']) !== ''): ?><div class="muted small"><?= e($evenement['grande_region']) ?></div><?php endif; ?>
         </div>
         <?php if ($peutEcrireEv): ?>
@@ -292,8 +325,12 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <form method="post" id="localisation-form" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <input name="adresse_rue" value="<?= $v('adresse_rue') ?>" placeholder="Rue et numéro" aria-label="Rue et numéro" class="mb-16">
         <div class="grid2">
+            <label>NPA <input name="adresse_npa" value="<?= $v('adresse_npa') ?>" placeholder="code postal"></label>
             <label>Ville <input name="ville" value="<?= $v('ville') ?>"></label>
+        </div>
+        <div class="grid2">
             <label>Département/canton <input name="departement_canton" value="<?= $v('departement_canton') ?>" placeholder="canton ou département"></label>
         </div>
         <div class="grid2">
@@ -435,6 +472,10 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <?php endif; ?>
 
 </div>
+<?php // Le déroulé de la journée, section de la feuille de route qu'on
+      // compose ici. Placée après l'organisation et avant les employés — on lit
+      // dans cet ordre : où, avec qui, puis comment la journée se déroule. ?>
+<?php if ($id): ?><?php require __DIR__ . '/_evenement_feuille.php'; ?><?php endif; ?>
 <div class="card mt-22" id="carte-employes">
     <div class="page-head">
         <h2 class="mt-0">Employés <?= info_tip(
