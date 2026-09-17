@@ -87,11 +87,11 @@ $anneeAncienne = (int) ($cols[$nbCols - 1] ?? $anneeRecente);
 $titreAnnee = $nbCols > 1 ? $anneeAncienne . ' – ' . $anneeRecente : (string) $anneeRecente;
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="clair">
 <head>
     <meta charset="UTF-8">
     <title><?= e((string) $axe['libelle']) ?> <?= $titreAnnee ?><?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="print-page">
     <div class="print-toolbar">

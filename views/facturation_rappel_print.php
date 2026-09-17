@@ -1,10 +1,10 @@
 <?php /** @var array $facture */ $f = $facture; ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="clair">
 <head>
     <meta charset="UTF-8">
     <title>Rappel — Facture <?= e($f['numero']) ?></title>
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="print-page">
     <div class="print-toolbar">

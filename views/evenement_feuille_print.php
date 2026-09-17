@@ -8,11 +8,21 @@
 $titrePage = trim((string) ($evenement['spectacle_nom'] ?? '')) ?: 'Date';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<?php // data-theme="clair" : un document s'imprime sur du papier BLANC, donc à
+      // l'encre foncée, quel que soit le thème de la machine. Sans ce marqueur,
+      // une machine en thème sombre donnait à la feuille les couleurs du thème —
+      // texte gris clair sur fond blanc, illisible à l'écran comme au papier.
+      // C'est le même attribut que pose views/layout.php ; le bloc sombre de
+      // app.css est gardé par :root:not([data-theme="clair"]). ?>
+<html lang="fr" data-theme="clair">
 <head>
     <meta charset="UTF-8">
     <title>Feuille de route — <?= e($titrePage) ?>, <?= e(date('d.m.Y', strtotime((string) $evenement['date']))) ?></title>
-    <link rel="stylesheet" href="assets/app.css">
+    <?php // Version dans l'URL, comme dans views/layout.php : sans elle, le
+          // navigateur sert la feuille de style qu'il a en cache — celle d'avant
+          // la dernière mise à jour —, et la page s'affiche avec des règles
+          // périmées alors que le fichier sur le serveur est à jour. ?>
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="print-page">
     <div class="print-toolbar">

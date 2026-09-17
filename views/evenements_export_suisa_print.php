@@ -6,11 +6,11 @@
 $nomEmployeur = (string) param('employeur_nom');
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="clair">
 <head>
     <meta charset="UTF-8">
     <title>Export SUISA<?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="print-page">
     <?php // Une seule action mise en évidence — le téléchargement, qui est le but

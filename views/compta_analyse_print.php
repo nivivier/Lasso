@@ -3,11 +3,11 @@
 /** @var array $detailParAxe */ /** @var string $nomEmployeur */
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="clair">
 <head>
     <meta charset="UTF-8">
     <title>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?><?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="print-page">
     <div class="print-toolbar">

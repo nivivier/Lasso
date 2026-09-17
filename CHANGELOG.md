@@ -7,6 +7,30 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.1] — 2026-09-17
+
+### Corrigé
+- **Les pages d'impression servaient une feuille de style périmée.** Leur lien
+  vers `assets/app.css` n'emportait pas le numéro de version que pose le reste
+  de l'application : le navigateur ressortait donc la copie qu'il avait en
+  cache, d'avant la dernière mise à jour. Sur la feuille de route, cela donnait
+  un logo resté à sa taille d'origine et un déroulé sans son cadre, alors que le
+  fichier sur le serveur était à jour. Les huit documents imprimables sont
+  concernés.
+- **En thème sombre, les documents s'imprimaient en encre claire sur papier
+  blanc** — donc illisibles, à l'écran comme au papier. Une feuille est blanche
+  par nature : les huit pages d'impression se déclarent désormais en thème
+  clair, quel que soit le réglage de la machine.
+- **La marge intérieure de la feuille de route s'ajoutait à celle de la page**
+  à l'impression : déclarée après la remise à zéro de `@media print`, elle lui
+  survivait.
+
+### Modifié
+- **L'aperçu d'un document montre ce qui sortira de l'imprimante.** Le titre
+  d'une feuille se lit à l'encre dans les deux cas : il était rempli d'un
+  dégradé à l'écran et d'encre sur le papier — un aperçu qui ne montre pas le
+  résultat ne sert à rien.
+
 ## [2.8.0] — 2026-09-16
 
 ### Ajouté

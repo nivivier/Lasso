@@ -3037,18 +3037,22 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 }
 .print-toolbar .btn.ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.8); color: #fff; }
 .sheet { max-width: 820px; margin: 26px auto; background: #fff; padding: 44px; box-shadow: 0 4px 24px rgba(0,0,0,.18); border-radius: var(--radius-sm); }
+/* Les <h1> de l'application sont remplis par un DÉGRADÉ en clip-text (voir la
+   règle h1 plus haut). Or un navigateur n'imprime pas les fonds par défaut : le
+   dégradé disparaît et le titre avec lui — texte présent, sélectionnable, mais
+   invisible sur le papier.
+   La règle vaut À L'ÉCRAN AUSSI, et pas seulement sous @media print : un aperçu
+   qui ne montre pas ce qui sortira de l'imprimante ne sert à rien. Sur une
+   feuille, un titre se lit à l'encre, dans les deux cas. */
+.sheet h1 { background: none; -webkit-text-fill-color: currentColor; }
 body.print-page { background: #e9e9f2; }
 
 @media print {
     .print-toolbar { display: none; }
     body.print-page { background: #fff; }
-    .sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; border-radius: 0; }
-    /* Les <h1> de l'application sont remplis par un DÉGRADÉ en clip-text
-       (-webkit-text-fill-color: transparent, voir la règle h1 plus haut). Or un
-       navigateur n'imprime pas les fonds par défaut : le dégradé disparaît, et
-       le titre avec lui — texte présent, sélectionnable, mais invisible sur le
-       papier. Sur une feuille imprimée, un titre se lit à l'encre. */
-    .sheet h1 { background: none; -webkit-text-fill-color: currentColor; }
+    /* .sheet-feuille nommée aussi : sa marge intérieure propre est déclarée plus
+       bas dans le fichier et l'emporterait sinon, s'ajoutant à celle de @page. */
+    .sheet, .sheet-feuille { box-shadow: none; margin: 0; max-width: none; padding: 0; border-radius: 0; }
     @page { margin: 12mm; }
 
     /* Compression pour tenir sur une seule page A4 */

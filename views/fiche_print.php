@@ -1,10 +1,10 @@
 <?php /** @var array $f */ $impression = true; ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="clair">
 <head>
     <meta charset="UTF-8">
     <title>Décompte <?= e($f['employe_nom']) ?> — <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></title>
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
 </head>
 <body class="print-page">
     <div class="print-toolbar">
