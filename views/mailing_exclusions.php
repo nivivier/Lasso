@@ -31,7 +31,7 @@
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="retirer">
                     <input type="hidden" name="id" value="<?= (int) $x['id'] ?>">
-                    <button type="submit" class="btn ghost btn-sm icon-only" title="Retirer de la liste" aria-label="Retirer de la liste"><?= icon('trash') ?></button>
+                    <button type="submit" class="btn danger btn-sm icon-only" title="Retirer de la liste" aria-label="Retirer de la liste"><?= icon('trash') ?></button>
                 </form>
                 <?php endif; ?>
             </td>

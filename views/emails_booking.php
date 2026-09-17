@@ -18,8 +18,8 @@ $cadreExpediteur = function (array $exp = []) : void {
         <div class="cadre-edit-head">
             <span class="cadre-edit-titre"><?= $edition ? e(mailing_expediteur_libelle($exp)) : 'Nouvelle boîte' ?></span>
             <div class="cadre-edit-actions">
-                <button type="button" class="btn ghost btn-sm icon-only exp-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 <button type="submit" class="btn btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                <button type="button" class="btn ghost btn-sm icon-only exp-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
             </div>
         </div>
         <div class="grid2">

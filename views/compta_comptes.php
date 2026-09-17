@@ -44,20 +44,24 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
                         <input name="banque" value="<?= e($c['banque'] ?? '') ?>" placeholder="Banque" class="w-banque" title="Établissement — sert de contre-partie aux frais bancaires" aria-label="Banque">
                         <input name="iban" value="<?= e($c['iban']) ?>" placeholder="CH…" class="w-iban" aria-label="IBAN">
                         <input name="solde_initial" type="number" step="0.01" value="<?= (float) $c['solde_initial'] ?>" placeholder="Solde initial" class="w-chf" title="Solde initial (avant le premier import)" aria-label="Solde initial">
-                        <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
+                        <button type="submit" class="btn btn-sm" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                     </form>
                     <?php endif; ?>
                 </td>
                 <td class="actions nowrap">
                     <?php if ($peutEcrireComptes): ?>
-                    <button type="button" class="btn ghost btn-sm icon-only compte-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
-                    <form method="post" action="?p=compta_comptes" data-confirm="Supprimer ce compte ?" class="d-inline">
+                    <?php // En édition, le crayon cède la place au trio : enregistrer
+                          // (dans le formulaire, mis en évidence), supprimer (rouge) et
+                          // annuler. La croix se pose exactement là où était le crayon,
+                          // tout à droite ; la corbeille se range avant elle. ?>
+                    <form method="post" action="?p=compta_comptes" data-confirm="Supprimer ce compte ?" class="d-inline compte-del-form">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                        <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <button type="button" class="btn ghost btn-sm icon-only compte-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -86,6 +90,12 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
+    // La corbeille n'appartient qu'au mode édition : un geste irréversible n'a
+    // pas à être à portée de clic quand on ne fait que lire la liste. Masquée
+    // ici plutôt qu'en HTML, pour qu'elle reste atteignable sans JavaScript —
+    // où la ligne n'a de toute façon pas de mode édition.
+    document.querySelectorAll('.compte-del-form').forEach(f => { f.hidden = true; });
+
     // Basculer une ligne compte entre lecture et édition.
     document.querySelectorAll('.compte-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -94,6 +104,7 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
             row.querySelector('.compte-edit-form').hidden = false;
             btn.hidden = true;
             row.querySelector('.compte-cancel-btn').hidden = false;
+            row.querySelector('.compte-del-form').hidden = false;
             row.querySelector('input[name="libelle"]')?.focus();
         });
     });
@@ -104,6 +115,7 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
             row.querySelector('.compte-edit-form').hidden = true;
             btn.hidden = true;
             row.querySelector('.compte-edit-btn').hidden = false;
+            row.querySelector('.compte-del-form').hidden = true;
         });
     });
 

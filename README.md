@@ -199,7 +199,12 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    consulte dans la fenêtre d'aperçu partagée — celle d'un décompte de salaire
    — et s'imprime de là ; elle y reprend aussi les structures organisatrices et
    leurs contacts et leurs structures mères, pris dans le carnet d'adresses.
-   Le déroulé se compose sur la fiche, dans une carte du même nom ; un bouton
+   De cette même fenêtre, **« Envoyer à tous les employés »** l'adresse par
+   e-mail à l'équipe de la date, un message par personne (les adresses ne
+   circulent pas entre elles), avec un compte rendu qui distingue les envoyés,
+   les échecs et ceux qui n'ont pas d'adresse.
+   Le déroulé se compose sur la fiche, dans une carte du même nom ; ses lignes
+   se réordonnent au **glisser-déposer**, sans recharger la page. Un bouton
    « Déroulé type » pose d'un coup les cinq moments d'une journée de tournée
    (Départ, Get-in, Soundcheck, Repas, Show).
 9. **Booking** : structures et contacts, tags, lieux géocodés sur une carte,
@@ -473,6 +478,18 @@ php tests/run.php
 
 > Le serveur intégré de PHP ne lit pas les `.htaccess` : en local, les dossiers
 > protégés restent accessibles. Sans incidence en production sous Apache.
+
+### La documentation du dépôt
+
+| fichier | à lire quand |
+| --- | --- |
+| `CLAUDE.md` | avant de toucher au code : architecture, domaine (paie suisse), pièges |
+| `docs/UI.md` | avant d'écrire un écran : comment l'application modifie une ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document |
+| `docs/DECISIONS.md` | avant de toucher au schéma, à l'environnement ou à la CSP : le « pourquoi » des choix structurants et des impasses déjà rencontrées |
+| `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
+
+`docs/UI.md` se met à jour **en même temps** que la convention qu'il décrit :
+c'est ce qui évite de redécider à chaque page.
 
 ---
 

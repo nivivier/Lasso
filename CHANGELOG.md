@@ -7,6 +7,151 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.2] — 2026-09-17
+
+### Ajouté
+- **Envoyer la feuille de route à l'équipe** : un bouton dans la fenêtre
+  d'aperçu l'adresse par e-mail à tous les employés liés à la date. Même
+  transport que les fiches de salaire, et le même corps que celui affiché à
+  l'écran et à l'impression — un document HTML autonome qui embarque sa feuille
+  de style, puisqu'un client mail ne va pas chercher un fichier CSS. Un message
+  par personne plutôt qu'un envoi groupé en copie : les adresses de l'équipe
+  n'ont pas à circuler entre elles, et un échec sur l'une n'emporte pas les
+  autres. Le compte rendu distingue les envoyés, les échecs et ceux qui n'ont
+  pas d'adresse — sans quoi on croirait la feuille partie à tout le monde. Le
+  bouton reste visible mais empêché quand personne n'est joignable, la raison
+  au survol.
+- **Le glisser-déposer ne recharge plus la page** sur les listes plates — le
+  déroulé d'un événement et les lignes du décompte. Le dépôt part en arrière-plan
+  et la ligne bouge dans la page une fois l'enregistrement confirmé : plus
+  d'écran qui clignote, plus de position de défilement à restaurer. Si l'appel
+  échoue — réseau coupé, session expirée —, l'envoi classique prend le relais et
+  la page montre l'état réel, plutôt que de laisser une ligne déplacée à l'écran
+  et pas en base. Les listes hiérarchiques (plan comptable, spectacles,
+  catégories, pays) rechargent encore : un dépôt y change aussi le niveau et le
+  parent.
+- **Le déroulé d'un événement se réordonne au glisser-déposer**, comme le plan
+  comptable, les lignes du décompte ou les spectacles : poignée à gauche, barre
+  d'insertion, et c'est le serveur qui renumérote — la page n'invente aucun
+  rang. Les flèches restent en repli sans JavaScript, empêchées aux extrémités.
+  La carte adopte du même coup le reste du motif des listes ordonnables :
+  crayon en bout de ligne, lecture et formulaire tous deux dans le document — si
+  bien que sans JavaScript, on édite directement, sans rien avoir à basculer.
+- **`docs/UI.md`, les conventions d'interface de l'application** : où vivent les
+  actions, comment on modifie une ligne, comment on en supprime une, comment on
+  les réordonne, quelles fenêtres existent et laquelle utiliser, ce qu'une page
+  imprimable doit déclarer, le vocabulaire des icônes et des couleurs. Écrit
+  pour ne plus redécider à chaque écran, et à tenir à jour dès qu'une convention
+  change. `CLAUDE.md` y renvoie.
+
+### Modifié
+- **Modifier une ligne de liste se fait partout de la même façon.** En lecture,
+  un crayon, **tout à droite** de la colonne d'actions. Au clic, il cède la
+  place à trois boutons : **Enregistrer** en évidence, **Supprimer** en rouge,
+  et **Annuler** — une croix qui manquait sur la plupart des écrans, à commencer
+  par la ligne d'un employé. La croix se pose **exactement à l'emplacement du
+  crayon**, en dernier : un seul et même endroit pour ouvrir l'édition et pour
+  la refermer, où que soit la souris quand on change d'avis. Tous ces boutons
+  sont au petit format — une ligne de liste n'a pas la place d'une barre de
+  carte. La corbeille, elle, ne se montre plus qu'en édition : un geste
+  irréversible n'a pas à être à portée de clic quand on ne fait que lire. Onze
+  écrans s'alignent : plan comptable, lignes du décompte, spectacles, catégories
+  de structure, pays et régions, tags, axes analytiques, comptes bancaires,
+  salaires horaires et unités, déroulé d'un événement, employés d'une date. Les
+  cadres qui s'ouvrent à la place d'une ligne — contacts, boîtes d'envoi,
+  modèles de message — suivent le même ordre.
+- **Toutes les corbeilles de l'application sont rouges** — dix-huit d'entre
+  elles étaient de simples boutons neutres, qui se confondaient avec les actions
+  voisines alors qu'elles sont les seules dont on ne revient pas.
+- **Un bouton d'icône seule a enfin la hauteur d'un bouton à libellé.** Faute de
+  ligne de texte, sa hauteur ne venait que de l'icône et de son remplissage —
+  près de six pixels de moins que le bouton voisin, visible dès que les deux se
+  touchent dans une barre d'actions (« Contacter » et « Modifier » sur une fiche
+  structure). Il reprend maintenant la boîte de référence des boutons, dérivée
+  du remplissage réel : égalité exacte au dixième de pixel, dans les barres de
+  page comme dans les lignes de liste.
+- **Deux tailles de boutons, et elles ne se mélangent plus** : normale pour ce
+  qui commande une page ou une carte, petite pour ce qui commande une ligne. Un
+  bouton d'icône déclaré petit ne l'était en réalité jamais — sa règle de
+  remplissage l'emportait —, si bien qu'une corbeille ou une croix dépassaient
+  de la ligne qu'elles servent, et du crayon de l'historique d'une structure.
+  Trois boutons faisaient l'inverse, petits là où ils commandaient une carte
+  entière : « Nouveau contact » et le crayon des structures liées d'une fiche,
+  la suppression d'une campagne.
+- **Les deux boutons de la carte « Déroulé » sont au format normal**, comme
+  toutes les actions d'une carte : le « + » qui déplie les types d'élément et
+  « Déroulé type » étaient restés petits.
+- **La carte « SUISA » d'une date se lit avant de se modifier.** Elle était un
+  formulaire ouvert en permanence, avec sa case « s'applique » dans l'en-tête et
+  ses deux boutons au pied du cadre. Elle suit maintenant le motif des autres
+  cartes de la fiche : ce qui a été déclaré se lit d'un coup d'œil, un crayon en
+  haut à droite ouvre l'édition et cède la place à « enregistrer » et « annuler »
+  au même endroit.
+- **« Modifier » est toujours le dernier bouton d'une barre d'actions**, tout à
+  droite, et la suppression n'y est plus : elle vit sur l'écran de modification.
+  Reste sur cette barre ce qui ne modifie rien — consulter, imprimer, envoyer,
+  contacter, émettre. La règle est écrite dans `docs/UI.md § 1`, avec le tableau
+  des écrans concernés. S'alignent : la fiche d'un employé (sa corbeille rejoint
+  `?p=employe`) et le brouillon de facture (« Émettre » passe devant
+  « Modifier »).
+- **Supprimer un brouillon de facture se fait depuis l'écran qui le modifie**,
+  plus depuis celui qui le consulte — et le retour, depuis cet écran, ramène à
+  la facture plutôt qu'à la liste. Le lien de provenance (`?depuis=`) continue
+  de voyager, pour que la facture garde son propre retour : l'événement, la
+  structure, d'où qu'on soit parti.
+- **Supprimer une fiche de salaire se fait depuis l'écran qui la modifie.** La
+  corbeille a quitté la fiche consultée — qu'on ouvre cent fois pour la lire,
+  l'imprimer ou l'envoyer — pour l'écran d'édition, où l'on ne vient que pour y
+  toucher. « Modifier » ferme désormais le groupe d'actions, à droite.
+- **Le nom d'une structure se modifie depuis les actions de la page.** Le crayon
+  a quitté le titre pour rejoindre la droite de « Contacter », et il y cède la
+  place au trio habituel — enregistrer, supprimer, annuler, la croix à son
+  emplacement exact. Le titre devient un champ pendant ce temps, et « Contacter »
+  s'efface : on renomme ou on écrit, pas les deux. La suppression de la structure,
+  jusque-là offerte en permanence, n'est plus qu'à portée de ce mode.
+- **Supprimer une campagne se fait depuis l'écran qui la modifie**, plus depuis
+  celui qui la suit : la page de suivi sert à démarcher, on y clique cent fois
+  sans jamais vouloir détruire quoi que ce soit.
+- **Le crayon d'une ligne ne se cache plus derrière le survol** : sur la carte
+  « Contacts » d'une structure et dans son historique, il n'apparaissait qu'au
+  passage de la souris — invisible pour qui ne le cherchait pas déjà. Il est
+  désormais visible en permanence, comme partout ailleurs.
+
+### Corrigé
+- **La ligne d'un employé, sur la fiche d'un événement, était mal
+  proportionnée** : les quatre champs de « Durée et taux horaire » s'entassaient
+  sur deux lignes dans un cadre bridé à 150 px — l'unité et le barème,
+  illisibles — pendant que « Employé », « Fiche de salaire », « Axe » et « Total
+  brut » s'étalaient sur 160 à 210 px pour un nom et deux menus. Ces colonnes se
+  serrent désormais sur leur contenu et la durée prend tout le reste : 455 px au
+  lieu de 259, les quatre champs sur une seule ligne, même lorsque le taux
+  manuel s'ajoute aux trois autres.
+- **Le bouton « Imprimer / PDF » ne faisait rien** sur six des huit documents
+  imprimables : `data-print` n'est traité que dans `assets/app.js`, qu'une page
+  d'impression ne charge pas. Décompte de salaire, certificat, rappel de
+  facture, analyse analytique, analyse par axe et bilan sont concernés.
+- **Une poignée de glisser-déposer s'affichait sans JavaScript**, sur les cinq
+  listes ordonnables, alors qu'elle n'y répond à rien — un contrôle mort qu'on
+  saisit quand même. Elle n'apparaît plus qu'une fois le script en place, les
+  flèches de repli tenant le rôle jusque-là.
+- **Le retour, depuis la modification d'une fiche de salaire, ramène à cette
+  fiche** et non plus à la liste : c'est d'elle qu'on vient, c'est son seul
+  accès. Le lien de provenance (`?depuis=`) continue de voyager, pour que la
+  fiche garde de son côté son propre retour — l'employé, la recherche, d'où
+  qu'on soit parti.
+- **L'écran de modification d'une fiche de salaire paraissait hors du module** —
+  et pour deux raisons. La route `fiche_edit` n'était déclarée dans aucun onglet
+  de navigation : l'application ne savait donc pas à quel module elle
+  appartenait, et la page perdait d'un coup son titre « Salaires », sa rangée
+  d'onglets, sa couleur de module et la mise en évidence dans le rail. Il lui
+  manquait par ailleurs les deux conteneurs qui portent le fond blanc pleine
+  largeur du module (`.module-content`), si bien que la feuille de style la
+  traitait comme une page de paramètres. Elle a maintenant exactement l'en-tête,
+  la couleur, la largeur et le fond de la liste des fiches.
+- **Le lien de retour contextuel était perdu au délien d'une structure liée**
+  (`?depuis=…`) : la fonction qui dessine ces lignes ne recevait pas le
+  paramètre, laissé vide sans que rien ne le signale.
+
 ## [2.8.1] — 2026-09-17
 
 ### Corrigé

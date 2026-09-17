@@ -73,9 +73,42 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
-<?= lien_retour_contextuel('?p=fiches', 'Fiches de salaire') ?>
+
+<?php // .module-content : le fond blanc pleine largeur du module Salaires, celui
+      // qu'ont ?p=fiches et ?p=fiche. Sans ces deux conteneurs, la page tombait
+      // dans le cas « Paramètres » de la feuille de style (bandeau d'onglets
+      // sans fond continu dessous) et paraissait sortie du module. ?>
+<div class="module-content"><div class="module-content-inner">
+<?php // Le retour d'un écran de modification, c'est ce qu'on modifiait : la
+      // fiche elle-même, d'où l'on vient forcément (c'est son seul accès), pas
+      // la liste. Le ?depuis= poursuit sa route dans le lien, pour que la fiche
+      // garde de son côté son propre retour contextuel — l'employé, la
+      // recherche, d'où qu'on soit parti. À la création, il n'y a rien derrière
+      // et la liste fait le retour. ?>
+<?php if ($edit && isset($fiche_id)): ?>
+    <?php $ficheMois = (int) ($post['mois'] ?? 0); $ficheAnnee = (int) ($post['annee'] ?? 0); ?>
+    <?= lien_retour('?p=fiche&id=' . (int) $fiche_id . $depuisQs,
+        $ficheMois >= 1 && $ficheMois <= 12
+            ? 'Fiche · ' . mois_nom($ficheMois) . ' ' . $ficheAnnee
+            : 'Fiche de salaire') ?>
+<?php else: ?>
+    <?= lien_retour_contextuel('?p=fiches', 'Fiches de salaire') ?>
+<?php endif; ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la fiche de salaire' : 'Nouvelle fiche de salaire' ?></h1>
+    <?php // La suppression vit ici, sur l'écran qui modifie la fiche, et pas sur
+          // celui qui la consulte : on ouvre cent fois une fiche pour la lire ou
+          // l'envoyer, on ne vient ici que pour y toucher. Rien à la création —
+          // il n'y a encore rien à détruire. ?>
+    <?php if ($edit && isset($fiche_id) && peut_ecrire('salaires')): ?>
+    <div class="head-actions">
+        <form method="post" action="?p=fiche_delete" data-confirm="Supprimer définitivement cette fiche ?" class="d-inline">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= (int) $fiche_id ?>">
+            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la fiche"><?= icon('trash') ?></button>
+        </form>
+    </div>
+    <?php endif; ?>
 </div>
 
 <?php if (!empty($saved)): ?><p class="ok flash">✓ Fiche enregistrée avec succès.</p><?php endif; ?>
@@ -309,3 +342,4 @@ const LASSO_TAUX_DATA = <?= json_encode($tauxData, JSON_UNESCAPED_UNICODE) ?>;
 })();
 </script>
 <?php endif; ?>
+</div></div>

@@ -534,7 +534,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="employe_id" value="<?= (int) $emp['id'] ?>">
-                            <button type="submit" class="btn ghost btn-sm icon-only" title="Retirer l'employé" aria-label="Retirer l'employé"><?= icon('trash') ?></button>
+                            <button type="submit" class="btn danger btn-sm icon-only" title="Retirer l'employé" aria-label="Retirer l'employé"><?= icon('trash') ?></button>
                         </form>
                         <?php endif; ?>
                     </td>
@@ -547,9 +547,17 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <?php $colspanMsg = 4 + ($axes ? 1 : 0); ?>
         <div class="table-scroll">
         <table class="list evenement-employes">
+            <?php // Les classes de colonne sont posées à la main, jamais par
+                  // :nth-child : la colonne « Axe » n'existe que si le module
+                  // analytique est actif, et tout décompte de position se
+                  // décalerait d'une colonne sans lui. ?>
             <thead><tr>
-                <th>Employé</th><th>Fiche de salaire</th><?php if ($axes): ?><th>Axe</th><?php endif; ?>
-                <th>Durée et taux horaire</th><th class="num">Total brut</th><th></th>
+                <th class="epf-col-serre">Employé</th>
+                <th class="epf-col-serre">Fiche de salaire</th>
+                <?php if ($axes): ?><th class="epf-col-serre">Axe</th><?php endif; ?>
+                <th>Durée et taux horaire</th>
+                <th class="num epf-col-serre">Total brut</th>
+                <th class="epf-col-serre"></th>
             </tr></thead>
             <tbody>
             <?php foreach ($employesLies as $emp):
@@ -567,7 +575,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                 $totalBrut = $ligne ? (float) $ligne['heures_unite'] * (float) $ligne['quantite'] * (float) $ligne['taux_horaire'] : 0;
             ?>
                 <tr>
-                    <td><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
+                    <td class="epf-col-serre"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
                     <?php if (!$unites || !$tauxHoraires): ?>
                         <td colspan="<?= $colspanMsg ?>" class="muted small">
                             Configurez au moins une unité de temps et un taux horaire (Paramètres &gt; Employeur) pour ajouter une prestation.
@@ -583,7 +591,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                             $tauxSel = $match ?? 'autre';
                         }
                     ?>
-                        <td class="epf-col-sm">
+                        <td class="epf-col-sm epf-col-serre">
                             <?php if ($ligne): ?>
                                 <span class="epf-disp"><a href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ligne['fiche_id'], 'evenement', $id)) ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a></span>
                             <?php endif; ?>
@@ -595,7 +603,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                             </select>
                         </td>
                         <?php if ($axes): ?>
-                        <td class="epf-col-sm">
+                        <td class="epf-col-sm epf-col-serre">
                             <?php if ($ligne): ?>
                                 <span class="epf-disp"><?= e($axeLabel !== '' ? $axeLabel : '—') ?></span>
                             <?php endif; ?>
@@ -613,8 +621,8 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                                 <input form="<?= e($formId) ?>" name="l_taux_manuel" class="l-taux-manuel epf-editable" type="text" inputmode="decimal" placeholder="CHF/h" value="<?= ($ligne && $tauxSel === 'autre') ? e(nombre_court((float) $ligne['taux_horaire'])) : '' ?>"<?= $ligne ? ' hidden' : '' ?>>
                             </div>
                         </td>
-                        <td class="num"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
-                        <td class="epf-actions-cell">
+                        <td class="num epf-col-serre"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
+                        <td class="epf-actions-cell epf-col-serre">
                             <?php if ($peutEcrireEv): ?>
                             <form id="<?= e($formId) ?>" method="post" action="?p=evenement_ligne_ajouter<?= $depuisQs ?>">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -622,9 +630,17 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                                 <input type="hidden" name="employe_id" value="<?= $eid ?>">
                             </form>
                             <div class="epf-actions">
-                                <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"<?= $ligne ? '' : ' hidden' ?>><?= icon('pencil') ?></button>
                                 <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation"<?= $ligne ? ' hidden' : '' ?>><?= icon('save') ?></button>
-                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier<?= $depuisQs ?>" class="btn ghost btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier<?= $depuisQs ?>" class="btn danger btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
+                                <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"<?= $ligne ? '' : ' hidden' ?>><?= icon('pencil') ?></button>
+                                <?php // La croix se pose exactement là où était le crayon,
+                                      // tout à droite : un seul emplacement pour ouvrir
+                                      // l'édition et pour la refermer. Elle n'a de sens
+                                      // que sur une ligne qui a quelque chose à quitter :
+                                      // une prestation déjà enregistrée. ?>
+                                <?php if ($ligne): ?>
+                                <button type="button" class="btn ghost btn-sm icon-only epf-editable epf-annuler-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </td>
@@ -638,22 +654,55 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 </div>
 
 <div class="grid3 mt-22">
-<div class="card">
+<div class="card card-editable">
     <?php $suisaApplicable = (bool) $evenement['suisa_applicable']; ?>
     <div class="page-head">
         <h2 class="mt-0">SUISA <?= evenement_suisa_badge($evenement) ?></h2>
         <?php if ($peutEcrireEv): ?>
-        <label class="check">
-            <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" form="suisa-form" <?= $suisaApplicable ? 'checked' : '' ?>>
-            s'applique
-        </label>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+            <button type="submit" form="suisa-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        </div>
         <?php endif; ?>
     </div>
     <?php if ($ok === 'suisa'): ?><p class="ok flash">SUISA enregistré.</p><?php endif; ?>
+
+    <?php // Lecture par défaut, comme les autres cartes de la fiche : ce qui a
+          // été déclaré, et quand. Les trois lignes ne s'affichent que si la
+          // SUISA s'applique — sinon il n'y a rien à dire de plus que la phrase
+          // qui le dit. ?>
+    <div class="card-disp">
+        <?php if (!$suisaApplicable): ?>
+        <p class="muted mb-0">Ne s'applique pas à cette date.</p>
+        <?php else: ?>
+        <?php
+        $suisaEnvoyeA  = trim((string) ($evenement['suisa_envoye_a'] ?? ''));
+        $suisaEnvoyeLe = trim((string) ($evenement['suisa_envoye_le'] ?? ''));
+        $suisaDecompte = trim((string) ($evenement['suisa_decompte_le'] ?? ''));
+        $suisaJour = fn (string $d): string => $d !== '' ? date('d.m.Y', strtotime($d)) : '';
+        $suisaVide = '<span class="muted">—</span>';
+        ?>
+        <table class="kv-table">
+            <tr><th>Envoyée à</th><td><?= $suisaEnvoyeA !== '' ? e(evenement_suisa_envoye_a_libelle($suisaEnvoyeA)) : $suisaVide ?></td></tr>
+            <tr><th>Date d'envoi</th><td><?= $suisaEnvoyeLe !== '' ? e($suisaJour($suisaEnvoyeLe)) : $suisaVide ?></td></tr>
+            <tr><th>Date du décompte</th><td><?= $suisaDecompte !== '' ? e($suisaJour($suisaDecompte)) : $suisaVide ?></td></tr>
+        </table>
+        <?php endif; ?>
+    </div>
+
     <?php if ($peutEcrireEv): ?>
-    <form method="post" id="suisa-form" action="?p=evenement_suisa<?= $depuisQs ?>" class="form">
+    <?php // « S'applique » rejoint le formulaire : c'est un champ comme les
+          // autres, qui ne se coche qu'en édition. Les trois champs qu'il
+          // commande restent masqués tant qu'il n'est pas coché (script en bas
+          // de page). ?>
+    <form method="post" id="suisa-form" action="?p=evenement_suisa<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
+        <label class="check mb-16">
+            <input type="checkbox" name="suisa_applicable" id="suisa-applicable" value="1" <?= $suisaApplicable ? 'checked' : '' ?>>
+            s'applique
+        </label>
         <div id="suisa-champs" <?= $suisaApplicable ? '' : 'hidden' ?>>
             <div class="grid2">
                 <label>Envoyée à
@@ -667,10 +716,6 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                 <label>Date d'envoi <input type="date" name="suisa_envoye_le" value="<?= $v('suisa_envoye_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
             </div>
             <label>Date du décompte <input type="date" name="suisa_decompte_le" value="<?= $v('suisa_decompte_le') ?>" <?= $suisaApplicable ? '' : 'disabled' ?>></label>
-        </div>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
         </div>
     </form>
     <?php endif; ?>
@@ -814,19 +859,32 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     });
 
     // Ligne de prestation : mode lecture (texte + crayon) tant que rien n'est
-    // modifié, mode édition (tous les champs + disquette/corbeille) après un
-    // clic sur le crayon — soumis en un seul formulaire, pas d'action séparée.
+    // modifié ; au clic sur le crayon, celui-ci cède la place au trio
+    // enregistrer / supprimer / annuler, et les champs s'ouvrent. Même
+    // convention que les listes ordonnables (docs/UI.md §2d).
+    const epfBascule = (tr, edition) => {
+        tr.querySelectorAll('.epf-disp').forEach(el => { el.hidden = edition; });
+        tr.querySelectorAll('.epf-editable').forEach(el => { el.hidden = !edition; });
+        const crayon = tr.querySelector('.epf-edit-btn');
+        if (crayon) crayon.hidden = edition;
+    };
     document.addEventListener('click', ev => {
         const btn = ev.target.closest('.epf-edit-btn');
-        if (!btn) return;
-        const tr = btn.closest('tr');
-        tr.querySelectorAll('.epf-disp').forEach(el => { el.hidden = true; });
-        tr.querySelectorAll('.epf-editable').forEach(el => { el.hidden = false; });
-        btn.hidden = true;
-        const choix = tr.querySelector('.l-taux-choix');
-        if (choix) choix.dispatchEvent(new Event('change'));
-        const sel = tr.querySelector('.fiche-select-sm');
-        if (sel) sel.focus();
+        if (btn) {
+            const tr = btn.closest('tr');
+            epfBascule(tr, true);
+            const choix = tr.querySelector('.l-taux-choix');
+            if (choix) choix.dispatchEvent(new Event('change'));
+            const sel = tr.querySelector('.fiche-select-sm');
+            if (sel) sel.focus();
+            return;
+        }
+        // Annuler : referme la ligne sans rien enregistrer. Les champs gardent
+        // ce qui y a été tapé — la page n'est pas rechargée —, mais rien n'est
+        // parti : rouvrir la ligne montre donc la saisie abandonnée, et la
+        // quitter pour de bon se fait en rechargeant, comme partout.
+        const annul = ev.target.closest('.epf-annuler-btn');
+        if (annul) { epfBascule(annul.closest('tr'), false); }
     });
 
     // Ne pas revenir en haut de la page après Ajouter un employé / Enregistrer /

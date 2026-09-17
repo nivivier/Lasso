@@ -64,7 +64,7 @@ $flashErr = [
                         <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                         <?php if ($peutEcrirePlan): ?>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>
-                        <form method="post" action="?p=compta_plan" class="inline-edit plan-edit">
+                        <form method="post" action="?p=compta_plan" class="inline-edit plan-edit" id="plan-edit-<?= $pid ?>">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="section" value="edit">
                             <input type="hidden" name="id" value="<?= $pid ?>">
@@ -82,7 +82,6 @@ $flashErr = [
                 </td>
                 <td class="actions nowrap">
                     <?php if ($peutEcrirePlan): ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
                     <form method="post" action="?p=compta_plan" class="d-inline plan-fallback">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="move">
@@ -98,17 +97,26 @@ $flashErr = [
                         <button type="submit" class="btn ghost btn-sm icon-only" title="<?= $actif ? 'Archiver' : 'Réactiver' ?>" aria-label="<?= $actif ? 'Archiver' : 'Réactiver' ?>"><?= icon($actif ? 'archive' : 'check') ?></button>
                     </form>
                     <?php endif; ?>
+                    <?php // En édition, le crayon cède la place au trio : enregistrer
+                          // (mis en évidence), supprimer (rouge) et annuler. La croix
+                          // se pose exactement là où était le crayon, tout à droite ;
+                          // enregistrer et supprimer se rangent avant elle. Les deux
+                          // boutons rattachés au formulaire de la ligne le sont par
+                          // form=, puisqu'ils vivent hors de lui. ?>
+                    <button type="submit" form="plan-edit-<?= $pid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                     <?php $nbEcr = $ecrCounts[$pid] ?? 0; if (!$p['a_enfants'] && $nbEcr > 0): ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-del-btn" title="Supprimer"
+                    <button type="button" class="btn danger btn-sm icon-only plan-del-btn plan-supprimer" title="Supprimer"
                             aria-label="Supprimer" data-id="<?= $pid ?>" data-nom="<?= e($p['libelle']) ?>" data-nb="<?= $nbEcr ?>"><?= icon('trash') ?></button>
                     <?php else: ?>
-                    <form method="post" action="?p=compta_plan" data-confirm="Supprimer cette catégorie ?" class="d-inline">
+                    <form method="post" action="?p=compta_plan" data-confirm="Supprimer cette catégorie ?" class="d-inline plan-supprimer">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= $pid ?>">
-                        <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
                     <?php endif; ?>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     <?php endif; ?>
                 </td>
             </tr>

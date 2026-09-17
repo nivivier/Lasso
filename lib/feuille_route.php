@@ -185,6 +185,35 @@ function feuille_deplacer(int $id, string $sens): void
     $maj->execute([$ordre, $voisin]);
 }
 
+// Repositionnement par glisser-déposer : la liste complète des identifiants, dans
+// leur nouvel ordre. C'est le SERVEUR qui renumérote — la page n'invente aucun
+// rang local, sinon l'ordre affiché et l'ordre stocké finissent par diverger.
+//
+// Les identifiants étrangers à l'événement sont écartés : l'ordre vient du
+// client, il ne fait pas foi sur l'appartenance.
+function feuille_ordonner(int $evenementId, array $ids): void
+{
+    $stmt = db()->prepare('SELECT id FROM evenement_feuille WHERE evenement_id = ?');
+    $stmt->execute([$evenementId]);
+    $siens = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    $ordre = array_values(array_filter(array_map('intval', $ids), fn (int $id): bool => in_array($id, $siens, true)));
+    if (!$ordre) {
+        return;
+    }
+    $maj = db()->prepare('UPDATE evenement_feuille SET ordre = ? WHERE id = ? AND evenement_id = ?');
+    db()->beginTransaction();
+    $rang = 0;
+    foreach ($ordre as $id) {
+        $maj->execute([++$rang, $id, $evenementId]);
+    }
+    // Ce que le client n'a pas listé (ajouté entre-temps dans un autre onglet)
+    // part à la suite, plutôt que de rester sur un rang qui le ferait remonter.
+    foreach (array_diff($siens, $ordre) as $id) {
+        $maj->execute([++$rang, $id, $evenementId]);
+    }
+    db()->commit();
+}
+
 // Rangs remis à 1, 2, 3… dans l'ordre actuel, sans trou ni doublon.
 function feuille_renumeroter(int $evenementId): void
 {
@@ -600,4 +629,62 @@ function feuille_contact_ligne(array $c): string
     $qui = $nom . ($role !== '' ? ' (' . $role . ')' : '');
     $coord = array_filter([trim((string) ($c['telephone'] ?? '')), trim((string) ($c['email'] ?? ''))]);
     return trim($qui . ($coord ? ' — ' . implode(' · ', $coord) : ''));
+}
+
+// ----------------------------------------------------- ENVOI PAR E-MAIL
+// La feuille de route envoyée à l'équipe, sur le modèle d'une fiche de salaire
+// (envoyer_fiche_email(), lib/helpers.php) : le corps partagé avec l'écran et
+// l'impression, enveloppé dans un document HTML autonome qui embarque la
+// feuille de style — un client mail ne va pas chercher un fichier CSS.
+//
+// data-theme="clair" comme sur la page d'impression : une messagerie en thème
+// sombre donnerait sinon au document les couleurs du thème, sur fond blanc.
+function feuille_email_html(array $evenement, array $elements, array $organisateurs): string
+{
+    $css = @file_get_contents(__DIR__ . '/../assets/app.css') ?: '';
+    ob_start();
+    require __DIR__ . '/../views/_evenement_feuille_corps.php';
+    $corps = ob_get_clean();
+
+    return '<!doctype html><html lang="fr" data-theme="clair"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<style>' . $css . ' body{background:#fff;margin:0;padding:18px}</style></head>'
+        . '<body class="fr-print">' . $corps . '</body></html>';
+}
+
+// Objet de l'e-mail : la date et le lieu, c'est-à-dire ce qui permet de
+// retrouver le message six semaines plus tard dans une boîte encombrée.
+function feuille_email_sujet(array $evenement): string
+{
+    $ou = trim((string) ($evenement['festival'] ?? '')) ?: trim((string) ($evenement['salle'] ?? ''));
+    $ville = trim((string) ($evenement['ville'] ?? ''));
+    $lieu = implode(', ', array_filter([$ou, $ville]));
+    return 'Feuille de route — ' . date('d.m.Y', strtotime((string) $evenement['date']))
+        . ($lieu !== '' ? ' · ' . $lieu : '');
+}
+
+// Les employés à qui l'envoyer : ceux qui sont liés à la date et qui ont une
+// adresse valide. Retourne [destinataires, sans_adresse] — les seconds sont
+// nommés à l'écran, sans quoi on croirait la feuille partie à toute l'équipe.
+function feuille_destinataires(int $evenementId): array
+{
+    $ids = evenement_employe_ids($evenementId);
+    if (!$ids) {
+        return [[], []];
+    }
+    $stmt = db()->prepare(
+        'SELECT id, prenom, nom, email FROM employes WHERE id IN (' . sql_in($ids) . ') ORDER BY nom, prenom'
+    );
+    $stmt->execute($ids);
+    $avec = [];
+    $sans = [];
+    foreach ($stmt->fetchAll() as $e) {
+        $nom = trim($e['prenom'] . ' ' . $e['nom']);
+        if (filter_var(trim((string) $e['email']), FILTER_VALIDATE_EMAIL)) {
+            $avec[] = ['nom' => $nom, 'email' => trim((string) $e['email'])];
+        } else {
+            $sans[] = $nom;
+        }
+    }
+    return [$avec, $sans];
 }

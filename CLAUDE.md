@@ -57,6 +57,12 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   `route_*()` dans `lib/routes.php`.
 - **Vues** : `render($vue, $data, $titre)` (avec layout) ou `render_bare()` (impression).
   `views/layout.php` enveloppe ; `views/_*_body.php` = corps réutilisés (écran + impression + e-mail).
+- **Conventions d'interface** : `docs/UI.md` — comment l'application modifie une
+  ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document.
+  **À lire avant d'écrire un écran**, et **à mettre à jour dès qu'une convention
+  change** : c'est ce fichier qui évite de redécider à chaque page. La règle
+  qu'il pose en premier : un geste qui existe déjà se refait pareil — on élargit
+  le mécanisme en place plutôt que d'en poser un second à côté.
 - **Décisions & impasses connues** : `docs/DECISIONS.md` — le « pourquoi » des choix
   structurants et des pièges déjà rencontrés (migrations SQLite, résolution de
   `APP_ENV`, CSP, cache des data-URI, tests). **À lire avant de toucher au schéma,

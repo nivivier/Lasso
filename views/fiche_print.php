@@ -14,6 +14,12 @@
         <?php require __DIR__ . '/_fiche_body.php'; ?>
     </div>
 
-<script nonce="<?= e(csp_nonce()) ?>">document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });</script>
+<?php // « Imprimer / PDF » : data-print n'est traité que dans assets/app.js, et
+      // une page d'impression ne charge pas tout le script de l'application pour
+      // un appel. Sans cette ligne, le bouton ne fait rien. ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
+</script>
 </body>
 </html>

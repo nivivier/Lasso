@@ -7,14 +7,14 @@
 // $lieuxLies, $sid, $peutEcrireBooking.
 ?>
 <?php // Pas de bascule « mode édition » sur cette carte : la commande d'ajout est
-      // toujours là, et chaque ligne porte son propre crayon (révélé au survol,
-      // permanent au tactile — voir .contact-read .contact-edit-btn, app.css).
-      // Un mode global obligeait à deux clics avant toute modification. ?>
+      // toujours là, et chaque ligne porte son propre crayon, visible en
+      // permanence comme partout ailleurs. Un mode global obligeait à deux
+      // clics avant toute modification. ?>
 <div class="card">
     <div class="card-head-row">
         <h2 class="mt-0">Contacts</h2>
         <?php if ($peutEcrireBooking): ?>
-        <button type="button" class="btn ghost btn-sm icon-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('user-plus') ?></button>
+        <button type="button" class="btn ghost icon-only" data-show="nouveau-contact-form" data-focus="input[name=prenom]" title="Nouveau contact" aria-label="Nouveau contact"><?= icon('user-plus') ?></button>
         <?php endif; ?>
     </div>
     <?php foreach ($contacts as $c): ?>

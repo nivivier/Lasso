@@ -38,59 +38,92 @@ $contactable = $peutContacter && $raisonPasContactable === '';
 <div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=structures', 'Structures') ?>
 <div class="page-head">
-    <?php if ($isEdit && $peutEcrireStruct): ?>
+    <?php // Le nom se modifie SUR PLACE : le titre cède la place à un champ, et
+          // les commandes de l'édition apparaissent dans les actions de la page,
+          // tout à droite, exactement là où était le crayon (docs/UI.md § 2).
+          // « Contacter » s'efface pendant ce temps : on renomme ou on écrit,
+          // pas les deux. ?>
+    <?php $titreEditable = $isEdit && $peutEcrireStruct; ?>
+    <?php $peutSupprimerStruct = $titreEditable && (int) ($structure['nb_factures'] ?? 0) === 0; ?>
+    <?php if ($titreEditable): ?>
     <div class="titre-row">
         <div class="titre-read">
             <h1><?= $v('nom') ?></h1>
-            <button type="button" class="btn ghost btn-sm icon-only titre-edit-btn" title="Modifier le nom" aria-label="Modifier le nom"><?= icon('pencil') ?></button>
         </div>
-        <form method="post" action="?p=structure_renommer<?= $depuisQs ?>" class="titre-edit-form" hidden>
+        <?php // Le formulaire n'emporte que le champ : son bouton d'enregistrement
+              // vit dans les actions de la page et le vise par form=, puisqu'il
+              // doit se lire avec les deux autres plutôt qu'à côté du titre. ?>
+        <form method="post" action="?p=structure_renommer<?= $depuisQs ?>" id="titre-edit-form" class="titre-edit-form" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <input type="text" name="nom" class="input-titre" value="<?= $v('nom') ?>" required>
-            <button type="submit" class="btn btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <button type="button" class="btn ghost btn-sm icon-only titre-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>
     </div>
-    <script nonce="<?= e(csp_nonce()) ?>">
-    (function () {
-        var row = document.querySelector('.titre-row');
-        if (!row) return;
-        row.querySelector('.titre-edit-btn').addEventListener('click', function () {
-            row.querySelector('.titre-read').hidden = true;
-            row.querySelector('.titre-edit-form').hidden = false;
-            row.querySelector('.titre-edit-form input[name=nom]').focus();
-        });
-        row.querySelector('.titre-cancel-btn').addEventListener('click', function () {
-            row.querySelector('.titre-edit-form').hidden = true;
-            row.querySelector('.titre-read').hidden = false;
-        });
-    })();
-    </script>
     <?php elseif ($isEdit): ?>
     <h1><?= $v('nom') ?></h1>
     <?php else: ?>
     <h1>Nouvelle structure</h1>
     <?php endif; ?>
-    <?php if ($peutContacter || ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0)): ?>
+    <?php if ($peutContacter || $titreEditable): ?>
     <div class="head-actions">
         <?php if ($peutContacter): ?>
+        <span class="d-inline titre-lecture">
             <?php if ($contactable): ?>
             <button type="button" data-contacter="<?= $sid ?>" class="btn btn-contacter"><?= icon('mail') ?> Contacter</button>
             <?php else: ?>
             <button type="button" class="btn btn-contacter" disabled title="<?= e($raisonPasContactable) ?>"><?= icon('mail') ?> Contacter</button>
             <?php endif; ?>
+        </span>
         <?php endif; ?>
-        <?php if ($isEdit && $peutEcrireStruct && (int) ($structure['nb_factures'] ?? 0) === 0): ?>
-        <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline">
+        <?php if ($titreEditable): ?>
+        <?php // Le trio de l'édition : enregistrer, supprimer, annuler — la croix
+              // en dernier, à la place du crayon. Format normal : ce sont les
+              // actions de la PAGE, pas celles d'une ligne. ?>
+        <button type="submit" form="titre-edit-form" class="btn icon-only titre-edition" hidden
+                title="Enregistrer" aria-label="Enregistrer le nom"><?= icon('save') ?></button>
+        <?php endif; ?>
+        <?php if ($peutSupprimerStruct): ?>
+        <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline titre-edition" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la structure"><?= icon('trash') ?></button>
         </form>
         <?php endif; ?>
+        <?php if ($titreEditable): ?>
+        <button type="button" class="btn ghost icon-only titre-edit-btn" title="Modifier" aria-label="Modifier le nom de la structure"><?= icon('pencil') ?></button>
+        <button type="button" class="btn ghost icon-only titre-annuler-btn titre-edition" hidden
+                title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
+<?php if ($isEdit && $peutEcrireStruct): ?>
+<?php // Après les deux blocs : le script a besoin du titre ET des actions, qui
+      // ne sont dans le document qu'une fois cette balise atteinte. ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+(function () {
+    var row = document.querySelector('.titre-row');
+    var actions = document.querySelector('.page-head .head-actions');
+    if (!row || !actions) return;
+    var lecture = [].slice.call(actions.querySelectorAll('.titre-lecture'));
+    var edition = [].slice.call(actions.querySelectorAll('.titre-edition'));
+    var crayon = actions.querySelector('.titre-edit-btn');
+    var champ = row.querySelector('.titre-edit-form input[name=nom]');
+    function bascule(on) {
+        row.querySelector('.titre-read').hidden = on;
+        row.querySelector('.titre-edit-form').hidden = !on;
+        crayon.hidden = on;
+        lecture.forEach(function (el) { el.hidden = on; });
+        edition.forEach(function (el) { el.hidden = !on; });
+    }
+    crayon.addEventListener('click', function () { bascule(true); champ.focus(); champ.select(); });
+    actions.querySelector('.titre-annuler-btn').addEventListener('click', function () {
+        row.querySelector('.titre-edit-form').reset();
+        bascule(false);
+    });
+})();
+</script>
+<?php endif; ?>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 <?php require __DIR__ . '/_flash_contacter.php'; ?>
@@ -578,13 +611,13 @@ lassoInitTagSuggest();
         <div class="card-head-row">
             <h2 class="mt-0">Structures liées</h2>
             <?php if ($peutEcrireBooking): ?>
-            <button type="button" class="btn ghost btn-sm icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les structures liées"><?= icon('pencil') ?></button>
+            <button type="button" class="btn ghost icon-only edit-toggle-btn" title="Modifier" aria-label="Modifier les structures liées"><?= icon('pencil') ?></button>
             <?php endif; ?>
         </div>
         <?php
         $lieuxOrganises = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise'));
         $lieuxOrganisePar = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise_par'));
-        $ligneLien = function (array $l) use ($sid): void { ?>
+        $ligneLien = function (array $l) use ($sid, $depuisQs): void { ?>
             <div class="linked-add">
                 <span>
                     <strong><?= icon($l['sens'] === 'organise' ? 'blocks' : 'building') ?> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>

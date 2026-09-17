@@ -133,6 +133,11 @@
     --btn-padding-v: 10px;
     --btn-border-w: 1px;
     --action-height: calc(var(--fs-basic) * 1.6 + 2 * var(--btn-padding-v) + 2 * var(--btn-border-w));
+    /* Même boîte, au petit format (.btn-sm, padding vertical de 4px). Sert aux
+       boutons d'icône seule, qui n'ont pas de ligne de texte pour donner leur
+       hauteur — voir .btn.icon-only plus bas. */
+    --btn-sm-padding-v: 4px;
+    --action-height-sm: calc(var(--fs-basic) * 1.6 + 2 * var(--btn-sm-padding-v) + 2 * var(--btn-border-w));
     /* ?p=structures / ?p=evenements_liste en vue carte (.toolbar-carte, voir
        plus bas) : largeur du <form class="filters"> qui contient la
        recherche (+ le bouton « Plus de filtres » sur structures) — détail de
@@ -1762,15 +1767,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .cadre-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .cadre-edit-titre { font-weight: 700; color: var(--ink); font-size: var(--fs-basic); }
 .cadre-edit-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-/* Le crayon d'une ligne de contact ne se montre qu'au survol de SA ligne : une
-   colonne de crayons ferait de la modification le sujet de la carte, alors
-   qu'on vient d'abord y lire une adresse. Même parti que .tag-gerer-crayon.
-   Au tactile (pas de survol possible) il reste visible en permanence. */
+/* Le crayon d'une ligne de contact est visible en permanence, comme celui de
+   toutes les autres lignes de l'application : une commande qu'il faut survoler
+   pour découvrir n'existe pas pour qui ne la cherche pas déjà. */
 .contact-read > span { flex: 1 1 auto; min-width: 0; }
-.contact-read :is(.contact-edit-btn, .contact-lien-btn) { flex: 0 0 auto; opacity: 0; transition: opacity .12s; }
-.contact-read:hover :is(.contact-edit-btn, .contact-lien-btn),
-.contact-read :is(.contact-edit-btn, .contact-lien-btn):focus-visible { opacity: 1; }
-@media (hover: none) { .contact-read :is(.contact-edit-btn, .contact-lien-btn) { opacity: 1; } }
+.contact-read :is(.contact-edit-btn, .contact-lien-btn) { flex: 0 0 auto; }
 /* Supprimer : en bas du cadre, à l'opposé des commandes courantes, et au
    style « danger » de tous les autres boutons de suppression du site. */
 /* Les deux rôles fonctionnels (qui reçoit les mailings, qui reçoit les factures)
@@ -1864,9 +1865,23 @@ button:active, .btn:active { transform: translateY(1px); }
 .btn.ghost:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
 .btn.danger { background: var(--danger); border-color: var(--danger); }
 .btn.danger:hover { background: var(--danger-d); border-color: var(--danger-d); }
-.btn.icon-only { padding: 9px 11px; }
+/* Un bouton d'icône seule n'a pas de ligne de texte : sa hauteur ne vient que
+   de l'icône (17px) et du padding, soit près de 6px de moins qu'un bouton à
+   libellé (interligne 20.8px) posé juste à côté — « Contacter » et « Modifier »
+   dans la même barre d'actions. --action-height, qui EST la boîte de
+   button/.btn, lui redonne cette hauteur sans toucher au dessin de l'icône.
+   Padding vertical nul, et non 9px : c'est la hauteur minimale qui commande,
+   sinon le padding s'ajoute à l'icône et dépasse la cible de quelques dixièmes
+   — l'égalité doit être exacte, ces boutons se touchent. */
+.btn.icon-only { padding: 0 11px; min-height: var(--action-height); }
 .btn.icon-only .ico { width: 17px; height: 17px; }
-.btn-sm { padding: 4px 8px; font-size: var(--fs-basic); }
+.btn-sm { padding: var(--btn-sm-padding-v) 8px; font-size: var(--fs-basic); }
+/* Un bouton d'icône déclaré petit doit l'être : .btn.icon-only l'emporte sur
+   .btn-sm par spécificité, si bien qu'un « btn-sm icon-only » gardait la taille
+   normale — une corbeille ou une croix plus hautes que l'« Enregistrer » à côté
+   d'elles, dans la même ligne de liste. Le carré de 6 px donne exactement la
+   hauteur du petit bouton à libellé (icône 17 px ≈ interligne 21 px). */
+.btn.icon-only.btn-sm { padding: 0 6px; min-height: var(--action-height-sm); }
 /* .btn-compact-break (?p=compta_ecritures, bouton « Écriture manuelle ») :
    <br> caché sur bureau (assez de place pour une seule ligne) — voir plus
    bas, en mobile, sa réactivation forcée. display:none retire le saut de
@@ -1914,17 +1929,28 @@ button:active, .btn:active { transform: translateY(1px); }
    les champs, qui vivent dans des <td> séparés. Dropdowns étroits pour éviter
    tout débordement horizontal une fois la ligne en mode édition. */
 .evenement-employes td { vertical-align: middle; }
-.evenement-employes .fiche-select-sm { width: 120px; }
-.evenement-employes .l-axe { width: 90px; }
+.evenement-employes .fiche-select-sm { width: 150px; }
+.evenement-employes .l-axe { width: 110px; }
 /* Le flex vit sur un <div> interne, jamais sur le <td> lui-même : sinon
    display:flex écrase display:table-cell et casse vertical-align du <td>. */
-.evenement-employes .epf-duree { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 150px; }
+/* Toutes les colonnes SAUF « Durée et taux horaire » se serrent sur leur
+   contenu : un tableau en disposition automatique répartit sinon la largeur
+   disponible entre toutes, si bien que « Employé », « Axe » ou « Total brut »
+   prenaient 160 à 210px pour un nom et deux menus, pendant que les quatre
+   champs de la durée s'entassaient sur deux lignes dans 150px.
+   width:1% + nowrap est la façon canonique de dire « juste ton contenu » : la
+   colonne restante absorbe tout le reste. */
+.evenement-employes .epf-col-serre { width: 1%; white-space: nowrap; }
+/* Les quatre champs de la prestation tiennent sur UNE ligne, à une largeur où
+   ils se lisent : l'unité et le barème portent des libellés (« Service »,
+   « Base — 30 »), pas des nombres. */
+.evenement-employes .epf-duree { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .evenement-employes .epf-duree select,
 .evenement-employes .epf-duree input { min-width: 0; } /* sinon un <input> flex ne rétrécit jamais sous sa taille de contenu */
-.evenement-employes .l-unite { width: 90px; }
-.evenement-employes .l-qte { width: 34px; flex: 0 0 34px; }
-.evenement-employes .l-taux-choix { width: 110px; }
-.evenement-employes .l-taux-manuel { width: 60px; }
+.evenement-employes .l-unite { flex: 1 1 140px; width: auto; }
+.evenement-employes .l-qte { flex: 0 0 56px; width: 56px; }
+.evenement-employes .l-taux-choix { flex: 1 1 130px; width: auto; }
+.evenement-employes .l-taux-manuel { flex: 0 0 84px; width: 84px; }
 .epf-actions-cell { width: 1%; white-space: nowrap; }
 .epf-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
 
@@ -3484,8 +3510,36 @@ abbr {
 .plan-parent select { margin-bottom: 0; max-width: 15rem; }
 .plan-edit { flex: 1 1 auto; gap: 8px; }
 .plan-table .btn-sm { padding: 3px 7px; }
-.plan-table .actions .btn-sm.icon-only { padding: 3px 5px; }
-.plan-grip { display: inline-flex; align-items: center; color: var(--muted); cursor: grab; flex: 0 0 auto; }
+/* Dans un tableau de plan, le petit bouton à libellé est un cran plus serré
+   (3px de haut) : l'icône seule s'aligne sur sa hauteur, sans quoi la corbeille
+   et la croix dépassaient de la ligne qu'elles servent. */
+.plan-table .actions .btn-sm.icon-only {
+    padding: 0 5px;
+    min-height: calc(var(--fs-basic) * 1.6 + 2 * 3px + 2 * var(--btn-border-w));
+}
+/* La poignée n'existe que si le glisser-déposer marche : c'est le script qui
+   pose .dnd-on. Sans JavaScript elle serait un contrôle mort — et un contrôle
+   mort se saisit quand même, pour ne rien obtenir. Les flèches de repli
+   (.plan-fallback) tiennent alors le rôle. */
+/* Une ligne qui a un mode d'édition ne montre sa corbeille qu'EN édition : un
+   geste irréversible n'a pas à être à portée de clic quand on ne fait que lire.
+   Vaut pour toutes les listes ordonnables (plan comptable, lignes du décompte,
+   spectacles, catégories, pays, déroulé d'un événement).
+
+   Conditionné à .dnd-on, donc au script : sans JavaScript, ces lignes sont en
+   édition permanente (le formulaire est affiché, voir docs/UI.md §2d) — la
+   corbeille doit donc y rester visible. */
+.dnd-on .plan-row .plan-supprimer { display: none; }
+.dnd-on .plan-row.editing .plan-supprimer { display: inline-flex; }
+/* Le trio de l'édition — enregistrer, supprimer, annuler — se lit à droite ; la
+   croix se pose exactement là où était le crayon, en dernier. Les trois boutons
+   sont posés à plat dans la cellule d'actions (pas de conteneur), pour que leur
+   ordre soit celui de la lecture et que la croix occupe la place du crayon.
+   Enregistrer et annuler partagent la bascule de .cell-edition (plus bas), la
+   corbeille celle de .plan-supprimer (plus haut). */
+
+.plan-grip { display: none; align-items: center; color: var(--muted); cursor: grab; flex: 0 0 auto; }
+.dnd-on .plan-grip { display: inline-flex; }
 .plan-grip:active { cursor: grabbing; }
 .plan-grip .ico { width: 16px; height: 16px; }
 .plan-row.plan-archive { opacity: .55; }
@@ -3671,26 +3725,23 @@ abbr {
 /* Crayon / enregistrer / annuler en surimpression, en haut à droite de
    l'entrée — même trio et même bascule que les cartes de la fiche
    (.card-actions-overlay), à ceci près qu'ici les boutons sont petits et
-   collés au bord : une entrée n'a pas les 26px de marge d'une carte. */
-.hist-actions { position: absolute; top: 0; right: 0; z-index: 1; gap: 6px; }
+   collés au bord : une entrée n'a pas les 26px de marge d'une carte.
+   Le bloc fait la hauteur d'un petit bouton (31px) et les y centre : la ligne
+   de texte n'en fait que 21, si bien qu'un bouton calé en haut dépassait sous
+   le filet de l'entrée. .hist-corps prend la même hauteur minimale, pour que
+   l'entrée fasse la place de son propre bouton plutôt que de le laisser
+   déborder. */
+.hist-actions { position: absolute; top: 0; right: 0; z-index: 1; gap: 6px; height: 31px; align-items: center; }
+.hist-corps { min-height: 31px; }
 /* Réserve la place des boutons : celle du crayon seul en lecture, celle
    d'« enregistrer + annuler » en édition. Sans cela, une note longue passait
    sous les boutons.
-   Mesuré : le crayon fait 41px, le couple enregistrer/annuler 88px — la réserve
-   ajoute une douzaine de pixels pour que le texte ne vienne pas les frôler.
-   Les valeurs précédentes (34 et 76px) étaient plus étroites que les boutons
-   eux-mêmes : le contenu passait dessous de quelques pixels. */
-.hist-corps .card-disp { padding-right: 54px; }
-.hist-corps .card-edit:not([hidden]) { padding-right: 102px; }
-/* Le crayon ne se montre qu'au survol de l'entrée — il est offert, pas imposé,
-   dans une liste qui se lit d'abord. Toujours visible au clavier
-   (:focus-visible) et au tactile, où il n'y a pas de survol. */
-.hist-corps .card-edit-btn { opacity: 0; transition: opacity .12s; }
-.hist-item:hover .card-edit-btn,
-.hist-corps .card-edit-btn:focus-visible { opacity: 1; }
-@media (hover: none) {
-    .hist-corps .card-edit-btn { opacity: 1; }
-}
+   Mesuré : le crayon fait 31px, le couple enregistrer/annuler 68px — la réserve
+   ajoute une douzaine de pixels pour que le texte ne vienne pas les frôler. */
+.hist-corps .card-disp { padding-right: 44px; }
+.hist-corps .card-edit:not([hidden]) { padding-right: 82px; }
+/* Le crayon d'une entrée d'historique est visible en permanence, comme celui de
+   toutes les autres lignes de l'application (voir docs/UI.md § 2). */
 
 /* La rangée d'ajout est une bande à part : fond légèrement distinct et bords
    alignés sur ceux de la CARTE, pas sur son contenu — d'où les marges
@@ -3850,7 +3901,7 @@ abbr {
 /* 5px de padding vertical, et non 3 : avec l'icône de 14px et la bordure, le
    bouton fait alors exactement la hauteur du champ (26px). À 3px il tombait à
    22px — quatre pixels d'écart que le centrage vertical masquait mal. */
-.tag-ajouter-ligne .btn.icon-only { padding: 5px 7px; }
+.tag-ajouter-ligne .btn.icon-only { padding: 5px 7px; min-height: 0; }
 .tag-ajouter-ligne .btn.icon-only .ico { width: 14px; height: 14px; }
 /* La liste de suggestions suit la même échelle. */
 .tag-ajouter-ligne .cat-search-list li { padding: 4px 8px; font-size: var(--fs-small); }
@@ -4681,8 +4732,6 @@ abbr {
    libellé, pas une colonne de plus à lire sur chaque ligne. */
 .edit-toggle { gap: 7px; font-size: var(--fs-small); color: var(--muted); font-weight: 600; white-space: nowrap; }
 .edit-usage { white-space: nowrap; }
-/* Enregistrer, Annuler et Supprimer se lisent ensemble, à droite de la ligne. */
-.actions-edition { align-items: center; gap: 6px; }
 /* Paliers d'âge, édités dans la ligne à laquelle ils appartiennent. */
 .bareme-bloc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; width: 100%; padding: 4px 0; }
 .bareme-note { flex: 1 0 100%; }
@@ -4723,20 +4772,23 @@ abbr {
    déplacement et de suppression à droite. Tout le dépliage — modifier une
    ligne, ajouter un élément — passe par <details>, donc sans JavaScript. */
 .feuille-liste { list-style: none; margin: 0 0 18px; padding: 0; }
-/* Trois zones : les flèches de déplacement à gauche, la ligne au milieu, les
-   actions à droite — le crayon tout au bout. Le formulaire de modification
-   occupe une seconde rangée, sur toute la largeur. */
+/* Trois zones : la poignée de glisser-déposer à gauche, la ligne au milieu, les
+   actions à droite — le crayon en tête, comme dans les autres listes
+   ordonnables (voir docs/UI.md §2d et §4). */
 .feuille-item {
     display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 0 8px; align-items: center;
     padding: 5px 0; border-top: 1px solid var(--line);
 }
-.feuille-fleches { display: flex; gap: 2px; align-items: center; }
-/* Largeur réservée aux flèches : la première et la dernière ligne n'en ont
-   qu'une, et sans réserve la colonne du milieu se décalait d'une ligne à
-   l'autre. C'est la largeur de deux boutons d'icône serrés. */
-.feuille-fleches { min-width: 84px; }
-.feuille-form-ligne { grid-column: 1 / -1; }
+/* Le libellé de lecture reprend les règles communes (.plan-nom, masqué tant que
+   le script n'a pas posé .dnd-on) mais pas son corps : une ligne de déroulé se
+   lit au corps du texte, pas en grand. */
+.feuille-item .plan-nom { font-size: inherit; }
+.feuille-item .plan-nom, .feuille-item .plan-edit { min-width: 0; }
+/* Le formulaire d'édition passe sous la ligne, sur toute la largeur restante :
+   dans la colonne du milieu il aurait la largeur du texte. */
+.dnd-on .feuille-item.editing { grid-template-columns: auto minmax(0, 1fr) auto; }
+.feuille-item .plan-edit { grid-column: 1 / -1; }
 .feuille-liste > .feuille-item:first-child { border-top: 0; }
 /* L'élément tient sur UNE ligne : icône, intitulé, détail, crayon. Le détail
    passe à la ligne de lui-même quand il déborde, sans décrocher de l'intitulé. */
@@ -4752,14 +4804,6 @@ abbr {
    bouton d'action de plus, et ils se tiennent tous à droite, comme partout
    ailleurs dans l'application. Un <span> et non un <button> : un <summary> ne
    peut pas contenir d'élément interactif. */
-/* Le crayon est un <label> sur une case cachée : c'est lui qui ouvre et ferme le
-   formulaire de la ligne, et il peut ainsi se placer APRÈS la corbeille — un
-   <summary> de <details>, lui, précède forcément son contenu. */
-.feuille-crayon { flex: 0 0 auto; opacity: .55; cursor: pointer; position: relative; }
-.feuille-bascule { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-.feuille-item:hover .feuille-crayon,
-.feuille-crayon:has(:focus-visible) { opacity: 1; }
-.feuille-crayon:has(:focus-visible) { outline: 2px solid var(--primary); outline-offset: 1px; }
 /* Les boutons de la ligne restent discrets tant qu'on ne survole pas : ils sont
    là pour le geste occasionnel, pas pour attirer l'œil à chaque ligne. */
 /* Largeur réservée aux boutons de droite, qu'ils soient deux ou trois : sans
@@ -4774,17 +4818,6 @@ abbr {
 .feuille-item:hover .feuille-actions .btn,
 .feuille-actions .btn:focus-visible { opacity: 1; }
 
-/* État de la ligne : ouverte en modification ou non. La corbeille ne se montre
-   que sur la ligne ouverte — c'est un geste irréversible, il n'a pas à être à
-   portée de clic quand on ne fait que lire. Les flèches, elles, restent :
-   réordonner ne détruit rien. */
-.feuille-item:not(:has(.feuille-bascule:checked)) .feuille-form-ligne,
-.feuille-item:not(:has(.feuille-bascule:checked)) .feuille-supprimer { display: none; }
-/* Ouvert, le crayon devient une croix : c'est le même contrôle. */
-.feuille-crayon .feuille-edit-x,
-.feuille-crayon:has(:checked) .feuille-edit-lbl { display: none; }
-.feuille-crayon:has(:checked) .feuille-edit-x { display: inline-flex; }
-.feuille-item:has(.feuille-bascule:checked) .feuille-crayon { opacity: 1; }
 
 /* Les champs en RANGÉE, et non empilés : un horaire tient en quatre champs
    courts — intitulé, début, fin, remarque — qui occupaient quatre lignes pour
@@ -4854,14 +4887,18 @@ abbr {
        crayon, alors que la place était là. Ce qui se réserve pour aligner les
        colonnes sur grand écran est simplement rendu au texte. */
     .feuille-item { gap: 0 4px; }
-    .feuille-fleches, .feuille-actions { min-width: 0; }
+    .feuille-actions { min-width: 0; }
     .feuille-sommaire { gap: 7px; }
-    .feuille-actions .btn, .feuille-crayon { opacity: 1; }
+    .feuille-actions .btn { opacity: 1; }
     /* Les flèches rejoignent la corbeille : visibles seulement sur la ligne
        ouverte en modification. Deux boutons de 41px prenaient 84px des 285
        disponibles, et le texte, réduit à 128px, passait à la ligne alors qu'il
        tenait largement. Réordonner est de toute façon un geste d'édition. */
-    .feuille-item:not(:has(.feuille-bascule:checked)) .feuille-fleches { display: none; }
+    /* La poignée disparaît sur téléphone : le glisser-déposer au doigt dans une
+       page qui défile est un combat perdu. Les flèches de repli reprennent la
+       main (.dnd-on ne les masque plus ici). */
+    .feuille-item .plan-grip { display: none; }
+    .dnd-on .feuille-item .plan-fallback { display: inline-flex; }
     .feuille-menu-panneau { min-width: 170px; }
 }
 

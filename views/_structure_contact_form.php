@@ -30,18 +30,20 @@ if ($cfTitre === '') {
         <input type="hidden" name="contact_id" value="<?= (int) $cfC['id'] ?>">
     <?php endif; ?>
 
-    <?php // Annuler et enregistrer en haut à droite du cadre : le formulaire
+    <?php // Enregistrer et annuler en haut à droite du cadre : le formulaire
           // s'ouvre à la place d'une ligne de liste, ses commandes restent donc
-          // là où était la ligne, sans faire chercher le bas du bloc. ?>
+          // là où était la ligne, sans faire chercher le bas du bloc. La croix
+          // vient en dernier, à l'emplacement même du crayon de la ligne — un
+          // seul endroit pour ouvrir l'édition et pour la refermer. ?>
     <div class="cadre-edit-head">
         <span class="cadre-edit-titre"><?= e($cfTitre) ?></span>
         <div class="cadre-edit-actions">
             <?php if ($cfEdition): ?>
-                <button type="button" class="btn ghost btn-sm icon-only contact-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 <button type="submit" class="btn btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                <button type="button" class="btn ghost btn-sm icon-only contact-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
             <?php else: ?>
-                <button type="button" class="btn ghost btn-sm icon-only" data-hide="nouveau-contact-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 <button type="submit" class="btn btn-sm icon-only" title="Ajouter le contact" aria-label="Ajouter le contact"><?= icon('save') ?></button>
+                <button type="button" class="btn ghost btn-sm icon-only" data-hide="nouveau-contact-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
             <?php endif; ?>
         </div>
     </div>

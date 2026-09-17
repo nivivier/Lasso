@@ -4,6 +4,7 @@
 // la fenêtre de consultation (_evenement_feuille_corps.php) ; il n'y a ici que
 // l'enveloppe — l'en-tête à l'employeur, le bouton d'impression, le pied.
 /** @var array $evenement */ /** @var array $elements */ /** @var array $organisateurs */
+/** @var array $destinataires */ /** @var array $sansAdresse */ /** @var bool $peutEnvoyer */
 /** @var string $nomEmployeur */
 $titrePage = trim((string) ($evenement['spectacle_nom'] ?? '')) ?: 'Date';
 ?>
@@ -27,6 +28,34 @@ $titrePage = trim((string) ($evenement['spectacle_nom'] ?? '')) ?: 'Date';
 <body class="print-page">
     <div class="print-toolbar">
         <button data-print><?= icon('printer') ?> Imprimer / PDF</button>
+        <?php // L'envoi à l'équipe vit dans cette barre, donc dans la fenêtre
+              // d'aperçu qui affiche cette page : c'est là qu'on a la feuille
+              // sous les yeux et qu'on décide de la diffuser.
+              //
+              // target="_top" : cette page est chargée dans une iframe par la
+              // fenêtre d'aperçu (views/layout.php). Sans lui, la redirection
+              // qui suit l'envoi afficherait la fiche de l'événement DANS le
+              // cadre d'aperçu, à la place de la feuille. ?>
+        <?php // Empêché plutôt qu'absent quand personne n'est joignable : la
+              // raison se lit au survol, là où un bouton disparu n'apprend rien.
+              // Même choix que « Contacter » dans le suivi d'une campagne. ?>
+        <?php if ($peutEnvoyer): ?>
+        <?php $frRaison = $destinataires ? '' : ($sansAdresse
+            ? "Aucun employé lié à cette date n'a d'adresse e-mail."
+            : "Aucun employé n'est lié à cette date."); ?>
+        <form method="post" action="?p=evenement_feuille_email" target="_top" class="d-inline"
+              data-confirm="<?= $destinataires
+                  ? 'Envoyer cette feuille de route à ' . count($destinataires) . ' employé(e)s : '
+                    . e(implode(', ', array_column($destinataires, 'nom'))) . ' ?'
+                  : '' ?>">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= (int) $evenement['id'] ?>">
+            <button type="submit" class="btn ghost"<?= $destinataires ? '' : ' disabled' ?>
+                    title="<?= $destinataires
+                        ? 'Envoyer à ' . e(implode(', ', array_column($destinataires, 'nom')))
+                        : e($frRaison) ?>"><?= icon('send') ?> Envoyer à tous les employés</button>
+        </form>
+        <?php endif; ?>
     </div>
     <?php // La feuille est resserrée : marges réduites d'un cran par rapport à la
           // page A4 générique, pour tenir sur une page sans rogner le contenu. ?>

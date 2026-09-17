@@ -115,7 +115,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                         <?php endif; ?>
                         <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?>"><?= e($s['nom']) ?></a>
                         <?php if ($peutEcrireSpec): ?>
-                        <form method="post" action="?p=spectacles" class="inline-edit plan-edit">
+                        <form method="post" action="?p=spectacles" class="inline-edit plan-edit" id="plan-edit-<?= $sid ?>">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="section" value="rename">
                             <input type="hidden" name="id" value="<?= $sid ?>">
@@ -142,16 +142,26 @@ $parentOptions = function (int $excludeId) use ($map): string {
                             data-url="<?= e(evenements_export_url('evenements_equipe_ical', $tokenEquipe, $sid)) ?>"
                             title="Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)"
                             aria-label="Copier le lien du calendrier de l'équipe"><?= icon('rows-3') ?></button>
-                    <?php if ($peutEcrireSpec): ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
-                    <?php endif; ?>
                     <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
+                    <?php if ($peutEcrireSpec): ?>
+                    <?php // En édition, le crayon cède la place au trio : enregistrer
+                          // (mis en évidence), supprimer (rouge) et annuler. La croix se
+                          // pose exactement là où était le crayon, tout à droite ;
+                          // enregistrer et supprimer se rangent avant elle. Ces boutons
+                          // sont rattachés au formulaire de la ligne par form=, puisqu'ils
+                          // vivent hors de lui. ?>
+                    <button type="submit" form="plan-edit-<?= $sid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
+                    <?php endif; ?>
                     <?php if ($peutEcrireSpec && !$s['a_enfants'] && $total === 0): ?>
-                    <form method="post" action="?p=spectacle_delete" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline">
+                    <form method="post" action="?p=spectacle_delete" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline plan-supprimer">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= $sid ?>">
-                        <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <?php endif; ?>
+                    <?php if ($peutEcrireSpec): ?>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     <?php endif; ?>
                 </td>
             </tr>

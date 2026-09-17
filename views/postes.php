@@ -215,12 +215,6 @@ foreach ($postes as $p) {
                 </td>
                 <td class="actions nowrap">
                     <?php if ($ecriture): ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                    <?php // Boutons de l'édition rattachés par form= au formulaire de la
-                          // ligne : ils se lisent à droite, avec la corbeille. ?>
-                    <span class="cell-edition actions-edition">
-                        <button type="submit" form="edit-<?= $id ?>" class="btn btn-sm" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
-                        <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     <form method="post" action="?p=postes" class="d-inline plan-fallback">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="reorder">
@@ -237,15 +231,23 @@ foreach ($postes as $p) {
                         <input type="hidden" name="order" value="<?= e(postes_ordre_deplace($postes, $id, 1)) ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
                     </form>
-                        <form method="post" action="?p=postes" class="d-inline"
-                              data-confirm="<?= e($usage > 0 ? 'Cette ligne est utilisée par ' . $usage . ' fiche(s) : elle sera désactivée, pas supprimée. Continuer ?' : 'Supprimer cette ligne ?') ?>">
-                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                            <input type="hidden" name="section" value="del">
-                            <input type="hidden" name="annee" value="<?= $annee ?>">
-                            <input type="hidden" name="id" value="<?= $id ?>">
-                            <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
-                        </form>
-                    </span>
+                    <?php // En édition, le crayon cède la place au trio : enregistrer
+                          // (mis en évidence), supprimer (rouge) et annuler. La croix se
+                          // pose exactement là où était le crayon, tout à droite ;
+                          // enregistrer et supprimer se rangent avant elle. Ces boutons
+                          // sont rattachés au formulaire de la ligne par form=, puisqu'ils
+                          // vivent hors de lui. ?>
+                    <button type="submit" form="edit-<?= $id ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
+                    <form method="post" action="?p=postes" class="d-inline plan-supprimer"
+                          data-confirm="<?= e($usage > 0 ? 'Cette ligne est utilisée par ' . $usage . ' fiche(s) : elle sera désactivée, pas supprimée. Continuer ?' : 'Supprimer cette ligne ?') ?>">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="section" value="del">
+                        <input type="hidden" name="annee" value="<?= $annee ?>">
+                        <input type="hidden" name="id" value="<?= $id ?>">
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                    </form>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     <?php endif; ?>
                 </td>
             </tr>

@@ -24,13 +24,8 @@
     <?php if (peut_ecrire('salaires')): ?>
     <div class="head-actions">
         <a class="btn ghost" href="?p=employe&id=<?= (int) $emp['id'] ?>"><?= icon('pencil') ?> Modifier l'employé</a>
-        <?php if (!$fiches): ?>
-            <form method="post" action="?p=employe_delete" data-confirm="Supprimer définitivement cet employé ?" class="d-inline">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
-                <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer l'employé"><?= icon('trash') ?></button>
-            </form>
-        <?php endif; ?>
+        <?php // Pas de suppression ici : elle vit sur l'écran de modification,
+              // et « Modifier » ferme le groupe (docs/UI.md § 1). ?>
     </div>
     <?php endif; ?>
 </div>
@@ -39,7 +34,7 @@
 <div class="card mb-22 avatar-panneau" id="avatar-panneau" hidden>
     <div class="card-head-row">
         <h2 class="mt-0">Pastille d'identité</h2>
-        <button type="button" class="btn ghost btn-sm icon-only" data-hide="avatar-panneau"
+        <button type="button" class="btn ghost icon-only" data-hide="avatar-panneau"
                 title="Fermer" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <p class="muted small">Elle apparaît devant le nom dans les listes. Sans réglage, sa couleur est déduite

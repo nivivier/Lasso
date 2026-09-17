@@ -365,7 +365,7 @@ function nav_groupes(): array
 
     if (module_actif('salaires') && peut_lire('salaires')) {
         $g['salaires'] = ['Salaires', 'file-text', [
-            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_new'], nb_fiches_a_payer(), 'file-text'],
+            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_new', 'fiche_edit'], nb_fiches_a_payer(), 'file-text'],
             'employes' => ['Employés', ['employes', 'employe', 'employe_voir'], 0, 'users'],
             'resume'   => ['Cotisations', ['resume'], 0, 'bar-chart'],
         ]];

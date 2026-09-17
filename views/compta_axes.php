@@ -53,7 +53,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
                         <input name="libelle" value="<?= e($a['libelle']) ?>" class="grow" required placeholder="Libellé" aria-label="Libellé de l'axe">
                         <input name="code" value="<?= e($a['code']) ?>" placeholder="Code court" class="w-iban input-code" title="Code court optionnel (ex. LAB, TOU, STA)" aria-label="Code court">
-                        <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
+                        <button type="submit" class="btn btn-sm" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                     </form>
                     <?php endif; ?>
                 </td>
@@ -71,14 +71,18 @@ $peutEcrireAxes = peut_ecrire('analytique');
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
                         <button type="submit" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
                     </form>
-                    <button type="button" class="btn ghost btn-sm icon-only axe-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only axe-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
-                    <form method="post" action="?p=compta_axes" data-confirm="Supprimer cet axe ? Les écritures associées ne seront pas supprimées." class="d-inline">
+                    <?php // En édition, le crayon cède la place au trio : enregistrer
+                          // (dans le formulaire, mis en évidence), supprimer (rouge) et
+                          // annuler. La croix se pose exactement là où était le crayon,
+                          // tout à droite ; la corbeille se range avant elle. ?>
+                    <form method="post" action="?p=compta_axes" data-confirm="Supprimer cet axe ? Les écritures associées ne seront pas supprimées." class="d-inline axe-del-form">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="delete">
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
-                        <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
+                    <button type="button" class="btn ghost btn-sm icon-only axe-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only axe-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -104,6 +108,12 @@ $peutEcrireAxes = peut_ecrire('analytique');
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
+    // La corbeille n'appartient qu'au mode édition : un geste irréversible n'a
+    // pas à être à portée de clic quand on ne fait que lire la liste. Masquée
+    // ici plutôt qu'en HTML, pour qu'elle reste atteignable sans JavaScript —
+    // où la ligne n'a de toute façon pas de mode édition.
+    document.querySelectorAll('.axe-del-form').forEach(f => { f.hidden = true; });
+
     document.querySelectorAll('.axe-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const row = btn.closest('tr');
@@ -111,6 +121,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
             row.querySelector('.axe-edit-form').hidden = false;
             btn.hidden = true;
             row.querySelector('.axe-cancel-btn').hidden = false;
+            row.querySelector('.axe-del-form').hidden = false;
             row.querySelector('input[name="libelle"]')?.focus();
         });
     });
@@ -121,6 +132,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
             row.querySelector('.axe-edit-form').hidden = true;
             btn.hidden = true;
             row.querySelector('.axe-edit-btn').hidden = false;
+            row.querySelector('.axe-del-form').hidden = true;
         });
     });
     document.getElementById('btn-new-axe')?.addEventListener('click', () => {

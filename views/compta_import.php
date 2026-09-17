@@ -58,7 +58,7 @@
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">
-                        <button type="submit" class="btn ghost btn-sm icon-only" title="Annuler cet import" aria-label="Annuler cet import"><?= icon('trash') ?></button>
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Annuler cet import" aria-label="Annuler cet import"><?= icon('trash') ?></button>
                     </form>
                 </td>
             </tr>

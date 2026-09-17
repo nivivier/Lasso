@@ -36,13 +36,6 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <h1>Fiche · <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></h1>
     <div class="head-actions">
 
-        <?php if (peut_ecrire('salaires')): ?>
-        <?php if (!empty($modifiable)): ?>
-            <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?><?= $depuisQs ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
-        <?php else: ?>
-            <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
-        <?php endif; ?>
-        <?php endif; ?>
         <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
         <?php
         $envoyee = trim((string) ($f['email_envoye_le'] ?? '')) !== '';
@@ -66,12 +59,15 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <?php if ($envoyee): ?>
             <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?> <span class="lbl">Envoyée</span></span>
         <?php endif; ?>
+        <?php // « Modifier » ferme le groupe, à droite : c'est le geste qui
+              // ouvre l'écran d'édition, et c'est là-bas que vit la suppression
+              // — cette page-ci se consulte, s'imprime et s'envoie. ?>
         <?php if (peut_ecrire('salaires')): ?>
-        <form method="post" action="?p=fiche_delete" data-confirm="Supprimer définitivement cette fiche ?" class="d-inline">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la fiche"><?= icon('trash') ?></button>
-        </form>
+        <?php if (!empty($modifiable)): ?>
+            <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?><?= $depuisQs ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+        <?php else: ?>
+            <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
+        <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>

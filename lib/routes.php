@@ -613,8 +613,18 @@ function route_employe(): void
         }
         redirect('employes');
     }
+    // Un employé qui a des fiches ne se supprime pas (route_employe_delete() le
+    // refuse) : la corbeille de l'écran de modification n'a donc pas à s'y
+    // afficher. Compté ici plutôt que dans la vue — une vue n'interroge pas la
+    // base.
+    $nbFichesEmp = 0;
+    if ($id) {
+        $stmtNb = db()->prepare('SELECT COUNT(*) FROM fiches WHERE employe_id = ?');
+        $stmtNb->execute([$id]);
+        $nbFichesEmp = (int) $stmtNb->fetchColumn();
+    }
     // À l'affichage, l'override saisi en % : on ne touche pas aux valeurs stockées (fractions)
-    render('employe_form', ['emp' => $emp, 'err' => null], $id ? 'Modifier employé' : 'Nouvel employé');
+    render('employe_form', ['emp' => $emp, 'err' => null, 'nbFiches' => $nbFichesEmp], $id ? 'Modifier employé' : 'Nouvel employé');
 }
 
 function route_employe_delete(): void
@@ -1577,6 +1587,13 @@ function route_postes(): void
                     $upd->execute([($i + 1) * 10, $pid]);
                 }
                 db()->commit();
+            }
+            // En JSON quand le JavaScript est là : la ligne se déplace dans le
+            // document sans recharger la page (lassoOrdreListe(), app.js).
+            if (($_POST['retour'] ?? '') === 'json') {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                return;
             }
         } elseif ($section === 'del') {
             // Un poste déjà figé dans une fiche ne se supprime pas : le

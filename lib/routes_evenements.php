@@ -1805,10 +1805,95 @@ function route_evenement_feuille_imprimer(): void
     if (!$evenement) {
         redirect('evenements_liste');
     }
+    [$destinataires, $sansAdresse] = feuille_destinataires($id);
     render_bare('evenement_feuille_print', [
         'evenement'     => $evenement,
         'elements'      => feuille_elements($id),
         'organisateurs' => feuille_organisateurs($id),
+        'destinataires' => $destinataires,
+        'sansAdresse'   => $sansAdresse,
+        'peutEnvoyer'   => peut_ecrire('evenements'),
         'nomEmployeur'  => (string) param('employeur_nom'),
     ]);
+}
+
+// Envoie la feuille de route à tous les employés liés à la date, un message par
+// personne. Même transport que les fiches de salaire (envoyer_email()) : en
+// développement, journalisé dans data/emails_envoyes.log plutôt qu'envoyé.
+//
+// Un message par destinataire et non un envoi groupé en copie : les adresses de
+// l'équipe n'ont pas à circuler entre elles, et un échec sur l'une n'emporte pas
+// les autres.
+function route_evenement_feuille_email(): void
+{
+    require_login();
+    $id = (int) ($_POST['id'] ?? 0);
+    $evenement = $id ? evenement_charger($id) : null;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$evenement) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    require_ecriture('evenements');
+
+    $expediteur = trim((string) param('employeur_email_expediteur'));
+    if (!filter_var($expediteur, FILTER_VALIDATE_EMAIL)) {
+        feuille_retour($id, 'no_exp');
+    }
+    [$destinataires, $sansAdresse] = feuille_destinataires($id);
+    if (!$destinataires) {
+        feuille_retour($id, $sansAdresse ? 'no_dest' : 'no_employe');
+    }
+
+    $html = feuille_email_html($evenement, feuille_elements($id), feuille_organisateurs($id));
+    $sujet = feuille_email_sujet($evenement);
+    $sujetEnc = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
+    $entetes = implode("\r\n", [
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        'From: ' . $expediteur,
+        'Reply-To: ' . email_repondre_a($expediteur),
+    ]);
+
+    $envoyes = 0;
+    $echecs = [];
+    foreach ($destinataires as $d) {
+        [$ok] = envoyer_email($d['email'], $expediteur, $sujetEnc, $entetes, $html, $sujet);
+        if ($ok) {
+            $envoyes++;
+        } else {
+            $echecs[] = $d['nom'];
+        }
+    }
+    // Le compte rendu passe par l'URL, comme le reste des messages de cette
+    // carte : un rechargement ne doit pas renvoyer les messages.
+    redirect('evenement', [
+        'id' => $id,
+        'mailFeuille' => $envoyes . '/' . count($destinataires),
+        'mailEchecs' => implode(', ', $echecs),
+        'mailSans' => implode(', ', $sansAdresse),
+    ], 'carte-feuille');
+}
+
+// Repositionnement d'un élément du déroulé par glisser-déposer : le script poste
+// la liste complète des identifiants et le serveur renumérote
+// (feuille_ordonner()). Les flèches de repli, elles, passent par
+// route_evenement_feuille_deplacer() — même table, deux gestes.
+function route_evenement_feuille_ordre(): void
+{
+    require_login();
+    $evenementId = (int) ($_POST['evenement_id'] ?? 0);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($evenementId)) {
+        redirect('evenements_liste');
+    }
+    check_csrf();
+    require_ecriture('evenements');
+    feuille_ordonner($evenementId, explode(',', (string) ($_POST['order'] ?? '')));
+    // Même convention que les cellules de ?p=structures : en JSON quand le
+    // JavaScript est là, pour que la ligne se déplace sans recharger la page.
+    if (($_POST['retour'] ?? '') === 'json') {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => true]);
+        return;
+    }
+    feuille_retour($evenementId);
 }

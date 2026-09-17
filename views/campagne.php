@@ -78,13 +78,12 @@ $sfReinit = bouton_reinit_filtres(
         <span class="badge <?= $statutClasse[$statut] ?? 'muted-badge' ?>"><?= e(CAMPAGNE_STATUTS[$statut] ?? $statut) ?></span>
     </div>
     <?php if ($peutEcrire): ?>
+    <?php // Pas de suppression ici : elle vit sur l'écran de modification, avec
+          // les autres gestes qui touchent à la campagne elle-même. Cette page
+          // sert à SUIVRE un démarchage en cours — on y clique cent fois sans
+          // rien vouloir détruire. ?>
     <div class="head-actions">
     <a class="btn ghost" href="?p=campagne_form&id=<?= (int) $campagne['id'] ?>"><?= icon('pencil') ?> Modifier</a>
-    <form method="post" action="?p=campagne_delete" class="d-inline" data-confirm="Supprimer la campagne « <?= e($campagne['nom']) ?> » ? Les structures et l'historique ne sont pas touchés.">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= (int) $campagne['id'] ?>">
-        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer la campagne"><?= icon('trash') ?></button>
-    </form>
     </div>
     <?php endif; ?>
 </div>

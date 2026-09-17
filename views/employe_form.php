@@ -1,12 +1,26 @@
-<?php /** @var ?array $emp */ /** @var ?string $err */
+<?php /** @var ?array $emp */ /** @var ?string $err */ /** @var int $nbFiches */
 $v = fn(string $k, $d = '') => e((string) ($emp[$k] ?? $d));
 $isEdit = !empty($emp['id']);
+$nbFiches = (int) ($nbFiches ?? 0);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 <?= lien_retour($isEdit ? '?p=employe_voir&id=' . (int) $emp['id'] : '?p=employes', $isEdit ? 'Fiche employé' : 'Employés') ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier l\'employé' : 'Nouvel employé' ?></h1>
+    <?php // La suppression vit ici, sur l'écran qui modifie l'employé, et pas sur
+          // sa fiche — qu'on ouvre pour consulter ses décomptes. Rien à la
+          // création, et rien non plus dès qu'une fiche de salaire existe : la
+          // route la refuserait de toute façon. ?>
+    <?php if ($isEdit && $nbFiches === 0 && peut_ecrire('salaires')): ?>
+    <div class="head-actions">
+        <form method="post" action="?p=employe_delete" data-confirm="Supprimer définitivement cet employé ?" class="d-inline">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
+            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer l'employé"><?= icon('trash') ?></button>
+        </form>
+    </div>
+    <?php endif; ?>
 </div>
 
 

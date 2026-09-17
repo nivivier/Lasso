@@ -53,9 +53,33 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 <?php $nouveauStructure = $structureCourant === '__new__'; ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
-<?= lien_retour('?p=facturation_liste', 'Facturation') ?>
+<?php // Le retour d'un écran de modification, c'est ce qu'on modifiait : la
+      // facture elle-même, d'où l'on vient forcément. Le ?depuis= poursuit sa
+      // route, pour qu'elle garde de son côté son propre retour contextuel —
+      // l'événement, la structure, d'où qu'on soit parti. À la création, il n'y
+      // a rien derrière et la liste fait le retour. ?>
+<?php $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode((string) $_GET['depuis']) : ''; ?>
+<?php if ($edit): ?>
+    <?php $numeroRetour = trim((string) ($facture['numero'] ?? '')); ?>
+    <?= lien_retour('?p=facture&id=' . (int) $id . $depuisQs,
+        $numeroRetour !== '' ? 'Facture ' . $numeroRetour : 'Facture (brouillon)') ?>
+<?php else: ?>
+    <?= lien_retour_contextuel('?p=facturation_liste', 'Facturation') ?>
+<?php endif; ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la facture' : 'Nouvelle facture' ?></h1>
+    <?php // La suppression vit ici, sur l'écran qui modifie le brouillon, et pas
+          // sur celui qui le consulte. Rien à la création — il n'y a encore rien
+          // à détruire. ?>
+    <?php if ($edit && peut_ecrire('facturation')): ?>
+    <div class="head-actions">
+        <form method="post" action="?p=facture_delete" class="d-inline" data-confirm="Supprimer ce brouillon ?">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= (int) $id ?>">
+            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer le brouillon"><?= icon('trash') ?></button>
+        </form>
+    </div>
+    <?php endif; ?>
 </div>
 
 <?php if (!peut_ecrire('facturation')): ?>

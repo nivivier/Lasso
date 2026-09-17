@@ -46,17 +46,17 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <div class="head-actions">
         <?php if ($brouillon): ?>
             <?php if (peut_ecrire('facturation')): ?>
-            <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
             <form method="post" action="?p=facture_emettre<?= $depuisQs ?>" class="d-inline" data-confirm="Émettre cette facture ? Le numéro et la référence de paiement seront figés.">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                 <button type="submit" class="btn"><?= icon('check') ?> <span class="lbl">Émettre</span></button>
             </form>
-            <form method="post" action="?p=facture_delete" class="d-inline" data-confirm="Supprimer ce brouillon ?">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-                <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
-            </form>
+            <?php // « Modifier » ferme le groupe, à droite : c'est le geste qui
+                  // ouvre l'écran d'édition, et c'est là-bas que vit la
+                  // suppression (docs/UI.md § 1). ?>
+            <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+            <?php // Pas de suppression ici : elle vit sur l'écran de modification,
+                  // avec les autres gestes qui touchent au brouillon lui-même. ?>
             <?php endif; ?>
         <?php else: ?>
             <a class="btn ghost" href="?p=facture_pdf&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu / PDF"><?= icon('eye') ?> <span class="lbl">PDF</span></a>

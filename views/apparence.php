@@ -59,7 +59,7 @@
             <?php // formaction : ce bouton soumet le même formulaire vers une route dédiée
                   // (route_apparence_fond_supprimer()), sans toucher couleurs/effets — un
                   // <form> imbriqué serait invalide en HTML. ?>
-            <button type="submit" formaction="?p=apparence_fond_supprimer" formnovalidate class="btn ghost btn-sm"
+            <button type="submit" formaction="?p=apparence_fond_supprimer" formnovalidate class="btn danger btn-sm"
                     data-confirm="Supprimer l'image de fond personnalisée et revenir au fond par défaut ?">
                 <?= icon('trash') ?> Supprimer l'image de fond
             </button>

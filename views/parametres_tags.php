@@ -37,8 +37,10 @@
             </td>
             <td class="actions nowrap">
                 <?php if ($peutEcrireTags): ?>
-                <button type="button" class="btn ghost btn-sm icon-only tag-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                <button type="button" class="btn ghost btn-sm icon-only tag-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
+                <?php // En édition, le crayon cède la place au trio : enregistrer
+                      // (dans le formulaire, mis en évidence), supprimer (rouge) et
+                      // annuler. La croix se pose exactement là où était le crayon,
+                      // tout à droite ; la corbeille se range avant elle. ?>
                 <form method="post" action="?p=parametres_tags" class="d-inline tag-delete-form" hidden
                       data-confirm="<?= e($nb > 0
                           ? "Supprimer le tag « " . $t['nom'] . " » ? Il sera retiré de $nb structure(s)."
@@ -48,6 +50,8 @@
                     <input type="hidden" name="id" value="<?= $tid ?>">
                     <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                 </form>
+                <button type="button" class="btn ghost btn-sm icon-only tag-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                <button type="button" class="btn ghost btn-sm icon-only tag-cancel-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
                 <?php endif; ?>
             </td>
         </tr>

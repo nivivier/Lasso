@@ -29,6 +29,11 @@ $feuilleAHoraire = (bool) array_filter($feuilleElements, fn (array $el): bool =>
 // Type d'élément à ajouter, choisi dans le menu « + » : le formulaire est déplié
 // par le serveur, il n'y a rien à tenir côté client.
 $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES));
+// Compte rendu du dernier envoi à l'équipe, passé par l'URL (route
+// evenement_feuille_email) : un rechargement ne doit pas renvoyer les messages.
+$mailFeuille = trim((string) ($_GET['mailFeuille'] ?? ''));
+$mailEchecs = trim((string) ($_GET['mailEchecs'] ?? ''));
+$mailSans = trim((string) ($_GET['mailSans'] ?? ''));
 ?>
 <?php // Ni .card-block ni .page-head autour du contenu : la première ramène
       // toute .grid2 à une colonne (elle vise les sous-sections d'une carte
@@ -64,7 +69,7 @@ $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES)
                 <form method="post" action="?p=evenement_feuille_deroule" class="d-inline">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="evenement_id" value="<?= (int) $id ?>">
-                    <button type="submit" class="btn ghost btn-sm" title="Pose <?= e(implode(', ', FEUILLE_HORAIRES_TYPES)) ?> — à compléter et à élaguer ensuite."><?= icon('rows-3') ?> Déroulé type</button>
+                    <button type="submit" class="btn ghost" title="Pose <?= e(implode(', ', FEUILLE_HORAIRES_TYPES)) ?> — à compléter et à élaguer ensuite."><?= icon('rows-3') ?> Déroulé type</button>
                 </form>
                 <?php endif; ?>
                 <?php // Cinq boutons pour cinq types encombraient l'en-tête d'une
@@ -76,7 +81,7 @@ $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES)
                       // déplié par le serveur. Rien à tenir en JavaScript, et
                       // l'adresse dit ce qui est ouvert. ?>
                 <details class="feuille-menu">
-                    <summary class="btn ghost btn-sm icon-only" title="Ajouter au déroulé" aria-label="Ajouter au déroulé"><?= icon('plus') ?></summary>
+                    <summary class="btn ghost icon-only" title="Ajouter au déroulé" aria-label="Ajouter au déroulé"><?= icon('plus') ?></summary>
                     <div class="feuille-menu-panneau">
                         <?php foreach (FEUILLE_TYPES as $cle => $meta): ?>
                         <a href="?p=evenement&id=<?= (int) $id ?>&ajout=<?= e($cle) ?>#carte-feuille"
@@ -88,7 +93,27 @@ $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES)
         </div>
 
         <?php if ($ok === 'feuille'): ?><p class="ok flash">Déroulé enregistré.</p><?php endif; ?>
-        <?php if ($errFeuille !== ''): ?><p class="err"><?= e($errFeuille) ?></p><?php endif; ?>
+        <?php // Compte rendu de l'envoi à l'équipe. Les trois codes d'échec disent
+              // ce qui manque plutôt que « échec » : sans adresse d'expédition,
+              // sans employé lié, ou sans aucune adresse chez eux — trois
+              // situations, trois corrections différentes. ?>
+        <?php if ($errFeuille !== ''): ?>
+        <p class="err"><?= e(match ($errFeuille) {
+            'no_exp'    => "Aucune adresse d'expédition n'est configurée (Paramètres → E-mails).",
+            'no_dest'   => "Aucun employé lié à cette date n'a d'adresse e-mail.",
+            'no_employe' => "Aucun employé n'est lié à cette date : liez-les dans la carte « Employés ».",
+            'type'      => "Type d'élément inconnu.",
+            default     => $errFeuille,
+        }) ?></p>
+        <?php endif; ?>
+        <?php if ($mailFeuille !== ''): ?>
+        <?php [$mfEnvoyes, $mfTotal] = array_pad(explode('/', $mailFeuille, 2), 2, '0'); ?>
+        <p class="<?= (int) $mfEnvoyes === (int) $mfTotal ? 'ok' : 'warn' ?>">
+            Feuille de route envoyée à <?= (int) $mfEnvoyes ?> employé(e)s sur <?= (int) $mfTotal ?>.
+            <?php if ($mailEchecs !== ''): ?><br>Échec pour : <?= e($mailEchecs) ?>.<?php endif; ?>
+            <?php if ($mailSans !== ''): ?><br><span class="muted">Sans adresse e-mail, donc non destinataires : <?= e($mailSans) ?>.</span><?php endif; ?>
+        </p>
+        <?php endif; ?>
 
         <?php if (!$feuilleElements): ?>
             <p class="muted small">Aucun élément pour l'instant.</p>
@@ -99,89 +124,87 @@ $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES)
                 $type = (string) $el['type'];
                 $meta = FEUILLE_TYPES[$type] ?? FEUILLE_TYPES['note'];
             ?>
-            <li class="feuille-item" id="feuille-<?= (int) $el['id'] ?>">
-                <?php // Trois zones : les flèches à gauche, la ligne au milieu, les
-                      // actions à droite — dont le crayon, tout au bout, comme
-                      // ailleurs dans l'application.
+            <li class="feuille-item plan-row" id="feuille-<?= (int) $el['id'] ?>" data-id="<?= (int) $el['id'] ?>">
+                <?php // Même motif que les autres listes ordonnables de
+                      // l'application (?p=postes, ?p=compta_plan — voir
+                      // docs/UI.md §2d et §4) : poignée à gauche, lecture et
+                      // formulaire tous deux dans le document, crayon en tête de
+                      // la colonne d'actions.
                       //
-                      // Le formulaire s'ouvre par une CASE À COCHER cachée plutôt
-                      // que par un <details> : le crayon devait passer après la
-                      // corbeille, or le déclencheur d'un <details> est son
-                      // <summary>, qui précède forcément son contenu — et un
-                      // <summary> ne peut pas contenir les formulaires de
-                      // déplacement et de suppression. La case, elle, se place où
-                      // l'on veut, et :has() fait le reste. ?>
+                      // .plan-nom et .plan-edit-btn sont masqués par défaut et
+                      // révélés par .dnd-on, que le script pose sur la liste :
+                      // SANS JavaScript, c'est le formulaire qui s'affiche, et
+                      // l'on édite directement. Rien à basculer. ?>
                 <?php if ($peutEcrireEv): ?>
-                <div class="feuille-fleches">
-                    <?php // Les flèches n'apparaissent qu'aux extrémités utiles :
-                          // monter le premier ou descendre le dernier ne ferait
-                          // rien, et un bouton qui ne fait rien se clique quand même. ?>
-                    <?php foreach ([['monter', 'chevron-up', 'Monter', $i > 0],
-                                    ['descendre', 'chevron-down', 'Descendre', $i < count($feuilleElements) - 1]] as [$sens, $ico, $titre, $montrer]): ?>
-                        <?php if ($montrer): ?>
-                        <form method="post" action="?p=evenement_feuille_deplacer" class="d-inline">
-                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                            <input type="hidden" name="id" value="<?= (int) $el['id'] ?>">
-                            <input type="hidden" name="sens" value="<?= e($sens) ?>">
-                            <button type="submit" class="btn ghost btn-sm icon-only" title="<?= e($titre) ?>" aria-label="<?= e($titre) ?>"><?= icon($ico) ?></button>
-                        </form>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
+                <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                 <?php endif; ?>
 
-                <?php // Tout sur UNE ligne tant que ça tient : l'intitulé, puis le
-                      // détail à la suite, séparé par des points médians. Une
-                      // feuille de route se parcourt du regard — quatre lignes par
-                      // élément en faisaient une page à lire. ?>
                 <div class="feuille-sommaire">
                     <span class="feuille-ico" title="<?= e($meta['libelle']) ?>"><?= icon($meta['icone']) ?></span>
-                    <span class="feuille-corps"><?php require __DIR__ . '/_evenement_feuille_ligne.php'; ?></span>
+                    <span class="feuille-corps <?= $peutEcrireEv ? 'plan-nom' : '' ?>"><?php require __DIR__ . '/_evenement_feuille_ligne.php'; ?></span>
+                    <?php if ($peutEcrireEv): ?>
+                    <?php // Les boutons de l'édition vivent dans la colonne d'actions,
+                          // à la place du crayon — pas au pied du formulaire. ?>
+                    <form method="post" action="?p=evenement_feuille_modifier" class="form feuille-form plan-edit" id="plan-edit-<?= (int) $el['id'] ?>">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="id" value="<?= (int) $el['id'] ?>">
+                        <?php $fChamps = $meta['champs']; $fEl = $el; $fAide = $meta['aide']; require __DIR__ . '/_evenement_feuille_champs.php'; ?>
+                    </form>
+                    <?php endif; ?>
                 </div>
 
                 <div class="feuille-actions">
+                    <?php if ($peutEcrireEv): ?>
+                    <?php // Repli sans JavaScript : les flèches, masquées dès que
+                          // le glisser-déposer est actif (.dnd-on .plan-fallback).
+                          // Empêchées aux extrémités plutôt que retirées — la
+                          // colonne garde sa largeur d'une ligne à l'autre. ?>
+                    <form method="post" action="?p=evenement_feuille_deplacer" class="d-inline plan-fallback">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="id" value="<?= (int) $el['id'] ?>">
+                        <button type="submit" name="sens" value="monter" class="btn ghost btn-sm icon-only" title="Monter" aria-label="Monter" <?= $i === 0 ? 'disabled' : '' ?>><?= icon('chevron-up') ?></button>
+                        <button type="submit" name="sens" value="descendre" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $i === count($feuilleElements) - 1 ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
+                    </form>
                     <?php if ($type === 'fichier' && trim((string) $el['fichier']) !== ''): ?>
                     <a class="btn ghost btn-sm icon-only" href="?p=evenement_fichier&id=<?= (int) $el['id'] ?>"
                        title="Télécharger" aria-label="Télécharger la pièce jointe"><?= icon('download') ?></a>
                     <?php endif; ?>
-                    <?php if ($peutEcrireEv): ?>
-                    <?php // La corbeille n'apparaît qu'une fois la ligne ouverte en
-                          // modification, comme partout ailleurs dans l'application :
-                          // c'est un geste irréversible, il n'a pas à être à portée
-                          // de clic quand on ne fait que lire. La suppression d'une
-                          // pièce jointe emporte le fichier avec elle, d'où la
-                          // confirmation. ?>
-                    <form method="post" action="?p=evenement_feuille_supprimer" class="d-inline feuille-supprimer"
+                    <?php // En édition, le crayon cède la place au trio : enregistrer
+                          // (mis en évidence), supprimer (rouge) et annuler. La croix se
+                          // pose exactement là où était le crayon, tout à droite ;
+                          // enregistrer et supprimer se rangent avant elle. Le bouton
+                          // d'enregistrement est rattaché au formulaire de la ligne par
+                          // form=, puisqu'il vit hors de lui. ?>
+                    <button type="submit" form="plan-edit-<?= (int) $el['id'] ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
+                    <?php // La suppression d'une pièce jointe emporte le fichier :
+                          // elle se confirme, contrairement au retrait d'un horaire. ?>
+                    <form method="post" action="?p=evenement_feuille_supprimer" class="d-inline plan-supprimer"
                           data-confirm="<?= $type === 'fichier'
                               ? 'Supprimer cette pièce jointe ? Le fichier sera effacé du serveur.'
                               : 'Supprimer cet élément du déroulé ?' ?>">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $el['id'] ?>">
-                        <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
-                    <?php // Le crayon ouvre le formulaire et le referme : c'est le
-                          // même contrôle, qui bascule en croix. ?>
-                    <label class="feuille-crayon btn ghost btn-sm icon-only" title="Modifier">
-                        <input type="checkbox" class="feuille-bascule" aria-label="Modifier cet élément">
-                        <span class="feuille-edit-lbl"><?= icon('pencil') ?></span>
-                        <span class="feuille-edit-x"><?= icon('x') ?></span>
-                    </label>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     <?php endif; ?>
                 </div>
-
-                <?php if ($peutEcrireEv): ?>
-                <form method="post" action="?p=evenement_feuille_modifier" class="form feuille-form feuille-form-ligne">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="id" value="<?= (int) $el['id'] ?>">
-                    <?php $fChamps = $meta['champs']; $fEl = $el; $fAide = $meta['aide']; require __DIR__ . '/_evenement_feuille_champs.php'; ?>
-                    <div class="form-actions">
-                        <button type="submit" class="btn"><?= icon('save') ?> Enregistrer</button>
-                    </div>
-                </form>
-                <?php endif; ?>
             </li>
             <?php endforeach; ?>
         </ul>
+        <?php endif; ?>
+
+        <?php // Exemplaire unique du formulaire de repositionnement : le script y
+              // écrit l'ordre complet au dépôt et l'envoie (lassoOrdreListe(),
+              // assets/app.js). Le serveur renumérote. ?>
+        <?php if ($peutEcrireEv): ?>
+        <form method="post" action="?p=evenement_feuille_ordre" id="reorder-form" hidden>
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="evenement_id" value="<?= (int) $id ?>">
+            <input type="hidden" name="id" value="">
+            <input type="hidden" name="order" value="">
+        </form>
         <?php endif; ?>
 
         <?php // Le formulaire du type choisi dans le menu « + », déplié par le
@@ -205,3 +228,16 @@ $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES)
         </form>
         <?php endif; ?>
 </div>
+<?php if ($peutEcrireEv && $feuilleElements): ?>
+<?php // Liste plate : lassoOrdreListe(), le même appel que ?p=postes. C'est lui
+      // qui pose .dnd-on — donc qui fait passer la carte du repli (formulaires
+      // ouverts, flèches) au mode glisser-déposer. ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+lassoOrdreListe({
+    containerSelector: '#carte-feuille',
+    rowsSelector: '.feuille-item',
+    scrollKey: 'feuilleScroll',
+    formAction: '?p=evenement_feuille_ordre',
+});
+</script>
+<?php endif; ?>

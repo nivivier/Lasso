@@ -971,13 +971,32 @@ function lassoPlanArbre(opts) {
             inp.focus(); inp.select();
         });
     });
+    // Annuler : referme la ligne et rend au champ sa valeur d'ouverture. Même
+    // geste que la touche Échap ci-dessous — un bouton, parce qu'une croix se
+    // voit et qu'Échap ne se devine pas.
+    document.querySelectorAll('.plan-annuler-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const row = btn.closest('.plan-row');
+            const inp = row.querySelector('.plan-libelle');
+            if (inp && inp.dataset.orig !== undefined) { inp.value = inp.dataset.orig; }
+            row.classList.remove('editing');
+        });
+    });
     document.querySelectorAll('.plan-libelle').forEach(inp => {
         const finir = () => inp.closest('.plan-row').classList.remove('editing');
         inp.addEventListener('change', () => {
             const f = inp.closest('form');
             (f.requestSubmit ? f.requestSubmit() : f.submit());
         });
-        inp.addEventListener('blur', finir);
+        // Le champ perd le focus dès qu'on vise un bouton de la ligne : refermer
+        // aussitôt les ferait disparaître sous le curseur avant le clic. On ne
+        // referme donc que si le focus a quitté la ligne entière.
+        inp.addEventListener('blur', () => {
+            setTimeout(() => {
+                const row = inp.closest('.plan-row');
+                if (row && !row.contains(document.activeElement)) { finir(); }
+            }, 0);
+        });
         inp.addEventListener('keydown', e => {
             if (e.key === 'Escape') { inp.value = inp.dataset.orig ?? inp.value; finir(); inp.blur(); }
             else if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
@@ -1161,7 +1180,19 @@ function lassoOrdreListe(opts) {
         e.preventDefault();
         showIndic(p);
     });
-    document.addEventListener('drop', e => {
+    // Le dépôt part en AJAX : recharger la page pour déplacer une ligne coûtait
+    // un aller-retour complet, faisait clignoter l'écran et obligeait à
+    // mémoriser la position de défilement pour la restaurer ensuite.
+    //
+    // La ligne n'est déplacée dans le document qu'APRÈS l'accusé de réception :
+    // ce qui s'affiche est ce qui est enregistré, jamais un pari. Et c'est le
+    // MÊME ordre — celui que projeter() a calculé et envoyé — qui est appliqué
+    // ici, donc rien ne peut diverger.
+    //
+    // Repli en cas d'échec (réseau coupé, session expirée) : l'envoi classique
+    // du formulaire, qui rechargera la page et montrera l'état réel plutôt que
+    // de laisser une ligne déplacée à l'écran et pas en base.
+    document.addEventListener('drop', async e => {
         const p = projeter(e);
         hideIndic();
         if (!p) return;
@@ -1169,8 +1200,21 @@ function lassoOrdreListe(opts) {
         const f = document.getElementById('reorder-form');
         f.querySelector('[name=id]').value = dragId;
         f.querySelector('[name=order]').value = p.order.join(',');
-        saveScroll();
-        f.submit();
+        const ligne = document.querySelector(rowsSelector + '[data-id="' + dragId + '"]');
+        const cible = p.el, avant = p.avant;
+
+        const fd = new FormData(f);
+        fd.append('retour', 'json');
+        const data = await fetch(formAction, { method: 'POST', body: fd })
+            .then(r => r.json()).catch(() => null);
+        if (!data || !data.ok) {
+            saveScroll();
+            f.submit();
+            return;
+        }
+        // Un simple déplacement de nœud, pas une reconstruction : les autres
+        // lignes gardent leurs écouteurs, leur état d'édition et leur défilement.
+        if (ligne && cible) { avant ? cible.before(ligne) : cible.after(ligne); }
     });
     document.addEventListener('dragend', hideIndic);
 }

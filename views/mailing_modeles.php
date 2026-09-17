@@ -90,8 +90,8 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
                 <div class="cadre-edit-head">
                     <label class="modele-nom-label"><span>Titre du modèle</span><input name="nom" value="<?= e($m['nom']) ?>" required class="modele-nom-champ"></label>
                     <div class="cadre-edit-actions">
-                        <button type="button" class="btn ghost btn-sm icon-only modele-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                         <button type="submit" class="btn btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                        <button type="button" class="btn ghost btn-sm icon-only modele-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     </div>
                 </div>
                 <?php if ($expediteurs): ?>

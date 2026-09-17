@@ -58,7 +58,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                     <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                     <span class="plan-nom"><?= $estPays ? pays_drapeau((string) ($p['code_iso2'] ?? '')) . ' ' : '' ?><?= e($p['nom']) ?></span>
                     <?php if ($peutEcrirePays): ?>
-                    <form method="post" action="?p=parametres_pays" class="inline-edit plan-edit">
+                    <form method="post" action="?p=parametres_pays" class="inline-edit plan-edit" id="plan-edit-<?= $pid ?>">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= $pid ?>">
@@ -78,7 +78,6 @@ $paysOptions = function (?int $selected) use ($map): string {
             </td>
             <td class="actions nowrap">
                 <?php if ($peutEcrirePays): ?>
-                <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
                 <form method="post" action="?p=parametres_pays" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="move">
@@ -86,18 +85,27 @@ $paysOptions = function (?int $selected) use ($map): string {
                     <button type="submit" name="dir" value="up" class="btn ghost btn-sm icon-only" title="Monter" aria-label="Monter" <?= $p['est_premier'] ? 'disabled' : '' ?>><?= icon('chevron-up') ?></button>
                     <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $p['est_dernier'] ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
                 </form>
+                <?php // En édition, le crayon cède la place au trio : enregistrer
+                      // (mis en évidence), supprimer (rouge) et annuler. La croix se pose
+                      // exactement là où était le crayon, tout à droite ; enregistrer et
+                      // supprimer se rangent avant elle. Les boutons rattachés au
+                      // formulaire de la ligne le sont par form=, puisqu'ils vivent hors
+                      // de lui. ?>
+                <button type="submit" form="plan-edit-<?= $pid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                 <?php $nbUsage = (int) ($usageRegion[$pid] ?? 0); if ($estPays || $nbUsage === 0): ?>
-                <form method="post" action="?p=parametres_pays" data-confirm="Supprimer <?= $estPays ? 'ce pays' : 'cette région' ?> ?" class="d-inline">
+                <form method="post" action="?p=parametres_pays" data-confirm="Supprimer <?= $estPays ? 'ce pays' : 'cette région' ?> ?" class="d-inline plan-supprimer">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $pid ?>">
-                    <button type="submit" class="btn ghost btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+                    <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                 </form>
                 <?php else: ?>
-                <button type="button" class="btn ghost btn-sm icon-only region-del-btn" title="Supprimer" aria-label="Supprimer"
+                <button type="button" class="btn danger btn-sm icon-only region-del-btn plan-supprimer" title="Supprimer" aria-label="Supprimer"
                         data-id="<?= $pid ?>" data-nom="<?= e($p['nom']) ?>" data-nb="<?= $nbUsage ?>"
                         data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>"><?= icon('trash') ?></button>
                 <?php endif; ?>
+                <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
+                <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 <?php endif; ?>
             </td>
         </tr>
