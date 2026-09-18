@@ -1557,10 +1557,15 @@ function route_import_evenements(): void
 // Les quatre routes qui suivent écrivent toutes dans la même table et reviennent
 // toutes à la fiche, carte dépliée.
 
-// Retour commun : la fiche de l'événement, sur la carte « Feuille de route ».
+// Retour commun : la fiche de l'événement, sur la carte « Infos supplémentaires ».
 // L'ancre évite de faire remonter la page en haut après chaque geste — on ajoute
 // rarement un seul élément.
-function feuille_retour(int $evenementId, ?string $err = null, string $ajout = ''): void
+//
+// $ok dit CE QUI vient d'être fait, pas seulement que ça a marché : « ajoutée »,
+// « modifiée », « supprimée ». Un message unique pour les trois gestes laissait
+// douter de celui qu'on venait de faire — et parlait de « feuille de route »
+// alors qu'on venait de toucher à UNE ligne.
+function feuille_retour(int $evenementId, ?string $err = null, string $ajout = '', string $ok = 'modif'): void
 {
     $params = ['id' => $evenementId];
     if ($err !== null) {
@@ -1572,7 +1577,7 @@ function feuille_retour(int $evenementId, ?string $err = null, string $ajout = '
             $params['ajout'] = $ajout;
         }
     } else {
-        $params['ok'] = 'feuille';
+        $params['ok'] = 'feuille_' . $ok;
     }
     redirect('evenement', $params, 'carte-feuille');
 }
@@ -1660,7 +1665,7 @@ function route_evenement_feuille_ajouter(): void
     db()->prepare('INSERT INTO evenement_feuille (' . implode(', ', $colonnes) . ')
                     VALUES (:' . implode(', :', $colonnes) . ')')
         ->execute($champs);
-    feuille_retour($evenementId);
+    feuille_retour($evenementId, null, '', 'ajout');
 }
 
 function route_evenement_feuille_modifier(): void
@@ -1684,7 +1689,7 @@ function route_evenement_feuille_modifier(): void
         }
     }
     db()->prepare('UPDATE evenement_feuille SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($champs);
-    feuille_retour($evenementId);
+    feuille_retour($evenementId, null, '', 'modif');
 }
 
 function route_evenement_feuille_supprimer(): void
@@ -1697,7 +1702,7 @@ function route_evenement_feuille_supprimer(): void
     }
     check_csrf();
     feuille_supprimer($id);
-    feuille_retour((int) $el['evenement_id']);
+    feuille_retour((int) $el['evenement_id'], null, '', 'suppr');
 }
 
 function route_evenement_feuille_deplacer(): void
@@ -1710,7 +1715,7 @@ function route_evenement_feuille_deplacer(): void
     }
     check_csrf();
     feuille_deplacer($id, valeur_autorisee($_POST['sens'] ?? '', ['monter', 'descendre'], 'descendre'));
-    feuille_retour((int) $el['evenement_id']);
+    feuille_retour((int) $el['evenement_id'], null, '', 'ordre');
 }
 
 // Sert une pièce jointe. Elle vit hors racine web (data/fichiers/) : c'est cette
@@ -1761,7 +1766,7 @@ function route_evenement_feuille_deroule(): void
     }
     check_csrf();
     feuille_deroule_type($evenementId);
-    feuille_retour($evenementId);
+    feuille_retour($evenementId, null, '', 'deroule');
 }
 
 // --- Calendrier de l'équipe -------------------------------------------------
@@ -1895,5 +1900,5 @@ function route_evenement_feuille_ordre(): void
         echo json_encode(['ok' => true]);
         return;
     }
-    feuille_retour($evenementId);
+    feuille_retour($evenementId, null, '', 'ordre');
 }

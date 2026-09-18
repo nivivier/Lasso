@@ -387,16 +387,19 @@ function feuille_supprimer(int $id): void
 // ---------------------------------------------- CALENDRIER DE L'ÉQUIPE
 // Le flux iCal réservé à l'équipe : tout ce que l'export public tait. Les dates
 // encore en option, celles qui ne sont pas répertoriées, et le contenu des
-// feuilles de route. Deux entrées par date :
+// feuilles de route. Jusqu'à trois sortes d'entrées par date :
 //
 //   — une BANDE de journée entière, qui porte la feuille de route complète dans
 //     sa description et les pièces jointes en ATTACH ;
-//   — un ÉVÉNEMENT DATÉ par horaire (get-in, balances, show), pour que la
-//     journée se lise dans la vue « jour » d'un téléphone.
+//   — le SPECTACLE, sur l'heure de représentation de la date (celle qui
+//     s'affiche sur sa fiche) ;
+//   — un ÉVÉNEMENT DATÉ par horaire du déroulé (get-in, balances, show), pour
+//     que la journée se lise dans la vue « jour » d'un téléphone.
 //
-// Les deux se complètent : la bande dit tout, les horaires disent quand. Leurs
-// UID sont distincts de ceux de l'export public, pour qu'un agenda abonné aux
-// deux flux ne prenne pas l'un pour une mise à jour de l'autre.
+// Les trois se complètent : la bande dit tout, le spectacle dit l'heure qu'on
+// annonce, les horaires disent le reste de la journée. Leurs UID sont distincts
+// de ceux de l'export public, pour qu'un agenda abonné aux deux flux ne prenne
+// pas l'un pour une mise à jour de l'autre.
 
 // Les événements du calendrier d'équipe : tous, sans filtre de visibilité ni de
 // statut, avec leur feuille de route. $spectacleId restreint à un spectacle et
@@ -419,6 +422,10 @@ function feuille_evenements_equipe(?int $spectacleId = null): array
     $evenements = $stmt->fetchAll();
     foreach ($evenements as &$ev) {
         $ev['feuille'] = feuille_elements((int) $ev['id']);
+        // Les organisateurs et leurs contacts, comme sur la feuille imprimée :
+        // c'est à eux qu'on téléphone en arrivant, et l'agenda est justement ce
+        // qu'on a sous la main ce jour-là.
+        $ev['organisateurs'] = feuille_organisateurs((int) $ev['id']);
     }
     return $evenements;
 }
@@ -448,24 +455,206 @@ function feuille_ical_lieu(array $ev): string
     return trim(implode(', ', array_filter([$salle, $adresse])));
 }
 
-// La feuille de route mise à plat, une ligne par élément, pour la description
-// du calendrier. Même contenu que la carte à l'écran (feuille_element_lignes()),
-// parce que c'est la même feuille.
+// La feuille de route dans la description du calendrier. Une description iCal
+// est un bloc de texte brut : pas de gras, pas de liste, rien que des lignes.
+// D'où des SECTIONS EN CAPITALES séparées par une ligne vide — c'est la seule
+// mise en page dont on dispose, et elle suffit à retrouver une adresse ou un
+// numéro sans tout relire, sur un écran de téléphone, dans une loge.
+//
+// L'ordre suit celui de la journée : ce qu'on cherche en premier (l'heure, le
+// lieu) est en tête, ce qu'on consulte à l'occasion (pièces jointes, notes) à
+// la fin. Le déroulé garde SON ordre à lui, celui que la feuille a posé — à
+// l'heure de représentation près, qui s'y glisse à son rang chronologique.
+function feuille_ical_bloc(string $titre, array $lignes): array
+{
+    $lignes = array_values(array_filter($lignes, fn (string $l): bool => trim($l) !== ''));
+    return $lignes ? array_merge([mb_strtoupper($titre, 'UTF-8')], $lignes) : [];
+}
+
+// Une ligne de déroulé, l'heure en tête : « 14:00  Get-in — porte de derrière ».
+// L'heure d'abord parce que c'est par elle qu'on cherche, et que les heures
+// alignées en début de ligne se lisent comme une colonne.
+function feuille_ical_ligne_horaire(array $el): string
+{
+    $h = evenement_horaire_texte(['heure_debut' => $el['debut'] ?? '', 'heure_fin' => $el['fin'] ?? '']);
+    $reste = implode(' — ', array_filter([
+        feuille_element_titre($el),
+        trim((string) ($el['remarque'] ?? '')),
+    ]));
+    return trim($h !== '' ? $h . '  ' . $reste : $reste);
+}
+
+// « Intitulé : valeur — remarque », pour les adresses et les pièces jointes.
+function feuille_ical_ligne_detail(array $el, string $valeur): string
+{
+    $titre = feuille_element_titre($el);
+    $corps = ($valeur !== '' && $valeur !== $titre) ? $titre . ' : ' . $valeur : $titre;
+    $remarque = trim((string) ($el['remarque'] ?? ''));
+    return trim($corps . ($remarque !== '' ? ' — ' . $remarque : ''));
+}
+
+// Les sections d'une feuille de route, dans l'ordre où on les consulte. Une
+// même feuille mêle le déroulé de la journée, des adresses, des contacts, des
+// pièces jointes et des notes : les ranger par nature est ce qui permet de
+// retrouver un numéro ou un code d'entrée sans tout relire.
+//
+// Partagé par la feuille affichée/imprimée et par la description du calendrier
+// d'équipe : c'est la même feuille, elle ne peut pas exister en deux versions
+// qui divergeraient à la première retouche.
+const FEUILLE_SECTIONS = [
+    'horaire' => 'Déroulé',
+    'adresse' => 'Adresses',
+    'contact' => 'Contacts',
+    'fichier' => 'Pièces jointes',
+    'note'    => 'Notes',
+];
+
+// Les éléments d'une date groupés par section, les sections vides retirées.
+// L'heure de représentation prend sa place DANS le déroulé, à son rang
+// chronologique : la journée se lit d'une traite, du get-in au show, sans avoir
+// à remonter la chercher ailleurs. Elle s'insère avant le premier horaire plus
+// tardif qu'elle ; à défaut, elle ferme la liste. Un horaire sans heure garde sa
+// place et ne décide de rien — on ne sait pas où il tombe.
+function feuille_sections(array $ev): array
+{
+    $par = [];
+    foreach ($ev['feuille'] ?? $ev['elements'] ?? [] as $el) {
+        $par[(string) $el['type']][] = $el;
+    }
+
+    $spectacle = heure_normalisee((string) ($ev['heure_debut'] ?? ''));
+    if ($spectacle !== '') {
+        // Un élément de feuille comme les autres, mais sans id : il n'est pas en
+        // base, il est déduit de la date elle-même. Les deux rendus le traitent
+        // donc sans rien savoir de sa nature particulière.
+        $ligne = ['id' => 0, 'type' => 'horaire', 'libelle' => 'Spectacle',
+                  'debut' => (string) ($ev['heure_debut'] ?? ''), 'fin' => (string) ($ev['heure_fin'] ?? ''),
+                  'remarque' => ''];
+        $horaires = [];
+        $pose = false;
+        foreach ($par['horaire'] ?? [] as $el) {
+            $debut = heure_normalisee((string) ($el['debut'] ?? ''));
+            if (!$pose && $debut !== '' && $debut > $spectacle) {
+                $horaires[] = $ligne;
+                $pose = true;
+            }
+            $horaires[] = $el;
+        }
+        if (!$pose) {
+            $horaires[] = $ligne;
+        }
+        $par['horaire'] = $horaires;
+    }
+
+    $sections = [];
+    foreach (FEUILLE_SECTIONS as $type => $titre) {
+        if (!empty($par[$type])) {
+            $sections[] = ['type' => $type, 'titre' => $titre, 'elements' => $par[$type]];
+        }
+    }
+    return $sections;
+}
+
 function feuille_ical_description(array $ev): string
 {
-    $lignes = [];
-    $horaire = evenement_horaire_texte($ev);
-    if ($horaire !== '') {
-        $lignes[] = 'Représentation : ' . $horaire;
+    // Ce que la date dit d'elle-même, avant ce que la feuille y ajoute : c'est
+    // le même bloc qu'en tête de la feuille imprimée, et les mêmes informations
+    // que l'export public — d'où son nom. On y lit l'heure et le lieu sans
+    // avoir à dérouler.
+    $publiques = [];
+    $lieu = feuille_ical_lieu($ev);
+    if ($lieu !== '') {
+        $publiques[] = 'Lieu : ' . $lieu;
     }
-    foreach ($ev['feuille'] ?? [] as $el) {
-        $detail = feuille_element_lignes($el);
-        $lignes[] = feuille_element_titre($el) . ($detail ? ' — ' . implode(' · ', $detail) : '');
+    $publiques[] = 'Statut : ' . evenement_statut_libelle((string) ($ev['statut'] ?? ''))
+        . ' · ' . mb_strtolower(evenement_visibilite_libelle((string) ($ev['visibilite'] ?? '')), 'UTF-8');
+    if (trim((string) ($ev['lien_infos'] ?? '')) !== '') {
+        $publiques[] = 'Lien : ' . trim((string) $ev['lien_infos']);
     }
     if (trim((string) ($ev['remarques'] ?? '')) !== '') {
-        $lignes[] = (string) $ev['remarques'];
+        $publiques[] = 'Remarques : ' . trim((string) $ev['remarques']);
     }
-    return implode("\n", $lignes);
+
+    $sections = [feuille_ical_bloc('Infos publiques', $publiques)];
+
+    // Les sections, calculées une fois pour les deux rendus (feuille_sections()).
+    // Chacune a sa mise en ligne : l'heure en tête pour le déroulé, « intitulé :
+    // valeur » pour une adresse. L'adresse de la représentation n'est pas
+    // répétée ici — elle est en tête, ce n'est pas « une adresse parmi
+    // d'autres ».
+    $parSection = [];
+    foreach (feuille_sections($ev) as $sec) {
+        $parSection[$sec['type']] = $sec['elements'];
+    }
+
+    $sections[] = feuille_ical_bloc(FEUILLE_SECTIONS['horaire'],
+        array_map('feuille_ical_ligne_horaire', $parSection['horaire'] ?? []));
+
+    $sections[] = feuille_ical_bloc(FEUILLE_SECTIONS['adresse'], array_map(
+        fn (array $el): string => feuille_ical_ligne_detail($el, trim((string) ($el['adresse'] ?? ''))),
+        $parSection['adresse'] ?? []
+    ));
+
+    // Les contacts de la feuille d'abord — ceux qu'on a notés pour CETTE date —,
+    // puis ceux de l'organisation, pris dans le carnet d'adresses. Les seconds
+    // disent à qui s'adresser quand les premiers ne répondent pas.
+    $contacts = [];
+    foreach ($parSection['contact'] ?? [] as $el) {
+        $qui = implode(' · ', array_filter([
+            feuille_contact_nom($el),
+            trim((string) ($el['c_role'] ?? '')),
+            trim((string) ($el['s_nom'] ?? '')),
+        ]));
+        $coord = implode(' · ', array_filter([feuille_contact_telephone($el), feuille_contact_email($el)]));
+        $titre = feuille_element_titre($el);
+        $ligne = ($qui !== '' && $qui !== $titre) ? $titre . ' : ' . $qui : $titre;
+        $contacts[] = trim($ligne . ($coord !== '' ? ' — ' . $coord : ''));
+        $remarque = trim((string) ($el['remarque'] ?? ''));
+        if ($remarque !== '') {
+            $contacts[] = '  ' . $remarque;
+        }
+    }
+    foreach ($ev['organisateurs'] ?? [] as $org) {
+        $entete = (string) $org['nom']
+            . ($org['organise'] ? ' (organisateur de ' . implode(', ', $org['organise']) . ')' : '');
+        $adresseOrg = feuille_structure_adresse($org);
+        $contacts[] = $entete . ($adresseOrg !== '' ? ' — ' . $adresseOrg : '');
+        foreach ($org['contacts'] as $c) {
+            $contacts[] = '  ' . feuille_contact_ligne($c);
+        }
+    }
+    $sections[] = feuille_ical_bloc(FEUILLE_SECTIONS['contact'], $contacts);
+
+    // Le nom du fichier sert de titre quand l'élément n'en porte pas : le
+    // répéter donnerait « fiche.pdf : fiche.pdf ». On compare donc au nom NU,
+    // avant de lui accoler sa taille.
+    $sections[] = feuille_ical_bloc(FEUILLE_SECTIONS['fichier'], array_map(
+        function (array $el): string {
+            $nom = trim((string) ($el['nom_origine'] ?? ''));
+            $avecTaille = $nom !== '' ? $nom . ' (' . feuille_taille_texte((int) $el['taille']) . ')' : '';
+            $titre = feuille_element_titre($el);
+            $corps = ($nom !== '' && $nom !== $titre) ? $titre . ' : ' . $avecTaille : ($avecTaille ?: $titre);
+            $remarque = trim((string) ($el['remarque'] ?? ''));
+            return trim($corps . ($remarque !== '' ? ' — ' . $remarque : ''));
+        },
+        $parSection['fichier'] ?? []
+    ));
+
+    // Une note sans intitulé n'est que sa remarque : la préfixer de « Note — »
+    // n'apprendrait rien, la section le dit déjà.
+    $sections[] = feuille_ical_bloc(FEUILLE_SECTIONS['note'], array_map(
+        fn (array $el): string => trim((string) ($el['libelle'] ?? '')) !== ''
+            ? feuille_ical_ligne_detail($el, '')
+            : trim((string) ($el['remarque'] ?? '')),
+        $parSection['note'] ?? []
+    ));
+
+    // Une ligne vide entre les sections, aucune en trop : une section absente ne
+    // laisse pas de trou.
+    return implode("\n\n", array_map(
+        fn (array $bloc): string => implode("\n", $bloc),
+        array_values(array_filter($sections, fn (array $b): bool => $b !== []))
+    ));
 }
 
 // Flux iCal du calendrier de l'équipe. $base est l'URL absolue de l'application
@@ -495,12 +684,16 @@ function feuille_generer_ical_equipe(array $evenements, string $base): string
         }
         // Une date annulée reste dans le flux, marquée comme telle : la faire
         // disparaître laisserait croire à un oubli, et l'agenda de chacun garde
-        // ainsi la trace de ce qui était prévu.
-        if ((string) $ev['statut'] === 'annule') {
-            $lignes[] = 'STATUS:CANCELLED';
-        } elseif ((string) $ev['statut'] === 'option') {
-            $lignes[] = 'STATUS:TENTATIVE';
-        }
+        // ainsi la trace de ce qui était prévu. Les trois événements d'une même
+        // date portent le même statut — la bande, le spectacle et les horaires.
+        $statut = static function (array $ev): array {
+            return match ((string) $ev['statut']) {
+                'annule' => ['STATUS:CANCELLED'],
+                'option' => ['STATUS:TENTATIVE'],
+                default  => [],
+            };
+        };
+        $lignes = array_merge($lignes, $statut($ev));
         foreach ($ev['feuille'] ?? [] as $el) {
             if ((string) $el['type'] === 'fichier' && trim((string) $el['fichier']) !== '') {
                 $lignes[] = 'ATTACH;FMTTYPE=' . ((string) $el['mime'] ?: 'application/octet-stream')
@@ -508,6 +701,32 @@ function feuille_generer_ical_equipe(array $evenements, string $base): string
             }
         }
         $lignes[] = 'END:VEVENT';
+
+        // L'heure de représentation de la date — celle qui s'affiche sur sa
+        // fiche — pose son propre créneau : « Spectacle », de début à fin. Elle
+        // ne vivait jusqu'ici que dans la description de la bande de journée,
+        // où aucun agenda ne sait la placer sur une grille horaire. C'est
+        // pourtant l'heure autour de laquelle tourne le reste de la journée.
+        //
+        // Distinct d'un éventuel « Show » du déroulé : celui-là est ce que
+        // l'équipe se note, celui-ci est ce que la date annonce. Les deux
+        // peuvent coexister — et se recouvrir, ce qui n'a rien d'anormal.
+        $bornesEv = evenement_bornes_utc($ev);
+        if ($bornesEv !== null) {
+            $lignes[] = 'BEGIN:VEVENT';
+            $lignes[] = 'UID:equipe-spectacle-' . $id . '@lasso';
+            $lignes[] = 'DTSTAMP:' . $stamp;
+            $lignes[] = 'DTSTART:' . $bornesEv['debut'];
+            if ($bornesEv['fin'] !== null) {
+                $lignes[] = 'DTEND:' . $bornesEv['fin'];
+            }
+            $lignes[] = 'SUMMARY:' . evenements_ical_echap('Spectacle — ' . feuille_ical_titre($ev));
+            if ($lieu !== '') {
+                $lignes[] = 'LOCATION:' . evenements_ical_echap($lieu);
+            }
+            $lignes = array_merge($lignes, $statut($ev));
+            $lignes[] = 'END:VEVENT';
+        }
 
         // Puis un événement daté par horaire.
         foreach ($ev['feuille'] ?? [] as $el) {
@@ -534,6 +753,7 @@ function feuille_generer_ical_equipe(array $evenements, string $base): string
             if (trim((string) $el['remarque']) !== '') {
                 $lignes[] = 'DESCRIPTION:' . evenements_ical_echap((string) $el['remarque']);
             }
+            $lignes = array_merge($lignes, $statut($ev));
             $lignes[] = 'END:VEVENT';
         }
     }

@@ -42,7 +42,8 @@ $frVille = trim((string) ($evenement['ville'] ?? ''));
 
 <?php // Les informations publiques de la date : celles qui partent dans l'export
       // du site. Elles ouvrent la feuille parce que ce sont les repères — où,
-      // quand, pour qui — que le déroulé vient ensuite détailler. ?>
+      // quand, pour qui — que les sections suivantes viennent détailler. ?>
+<h2 class="fr-print-titre">Infos publiques</h2>
 <table class="fr-print-table">
     <tr>
         <th>Statut</th>
@@ -60,16 +61,25 @@ $frVille = trim((string) ($evenement['ville'] ?? ''));
     <?php endif; ?>
 </table>
 
-<?php // Le déroulé dans un cadre : c'est le cœur de la feuille, celui qu'on
-      // relit dix fois dans la journée. Un filet suffit à le détacher de ce qui
-      // l'entoure — un fond plein l'aurait alourdi à l'impression. ?>
-<h2 class="fr-print-titre">Déroulé</h2>
+<?php // Une section par nature — déroulé, adresses, contacts, pièces jointes,
+      // notes —, exactement celles du calendrier d'équipe (feuille_sections()) :
+      // c'est la même feuille, on ne la range pas de deux façons. Le déroulé
+      // dans un cadre : c'est le cœur, celui qu'on relit dix fois dans la
+      // journée. Un filet suffit à le détacher ; un fond plein l'aurait alourdi
+      // à l'impression. ?>
+<?php $frSections = feuille_sections(['feuille' => $elements] + (array) $evenement); ?>
+<?php if (!$frSections): ?>
+<h2 class="fr-print-titre"><?= e(FEUILLE_SECTIONS['horaire']) ?></h2>
 <div class="fr-print-cadre">
-<?php if (!$elements): ?>
     <p class="muted mb-0">Aucun élément dans la feuille de route.</p>
-<?php else: ?>
+</div>
+<?php endif; ?>
+<?php foreach ($frSections as $frSec): ?>
+<h2 class="fr-print-titre"><?= e($frSec['titre']) ?></h2>
+<?php $frCadre = $frSec['type'] === 'horaire'; ?>
+<?php if ($frCadre): ?><div class="fr-print-cadre"><?php endif; ?>
 <table class="fr-print-table">
-    <?php foreach ($elements as $el): ?>
+    <?php foreach ($frSec['elements'] as $el): ?>
     <tr>
         <th><?= e(feuille_element_titre($el)) ?></th>
         <td>
@@ -80,8 +90,8 @@ $frVille = trim((string) ($evenement['ville'] ?? ''));
     </tr>
     <?php endforeach; ?>
 </table>
-<?php endif; ?>
-</div>
+<?php if ($frCadre): ?></div><?php endif; ?>
+<?php endforeach; ?>
 
 <?php // Qui reçoit, et qui décroche le jour même. Repris du carnet d'adresses
       // plutôt que recopié : c'est la fiche de la structure qui fait foi, et

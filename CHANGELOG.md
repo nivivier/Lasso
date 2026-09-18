@@ -7,6 +7,74 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.3] — 2026-09-18
+
+### Ajouté
+- **Le spectacle a son créneau dans le calendrier de l'équipe.** L'heure de
+  représentation d'une date — celle qui s'affiche sur sa fiche — ne vivait que
+  dans la description de la bande de journée, où aucun agenda ne sait la poser
+  sur une grille horaire. Elle pose maintenant son propre événement, « Spectacle
+  — <date> », de début à fin. Il reste distinct d'un éventuel « Show » du
+  déroulé : celui-là est ce que l'équipe se note, celui-ci ce que la date
+  annonce.
+
+### Modifié
+- **La feuille de route se lit par sections**, à l'écran comme au papier :
+  Infos publiques, Déroulé (dans son cadre), Adresses, Contacts, Pièces jointes,
+  Notes, puis Organisation. Elle mêle par nature des choses de natures
+  différentes ; les ranger est ce qui permet de retrouver un code d'entrée ou un
+  numéro sans tout relire. C'est le même découpage que la description du
+  calendrier d'équipe, et le même code qui le calcule — la feuille n'existe pas
+  en deux versions qui divergeraient à la première retouche.
+- **La carte « Déroulé » d'une date s'appelle « Infos supplémentaires ».** Elle
+  ne porte pas que le déroulé : on y saisit aussi des adresses, des contacts,
+  des pièces jointes et des notes, dans l'ordre où on les a. C'est la feuille de
+  route qui les range ensuite par section.
+- **La description d'une date, dans le calendrier de l'équipe, se lit par
+  sections.** Elle était une suite de lignes toutes pareilles, où retrouver une
+  adresse ou un numéro demandait de tout relire. Elle s'ouvre maintenant sur
+  **Infos publiques** (le lieu, le statut, le lien, les remarques), puis vient
+  **Déroulé** — chaque ligne commençant par son heure, pour qu'elles se lisent
+  en colonne —, puis **Adresses**, **Contacts**, **Pièces jointes** et
+  **Notes**. L'heure de représentation prend sa place dans le déroulé, à son
+  rang chronologique, entre le repas et les loges libérées : la journée se lit
+  d'une traite, sans remonter chercher l'heure du concert ailleurs. Les contacts de l'organisation, avec leurs structures mères, y
+  rejoignent ceux notés sur la feuille : c'est à eux qu'on téléphone en
+  arrivant, et l'agenda est ce qu'on a sous la main ce jour-là. Une section sans
+  contenu ne laisse pas de trou.
+
+### Corrigé
+- **Les cases à cocher des listes tombent sous le titre de la page.** Sur
+  `?p=compta_ecritures`, `?p=evenements_liste` et `?p=structures`, leur colonne
+  était calée sur une valeur fixe alors que le titre, les onglets et le champ de
+  recherche suivent tous la gouttière fluide de la page : l'écart se creusait
+  avec la fenêtre — six pixels sur un portable, quinze sur un grand écran. La
+  colonne se cale désormais sur cette même gouttière, et la case s'y aligne à
+  gauche plutôt qu'au centre de sa colonne. Le bouton « retirer les filtres »,
+  qui la précède dans l'en-tête, y gagne au passage dix pixels de dégagement.
+- **Les messages de confirmation d'« Infos supplémentaires » disent ce qui vient
+  d'être fait** : « Information ajoutée », « modifiée », « supprimée », « Ordre
+  enregistré », « Déroulé type ajouté ». Un message unique — « Feuille de route
+  enregistrée » — parlait de la feuille entière alors qu'on venait de toucher à
+  une seule ligne, et laissait douter du geste qu'on venait de faire.
+- **Sur téléphone, les icônes d'une ligne un peu longue sortaient de la carte.**
+  La poignée de glisser-déposer y est masquée, donc retirée de la grille : les
+  deux éléments restants se rangeaient dans les deux premières pistes, le texte
+  dans celle qui s'étire à son contenu et les boutons dans celle qui n'avait
+  plus rien à leur donner. La ligne compte désormais deux pistes sur téléphone,
+  puisqu'elle a deux éléments.
+- **Sur téléphone, les boutons d'une ligne du déroulé se superposaient au
+  texte** : leur colonne, à laquelle on avait retiré toute largeur minimale,
+  se réduisait à rien et ses boutons débordaient par-dessus la ligne — cinq
+  d'entre eux en mode édition. Elle réserve désormais exactement ce qu'ils
+  occupent, et en édition ils prennent leur propre rangée sous le formulaire :
+  cinq boutons et des champs ne tiennent pas côte à côte sur 285 px.
+  « Enregistrer » y perd son libellé, son fond plein suffisant à le distinguer —
+  et il prend l'icône et la boîte de ses voisins, sans quoi il gardait celles
+  d'un bouton à texte : une icône plus petite dans un cadre plus large.
+- **Une date annulée ou en option ne l'était que sur sa bande de journée** dans
+  le calendrier de l'équipe ; ses horaires, eux, s'affichaient comme confirmés.
+
 ## [2.8.2] — 2026-09-17
 
 ### Ajouté

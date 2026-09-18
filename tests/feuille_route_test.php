@@ -161,5 +161,130 @@ foreach (FEUILLE_TYPES as $cle => $meta) {
         ['libelle', 'icone', 'aide', 'champs'], array_keys($meta));
 }
 
+echo "\n8) Calendrier de l'équipe : le spectacle a son créneau\n";
+// L'heure de représentation de la date pose son propre événement, distinct de
+// la bande de journée et des horaires du déroulé. Europe/Zurich : le 18.09,
+// 20:30 locales = 18:30 UTC (heure d'été).
+$evIcal = [
+    'id' => 42, 'date' => '2026-09-18', 'statut' => 'confirme',
+    'heure_debut' => '20:30', 'heure_fin' => '22:00',
+    'spectacle_nom' => 'Tant qu\'on déborde', 'spectacle_parent_nom' => 'Hector ou rien',
+    'ville' => 'Nyon', 'salle' => 'L\'Usine à Gaz',
+    'adresse_rue' => '', 'adresse_npa' => '', 'remarques' => '',
+    'feuille' => [['id' => 7, 'type' => 'horaire', 'libelle' => 'Get-in',
+                   'debut' => '14:00', 'fin' => '', 'remarque' => '']],
+];
+$ical = feuille_generer_ical_equipe([$evIcal], 'https://exemple.test/?p=evenement_fichier&jeton=x');
+check('un événement « Spectacle » est posé', 1, substr_count($ical, 'UID:equipe-spectacle-42@lasso'));
+check('il commence à l\'heure annoncée, en UTC', true, str_contains($ical, 'DTSTART:20260918T183000Z'));
+check('il finit à l\'heure annoncée', true, str_contains($ical, 'DTEND:20260918T200000Z'));
+check('son titre le nomme', true, str_contains($ical, 'SUMMARY:Spectacle — Hector ou rien (Tant qu\'on déborde) — Nyon'));
+check('la bande de journée reste une journée entière', true, str_contains($ical, 'DTSTART;VALUE=DATE:20260918'));
+check('les horaires du déroulé restent posés', 1, substr_count($ical, 'UID:equipe-feuille-7@lasso'));
+
+// Sans heure, rien à poser : la bande de journée porte seule la date.
+$evSansHeure = ['heure_debut' => '', 'heure_fin' => ''] + $evIcal;
+$evSansHeure['id'] = 43;
+$icalSansHeure = feuille_generer_ical_equipe([$evSansHeure], 'https://exemple.test/?p=x');
+check('sans heure, pas d\'événement « Spectacle »', 0, substr_count($icalSansHeure, 'equipe-spectacle-43'));
+
+// Une date annulée l'est sur ses trois entrées, pas seulement sur la bande.
+$evAnnule = $evIcal;
+$evAnnule['id'] = 44;
+$evAnnule['statut'] = 'annule';
+$icalAnnule = feuille_generer_ical_equipe([$evAnnule], 'https://exemple.test/?p=x');
+check('annulée : la bande, le spectacle et l\'horaire portent le statut', 3,
+    substr_count($icalAnnule, 'STATUS:CANCELLED'));
+
+echo "\n9) Calendrier de l'équipe : la description est sectionnée\n";
+// Une description iCal est du texte brut : les sections en capitales, séparées
+// d'une ligne vide, sont toute la mise en page dont on dispose.
+$evDesc = $evIcal + [];
+$evDesc['visibilite'] = 'public';
+$evDesc['lien_infos'] = 'https://exemple.test/date';
+$evDesc['remarques'] = 'Parking derrière la salle.';
+$evDesc['adresse_rue'] = 'Rue César-Soulié 1';
+$evDesc['adresse_npa'] = '1260';
+$evDesc['feuille'] = [
+    ['id' => 1, 'type' => 'horaire', 'libelle' => 'Get-in', 'debut' => '14:00', 'fin' => '', 'remarque' => 'porte de derrière'],
+    ['id' => 2, 'type' => 'horaire', 'libelle' => 'Soundcheck', 'debut' => '16:00', 'fin' => '17:30', 'remarque' => ''],
+    ['id' => 3, 'type' => 'adresse', 'libelle' => 'Hôtel', 'adresse' => 'Rue de la Gare 4', 'remarque' => 'code 1234B'],
+    ['id' => 4, 'type' => 'contact', 'libelle' => 'Régie', 'c_prenom' => 'Kévin', 'c_nom' => 'Roux',
+     'c_role' => 'Régisseur général', 's_nom' => 'L\'Usine à Gaz', 'c_telephone' => '+41 22 000 00 00',
+     'c_email' => '', 'prenom' => '', 'nom' => '', 'telephone' => '', 'email' => '', 'remarque' => ''],
+    ['id' => 5, 'type' => 'fichier', 'libelle' => '', 'nom_origine' => 'fiche.pdf', 'taille' => 1468006, 'remarque' => ''],
+    ['id' => 6, 'type' => 'note', 'libelle' => '', 'remarque' => 'deux repas végétariens'],
+];
+$evDesc['organisateurs'] = [
+    ['nom' => 'Le Bijou', 'organise' => [], 'adresse_rue' => 'Rue du Pont 2', 'adresse_npa' => '1260',
+     'adresse_localite' => 'Nyon', 'adresse_pays' => 'Suisse',
+     'contacts' => [['prenom' => 'Aline', 'nom' => 'Favre', 'role' => 'Programmation',
+                     'telephone' => '+41 22 111 11 11', 'email' => '']]],
+];
+$desc = feuille_ical_description($evDesc);
+$sections = array_map(fn (string $b): string => explode("\n", $b)[0], explode("\n\n", $desc));
+check('les sections, dans l\'ordre',
+    ['INFOS PUBLIQUES', 'DÉROULÉ', 'ADRESSES', 'CONTACTS', 'PIÈCES JOINTES', 'NOTES'], $sections);
+check('l\'heure ouvre une ligne de déroulé', true,
+    str_contains($desc, "\n14:00  Get-in — porte de derrière\n"));
+check('un horaire avec fin garde ses deux bornes', true,
+    str_contains($desc, '16:00 – 17:30  Soundcheck'));
+check('une adresse porte son intitulé et sa remarque', true,
+    str_contains($desc, 'Hôtel : Rue de la Gare 4 — code 1234B'));
+check('un contact de la feuille précède ceux de l\'organisation', true,
+    strpos($desc, 'Régie : Kévin Roux') < strpos($desc, 'Le Bijou'));
+check('les contacts d\'une structure sont indentés sous elle', true,
+    str_contains($desc, "\n  Aline Favre (Programmation) — +41 22 111 11 11"));
+check('le nom d\'un fichier ne se répète pas', true, str_contains($desc, "\nfiche.pdf (1,4 Mo)"));
+check('une note sans intitulé n\'est que sa remarque', true,
+    str_contains($desc, "NOTES\ndeux repas végétariens"));
+check('le lien et les remarques sont dans les infos publiques', true,
+    str_contains($desc, 'Lien : https://exemple.test/date')
+    && str_contains($desc, 'Remarques : Parking derrière la salle.'));
+
+// Une date sans feuille ni organisateur ne laisse pas de section vide.
+$evNu = ['date' => '2026-09-18', 'statut' => 'confirme', 'visibilite' => 'public',
+         'heure_debut' => '', 'heure_fin' => '', 'salle' => '', 'ville' => 'Nyon',
+         'adresse_rue' => '', 'adresse_npa' => '', 'remarques' => '', 'feuille' => []];
+// L'heure de représentation se glisse dans le déroulé, à son rang.
+$lignesDeroule = function (array $ev): array {
+    foreach (explode("\n\n", feuille_ical_description($ev)) as $bloc) {
+        $l = explode("\n", $bloc);
+        if ($l[0] === 'DÉROULÉ') { return array_slice($l, 1); }
+    }
+    return [];
+};
+$evOrdre = $evDesc;
+$evOrdre['feuille'] = [
+    ['id' => 1, 'type' => 'horaire', 'libelle' => 'Get-in', 'debut' => '14:00', 'fin' => '', 'remarque' => ''],
+    ['id' => 2, 'type' => 'horaire', 'libelle' => 'Repas', 'debut' => '18:30', 'fin' => '', 'remarque' => ''],
+    ['id' => 3, 'type' => 'horaire', 'libelle' => 'Loges libérées', 'debut' => '23:30', 'fin' => '', 'remarque' => ''],
+];
+check('le spectacle se glisse à son rang chronologique',
+    ['14:00  Get-in', '18:30  Repas', '20:30 – 22:00  Spectacle', '23:30  Loges libérées'],
+    $lignesDeroule($evOrdre));
+
+$evTard = $evOrdre;
+$evTard['heure_debut'] = '23:59';
+$evTard['heure_fin'] = '';
+check('plus tardif que tous, il ferme la liste',
+    ['14:00  Get-in', '18:30  Repas', '23:30  Loges libérées', '23:59  Spectacle'],
+    $lignesDeroule($evTard));
+
+$evSeul = $evOrdre;
+$evSeul['feuille'] = [];
+check('sans aucun horaire, il est le déroulé à lui seul',
+    ['20:30 – 22:00  Spectacle'], $lignesDeroule($evSeul));
+
+$evMuet = $evOrdre;
+$evMuet['heure_debut'] = '';
+$evMuet['heure_fin'] = '';
+check('sans heure annoncée, le déroulé reste celui de la feuille',
+    ['14:00  Get-in', '18:30  Repas', '23:30  Loges libérées'], $lignesDeroule($evMuet));
+
+check('une date nue n\'a que ses infos publiques',
+    ['INFOS PUBLIQUES'],
+    array_map(fn (string $b): string => explode("\n", $b)[0], explode("\n\n", feuille_ical_description($evNu))));
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

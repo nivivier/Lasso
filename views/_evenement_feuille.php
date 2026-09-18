@@ -1,5 +1,6 @@
 <?php
-// Carte « Déroulé » d'un événement : une liste ordonnée d'éléments de types
+// Carte « Infos supplémentaires » d'un événement : une liste ordonnée
+// d'éléments de types
 // différents (horaire, adresse, contact, pièce jointe, note — voir
 // FEUILLE_TYPES, lib/feuille_route.php). C'est la section que l'on compose ici ;
 // la FEUILLE DE ROUTE, elle, est le document entier — le déroulé plus les
@@ -52,12 +53,14 @@ $mailSans = trim((string) ($_GET['mailSans'] ?? ''));
               // (.feuille-head est une rangée qui s'enroule) : à leur place, il
               // aurait été comprimé dans la largeur d'un bouton. ?>
         <div class="card-head-row feuille-head">
-            <?php // « Déroulé », comme sur la feuille elle-même : la carte en
-                  // compose une section, elle n'est pas la feuille entière —
-                  // celle-ci porte aussi les informations de la date et
-                  // l'organisation. Sans compteur : on ne consulte pas une
-                  // feuille de route pour savoir combien elle a de lignes. ?>
-            <h2 class="mt-0">Déroulé</h2>
+            <?php // « Infos supplémentaires » et non « Déroulé » : la carte
+                  // mêle le déroulé de la journée, des adresses, des contacts,
+                  // des pièces jointes et des notes — c'est la feuille de route
+                  // qui les range par section (feuille_sections()), ici on les
+                  // saisit dans l'ordre où on les a. Sans compteur : on ne
+                  // consulte pas une feuille de route pour savoir combien elle a
+                  // de lignes. ?>
+            <h2 class="mt-0">Infos supplémentaires</h2>
             <?php // Un dépliant par type : le choix du type change les champs, et un
                   // seul formulaire qui se réécrirait demanderait du JavaScript pour
                   // ce que cinq intitulés disent mieux. ?>
@@ -92,7 +95,19 @@ $mailSans = trim((string) ($_GET['mailSans'] ?? ''));
             </div>
         </div>
 
-        <?php if ($ok === 'feuille'): ?><p class="ok flash">Déroulé enregistré.</p><?php endif; ?>
+        <?php // Le message dit CE QUI vient d'être fait : une ligne ajoutée n'est
+              // pas une ligne supprimée, et « information » plutôt que « feuille
+              // de route » — on vient de toucher à UNE ligne, pas à la feuille
+              // entière. ?>
+        <?php $okFeuille = match ($ok) {
+            'feuille_ajout'   => 'Information ajoutée.',
+            'feuille_modif'   => 'Information modifiée.',
+            'feuille_suppr'   => 'Information supprimée.',
+            'feuille_ordre'   => 'Ordre enregistré.',
+            'feuille_deroule' => 'Déroulé type ajouté.',
+            default           => '',
+        }; ?>
+        <?php if ($okFeuille !== ''): ?><p class="ok flash"><?= e($okFeuille) ?></p><?php endif; ?>
         <?php // Compte rendu de l'envoi à l'équipe. Les trois codes d'échec disent
               // ce qui manque plutôt que « échec » : sans adresse d'expédition,
               // sans employé lié, ou sans aucune adresse chez eux — trois
@@ -175,7 +190,7 @@ $mailSans = trim((string) ($_GET['mailSans'] ?? ''));
                           // enregistrer et supprimer se rangent avant elle. Le bouton
                           // d'enregistrement est rattaché au formulaire de la ligne par
                           // form=, puisqu'il vit hors de lui. ?>
-                    <button type="submit" form="plan-edit-<?= (int) $el['id'] ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
+                    <button type="submit" form="plan-edit-<?= (int) $el['id'] ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?><span class="lbl"> Enregistrer</span></button>
                     <?php // La suppression d'une pièce jointe emporte le fichier :
                           // elle se confirme, contrairement au retrait d'un horaire. ?>
                     <form method="post" action="?p=evenement_feuille_supprimer" class="d-inline plan-supprimer"

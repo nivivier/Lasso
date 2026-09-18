@@ -2926,9 +2926,25 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 /* Colonne des cases à cocher : le bouton se place AVANT la case, il faut donc
    élargir la colonne — en-tête ET corps, sinon la case de l'en-tête ne serait
    plus alignée sur celles des lignes. Le :has() vise les seules listes qui
-   portent le bouton, pour ne pas élargir les autres tableaux à cases. */
+   portent le bouton, pour ne pas élargir les autres tableaux à cases.
+
+   La case se cale sur --content-pad, la gouttière de la page : elle tombe alors
+   exactement sous le titre, les onglets et le champ de recherche, qui s'en
+   servent tous. Une valeur fixe ne pouvait pas y suffire — cette gouttière est
+   fluide (clamp(20px, 3.2vw, 48px)), et l'écart se creusait avec la fenêtre :
+   6px sur un portable, 15 sur un grand écran. Alignée à GAUCHE et non centrée,
+   pour que ce soit la case elle-même qui tombe sur la ligne, pas le milieu de
+   sa colonne. */
 .list:has(thead th.col-check.col-reinit-hote) .col-check,
-.list-wide:has(thead th.col-check.col-reinit-hote) .col-check { width: 62px; padding-left: 28px; }
+.list-wide:has(thead th.col-check.col-reinit-hote) .col-check {
+    width: calc(var(--content-pad) + 34px);
+    padding-left: var(--content-pad);
+    text-align: left;
+}
+/* La marge par défaut d'une case à cocher (3px sous Chrome) la décalerait de
+   la gouttière : c'est le bord de la case qui doit tomber sur la ligne. */
+.list:has(thead th.col-check.col-reinit-hote) .col-check input[type="checkbox"],
+.list-wide:has(thead th.col-check.col-reinit-hote) .col-check input[type="checkbox"] { margin-left: 0; }
 .reinit-filtres { position: absolute; left: 3px; top: 50%; transform: translateY(-50%);
     display: inline-flex; align-items: center; justify-content: center;
     width: 24px; height: 24px; border-radius: var(--radius-sm); color: var(--muted); }
@@ -4886,10 +4902,36 @@ abbr {
        rangée suivante coûtait une ligne par élément — souvent pour le seul
        crayon, alors que la place était là. Ce qui se réserve pour aligner les
        colonnes sur grand écran est simplement rendu au texte. */
-    .feuille-item { gap: 0 4px; }
-    .feuille-actions { min-width: 0; }
+    /* DEUX pistes, et non trois : la poignée de glisser-déposer est masquée sur
+       téléphone (plus bas), donc retirée de la grille. Les deux éléments
+       restants se rangeaient alors dans les deux PREMIÈRES pistes — le texte
+       dans la piste « auto », qui s'étire à son contenu, et les boutons dans le
+       « 1fr » qui n'avait plus rien à leur donner. Une ligne un peu longue
+       poussait ainsi les icônes hors de la carte. */
+    .feuille-item { grid-template-columns: minmax(0, 1fr) auto; gap: 0 4px; }
+    /* max-content, et non 0 : à 0 la colonne d'actions se réduisait à rien et
+       ses boutons débordaient PAR-DESSUS le texte de la ligne — spectaculaire
+       en édition, où ils sont cinq. Elle réserve donc exactement ce que ses
+       boutons occupent, ni les 127px du grand écran, ni rien. */
+    .feuille-actions { min-width: max-content; }
     .feuille-sommaire { gap: 7px; }
     .feuille-actions .btn { opacity: 1; }
+    /* En édition, les boutons prennent leur propre rangée sous le formulaire :
+       cinq boutons et des champs ne tiennent pas côte à côte sur 285px, et
+       c'est le formulaire qu'il faut servir en premier. En lecture la ligne
+       garde ses deux zones — il n'y a là que des icônes. */
+    .dnd-on .feuille-item.editing { grid-template-columns: minmax(0, 1fr); }
+    .dnd-on .feuille-item.editing .feuille-sommaire,
+    .dnd-on .feuille-item.editing .feuille-actions { grid-column: 1 / -1; }
+    .dnd-on .feuille-item.editing .feuille-actions { padding-top: 6px; }
+    /* « Enregistrer » perd son libellé : il reste mis en évidence par son fond
+       plein, et la rangée tient alors en cinq icônes. Il n'est pas .icon-only
+       pour autant — il a un libellé sur grand écran —, et sans ces deux règles
+       il gardait l'icône de 16px et le remplissage d'un bouton à texte : plus
+       petite que celles de ses voisins, dans une boîte plus large. */
+    .feuille-actions .lbl { display: none; }
+    .feuille-actions .btn-sm:not(.icon-only) { padding: 0 6px; min-height: var(--action-height-sm); }
+    .feuille-actions .btn-sm .ico { width: 17px; height: 17px; }
     /* Les flèches rejoignent la corbeille : visibles seulement sur la ligne
        ouverte en modification. Deux boutons de 41px prenaient 84px des 285
        disponibles, et le texte, réduit à 128px, passait à la ligne alors qu'il

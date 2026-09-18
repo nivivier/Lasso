@@ -165,7 +165,7 @@ refermer, où que soit la souris quand on change d'avis.
 
 | ordre | | |
 | --- | --- | --- |
-| 1 | **Enregistrer** | mis en évidence (`class="btn btn-sm"`, pas `ghost`), avec son libellé |
+| 1 | **Enregistrer** | mis en évidence (`class="btn btn-sm"`, pas `ghost`), avec son libellé dans un `<span class="lbl">` — que l'écran étroit efface, le fond plein suffisant alors à le distinguer |
 | 2 | **Supprimer** | rouge (`btn danger`), classe `.plan-supprimer` |
 | 3 | **Annuler** | une croix (`btn ghost icon-only`), classe `.plan-annuler-btn`, **à la place du crayon** |
 

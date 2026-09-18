@@ -192,7 +192,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    dossiers servis par le web, et ne se téléchargent que depuis l'application,
    connecté. Un **calendrier iCal de l'équipe**, avec son propre jeton, diffuse
    ces feuilles de route : chaque date y est une bande de journée portant la
-   feuille entière, plus un événement daté par horaire. Il montre aussi les
+   feuille entière, **le spectacle** sur son heure de représentation, et un
+   événement daté par horaire du déroulé. Il montre aussi les
    dates en option et les non répertoriées, que l'export public tait — ce lien
    est un mot de passe, et le régénérer (Paramètres → Événements) coupe tous
    les abonnements d'un coup. Depuis la fiche de l'événement, la feuille se
@@ -203,10 +204,16 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    e-mail à l'équipe de la date, un message par personne (les adresses ne
    circulent pas entre elles), avec un compte rendu qui distingue les envoyés,
    les échecs et ceux qui n'ont pas d'adresse.
-   Le déroulé se compose sur la fiche, dans une carte du même nom ; ses lignes
-   se réordonnent au **glisser-déposer**, sans recharger la page. Un bouton
+   Elle se compose sur la fiche, dans la carte **« Infos supplémentaires »** —
+   on y saisit dans l'ordre où l'on a les informations ; ses lignes se
+   réordonnent au **glisser-déposer**, sans recharger la page. Un bouton
    « Déroulé type » pose d'un coup les cinq moments d'une journée de tournée
-   (Départ, Get-in, Soundcheck, Repas, Show).
+   (Départ, Get-in, Soundcheck, Repas, Show). La feuille, elle, range tout par
+   **section** — Infos publiques, Déroulé, Adresses, Contacts, Pièces jointes,
+   Notes, Organisation —, à l'écran, au papier et dans la description du
+   calendrier d'équipe : c'est la même feuille, elle n'est pas rangée de deux
+   façons. L'heure de représentation prend sa place dans le déroulé, à son rang
+   chronologique.
 9. **Booking** : structures et contacts, tags, lieux géocodés sur une carte,
    et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
    modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
