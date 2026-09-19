@@ -206,9 +206,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    les échecs et ceux qui n'ont pas d'adresse.
    Elle se compose sur la fiche, dans la carte **« Infos supplémentaires »** —
    on y saisit dans l'ordre où l'on a les informations ; ses lignes se
-   réordonnent au **glisser-déposer**, sans recharger la page. Un bouton
-   « Déroulé type » pose d'un coup les cinq moments d'une journée de tournée
-   (Départ, Get-in, Soundcheck, Repas, Show). La feuille, elle, range tout par
+   réordonnent au **glisser-déposer**, sans recharger la page. Les moments
+   d'une journée de tournée (Départ, Get-in, Soundcheck, Repas, Show) sont
+   proposés en suggestions sous le champ « Intitulé » d'un horaire. La feuille,
+   elle, range tout par
    **section** — Infos publiques, Déroulé, Adresses, Contacts, Pièces jointes,
    Notes, Organisation —, à l'écran, au papier et dans la description du
    calendrier d'équipe : c'est la même feuille, elle n'est pas rangée de deux

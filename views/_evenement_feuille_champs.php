@@ -24,8 +24,7 @@ $fv = fn (string $cle): string => e((string) ($fEl[$cle] ?? ''));
 <?php if (in_array('libelle', $fChamps, true)): ?>
 <?php // Sur un horaire, les intitulés se répètent d'une date à l'autre : une
       // liste native les propose à la saisie, sans interdire d'en taper un
-      // autre. C'est la même liste que le bouton « Déroulé type » (voir
-      // FEUILLE_HORAIRES_TYPES, lib/feuille_route.php). ?>
+      // autre (FEUILLE_HORAIRES_TYPES, lib/feuille_route.php). ?>
 <?php $fListe = in_array('debut', $fChamps, true) ? 'feuille-horaires-types' : ''; ?>
 <label class="fr-champ fr-libelle">Intitulé <input name="libelle" value="<?= $fv('libelle') ?>"
     placeholder="<?= e($fAide) ?>"<?= $fListe !== '' ? ' list="' . $fListe . '"' : '' ?>></label>

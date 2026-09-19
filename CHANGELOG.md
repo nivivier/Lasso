@@ -7,6 +7,19 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.6] — 2026-09-19
+
+### Modifié
+- **L'œil qui montre ou cache une carte du tableau de bord ferme sa ligne**, à
+  droite, au lieu de l'ouvrir : c'est l'action de cette ligne-là, et les yeux
+  alignés se lisent comme une colonne.
+
+### Supprimé
+- **Le bouton « Déroulé type » d'une date.** Les cinq moments d'une journée de
+  tournée restent proposés là où ils servent vraiment — en suggestions sous le
+  champ « Intitulé » d'un horaire —, plutôt que posés d'office en cinq lignes
+  qu'il fallait ensuite compléter et élaguer.
+
 ## [2.8.5] — 2026-09-19
 
 ### Modifié

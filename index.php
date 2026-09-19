@@ -252,7 +252,6 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenement_employe_delier' => 'route_evenement_employe_delier',
     'evenement_ligne_ajouter'     => 'route_evenement_ligne_ajouter',
     'evenement_feuille_ajouter'   => 'route_evenement_feuille_ajouter',
-    'evenement_feuille_deroule'   => 'route_evenement_feuille_deroule',
     'evenement_feuille_imprimer'  => 'route_evenement_feuille_imprimer',
     'evenement_feuille_email'     => 'route_evenement_feuille_email',
     'evenement_feuille_modifier'  => 'route_evenement_feuille_modifier',

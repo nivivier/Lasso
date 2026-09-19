@@ -1835,22 +1835,6 @@ function route_evenement_fichier(): void
     exit;
 }
 
-// Pose le déroulé type d'une journée — Départ, Get-in, Soundcheck, Repas,
-// Show — en une fois (FEUILLE_HORAIRES_TYPES, lib/feuille_route.php). Les
-// heures se remplissent ensuite, ligne par ligne ; ce qui ne sert pas se
-// supprime comme n'importe quel élément.
-function route_evenement_feuille_deroule(): void
-{
-    require_login();
-    $evenementId = (int) ($_POST['evenement_id'] ?? 0);
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($evenementId)) {
-        redirect('evenements_liste');
-    }
-    check_csrf();
-    feuille_deroule_type($evenementId);
-    feuille_retour($evenementId, null, '', 'deroule');
-}
-
 // --- Calendrier de l'équipe -------------------------------------------------
 // Le jeton est-il fourni et juste ? Sert à deux endroits : le flux lui-même, et
 // le téléchargement d'une pièce jointe référencée par ce flux.

@@ -25,8 +25,6 @@
 //   $id, $peutEcrireEv, $ok, $errFeuille.
 $feuilleElements = $feuilleElements ?? [];
 $feuilleContacts = $feuilleContacts ?? [];
-// Un déroulé déjà entamé n'a plus besoin qu'on le lui propose en bloc.
-$feuilleAHoraire = (bool) array_filter($feuilleElements, fn (array $el): bool => (string) $el['type'] === 'horaire');
 // Type d'élément à ajouter, choisi dans le menu « + » : le formulaire est déplié
 // par le serveur, il n'y a rien à tenir côté client.
 $feuilleAjout = valeur_autorisee($_GET['ajout'] ?? '', array_keys(FEUILLE_TYPES));
@@ -65,16 +63,6 @@ $mailSans = trim((string) ($_GET['mailSans'] ?? ''));
                   // seul formulaire qui se réécrirait demanderait du JavaScript pour
                   // ce que cinq intitulés disent mieux. ?>
             <div class="feuille-ajout">
-                <?php // Le déroulé type, tant qu'aucun horaire n'est posé : d'une
-                      // date à l'autre ce sont les mêmes cinq moments, et les
-                      // retaper chaque fois n'apprend rien à personne. ?>
-                <?php if (!$feuilleAHoraire): ?>
-                <form method="post" action="?p=evenement_feuille_deroule" class="d-inline">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="evenement_id" value="<?= (int) $id ?>">
-                    <button type="submit" class="btn ghost" title="Pose <?= e(implode(', ', FEUILLE_HORAIRES_TYPES)) ?> — à compléter et à élaguer ensuite."><?= icon('rows-3') ?> Déroulé type</button>
-                </form>
-                <?php endif; ?>
                 <?php // Cinq boutons pour cinq types encombraient l'en-tête d'une
                       // carte qui n'en demandait qu'un. Un « + » les déplie en
                       // menu, comme les entonnoirs des colonnes de liste.
@@ -104,7 +92,6 @@ $mailSans = trim((string) ($_GET['mailSans'] ?? ''));
             'feuille_modif'   => 'Information modifiée.',
             'feuille_suppr'   => 'Information supprimée.',
             'feuille_ordre'   => 'Ordre enregistré.',
-            'feuille_deroule' => 'Déroulé type ajouté.',
             default           => '',
         }; ?>
         <?php if ($okFeuille !== ''): ?><p class="ok flash"><?= e($okFeuille) ?></p><?php endif; ?>

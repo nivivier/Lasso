@@ -51,36 +51,11 @@ const FEUILLE_TYPES = [
     ],
 ];
 
-// Le déroulé type d'une journée. D'une date à l'autre, ce sont les mêmes cinq
-// moments, dans le même ordre — seules les heures changent. Les proposer d'un
-// coup évite de retaper cinq fois les mêmes mots ; ce qui ne sert pas se
-// supprime, ce qui manque s'ajoute, comme n'importe quelle autre ligne.
+// Les moments d'une journée de tournée. D'une date à l'autre ce sont les mêmes,
+// dans le même ordre — seules les heures changent. Proposés en suggestions sous
+// le champ « Intitulé » d'un horaire (<datalist>, views/_evenement_feuille.php)
+// plutôt qu'imposés : une ligne de déroulé porte le nom qu'on lui donne.
 const FEUILLE_HORAIRES_TYPES = ['Départ', 'Get-in', 'Soundcheck', 'Repas', 'Show'];
-
-// Pose le déroulé type sur une feuille de route, sans heures — elles se
-// remplissent ensuite, ligne par ligne. N'ajoute que les intitulés ABSENTS :
-// deux clics de suite ne doivent pas donner deux « Get-in », et l'on peut
-// compléter un déroulé déjà entamé. Retourne le nombre de lignes ajoutées.
-function feuille_deroule_type(int $evenementId): int
-{
-    $stmt = db()->prepare("SELECT libelle FROM evenement_feuille WHERE evenement_id = ? AND type = 'horaire'");
-    $stmt->execute([$evenementId]);
-    $deja = array_map(
-        fn (string $l): string => mb_strtolower(trim($l), 'UTF-8'),
-        $stmt->fetchAll(PDO::FETCH_COLUMN)
-    );
-    $ordre = feuille_ordre_suivant($evenementId);
-    $ins = db()->prepare("INSERT INTO evenement_feuille (evenement_id, type, ordre, libelle) VALUES (?, 'horaire', ?, ?)");
-    $ajoutes = 0;
-    foreach (FEUILLE_HORAIRES_TYPES as $libelle) {
-        if (in_array(mb_strtolower($libelle, 'UTF-8'), $deja, true)) {
-            continue;
-        }
-        $ins->execute([$evenementId, $ordre++, $libelle]);
-        $ajoutes++;
-    }
-    return $ajoutes;
-}
 
 // Dossier des pièces jointes : sous data/, et non dans uploads/ comme les logos.
 // C'est toute la différence — uploads/ est délibérément servi par le serveur web,

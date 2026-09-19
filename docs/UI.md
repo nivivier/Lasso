@@ -507,9 +507,10 @@ contraire, quand la création est prévue (lier une salle depuis une structure).
 </form>
 ```
 
-Quand une liste recommence toujours par les mêmes entrées, offrir un bouton qui
-les pose d'un coup (« Déroulé type »), **idempotent** : n'ajoute que ce qui
-manque, comparaison insensible à la casse.
+Quand une liste recommence toujours par les mêmes entrées, les proposer en
+**suggestions** sous le champ qui les reçoit (`<datalist>`) plutôt que de les
+poser d'office : on garde la main sur ce qu'on écrit, et rien n'est à élaguer
+ensuite.
 
 ## 6. Menus déroulants
 

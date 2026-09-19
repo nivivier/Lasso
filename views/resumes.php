@@ -480,15 +480,6 @@ $cartes = [];
             <?php $dashCachee = in_array($dashId, $dashCachees, true); ?>
             <div class="dash-reglage-ligne plan-row<?= $dashCachee ? ' est-cachee' : '' ?>" data-id="<?= e($dashId) ?>">
                 <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
-                <form method="post" action="?p=resumes" class="d-inline">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="section" value="visible">
-                    <input type="hidden" name="carte" value="<?= e($dashId) ?>">
-                    <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
-                    <button type="submit" class="btn ghost btn-sm icon-only"
-                            title="<?= $dashCachee ? 'Afficher' : 'Masquer' ?>"
-                            aria-label="<?= $dashCachee ? 'Afficher' : 'Masquer' ?> la carte <?= e($cartes[$dashId]['titre']) ?>"><?= icon($dashCachee ? 'eye-off' : 'eye') ?></button>
-                </form>
                 <span class="dash-reglage-nom"><?= e($cartes[$dashId]['titre']) ?></span>
                 <?php // Repli sans JavaScript : les flèches, masquées dès que le
                       // glisser-déposer est actif (.dnd-on .plan-fallback). ?>
@@ -499,6 +490,18 @@ $cartes = [];
                     <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
                     <button type="submit" name="dir" value="up" class="btn ghost btn-sm icon-only" title="Monter" aria-label="Monter <?= e($cartes[$dashId]['titre']) ?>" <?= $dashRang === 0 ? 'disabled' : '' ?>><?= icon('chevron-up') ?></button>
                     <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre <?= e($cartes[$dashId]['titre']) ?>" <?= $dashRang === $dashDernier ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
+                </form>
+                <?php // L'œil ferme la ligne, tout à droite : c'est l'action de
+                      // cette ligne-là (docs/UI.md § 1), et les yeux alignés se
+                      // lisent comme une colonne. ?>
+                <form method="post" action="?p=resumes" class="d-inline">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="section" value="visible">
+                    <input type="hidden" name="carte" value="<?= e($dashId) ?>">
+                    <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
+                    <button type="submit" class="btn ghost btn-sm icon-only"
+                            title="<?= $dashCachee ? 'Afficher' : 'Masquer' ?>"
+                            aria-label="<?= $dashCachee ? 'Afficher' : 'Masquer' ?> la carte <?= e($cartes[$dashId]['titre']) ?>"><?= icon($dashCachee ? 'eye-off' : 'eye') ?></button>
                 </form>
             </div>
             <?php endforeach; ?>

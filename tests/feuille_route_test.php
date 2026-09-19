@@ -91,23 +91,6 @@ check('un déplacement réaligne les rangs, puis échange', ['Balances', 'Get-in
 $rangs = array_column(feuille_elements(1), 'ordre');
 check('les rangs sont renumérotés sans trou', [1, 2, 3], array_map('intval', $rangs));
 
-echo "\n3 bis) Déroulé type\n";
-$pdo->exec('DELETE FROM evenement_feuille');
-check('cinq lignes posées d\'un coup', 5, feuille_deroule_type(1));
-check('dans l\'ordre de la journée', FEUILLE_HORAIRES_TYPES, $ordre());
-check('toutes sans heure — elles se remplissent ensuite', ['', '', '', '', ''],
-    array_column(feuille_elements(1), 'debut'));
-// Deux clics de suite ne doivent pas donner deux « Get-in ».
-check('un second appel n\'ajoute rien', 0, feuille_deroule_type(1));
-$pdo->exec("DELETE FROM evenement_feuille WHERE libelle IN ('Repas', 'Show')");
-check('seules les lignes manquantes reviennent', 2, feuille_deroule_type(1));
-check('et reprennent leur place à la suite', FEUILLE_HORAIRES_TYPES, $ordre());
-// Un intitulé retapé à la main, dans une autre casse, reste le même moment.
-$pdo->exec('DELETE FROM evenement_feuille');
-$pdo->exec("INSERT INTO evenement_feuille (evenement_id, type, ordre, libelle) VALUES (1, 'horaire', 1, 'get-in')");
-check('la casse n\'engendre pas de doublon', 4, feuille_deroule_type(1));
-$pdo->exec('DELETE FROM evenement_feuille');
-
 // --- Affichage --------------------------------------------------------------
 echo "\n4) Titre d'un élément : lisible même sans intitulé\n";
 check('l\'intitulé prime', 'Get-in', feuille_element_titre(['type' => 'horaire', 'libelle' => 'Get-in']));
