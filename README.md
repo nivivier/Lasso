@@ -244,6 +244,11 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    colonne « Suivi », qui se filtre sur les quatre états du démarchage (à
    contacter, sans réponse, pas intéressé, intéressé), les mêmes que découpe la
    jauge, et les campagnes de chaque structure, à ajouter ou retirer sur place.
+   Étiquettes et campagnes se rattachent de la même façon partout : un « + »
+   ouvre un champ qui se **cherche à la frappe**, et l'ajout se fait **sans
+   recharger la page** — comme celui d'un employé ou d'une facture sur la fiche
+   d'une date, d'une salle sur celle d'une structure, ou d'une information sur
+   une feuille de route.
    Les **campagnes de mailing** avec désinscription, elles, envoient en masse
    et forment un sous-module à part (« Envois groupés »), activable séparément.
    Le lien de désinscription ouvre une page de confirmation avant d'agir : un

@@ -104,6 +104,12 @@ commandent tout un bloc. Les actions d'une **ligne** sont au petit format
 (`btn-sm`) : elles ne commandent que cette ligne, et un bouton de taille normale
 y déborde. `.btn.icon-only.btn-sm` existe pour que l'icône seule suive.
 
+**Dans une ligne, les CHAMPS aussi sont petits.** Un champ de 43 px posé entre
+des pastilles de 17 px double la hauteur de sa ligne. Ligne et carte ont chacune
+leur boîte de référence : `--action-height` (43 px) et `--action-height-sm`
+(31 px). Elles se dérivent du remplissage réel des boutons — on ne réinvente
+jamais un chiffre à la main.
+
 Un bouton d'**icône seule** n'a pas de ligne de texte pour lui donner sa
 hauteur : il la tient de `--action-height` (format normal) ou
 `--action-height-sm` (petit), les deux dérivées du padding et de la bordure de
@@ -404,6 +410,26 @@ demandé (`?ajout=<type>`), et c'est le **serveur** qui déplie le formulaire :
 En cas d'erreur, la redirection **conserve** le type demandé : refermer le
 formulaire emporterait la saisie avec le message qui l'explique.
 
+**L'ENVOI, lui, part en arrière-plan** — c'est une ligne de plus dans une liste
+déjà à l'écran, pas une page qui change. La route répond avec **la ligne
+rendue**, et le script l'insère :
+
+- le balisage de la ligne vit dans **un partiel** (`_evenement_feuille_item.php`)
+  que la boucle de la liste et la route rendent tous deux : deux exemplaires
+  divergeraient à la première retouche ;
+- la ligne est rendue depuis ce que la base contient **vraiment** après
+  l'insertion (jointures comprises), pas depuis ce qu'on croit avoir écrit ;
+- les écouteurs de la liste sont **délégués** (`document.addEventListener`), pas
+  posés ligne à ligne : une ligne arrivée après coup a son crayon et sa poignée
+  sans qu'on rebranche quoi que ce soit ;
+- ce que l'insertion périme se met à jour — la ligne qui n'est plus la dernière
+  retrouve sa flèche « descendre », le « aucun élément » cède la place à la
+  liste ;
+- l'adresse perd son `?ajout=` : il n'y a plus de formulaire ouvert à décrire ;
+- une erreur **métier** (fichier trop lourd, type inconnu) revient en JSON et
+  s'affiche au-dessus du formulaire, qui garde la saisie ; un échec **réseau**
+  renvoie le formulaire de façon classique et la page montre l'état réel.
+
 ### La rangée de liaison — `.linked-add`
 
 Un champ (ou une liste) et son bouton, sur une ligne, pour rattacher quelque
@@ -426,6 +452,51 @@ milieu de la rangée.
 sous 800 px, où la rangée n'a plus la largeur d'un mot, et la boîte reste celle
 du champ. Un libellé qui peut disparaître veut dire `title` **et** `aria-label`
 sur le bouton, toujours.
+
+### Rattacher une étiquette ou assimilé : le motif complet
+
+**Étiquette, campagne — tout ce qui se rattache en un mot** se pose de la même
+façon, et cette façon ne se rediscute pas d'un écran à l'autre :
+
+| | |
+| --- | --- |
+| **Ouverture** | un « + » discret dans la ligne ou en tête de carte, qui déplie la rangée |
+| **Format** | petit, champ compris (`.linked-add-ligne`, § 1) |
+| **Champ** | **cherchable**, jamais un menu déroulant — dès la dizaine d'entrées, on tape trois lettres plutôt que de parcourir |
+| **Liste** | **fermée** par défaut : on rattache une entité existante. La création se déclare, elle ne s'improvise pas |
+| **Bouton** | un « + » mis en évidence, **sans libellé**, et une croix pour refermer |
+| **Envoi** | **en arrière-plan** (`data-ajout` / `data-remplace`), jamais un rechargement |
+
+Ce sont cinq décisions qui vont ensemble : un champ cherchable dans une rangée
+à la taille d'une carte, ou un ajout en arrière-plan dont le bouton porte un
+libellé, se remarquent tout de suite comme des exceptions.
+
+### Le gabarit d'une rangée dans une ligne — `.linked-add-ligne`
+
+Une cellule de tableau, la suite des pastilles d'une fiche : là, **tout passe au
+petit format, champ compris** (§ 1), et le bouton d'ajout se réduit à un « + »
+**sans libellé** — il n'y a pas la place d'un mot. Il reste mis en évidence
+(`btn btn-sm icon-only`, pas `ghost`) : c'est l'action de la rangée. La croix
+d'annulation l'accompagne, petite elle aussi.
+
+```html
+<form class="linked-add linked-add-ligne">
+  <input type="text" class="cat-search-input" placeholder="Tag…">
+  <button type="submit" class="btn btn-sm icon-only" title="Ajouter" aria-label="Ajouter le tag">＋</button>
+  <button type="button" class="btn ghost btn-sm icon-only" title="Annuler" aria-label="Annuler">✕</button>
+</form>
+```
+
+Concerne l'ajout d'une étiquette et d'une campagne, sur `?p=structures`,
+`?p=campagne` et la fiche d'une structure.
+
+**Le champ y est cherchable, pas un menu déroulant** (`lassoInitCatSearch()`,
+`.cat-search` + `.cat-search-input` + `.cat-search-val` + `.cat-search-list`) :
+dès qu'une liste dépasse la dizaine, on sait ce qu'on cherche et l'on tape les
+trois premières lettres. Liste **fermée** — la valeur cachée n'est remplie que
+par une sélection, `clearHiddenOnInput` la vide à la frappe : on ne crée pas
+l'entité depuis là. Un `<li data-val="__new__">` en tête ouvre le cas
+contraire, quand la création est prévue (lier une salle depuis une structure).
 
 ```html
 <form class="linked-add">

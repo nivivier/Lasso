@@ -3328,6 +3328,41 @@ function render(string $view, array $data = [], ?string $title = null): void
     echo injecter_sprite((string) ob_get_clean());
 }
 
+// Rendu d'un FRAGMENT de page (une ligne de liste), renvoyé à un ajout parti en
+// arrière-plan pour que le script l'insère sans recharger (voir docs/UI.md § 5).
+//
+// Le mode sprite est coupé pendant ce rendu : dans une page, icon() émet un
+// <use> qui pointe vers le sprite injecté une fois au début du <body>. Une
+// ligne arrivant après coup ne peut pas s'y fier — la première adresse d'une
+// feuille de route apporte une icône « map-pin » que la page n'a jamais rendue,
+// donc absente du sprite, et le <use> ne montrerait rien. Ici les icônes sont
+// donc écrites en clair.
+function rendre_fragment(string $vue, array $donnees = []): string
+{
+    $spriteAvant = icones_mode_sprite();
+    icones_mode_sprite(false);
+    extract($donnees);
+    ob_start();
+    require __DIR__ . '/../views/' . $vue . '.php';
+    $html = (string) ob_get_clean();
+    icones_mode_sprite($spriteAvant);
+    return trim($html);
+}
+
+// Réponse à un ajout parti en arrière-plan : la ligne rendue, ou le message qui
+// dit pourquoi ça n'a pas marché. Rend true quand elle a répondu — l'appelant
+// s'arrête là au lieu de rediriger. Convention `retour=json` partagée avec les
+// cellules de ?p=structures et les réglages de ligne (data-ajax).
+function reponse_ajout_json(?string $erreur = null, string $html = ''): bool
+{
+    if (($_POST['retour'] ?? '') !== 'json') {
+        return false;
+    }
+    header('Content-Type: application/json');
+    echo json_encode($erreur !== null ? ['ok' => false, 'erreur' => $erreur] : ['ok' => true, 'html' => $html]);
+    return true;
+}
+
 // Rendu d'une vue "nue" (sans layout), pour l'impression. Même tampon : ces
 // vues produisent aussi un document complet.
 function render_bare(string $view, array $data = []): void

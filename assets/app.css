@@ -1746,6 +1746,19 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    min-width:0 : sans lui, un nom long refuse de se couper et élargit la rangée
    au-delà de sa carte. */
 .linked-add > span, .linked-add > code { flex: 1 1 auto; min-width: 0; }
+/* Rangée de liaison posée DANS une ligne — une cellule de tableau, la suite des
+   pastilles d'une fiche : tout y est au petit format, champ compris. Une rangée
+   à la taille d'une carte y ferait une ligne deux fois plus haute que ses
+   voisines (docs/UI.md § 5). Le « + » reste mis en évidence — c'est l'action —
+   mais perd son libellé : dans une ligne, il n'y a pas la place d'un mot. */
+.linked-add-ligne { gap: 6px; }
+.linked-add-ligne :is(input, select):not([type="checkbox"]):not([type="radio"]) {
+    /* Trois sélecteurs d'attribut comme la règle générique des champs, plus la
+       classe : sans cela son padding de 10px l'emporterait. */
+    padding: var(--btn-sm-padding-v) 10px; font-size: var(--fs-basic);
+    min-height: var(--action-height-sm);
+}
+.linked-add-ligne .btn { min-height: var(--action-height-sm); }
 .contact-row { margin-bottom: 0; }
 :is(.linked-add, .contact-row):not(.souscat-row) + * { margin-top: 16px; }
 
@@ -3939,22 +3952,11 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 :root[data-theme="sombre"] .auth-logo-sombre { display: block; }
 
 /* Formulaire d'ajout d'étiquette (?p=structures) : il s'ouvre au milieu d'une
-   cellule dense, entre des badges hauts de 17px. Aux tailles standard — champ
-   de 43px, boutons de 37px — il écrasait la ligne. Réduit ici seulement : les
-   mêmes classes gardent leur taille partout ailleurs.
-
-   Sélecteur `input.cat-search-input` et non `.cat-search-input` : la règle
-   générique `input:not([type=checkbox]):not([type=radio])` compte deux
-   sélecteurs d'attribut, donc une spécificité supérieure à une simple classe —
-   sans le qualificateur de type, le padding de 10px l'emporterait. */
-.tag-ajouter-ligne { gap: 6px; }
-.tag-ajouter-ligne input.cat-search-input { padding: 3px 8px; font-size: var(--fs-small); }
-/* 5px de padding vertical, et non 3 : avec l'icône de 14px et la bordure, le
-   bouton fait alors exactement la hauteur du champ (26px). À 3px il tombait à
-   22px — quatre pixels d'écart que le centrage vertical masquait mal. */
-.tag-ajouter-ligne .btn.icon-only { padding: 5px 7px; min-height: 0; }
-.tag-ajouter-ligne .btn.icon-only .ico { width: 14px; height: 14px; }
-/* La liste de suggestions suit la même échelle. */
+   cellule dense, entre des badges hauts de 17px. Son gabarit est désormais
+   celui, commun, d'une rangée de liaison posée dans une ligne
+   (.linked-add-ligne, plus haut) — champ et boutons à --action-height-sm. Ne
+   reste ici que ce qui est propre à ce champ-ci : sa liste de suggestions, qui
+   n'existe pas ailleurs. */
 .tag-ajouter-ligne .cat-search-list li { padding: 4px 8px; font-size: var(--fs-small); }
 
 /* Barre d'actions groupées sur petit écran : elle était en flex-wrap:nowrap,

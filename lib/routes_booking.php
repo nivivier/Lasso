@@ -306,6 +306,19 @@ function route_structure_note_modifier(): void
 // en AJAX : la cellule remise à jour, telle que la vue l'aurait rendue.
 // Le droit d'écriture est réévalué ici plutôt que repris du client : c'est lui
 // qui décide si la cellule renvoyée porte des croix et un « + ».
+// Les étiquettes d'une structure telles que sa FICHE les attend : des lignes
+// complètes (id, nom, couleur), même requête que route_structure().
+// structure_tags_paires() sert la liste, qui n'a besoin que de triplets.
+function structure_tags_fiche(int $structureId): array
+{
+    $stmt = db()->prepare(
+        'SELECT t.* FROM structure_tags t JOIN structure_tag_liens l ON l.tag_id = t.id
+          WHERE l.structure_id = ? ORDER BY t.nom'
+    );
+    $stmt->execute([$structureId]);
+    return $stmt->fetchAll();
+}
+
 function structure_tags_reponse_json(int $structureId): void
 {
     header('Content-Type: application/json');
@@ -408,6 +421,18 @@ function route_structure_tag_ajouter(): void
     // sans recharger la page. Elle pèse 4 Mo et 79 000 balises — la recharger
     // pour un badge de plus était hors de proportion.
     if (($_POST['retour'] ?? '') === 'json') {
+        // Deux appelants, deux balisages : la LISTE remplace une cellule,
+        // la FICHE remplace son bloc d'étiquettes (docs/UI.md § 5).
+        if (($_POST['cible'] ?? '') === 'fiche') {
+            reponse_ajout_json(null, rendre_fragment('_structure_tags_liste', [
+                'tags'              => structure_tags_fiche($structureId),
+                'sid'               => $structureId,
+                'peutEcrireBooking' => peut_ecrire('booking'),
+                'depuisQs'          => isset($_GET['depuis'])
+                    ? '&depuis=' . rawurlencode((string) $_GET['depuis']) : '',
+            ]));
+            return;
+        }
         structure_tags_reponse_json($structureId);
         return;
     }
@@ -625,6 +650,27 @@ function route_structure_lieu_lier(): void
     db()->prepare('INSERT OR IGNORE INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
         ->execute([$lieuId, $organisateurId]);
     journaliser_lien_structure_lieu($organisateurId, $lieuId, true);
+    // Ajout parti en arrière-plan : la ligne rendue, avec le MÊME partiel que la
+    // fiche (docs/UI.md § 5). Relue en base plutôt que reconstruite : le type et
+    // la ville d'une structure qu'on vient de créer ne sont pas dans le POST.
+    if (($_POST['retour'] ?? '') === 'json') {
+        // Mêmes colonnes et mêmes alias que la requête de la fiche
+        // (lib/routes_facturation.php, structure_donnees_liees()) : le partiel
+        // attend « type » et « ville », pas les noms de colonnes bruts.
+        $stmtL = db()->prepare(
+            "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville
+               FROM structures s WHERE s.id = ?"
+        );
+        $stmtL->execute([$autreId]);
+        $liee = $stmtL->fetch() ?: [];
+        $liee['sens'] = $sens;
+        reponse_ajout_json(null, rendre_fragment('_structure_lien_ligne', [
+            'l'        => $liee,
+            'sid'      => $structureId,
+            'depuisQs' => isset($_GET['depuis']) ? '&depuis=' . rawurlencode((string) $_GET['depuis']) : '',
+        ]));
+        return;
+    }
     redirect('structure', ['id' => $structureId]);
 }
 

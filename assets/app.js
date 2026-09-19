@@ -1176,6 +1176,108 @@ function lassoPlanArbre(opts) {
 //
 // Le dépôt renseigne #reorder-form (id + ordre complet) et l'envoie : c'est le
 // serveur qui renumérote, la page n'invente aucun ordre local.
+// AJOUT D'UNE LIGNE À UNE LISTE DÉJÀ AFFICHÉE, sans recharger la page.
+//
+// Déclaré sur le formulaire, jamais écrit par écran (docs/UI.md § 5) :
+//
+//   data-ajout="<sélecteur de la liste>"   où la ligne s'insère
+//   data-ajout-vide="<sélecteur>"          le « rien pour l'instant » qu'elle remplace
+//   data-ajout-message="…"                 la pastille de confirmation
+//   data-ajout-ferme="<paramètre>"         le formulaire s'efface après coup, et
+//                                          l'adresse perd ce paramètre d'URL
+//   data-ajout-fleches                     remet à jour les flèches d'extrémité
+//
+// Après l'insertion, l'événement `lasso:ligne-ajoutee` porte la ligne neuve :
+// une page qui a du travail à finir dessus (calculer un total) s'y abonne, au
+// lieu de réobserver le document.
+//
+// Variante : data-remplace="<sélecteur>" quand la nouveauté n'est pas une ligne
+// autonome — une étiquette se glisse entre les autres et avant le « + », un lien
+// unique remplace ce qui s'affichait. La route renvoie alors le BLOC entier.
+//
+// La route répond `{ok:true, html:"<la ligne rendue>"}` — le même gabarit que la
+// liste, jamais une copie (reponse_ajout_json(), lib/helpers.php).
+//
+// Deux échecs, deux conduites : une erreur MÉTIER (fichier trop lourd, doublon)
+// revient en JSON et s'affiche au-dessus du formulaire, qui garde la saisie ; un
+// échec RÉSEAU renvoie le formulaire de façon classique, la page se recharge et
+// montre l'état réel plutôt que de laisser croire à un ajout.
+document.addEventListener('submit', async e => {
+    const form = e.target.closest('form[data-ajout], form[data-remplace]');
+    if (!form) return;
+    e.preventDefault();
+    const bouton = form.querySelector('button[type=submit]');
+    if (bouton) bouton.disabled = true;
+
+    const fd = new FormData(form);
+    fd.append('retour', 'json');
+    const data = await fetch(form.getAttribute('action') || location.href,
+        { method: 'POST', body: fd }).then(r => r.json()).catch(() => null);
+    if (!data) { form.submit(); return; }
+    if (bouton) bouton.disabled = false;
+    if (!data.ok) {
+        let err = form.querySelector('.ajout-err');
+        if (!err) {
+            err = document.createElement('p');
+            err.className = 'err ajout-err';
+            form.prepend(err);
+        }
+        err.textContent = data.erreur || 'L\u2019ajout a échoué.';
+        return;
+    }
+    form.querySelector('.ajout-err')?.remove();
+
+    // data-remplace : le bloc entier est re-rendu. C'est ce qu'il faut quand la
+    // nouveauté n'est pas une ligne autonome — une étiquette se glisse entre les
+    // autres et avant le « + », un lien unique remplace ce qui s'affichait.
+    if (form.dataset.remplace) {
+        const bloc = document.querySelector(form.dataset.remplace);
+        if (!bloc) { location.reload(); return; }
+        bloc.innerHTML = data.html;
+        if ('ajoutFerme' in form.dataset) {
+            form.hidden = true;
+        }
+        form.reset();
+        if (form.dataset.ajoutMessage) lassoToast(form.dataset.ajoutMessage);
+        return;
+    }
+
+    // La liste peut ne pas exister encore : c'est le premier élément, et sa
+    // place est tenue par le message « rien pour l'instant ».
+    const vide = form.dataset.ajoutVide ? document.querySelector(form.dataset.ajoutVide) : null;
+    let liste = document.querySelector(form.dataset.ajout);
+    if (!liste && vide) {
+        liste = document.createElement(vide.dataset.ajoutListe || 'ul');
+        liste.className = form.dataset.ajout.replace(/^[.#]/, '');
+        vide.replaceWith(liste);
+    }
+    if (!liste) { location.reload(); return; }   // structure inattendue : on ne devine pas
+    vide?.remove();
+    liste.insertAdjacentHTML('beforeend', data.html);
+    // La page peut avoir besoin de finir le travail sur la ligne neuve (calculer
+    // un total, par exemple) : elle l'apprend par cet événement plutôt qu'en
+    // réobservant le document.
+    const neuve = liste.lastElementChild;
+    if (neuve) document.dispatchEvent(new CustomEvent('lasso:ligne-ajoutee', { detail: neuve }));
+
+    if ('ajoutFleches' in form.dataset) {
+        liste.querySelectorAll('.plan-row').forEach((row, i, rows) => {
+            const [haut, bas] = row.querySelectorAll('.plan-fallback button');
+            if (haut) haut.disabled = i === 0;
+            if (bas) bas.disabled = i === rows.length - 1;
+        });
+    }
+    if ('ajoutFerme' in form.dataset) {
+        form.remove();
+        const url = new URL(location.href);
+        url.searchParams.delete(form.dataset.ajoutFerme);
+        history.replaceState(null, '', url);
+    } else {
+        form.reset();
+    }
+    if (form.dataset.ajoutMessage) lassoToast(form.dataset.ajoutMessage);
+});
+
 function lassoOrdreListe(opts) {
     const { containerSelector, rowsSelector, scrollKey, formAction, groupAttr = null } = opts;
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -1185,24 +1287,31 @@ function lassoOrdreListe(opts) {
     document.querySelectorAll('form[action="' + formAction + '"]').forEach(f => f.addEventListener('submit', saveScroll));
     document.querySelectorAll(containerSelector).forEach(el => el.classList.add('dnd-on'));
 
-    document.querySelectorAll('.plan-edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest(rowsSelector);
+    // Écouteurs DÉLÉGUÉS et non posés ligne à ligne : une ligne ajoutée en
+    // arrière-plan (déroulé d'un événement) doit avoir son crayon et sa poignée
+    // sans qu'on rebranche quoi que ce soit.
+    document.addEventListener('click', e => {
+        const crayon = e.target.closest('.plan-edit-btn');
+        if (crayon) {
+            const row = crayon.closest(rowsSelector);
+            if (!row) return;
             row.classList.add('editing');
             row.querySelector('.plan-edit input, .plan-edit select')?.focus();
-        });
-    });
-    document.querySelectorAll('.plan-annuler-btn').forEach(btn => {
-        btn.addEventListener('click', () => btn.closest(rowsSelector).classList.remove('editing'));
+            return;
+        }
+        const annul = e.target.closest('.plan-annuler-btn');
+        if (annul) { annul.closest(rowsSelector)?.classList.remove('editing'); }
     });
 
     let dragId = null, indic = null;
-    document.querySelectorAll('.plan-grip').forEach(g => {
-        g.addEventListener('dragstart', e => {
-            dragId = g.closest(rowsSelector).dataset.id;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', dragId);
-        });
+    document.addEventListener('dragstart', e => {
+        const g = e.target.closest('.plan-grip');
+        if (!g) return;
+        const row = g.closest(rowsSelector);
+        if (!row) return;
+        dragId = row.dataset.id;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragId);
     });
 
     // Projette un dépôt : la ligne survolée, et si le curseur est dans sa moitié
@@ -1581,18 +1690,26 @@ async function lassoMajCellule(cellule, route, donnees, csrf) {
 }
 
 // Colonne « Campagnes » de ?p=structures : rattacher la structure à une campagne
-// existante, ou l'en retirer, sans quitter la liste. Même mécanique que les
-// étiquettes (lassoInitTagAjout()), avec un menu déroulant à la place du champ à
-// suggestions : on choisit dans une liste fermée, on ne crée pas de campagne ici.
+// existante, ou l'en retirer, sans quitter la liste. Même mécanique ET même
+// champ que les étiquettes (lassoInitTagAjout()) : on cherche à la frappe. La
+// liste reste FERMÉE — on rattache à une campagne existante, on n'en crée pas
+// d'ici —, d'où la valeur cachée que seule une sélection remplit.
 function lassoInitCampagneCellule() {
     const form = document.getElementById('campagne-ajouter-form');
     if (!form) return;
     const champId = form.querySelector('input[name="structure_id"]');
-    const choix = form.querySelector('select[name="campagne_id"]');
+    const wrap = form.querySelector('.campagne-search');
+    const saisie = wrap.querySelector('.cat-search-input');
+    const choix = wrap.querySelector('.cat-search-val');
     const csrf = () => form.querySelector('input[name="csrf"]').value;
+    const nomChoisi = () => {
+        const li = wrap.querySelector('.cat-search-list li[data-val="' + choix.value + '"]');
+        return li ? li.textContent.trim() : saisie.value.trim();
+    };
     const rangerForm = () => {
         form.hidden = true;
         choix.value = '';
+        saisie.value = '';
         // Ramené en fin de page : laissé dans une ligne, il serait emporté par
         // un re-rendu de la liste (filtre client, tri) et perdu.
         document.body.appendChild(form);
@@ -1602,7 +1719,7 @@ function lassoInitCampagneCellule() {
         const cellule = form.closest('td');
         const id = choix.value;
         if (!cellule || id === '') { return false; }
-        const nom = choix.options[choix.selectedIndex].textContent;
+        const nom = nomChoisi();
         const structureId = cellule.dataset.structure;
         rangerForm();
         // La campagne prend tout de suite sa place, en sourdine, le temps de
@@ -1615,9 +1732,11 @@ function lassoInitCampagneCellule() {
         lassoMajCellule(cellule, '?p=structure_campagne', { structure_id: structureId, campagne_id: id }, csrf());
         return true;
     }
-    // Choisir dans le menu suffit : le bouton « + » du formulaire reste là pour
+    // Choisir dans la liste suffit : le bouton « + » du formulaire reste là pour
     // le clavier et pour le repli sans JavaScript.
-    choix.addEventListener('change', ajouter);
+    if (window.lassoInitCatSearch) {
+        lassoInitCatSearch(wrap, { clearHiddenOnInput: true, onSelect: ajouter });
+    }
     form.addEventListener('submit', e => { if (ajouter()) { e.preventDefault(); } });
 
     document.addEventListener('click', e => {
@@ -1628,7 +1747,7 @@ function lassoInitCampagneCellule() {
             champId.value = btn.dataset.campagneStructure || '';
             btn.parentElement.appendChild(form);
             form.hidden = false;
-            choix.focus();
+            saisie.focus();
             return;
         }
         if (e.target.closest('.campagne-ajouter-annuler')) { e.preventDefault(); rangerForm(); return; }

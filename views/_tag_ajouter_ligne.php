@@ -19,7 +19,7 @@ $taRetour = $taRetour ?? [];
 <?php // Exemplaire unique du formulaire d'ajout d'étiquette : déplacé dans la
       // cellule de la ligne cliquée à l'ouverture, son structure_id renseigné à
       // ce moment-là. Hors du tableau au repos, pour ne peser qu'une fois. ?>
-<form method="post" action="?p=structure_tag_ajouter" class="linked-add tag-ajouter-ligne" id="tag-ajouter-form-liste" hidden>
+<form method="post" action="?p=structure_tag_ajouter" class="linked-add linked-add-ligne tag-ajouter-ligne" id="tag-ajouter-form-liste" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="structure_id" value="">
     <?= hidden_inputs_html($taRetour) ?>
@@ -32,6 +32,6 @@ $taRetour = $taRetour ?? [];
     <?php // Ce bouton ne sert qu'à CRÉER : choisir une étiquette existante dans
           // la liste l'enregistre au clic (voir lassoInitTagAjout()). D'où le
           // libellé, qui ne promet plus un simple « Ajouter ». ?>
-    <button type="submit" class="btn ghost" title="Créer ce tag" aria-label="Créer ce tag et l'ajouter"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
-    <button type="button" class="btn ghost icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+    <button type="submit" class="btn btn-sm icon-only" title="Créer ce tag" aria-label="Créer ce tag et l'ajouter"><?= icon('plus') ?></button>
+    <button type="button" class="btn ghost btn-sm icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
 </form>

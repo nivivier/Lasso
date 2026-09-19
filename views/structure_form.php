@@ -386,36 +386,26 @@ lassoInitTagSuggest();
         <?php if ($peutEcrireBooking): ?><?= structure_statut_toggle_html($sid, (string) $structure['statut']) ?><?php else: ?><span class="badge"><?= e(structure_statut_libelle((string) $structure['statut'])) ?></span><?php endif; ?>
     </div>
 
-    <div class="tags-liste mt-16">
-        <?php foreach ($tags as $t): ?>
-            <span class="badge"<?= badge_style_html((string) ($t['couleur'] ?? '')) ?>><?= e($t['nom']) ?>
-                <?php if ($peutEcrireBooking): ?>
-                <form method="post" action="?p=structure_tag_retirer<?= $depuisQs ?>" class="d-inline" data-confirm="Retirer ce tag ?">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                    <input type="hidden" name="tag_id" value="<?= (int) $t['id'] ?>">
-                    <button type="submit" class="btn-tag-x" aria-label="Retirer">×</button>
-                </form>
-                <?php endif; ?>
-            </span>
-        <?php endforeach; ?>
-        <?php if (!$tags): ?><span class="muted small">Aucun tag.</span><?php endif; ?>
-        <?php if ($peutEcrireBooking): ?>
-        <button type="button" class="badge tag-ajouter-btn" data-show="tag-ajouter-form" data-focus="input[name=nom]" title="Ajouter un tag" aria-label="Ajouter un tag">+</button>
-        <?php endif; ?>
+    <div class="tags-liste mt-16" id="tags-liste">
+        <?php require __DIR__ . '/_structure_tags_liste.php'; ?>
     </div>
     <?php if ($peutEcrireBooking): ?>
-    <form method="post" action="?p=structure_tag_ajouter<?= $depuisQs ?>" class="linked-add mt-10" id="tag-ajouter-form" hidden>
+    <form method="post" action="?p=structure_tag_ajouter<?= $depuisQs ?>" class="linked-add linked-add-ligne mt-10" id="tag-ajouter-form" hidden
+          data-remplace="#tags-liste" data-ajout-ferme data-ajout-message="Étiquette ajoutée.">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="structure_id" value="<?= $sid ?>">
+        <?php // La même route sert la LISTE (?p=structures, qui remplace une
+              // cellule) et cette FICHE (qui remplace le bloc d'étiquettes) :
+              // deux balisages, deux réponses, d'où ce marqueur. ?>
+        <input type="hidden" name="cible" value="fiche">
         <div class="cat-search tag-search">
             <input type="text" name="nom" class="cat-search-input" placeholder="Ajouter un tag…" autocomplete="off">
             <ul class="cat-search-list" hidden role="listbox">
                 <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
             </ul>
         </div>
-        <button type="submit" class="btn ghost" title="Ajouter" aria-label="Ajouter le tag"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
-        <button type="button" class="btn ghost icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+        <button type="submit" class="btn btn-sm icon-only" title="Ajouter" aria-label="Ajouter le tag"><?= icon('plus') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </form>
     <?php endif; ?>
 </div>
@@ -591,31 +581,21 @@ lassoInitTagSuggest();
         <?php
         $lieuxOrganises = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise'));
         $lieuxOrganisePar = array_values(array_filter($lieuxLies, fn ($l) => $l['sens'] === 'organise_par'));
-        $ligneLien = function (array $l) use ($sid, $depuisQs): void { ?>
-            <div class="linked-add">
-                <span>
-                    <strong><?= icon($l['sens'] === 'organise' ? 'blocks' : 'building') ?> <a href="<?= url_avec_retour('?p=structure&id=' . (int) $l['id'], 'structure', $sid) ?>"><?= e($l['nom']) ?></a></strong>
-                    <div class="muted small"><?= e((string) $l['type']) ?>
-                    <?php if ($l['ville']): ?> · <?= e($l['ville']) ?><?php endif; ?></div>
-                </span>
-                <form method="post" action="?p=structure_lieu_delier<?= $depuisQs ?>" class="edit-only" data-confirm="Délier ?">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="structure_id" value="<?= $sid ?>">
-                    <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">
-                    <input type="hidden" name="sens" value="<?= e((string) $l['sens']) ?>">
-                    <button type="submit" class="btn ghost btn-sm icon-only" title="Délier" aria-label="Délier"><?= icon('unlink') ?></button>
-                </form>
-            </div>
-        <?php };
+        $ligneLien = function (array $l) use ($sid, $depuisQs): void {
+            require __DIR__ . '/_structure_lien_ligne.php';
+        };
         ?>
 
         <?php if (!$lieuxLies): ?><p class="muted small read-only">Aucune structure liée.</p><?php endif; ?>
 
         <p class="muted small mb-8 edit-only">Organise</p>
-        <?php foreach ($lieuxOrganises as $l) { $ligneLien($l); } ?>
-        <?php if (!$lieuxOrganises): ?><p class="muted small edit-only">Aucune salle ni festival lié.</p><?php endif; ?>
+        <div id="lieux-organise">
+            <?php foreach ($lieuxOrganises as $l) { $ligneLien($l); } ?>
+        </div>
+        <?php if (!$lieuxOrganises): ?><p class="muted small edit-only" id="lieux-organise-vide">Aucune salle ni festival lié.</p><?php endif; ?>
 
-        <form method="post" action="?p=structure_lieu_lier<?= $depuisQs ?>" class="linked-add edit-only" id="lieu-form">
+        <form method="post" action="?p=structure_lieu_lier<?= $depuisQs ?>" class="linked-add edit-only" id="lieu-form"
+              data-ajout="#lieux-organise" data-ajout-vide="#lieux-organise-vide" data-ajout-message="Structure liée.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <input type="hidden" name="sens" value="organise">
@@ -642,10 +622,13 @@ lassoInitTagSuggest();
         </form>
 
         <p class="muted small mb-8 mt-16 edit-only">Organisée par</p>
-        <?php foreach ($lieuxOrganisePar as $l) { $ligneLien($l); } ?>
-        <?php if (!$lieuxOrganisePar): ?><p class="muted small edit-only">Aucun organisateur lié.</p><?php endif; ?>
+        <div id="lieux-organise-par">
+            <?php foreach ($lieuxOrganisePar as $l) { $ligneLien($l); } ?>
+        </div>
+        <?php if (!$lieuxOrganisePar): ?><p class="muted small edit-only" id="lieux-organise-par-vide">Aucun organisateur lié.</p><?php endif; ?>
 
-        <form method="post" action="?p=structure_lieu_lier<?= $depuisQs ?>" class="linked-add edit-only" id="organisateur-form">
+        <form method="post" action="?p=structure_lieu_lier<?= $depuisQs ?>" class="linked-add edit-only" id="organisateur-form"
+              data-ajout="#lieux-organise-par" data-ajout-vide="#lieux-organise-par-vide" data-ajout-message="Organisateur lié.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <input type="hidden" name="sens" value="organise_par">
@@ -826,19 +809,37 @@ $villeHtmlS = ville_departement_canton_html(
         <?php // Liste fermée : on range la structure dans une campagne existante,
               // on n'en crée pas d'ici. Celles où elle figure déjà n'y sont pas. ?>
         <?php $dejaDedans = array_map(fn ($c) => (int) $c['id'], $campagnesStructure); ?>
-        <form method="post" action="?p=structure_campagne<?= $depuisQs ?>" class="linked-add" id="campagne-ajouter-fiche" hidden>
+        <form method="post" action="?p=structure_campagne<?= $depuisQs ?>" class="linked-add linked-add-ligne" id="campagne-ajouter-fiche" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
-            <select name="campagne_id" required aria-label="Campagne">
-                <option value="">— Choisir une campagne —</option>
-                <?php foreach ($campagnesDispo as $c): ?>
-                    <?php if (in_array((int) $c['id'], $dejaDedans, true)) { continue; } ?>
-                    <option value="<?= (int) $c['id'] ?>"><?= e($c['nom']) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="btn" title="Ajouter" aria-label="Ajouter à cette campagne"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
-            <button type="button" class="btn ghost icon-only" data-hide="campagne-ajouter-fiche" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+            <?php // Champ cherchable plutôt que menu déroulant, comme pour les
+                  // étiquettes : une association a vite trente campagnes. Liste
+                  // fermée — on rattache à une campagne existante, on n'en crée
+                  // pas d'ici —, d'où la valeur cachée que seule une sélection
+                  // remplit. Celles où la structure figure déjà n'y sont pas. ?>
+            <div class="cat-search campagne-search">
+                <input type="text" class="cat-search-input" placeholder="Campagne…" autocomplete="off" aria-label="Campagne">
+                <input type="hidden" name="campagne_id" class="cat-search-val" value="" required>
+                <ul class="cat-search-list" hidden role="listbox">
+                    <?php foreach ($campagnesDispo as $c): ?>
+                        <?php if (in_array((int) $c['id'], $dejaDedans, true)) { continue; } ?>
+                        <li data-val="<?= (int) $c['id'] ?>"><?= e($c['nom']) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <button type="submit" class="btn btn-sm icon-only" title="Ajouter" aria-label="Ajouter à cette campagne"><?= icon('plus') ?></button>
+            <button type="button" class="btn ghost btn-sm icon-only" data-hide="campagne-ajouter-fiche" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>
+        <?php // Le champ de campagne se cherche à la frappe, comme celui des
+              // étiquettes (lassoInitCatSearch(), assets/app.js). ?>
+        <script nonce="<?= e(csp_nonce()) ?>">
+        (function () {
+            var wrap = document.querySelector('#campagne-ajouter-fiche .campagne-search');
+            if (wrap && window.lassoInitCatSearch) {
+                lassoInitCatSearch(wrap, { clearHiddenOnInput: true });
+            }
+        })();
+        </script>
         <?php endif; ?>
 
         <?php if (!$campagnesStructure && !$campagnesLiees): ?>

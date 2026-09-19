@@ -7,6 +7,35 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.5] — 2026-09-19
+
+### Modifié
+- **Ajouter ne recharge plus la page**, partout où c'était possible : une
+  information sur une date, un employé ou une facture liés à cette date, une
+  salle ou un organisateur liés à une structure, une étiquette. La route renvoie
+  **la ligne rendue** — le même gabarit que la liste, sorti dans un partiel, pas
+  une copie — et le script l'insère, avec ce que l'insertion périme : la ligne
+  qui n'est plus la dernière retrouve sa flèche, le « aucun élément » cède la
+  place. Un seul comportement déclaratif (`data-ajout`) pour les six, au lieu
+  d'un script par écran. Le formulaire du déroulé, lui, continue d'être déplié
+  par le serveur : c'est ce qui fait que l'adresse dit ce qui est ouvert.
+- **Les écouteurs d'une liste ordonnable sont délégués** plutôt que posés ligne
+  à ligne : une ligne arrivée après coup a son crayon, sa croix et sa poignée —
+  et calcule son total, sur la carte des employés — sans qu'on rebranche quoi
+  que ce soit.
+- **Choisir une campagne se fait dans un champ cherchable**, comme une
+  étiquette, sur la liste des structures comme sur la fiche : le menu déroulant
+  obligeait à parcourir toute la liste, alors qu'on sait laquelle on cherche. La
+  liste reste fermée — on rattache à une campagne existante, on n'en crée pas
+  d'ici.
+- **Les rangées d'ajout posées dans une ligne sont au petit format**, champ
+  compris : ajouter une étiquette ou une campagne depuis une cellule ou depuis
+  la suite des pastilles d'une fiche. Le bouton s'y réduit à un « + » mis en
+  évidence, sans libellé — une rangée à la taille d'une carte y faisait une
+  ligne deux fois plus haute que ses voisines. Le formulaire d'étiquette de
+  `?p=structures` avait son propre gabarit, à 26 px, qui ne s'accordait plus
+  avec rien : il rejoint le gabarit commun.
+
 ## [2.8.4] — 2026-09-19
 
 ### Modifié

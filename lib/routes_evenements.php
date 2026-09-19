@@ -970,6 +970,44 @@ function route_evenement_employe_lier(): void
                 ->execute([$id, $employeId]);
         }
     }
+    // Ajout parti en arrière-plan : la ligne rendue, avec le MÊME partiel que la
+    // carte. Deux gabarits selon le mode de la date — en production externe, la
+    // ligne n'a que le nom et de quoi le retirer (docs/UI.md § 5).
+    if (($_POST['retour'] ?? '') === 'json') {
+        $stmtE = db()->prepare('SELECT id, prenom, nom FROM employes WHERE id = ?');
+        $stmtE->execute([$employeId]);
+        $emp = $stmtE->fetch();
+        if (!$emp || !in_array($employeId, evenement_employe_ids($id), true)) {
+            reponse_ajout_json("Cet employé n'a pas pu être lié à cette date.");
+            return;
+        }
+        // Un employé qu'on vient de lier n'a pas encore de prestation sur cette
+        // date — le lien est neuf. Ses fiches non payées, en revanche, existent
+        // déjà : ce sont elles que la colonne « Fiche de salaire » propose.
+        $stmtF = db()->prepare("SELECT id, annee, mois, employe_id FROM fiches
+                                 WHERE employe_id = ? AND date_paiement = ''
+                                 ORDER BY annee DESC, mois DESC");
+        $stmtF->execute([$employeId]);
+        $ev = evenement_charger($id);
+        reponse_ajout_json(null, rendre_fragment(
+            ((bool) ($ev['production_externe'] ?? false))
+                ? '_evenement_employe_ligne_externe' : '_evenement_employe_ligne',
+            [
+                'emp'              => $emp,
+                'id'               => $id,
+                'evenement'        => $ev,
+                'peutEcrireEv'     => peut_ecrire('evenements'),
+                'depuisQs'         => isset($_GET['depuis']) ? '&depuis=' . rawurlencode((string) $_GET['depuis']) : '',
+                'prestations'      => [$employeId => null],
+                'fichesParEmploye' => [$employeId => $stmtF->fetchAll()],
+                'axes'             => module_actif('analytique')
+                    ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll() : [],
+                'unites'           => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
+                'tauxHoraires'     => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
+            ]
+        ));
+        return;
+    }
     redirect('evenement', ['id' => $id]);
 }
 
@@ -1142,6 +1180,28 @@ function route_evenement_facture_lier(): void
     if ($factureId && evenement_charger($evenementId)) {
         db()->prepare('UPDATE factures SET evenement_id = ? WHERE id = ? AND evenement_id IS NULL')
             ->execute([$evenementId, $factureId]);
+    }
+    // Ajout parti en arrière-plan : la ligne rendue, avec le MÊME partiel que la
+    // carte (docs/UI.md § 5). Relue dans la liste des liées plutôt que devinée :
+    // si le lien a été refusé (facture déjà prise), elle n'y sera pas et le
+    // script ne recevra rien à insérer.
+    if (($_POST['retour'] ?? '') === 'json') {
+        $liees = evenement_factures_liees($evenementId);
+        $fa = null;
+        foreach ($liees as $ligne) {
+            if ((int) $ligne['id'] === $factureId) { $fa = $ligne; break; }
+        }
+        if ($fa === null) {
+            reponse_ajout_json('Cette facture est déjà liée à une autre date.');
+            return;
+        }
+        reponse_ajout_json(null, rendre_fragment('_evenement_facture_ligne', [
+            'fa'           => $fa,
+            'id'           => $evenementId,
+            'peutEcrireEv' => peut_ecrire('evenements'),
+            'depuisQs'     => isset($_GET['depuis']) ? '&depuis=' . rawurlencode((string) $_GET['depuis']) : '',
+        ]));
+        return;
     }
     redirect('evenement', ['id' => $evenementId]);
 }
@@ -1627,6 +1687,19 @@ function feuille_champs_postes(string $type): array
     return $champs;
 }
 
+// Une ligne du déroulé, rendue seule et renvoyée à un ajout parti en
+// arrière-plan : c'est le MÊME partiel que la boucle de la carte
+// (reponse_ajout_json() / rendre_fragment(), lib/helpers.php).
+function feuille_reponse_json(?string $erreur, ?array $el = null, int $rang = 0, int $total = 0): bool
+{
+    return reponse_ajout_json($erreur, $erreur !== null ? '' : rendre_fragment('_evenement_feuille_item', [
+        'el'            => (array) $el,
+        'i'             => $rang,
+        'feuilleTotal'  => $total,
+        'peutEcrireEv'  => peut_ecrire('evenements'),
+    ]));
+}
+
 function route_evenement_feuille_ajouter(): void
 {
     require_login();
@@ -1637,6 +1710,7 @@ function route_evenement_feuille_ajouter(): void
     check_csrf();
     $type = valeur_autorisee($_POST['type'] ?? '', array_keys(FEUILLE_TYPES));
     if ($type === '') {
+        if (feuille_reponse_json("Type d'élément inconnu.")) { return; }
         feuille_retour($evenementId, 'type');
     }
 
@@ -1645,9 +1719,11 @@ function route_evenement_feuille_ajouter(): void
         try {
             $fichier = feuille_fichier_enregistrer('fichier');
         } catch (RuntimeException $e) {
+            if (feuille_reponse_json($e->getMessage())) { return; }
             feuille_retour($evenementId, $e->getMessage(), $type);
         }
         if ($fichier === null) {
+            if (feuille_reponse_json('Choisissez un fichier à joindre.')) { return; }
             feuille_retour($evenementId, 'Choisissez un fichier à joindre.', $type);
         }
     }
@@ -1665,6 +1741,12 @@ function route_evenement_feuille_ajouter(): void
     db()->prepare('INSERT INTO evenement_feuille (' . implode(', ', $colonnes) . ')
                     VALUES (:' . implode(', :', $colonnes) . ')')
         ->execute($champs);
+    $nouvelId = (int) db()->lastInsertId();
+    // La ligne est rendue à partir de ce que la base contient VRAIMENT (jointure
+    // du contact rattaché comprise), pas de ce qu'on croit avoir écrit.
+    $elements = feuille_elements($evenementId);
+    $rang = array_search($nouvelId, array_map(fn (array $e): int => (int) $e['id'], $elements), true);
+    if (feuille_reponse_json(null, feuille_element($nouvelId), (int) $rang, count($elements))) { return; }
     feuille_retour($evenementId, null, '', 'ajout');
 }
 
