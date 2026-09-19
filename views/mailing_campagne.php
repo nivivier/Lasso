@@ -150,7 +150,7 @@ $critHiddenInputs = function (array $criteres): string {
             <input type="hidden" name="section" value="ciblage_save">
             <?= $critHiddenInputs($criteres) ?>
             <input type="text" name="ciblage_nom" placeholder="Enregistrer ce ciblage sous… (ex. Festivals romands été)" required>
-            <button type="submit" class="btn"><?= icon('save') ?></button>
+            <button type="submit" class="btn icon-only" title="Enregistrer ce ciblage" aria-label="Enregistrer ce ciblage"><?= icon('save') ?></button>
         </form>
         <?php endif; ?>
     </div>

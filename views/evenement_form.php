@@ -72,7 +72,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-<div class="page-head">
+<div class="page-head entete-editable">
     <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
     <?php if ($isEdit): ?>
     <div class="head-actions">
@@ -87,14 +87,25 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
               // cadre — et c'est la barre de cette page-là qui porte
               // « Imprimer / PDF ». Sans JavaScript, le lien ouvre simplement
               // la page. ?>
-        <a class="btn ghost" href="?p=evenement_feuille_imprimer&id=<?= (int) $id ?>" data-preview target="_blank" rel="noopener"
+        <a class="btn ghost entete-lecture" href="?p=evenement_feuille_imprimer&id=<?= (int) $id ?>" data-preview target="_blank" rel="noopener"
            title="Voir la feuille de route"><?= icon('eye') ?><span class="lbl"> Feuille de route</span></a>
         <?php if ($peutEcrireEv): ?>
-        <form method="post" action="?p=evenement_delete" class="d-inline" data-confirm="<?= e($confirmSuppr) ?>">
+        <?php // Cette page n'a pas d'écran de modification : tout s'y édite en
+              // place, carte par carte. La suppression de la DATE ELLE-MÊME ne
+              // peut donc pas aller « sur l'écran de modification » comme
+              // ailleurs (docs/UI.md § 1) : c'est le crayon de la barre qui la
+              // découvre, et la croix qui la referme — sans recharger. Pendant
+              // ce temps « Feuille de route » s'efface : on consulte ou on
+              // décide du sort de la date, pas les deux. ?>
+        <form method="post" action="?p=evenement_delete" class="d-inline entete-edition" hidden data-confirm="<?= e($confirmSuppr) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
-            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
+            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la date"><?= icon('trash') ?></button>
         </form>
+        <button type="button" class="btn ghost icon-only entete-edit-btn" title="Modifier"
+                aria-label="Modifier cette date"><?= icon('pencil') ?></button>
+        <button type="button" class="btn ghost icon-only entete-annuler-btn entete-edition" hidden
+                title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         <?php endif; ?>
     </div>
     <?php endif; ?>
@@ -192,7 +203,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <div class="head-actions card-actions-overlay">
         <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
         <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-        <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </div>
     <?php endif; ?>
     <?php if ($ok === 'informations'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
@@ -300,7 +311,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </div>
         <?php endif; ?>
     </div>
@@ -358,7 +369,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="organisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </div>
         <?php endif; ?>
     </div>
@@ -503,7 +514,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                             <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn ghost"><?= icon('user-plus') ?> Ajouter</button>
+                    <button type="submit" class="btn ghost" title="Ajouter" aria-label="Ajouter cet employé"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
                 </form>
             <?php endif; ?>
         </div>
@@ -662,7 +673,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="suisa-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="<?= e($retour) ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </div>
         <?php endif; ?>
     </div>
@@ -722,23 +733,53 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 </div>
 
 <?php if ($axes): ?>
-<div class="card">
-    <h2 class="mt-0">Comptabilité analytique</h2>
+<div class="card card-editable">
+    <div class="page-head">
+        <h2 class="mt-0">Comptabilité analytique</h2>
+        <?php if ($peutEcrireEv): ?>
+        <div class="head-actions">
+            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier l'axe par défaut"><?= icon('pencil') ?></button>
+            <button type="submit" form="axe-defaut-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+        </div>
+        <?php endif; ?>
+    </div>
     <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
+
+    <?php // Lecture par défaut, comme les autres cartes de la fiche : l'axe
+          // retenu, et à quoi il sert. La bulle d'explication reste ici plutôt
+          // que dans le formulaire — c'est en lisant qu'on se demande ce que ce
+          // réglage entraîne, pas en le changeant. ?>
+    <?php
+    $axeDefautId = (int) ($evenement['axe_analytique_id_defaut'] ?? 0);
+    $axeDefaut = null;
+    foreach ($axes as $ax) {
+        if ((int) $ax['id'] === $axeDefautId) { $axeDefaut = $ax; break; }
+    }
+    $axeAide = "Présélectionné pour les nouvelles prestations ajoutées ci-dessous et pour les lignes "
+        . "d'une facture créée depuis cet événement. Modifiable au cas par cas ensuite, sans "
+        . "effet rétroactif sur les prestations ou factures déjà enregistrées.";
+    ?>
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr>
+                <th>Axe par défaut <?= info_tip($axeAide) ?></th>
+                <td><?= $axeDefaut
+                    ? e(trim((string) ($axeDefaut['code'] ?? '')) !== ''
+                        ? $axeDefaut['code'] . ' — ' . $axeDefaut['libelle']
+                        : (string) $axeDefaut['libelle'])
+                    : '<span class="muted">Aucun</span>' ?></td>
+            </tr>
+        </table>
+    </div>
+
     <?php if ($peutEcrireEv): ?>
-    <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" class="form">
+    <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" id="axe-defaut-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <label><span>Axe par défaut <?= info_tip(
-            "Présélectionné pour les nouvelles prestations ajoutées ci-dessous et pour les lignes "
-            . "d'une facture créée depuis cet événement. Modifiable au cas par cas ensuite, sans "
-            . "effet rétroactif sur les prestations ou factures déjà enregistrées."
-        ) ?></span>
-            <?= $axeSelect('axe_analytique_id_defaut', '', (int) ($evenement['axe_analytique_id_defaut'] ?? 0)) ?>
+        <label><span>Axe par défaut</span>
+            <?= $axeSelect('axe_analytique_id_defaut', '', $axeDefautId) ?>
         </label>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        </div>
     </form>
     <?php endif; ?>
 </div>
@@ -793,7 +834,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                     <?php endforeach; ?>
                 </ul>
             </div>
-            <button type="submit" class="btn ghost btn-sm"><?= icon('link') ?> Lier</button>
+            <button type="submit" class="btn ghost" title="Lier" aria-label="Lier cette facture"><?= icon('link') ?><span class="lbl"> Lier</span></button>
         </form>
     <?php endif; ?>
 </div>

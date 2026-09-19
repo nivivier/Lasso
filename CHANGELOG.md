@@ -7,6 +7,69 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [2.8.4] — 2026-09-19
+
+### Modifié
+- **Trois réglages de ligne ne rechargent plus toute la page** : l'axe
+  analytique d'une ligne de facture, et les interrupteurs actif/inactif d'un axe
+  (`?p=compta_axes`) et d'une ligne du décompte (`?p=postes`). L'envoi part en
+  arrière-plan et une pastille confirme ; ce qui change à l'écran — la ligne
+  grisée, le badge « inactif » — suit la case elle-même, sans rien re-rendre. Le
+  cas de la facture était le plus coûteux : une facture longue, un menu au
+  milieu, et l'on se retrouvait en haut de page. Si l'appel échoue, l'envoi
+  classique reprend la main.
+- **Annuler l'édition d'une carte ne recharge plus la page.** Le bouton était un
+  lien vers la page elle-même : tout l'écran clignotait, la position de
+  défilement était perdue et les autres cartes rouvertes dans leur état par
+  défaut — pour abandonner trois caractères. La carte revient en lecture sur
+  place et le formulaire reprend les valeurs que le serveur avait écrites. Neuf
+  cartes concernées, sur la fiche d'une date et celle d'une structure, entrées
+  d'historique comprises.
+- **La carte « Comptabilité analytique » d'une date se lit avant de se
+  modifier**, comme ses voisines : l'axe retenu s'affiche, un crayon en haut à
+  droite ouvre le menu et cède la place à « enregistrer » et « annuler ». C'était
+  le dernier formulaire ouvert en permanence de la fiche.
+- **Le « délier » d'une structure liée s'aligne à droite**, comme le crayon d'un
+  contact juste au-dessus : il se collait au nom, donc à une abscisse différente
+  d'une ligne à l'autre. La règle qui pousse les boutons au bord — le contenu
+  prend la place restante — valait pour les champs d'une rangée de liaison, pas
+  pour son texte ; elle était en revanche recopiée pour les contacts et les
+  boîtes d'envoi. Une seule règle désormais, pour toutes les rangées.
+- **Le crayon d'une boîte d'envoi ne se cache plus derrière le survol**
+  (Paramètres → E-mails) : le dernier des trois à le faire.
+- **Les boutons « Lier » et « Ajouter » se ressemblent enfin.** Ils avaient trois
+  tailles, quatre icônes et parfois aucun libellé selon l'écran. Deux verbes
+  désormais : **Lier** (`link`) pour rattacher une entité qui existe déjà des
+  deux côtés, **Ajouter** (`plus`) pour verser une entrée dans une liste. Tous
+  au format d'un champ — ils faisaient douze pixels de moins et pendaient au
+  milieu de leur rangée —, tous avec leur libellé, effacé sous 800 px où la
+  rangée n'a plus la largeur d'un mot. Huit rangées concernées, sur la fiche
+  d'une structure, celle d'une date et celle d'une facture.
+- **Supprimer une date se fait depuis un crayon**, en haut à droite de sa fiche :
+  il découvre la corbeille, la croix la referme, et « Feuille de route » s'efface
+  pendant ce temps. `?p=evenement` était le dernier écran de consultation à
+  garder une suppression à portée de clic permanent. La bascule lecture/édition
+  d'un en-tête de page est devenue générique (`.entete-editable`) au lieu d'être
+  réécrite par page — `?p=structure` s'en sert désormais aussi.
+- **Les cartes du tableau de bord se rangent au glisser-déposer**, comme toutes
+  les listes ordonnables de l'application ; les flèches restent en repli sans
+  JavaScript.
+- **Le menu « Organiser les cartes » se referme au clic à côté**, comme les
+  autres menus.
+- **Toutes les corbeilles sont rouges, sans exception** : celle des étiquettes,
+  dans leur entonnoir, était grise et ne rougissait qu'au survol.
+- **Les couleurs de l'historique d'une structure suivent le thème sombre** :
+  trois teintes y étaient écrites en dur.
+- **Onze boutons d'icône seule ont reçu leur libellé accessible**, deux leur
+  infobulle *et* leur libellé. Un lecteur d'écran annonçait « bouton » sans rien
+  de plus.
+
+### Corrigé
+- **Un lien de désinscription ne désinscrit plus tout seul.** Il ouvre une page
+  de confirmation, et c'est un bouton qui agit : l'antivirus d'une messagerie ou
+  l'aperçu de lien d'un client mail suit les URL d'un message pour les
+  inspecter, et désinscrivait la structure sans que personne n'ait rien cliqué.
+
 ## [2.8.3] — 2026-09-18
 
 ### Ajouté

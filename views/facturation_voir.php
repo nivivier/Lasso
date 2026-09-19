@@ -145,7 +145,10 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                           // un seul champ, une seule décision. ?>
                     <td class="muted small col-axe-facture">
                         <?php if ($axesModifiables): ?>
-                            <form method="post" action="?p=facture_ligne_axe">
+                            <?php // data-ajax : l'axe n'engage que sa ligne, et la
+                                  // facture est longue — la recharger entière pour un
+                                  // menu renvoyait en haut de page. ?>
+                            <form method="post" action="?p=facture_ligne_axe" data-ajax="Axe analytique enregistré.">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
                                 <input type="hidden" name="ligne_id" value="<?= (int) $l['id'] ?>">
@@ -223,7 +226,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <?php if ($evenementActuel): ?>
         <div class="evenement-lie-disp">
             <a class="muted small" href="<?= e(url_avec_retour('?p=evenement&id=' . (int) $f['evenement_id'], 'facture', (int) $f['id'])) ?>"><?= e($evenementLabel) ?></a>
-            <button type="button" class="row-edit-btn evenement-edit-btn" title="Modifier le lien"><?= icon('pencil') ?></button>
+            <button type="button" class="row-edit-btn evenement-edit-btn" title="Modifier le lien" aria-label="Modifier l'événement lié"><?= icon('pencil') ?></button>
         </div>
         <?php endif; ?>
         <form method="post" action="?p=facture_evenement_lier<?= $depuisQs ?>" class="linked-add evenement-lie-form"<?= $evenementActuel ? ' hidden' : '' ?>>
@@ -245,7 +248,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <?php // Même bouton que la liaison d'une structure à un lieu
                   // (?p=structure) : l'icône « lien », sans texte, à droite du
                   // champ — c'est le même geste, il se reconnaît. ?>
-            <button type="submit" class="btn ghost btn-sm icon-only" title="Lier cet événement" aria-label="Lier cet événement"><?= icon('link') ?></button>
+            <button type="submit" class="btn ghost" title="Lier cet événement" aria-label="Lier cet événement"><?= icon('link') ?><span class="lbl"> Lier</span></button>
         </form>
     <?php endif; ?>
 </aside>

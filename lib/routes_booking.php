@@ -1405,17 +1405,45 @@ function route_mailing_traiter(): void
     exit;
 }
 
-// Désinscription par lien e-mail (GET, sans session) : voir commentaire de
-// route_mailing_traiter() ci-dessus pour la dérogation à la convention POST.
+// Désinscription par lien e-mail. Sans session, donc sans jeton CSRF : c'est la
+// SIGNATURE de l'URL qui autorise, et elle seule.
+//
+// En DEUX temps, et pas un : le lien ouvre une page qui demande confirmation, et
+// c'est un POST qui désinscrit. Un simple GET mutant se déclenche tout seul —
+// l'antivirus d'une messagerie, l'aperçu de lien d'un client mail ou d'une
+// messagerie instantanée suivent les URL d'un message pour les inspecter, et
+// auraient désinscrit la structure sans que personne n'ait rien cliqué. Aucun de
+// ces robots n'envoie un formulaire.
 function route_desinscription(): void
 {
-    $structureId = (int) ($_GET['structure_id'] ?? 0);
-    $contactId = ($_GET['contact_id'] ?? '') !== '' ? (int) $_GET['contact_id'] : null;
-    $sig = (string) ($_GET['sig'] ?? '');
+    $source = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
+    $structureId = (int) ($source['structure_id'] ?? 0);
+    $contactId = ($source['contact_id'] ?? '') !== '' ? (int) $source['contact_id'] : null;
+    $sig = (string) ($source['sig'] ?? '');
     if (!$structureId || !hash_equals(desinscription_signature($structureId, $contactId), $sig)) {
         http_response_code(403);
         exit('Lien invalide.');
     }
+
+    $page = function (string $corps): never {
+        echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<meta name="robots" content="noindex,nofollow">'
+            . '<div style="font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1.5rem;line-height:1.6">'
+            . $corps . '</div>';
+        exit;
+    };
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $page('<p>Confirmez-vous ne plus vouloir recevoir nos messages ?</p>'
+            . '<form method="post" action="?p=desinscription">'
+            . '<input type="hidden" name="structure_id" value="' . (int) $structureId . '">'
+            . ($contactId !== null ? '<input type="hidden" name="contact_id" value="' . (int) $contactId . '">' : '')
+            . '<input type="hidden" name="sig" value="' . e($sig) . '">'
+            . '<button type="submit" style="font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;'
+            . 'background:#16150f;color:#fff;cursor:pointer">Me désinscrire</button>'
+            . '</form>');
+    }
+
     if ($contactId) {
         db()->prepare('UPDATE structure_contacts SET desinscrit = 1 WHERE id = ? AND structure_id = ?')->execute([$contactId, $structureId]);
     } else {
@@ -1424,9 +1452,7 @@ function route_desinscription(): void
         // « ne_pas_contacter », y compris depuis « contact_privilegie ».
         db()->prepare("UPDATE structures SET statut = 'ne_pas_contacter' WHERE id = ? AND statut != 'inactif'")->execute([$structureId]);
     }
-    echo '<!doctype html><meta charset="utf-8"><p style="font-family:sans-serif;padding:2rem">'
-        . 'Vous ne recevrez plus de mailing de notre part.</p>';
-    exit;
+    $page('<p>C\'est fait : vous ne recevrez plus de mailing de notre part.</p>');
 }
 
 // ------------------------------------------------------------- IMPORT CSV

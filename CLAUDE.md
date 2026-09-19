@@ -124,10 +124,17 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   - Dispatch (`index.php`) : chaque route est associée au(x) module(s) dont
     dépend son accès (`ajouter_routes_module()`) ; `route_autorisee()` exige la
     lecture pour un GET, l'écriture pour un POST (convention stricte : toute
-    mutation passe par un POST protégé par `check_csrf()`, aucune route
-    n'écrit sur un GET **sauf `route_backup()`**, gardée à part car elle
-    exporte toute la base). Ajouter une route mutante en GET casserait ce
-    contrôle — ne pas le faire.
+    mutation passe par un POST protégé par `check_csrf()`). Ajouter une route
+    mutante en GET casserait ce contrôle — ne pas le faire. **Trois routes y
+    échappent**, toutes hors session et donc sans jeton CSRF possible, chacune
+    autorisée par une signature ou un jeton dédié :
+    - `route_backup()` — exporte toute la base, gardée à part ;
+    - `route_mailing_traiter()` — vide la file d'envoi, déclenchée par le
+      planificateur de tâches de l'hébergeur (jeton `mailing_traiter_token`) ;
+    - `route_desinscription()` — lien de désinscription d'un e-mail. Elle
+      n'écrit **que sur un POST** : le GET n'affiche qu'une page de
+      confirmation, parce qu'un antivirus de messagerie ou un aperçu de lien
+      suit les URL d'un message et aurait désinscrit tout seul.
   - Un nouveau compte (`route_comptes()`) démarre **sans aucun droit** ; seul
     le tout premier compte (`route_setup()`) reçoit tout par défaut.
   - **`module_accessible($id)`** = `module_actif()` **ET** `peut_lire()`. Les deux

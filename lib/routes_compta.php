@@ -1081,6 +1081,20 @@ function compter_impact_regle(array $regle, array $ecritures): int
 }
 
 // --- Axes analytiques -------------------------------------------------------
+// Réponse courte à un envoi parti en arrière-plan (data-ajax, assets/app.js) :
+// rien à re-rendre, l'état visible est déjà porté par le champ qu'on vient de
+// changer. Rend true quand elle a répondu — l'appelant s'arrête là au lieu de
+// rediriger. Même convention `retour=json` que les cellules de ?p=structures.
+function compta_reponse_json(): bool
+{
+    if (($_POST['retour'] ?? '') !== 'json') {
+        return false;
+    }
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => true]);
+    return true;
+}
+
 function route_compta_axes(): void
 {
     require_login();
@@ -1109,6 +1123,7 @@ function route_compta_axes(): void
             if ($id) {
                 db()->prepare('UPDATE axes_analytiques SET actif = 1 - actif WHERE id = ?')->execute([$id]);
             }
+            if (compta_reponse_json()) { return; }
         } elseif ($section === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id) {

@@ -72,7 +72,7 @@ $flashErr = [
                             <label class="plan-parent plan-fallback">dans
                                 <select name="parent_id"><?= $parentOptions($sens, plan_pid($p['parent_id'] ?? null) ?: null, $pid) ?></select>
                             </label>
-                            <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
+                            <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer" aria-label="Enregistrer le parent"><?= icon('save') ?></button>
                         </form>
                         <?php else: ?>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>

@@ -390,7 +390,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <?php if ($rowCatVal !== ''): ?>
                     <div class="row-field-disp">
                         <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?><span><?= e($rowCatLeaf) ?></span></span>
-                        <button type="button" class="row-edit-btn" title="Modifier"><?= icon('pencil') ?></button>
+                        <button type="button" class="row-edit-btn" title="Modifier" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
                     </div>
                     <div class="row-field-inp" hidden>
                         <div class="cat-prefix"><?= e($rowCatPrefix) ?></div>
@@ -416,14 +416,14 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                         <span class="axe-disp-txt muted small"><?= $dispTxt !== '' ? $dispTxt : '—' ?></span>
                     <?php elseif ($nVents === 0): ?>
                         <select class="axe-inline-sel" title="Axe analytique"><option value="">— Axe —</option><?= $axeOptsHtml ?></select>
-                        <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe"><?= icon('plus') ?></button>
+                        <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe" aria-label="Ventiler sur plusieurs axes"><?= icon('plus') ?></button>
                     <?php elseif ($nVents === 1): ?>
                         <span class="axe-disp-txt muted small"><?= $dispTxt ?></span>
-                        <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l'axe"><?= icon('pencil') ?></button>
-                        <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe"><?= icon('plus') ?></button>
+                        <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l'axe" aria-label="Modifier l'axe analytique"><?= icon('pencil') ?></button>
+                        <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe" aria-label="Ventiler sur plusieurs axes"><?= icon('plus') ?></button>
                     <?php else: ?>
                         <span class="axe-disp-txt muted small"><?= $dispTxt ?></span>
-                        <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier la ventilation"><?= icon('pencil') ?></button>
+                        <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier la ventilation" aria-label="Modifier la ventilation analytique"><?= icon('pencil') ?></button>
                     <?php endif; ?>
                 </div>
             </td>
@@ -650,7 +650,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     function buildPlusBtn(cell) {
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'row-edit-btn axe-add-btn';
-        btn.title = 'Ventilation multi-axe'; btn.innerHTML = PLUS_ICON;
+        btn.title = 'Ventilation multi-axe';
+        btn.setAttribute('aria-label', 'Ventiler sur plusieurs axes');
+        btn.innerHTML = PLUS_ICON;
         btn.addEventListener('click', () => openPanel(cell, true));
         return btn;
     }
@@ -659,6 +661,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'row-edit-btn axe-edit-btn';
         btn.title = mode === 'inline' ? "Modifier l'axe" : 'Modifier la ventilation';
+        btn.setAttribute('aria-label', mode === 'inline'
+            ? "Modifier l'axe analytique" : 'Modifier la ventilation analytique');
         btn.innerHTML = PENCIL_ICON;
         btn.addEventListener('click', () => mode === 'inline' ? startInlineEdit(cell) : openPanel(cell, false));
         return btn;

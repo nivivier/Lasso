@@ -70,7 +70,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                                 <select name="parent_id"><?= $paysOptions(plan_pid($p['parent_id'] ?? null)) ?></select>
                             </label>
                         <?php endif; ?>
-                        <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer"><?= icon('save') ?></button>
+                        <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer" aria-label="Enregistrer le parent"><?= icon('save') ?></button>
                     </form>
                     <?php endif; ?>
                     <?= compte_structures_html($nbStructures, $lienStructures, $estPays ? 'inutilisé' : 'inutilisée') ?>

@@ -99,13 +99,17 @@ foreach ($postes as $p) {
             <tr class="plan-row <?= (int) $p['actif'] ? '' : 'plan-archive' ?>" data-id="<?= $id ?>" data-sens="<?= e($p['sens']) ?>">
                 <td class="td-toggle">
                     <?php if ($ecriture): ?>
-                    <form method="post" action="?p=postes" class="toggle-cell">
+                    <?php // data-ajax : allumer ou éteindre une ligne n'engage que cette
+                          // ligne-là — sa grise suit l'interrupteur par CSS. Rien à
+                          // recharger (docs/UI.md § 14). ?>
+                    <form method="post" action="?p=postes" class="toggle-cell" data-ajax="Ligne mise à jour.">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="toggle_actif">
                         <input type="hidden" name="annee" value="<?= $annee ?>">
                         <input type="hidden" name="id" value="<?= $id ?>">
                         <label class="regle-toggle" title="<?= (int) $p['actif'] ? 'Désactiver cette ligne' : 'Activer cette ligne' ?>">
-                            <input type="checkbox" name="actif" value="1" <?= (int) $p['actif'] ? 'checked' : '' ?> data-submit-on-change>
+                            <input type="checkbox" name="actif" value="1" <?= (int) $p['actif'] ? 'checked' : '' ?>
+                                   class="regle-actif-cb" data-submit-on-change>
                             <span class="regle-toggle-pill"></span>
                         </label>
                     </form>

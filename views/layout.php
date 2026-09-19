@@ -41,7 +41,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
       // elle l'est donc aussi sur téléphone — bouton, tiroir et bouton de
       // fermeture, tous du même côté. ?>
 <header class="mobile-bar">
-    <button type="button" class="burger" id="burger" aria-label="Menu" aria-expanded="false">
+    <button type="button" class="burger" id="burger" title="Menu" aria-label="Menu" aria-expanded="false">
         <?= icon('menu') ?>
     </button>
     <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
@@ -69,7 +69,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
             <?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
             <span class="side-sub">Gestion des salaires</span>
         </div>
-        <button type="button" class="side-close" id="side-close" aria-label="Fermer"><?= icon('x') ?></button>
+        <button type="button" class="side-close" id="side-close" title="Fermer" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <nav class="side-nav">
         <?php // --rail-accent explicite : sans lui, .rail-btn .ico retombe sur
@@ -120,7 +120,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
               // comme les autres lui donnait le même poids visuel qu'un domaine
               // métier. Les deux sont des réglages, pas du contenu. ?>
         <div class="side-bottom">
-            <button class="side-avatar" id="side-avatar-btn" aria-haspopup="true" aria-expanded="false">
+            <button class="side-avatar" id="side-avatar-btn" title="Mon compte" aria-label="Mon compte" aria-haspopup="true" aria-expanded="false">
                 <?= e($initiales) ?>
             </button>
             <?php if (peut_lire('coeur')): ?>
@@ -148,7 +148,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 </main>
 <div id="preview-modal" hidden aria-modal="true" role="dialog" aria-label="Aperçu">
     <div id="preview-modal-inner">
-        <button id="preview-modal-close" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
+        <button id="preview-modal-close" title="Fermer l'aperçu" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
         <iframe id="preview-modal-frame" src="" title="Aperçu"></iframe>
     </div>
 </div>

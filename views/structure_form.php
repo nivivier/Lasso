@@ -37,7 +37,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
 
 <div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=structures', 'Structures') ?>
-<div class="page-head">
+<div class="page-head entete-editable">
     <?php // Le nom se modifie SUR PLACE : le titre cède la place à un champ, et
           // les commandes de l'édition apparaissent dans les actions de la page,
           // tout à droite, exactement là où était le crayon (docs/UI.md § 2).
@@ -47,13 +47,13 @@ $contactable = $peutContacter && $raisonPasContactable === '';
     <?php $peutSupprimerStruct = $titreEditable && (int) ($structure['nb_factures'] ?? 0) === 0; ?>
     <?php if ($titreEditable): ?>
     <div class="titre-row">
-        <div class="titre-read">
+        <div class="titre-read entete-lecture">
             <h1><?= $v('nom') ?></h1>
         </div>
         <?php // Le formulaire n'emporte que le champ : son bouton d'enregistrement
               // vit dans les actions de la page et le vise par form=, puisqu'il
               // doit se lire avec les deux autres plutôt qu'à côté du titre. ?>
-        <form method="post" action="?p=structure_renommer<?= $depuisQs ?>" id="titre-edit-form" class="titre-edit-form" hidden>
+        <form method="post" action="?p=structure_renommer<?= $depuisQs ?>" id="titre-edit-form" class="titre-edit-form entete-edition" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <input type="text" name="nom" class="input-titre" value="<?= $v('nom') ?>" required>
@@ -67,7 +67,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
     <?php if ($peutContacter || $titreEditable): ?>
     <div class="head-actions">
         <?php if ($peutContacter): ?>
-        <span class="d-inline titre-lecture">
+        <span class="d-inline entete-lecture">
             <?php if ($contactable): ?>
             <button type="button" data-contacter="<?= $sid ?>" class="btn btn-contacter"><?= icon('mail') ?> Contacter</button>
             <?php else: ?>
@@ -79,51 +79,25 @@ $contactable = $peutContacter && $raisonPasContactable === '';
         <?php // Le trio de l'édition : enregistrer, supprimer, annuler — la croix
               // en dernier, à la place du crayon. Format normal : ce sont les
               // actions de la PAGE, pas celles d'une ligne. ?>
-        <button type="submit" form="titre-edit-form" class="btn icon-only titre-edition" hidden
+        <button type="submit" form="titre-edit-form" class="btn icon-only entete-edition" hidden
                 title="Enregistrer" aria-label="Enregistrer le nom"><?= icon('save') ?></button>
         <?php endif; ?>
         <?php if ($peutSupprimerStruct): ?>
-        <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline titre-edition" hidden>
+        <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline entete-edition" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la structure"><?= icon('trash') ?></button>
         </form>
         <?php endif; ?>
         <?php if ($titreEditable): ?>
-        <button type="button" class="btn ghost icon-only titre-edit-btn" title="Modifier" aria-label="Modifier le nom de la structure"><?= icon('pencil') ?></button>
-        <button type="button" class="btn ghost icon-only titre-annuler-btn titre-edition" hidden
+        <button type="button" class="btn ghost icon-only entete-edit-btn" data-focus=".titre-edit-form input[name=nom]"
+                title="Modifier" aria-label="Modifier le nom de la structure"><?= icon('pencil') ?></button>
+        <button type="button" class="btn ghost icon-only entete-annuler-btn entete-edition" hidden
                 title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
-<?php if ($isEdit && $peutEcrireStruct): ?>
-<?php // Après les deux blocs : le script a besoin du titre ET des actions, qui
-      // ne sont dans le document qu'une fois cette balise atteinte. ?>
-<script nonce="<?= e(csp_nonce()) ?>">
-(function () {
-    var row = document.querySelector('.titre-row');
-    var actions = document.querySelector('.page-head .head-actions');
-    if (!row || !actions) return;
-    var lecture = [].slice.call(actions.querySelectorAll('.titre-lecture'));
-    var edition = [].slice.call(actions.querySelectorAll('.titre-edition'));
-    var crayon = actions.querySelector('.titre-edit-btn');
-    var champ = row.querySelector('.titre-edit-form input[name=nom]');
-    function bascule(on) {
-        row.querySelector('.titre-read').hidden = on;
-        row.querySelector('.titre-edit-form').hidden = !on;
-        crayon.hidden = on;
-        lecture.forEach(function (el) { el.hidden = on; });
-        edition.forEach(function (el) { el.hidden = !on; });
-    }
-    crayon.addEventListener('click', function () { bascule(true); champ.focus(); champ.select(); });
-    actions.querySelector('.titre-annuler-btn').addEventListener('click', function () {
-        row.querySelector('.titre-edit-form').reset();
-        bascule(false);
-    });
-})();
-</script>
-<?php endif; ?>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 <?php require __DIR__ . '/_flash_contacter.php'; ?>
@@ -307,7 +281,7 @@ lassoInitTagSuggest();
     <div class="head-actions card-actions-overlay">
         <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
         <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-        <a href="?p=structure&id=<?= (int) $structure['id'] ?><?= $depuisQs ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+        <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </div>
     <?php endif; ?>
 
@@ -440,8 +414,8 @@ lassoInitTagSuggest();
                 <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
             </ul>
         </div>
-        <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter" aria-label="Ajouter le tag"><?= icon('plus') ?></button>
-        <button type="button" class="btn ghost btn-sm icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+        <button type="submit" class="btn ghost" title="Ajouter" aria-label="Ajouter le tag"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
+        <button type="button" class="btn ghost icon-only" data-hide="tag-ajouter-form" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </form>
     <?php endif; ?>
 </div>
@@ -466,7 +440,7 @@ lassoInitTagSuggest();
             <div class="head-actions">
                 <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                 <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                <a href="?p=structure&id=<?= $sid ?><?= $depuisQs ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+                <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
             </div>
             <?php endif; ?>
         </div>
@@ -655,7 +629,7 @@ lassoInitTagSuggest();
                     <?php endforeach; ?>
                 </ul>
             </div>
-            <button type="submit" class="btn ghost btn-sm"><?= icon('link') ?> Lier</button>
+            <button type="submit" class="btn ghost" title="Lier" aria-label="Lier cette structure"><?= icon('link') ?><span class="lbl"> Lier</span></button>
             <div id="lieu-nouveau" hidden class="grid3 mt-10">
                 <label>Nom <input name="nl_nom"></label>
                 <label>Type
@@ -685,7 +659,7 @@ lassoInitTagSuggest();
                     <?php endforeach; ?>
                 </ul>
             </div>
-            <button type="submit" class="btn ghost btn-sm"><?= icon('link') ?> Lier</button>
+            <button type="submit" class="btn ghost" title="Lier" aria-label="Lier cette structure"><?= icon('link') ?><span class="lbl"> Lier</span></button>
             <div id="organisateur-nouveau" hidden class="grid3 mt-10">
                 <label>Nom <input name="nl_nom"></label>
                 <label>Ville <input name="nl_ville"></label>
@@ -784,7 +758,7 @@ $villeHtmlS = ville_departement_canton_html(
         <div class="head-actions">
             <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
             <button type="submit" form="structure-localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <a href="?p=structure&id=<?= $sid ?><?= $depuisQs ?>" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </div>
         <?php endif; ?>
     </div>
@@ -862,8 +836,8 @@ $villeHtmlS = ville_departement_canton_html(
                     <option value="<?= (int) $c['id'] ?>"><?= e($c['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
-            <button type="button" class="btn ghost btn-sm" data-hide="campagne-ajouter-fiche"><?= icon('x') ?> Annuler</button>
+            <button type="submit" class="btn" title="Ajouter" aria-label="Ajouter à cette campagne"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
+            <button type="button" class="btn ghost icon-only" data-hide="campagne-ajouter-fiche" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>
         <?php endif; ?>
 

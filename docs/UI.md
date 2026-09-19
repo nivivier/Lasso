@@ -51,9 +51,36 @@ pour les lignes de liste, où la corbeille n'apparaît qu'en mode édition (§ 3
 
 Elle s'y place **tout à droite** de l'en-tête (`?p=fiche_edit`,
 `?p=facturation_form`, `?p=employe`, `?p=campagne_form`), et jamais à la
-création — il n'y a encore rien à détruire. Quand l'édition se fait *sur place*
-plutôt que sur un écran à part (le nom d'une structure), la corbeille rejoint le
-trio de l'édition, entre « Enregistrer » et la croix.
+création — il n'y a encore rien à détruire.
+
+**Quand il n'y a pas d'écran de modification** — tout s'édite en place, carte par
+carte (`?p=evenement`, `?p=structure`) —, c'est un crayon dans la barre de la
+page qui découvre la suppression, et la croix qui la referme. Sans rechargement,
+et sans rien d'autre à l'écran : ce qui n'a plus lieu d'être pendant ce temps
+s'efface (« Contacter », « Feuille de route »).
+
+Ce comportement est **générique**, dans `assets/app.js` — on ne le réécrit pas
+par page :
+
+| | |
+| --- | --- |
+| `.entete-editable` | le conteneur, en général `.page-head` |
+| `.entete-edit-btn` | le crayon ; `data-focus="<sélecteur>"` place le curseur à l'ouverture |
+| `.entete-annuler-btn` | la croix ; elle remet les formulaires de la zone dans leur état d'origine |
+| `.entete-lecture` | visible en lecture seulement |
+| `.entete-edition` | visible en édition seulement — `hidden` dans le balisage, pour que rien ne clignote au chargement |
+
+```html
+<div class="page-head entete-editable">
+  <h1 class="entete-lecture">…</h1>
+  <div class="head-actions">
+    <a class="btn ghost entete-lecture">👁 Feuille de route</a>
+    <form class="d-inline entete-edition" hidden data-confirm="…">🗑</form>
+    <button class="btn ghost icon-only entete-edit-btn">✎</button>
+    <button class="btn ghost icon-only entete-annuler-btn entete-edition" hidden>✕</button>
+  </div>
+</div>
+```
 
 ### Le retour d'un écran de modification
 
@@ -91,8 +118,28 @@ disparaître.
 
 ## 2. Modifier
 
-Quatre mécanismes existent, chacun pour une portée. **Aucun cinquième ne doit
-apparaître** : si le besoin n'entre dans aucun, élargir celui qui s'en approche.
+**Cinq portées, cinq mécanismes** — et rien au-delà : si un besoin n'entre dans
+aucun, on élargit celui qui s'en approche plutôt que d'en poser un sixième.
+
+| Portée | Mécanisme |
+| --- | --- |
+| La barre d'actions d'une page | `.entete-editable` (§ 1) |
+| Une carte entière | `.card-edit-btn` (a) |
+| Une section d'une carte | `.section-editable` (b) |
+| Un bloc répété | `lassoInitBlocEdition()` (c) |
+| Une ligne d'une liste ordonnable | `.plan-edit-btn` + `.editing` (d) |
+
+### L'exception : une étiquette se modifie dans son champ
+
+**Les entités qui n'ont qu'un nom** — un tag, un axe analytique, une catégorie
+de structure, un pays, une unité — n'ont pas besoin d'un mode d'édition : le
+crayon ouvre directement le champ, là où le nom se lit, et l'enregistrement le
+referme. C'est le motif `.row-field-disp` / `.row-field-inp` (`?p=compta_ecritures`
+pour l'axe d'une écriture, `?p=structures` pour un tag dans son entonnoir).
+
+La limite est le contenu, pas l'écran : dès qu'une ligne porte **plusieurs
+champs**, elle relève de (d) et de son trio de boutons. Une étiquette, c'est un
+mot — on le corrige, on valide, c'est fini.
 
 ### a. Une carte entière — `.card-edit-btn`
 
@@ -100,6 +147,17 @@ Générique, dans `assets/app.js`. La carte porte `.card-editable`, son contenu 
 lecture `.card-disp`, son formulaire `.card-edit` (masqué), et `.head-actions`
 contient le crayon puis `.card-save-btn` / `.card-cancel-btn`, cachés. Le crayon
 échange les trois. **Une seule zone d'édition par carte** : c'est la limite.
+
+**« Annuler » referme sur place**, sans recharger : `form.reset()` rend au
+formulaire les valeurs que le serveur avait écrites — c'est l'état INITIAL du
+document, donc exactement ce qui s'affichait. Un `<a href>` vers la page
+elle-même faisait clignoter tout l'écran, perdait la position de défilement et
+rouvrait les autres cartes dans leur état par défaut, pour abandonner trois
+caractères.
+
+⚠️ `.card-edit` n'est pas toujours le `<form>` : sur une fiche de structure,
+c'est un `<div>` **à l'intérieur** du formulaire de la carte. La remise à zéro
+passe donc par `element.form` de ses champs, jamais par le conteneur seul.
 
 ### b. Une section d'une carte — `.section-editable` + `.edit-toggle-btn`
 
@@ -206,7 +264,12 @@ endroit (`?p=evenement`, `?p=structure`, l'historique).
 ## 3. Supprimer
 
 - Toujours un `<form method="post">`, jamais un lien : aucune route ne mute sur
-  un GET (voir `CLAUDE.md § Modules & droits`).
+  un GET (les trois exceptions, toutes hors session, sont listées dans
+  `CLAUDE.md § Modules & droits`).
+- **Un lien reçu par e-mail ne mute jamais non plus.** Un antivirus de
+  messagerie ou l'aperçu de lien d'un client mail suit les URL d'un message pour
+  les inspecter : le lien ouvre une page de confirmation, c'est le bouton qui
+  agit (`route_desinscription()`).
 - Toujours `data-confirm="…"`. Le message dit **ce qui est détruit**, pas
   « Êtes-vous sûr ? » — *« Supprimer cette pièce jointe ? Le fichier sera effacé
   du serveur. »*
@@ -221,6 +284,13 @@ endroit (`?p=evenement`, `?p=structure`, l'historique).
 confond avec les autres actions d'une ligne, alors qu'elle est la seule dont on
 ne revient pas.
 
+**Une seule variante est admise** : l'icône rouge **nue**, sans fond ni contour,
+pour les listes denses où aucun bouton n'en porte (`.tag-gerer-suppr`, les
+étiquettes dans leur entonnoir). Le rouge est alors posé dès la lecture, pas
+seulement au survol. Ce qui n'est jamais admis, c'est une corbeille **sombre sur
+un bouton standard** : c'est exactement ce qui la fait passer pour une action
+ordinaire.
+
 **Visible seulement quand la ligne est en édition.** Dès qu'un écran a un mode
 d'édition, la corbeille lui appartient : un geste irréversible n'a pas à être à
 portée de clic quand on ne fait que lire.
@@ -230,6 +300,7 @@ portée de clic quand on ne fait que lire.
 | Liste ordonnable (`.plan-row`) | classe `.plan-supprimer` — une règle globale la masque hors `.editing` |
 | Section éditable (`.section-editable`) | `.edit-only` : révélée par le crayon de section |
 | Bloc répété (`lassoInitBlocEdition`) | **dans le panneau d'édition**, en bas |
+| Script de page (`?p=compta_axes`, `?p=compta_comptes`, `?p=taux_horaires`) | `hidden` posé au chargement, levé par le crayon — même résultat, sans le helper |
 
 ```css
 .dnd-on .plan-row .plan-supprimer { display: none; }
@@ -247,7 +318,7 @@ d'édition — deux `<form>` ne s'imbriquent pas — et son bouton le vise par
 
 **Glisser-déposer**, partout où c'est possible. C'est la convention de
 l'application : plan comptable, lignes du décompte, catégories de structure,
-pays et régions, spectacles.
+pays et régions, spectacles, déroulé d'un événement, cartes du tableau de bord.
 
 Le vocabulaire est fixe et partagé :
 
@@ -266,7 +337,8 @@ Deux implémentations, selon la forme de la liste :
   position verticale change le rang. `?p=compta_plan`, `?p=parametres_structures`,
   `?p=spectacles`, `?p=parametres_pays`.
 - **`lassoOrdreListe()`** — liste plate, même vocabulaire sans la hiérarchie.
-  `?p=postes`.
+  `?p=postes`, le déroulé d'un événement (`?p=evenement`), les cartes du tableau
+  de bord (`?p=resumes`, panneau « Organiser les cartes »).
 
 Trois règles qui comptent :
 
@@ -288,10 +360,15 @@ Trois règles qui comptent :
    pose `.dnd-on`, qui les masque — donc sans lui, ils restent là.
 3. **Sur téléphone, la poignée s'efface** et les flèches de repli reprennent la
    main : glisser au doigt dans une page qui défile est un combat perdu.
+   ⚠️ Appliqué au seul déroulé d'un événement pour l'instant ; les cinq autres
+   listes gardent leur poignée au doigt. À trancher : étendre, ou retirer la
+   règle.
 4. **La position de défilement est mémorisée** (`sessionStorage`) avant l'envoi
    et restaurée au retour, `history.scrollRestoration = 'manual'`. Sans cela,
    déplacer la trentième ligne d'une liste renvoie en haut de page à chaque
-   dépôt.
+   dépôt. Les deux helpers le font ; ailleurs, `?p=evenement` et
+   `?p=import_fiches` le réimplémentent à la main, faute d'une liste ordonnable
+   à qui le confier.
 
 ### Quand des flèches, alors ?
 
@@ -327,6 +404,38 @@ demandé (`?ajout=<type>`), et c'est le **serveur** qui déplie le formulaire :
 En cas d'erreur, la redirection **conserve** le type demandé : refermer le
 formulaire emporterait la saisie avec le message qui l'explique.
 
+### La rangée de liaison — `.linked-add`
+
+Un champ (ou une liste) et son bouton, sur une ligne, pour rattacher quelque
+chose à la fiche qu'on lit : un employé à une date, une facture à un événement,
+une salle à une structure, un tag, une campagne.
+
+**Deux verbes, deux icônes, et rien d'autre :**
+
+| | Quand | Icône | Libellé |
+| --- | --- | --- | --- |
+| **Lier** | rattacher une entité qui existe déjà, des deux côtés | `link` | Lier |
+| **Ajouter** | verser une entrée dans une liste | `plus` | Ajouter |
+
+**Le bouton a la taille d'un champ**, pas celle d'un bouton de ligne : format
+normal (`btn`, jamais `btn-sm`), donc `--action-height` — la même boîte que le
+champ posé à côté. Un `btn-sm` y faisait douze pixels de moins et pendait au
+milieu de la rangée.
+
+**Le libellé vit dans un `<span class="lbl">`** : la feuille de style l'efface
+sous 800 px, où la rangée n'a plus la largeur d'un mot, et la boîte reste celle
+du champ. Un libellé qui peut disparaître veut dire `title` **et** `aria-label`
+sur le bouton, toujours.
+
+```html
+<form class="linked-add">
+  <input type="text" class="cat-search-input" placeholder="Rechercher une facture à lier…">
+  <button type="submit" class="btn ghost" title="Lier" aria-label="Lier cette facture">
+    🔗<span class="lbl"> Lier</span>
+  </button>
+</form>
+```
+
 Quand une liste recommence toujours par les mêmes entrées, offrir un bouton qui
 les pose d'un coup (« Déroulé type »), **idempotent** : n'ajoute que ce qui
 manque, comparaison insensible à la casse.
@@ -337,12 +446,19 @@ manque, comparaison insensible à la casse.
 l'écouteur global d'`assets/app.js` s'en charge.
 
 ```js
-const LASSO_MENUS = '.col-filter[open], .feuille-menu[open]';
+const LASSO_MENUS = '.col-filter[open], .feuille-menu[open], .dash-reglages[open]';
 ```
 
 **Un nouveau menu s'ajoute à ce sélecteur** — on n'écrit pas un second
 écouteur. Le test `details.contains(e.target)` est ce qui permet de cliquer une
 entrée avant que le menu ne se referme.
+
+**Tout `<details>` n'est pas un menu.** Un **panneau de saisie** — « Plus de
+filtres » (`.filters-more`), où l'on coche plusieurs cases avant d'envoyer —
+reste ouvert : le refermer au premier clic à côté ferait perdre le travail en
+cours. Il n'est donc pas dans `LASSO_MENUS`, et c'est voulu. La règle : un menu
+où l'on choisit UNE entrée se referme au clic dehors ; un panneau où l'on
+compose se referme quand on le décide.
 
 ## 7. Fenêtres
 
@@ -383,6 +499,13 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close
 
 Structure : `<body class="print-page">` > `.print-toolbar` (masquée à
 l'impression) > `.sheet` (la feuille blanche).
+
+**Toutes ne s'impriment pas.** L'aperçu d'export SUISA
+(`evenements_export_suisa_print.php`) utilise la même enveloppe pour montrer ce
+qui partira en CSV : sa barre porte « Télécharger » et « Copier », pas
+« Imprimer » — un tableau de dix-huit colonnes n'est pas fait pour le papier.
+Une page d'impression sans bouton d'impression n'a donc pas besoin du script,
+mais garde le thème clair et la feuille de style versionnée.
 
 **L'aperçu doit montrer ce qui sortira de l'imprimante.** Une règle qui ne vaut
 que sous `@media print` crée un aperçu menteur. Cas déjà rencontré : les `<h1>`
@@ -540,6 +663,22 @@ Le balisage **déclare l'intention**, le comportement vit dans `app.js`. Aucun
 attribut `onclick` : c'est du script inline, que la CSP ne peut autoriser
 qu'avec `'unsafe-inline'`.
 
+**Un réglage qui n'engage que sa propre ligne n'a pas à recharger la page.**
+`data-ajax` sur le formulaire suffit : l'envoi part en `fetch` avec
+`retour=json`, la route répond `{"ok":true}` au lieu de rediriger, et si l'appel
+échoue l'envoi classique reprend la main — la page montre alors l'état réel
+plutôt que de laisser un interrupteur basculé à l'écran et pas en base.
+
+Ce qui change à l'écran doit alors suivre **sans rendu** : une classe ou un
+badge se pilotent depuis la case elle-même (`:has(.regle-actif-cb:checked)`),
+jamais en réécrivant la ligne. Attention, `[hidden]` porte un `!important` dans
+`app.css` : une règle CSS ne le lèvera pas, c'est la vue qui doit s'abstenir de
+poser l'attribut.
+
+**À l'inverse, on recharge** dès que le geste change autre chose que sa ligne :
+un chiffre agrégé (l'impact d'une règle de lettrage), la navigation (activer un
+module), ou un libellé repris ailleurs dans la page (renommer une étiquette).
+
 | Attribut | Effet |
 | --- | --- |
 | `data-confirm="…"` | Demande confirmation (form : envoi ; bouton/lien : clic). Vide = ne demande rien |
@@ -547,6 +686,7 @@ qu'avec `'unsafe-inline'`.
 | `data-preview` | Ouvre la cible dans la fenêtre d'aperçu |
 | `data-show` / `data-hide` | Affiche / masque l'élément d'id donné |
 | `data-submit-on-change` | Envoie le formulaire porteur au changement |
+| `data-ajax="<message>"` | Sur le **formulaire** : l'envoi part en arrière-plan au lieu de recharger la page ; le message s'affiche en pastille flottante |
 | `data-submit-form="<id>"` | Envoie le formulaire désigné |
 | `data-go-on-change="<préfixe>"` | Navigue vers préfixe + valeur |
 

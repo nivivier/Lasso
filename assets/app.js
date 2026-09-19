@@ -140,7 +140,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // qu'on attend d'un menu. Un seul écouteur global les couvre tous : il ferme
 // tout menu ouvert dont le clic n'a pas eu lieu à l'intérieur. Un nouveau menu
 // n'a qu'à s'ajouter à ce sélecteur.
-const LASSO_MENUS = '.col-filter[open], .feuille-menu[open]';
+const LASSO_MENUS = '.col-filter[open], .feuille-menu[open], .dash-reglages[open]';
 document.addEventListener('click', e => {
     document.querySelectorAll(LASSO_MENUS).forEach(details => {
         if (!details.contains(e.target)) { details.open = false; }
@@ -196,16 +196,80 @@ window.addEventListener('DOMContentLoaded', () => {
 // annuler, au même endroit — tous trois vivent dans le même conteneur
 // .head-actions, juste à côté du crayon (voir aussi .card-actions-overlay
 // dans app.css pour les cadres sans ligne d'en-tête propre).
+//
+// « Annuler » referme sur place, sans recharger : le formulaire reprend les
+// valeurs que le serveur avait rendues (form.reset(), qui restaure l'état
+// INITIAL du document, pas un état vide), et la carte revient en lecture. Un
+// aller-retour complet pour abandonner une saisie faisait clignoter toute la
+// page, perdait la position de défilement et rouvrait les autres cartes dans
+// leur état par défaut.
 window.addEventListener('DOMContentLoaded', () => {
+    const basculer = (btn, edition) => {
+        const card = btn.closest('.card-editable');
+        const actions = btn.closest('.head-actions');
+        if (!card || !actions) return;
+        const form = card.querySelector('.card-edit');
+        // .card-edit n'est PAS toujours le <form> : sur la fiche d'une structure,
+        // c'est un <div> À L'INTÉRIEUR du formulaire de la carte. On remet donc
+        // à zéro le ou les formulaires auxquels ses champs appartiennent —
+        // element.form les donne, y compris pour un champ rattaché par form=.
+        if (!edition && form) {
+            const formulaires = new Set();
+            if (form instanceof HTMLFormElement) formulaires.add(form);
+            form.querySelectorAll('input, select, textarea').forEach(ch => {
+                if (ch.form) formulaires.add(ch.form);
+            });
+            formulaires.forEach(f => f.reset());
+        }
+        card.querySelector('.card-disp').hidden = edition;
+        if (form) form.hidden = !edition;
+        actions.querySelector('.card-edit-btn').hidden = edition;
+        actions.querySelector('.card-save-btn').hidden = !edition;
+        actions.querySelector('.card-cancel-btn').hidden = !edition;
+    };
     document.querySelectorAll('.card-edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const card = btn.closest('.card-editable');
-            card.querySelector('.card-disp').hidden = true;
-            card.querySelector('.card-edit').hidden = false;
-            const actions = btn.closest('.head-actions');
-            btn.hidden = true;
-            actions.querySelector('.card-save-btn').hidden = false;
-            actions.querySelector('.card-cancel-btn').hidden = false;
+        btn.addEventListener('click', () => basculer(btn, true));
+    });
+    document.querySelectorAll('.card-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => basculer(btn, false));
+    });
+});
+
+// EN-TÊTE DE PAGE, lecture / édition (?p=structure : le nom ; ?p=evenement :
+// la suppression). Même idée que les cadres ci-dessus, à l'échelle de la barre
+// d'actions d'une page : le crayon révèle ce que l'édition ajoute et efface ce
+// qui n'a plus lieu d'être — « Contacter », « Feuille de route ». Il cède sa
+// place à la croix, exactement (docs/UI.md § 1).
+//
+// Générique plutôt que réécrit par page : c'était le même script recopié, et
+// docs/UI.md § 2 interdit un mécanisme d'édition de plus.
+//
+//   .entete-editable    le conteneur (en général .page-head)
+//   .entete-edit-btn    le crayon — data-focus="<sélecteur>" pour placer le
+//                       curseur à l'ouverture
+//   .entete-annuler-btn la croix ; elle remet les formulaires de la zone
+//                       dans leur état d'origine
+//   .entete-lecture     visible en lecture seulement
+//   .entete-edition     visible en édition seulement (hidden dans le balisage,
+//                       pour que rien ne clignote au chargement)
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.entete-editable').forEach(zone => {
+        const crayon = zone.querySelector('.entete-edit-btn');
+        const annuler = zone.querySelector('.entete-annuler-btn');
+        if (!crayon) return;
+        const bascule = (edition) => {
+            zone.querySelectorAll('.entete-lecture').forEach(el => { el.hidden = edition; });
+            zone.querySelectorAll('.entete-edition').forEach(el => { el.hidden = !edition; });
+            crayon.hidden = edition;
+        };
+        crayon.addEventListener('click', () => {
+            bascule(true);
+            const cible = crayon.dataset.focus ? zone.querySelector(crayon.dataset.focus) : null;
+            if (cible) { cible.focus(); cible.select?.(); }
+        });
+        annuler?.addEventListener('click', () => {
+            zone.querySelectorAll('.entete-edition form, form.entete-edition').forEach(f => f.reset?.());
+            bascule(false);
         });
     });
 });
@@ -1384,11 +1448,46 @@ document.addEventListener('click', e => {
     }
 });
 
+// Message flottant créé côté script, pour les enregistrements qui ne rechargent
+// pas la page : sans lui, un geste réussi ne dirait rien. Même apparence et même
+// durée de vie que les messages rendus par le serveur (views/layout.php).
+function lassoToast(texte, classe = 'ok') {
+    const el = document.createElement('p');
+    el.className = classe + ' flash';
+    el.textContent = texte;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.classList.add('flash-out');
+        setTimeout(() => el.remove(), 400);
+    }, 3000);
+}
+
 // Soumission du formulaire porteur dès qu'un champ change (filtres par année,
 // sélecteurs de période…).
+//
+// data-ajax sur le FORMULAIRE : l'envoi part en arrière-plan plutôt que de
+// recharger la page. Réservé aux réglages qui ne changent QUE leur propre ligne
+// — un interrupteur actif/inactif, l'axe d'une ligne de facture : l'état visible
+// est déjà porté par le champ lui-même, il n'y a rien à re-rendre. Recharger une
+// facture entière pour un menu faisait perdre la position de défilement.
+//
+// Repli : si l'appel échoue (réseau coupé, session expirée), l'envoi classique
+// prend le relais et la page montre l'état réel, plutôt que de laisser un
+// interrupteur basculé à l'écran et pas en base.
+async function lassoEnvoyerEnFond(form) {
+    const fd = new FormData(form);
+    fd.append('retour', 'json');
+    const data = await fetch(form.getAttribute('action') || location.href,
+        { method: 'POST', body: fd }).then(r => r.json()).catch(() => null);
+    if (!data || !data.ok) { form.submit(); return; }
+    lassoToast(form.dataset.ajax || 'Enregistré.');
+}
+
 document.addEventListener('change', e => {
     const el = e.target.closest('[data-submit-on-change]');
-    if (el && el.form) el.form.submit();
+    if (!el || !el.form) return;
+    if (el.form.hasAttribute('data-ajax')) { lassoEnvoyerEnFond(el.form); return; }
+    el.form.submit();
 });
 
 // Soumission d'un formulaire désigné par son id, quand le champ vit en dehors.

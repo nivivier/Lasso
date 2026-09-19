@@ -26,7 +26,11 @@ $peutEcrireAxes = peut_ecrire('analytique');
             <tr>
                 <td class="td-toggle">
                     <?php if ($peutEcrireAxes): ?>
-                    <form method="post" action="?p=compta_axes">
+                    <?php // data-ajax : l'interrupteur n'engage que sa ligne, l'envoi
+                          // part donc en arrière-plan (docs/UI.md § 14). Le badge
+                          // « inactif » de la colonne voisine suit tout seul —
+                          // c'est une règle CSS adossée à la case, pas un rendu. ?>
+                    <form method="post" action="?p=compta_axes" data-ajax="Axe mis à jour.">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="toggle_actif">
                         <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
@@ -44,7 +48,14 @@ $peutEcrireAxes = peut_ecrire('analytique');
                     <div class="axe-read">
                         <strong><?= e($a['libelle']) ?></strong>
                         <?php if ($a['code']): ?><span class="muted small"> · <?= e($a['code']) ?></span><?php endif; ?>
-                        <?php if (!$a['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
+                        <?php // Avec l'interrupteur, le badge est rendu quoi qu'il arrive et
+                              // c'est le CSS qui le montre ou le cache, d'après la case :
+                              // il suit alors une bascule partie en arrière-plan, sans
+                              // rien recharger. Sans interrupteur (lecture seule), le
+                              // serveur tranche, comme avant. ?>
+                        <?php if ($peutEcrireAxes || !$a['actif']): ?>
+                        <span class="badge muted-badge axe-badge-inactif">inactif</span>
+                        <?php endif; ?>
                     </div>
                     <?php if ($peutEcrireAxes): ?>
                     <form method="post" action="?p=compta_axes" class="inline-edit axe-edit-form" hidden>

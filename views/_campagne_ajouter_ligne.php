@@ -32,6 +32,6 @@ $caRetour = $caRetour ?? [];
         <option value="<?= (int) $c['id'] ?>"><?= e($c['nom']) ?></option>
         <?php endforeach; ?>
     </select>
-    <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter à cette campagne" aria-label="Ajouter à cette campagne"><?= icon('plus') ?></button>
-    <button type="button" class="btn ghost btn-sm icon-only campagne-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+    <button type="submit" class="btn ghost" title="Ajouter à cette campagne" aria-label="Ajouter à cette campagne"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
+    <button type="button" class="btn ghost icon-only campagne-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
 </form>

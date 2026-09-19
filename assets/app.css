@@ -1739,6 +1739,13 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .check input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .form-actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
 .linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
+/* Le contenu prend la place restante, et pousse donc les boutons au bord droit —
+   règle déjà posée pour les champs (.linked-add input/select/.cat-search, plus
+   bas), il manquait le texte. Sans elle, le « délier » d'une structure liée
+   venait se coller au nom au lieu de s'aligner avec ceux des lignes voisines.
+   min-width:0 : sans lui, un nom long refuse de se couper et élargit la rangée
+   au-delà de sa carte. */
+.linked-add > span, .linked-add > code { flex: 1 1 auto; min-width: 0; }
 .contact-row { margin-bottom: 0; }
 :is(.linked-add, .contact-row):not(.souscat-row) + * { margin-top: 16px; }
 
@@ -1770,7 +1777,6 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 /* Le crayon d'une ligne de contact est visible en permanence, comme celui de
    toutes les autres lignes de l'application : une commande qu'il faut survoler
    pour découvrir n'existe pas pour qui ne la cherche pas déjà. */
-.contact-read > span { flex: 1 1 auto; min-width: 0; }
 .contact-read :is(.contact-edit-btn, .contact-lien-btn) { flex: 0 0 auto; }
 /* Supprimer : en bas du cadre, à l'opposé des commandes courantes, et au
    style « danger » de tous les autres boutons de suppression du site. */
@@ -1800,10 +1806,10 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    cadre d'édition en dessous. Deux commandes en tête de carte, d'où le groupe :
    .card-head-row ne place que ses enfants directs. */
 .exp-tete-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.exp-lu > span { flex: 1 1 auto; min-width: 0; }
-.exp-lu .exp-editer { flex: 0 0 auto; opacity: 0; transition: opacity .12s; }
-.exp-lu:hover .exp-editer, .exp-lu .exp-editer:focus-visible { opacity: 1; }
-@media (hover: none) { .exp-lu .exp-editer { opacity: 1; } }
+/* Visible en permanence, comme tous les crayons de l'application : une commande
+   qu'il faut survoler pour découvrir n'existe pas pour qui ne la cherche pas
+   déjà (docs/UI.md § 1). */
+.exp-lu .exp-editer { flex: 0 0 auto; }
 .exp-bloc + .exp-bloc { margin-top: 14px; }
 
 /* Modèles de mailing (?p=mailing_modeles) : bloc en lecture, puis le même
@@ -2389,6 +2395,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 }
 .tag-gerer-btn .ico { width: 13px; height: 13px; }
 .tag-gerer-btn:hover { background: var(--primary-tint); color: var(--primary-d); }
+/* La corbeille est rouge, ici aussi (docs/UI.md § 3) : c'est la variante « icône
+   nue » — pas de fond ni de contour, mais la couleur, dès la lecture et pas
+   seulement au survol. Une corbeille grise se confond avec le crayon voisin,
+   alors qu'elle est la seule dont on ne revient pas. */
+.tag-gerer-suppr { color: var(--danger); }
 .tag-gerer-suppr:hover { background: var(--danger-tint, var(--surface)); color: var(--danger); }
 /* Le crayon ne se montre qu'au survol de sa ligne : une colonne de crayons
    ferait de la gestion des étiquettes le sujet du panneau, alors qu'on vient
@@ -3356,6 +3367,12 @@ abbr {
     /* Boutons d'action : icônes seules par défaut ; .btn-compact garde un texte court */
     .head-actions .lbl { display: none; }
     .lbl-m { display: inline; }
+    /* Les boutons « Lier » / « Ajouter » d'une rangée de liaison suivent la même
+       règle : le libellé s'efface, la boîte reste celle du champ d'à côté. Sans
+       la seconde ligne ils garderaient le remplissage d'un bouton à texte —
+       plus large que haut, et désaligné du champ. */
+    .linked-add .lbl { display: none; }
+    .linked-add .btn { min-height: var(--action-height); padding: 0 11px; gap: 0; }
     /* min-height (pas height) : ces boutons perdent leur texte ci-dessus et
        deviennent visuellement icon-only, à côté du champ de recherche sur la
        même ligne (.toolbar, voir plus haut) — un padding réinventé ici (9px)
@@ -3559,6 +3576,18 @@ abbr {
 .plan-grip:active { cursor: grabbing; }
 .plan-grip .ico { width: 16px; height: 16px; }
 .plan-row.plan-archive { opacity: .55; }
+/* Quand la ligne porte son propre interrupteur, c'est LUI qui dit son état : la
+   bascule partant en arrière-plan (data-ajax), la ligne doit suivre sans qu'on
+   re-rende quoi que ce soit. Les deux sens sont écrits, pour l'emporter sur la
+   classe .plan-archive posée par le serveur — sinon la ligne resterait grise
+   après réactivation. Sans interrupteur (lecture seule), la classe fait foi. */
+.plan-row:has(.regle-actif-cb:checked) { opacity: 1; }
+.plan-row:has(.regle-actif-cb:not(:checked)) { opacity: .55; }
+/* Même principe pour le badge « inactif » d'un axe analytique. La vue le rend
+   systématiquement dès qu'il y a un interrupteur, et c'est cette règle qui le
+   cache quand la case est cochée — pas l'attribut hidden, que [hidden] rend
+   définitif avec son !important (plus haut). */
+tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .dnd-on .plan-fallback { display: none; }
 .plan-grip[draggable] { touch-action: none; }
 /* Indicateur d'insertion du glisser-déposer (barre + pastille, niveau = décalage gauche) */
@@ -3703,10 +3732,16 @@ abbr {
 .hist-item { display: flex; gap: 8px; align-items: flex-start; }
 .hist-item .hist-ico { flex: 0 0 auto; margin-top: 1px; color: var(--muted); display: inline-flex; }
 .hist-item .hist-ico svg { width: 15px; height: 15px; }
-.hist-item.hist-edition .hist-ico { color: var(--evidence, #6b7280); }
-.hist-item.hist-mailing .hist-ico { color: #2b8a5b; }
-.hist-item.hist-note .hist-ico { color: #6b7280; }
-.hist-item.hist-dernier_concert .hist-ico { color: #9b5bb0; }
+/* Des TOKENS, pas des teintes : ces trois couleurs étaient écrites en dur et ne
+   suivaient donc pas le thème sombre (docs/UI.md § 13). --ok pour un message
+   parti, --muted pour une note — du texte libre, rien de plus —, --primary pour
+   un concert joué. Pas --rose : cette teinte dit « contact privilégié » partout
+   ailleurs, y compris dans cet historique (.ico-pink plus bas), et une couleur
+   ne peut pas dire deux choses. */
+.hist-item.hist-edition .hist-ico { color: var(--evidence, var(--muted)); }
+.hist-item.hist-mailing .hist-ico { color: var(--ok); }
+.hist-item.hist-note .hist-ico { color: var(--muted); }
+.hist-item.hist-dernier_concert .hist-ico { color: var(--primary); }
 /* Couleur portée par l'ENTRÉE et non par son type (historique_icone(),
    lib/booking.php) : un changement de statut prend la couleur du statut
    atteint. Trois classes au lieu d'une seule règle générique, parce qu'il faut

@@ -471,6 +471,14 @@ function route_facture_ligne_axe(): void
     // prouve pas.
     db()->prepare('UPDATE facture_lignes SET axe_analytique_id = ? WHERE id = ? AND facture_id = ?')
         ->execute([$axeId, $ligneId, $factureId]);
+    // Envoi parti en arrière-plan (assets/app.js, data-ajax) : rien à re-rendre,
+    // le menu porte déjà l'état choisi, et la facture n'affiche aucun total par
+    // axe qui dépendrait de lui. La recharger entière renvoyait en haut de page.
+    if (($_POST['retour'] ?? '') === 'json') {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => true]);
+        return;
+    }
     redirect('facture', ['id' => $factureId, 'ok' => 'axe']);
 }
 

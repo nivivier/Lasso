@@ -246,6 +246,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    jauge, et les campagnes de chaque structure, à ajouter ou retirer sur place.
    Les **campagnes de mailing** avec désinscription, elles, envoient en masse
    et forment un sous-module à part (« Envois groupés »), activable séparément.
+   Le lien de désinscription ouvre une page de confirmation avant d'agir : un
+   antivirus de messagerie ou l'aperçu de lien d'un client mail suit les URL
+   d'un message pour les inspecter, et désinscrirait la structure tout seul.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec
    son propre serveur SMTP (Paramètres → E-mails → Envois pour le booking).
 10. **Tri des listes** : un clic sur un en-tête de colonne trie la liste
@@ -264,9 +267,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 12. **Tableau de bord** : une carte par sujet — prochains événements, SUISA,
     évolution financière, salaires à verser, factures émises, campagnes —
     chacune n'apparaissant que si son module est actif et lisible par le compte.
-    Le bouton en haut à droite ouvre « Organiser les cartes » : leur
-    ordre et celles qu'on ne veut pas voir. C'est un réglage **par compte**, pas
-    un paramètre de l'association.
+    Le bouton en haut à droite ouvre « Organiser les cartes » : on les range au
+    **glisser-déposer** et on décoche celles qu'on ne veut pas voir. C'est un
+    réglage **par compte**, pas un paramètre de l'association.
 13. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.

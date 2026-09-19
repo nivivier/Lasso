@@ -32,6 +32,6 @@ $taRetour = $taRetour ?? [];
     <?php // Ce bouton ne sert qu'à CRÉER : choisir une étiquette existante dans
           // la liste l'enregistre au clic (voir lassoInitTagAjout()). D'où le
           // libellé, qui ne promet plus un simple « Ajouter ». ?>
-    <button type="submit" class="btn ghost btn-sm icon-only" title="Créer ce tag" aria-label="Créer ce tag et l'ajouter"><?= icon('plus') ?></button>
-    <button type="button" class="btn ghost btn-sm icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+    <button type="submit" class="btn ghost" title="Créer ce tag" aria-label="Créer ce tag et l'ajouter"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
+    <button type="button" class="btn ghost icon-only tag-ajouter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
 </form>

@@ -48,7 +48,7 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                           // formulaire est masqué) : l'attribut form= le rattache,
                           // comme le fait déjà la carte « Historique » juste au-dessus. ?>
                     <button type="submit" form="<?= e($editId) ?>" class="btn icon-only btn-sm card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                    <a href="?p=structure&id=<?= (int) $histoStructureId ?><?= $depuisQs ?? '' ?>" class="btn ghost icon-only btn-sm card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></a>
+                    <button type="button" class="btn ghost icon-only btn-sm card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 </div>
                 <?php endif; ?>
                 <?php // Une entrée par ligne : la date qui situe, le contenu qui

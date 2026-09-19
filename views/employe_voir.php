@@ -47,7 +47,7 @@
         <?php // Le bouton EST le choix : cliquer envoie, pas de « valider » séparé
               // pour six pastilles. La première remet la teinte déduite du nom. ?>
         <button type="submit" name="couleur" value="" class="avatar-choix avatar-choix-auto<?= trim((string) ($emp['avatar_couleur'] ?? '')) === '' ? ' on' : '' ?>"
-                title="Couleur déduite du nom"><?= icon('sparkles') ?></button>
+                title="Couleur déduite du nom" aria-label="Couleur déduite du nom"><?= icon('sparkles') ?></button>
         <?php foreach (AVATAR_TEINTES as $teinte): ?>
             <button type="submit" name="couleur" value="<?= e($teinte) ?>"
                     class="avatar-choix<?= strtolower((string) ($emp['avatar_couleur'] ?? '')) === $teinte ? ' on' : '' ?>"

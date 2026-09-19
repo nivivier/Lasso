@@ -478,7 +478,8 @@ $cartes = [];
             n'est qu'à vous : il ne change rien pour les autres comptes.</p>
             <?php foreach ($dashOrdre as $dashRang => $dashId): ?>
             <?php $dashCachee = in_array($dashId, $dashCachees, true); ?>
-            <div class="dash-reglage-ligne<?= $dashCachee ? ' est-cachee' : '' ?>">
+            <div class="dash-reglage-ligne plan-row<?= $dashCachee ? ' est-cachee' : '' ?>" data-id="<?= e($dashId) ?>">
+                <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                 <form method="post" action="?p=resumes" class="d-inline">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="visible">
@@ -489,7 +490,9 @@ $cartes = [];
                             aria-label="<?= $dashCachee ? 'Afficher' : 'Masquer' ?> la carte <?= e($cartes[$dashId]['titre']) ?>"><?= icon($dashCachee ? 'eye-off' : 'eye') ?></button>
                 </form>
                 <span class="dash-reglage-nom"><?= e($cartes[$dashId]['titre']) ?></span>
-                <form method="post" action="?p=resumes" class="d-inline">
+                <?php // Repli sans JavaScript : les flèches, masquées dès que le
+                      // glisser-déposer est actif (.dnd-on .plan-fallback). ?>
+                <form method="post" action="?p=resumes" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="deplacer">
                     <input type="hidden" name="carte" value="<?= e($dashId) ?>">
@@ -499,11 +502,29 @@ $cartes = [];
                 </form>
             </div>
             <?php endforeach; ?>
+            <?php // Exemplaire unique du formulaire de repositionnement : le script
+                  // y écrit l'ordre complet au dépôt et l'envoie. Le serveur
+                  // renumérote, la page n'invente aucun rang (docs/UI.md § 4). ?>
+            <form method="post" action="?p=resumes" id="reorder-form" hidden>
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="section" value="ordre">
+                <input type="hidden" name="id" value="">
+                <input type="hidden" name="order" value="">
+                <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
+            </form>
             <form method="post" action="?p=resumes" class="mt-10">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="section" value="reinit">
                 <button type="submit" class="btn ghost btn-sm">Rétablir l'ordre par défaut</button>
             </form>
+            <script nonce="<?= e(csp_nonce()) ?>">
+            lassoOrdreListe({
+                containerSelector: '.dash-reglages-panneau',
+                rowsSelector: '.dash-reglage-ligne',
+                scrollKey: 'dashReglagesScroll',
+                formAction: '?p=resumes',
+            });
+            </script>
         </div>
     </details>
     <?php endif; ?>

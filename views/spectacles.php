@@ -120,7 +120,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                             <input type="hidden" name="section" value="rename">
                             <input type="hidden" name="id" value="<?= $sid ?>">
                             <input name="nom" value="<?= e($s['nom']) ?>" class="grow plan-libelle" required aria-label="Nom du spectacle">
-                            <button type="submit" class="btn ghost btn-sm" title="Enregistrer"><?= icon('save') ?></button>
+                            <button type="submit" class="btn ghost btn-sm" title="Enregistrer" aria-label="Enregistrer le parent"><?= icon('save') ?></button>
                         </form>
                         <?php endif; ?>
                         <?php if ($s['suisa_feuille_fichier']): ?>

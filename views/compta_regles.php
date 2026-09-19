@@ -225,7 +225,8 @@ $peutEcrireRegles = peut_ecrire('compta');
                 <span class="test-result muted small"></span>
                 <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
                 <button type="submit" name="section" value="edit" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
-                <button type="submit" name="section" value="del" class="btn danger btn-sm danger"
+                <button type="submit" name="section" value="del" class="btn danger btn-sm icon-only"
+                        title="Supprimer" aria-label="Supprimer cette règle"
                         data-confirm="Supprimer cette règle ?"><?= icon('trash') ?></button>
                 <?php endif; ?>
             </div>

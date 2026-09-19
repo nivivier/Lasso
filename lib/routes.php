@@ -1576,6 +1576,13 @@ function route_postes(): void
             // une ligne, comme pour un axe analytique (?p=compta_axes).
             db()->prepare('UPDATE postes_salariaux SET actif = ? WHERE id = ?')
                 ->execute([isset($_POST['actif']) ? 1 : 0, (int) ($_POST['id'] ?? 0)]);
+            // Envoi parti en arrière-plan : rien à re-rendre, l'état visible est
+            // déjà celui de l'interrupteur (assets/app.js, data-ajax).
+            if (($_POST['retour'] ?? '') === 'json') {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                return;
+            }
         } elseif ($section === 'reorder') {
             // Glisser-déposer : la liste est plate, on renumérote dans l'ordre
             // reçu (le poste déplacé compris).
@@ -2665,6 +2672,29 @@ function route_resumes_reglages(): void
         redirect('resumes', ['reglages' => 1]);
     }
     [$ordre, $cachees] = dashboard_disposition($dispo);
+
+    // Dépôt du glisser-déposer : l'ordre COMPLET arrive d'un coup, comme pour le
+    // déroulé d'un événement ou les lignes du décompte (docs/UI.md § 4). On ne
+    // garde que les cartes connues, et celles qu'un ordre partiel aurait
+    // oubliées reprennent la file — un identifiant inventé ne peut donc rien
+    // faire, et rien ne disparaît.
+    if ($_POST['section'] === 'ordre') {
+        $recu = array_values(array_filter(
+            array_map('trim', explode(',', (string) ($_POST['order'] ?? ''))),
+            fn (string $id): bool => $id !== '' && in_array($id, $ordre, true)
+        ));
+        $ordre = array_merge(array_unique($recu), array_values(array_diff($ordre, $recu)));
+        dashboard_disposition_definir($ordre, $cachees);
+        // Même convention que les autres listes plates : en JSON quand le
+        // script est là, pour que la carte se déplace sans recharger la page.
+        if (($_POST['retour'] ?? '') === 'json') {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true]);
+            return;
+        }
+        redirect('resumes', ['reglages' => 1]);
+    }
+
     $carte = (string) ($_POST['carte'] ?? '');
     $i = array_search($carte, $ordre, true);
     if ($i === false) {
