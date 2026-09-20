@@ -9,6 +9,14 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les cartes translucides sont un peu plus sombres en thème sombre.** Le
+  voile qui les distingue du fond éclaircissait la page — un reste du thème
+  clair, où c'est le bon réflexe. Posé sur un fond déjà sombre, il délavait les
+  cartes au lieu de les détacher. Il assombrit maintenant, discrètement. Même
+  traitement pour les deux autres surfaces de la même famille : le bandeau
+  d'en-tête et l'en-tête de la carte des lieux.
+
 ### Corrigé
 - **Le bouton « Organiser les cartes » retrouve la marge droite de la page.**
   Il s'arrêtait douze pixels avant la barre de recherche et le bord des cartes.

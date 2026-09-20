@@ -263,7 +263,12 @@ h1 * { -webkit-text-fill-color: currentColor; }
     --d-row-manuelle: #1f1d2c;
     --d-row-ignore: #191823;
     --d-row-ignore-hover: #21202c;
-    --d-glass: rgba(255, 255, 255, .05);
+    /* Les surfaces « vitre dépolie » (cartes du tableau de bord, bandeau
+       d'en-tête, en-tête de la carte des lieux) ASSOMBRISSENT leur fond en
+       sombre, là où elles l'éclaircissent en clair : un voile blanc à 5 %
+       posé sur un fond déjà sombre délavait les cartes sans les détacher
+       davantage. Rester léger — c'est une vitre, pas un aplat. */
+    --d-glass: rgba(0, 0, 0, .10);
     --d-brand-surface: #0f0e17;
     --d-glass-hover: rgba(255, 255, 255, .08);
     --d-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 20px rgba(0,0,0,.45);
