@@ -408,9 +408,11 @@ sombre, et deux **versions réduites facultatives** pour les endroits où le log
 est minuscule — la favicone de l'onglet et la barre latérale, où un logo large se
 réduit à une ligne illisible. Un monogramme carré y reste lisible. Sans elles,
 les logos normaux servent partout ; à défaut de tout logo, c'est le nom de
-l'employeur qui s'affiche. La favicone suit le thème du **système** (deux liens
-`rel="icon"`, le second sous `prefers-color-scheme: dark`), pas le thème réglé
-dans l'application : c'est le navigateur qui dessine l'onglet.
+l'employeur qui s'affiche. La favicone suit le thème du **système**, pas celui
+réglé dans l'application : c'est le navigateur qui dessine l'onglet. Elle tient
+en deux liens `rel="icon"`, fond sombre d'abord — le support de l'attribut
+`media` sur une favicone est inégal, et un navigateur qui l'ignore retient le
+dernier lien, qui doit donc être la variante pour fond clair.
 
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
 tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une

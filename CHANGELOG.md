@@ -19,6 +19,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   réduite, les logos normaux continuent d'y servir, et sans logo du tout, le
   nom de l'employeur. La favicone suit le thème du système d'exploitation, pas
   celui réglé dans l'application — c'est le navigateur qui dessine l'onglet.
+  Les deux liens sont posés fond sombre d'abord : le support de l'attribut
+  `media` sur une favicone est inégal, et un navigateur qui l'ignore retient le
+  dernier lien — qui doit donc être la variante pour fond clair, celle d'une
+  barre d'onglets par défaut.
 
 ## [2.8.7] — 2026-09-20
 

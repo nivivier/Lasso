@@ -32,17 +32,25 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
     <script src="assets/app.js?v=<?= @filemtime(__DIR__ . '/../assets/app.js') ?: '1' ?>"></script>
     <?php // Favicone : les versions réduites du logo employeur si elles ont été
-          // fournies, sinon les logos normaux (logo_petit_variante()). Deux
-          // liens plutôt qu'un : l'onglet du navigateur suit le thème du
-          // SYSTÈME, pas celui réglé dans l'application — d'où la media query
-          // plutôt que param_theme(). Le lien sans media sert de repli partout,
-          // et le navigateur retient le dernier qui s'applique. ?>
+          // fournies, sinon les logos normaux (logo_petit_variante()). L'onglet
+          // est dessiné par le navigateur, qui suit le thème du SYSTÈME et non
+          // celui réglé dans l'application — d'où la media query plutôt que
+          // param_theme().
+          //
+          // ⚠️ L'ORDRE compte, et le fond sombre passe donc EN PREMIER. Le
+          // support de l'attribut media sur un rel="icon" est très inégal : un
+          // navigateur qui l'ignore retient le DERNIER lien, quel que soit le
+          // thème. Le dernier doit donc être la variante pour fond clair, celle
+          // d'une barre d'onglets par défaut — sans quoi un système en
+          // apparence claire hérite du logo pensé pour un fond sombre (constaté
+          // en 2.8.8). Un navigateur qui comprend media, lui, choisit
+          // correctement dans les deux sens : les deux liens s'excluent. ?>
     <?php $favClair = logo_petit_variante('clair'); $favSombre = logo_petit_variante('sombre'); ?>
-    <?php if ($favClair !== null): ?>
-    <link rel="icon" href="<?= e(param_logo($favClair)) ?>">
-    <?php endif; ?>
     <?php if ($favSombre !== null && $favSombre !== $favClair): ?>
     <link rel="icon" href="<?= e(param_logo($favSombre)) ?>" media="(prefers-color-scheme: dark)">
+    <?php endif; ?>
+    <?php if ($favClair !== null): ?>
+    <link rel="icon" href="<?= e(param_logo($favClair)) ?>"<?= $favSombre !== null && $favSombre !== $favClair ? ' media="(prefers-color-scheme: light)"' : '' ?>>
     <?php endif; ?>
     <?= couleurs_css_vars() ?>
     <?= module_couleur_css_vars($navActif) ?>
