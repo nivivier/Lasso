@@ -9,6 +9,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Ajouter un employé à une date se fait sous l'icône « personne + »**, celle
+  qui sert déjà à « Nouvel employé » et à « Nouveau contact », plutôt que sous
+  le « + » générique.
+
 ### Corrigé
 - **La réponse d'une campagne qui n'a pas commencé ne se note plus.** Sur la
   fiche d'une structure, le crayon d'une ligne de campagne ouvrait le sélecteur

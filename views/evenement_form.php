@@ -515,7 +515,10 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                             <option value="<?= (int) $emp['id'] ?>"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn ghost" title="Ajouter" aria-label="Ajouter cet employé"><?= icon('plus') ?><span class="lbl"> Ajouter</span></button>
+                    <?php // user-plus et non plus : c'est quelqu'un qu'on ajoute,
+                          // comme « Nouvel employé » (?p=employes) et « Nouveau
+                          // contact » (carte Contacts d'une structure). ?>
+                    <button type="submit" class="btn ghost" title="Ajouter" aria-label="Ajouter cet employé"><?= icon('user-plus') ?><span class="lbl"> Ajouter</span></button>
                 </form>
             <?php endif; ?>
         </div>
