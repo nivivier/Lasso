@@ -241,6 +241,16 @@ function route_campagne_reponse(): void
         echo json_encode(['ok' => false]);
         return;
     }
+    // Une campagne pas encore commencée n'a rien demandé à personne : aucune
+    // réponse à y noter, comme aucun message ne peut en partir
+    // (campagne_ouverte()). L'écran ne propose déjà pas le sélecteur dans ce
+    // cas, mais la route ne s'en remet pas à l'écran.
+    $debut = db()->prepare('SELECT date_debut FROM campagnes WHERE id = ?');
+    $debut->execute([$campagneId]);
+    if (!campagne_ouverte((string) ($debut->fetchColumn() ?: ''), date('Y-m-d'))) {
+        echo json_encode(['ok' => false]);
+        return;
+    }
     // La mise à jour ne crée rien : elle ne touche qu'une ligne existante de la
     // campagne, ce qui vaut vérification que la structure y est bien.
     $stmt = db()->prepare('UPDATE campagne_structures SET reponse = ? WHERE campagne_id = ? AND structure_id = ?');

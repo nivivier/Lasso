@@ -7,6 +7,17 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Corrigé
+- **La réponse d'une campagne qui n'a pas commencé ne se note plus.** Sur la
+  fiche d'une structure, le crayon d'une ligne de campagne ouvrait le sélecteur
+  de réponse même pour une campagne à venir — alors qu'aucun message ne peut en
+  partir avant sa date de début, et que la page de la campagne, elle, ne le
+  propose pas. La ligne affiche maintenant « À venir » à la place du sélecteur,
+  et reste retirable : on prépare la liste. La route d'enregistrement applique
+  la même règle, sans s'en remettre à l'écran.
+
 ## [2.8.9] — 2026-09-20
 
 ### Modifié

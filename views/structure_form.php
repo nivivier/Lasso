@@ -852,6 +852,7 @@ $villeHtmlS = ville_departement_canton_html(
         // Période et réponse s'écrivent pareil pour les campagnes de la fiche et
         // pour celles des structures liées, plus bas : deux fermetures plutôt
         // que deux copies.
+        $aujourdhuiCamp = date('Y-m-d');
         $campPeriode = function (array $c): string {
             $d = $c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : '';
             $f = $c['date_fin'] ? date('d.m.Y', strtotime((string) $c['date_fin'])) : '';
@@ -880,14 +881,31 @@ $villeHtmlS = ville_departement_canton_html(
             <?php endif; ?>
             <?php foreach ($campagnesStructure as $c): $cid = (int) $c['id']; ?>
                 <?php $reponse = (string) ($c['reponse'] ?? ''); ?>
+                <?php // Une campagne qui n'a pas commencé n'a encore rien
+                      // demandé à personne : sa réponse ne se note pas, pas
+                      // plus qu'on ne peut y envoyer un message avant la date
+                      // de début (campagne_ouverte(), même règle qu'à
+                      // ?p=campagne). Le crayon garde tout son sens pour
+                      // autant : on prépare la liste, donc on doit pouvoir en
+                      // retirer la structure.
+                      // La route refuse elle aussi (route_campagne_reponse()).
+                      $campOuverte = campagne_ouverte((string) $c['date_debut'], $aujourdhuiCamp); ?>
                 <tr class="camp-ligne">
                     <td><a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a></td>
                     <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
                     <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
                     <td class="nowrap">
                         <?= $campReponseLecture($reponse) ?>
-                        <?php if ($peutEcrireBooking): ?>
+                        <?php if ($peutEcrireBooking && $campOuverte): ?>
                         <span class="camp-ligne-edition" hidden><?= campagne_reponse_toggle_html($cid, $sid, $reponse) ?></span>
+                        <?php elseif ($peutEcrireBooking): ?>
+                        <?php // À la place du sélecteur, dire pourquoi il n'y
+                              // en a pas : la cellule ne se vide pas quand le
+                              // crayon cache la lecture. ?>
+                        <span class="camp-ligne-edition muted small" hidden
+                              title="La campagne commence le <?= e($c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : '') ?> : aucune réponse ne peut être notée avant.">
+                            <span class="ico-tiny"><?= icon('clock') ?></span> À venir
+                        </span>
                         <?php endif; ?>
                     </td>
                     <td class="actions nowrap">
