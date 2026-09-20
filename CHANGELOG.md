@@ -15,13 +15,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   le « + » générique.
 
 ### Corrigé
-- **La réponse d'une campagne qui n'a pas commencé ne se note plus.** Sur la
-  fiche d'une structure, le crayon d'une ligne de campagne ouvrait le sélecteur
-  de réponse même pour une campagne à venir — alors qu'aucun message ne peut en
-  partir avant sa date de début, et que la page de la campagne, elle, ne le
-  propose pas. La ligne affiche maintenant « À venir » à la place du sélecteur,
-  et reste retirable : on prépare la liste. La route d'enregistrement applique
-  la même règle, sans s'en remettre à l'écran.
+- **Une campagne qui n'a pas commencé n'affiche plus de réponse.** Sur la fiche
+  d'une structure, sa ligne montrait l'icône « aucune réponse » — qui se lit
+  comme une réponse attendue et manquante — et le crayon ouvrait le sélecteur
+  pour la noter, alors qu'aucun message ne peut partir avant la date de début
+  et que la page de la campagne, elle, ne le propose pas. La colonne Réponse
+  dit maintenant « À venir », avec la date en infobulle, pour les campagnes de
+  la structure comme pour celles des structures liées. La ligne reste
+  retirable : on prépare la liste. La route d'enregistrement applique la même
+  règle, sans s'en remettre à l'écran.
 
 ## [2.8.9] — 2026-09-20
 

@@ -862,7 +862,19 @@ $villeHtmlS = ville_departement_canton_html(
         // branches n'a d'intérêt qu'au moment de choisir. Les trois sont
         // rendues, une seule visible — c'est ce qui permet de suivre un
         // changement sans reconstruire de HTML.
-        $campReponseLecture = function (string $reponse): string {
+        //
+        // Sauf pour une campagne qui n'a pas commencé : elle n'a rien demandé à
+        // personne, et l'icône « aucune réponse » s'y lirait comme une réponse
+        // attendue qui manque. La cellule dit alors « À venir » — ce qui vaut
+        // aussi pour les campagnes des structures liées, plus bas.
+        $campReponseLecture = function (array $c) use ($aujourdhuiCamp): string {
+            if (!campagne_ouverte((string) $c['date_debut'], $aujourdhuiCamp)) {
+                $jour = $c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : '';
+                return '<span class="muted small nowrap" title="La campagne commence le ' . e($jour)
+                    . ' : aucune réponse ne peut être notée avant.">'
+                    . '<span class="ico-tiny">' . icon('clock') . '</span> À venir</span>';
+            }
+            $reponse = (string) ($c['reponse'] ?? '');
             $h = '<span class="camp-reponse-lecture">';
             foreach (CAMPAGNE_REPONSES as $val => $lib) {
                 $h .= '<span class="' . e(CAMPAGNE_REPONSES_CLASSES_ICONE[$val]) . '" data-reponse-vue="' . e((string) $val) . '"'
@@ -895,17 +907,12 @@ $villeHtmlS = ville_departement_canton_html(
                     <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
                     <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
                     <td class="nowrap">
-                        <?= $campReponseLecture($reponse) ?>
+                        <?php // « À venir » reste visible pendant l'édition de la
+                              // ligne : c'est la cellule entière qui n'a rien à
+                              // modifier, pas seulement sa partie lecture. ?>
+                        <?= $campReponseLecture($c) ?>
                         <?php if ($peutEcrireBooking && $campOuverte): ?>
                         <span class="camp-ligne-edition" hidden><?= campagne_reponse_toggle_html($cid, $sid, $reponse) ?></span>
-                        <?php elseif ($peutEcrireBooking): ?>
-                        <?php // À la place du sélecteur, dire pourquoi il n'y
-                              // en a pas : la cellule ne se vide pas quand le
-                              // crayon cache la lecture. ?>
-                        <span class="camp-ligne-edition muted small" hidden
-                              title="La campagne commence le <?= e($c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : '') ?> : aucune réponse ne peut être notée avant.">
-                            <span class="ico-tiny"><?= icon('clock') ?></span> À venir
-                        </span>
                         <?php endif; ?>
                     </td>
                     <td class="actions nowrap">
@@ -947,7 +954,7 @@ $villeHtmlS = ville_departement_canton_html(
                     </td>
                     <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
                     <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
-                    <td class="nowrap"><?= $campReponseLecture((string) ($c['reponse'] ?? '')) ?></td>
+                    <td class="nowrap"><?= $campReponseLecture($c) ?></td>
                     <td></td>
                 </tr>
             <?php endforeach; ?>
@@ -968,7 +975,10 @@ $villeHtmlS = ville_departement_canton_html(
     document.querySelectorAll('.campagnes-fiche .camp-ligne').forEach(function (tr) {
         var basculer = function (edition) {
             tr.querySelectorAll('.camp-ligne-edition').forEach(function (e) { e.hidden = !edition; });
-            tr.querySelector('.camp-reponse-lecture').hidden = edition;
+            // Absente d'une ligne « À venir » : rien à cacher, la cellule
+            // n'a pas de version modifiable.
+            var lecture = tr.querySelector('.camp-reponse-lecture');
+            if (lecture) { lecture.hidden = edition; }
             tr.querySelector('.camp-ligne-crayon').hidden = edition;
         };
         tr.querySelector('.camp-ligne-crayon').addEventListener('click', function () { basculer(true); });
