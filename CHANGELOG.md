@@ -7,6 +7,15 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Corrigé
+- **Le bouton « Organiser les cartes » retrouve la marge droite de la page.**
+  Il s'arrêtait douze pixels avant la barre de recherche et le bord des cartes.
+  En cause, le conteneur interne d'un `<details>` : invisible et sans largeur
+  tant que le panneau est fermé, il restait un élément de la rangée et
+  récoltait l'espacement prévu entre boutons.
+
 ## [2.8.8] — 2026-09-20
 
 ### Ajouté

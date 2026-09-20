@@ -1578,7 +1578,13 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    c'est le même geste, un réglage qu'on ouvre au-dessus de la page et qui se
    referme tout seul — sans en reprendre la mécanique de placement, qui sert à
    suivre une cellule de tableau. Ici l'ancre ne bouge pas. */
-.dash-reglages { position: relative; }
+/* display:block ANNULE le flex de .head-actions, et ce n'est pas cosmétique :
+   un <details> a un conteneur interne pour son contenu, qui reste dans le flux
+   même fermé (largeur nulle). Comme item flex, il récoltait le gap:12px de
+   .head-actions — 12px de vide collés à droite du bouton, qui ne tombait donc
+   plus dans l'alignement de la page. Il n'y a de toute façon rien à disposer
+   ici : un seul enfant visible, le panneau étant en position absolue. */
+.dash-reglages { position: relative; display: block; }
 .dash-reglages > summary { list-style: none; cursor: pointer; }
 .dash-reglages > summary::-webkit-details-marker { display: none; }
 .dash-reglages-panneau {
