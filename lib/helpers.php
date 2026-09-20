@@ -51,16 +51,64 @@ function is_https(): bool
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
 }
 
+// Durée d'inactivité tolérée avant déconnexion, et durée de vie maximale d'une
+// session quoi qu'il arrive. Réglables dans l'application (Serveur → Session),
+// bornées à la lecture COMME à l'écriture : une valeur arrivée par un autre
+// chemin — import, édition directe de la table — resterait sans effet.
+function session_duree_idle(): int
+{
+    return max(SESSION_IDLE_MIN, min(SESSION_IDLE_MAX, (int) param('session_idle', (string) SESSION_IDLE)));
+}
+
+function session_duree_absolue(): int
+{
+    return max(SESSION_ABSOLUTE_MIN, min(SESSION_ABSOLUTE_MAX, (int) param('session_absolue', (string) SESSION_ABSOLUTE)));
+}
+
+// Dossier des fichiers de session, SOUS data/ et non dans le /tmp du serveur.
+//
+// C'est la correction d'un travers propre à l'hébergement mutualisé : sans
+// save_path à nous, PHP écrit dans un dossier temporaire PARTAGÉ par tous les
+// sites de la machine, et le ramasse-miettes de n'importe lequel d'entre eux —
+// avec SA durée à lui, souvent les 24 minutes par défaut — efface nos fichiers
+// de session. L'application croyait accorder une heure d'inactivité et
+// déconnectait au bout de vingt minutes, plusieurs fois par jour.
+//
+// data/ est déjà refusé par le serveur web (data/.htaccess + RedirectMatch à la
+// racine) : un identifiant de session ne s'y télécharge pas.
+function session_dossier(): ?string
+{
+    $dir = __DIR__ . '/../data/sessions';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0700, true);
+    }
+    return (is_dir($dir) && is_writable($dir)) ? $dir : null;
+}
+
 function start_session(): void
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_set_cookie_params([
-            'httponly' => true,
-            'samesite' => 'Lax',
-            'secure'   => is_https(), // cookie chiffré uniquement en HTTPS
-        ]);
-        session_start();
+    if (session_status() !== PHP_SESSION_NONE) {
+        return;
     }
+    // gc_maxlifetime AVANT session_start() : c'est lui qui décide quand PHP
+    // considère un fichier de session comme un déchet. Réglé sur notre propre
+    // durée d'inactivité, sinon PHP ramasse ce que l'application tient encore
+    // pour valide. La probabilité est relevée (1/100 au lieu de 1/1000) : dans
+    // un dossier qui n'est qu'à nous, le ramassage ne dépend plus que de NOS
+    // requêtes, et elles sont rares.
+    $dossier = session_dossier();
+    if ($dossier !== null) {
+        ini_set('session.gc_maxlifetime', (string) session_duree_idle());
+        ini_set('session.gc_probability', '1');
+        ini_set('session.gc_divisor', '100');
+        session_save_path($dossier);
+    }
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax',
+        'secure'   => is_https(), // cookie chiffré uniquement en HTTPS
+    ]);
+    session_start();
 }
 
 // En-têtes de sécurité (appelés au tout début de chaque requête).
@@ -154,8 +202,8 @@ function require_login(): void
     }
     // Expiration : inactivité (SESSION_IDLE) ou durée de vie absolue (SESSION_ABSOLUTE).
     $now = time();
-    $idle = isset($_SESSION['last_activity']) && ($now - (int) $_SESSION['last_activity']) > SESSION_IDLE;
-    $old  = isset($_SESSION['login_time']) && ($now - (int) $_SESSION['login_time']) > SESSION_ABSOLUTE;
+    $idle = isset($_SESSION['last_activity']) && ($now - (int) $_SESSION['last_activity']) > session_duree_idle();
+    $old  = isset($_SESSION['login_time']) && ($now - (int) $_SESSION['login_time']) > session_duree_absolue();
     if ($idle || $old) {
         logout_session();
         redirect('login', ['expired' => 1]);

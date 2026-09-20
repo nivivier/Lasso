@@ -131,8 +131,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
   le tag `vX.Y.Z`, avance la branche `stable`, pousse).
 - **Paramètres → Mises à jour** affiche la version installée et la version
   disponible sur le canal choisi ; **Paramètres → Serveur** donne le diagnostic
-  `exec()`/`git`, les versions de PHP et de SQLite, l'état d'OPcache, et le
-  réglage du seuil de recherche ci-dessous.
+  `exec()`/`git`, les versions de PHP et de SQLite, l'état d'OPcache, la durée de
+  vie des sessions (§7) et le réglage du seuil de recherche ci-dessous.
 - **Mise à jour en un clic** depuis cette page (`maj_executer()`, `lib/maj.php`) :
   sauvegarde de la base, téléchargement de l'archive de la branche du canal,
   extraction, puis migrations au premier chargement. `lib/config.local.php`,
@@ -449,8 +449,16 @@ passe et se conserve à part.
   **par adresse IP et par e-mail** — sinon un attaquant changeant d'IP visait un
   même compte sans jamais être freiné.
 - **Sessions** : expiration après 60 min d'inactivité et 24 h de durée de vie max
-  (`SESSION_IDLE` / `SESSION_ABSOLUTE`) ; cookie `HttpOnly` + `SameSite=Lax` +
+  par défaut (`SESSION_IDLE` / `SESSION_ABSOLUTE`), **réglables dans
+  Paramètres → Serveur** et bornées par le code (5 min à 30 jours d'inactivité,
+  1 h à 90 jours de durée de vie) ; cookie `HttpOnly` + `SameSite=Lax` +
   `Secure` en HTTPS.
+  Les fichiers de session sont écrits dans **`data/sessions/`**, et non dans le
+  répertoire temporaire de la machine : sur un hébergement mutualisé, celui-ci
+  est partagé, et le ramasse-miettes d'un autre site — avec sa propre durée de
+  vie — y effaçait nos sessions. `session.gc_maxlifetime` est aligné sur
+  l'inactivité tolérée, sans quoi PHP les supprimait au bout de 24 minutes
+  quelle que soit la valeur réglée ici.
 - **CSRF** sur tous les formulaires.
 - **HTTPS forcé** + en-tête HSTS ; en-têtes de sécurité (X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy).

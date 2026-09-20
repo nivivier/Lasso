@@ -559,9 +559,18 @@ function route_diagnostic(): void
         require_ecriture('coeur');
         // Borné à l'écriture ET à la lecture (pagination_seuil_client()) : une
         // valeur hors bornes arrivée par un autre chemin resterait sans effet.
+        $ecrire = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+        if (($_POST['section'] ?? '') === 'session') {
+            // Saisies en MINUTES et en HEURES — personne ne compte en secondes —
+            // puis bornées comme à la lecture (session_duree_idle()).
+            $idle = max(SESSION_IDLE_MIN, min(SESSION_IDLE_MAX, 60 * (int) ($_POST['session_idle_min'] ?? 0)));
+            $abs  = max(SESSION_ABSOLUTE_MIN, min(SESSION_ABSOLUTE_MAX, 3600 * (int) ($_POST['session_absolue_h'] ?? 0)));
+            $ecrire->execute(['session_idle', (string) $idle]);
+            $ecrire->execute(['session_absolue', (string) max($idle, $abs)]);
+            redirect('diagnostic', ['ok' => 1]);
+        }
         $seuil = max(0, min(PAGINATION_SEUIL_MAX, (int) ($_POST['pagination_seuil_client'] ?? PAGINATION_SEUIL_CLIENT)));
-        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
-            ->execute(['pagination_seuil_client', (string) $seuil]);
+        $ecrire->execute(['pagination_seuil_client', (string) $seuil]);
         redirect('diagnostic', ['ok' => 1]);
     }
     render('diagnostic', [
@@ -580,5 +589,9 @@ function route_diagnostic(): void
         'appEnv'          => APP_ENV,
         'httpsForce'      => (bool) FORCE_HTTPS,
         'setupProtege'    => setup_secret_defini(),
+        'sessionIdle'     => session_duree_idle(),
+        'sessionAbsolue'  => session_duree_absolue(),
+        'sessionDossier'  => session_dossier(),
+        'sessionGc'       => (int) ini_get('session.gc_maxlifetime'),
     ], 'Serveur');
 }

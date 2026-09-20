@@ -64,8 +64,17 @@ if (!defined('FORCE_HTTPS')) {
 // --- Sécurité : mots de passe & sessions ----------------------------------
 if (!defined('PASSWORD_MIN'))      define('PASSWORD_MIN', 8);        // longueur minimale
 if (!defined('BCRYPT_COST'))       define('BCRYPT_COST', 12);        // coût bcrypt
-if (!defined('SESSION_IDLE'))      define('SESSION_IDLE', 3600);     // 1h d'inactivité
+// Durées de session : ce sont les valeurs PAR DÉFAUT. Elles se règlent dans
+// l'application (Serveur → Session), et c'est le réglage qui fait foi —
+// session_duree_idle() / session_duree_absolue(), lib/helpers.php. Les bornes
+// évitent qu'une valeur saisie de travers n'ouvre une session éternelle ou ne
+// la ferme au bout de dix secondes.
+if (!defined('SESSION_IDLE'))      define('SESSION_IDLE', 3600);     // 1 h d'inactivité
 if (!defined('SESSION_ABSOLUTE'))  define('SESSION_ABSOLUTE', 86400);// 24 h de durée de vie max
+if (!defined('SESSION_IDLE_MIN'))      define('SESSION_IDLE_MIN', 300);         // 5 min
+if (!defined('SESSION_IDLE_MAX'))      define('SESSION_IDLE_MAX', 2592000);     // 30 jours
+if (!defined('SESSION_ABSOLUTE_MIN'))  define('SESSION_ABSOLUTE_MIN', 3600);    // 1 h
+if (!defined('SESSION_ABSOLUTE_MAX'))  define('SESSION_ABSOLUTE_MAX', 7776000); // 90 jours
 
 // --- Sécurité : anti-force-brute du login ---------------------------------
 if (!defined('LOGIN_MAX_ATTEMPTS')) define('LOGIN_MAX_ATTEMPTS', 5); // échecs tolérés…

@@ -7,6 +7,27 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Corrigé
+- **Les déconnexions intempestives.** L'application accordait 60 minutes
+  d'inactivité, mais PHP effaçait les sessions au bout de 24 minutes
+  (`session.gc_maxlifetime`, sa valeur par défaut, que rien n'alignait sur la
+  nôtre). Pire, les fichiers de session partaient dans le répertoire temporaire
+  de la machine : sur un hébergement mutualisé il est commun à tous les sites,
+  et le ramasse-miettes du voisin — avec sa propre durée de vie, parfois
+  quelques minutes — supprimait les nôtres. Ils sont désormais écrits dans
+  `data/sessions/`, à nous seuls, et la durée de vie déclarée à PHP suit celle
+  que l'application applique.
+
+### Ajouté
+- **La durée de vie d'une session se règle dans Paramètres → Serveur** :
+  l'inactivité tolérée (en minutes) et la durée de vie maximale (en heures).
+  La carte « Session » indique aussi où les fichiers sont écrits et si le délai
+  de PHP concorde, pour qu'un hébergement récalcitrant se voie au lieu de se
+  deviner. Les valeurs sont bornées (5 min à 30 jours, 1 h à 90 jours) et une
+  durée de vie plus courte que l'inactivité est relevée à celle-ci.
+
 ## [2.8.6] — 2026-09-19
 
 ### Modifié

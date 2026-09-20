@@ -2,12 +2,14 @@
 /** @var bool $gitDispo */ /** @var bool $dlDispo */ /** @var bool $zipDispo */
 /** @var bool $targzDispo */ /** @var bool $appWritable */ /** @var bool $archivePossible */
 /** @var int $seuilClient */ /** @var array $volumes */ /** @var bool $enregistre */
+/** @var int $sessionIdle */ /** @var int $sessionAbsolue */
+/** @var ?string $sessionDossier */ /** @var int $sessionGc */
 $oui = fn(bool $b) => $b
     ? '<span class="badge ok-badge">disponible</span>'
     : '<span class="badge warn-badge">non</span>';
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
-<?php if ($enregistre): ?><p class="ok flash">Seuil enregistré.</p><?php endif; ?>
+<?php if ($enregistre): ?><p class="ok flash">Réglage enregistré.</p><?php endif; ?>
 
 <div class="card">
     <h2 class="mt-0">Mise à jour automatique</h2>
@@ -85,6 +87,70 @@ $oui = fn(bool $b) => $b
         configuration, ou <code>opcache.enable=1</code> dans le <code>php.ini</code>).
     </p>
     <?php endif; ?>
+</div>
+
+<div class="card mt-22">
+    <h2 class="mt-0">Session <?= info_tip(
+        "Deux durées, et la première atteinte ferme la session. L'inactivité se compte depuis "
+        . "la dernière page ouverte ; la durée de vie, depuis la connexion — elle oblige à se "
+        . "réidentifier de temps en temps, même en travaillant sans interruption."
+    ) ?></h2>
+    <p class="muted small">
+        Au-delà de l'une ou l'autre, il faut se reconnecter.
+    </p>
+
+    <?php // Où PHP écrit les fichiers de session : c'est la réponse à « je suis
+          // déconnecté sans arrêt ». Dans le dossier temporaire partagé d'un
+          // hébergement mutualisé, le ramasse-miettes d'un AUTRE site efface les
+          // nôtres avec sa propre durée. ?>
+    <table class="kv-table mb-16">
+        <tr>
+            <th>Fichiers de session</th>
+            <td><?php if ($sessionDossier !== null): ?>
+                <span class="badge ok-badge">dossier privé</span>
+                <span class="muted small">data/sessions/</span>
+            <?php else: ?>
+                <span class="badge warn-badge">dossier partagé</span>
+                <span class="muted small">le ramasse-miettes d'un autre site du serveur peut les effacer —
+                vérifiez que <code>data/</code> est accessible en écriture</span>
+            <?php endif; ?></td>
+        </tr>
+        <tr>
+            <th>Ramasse-miettes de PHP</th>
+            <td><?= $sessionGc >= $sessionIdle
+                    ? '<span class="badge ok-badge">' . (int) round($sessionGc / 60) . ' min</span>'
+                    : '<span class="badge warn-badge">' . (int) round($sessionGc / 60) . ' min</span>
+                       <span class="muted small">plus court que l\'inactivité tolérée : c\'est lui qui
+                       déconnectera en premier</span>' ?></td>
+        </tr>
+    </table>
+
+    <form method="post" action="?p=diagnostic" class="form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="section" value="session">
+        <div class="grid2">
+            <label>Inactivité tolérée (minutes)
+                <input type="number" name="session_idle_min" min="<?= (int) round(SESSION_IDLE_MIN / 60) ?>"
+                       max="<?= (int) round(SESSION_IDLE_MAX / 60) ?>" step="5"
+                       value="<?= (int) round($sessionIdle / 60) ?>">
+            </label>
+            <label>Durée de vie maximale (heures)
+                <input type="number" name="session_absolue_h" min="<?= (int) round(SESSION_ABSOLUTE_MIN / 3600) ?>"
+                       max="<?= (int) round(SESSION_ABSOLUTE_MAX / 3600) ?>" step="1"
+                       value="<?= (int) round($sessionAbsolue / 3600) ?>">
+            </label>
+        </div>
+        <p class="muted small">
+            De <?= (int) round(SESSION_IDLE_MIN / 60) ?> minutes à
+            <?= (int) round(SESSION_IDLE_MAX / 60 / 60 / 24) ?> jours pour l'inactivité,
+            de <?= (int) round(SESSION_ABSOLUTE_MIN / 3600) ?> heure à
+            <?= (int) round(SESSION_ABSOLUTE_MAX / 3600 / 24) ?> jours pour la durée de vie.
+            Une durée de vie plus courte que l'inactivité n'aurait pas de sens : elle est relevée
+            d'office. Un réglage plus long se paie en sécurité — une session ouverte sur un poste
+            partagé le reste d'autant.
+        </p>
+        <div class="form-actions"><button type="submit"><?= icon('save') ?> Enregistrer</button></div>
+    </form>
 </div>
 
 <div class="card mt-22">

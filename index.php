@@ -46,8 +46,11 @@ if (!$debug) {
 }
 
 send_security_headers();
+// La base AVANT la session : start_session() lit la durée d'inactivité réglée
+// dans l'application (Serveur → Session) pour en informer le ramasse-miettes de
+// PHP. Premier appel à db() : il initialise aussi le schéma.
+db();
 start_session();
-db(); // initialise le schéma au premier appel
 
 $route = $_GET['p'] ?? null;
 
