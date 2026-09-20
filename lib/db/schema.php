@@ -405,6 +405,8 @@ function seed_parametres(PDO $pdo): void
         'employeur_contact_tel'         => '',
         'employeur_logo_clair'          => '', // logo sur fond clair (auth, fiches, e-mail)
         'employeur_logo_sombre'         => '', // logo sur fond sombre (barre latérale)
+        'employeur_logo_mini_clair'     => '', // facultatif : logo carré pour un affichage en petit (favicone, rail) sur fond clair
+        'employeur_logo_mini_sombre'    => '', // facultatif : idem sur fond sombre
         'employeur_couleur_principale'  => '#6d4ade', // couleur d'accent ; teintes dérivées via couleurs_derivees()
         'employeur_couleur_evidence'    => '#2563eb', // couleur de mise en évidence (boutons principaux, sommes de brut, liens, tags) ; teintes dérivées via couleurs_derivees()
     ];

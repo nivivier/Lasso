@@ -401,6 +401,10 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    l'image prête — perçu comme un flicker du rail. Une hauteur fixe réserve
    l'espace immédiatement, quelle que soit la vitesse de décodage. */
 .side-logo { width: 100%; max-width: 82px; height: 44px; object-fit: contain; margin: 0 auto; display: block; }
+/* Version réduite du logo (Paramètres → Employeur) : carrée, donc contrainte
+   par la hauteur et non par la largeur du rail — sans quoi elle s'afficherait
+   plus petite que le logo large qu'elle est censée remplacer ici. */
+.side-logo-mini { max-width: 52px; height: 52px; }
 .side-name { font-size: var(--fs-small); font-weight: 700; color: var(--ink); word-break: break-word; }
 .side-sub { display: none; }
 .side-nav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; }
@@ -3176,6 +3180,8 @@ body.print-page { background: #e9e9f2; }
 .logo-preview img { max-height: 40px; max-width: 200px; width: auto; display: block; }
 .logo-preview.clair { background: #fff; border: 1px solid var(--line); }
 .logo-preview.sombre { background: var(--brand-surface); }
+/* Aperçu d'une version réduite : montrée à la taille où elle sert vraiment. */
+.logo-preview.mini img { max-height: 52px; max-width: 52px; }
 .fond-preview { display: block; margin: 4px 0 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); max-width: 360px; }
 .fond-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
 /* Sélecteur de couleur principale (Paramètres > Employeur) : :not() en plus pour
@@ -3271,6 +3277,8 @@ abbr {
         position: sticky; top: 0; z-index: 30;
     }
     .mbar-logo { width: 104px; height: auto; }
+    /* Repli sur la version réduite (carrée) : bornée en hauteur, pas en largeur. */
+    .mbar-logo-mini { width: auto; height: 34px; }
 
     /* La sidebar devient un tiroir hors écran, ouvert depuis la GAUCHE — du
        côté où vit le rail sur bureau, et du côté du burger. */

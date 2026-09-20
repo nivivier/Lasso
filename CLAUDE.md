@@ -165,7 +165,9 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   explicite.** Les corrections de masse passent par un script CLI ponctuel avec
   dry-run + sauvegarde préalable de la base.
 - **Affichage piloté par la base** : nom + logos de l'employeur viennent de `parametres`
-  (`employeur_nom`, `employeur_logo_clair/sombre`). **Aucune marque codée en dur** ;
+  (`employeur_nom`, `employeur_logo_clair/sombre`, plus les variantes facultatives
+  `employeur_logo_mini_clair/sombre` pour les affichages minuscules — favicone et
+  rail ; `LOGO_VARIANTES`, `logo_petit_variante()`). **Aucune marque codée en dur** ;
   repli sur le nom employeur en texte si pas de logo.
 - **Sécurité** : `check_csrf()` sur tout POST ; `e()` sur toute sortie ; requêtes
   **toujours** préparées (paramétrées). bcrypt coût 12 ; anti-force-brute ; sessions

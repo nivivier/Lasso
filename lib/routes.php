@@ -926,7 +926,10 @@ function route_employeur(): void
         // Logos : traités avant l'écriture pour pouvoir afficher une erreur d'upload.
         $logos = [];
         try {
-            foreach (['logo_clair' => 'employeur_logo_clair', 'logo_sombre' => 'employeur_logo_sombre'] as $field => $cle) {
+            foreach (['logo_clair'       => 'employeur_logo_clair',
+                      'logo_sombre'      => 'employeur_logo_sombre',
+                      'logo_mini_clair'  => 'employeur_logo_mini_clair',
+                      'logo_mini_sombre' => 'employeur_logo_mini_sombre'] as $field => $cle) {
                 $path = handle_logo_upload($field);
                 if ($path !== null) {
                     $logos[$cle] = $path;

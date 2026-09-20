@@ -7,6 +7,19 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Ajouté
+- **Deux logos de plus, pour les affichages minuscules.** Paramètres →
+  Employeur accepte désormais une **version réduite facultative** du logo, sur
+  fond clair et sur fond sombre : elle sert là où le logo s'affiche tout petit
+  — la **favicone** de l'onglet du navigateur, qui n'existait pas jusqu'ici, et
+  la **barre latérale**, où un logo large se réduisait à une ligne illisible.
+  Un monogramme carré y tient sa place. Rien n'est obligatoire : sans version
+  réduite, les logos normaux continuent d'y servir, et sans logo du tout, le
+  nom de l'employeur. La favicone suit le thème du système d'exploitation, pas
+  celui réglé dans l'application — c'est le navigateur qui dessine l'onglet.
+
 ## [2.8.7] — 2026-09-20
 
 ### Corrigé

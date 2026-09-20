@@ -402,6 +402,16 @@ un administrateur. Les couleurs principale et de mise en évidence restent celle
 que vous avez choisies : leurs variantes sombres en sont dérivées
 automatiquement, de même que la variante du logo utilisée dans la barre latérale.
 
+**Paramètres → Employeur** accepte quatre logos : deux pour les affichages en
+grand (fiches de salaire, e-mails, écran de connexion) sur fond clair et sur fond
+sombre, et deux **versions réduites facultatives** pour les endroits où le logo
+est minuscule — la favicone de l'onglet et la barre latérale, où un logo large se
+réduit à une ligne illisible. Un monogramme carré y reste lisible. Sans elles,
+les logos normaux servent partout ; à défaut de tout logo, c'est le nom de
+l'employeur qui s'affiche. La favicone suit le thème du **système** (deux liens
+`rel="icon"`, le second sous `prefers-color-scheme: dark`), pas le thème réglé
+dans l'application : c'est le navigateur qui dessine l'onglet.
+
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
 tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une
 couleur de fond en dur dans une règle produit un aplat clair au milieu d'une page

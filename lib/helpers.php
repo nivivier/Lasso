@@ -1884,11 +1884,40 @@ function mois_abrege(int $m): string
     return MOIS_ABREGES_FR[$m] ?? '';
 }
 
-// Chemin web du logo employeur ('clair' fond clair, 'sombre' fond sombre) ou '' si non défini.
+// Les quatre logos employeur : deux pour un affichage en grand (fiches, e-mail,
+// écran de connexion), deux pour un affichage EN PETIT — le rail et la favicone,
+// où un logo large se réduit à une ligne illisible. Les variantes « mini » sont
+// facultatives : sans elles, le logo normal sert partout (voir
+// logo_petit_variante()).
+const LOGO_VARIANTES = [
+    'clair'       => 'employeur_logo_clair',
+    'sombre'      => 'employeur_logo_sombre',
+    'mini_clair'  => 'employeur_logo_mini_clair',
+    'mini_sombre' => 'employeur_logo_mini_sombre',
+];
+
+// Chemin web d'un logo employeur (clé de LOGO_VARIANTES) ou '' si non défini.
+// Une variante inconnue retombe sur le logo pour fond clair.
 function param_logo(string $variant): string
 {
-    $cle = $variant === 'sombre' ? 'employeur_logo_sombre' : 'employeur_logo_clair';
-    return (string) param($cle, '');
+    return (string) param(LOGO_VARIANTES[$variant] ?? LOGO_VARIANTES['clair'], '');
+}
+
+// Variante à utiliser pour un affichage EN PETIT sur le fond demandé, ou null
+// si aucun logo n'est configuré. On prend la version « mini » du bon fond si
+// elle existe, sinon le logo normal du même fond, et seulement ensuite les
+// variantes de l'autre fond : mieux vaut un logo imparfaitement contrasté que
+// pas de logo du tout — même arbitrage que pour le rail (views/layout.php).
+function logo_petit_variante(string $fond): ?string
+{
+    $fond  = $fond === 'sombre' ? 'sombre' : 'clair';
+    $autre = $fond === 'sombre' ? 'clair' : 'sombre';
+    foreach (['mini_' . $fond, $fond, 'mini_' . $autre, $autre] as $variant) {
+        if (param_logo($variant) !== '') {
+            return $variant;
+        }
+    }
+    return null;
 }
 
 // Représentation data: URI (base64) du logo employeur — utilisée pour le logo

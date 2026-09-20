@@ -31,6 +31,19 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <link rel="preload" href="assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
     <script src="assets/app.js?v=<?= @filemtime(__DIR__ . '/../assets/app.js') ?: '1' ?>"></script>
+    <?php // Favicone : les versions réduites du logo employeur si elles ont été
+          // fournies, sinon les logos normaux (logo_petit_variante()). Deux
+          // liens plutôt qu'un : l'onglet du navigateur suit le thème du
+          // SYSTÈME, pas celui réglé dans l'application — d'où la media query
+          // plutôt que param_theme(). Le lien sans media sert de repli partout,
+          // et le navigateur retient le dernier qui s'applique. ?>
+    <?php $favClair = logo_petit_variante('clair'); $favSombre = logo_petit_variante('sombre'); ?>
+    <?php if ($favClair !== null): ?>
+    <link rel="icon" href="<?= e(param_logo($favClair)) ?>">
+    <?php endif; ?>
+    <?php if ($favSombre !== null && $favSombre !== $favClair): ?>
+    <link rel="icon" href="<?= e(param_logo($favSombre)) ?>" media="(prefers-color-scheme: dark)">
+    <?php endif; ?>
     <?= couleurs_css_vars() ?>
     <?= module_couleur_css_vars($navActif) ?>
 </head>
@@ -44,7 +57,10 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <button type="button" class="burger" id="burger" title="Menu" aria-label="Menu" aria-expanded="false">
         <?= icon('menu') ?>
     </button>
-    <?php if ($logoSombre !== ''): ?><img src="<?= e($logoSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+    <?php // La barre est large : le logo normal y a sa place, et la version
+          // réduite ne sert que de repli si aucun logo large n'est configuré. ?>
+    <?php $vMbar = $logoSombre !== '' ? 'sombre' : logo_petit_variante('sombre'); ?>
+    <?php if ($vMbar !== null): ?><img src="<?= e(param_logo($vMbar)) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo<?= str_starts_with($vMbar, 'mini_') ? ' mbar-logo-mini' : '' ?>"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
 </header>
 <div class="scrim" id="scrim"></div>
 <aside class="sidebar" id="sidebar">
@@ -57,15 +73,23 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
             // qui montre la bonne (.side-logo-clair / .side-logo-sombre) — sans
             // JavaScript ni scintillement.
             //
-            // Repli : si une seule variante est configurée, elle sert aux deux
-            // thèmes ; mieux vaut un logo imparfaitement contrasté que pas de
-            // logo du tout.
-            $logoRailClair  = $logoClair !== '' ? param_logo_src('clair')  : ($logoSombre !== '' ? param_logo_src('sombre') : '');
-            $logoRailSombre = $logoSombre !== '' ? param_logo_src('sombre') : $logoRailClair;
+            // Le rail est étroit : on y préfère la version réduite du logo
+            // quand elle existe, et logo_petit_variante() gère le repli — la
+            // version réduite du bon fond, sinon le logo normal, sinon les
+            // variantes de l'autre fond. Mieux vaut un logo imparfaitement
+            // contrasté que pas de logo du tout.
+            $vRailClair  = logo_petit_variante('clair');
+            $vRailSombre = logo_petit_variante('sombre');
+            $logoRailClair  = $vRailClair  !== null ? param_logo_src($vRailClair)  : '';
+            $logoRailSombre = $vRailSombre !== null ? param_logo_src($vRailSombre) : $logoRailClair;
+            // Une version réduite est carrée : elle a droit à plus de hauteur
+            // que le logo large, qui lui doit tenir dans la largeur du rail.
+            $clsRailClair  = 'side-logo side-logo-clair'  . (str_starts_with((string) $vRailClair, 'mini_')  ? ' side-logo-mini' : '');
+            $clsRailSombre = 'side-logo side-logo-sombre' . (str_starts_with((string) $vRailSombre, 'mini_') ? ' side-logo-mini' : '');
             ?>
             <?php if ($logoRailClair !== ''): ?>
-                <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-clair">
-                <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-sombre">
+                <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailClair ?>">
+                <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailSombre ?>">
             <?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
             <span class="side-sub">Gestion des salaires</span>
         </div>

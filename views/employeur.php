@@ -30,6 +30,30 @@
             </label>
         </div>
 
+        <?php // Deux variantes FACULTATIVES pour les endroits où le logo est
+              // minuscule — la favicone de l'onglet et la barre latérale : un
+              // logo large y devient une ligne illisible. Sans elles, les logos
+              // ci-dessus continuent d'y servir (logo_petit_variante()). ?>
+        <h3 class="sub">Versions réduites <?= info_tip(
+            "Facultatives, pour les endroits où le logo s'affiche tout petit : la favicone de "
+            . "l'onglet du navigateur et la barre latérale. Une image carrée (monogramme, symbole "
+            . "sans le nom) y reste lisible, là où un logo large se réduit à une ligne. "
+            . "Sans elles, les logos ci-dessus servent aussi à ces endroits."
+        ) ?></h3>
+
+        <div class="grid2">
+            <label>Version réduite sur fond clair
+                <?php $lmc = param_logo('mini_clair'); ?>
+                <?php if ($lmc !== ''): ?><span class="logo-preview clair mini"><img src="<?= e($lmc) ?>" alt="<?= e(param('employeur_nom')) ?>"></span><?php endif; ?>
+                <input type="file" name="logo_mini_clair" accept="image/png,image/jpeg,image/gif,image/webp">
+            </label>
+            <label>Version réduite sur fond sombre
+                <?php $lms = param_logo('mini_sombre'); ?>
+                <?php if ($lms !== ''): ?><span class="logo-preview sombre mini"><img src="<?= e($lms) ?>" alt="<?= e(param('employeur_nom')) ?>"></span><?php endif; ?>
+                <input type="file" name="logo_mini_sombre" accept="image/png,image/jpeg,image/gif,image/webp">
+            </label>
+        </div>
+
         <h3 class="sub">Coordonnées <?= info_tip('Ces coordonnées seront affichées sur les fiches de salaire.') ?></h3>
         <div class="grid3">
             <label>Rue <input name="employeur_rue" value="<?= e(param('employeur_rue')) ?>"></label>
