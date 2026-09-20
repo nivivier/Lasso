@@ -43,7 +43,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
           // thème. Le dernier doit donc être la variante pour fond clair, celle
           // d'une barre d'onglets par défaut — sans quoi un système en
           // apparence claire hérite du logo pensé pour un fond sombre (constaté
-          // en 2.8.8). Un navigateur qui comprend media, lui, choisit
+          // en préparant la 2.8.8, qui pose cette favicone). Un navigateur qui comprend media, lui, choisit
           // correctement dans les deux sens : les deux liens s'excluent. ?>
     <?php $favClair = logo_petit_variante('clair'); $favSombre = logo_petit_variante('sombre'); ?>
     <?php if ($favSombre !== null && $favSombre !== $favClair): ?>
