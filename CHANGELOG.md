@@ -35,7 +35,9 @@ puis sont promues sur le canal **stable** en figeant une version.
 ### Modifié
 - **La carte Suisa du tableau de bord se clique ligne par ligne**, comme les
   autres cartes, au lieu de porter deux boutons par ligne. L'export reste sur
-  la liste des événements, là où il s'applique aux lignes affichées.
+  la liste des événements, là où il s'applique aux lignes affichées. Une ligne
+  s'y ajoute, « Envoyés » : les déclarations parties dont le décompte n'est pas
+  encore revenu, entre ce qui reste à faire et ce qui manque.
 - **Ajouter un employé à une date se fait sous l'icône « personne + »**, celle
   qui sert déjà à « Nouvel employé » et à « Nouveau contact », plutôt que sous
   le « + » générique.

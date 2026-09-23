@@ -433,8 +433,25 @@ function nb_evenements_suisa_manquants(): int
 // filtrable directement en base plutôt que rechargé en PHP.
 function nb_evenements_suisa_a_faire(): int
 {
+    return nb_evenements_suisa_statut('a_faire');
+}
+
+// Déclarations envoyées dont le décompte n'est pas revenu — et qui ne sont pas
+// encore en retard (celles-là sont « manquantes », comptées à part).
+function nb_evenements_suisa_envoyes(): int
+{
+    return nb_evenements_suisa_statut('envoye');
+}
+
+// Le compte d'un statut SUISA qui se décide en SQL. 'a_faire' et 'envoye'
+// partagent la même forme — un seul paramètre, le délai d'abandon —, d'où une
+// seule fonction ; 'manquant' garde la sienne, qui passe par PHP.
+// $statut n'est jamais une donnée d'utilisateur : evenement_sql_statut_suisa()
+// travaille sur une liste fermée et retombe sur « ne s'applique pas ».
+function nb_evenements_suisa_statut(string $statut): int
+{
     try {
-        $stmt = db()->prepare('SELECT COUNT(*) FROM evenements e WHERE ' . evenement_sql_statut_suisa('a_faire', 'e.'));
+        $stmt = db()->prepare('SELECT COUNT(*) FROM evenements e WHERE ' . evenement_sql_statut_suisa($statut, 'e.'));
         $stmt->execute([evenements_delai_abandon_mois()]);
         return (int) $stmt->fetchColumn();
     } catch (\Exception) {

@@ -2,7 +2,7 @@
 /** @var array $aPayer */ /** @var int $aPayerAFaire */ /** @var int $aPayerRetard */
 /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
-/** @var int $suisaAFaire */ /** @var int $suisaManquant */
+/** @var int $suisaAFaire */ /** @var int $suisaEnvoye */ /** @var int $suisaManquant */
 /** @var array $campagnesDash */ /** @var int $campagnesAContacter */
 
 // Médaillon d'état posé sur une carte : le chiffre de ce qu'il reste à faire,
@@ -243,6 +243,13 @@ $cartes = [];
                               // attend, rouge pour ce qui manque. Un zéro reste
                               // neutre — il n'y a rien à signaler. ?>
                         <td class="num strong<?= $suisaAFaire > 0 ? ' num-attente' : '' ?>"><?= $suisaAFaire ?></td>
+                    </tr>
+                    <?php // Envoyées, décompte pas encore revenu : rien à faire,
+                          // donc un nombre neutre — la gravité est réservée à ce
+                          // qui attend (ambre) et à ce qui manque (rouge). ?>
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('envoye') ?>">
+                        <td>Envoyés</td>
+                        <td class="num strong"><?= $suisaEnvoye ?></td>
                     </tr>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
                         <td>Manquants</td>

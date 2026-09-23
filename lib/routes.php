@@ -2795,6 +2795,7 @@ function route_resumes(): void
     $comptaSeries = module_accessible('compta') ? compta_dashboard_series() : [];
     $prochainsEvenements = module_accessible('evenements') ? evenements_a_venir(5) : [];
     $suisaAFaire   = module_accessible('evenements') ? nb_evenements_suisa_a_faire() : 0;
+    $suisaEnvoye   = module_accessible('evenements') ? nb_evenements_suisa_envoyes() : 0;
     $suisaManquant = module_accessible('evenements') ? nb_evenements_suisa_manquants() : 0;
     // Widget « Suivi du booking » : étiquettes disponibles, celle que ce compte
     // suivait la dernière fois (à défaut la première de la liste), et la
@@ -2808,7 +2809,7 @@ function route_resumes(): void
     render('resumes', [
         'aPayer' => $aPayer, 'aPayerAFaire' => $aPayerAFaire, 'aPayerRetard' => $aPayerRetard,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
-        'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaManquant' => $suisaManquant,
+        'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
         'campagnesDash' => $campagnesDash, 'campagnesAContacter' => $campagnesAContacter,
     ], 'Tableau de bord');
 }
