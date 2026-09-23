@@ -1,6 +1,7 @@
 <?php /** @var ?string $err */ /** @var ?string $info */ /** @var string $email */ ?>
 <div class="card auth">
-    <h1>Connexion</h1>
+    <h1>Bonjour</h1>
+    <p class="auth-intro">Connectez-vous pour accéder à votre espace de gestion.</p>
     <?php if (!empty($info)): ?><p class="ok"><?= e($info) ?></p><?php endif; ?>
     <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
     <form method="post" action="?p=login" class="form auth-form">

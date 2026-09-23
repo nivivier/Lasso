@@ -7,6 +7,17 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **La page de connexion accueille au lieu d'intituler.** « Bonjour » à la
+  taille d'un titre de page remplace « Connexion », suivi d'une phrase qui dit
+  ce qu'on vient faire ; le cadre passe en verre dépoli — le même que les
+  cartes du tableau de bord, donc le même token et le même comportement en
+  thème sombre — et le logo prend ses distances avec lui. Les trois autres
+  écrans hors session (mot de passe oublié, réinitialisation, installation)
+  partagent ce cadre et en profitent.
+
 ## [2.8.10] — 2026-09-20
 
 ### Modifié

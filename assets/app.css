@@ -847,7 +847,10 @@ body.auth-bg, body.has-sidebar {
 .wave-shape-4 path { fill: color-mix(in srgb, var(--primary) 65%, #24104f); }
 
 .auth-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; width: 100%; max-width: 380px; }
-.auth-logo { width: 150px; }
+/* Respiration supplémentaire sous le logo : le gap de .auth-wrap vaut pour
+   tous ses enfants, et la carte de connexion a besoin de se détacher du logo
+   plus que le pied de page n'a besoin de se détacher d'elle. */
+.auth-logo { width: 150px; margin-bottom: 16px; }
 /* .side-powered par défaut est pensé pour un fond sombre (texte quasi
    blanc, voir plus haut) — sur ce fond clair, mêmes couleurs que sa variante
    .sidebar .side-powered. */
@@ -1244,7 +1247,11 @@ h3.sub.no-mt { margin-top: 0; }
    masqué — le suit encore, cas alors couvert par la règle précédente). */
 .card > p:last-child, .card-block > p:last-child, .card-disp > p:last-child { margin-bottom: 0; }
 .card.auth { width: 100%; padding: 30px; }
-.card.auth h1 { margin: 0 0 18px; font-size: var(--fs-big); }
+/* « Bonjour » plutôt que « Connexion » : c'est un accueil, pas l'intitulé d'un
+   formulaire — d'où une taille de titre de page, et la phrase qui dit ce qu'on
+   vient faire juste en dessous. */
+.card.auth h1 { margin: 0 0 2px; font-size: var(--fs-huge); letter-spacing: -.02em; line-height: 1.15; }
+.auth-intro { margin: 0 0 22px; color: var(--muted); font-size: var(--fs-basic); }
 .auth-lien { margin: 14px 0 0; text-align: center; }
 .fieldset-groupe { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 16px 16px; margin: 0 0 18px; }
 .fieldset-groupe legend { padding: 0 8px; font-size: var(--fs-small); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
@@ -1610,7 +1617,12 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    remontrer — mais s'annonce comme absente du tableau de bord. */
 .dash-reglage-ligne.est-cachee .dash-reglage-nom { color: var(--muted); font-weight: 500; text-decoration: line-through; }
 
-.dash-card { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+/* .card.auth partage la vitre dépolie des cartes du tableau de bord : la page
+   de connexion pose une carte sur un fond décoré, exactement comme elles — et
+   c'est le même token, donc le même comportement en thème sombre. Déclarée ici
+   et non avec .blur-glass (plus haut) : .card, déclarée entre les deux, écrase
+   sinon le fond des sélecteurs à une seule classe. */
+.dash-card, .card.auth { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
 /* Médaillon d'état posé sur une carte du tableau de bord : le nombre de
    choses qui restent à faire, et le lien vers la liste correspondante.
