@@ -856,7 +856,9 @@ $villeHtmlS = ville_departement_canton_html(
         $campPeriode = function (array $c): string {
             $d = $c['date_debut'] ? date('d.m.Y', strtotime((string) $c['date_debut'])) : '';
             $f = $c['date_fin'] ? date('d.m.Y', strtotime((string) $c['date_fin'])) : '';
-            return ($d !== '' ? e($d) : '—') . ($f !== '' ? ' → ' . e($f) : '');
+            // Espace insécable avant la flèche : sur téléphone la cellule
+            // s'enroule, et sans lui la flèche se retrouvait seule sur sa ligne.
+            return ($d !== '' ? e($d) : '—') . ($f !== '' ? '&nbsp;→ ' . e($f) : '');
         };
         // En lecture, la réponse tient en UNE icône : le sélecteur à trois
         // branches n'a d'intérêt qu'au moment de choisir. Les trois sont
@@ -886,10 +888,14 @@ $villeHtmlS = ville_departement_canton_html(
         ?>
         <div class="table-scroll table-flush">
         <table class="list mb-0 campagnes-fiche">
-            <thead><tr><th>Campagne</th><th>Projet</th><th class="nowrap">Période</th><th class="nowrap">Réponse</th><th></th></tr></thead>
+            <?php // Projet et campagne tiennent une seule colonne, l'un sous
+                  // l'autre : à cinq colonnes, la carte débordait de l'écran
+                  // d'un téléphone. La période, elle, s'enroule sur deux lignes
+                  // plutôt que d'imposer sa largeur. ?>
+            <thead><tr><th>Projet et campagne</th><th>Période</th><th class="nowrap">Réponse</th><th></th></tr></thead>
             <tbody>
             <?php if (!$campagnesStructure): ?>
-                <tr><td colspan="5" class="muted small">Cette structure ne fait partie d'aucune campagne.</td></tr>
+                <tr><td colspan="4" class="muted small">Cette structure ne fait partie d'aucune campagne.</td></tr>
             <?php endif; ?>
             <?php foreach ($campagnesStructure as $c): $cid = (int) $c['id']; ?>
                 <?php $reponse = (string) ($c['reponse'] ?? ''); ?>
@@ -903,9 +909,11 @@ $villeHtmlS = ville_departement_canton_html(
                       // La route refuse elle aussi (route_campagne_reponse()).
                       $campOuverte = campagne_ouverte((string) $c['date_debut'], $aujourdhuiCamp); ?>
                 <tr class="camp-ligne">
-                    <td><a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a></td>
-                    <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
-                    <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
+                    <td>
+                        <div class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">Sans projet</span>' ?></div>
+                        <a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
+                    </td>
+                    <td class="muted small"><?= $campPeriode($c) ?></td>
                     <td class="nowrap">
                         <?php // « À venir » reste visible pendant l'édition de la
                               // ligne : c'est la cellule entière qui n'a rien à
@@ -942,18 +950,18 @@ $villeHtmlS = ville_departement_canton_html(
                   // c'est depuis SA fiche qu'on la change. Même marqueur que la
                   // carte Événements pour dire de qui il s'agit (.ico-tiny +
                   // blocks/building). ?>
-            <tr class="mois-sep"><td colspan="5">Structures liées</td></tr>
+            <tr class="mois-sep"><td colspan="4">Structures liées</td></tr>
             <?php foreach ($campagnesLiees as $c): $cid = (int) $c['id']; ?>
                 <tr>
                     <td>
+                        <div class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">Sans projet</span>' ?></div>
                         <a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
                         <div class="muted small">
                             <span class="ico-tiny"><?= icon($c['structure_sens'] === 'organise' ? 'blocks' : 'building') ?></span>
                             <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a>
                         </div>
                     </td>
-                    <td class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">—</span>' ?></td>
-                    <td class="muted small nowrap"><?= $campPeriode($c) ?></td>
+                    <td class="muted small"><?= $campPeriode($c) ?></td>
                     <td class="nowrap"><?= $campReponseLecture($c) ?></td>
                     <td></td>
                 </tr>

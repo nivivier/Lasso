@@ -412,6 +412,10 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    logo s'affiche à hauteur nulle puis « saute » à sa taille une fois
    l'image prête — perçu comme un flicker du rail. Une hauteur fixe réserve
    l'espace immédiatement, quelle que soit la vitesse de décodage. */
+/* Le logo mène au tableau de bord : le lien ne doit rien changer à son dessin,
+   seulement se signaler au survol. */
+.side-accueil, .mbar-accueil { display: block; text-decoration: none; }
+.side-accueil:hover, .mbar-accueil:hover { opacity: .85; text-decoration: none; }
 .side-logo { width: 100%; max-width: 82px; height: 44px; object-fit: contain; margin: 0 auto; display: block; }
 /* Version réduite du logo (Paramètres → Employeur) : carrée, donc contrainte
    par la hauteur et non par la largeur du rail — sans quoi elle s'afficherait

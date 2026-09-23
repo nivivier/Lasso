@@ -10,6 +10,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Le logo mène au tableau de bord**, dans le rail sur ordinateur comme dans
+  la barre du haut sur téléphone : le geste qu'on tente d'instinct sur le logo
+  d'une application.
+- **La carte Campagnes d'une structure tient dans un écran de téléphone.** Le
+  projet et la campagne partagent une colonne — le projet au-dessus, la
+  campagne en dessous — et la période s'enroule sur deux lignes au lieu
+  d'imposer sa largeur. Cinq colonnes débordaient.
 - **Toutes les fenêtres de l'application se ressemblent enfin** : une barre
   colorée en haut, le titre à gauche, « Fermer » à droite, et en bas seulement
   ce qui conclut — enregistrer, envoyer, supprimer. « Annuler » disparaît du

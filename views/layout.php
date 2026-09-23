@@ -74,7 +74,11 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <?php // La barre est large : le logo normal y a sa place, et la version
           // réduite ne sert que de repli si aucun logo large n'est configuré. ?>
     <?php $vMbar = $logoSombre !== '' ? 'sombre' : logo_petit_variante('sombre'); ?>
-    <?php if ($vMbar !== null): ?><img src="<?= e(param_logo($vMbar)) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo<?= str_starts_with($vMbar, 'mini_') ? ' mbar-logo-mini' : '' ?>"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+    <?php // Le logo ramène au tableau de bord : c'est le geste attendu d'un
+          // logo d'application, et sur téléphone le rail est replié. ?>
+    <a href="?p=resumes" class="mbar-accueil" title="Tableau de bord" aria-label="Tableau de bord">
+        <?php if ($vMbar !== null): ?><img src="<?= e(param_logo($vMbar)) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo<?= str_starts_with($vMbar, 'mini_') ? ' mbar-logo-mini' : '' ?>"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+    </a>
 </header>
 <div class="scrim" id="scrim"></div>
 <aside class="sidebar" id="sidebar">
@@ -101,10 +105,14 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
             $clsRailClair  = 'side-logo side-logo-clair'  . (str_starts_with((string) $vRailClair, 'mini_')  ? ' side-logo-mini' : '');
             $clsRailSombre = 'side-logo side-logo-sombre' . (str_starts_with((string) $vRailSombre, 'mini_') ? ' side-logo-mini' : '');
             ?>
+            <?php // Le logo du rail est un lien vers le tableau de bord — le
+                  // geste qu'on tente d'instinct sur le logo d'une application. ?>
+            <a href="?p=resumes" class="side-accueil" title="Tableau de bord" aria-label="Tableau de bord">
             <?php if ($logoRailClair !== ''): ?>
                 <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailClair ?>">
                 <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailSombre ?>">
             <?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+            </a>
             <span class="side-sub">Gestion des salaires</span>
         </div>
         <button type="button" class="side-close" id="side-close" title="Fermer" aria-label="Fermer"><?= icon('x') ?></button>
