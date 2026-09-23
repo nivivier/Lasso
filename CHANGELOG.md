@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.8.12] — 2026-09-23
 
 ### Modifié
 - **La fenêtre « Contacter » tient en un écran.** L'expéditeur et le

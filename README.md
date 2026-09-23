@@ -403,8 +403,8 @@ que vous avez choisies : leurs variantes sombres en sont dérivées
 automatiquement, de même que la variante du logo utilisée dans la barre latérale.
 
 **Paramètres → Employeur** accepte quatre logos : deux pour les affichages en
-grand (fiches de salaire, e-mails, écran de connexion) sur fond clair et sur fond
-sombre, et deux **versions réduites facultatives** pour les endroits où le logo
+grand (fiches de salaire, factures, e-mails, écran de connexion) sur fond clair
+et sur fond sombre, et deux **versions réduites facultatives** pour les endroits où le logo
 est minuscule — la favicone de l'onglet et la barre latérale, où un logo large se
 réduit à une ligne illisible. Un monogramme carré y reste lisible. Sans elles,
 les logos normaux servent partout ; à défaut de tout logo, c'est le nom de
@@ -413,6 +413,12 @@ réglé dans l'application : c'est le navigateur qui dessine l'onglet. Elle tien
 en deux liens `rel="icon"`, fond sombre d'abord — le support de l'attribut
 `media` sur une favicone est inégal, et un navigateur qui l'ignore retient le
 dernier lien, qui doit donc être la variante pour fond clair.
+
+À l'écran, un logo **suit le thème de l'application** : une fiche de salaire ou
+une facture consultée en thème sombre montre la variante pour fond sombre. Les
+documents, eux, ne suivent rien — l'aperçu imprimable d'une fiche, le PDF d'une
+facture et l'e-mail qui porte une fiche sont sur fond blanc, et gardent la
+variante pour fond clair quel que soit le thème.
 
 **Le fond se choisit** dans la même page, entre quatre décors calculés et une
 image personnalisée :
