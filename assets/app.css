@@ -3987,6 +3987,10 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 /* Sur le tableau de bord, la recherche est le premier geste de la page :
    détachée du reste, et sur toute la largeur du contenu. */
 .recherche-dash { margin-bottom: 24px; }
+/* Tableau de bord : la recherche tient la ligne d'en-tête, à la place du titre,
+   et prend toute la largeur laissée par le bouton d'organisation des cartes.
+   Sa marge basse appartient alors à .page-head. */
+.page-head-recherche > .recherche-dash { flex: 1 1 240px; min-width: 0; margin-bottom: 0; }
 
 .recherche-groupe { margin-bottom: 16px; }
 .recherche-groupe-titre {

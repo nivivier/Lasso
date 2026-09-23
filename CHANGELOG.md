@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **Le tableau de bord n'a plus de titre : la recherche prend sa place.** Elle
+  occupe la ligne d'en-tête, le bouton d'organisation des cartes à sa droite —
+  le rail dit déjà où l'on est, et c'est la recherche qu'on vient chercher en
+  arrivant. Une ligne de gagnée avant les cartes.
+
 ## [2.8.11] — 2026-09-23
 
 ### Ajouté

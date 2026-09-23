@@ -469,8 +469,25 @@ $cartes = [];
 <?php // L'ordre retenu, les cartes masquées en moins. ?>
 <?php $cartesVisibles = dashboard_ordre(array_keys($cartes)); ?>
 <?php if (($_GET['refuse'] ?? null) === '1'): ?><p class="err flash">Accès refusé : vous n'avez pas les droits nécessaires pour cette page.</p><?php endif; ?>
-<div class="page-head">
-    <h1>Tableau de bord</h1>
+<?php // Pas de titre ici : le rail dit déjà où l'on est, et la barre de
+      // recherche est ce qu'on vient chercher en arrivant. Elle prend donc la
+      // ligne de l'en-tête, le bouton d'organisation des cartes à sa droite.
+      //
+      // Recherche unifiée : les sources interrogées dépendent des droits du
+      // compte (voir lib/recherche.php) — le champ s'affiche pour tout le
+      // monde, les résultats sont filtrés. Raccourci « / » dans assets/app.js. ?>
+<div class="page-head page-head-recherche">
+    <form class="recherche-form recherche-dash" method="get" action="">
+        <input type="hidden" name="p" value="recherche">
+        <?= champ_recherche([
+            'id'          => 'recherche-globale',
+            'name'        => 'q',
+            'classe'      => 'recherche-champ',
+            'placeholder' => 'Rechercher partout',
+            'aria'        => "Rechercher dans toute l'application",
+            'submit'      => true,
+        ]) ?>
+    </form>
     <?php if ($cartes): ?>
     <?php
     // Organiser les cartes. Panneau ouvert/fermé par <details>, donc sans une
@@ -540,21 +557,6 @@ $cartes = [];
     </details>
     <?php endif; ?>
 </div>
-
-<?php // Recherche unifiée. Les sources interrogées dépendent des droits du
-      // compte (voir lib/recherche.php) : le champ s'affiche pour tout le monde,
-      // les résultats sont filtrés. Raccourci « / » posé dans assets/app.js. ?>
-<form class="recherche-form recherche-dash" method="get" action="">
-    <input type="hidden" name="p" value="recherche">
-    <?= champ_recherche([
-        'id'          => 'recherche-globale',
-        'name'        => 'q',
-        'classe'      => 'recherche-champ',
-        'placeholder' => 'Rechercher partout',
-        'aria'        => "Rechercher dans toute l'application",
-        'submit'      => true,
-    ]) ?>
-</form>
 
 
 <?php if (!$cartes): ?>
