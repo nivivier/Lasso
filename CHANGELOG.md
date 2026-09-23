@@ -46,6 +46,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   arrivant. Une ligne de gagnée avant les cartes.
 
 ### Corrigé
+- **La date d'un événement ne passe plus sous les boutons de sa carte.** Le
+  champ, large comme la carte, arrivait sous « Enregistrer » et « Fermer » ;
+  il fait maintenant la moitié de la largeur, et les boutons se posent à côté.
+- **La carte Localisation d'un événement ne s'ouvre plus sur un grand vide.**
+  Un dégagement de 96 pixels attendait un en-tête flottant qui, depuis, est
+  revenu dans le flux.
 - **Les listes déroulantes à cases à cocher ne cochent plus tout d'un coup.**
   Choisir un projet dans la fenêtre « Contacter », puis cliquer à côté, et tous
   les projets se retrouvaient cochés. En cause : le groupe de cases vivait dans

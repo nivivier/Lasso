@@ -251,7 +251,10 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <form method="post" id="informations-form" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
+        <?php // Champ court : la date n'a pas besoin de toute la largeur, et
+              // surtout elle passait sous les boutons flottants de la carte
+              // (.card-actions-overlay), qui se retrouvaient posés dessus. ?>
+        <label class="champ-court">Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
         <?php // Heures facultatives : une date de tournée se pose des mois avant
               // que l'horaire soit connu. Publiques comme la date — elles partent
               // dans l'export et le flux iCal d'un événement public. ?>

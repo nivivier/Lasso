@@ -652,7 +652,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    la feuille de style (même spécificité en un seul sélecteur de classe —
    .card-flush seul serait écrasé par .card, déclaré plus loin). */
 .card.card-flush { padding: 0; overflow: hidden; position: relative; }
-.card-flush .card-edit { padding: 96px 26px 26px; }
+/* Pas de padding en haut : l'en-tête de la carte reste affiché en mode édition
+   et porte déjà sa respiration (26px). Les 96px d'autrefois dégageaient un
+   en-tête posé en absolu au-dessus de la carte — il est depuis dans le flux, et
+   ils ne laissaient plus qu'un grand vide entre le titre et le premier champ. */
+.card-flush .card-edit { padding: 10px 26px 26px; }
 .loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 26px; }
 .loc-header strong { font-size: var(--fs-huge); }
 
@@ -985,6 +989,12 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
 .head-actions label.inline { font-size: var(--fs-basic); font-weight: 500; color: var(--muted); gap: 6px; }
 .label-hint { font-weight: 400; }
 .input-code { max-width: 120px; }
+/* Un champ dont la valeur est courte — une date — n'a pas besoin de toute la
+   largeur de sa carte. Sur la première carte d'une date (?p=evenement), il
+   dégage au passage les boutons flottants (.card-actions-overlay), qui se
+   posaient dessus. min-width : en dessous, le sélecteur natif du navigateur
+   tronque son propre gabarit. */
+.form label.champ-court { max-width: 50%; min-width: 155px; }
 .td-toggle { padding: 0 0 0 12px; }
 .page-head-title { display: flex; align-items: center; gap: 12px; }
 
