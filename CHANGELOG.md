@@ -36,6 +36,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   le rail dit déjà où l'on est, et c'est la recherche qu'on vient chercher en
   arrivant. Une ligne de gagnée avant les cartes.
 
+### Corrigé
+- **Les listes déroulantes à cases à cocher ne cochent plus tout d'un coup.**
+  Choisir un projet dans la fenêtre « Contacter », puis cliquer à côté, et tous
+  les projets se retrouvaient cochés. En cause : le groupe de cases vivait dans
+  un libellé de champ, et cliquer un libellé active la première case qu'il
+  contient — celle qui, justement, coche tout. Quatre écrans étaient concernés
+  (contacter une structure, le formulaire d'une campagne, et les deux
+  formulaires de modèles de message).
+
 ## [2.8.11] — 2026-09-23
 
 ### Ajouté
