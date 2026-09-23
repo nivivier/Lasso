@@ -10,6 +10,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Le rattachement au projet descend sous le message**, dans la fenêtre
+  « Contacter », et dit ce qu'il fait : « Noter dans l'historique du projet ».
+  L'infobulle laisse place à une phrase lisible sans survol — « c'est ce
+  rattachement qui fait avancer la jauge d'une campagne ». On écrit d'abord, on
+  range ensuite.
 - **« Charger un modèle » devient un bouton** dans la fenêtre « Contacter », qui
   déroule la liste des modèles au clic. C'est une action, pas un réglage du
   message : elle n'a pas à rester dépliée en permanence dans la barre du haut.

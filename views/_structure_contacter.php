@@ -69,18 +69,6 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
             </label>
             <p class="muted small contacter-fiche" id="contacter-fiche"></p>
 
-            <?php // Projet concerné : c'est lui qui rattachera cette prise de contact
-                  // à une campagne. Pré-coché si l'on écrit depuis une campagne, ou
-                  // par le modèle qu'on charge. ?>
-            <?php if (!empty($spectacleLabels)): ?>
-            <?php // <div> et non <label> : cliquer un label active son premier
-                  // contrôle, ici la case « Tout » du groupe — qui cochait alors
-                  // tous les projets (voir choix_coches_html()). ?>
-            <div class="field-group"><span>Projet <?= info_tip("Les spectacles concernés par ce message. Une campagne compte ses structures contactées par ces projets.") ?></span>
-                <span id="contacter-projets"><?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Aucun') ?></span>
-            </div>
-            <?php endif; ?>
-
             <label>Objet <input name="sujet" id="contacter-sujet" value="" required></label>
             <?php // Ni infobulle sur les variables, ni exemple dans le champ : on
                   // écrit ici à UNE personne, pas à une liste. Les variables d'un
@@ -88,6 +76,23 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
             <label>Message
                 <textarea name="corps" id="contacter-corps" rows="9" required></textarea>
             </label>
+
+            <?php // Le rattachement au projet vient APRÈS le message : on écrit
+                  // d'abord, on range ensuite — et c'est la dernière décision
+                  // avant d'envoyer. Ce qui se lisait en infobulle est dit à
+                  // découvert : c'est ce rattachement, et lui seul, qui fait
+                  // avancer la jauge d'une campagne. Pré-coché si l'on écrit
+                  // depuis une campagne, ou par le modèle qu'on charge.
+                  //
+                  // <div> et non <label> : cliquer un label active son premier
+                  // contrôle, ici la case « Tout » du groupe — qui cochait
+                  // alors tous les projets (voir choix_coches_html()). ?>
+            <?php if (!empty($spectacleLabels)): ?>
+            <div class="field-group"><span>Noter dans l'historique du projet</span>
+                <span id="contacter-projets"><?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Aucun') ?></span>
+                <span class="muted small">C'est ce rattachement qui fait avancer la jauge d'une campagne.</span>
+            </div>
+            <?php endif; ?>
 
             <?php // Sur écran étroit, la commande secondaire se réduit à son icône
                   // (.btn-compact-mobile) : à trois boutons libellés, la rangée
