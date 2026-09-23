@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.8.11] — 2026-09-23
 
 ### Ajouté
 - **Le fond de l'application se choisit** (Paramètres → Apparence) entre quatre
@@ -24,23 +24,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 ### Modifié
 - **La page de connexion accueille au lieu d'intituler.** « Bonjour » à la
   taille d'un titre de page remplace « Connexion » ; le cadre passe en verre
-  dépoli — le même que les
-  cartes du tableau de bord, donc le même token et le même comportement en
-  thème sombre — et le logo prend ses distances avec lui. Les trois autres
+  dépoli — le même que les cartes du tableau de bord, donc le même token et le
+  même comportement en thème sombre — et le logo prend ses distances avec lui. Les trois autres
   écrans hors session (mot de passe oublié, réinitialisation, installation)
   partagent ce cadre et en profitent.
-
-## [2.8.10] — 2026-09-20
-
-### Modifié
 - **La carte Suisa du tableau de bord se clique ligne par ligne**, comme les
   autres cartes, au lieu de porter deux boutons par ligne. L'export reste sur
   la liste des événements, là où il s'applique aux lignes affichées. Une ligne
   s'y ajoute, « Envoyés » : les déclarations parties dont le décompte n'est pas
   encore revenu, entre ce qui reste à faire et ce qui manque.
-- **Ajouter un employé à une date se fait sous l'icône « personne + »**, celle
-  qui sert déjà à « Nouvel employé » et à « Nouveau contact », plutôt que sous
-  le « + » générique.
 
 ### Corrigé
 - **La liste d'exclusion du mailing ne plantait plus qu'à s'ouvrir.** Elle
@@ -49,6 +41,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   d'envoi, déclenché par le planificateur, souffrait du même mal, sans témoin.
   Les deux passent par le même fragment de requête, partagé avec les listes de
   structures.
+
+## [2.8.10] — 2026-09-20
+
+### Modifié
+- **Ajouter un employé à une date se fait sous l'icône « personne + »**, celle
+  qui sert déjà à « Nouvel employé » et à « Nouveau contact », plutôt que sous
+  le « + » générique.
+
+### Corrigé
 - **Une campagne qui n'a pas commencé n'affiche plus de réponse.** Sur la fiche
   d'une structure, sa ligne montrait l'icône « aucune réponse » — qui se lit
   comme une réponse attendue et manquante — et le crayon ouvrait le sélecteur
