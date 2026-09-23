@@ -11,8 +11,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ### Modifié
 - **La page de connexion accueille au lieu d'intituler.** « Bonjour » à la
-  taille d'un titre de page remplace « Connexion », suivi d'une phrase qui dit
-  ce qu'on vient faire ; le cadre passe en verre dépoli — le même que les
+  taille d'un titre de page remplace « Connexion » ; le cadre passe en verre
+  dépoli — le même que les
   cartes du tableau de bord, donc le même token et le même comportement en
   thème sombre — et le logo prend ses distances avec lui. Les trois autres
   écrans hors session (mot de passe oublié, réinitialisation, installation)

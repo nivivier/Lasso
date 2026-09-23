@@ -1248,10 +1248,8 @@ h3.sub.no-mt { margin-top: 0; }
 .card > p:last-child, .card-block > p:last-child, .card-disp > p:last-child { margin-bottom: 0; }
 .card.auth { width: 100%; padding: 30px; }
 /* « Bonjour » plutôt que « Connexion » : c'est un accueil, pas l'intitulé d'un
-   formulaire — d'où une taille de titre de page, et la phrase qui dit ce qu'on
-   vient faire juste en dessous. */
-.card.auth h1 { margin: 0 0 2px; font-size: var(--fs-huge); letter-spacing: -.02em; line-height: 1.15; }
-.auth-intro { margin: 0 0 22px; color: var(--muted); font-size: var(--fs-basic); }
+   formulaire — d'où une taille de titre de page. */
+.card.auth h1 { margin: 0 0 20px; font-size: var(--fs-huge); letter-spacing: -.02em; line-height: 1.15; }
 .auth-lien { margin: 14px 0 0; text-align: center; }
 .fieldset-groupe { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 16px 16px; margin: 0 0 18px; }
 .fieldset-groupe legend { padding: 0 8px; font-size: var(--fs-small); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
