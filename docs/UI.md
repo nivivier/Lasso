@@ -26,6 +26,10 @@ Deux règles au-dessus des autres :
 ou `.card-head-row` (carte). C'est vrai du « + » d'une liste comme de l'envoi
 d'un document. Rien d'important ne se met en bas.
 
+`.page-head` porte le titre de la page — sauf sur le tableau de bord, où le rail
+dit déjà où l'on est : la barre de recherche y prend la place du titre, le
+bouton d'organisation des cartes à sa droite.
+
 ### « Modifier » est TOUJOURS le dernier bouton, tout à droite
 
 Sans exception, sur une page comme sur une carte. C'est le geste qu'on cherche
@@ -442,6 +446,7 @@ une salle à une structure, un tag, une campagne.
 | --- | --- | --- | --- |
 | **Lier** | rattacher une entité qui existe déjà, des deux côtés | `link` | Lier |
 | **Ajouter** | verser une entrée dans une liste | `plus` | Ajouter |
+| `user-plus` | Ajouter quelqu'un — employé, contact, compte |
 
 **Le bouton a la taille d'un champ**, pas celle d'un bouton de ligne : format
 normal (`btn`, jamais `btn-sm`), donc `--action-height` — la même boîte que le
@@ -525,6 +530,11 @@ const LASSO_MENUS = '.col-filter[open], .feuille-menu[open], .dash-reglages[open
 écouteur. Le test `details.contains(e.target)` est ce qui permet de cliquer une
 entrée avant que le menu ne se referme.
 
+Une entrée est un **lien** quand elle mène quelque part (le déroulé d'une date
+revient avec `?ajout=<type>`), un **bouton** quand elle se traite sur place
+(charger un modèle dans « Contacter »). `.feuille-menu-panneau` les dessine de
+la même façon.
+
 **Tout `<details>` n'est pas un menu.** Un **panneau de saisie** — « Plus de
 filtres » (`.filters-more`), où l'on coche plusieurs cases avant d'envoyer —
 reste ouvert : le refermer au premier clic à côté ferait perdre le travail en
@@ -565,7 +575,9 @@ haut de `.modal-card` lui appartient : la carte n'a pas de padding en haut, et
 une fenêtre sans barre perdrait donc sa respiration.
 
 **Pas d'« Annuler » en bas.** Refermer est en haut, toujours au même endroit ;
-le bas ne garde que ce qui conclut — enregistrer, envoyer, supprimer.
+le bas ne garde que ce qui conclut — enregistrer, envoyer, supprimer. Un dernier
+réglage peut partager cette rangée, à gauche des boutons, quand il se décide
+juste avant d'agir (« Contacter » : le projet où noter la prise de contact).
 
 `data-preview` donne gratuitement Échap, le clic hors cadre, la barre d'outils
 de la page cible et le bouton « Fermer » qui s'y ajoute. **Ne jamais
@@ -621,6 +633,15 @@ qui partira en CSV : sa barre porte « Télécharger » et « Copier », pas
 « Imprimer » — un tableau de dix-huit colonnes n'est pas fait pour le papier.
 Une page d'impression sans bouton d'impression n'a donc pas besoin du script,
 mais garde le thème clair et la feuille de style versionnée.
+
+**Le logo suit le thème À L'ÉCRAN, jamais sur un document.** Une fiche de
+salaire ou une facture consultée en thème sombre montre la variante pour fond
+sombre : les deux images sont rendues, le CSS montre la bonne
+(`.ps-logo-clair` / `.ps-logo-sombre`, même mécanique que le rail). Une page
+d'impression force `data-theme="clair"`, ce qui neutralise la bascule — sa
+feuille est blanche. Et un corps partagé avec l'e-mail (`_fiche_body.php`)
+n'émet qu'une image quand l'appelant lui passe un `$logo_src` : chez le
+destinataire, les règles de thème de l'application n'ont aucun sens.
 
 **L'aperçu doit montrer ce qui sortira de l'imprimante.** Une règle qui ne vaut
 que sous `@media print` crée un aperçu menteur. Cas déjà rencontré : les `<h1>`
@@ -705,6 +726,15 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   `20:30`, une saisie incompréhensible est vidée. Refuser bloquerait
   l'enregistrement du reste.
 - Le bouton d'envoi termine la rangée quand il reste de la place.
+- **Un groupe de cases à cocher ne se met JAMAIS dans un `<label>`.** Cliquer un
+  libellé active le premier contrôle qu'il contient : pour `choix_coches_html()`,
+  c'est la case « Tout », qui coche alors toute la liste — y compris quand on
+  clique le libellé du champ ou le vide à côté du bouton. Utiliser
+  `<div class="field-group">`, qui a la même apparence sans être un label.
+- **Un champ dont la valeur est courte n'occupe pas toute la largeur** :
+  `.champ-court` (moitié de la largeur, plancher à 155 px) pour une date. Sur une
+  carte dont les boutons flottent en superposition (`.card-actions-overlay`),
+  c'est aussi ce qui les empêche de se poser sur le champ.
 
 ## 11. Messages
 
@@ -813,6 +843,8 @@ module), ou un libellé repris ailleurs dans la page (renommer une étiquette).
       coupée en deux.
 - [ ] Thème **sombre** vérifié.
 - [ ] Chaque bouton en icône seule a `title` **et** `aria-label`.
+- [ ] Aucun `<label>` n'enveloppe un groupe de cases à cocher (il en coche la
+      première au moindre clic dans le libellé).
 - [ ] Aucune action destructrice sans `data-confirm`, ni hors mode édition.
 - [ ] Les tailles et positions sont **mesurées** dans le navigateur, pas
       supposées : `getBoundingClientRect()` dit ce qu'une capture d'écran laisse
