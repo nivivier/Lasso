@@ -10,11 +10,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
-- **Le rattachement au projet descend sous le message**, dans la fenêtre
-  « Contacter », et dit ce qu'il fait : « Noter dans l'historique du projet ».
-  L'infobulle laisse place à une phrase lisible sans survol — « c'est ce
-  rattachement qui fait avancer la jauge d'une campagne ». On écrit d'abord, on
-  range ensuite.
+- **La fenêtre « Contacter » tient en un écran.** L'expéditeur et le
+  destinataire se lisent sur une rangée, de qui vers qui ; le rattachement au
+  projet descend sous le message, sur la même ligne que « Enregistrer le
+  brouillon » et « Envoyer » ; et il dit ce qu'il fait — « Noter dans
+  l'historique du projet » remplace « Projet », sans infobulle. On écrit
+  d'abord, on range ensuite. Tout s'empile sur téléphone.
 - **« Charger un modèle » devient un bouton** dans la fenêtre « Contacter », qui
   déroule la liste des modèles au clic. C'est une action, pas un réglage du
   message : elle n'a pas à rester dépliée en permanence dans la barre du haut.

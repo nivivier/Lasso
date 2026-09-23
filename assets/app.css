@@ -3793,7 +3793,17 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .modal-contacter .contacter-modele { flex: 0 0 auto; margin-bottom: 0; }
 /* Fiche du destinataire choisi, juste sous le sélecteur : elle remplace la
    marge basse du champ pour rester collée à lui. */
+/* La fiche du destinataire remplace la marge basse de son champ pour rester
+   collée à lui — et garde la sienne en dessous, sans quoi « Objet » venait s'y
+   coller dès que la rangée expéditeur/destinataire s'empile sur téléphone. */
 .modal-contacter .contacter-fiche { margin: -8px 0 16px; min-height: 1.2em; }
+/* Pied de la fenêtre « Contacter » : le rattachement au projet à gauche, les
+   deux boutons à droite, sur une seule rangée tant que la largeur le permet —
+   c'est le dernier regard avant d'envoyer. Il s'enroule en dessous sur écran
+   étroit, les boutons restant à droite. */
+.contacter-pied { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.contacter-pied .field-group { margin-bottom: 0; flex: 0 1 auto; }
+.contacter-pied .modal-actions { margin: 0 0 0 auto; }
 .del-opt { display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; font-size: var(--fs-basic); }
 .del-opt:has(input:checked) { border-color: var(--primary); background: var(--primary-tint); }
 .del-opt input { margin-top: 3px; }

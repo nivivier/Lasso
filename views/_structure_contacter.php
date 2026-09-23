@@ -52,22 +52,30 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                 <button type="button" class="btn ghost modal-fermer" id="contacter-fermer" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
 
-            <label>Expéditeur
+            <?php // De qui vers qui : les deux bouts de l'envoi se lisent d'une
+                  // seule rangée, tant que la largeur le permet (.grid2-optional
+                  // repasse en une colonne sous 640px). La fiche du destinataire
+                  // reste sous son champ, à droite. ?>
+            <div class="grid2-optional">
+                <label>Expéditeur
                     <select name="expediteur_id" id="contacter-expediteur">
                         <option value="">Par défaut<?= mailing_expediteur_defaut_libelle() !== '' ? ' — ' . e(mailing_expediteur_defaut_libelle()) : '' ?></option>
                         <?php foreach ($expediteurs as $ex): ?>
                             <option value="<?= (int) $ex['id'] ?>"><?= e(mailing_expediteur_libelle($ex)) ?></option>
                         <?php endforeach; ?>
                     </select>
-            </label>
-            <?php // Les destinataires sont posés à l'ouverture : ils dépendent de la
-                  // structure choisie. Un contact repris d'une structure mère porte
-                  // son nom — sans cela on écrirait à quelqu'un d'une autre
-                  // organisation sans le savoir. ?>
-            <label>Destinataire
-                <select name="contact_id" id="contacter-destinataire" required></select>
-            </label>
-            <p class="muted small contacter-fiche" id="contacter-fiche"></p>
+                </label>
+                <?php // Les destinataires sont posés à l'ouverture : ils dépendent de la
+                      // structure choisie. Un contact repris d'une structure mère porte
+                      // son nom — sans cela on écrirait à quelqu'un d'une autre
+                      // organisation sans le savoir. ?>
+                <div>
+                    <label>Destinataire
+                        <select name="contact_id" id="contacter-destinataire" required></select>
+                    </label>
+                    <p class="muted small contacter-fiche" id="contacter-fiche"></p>
+                </div>
+            </div>
 
             <label>Objet <input name="sujet" id="contacter-sujet" value="" required></label>
             <?php // Ni infobulle sur les variables, ni exemple dans le champ : on
@@ -87,10 +95,14 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                   // <div> et non <label> : cliquer un label active son premier
                   // contrôle, ici la case « Tout » du groupe — qui cochait
                   // alors tous les projets (voir choix_coches_html()). ?>
+            <?php // Le rattachement et les deux boutons tiennent la même rangée
+                  // tant que la largeur le permet : c'est le pied de la fenêtre,
+                  // le dernier regard avant d'envoyer. Il s'enroule en dessous
+                  // sur écran étroit. ?>
+            <div class="contacter-pied">
             <?php if (!empty($spectacleLabels)): ?>
             <div class="field-group"><span>Noter dans l'historique du projet</span>
                 <span id="contacter-projets"><?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Aucun') ?></span>
-                <span class="muted small">C'est ce rattachement qui fait avancer la jauge d'une campagne.</span>
             </div>
             <?php endif; ?>
 
@@ -105,6 +117,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
             <div class="modal-actions">
                 <button type="submit" name="section" value="brouillon" class="btn ghost btn-compact-mobile" formnovalidate title="Enregistrer le brouillon" aria-label="Enregistrer le brouillon"><?= icon('save') ?> <span class="btn-txt">Enregistrer le brouillon</span></button>
                 <button type="submit" name="section" value="envoyer" data-confirm="Envoyer ce message ? Il partira immédiatement, avec une copie cachée à l'expéditeur, et sera consigné dans l'historique."><?= icon('mail') ?> Envoyer</button>
+            </div>
             </div>
         </form>
     </div>
