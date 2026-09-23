@@ -90,11 +90,30 @@ $deductions = $figees['deduction'] ?: [
 ];
 ?>
 <div class="payslip">
-    <?php $psLogo = $logo_src ?? param_logo('clair'); ?>
-    <?php if ($psLogo !== ''): ?>
-    <div class="ps-head">
-        <img src="<?= e($psLogo) ?>" alt="" class="ps-logo">
-    </div>
+    <?php // $logo_src : fourni par l'e-mail (URL absolue — un client mail
+          // n'affiche pas un chemin relatif). Dans ce cas UNE seule image, celle
+          // pour fond clair : le message est lu sur fond blanc, et les règles de
+          // thème de l'application n'ont pas cours chez le destinataire.
+          //
+          // À l'écran, les deux variantes sont rendues et le CSS montre celle
+          // qui convient au fond (mécanique du rail, de la page de connexion et
+          // de l'en-tête d'une facture). La page d'impression et l'aperçu qui
+          // l'affiche forcent data-theme="clair" (views/fiche_print.php) : la
+          // variante pour fond clair y reste seule visible, sur sa feuille
+          // blanche, quel que soit le thème de l'application. ?>
+    <?php if (isset($logo_src)): ?>
+        <?php if ($logo_src !== ''): ?>
+        <div class="ps-head"><img src="<?= e($logo_src) ?>" alt="" class="ps-logo"></div>
+        <?php endif; ?>
+    <?php else: ?>
+        <?php $psLogoClair  = param_logo('clair') !== '' ? param_logo('clair') : param_logo('sombre'); ?>
+        <?php $psLogoSombre = param_logo('sombre') !== '' ? param_logo('sombre') : $psLogoClair; ?>
+        <?php if ($psLogoClair !== ''): ?>
+        <div class="ps-head">
+            <img src="<?= e($psLogoClair) ?>" alt="" class="ps-logo ps-logo-clair">
+            <img src="<?= e($psLogoSombre) ?>" alt="" class="ps-logo ps-logo-sombre">
+        </div>
+        <?php endif; ?>
     <?php endif; ?>
     <div class="ps-title">
         <h2>Décompte de salaire</h2>

@@ -52,9 +52,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **La carte Localisation d'un événement ne s'ouvre plus sur un grand vide.**
   Un dégagement de 96 pixels attendait un en-tête flottant qui, depuis, est
   revenu dans le flux ; les champs reprennent le retrait d'une carte ordinaire.
-- **Le logo d'une facture suit le thème à l'écran** : en thème sombre, c'est la
-  variante pour fond sombre qui s'affiche. Le PDF, lui, garde celle pour fond
-  clair — sa feuille est blanche quel que soit le thème.
+- **Le logo d'une facture et d'une fiche de salaire suit le thème à l'écran** :
+  en thème sombre, c'est la variante pour fond sombre qui s'affiche. Les
+  documents, eux, gardent celle pour fond clair — le PDF d'une facture, l'aperçu
+  imprimable d'une fiche et l'e-mail qui la porte sont sur fond blanc quel que
+  soit le thème de l'application.
 - **Les listes déroulantes à cases à cocher ne cochent plus tout d'un coup.**
   Choisir un projet dans la fenêtre « Contacter », puis cliquer à côté, et tous
   les projets se retrouvaient cochés. En cause : le groupe de cases vivait dans
