@@ -184,9 +184,18 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 <main class="content">
     <?php require $contentView; ?>
 </main>
+<?php // Le bouton « Fermer » de l'aperçu est posé dans la barre d'outils de la
+      // page affichée, qui vit dans l'iframe — laquelle n'a pas le sprite de
+      // CETTE page. Son icône doit donc être un SVG complet, pas un <use>. ?>
+<?php $spriteAvant = icones_mode_sprite(); icones_mode_sprite(false);
+      $icoFermerApercu = icon('x'); icones_mode_sprite($spriteAvant); ?>
 <div id="preview-modal" hidden aria-modal="true" role="dialog" aria-label="Aperçu">
     <div id="preview-modal-inner">
-        <button id="preview-modal-close" title="Fermer l'aperçu" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
+        <?php // Repli : ce bouton flottant ne paraît que si la page affichée n'a
+              // pas de barre d'outils où poser « Fermer ». Toutes en ont une
+              // aujourd'hui — il couvre le cas d'une page qui n'en aurait pas,
+              // plutôt que de laisser la fenêtre sans sortie visible. ?>
+        <button id="preview-modal-close" hidden title="Fermer l'aperçu" aria-label="Fermer l'aperçu"><?= icon('x') ?></button>
         <iframe id="preview-modal-frame" src="" title="Aperçu"></iframe>
     </div>
 </div>
@@ -300,6 +309,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         previewModal.classList.toggle('preview-ajuste', format === 'ajuste');
         previewFrame.style.height = '';   // remis à la hauteur du format courant
         previewFrame.src = url;
+        previewClose.hidden = false; // masqué au chargement si la page a une barre d'outils
         previewModal.removeAttribute('hidden');
         document.body.style.overflow = 'hidden';
     }
@@ -331,17 +341,27 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !previewModal.hasAttribute('hidden')) closePreview();
     });
-    // Intercepte "Fermer" et Escape dans l'iframe (même origine → accès DOM autorisé).
+    // « Fermer » rejoint la barre d'outils de la page affichée (même origine →
+    // accès DOM autorisé), tout à droite : c'est un bouton comme les autres, à
+    // la fin de la rangée des actions, et non une pastille posée par-dessus le
+    // document. Il est injecté d'ici plutôt qu'écrit dans les huit vues
+    // d'impression : ces pages s'ouvrent aussi seules, hors de la fenêtre
+    // d'aperçu, où « Fermer » n'aurait rien à fermer.
+    const fermerHtml = <?= json_encode($icoFermerApercu . ' Fermer', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
     previewFrame.addEventListener('load', () => {
         ajusterHauteur();
         try {
             const doc = previewFrame.contentDocument;
-            // Seuls les liens marqués « fermer » referment la fenêtre : la barre
-            // d'outils d'un aperçu peut aussi porter un téléchargement, qui doit
-            // suivre son cours (voir l'aperçu de l'export SUISA).
-            doc.querySelectorAll('.print-toolbar a[data-fermer]').forEach(a => {
-                a.addEventListener('click', ev => { ev.preventDefault(); closePreview(); });
-            });
+            const barre = doc.querySelector('.print-toolbar');
+            if (barre && !barre.querySelector('.print-toolbar-fermer')) {
+                const bouton = doc.createElement('button');
+                bouton.type = 'button';
+                bouton.className = 'btn ghost print-toolbar-fermer';
+                bouton.innerHTML = fermerHtml;
+                bouton.addEventListener('click', closePreview);
+                barre.appendChild(bouton);
+            }
+            previewClose.hidden = !!barre;
             doc.addEventListener('keydown', ev => {
                 if (ev.key === 'Escape') { ev.stopPropagation(); closePreview(); }
             }, true);

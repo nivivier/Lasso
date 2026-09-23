@@ -10,6 +10,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Les fenêtres d'aperçu gardent leur barre d'outils sous les yeux.** Elle
+  reste en haut quand le document défile — c'est de là qu'on imprime, qu'on
+  télécharge et qu'on referme. Et « Fermer » y devient un bouton comme les
+  autres, en fin de rangée à droite, au lieu d'une pastille ronde posée sur le
+  coin du document.
 - **Le tableau de bord n'a plus de titre : la recherche prend sa place.** Elle
   occupe la ligne d'en-tête, le bouton d'organisation des cartes à sa droite —
   le rail dit déjà où l'on est, et c'est la recherche qu'on vient chercher en

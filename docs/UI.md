@@ -541,10 +541,18 @@ Deux familles, à ne pas confondre.
 | **Aperçu de document** | Montrer une feuille A4 : décompte, certificat, bilan, feuille de route | `<a href="?p=…_print" data-preview target="_blank">` — la fenêtre partagée de `views/layout.php` (`#preview-modal`) charge la page d'impression dans un cadre à la largeur d'une feuille |
 | **Boîte de dialogue** | Poser une question, recueillir une saisie | `.modal-overlay` > `.modal-card` > `.modal-actions`, ouverte par `data-show="<id>"`, fermée par `data-hide="<id>"` |
 
-`data-preview` donne gratuitement la croix de fermeture, Échap, le clic hors
-cadre, et la barre « Imprimer / PDF » de la page cible. **Ne jamais reconstruire
-cette fenêtre** : un aperçu de document passe par elle. Format `a4` par défaut,
-`data-preview="ajuste"` pour un contenu qui n'est pas une feuille.
+`data-preview` donne gratuitement Échap, le clic hors cadre, la barre d'outils
+de la page cible et le bouton « Fermer » qui s'y ajoute. **Ne jamais
+reconstruire cette fenêtre** : un aperçu de document passe par elle. Format `a4`
+par défaut, `data-preview="ajuste"` pour un contenu qui n'est pas une feuille.
+
+**« Fermer » est un bouton comme les autres, en fin de rangée.** La fenêtre
+d'aperçu l'injecte à la fin de la `.print-toolbar` de la page affichée
+(`views/layout.php`), poussé à droite par `.print-toolbar-fermer` — et non une
+pastille ronde posée par-dessus le document. Il n'est pas écrit dans les vues
+d'impression : elles s'ouvrent aussi seules, hors de la fenêtre, où il n'aurait
+rien à fermer. Une pastille de repli reste prévue pour une page qui n'aurait pas
+de barre d'outils, faute de quoi la fenêtre n'aurait aucune sortie visible.
 
 Ne pas poser `data-hide` sur le fond d'une boîte de dialogue : un clic à
 l'intérieur de la carte remonterait jusqu'à lui.
@@ -571,6 +579,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close
 
 Structure : `<body class="print-page">` > `.print-toolbar` (masquée à
 l'impression) > `.sheet` (la feuille blanche).
+
+**La barre reste en haut quand le document défile** (`position: sticky`) : c'est
+le seul endroit d'où l'on imprime, télécharge ou referme, et la perdre au
+premier coup de molette obligeait à remonter. Vrai dans la fenêtre d'aperçu
+comme dans un onglet.
 
 **Toutes ne s'impriment pas.** L'aperçu d'export SUISA
 (`evenements_export_suisa_print.php`) utilise la même enveloppe pour montrer ce

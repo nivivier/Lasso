@@ -3211,7 +3211,16 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 #preview-modal-close .ico { width: 16px; height: 16px; }
 
 /* =================== Print =================== */
-.print-toolbar { padding: 13px 18px; background: var(--brand-surface); color: #fff; display: flex; gap: 16px; align-items: center; }
+/* La barre reste en haut quand le document défile : dans la fenêtre d'aperçu,
+   c'est le seul endroit d'où l'on imprime, télécharge ou referme — la perdre au
+   premier coup de molette obligeait à remonter. sticky et non fixed : elle
+   appartient au flux de la page imprimable, qu'elle soit vue dans l'iframe de
+   l'aperçu ou seule dans un onglet. */
+.print-toolbar { position: sticky; top: 0; z-index: 5; padding: 13px 18px; background: var(--brand-surface); color: #fff; display: flex; gap: 16px; align-items: center; }
+/* « Fermer » ferme la rangée, à droite, séparé des actions du document —
+   injecté par la fenêtre d'aperçu (views/layout.php), jamais écrit dans les
+   vues d'impression elles-mêmes. */
+.print-toolbar-fermer { margin-left: auto; }
 
 /* Les barres d'aperçu n'ont longtemps porté qu'un bouton, d'où cette mise en
    évidence systématique. Dès qu'il y en a plusieurs, une seule action doit
