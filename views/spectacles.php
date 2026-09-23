@@ -232,8 +232,9 @@ $parentOptions = function (int $excludeId) use ($map): string {
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" id="spectacle-image-id" value="">
             <input type="hidden" name="image_data" id="spectacle-image-data">
-            <div class="cadre-edit-head">
-                <span class="cadre-edit-titre" id="spectacle-image-titre">Icône</span>
+            <div class="modal-head">
+                <span class="modal-titre" id="spectacle-image-titre">Icône</span>
+                <button type="button" class="btn ghost modal-fermer" id="spectacle-image-annuler" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
             <p class="muted small">Choisissez une image et cadrez-la. Sans icône, la pastille montre les initiales du nom.</p>
             <div class="avatar-photo-zone">
@@ -244,7 +245,6 @@ $parentOptions = function (int $excludeId) use ($map): string {
             </div>
             <div class="avatar-crop-zone" id="spectacle-image-zone" hidden><img id="spectacle-image-img" alt=""></div>
             <div class="modal-actions">
-                <button type="button" class="btn ghost" id="spectacle-image-annuler"><?= icon('x') ?> Annuler</button>
                 <button type="submit" name="action" value="supprimer" class="btn danger btn-sm" id="spectacle-image-retirer"
                         formnovalidate hidden data-confirm="Retirer l'icône ? La pastille reviendra aux initiales."><?= icon('trash') ?> Retirer l'icône</button>
                 <button type="submit" id="spectacle-image-ok" disabled><?= icon('save') ?> Enregistrer</button>

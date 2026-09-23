@@ -128,7 +128,10 @@ $parentOptions = function (?int $selected) use ($map): string {
 <!-- Suppression d'une catégorie/sous-catégorie utilisée : réaffecter d'abord -->
 <div id="cat-del-modal" class="modal-overlay" hidden>
     <div class="modal-card">
-        <h3 class="mt-0">Supprimer « <span id="cat-del-nom"></span> »</h3>
+        <div class="modal-head">
+            <span class="modal-titre">Supprimer « <span id="cat-del-nom"></span> »</span>
+            <button type="button" class="btn ghost modal-fermer" id="cat-del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+        </div>
         <p class="muted small"><strong id="cat-del-nb"></strong> structure(s) utilisent <span id="cat-del-type">cette catégorie</span>. Réaffectez-les avant de supprimer.</p>
         <form method="post" action="?p=parametres_structures" id="cat-del-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -143,7 +146,6 @@ $parentOptions = function (?int $selected) use ($map): string {
                 </select>
             </label>
             <div class="modal-actions">
-                <button type="button" id="cat-del-cancel" class="btn ghost">Annuler</button>
                 <button type="submit" class="btn danger"><?= icon('trash') ?> Réaffecter et supprimer</button>
             </div>
         </form>

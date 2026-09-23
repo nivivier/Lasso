@@ -21,8 +21,9 @@
             <?php foreach ($projetIds as $pid): ?>
             <input type="hidden" name="spectacle_ids[]" value="<?= (int) $pid ?>">
             <?php endforeach; ?>
-            <div class="cadre-edit-head">
-                <span class="cadre-edit-titre" id="noter-titre">Marquer comme contacté</span>
+            <div class="modal-head">
+                <span class="modal-titre" id="noter-titre">Marquer comme contacté</span>
+                <button type="button" class="btn ghost modal-fermer" id="noter-annuler" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
 
             <label><span>Date <?= info_tip("La date du démarchage, pas celle de la saisie : on consigne souvent après coup.") ?></span>
@@ -40,7 +41,6 @@
             </p>
 
             <div class="modal-actions">
-                <button type="button" class="btn ghost" id="noter-annuler"><?= icon('x') ?> Annuler</button>
                 <button type="submit"><?= icon('check') ?> Enregistrer</button>
             </div>
         </form>

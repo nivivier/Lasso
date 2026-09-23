@@ -29,11 +29,11 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
             <input type="hidden" name="retour_campagne" value="<?= $contacterRetourCampagne ?>">
             <?php endif; ?>
             <?php // Barre du haut : de qui il s'agit, de quoi on part, et la
-                  // sortie — comme la barre d'outils d'un aperçu. Elle reste en
-                  // place quand le formulaire défile : « Fermer » ne doit pas
-                  // dépendre de l'endroit où l'on a laissé la molette. ?>
-            <div class="cadre-edit-head">
-                <span class="cadre-edit-titre" id="contacter-titre">Contacter</span>
+                  // sortie. Elle reste en place quand le formulaire défile :
+                  // « Fermer » ne doit pas dépendre de l'endroit où l'on a
+                  // laissé la molette. ?>
+            <div class="modal-head">
+                <span class="modal-titre" id="contacter-titre">Contacter</span>
                 <?php if ($modelesMessage): ?>
                 <label class="inline contacter-modele">Charger un modèle
                     <select id="contacter-modele">
@@ -44,8 +44,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                     </select>
                 </label>
                 <?php endif; ?>
-                <button type="button" class="btn ghost btn-sm contacter-fermer" id="contacter-fermer"
-                        title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+                <button type="button" class="btn ghost modal-fermer" id="contacter-fermer" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
 
             <label>Expéditeur

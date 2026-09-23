@@ -146,7 +146,10 @@ $flashErr = [
 <!-- Boîte de dialogue : suppression d'une catégorie contenant des écritures -->
 <div id="del-modal" class="modal-overlay" hidden>
     <div class="modal-card">
-        <h3 class="mt-0">Supprimer « <span id="del-nom"></span> »</h3>
+        <div class="modal-head">
+            <span class="modal-titre">Supprimer « <span id="del-nom"></span> »</span>
+            <button type="button" class="btn ghost modal-fermer" id="del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+        </div>
         <p class="muted small">Cette catégorie contient <strong id="del-nb"></strong> écriture(s) déjà classée(s). Que faire de ces écritures ?</p>
         <form method="post" action="?p=compta_plan" id="del-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -161,7 +164,6 @@ $flashErr = [
                     </select>
                 </span></label>
             <div class="modal-actions">
-                <button type="button" id="del-cancel" class="btn ghost">Annuler</button>
                 <button type="submit" class="btn danger"><?= icon('trash') ?> Supprimer</button>
             </div>
         </form>

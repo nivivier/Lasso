@@ -10,10 +10,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
-- **La fenêtre « Contacter » a elle aussi sa barre en haut** : le nom de la
-  structure, le chargement d'un modèle et « Fermer », qui reste en place quand
-  le formulaire défile. Le bas ne garde que « Enregistrer le brouillon » et
-  « Envoyer » — « Annuler » faisait doublon avec « Fermer ».
+- **Toutes les fenêtres de l'application se ressemblent enfin** : une barre
+  colorée en haut, le titre à gauche, « Fermer » à droite, et en bas seulement
+  ce qui conclut — enregistrer, envoyer, supprimer. « Annuler » disparaît du
+  bas : refermer est en haut, toujours au même endroit. Les six fenêtres sont
+  concernées (contacter une structure, marquer un contact, l'icône d'un
+  spectacle, les trois suppressions de catégorie), et l'aperçu d'un document
+  n'est plus qu'un cas particulier de la même fenêtre : celui où le contenu est
+  une feuille posée sur son fond gris. La barre reste en tête quand le contenu
+  défile.
 - **Les fenêtres d'aperçu gardent leur barre d'outils sous les yeux.** Elle
   reste en haut quand le document défile — c'est de là qu'on imprime, qu'on
   télécharge et qu'on referme. Et « Fermer » y devient un bouton comme les

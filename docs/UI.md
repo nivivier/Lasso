@@ -534,12 +534,38 @@ compose se referme quand on le décide.
 
 ## 7. Fenêtres
 
-Deux familles, à ne pas confondre.
+**Une seule fenêtre, un seul dessin.** Barre colorée en haut — titre à gauche,
+les réglages d'entrée au milieu, « Fermer » à droite —, le contenu en dessous,
+et au bas ce qui conclut. Un aperçu de document n'en est qu'un cas particulier :
+même fenêtre, même barre, et pour seule différence un contenu qui est un
+document posé sur son fond gris.
+
+```html
+<div class="modal-overlay" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-titre">Supprimer « … »</span>
+      <button class="btn ghost modal-fermer">✕ Fermer</button>
+    </div>
+    …
+    <div class="modal-actions">…</div>
+  </div>
+</div>
+```
 
 | | Quand | Quoi |
 | --- | --- | --- |
 | **Aperçu de document** | Montrer une feuille A4 : décompte, certificat, bilan, feuille de route | `<a href="?p=…_print" data-preview target="_blank">` — la fenêtre partagée de `views/layout.php` (`#preview-modal`) charge la page d'impression dans un cadre à la largeur d'une feuille |
-| **Boîte de dialogue** | Poser une question, recueillir une saisie | `.modal-overlay` > `.modal-card` > `.modal-actions`, ouverte par `data-show="<id>"`, fermée par `data-hide="<id>"` |
+| **Boîte de dialogue** | Poser une question, recueillir une saisie | `.modal-overlay` > `.modal-card` > `.modal-head` > … > `.modal-actions`, ouverte par `data-show="<id>"`, fermée par `data-hide="<id>"` |
+
+La barre est **collante** : elle reste en tête quand le contenu défile. Son fond
+vient de `--modal-head-bg` — la surface de marque en thème clair, une teinte
+éclaircie en sombre, où la couleur de marque se confondrait avec la carte. Le
+haut de `.modal-card` lui appartient : la carte n'a pas de padding en haut, et
+une fenêtre sans barre perdrait donc sa respiration.
+
+**Pas d'« Annuler » en bas.** Refermer est en haut, toujours au même endroit ;
+le bas ne garde que ce qui conclut — enregistrer, envoyer, supprimer.
 
 `data-preview` donne gratuitement Échap, le clic hors cadre, la barre d'outils
 de la page cible et le bouton « Fermer » qui s'y ajoute. **Ne jamais
@@ -557,13 +583,9 @@ de barre d'outils, faute de quoi la fenêtre n'aurait aucune sortie visible.
 Ne pas poser `data-hide` sur le fond d'une boîte de dialogue : un clic à
 l'intérieur de la carte remonterait jusqu'à lui.
 
-**Une fenêtre dont le contenu défile porte sa sortie en haut.** Dès qu'une
-boîte de dialogue devient un formulaire assez long pour défiler (« Contacter »,
-`_structure_contacter.php`), son titre, ses réglages d'entrée et son
-« Fermer » tiennent une barre collante en tête de carte — même rôle que la
-barre d'outils d'un aperçu. Le bas ne garde alors que ce qui conclut :
-enregistrer, envoyer. Pas d'« Annuler » en double : refermer est déjà en haut,
-toujours au même endroit.
+Un réglage qui appartient à l'entrée de la fenêtre monte dans la barre, entre le
+titre et « Fermer » : le « Charger un modèle » de « Contacter »
+(`_structure_contacter.php`) en est le seul exemple à ce jour.
 
 ## 8. Documents imprimables
 

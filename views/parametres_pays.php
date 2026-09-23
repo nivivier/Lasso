@@ -135,7 +135,10 @@ $paysOptions = function (?int $selected) use ($map): string {
 <!-- Suppression d'une région utilisée : réaffecter d'abord -->
 <div id="region-del-modal" class="modal-overlay" hidden>
     <div class="modal-card">
-        <h3 class="mt-0">Supprimer la région « <span id="region-del-nom"></span> »</h3>
+        <div class="modal-head">
+            <span class="modal-titre">Supprimer la région « <span id="region-del-nom"></span> »</span>
+            <button type="button" class="btn ghost modal-fermer" id="region-del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+        </div>
         <p class="muted small"><strong id="region-del-nb"></strong> fiche(s) utilisent cette région. Réaffectez-les avant de supprimer.</p>
         <form method="post" action="?p=parametres_pays" id="region-del-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -150,7 +153,6 @@ $paysOptions = function (?int $selected) use ($map): string {
                 </select>
             </label>
             <div class="modal-actions">
-                <button type="button" id="region-del-cancel" class="btn ghost">Annuler</button>
                 <button type="submit" class="btn danger"><?= icon('trash') ?> Réaffecter et supprimer</button>
             </div>
         </form>
