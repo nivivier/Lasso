@@ -557,6 +557,14 @@ de barre d'outils, faute de quoi la fenêtre n'aurait aucune sortie visible.
 Ne pas poser `data-hide` sur le fond d'une boîte de dialogue : un clic à
 l'intérieur de la carte remonterait jusqu'à lui.
 
+**Une fenêtre dont le contenu défile porte sa sortie en haut.** Dès qu'une
+boîte de dialogue devient un formulaire assez long pour défiler (« Contacter »,
+`_structure_contacter.php`), son titre, ses réglages d'entrée et son
+« Fermer » tiennent une barre collante en tête de carte — même rôle que la
+barre d'outils d'un aperçu. Le bas ne garde alors que ce qui conclut :
+enregistrer, envoyer. Pas d'« Annuler » en double : refermer est déjà en haut,
+toujours au même endroit.
+
 ## 8. Documents imprimables
 
 Une page `views/*_print.php` rendue par `render_bare()` — sans layout, donc son

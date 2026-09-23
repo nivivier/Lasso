@@ -28,6 +28,10 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
             <?php if ($contacterRetourCampagne): ?>
             <input type="hidden" name="retour_campagne" value="<?= $contacterRetourCampagne ?>">
             <?php endif; ?>
+            <?php // Barre du haut : de qui il s'agit, de quoi on part, et la
+                  // sortie — comme la barre d'outils d'un aperçu. Elle reste en
+                  // place quand le formulaire défile : « Fermer » ne doit pas
+                  // dépendre de l'endroit où l'on a laissé la molette. ?>
             <div class="cadre-edit-head">
                 <span class="cadre-edit-titre" id="contacter-titre">Contacter</span>
                 <?php if ($modelesMessage): ?>
@@ -40,6 +44,8 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                     </select>
                 </label>
                 <?php endif; ?>
+                <button type="button" class="btn ghost btn-sm contacter-fermer" id="contacter-fermer"
+                        title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
 
             <label>Expéditeur
@@ -76,13 +82,15 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                 <textarea name="corps" id="contacter-corps" rows="9" required></textarea>
             </label>
 
-            <?php // Sur écran étroit, les deux commandes secondaires se réduisent à
-                  // leur icône (.btn-compact-mobile) : à trois boutons libellés, la
-                  // rangée passait à la ligne et « Envoyer » — le seul qu'on
-                  // cherche — se retrouvait n'importe où. Le titre et l'aria-label
-                  // portent le libellé, qui n'est plus lisible une fois masqué. ?>
+            <?php // Sur écran étroit, la commande secondaire se réduit à son icône
+                  // (.btn-compact-mobile) : à trois boutons libellés, la rangée
+                  // passait à la ligne et « Envoyer » — le seul qu'on cherche —
+                  // se retrouvait n'importe où. Le titre et l'aria-label portent
+                  // le libellé, qui n'est plus lisible une fois masqué.
+                  // « Annuler » n'est plus ici : la barre du haut porte
+                  // « Fermer », qui fait la même chose et se trouve toujours au
+                  // même endroit. ?>
             <div class="modal-actions">
-                <button type="button" class="btn ghost btn-compact-mobile" id="contacter-annuler" title="Annuler" aria-label="Annuler"><?= icon('x') ?> <span class="btn-txt">Annuler</span></button>
                 <button type="submit" name="section" value="brouillon" class="btn ghost btn-compact-mobile" formnovalidate title="Enregistrer le brouillon" aria-label="Enregistrer le brouillon"><?= icon('save') ?> <span class="btn-txt">Enregistrer le brouillon</span></button>
                 <button type="submit" name="section" value="envoyer" data-confirm="Envoyer ce message ? Il partira immédiatement, avec une copie cachée à l'expéditeur, et sera consigné dans l'historique."><?= icon('mail') ?> Envoyer</button>
             </div>
@@ -281,7 +289,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
     document.querySelectorAll('[data-contacter]').forEach(function (b) {
         b.addEventListener('click', function () { ouvrir(b.getAttribute('data-contacter')); });
     });
-    document.getElementById('contacter-annuler').addEventListener('click', fermer);
+    document.getElementById('contacter-fermer').addEventListener('click', fermer);
     modal.addEventListener('click', function (e) { if (e.target === modal) fermer(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) fermer(); });
     // Entrée dans l'objet : passe au message plutôt que de soumettre. Sans ça,

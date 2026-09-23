@@ -10,6 +10,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **La fenêtre « Contacter » a elle aussi sa barre en haut** : le nom de la
+  structure, le chargement d'un modèle et « Fermer », qui reste en place quand
+  le formulaire défile. Le bas ne garde que « Enregistrer le brouillon » et
+  « Envoyer » — « Annuler » faisait doublon avec « Fermer ».
 - **Les fenêtres d'aperçu gardent leur barre d'outils sous les yeux.** Elle
   reste en haut quand le document défile — c'est de là qu'on imprime, qu'on
   télécharge et qu'on referme. Et « Fermer » y devient un bouton comme les

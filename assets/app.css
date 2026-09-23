@@ -3747,12 +3747,30 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 /* Fenêtre « Contacter » (?p=structure) : on y rédige un message, pas une
    confirmation en deux lignes — d'où une largeur de lecture confortable et une
    hauteur bornée à l'écran, le formulaire défilant à l'intérieur. */
-.modal-card.modal-contacter { max-width: 720px; max-height: 92vh; overflow-y: auto; padding: 18px 24px 22px;
+/* Pas de padding en haut : la barre collante le porte elle-même. Sinon elle se
+   fige 18px plus bas — la hauteur de ce padding — et le formulaire défile dans
+   la bande laissée au-dessus. */
+.modal-card.modal-contacter { max-width: 720px; max-height: 92vh; overflow-y: auto; padding: 0 24px 22px;
     background: var(--surface); }
 /* Le nom de la structure qu'on s'apprête à contacter est le sujet de la
-   fenêtre : il se lit comme un titre, pas comme une étiquette de champ. */
-.modal-contacter .cadre-edit-head { margin-bottom: 14px; }
-.modal-contacter .cadre-edit-titre { font-size: var(--fs-large); }
+   fenêtre : il se lit comme un titre, pas comme une étiquette de champ.
+   La rangée titre + modèle + « Fermer » tient le haut de la fenêtre et y reste
+   quand le formulaire défile — même rôle que la barre d'outils d'un aperçu.
+   Les marges négatives lui font traverser le padding de la carte, sans quoi le
+   contenu défilerait dans la bande laissée de chaque côté. */
+.modal-contacter .cadre-edit-head {
+    position: sticky; top: 0; z-index: 2;
+    margin: 0 -24px 14px; padding: 16px 24px 12px;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    /* Sur écran étroit la rangée passe à la ligne et le titre se replie : sans
+       cela, ses trois éléments imposaient au cadre une largeur minimale de
+       465px — plus que la fenêtre d'un téléphone. */
+    flex-wrap: wrap;
+}
+
+/* « Fermer » ferme la rangée, à droite, comme dans la barre d'un aperçu. */
+.modal-contacter .contacter-fermer { margin-left: auto; }
+.modal-contacter .cadre-edit-titre { font-size: var(--fs-large); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .modal-contacter .contacter-modele { flex: 0 0 auto; margin-bottom: 0; font-size: var(--fs-small); }
 .modal-contacter .contacter-modele select { width: auto; }
 /* Fiche du destinataire choisi, juste sous le sélecteur : elle remplace la
