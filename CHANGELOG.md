@@ -9,6 +9,18 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Le fond de l'application se choisit** (Paramètres → Apparence) entre quatre
+  décors calculés — **maillage** (le nouveau défaut), vagues, grille, courbes de
+  niveau — et l'image personnalisée. Les quatre sont dessinés en SVG à partir de
+  vos couleurs : ils suivent le thème, ne coûtent aucun fichier à télécharger et
+  habillent aussi les écrans hors session. La page montre un aperçu du fond
+  choisi, met à jour cet aperçu dès qu'on désigne une image ou qu'on coche
+  « fond clair » / « fond flouté », et se lit maintenant en deux colonnes :
+  couleurs à gauche, fond à droite.
+  Les installations qui affichaient une image personnalisée la conservent ; les
+  autres passent au maillage, les vagues restant à un clic.
+
 ### Modifié
 - **La page de connexion accueille au lieu d'intituler.** « Bonjour » à la
   taille d'un titre de page remplace « Connexion » ; le cadre passe en verre

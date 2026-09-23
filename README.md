@@ -414,6 +414,24 @@ en deux liens `rel="icon"`, fond sombre d'abord — le support de l'attribut
 `media` sur une favicone est inégal, et un navigateur qui l'ignore retient le
 dernier lien, qui doit donc être la variante pour fond clair.
 
+**Le fond se choisit** dans la même page, entre quatre décors calculés et une
+image personnalisée :
+
+| Fond | Ce que c'est |
+| --- | --- |
+| **Maillage** (défaut) | Quatre taches de couleur très floutées et un grain léger — un champ de couleur, sans forme reconnaissable. |
+| **Vagues** | Le décor historique de l'application, des vagues SVG superposées. |
+| **Grille** | Un quadrillage fin qui s'efface vers les bords, deux halos diffus. |
+| **Courbes de niveau** | Des lignes parallèles qui ondulent, comme une carte topographique. |
+| **Image personnalisée** | Une image envoyée (2 Mo max), avec deux effets combinables : éclaircie et floutée. |
+
+Les quatre décors sont **calculés** à partir des couleurs ci-dessus (SVG en
+ligne, aucun fichier à servir) : ils suivent le thème clair/sombre et se posent
+aussi derrière les écrans hors session — connexion, mot de passe oublié.
+L'image personnalisée, elle, ne s'affiche qu'une fois connecté ; ces écrans-là
+gardent alors le décor par défaut. Un aperçu, dans la page, montre le fond
+choisi avant d'enregistrer.
+
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
 tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une
 couleur de fond en dur dans une règle produit un aplat clair au milieu d'une page

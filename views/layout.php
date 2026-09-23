@@ -1,10 +1,14 @@
 <?php /** @var string $pageTitle, $contentView */ $u = current_user(); $cur = $_GET['p'] ?? '';
 $nomEmployeur = param('employeur_nom') ?: 'Fiches de salaire';
 $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre');
-// Fond calculé (views/_wave_decor.php) tant qu'aucune image personnalisée
-// n'est configurée (?p=apparence) — sinon on garde l'image uploadée telle
-// quelle (body.has-sidebar::before, voir couleurs_css_vars()).
-$fondPersonnalise = param('employeur_fond', '') !== '';
+// Fond de l'application : un décor calculé (views/_fond_decor.php) ou l'image
+// personnalisée, au choix (?p=apparence, FONDS_DECOR). L'image ne concerne que
+// les pages connectées — elle est posée en CSS sur body.has-sidebar::before par
+// couleurs_css_vars() — et les pages hors session gardent donc un décor, le
+// défaut si c'est l'image qui est choisie.
+$fondDecor        = param_fond_decor();
+$fondPersonnalise = $fondDecor === 'image';
+$fondDecorAuth    = $fondPersonnalise ? 'maillage' : $fondDecor;
 // Calculés ici (avant <head>, pas seulement pour la boucle du rail plus bas)
 // pour pouvoir injecter module_couleur_css_vars($navActif) dans <head>.
 $navGroupes = $u ? nav_groupes() : [];
@@ -55,9 +59,11 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <?= couleurs_css_vars() ?>
     <?= module_couleur_css_vars($navActif) ?>
 </head>
-<body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?>">
+<?php // La classe du décor porte le fond de <body> qui va avec lui : chaque
+      // décor a le sien (assets/app.css, section « Décors de fond »). ?>
+<body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?> fond-<?= e($u ? $fondDecor : $fondDecorAuth) ?>">
 <?php if ($u): ?>
-<?php if (!$fondPersonnalise) { require __DIR__ . '/_wave_decor.php'; } ?>
+<?php if (!$fondPersonnalise) { require __DIR__ . '/_fond_decor.php'; } ?>
 <?php // Burger AVANT le logo : la navigation est à gauche sur bureau (le rail),
       // elle l'est donc aussi sur téléphone — bouton, tiroir et bouton de
       // fermeture, tous du même côté. ?>
@@ -344,7 +350,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 })();
 </script>
 <?php else: ?>
-<?php require __DIR__ . '/_wave_decor.php'; ?>
+<?php $fondDecor = $fondDecorAuth; require __DIR__ . '/_fond_decor.php'; ?>
 <main class="auth-wrap">
     <?php
     // Le fond de connexion s'assombrit avec le thème, exactement comme le rail :

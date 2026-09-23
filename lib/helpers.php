@@ -1679,7 +1679,7 @@ if ($l > 75) {
 // même ::before, jamais sur <body> lui-même — voir le commentaire dans
 // app.css (body.has-sidebar::before). Sans image personnalisée (cas par
 // défaut), rien n'est émis ici : le fond calculé (.wave-decor, voir
-// views/_wave_decor.php) prend le relais, posé par views/layout.php.
+// views/_fond_decor.php) prend le relais, posé par views/layout.php.
 // Émet les deux blocs qui appliquent une palette sombre : l'un sous la media
 // query (mode « automatique »), l'autre sur l'attribut data-theme (choix
 // explicite). $valeurs : tokens réels => valeur sombre.
@@ -1712,7 +1712,10 @@ function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
     $h = couleurs_derivees((string) param('employeur_couleur_evidence', '#2563eb'));
-    $fondPerso = (string) param('employeur_fond', '');
+    // param_fond_decor() et non param('employeur_fond') : une image peut rester
+    // stockée alors qu'un décor calculé est choisi, et elle ne doit alors plus
+    // s'afficher.
+    $fondPerso = param_fond_decor() === 'image' ? (string) param('employeur_fond', '') : '';
     $styleFond = '';
     if ($fondPerso !== '') {
         // Effets combinables (voir param_fond_clair()/param_fond_floute()) :
@@ -2073,6 +2076,38 @@ function asset_data_uri_mini_calculer(string $fs, string $cheminRelatif, int $ha
         return $cheminRelatif;
     }
     return 'data:image/png;base64,' . base64_encode($data);
+}
+
+// Fonds proposés par ?p=apparence : quatre décors calculés à partir des
+// couleurs de l'employeur (SVG en ligne, views/_fond_decor.php) et l'image
+// personnalisée. Un seul est actif à la fois — d'où un choix, et non une
+// image qui l'emporterait silencieusement sur un décor.
+const FONDS_DECOR = [
+    'maillage' => 'Maillage',
+    'vagues'   => 'Vagues',
+    'grille'   => 'Grille',
+    'courbes'  => 'Courbes',
+    'image'    => 'Image personnalisée',
+];
+
+// Valeur de fond sûre : tout ce qui n'est pas dans la liste retombe sur le
+// défaut. Pure (pas de base) pour être testable, et appelée aussi bien à
+// l'écriture (route_apparence()) qu'à la lecture (param_fond_decor()).
+function fond_decor_valide(string $valeur): string
+{
+    return isset(FONDS_DECOR[$valeur]) ? $valeur : 'maillage';
+}
+
+// Fond effectivement affiché. « image » choisie mais aucune image envoyée :
+// on retombe sur le défaut plutôt que sur un écran nu — le cas existe, une
+// image peut être supprimée sans que le choix suive.
+function param_fond_decor(): string
+{
+    $decor = fond_decor_valide((string) param('employeur_fond_decor', 'maillage'));
+    if ($decor === 'image' && (string) param('employeur_fond', '') === '') {
+        return 'maillage';
+    }
+    return $decor;
 }
 
 // Chemin web de l'image de fond de l'application (page Apparence) — celle
@@ -2904,6 +2939,11 @@ function icone_table(): array
         'menu'      => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
         'x'         => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
         // Réglage de la pastille d'identité d'un employé (?p=employe_voir).
+        // Les trois décors de fond de ?p=apparence (le quatrième, « maillage »,
+        // emprunte 'sparkles' ci-dessous, et l'image personnalisée 'image').
+        'waves'     => '<path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>',
+        'grid-3x3'  => '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+        'chart-spline' => '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16c.5-2 1.5-7 4-7 2 0 2 3 4 3 2.5 0 4.5-5 5-7"/>',
         'sparkles'  => '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
         'image'     => '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
         'list-x'    => '<path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="m19 10-4 4"/><path d="m15 10 4 4"/>',

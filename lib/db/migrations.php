@@ -115,6 +115,7 @@ function run_migrations(PDO $pdo): void
         87 => 'migration_87', // icône (image recadrée) d'un spectacle
         88 => 'migration_88', // adresse (rue, NPA) et heures de début/fin d'un événement — champs publics, exportés
         89 => 'migration_89', // feuille de route d'un événement : une liste ordonnée d'éléments de types différents
+        90 => 'migration_90', // choix du fond (employeur_fond_decor) : quatre décors calculés ou l'image personnalisée
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2769,4 +2770,19 @@ function migration_89(PDO $pdo): void
         cree_le       TEXT NOT NULL DEFAULT (datetime('now'))
     )");
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenement_feuille_evenement ON evenement_feuille(evenement_id, ordre)');
+}
+
+// Le fond de l'application devient un choix (?p=apparence) : quatre décors
+// calculés — maillage, vagues, grille, courbes — ou l'image personnalisée.
+// « Maillage » devient le défaut, y compris pour les installations existantes :
+// les vagues restent disponibles d'un clic, et c'est un changement voulu, pas
+// un effet de bord. Seule exception, une installation qui affichait une image
+// personnalisée : elle la garde, sans quoi la mise à jour l'aurait effacée de
+// l'écran sans que personne l'ait demandé.
+function migration_90(PDO $pdo): void
+{
+    $fond = $pdo->query("SELECT valeur FROM parametres WHERE cle = 'employeur_fond'")->fetchColumn();
+    $decor = ($fond !== false && (string) $fond !== '') ? 'image' : 'maillage';
+    $pdo->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+        ->execute(['employeur_fond_decor', $decor]);
 }

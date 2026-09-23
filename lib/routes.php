@@ -1001,6 +1001,20 @@ function route_apparence(): void
                 @unlink(__DIR__ . '/../' . $ancien);
             }
         }
+        // Fond : quatre décors calculés ou l'image personnalisée. Choisir
+        // l'image sans en avoir envoyé une ne donnerait rien à voir — le choix
+        // est refusé et dit pourquoi, plutôt que d'être accepté puis rattrapé
+        // en silence par le repli de param_fond_decor().
+        $decor = fond_decor_valide((string) ($_POST['employeur_fond_decor'] ?? ''));
+        $imageDispo = $fond !== null || (string) param('employeur_fond', '') !== '';
+        if ($decor === 'image' && !$imageDispo) {
+            render('apparence', [
+                'saved' => null,
+                'err'   => "Envoyez d'abord une image de fond pour pouvoir la choisir.",
+            ], 'Apparence');
+            return;
+        }
+        $stmt->execute(['employeur_fond_decor', $decor]);
         redirect('apparence', ['ok' => 1]);
     }
     render('apparence', ['saved' => isset($_GET['ok']), 'err' => null], 'Apparence');
@@ -1015,7 +1029,13 @@ function route_apparence_fond_supprimer(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $ancien = param('employeur_fond', '');
-        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')->execute(['employeur_fond', '']);
+        $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+        $stmt->execute(['employeur_fond', '']);
+        // Le choix suit l'image : la laisser sur « image » afficherait le décor
+        // de repli tout en prétendant, dans la page, qu'une image est choisie.
+        if (fond_decor_valide((string) param('employeur_fond_decor', 'maillage')) === 'image') {
+            $stmt->execute(['employeur_fond_decor', 'maillage']);
+        }
         if ($ancien !== '' && str_starts_with($ancien, 'uploads/') && is_file(__DIR__ . '/../' . $ancien)) {
             @unlink(__DIR__ . '/../' . $ancien);
         }

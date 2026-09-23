@@ -806,32 +806,126 @@ tr[data-statut="inactif"] .col-statut > span::before { -webkit-mask-image: var(-
 
 .content { flex: 1; min-width: 0; padding: 40px var(--content-pad); max-width: 1120px; }
 
-/* =================== Fond calculé (vagues) =================== */
-/* Fond calculé (pas d'image statique) à partir de --primary/--highlight —
-   mêmes variables que le reste de l'appli (couleurs_css_vars(),
-   lib/helpers.php) — plutôt qu'un dégradé/une image fixe : suit
-   automatiquement la couleur de mise en évidence si l'employeur la
-   personnalise. Halos + vagues SVG superposées en .wave-decor (voir
-   views/_wave_decor.php) : structure fournie par l'utilisateur (concept
-   « Fluid Wave Background »), recolorée avec color-mix() sur nos tokens.
-   Partagé par .auth-bg (pages non connectées) ET .has-sidebar (pages
-   connectées, tant qu'aucune image de fond personnalisée n'est configurée —
-   ?p=apparence) : un seul jeu de règles, jamais deux à faire évoluer en
-   parallèle. z-index:-1 (pas 0) dans les deux cas : passe derrière TOUT le
-   contenu normal sans qu'aucun ancêtre n'ait besoin de son propre z-index
-   pour repasser devant (même mécanique que l'ancien body.has-sidebar::before
-   qu'il remplace ici par défaut). */
+/* =================== Décors de fond =================== */
+/* Quatre décors au choix (?p=apparence, FONDS_DECOR), tous CALCULÉS à partir de
+   --primary/--highlight — mêmes variables que le reste de l'appli
+   (couleurs_css_vars(), lib/helpers.php) — plutôt qu'une image fixe : ils
+   suivent les couleurs de l'employeur et le thème sans qu'aucune couleur ne
+   soit écrite en dur. Le balisage SVG de chacun est dans views/_fond_decor.php.
+   Partagés par .auth-bg (pages non connectées) ET .has-sidebar (pages
+   connectées, sauf si l'image personnalisée est choisie) : un seul jeu de
+   règles, jamais deux à faire évoluer en parallèle. z-index:-1 (pas 0) pour
+   chaque conteneur : il passe derrière TOUT le contenu normal sans qu'aucun
+   ancêtre n'ait besoin de son propre z-index pour repasser devant.
+
+   Le fond de <body> appartient au décor : chaque body.fond-<décor> pose le sien
+   (views/layout.php pose la classe), après la règle commune pour l'emporter à
+   spécificité égale. */
 body.auth-bg {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
     position: relative;
     padding: 24px;
 }
-body.auth-bg, body.has-sidebar {
+body.auth-bg, body.has-sidebar, .fond-apercu[data-fond-apercu="vagues"] {
     background:
         radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 70%),
         linear-gradient(180deg, var(--card), color-mix(in srgb, var(--card) 92%, var(--primary)));
 }
+/* --- Maillage (défaut) : un champ de couleur, pas une forme --- */
+body.fond-maillage, .fond-apercu[data-fond-apercu="maillage"] { background: var(--bg); }
+.decor-mesh { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.decor-mesh svg { width: 100%; height: 100%; display: block; }
+.mesh-1 { fill: color-mix(in srgb, var(--primary) 42%, transparent); }
+.mesh-2 { fill: color-mix(in srgb, var(--highlight) 34%, transparent); }
+.mesh-3 { fill: color-mix(in srgb, var(--primary) 32%, transparent); }
+.mesh-4 { fill: color-mix(in srgb, var(--highlight) 28%, transparent); }
+/* Le grain n'est là que pour casser les bandes du dégradé : soft-light le pose
+   sans rien éclaircir ni assombrir. */
+.mesh-grain { opacity: .10; mix-blend-mode: soft-light; }
+/* Les mêmes taches sur un fond sombre écrasent le contenu : elles s'atténuent.
+   Deux blocs, comme les tokens — l'un pour le mode automatique, l'autre pour le
+   choix explicite ; aucun sélecteur ne sait exprimer les deux à la fois. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .decor-mesh svg > g { opacity: .55; }
+}
+:root[data-theme="sombre"] .decor-mesh svg > g { opacity: .55; }
+/* --- Grille : registre outil, net, sans décor --- */
+body.fond-grille, .fond-apercu[data-fond-apercu="grille"] { background: var(--bg); }
+.decor-grille { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.decor-grille svg { width: 100%; height: 100%; display: block; }
+.grille-trait { stroke: color-mix(in srgb, var(--ink) 30%, transparent); }
+.grille-halo-1 { fill: color-mix(in srgb, var(--primary) 22%, transparent); }
+.grille-halo-2 { fill: color-mix(in srgb, var(--highlight) 18%, transparent); }
+.grille-axe { stroke: color-mix(in srgb, var(--primary) 60%, transparent); }
+/* --- Courbes de niveau : le motif tient au trait --- */
+body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
+    background:
+        radial-gradient(70% 60% at 50% 40%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 70%),
+        var(--bg);
+}
+.decor-courbes { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.decor-courbes svg { width: 100%; height: 100%; display: block; }
+.cn-ligne { stroke: color-mix(in srgb, var(--primary) 28%, transparent); }
+.cn-accent { stroke: color-mix(in srgb, var(--highlight) 65%, transparent); }
+/* Le choix du fichier se tient à droite du sélecteur de fond, dans la même
+   rangée. La chaîne :not() reprend celle du style de champ par défaut, plus
+   spécifique : sans elle, width:100% pousserait le champ sous le sélecteur. */
+.fond-rangee { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Le bouton « Parcourir » est un <label> dans un .form : la règle des libellés
+   de formulaire (.form label, colonne, marge basse) est plus spécifique que
+   .btn et empilait l'icône au-dessus du texte. La chaîne ci-dessous la dépasse
+   sans toucher aux libellés voisins. */
+.form .fond-rangee label.fond-parcourir {
+    flex-direction: row; align-items: center; gap: 8px; width: auto; margin-bottom: 0;
+}
+.fond-rangee #fond-fichier-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Aperçu d'un décor (?p=apparence) --- */
+/* Le même balisage que le vrai fond, à l'échelle d'une vignette : les décors se
+   posent en fixed sur la page, en absolute ici. Les règles de fond de <body>
+   sont partagées avec .fond-apercu (plus haut) plutôt que recopiées — un décor
+   se règle à un seul endroit. */
+/* La vignette se désigne par son attribut data-, jamais par la classe du décor
+   qu'elle montre : celle-ci porte position:fixed, z-index:-1 et
+   pointer-events:none — posée sur la vignette, elle l'expédiait derrière le
+   fond de la carte, où elle était invisible tout en occupant sa place. */
+.fond-apercu {
+    position: relative; width: 100%; max-width: 300px; aspect-ratio: 16 / 10;
+    border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden;
+}
+.fond-apercu .decor-mesh, .fond-apercu .decor-grille,
+.fond-apercu .decor-courbes, .fond-apercu .wave-decor { position: absolute; z-index: 0; }
+/* Les vagues se dimensionnent en vh/vw : dans une vignette, elles sortiraient
+   du cadre. Ramenées à la boîte, elles gardent leur silhouette. */
+.fond-apercu .wave-shape-1 { height: 75%; bottom: -8%; }
+.fond-apercu .wave-shape-2 { height: 55%; bottom: 24%; }
+.fond-apercu .wave-shape-3 { height: 18%; bottom: 24%; }
+.fond-apercu .wave-shape-4 { height: 30%; bottom: 5%; }
+.fond-apercu .wave-blur.one { width: 70%; height: 55%; top: -25%; left: -12%; }
+.fond-apercu .wave-blur.two { width: 55%; height: 40%; right: -10%; top: 12%; }
+/* La vignette montre 1200x800 dans 300px de large : tout est divisé par
+   quatre, et un trait de 1,2px y tomberait à 0,3px — invisible. Les décors au
+   trait sont donc épaissis d'autant, pour que l'aperçu ressemble à ce qu'on
+   verra vraiment. Le CSS l'emporte sur l'attribut stroke-width du SVG. */
+/* …et un peu plus contrastés : une vignette force toujours un peu le trait,
+   sans quoi un décor discret n'y apparaît pas du tout. */
+.fond-apercu .cn-ligne { stroke-width: 4px; stroke: color-mix(in srgb, var(--primary) 50%, transparent); }
+.fond-apercu .cn-accent { stroke-width: 6px; stroke: color-mix(in srgb, var(--highlight) 80%, transparent); }
+.fond-apercu .grille-trait { stroke-width: 4px; stroke: color-mix(in srgb, var(--ink) 45%, transparent); }
+.fond-apercu .grille-axe { stroke-width: 4px; stroke: color-mix(in srgb, var(--primary) 75%, transparent); }
+.fond-apercu img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Les deux effets de l'image de fond, à l'échelle de la vignette : mêmes
+   filtres que le fond réel (couleurs_css_vars()), dans le même ordre, le flou
+   ramené en proportion — 10px sur un écran large en valent 2,5 sur 300px. Les
+   trois combinaisons sont écrites, une déclaration filter en écrasant une
+   autre : deux classes ne s'additionnent pas. */
+.fond-apercu img.f-clair { filter: contrast(.1) brightness(2); }
+.fond-apercu img.f-floute { filter: blur(2.5px); }
+.fond-apercu img.f-clair.f-floute { filter: contrast(.1) brightness(2) blur(2.5px); }
+.fond-apercu-vide { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: var(--fs-small); text-align: center; padding: 0 12px; }
+
+/* --- Vagues : le décor historique, devenu un choix parmi les autres --- */
 .wave-decor { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .wave-blur { position: absolute; border-radius: 100%; }
 .wave-blur.one { width: 800px; height: 500px; top: -250px; left: -150px; background: color-mix(in srgb, var(--primary) 10%, transparent); }
