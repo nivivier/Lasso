@@ -34,15 +34,20 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                   // laissé la molette. ?>
             <div class="modal-head">
                 <span class="modal-titre" id="contacter-titre">Contacter</span>
+                <?php // Un bouton qui ouvre la liste des modèles, et non un
+                      // sélecteur toujours déployé : charger un modèle est une
+                      // action, pas un réglage du message. Même menu que celui
+                      // du déroulé d'une date (.feuille-menu) — il se referme
+                      // au clic hors de lui, comme les autres. ?>
                 <?php if ($modelesMessage): ?>
-                <label class="inline contacter-modele">Charger un modèle
-                    <select id="contacter-modele">
-                        <option value="">—</option>
+                <details class="feuille-menu contacter-modele" id="contacter-modele">
+                    <summary class="btn ghost"><?= icon('file-text') ?> Charger un modèle</summary>
+                    <div class="feuille-menu-panneau">
                         <?php foreach ($modelesMessage as $m): ?>
-                            <option value="<?= (int) $m['id'] ?>"><?= e($m['nom']) ?></option>
+                        <button type="button" data-modele="<?= (int) $m['id'] ?>"><?= e($m['nom']) ?></button>
                         <?php endforeach; ?>
-                    </select>
-                </label>
+                    </div>
+                </details>
                 <?php endif; ?>
                 <button type="button" class="btn ghost modal-fermer" id="contacter-fermer" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
@@ -134,7 +139,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
     var expediteur = document.getElementById('contacter-expediteur');
     var sujet = document.getElementById('contacter-sujet');
     var corps = document.getElementById('contacter-corps');
-    var modeleSel = document.getElementById('contacter-modele');
+    var modeleMenu = document.getElementById('contacter-modele');
     var blocProjets = document.getElementById('contacter-projets');
 
     // La cible en cours, le modèle chargé, et le texte qu'il a produit : de quoi
@@ -229,7 +234,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         expediteur.value = b && b.expediteur_id ? String(b.expediteur_id) : '';
         sujet.value = b ? b.sujet : '';
         corps.value = b ? b.corps : '';
-        if (modeleSel) { modeleSel.value = ''; }
+        if (modeleMenu) { modeleMenu.open = false; }
         modeleCharge = null;
         produit.sujet = null;
         produit.corps = null;
@@ -255,7 +260,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         modeleCharge = null;
         produit.sujet = null;
         produit.corps = null;
-        if (modeleSel) { modeleSel.value = ''; }
+        if (modeleMenu) { modeleMenu.open = false; }
         modal.setAttribute('hidden', '');
     }
 
@@ -267,8 +272,11 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         if (modeleCharge) { appliquerModele(modeleCharge, false); }
     });
 
-    if (modeleSel) modeleSel.addEventListener('change', function () {
-        var m = modeles[this.value];
+    if (modeleMenu) modeleMenu.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-modele]');
+        if (!btn) { return; }
+        modeleMenu.open = false;
+        var m = modeles[btn.getAttribute('data-modele')];
         if (!m) { modeleCharge = null; return; }
         modeleCharge = m;
         appliquerModele(m, true);

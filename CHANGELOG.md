@@ -10,6 +10,9 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **« Charger un modèle » devient un bouton** dans la fenêtre « Contacter », qui
+  déroule la liste des modèles au clic. C'est une action, pas un réglage du
+  message : elle n'a pas à rester dépliée en permanence dans la barre du haut.
 - **Le logo mène au tableau de bord**, dans le rail sur ordinateur comme dans
   la barre du haut sur téléphone : le geste qu'on tente d'instinct sur le logo
   d'une application.

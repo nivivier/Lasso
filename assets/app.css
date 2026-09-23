@@ -3790,8 +3790,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    confirmation en deux lignes — d'où une largeur de lecture confortable et une
    hauteur bornée à l'écran, le formulaire défilant à l'intérieur. */
 .modal-card.modal-contacter { max-width: 720px; max-height: 92vh; overflow-y: auto; background: var(--surface); }
-.modal-contacter .contacter-modele { flex: 0 0 auto; margin-bottom: 0; font-size: var(--fs-small); }
-.modal-contacter .contacter-modele select { width: auto; }
+.modal-contacter .contacter-modele { flex: 0 0 auto; margin-bottom: 0; }
 /* Fiche du destinataire choisi, juste sous le sélecteur : elle remplace la
    marge basse du champ pour rester collée à lui. */
 .modal-contacter .contacter-fiche { margin: -8px 0 16px; min-height: 1.2em; }
@@ -5094,11 +5093,19 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     box-shadow: var(--shadow); padding: 6px;
 }
-.feuille-menu-panneau a {
-    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
-    border-radius: var(--radius-sm); color: var(--ink); font-size: var(--fs-basic);
+/* Liens ou boutons selon ce que l'entrée fait : une adresse à suivre (déroulé
+   d'une date) ou un choix traité sur place (modèles de message, fenêtre
+   « Contacter »). Même dessin dans les deux cas. */
+.feuille-menu-panneau a, .feuille-menu-panneau button {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; width: 100%;
+    /* justify-content : la règle générale des <button> centre leur contenu, ce
+       qui centrait le nom du modèle au milieu du menu. */
+    background: none; border: 0; box-shadow: none; text-align: left; cursor: pointer;
+    justify-content: flex-start;
+    border-radius: var(--radius-sm); color: var(--ink); font-size: var(--fs-basic); font-weight: 500;
+    min-height: 0;
 }
-.feuille-menu-panneau a:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
+.feuille-menu-panneau a:hover, .feuille-menu-panneau button:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
 .feuille-menu-panneau .ico { width: 16px; height: 16px; color: var(--muted); }
 .feuille-menu-panneau a:hover .ico { color: inherit; }
 /* Le formulaire d'ajout, sous la liste : séparé d'un filet, il se distingue des
