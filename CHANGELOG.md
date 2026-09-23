@@ -38,6 +38,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   le « + » générique.
 
 ### Corrigé
+- **La liste d'exclusion du mailing ne plantait plus qu'à s'ouvrir.** Elle
+  lisait l'e-mail sur la table des structures, où cette colonne n'existe plus
+  depuis que les coordonnées vivent sur les contacts. Le traitement de la file
+  d'envoi, déclenché par le planificateur, souffrait du même mal, sans témoin.
+  Les deux passent par le même fragment de requête, partagé avec les listes de
+  structures.
 - **Une campagne qui n'a pas commencé n'affiche plus de réponse.** Sur la fiche
   d'une structure, sa ligne montrait l'icône « aucune réponse » — qui se lit
   comme une réponse attendue et manquante — et le crayon ouvrait le sélecteur

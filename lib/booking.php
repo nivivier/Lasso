@@ -1210,10 +1210,25 @@ function structures_colonnes_liste_sql(): string
         (SELECT GROUP_CONCAT(nom, char(30)) FROM (
             SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
         )) AS contacts_noms,
-        COALESCE(
-            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND est_administration = 1 LIMIT 1),
-            (SELECT email FROM structure_contacts WHERE structure_id = s.id AND email <> '' ORDER BY id LIMIT 1)
-        ) AS email_affiche";
+        " . structure_email_sql() . " AS email_affiche";
+}
+
+// L'e-mail qui REPRÉSENTE une structure, en SQL : celui du contact marqué
+// « administration » s'il existe, sinon le premier contact qui en a un.
+// Depuis migration_84, `structures` n'a plus de colonne email — l'adresse vit
+// sur les contacts (structure_contacts), et plusieurs écrans ont besoin d'en
+// montrer une seule. Fragment partagé plutôt que recopié : une requête restée
+// sur l'ancienne colonne est un écran qui plante (c'était le cas de la liste
+// d'exclusion du mailing).
+//
+// $colStructureId : l'expression qui désigne la structure dans la requête
+// appelante (« s.id », « structures.id »…), jamais une donnée d'utilisateur.
+function structure_email_sql(string $colStructureId = 's.id'): string
+{
+    return "COALESCE(
+            (SELECT email FROM structure_contacts WHERE structure_id = $colStructureId AND est_administration = 1 LIMIT 1),
+            (SELECT email FROM structure_contacts WHERE structure_id = $colStructureId AND email <> '' ORDER BY id LIMIT 1)
+        )";
 }
 
 // Les mêmes colonnes, pour un lot d'identifiants déjà connus : une seule requête

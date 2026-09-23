@@ -109,7 +109,6 @@
                      class="<?= param_fond_clair() ? 'f-clair ' : '' ?><?= param_fond_floute() ? 'f-floute' : '' ?>"<?= $fondImage ? '' : ' hidden' ?>>
                 <div id="fond-apercu-vide" class="fond-apercu-vide"<?= $fondImage ? ' hidden' : '' ?>>Aucune image envoyée</div>
             </div>
-            <p class="muted small mt-8">Fond actuel : <?= e(FONDS_DECOR[param_fond_decor()]) ?>.</p>
         </div>
 
         <?php // Tout ce qui concerne l'image ne s'affiche que si c'est elle qui
@@ -119,14 +118,18 @@
               // de page, qui écoute le sélecteur. ?>
         <div id="fond-image-bloc"<?= $fondChoisi === 'image' ? '' : ' hidden' ?>>
         <?php if (param('employeur_fond', '') !== ''): ?>
-        <label class="check mt-16">
-            <input type="checkbox" name="employeur_fond_clair" value="1" <?= param_fond_clair() ? 'checked' : '' ?>>
-            Fond clair <?= info_tip("Adoucit et éclaircit l'image pour une meilleure lisibilité du contenu par-dessus.") ?>
-        </label>
-        <label class="check">
-            <input type="checkbox" name="employeur_fond_floute" value="1" <?= param_fond_floute() ? 'checked' : '' ?>>
-            Fond flouté <?= info_tip("Applique un flou à l'image. Combinable avec « Fond clair ».") ?>
-        </label>
+        <?php // Les deux effets sur une rangée : ils se combinent, et on les
+              // règle en regardant l'aperçu juste au-dessus. ?>
+        <div class="fond-rangee mt-16">
+            <label class="check">
+                <input type="checkbox" name="employeur_fond_clair" value="1" <?= param_fond_clair() ? 'checked' : '' ?>>
+                Fond clair
+            </label>
+            <label class="check">
+                <input type="checkbox" name="employeur_fond_floute" value="1" <?= param_fond_floute() ? 'checked' : '' ?>>
+                Fond flouté
+            </label>
+        </div>
         <?php endif; ?>
         </div>
 

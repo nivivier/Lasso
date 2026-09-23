@@ -1351,8 +1351,12 @@ function route_mailing_exclusions(): void
          FROM structure_contacts c JOIN structures s ON s.id = c.structure_id
          WHERE c.desinscrit = 1 AND c.email <> '' ORDER BY c.email"
     )->fetchAll();
+    // `structures` n'a plus de colonne email depuis migration_84 : l'adresse se
+    // lit sur les contacts, par le même fragment que les listes de structures
+    // (structure_email_sql(), lib/booking.php).
     $structures = db()->query(
-        "SELECT id, nom, email FROM structures WHERE statut IN ('ne_pas_contacter','inactif') ORDER BY nom"
+        'SELECT s.id, s.nom, ' . structure_email_sql() . " AS email
+           FROM structures s WHERE s.statut IN ('ne_pas_contacter','inactif') ORDER BY s.nom"
     )->fetchAll();
     render('mailing_exclusions', [
         'emails' => $emails,
@@ -1427,8 +1431,12 @@ function route_mailing_traiter(): void
         $stmtC = db()->prepare('SELECT * FROM structure_contacts WHERE id = ?');
         $stmtC->execute([(int) ($item['contact_id'] ?? 0)]);
         $contact = $stmtC->fetch() ?: null;
-        $stmtS = db()->prepare('SELECT email FROM structures WHERE id = ?');
-        $stmtS->execute([(int) $item['structure_id']]);
+        // Repli quand la ligne ne vise pas un contact précis : l'adresse qui
+        // représente la structure. `structures` n'a plus de colonne email
+        // (migration_84), elle se lit sur les contacts — structure_email_sql(),
+        // lib/booking.php.
+        $stmtS = db()->prepare('SELECT ' . structure_email_sql('?') . ' AS email');
+        $stmtS->execute([(int) $item['structure_id'], (int) $item['structure_id']]);
         $destinataire = $contact['email'] ?? (string) $stmtS->fetchColumn();
 
         // Chaque ligne porte SA boîte d'envoi (figée à la création de la
