@@ -33,6 +33,9 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [2.8.10] — 2026-09-20
 
 ### Modifié
+- **La carte Suisa du tableau de bord se clique ligne par ligne**, comme les
+  autres cartes, au lieu de porter deux boutons par ligne. L'export reste sur
+  la liste des événements, là où il s'applique aux lignes affichées.
 - **Ajouter un employé à une date se fait sous l'icône « personne + »**, celle
   qui sert déjà à « Nouvel employé » et à « Nouveau contact », plutôt que sous
   le « + » générique.

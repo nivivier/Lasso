@@ -220,7 +220,7 @@ $cartes = [];
             </div>
             <table class="list">
                 <thead>
-                    <tr><th>Statut</th><th class="num">Nombre</th><th></th><th></th></tr>
+                    <tr><th>Statut</th><th class="num">Nombre</th></tr>
                 </thead>
                 <tbody>
                     <?php
@@ -232,20 +232,21 @@ $cartes = [];
                     // marqueur "_set", et retomberait sur la session ou « tous »).
                     $suisaLien = fn (string $statut): string => '&statut_suisa[]=' . $statut . '&statut_suisa_set=1';
                     ?>
-                    <tr>
+                    <?php // La ligne entière mène à la liste filtrée, comme les
+                          // autres lignes du tableau de bord (.row-link) : deux
+                          // boutons par ligne pour deux colonnes de chiffres,
+                          // c'était le geste écrit deux fois. L'export reste
+                          // accessible depuis la liste où il s'applique. ?>
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>">
                         <td>À faire</td>
                         <?php // Le nombre porte la gravité : ambre pour ce qui
                               // attend, rouge pour ce qui manque. Un zéro reste
                               // neutre — il n'y a rien à signaler. ?>
                         <td class="num strong<?= $suisaAFaire > 0 ? ' num-attente' : '' ?>"><?= $suisaAFaire ?></td>
-                        <td><a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>"><?= icon('calendar') ?> Voir</a></td>
-                        <td><a class="btn ghost btn-sm icon-only" href="?p=evenements_export_suisa<?= $suisaLien('a_faire') ?>" title="Exporter" aria-label="Exporter"><?= icon('download') ?></a></td>
                     </tr>
-                    <tr>
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
                         <td>Manquants</td>
                         <td class="num strong<?= $suisaManquant > 0 ? ' num-retard' : '' ?>"><?= $suisaManquant ?></td>
-                        <td><a class="btn ghost btn-sm" href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>"><?= icon('calendar') ?> Voir</a></td>
-                        <td><a class="btn ghost btn-sm icon-only" href="?p=evenements_export_suisa<?= $suisaLien('manquant') ?>" title="Exporter" aria-label="Exporter"><?= icon('download') ?></a></td>
                     </tr>
                 </tbody>
             </table>
