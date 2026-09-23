@@ -87,9 +87,22 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <div class="fiche-main">
 <div class="card">
     <div class="facture-head-row">
-        <?php $logoFacture = param_logo('clair'); ?>
-        <?php if ($logoFacture !== ''): ?>
-            <div class="ps-head"><img src="<?= e($logoFacture) ?>" alt="" class="ps-logo"></div>
+        <?php // À L'ÉCRAN, le logo suit le thème comme partout ailleurs : les deux
+              // variantes sont rendues, le CSS montre celle qui convient au fond
+              // (même mécanique que le rail et la page de connexion). L'aperçu
+              // PDF, lui, garde la variante pour fond clair : sa feuille est
+              // blanche quel que soit le thème — il est composé côté serveur
+              // (lib/facturation.php), hors de portée de ce CSS.
+              //
+              // Repli : sans variante sombre configurée, celle pour fond clair
+              // sert aux deux, comme pour le rail. ?>
+        <?php $logoFactureClair = param_logo('clair') !== '' ? param_logo('clair') : param_logo('sombre'); ?>
+        <?php $logoFactureSombre = param_logo('sombre') !== '' ? param_logo('sombre') : $logoFactureClair; ?>
+        <?php if ($logoFactureClair !== ''): ?>
+            <div class="ps-head">
+                <img src="<?= e($logoFactureClair) ?>" alt="" class="ps-logo ps-logo-clair">
+                <img src="<?= e($logoFactureSombre) ?>" alt="" class="ps-logo ps-logo-sombre">
+            </div>
         <?php endif; ?>
         <p class="facture-statut">
             <?= facturation_badge($f) ?>

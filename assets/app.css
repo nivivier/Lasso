@@ -652,11 +652,12 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    la feuille de style (même spécificité en un seul sélecteur de classe —
    .card-flush seul serait écrasé par .card, déclaré plus loin). */
 .card.card-flush { padding: 0; overflow: hidden; position: relative; }
-/* Pas de padding en haut : l'en-tête de la carte reste affiché en mode édition
-   et porte déjà sa respiration (26px). Les 96px d'autrefois dégageaient un
-   en-tête posé en absolu au-dessus de la carte — il est depuis dans le flux, et
-   ils ne laissaient plus qu'un grand vide entre le titre et le premier champ. */
-.card-flush .card-edit { padding: 10px 26px 26px; }
+/* Le formulaire reprend le retrait d'une carte ordinaire — 26px de tous les
+   côtés : le bandeau d'en-tête se lit comme le bord haut de la carte, et le
+   premier champ doit s'en écarter d'autant que de ses bords. Les 96px
+   d'autrefois dégageaient un en-tête posé en absolu au-dessus de la carte ; il
+   est depuis dans le flux, et ils ne laissaient plus qu'un grand vide. */
+.card-flush .card-edit { padding: 26px; }
 .loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 26px; }
 .loc-header strong { font-size: var(--fs-huge); }
 
@@ -4131,6 +4132,17 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 }
 :root[data-theme="sombre"] .side-logo-clair  { display: none; }
 :root[data-theme="sombre"] .side-logo-sombre { display: inline; }
+
+/* Même chose pour le logo en tête d'une facture À L'ÉCRAN (?p=facture) — et
+   seulement à l'écran : le PDF est composé côté serveur sur une feuille
+   blanche, il garde donc la variante pour fond clair. */
+.ps-logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .ps-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .ps-logo-sombre { display: block; }
+}
+:root[data-theme="sombre"] .ps-logo-clair  { display: none; }
+:root[data-theme="sombre"] .ps-logo-sombre { display: block; }
 
 /* Même chose pour le logo de la page de connexion (views/layout.php) : son
    fond suit le thème, le logo aussi. display:block et non inline — l'image est
