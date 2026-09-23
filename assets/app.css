@@ -1424,8 +1424,13 @@ h3.sub.no-mt { margin-top: 0; }
 
 input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--fs-big); font-weight: 800; padding: 2px 14px; color: var(--primary)}
 
-.form label, .filters label, .form .field-group { display: flex; flex-direction: column; gap: 6px; font-weight: 500; color: var(--muted); }
-.form label, .form .field-group { margin-bottom: 16px; font-size: var(--fs-basic); }
+/* .field-group : un champ qui n'est PAS un <label> — le cas d'un groupe de
+   cases à cocher, qu'un <label> enveloppant rendrait fou (cliquer le libellé
+   activerait sa première case, voir choix_coches_html()). Il se suffit à
+   lui-même, hors d'un .form aussi : ces groupes vivent parfois dans un
+   formulaire sans cette classe. */
+.form label, .filters label, .field-group { display: flex; flex-direction: column; gap: 6px; font-weight: 500; color: var(--muted); }
+.form label, .field-group { margin-bottom: 16px; font-size: var(--fs-basic); }
 .filters label { margin-bottom: 6px; line-height:0.8; font-size: var(--fs-tiny); }
 
 /* Sélecteur segmenté à icônes (icon_picker(), lib/helpers.php) : boutons

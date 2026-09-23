@@ -68,9 +68,12 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                   // à une campagne. Pré-coché si l'on écrit depuis une campagne, ou
                   // par le modèle qu'on charge. ?>
             <?php if (!empty($spectacleLabels)): ?>
-            <label><span>Projet <?= info_tip("Les spectacles concernés par ce message. Une campagne compte ses structures contactées par ces projets.") ?></span>
+            <?php // <div> et non <label> : cliquer un label active son premier
+                  // contrôle, ici la case « Tout » du groupe — qui cochait alors
+                  // tous les projets (voir choix_coches_html()). ?>
+            <div class="field-group"><span>Projet <?= info_tip("Les spectacles concernés par ce message. Une campagne compte ses structures contactées par ces projets.") ?></span>
                 <span id="contacter-projets"><?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Aucun') ?></span>
-            </label>
+            </div>
             <?php endif; ?>
 
             <label>Objet <input name="sujet" id="contacter-sujet" value="" required></label>

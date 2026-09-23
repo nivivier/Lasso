@@ -1075,6 +1075,11 @@ function filtre_colonne_lieu_html(string $page, array $actifs, array $autresPara
 // filtres — le bouton affiche alors $libelleVide. Dès qu'une case est cochée, il
 // NOMME ce qui l'est (voir plus bas) : dans un formulaire, un entonnoir muet ne
 // dirait pas ce qu'on a choisi.
+// ⚠️ NE JAMAIS envelopper ce bloc dans un <label>. Cliquer un <label> active
+// son premier contrôle : ici la case « Tout », qui coche alors TOUT. Le geste
+// se produit dès qu'on clique le libellé du champ ou l'espace vide à côté du
+// bouton — donc sans cesse. Utiliser <div class="field-group"> (assets/app.css),
+// qui a la même apparence sans être un label.
 function choix_coches_html(string $champ, array $options, array $actives, string $libelleVide = 'Tout'): string
 {
     $activesTxt = array_map('strval', $actives);

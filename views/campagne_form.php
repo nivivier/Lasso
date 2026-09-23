@@ -114,9 +114,10 @@ if (!$criteresActifs) {
 
     <div class="grid4">
         <label>Nom <input name="nom" value="<?= $val('nom') ?>" required placeholder="ex. Tournée automne 2026"></label>
-        <label><span>Projet <?= info_tip("Les spectacles concernés. C'est par eux qu'une prise de contact est rattachée à la campagne : sans projet, la jauge reste à zéro.") ?></span>
+        <?php // <div> et non <label> : voir choix_coches_html(). ?>
+        <div class="field-group"><span>Projet <?= info_tip("Les spectacles concernés. C'est par eux qu'une prise de contact est rattachée à la campagne : sans projet, la jauge reste à zéro.") ?></span>
             <?= choix_coches_html('spectacle_ids', $spectacleLabels, $projets, 'Aucun projet') ?>
-        </label>
+        </div>
         <label><span>Début <?= info_tip("Avant cette date, la campagne se prépare : aucun message ne part.") ?></span>
             <input type="date" name="date_debut" value="<?= $val('date_debut') ?>">
         </label>

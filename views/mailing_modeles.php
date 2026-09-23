@@ -44,9 +44,10 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
             <label>Expéditeur <select name="expediteur_id"><?= $optionsExpediteur(null) ?></select></label>
             <?php endif; ?>
             <?php if ($spectacleLabels): ?>
-            <label><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle. Ils rattachent la prise de contact à une campagne.") ?></span>
+            <?php // <div> et non <label> : voir choix_coches_html(). ?>
+            <div class="field-group"><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle. Ils rattachent la prise de contact à une campagne.") ?></span>
                 <?= choix_coches_html('spectacle_ids', $spectacleLabels, [], 'Aucun') ?>
-            </label>
+            </div>
             <?php endif; ?>
             <label>Sujet <input name="sujet"></label>
             <label>Corps <textarea name="corps" rows="6" placeholder="Bonjour {{prenom}},&#10;&#10;…"></textarea></label>
@@ -98,9 +99,9 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
                 <label>Expéditeur <select name="expediteur_id"><?= $optionsExpediteur($m['expediteur_id'] !== null ? (int) $m['expediteur_id'] : null) ?></select></label>
                 <?php endif; ?>
                 <?php if ($spectacleLabels): ?>
-                <label><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle.") ?></span>
+                <div class="field-group"><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle.") ?></span>
                     <?= choix_coches_html('spectacle_ids', $spectacleLabels, (array) ($m['spectacle_ids'] ?? []), 'Aucun') ?>
-                </label>
+                </div>
                 <?php endif; ?>
                 <label>Objet <input name="sujet" value="<?= e($m['sujet']) ?>"></label>
                 <label>Corps <textarea name="corps" rows="5"><?= e($m['corps']) ?></textarea></label>

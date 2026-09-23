@@ -892,7 +892,7 @@ $villeHtmlS = ville_departement_canton_html(
                   // l'autre : à cinq colonnes, la carte débordait de l'écran
                   // d'un téléphone. La période, elle, s'enroule sur deux lignes
                   // plutôt que d'imposer sa largeur. ?>
-            <thead><tr><th>Projet et campagne</th><th>Période</th><th class="nowrap">Réponse</th><th></th></tr></thead>
+            <thead><tr><th>Campagne</th><th>Période</th><th class="nowrap">Réponse</th><th></th></tr></thead>
             <tbody>
             <?php if (!$campagnesStructure): ?>
                 <tr><td colspan="4" class="muted small">Cette structure ne fait partie d'aucune campagne.</td></tr>
