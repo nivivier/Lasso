@@ -10,6 +10,14 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Un compte s'ajoute depuis la carte des comptes**, par le bouton « Nouveau
+  compte » de sa barre d'action : une ligne de saisie s'ouvre dans le tableau et
+  le compte créé s'y insère sans recharger la page. La seconde carte « Ajouter
+  un compte » disparaît.
+- **Le tableau des comptes se lit sur un téléphone** : huit colonnes de droits
+  n'y tiennent pas, alors chaque compte s'y présente en bloc — son nom, puis un
+  droit par ligne avec le nom du module, et les dates en dessous. En lecture
+  comme en modification.
 - **La corbeille d'un compte ne paraît qu'en modification** (Paramètres →
   Utilisateurs), comme partout ailleurs dans l'application : la ligne au repos
   ne porte que le crayon, et supprimer se trouve à côté d'enregistrer, une fois

@@ -697,6 +697,14 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   la main dans le balisage**, jamais par `:nth-child` : une colonne
   conditionnelle — « Axe », absente sans le module analytique — décale tout
   décompte de position.
+- **Un tableau que le téléphone ne peut pas montrer se relit en blocs.** Quand
+  les colonnes sont trop nombreuses pour tenir (les huit droits de
+  `?p=comptes`), les réduire ne les rend pas lisibles : sous une largeur donnée,
+  `thead` disparaît, `tr` et `td` passent en `display: block`, et chaque cellule
+  porte son intitulé par `data-label` + `::before`. Même balisage, même contenu
+  — seule la forme change. Attention aux largeurs de colonne déclarées par
+  `:nth-last-child()` : plus spécifiques que `.table td`, elles survivent au
+  passage en blocs si on ne les annule pas.
 - **Un seul compteur**, quelle qu'en soit la cause : filtres et recherche
   réduisent la même liste, deux nombres côte à côte obligeraient à les
   rapprocher soi-même.

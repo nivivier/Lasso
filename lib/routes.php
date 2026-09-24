@@ -289,7 +289,25 @@ function route_comptes(): void
             // tout pour pouvoir configurer l'application dès l'installation.
             db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)')
                 ->execute([$email, hacher_mot_de_passe($mdp)]);
+            // Le compte est relu en base plutôt que reconstitué de mémoire : la
+            // ligne rendue doit dire ce qui existe vraiment, dates comprises.
+            $nouveau = db()->prepare('SELECT id, email, prenom, nom, derniere_connexion_le, cree_le
+                                        FROM utilisateurs WHERE id = ?');
+            $nouveau->execute([(int) db()->lastInsertId()]);
+            $ligne = $nouveau->fetch();
+            if (reponse_ajout_json(null, rendre_fragment('_compte_ligne', [
+                'c'       => $ligne,
+                'niveaux' => permissions_utilisateur((int) $ligne['id']),
+                'moi'     => (int) current_user()['id'],
+            ]))) {
+                return;
+            }
             redirect('comptes', ['ok' => 'created']);
+        }
+        // Erreur métier : en arrière-plan elle revient en JSON et s'affiche
+        // au-dessus du formulaire, qui garde la saisie (docs/UI.md § 5).
+        if (reponse_ajout_json($err)) {
+            return;
         }
     }
     $comptes = db()->query('SELECT id, email, prenom, nom, derniere_connexion_le, cree_le

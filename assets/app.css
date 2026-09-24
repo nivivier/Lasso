@@ -556,8 +556,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 132px; }
 .perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 88px; }
 .perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 78px; }
-/* La ligne d'édition occupe toute la largeur : elle échappe aux largeurs fixes. */
+/* La ligne d'édition occupe toute la largeur : elle échappe aux largeurs fixes.
+   La ligne de création aussi — sa cellule unique est la dernière de sa rangée,
+   et hériterait donc des 78px réservés à la colonne des actions. */
 .perm-table .compte-edit-row > td { width: auto; }
+.perm-table #compte-ajout-row > td { width: auto; }
 .perm-col {
     width: 70px; white-space: normal; overflow-wrap: break-word; text-align: center;
     -webkit-hyphens: auto; hyphens: auto; /* coupure avec trait d'union plutôt qu'en plein milieu d'un mot */
@@ -2187,6 +2190,62 @@ button:active, .btn:active { transform: translateY(1px); }
    left } », sans quoi les boutons restaient collés au bord gauche de leur
    cellule fusionnée. */
 .perm-table td.compte-edit-actions { text-align: right; white-space: nowrap; }
+/* Ligne de création d'un compte, dépliée par le bouton de la carte. Elle vit
+   dans le tableau, hors d'un .form : ses champs n'héritent donc d'aucune mise
+   en forme et la portent eux-mêmes. Une rangée qui s'enroule — sur téléphone,
+   chaque champ prend la largeur. */
+.compte-ajout-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.compte-ajout-form label {
+    display: flex; flex-direction: column; gap: 4px; margin: 0; flex: 1 1 200px; min-width: 0;
+    font-size: var(--fs-small); font-weight: 600; color: var(--muted);
+}
+.compte-ajout-form input { width: 100%; }
+.compte-ajout-form > p { flex: 1 1 100%; margin: 0; }
+
+/* ?p=comptes sur téléphone : onze colonnes ne tiennent pas, et les réduire les
+   rend illisibles. Le tableau se relit alors en BLOCS — un compte, un bloc —,
+   l'en-tête disparaît et chaque cellule porte son intitulé (data-label, posé
+   dans views/_compte_ligne.php). Même contenu, même balisage : c'est
+   l'affichage qui change de forme, pas la page. */
+@media (max-width: 760px) {
+    .perm-table, .perm-table tbody, .perm-table tr, .perm-table td { display: block; width: auto; }
+    /* Les largeurs fixes des trois dernières colonnes n'ont plus d'objet une
+       fois les cellules empilées — et elles sont plus spécifiques que la règle
+       ci-dessus, d'où ce rappel. */
+    .perm-table td:nth-last-child(1), .perm-table td:nth-last-child(2),
+    .perm-table td:nth-last-child(3), .perm-table td:first-child { width: auto; }
+    .perm-table thead { display: none; }
+    .perm-table { table-layout: auto; }
+    .perm-table tr.compte-row, .perm-table tr.compte-edit-row {
+        border: 1px solid var(--line); border-radius: var(--radius-sm);
+        padding: 12px 14px; margin-bottom: 10px; position: relative;
+    }
+    /* La ligne d'édition prolonge celle qu'elle remplace : elles ne s'affichent
+       jamais ensemble, d'où la même boîte. */
+    .perm-table tr.compte-row > td, .perm-table tr.compte-edit-row > td {
+        border: 0; padding: 4px 0; white-space: normal;
+    }
+    /* Identité en tête du bloc, actions posées en face d'elle. */
+    .perm-table tr.compte-row > td:first-child { padding-right: 46px; font-size: var(--fs-large); }
+    .perm-table td.actions { position: absolute; top: 10px; right: 12px; padding: 0; }
+    /* Un droit par ligne : son module, puis son niveau — à l'écran large c'est
+       la colonne qui nomme le module, ici c'est la cellule. */
+    .perm-table td.perm-col {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        text-align: left; width: auto; border-top: 1px solid var(--line); padding: 7px 0;
+    }
+    .perm-table td.perm-col::before {
+        content: attr(data-label); font-size: var(--fs-small); font-weight: 600; color: var(--muted);
+    }
+    .perm-table td[data-label="Dernière connexion"]::before,
+    .perm-table td[data-label="Créé le"]::before {
+        content: attr(data-label) " : "; font-weight: 600;
+    }
+    .perm-table tr.compte-edit-row > td.compte-edit-actions { padding-top: 12px; }
+    /* Les trois niveaux côte à côte : en colonne, ils tripleraient la hauteur
+       de chacune des huit lignes de droits. */
+    .perm-toggle { flex-direction: row; }
+}
 /* Droit en lecture seule : l'icône du niveau accordé, sans cadre ni cible de
    clic. Le refus se distingue au premier coup d'œil de l'accès accordé. */
 .perm-lecture { display: inline-flex; align-items: center; justify-content: center; }
