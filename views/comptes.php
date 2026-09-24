@@ -91,15 +91,9 @@ $flashErr = [
                 <td class="muted small nowrap"><?= $derniere !== '' ? e($derniere) : '<span class="muted">jamais</span>' ?></td>
                 <td class="muted small nowrap"><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
                 <td class="actions nowrap">
+                    <?php // Le crayon seul : la corbeille ne paraît qu'en édition,
+                          // comme partout ailleurs (docs/UI.md § 3). ?>
                     <button type="button" class="btn ghost btn-sm icon-only compte-edit-btn" title="Modifier" aria-label="Modifier le compte"><?= icon('pencil') ?></button>
-                    <?php if (!$estMoi): ?>
-                    <form method="post" action="?p=compte_delete" class="d-inline"
-                          data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
-                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                        <button type="submit" class="btn danger icon-only btn-sm" title="Supprimer le compte" aria-label="Supprimer le compte"><?= icon('trash') ?></button>
-                    </form>
-                    <?php endif; ?>
                 </td>
             </tr>
             <?php // Édition : une ligne pleine largeur, ouverte par le crayon. Rien
@@ -129,7 +123,18 @@ $flashErr = [
                 <?php // Enregistrer et Annuler à l'extrême droite de la ligne, sous le
                       // crayon qui a ouvert l'édition. ?>
                 <td colspan="3" class="compte-edit-actions">
+                    <?php // Enregistrer, supprimer, annuler — l'ordre du geste
+                          // (docs/UI.md § 2). Supprimer son propre compte n'est pas
+                          // proposé : route_compte_delete() le refuserait. ?>
                     <button type="submit" form="<?= $fid ?>" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
+                    <?php if (!$estMoi): ?>
+                    <form method="post" action="?p=compte_delete" class="d-inline"
+                          data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer le compte" aria-label="Supprimer le compte"><?= icon('trash') ?></button>
+                    </form>
+                    <?php endif; ?>
                     <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                 </td>
             </tr>

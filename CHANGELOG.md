@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **La corbeille d'un compte ne paraît qu'en modification** (Paramètres →
+  Utilisateurs), comme partout ailleurs dans l'application : la ligne au repos
+  ne porte que le crayon, et supprimer se trouve à côté d'enregistrer, une fois
+  la ligne ouverte.
+
 ## [2.8.12] — 2026-09-23
 
 ### Modifié
