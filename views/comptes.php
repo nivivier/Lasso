@@ -55,15 +55,16 @@ $flashErr = [
             <?php $niveaux = $permissions[(int) $c['id']]; ?>
             <?php require __DIR__ . '/_compte_ligne.php'; ?>
         <?php endforeach; ?>
-            <?php // Ligne de saisie, dépliée par le bouton de la barre d'action.
-                  // Elle vit DANS le tableau : un compte s'ajoute là où on lit
-                  // les autres. L'envoi part en arrière-plan et la ligne créée
-                  // s'insère au-dessus (data-ajout). ?>
+        </tbody>
+        <?php // Ligne de saisie, dépliée par le bouton de la barre d'action. Elle
+              // vit DANS le tableau — un compte s'ajoute là où on lit les autres
+              // — mais dans son PROPRE <tbody> : le compte créé s'insère à la fin
+              // de celui des comptes (data-ajout), donc avant cette ligne-ci. ?>
+        <tbody>
             <tr id="compte-ajout-row" hidden>
                 <td colspan="<?= 3 + count(PERMISSION_MODULES) ?>">
                     <form method="post" action="?p=comptes" autocomplete="off" class="compte-ajout-form"
-                          data-ajout="#comptes-corps" data-ajout-message="Compte créé."
-                          data-ajout-ferme="compte-ajout-row">
+                          data-ajout="#comptes-corps" data-ajout-message="Compte créé.">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <label>E-mail <input name="email" type="email" value="<?= e($emailSaisi) ?>" placeholder="personne@exemple.ch" required></label>
                         <label>Mot de passe <input name="mot_de_passe" type="password" autocomplete="new-password"
@@ -83,20 +84,23 @@ $flashErr = [
 // Le crayon REMPLACE la ligne de lecture par celle d'édition ; la croix rend
 // aux champs leur valeur d'origine et rétablit la lecture — annuler annule
 // vraiment, droits compris.
-document.querySelectorAll('.compte-edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const lecture = btn.closest('tr');
+// Écouteurs DÉLÉGUÉS, et non posés ligne à ligne : un compte créé sans recharger
+// arrive après eux, et doit avoir son crayon comme les autres (docs/UI.md § 5).
+document.addEventListener('click', e => {
+    const crayon = e.target.closest('.compte-edit-btn');
+    if (crayon) {
+        const lecture = crayon.closest('tr');
         const edition = lecture.nextElementSibling;
         lecture.hidden = true;
         edition.hidden = false;
         edition.querySelector('input[name="prenom"]')?.focus();
-    });
-});
-document.querySelectorAll('.compte-cancel-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const edition = btn.closest('tr');
-        // Les champs vivent dans les cellules, le <form> hors du tableau : on le
-        // retrouve par l'attribut form= de n'importe lequel d'entre eux.
+        return;
+    }
+    const croix = e.target.closest('.compte-cancel-btn');
+    if (croix) {
+        const edition = croix.closest('tr');
+        // Le <form> vit dans la première cellule de la ligne ; ses champs des
+        // autres colonnes s'y rattachent par form=, qui donne son identifiant.
         const form = document.getElementById(edition.querySelector('[form]').getAttribute('form'));
         form.reset();
         // form.reset() rend leur valeur aux champs cachés, pas la classe « on »
@@ -107,19 +111,24 @@ document.querySelectorAll('.compte-cancel-btn').forEach(btn => {
         });
         edition.hidden = true;
         edition.previousElementSibling.hidden = false;
-    });
+        return;
+    }
+    // Les droits ne s'enregistrent plus tout seuls : ils partent avec le reste
+    // de la ligne, au clic sur « Enregistrer ».
+    const niveau = e.target.closest('.perm-btn');
+    if (niveau && !niveau.classList.contains('on')) {
+        const group = niveau.closest('.perm-toggle');
+        group.querySelectorAll('.perm-btn').forEach(b => b.classList.remove('on'));
+        niveau.classList.add('on');
+        group.querySelector('input[type=hidden]').value = niveau.dataset.val;
+    }
 });
-// Les droits ne s'enregistrent plus tout seuls : ils partent avec le reste de
-// la ligne, au clic sur « Enregistrer ».
-document.querySelectorAll('.perm-toggle').forEach(group => {
-    const hidden = group.querySelector('input[type=hidden]');
-    group.querySelectorAll('.perm-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.classList.contains('on')) return;
-            group.querySelectorAll('.perm-btn').forEach(b => b.classList.remove('on'));
-            btn.classList.add('on');
-            hidden.value = btn.dataset.val;
-        });
-    });
+// Le compte créé s'insère à la fin de la liste : la ligne de saisie se referme,
+// comme si l'on avait refermé le panneau soi-même. C'est la page qui le fait —
+// data-ajout-ferme retirerait le <form> et laisserait sa rangée vide derrière.
+document.addEventListener('lasso:ligne-ajoutee', e => {
+    if (!document.getElementById('comptes-corps')?.contains(e.detail)) return;
+    const ligne = document.getElementById('compte-ajout-row');
+    if (ligne) ligne.hidden = true;
 });
 </script>
