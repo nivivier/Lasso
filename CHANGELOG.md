@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.9.0] — 2026-09-24
 
 ### Modifié
 - **Enregistrer se trouve toujours en haut à droite.** Les onze cartes de

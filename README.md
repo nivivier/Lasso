@@ -313,6 +313,11 @@ mot de passe et droits s'y règlent d'un seul enregistrement (un mot de passe la
 vide reste inchangé). Changer l'adresse d'un compte invalide les liens de
 réinitialisation encore en attente, envoyés à l'ancienne.
 
+Le bouton **« Nouveau compte »**, dans la barre de la carte, ouvre une ligne de
+saisie en bas du tableau ; le compte créé s'y range sans recharger la page. Sur un
+téléphone, chaque compte se présente en bloc — son nom, puis un droit par ligne —
+faute de place pour huit colonnes de droits.
+
 ### Les lignes du décompte (postes salariaux)
 
 Tout se règle sur une seule page, **Paramètres → Taux → Lignes du décompte** : les
