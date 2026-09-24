@@ -3283,6 +3283,74 @@ function structure_statut_toggle_html(int $id, string $statut): string
     return $h . '</div>';
 }
 
+// Les commandes d'une carte (ou d'une ligne) modifiable, dans l'ordre et sous
+// l'aspect que l'application leur donne partout : le crayon quand on lit ;
+// enregistrer, puis ce que l'écran ajoute, puis fermer, quand on modifie. Le
+// script générique de assets/app.js échange les uns contre les autres.
+//
+// UN SEUL endroit décide de cet ordre, de ces icônes et de leur format :
+// changer ici change toute l'application, sans repasser par les écrans. C'est
+// la raison d'être de cette fonction — le balisage tenait en six lignes, mais
+// il était recopié sur chaque carte.
+//
+// $opts :
+//   'form'    id du <form> que vise « Enregistrer » — obligatoire quand le
+//             bouton vit hors du formulaire (le cas dès qu'il est en en-tête)
+//   'petit'   boutons au petit format : une ligne de liste, pas une carte
+//   'overlay' groupe posé en superposition, pour une carte sans ligne d'en-tête
+//   'quoi'    ce que « Modifier » désigne, quand la carte seule ne suffit pas
+//             (« Modifier cette entrée »)
+//   'extra'   HTML glissé entre « Enregistrer » et « Fermer » — une corbeille,
+//             un interrupteur… Il porte lui-même .card-edition pour n'exister
+//             qu'en édition.
+//   'classe'  classes supplémentaires sur le conteneur
+function carte_actions_html(array $opts = []): string
+{
+    $sm      = !empty($opts['petit']) ? ' btn-sm' : '';
+    $form    = isset($opts['form']) ? ' form="' . e((string) $opts['form']) . '"' : '';
+    $quoi    = trim((string) ($opts['quoi'] ?? ''));
+    $modifie = $quoi !== '' ? 'Modifier ' . $quoi : 'Modifier';
+    $classes = 'head-actions'
+        . (!empty($opts['overlay']) ? ' card-actions-overlay' : '')
+        . (!empty($opts['classe']) ? ' ' . e((string) $opts['classe']) : '');
+
+    return '<div class="' . $classes . '">'
+        . '<button type="button" class="btn ghost icon-only' . $sm . ' card-edit-btn"'
+        . ' title="' . e($modifie) . '" aria-label="' . e($modifie) . '">' . icon('pencil') . '</button>'
+        . '<button type="submit"' . $form . ' class="btn icon-only' . $sm . ' card-save-btn" hidden'
+        . ' title="Enregistrer" aria-label="Enregistrer">' . icon('save') . '</button>'
+        . (string) ($opts['extra'] ?? '')
+        . '<button type="button" class="btn ghost icon-only' . $sm . ' card-cancel-btn" hidden'
+        . ' title="Annuler" aria-label="Annuler">' . icon('x') . '</button>'
+        . '</div>';
+}
+
+// Les commandes d'une PAGE qui est un formulaire (créer un employé, une
+// facture…) : il n'y a rien à lire, donc pas de crayon — « Enregistrer » et
+// « Annuler » vivent dans l'en-tête de page, là où les cartes mettent le leur.
+// Même raison d'être que carte_actions_html() : un seul endroit décide de
+// l'ordre et de l'aspect, pour les sept écrans concernés.
+//
+// Même ordre que sur une carte : enregistrer d'abord, ce qui referme ensuite.
+//
+// $form   id du <form> visé — le bouton vit hors de lui, dans l'en-tête
+// $retour l'adresse d'« Annuler » ; vide = pas d'« Annuler » (l'écran a déjà
+//         son lien de retour et n'en proposait pas)
+// $opts   'libelle' (défaut « Enregistrer »), 'avant' (HTML posé devant — la
+//         suppression, quand l'écran la propose), 'icone' (défaut 'save',
+//         chaîne vide = aucune icône)
+function entete_form_actions_html(string $form, string $retour = '', array $opts = []): string
+{
+    $icone = (string) ($opts['icone'] ?? 'save');
+    return '<div class="head-actions">'
+        . (string) ($opts['avant'] ?? '')
+        . '<button type="submit" form="' . e($form) . '" class="btn">'
+        . ($icone !== '' ? icon($icone) . ' ' : '')
+        . '<span class="lbl">' . e((string) ($opts['libelle'] ?? 'Enregistrer')) . '</span></button>'
+        . ($retour !== '' ? '<a class="btn ghost" href="' . e($retour) . '">Annuler</a>' : '')
+        . '</div>';
+}
+
 // Réponse reçue d'une structure dans une campagne — même sélecteur segmenté que
 // le statut d'une structure (structure_statut_toggle_html() ci-dessus), et même
 // enregistrement à la volée : un clic écrit, sans formulaire ni rechargement

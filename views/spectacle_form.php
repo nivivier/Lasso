@@ -23,6 +23,12 @@ foreach (plan_liste_ordonnee($map) as $r) {
 <?= lien_retour_contextuel('?p=spectacles', evenements_terme_spectacle()) ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier le ' . e($termeSingulier) : 'Nouveau ' . e($termeSingulier) ?></h1>
+    <?php // Cette page EST un formulaire : « Enregistrer » et « Annuler » vivent
+          // dans l'en-tête, là où les cartes mettent leur crayon. Sans droit
+          // d'écriture le formulaire n'est pas rendu, donc rien ici non plus. ?>
+    <?php if (peut_ecrire('evenements')): ?>
+    <?= entete_form_actions_html('spectacle-form', '?p=spectacles') ?>
+    <?php endif; ?>
 </div>
 
 <?php if (!peut_ecrire('evenements')): ?>
@@ -30,7 +36,7 @@ foreach (plan_liste_ordonnee($map) as $r) {
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=spectacle<?= $isEdit ? '&id=' . (int) $spectacle['id'] : '' ?>" class="card form" enctype="multipart/form-data">
+<form method="post" action="?p=spectacle<?= $isEdit ? '&id=' . (int) $spectacle['id'] : '' ?>" class="card form" id="spectacle-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
     <label>Nom <input name="nom" value="<?= $v('nom') ?>" required></label>
@@ -57,9 +63,5 @@ foreach (plan_liste_ordonnee($map) as $r) {
         </label>
     <?php endif; ?>
 
-    <div class="form-actions">
-        <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        <a class="btn ghost" href="?p=spectacles">Annuler</a>
-    </div>
 </form>
 <?php endif; ?>

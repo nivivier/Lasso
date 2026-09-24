@@ -6,8 +6,47 @@
 <?php if (!peut_ecrire('coeur')): ?>
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php else: ?>
-<div class="card form">
-    <form method="post" action="?p=employeur" enctype="multipart/form-data">
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Employeur</h2>
+        <?= carte_actions_html(['form' => 'employeur-form']) ?>
+    </div>
+
+    <?php // En lecture, ce qui figurera sur une fiche de salaire ou une facture
+          // — les logos compris, montrés sur le fond qui leur convient. ?>
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr><th>Nom</th><td><?= param('employeur_nom') !== '' ? e(param('employeur_nom')) : '<span class="muted">—</span>' ?></td></tr>
+            <tr>
+                <th>Logos</th>
+                <td>
+                    <?php $auMoinsUnLogo = false; ?>
+                    <?php foreach ([['clair', 'clair'], ['sombre', 'sombre'], ['mini_clair', 'clair'], ['mini_sombre', 'sombre']] as [$variante, $fond]): ?>
+                        <?php if (param_logo($variante) !== ''): $auMoinsUnLogo = true; ?>
+                        <span class="logo-preview <?= $fond ?><?= str_starts_with($variante, 'mini_') ? ' mini' : '' ?>"><img src="<?= e(param_logo($variante)) ?>" alt="<?= e($variante) ?>"></span>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    <?php if (!$auMoinsUnLogo): ?><span class="muted">aucun — le nom s'affiche en toutes lettres</span><?php endif; ?>
+                </td>
+            </tr>
+            <tr>
+                <th>Adresse</th>
+                <td><?php $adresse = array_filter([param('employeur_rue'), param('employeur_npa'), param('employeur_pays')]); ?>
+                    <?= $adresse ? e(implode(' · ', $adresse)) : '<span class="muted">—</span>' ?></td>
+            </tr>
+            <tr>
+                <th>Certificat de salaire</th>
+                <td><?php $ecs = array_filter([
+                        param('employeur_telephone'),
+                        param('employeur_heures_hebdo') !== '' ? param('employeur_heures_hebdo') . ' h/sem.' : '',
+                        trim(param('employeur_contact_nom') . ' ' . param('employeur_contact_tel')),
+                    ]); ?>
+                    <?= $ecs ? e(implode(' · ', $ecs)) : '<span class="muted">—</span>' ?></td>
+            </tr>
+        </table>
+    </div>
+
+    <form method="post" action="?p=employeur" enctype="multipart/form-data" id="employeur-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <h3 class="sub no-mt">Nom de l'employeur</h3>
@@ -73,9 +112,6 @@
             <label>Personne de contact (téléphone) <input name="employeur_contact_tel" value="<?= e(param('employeur_contact_tel')) ?>"></label>
         </div>
 
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        </div>
     </form>
 </div>
 <?php endif; ?>

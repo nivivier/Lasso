@@ -104,10 +104,26 @@ $cadreExpediteur = function (array $exp = []) : void {
 
     <?php $cadreExpediteur(); ?>
 
-    <h3 class="sub">Débit d'envoi</h3>
+</div>
+
+<?php // Le débit d'envoi est un réglage à part, pas un détail des boîtes : sa
+      // propre carte, qui se lit et s'ouvre au crayon comme les autres. ?>
+<div class="card card-editable mt-22">
+    <div class="card-head-row">
+        <h2 class="mt-0">Débit d'envoi</h2>
+        <?= carte_actions_html(['form' => 'debit-form']) ?>
+    </div>
     <p class="muted small">Une campagne n'est pas expédiée d'un bloc : elle remplit une file, vidée petit à petit par
         la tâche planifiée de l'hébergeur.</p>
-    <form method="post" action="?p=emails_booking">
+
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr><th>Délai entre deux e-mails</th><td><?= (int) param('mailing_delai_secondes', '10') ?> secondes</td></tr>
+            <tr><th>Plafond par 24 h</th><td><?= (int) param('mailing_max_par_jour', '200') ?> envois</td></tr>
+        </table>
+    </div>
+
+    <form method="post" action="?p=emails_booking" id="debit-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="debit">
         <div class="grid2">
@@ -119,9 +135,6 @@ $cadreExpediteur = function (array $exp = []) : void {
                 "Au-delà, la file s'arrête et reprend le lendemain. Compte tous les envois de mailing réussis des "
                 . "dernières 24 heures, toutes campagnes confondues."
             ) ?></span><input name="mailing_max_par_jour" type="number" min="1" value="<?= e(param('mailing_max_par_jour', '200')) ?>"></label>
-        </div>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
 </div>

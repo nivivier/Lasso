@@ -89,12 +89,15 @@ $oui = fn(bool $b) => $b
     <?php endif; ?>
 </div>
 
-<div class="card mt-22">
+<div class="card card-editable mt-22">
+    <div class="card-head-row">
     <h2 class="mt-0">Session <?= info_tip(
         "Deux durées, et la première atteinte ferme la session. L'inactivité se compte depuis "
         . "la dernière page ouverte ; la durée de vie, depuis la connexion — elle oblige à se "
         . "réidentifier de temps en temps, même en travaillant sans interruption."
     ) ?></h2>
+        <?= carte_actions_html(['form' => 'session-form']) ?>
+    </div>
     <p class="muted small">
         Au-delà de l'une ou l'autre, il faut se reconnecter.
     </p>
@@ -103,7 +106,16 @@ $oui = fn(bool $b) => $b
           // déconnecté sans arrêt ». Dans le dossier temporaire partagé d'un
           // hébergement mutualisé, le ramasse-miettes d'un AUTRE site efface les
           // nôtres avec sa propre durée. ?>
-    <table class="kv-table mb-16">
+    <div class="card-disp">
+    <table class="kv-table">
+        <tr>
+            <th>Inactivité tolérée</th>
+            <td><?= (int) round($sessionIdle / 60) ?> minutes</td>
+        </tr>
+        <tr>
+            <th>Durée de vie maximale</th>
+            <td><?= (int) round($sessionAbsolue / 3600) ?> heures</td>
+        </tr>
         <tr>
             <th>Fichiers de session</th>
             <td><?php if ($sessionDossier !== null): ?>
@@ -124,8 +136,9 @@ $oui = fn(bool $b) => $b
                        déconnectera en premier</span>' ?></td>
         </tr>
     </table>
+    </div>
 
-    <form method="post" action="?p=diagnostic" class="form">
+    <form method="post" action="?p=diagnostic" id="session-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="session">
         <div class="grid2">
@@ -149,21 +162,25 @@ $oui = fn(bool $b) => $b
             d'office. Un réglage plus long se paie en sécurité — une session ouverte sur un poste
             partagé le reste d'autant.
         </p>
-        <div class="form-actions"><button type="submit"><?= icon('save') ?> Enregistrer</button></div>
     </form>
 </div>
 
-<div class="card mt-22">
+<div class="card card-editable mt-22">
+    <div class="card-head-row">
     <h2 class="mt-0">Recherche dans les listes <?= info_tip(
         "En dessous du seuil, toute la liste est envoyée au navigateur : la recherche et le "
         . "changement de page sont instantanés, sans aller-retour. Au-dessus, la liste est paginée "
         . "par le serveur et la recherche part sur Entrée."
     ) ?></h2>
+        <?= carte_actions_html(['form' => 'seuil-form']) ?>
+    </div>
     <p class="muted small">
         Nombre de lignes en dessous duquel une liste est filtrée dans le navigateur.
         Au-delà, elle est paginée et recherchée côté serveur.
     </p>
 
+    <div class="card-disp">
+    <p><strong>Seuil actuel : <?= number_format((int) $seuilClient, 0, ',', ' ') ?> lignes.</strong></p>
     <?php if ($volumes): ?>
     <table class="list mb-16">
         <thead><tr><th>Liste</th><th class="num">Lignes</th><th>Mode actuel</th></tr></thead>
@@ -180,8 +197,9 @@ $oui = fn(bool $b) => $b
         </tbody>
     </table>
     <?php endif; ?>
+    </div>
 
-    <form method="post" action="?p=diagnostic" class="form">
+    <form method="post" action="?p=diagnostic" id="seuil-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>Seuil (lignes)
             <input type="number" name="pagination_seuil_client" min="0" max="<?= PAGINATION_SEUIL_MAX ?>"
@@ -193,6 +211,5 @@ $oui = fn(bool $b) => $b
             268 ms de chargement, 21 ms par frappe — mais 89 600 éléments gardés en
             mémoire, ce qui peut peser sur un appareil modeste.
         </p>
-        <div class="form-actions"><button type="submit"><?= icon('save') ?> Enregistrer</button></div>
     </form>
 </div>

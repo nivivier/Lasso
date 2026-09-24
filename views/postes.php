@@ -284,14 +284,23 @@ foreach ($postes as $p) {
 </div>
 
 <?php if ($ecriture): ?>
-<div class="section-head">
-    <h3 class="mt-0">Salaire coordonné <?= info_tip(
-        "Base des lignes assises sur le salaire coordonné (LPP). Montants ANNUELS, ramenés au mois par le calcul.
-        À 0 — le réglage de départ — le coordonné vaut le brut."
-    ) ?></h3>
-</div>
-<div class="card form">
-    <form method="post" action="?p=postes">
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Salaire coordonné <?= info_tip(
+            "Base des lignes assises sur le salaire coordonné (LPP). Montants ANNUELS, ramenés au mois par le calcul.
+            À 0 — le réglage de départ — le coordonné vaut le brut."
+        ) ?></h2>
+        <?= carte_actions_html(['form' => 'coordonne-form']) ?>
+    </div>
+
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr><th>Déduction de coordination</th><td><?= chf((float) ($taux['coord_deduction'] ?? 0)) ?> / an</td></tr>
+            <tr><th>Plafond du salaire coordonné</th><td><?= chf((float) ($taux['coord_plafond'] ?? 0)) ?> / an</td></tr>
+        </table>
+    </div>
+
+    <form method="post" action="?p=postes" id="coordonne-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="reglages">
         <input type="hidden" name="annee" value="<?= $annee ?>">
@@ -308,9 +317,6 @@ foreach ($postes as $p) {
                     <span class="pct-suffix">CHF/an</span>
                 </span>
             </label>
-        </div>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer pour <?= $annee ?></button>
         </div>
     </form>
 </div>

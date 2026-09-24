@@ -30,6 +30,22 @@ d'un document. Rien d'important ne se met en bas.
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
 bouton d'organisation des cartes à sa droite.
 
+### Un écran qui EST un formulaire met aussi ses commandes en haut
+
+Créer un employé, une fiche, une facture, un spectacle, une campagne, une
+structure, une date : ces sept écrans n'ont rien à lire qu'un crayon ouvrirait —
+ils sont un formulaire du premier champ au dernier. « Enregistrer » et
+« Annuler » y tiennent donc l'en-tête de page, à la place où les cartes mettent
+leur crayon, et **rien ne reste au pied du formulaire**. Le bouton vit hors du
+`<form>` et le vise par `form="<id>"`.
+
+Un seul appel les pose : `entete_form_actions_html($form, $retour, $opts)`
+(`lib/helpers.php`). `$opts['avant']` reçoit la suppression quand l'écran la
+propose — elle garde sa place, tout à gauche du trio ; `$opts['libelle']` dit ce
+que le bouton fait vraiment quand « Enregistrer » serait faux (« Calculer et
+créer la fiche »). `$retour` vide = pas d'« Annuler », pour un écran dont le lien
+de retour est juste au-dessus (`?p=campagne_form`).
+
 ### « Modifier » est TOUJOURS le dernier bouton, tout à droite
 
 Sans exception, sur une page comme sur une carte. C'est le geste qu'on cherche
@@ -157,6 +173,14 @@ Générique, dans `assets/app.js`. La carte porte `.card-editable`, son contenu 
 lecture `.card-disp`, son formulaire `.card-edit` (masqué), et `.head-actions`
 contient le crayon puis `.card-save-btn` / `.card-cancel-btn`, cachés. Le crayon
 échange les trois. **Une seule zone d'édition par carte** : c'est la limite.
+
+⚠️ **Ce trio ne se réécrit pas à la main** : `carte_actions_html($opts)`
+(`lib/helpers.php`) le rend, et lui seul — l'ordre des icônes, leurs classes et
+leurs intitulés se décident là, une fois pour toute l'application. Options :
+`form` (l'id du `<form>` visé, quand le bouton vit hors de lui), `petit`
+(`.btn-sm`, pour une ligne), `quoi` (complète l'infobulle : « Modifier l'axe par
+défaut »), `overlay` (boutons flottants), `classe`, `extra` (un bouton de plus,
+posé entre enregistrer et la croix).
 
 **« Annuler » referme sur place**, sans recharger : `form.reset()` rend au
 formulaire les valeurs que le serveur avait écrites — c'est l'état INITIAL du
@@ -851,6 +875,9 @@ module), ou un libellé repris ailleurs dans la page (renommer une étiquette).
       coupée en deux.
 - [ ] Thème **sombre** vérifié.
 - [ ] Chaque bouton en icône seule a `title` **et** `aria-label`.
+- [ ] Aucun bouton d'enregistrement au pied d'une carte ou d'une page : il est en
+      haut à droite, rendu par `carte_actions_html()` (§ 2a) ou
+      `entete_form_actions_html()` (§ 1), jamais réécrit à la main.
 - [ ] Aucun `<label>` n'enveloppe un groupe de cases à cocher (il en coche la
       première au moindre clic dans le libellé).
 - [ ] Aucune action destructrice sans `data-confirm`, ni hors mode édition.

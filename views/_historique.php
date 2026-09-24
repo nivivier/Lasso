@@ -42,14 +42,15 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
             <span class="hist-ico <?= e($hClasse) ?>" title="<?= e($hLibelle) ?>" aria-hidden="true"><?= icon($hIcone) ?></span>
             <div class="hist-corps<?= $editable ? ' card-editable' : '' ?>">
                 <?php if ($editable): ?>
-                <div class="head-actions hist-actions">
-                    <button type="button" class="btn ghost icon-only btn-sm card-edit-btn" title="Modifier cette entrée" aria-label="Modifier cette entrée"><?= icon('pencil') ?></button>
-                    <?php // Bouton hors du <form> (il doit rester visible quand le
-                          // formulaire est masqué) : l'attribut form= le rattache,
-                          // comme le fait déjà la carte « Historique » juste au-dessus. ?>
-                    <button type="submit" form="<?= e($editId) ?>" class="btn icon-only btn-sm card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                    <button type="button" class="btn ghost icon-only btn-sm card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-                </div>
+                <?php // « Enregistrer » vit hors du <form> (il doit rester visible
+                      // quand le formulaire est masqué) : carte_actions_html() le
+                      // rattache par form=, comme partout ailleurs. ?>
+                <?= carte_actions_html([
+                    'form'   => $editId,
+                    'petit'  => true,
+                    'quoi'   => 'cette entrée',
+                    'classe' => 'hist-actions',
+                ]) ?>
                 <?php endif; ?>
                 <?php // Une entrée par ligne : la date qui situe, le contenu qui
                       // occupe la place restante, et la méta rejetée à droite en

@@ -3,8 +3,29 @@
 <?php if ($saved): ?><p class="ok flash">Compte mis à jour.</p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<div class="card form">
-    <form method="post" action="?p=compte">
+<?php // Une carte qui se LIT, et qu'on ouvre pour la modifier : même geste que
+      // sur une fiche d'employé ou d'événement (.card-editable + le trio
+      // crayon / enregistrer / annuler, carte_actions_html()). Le mot de passe
+      // ne se lit évidemment pas — il ne se montre qu'en édition. ?>
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Identité</h2>
+        <?= carte_actions_html(['form' => 'compte-form']) ?>
+    </div>
+
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr>
+                <th>Prénom et nom</th>
+                <td><?php $nom = trim(trim((string) ($u['prenom'] ?? '')) . ' ' . trim((string) ($u['nom'] ?? ''))); ?>
+                    <?= $nom !== '' ? e($nom) : '<span class="muted">—</span>' ?></td>
+            </tr>
+            <tr><th>E-mail du compte</th><td><?= e($u['email']) ?></td></tr>
+            <tr><th>Mot de passe</th><td class="muted">Modifiable ici, en confirmant l'actuel.</td></tr>
+        </table>
+    </div>
+
+    <form method="post" action="?p=compte" id="compte-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <div class="grid2">
@@ -34,9 +55,5 @@
         <label>Mot de passe actuel (requis pour valider)
             <input type="password" name="mot_de_passe_actuel" required autocomplete="current-password">
         </label>
-
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        </div>
     </form>
 </div>

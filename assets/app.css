@@ -3394,6 +3394,12 @@ body.print-page { background: #e9e9f2; }
 .logo-preview.mini img { max-height: 52px; max-width: 52px; }
 .fond-preview { display: block; margin: 4px 0 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); max-width: 360px; }
 .fond-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
+/* Pastille d'une couleur choisie, dans la lecture d'une carte de réglages :
+   la valeur en toutes lettres ne dit pas ce qu'elle vaut à l'œil. */
+.pastille-couleur {
+    display: inline-block; width: 14px; height: 14px; border-radius: 4px;
+    border: 1px solid var(--line); vertical-align: -2px; margin-right: 6px;
+}
 /* Sélecteur de couleur principale (Paramètres > Employeur) : :not() en plus pour
    égaler la spécificité de la règle générale .form input:not(...):not(...) et
    ne pas hériter de sa largeur/padding pensés pour les champs texte. */

@@ -10,6 +10,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Enregistrer se trouve toujours en haut à droite.** Les onze cartes de
+  réglage qui gardaient leur bouton au pied (Mon compte, Apparence, Employeur,
+  E-mails, Diagnostic, Événements, Débit d'envoi, Salaire coordonné…) se lisent
+  maintenant d'abord et s'ouvrent au crayon, comme le reste de l'application ;
+  et les sept écrans qui sont eux-mêmes un formulaire — nouvel employé, fiche de
+  salaire, facture, spectacle, campagne, structure, date — posent
+  « Enregistrer » et « Annuler » dans leur en-tête, à côté de la corbeille. Plus
+  rien d'important ne se cache en bas de page.
+- **Ces boutons ne sont plus écrits page par page** : `carte_actions_html()` et
+  `entete_form_actions_html()` les rendent pour toute l'application. Changer
+  leur ordre, leur aspect ou en ajouter un se fait désormais à un seul endroit.
 - **Un compte s'ajoute depuis la carte des comptes**, par le bouton « Nouveau
   compte » de sa barre d'action : une ligne de saisie s'ouvre dans le tableau et
   le compte créé s'y insère sans recharger la page. La seconde carte « Ajouter

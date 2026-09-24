@@ -11,15 +11,22 @@ $nbFiches = (int) ($nbFiches ?? 0);
     <?php // La suppression vit ici, sur l'écran qui modifie l'employé, et pas sur
           // sa fiche — qu'on ouvre pour consulter ses décomptes. Rien à la
           // création, et rien non plus dès qu'une fiche de salaire existe : la
-          // route la refuserait de toute façon. ?>
-    <?php if ($isEdit && $nbFiches === 0 && peut_ecrire('salaires')): ?>
-    <div class="head-actions">
+          // route la refuserait de toute façon.
+          //
+          // « Enregistrer » et « Annuler » tiennent l'en-tête eux aussi : cette
+          // page EST un formulaire, il n'y a rien à lire qu'un crayon
+          // ouvrirait. Sans droit d'écriture, le formulaire n'est pas rendu du
+          // tout (plus bas), donc aucune commande ici non plus. ?>
+    <?php if (peut_ecrire('salaires')): ?>
+    <?php ob_start(); ?>
+        <?php if ($isEdit && $nbFiches === 0): ?>
         <form method="post" action="?p=employe_delete" data-confirm="Supprimer définitivement cet employé ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer l'employé"><?= icon('trash') ?></button>
         </form>
-    </div>
+        <?php endif; ?>
+    <?= entete_form_actions_html('employe-form', '?p=employes', ['avant' => (string) ob_get_clean()]) ?>
     <?php endif; ?>
 </div>
 
@@ -29,7 +36,7 @@ $nbFiches = (int) ($nbFiches ?? 0);
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=employe<?= $isEdit ? '&id=' . (int) $emp['id'] : '' ?>" class="card form">
+<form method="post" action="?p=employe<?= $isEdit ? '&id=' . (int) $emp['id'] : '' ?>" class="card form" id="employe-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
     <div class="grid2">
@@ -86,9 +93,5 @@ $nbFiches = (int) ($nbFiches ?? 0);
         Employé actif (apparaît dans la création de fiches)
     </label>
 
-    <div class="form-actions">
-        <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        <a class="btn ghost" href="?p=employes">Annuler</a>
-    </div>
 </form>
 <?php endif; ?>

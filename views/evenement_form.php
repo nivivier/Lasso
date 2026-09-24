@@ -109,8 +109,16 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <?php endif; ?>
     </div>
     <?php endif; ?>
+    <?php // À la création, le titre et les commandes du formulaire tiennent le
+          // même en-tête : cet écran EST un formulaire, il n'y a rien à lire
+          // qu'un crayon ouvrirait (entete_form_actions_html()). ?>
+    <?php if (!$isEdit): ?>
+    <h1><?= e('Nouvel événement') ?></h1>
+    <?php if ($peutEcrireEv): ?>
+    <?= entete_form_actions_html('evenement-creation-form', $retour) ?>
+    <?php endif; ?>
+    <?php endif; ?>
 </div>
-<?php if (!$isEdit): ?><h1><?= e('Nouvel événement') ?></h1><?php endif; ?>
 
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
@@ -121,7 +129,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
      ci-dessous n'a de sens qu'une fois l'événement déjà renseigné. -->
 <div class="card">
     <h2 class="mt-0">Informations</h2>
-    <form method="post" action="?p=evenement<?= $depuisQs ?>" class="form">
+    <form method="post" action="?p=evenement<?= $depuisQs ?>" class="form" id="evenement-creation-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <div class="grid4">
@@ -188,10 +196,6 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <label>Remarques <input name="remarques" value="<?= $v('remarques') ?>"></label>
         </div>
 
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-            <a class="btn ghost" href="<?= e($retour) ?>">Annuler</a>
-        </div>
     </form>
 </div>
 <?php else: ?>
@@ -200,11 +204,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <?php $statutCardClass = match ((string) $evenement['statut']) { 'confirme' => 'card-statut-confirme', 'annule' => 'card-statut-annule', default => 'card-statut-option' }; ?>
 <div class="card card-editable <?= $statutCardClass ?>" id="carte-informations">
     <?php if ($peutEcrireEv): ?>
-    <div class="head-actions card-actions-overlay">
-        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-        <button type="submit" form="informations-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-        <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-    </div>
+    <?= carte_actions_html(['form' => 'informations-form', 'overlay' => true]) ?>
     <?php endif; ?>
     <?php if ($ok === 'informations'): ?><p class="ok flash">Informations enregistrées.</p><?php endif; ?>
     <?php if ($errInformationsMsg): ?><p class="err"><?= e($errInformationsMsg) ?></p><?php endif; ?>
@@ -311,11 +311,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <?php if (trim((string) $evenement['grande_region']) !== ''): ?><div class="muted small"><?= e($evenement['grande_region']) ?></div><?php endif; ?>
         </div>
         <?php if ($peutEcrireEv): ?>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-        </div>
+        <?= carte_actions_html(['form' => 'localisation-form']) ?>
         <?php endif; ?>
     </div>
 
@@ -369,11 +365,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <div class="page-head">
         <h2 class="mt-0">Organisation</h2>
         <?php if ($peutEcrireEv): ?>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="organisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-        </div>
+        <?= carte_actions_html(['form' => 'organisation-form']) ?>
         <?php endif; ?>
     </div>
     <?php if ($ok === 'organisation'): ?><p class="ok flash">Organisation enregistrée.</p><?php endif; ?>
@@ -585,11 +577,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <div class="page-head">
         <h2 class="mt-0">SUISA <?= evenement_suisa_badge($evenement) ?></h2>
         <?php if ($peutEcrireEv): ?>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="suisa-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-        </div>
+        <?= carte_actions_html(['form' => 'suisa-form']) ?>
         <?php endif; ?>
     </div>
     <?php if ($ok === 'suisa'): ?><p class="ok flash">SUISA enregistré.</p><?php endif; ?>
@@ -652,11 +640,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <div class="page-head">
         <h2 class="mt-0">Comptabilité analytique</h2>
         <?php if ($peutEcrireEv): ?>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier l'axe par défaut"><?= icon('pencil') ?></button>
-            <button type="submit" form="axe-defaut-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-        </div>
+        <?= carte_actions_html(['form' => 'axe-defaut-form', 'quoi' => "l'axe par défaut"]) ?>
         <?php endif; ?>
     </div>
     <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>

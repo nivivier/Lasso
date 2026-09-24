@@ -71,14 +71,18 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <?php // La suppression vit ici, sur l'écran qui modifie le brouillon, et pas
           // sur celui qui le consulte. Rien à la création — il n'y a encore rien
           // à détruire. ?>
-    <?php if ($edit && peut_ecrire('facturation')): ?>
-    <div class="head-actions">
+    <?php // « Enregistrer » et « Annuler » l'accompagnent : cette page EST un
+          // formulaire, il n'y a rien à lire qu'un crayon ouvrirait. ?>
+    <?php if (peut_ecrire('facturation') && $comptes): ?>
+    <?php ob_start(); ?>
+        <?php if ($edit): ?>
         <form method="post" action="?p=facture_delete" class="d-inline" data-confirm="Supprimer ce brouillon ?">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer le brouillon"><?= icon('trash') ?></button>
         </form>
-    </div>
+        <?php endif; ?>
+    <?= entete_form_actions_html('facture-form', '?p=facturation_liste', ['libelle' => 'Enregistrer le brouillon', 'avant' => (string) ob_get_clean()]) ?>
     <?php endif; ?>
 </div>
 
@@ -89,7 +93,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=facturation_form" class="card form">
+<form method="post" action="?p=facturation_form" class="card form" id="facture-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int) $id ?>"><?php endif; ?>
     <?php if ($evenementId): ?>
@@ -199,10 +203,6 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
         <textarea name="communication" rows="2"><?= $pv('communication', (string) ($facture['communication'] ?? '')) ?></textarea>
     </label>
 
-    <div class="form-actions">
-        <button type="submit"><?= icon('save') ?> Enregistrer le brouillon</button>
-        <a class="btn ghost" href="?p=facturation_liste">Annuler</a>
-    </div>
 </form>
 
 <template id="ligne-tpl"><?= $renderRow(['description' => '', 'quantite' => '1', 'prix' => '', 'axe' => '']) ?></template>

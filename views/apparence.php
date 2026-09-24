@@ -6,8 +6,41 @@
 <?php if ($saved): ?><p class="ok flash">Apparence enregistrée.</p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<div class="card form">
-    <form method="post" action="?p=apparence" enctype="multipart/form-data">
+<?php // Une carte qui se lit, et qu'on ouvre pour la modifier — le geste de
+      // l'application (carte_actions_html()). En lecture, ce que valent les
+      // réglages ; en édition, les commandes qui les changent. ?>
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Apparence</h2>
+        <?= carte_actions_html(['form' => 'apparence-form']) ?>
+    </div>
+
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr>
+                <th>Thème</th>
+                <td><?= e(['auto' => 'Automatique (système)', 'clair' => 'Clair', 'sombre' => 'Sombre'][param_theme()]) ?></td>
+            </tr>
+            <tr>
+                <th>Couleur principale</th>
+                <td><span class="pastille-couleur" style="background:<?= e(param('employeur_couleur_principale', '#6d4ade')) ?>"></span>
+                    <code><?= e(param('employeur_couleur_principale', '#6d4ade')) ?></code></td>
+            </tr>
+            <tr>
+                <th>Couleur de mise en évidence</th>
+                <td><span class="pastille-couleur" style="background:<?= e(param('employeur_couleur_evidence', '#2563eb')) ?>"></span>
+                    <code><?= e(param('employeur_couleur_evidence', '#2563eb')) ?></code></td>
+            </tr>
+            <tr>
+                <th>Fond</th>
+                <td><?= e(FONDS_DECOR[param_fond_decor()]) ?><?php if (param_fond_decor() === 'image'): ?>
+                    <span class="muted small"><?= param_fond_clair() ? ' · éclairci' : '' ?><?= param_fond_floute() ? ' · flouté' : '' ?></span>
+                    <?php endif; ?></td>
+            </tr>
+        </table>
+    </div>
+
+    <form method="post" action="?p=apparence" enctype="multipart/form-data" id="apparence-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <?php // Deux colonnes : à gauche ce qui touche aux couleurs de
@@ -134,10 +167,6 @@
         </div>
 
         </div>
-        </div>
-
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
 </div>

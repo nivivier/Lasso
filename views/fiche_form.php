@@ -100,14 +100,23 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
           // celui qui la consulte : on ouvre cent fois une fiche pour la lire ou
           // l'envoyer, on ne vient ici que pour y toucher. Rien à la création —
           // il n'y a encore rien à détruire. ?>
-    <?php if ($edit && isset($fiche_id) && peut_ecrire('salaires')): ?>
-    <div class="head-actions">
+    <?php // L'enregistrement l'accompagne : cette page EST un formulaire, il n'y
+          // a rien à lire qu'un crayon ouvrirait. À la création, le bouton dit ce
+          // qu'il fait vraiment — il calcule la fiche. ?>
+    <?php if (peut_ecrire('salaires') && $employes && $unites): ?>
+    <?php ob_start(); ?>
+        <?php if ($edit && isset($fiche_id)): ?>
         <form method="post" action="?p=fiche_delete" data-confirm="Supprimer définitivement cette fiche ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $fiche_id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la fiche"><?= icon('trash') ?></button>
         </form>
-    </div>
+        <?php endif; ?>
+    <?= entete_form_actions_html('fiche-form', '?p=fiches', [
+        'libelle' => $edit ? 'Enregistrer les modifications' : 'Calculer et créer la fiche',
+        'icone'   => $edit ? 'save' : '',
+        'avant'   => (string) ob_get_clean(),
+    ]) ?>
     <?php endif; ?>
 </div>
 
@@ -122,7 +131,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=fiche_new<?= $depuisQs ?>" class="card form">
+<form method="post" action="?p=fiche_new<?= $depuisQs ?>" class="card form" id="fiche-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($edit && isset($fiche_id)): ?>
         <input type="hidden" name="fiche_id" value="<?= (int) $fiche_id ?>">
@@ -192,10 +201,6 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <div class="ce-item"><span class="ce-label">Coût employeur</span><strong class="ce-val ce-cout" id="est-cout">0.00 CHF</strong></div>
     </div>
 
-    <div class="form-actions">
-        <button type="submit"><?= $edit ? icon('save') . ' Enregistrer les modifications' : 'Calculer et créer la fiche' ?></button>
-        <a class="btn ghost" href="?p=fiches">Annuler</a>
-    </div>
 </form>
 
 <template id="ligne-tpl"><?= $renderRow(['enc' => '', 'qte' => '', 'choix' => '', 'manuel' => '', 'axe' => '', 'evenement' => '']) ?></template>

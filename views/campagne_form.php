@@ -87,16 +87,23 @@ if (!$criteresActifs) {
     <h1><?= $id ? 'Modifier la campagne' : 'Nouvelle campagne' ?></h1>
     <?php // Supprimer vit ici, sur l'écran qui modifie la campagne, et pas sur
           // celui qui la suit : c'est là qu'on vient décider de son sort. Rien à
-          // la création — il n'y a encore rien à détruire. ?>
-    <?php if ($id && peut_ecrire('booking')): ?>
-    <div class="head-actions">
+          // la création — il n'y a encore rien à détruire.
+          //
+          // « Enregistrer la campagne » l'accompagne, comme sur les autres
+          // écrans qui sont un formulaire : le bouton est en haut à droite, même
+          // s'il valide aussi le ciblage plus bas (form="campagne-form"). Pas
+          // d'« Annuler » : le lien de retour est juste au-dessus. ?>
+    <?php if (peut_ecrire('booking')): ?>
+    <?php ob_start(); ?>
+        <?php if ($id): ?>
         <form method="post" action="?p=campagne_delete" class="d-inline"
               data-confirm="Supprimer la campagne « <?= e((string) ($campagne['nom'] ?? '')) ?> » ? Les structures et l'historique ne sont pas touchés.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la campagne"><?= icon('trash') ?></button>
         </form>
-    </div>
+        <?php endif; ?>
+    <?= entete_form_actions_html('campagne-form', '', ['libelle' => 'Enregistrer la campagne', 'avant' => (string) ob_get_clean()]) ?>
     <?php endif; ?>
 </div>
 
@@ -206,9 +213,6 @@ if (!$criteresActifs) {
     ?>
 <?php endif; ?>
 
-<div class="form-actions">
-    <button type="submit" form="campagne-form"><?= icon('save') ?> Enregistrer la campagne</button>
-</div>
 </div></div>
 
 <script nonce="<?= e(csp_nonce()) ?>">

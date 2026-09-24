@@ -64,6 +64,11 @@ $contactable = $peutContacter && $raisonPasContactable === '';
     <?php else: ?>
     <h1>Nouvelle structure</h1>
     <?php endif; ?>
+    <?php // À la création, l'écran EST un formulaire : « Enregistrer » et
+          // « Annuler » tiennent l'en-tête, là où la fiche met son crayon. ?>
+    <?php if (!$isEdit && $peutEcrireStruct): ?>
+    <?= entete_form_actions_html('structure-creation-form', '?p=structures') ?>
+    <?php endif; ?>
     <?php if ($peutContacter || $titreEditable): ?>
     <div class="head-actions">
         <?php if ($peutContacter): ?>
@@ -114,7 +119,7 @@ $contactable = $peutContacter && $raisonPasContactable === '';
 // étiquettes seulement s'il est modifiable.
 $bookingOkCreation = module_actif('booking') && peut_lire('booking');
 ?>
-<form method="post" action="?p=structure<?= $depuisQs ?>" class="card form">
+<form method="post" action="?p=structure<?= $depuisQs ?>" class="card form" id="structure-creation-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <div class="form-split">
 
@@ -204,10 +209,6 @@ $bookingOkCreation = module_actif('booking') && peut_lire('booking');
             </label>
     </div>
 
-    <div class="form-actions">
-        <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        <a class="btn ghost" href="?p=structures">Annuler</a>
-    </div>
 </form>
 <?php if ($bookingOkCreation): ?>
 <script nonce="<?= e(csp_nonce()) ?>">
@@ -278,11 +279,7 @@ lassoInitTagSuggest();
     <input type="hidden" name="nom" value="<?= $v('nom') ?>">
 
     <?php if ($peutEcrireStruct): ?>
-    <div class="head-actions card-actions-overlay">
-        <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-        <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-        <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-    </div>
+    <?= carte_actions_html(['overlay' => true]) ?>
     <?php endif; ?>
 
     <?php
@@ -427,11 +424,7 @@ lassoInitTagSuggest();
         <div class="card-head-row">
             <h2 class="mt-0">Informations générales</h2>
             <?php if ($peutEcrireStruct): ?>
-            <div class="head-actions">
-                <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                <button type="submit" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-                <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-            </div>
+            <?= carte_actions_html([]) ?>
             <?php endif; ?>
         </div>
 
@@ -738,11 +731,7 @@ $villeHtmlS = ville_departement_canton_html(
             <?php if (trim((string) ($structure['grande_region'] ?? '')) !== ''): ?><div class="muted small"><?= e($structure['grande_region']) ?></div><?php endif; ?>
         </div>
         <?php if ($peutEcrireBooking): ?>
-        <div class="head-actions">
-            <button type="button" class="btn ghost icon-only card-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-            <button type="submit" form="structure-localisation-form" class="btn icon-only card-save-btn" hidden title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
-            <button type="button" class="btn ghost icon-only card-cancel-btn" hidden title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
-        </div>
+        <?= carte_actions_html(['form' => 'structure-localisation-form']) ?>
         <?php endif; ?>
     </div>
 

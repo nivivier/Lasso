@@ -6,9 +6,23 @@
 <?php if (!peut_ecrire('evenements')): ?>
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php else: ?>
-<div class="card form">
-    <h2 class="mt-0">Valeurs par défaut</h2>
-    <form method="post" action="?p=parametres_evenements">
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Valeurs par défaut</h2>
+        <?= carte_actions_html(['form' => 'evenements-defauts-form']) ?>
+    </div>
+
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr><th>Décompte marqué « manquant » après</th><td><?= (int) $delai ?> mois</td></tr>
+            <tr><th>Événement marqué « abandonné » après</th><td><?= (int) $delaiAbandon ?> mois</td></tr>
+            <tr><th>Texte du bouton de lien</th><td><?= $lienTexteDefaut !== '' ? e($lienTexteDefaut) : '<span class="muted">Plus d\'informations</span>' ?></td></tr>
+            <tr><th>Terme pour une série d'événements</th><td><?= e($termeSpectacle !== '' ? $termeSpectacle : 'Spectacles') ?></td></tr>
+        </table>
+        <p class="muted small">Les pays proposés dans le champ « Région et pays » se règlent dans l'onglet <a href="?p=parametres_pays">Pays</a>.</p>
+    </div>
+
+    <form method="post" action="?p=parametres_evenements" id="evenements-defauts-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>Délai avant qu'une date envoyée sans décompte soit marquée « manquante » (mois)
             <input name="suisa_delai_decompte_mois" type="text" inputmode="numeric" value="<?= (int) $delai ?>" style="max-width:120px">
@@ -25,10 +39,6 @@
         ) ?></span>
             <input name="evenements_terme_spectacle" type="text" value="<?= e($termeSpectacle) ?>" placeholder="Spectacles">
         </label>
-        <p class="muted small">Les pays proposés dans le champ « Région et pays » se règlent dans l'onglet <a href="?p=parametres_pays">Pays</a>.</p>
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
-        </div>
     </form>
 </div>
 

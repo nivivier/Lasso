@@ -6,8 +6,32 @@
 <?php if (!peut_ecrire('coeur')): ?>
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php else: ?>
-<div class="card form">
-    <form method="post" action="?p=emails">
+<div class="card card-editable">
+    <div class="card-head-row">
+        <h2 class="mt-0">Envoi des fiches et des factures</h2>
+        <?= carte_actions_html(['form' => 'emails-form']) ?>
+    </div>
+
+    <?php $secureLu = param('smtp_secure') ?: 'ssl'; ?>
+    <?php $motDePasseConnu = ((string) param('smtp_pass', '') !== '') || (defined('SMTP_PASS') && SMTP_PASS !== ''); ?>
+    <div class="card-disp">
+        <table class="kv-table">
+            <tr><th>Expéditeur</th><td><?= param('employeur_email_expediteur') !== '' ? e(param('employeur_email_expediteur')) : '<span class="muted">— aucun envoi possible</span>' ?></td></tr>
+            <tr><th>Adresse de réponse</th><td><?= param('employeur_email_contact') !== '' ? e(param('employeur_email_contact')) : '<span class="muted">l\'expéditeur</span>' ?></td></tr>
+            <tr>
+                <th>Boîte d'envoi</th>
+                <td><?php if (param('smtp_host') !== ''): ?>
+                    <?= e(param('smtp_user')) ?> · <?= e(param('smtp_host')) ?>:<?= e(param('smtp_port')) ?>
+                    · <?= $secureLu === 'tls' ? 'STARTTLS' : 'SSL' ?>
+                    <?= $motDePasseConnu ? '<span class="badge ok-badge">mot de passe enregistré</span>' : '<span class="badge warn-badge">sans mot de passe</span>' ?>
+                <?php else: ?>
+                    <span class="muted">aucune — repli sur la fonction <code>mail()</code> de l'hébergeur</span>
+                <?php endif; ?></td>
+            </tr>
+        </table>
+    </div>
+
+    <form method="post" action="?p=emails" id="emails-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <h3 class="sub no-mt">Fiches de salaire et factures</h3>
@@ -45,10 +69,6 @@
                     <option value="tls" <?= $secure === 'tls' ? 'selected' : '' ?>>STARTTLS (port 587)</option>
                 </select>
             </label>
-        </div>
-
-        <div class="form-actions">
-            <button type="submit"><?= icon('save') ?> Enregistrer</button>
         </div>
     </form>
 </div>
