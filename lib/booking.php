@@ -1989,10 +1989,21 @@ const CAMPAGNES_DASHBOARD_ORDRE = ['en_retard', 'en_cours', 'a_venir', 'terminee
 
 // $liste évite de relire la base quand l'appelant tient déjà les campagnes
 // (le tableau de bord s'en sert aussi pour campagnes_a_contacter()).
+//
+// **Dès qu'une campagne est ouverte, la carte ne montre plus qu'elles** : ce
+// qu'on vient y chercher, c'est où en est le démarchage du moment. Les
+// campagnes pas encore commencées se résument alors à une ligne « et X autres
+// à venir » (campagnes_dashboard_a_venir()), et les terminées sortent de la
+// carte — elles sont derrière, la liste complète les garde. Sans campagne
+// ouverte, la carte montre la suite comme avant : à venir, puis terminées.
 function campagnes_dashboard(int $max = 9, ?array $liste = null): array
 {
     $rang = array_flip(CAMPAGNES_DASHBOARD_ORDRE);
     $liste ??= campagnes_liste();
+    $ouvertes = campagnes_ouvertes($liste);
+    if ($ouvertes) {
+        $liste = $ouvertes;
+    }
     // Tri stable : à état égal, l'ordre de campagnes_liste() est conservé
     // (la plus récente d'abord) — sauf entre campagnes à venir, où c'est la
     // plus proche qui passe devant (campagne_cmp_a_venir()). Sans quoi la
@@ -2006,6 +2017,24 @@ function campagnes_dashboard(int $max = 9, ?array $liste = null): array
         return $a['statut'] === 'a_venir' ? campagne_cmp_a_venir($a, $b) : 0;
     });
     return array_slice($liste, 0, $max);
+}
+
+// Les campagnes du démarchage en cours, « en retard » comprises.
+function campagnes_ouvertes(array $liste): array
+{
+    return array_values(array_filter($liste, fn ($c) => in_array($c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)));
+}
+
+// Ce que la carte du tableau de bord laisse de côté quand elle se limite aux
+// campagnes ouvertes : celles qui n'ont pas commencé. Zéro quand la carte les
+// montre déjà — la même règle que campagnes_dashboard(), au même endroit, pour
+// que la ligne « et X autres à venir » ne puisse pas mentir.
+function campagnes_dashboard_a_venir(array $liste): int
+{
+    if (!campagnes_ouvertes($liste)) {
+        return 0;
+    }
+    return count(array_filter($liste, fn ($c) => $c['statut'] === 'a_venir'));
 }
 
 // --- Message individuel écrit depuis une fiche structure (bouton « Contacter »)

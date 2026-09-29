@@ -2823,12 +2823,14 @@ function route_resumes(): void
     // TOUTES les campagnes, pas seulement sur les neuf que la carte montre.
     $campagnesToutes = module_accessible('booking') ? campagnes_liste() : [];
     $campagnesDash = $campagnesToutes ? campagnes_dashboard(9, $campagnesToutes) : [];
+    $campagnesAVenir = campagnes_dashboard_a_venir($campagnesToutes);
     $campagnesAContacter = campagnes_a_contacter($campagnesToutes);
     render('resumes', [
         'aPayer' => $aPayer, 'aPayerAFaire' => $aPayerAFaire, 'aPayerRetard' => $aPayerRetard,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
         'campagnesDash' => $campagnesDash, 'campagnesAContacter' => $campagnesAContacter,
+        'campagnesAVenir' => $campagnesAVenir,
     ], 'Tableau de bord');
 }
 

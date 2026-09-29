@@ -3,7 +3,7 @@
 /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaEnvoye */ /** @var int $suisaManquant */
-/** @var array $campagnesDash */ /** @var int $campagnesAContacter */
+/** @var array $campagnesDash */ /** @var int $campagnesAContacter */ /** @var int $campagnesAVenir */
 
 // Médaillon d'état posé sur une carte : le chiffre de ce qu'il reste à faire,
 // et le lien vers la liste correspondante. Rien à signaler = pas de médaillon
@@ -26,12 +26,17 @@ $dash_medaillon = function (int $nb, string $libelle, string $ton, string $href)
 // vers la liste complète. Posée DANS le tableau plutôt qu'à côté, parce que
 // c'est la suite des lignes au-dessus — et la ligne de total, juste en dessous,
 // n'a plus besoin de préciser un nombre que celle-ci annonce.
-$dash_reste = function (int $reste, int $colonnes, string $href): string {
+//
+// $suffixe dit ce que sont ces autres quand ils ne sont pas de la même espèce
+// que les lignes montrées : « et 3 autres à venir » sous les campagnes en
+// cours. Vide, la ligne dit simplement « et 3 autres ».
+$dash_reste = function (int $reste, int $colonnes, string $href, string $suffixe = ''): string {
     if ($reste <= 0) {
         return '';
     }
     return '<tr class="dash-reste"><td colspan="' . $colonnes . '">'
-        . '<a href="' . e($href) . '">et ' . $reste . ' autre' . ($reste > 1 ? 's' : '') . '</a>'
+        . '<a href="' . e($href) . '">et ' . $reste . ' autre' . ($reste > 1 ? 's' : '')
+        . ($suffixe !== '' ? ' ' . e($suffixe) : '') . '</a>'
         . '</td></tr>';
 };
 
@@ -237,8 +242,12 @@ $cartes = [];
                           // boutons par ligne pour deux colonnes de chiffres,
                           // c'était le geste écrit deux fois. L'export reste
                           // accessible depuis la liste où il s'applique. ?>
+                    <?php // « À faire » en gras : des trois lignes, c'est la seule
+                          // qui appelle un geste. À l'encre, comme le nom d'une
+                          // campagne en cours — la couleur d'accent reste à ce
+                          // qui se clique. ?>
                     <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>">
-                        <td>À faire</td>
+                        <td class="strong-encre">À faire</td>
                         <?php // Le nombre porte la gravité : ambre pour ce qui
                               // attend, rouge pour ce qui manque. Un zéro reste
                               // neutre — il n'y a rien à signaler. ?>
@@ -404,9 +413,10 @@ $cartes = [];
 
         <?php if (module_accessible('booking')): ?>
         <?php
-        // Campagnes : où en est le démarchage, campagne par campagne. Celles qui
-        // demandent du travail d'abord (en retard, puis en cours), les prochaines
-        // ensuite, les terminées en dernier — et seulement ce qui tient ici.
+        // Campagnes : où en est le démarchage, campagne par campagne. Dès qu'une
+        // campagne est ouverte, la carte ne montre qu'elles (en retard d'abord) et
+        // résume le reste en une ligne ; sinon, les prochaines puis les terminées
+        // — et seulement ce qui tient ici (campagnes_dashboard()).
         // La barre est celle de ?p=campagnes et de la carte d'une campagne :
         // même segments, mêmes couleurs, une seule définition (campagne_barre_html()).
         // Le médaillon compte ce qui RESTE À FAIRE, pas les campagnes ouvertes :
@@ -435,11 +445,11 @@ $cartes = [];
                         <td>
                             <span class="dash-campagne">
                                 <?= $c['projets_pastilles'][0] ?? '' ?>
-                                <?php // Gras et teal pour ce qui demande du travail, encre
-                                      // pour le reste : même partage que la liste des
-                                      // campagnes, où seule une campagne en cours garde
-                                      // la couleur d'accent. ?>
-                                <span class="dash-campagne-nom<?= $c['statut'] === 'en_cours' ? ' strong' : '' ?>"><?= e($c['nom']) ?></span>
+                                <?php // Gras pour ce qui demande du travail, normal pour
+                                      // le reste — mais à l'encre dans les deux cas : sur
+                                      // une carte où toute la ligne est cliquable, colorer
+                                      // le nom n'apprend rien de plus que le gras. ?>
+                                <span class="dash-campagne-nom<?= $c['statut'] === 'en_cours' ? ' strong-encre' : '' ?>"><?= e($c['nom']) ?></span>
                             </span>
                         </td>
                         <?php // Une seule colonne pour les deux questions, parce
@@ -459,6 +469,10 @@ $cartes = [];
                         </td>
                     </tr>
                 <?php endforeach; ?>
+                <?php // Dès qu'un démarchage est ouvert, la carte s'y tient (voir
+                      // campagnes_dashboard()) : les campagnes pas encore
+                      // commencées tiennent en une ligne, qui mène à la liste. ?>
+                <?= $dash_reste($campagnesAVenir, 2, '?p=campagnes', 'à venir') ?>
                 </tbody>
             </table>
             <?php endif; ?>

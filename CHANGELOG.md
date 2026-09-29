@@ -7,6 +7,20 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **La carte « Campagnes » du tableau de bord se tient au démarchage en cours** :
+  dès qu'une campagne est ouverte, elle seule s'affiche, et les campagnes pas
+  encore commencées se résument à une ligne « et X autres à venir » qui mène à
+  la liste. Les terminées sortent de la carte — elles sont derrière. Sans
+  campagne ouverte, la carte montre la suite comme avant.
+- **Le tableau de bord dit ce qui demande un geste par le gras**, plus par la
+  couleur : la ligne « À faire » de la carte Suisa se met en gras comme les
+  autres cartes le font, et le nom d'une campagne en cours reste à l'encre
+  plutôt qu'en teal — sur une ligne entièrement cliquable, la teinte
+  n'apprenait rien de plus.
+
 ## [2.9.0] — 2026-09-24
 
 ### Modifié

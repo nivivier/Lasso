@@ -714,6 +714,13 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   actif.
 - **Recherche** : instantanée sur les lignes affichées sous le seuil de
   pagination client (`pagination_mode_client()`), sinon envoyée au serveur.
+- **Une carte du tableau de bord ne s'étire pas** : elle montre ce qui demande
+  du travail et referme le reste sur une dernière ligne « et X autres », qui
+  mène à la liste complète (`$dash_reste()` dans `views/resumes.php`, posée
+  DANS le tableau). Un suffixe dit ce que sont ces autres quand ils ne sont pas
+  de la même espèce que les lignes montrées — « et 2 autres à venir » sous les
+  seules campagnes en cours. Le total d'un pied de carte porte alors sur TOUT,
+  pas sur les lignes visibles : c'est cette ligne qui rend l'écart lisible.
 - **Largeur des colonnes** : un tableau en disposition automatique répartit la
   place entre toutes ses colonnes, y compris celles qui n'en demandent pas.
   Serrer les colonnes courtes sur leur contenu (`width: 1%` + `white-space:
@@ -833,6 +840,12 @@ jamais le sens **seule** : une icône ou un libellé l'accompagne.
 
 Tout écran existe en thème clair **et** sombre : n'écrire aucune couleur en dur,
 toujours un token.
+
+**Le gras suffit à désigner ce qui demande un geste.** Sur une ligne déjà
+cliquable en entier, la teinter en plus n'apprend rien : `.list .strong-encre`
+met en gras sans prendre la couleur d'accent — le nom d'une campagne en cours,
+la ligne « À faire » de la carte Suisa. `.list .strong` (gras + teal) reste pour
+les chiffres d'un tableau.
 
 ## 14. Comportements déclaratifs
 

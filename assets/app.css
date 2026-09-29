@@ -2681,6 +2681,11 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .list tbody tr:last-child td { border-bottom: none; }
 .list .num { text-align: right; font-variant-numeric: tabular-nums; }
 .list .strong { font-weight: 700; color: var(--teal-d); }
+/* Gras à l'encre : ce qui demande un geste se repère au gras seul, sans prendre
+   la couleur d'accent — celle-ci reste à ce qui se clique. Sur le tableau de
+   bord, c'est le nom d'une campagne en cours et la ligne « À faire » de la
+   carte Suisa. */
+.list .strong-encre { font-weight: 700; }
 .col-brut { color: var(--highlight); font-weight: 700; }   /* somme brut : couleur de mise en évidence */
 .col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
 
