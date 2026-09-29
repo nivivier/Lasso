@@ -104,10 +104,11 @@ function evenement_statut_suisa_libelle(string $statut): string
 // se lit d'un coup d'œil — quand, qui, où — et un changement d'avis qui porte
 // partout.
 //
-// Trois blocs : la date en pastille d'agenda (jour, mois, année), le corps
-// (l'artiste en petit, la VILLE en grand — c'est elle qu'on cherche des yeux
-// dans une liste de dates —, puis la salle, puis l'organisateur), et le statut
-// à droite, icône au-dessus du mot.
+// Trois blocs : la date en pastille d'agenda (jour, mois, année), le corps sur
+// trois lignes (l'artiste et son spectacle en petit ; la VILLE en grand — c'est
+// elle qu'on cherche des yeux dans une liste de dates — suivie de la salle, qui
+// tient sur la même ligne ; l'organisateur), et le statut à droite, icône
+// au-dessus du mot.
 //
 // Champs lus, tous facultatifs sauf la date : statut, spectacle_nom ou
 // spectacle (la feuille), spectacle_groupe (l'artiste qui la coiffe), ville,
@@ -174,8 +175,11 @@ function evenement_mini_html(array $ev, array $opts = []): string
         . '<span class="evt-titre">' . e($titre)
         . ($second !== '' ? ' <span class="evt-sep">›</span> <span class="evt-second">' . e($second) . '</span>' : '')
         . '</span>'
-        . '<span class="evt-ville">' . ($ville !== '' ? $ville : '<span class="muted">Lieu à préciser</span>') . '</span>'
-        . ($salle !== '' ? '<span class="evt-salle">' . e($salle) . '</span>' : '')
+        . '<span class="evt-ville">' . ($ville !== '' ? $ville : '<span class="muted">Lieu à préciser</span>')
+        // Le point de séparation voyage AVEC la salle : rejeté seul en bout de
+        // ligne quand la ligne passe à la suivante, il pendait dans le vide.
+        . ($salle !== '' ? ' <span class="evt-salle"><span class="evt-sep">·</span>&nbsp;' . e($salle) . '</span>' : '')
+        . '</span>'
         . ($note !== '' ? '<span class="evt-org">' . $note . '</span>' : '')
         . '</span>';
 

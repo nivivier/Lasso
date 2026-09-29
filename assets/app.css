@@ -2193,12 +2193,26 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
 }
 .evt-second { font-weight: 500; }
 .evt-sep { color: var(--muted); font-weight: 400; }
+/* Seule ligne qui a le droit de passer à la ligne : ville et salle réunies ne
+   tiennent pas toujours sur la largeur d'un téléphone ni dans une carte de
+   colonne étroite, et c'est l'information qu'on vient chercher — la tronquer
+   d'office vaudrait moins que de lui donner une seconde ligne. Deux au plus,
+   même procédé que .dash-campagne-nom : au-delà, une salle à rallonge poussait
+   la ligne à quatre lignes et le reste de la liste avec. Le titre et
+   l'organisateur, eux, se coupent net. */
 .evt-ville {
-    display: block; font-size: 15px; line-height: 1.3;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 15px; line-height: 1.3; min-width: 0;
+    overflow: hidden; overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
 }
 .evt-ville .tiny { font-size: var(--fs-tiny); }
-.evt-salle, .evt-org {
+/* La salle suit la ville sur la même ligne : elle précise le point que la ville
+   situe, et la place ne manque pas. C'est la ligne entière qui se tronque. */
+.evt-salle { font-size: var(--fs-small); color: var(--muted); }
+.evt-org {
     display: block; font-size: var(--fs-small); line-height: 1.35; color: var(--muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }

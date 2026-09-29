@@ -717,8 +717,9 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - **Une liste courte d'événements se rend par `evenement_mini_html()`**
   (`lib/evenements.php`) : la date en pastille d'agenda (jour, mois, année),
   l'artiste en petit — `Artiste › Spectacle`, le chevron de `spectacle_chemin()`
-  —, la VILLE en grand parce que c'est elle qu'on cherche des yeux, la salle,
-  l'organisateur, et le statut à droite (icône au-dessus du mot, largeur
+  —, la VILLE en grand parce que c'est elle qu'on cherche des yeux, suivie de
+  la salle sur la même ligne (deux lignes au plus), l'organisateur en dessous,
+  et le statut à droite (icône au-dessus du mot, largeur
   commune calée sur le plus long libellé pour que la colonne ne zigzague pas).
   Trois écrans l'appellent : la carte « Événements » d'une structure, la carte
   « Prochains événements » du tableau de bord, la liste des événements sur
