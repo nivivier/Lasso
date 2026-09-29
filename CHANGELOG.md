@@ -10,6 +10,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Un événement se présente partout de la même façon.** Une seule mini-ligne
+  sert désormais la carte « Événements » d'une structure, la carte « Prochains
+  événements » du tableau de bord et la liste des événements sur téléphone :
+  la date en pastille d'agenda, l'artiste (et son spectacle) en petit, la ville
+  en grand — c'est elle qu'on cherche des yeux —, puis la salle et
+  l'organisateur, le statut à droite. L'organisateur ne se répète pas quand
+  c'est la salle elle-même, ni sur sa propre fiche.
 - **La carte « Campagnes » du tableau de bord se tient au démarchage en cours** :
   dès qu'une campagne est ouverte, elle seule s'affiche, et les campagnes pas
   encore commencées se résument à une ligne « et X autres à venir » qui mène à

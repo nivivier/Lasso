@@ -930,11 +930,16 @@ function structure_evenements(int $structureId): array
     // carte « Événements » : affiche le groupe en priorité, la feuille en
     // second si distincte.
     $stmt = db()->prepare(
-        'SELECT DISTINCT e.id, e.date, e.statut, e.ville, sp.nom AS spectacle, spg.nom AS spectacle_groupe
+        'SELECT DISTINCT e.id, e.date, e.statut, e.ville, e.pays, e.departement_canton,
+                e.salle, e.festival, sp.nom AS spectacle, spg.nom AS spectacle_groupe, org.nom AS organisateur_nom
          FROM evenements e
          JOIN evenement_structures es ON es.evenement_id = e.id
          LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
          LEFT JOIN spectacles spg ON spg.id = sp.parent_id
+         LEFT JOIN structures org ON org.id = (
+             SELECT es2.structure_id FROM evenement_structures es2
+              WHERE es2.evenement_id = e.id
+              ORDER BY es2.est_facturation DESC, es2.id ASC LIMIT 1)
          WHERE es.structure_id = :sid
          ORDER BY e.date DESC, e.id DESC'
     );

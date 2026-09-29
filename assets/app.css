@@ -2158,14 +2158,65 @@ button:active, .btn:active { transform: translateY(1px); }
 .small { font-size: var(--fs-small); }
 .tiny { font-size: var(--fs-tiny); }
 .clean-list { list-style: none; margin: 0; padding: 0; }
-.evt-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
-.evt-row + .evt-row { border-top: 1px solid var(--line); }
-.evt-date { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; padding: 5px 4px; border-radius: var(--radius-sm); background: var(--primary-tint); line-height: 1.15; text-align: center; }
-.evt-date-jm { font-size: var(--fs-small); font-weight: 700; letter-spacing: .01em; color: var(--primary-d); }
-.evt-date-an { font-size: var(--fs-tiny); font-weight: 500; color: var(--muted); }
-.evt-info { min-width: 0; }
-.evt-spectacle { font-weight: 600; }
-.evt-spectacle a { color: inherit; }
+/* Cellule de la liste des événements qui porte la mini-ligne : elle n'existe
+   que sur téléphone, où la liste passe en cartes (règles .cartes-evenements). */
+.col-mini { display: none; }
+/* La mini-ligne d'un événement — evenement_mini_html() (lib/evenements.php).
+   Une seule définition pour les trois écrans qui en montrent une liste courte :
+   carte « Événements » d'une structure, carte « Prochains événements » du
+   tableau de bord, liste des événements sur téléphone. */
+.evt-mini { display: flex; align-items: center; gap: 10px; }
+.evt-mini + .evt-mini { border-top: 1px solid var(--line); }
+.evt-mini-lien {
+    flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px;
+    padding: 9px 0; color: inherit; text-decoration: none;
+}
+a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
+/* La date en page d'agenda : jour, mois, année — plus haute que large, pour se
+   lire comme une date et non comme une suite de chiffres. */
+.evt-date {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; width: 40px; padding: 5px 3px 4px;
+    border-radius: var(--radius-sm); background: var(--primary-tint);
+    line-height: 1.05; text-align: center;
+}
+.evt-date-j { font-size: 17px; font-weight: 700; color: var(--primary-d); font-variant-numeric: tabular-nums; }
+.evt-date-m { font-size: var(--fs-tiny); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary-d); }
+.evt-date-a { font-size: var(--fs-tiny); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.evt-corps { flex: 1 1 auto; min-width: 0; }
+/* L'artiste nomme, la ville situe : dans une liste de dates, c'est la ville
+   qu'on cherche des yeux — elle passe donc au-dessus du lot, et le nom du
+   spectacle descend d'un cran. */
+.evt-titre {
+    display: block; font-size: var(--fs-small); font-weight: 600; line-height: 1.35; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.evt-second { font-weight: 500; }
+.evt-sep { color: var(--muted); font-weight: 400; }
+.evt-ville {
+    display: block; font-size: 15px; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.evt-ville .tiny { font-size: var(--fs-tiny); }
+.evt-salle, .evt-org {
+    display: block; font-size: var(--fs-small); line-height: 1.35; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.evt-mini-annule :is(.evt-titre, .evt-ville, .evt-salle, .evt-org) { text-decoration: line-through; }
+/* Le statut à droite, l'icône au-dessus du mot : la colonne reste étroite quel
+   que soit le libellé, et la couleur ne porte jamais le sens toute seule. */
+/* Largeur commune, calée sur le plus long des trois libellés (« Confirmé ») :
+   sans elle, chaque ligne centre son icône sur son propre mot et la colonne
+   part en zigzag d'une ligne à l'autre. */
+.evt-statut {
+    flex: 0 0 auto; display: inline-flex; flex-direction: column; align-items: center;
+    gap: 1px; white-space: nowrap; font-weight: 600; min-width: 56px;
+}
+.evt-statut .ico { width: 17px; height: 17px; }
+.evt-statut-txt { font-size: var(--fs-tiny); font-weight: 500; }
+.evt-statut-ok { color: var(--teal-d); }
+.evt-statut-warn { color: var(--amber); }
+.evt-statut-muted { color: var(--muted); }
 .text-strike { text-decoration: line-through; }
 
 /* Utilitaires d'espacement / disposition (remplacent les styles inline) */
@@ -4817,36 +4868,29 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     .cartes-employes td.col-derniere::before { content: "Dernière fiche : "; color: var(--muted); }
     .cartes-employes tbody tr td:not(.col-nom-emp):not(.col-derniere) { display: none; }
 
-    /* --- Événements : date et spectacle, puis lieu et statut --- */
+    /* --- Événements : la mini-ligne partagée, et rien d'autre --- */
+    /* La liste ne se recompose plus cellule par cellule ici : elle montre la
+       même mini-ligne que la carte d'une structure et le tableau de bord
+       (evenement_mini_html()). Reste la case à cocher, qui n'existe que sur cet
+       écran — elle se range à gauche de la pastille de date. */
     .cartes-evenements tbody tr {
-        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr) auto;
+        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr);
+        align-items: center;
+        min-height: 0;
     }
     .cartes-evenements.avec-check tbody tr { --carte-check: 22px; }
     .cartes-evenements td.col-check {
-        grid-column: 1; grid-row: 1; align-self: start;
+        grid-column: 1; align-self: center;
         display: flex; text-align: left; padding-top: 0;
     }
-    .cartes-evenements td.col-check input { margin: 3px 0 0; }
-    /* La date mène la fiche : c'est par elle qu'on parcourt un agenda. Le
-       spectacle et le lieu la suivent, en dessous. */
-    .cartes-evenements td.col-date-ev {
-        grid-column: 2; grid-row: 1; min-width: 0;
-        font-size: 16px; line-height: 1.3; white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-    }
-    .cartes-evenements td.col-statut-ev {
-        grid-column: 3; grid-row: 1; justify-self: end; text-align: right;
-    }
-    .cartes-evenements td.col-spectacle {
-        grid-column: 2 / -1; grid-row: 2; min-width: 0;
-        font-size: 12px; line-height: 1.45; font-weight: 600; color: var(--text);
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .cartes-evenements td.col-lieu {
-        grid-column: 2 / -1; grid-row: 3; min-width: 0; font-size: 12px;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .cartes-evenements tbody tr:not(.mois-sep) td:not(.col-check):not(.col-date-ev):not(.col-spectacle):not(.col-lieu):not(.col-statut-ev) {
+    .cartes-evenements td.col-check input { margin: 0; }
+    .cartes-evenements td.col-mini { grid-column: 2; display: block; min-width: 0; }
+    /* La mini-ligne porte déjà le filet de séparation entre deux lignes d'une
+       même carte ; ici c'est la ligne du tableau qui l'a, il ne faut pas les
+       deux. */
+    .cartes-evenements td.col-mini .evt-mini { border-top: 0; }
+    .cartes-evenements td.col-mini .evt-mini-lien { padding: 0; }
+    .cartes-evenements tbody tr:not(.mois-sep) td:not(.col-check):not(.col-mini) {
         display: none;
     }
 

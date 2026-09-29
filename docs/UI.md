@@ -714,6 +714,15 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   actif.
 - **Recherche** : instantanée sur les lignes affichées sous le seuil de
   pagination client (`pagination_mode_client()`), sinon envoyée au serveur.
+- **Une liste courte d'événements se rend par `evenement_mini_html()`**
+  (`lib/evenements.php`) : la date en pastille d'agenda (jour, mois, année),
+  l'artiste en petit — `Artiste › Spectacle`, le chevron de `spectacle_chemin()`
+  —, la VILLE en grand parce que c'est elle qu'on cherche des yeux, la salle,
+  l'organisateur, et le statut à droite (icône au-dessus du mot, largeur
+  commune calée sur le plus long libellé pour que la colonne ne zigzague pas).
+  Trois écrans l'appellent : la carte « Événements » d'une structure, la carte
+  « Prochains événements » du tableau de bord, la liste des événements sur
+  téléphone. Un quatrième se branche dessus, il ne se redessine pas à côté.
 - **Une carte du tableau de bord ne s'étire pas** : elle montre ce qui demande
   du travail et referme le reste sur une dernière ligne « et X autres », qui
   mène à la liste complète (`$dash_reste()` dans `views/resumes.php`, posée

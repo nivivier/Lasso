@@ -252,6 +252,9 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                     <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
                 </span>
             </th>
+            <?php // Colonne sans en-tête : elle ne paraît que sur téléphone, où
+                  // la liste passe en cartes et où le <thead> est masqué. ?>
+            <th class="col-mini"></th>
         </tr>
     </thead>
     <tbody>
@@ -291,6 +294,11 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                 <?php if ((int) $ev['production_externe']): ?><span title="Production externe" aria-label="Production externe"><?= icon('handshake') ?></span><?php endif; ?>
                 <?= (int) $ev['nb_salaries'] ?>
             </td>
+            <?php // Sur téléphone, les sept cellules ci-dessus s'effacent au profit
+                  // de cette seule mini-ligne, la même que sur la fiche d'une
+                  // structure et le tableau de bord (evenement_mini_html()). Pas
+                  // de lien à l'intérieur : c'est le <tr> qui mène à la date. ?>
+            <td class="col-mini"><?= evenement_mini_html($ev, ['balise' => 'div']) ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

@@ -671,30 +671,22 @@ lassoInitTagSuggest();
 <div class="card">
     <div class="card-block">
         <h2 class="mt-0">Événements (<?= count($evenementsLies) ?>)</h2>
+        <?php // Mini-ligne partagée avec le tableau de bord et la liste des
+              // événements (evenement_mini_html()) : la structure liée d'où
+              // vient l'événement prend la place de l'organisateur, puisque
+              // c'est elle qui répond ici à « de qui s'agit-il ». ?>
         <ul class="clean-list">
-            <?php foreach (array_slice($evenementsLies, 0, 30) as $ev):
-                $ts = $ev['date'] ? strtotime((string) $ev['date']) : false;
-            ?>
-            <li class="evt-row">
-                <a href="?p=evenement&id=<?= (int) $ev['id'] ?>" class="evt-date">
-                    <?php if ($ts): ?>
-                        <span class="evt-date-jm"><?= date('d', $ts) ?> <?= mois_abrege((int) date('n', $ts)) ?></span>
-                        <span class="evt-date-an"><?= date('Y', $ts) ?></span>
-                    <?php else: ?>
-                        <span class="evt-date-jm">—</span>
-                    <?php endif; ?>
-                </a>
-                <div class="evt-info">
-                    <?php $nomPrincipal = (string) ($ev['spectacle_groupe'] ?? '') !== '' ? (string) $ev['spectacle_groupe'] : ((string) ($ev['spectacle'] ?? '') ?: 'Événement'); ?>
-                    <div class="evt-spectacle"><a href="?p=evenement&id=<?= (int) $ev['id'] ?>"><?= e($nomPrincipal) ?></a></div>
-                    <?php if ((string) ($ev['spectacle_groupe'] ?? '') !== '' && (string) ($ev['spectacle'] ?? '') !== ''): ?>
-                        <div class="muted small"><?= e((string) $ev['spectacle']) ?></div>
-                    <?php endif; ?>
-                    <?php if (!empty($ev['structure_id'])): ?>
-                        <div class="muted small"><span class="ico-tiny"><?= icon($ev['sens'] === 'organise' ? 'blocks' : 'building') ?></span> <?= e((string) $ev['structure_nom']) ?></div>
-                    <?php endif; ?>
-                </div>
-            </li>
+            <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
+            <?php // L'organisateur ne se répète pas sur sa propre fiche : il n'y
+                  // apprendrait rien. Reste la structure liée d'où vient
+                  // l'événement, quand on l'a trouvé par elle. ?>
+            <?php if ((string) ($ev['organisateur_nom'] ?? '') === (string) ($structure['nom'] ?? '')) { $ev['organisateur_nom'] = ''; } ?>
+            <?= evenement_mini_html($ev, [
+                'href' => '?p=evenement&id=' . (int) $ev['id'],
+                'note' => !empty($ev['structure_id'])
+                    ? '<span class="ico-tiny">' . icon($ev['sens'] === 'organise' ? 'blocks' : 'building') . '</span> ' . e((string) $ev['structure_nom'])
+                    : '',
+            ]) ?>
             <?php endforeach; ?>
         </ul>
         <?php if (count($evenementsLies) > 30): ?><p class="muted small">… et <?= count($evenementsLies) - 30 ?> autre(s).</p><?php endif; ?>
