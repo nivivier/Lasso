@@ -266,7 +266,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     tri n'est pas accessible.
 11. **Sur téléphone**, les grandes listes — structures, salaires, employés,
     événements, factures — se relisent en **fiches** plutôt qu'en tableau à
-    faire défiler, chacune montrant les champs qui comptent pour elle. Les
+    faire défiler, chacune montrant les champs qui comptent pour elle. Un
+    événement s'y présente exactement comme sur le tableau de bord et sur la
+    fiche d'une structure : la date en pastille d'agenda, l'artiste, la ville,
+    la salle, et son statut à droite. Les
     filtres passent derrière un bouton « Filtres » à côté de la recherche, le
     même qui sert aux vues carte. Au-delà de 700 px de large, les tableaux
     complets reprennent.
@@ -276,6 +279,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     Le bouton en haut à droite ouvre « Organiser les cartes » : on les range au
     **glisser-déposer** et on décoche celles qu'on ne veut pas voir. C'est un
     réglage **par compte**, pas un paramètre de l'association.
+    Une carte ne s'étire pas : elle montre ce qui demande du travail et referme
+    le reste sur une dernière ligne « et X autres » qui mène à la liste. La
+    carte des campagnes, en particulier, ne montre que le démarchage en cours
+    dès qu'une campagne est ouverte, et annonce les prochaines d'une ligne.
 13. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.
