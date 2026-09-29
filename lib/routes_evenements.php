@@ -288,19 +288,11 @@ function route_evenements_liste(): void
     }
 
     $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
-    // Deux jointures de plus pour la mini-ligne de la vue téléphone
-    // (evenement_mini_html()) : l'artiste qui coiffe le spectacle, et
-    // l'organisateur. Celui-ci se résout comme dans l'export SUISA — la
-    // structure marquée « à facturer » d'abord, sinon la première liée : le
-    // miroir evenements.organisateur_structure_id ne reprend que la première
-    // des deux et resterait vide sans ce marquage. Réservées aux requêtes qui
-    // RAMÈNENT les lignes ; les COUNT gardent le $from court.
-    $fromData = $from . ' LEFT JOIN spectacles sp ON sp.id = s.parent_id
-              LEFT JOIN structures org ON org.id = (
-                  SELECT es.structure_id FROM evenement_structures es
-                   WHERE es.evenement_id = e.id
-                   ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)';
-    $selectCols = "e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_groupe, org.nom AS organisateur_nom,
+    // Une jointure de plus pour la mini-ligne de la vue téléphone
+    // (evenement_mini_html()) : l'artiste qui coiffe le spectacle. Réservée aux
+    // requêtes qui RAMÈNENT les lignes ; les COUNT gardent le $from court.
+    $fromData = $from . ' LEFT JOIN spectacles sp ON sp.id = s.parent_id';
+    $selectCols = "e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_groupe,
                    (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries";
     $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', e.id DESC' : ' ORDER BY e.date DESC, e.id DESC';
 

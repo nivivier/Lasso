@@ -672,15 +672,11 @@ lassoInitTagSuggest();
     <div class="card-block">
         <h2 class="mt-0">Événements (<?= count($evenementsLies) ?>)</h2>
         <?php // Mini-ligne partagée avec le tableau de bord et la liste des
-              // événements (evenement_mini_html()) : la structure liée d'où
-              // vient l'événement prend la place de l'organisateur, puisque
-              // c'est elle qui répond ici à « de qui s'agit-il ». ?>
+              // événements (evenement_mini_html()). La note dit par quelle
+              // structure liée l'événement arrive ici — la seule chose que la
+              // ligne ne montre pas d'elle-même, et seulement dans ce cas. ?>
         <ul class="clean-list">
             <?php foreach (array_slice($evenementsLies, 0, 30) as $ev): ?>
-            <?php // L'organisateur ne se répète pas sur sa propre fiche : il n'y
-                  // apprendrait rien. Reste la structure liée d'où vient
-                  // l'événement, quand on l'a trouvé par elle. ?>
-            <?php if ((string) ($ev['organisateur_nom'] ?? '') === (string) ($structure['nom'] ?? '')) { $ev['organisateur_nom'] = ''; } ?>
             <?= evenement_mini_html($ev, [
                 'href' => '?p=evenement&id=' . (int) $ev['id'],
                 'note' => !empty($ev['structure_id'])

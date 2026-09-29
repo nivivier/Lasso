@@ -106,21 +106,20 @@ function evenement_statut_suisa_libelle(string $statut): string
 //
 // Trois blocs : la date en pastille d'agenda (jour, mois, année), le corps sur
 // trois lignes (l'artiste et son spectacle en petit ; la VILLE en grand — c'est
-// elle qu'on cherche des yeux dans une liste de dates — suivie de la salle, qui
-// tient sur la même ligne ; l'organisateur), et le statut à droite, icône
-// au-dessus du mot.
+// elle qu'on cherche des yeux dans une liste de dates ; la salle en dessous),
+// et le statut à droite, icône au-dessus du mot.
 //
 // Champs lus, tous facultatifs sauf la date : statut, spectacle_nom ou
 // spectacle (la feuille), spectacle_groupe (l'artiste qui la coiffe), ville,
-// pays, departement_canton, salle, festival, organisateur_nom.
+// pays, departement_canton, salle, festival.
 //
 // $opts : 'href'   lien de la ligne ; vide = aucun (la ligne entière l'est déjà,
 //                  comme dans la liste où c'est le <tr> qui porte le lien) ;
 //         'balise' 'li' (défaut) ou 'div', dans une cellule de tableau ;
 //         'avant'  HTML posé avant la pastille — la case à cocher de la liste ;
-//         'note'   remplace la ligne « organisateur » par ce HTML déjà échappé
-//                  (la fiche d'une structure y met la structure liée d'où vient
-//                  l'événement, avec son icône lieu/organisateur).
+//         'note'   une quatrième ligne, HTML déjà échappé — la fiche d'une
+//                  structure y dit par quelle structure liée l'événement lui
+//                  arrive, ce qu'aucune des trois autres lignes n'explique.
 function evenement_mini_html(array $ev, array $opts = []): string
 {
     $ts      = trim((string) ($ev['date'] ?? '')) !== '' ? strtotime((string) $ev['date']) : false;
@@ -149,19 +148,6 @@ function evenement_mini_html(array $ev, array $opts = []): string
     ));
 
     $note = (string) ($opts['note'] ?? '');
-    if ($note === '') {
-        // L'organisateur, sauf quand c'est la salle elle-même : la plupart des
-        // dates sont organisées par le lieu qui les accueille, et la ligne
-        // répétait alors mot pour mot celle du dessus.
-        $org  = trim((string) ($ev['organisateur_nom'] ?? ''));
-        $deja = array_map(
-            fn (string $x): string => mb_strtolower(trim($x)),
-            [(string) ($ev['salle'] ?? ''), (string) ($ev['festival'] ?? '')]
-        );
-        $note = ($org !== '' && !in_array(mb_strtolower($org), $deja, true))
-            ? '<span class="ico-tiny">' . icon('blocks') . '</span> ' . e($org)
-            : '';
-    }
 
     $date = '<span class="evt-date">'
         . ($ts
@@ -175,11 +161,8 @@ function evenement_mini_html(array $ev, array $opts = []): string
         . '<span class="evt-titre">' . e($titre)
         . ($second !== '' ? ' <span class="evt-sep">›</span> <span class="evt-second">' . e($second) . '</span>' : '')
         . '</span>'
-        . '<span class="evt-ville">' . ($ville !== '' ? $ville : '<span class="muted">Lieu à préciser</span>')
-        // Le point de séparation voyage AVEC la salle : rejeté seul en bout de
-        // ligne quand la ligne passe à la suivante, il pendait dans le vide.
-        . ($salle !== '' ? ' <span class="evt-salle"><span class="evt-sep">·</span>&nbsp;' . e($salle) . '</span>' : '')
-        . '</span>'
+        . '<span class="evt-ville">' . ($ville !== '' ? $ville : '<span class="muted">Lieu à préciser</span>') . '</span>'
+        . ($salle !== '' ? '<span class="evt-salle">' . e($salle) . '</span>' : '')
         . ($note !== '' ? '<span class="evt-org">' . $note . '</span>' : '')
         . '</span>';
 
@@ -503,18 +486,12 @@ function evenements_terme_spectacle(bool $pluriel = true): string
 function evenements_a_venir(int $limite = 5): array
 {
     $stmt = db()->prepare(
-        // Même résolution de l'organisateur que l'export SUISA : la structure
-        // marquée « à facturer » d'abord, sinon la première liée — le miroir
-        // evenements.organisateur_structure_id ne reprend que la première des
-        // deux et resterait vide sans ce marquage.
-        "SELECT e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_groupe, org.nom AS organisateur_nom
+        // spectacle_groupe : l'artiste qui coiffe le spectacle, pour la
+        // mini-ligne (evenement_mini_html()).
+        "SELECT e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_groupe
            FROM evenements e
            LEFT JOIN spectacles s ON s.id = e.spectacle_id
            LEFT JOIN spectacles sp ON sp.id = s.parent_id
-           LEFT JOIN structures org ON org.id = (
-               SELECT es.structure_id FROM evenement_structures es
-                WHERE es.evenement_id = e.id
-                ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)
           WHERE e.date >= date('now') ORDER BY e.date ASC LIMIT ?"
     );
     $stmt->bindValue(1, $limite, PDO::PARAM_INT);
