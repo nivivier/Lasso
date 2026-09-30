@@ -21,6 +21,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   son titre, un simple filet les séparant des lignes qu'elles additionnent.
 
 ### Corrigé
+- **L'icône et le nom d'une campagne se posaient 4 px trop haut** dans la carte
+  du tableau de bord, dès que la colonne d'avancement rendait la rangée plus
+  haute qu'eux. Ils sont maintenant centrés dans leur ligne, comme le reste.
 - **« Envoyé » ne ramène plus les décomptes manquants.** Le filtre SUISA de la
   liste des événements rangeait les retards avec les envois — cocher « envoyé »
   ramenait donc ce que « manquant » venait d'écarter —, et la carte Suisa du

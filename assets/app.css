@@ -1790,7 +1790,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 /* Carte « Campagnes » du tableau de bord : une ligne par campagne, l'icône de
    son projet en tête pour la reconnaître sans lire. La barre d'avancement est
    celle des listes (.camp-barre-liste). */
-.dash-campagne { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+/* flex et non inline-flex : en ligne, la boîte se posait sur la LIGNE DE BASE de
+   la cellule, donc 4px trop haut dès que la colonne voisine (barre + compte sur
+   deux lignes) rendait la rangée plus haute que l'icône. En bloc, c'est le
+   vertical-align: middle de la cellule qui la centre, comme le reste. */
+.dash-campagne { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* Même taille que dans ?p=campagnes (.campagnes-table .projet-pastille) :
    c'est la même icône pour le même projet, elle doit se reconnaître pareil
    d'un écran à l'autre. */
