@@ -1772,6 +1772,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    et l'emporte sur « .list tfoot td » (0,1,2), le nombre de classes primant.
    Règle limitée à .dash-card : les totaux des autres listes gardent leur teal. */
 .dash-card .total-row td.num { color: var(--ink); }
+/* Le total ferme le tableau sur la même bande que la rangée de titres qui
+   l'ouvre (--surface, voir « .list thead th ») : deux repères de même nature,
+   un en haut, un en bas, et la liste entre les deux. Surtout pas l'ambre, qui
+   ne sert qu'à ce qui attend un geste — un total n'en attend aucun. */
+.dash-card .total-row td { background: var(--surface); }
 /* « et X autres » : la suite des lignes, pas un bouton — discrète, alignée sur
    le texte des lignes au-dessus, et cliquable sur toute sa hauteur. */
 .dash-card .dash-reste td { padding-top: 7px; padding-bottom: 7px; }
