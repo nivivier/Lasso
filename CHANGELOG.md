@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **Une campagne entièrement contactée reste sur le tableau de bord tant que sa
+  saison court**, et y garde sa barre d'avancement. Elle disparaissait le jour
+  où l'on finissait de démarcher — le statut bascule alors sur « terminée »,
+  quelles que soient les dates —, alors que c'est encore la campagne du moment
+  et que les réponses continuent d'arriver. Elle n'a plus de fond ambre en
+  revanche : il n'y reste aucun geste à faire.
+
 ## [2.9.3] — 2026-09-30
 
 ### Modifié

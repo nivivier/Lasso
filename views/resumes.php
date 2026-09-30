@@ -424,13 +424,19 @@ $cartes = [];
                         </td>
                         <?php // Une seule colonne pour les deux questions, parce
                               // qu'une seule des deux se pose à la fois : sur une
-                              // campagne en cours, ce qui compte est où elle en est ;
-                              // sur les autres, c'est leur état — une barre n'apprend
-                              // rien d'une campagne pas commencée, et sur une campagne
-                              // dont la date de fin est passée, « En retard » est
-                              // l'information, pas le décompte. ?>
+                              // campagne dont la saison court, ce qui compte est où
+                              // elle en est ; sur les autres, c'est leur état — une
+                              // barre n'apprend rien d'une campagne pas commencée, et
+                              // sur une campagne dont la date de fin est passée,
+                              // « En retard » est l'information, pas le décompte.
+                              //
+                              // Tout le monde contacté ne clôt pas la question : tant
+                              // que la saison court, les réponses continuent d'arriver
+                              // et la barre de répartition de les montrer. ?>
                         <td class="camp-avancement">
-                            <?php if ($c['statut'] === 'en_cours'): ?>
+                            <?php $avecBarre = $c['statut'] === 'en_cours'
+                                || ($c['statut'] === 'terminee' && campagne_periode_courante($c)); ?>
+                            <?php if ($avecBarre): ?>
                                 <?= campagne_barre_html($c['repartition'], (int) $c['nb_total'], 'camp-barre-liste') ?>
                                 <span class="camp-avancement-txt"><b><?= (int) $c['nb_faits'] ?></b> / <?= (int) $c['nb_total'] ?></span>
                             <?php else: ?>

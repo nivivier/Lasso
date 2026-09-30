@@ -491,7 +491,7 @@ function campagnes_liste(): array
 // maintenant, ce qui vient, ce qui est derrière.
 //
 // « En retard » est rangée avec « en cours », comme sur le tableau de bord
-// (CAMPAGNES_DASHBOARD_ORDRE, campagnes_ouvertes()) : ce sont les deux états où il reste des
+// (CAMPAGNES_DASHBOARD_ORDRE, campagnes_actives()) : ce sont les deux états où il reste des
 // structures à contacter. La classer dans « passées » aurait rangé du travail
 // à faire avec ce qui est fini.
 //
@@ -1976,19 +1976,20 @@ const CAMPAGNES_DASHBOARD_ORDRE = ['en_retard', 'en_cours', 'a_venir', 'terminee
 // $liste évite de relire la base quand l'appelant tient déjà les campagnes
 // (le tableau de bord s'en sert aussi pour campagnes_dashboard_a_venir()).
 //
-// **Dès qu'une campagne est ouverte, la carte ne montre plus qu'elles** : ce
+// **Dès qu'une campagne est active, la carte ne montre plus qu'elles** : ce
 // qu'on vient y chercher, c'est où en est le démarchage du moment. Les
 // campagnes pas encore commencées se résument alors à une ligne « et X autres
-// à venir » (campagnes_dashboard_a_venir()), et les terminées sortent de la
-// carte — elles sont derrière, la liste complète les garde. Sans campagne
-// ouverte, la carte montre la suite comme avant : à venir, puis terminées.
+// à venir » (campagnes_dashboard_a_venir()), et les campagnes passées sortent
+// de la carte — elles sont derrière, la liste complète les garde. Sans campagne
+// active, la carte montre la suite comme avant : à venir, puis terminées.
+// « Active » est plus large qu'« ouverte » : voir campagnes_actives().
 function campagnes_dashboard(int $max = 9, ?array $liste = null): array
 {
     $rang = array_flip(CAMPAGNES_DASHBOARD_ORDRE);
     $liste ??= campagnes_liste();
-    $ouvertes = campagnes_ouvertes($liste);
-    if ($ouvertes) {
-        $liste = $ouvertes;
+    $actives = campagnes_actives($liste);
+    if ($actives) {
+        $liste = $actives;
     }
     // Tri stable : à état égal, l'ordre de campagnes_liste() est conservé
     // (la plus récente d'abord) — sauf entre campagnes à venir, où c'est la
@@ -2005,19 +2006,46 @@ function campagnes_dashboard(int $max = 9, ?array $liste = null): array
     return array_slice($liste, 0, $max);
 }
 
-// Les campagnes du démarchage en cours, « en retard » comprises.
-function campagnes_ouvertes(array $liste): array
+// Les campagnes de la saison en cours : celles où il reste à contacter (« en
+// cours » et « en retard »), PLUS celles dont tout le monde est déjà contacté
+// mais dont la période court encore.
+//
+// Ces dernières ne sont pas « ouvertes » au sens du statut — campagne_statut()
+// les bascule sur « terminée » dès le dernier contact, quelles que soient les
+// dates — mais elles restent la campagne du moment : les faire disparaître de
+// la carte le jour où on finit de démarcher donnerait l'impression qu'il ne se
+// passe plus rien. Elles y figurent simplement sans fond ambre, puisqu'elles
+// n'attendent plus aucun geste.
+function campagnes_actives(array $liste, string $aujourdhui = ''): array
 {
-    return array_values(array_filter($liste, fn ($c) => in_array($c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)));
+    return array_values(array_filter(
+        $liste,
+        fn (array $c): bool => in_array((string) $c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)
+            || ((string) $c['statut'] === 'terminee' && campagne_periode_courante($c, $aujourdhui))
+    ));
+}
+
+// La PÉRIODE d'une campagne court-elle encore ? Commencée, pas finie — les
+// dates seules, sans regarder où en est le démarchage. C'est ce qui distingue
+// une campagne bouclée en avance (tout le monde contacté, mais la saison n'est
+// pas finie : les réponses peuvent encore bouger, on montre son avancement)
+// d'une campagne vraiment derrière nous.
+function campagne_periode_courante(array $c, string $aujourdhui = ''): bool
+{
+    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
+    $debut = (string) ($c['date_debut'] ?? '');
+    $fin   = (string) ($c['date_fin'] ?? '');
+    return ($debut === '' || $debut <= $aujourdhui)
+        && ($fin === '' || $fin >= $aujourdhui);
 }
 
 // Ce que la carte du tableau de bord laisse de côté quand elle se limite aux
-// campagnes ouvertes : celles qui n'ont pas commencé. Zéro quand la carte les
+// campagnes actives : celles qui n'ont pas commencé. Zéro quand la carte les
 // montre déjà — la même règle que campagnes_dashboard(), au même endroit, pour
 // que la ligne « et X autres à venir » ne puisse pas mentir.
 function campagnes_dashboard_a_venir(array $liste): int
 {
-    if (!campagnes_ouvertes($liste)) {
+    if (!campagnes_actives($liste)) {
         return 0;
     }
     return count(array_filter($liste, fn ($c) => $c['statut'] === 'a_venir'));

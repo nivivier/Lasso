@@ -287,5 +287,37 @@ check('sur un fragment de projet', true, campagne_correspond($camp, 'hector'));
 check('ce qui ne figure ni dans l\'un ni dans l\'autre', false, campagne_correspond($camp, 'bratislava'));
 check('campagne sans projet', false, campagne_correspond(['nom' => 'Vide', 'projets' => []], 'kaceo'));
 
+// --- Ce que la carte du tableau de bord retient ------------------------------
+// campagne_statut() bascule sur « terminée » dès le dernier contact, quelles
+// que soient les dates : une campagne bouclée en avance ne doit pas pour autant
+// disparaître de la carte, elle reste celle de la saison en cours.
+echo "\n16) Campagnes actives (carte du tableau de bord)\n";
+$auj = '2026-06-15';
+check('tout le monde contacté = terminée, même en pleine période',
+    'terminee', campagne_statut('2026-01-01', '2026-12-31', 12, 12, $auj));
+$camp = fn (string $nom, string $statut, string $debut, string $fin): array
+    => ['nom' => $nom, 'statut' => $statut, 'date_debut' => $debut, 'date_fin' => $fin];
+$actives = fn (array $liste): array => array_column(campagnes_actives($liste, $auj), 'nom');
+check('en cours', ['a'], $actives([$camp('a', 'en_cours', '2026-01-01', '2026-12-31')]));
+check('en retard (fin dépassée, reste du travail)', ['a'], $actives([$camp('a', 'en_retard', '2026-01-01', '2026-03-31')]));
+check('à venir : pas encore la saison', [], $actives([$camp('a', 'a_venir', '2026-09-01', '2026-12-31')]));
+check('terminée, période encore en cours : gardée', ['a'], $actives([$camp('a', 'terminee', '2026-01-01', '2026-12-31')]));
+check('terminée, période passée : écartée', [], $actives([$camp('a', 'terminee', '2025-01-01', '2025-12-31')]));
+check('terminée, période pas commencée : écartée', [], $actives([$camp('a', 'terminee', '2026-09-01', '2026-12-31')]));
+check('terminée sans dates : période ouverte des deux côtés, gardée', ['a'], $actives([$camp('a', 'terminee', '', '')]));
+check('terminée sans date de fin, commencée : gardée', ['a'], $actives([$camp('a', 'terminee', '2026-01-01', '')]));
+// La même question sert deux fois : garder la campagne sur la carte, ET y
+// montrer son avancement plutôt qu'une étiquette « Terminée » — tant que la
+// saison court, les réponses continuent d'arriver.
+check('période courante', true, campagne_periode_courante(['date_debut' => '2026-01-01', 'date_fin' => '2026-12-31'], $auj));
+check('période finie', false, campagne_periode_courante(['date_debut' => '2025-01-01', 'date_fin' => '2025-12-31'], $auj));
+check('période pas commencée', false, campagne_periode_courante(['date_debut' => '2026-09-01', 'date_fin' => ''], $auj));
+check('dernier jour inclus', true, campagne_periode_courante(['date_debut' => '2026-06-15', 'date_fin' => '2026-06-15'], $auj));
+check('sans aucune date', true, campagne_periode_courante(['date_debut' => '', 'date_fin' => ''], $auj));
+check('l\'ordre de la liste est conservé', ['b', 'a'], $actives([
+    $camp('b', 'terminee', '2026-01-01', '2026-12-31'),
+    $camp('a', 'en_cours', '2026-01-01', '2026-12-31'),
+]));
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);
