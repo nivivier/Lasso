@@ -285,6 +285,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     le reste sur une dernière ligne « et X autres » qui mène à la liste. La
     carte des campagnes, en particulier, ne montre que le démarchage en cours
     dès qu'une campagne est ouverte, et annonce les prochaines d'une ligne.
+    Ce qui **attend un geste** se détache sur fond ambre — une fiche à verser
+    dont le mois est passé, une facture échue, une campagne ouverte, les
+    déclarations SUISA à faire ; ce qui suit son cours reste à l'encre, et un
+    total ne porte jamais de couleur.
 13. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et spectacles. Plusieurs
     mots se cumulent, les accents sont ignorés.

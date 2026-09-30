@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.9.2] — 2026-09-30
 
 ### Modifié
 - **Le tableau de bord montre ce qui attend un geste sur la ligne elle-même.**
@@ -30,6 +30,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   tableau de bord comptait chaque retard deux fois, sur sa ligne et sur celle
   des envoyés. Les sept statuts sont désormais exclusifs deux à deux, côté base
   comme côté écran.
+- **Documentation du dépôt revue contre le code** : neuf affirmations fausses
+  corrigées — un décompte de fichiers de tests, une dépendance oubliée
+  (Cropper.js), une page confondue avec une autre, un renvoi circulaire, et
+  surtout les quatre `SPEC_*.md` qui se disaient encore « à valider avant
+  implémentation » pour des modules en service, dont un décrivait cinq statuts
+  SUISA sur sept.
 
 ## [2.9.1] — 2026-09-29
 
