@@ -1,7 +1,10 @@
 # Spécification — Module Événements
 
-Statut : **à valider avant implémentation**. Ce document résume le besoin cadré avec
-l'utilisateur ; il sert de référence pour l'implémentation à venir, pas un plan de code figé.
+Statut : **module en service**. Ce document est le besoin cadré avec l'utilisateur
+avant l'implémentation, gardé pour le « pourquoi » d'un modèle de données ou d'une
+règle métier — le code y renvoie. Il n'a pas suivi toutes les évolutions depuis :
+**en cas de désaccord, le code fait foi**, et `README.md` décrit ce que
+l'application fait aujourd'hui.
 
 ## 1. Objectif
 
@@ -127,20 +130,28 @@ avaient vu l'annonce, pas juste la faire disparaître).
 ### Statut SUISA dérivé (filtrable dans la liste des événements)
 
 Comme le statut « en retard » des factures, entièrement **dérivé** (pas stocké) à partir
-de `suisa_applicable`, `suisa_envoye_le`, `suisa_decompte_le` et du délai configurable.
-Cinq valeurs, calculées par ordre de priorité :
+de `suisa_applicable`, `suisa_envoye_le`, `suisa_decompte_le`, de la date de l'événement
+et de deux délais configurables. **Sept** valeurs — les cinq d'origine, plus « à venir »
+et « abandonné », ajoutées à l'usage —, calculées par ordre de priorité
+(`evenement_statut_suisa()`, `lib/evenements.php`) :
 
 | statut | condition |
 |---|---|
 | **Ne s'applique pas** | `suisa_applicable = 0` |
 | **Décompte reçu** | `suisa_decompte_le` renseignée |
-| **Manquant** | `suisa_envoye_le` renseignée, pas de décompte, délai dépassé |
-| **Envoyé** | `suisa_envoye_le` renseignée, pas de décompte, délai non dépassé |
-| **À faire** | `suisa_envoye_le` vide (et `suisa_applicable = 1`) |
+| **À venir** | pas de décompte, et la date de l'événement n'est pas passée — rien à suivre avant qu'il ait eu lieu |
+| **Abandonné** | pas de décompte, et la date dépasse le délai d'abandon (ex. 5 ans) — envoyée ou non, on cesse de la compter comme à relancer |
+| **À faire** | `suisa_envoye_le` vide |
+| **Manquant** | envoyée, pas de décompte, délai de décompte dépassé |
+| **Envoyé** | envoyée, pas de décompte, délai de décompte non dépassé |
 
-L'écran liste des événements permet de **filtrer par ce statut** (menu déroulant, même
-esprit que le filtre de statut sur la liste des factures), pour retrouver rapidement les
-dates « à faire » ou « manquantes ».
+**Les sept sont exclusifs deux à deux** : « envoyé » s'arrête où « manquant » commence.
+Le filtre de la liste l'a longtemps ignoré, rangeant les retards avec les envois — voir
+le commentaire de `evenement_sql_statut_suisa()`, qui porte le prédicat SQL équivalent.
+
+L'écran liste des événements permet de **filtrer par ce statut** — une colonne à cases à
+cocher, plusieurs valeurs cumulables, comme les autres filtres de colonne —, pour
+retrouver rapidement les dates « à faire » ou « manquantes ».
 
 ## 6. Lien avec la facturation
 
@@ -293,7 +304,7 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
 
 ## 12. Structure de code envisagée (à l'image des modules existants)
 
-- `lib/evenements.php` — fonctions pures : statut SUISA dérivé (5 valeurs, §5), règles
+- `lib/evenements.php` — fonctions pures : statut SUISA dérivé (§5), règles
   de visibilité/statut pour l'affichage public (§4), et la fonction de filtrage/mise en
   forme partagée par les deux routes d'export (§8 → JSON et iCal doivent utiliser la
   même liste filtrée, pas deux implémentations divergentes).
@@ -308,7 +319,7 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
 - Migration(s) : nouvelles entrées `$steps` + `migration_N()` pour `spectacles`,
   `evenements`, `evenement_employes`, `evenement_fiches`, et l'ajout de la colonne
   `evenement_id` sur `factures`.
-- Tests : `tests/evenements_test.php` (statut SUISA dérivé sur les 5 valeurs, règles de
+- Tests : `tests/evenements_test.php` (statut SUISA dérivé, règles de
   visibilité/statut, filtrage de l'export JSON/iCal — en particulier qu'un événement
   `prive` ou `non_repertorie` ne fuite jamais un champ interdit) — même esprit que
   `calc_test.php`/`compta_test.php`.
@@ -319,7 +330,7 @@ Les points cadrés lors des itérations précédentes (délai SUISA configurable
 emplacement — onglet « Événements » des paramètres, §7 —, statut `option`/`confirme`/
 `annule` séparé de la visibilité, validation URL de `lien_infos`, plusieurs factures par
 événement, upload de la feuille SUISA par spectacle avec validation mime stricte, filtre
-par statut SUISA à 5 valeurs, export public JSON/iCal par jeton §8) sont maintenant
+par statut SUISA, export public JSON/iCal par jeton §8) sont maintenant
 actés ci-dessus. Reste à trancher :
 
 1. Format exact des dates/heures dans le JSON exposé (ex. `date` seule au format

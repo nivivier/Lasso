@@ -1,7 +1,10 @@
 # Spécification — Droits d'accès par module (lecture / écriture)
 
-Statut : **à valider avant implémentation**. Ce document propose un cadrage du besoin ;
-il sert de référence pour l'implémentation à venir, pas un plan de code figé.
+Statut : **module en service**. Ce document est le besoin cadré avec l'utilisateur
+avant l'implémentation, gardé pour le « pourquoi » d'un modèle de données ou d'une
+règle métier — le code y renvoie. Il n'a pas suivi toutes les évolutions depuis :
+**en cas de désaccord, le code fait foi**, et `README.md` décrit ce que
+l'application fait aujourd'hui.
 
 ## 1. Objectif
 

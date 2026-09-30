@@ -46,7 +46,7 @@ php -S 127.0.0.1:8000   # serveur local (env détecté = dev, via PHP_SAPI cli-s
 php tests/run.php       # analyse syntaxique de tout le code + toute la suite de tests
 ```
 Avant de conclure une tâche qui touche au code : **`php tests/run.php`**, qui fait
-à la fois le `php -l` sur l'ensemble du projet et les 6 fichiers de tests. Il sort
+à la fois le `php -l` sur l'ensemble du projet et TOUS les fichiers de tests. Il sort
 en code ≠ 0 au moindre échec (c'est la même commande que la CI, voir
 `.github/workflows/tests.yml`) — ne pas se contenter de lancer un fichier de tests
 isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.

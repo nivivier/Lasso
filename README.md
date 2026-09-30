@@ -27,10 +27,11 @@ Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
 montrant que ce que le compte a le droit de lire.
 
 **Technologie :** PHP 8.3+ et SQLite, sans framework ni étape de compilation.
-Trois dépendances seulement, **toutes embarquées dans le dépôt** (jamais de CDN) :
+Quatre dépendances seulement, **toutes embarquées dans le dépôt** (jamais de CDN) :
 `sprain/swiss-qr-bill` et `tecnickcom/tcpdf` pour la QR-facture (dossier `vendor/`,
-commité), **Leaflet** pour la carte des lieux (`assets/vendor/leaflet/`) et la police
-Inter (`assets/fonts/`).
+commité), **Leaflet** pour la carte des lieux (`assets/vendor/leaflet/`) et
+**Cropper.js** pour le recadrage d'une photo ou d'une icône
+(`assets/vendor/cropperjs/`) — plus la police Inter (`assets/fonts/`).
 
 ---
 
@@ -157,8 +158,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 3. Sur une fiche : **Imprimer / PDF**, **Envoyer** par e-mail à l'employé, et — si la
    comptabilité est active — **lier l'écriture bancaire** qui l'a payée, comme on le fait
    pour une facture.
-4. **Tableau de bord** : totaux par trimestre / semestre / année et « Salaires à
-   verser ».
+4. **Cotisations** : les totaux d'une année, regroupés par mois, trimestre,
+   semestre ou année, et les charges de l'employeur. Le **tableau de bord**, lui,
+   est décrit en 12 : il montre ce qui demande un geste, pas des totaux.
 5. **Certificat de salaire** (page d'un employé) : récapitulatif annuel au format du
    formulaire 11, impression PDF, et **export XML** à importer dans l'application
    officielle *eCertificat de salaire CSI* pour produire les PDF certifiés.
@@ -240,7 +242,7 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    cherche (nom, projet), se filtre (projet, année, état) et se lit en trois
    tranches — en cours, à venir, passées, les plus proches d'abord parmi celles
    à venir ; la sélection d'une campagne et son suivi affichent le tableau des
-   structures, le même qu'en 9, avec ses filtres, son tri, ses tags modifiables
+   structures, le même que la liste du booking, avec ses filtres, son tri, ses tags modifiables
    sur place et sa **modification groupée** — auxquels le suivi ajoute sa
    colonne « Suivi », qui se filtre sur les quatre états du démarchage (à
    contacter, sans réponse, pas intéressé, intéressé), les mêmes que découpe la
@@ -559,6 +561,7 @@ php tests/run.php
 | `docs/UI.md` | avant d'écrire un écran : comment l'application modifie une ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document |
 | `docs/DECISIONS.md` | avant de toucher au schéma, à l'environnement ou à la CSP : le « pourquoi » des choix structurants et des impasses déjà rencontrées |
 | `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
+| `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md` | le besoin cadré avec l'utilisateur pour ces trois modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
 
 `docs/UI.md` se met à jour **en même temps** que la convention qu'il décrit :
 c'est ce qui évite de redécider à chaque page.

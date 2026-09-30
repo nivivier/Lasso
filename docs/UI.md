@@ -334,7 +334,7 @@ portée de clic quand on ne fait que lire.
 | Liste ordonnable (`.plan-row`) | classe `.plan-supprimer` — une règle globale la masque hors `.editing` |
 | Section éditable (`.section-editable`) | `.edit-only` : révélée par le crayon de section |
 | Bloc répété (`lassoInitBlocEdition`) | **dans le panneau d'édition**, en bas |
-| Script de page (`?p=compta_axes`, `?p=compta_comptes`, `?p=taux_horaires`) | `hidden` posé au chargement, levé par le crayon — même résultat, sans le helper |
+| Script de page (`?p=compta_axes`, `?p=compta_comptes`, `?p=taux_horaires`, `?p=comptes`) | `hidden` posé au chargement, levé par le crayon — même résultat, sans le helper. Quand la liste s'allonge sans recharger (`?p=comptes`), les écouteurs sont **délégués** au tableau, sinon la ligne neuve naît avec un crayon mort |
 
 ```css
 .dnd-on .plan-row .plan-supprimer { display: none; }
@@ -374,7 +374,7 @@ Deux implémentations, selon la forme de la liste :
   `?p=postes`, le déroulé d'un événement (`?p=evenement`), les cartes du tableau
   de bord (`?p=resumes`, panneau « Organiser les cartes »).
 
-Trois règles qui comptent :
+Quatre règles qui comptent :
 
 1. **Le dépôt poste, le serveur renumérote.** Le script renseigne un formulaire
    caché (`#reorder-form` : `id` + `order` complet) et l'envoie ; la page
