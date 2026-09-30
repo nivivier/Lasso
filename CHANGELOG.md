@@ -7,6 +7,14 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **La ligne « Manquants » de la carte Suisa ne se détache plus sur fond
+  ambre** : elle attend la SUISA, pas nous. Le rouge de son nombre dit déjà
+  qu'un décompte tarde. Seule « À faire » garde le fond — c'est la ligne dont
+  le geste nous revient.
+
 ## [2.9.2] — 2026-09-30
 
 ### Modifié

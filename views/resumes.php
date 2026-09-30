@@ -216,9 +216,10 @@ $cartes = [];
                           // qui appelle un geste. À l'encre, comme le nom d'une
                           // campagne en cours — la couleur d'accent reste à ce
                           // qui se clique. ?>
-                    <?php // « À faire » et « Manquants » attendent un geste — déclarer,
-                          // ou relancer un décompte qui ne revient pas. « Envoyés »
-                          // n'attend rien : la balle est chez la SUISA. ?>
+                    <?php // Seul « À faire » se détache : c'est ce qui dépend de nous,
+                          // une déclaration à envoyer. « Envoyés » et « Manquants »
+                          // attendent la SUISA — le rouge du nombre dit déjà qu'un
+                          // décompte tarde, sans en faire une tâche du jour. ?>
                     <tr class="row-link<?= $dash_action($suisaAFaire > 0) ?>" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>">
                         <td class="strong-encre">À faire</td>
                         <?php // Le nombre porte la gravité : ambre pour ce qui
@@ -233,7 +234,7 @@ $cartes = [];
                         <td>Envoyés</td>
                         <td class="num strong"><?= $suisaEnvoye ?></td>
                     </tr>
-                    <tr class="row-link<?= $dash_action($suisaManquant > 0) ?>" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
+                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
                         <td>Manquants</td>
                         <td class="num strong<?= $suisaManquant > 0 ? ' num-retard' : '' ?>"><?= $suisaManquant ?></td>
                     </tr>
