@@ -1746,55 +1746,20 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    sinon le fond des sélecteurs à une seule classe. */
 .dash-card, .card.auth { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
-/* Médaillon d'état posé sur une carte du tableau de bord : le nombre de
-   choses qui restent à faire, et le lien vers la liste correspondante.
-   Chevauche le bord haut de la carte, à droite.
+/* Une ligne d'une carte du tableau de bord qui ATTEND UN GESTE : fond ambre
+   très clair. Posée sur la ligne et non sur ses cellules, pour que le survol
+   (.list tr.row-link:hover, plus spécifique) continue de l'emporter.
 
-   Levé par un transform et NON par position:absolute : dans .dash-cols
-   (column-count), une boîte absolue est fragmentée par le multicol et
-   Chromium en peint une COPIE fantôme en bas de la colonne précédente
-   (constaté sur les cartes en tête de colonne). Le transform ne touche pas
-   au flux, donc rien à fragmenter.
-
-   align-items: flex-start sur la rangée de titre : le médaillon est plus haut
-   que le <h2>, et un centrage vertical poussait le titre à 31px du haut de la
-   carte au lieu des 26px du padding — les cartes avec et sans médaillon
-   n'alignaient plus leurs titres. */
-/* Pas d'overflow à rétablir : .card n'en déclare aucun, donc le médaillon
-   dépasse déjà librement du cadre. */
-.dash-card .card-head-row:has(.dash-medaillon) { align-items: flex-start; flex-wrap: wrap; }
-.dash-card .card-head-row:has(.dash-medaillon) > form { margin-left: auto; width: 100%; }
-/* L'enveloppe ne pèse rien dans la rangée de titre (height: 0), le médaillon
-   garde sa taille naturelle à l'intérieur et déborde. Sans cela la rangée
-   passait de 22px (hauteur du h2) à 30px : le titre restait bien à 26px du
-   haut, mais tout ce qui suit descendait d'autant, et le haut des cartes à
-   médaillon paraissait plus aéré que celui des autres. height: 0 posé sur le
-   médaillon lui-même l'aplatissait — c'est lui qui porte le fond coloré.
-   align-items: flex-start pour que l'enveloppe n'étire pas son contenu à 0. */
-.dash-medaillon-slot { display: inline-flex; align-items: flex-start; height: 0;
-    margin-left: auto; transform: translateY(-38px); }
-.dash-medaillon {
-    display: inline-flex; align-items: baseline; gap: 5px;
-    padding: 6px 15px; border-radius: var(--radius-pill);
-    border: 2px solid var(--card); box-shadow: 0 3px 12px rgb(0 0 0 / .16);
-    font-size: var(--fs-small); font-weight: 600; line-height: 1.2;
-    white-space: nowrap; color: #fff; text-decoration: none; transition: filter .15s;
-}
-.dash-medaillon:hover { filter: brightness(1.08); text-decoration: none; color: #fff; }
-.dash-medaillon b { font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
-.dash-medaillon-retard { background: var(--danger); }
-.dash-medaillon-attente { background: var(--amber); }
-/* Une colonne fait ~215px à 1500px de large : deux médaillons n'y tiennent
-   pas et cassent le titre sur deux lignes. Seul le premier (le plus urgent)
-   s'affiche ; sous 1400px la mise en page passe à 2 colonnes (~500px) et le
-   second réapparaît. */
-.dash-medaillon-slot ~ .dash-medaillon-slot { display: none; margin-left: 8px; }
-@media (max-width: 1400px) {
-    .dash-medaillon-slot ~ .dash-medaillon-slot { display: inline-flex; margin-left: 8px; }
-}
+   C'est la seule couleur de fond d'une carte, et elle remplace les médaillons
+   d'alerte qui se posaient sur les titres (« 3 à contacter », « 1 en retard ») :
+   ils annonçaient en chiffre ce que les lignes juste en dessous montraient
+   déjà. Une ligne de TOTAL n'en porte jamais — elle ne demande rien. */
+.dash-card tbody tr.ligne-action { background: var(--amber-tint); }
 
 /* Nombres colorés par gravité dans les tableaux du tableau de bord (carte
-   Suisa) — mêmes teintes que les médaillons et que les statuts ailleurs. */
+   Suisa) — mêmes teintes que les statuts ailleurs dans l'application. Le fond
+   ambre dit qu'il y a quelque chose à faire, la couleur du nombre dit à quel
+   point : ambre pour ce qui attend, rouge pour ce qui manque. */
 .dash-card td.num-attente { color: var(--amber); }
 .dash-card td.num-retard { color: var(--danger); }
 /* Factures émises (tableau de bord) : le retard se lit à la couleur, l'étiquette
@@ -3248,7 +3213,6 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .resume tfoot td.col-cout { color: var(--ink); } /* total coût employeur en noir */
 .list td.net-apayer { color: var(--amber); }      /* net en jaune quand à payer */
 .list td.net-avenir { color: var(--muted); }  /* net en gris quand à venir */
-.list .apayer-row td { background: var(--amber-tint); } /* ligne « Total à verser » sur fond jaune */
 .list tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--ink); }
 
 /* Mini-fiches dans la liste employés */

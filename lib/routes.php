@@ -2787,21 +2787,21 @@ function route_resumes(): void
     // Une fiche du mois M se verse pendant M+1 : elle est « à faire » tout ce
     // mois-là, et « en retard » seulement à partir de M+2. Une fiche du mois
     // courant n'est donc encore ni l'un ni l'autre — elle figure dans la liste
-    // (elle reste à verser) mais ne compte dans aucune pastille d'alerte.
-    $aPayerAFaire = 0;
-    $aPayerRetard = 0;
+    // (elle reste à verser) mais n'appelle aucun geste aujourd'hui. L'état
+    // voyage AVEC la fiche : c'est lui qui décide, dans la carte, quelles
+    // lignes se détachent sur fond ambre.
     if (module_accessible('salaires')) {
         foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
             $moisEcoules = ($aujAnnee - (int) $f['annee']) * 12 + ($aujMois - (int) $f['mois']);
             if ($moisEcoules < 0) {
                 continue; // fiche d'un mois à venir
             }
+            $f['echeance_etat'] = match (true) {
+                $moisEcoules === 1 => 'afaire',
+                $moisEcoules >= 2  => 'retard',
+                default            => '',
+            };
             $aPayer[] = $f;
-            if ($moisEcoules === 1) {
-                $aPayerAFaire++;
-            } elseif ($moisEcoules >= 2) {
-                $aPayerRetard++;
-            }
         }
     }
     $facturesEmises = module_accessible('facturation')
@@ -2818,19 +2818,17 @@ function route_resumes(): void
     // Widget « Suivi du booking » : étiquettes disponibles, celle que ce compte
     // suivait la dernière fois (à défaut la première de la liste), et la
     // répartition de ses structures par ancienneté de contact.
-    // Campagnes du tableau de bord : celles qui demandent du travail d'abord,
-    // et — comme les autres médaillons de la page — un décompte qui porte sur
-    // TOUTES les campagnes, pas seulement sur les neuf que la carte montre.
+    // Campagnes du tableau de bord : celles qui demandent du travail d'abord.
+    // Le décompte des campagnes à venir porte sur TOUTES les campagnes, pas
+    // seulement sur les neuf que la carte montre.
     $campagnesToutes = module_accessible('booking') ? campagnes_liste() : [];
     $campagnesDash = $campagnesToutes ? campagnes_dashboard(9, $campagnesToutes) : [];
     $campagnesAVenir = campagnes_dashboard_a_venir($campagnesToutes);
-    $campagnesAContacter = campagnes_a_contacter($campagnesToutes);
     render('resumes', [
-        'aPayer' => $aPayer, 'aPayerAFaire' => $aPayerAFaire, 'aPayerRetard' => $aPayerRetard,
+        'aPayer' => $aPayer,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
-        'campagnesDash' => $campagnesDash, 'campagnesAContacter' => $campagnesAContacter,
-        'campagnesAVenir' => $campagnesAVenir,
+        'campagnesDash' => $campagnesDash, 'campagnesAVenir' => $campagnesAVenir,
     ], 'Tableau de bord');
 }
 

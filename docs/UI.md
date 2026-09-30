@@ -723,6 +723,13 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   Trois écrans l'appellent : la carte « Événements » d'une structure, la carte
   « Prochains événements » du tableau de bord, la liste des événements sur
   téléphone. Un quatrième se branche dessus, il ne se redessine pas à côté.
+- **Une carte du tableau de bord met en valeur ce qui attend un geste** : la
+  ligne se détache sur un fond ambre très clair (`.ligne-action`) — une fiche à
+  verser dont le mois est passé, une facture échue, une campagne ouverte, la
+  ligne « À faire ». Ce qui suit son cours reste à l'encre, et **une ligne de
+  total ne porte jamais de fond** : elle ne demande rien. C'est la seule couleur
+  de fond d'une carte ; elle a remplacé les médaillons d'alerte posés sur les
+  titres, qui annonçaient en chiffre ce que les lignes montraient déjà.
 - **Une carte du tableau de bord ne s'étire pas** : elle montre ce qui demande
   du travail et referme le reste sur une dernière ligne « et X autres », qui
   mène à la liste complète (`$dash_reste()` dans `views/resumes.php`, posée

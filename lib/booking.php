@@ -491,14 +491,14 @@ function campagnes_liste(): array
 // maintenant, ce qui vient, ce qui est derrière.
 //
 // « En retard » est rangée avec « en cours », comme sur le tableau de bord
-// (CAMPAGNES_DASHBOARD_ORDRE) : ce sont les deux états où il reste des
+// (CAMPAGNES_DASHBOARD_ORDRE, campagnes_ouvertes()) : ce sont les deux états où il reste des
 // structures à contacter. La classer dans « passées » aurait rangé du travail
 // à faire avec ce qui est fini.
 //
 // Ces deux états-là forment le démarchage ouvert : une campagne « en retard »
 // n'est qu'une campagne en cours dont la date de fin est passée. Une seule
-// définition, pour que la tranche de la liste et le décompte du tableau de
-// bord (campagnes_a_contacter()) parlent des mêmes campagnes.
+// définition, pour que la tranche de la liste, la carte du tableau de bord et
+// les lignes qu'elle met en évidence parlent des mêmes campagnes.
 const CAMPAGNE_STATUTS_OUVERTS = ['en_retard', 'en_cours'];
 
 const CAMPAGNES_GROUPES = [
@@ -506,21 +506,6 @@ const CAMPAGNES_GROUPES = [
     ['titre' => 'À venir',  'statuts' => ['a_venir']],
     ['titre' => 'Passées',  'statuts' => ['terminee']],
 ];
-
-// Ce qu'il reste à démarcher : les structures encore à contacter dans les
-// campagnes ouvertes. Prend la liste en argument plutôt que de la relire —
-// le tableau de bord la tient déjà pour sa carte, et campagnes_liste() coûte
-// quatre requêtes d'agrégat.
-function campagnes_a_contacter(array $campagnes): int
-{
-    $n = 0;
-    foreach ($campagnes as $c) {
-        if (in_array((string) $c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)) {
-            $n += (int) ($c['repartition']['aContacter'] ?? 0);
-        }
-    }
-    return $n;
-}
 
 // Les campagnes à venir se lisent dans l'autre sens que le reste : la plus
 // PROCHE d'abord. Ailleurs, c'est la plus récente qui ouvre la liste (date de
@@ -1989,7 +1974,7 @@ function mailing_expediteur_libelle(array $expediteur): string
 const CAMPAGNES_DASHBOARD_ORDRE = ['en_retard', 'en_cours', 'a_venir', 'terminee'];
 
 // $liste évite de relire la base quand l'appelant tient déjà les campagnes
-// (le tableau de bord s'en sert aussi pour campagnes_a_contacter()).
+// (le tableau de bord s'en sert aussi pour campagnes_dashboard_a_venir()).
 //
 // **Dès qu'une campagne est ouverte, la carte ne montre plus qu'elles** : ce
 // qu'on vient y chercher, c'est où en est le démarchage du moment. Les

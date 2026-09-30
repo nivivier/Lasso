@@ -1,26 +1,16 @@
 <?php
-/** @var array $aPayer */ /** @var int $aPayerAFaire */ /** @var int $aPayerRetard */
+/** @var array $aPayer */
 /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaEnvoye */ /** @var int $suisaManquant */
-/** @var array $campagnesDash */ /** @var int $campagnesAContacter */ /** @var int $campagnesAVenir */
+/** @var array $campagnesDash */ /** @var int $campagnesAVenir */
 
-// Médaillon d'état posé sur une carte : le chiffre de ce qu'il reste à faire,
-// et le lien vers la liste correspondante. Rien à signaler = pas de médaillon
-// (un « 0 » sur chaque carte ne dit rien et fait du bruit). Les médaillons
-// s'écrivent du plus urgent au moins urgent : à trois colonnes, seul le
-// premier tient (voir .dash-medaillon dans app.css).
-$dash_medaillon = function (int $nb, string $libelle, string $ton, string $href): string {
-    if ($nb <= 0) {
-        return '';
-    }
-    // Enveloppe de hauteur nulle : c'est elle qui est neutralisée dans la
-    // rangée de titre, pas le médaillon — celui-ci porte le fond coloré et
-    // s'aplatirait si on lui mettait height: 0 (voir app.css).
-    return '<span class="dash-medaillon-slot">'
-        . '<a class="dash-medaillon dash-medaillon-' . e($ton) . '" href="' . e($href) . '">'
-        . '<b>' . $nb . '</b> ' . e($libelle) . '</a></span>';
-};
+// Une carte du tableau de bord met en valeur ce qui ATTEND UN GESTE : la ligne
+// se détache sur un fond ambre très clair (.ligne-action). C'est la seule
+// couleur de fond d'une carte — une ligne de total n'en porte aucune, elle ne
+// demande rien. Cette mise en valeur remplace les médaillons d'alerte posés sur
+// les titres : ils répétaient en chiffre ce que les lignes disaient déjà.
+$dash_action = fn (bool $attend): string => $attend ? ' ligne-action' : '';
 
 // Dernière ligne d'une carte tronquée : ce qui n'est pas montré, et le lien
 // vers la liste complète. Posée DANS le tableau plutôt qu'à côté, parce que
@@ -202,11 +192,7 @@ $cartes = [];
         <?php $cartes['evenements'] = ['titre' => 'Prochains événements', 'html' => ob_get_clean()]; ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <div class="card-head-row">
-                <h2 class="mt-0">Suisa</h2>
-                <?= $dash_medaillon($suisaAFaire, 'à faire', 'attente',
-                    '?p=evenements_liste&vue=liste&statut_suisa[]=a_faire&statut_suisa_set=1') ?>
-            </div>
+            <h2 class="mt-0">Suisa</h2>
             <table class="list">
                 <thead>
                     <tr><th>Statut</th><th class="num">Nombre</th></tr>
@@ -230,7 +216,10 @@ $cartes = [];
                           // qui appelle un geste. À l'encre, comme le nom d'une
                           // campagne en cours — la couleur d'accent reste à ce
                           // qui se clique. ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>">
+                    <?php // « À faire » et « Manquants » attendent un geste — déclarer,
+                          // ou relancer un décompte qui ne revient pas. « Envoyés »
+                          // n'attend rien : la balle est chez la SUISA. ?>
+                    <tr class="row-link<?= $dash_action($suisaAFaire > 0) ?>" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>">
                         <td class="strong-encre">À faire</td>
                         <?php // Le nombre porte la gravité : ambre pour ce qui
                               // attend, rouge pour ce qui manque. Un zéro reste
@@ -244,7 +233,7 @@ $cartes = [];
                         <td>Envoyés</td>
                         <td class="num strong"><?= $suisaEnvoye ?></td>
                     </tr>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
+                    <tr class="row-link<?= $dash_action($suisaManquant > 0) ?>" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
                         <td>Manquants</td>
                         <td class="num strong<?= $suisaManquant > 0 ? ' num-retard' : '' ?>"><?= $suisaManquant ?></td>
                     </tr>
@@ -286,11 +275,7 @@ $cartes = [];
         ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <div class="card-head-row">
-                <h2 class="mt-0">Salaires à verser</h2>
-                <?= $dash_medaillon($aPayerRetard, 'en retard', 'retard', $aPayerLien . '&echeance=retard')
-                  . $dash_medaillon($aPayerAFaire, 'à faire',   'attente', $aPayerLien . '&echeance=afaire') ?>
-            </div>
+            <h2 class="mt-0">Salaires à verser</h2>
             <?php if (!$aPayer): ?>
                 <p class="muted">Vous êtes à jour.</p>
             <?php else: ?>
@@ -299,8 +284,11 @@ $cartes = [];
                     <tr><th>Mois</th><th>Employé</th><th class="num">Net à payer</th></tr>
                 </thead>
                 <tbody>
+                <?php // Une fiche du mois courant reste à verser mais n'appelle rien
+                      // aujourd'hui : elle ne se détache pas. Celles du mois
+                      // précédent et d'avant, si (echeance_etat, route_resumes()). ?>
                 <?php foreach ($aPayerVisibles as $f): ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
+                    <tr class="row-link<?= $dash_action(($f['echeance_etat'] ?? '') !== '') ?>" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
                         <td class="small"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
                         <td class="dash-nom"><?= e($f['employe_nom']) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
@@ -312,7 +300,7 @@ $cartes = [];
                     <?php // Le total porte sur TOUTES les fiches, pas sur les seules
                           // lignes visibles. Il n'a plus à le préciser : la ligne
                           // « et X autres » juste au-dessus rend l'écart lisible. ?>
-                    <tr class="total-row apayer-row">
+                    <tr class="total-row">
                         <td colspan="2"><strong>Total à verser</strong></td>
                         <?php // Total à l'encre, pas en ambre : l'ambre signale ce qui
                               // attend une action, or un total n'est pas une alerte —
@@ -348,11 +336,7 @@ $cartes = [];
         ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <div class="card-head-row">
-                <h2 class="mt-0">Factures émises</h2>
-                <?= $dash_medaillon($facturesRetard, 'en retard', 'retard',
-                    '?p=facturation_liste&statut[]=en_retard&statut_set=1') ?>
-            </div>
+            <h2 class="mt-0">Factures émises</h2>
             <?php if (!$facturesEmises): ?>
                 <p class="muted">Aucune facture émise en attente de paiement.</p>
             <?php else: ?>
@@ -376,8 +360,10 @@ $cartes = [];
                     <tr><th>Échéance</th><th>Structure</th><th class="num">Montant</th></tr>
                 </thead>
                 <tbody>
+                <?php // Une facture pas encore échue ne se détache pas : elle suit son
+                      // cours. C'est l'échéance dépassée qui appelle une relance. ?>
                 <?php foreach ($facturesVisibles as $fac): $cl = $factEtat($fac); ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
+                    <tr class="row-link<?= $dash_action($cl !== '') ?>" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
                         title="<?= e(facturation_statut_effectif($fac) === 'en_retard' ? 'Échéance dépassée' : 'Émise, pas encore échue') ?>">
                         <td class="small<?= $cl ?>"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
                         <td class="dash-nom"><?= e($fac['structure_nom']) ?></td>
@@ -387,7 +373,7 @@ $cartes = [];
                 <?= $dash_reste(count($facturesEmises) - count($facturesVisibles), 3, $facturesLien) ?>
                 </tbody>
                 <tfoot>
-                    <tr class="total-row apayer-row"><td><strong>Total</strong></td><td></td><td class="num strong"><?= chf($totEmises) ?></td></tr>
+                    <tr class="total-row"><td><strong>Total</strong></td><td></td><td class="num strong"><?= chf($totEmises) ?></td></tr>
                 </tfoot>
             </table>
             <?php endif; ?>
@@ -412,10 +398,7 @@ $cartes = [];
         ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <div class="card-head-row">
-                <h2 class="mt-0">Campagnes</h2>
-                <?= $campagnesDash ? $dash_medaillon($campagnesAContacter, 'à contacter', 'attente', '?p=campagnes') : '' ?>
-            </div>
+            <h2 class="mt-0">Campagnes</h2>
             <?php if (!$campagnesDash): ?>
                 <p class="muted">Aucune campagne. <a href="?p=campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
             <?php else: ?>
@@ -424,8 +407,10 @@ $cartes = [];
                     <tr><th>Campagne</th><th class="nowrap">Avancement</th></tr>
                 </thead>
                 <tbody>
+                <?php // Une campagne ouverte est un démarchage en cours : c'est là
+                      // qu'il reste des structures à contacter. ?>
                 <?php foreach ($campagnesDash as $c): $cid = (int) $c['id']; ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
+                    <tr class="row-link<?= $dash_action(in_array($c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)) ?>" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
                         <td>
                             <span class="dash-campagne">
                                 <?= $c['projets_pastilles'][0] ?? '' ?>

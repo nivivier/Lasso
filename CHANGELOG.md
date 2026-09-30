@@ -9,6 +9,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Le tableau de bord montre ce qui attend un geste sur la ligne elle-même.**
+  Les médaillons posés sur les titres (« 3 à contacter », « 1 en retard »,
+  « 2 à faire ») disparaissent : ils annonçaient en chiffre ce que les lignes
+  juste en dessous disaient déjà. À la place, la ligne concernée se détache sur
+  un fond ambre très clair — une fiche à verser dont le mois est passé, une
+  facture échue, une campagne ouverte, la ligne « À faire » de la carte Suisa.
+  Ce qui suit son cours reste à l'encre, et les lignes de total perdent le fond
+  jaune qu'elles portaient : un total ne demande rien.
+
 ### Corrigé
 - **« Envoyé » ne ramène plus les décomptes manquants.** Le filtre SUISA de la
   liste des événements rangeait les retards avec les envois — cocher « envoyé »
