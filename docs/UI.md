@@ -729,9 +729,10 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   ligne « À faire ». Ce qui suit son cours reste à l'encre. C'est la seule
   couleur d'une carte ; elle a remplacé les médaillons d'alerte posés sur les
   titres, qui annonçaient en chiffre ce que les lignes montraient déjà.
-  **Un total n'est jamais mis en valeur** : il ne demande rien. Il ferme le
-  tableau sur la bande de la rangée de titres qui l'ouvre (`--surface`), deux
-  repères de même nature encadrant la liste.
+  **Un total n'est jamais mis en valeur** : il ne demande rien. Il se fond dans
+  la carte comme son titre — aucun fond —, un simple filet le séparant des
+  lignes qu'il additionne. Le tableau s'ouvre et se ferme sur des filets de la
+  même épaisseur que ceux qui séparent ses lignes.
 - **Une carte du tableau de bord ne s'étire pas** : elle montre ce qui demande
   du travail et referme le reste sur une dernière ligne « et X autres », qui
   mène à la liste complète (`$dash_reste()` dans `views/resumes.php`, posée

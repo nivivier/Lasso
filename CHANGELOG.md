@@ -16,9 +16,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   juste en dessous disaient déjà. À la place, la ligne concernée se détache sur
   un fond ambre très clair — une fiche à verser dont le mois est passé, une
   facture échue, une campagne ouverte, la ligne « À faire » de la carte Suisa.
-  Ce qui suit son cours reste à l'encre. Les lignes de total, elles, perdent ce
-  fond jaune — un total ne demande rien — et reprennent la bande grise de la
-  rangée de titres, qu'elles font écho en bas de tableau.
+  Ce qui suit son cours reste à l'encre. Les lignes de total, elles, perdent
+  tout fond — un total ne demande rien : elles se fondent dans la carte comme
+  son titre, un simple filet les séparant des lignes qu'elles additionnent.
 
 ### Corrigé
 - **« Envoyé » ne ramène plus les décomptes manquants.** Le filtre SUISA de la
