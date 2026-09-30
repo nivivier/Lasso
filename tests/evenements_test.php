@@ -198,23 +198,24 @@ foreach ($cas as $id => $c) {
 }
 foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $statut) {
     $sql = 'SELECT id FROM evenements WHERE ' . evenement_sql_statut_suisa($statut);
-    // Même correspondance statut → paramètres liés que route_evenements_liste().
+    // Même correspondance statut → paramètres liés que
+    // evenement_sql_statut_suisa_params(), recopiée ici parce que celle-ci lit
+    // les délais en base et que ce test travaille sur son propre PDO.
     $liaisonParams = match ($statut) {
-        'manquant' => [12, 60],
-        'a_faire', 'envoye', 'abandonne' => [60],
+        'envoye', 'manquant' => [12, 60],
+        'a_faire', 'abandonne' => [60],
         default => [],
     };
     $stmt = $pdo->prepare($sql);
     $stmt->execute($liaisonParams);
     $idsSql = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-    // Référence : la même règle appliquée en PHP (evenement_statut_suisa()) sur les mêmes cas —
-    // sauf le filtre 'envoye', qui englobe volontairement aussi 'manquant' (voir
-    // evenement_sql_statut_suisa()).
-    $statutsPhpAttendus = $statut === 'envoye' ? ['envoye', 'manquant'] : [$statut];
+    // Référence : la même règle appliquée en PHP (evenement_statut_suisa()) sur
+    // les mêmes cas. Les sept statuts sont exclusifs deux à deux des deux côtés
+    // — « envoyé » ne ramène plus les manquants —, donc l'égalité est stricte.
     $idsPhp = [];
     foreach ($cas as $id => $c) {
         $ev = ['date' => $c['date'], 'suisa_applicable' => $c['applicable'], 'suisa_envoye_le' => $c['envoye'], 'suisa_decompte_le' => $c['decompte']];
-        if (in_array(evenement_statut_suisa($ev), $statutsPhpAttendus, true)) {
+        if (evenement_statut_suisa($ev) === $statut) {
             $idsPhp[] = $id;
         }
     }

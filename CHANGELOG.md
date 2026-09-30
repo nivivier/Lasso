@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Corrigé
+- **« Envoyé » ne ramène plus les décomptes manquants.** Le filtre SUISA de la
+  liste des événements rangeait les retards avec les envois — cocher « envoyé »
+  ramenait donc ce que « manquant » venait d'écarter —, et la carte Suisa du
+  tableau de bord comptait chaque retard deux fois, sur sa ligne et sur celle
+  des envoyés. Les sept statuts sont désormais exclusifs deux à deux, côté base
+  comme côté écran.
+
 ## [2.9.1] — 2026-09-29
 
 ### Modifié

@@ -240,18 +240,20 @@ function evenement_icone_visibilite(array $ev): string
 // Prédicat SQL du statut SUISA dérivé, même règles que evenement_statut_suisa()
 // (à tenir synchronisées) — pour filtrer côté base plutôt que de recharger tous
 // les événements en PHP à chaque affichage de la liste. $prefixe : alias de
-// table éventuel (ex. "e." si la requête utilise "FROM evenements e"). Filtre
-// 'envoye' : englobe aussi 'manquant' (un décompte en retard reste, avant tout,
-// un événement envoyé — l'utilisateur veut voir « tout ce qui a été envoyé »
-// sans avoir à cocher les deux statuts séparément) ; 'manquant' reste un filtre
-// à part pour ne voir que les décomptes effectivement en retard. Tous (sauf
-// 'decompte_recu'/'ne_sapplique_pas') excluent 'a_venir' et 'abandonne'
-// (priorité plus haute, voir evenement_statut_suisa()) — mutuellement exclusifs
-// entre eux (l'un exige une date future, l'autre une date passée depuis
-// longtemps). Paramètres à lier par l'appelant, dans l'ordre où ils
-// apparaissent dans la chaîne : 'manquant' → [delai_decompte_mois,
-// delai_abandon_mois] ; 'a_faire'/'envoye'/'abandonne' → [delai_abandon_mois] ;
-// 'a_venir'/'decompte_recu'/'ne_sapplique_pas' → aucun.
+// table éventuel (ex. "e." si la requête utilise "FROM evenements e").
+//
+// **Les sept statuts sont exclusifs deux à deux**, comme en PHP : « envoyé »
+// s'arrête où « manquant » commence, c'est-à-dire au délai de décompte. Le
+// filtre a longtemps rangé les manquants avec les envoyés — un décompte en
+// retard reste un envoi, disait-il — mais cocher « envoyé » ramenait alors ce
+// qu'on venait justement d'écarter, et le compte « Envoyés » du tableau de bord
+// comptait deux fois les retards.
+//
+// Tous (sauf 'decompte_recu'/'ne_sapplique_pas') excluent 'a_venir' et
+// 'abandonne' (priorité plus haute, voir evenement_statut_suisa()) —
+// mutuellement exclusifs entre eux (l'un exige une date future, l'autre une
+// date passée depuis longtemps). Les paramètres à lier sont donnés par
+// evenement_sql_statut_suisa_params().
 function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): string
 {
     $applicable   = "{$prefixe}suisa_applicable = 1";
@@ -269,9 +271,23 @@ function evenement_sql_statut_suisa(string $statut, string $prefixe = ''): strin
         // incomplète) : evenement_statut_suisa() le classe 'decompte_recu' en
         // priorité (voir plus haut), le prédicat SQL doit rester synchronisé.
         'a_faire'       => "$applicable AND $nonEnvoyee AND $sansDecompte AND NOT ($abandonne) AND NOT ($aVenir)",
-        'envoye'        => "$applicable AND $envoyeeSansDecompte AND NOT ($abandonne) AND NOT ($aVenir)",
+        'envoye'        => "$applicable AND $envoyeeSansDecompte AND NOT ($limite < date('now')) AND NOT ($abandonne) AND NOT ($aVenir)",
         'manquant'      => "$applicable AND $envoyeeSansDecompte AND $limite < date('now') AND NOT ($abandonne) AND NOT ($aVenir)",
         default         => "{$prefixe}suisa_applicable = 0", // ne_sapplique_pas
+    };
+}
+
+// Les paramètres à lier au prédicat ci-dessus, dans l'ordre où ses '?'
+// apparaissent. Une seule table de correspondance : le filtre de la liste et
+// les compteurs s'y réfèrent, sans quoi ajouter un délai à un prédicat
+// obligerait à retrouver tous les appelants — c'est exactement ce qui a
+// failli arriver en rendant « envoyé » exclusif de « manquant ».
+function evenement_sql_statut_suisa_params(string $statut): array
+{
+    return match ($statut) {
+        'envoye', 'manquant'   => [evenements_delai_decompte_mois(), evenements_delai_abandon_mois()],
+        'a_faire', 'abandonne' => [evenements_delai_abandon_mois()],
+        default                => [], // a_venir, decompte_recu, ne_sapplique_pas
     };
 }
 
@@ -355,12 +371,7 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
                 continue;
             }
             $suisaConds[] = '(' . evenement_sql_statut_suisa($val, 'e.') . ')';
-            if ($val === 'manquant') {
-                $suisaParams[] = evenements_delai_decompte_mois();
-                $suisaParams[] = evenements_delai_abandon_mois();
-            } elseif (in_array($val, ['a_faire', 'envoye', 'abandonne'], true)) {
-                $suisaParams[] = evenements_delai_abandon_mois();
-            }
+            $suisaParams  = array_merge($suisaParams, evenement_sql_statut_suisa_params($val));
         }
         if ($suisaConds) {
             $where .= ' AND (' . implode(' OR ', $suisaConds) . ')';
@@ -534,16 +545,17 @@ function nb_evenements_suisa_envoyes(): int
     return nb_evenements_suisa_statut('envoye');
 }
 
-// Le compte d'un statut SUISA qui se décide en SQL. 'a_faire' et 'envoye'
-// partagent la même forme — un seul paramètre, le délai d'abandon —, d'où une
-// seule fonction ; 'manquant' garde la sienne, qui passe par PHP.
+// Le compte d'un statut SUISA qui se décide en SQL, quel qu'il soit : les
+// paramètres viennent de evenement_sql_statut_suisa_params(), donc un statut de
+// plus ne demande rien ici. 'manquant' garde malgré tout sa propre fonction,
+// qui passe par PHP.
 // $statut n'est jamais une donnée d'utilisateur : evenement_sql_statut_suisa()
 // travaille sur une liste fermée et retombe sur « ne s'applique pas ».
 function nb_evenements_suisa_statut(string $statut): int
 {
     try {
         $stmt = db()->prepare('SELECT COUNT(*) FROM evenements e WHERE ' . evenement_sql_statut_suisa($statut, 'e.'));
-        $stmt->execute([evenements_delai_abandon_mois()]);
+        $stmt->execute(evenement_sql_statut_suisa_params($statut));
         return (int) $stmt->fetchColumn();
     } catch (\Exception) {
         return 0;
