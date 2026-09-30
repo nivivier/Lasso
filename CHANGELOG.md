@@ -10,6 +10,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **`SPEC_FACTURATION.md` rejoint le dépôt.** Il en était exclu comme « note de
+  spécification locale, pas encore implémentée » alors que le module est en
+  service et que le code y renvoie : le renvoi était mort pour quiconque clone
+  le dépôt. Les quatre spécifications sont désormais versionnées.
 - **La ligne « Manquants » de la carte Suisa ne se détache plus sur fond
   ambre** : elle attend la SUISA, pas nous. Le rouge de son nombre dit déjà
   qu'un décompte tarde. Seule « À faire » garde le fond — c'est la ligne dont
