@@ -232,9 +232,13 @@ $stMontreFactures = false;
 $stClasses = 'campagne-structures';
 $stFiltres = $sfFiltres;
 $stReinit = $sfReinit;
-// Colonne « Campagnes » : les AUTRES campagnes où figurent ces structures.
-// Savoir qu'une salle est déjà démarchée ailleurs change la façon de l'aborder.
-$stCampagnes = $campagnesDispo ? $campagnesParStructure : null;
+// Colonne « Campagnes de booking » : les AUTRES campagnes où figurent ces
+// structures. Savoir qu'une salle est déjà démarchée ailleurs change la façon
+// de l'aborder. On est dans le booking : jamais la colonne de la recherche de
+// fonds, qui ne dirait rien ici.
+$stColCampagnes = $campagnesDispo
+    ? colonne_campagnes_booking($campagnesParStructure, $stTagsActifs, $sfFiltres['campagnes'] ?? '')
+    : null;
 // En-têtes triables, comme sur ?p=structures. Les liens emportent les filtres
 // de cet écran, l'id de la campagne et le filtre de réponse — sans quoi trier
 // renverrait à la liste des campagnes, filtres perdus.

@@ -131,7 +131,7 @@ $sfColonnes = $sfCol('statut', $statutLabels, $sfStatut, 'Statut')
     . $sfCol('categorie_id', $categorieLabels, $sfCategorieId, 'Catégorie')
     . $sfLieuCol('Lieu')
     . ($sfTags ? $sfCol('tag_id', $tagLabels, $sfTagId, 'Tags', $sfTagActions) : '')
-    . ($sfCampagnes ? $sfCol('campagne_id', $campagneLabels, $sfCampagneId, 'Campagnes') : '')
+    . ($sfCampagnes ? $sfCol('campagne_id', $campagneLabels, $sfCampagneId, 'Campagnes de booking') : '')
     . ($sfMontreEvenements ? $sfCol('avec_evenements', $avecEvenementsLabels, $sfAvecEvenements, 'Événements') : '')
     . $sfCol('contact_periode', $periodeLabels, $sfContactPeriode, 'Contacté')
     . $sfCol('maj_periode', $periodeLabels, $sfMajPeriode, 'Modifié');

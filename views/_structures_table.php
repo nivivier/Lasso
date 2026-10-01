@@ -29,10 +29,17 @@
 //   $stMontreContacte / $stMontreFactures / $stMontreEvenements (bool)
 //   $stNbEvenements     (array) id de structure => nombre d'événements.
 //   $stClasses          (string) classes en plus sur le <table>.
-//   $stCampagnes        (?array) colonne « Campagnes », à droite des étiquettes :
-//                       [structure_id => [[id, nom], …]]. null = pas de colonne.
-//                       Propre à ?p=structures : sur la sélection ou le suivi
-//                       d'une campagne, on est déjà dans l'une d'elles.
+//   $stColCampagnes     (?array) la colonne des campagnes, à droite des
+//                       étiquettes. null = pas de colonne. Sinon :
+//                         'titre'   (string) son en-tête, en HTML déjà sûr —
+//                                   deux lignes permises ;
+//                         'filtre'  (string) l'entonnoir, ou '' s'il n'y en a pas ;
+//                         'par_structure' (array) id => [[id, nom, enCours], …] ;
+//                         'cellule' (Closure) (int $sid, array $campagnes): string.
+//                       Paramétrée et non dupliquée : l'application a deux
+//                       sortes de campagnes — le démarchage et la recherche de
+//                       fonds —, et cette liste montre l'une OU l'autre selon le
+//                       module d'où l'on vient.
 //   $stExtraTh          (string) en-têtes de colonnes en plus, à droite.
 //   $stExtraTd          (?Closure) les cellules correspondantes, pour une ligne.
 //                       C'est par là que le suivi d'une campagne ajoute ses
@@ -62,14 +69,14 @@ $stMontreEvenements = $stMontreEvenements ?? module_actif('evenements');
 $stNbEvenements = $stNbEvenements ?? [];
 $stClasses = $stClasses ?? '';
 $stVide = $stVide ?? 'Aucune structure.';
-$stCampagnes = $stCampagnes ?? null;
+$stColCampagnes = $stColCampagnes ?? null;
 $stExtraTh = $stExtraTh ?? '';
 $stExtraTd = $stExtraTd ?? null;
 ?>
 <?php // Une colonne de moins depuis que « Structures liées » a rejoint la colonne « Nom ».
 $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
     - ($stMontreFactures ? 0 : 1) - ($stMontreContacte ? 0 : 1)
-    + ($stCampagnes === null ? 0 : 1)
+    + ($stColCampagnes === null ? 0 : 1)
     + preg_match_all('~<th\b~i', $stExtraTh); ?>
 <div class="table-scroll">
 <table class="list list-wide liste-cartes<?= $stCheck ? ' avec-check' : '' ?><?= $stClasses !== '' ? ' ' . e($stClasses) : '' ?>">
@@ -109,11 +116,17 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
                 <?= $stFiltres['tags'] ?? '' ?>
             </span>
         </th>
-        <?php if ($stCampagnes !== null): ?>
+        <?php if ($stColCampagnes !== null): ?>
+        <?php // Le titre dit DE QUELLES campagnes il s'agit : l'application en a
+              // deux sortes, et cette liste de structures est partagée par les
+              // deux modules. Il tient sur deux lignes plutôt que d'élargir la
+              // colonne ; il est enveloppé d'un <span> pour n'être qu'UN élément
+              // de la rangée flex (.col-th), sans quoi le <br> n'y couperait
+              // rien. ?>
         <th class="col-campagnes">
             <span class="col-th">
-                Campagnes
-                <?= $stFiltres['campagnes'] ?? '' ?>
+                <span><?= $stColCampagnes['titre'] ?></span>
+                <?= $stColCampagnes['filtre'] ?>
             </span>
         </th>
         <?php endif; ?>
@@ -223,12 +236,12 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
                 ?>
                 <?= structure_tags_cellule_html((int) $d['id'], $tagsPaires, $stTagsActifs) ?>
             </td>
-            <?php if ($stCampagnes !== null): ?>
+            <?php if ($stColCampagnes !== null): ?>
             <?php // data-structure : la cellule est remplacée seule après un ajout
                   // ou un retrait, sans recharger une page de plusieurs mégaoctets
                   // (même mécanique que les étiquettes). ?>
             <td class="small col-campagnes" data-structure="<?= (int) $d['id'] ?>">
-                <?= structure_campagnes_cellule_html((int) $d['id'], $stCampagnes[(int) $d['id']] ?? [], $stTagsActifs) ?>
+                <?= ($stColCampagnes['cellule'])((int) $d['id'], $stColCampagnes['par_structure'][(int) $d['id']] ?? []) ?>
             </td>
             <?php endif; ?>
             <td class="tiny col-contact">

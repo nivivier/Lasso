@@ -2,6 +2,7 @@
 /** @var array $lieu */ /** @var array $tri */ /** @var array $tagId */ /** @var array $statut */
 /** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var array $campagnesParStructure */ /** @var array $campagnesDispo */ /** @var array $campagneId */
+/** @var array $fondsParStructure */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
@@ -63,8 +64,14 @@ $sfPage = 'structures';
 $sfVals = ['statut' => $statut, 'categorieId' => $categorieId, 'lieu' => $lieu,
     'tagId' => $tagId, 'campagneId' => $campagneId,
     'avecEvenements' => $avecEvenements, 'contactPeriode' => $contactPeriode, 'majPeriode' => $majPeriode];
+// Arrivé de la recherche de fonds, la colonne des campagnes change de sorte
+// (voir $campagnesFonds plus bas) : son entonnoir, qui ne filtre que le
+// démarchage, n'a alors plus rien à filtrer. Une liste de campagnes vide le
+// fait disparaître partout à la fois — en-tête, panneau mobile, bande des
+// filtres actifs : c'est déjà ainsi qu'il s'efface quand le booking est éteint.
+$campagnesFonds = ($_GET['depuis'] ?? '') === 'fonds' && module_accessible('fonds');
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
-    'lieuxOptions' => $lieuxOptions, 'campagnesDispo' => $campagnesDispo];
+    'lieuxOptions' => $lieuxOptions, 'campagnesDispo' => $campagnesFonds ? [] : $campagnesDispo];
 // 'depuis' est reporté par chaque panneau : Structures est partagée par 3
 // groupes de nav (booking/facturation/evenements) et sans lui, soumettre un
 // panneau — un simple <form method="get"> qui ne connaît que ses propres
@@ -102,6 +109,10 @@ $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : '';
 $depuisNav = (string) ($_GET['depuis'] ?? '');
 $montreFactures = $depuisNav !== 'booking';
 $montreContacte = $depuisNav !== 'facturation';
+// Et la colonne des campagnes change de SORTE selon la provenance ($campagnesFonds,
+// plus haut) : arrivé de la recherche de fonds, on regarde une structure en
+// bailleur — les campagnes de démarchage n'y apprennent rien, celles de
+// subvention tout.
 ?>
 <?php $actionUrl = '?p=structures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'structures', $lienQuitterNonLocalises) ?>
@@ -259,9 +270,14 @@ $stMontreContacte = $montreContacte;
 $stMontreFactures = $montreFactures;
 $stMontreEvenements = module_actif('evenements');
 $stNbEvenements = $nbEvenements;
-// Colonne « Campagnes » : ici seulement. Sur la sélection ou le suivi d'une
-// campagne, on est déjà dans l'une d'elles — la colonne n'y apprendrait rien.
-$stCampagnes = $campagnesDispo ? $campagnesParStructure : null;
+// La colonne des campagnes, d'une sorte ou de l'autre (voir $campagnesFonds
+// plus haut). Celle du démarchage n'apparaît que si le booking est accessible —
+// $campagnesDispo est vide sinon, et la colonne disparaît avec lui.
+$stColCampagnes = $campagnesFonds
+    ? colonne_campagnes_fonds($fondsParStructure)
+    : ($campagnesDispo
+        ? colonne_campagnes_booking($campagnesParStructure, $peutEcrireTags, $sfFiltres['campagnes'] ?? '')
+        : null);
 // En-têtes triables : ici seulement. Sur la sélection et le suivi d'une
 // campagne, l'ordre est celui du démarchage — on n'y trie pas.
 // Les liens de tri emportent les filtres actifs comme les entonnoirs, plus la

@@ -652,7 +652,14 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
     $tagId = filtre_coche('tag_id', $prefixeSession . '_tag_id', null, true);
     // Campagnes de démarchage où figure la structure — la colonne du même nom,
     // qui n'existe que sur ?p=structures.
-    $campagneId = filtre_coche('campagne_id', $prefixeSession . '_campagne_id', null, true);
+    //
+    // Sauf arrivé de la recherche de fonds : la colonne y montre les campagnes
+    // de SUBVENTION et son entonnoir disparaît avec elle
+    // (views/structures_liste.php). Un filtre de démarchage resté en session
+    // continuerait sinon de réduire la liste sans que rien ne le dise — une
+    // liste silencieusement filtrée est le pire des deux mondes.
+    $campagneId = ($_GET['depuis'] ?? '') === 'fonds'
+        ? [] : filtre_coche('campagne_id', $prefixeSession . '_campagne_id', null, true);
     $statut = filtre_coche('statut', $prefixeSession . '_statut', STRUCTURE_STATUTS, false, $statutDefaut);
     // Villes jamais géolocalisées avec succès (cache lieux_geocodage) — filtre
     // d'appoint, accessible depuis le lien de la vue carte (voir
@@ -1045,7 +1052,7 @@ function route_structures(): void
             // Pays / régions / départements de l'entonnoir « Lieu » ; les villes
             // arrivent par ?p=structures_lieux (voir filtre_colonne_lieu_html()).
             'lieuxOptions' => lieux_options(['pays', 'region', 'dept']),
-            'campagnesParStructure' => [], 'campagnesDispo' => [],
+            'campagnesParStructure' => [], 'campagnesDispo' => [], 'fondsParStructure' => [],
             'tagsDispo' => module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
@@ -1163,6 +1170,12 @@ function route_structures(): void
             ? structures_campagnes(array_column($structures, 'id')) : [],
         'campagnesDispo' => module_accessible('booking')
             ? db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll() : [],
+        // La colonne jumelle : les campagnes de recherche de fonds de chaque
+        // structure. La vue n'en montre qu'UNE des deux, selon le module d'où
+        // l'on vient — une structure est un lieu à démarcher ou un bailleur à
+        // solliciter, rarement les deux à la fois.
+        'fondsParStructure' => ($_GET['depuis'] ?? '') === 'fonds' && module_accessible('fonds')
+            ? fonds_structures_campagnes(array_column($structures, 'id')) : [],
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
         'pgParams'  => array_filter([

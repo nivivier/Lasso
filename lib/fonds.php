@@ -500,3 +500,68 @@ function fonds_dossiers_de_structure(int $structureId): array
     $stmt->execute([$structureId]);
     return $stmt->fetchAll();
 }
+
+// --- Les campagnes d'un bailleur, pour la liste des structures --------------
+//
+// Le pendant de structures_campagnes() (lib/booking.php) : les campagnes de
+// recherche de fonds où figure chaque structure d'un lot, la plus récemment
+// commencée d'abord. La liste des structures montre l'une OU l'autre colonne
+// selon le module d'où l'on vient — un bailleur ne se démarche pas, et une
+// salle ne subventionne pas.
+//
+// [structure_id => [[id, nom, enCours], …]]
+function fonds_structures_campagnes(array $ids, string $aujourdhui = ''): array
+{
+    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
+    $out = [];
+    foreach (lots_ids($ids) as $lot) {
+        $stmt = db()->prepare(
+            'SELECT d.structure_id, c.id, c.nom, c.date_debut, c.date_fin
+               FROM fonds_demandes d JOIN fonds_campagnes c ON c.id = d.campagne_id
+              WHERE d.structure_id IN (' . sql_in($lot) . ')
+              ORDER BY c.date_debut DESC, c.id DESC'
+        );
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll() as $l) {
+            $out[(int) $l['structure_id']][] = [
+                (int) $l['id'], (string) $l['nom'], periode_courante($l, $aujourdhui),
+            ];
+        }
+    }
+    return $out;
+}
+
+// La cellule correspondante. Même dessin que celle du démarchage
+// (structure_campagnes_cellule_html(), lib/booking.php) — teal pour une
+// campagne dont la saison court, ton neutre pour les autres —, mais en LECTURE
+// SEULE : un dossier de subvention porte des montants et des dates, on ne le
+// retire pas d'une ligne de liste, et on n'en ouvre pas un d'ici sans savoir
+// quel bailleur demande quoi.
+function fonds_campagnes_cellule_html(array $campagnes): string
+{
+    $h = '';
+    foreach ($campagnes as [$id, $nom, $enCours]) {
+        $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
+            . '<a href="?p=fonds_campagne&id=' . $id . '">' . e($nom) . '</a></span> ';
+    }
+    // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
+    // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
+    // n'existe pas — même choix que pour les étiquettes.
+    return $h;
+}
+
+// La colonne jumelle de colonne_campagnes_booking() (lib/booking.php), pour la
+// liste des structures atteinte depuis la recherche de fonds. Pas d'entonnoir :
+// on ne filtre pas encore les bailleurs par campagne — le jour où le besoin
+// vient, c'est un argument de plus, pas une seconde colonne.
+function colonne_campagnes_fonds(array $parStructure): array
+{
+    return [
+        // Chaque ligne insécable (même raison que la colonne jumelle) : deux
+        // lignes, pas trois.
+        'titre'         => '<span class="nowrap">Campagnes de</span><br><span class="nowrap">recherche de fonds</span>',
+        'filtre'        => '',
+        'par_structure' => $parStructure,
+        'cellule'       => fn (int $sid, array $campagnes): string => fonds_campagnes_cellule_html($campagnes),
+    ];
+}

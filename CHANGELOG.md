@@ -47,6 +47,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   celle des campagnes de démarchage.
 
 ### Modifié
+- **La colonne « Campagnes » de la liste des structures dit desquelles il
+  s'agit**, et change avec le module d'où l'on vient : « Campagnes de booking »
+  partout, « Campagnes de recherche de fonds » quand on arrive par ce module —
+  une structure y est un bailleur, et les campagnes de démarchage n'y
+  apprendraient rien. La seconde est en lecture seule : un dossier de
+  subvention porte des montants et des dates, on ne le retire pas d'une ligne
+  de liste.
 - **L'onglet des projets apparaît aussi dans Booking et dans Recherche de
   fonds** : une campagne de démarchage vise des projets, une campagne de
   recherche de fonds en finance un — on les règle sans sortir du module. C'est

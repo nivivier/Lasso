@@ -635,6 +635,28 @@ function structure_campagnes_cellule_html(int $structureId, array $campagnes, bo
     return $h;
 }
 
+// La colonne « Campagnes de booking » du tableau des structures, telle que
+// views/_structures_table.php l'attend. Décrite ici et non dans chaque vue :
+// deux écrans la posent (la liste des structures et le suivi d'une campagne),
+// et la colonne jumelle de la recherche de fonds se décrit de la même façon
+// (colonne_campagnes_fonds(), lib/fonds.php).
+//
+// « de booking » en toutes lettres : l'application a deux sortes de campagnes,
+// et cette liste de structures est partagée par les deux modules.
+function colonne_campagnes_booking(array $parStructure, bool $peutEcrire, string $filtre = ''): array
+{
+    return [
+        // Chaque ligne insécable : le <br> doit être la seule coupure, sinon la
+        // colonne, étroite, replie le titre sur trois lignes et grandit en
+        // hauteur au lieu de grandir en largeur.
+        'titre'         => '<span class="nowrap">Campagnes</span><br><span class="nowrap">de booking</span>',
+        'filtre'        => $filtre,
+        'par_structure' => $parStructure,
+        'cellule'       => fn (int $sid, array $campagnes): string
+            => structure_campagnes_cellule_html($sid, $campagnes, $peutEcrire),
+    ];
+}
+
 // Interlocuteur retenu pour un lot de structures : [structure_id => contact].
 //
 // La règle, du plus prioritaire au moins : le contact coché « administration »
