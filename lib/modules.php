@@ -447,7 +447,7 @@ function nav_groupes(): array
 
     if (module_actif('fonds') && peut_lire('fonds')) {
         $g['fonds'] = ['Recherche de fonds', 'landmark', [
-            'fonds' => ['Recherches', ['fonds', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
+            'fonds' => ['Campagnes', ['fonds', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
             // Les bailleurs sont des structures : le même écran que le booking
             // et la facturation, pas une seconde liste à tenir.
             'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],

@@ -13,10 +13,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Un module « Recherche de fonds »**, à activer dans Paramètres → Modules :
   le suivi des demandes de subvention. Cette première livraison en pose les
   fondations — les tables, l'entrée de menu, les droits — et montre la liste des
-  recherches. **On y compose maintenant une recherche** : son nom, sa période,
+  campagnes. **On y compose maintenant une campagne** : son nom, sa période,
   le budget à trouver, le projet financé, le dossier partagé où vivent les
   pièces — et la sélection des bailleurs, avec les mêmes filtres que la liste
-  des structures, puisqu'un bailleur en est une. **Et on suit une recherche** :
+  des structures, puisqu'un bailleur en est une. **Et on la suit** :
   une jauge qui se compte en francs — obtenu, en attente, reste à trouver —,
   puis un dossier par bailleur, du délai le plus proche au plus lointain. Chaque
   ligne s'ouvre au crayon pour y noter le délai imposé, le montant demandé, la

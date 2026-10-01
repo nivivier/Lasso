@@ -5,7 +5,7 @@
 /** @var array $tags */ /** @var array $campagnesDispo */ /** @var array $regions */
 /** @var array $grandesRegions */ /** @var array $villes */
 /** @var array $categoriesPourSelect */ /** @var array $nbEvenements */ /** @var ?string $err */
-// Composer une recherche de fonds. La moitié basse de l'écran — choisir les
+// Composer une campagne de recherche de fonds. La moitié basse de l'écran — choisir les
 // bailleurs — est le ciblage du booking, au mot près : un bailleur est une
 // structure, et la question « à qui s'adresse-t-on » n'a pas deux réponses.
 $id = (int) ($campagne['id'] ?? 0);
@@ -36,18 +36,18 @@ $cibF = ciblage_filtres_vue([
 <?php // Même charpente que la composition d'une campagne : la zone du module,
       // un en-tête, puis le tableau de sélection d'un bord à l'autre. ?>
 <div class="module-content"><div class="module-content-inner">
-<a class="back-link" href="<?= $id ? '?p=fonds' : '?p=fonds' ?>"><?= icon('arrow-left') ?> Recherches</a>
+<a class="back-link" href="<?= $id ? '?p=fonds' : '?p=fonds' ?>"><?= icon('arrow-left') ?> Campagnes</a>
 
-<?php if ($err === 'nom'): ?><p class="err flash">Le nom de la recherche est obligatoire.</p><?php endif; ?>
+<?php if ($err === 'nom'): ?><p class="err flash">Le nom de la campagne est obligatoire.</p><?php endif; ?>
 
 <div class="page-head">
-    <h1><?= $id ? 'Modifier la recherche' : 'Nouvelle recherche de fonds' ?></h1>
+    <h1><?= $id ? 'Modifier la campagne' : 'Nouvelle campagne de recherche de fonds' ?></h1>
     <?php if (peut_ecrire('fonds')): ?>
-    <?= entete_form_actions_html('fonds-campagne-form', '', ['libelle' => 'Enregistrer la recherche']) ?>
+    <?= entete_form_actions_html('fonds-campagne-form', '', ['libelle' => 'Enregistrer la campagne']) ?>
     <?php endif; ?>
 </div>
 
-<?php // La recherche d'abord — ce qu'on crée —, le ciblage ensuite. Les deux ne
+<?php // La campagne d'abord — ce qu'on crée —, le ciblage ensuite. Les deux ne
       // peuvent pas tenir dans le même <form> : les filtres sont des
       // formulaires GET (prévisualiser ne doit rien écrire), et un formulaire
       // ne s'imbrique pas. Les cases des bailleurs se rattachent donc à
@@ -56,28 +56,28 @@ $cibF = ciblage_filtres_vue([
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="id" value="<?= $id ?>">
     <?php // Les critères repartent avec l'enregistrement : ils sont gardés en
-          // mémoire sur la recherche, pour savoir d'où venait la sélection. ?>
+          // mémoire sur la campagne, pour savoir d'où venait la sélection. ?>
     <?= hidden_inputs_html($cibF['criteresActifs']) ?>
 
     <div class="grid4">
         <label>Nom <input name="nom" value="<?= $val('nom') ?>" required placeholder="ex. Création 2027"></label>
         <?php // <div> et non <label> : voir choix_coches_html(). ?>
         <div class="field-group"><span>Projet <?= info_tip(
-            "Ce que cette recherche finance. L'axe analytique ci-dessous s'en déduit, puisque c'est le projet qui le porte."
+            "Ce que cette campagne finance. L'axe analytique ci-dessous s'en déduit, puisque c'est le projet qui le porte."
         ) ?></span>
             <?= choix_coches_html('spectacle_ids', $spectacleLabels, $projets, 'Aucun projet') ?>
         </div>
-        <label><span>Début <?= info_tip("Avant cette date, la recherche se prépare.") ?></span>
+        <label><span>Début <?= info_tip("Avant cette date, la campagne se prépare.") ?></span>
             <input type="date" name="date_debut" value="<?= $val('date_debut') ?>">
         </label>
-        <label><span>Fin <?= info_tip("Passée cette date sans avoir tout déposé, la recherche est signalée en retard.") ?></span>
+        <label><span>Fin <?= info_tip("Passée cette date sans avoir tout déposé, la campagne est signalée en retard.") ?></span>
             <input type="date" name="date_fin" value="<?= $val('date_fin') ?>">
         </label>
     </div>
 
     <div class="grid3 mt-16">
         <label><span>Budget à trouver <?= info_tip(
-            "Le montant que cette recherche doit réunir. C'est lui qui donne son sens à la jauge : obtenu, en attente, reste à trouver."
+            "Le montant que cette campagne doit réunir. C'est lui qui donne son sens à la jauge : obtenu, en attente, reste à trouver."
         ) ?></span>
             <span class="pct-input">
                 <input name="montant_cible" type="text" inputmode="decimal"
@@ -87,7 +87,7 @@ $cibF = ciblage_filtres_vue([
         </label>
         <?php if ($axes): ?>
         <label><span>Axe analytique <?= info_tip(
-            "Celui du projet financé, repris automatiquement si vous le laissez vide. Il portera la facture et les écritures de cette recherche."
+            "Celui du projet financé, repris automatiquement si vous le laissez vide. Il portera la facture et les écritures de cette campagne."
         ) ?></span>
             <select name="axe_analytique_id">
                 <option value="">— Celui du projet —</option>
@@ -101,7 +101,7 @@ $cibF = ciblage_filtres_vue([
         </label>
         <?php endif; ?>
         <label><span>Dossier partagé <?= info_tip(
-            "L'adresse du dossier où vivent les pièces de cette recherche : budgets, lettres, décisions, bilans. "
+            "L'adresse du dossier où vivent les pièces de cette campagne : budgets, lettres, décisions, bilans. "
             . "Lasso ne stocke aucun fichier — il garde le chemin qui y mène."
         ) ?></span>
             <input name="drive_url" type="url" value="<?= $val('drive_url') ?>" placeholder="https://…">

@@ -16,7 +16,7 @@ require_once __DIR__ . '/booking.php'; // ciblage_structures_preparer(), campagn
 require_once __DIR__ . '/fonds.php';   // les règles : statut dérivé, jauge
 require_once __DIR__ . '/compta.php';  // montant_float()
 
-// Les recherches de fonds, de la plus récemment commencée à la plus ancienne.
+// Les campagnes de recherche de fonds, de la plus récemment commencée à la plus ancienne.
 // Même forme que campagnes_liste() : la liste porte déjà ce qu'il faut pour
 // l'afficher, pour que la vue n'ait aucune requête à faire.
 function fonds_campagnes_liste(): array
@@ -31,7 +31,7 @@ function fonds_campagnes_liste(): array
     return db()->query($sql)->fetchAll();
 }
 
-// La liste des recherches de fonds.
+// La liste des campagnes de recherche de fonds.
 function route_fonds(): void
 {
     require_login();
@@ -45,7 +45,7 @@ function fonds_campagne_charger(int $id): ?array
     return $stmt->fetch() ?: null;
 }
 
-// Composer une recherche de fonds : ses champs, ses projets, et la sélection
+// Composer une campagne de recherche de fonds : ses champs, ses projets, et la sélection
 // des bailleurs — qui est le ciblage de structures du booking, au mot près
 // (ciblage_structures_preparer(), lib/booking.php). Un bailleur EST une
 // structure : il n'y a pas d'autre carnet d'adresses à tenir.
@@ -85,7 +85,7 @@ function route_fonds_campagne_form(): void
             ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
             : [],
         'err'        => $_GET['err'] ?? null,
-    ], $id ? 'Recherche — ' . $campagne['nom'] : 'Nouvelle recherche de fonds');
+    ], $id ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne de recherche de fonds');
 }
 
 function route_fonds_campagne_enregistrer(): void
@@ -112,7 +112,7 @@ function route_fonds_campagne_enregistrer(): void
 
     // L'axe est celui du projet financé : on ne le redemande pas si l'écran
     // l'a laissé vide et qu'un projet le porte (migration_91). Choisi
-    // explicitement, le choix l'emporte — une recherche peut couvrir deux
+    // explicitement, le choix l'emporte — une campagne peut couvrir deux
     // projets qui ne se ventilent pas au même endroit.
     $axe = ((int) ($_POST['axe_analytique_id'] ?? 0)) ?: null;
     if ($axe === null && $projets) {
@@ -140,7 +140,7 @@ function route_fonds_campagne_enregistrer(): void
 
     // Mise à niveau, et non table rasée : la ligne PORTE le dossier — montants,
     // dates, référence. La supprimer pour la réinsérer effacerait tout le suivi
-    // au premier enregistrement ; renommer une recherche suffirait à le perdre.
+    // au premier enregistrement ; renommer une campagne suffirait à le perdre.
     $valides = [];
     foreach (lots_ids($structures) as $lot) {
         $stmt = db()->prepare('SELECT id FROM structures WHERE id IN (' . sql_in($lot) . ')');
@@ -167,7 +167,7 @@ function route_fonds_campagne_enregistrer(): void
     redirect('fonds', ['ok' => 1]);
 }
 
-// Le suivi d'une recherche : où en est chaque dossier, et combien manque-t-il.
+// Le suivi d'une campagne : où en est chaque dossier, et combien manque-t-il.
 function route_fonds_campagne(): void
 {
     require_login();
@@ -186,7 +186,7 @@ function route_fonds_campagne(): void
             spectacles_lies('fonds_campagne_spectacles', $id)
         ),
         'ok'          => $_GET['ok'] ?? null,
-    ], 'Recherche — ' . $campagne['nom']);
+    ], 'Campagne — ' . $campagne['nom']);
 }
 
 // Enregistre UNE ligne du suivi : les montants, les dates, la décision. Le

@@ -1,7 +1,7 @@
 <?php
 /** @var array $campagne */ /** @var array $demandes */ /** @var array $repartition */
 /** @var array $projets */ /** @var ?string $ok */
-// Le suivi d'une recherche de fonds : la jauge en francs, puis un dossier par
+// Le suivi d'une campagne de recherche de fonds : la jauge en francs, puis un dossier par
 // ligne. Chaque ligne se lit, et s'ouvre au crayon pour y noter ce qu'on vient
 // d'apprendre — un délai, un dépôt, une réponse (docs/UI.md § 2d).
 $id = (int) $campagne['id'];
@@ -13,7 +13,7 @@ $aujourdhui = date('Y-m-d');
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-<a class="back-link" href="?p=fonds"><?= icon('arrow-left') ?> Recherches</a>
+<a class="back-link" href="?p=fonds"><?= icon('arrow-left') ?> Campagnes</a>
 
 <?php if ($ok === 'demande'): ?><p class="ok flash">Dossier enregistré.</p><?php endif; ?>
 
@@ -32,7 +32,7 @@ $aujourdhui = date('Y-m-d');
 </div>
 
 <?php // La carte de tête répond d'un coup d'œil à la seule question qui compte
-      // au milieu d'une recherche : combien manque-t-il encore. ?>
+      // au milieu d'une campagne : combien manque-t-il encore. ?>
 <div class="card">
     <div class="camp-jauge">
         <?= fonds_barre_html($repartition) ?>
@@ -61,7 +61,7 @@ $aujourdhui = date('Y-m-d');
 ) ?></h2>
 
 <?php if (!$demandes): ?>
-    <p class="muted">Aucun bailleur dans cette recherche.
+    <p class="muted">Aucun bailleur dans cette campagne.
         <?php if ($peutEcrire): ?><a href="?p=fonds_campagne_form&id=<?= $id ?>">Choisissez-en</a>.<?php endif; ?></p>
 <?php else: ?>
 <div class="card table-scroll" id="fonds-dossiers">
