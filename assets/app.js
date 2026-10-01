@@ -53,8 +53,14 @@ window.addEventListener('DOMContentLoaded', () => {
 // aux menus de colonne : .filters-more, lui, réserve explicitement sa place en
 // dessous (margin-bottom sur la toolbar), le faire remonter décollerait le
 // panneau de l'espace qu'il vient de se ménager.
-function positionnerPanneauFlottant(anchorRect, panel, offsetTop, auDessusSiBesoin) {
-    panel.style.left = anchorRect.left + 'px';
+// $alignerDroite : le panneau cale son bord DROIT sur celui de son ancre, au
+// lieu du gauche. C'est ce que fait .menu-deroulant-panneau en position
+// absolue (right: 0) — un bouton de menu est d'ordinaire en bout de ligne, et
+// un panneau qui partirait vers la droite sortirait du cadre. Le passage en
+// position:fixed doit donc le refaire à la main : en absolu c'était « right »
+// qui l'ancrait, en fixe c'est « left » qu'on calcule.
+function positionnerPanneauFlottant(anchorRect, panel, offsetTop, auDessusSiBesoin, alignerDroite) {
+    panel.style.left = (alignerDroite ? anchorRect.right - panel.offsetWidth : anchorRect.left) + 'px';
     let top = anchorRect.bottom + offsetTop;
     if (auDessusSiBesoin) {
         // Hauteur lue TOUT DE SUITE, contrairement à la largeur plus bas : le
@@ -76,8 +82,10 @@ function positionnerPanneauFlottant(anchorRect, panel, offsetTop, auDessusSiBeso
     // La largeur, elle, n'est connue qu'une fois le panneau positionné : lue au
     // prochain rendu, pour ne pas forcer un second reflow synchrone.
     requestAnimationFrame(() => {
-        const maxLeft = window.innerWidth - panel.offsetWidth - 8;
-        panel.style.left = Math.max(8, Math.min(anchorRect.left, maxLeft)) + 'px';
+        const largeur = panel.offsetWidth;
+        const maxLeft = window.innerWidth - largeur - 8;
+        const voulu = alignerDroite ? anchorRect.right - largeur : anchorRect.left;
+        panel.style.left = Math.max(8, Math.min(voulu, maxLeft)) + 'px';
     });
 }
 
@@ -134,13 +142,13 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Menus déroulants bâtis sur <details> : le filtre d'une colonne (.col-filter,
-// ex. « Paiement » sur ?p=fiches) et le « + » du déroulé d'un événement
-// (.feuille-menu). Un <details> natif ne se referme pas au clic dehors — il
-// reste ouvert tant qu'on ne reclique pas sur son <summary> —, or c'est ce
-// qu'on attend d'un menu. Un seul écouteur global les couvre tous : il ferme
-// tout menu ouvert dont le clic n'a pas eu lieu à l'intérieur. Un nouveau menu
-// n'a qu'à s'ajouter à ce sélecteur.
-const LASSO_MENUS = '.col-filter[open], .feuille-menu[open], .dash-reglages[open]';
+// ex. « Paiement » sur ?p=fiches) et le menu de l'application
+// (.menu-deroulant, menu_deroulant_html()). Un <details> natif ne se referme
+// pas au clic dehors — il reste ouvert tant qu'on ne reclique pas sur son
+// <summary> —, or c'est ce qu'on attend d'un menu. Un seul écouteur global les
+// couvre tous : il ferme tout menu ouvert dont le clic n'a pas eu lieu à
+// l'intérieur. Un nouveau menu n'a qu'à s'ajouter à ce sélecteur.
+const LASSO_MENUS = '.col-filter[open], .menu-deroulant[open], .dash-reglages[open]';
 document.addEventListener('click', e => {
     document.querySelectorAll(LASSO_MENUS).forEach(details => {
         if (!details.contains(e.target)) { details.open = false; }
@@ -156,14 +164,48 @@ document.addEventListener('click', e => {
 // ouverture ; clampage droit délégué à positionnerPanneauFlottant()
 // ci-dessus. 'toggle' ne bubble pas, d'où l'écoute en phase de capture sur
 // document plutôt qu'un simple 'click'.
+// Même traitement pour les deux familles de menu : l'entonnoir d'une colonne et
+// le menu déroulant de menu_deroulant_html(), qui vit lui aussi dans une ligne
+// de tableau (« Synchroniser », ?p=spectacles) et s'y ferait rogner autant.
+// Hors d'un conteneur qui rogne, position:fixed donne le même résultat qu'absolu
+// — le panneau reste collé sous son bouton, recalculé à chaque ouverture.
+const LASSO_MENUS_FLOTTANTS = [
+    ['col-filter', '.col-filter-menu', '.col-filter-btn'],
+    ['menu-deroulant', '.menu-deroulant-panneau', 'summary'],
+];
+// Y a-t-il, au-dessus de cet élément, un conteneur qui rognerait un panneau en
+// position absolue ? C'est ce qui décide de passer en fixe — et seulement
+// alors : un panneau fixe ne suit plus la page quand on la fait défiler, prix
+// qu'on ne paie que là où l'absolu ne marche pas.
+function lassoAncetreQuiRogne(el) {
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+        const o = getComputedStyle(n);
+        if (o.overflowX !== 'visible' || o.overflowY !== 'visible') { return true; }
+    }
+    return false;
+}
 document.addEventListener('toggle', e => {
     const details = e.target;
-    if (!(details instanceof HTMLElement) || !details.classList.contains('col-filter') || !details.open) { return; }
-    const menu = details.querySelector('.col-filter-menu');
-    const btn = details.querySelector('.col-filter-btn');
+    if (!(details instanceof HTMLElement) || !details.open) { return; }
+    const famille = LASSO_MENUS_FLOTTANTS.find(([classe]) => details.classList.contains(classe));
+    if (!famille) { return; }
+    const menu = details.querySelector(famille[1]);
+    const btn = details.querySelector(famille[2]);
     if (!menu || !btn) { return; }
+    if (!lassoAncetreQuiRogne(details)) {
+        // Rien ne rogne : l'ancrage du CSS suffit, et il suit la page.
+        menu.style.position = menu.style.top = menu.style.left = menu.style.right = '';
+        return;
+    }
     menu.style.position = 'fixed';
-    positionnerPanneauFlottant(btn.getBoundingClientRect(), menu, 4, true);
+    // « right » posé par le CSS (ancrage en position absolue) doit être levé :
+    // avec un « left » calculé, le panneau serait étiré entre les deux.
+    menu.style.right = 'auto';
+    positionnerPanneauFlottant(
+        btn.getBoundingClientRect(), menu, 4, true,
+        details.classList.contains('menu-deroulant')
+            && !details.classList.contains('menu-deroulant-gauche')
+    );
 }, true);
 // Cases à cocher du filtre : la sélection ne part que sur clic explicite du
 // bouton "Appliquer" (bouton submit du formulaire, voir views/fiches.php) —

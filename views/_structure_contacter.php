@@ -37,18 +37,16 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                 <?php // Un bouton qui ouvre la liste des modèles, et non un
                       // sélecteur toujours déployé : charger un modèle est une
                       // action, pas un réglage du message. Même menu que celui
-                      // du déroulé d'une date (.feuille-menu) — il se referme
+                      // du déroulé d'une date (menu_deroulant_html()) — il se referme
                       // au clic hors de lui, comme les autres. ?>
-                <?php if ($modelesMessage): ?>
-                <details class="feuille-menu contacter-modele" id="contacter-modele">
-                    <summary class="btn ghost"><?= icon('file-text') ?> Charger un modèle</summary>
-                    <div class="feuille-menu-panneau">
-                        <?php foreach ($modelesMessage as $m): ?>
-                        <button type="button" data-modele="<?= (int) $m['id'] ?>"><?= e($m['nom']) ?></button>
-                        <?php endforeach; ?>
-                    </div>
-                </details>
-                <?php endif; ?>
+                <?= menu_deroulant_html(
+                    ['icone' => 'file-text', 'libelle' => 'Charger un modèle'],
+                    array_map(fn ($m) => [
+                        'libelle' => (string) $m['nom'],
+                        'attrs'   => ['data-modele' => (int) $m['id']],
+                    ], $modelesMessage),
+                    ['classe' => 'contacter-modele', 'id' => 'contacter-modele']
+                ) ?>
                 <button type="button" class="btn ghost modal-fermer" id="contacter-fermer" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
 

@@ -3442,6 +3442,63 @@ function carte_actions_html(array $opts = []): string
         . '</div>';
 }
 
+// Un MENU DÉROULANT : un bouton qui déplie une courte liste de gestes voisins.
+// Bâti sur <details> natif — rien à ouvrir en JavaScript —, refermé au clic
+// dehors par l'écouteur global d'assets/app.js (LASSO_MENUS) et repositionné en
+// position:fixed à l'ouverture, pour qu'un menu posé dans une ligne de tableau
+// ne soit pas rogné par le débordement du conteneur.
+//
+// Rendu ici plutôt que recopié : trois écrans l'emploient — le « + » du déroulé
+// d'une date, « Charger un modèle » de la fenêtre Contacter, « Synchroniser »
+// sur la liste des projets. Un quatrième s'y branche, il ne redessine pas le
+// sien à côté (docs/UI.md § 6).
+//
+// $bouton  ['libelle', 'icone', 'titre', 'classe'] — un libellé vide donne un
+//          bouton à l'icône seule ; 'classe' complète « btn ghost ».
+// $entrees chacune : ['libelle', 'icone', 'href' (lien) ou absent (bouton),
+//          'titre', 'classe', 'attrs' => [attribut => valeur]].
+// $opts    'classe' et 'id' posés sur le <details>, 'gauche' => true pour que le
+//          panneau s'aligne sur le bord GAUCHE du bouton (par défaut à droite,
+//          le bouton étant d'ordinaire en bout de ligne).
+function menu_deroulant_html(array $bouton, array $entrees, array $opts = []): string
+{
+    if (!$entrees) {
+        return '';
+    }
+    $attrs = function (array $a): string {
+        $h = '';
+        foreach ($a as $nom => $valeur) {
+            $h .= ' ' . e((string) $nom) . '="' . e((string) $valeur) . '"';
+        }
+        return $h;
+    };
+    $libelle = trim((string) ($bouton['libelle'] ?? ''));
+    $titre   = trim((string) ($bouton['titre'] ?? $libelle));
+    $petit   = !empty($bouton['petit']);
+
+    $h = '<details class="menu-deroulant' . (!empty($opts['gauche']) ? ' menu-deroulant-gauche' : '')
+       . (!empty($opts['classe']) ? ' ' . e((string) $opts['classe']) : '') . '"'
+       . (!empty($opts['id']) ? ' id="' . e((string) $opts['id']) . '"' : '') . '>';
+    $h .= '<summary class="btn ghost' . ($petit ? ' btn-sm' : '') . ($libelle === '' ? ' icon-only' : '')
+        . (!empty($bouton['classe']) ? ' ' . e((string) $bouton['classe']) : '') . '"'
+        . ' title="' . e($titre) . '" aria-label="' . e($titre) . '">'
+        . icon((string) ($bouton['icone'] ?? ''))
+        . ($libelle !== '' ? ' <span class="lbl">' . e($libelle) . '</span>' : '')
+        . '</summary>';
+    $h .= '<div class="menu-deroulant-panneau">';
+    foreach ($entrees as $entree) {
+        $contenu = icon((string) ($entree['icone'] ?? '')) . '<span>' . e((string) ($entree['libelle'] ?? '')) . '</span>';
+        $classe  = trim((string) ($entree['classe'] ?? ''));
+        $commun  = ($classe !== '' ? ' class="' . e($classe) . '"' : '')
+                 . (trim((string) ($entree['titre'] ?? '')) !== '' ? ' title="' . e((string) $entree['titre']) . '"' : '')
+                 . $attrs((array) ($entree['attrs'] ?? []));
+        $h .= isset($entree['href'])
+            ? '<a href="' . e((string) $entree['href']) . '"' . $commun . '>' . $contenu . '</a>'
+            : '<button type="button"' . $commun . '>' . $contenu . '</button>';
+    }
+    return $h . '</div></details>';
+}
+
 // Les commandes d'une PAGE qui est un formulaire (créer un employé, une
 // facture…) : il n'y a rien à lire, donc pas de crayon — « Enregistrer » et
 // « Annuler » vivent dans l'en-tête de page, là où les cartes mettent le leur.

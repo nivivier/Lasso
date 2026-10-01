@@ -47,6 +47,16 @@ puis sont promues sur le canal **stable** en figeant une version.
   celle des campagnes de démarchage.
 
 ### Modifié
+- **Les liens de synchronisation se rangent dans un menu « Synchroniser »**, sur
+  la liste des projets : un bouton dans la barre d'action pour tous les projets,
+  un dans chaque ligne pour celui-là seul — trois boutons côte à côte, répétés à
+  chaque ligne, encombraient l'écran de gestes qu'on pose une fois pour toutes.
+  Les trois liens y sont nommés par ce qu'ils montrent : **Dates publiques
+  (iCal)**, **Dates publiques (JSON)** et **Infos détaillées pour l'équipe
+  (iCal)** — ce dernier emporte les feuilles de route, et ne se publie pas.
+  Le menu lui-même est désormais **un seul mécanisme** dans toute l'application
+  (`docs/UI.md § 6`), partagé avec le « + » du déroulé d'une date et le
+  « Charger un modèle » de la fenêtre Contacter.
 - **Un tableau posé dans une carte la remplit, bord à bord.** C'était déjà le
   cas du tableau de bord et des campagnes d'une structure ; ce l'est désormais
   de tous — la recherche, le suivi d'une campagne de recherche de fonds, les

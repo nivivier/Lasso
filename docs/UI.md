@@ -560,21 +560,57 @@ ensuite.
 
 ## 6. Menus déroulants
 
-`<details>` + panneau. Un `<details>` natif ne se referme pas au clic dehors :
-l'écouteur global d'`assets/app.js` s'en charge.
+⚠️ **Un menu déroulant s'écrit avec `menu_deroulant_html()`**
+(`lib/helpers.php`), jamais à la main : un bouton qui déplie une courte liste de
+gestes voisins. Trois écrans l'emploient — le « + » du déroulé d'une date,
+« Charger un modèle » de la fenêtre Contacter, « Synchroniser » sur la liste des
+projets. Un quatrième s'y branche plutôt que de redessiner le sien à côté.
+
+```php
+menu_deroulant_html(
+    ['icone' => 'calendar-sync', 'libelle' => 'Synchroniser'],   // le bouton
+    [['libelle' => 'Dates publiques (iCal)', 'icone' => 'calendar-sync',
+      'classe' => 'export-copy', 'attrs' => ['data-url' => $url]]]  // les entrées
+);
+```
+
+Un libellé vide donne un bouton à l'**icône seule** — c'est la forme à prendre
+dans une ligne de tableau, où le menu se range avec les autres boutons
+d'action ; le titre dit alors de quoi il s'agit. `'petit' => true` pour la
+taille des boutons de ligne.
+
+Le panneau s'aligne sur le bord **droit** du bouton (`'gauche' => true` pour
+l'inverse) : un bouton de menu est d'ordinaire en bout de ligne, et un panneau
+qui partirait vers la droite sortirait du cadre.
+
+Un `<details>` natif ne se referme pas au clic dehors : l'écouteur global
+d'`assets/app.js` s'en charge.
 
 ```js
-const LASSO_MENUS = '.col-filter[open], .feuille-menu[open], .dash-reglages[open]';
+const LASSO_MENUS = '.col-filter[open], .menu-deroulant[open], .dash-reglages[open]';
 ```
 
 **Un nouveau menu s'ajoute à ce sélecteur** — on n'écrit pas un second
 écouteur. Le test `details.contains(e.target)` est ce qui permet de cliquer une
 entrée avant que le menu ne se referme.
 
+**Un menu posé dans un conteneur qui rogne** — une cellule de tableau dans
+`.table-scroll`, une fenêtre — passerait sous le bord de ce conteneur en
+position absolue. `assets/app.js` le bascule alors en `position: fixed` et le
+replace sous son bouton (en le retournant au-dessus s'il ne tient pas en
+dessous). Il ne le fait **que là** : ailleurs, l'ancrage du CSS suffit et il a
+l'avantage de suivre la page quand on la fait défiler.
+
+**Une ligne cliquable doit laisser passer le menu** : le `<summary>` n'est ni un
+`<a>` ni un `<button>`, et `views/layout.php` l'exclut nommément
+(`.menu-deroulant`) — sans quoi ouvrir le menu navigue vers la fiche.
+
 Une entrée est un **lien** quand elle mène quelque part (le déroulé d'une date
 revient avec `?ajout=<type>`), un **bouton** quand elle se traite sur place
-(charger un modèle dans « Contacter »). `.feuille-menu-panneau` les dessine de
-la même façon.
+(charger un modèle, copier un lien de synchronisation). Même dessin dans les
+deux cas. Une entrée qui accuse réception — « copié » — échange son **icône**
+contre une coche et garde son libellé : le menu reste ouvert sous les yeux, et
+une entrée qui perdrait son nom ne dirait plus ce qu'on vient de faire.
 
 **Tout `<details>` n'est pas un menu.** Un **panneau de saisie** — « Plus de
 filtres » (`.filters-more`), où l'on coche plusieurs cases avant d'envoyer —

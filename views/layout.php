@@ -278,7 +278,10 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         // un onclick="event.stopPropagation()" ; les attributs de gestionnaire
         // ayant été supprimés pour permettre le durcissement de la CSP, son
         // exclusion se déclare ici, comme celle des autres éléments interactifs.
-        row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list,.plan-grip')) go(row); });
+        // .menu-deroulant : un menu posé dans une ligne (« Synchroniser »,
+        // ?p=spectacles). Son <summary> n'est ni un <a> ni un <button> — sans
+        // cette exclusion, l'ouvrir naviguait vers la fiche.
+        row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list,.plan-grip,.menu-deroulant')) go(row); });
         row.addEventListener('keydown', e => {
             // e.target !== row : la ligne ne s'active au clavier que si c'est
             // ELLE qui a le focus. Sans ce test, une frappe dans un champ de la

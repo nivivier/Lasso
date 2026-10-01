@@ -8,6 +8,39 @@ $flashErr = [
     'children' => 'Suppression impossible : ce ' . $termeSingulier . ' contient des sous-' . mb_strtolower($termePluriel) . '.',
     'used'     => 'Suppression impossible : des événements sont rattachés à ce ' . $termeSingulier . '.',
 ];
+// Les trois liens de synchronisation, pour la liste entière ($sid = 0) ou pour
+// un seul projet. Trois boutons côte à côte dans chaque ligne ET dans la barre
+// d'action encombraient l'écran de gestes qu'on pose une fois pour toutes : un
+// menu « Synchroniser » les range (docs/UI.md § 6). Même liste des deux côtés,
+// d'où cette fermeture plutôt que deux copies.
+$syncEntrees = fn (int $sid = 0): array => [
+    [
+        'libelle' => 'Dates publiques (iCal)',
+        'icone'   => 'calendar-sync',
+        'classe'  => 'export-copy',
+        'titre'   => 'Copier le lien de synchronisation iCal',
+        'attrs'   => ['data-url' => evenements_export_url('evenements_ical', $token, $sid ?: null)],
+    ],
+    [
+        'libelle' => 'Dates publiques (JSON)',
+        'icone'   => 'file-braces',
+        'classe'  => 'export-copy',
+        'titre'   => 'Copier le lien de synchronisation JSON',
+        'attrs'   => ['data-url' => evenements_export_url('evenements_json', $token, $sid ?: null)],
+    ],
+    // Troisième lien, d'une autre nature : celui de l'ÉQUIPE. Il montre les
+    // options, les dates non répertoriées et le contenu des feuilles de route —
+    // adresses d'hôtel et portables compris. À ne donner qu'à l'équipe, jamais
+    // à un site : les deux libellés au-dessus disent « publiques », celui-ci dit
+    // à qui il s'adresse, et le titre explique ce qu'il emporte.
+    [
+        'libelle' => "Infos détaillées pour l'équipe (iCal)",
+        'icone'   => 'rows-3',
+        'classe'  => 'export-copy',
+        'titre'   => "Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)",
+        'attrs'   => ['data-url' => evenements_export_url('evenements_equipe_ical', $tokenEquipe, $sid ?: null)],
+    ],
+];
 $parentOptions = function (int $excludeId) use ($map): string {
     $h = '<option value="">— Racine (nouvel artiste) —</option>';
     foreach (plan_liste_ordonnee($map) as $r) {
@@ -30,20 +63,11 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <?php endif; ?>
         <div class="head-actions">
             <?php if ($lignes): ?>
-            <button type="button" class="btn ghost export-copy"
-                                data-url="<?= e(evenements_export_url('evenements_json', $token)) ?>"
-                                title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?><span class="lbl"> Sync JSON</span></button>
-            <button type="button" class="btn ghost export-copy"
-                                data-url="<?= e(evenements_export_url('evenements_ical', $token)) ?>"
-                                title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?><span class="lbl"> Sync iCal</span></button>
-            <?php // Troisième lien, d'une autre nature : celui de l'ÉQUIPE. Il
-                  // montre les options, les dates non répertoriées et le contenu
-                  // des feuilles de route — adresses d'hôtel et portables
-                  // compris. À ne donner qu'à l'équipe, jamais à un site. ?>
-            <button type="button" class="btn ghost export-copy"
-                                data-url="<?= e(evenements_export_url('evenements_equipe_ical', $tokenEquipe)) ?>"
-                                title="Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)"
-                                aria-label="Copier le lien du calendrier de l'équipe"><?= icon('rows-3') ?><span class="lbl"> Calendrier équipe</span></button>
+            <?php // Tous les projets à la fois : les mêmes liens, sans filtre. ?>
+            <?= menu_deroulant_html(
+                ['icone' => 'calendar-sync', 'libelle' => 'Synchroniser', 'titre' => 'Liens de synchronisation'],
+                $syncEntrees()
+            ) ?>
             <?php endif; ?>
             <?php if (peut_ecrire('evenements')): ?>
             <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
@@ -141,16 +165,11 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 <td class="num"><?= $compteLien('option', $c['option']) ?></td>
                 <td class="num"><?= $compteLien('annule', $c['annule']) ?></td>
                 <td class="actions nowrap">
-                    <button type="button" class="btn ghost btn-sm icon-only export-copy"
-                            data-url="<?= e(evenements_export_url('evenements_json', $token, $sid)) ?>"
-                            title="Copier le lien de synchronisation JSON" aria-label="Copier le lien de synchronisation JSON"><?= icon('file-braces') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only export-copy"
-                            data-url="<?= e(evenements_export_url('evenements_ical', $token, $sid)) ?>"
-                            title="Copier le lien de synchronisation iCal" aria-label="Copier le lien de synchronisation iCal"><?= icon('calendar-sync') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only export-copy"
-                            data-url="<?= e(evenements_export_url('evenements_equipe_ical', $tokenEquipe, $sid)) ?>"
-                            title="Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)"
-                            aria-label="Copier le lien du calendrier de l'équipe"><?= icon('rows-3') ?></button>
+                    <?= menu_deroulant_html(
+                        ['icone' => 'calendar-sync', 'petit' => true,
+                         'titre' => 'Synchroniser — liens de ' . $s['nom']],
+                        $syncEntrees($sid)
+                    ) ?>
                     <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
                     <?php if ($peutEcrireSpec): ?>
                     <?php // En édition, le crayon cède la place au trio : enregistrer
@@ -204,12 +223,18 @@ $parentOptions = function (int $excludeId) use ($map): string {
         formAction: '?p=spectacles',
     });
 
+    // Copie d'un lien de synchronisation : l'entrée accuse réception en
+    // échangeant son ICÔNE contre une coche, pas tout son contenu — le menu
+    // reste ouvert sous les yeux, et une entrée qui perdrait son libellé
+    // pendant une seconde et demie ne dirait plus ce qu'on vient de copier.
+    const COCHE = <?= json_encode(icon('check'), JSON_UNESCAPED_SLASHES) ?>;
     document.querySelectorAll('.export-copy').forEach(btn => {
-        const original = btn.innerHTML;
+        const original = btn.querySelector('.ico').outerHTML;
+        const echanger = html => { btn.querySelector('.ico').outerHTML = html; };
         btn.addEventListener('click', () => {
             navigator.clipboard.writeText(btn.dataset.url).then(() => {
-                btn.innerHTML = <?= json_encode(icon('check'), JSON_UNESCAPED_SLASHES) ?>;
-                setTimeout(() => { btn.innerHTML = original; }, 1500);
+                echanger(COCHE);
+                setTimeout(() => echanger(original), 1500);
             });
         });
     });

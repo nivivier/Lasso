@@ -71,15 +71,21 @@ $mailSans = trim((string) ($_GET['mailSans'] ?? ''));
                       // revient avec ?ajout=<type> et le formulaire s'ouvre,
                       // déplié par le serveur. Rien à tenir en JavaScript, et
                       // l'adresse dit ce qui est ouvert. ?>
-                <details class="feuille-menu">
-                    <summary class="btn ghost icon-only" title="Ajouter au déroulé" aria-label="Ajouter au déroulé"><?= icon('plus') ?></summary>
-                    <div class="feuille-menu-panneau">
-                        <?php foreach (FEUILLE_TYPES as $cle => $meta): ?>
-                        <a href="?p=evenement&id=<?= (int) $id ?>&ajout=<?= e($cle) ?>#carte-feuille"
-                           title="<?= e($meta['aide']) ?>"><?= icon($meta['icone']) ?> <?= e($meta['libelle']) ?></a>
-                        <?php endforeach; ?>
-                    </div>
-                </details>
+                <?php
+                $entreesAjout = [];
+                foreach (FEUILLE_TYPES as $cle => $meta) {
+                    $entreesAjout[] = [
+                        'href'    => '?p=evenement&id=' . (int) $id . '&ajout=' . $cle . '#carte-feuille',
+                        'libelle' => $meta['libelle'],
+                        'icone'   => $meta['icone'],
+                        'titre'   => $meta['aide'],
+                    ];
+                }
+                ?>
+                <?= menu_deroulant_html(
+                    ['icone' => 'plus', 'titre' => 'Ajouter au déroulé'],
+                    $entreesAjout
+                ) ?>
             </div>
         </div>
 

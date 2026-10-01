@@ -5283,21 +5283,32 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    entonnoirs des colonnes de liste. Cinq boutons alignés encombraient l'en-tête
    d'une carte qui n'en demandait qu'un. */
 .feuille-ajout { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; justify-content: flex-end; }
-.feuille-menu { position: relative; }
-.feuille-menu > summary { display: inline-flex; cursor: pointer; list-style: none; }
-.feuille-menu > summary::-webkit-details-marker { display: none; }
-/* Aligné à DROITE du « + » : le menu s'ouvre sous le bouton, et le bouton est au
-   bout de la ligne — à gauche, le panneau sortirait de la carte. */
-.feuille-menu-panneau {
+/* Le MENU DÉROULANT de l'application (menu_deroulant_html(), lib/helpers.php) :
+   un bouton qui déplie une courte liste de gestes voisins. Trois écrans
+   l'emploient — le « + » du déroulé d'une date, « Charger un modèle » de la
+   fenêtre Contacter, « Synchroniser » sur la liste des projets (docs/UI.md
+   § 6). Un quatrième s'y branche, il ne redessine pas le sien à côté. */
+/* inline-flex et non le display:block d'un <details> : le menu se pose au fil
+   d'une rangée de boutons — une cellule « actions » de tableau, une barre
+   d'outils — où un bloc prendrait une ligne à lui seul.
+   Alignement laissé sur la ligne de base, comme les .btn qui l'entourent : avec
+   « middle », le menu descendait de 5px et cassait la rangée d'icônes. */
+.menu-deroulant { position: relative; display: inline-flex; }
+.menu-deroulant > summary { display: inline-flex; cursor: pointer; list-style: none; }
+.menu-deroulant > summary::-webkit-details-marker { display: none; }
+/* Aligné à DROITE du bouton, qui est d'ordinaire en bout de ligne : à gauche, le
+   panneau sortirait de la carte. .menu-deroulant-gauche pour le cas inverse. */
+.menu-deroulant-panneau {
     position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
     display: flex; flex-direction: column; gap: 2px; min-width: 190px;
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     box-shadow: var(--shadow); padding: 6px;
 }
+.menu-deroulant-gauche > .menu-deroulant-panneau { right: auto; left: 0; }
 /* Liens ou boutons selon ce que l'entrée fait : une adresse à suivre (déroulé
-   d'une date) ou un choix traité sur place (modèles de message, fenêtre
-   « Contacter »). Même dessin dans les deux cas. */
-.feuille-menu-panneau a, .feuille-menu-panneau button {
+   d'une date) ou un choix traité sur place (modèles de message, copie d'un lien
+   de synchronisation). Même dessin dans les deux cas. */
+.menu-deroulant-panneau a, .menu-deroulant-panneau button {
     display: flex; align-items: center; gap: 8px; padding: 7px 10px; width: 100%;
     /* justify-content : la règle générale des <button> centre leur contenu, ce
        qui centrait le nom du modèle au milieu du menu. */
@@ -5305,10 +5316,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     justify-content: flex-start;
     border-radius: var(--radius-sm); color: var(--ink); font-size: var(--fs-basic); font-weight: 500;
     min-height: 0;
+    /* Une entrée ne se replie pas sur deux lignes : le panneau s'élargit. */
+    white-space: nowrap;
 }
-.feuille-menu-panneau a:hover, .feuille-menu-panneau button:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
-.feuille-menu-panneau .ico { width: 16px; height: 16px; color: var(--muted); }
-.feuille-menu-panneau a:hover .ico { color: inherit; }
+.menu-deroulant-panneau a:hover, .menu-deroulant-panneau button:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
+.menu-deroulant-panneau .ico { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
+.menu-deroulant-panneau a:hover .ico, .menu-deroulant-panneau button:hover .ico { color: inherit; }
 /* Le formulaire d'ajout, sous la liste : séparé d'un filet, il se distingue des
    éléments déjà posés sans avoir l'air d'en être un. */
 .feuille-form-ajout { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
@@ -5359,7 +5372,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        main (.dnd-on ne les masque plus ici). */
     .feuille-item .plan-grip { display: none; }
     .dnd-on .feuille-item .plan-fallback { display: inline-flex; }
-    .feuille-menu-panneau { min-width: 170px; }
+    .menu-deroulant-panneau { min-width: 170px; }
 }
 
 /* Feuille de route imprimable (?p=evenement_feuille_imprimer) : un document
