@@ -33,6 +33,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   l'argent encaissé. Un bailleur y est une **structure**,
   la même fiche que pour le booking et la facturation, et le projet financé un
   spectacle, dont l'axe analytique porte la ventilation.
+  **Et le module se raccorde au reste** : un dossier accordé peut émettre sa
+  **facture au bailleur**, déjà remplie de ce qu'on sait — le destinataire, le
+  montant accordé, l'axe analytique du projet financé ; la **fiche d'une
+  structure** montre les dossiers déposés chez elle ; et la **recherche** du
+  tableau de bord trouve les campagnes, par leur nom comme par celui du projet.
 
 ### Modifié
 - **Les commandes de « Mises à jour » montent en haut de la carte**, comme sur

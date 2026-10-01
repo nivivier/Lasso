@@ -1,7 +1,8 @@
 <?php
 /** @var ?array $facture */ /** @var int $id */ /** @var array $structures */ /** @var array $comptes */
-/** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?int $axeDefautEvenement */
-/** @var ?int $structureDefautEvenement */ /** @var ?string $err */ /** @var ?array $post */
+/** @var array $axes */ /** @var int $delaiDefaut */ /** @var ?int $evenementId */ /** @var ?int $axeDefaut */
+/** @var ?int $structureDefaut */ /** @var ?array $ligneDefaut */ /** @var ?int $fondsDemandeId */
+/** @var ?array $fondsDemande */ /** @var ?string $err */ /** @var ?array $post */
 $edit = $id > 0;
 $pv = fn(string $k, $d = '') => e((string) ($post[$k] ?? $d));
 
@@ -30,9 +31,17 @@ if (!empty($post['l_description'])) {
     }
 }
 if (!$lignesInit) {
-    // Facture créée depuis un événement : axe de la carte « Comptabilité
-    // analytique » présélectionné, modifiable comme n'importe quelle ligne.
-    $lignesInit[] = ['description' => '', 'quantite' => '1', 'prix' => '', 'axe' => (string) ($axeDefautEvenement ?? '')];
+    // Facture créée depuis ailleurs : l'axe est présélectionné — celui du
+    // projet de la date, ou celui de la campagne de recherche de fonds —, et un
+    // dossier de subvention pose en plus le libellé et le montant accordé.
+    // Tout reste modifiable comme n'importe quelle ligne : ce sont des valeurs
+    // de départ, pas des verrous.
+    $lignesInit[] = [
+        'description' => (string) ($ligneDefaut['description'] ?? ''),
+        'quantite'    => '1',
+        'prix'        => isset($ligneDefaut['prix']) ? number_format((float) $ligneDefaut['prix'], 2, '.', '') : '',
+        'axe'         => (string) ($axeDefaut ?? ''),
+    ];
 }
 
 $renderRow = function (array $l) use ($axes, $axeOpts) {
@@ -49,7 +58,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
         . '</div>';
 };
 ?>
-<?php $structureCourant = (string) ($post['structure_id'] ?? ($facture['structure_id'] ?? ($structureDefautEvenement ?: ''))); ?>
+<?php $structureCourant = (string) ($post['structure_id'] ?? ($facture['structure_id'] ?? ($structureDefaut ?: ''))); ?>
 <?php $nouveauStructure = $structureCourant === '__new__'; ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -99,6 +108,15 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <?php if ($evenementId): ?>
         <input type="hidden" name="evenement_id" value="<?= (int) $evenementId ?>">
         <p class="muted small">Facture liée à <a href="?p=evenement&id=<?= (int) $evenementId ?>">l'événement</a>.</p>
+    <?php endif; ?>
+    <?php // Le dossier de subvention d'où vient cette facture. Le champ caché
+          // ne sert qu'à la création : ensuite c'est le dossier qui porte le
+          // lien, et il le garde même si cet écran ne le repasse pas. ?>
+    <?php if ($fondsDemandeId && $fondsDemande): ?>
+        <input type="hidden" name="fonds_demande_id" value="<?= (int) $fondsDemandeId ?>">
+        <p class="muted small">Facture de la subvention demandée à
+            <a href="?p=fonds_demande&id=<?= (int) $fondsDemandeId ?>"><?= e((string) $fondsDemande['structure_nom']) ?></a>
+            (<?= e((string) $fondsDemande['campagne_nom']) ?>).</p>
     <?php endif; ?>
 
     <div class="grid2">

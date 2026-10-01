@@ -143,6 +143,35 @@ function recherche_sources(): array
                           LEFT JOIN spectacles sp  ON sp.id  = ev.spectacle_id
                           LEFT JOIN spectacles spp ON spp.id = sp.parent_id",
         ],
+        // Les campagnes de recherche de fonds. L'étiquette dit « de recherche
+        // de fonds » en toutes lettres, alors qu'ailleurs le module se contente
+        // de « Campagnes » : ici il n'y a plus de module autour pour le dire, et
+        // l'application a deux sortes de campagnes — le démarchage et la
+        // recherche de fonds. Un résultat qui ne dirait pas laquelle ferait
+        // perdre plus de temps qu'il n'en fait gagner.
+        'fonds' => [
+            'label'   => 'Campagnes de recherche de fonds',
+            'icone'   => 'landmark',
+            'modules' => ['fonds'],
+            'route'   => 'fonds_campagne',
+            'liste'   => 'fonds',
+            'ordre'   => 'ORDER BY tri DESC',
+            // Les projets financés remontent dans le texte cherché ET dans le
+            // sous-titre : on cherche une campagne par le nom du projet au
+            // moins aussi souvent que par le sien.
+            'sql'     => "SELECT c.id, c.nom AS titre,
+                                 coalesce((SELECT group_concat(sp.nom, ' · ')
+                                             FROM fonds_campagne_spectacles cs
+                                             JOIN spectacles sp ON sp.id = cs.spectacle_id
+                                            WHERE cs.campagne_id = c.id), '') AS sous_titre,
+                                 coalesce(c.date_debut,'') AS tri,
+                                 trim(coalesce(c.nom,'') || ' ' || coalesce(c.notes,'') || ' ' ||
+                                      coalesce((SELECT group_concat(sp.nom, ' ')
+                                                  FROM fonds_campagne_spectacles cs
+                                                  JOIN spectacles sp ON sp.id = cs.spectacle_id
+                                                 WHERE cs.campagne_id = c.id), '')) AS texte
+                          FROM fonds_campagnes c",
+        ],
         'spectacles' => [
             'label'   => 'Spectacles',
             'icone'   => 'music',

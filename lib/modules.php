@@ -498,7 +498,8 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     // sur la page cible). Complété au fil des besoins : lien vers une structure
     // depuis un événement, ou depuis le suivi d'une campagne.
     if ($depuis !== '' && preg_match('/^([a-z_]+):\d+$/', $depuis, $m)) {
-        $groupeDuType = ['evenement' => 'evenements', 'campagne' => 'booking'][$m[1]] ?? null;
+        $groupeDuType = ['evenement' => 'evenements', 'campagne' => 'booking',
+                         'fonds_demande' => 'fonds'][$m[1]] ?? null;
         if ($groupeDuType !== null && in_array($groupeDuType, $candidats, true)) {
             return $groupeDuType;
         }

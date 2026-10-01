@@ -2461,11 +2461,14 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
         'booking'          => ['?p=structures&depuis=booking', 'Structures'],
         'facturation'      => ['?p=structures&depuis=facturation', 'Structures'],
         'evenements'       => ['?p=structures&depuis=evenements', 'Structures'],
+        // Quatrième groupe à partager la liste des structures : un bailleur
+        // est une structure comme une autre (SPEC_SUBVENTIONS.md § 9.1).
+        'fonds'            => ['?p=structures&depuis=fonds', 'Structures'],
     ];
     if (isset($statiques[$depuis])) {
         return lien_retour($avecExtras($statiques[$depuis][0]), $statiques[$depuis][1]);
     }
-    if (preg_match('/^(facture|evenement|fiche|employe|structure|campagne):(\d+)$/', $depuis, $m)) {
+    if (preg_match('/^(facture|evenement|fiche|employe|structure|campagne|fonds_demande):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];
         if ($m[1] === 'structure') {
             $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
@@ -2502,6 +2505,14 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             $c = campagne_charger($id);
             if ($c) {
                 return lien_retour('?p=campagne&id=' . $id, (string) $c['nom']);
+            }
+        } elseif ($m[1] === 'fonds_demande') {
+            // Arrivé sur une facture depuis le dossier qu'elle règle, on y
+            // retourne : le dossier porte le nom du bailleur, qui dit de quelle
+            // subvention il s'agit.
+            $dossier = fonds_demande_charger($id);
+            if ($dossier) {
+                return lien_retour('?p=fonds_demande&id=' . $id, (string) $dossier['structure_nom']);
             }
         } elseif ($m[1] === 'fiche') {
             $stmt = db()->prepare('SELECT mois, annee, employe_nom FROM fiches WHERE id = ?');

@@ -214,14 +214,41 @@ function route_facturation_form(): void
     if ($evenementId && !evenement_charger($evenementId)) {
         $evenementId = null;
     }
-    // Axe par défaut de l'événement lié (carte « Comptabilité analytique »),
-    // présélectionné sur la première ligne d'une facture nouvellement créée
-    // depuis cet événement — sans jamais toucher les lignes d'une facture existante.
-    $axeDefautEvenement = null;
-    // Organisateur lié à l'événement (carte du même nom) : présélectionné comme
-    // structure d'une facture nouvellement créée depuis cet événement — sans
-    // effet sur une facture déjà enregistrée.
-    $structureDefautEvenement = null;
+    // Facture créée depuis un dossier de subvention (bouton « Créer » de sa
+    // fiche, module Recherche de fonds). À la création, l'identifiant du
+    // dossier est porté par l'URL ; en modification, c'est le dossier qui
+    // garde le lien (fonds_demandes.facture_id) et on le retrouve par là.
+    // Ne sert qu'à l'affichage et aux valeurs de départ : sans droit de
+    // LECTURE sur le module, le lien reste posé en base mais ne se montre pas.
+    $fondsDemandeId = null;
+    $fondsDemande = null;
+    if (module_accessible('fonds')) {
+        $fondsDemandeId = ($_GET['fonds_demande_id'] ?? $_POST['fonds_demande_id'] ?? '') !== ''
+            ? (int) ($_GET['fonds_demande_id'] ?? $_POST['fonds_demande_id'])
+            : 0;
+        if (!$fondsDemandeId && $id) {
+            $stmtFd = db()->prepare('SELECT id FROM fonds_demandes WHERE facture_id = ?');
+            $stmtFd->execute([$id]);
+            $fondsDemandeId = (int) $stmtFd->fetchColumn();
+        }
+        // Même précaution que pour l'événement : un lien resté ouvert vers un
+        // dossier supprimé depuis s'ignore, il ne fait pas échouer la saisie.
+        $fondsDemande = $fondsDemandeId ? fonds_demande_charger($fondsDemandeId) : null;
+        $fondsDemandeId = $fondsDemande ? $fondsDemandeId : null;
+    }
+
+    // Valeurs de départ d'une facture créée DEPUIS AILLEURS — une date du
+    // booking, un dossier de subvention. Elles ne touchent qu'une facture
+    // nouvelle : sur une facture déjà enregistrée, elles ne doivent rien
+    // écraser, d'où le « !$facture » qui les garde.
+    //   $axeDefaut       axe présélectionné sur la première ligne ;
+    //   $structureDefaut destinataire présélectionné ;
+    //   $ligneDefaut     ['description', 'prix'] de la première ligne — seul un
+    //                    dossier de subvention en pose une : son montant est
+    //                    connu d'avance, pas celui d'un cachet.
+    $axeDefaut = null;
+    $structureDefaut = null;
+    $ligneDefaut = null;
     if ($evenementId && !$facture) {
         // L'axe vient du PROJET de la date, plus de la date elle-même
         // (migration_91) : toutes les dates d'une création se ventilent au même
@@ -230,17 +257,24 @@ function route_facturation_form(): void
                                 LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
         $stmt->execute([$evenementId]);
         $evRow = $stmt->fetch();
-        $axeDefautEvenement = $axes ? ((int) ($evRow['axe_analytique_id'] ?? 0) ?: null) : null;
-        $structureDefautEvenement = (int) ($evRow['organisateur_structure_id'] ?? 0) ?: null;
+        $axeDefaut = $axes ? ((int) ($evRow['axe_analytique_id'] ?? 0) ?: null) : null;
+        $structureDefaut = (int) ($evRow['organisateur_structure_id'] ?? 0) ?: null;
+    } elseif ($fondsDemande && !$facture) {
+        $def = fonds_facture_defauts($fondsDemande);
+        $axeDefaut = $axes ? $def['axe_analytique_id'] : null;
+        $structureDefaut = $def['structure_id'];
+        $ligneDefaut = ['description' => $def['description'], 'prix' => $def['montant']];
     }
 
     $renderForm = function (?string $err) use (
-        $facture, $id, $structures, $comptes, $axes, $delaiDefaut, $evenementId, $axeDefautEvenement, $structureDefautEvenement
+        $facture, $id, $structures, $comptes, $axes, $delaiDefaut, $evenementId,
+        $axeDefaut, $structureDefaut, $ligneDefaut, $fondsDemandeId, $fondsDemande
     ) {
         render('facturation_form', [
             'facture' => $facture, 'id' => $id, 'structures' => $structures, 'comptes' => $comptes, 'axes' => $axes,
-            'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'axeDefautEvenement' => $axeDefautEvenement,
-            'structureDefautEvenement' => $structureDefautEvenement,
+            'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'axeDefaut' => $axeDefaut,
+            'structureDefaut' => $structureDefaut, 'ligneDefaut' => $ligneDefaut,
+            'fondsDemandeId' => $fondsDemandeId, 'fondsDemande' => $fondsDemande,
             'err' => $err, 'post' => $_POST,
         ], $id ? 'Modifier la facture' : 'Nouvelle facture');
     };
@@ -291,6 +325,14 @@ function route_facturation_form(): void
         $renderForm('Enregistrement impossible : ' . (str_contains($ex->getMessage(), 'FOREIGN KEY')
             ? "l'événement lié n'existe plus." : 'erreur inattendue.'));
         return;
+    }
+    // Le dossier de subvention garde le lien de son côté. Il est posé à
+    // l'ENREGISTREMENT et pas à l'ouverture du formulaire, pour qu'une facture
+    // abandonnée en cours de saisie ne laisse aucune trace — et APRÈS le bloc
+    // ci-dessus, dont le message d'erreur ne parle que de l'événement lié.
+    // Écrire sur le dossier demande le droit d'écriture sur son module.
+    if ($fondsDemandeId && peut_ecrire('fonds')) {
+        fonds_facture_lier($fondsDemandeId, $factureId);
     }
     redirect('facture', ['id' => $factureId]);
 }
@@ -1325,7 +1367,12 @@ function route_structure(): void
                  (string) ($structureAffichee['categorie'] ?? ''),
                  (string) ($structureAffichee['sous_categorie'] ?? ''),
                  $map
-             )],
+             ),
+             // Les dossiers de subvention de ce bailleur. Hors de
+             // structure_donnees_crm(), qui ne répond que du booking et rend la
+             // main dès qu'il est éteint : la recherche de fonds est un module
+             // à part, qui peut vivre sans lui.
+             'dossiersFonds' => ($id && module_accessible('fonds')) ? fonds_dossiers_de_structure($id) : []],
             structure_donnees_crm($id)
         ), $id ? (string) $structureAffichee['nom'] : 'Nouvelle structure');
     };

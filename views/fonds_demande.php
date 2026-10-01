@@ -1,7 +1,7 @@
 <?php
 /** @var array $demande */ /** @var array $catalogue */ /** @var array $pieces */
 /** @var array $historique */ /** @var ?array $versement */
-/** @var array $ecritures */ /** @var ?string $ok */
+/** @var array $ecritures */ /** @var ?array $facture */ /** @var ?string $ok */
 // La fiche d'un dossier : ce que ce bailleur-là demande, ce qu'on lui a
 // déposé, ce qu'il a répondu. Trois cartes qui se lisent et s'ouvrent au
 // crayon, comme partout (docs/UI.md § 2a).
@@ -195,6 +195,44 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
         <?php endif; ?>
         <label class="mt-16">Remarques <input name="notes" value="<?= e((string) ($versement['notes'] ?? '')) ?>"></label>
     </form>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php // Certains bailleurs ne versent rien sans facture ; d'autres n'en veulent
+      // pas. Elle n'a donc rien d'obligatoire (SPEC_SUBVENTIONS.md § 9.11), et
+      // la carte ne paraît qu'une fois l'argent accordé — avant, il n'y a rien
+      // à facturer. Le geste est celui des « Factures liées » d'une date :
+      // « Créer » ouvre le formulaire de facture, déjà rempli de ce que le
+      // dossier sait (docs/UI.md § 1 — un geste qui existe se refait pareil). ?>
+<?php if (module_accessible('facturation') && (float) $d['montant_accorde'] > 0): ?>
+<div class="card mt-22">
+    <div class="card-head-row">
+        <h2 class="mt-0">Facture au bailleur <?= info_tip(
+            "Une facture ordinaire, tenue par le module Facturation : le bailleur en destinataire, le montant accordé, "
+            . "et l'axe analytique du projet financé. Tout reste modifiable avant de l'émettre."
+        ) ?></h2>
+        <?php if (!$facture && $peutEcrire && peut_ecrire('facturation')): ?>
+        <div class="head-actions">
+            <a class="btn ghost" href="?p=facturation_form&fonds_demande_id=<?= $id ?>"><?= icon('file-plus') ?> <span class="lbl">Créer</span></a>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!$facture): ?>
+        <p class="muted mb-0">Aucune facture pour ce dossier.</p>
+    <?php else: ?>
+    <table class="list mb-0">
+        <thead><tr><th>Numéro</th><th class="num">Montant</th><th>Statut</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><a href="<?= e(url_avec_retour('?p=facture&id=' . (int) $facture['id'], 'fonds_demande', $id)) ?>">
+                    <?= trim((string) $facture['numero']) !== '' ? e((string) $facture['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
+                <td class="num strong"><?= chf((float) $facture['montant_total']) ?></td>
+                <td><?= facturation_badge($facture) ?></td>
+            </tr>
+        </tbody>
+    </table>
     <?php endif; ?>
 </div>
 <?php endif; ?>

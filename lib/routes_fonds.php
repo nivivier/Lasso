@@ -260,6 +260,9 @@ function route_fonds_demande(): void
         'pieces'     => fonds_bailleur_pieces($sid),
         'versement'  => fonds_versement_de($id),
         'ecritures'  => fonds_ecritures_rapprochables($id),
+        // La facture au bailleur, s'il y en a une — et seulement si la
+        // facturation est là pour la montrer.
+        'facture'    => module_accessible('facturation') ? fonds_facture_de($id) : null,
         'historique' => historique_fusionne('structure', $sid),
         'ok'         => $_GET['ok'] ?? null,
     ], 'Dossier — ' . $demande['structure_nom']);

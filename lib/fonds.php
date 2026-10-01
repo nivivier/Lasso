@@ -381,3 +381,88 @@ function fonds_versement_enregistrer(int $demandeId, array $v): void
     db()->prepare('INSERT INTO fonds_versements (demande_id, montant, date_prevue, date_recue, ecriture_id, notes) VALUES (?, ?, ?, ?, ?, ?)')
         ->execute([$demandeId, $montant, $prevue, $recue, $ecrit, $notes]);
 }
+
+// --- La facture au bailleur -------------------------------------------------
+//
+// Certains bailleurs ne versent rien sans facture. Elle n'a rien d'obligatoire
+// (SPEC_SUBVENTIONS.md § 9.11), et quand elle existe c'est une facture
+// ordinaire : le module de facturation la tient, ce module-ci ne fait que la
+// rattacher au dossier (fonds_demandes.facture_id) et lui donner ses valeurs
+// de départ.
+
+// L'axe analytique d'une campagne : le sien s'il est posé, sinon celui du
+// projet financé. Depuis la migration 91, c'est le projet qui porte la
+// ventilation — le module n'a rien à inventer, il va la chercher là. Une
+// campagne qui finance deux projets prend celui du premier qui en a un : l'axe
+// reste modifiable ligne par ligne sur la facture.
+function fonds_campagne_axe(int $campagneId): ?int
+{
+    $stmt = db()->prepare('SELECT axe_analytique_id FROM fonds_campagnes WHERE id = ?');
+    $stmt->execute([$campagneId]);
+    $axe = (int) $stmt->fetchColumn();
+    if ($axe) {
+        return $axe;
+    }
+    $stmt = db()->prepare(
+        'SELECT sp.axe_analytique_id FROM fonds_campagne_spectacles cs
+           JOIN spectacles sp ON sp.id = cs.spectacle_id
+          WHERE cs.campagne_id = ? AND sp.axe_analytique_id IS NOT NULL
+       ORDER BY sp.nom LIMIT 1'
+    );
+    $stmt->execute([$campagneId]);
+    return ((int) $stmt->fetchColumn()) ?: null;
+}
+
+// Ce qu'une facture de subvention sait d'avance : à qui, combien, sur quel axe,
+// et sous quel libellé. Le reste — compte créancier, délai, lignes
+// supplémentaires — se règle sur le formulaire de facture, qui est le seul à
+// savoir le faire.
+//
+// Le montant est celui ACCORDÉ, pas celui demandé : on ne facture pas une
+// espérance. Sans échelonnement en v1, c'est le total (§ 9.11 bis).
+function fonds_facture_defauts(array $demande): array
+{
+    return [
+        'structure_id'      => (int) $demande['structure_id'],
+        'axe_analytique_id' => module_actif('analytique') ? fonds_campagne_axe((int) $demande['campagne_id']) : null,
+        'description'       => 'Subvention — ' . (string) $demande['campagne_nom'],
+        'montant'           => r2((float) $demande['montant_accorde']),
+    ];
+}
+
+// La facture d'un dossier, s'il en a une. Lue par le lien plutôt que par
+// l'identifiant du dossier : une facture supprimée délie la colonne
+// (ON DELETE SET NULL) et la carte redevient vide d'elle-même.
+function fonds_facture_de(int $demandeId): ?array
+{
+    $stmt = db()->prepare(
+        'SELECT f.* FROM factures f JOIN fonds_demandes d ON d.facture_id = f.id WHERE d.id = ?'
+    );
+    $stmt->execute([$demandeId]);
+    return $stmt->fetch() ?: null;
+}
+
+// Rattache une facture à un dossier. Appelée à l'enregistrement de la facture,
+// pas à l'ouverture du formulaire : une facture abandonnée en cours de saisie
+// ne doit laisser aucune trace sur le dossier.
+function fonds_facture_lier(int $demandeId, int $factureId): void
+{
+    db()->prepare('UPDATE fonds_demandes SET facture_id = ? WHERE id = ?')
+        ->execute([$factureId, $demandeId]);
+}
+
+// Les dossiers d'un bailleur, toutes campagnes confondues, du plus récent au
+// plus ancien. Ce que montre sa fiche de structure : ce qu'on lui a demandé,
+// ce qu'il a donné.
+function fonds_dossiers_de_structure(int $structureId): array
+{
+    $stmt = db()->prepare(
+        'SELECT d.*, c.nom AS campagne_nom, c.date_debut, c.date_fin
+           FROM fonds_demandes d
+           JOIN fonds_campagnes c ON c.id = d.campagne_id
+          WHERE d.structure_id = ?
+       ORDER BY c.date_debut DESC, c.id DESC'
+    );
+    $stmt->execute([$structureId]);
+    return $stmt->fetchAll();
+}

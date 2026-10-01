@@ -3,7 +3,7 @@
 /** @var array $contacts */ /** @var array $notes */ /** @var array $tags */ /** @var array $tagsDispo */
 /** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $organisateurDispo */ /** @var array $categoriesLieu */
 /** @var array $campagnesStructure */ /** @var array $campagnesLiees */ /** @var array $campagnesDispo */ /** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
-/** @var array $spectacles */ /** @var array $campagneProjets */
+/** @var array $spectacles */ /** @var array $campagneProjets */ /** @var array $dossiersFonds */
 // Projets proposés dans les menus « Projet » (note d'historique, fenêtre
 // « Contacter ») — vides si le module Événements est éteint.
 $spectacleLabels = [];
@@ -990,6 +990,45 @@ $villeHtmlS = ville_departement_canton_html(
 })();
 </script>
 <?php endif; ?>
+<?php endif; ?>
+
+<?php // Les dossiers de subvention déposés chez ce bailleur, toutes campagnes
+      // confondues. L'étiquette dit « recherche de fonds » et non « campagnes »
+      // tout court : la carte juste au-dessus porte les campagnes de
+      // démarchage, et les deux se ressemblent assez pour qu'on les confonde.
+      // La carte ne paraît que s'il y a quelque chose à montrer — une structure
+      // à qui l'on n'a jamais rien demandé n'est pas un bailleur. ?>
+<?php if (module_accessible('fonds') && $dossiersFonds): ?>
+<div class="card">
+    <div class="card-block">
+        <h2 class="mt-0">Recherche de fonds (<?= count($dossiersFonds) ?>) <?= info_tip(
+            "Les dossiers de subvention déposés chez cette structure, du plus récent au plus ancien. "
+            . "Ce qu'elle exige comme pièces se règle depuis l'un d'eux : c'est elle qui l'exige, pas la campagne."
+        ) ?></h2>
+        <?php $aujourdhuiFonds = date('Y-m-d'); ?>
+        <div class="table-scroll table-flush">
+        <table class="list mb-0">
+            <thead><tr><th>Campagne</th><th class="num">Demandé</th><th class="num">Accordé</th><th>État</th></tr></thead>
+            <tbody>
+            <?php foreach ($dossiersFonds as $df): ?>
+                <?php $statutF = fonds_demande_statut($df, $aujourdhuiFonds); ?>
+                <tr>
+                    <td>
+                        <a href="<?= url_avec_retour('?p=fonds_demande&id=' . (int) $df['id'], 'structure', $sid) ?>"><?= e((string) $df['campagne_nom']) ?></a>
+                        <?php if (trim((string) $df['date_limite']) !== ''): ?>
+                        <div class="muted small">Délai : <?= e(date('d.m.Y', strtotime((string) $df['date_limite']))) ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td class="num small"><?= (float) $df['montant_demande'] > 0 ? chf((float) $df['montant_demande']) : '—' ?></td>
+                    <td class="num strong"><?= (float) $df['montant_accorde'] > 0 ? chf((float) $df['montant_accorde']) : '—' ?></td>
+                    <td><?= badge(FONDS_STATUTS[$statutF] ?? $statutF, FONDS_STATUTS_CLASSES[$statutF] ?? 'muted') ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
 <?php endif; ?>
 
 </div>
