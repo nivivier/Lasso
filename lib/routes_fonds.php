@@ -35,7 +35,11 @@ function fonds_campagnes_liste(): array
 function route_fonds(): void
 {
     require_login();
-    render('fonds', ['campagnes' => fonds_campagnes_liste()], 'Recherche de fonds');
+    $campagnes = fonds_campagnes_liste();
+    render('fonds', [
+        'groupes' => fonds_campagnes_groupees($campagnes),
+        'vide'    => !$campagnes,
+    ], 'Recherche de fonds');
 }
 
 function fonds_campagne_charger(int $id): ?array

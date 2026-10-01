@@ -288,3 +288,35 @@ function fonds_dashboard(int $max = 5, string $aujourdhui = ''): array
         'nbBilans'       => count($bilans),
     ];
 }
+
+// Les trois tranches de la liste des campagnes de recherche de fonds : celles
+// dont la saison court, celles qui viennent, celles qui sont derrière. Mêmes
+// tranches et même ordre que la liste des campagnes de démarchage
+// (CAMPAGNES_GROUPES, lib/booking.php) — on lit les deux de la même façon.
+//
+// L'ordre interne est chronologique : la plus anciennement commencée d'abord,
+// comme la carte du tableau de bord.
+function fonds_campagnes_groupees(array $campagnes, string $aujourdhui = ''): array
+{
+    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
+    $tranches = ['En cours' => [], 'À venir' => [], 'Passées' => []];
+    foreach ($campagnes as $c) {
+        $debut = trim((string) ($c['date_debut'] ?? ''));
+        if (periode_courante($c, $aujourdhui)) {
+            $tranches['En cours'][] = $c;
+        } elseif ($debut !== '' && $debut > $aujourdhui) {
+            $tranches['À venir'][] = $c;
+        } else {
+            $tranches['Passées'][] = $c;
+        }
+    }
+    $out = [];
+    foreach ($tranches as $titre => $lot) {
+        if (!$lot) {
+            continue; // une tranche vide ne se rend pas, séparateur compris
+        }
+        usort($lot, fn ($a, $b) => [(string) $a['date_debut'], (int) $a['id']] <=> [(string) $b['date_debut'], (int) $b['id']]);
+        $out[] = ['titre' => $titre, 'campagnes' => $lot];
+    }
+    return $out;
+}
