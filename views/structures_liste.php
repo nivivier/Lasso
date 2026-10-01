@@ -2,7 +2,7 @@
 /** @var array $lieu */ /** @var array $tri */ /** @var array $tagId */ /** @var array $statut */
 /** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var array $campagnesParStructure */ /** @var array $campagnesDispo */ /** @var array $campagneId */
-/** @var array $fondsParStructure */
+/** @var array $fondsParStructure */ /** @var array $fondsCampagnesDispo */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
 /** @var ?int $tagBulk */ /** @var string $tagBulkAction */ /** @var string $tagBulkNom */
@@ -224,14 +224,24 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 ?>
 <?php endif; ?>
 
-<?php if ($peutEcrireTags && $campagnesDispo): ?>
 <?php
-// Le formulaire « ajouter à une campagne » par ligne est partagé avec le suivi
-// d'une campagne : views/_campagne_ajouter_ligne.php.
-$caCampagnes = $campagnesDispo;
+// Le formulaire « ajouter à une campagne » par ligne, partagé avec le suivi
+// d'une campagne (views/_campagne_ajouter_ligne.php). Il sert la colonne
+// affichée — celle du démarchage ou celle de la recherche de fonds —, jamais
+// les deux : la page n'en montre qu'une. Seules la liste proposée et la route
+// changent.
+$caCampagnes = [];
+if ($campagnesFonds && peut_ecrire('fonds')) {
+    $caCampagnes = $fondsCampagnesDispo;
+    $caAction = '?p=fonds_structure_campagne';
+} elseif (!$campagnesFonds && $peutEcrireTags) {
+    $caCampagnes = $campagnesDispo;
+    $caAction = '?p=structure_campagne';
+}
 $caRetour = ['retour' => 'structures'];
-require __DIR__ . '/_campagne_ajouter_ligne.php';
 ?>
+<?php if ($caCampagnes): ?>
+<?php require __DIR__ . '/_campagne_ajouter_ligne.php'; ?>
 <?php endif; ?>
 
 <?php if ($vue === 'carte'): ?>
@@ -274,7 +284,7 @@ $stNbEvenements = $nbEvenements;
 // plus haut). Celle du démarchage n'apparaît que si le booking est accessible —
 // $campagnesDispo est vide sinon, et la colonne disparaît avec lui.
 $stColCampagnes = $campagnesFonds
-    ? colonne_campagnes_fonds($fondsParStructure)
+    ? colonne_campagnes_fonds($fondsParStructure, peut_ecrire('fonds'))
     : ($campagnesDispo
         ? colonne_campagnes_booking($campagnesParStructure, $peutEcrireTags, $sfFiltres['campagnes'] ?? '')
         : null);

@@ -15,14 +15,19 @@
 //   $caCampagnes (array) les campagnes où l'on peut ranger la structure.
 //   $caRetour    (array) où revenir SANS JavaScript : ['retour' => 'structures'],
 //                ou ['retour' => 'campagne', 'campagne_id' => N].
+//   $caAction    (string) la route qui enregistre. Par défaut celle du
+//                démarchage ; la liste des structures atteinte depuis la
+//                recherche de fonds vise la sienne — une page ne montre jamais
+//                les deux colonnes à la fois, un seul formulaire suffit donc.
 $caCampagnes = $caCampagnes ?? [];
 $caRetour = $caRetour ?? [];
+$caAction = $caAction ?? '?p=structure_campagne';
 ?>
 <?php // Exemplaire unique, comme le formulaire d'étiquette juste au-dessus :
       // déplacé dans la cellule de la ligne dont on clique le « + ». Une liste
       // fermée — on rattache à une campagne existante, on n'en crée pas d'ici —
       // avec un champ cherchable, comme les étiquettes. ?>
-<form method="post" action="?p=structure_campagne" class="linked-add linked-add-ligne campagne-ajouter-ligne" id="campagne-ajouter-form" hidden>
+<form method="post" action="<?= e($caAction) ?>" class="linked-add linked-add-ligne campagne-ajouter-ligne" id="campagne-ajouter-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="structure_id" value="">
     <?= hidden_inputs_html($caRetour) ?>

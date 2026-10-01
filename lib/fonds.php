@@ -531,13 +531,15 @@ function fonds_structures_campagnes(array $ids, string $aujourdhui = ''): array
     return $out;
 }
 
-// La cellule correspondante. Même dessin que celle du démarchage
+// La cellule correspondante. Même dessin et même « + » que celle du démarchage
 // (structure_campagnes_cellule_html(), lib/booking.php) — teal pour une
-// campagne dont la saison court, ton neutre pour les autres —, mais en LECTURE
-// SEULE : un dossier de subvention porte des montants et des dates, on ne le
-// retire pas d'une ligne de liste, et on n'en ouvre pas un d'ici sans savoir
-// quel bailleur demande quoi.
-function fonds_campagnes_cellule_html(array $campagnes): string
+// campagne dont la saison court, ton neutre pour les autres.
+//
+// Pas de croix de RETRAIT, en revanche : un dossier de subvention porte des
+// montants, des dates et un versement ; le défaire d'un clic dans une ligne de
+// liste effacerait tout cela sans que rien ne le montre. Ajouter n'ouvre qu'un
+// dossier vide, et se défait depuis le suivi de la campagne.
+function fonds_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire): string
 {
     $h = '';
     foreach ($campagnes as [$id, $nom, $enCours]) {
@@ -547,6 +549,11 @@ function fonds_campagnes_cellule_html(array $campagnes): string
     // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
     // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
     // n'existe pas — même choix que pour les étiquettes.
+    if ($peutEcrire) {
+        $h .= '<button type="button" class="badge campagne-ajouter-btn" data-campagne-structure="' . $structureId
+            . '" title="Solliciter ce bailleur dans une campagne"'
+            . ' aria-label="Ajouter ce bailleur à une campagne de recherche de fonds">+</button>';
+    }
     return $h;
 }
 
@@ -554,7 +561,7 @@ function fonds_campagnes_cellule_html(array $campagnes): string
 // liste des structures atteinte depuis la recherche de fonds. Pas d'entonnoir :
 // on ne filtre pas encore les bailleurs par campagne — le jour où le besoin
 // vient, c'est un argument de plus, pas une seconde colonne.
-function colonne_campagnes_fonds(array $parStructure): array
+function colonne_campagnes_fonds(array $parStructure, bool $peutEcrire): array
 {
     return [
         // Chaque ligne insécable (même raison que la colonne jumelle) : deux
@@ -562,6 +569,7 @@ function colonne_campagnes_fonds(array $parStructure): array
         'titre'         => '<span class="nowrap">Campagnes de</span><br><span class="nowrap">recherche de fonds</span>',
         'filtre'        => '',
         'par_structure' => $parStructure,
-        'cellule'       => fn (int $sid, array $campagnes): string => fonds_campagnes_cellule_html($campagnes),
+        'cellule'       => fn (int $sid, array $campagnes): string
+            => fonds_campagnes_cellule_html($sid, $campagnes, $peutEcrire),
     ];
 }

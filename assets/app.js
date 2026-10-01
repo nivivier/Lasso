@@ -1736,9 +1736,15 @@ async function lassoMajCellule(cellule, route, donnees, csrf) {
 // champ que les étiquettes (lassoInitTagAjout()) : on cherche à la frappe. La
 // liste reste FERMÉE — on rattache à une campagne existante, on n'en crée pas
 // d'ici —, d'où la valeur cachée que seule une sélection remplit.
+//
+// La ROUTE visée est celle du formulaire, pas une adresse écrite ici :
+// l'application a deux sortes de campagnes, et la page montre l'une OU l'autre
+// colonne selon le module d'où l'on vient (views/_campagne_ajouter_ligne.php).
+// Un seul formulaire, un seul écouteur — c'est l'action qui change.
 function lassoInitCampagneCellule() {
     const form = document.getElementById('campagne-ajouter-form');
     if (!form) return;
+    const route = form.getAttribute('action');
     const champId = form.querySelector('input[name="structure_id"]');
     const wrap = form.querySelector('.campagne-search');
     const saisie = wrap.querySelector('.cat-search-input');
@@ -1771,7 +1777,7 @@ function lassoInitCampagneCellule() {
         attente.textContent = nom;
         attente.title = 'Enregistrement…';
         cellule.insertBefore(attente, cellule.querySelector('.campagne-ajouter-btn') || null);
-        lassoMajCellule(cellule, '?p=structure_campagne', { structure_id: structureId, campagne_id: id }, csrf());
+        lassoMajCellule(cellule, route, { structure_id: structureId, campagne_id: id }, csrf());
         return true;
     }
     // Choisir dans la liste suffit : le bouton « + » du formulaire reste là pour
@@ -1808,7 +1814,7 @@ function lassoInitCampagneCellule() {
         if (!confirm('Retirer cette structure de la campagne' + (nom ? ' « ' + nom + ' »' : '')
             + ' ? La réponse qui y est notée sera perdue.')) { return; }
         croix.closest('.badge')?.classList.add('badge-attente');
-        lassoMajCellule(cellule, '?p=structure_campagne', {
+        lassoMajCellule(cellule, route, {
             structure_id: cellule.dataset.structure,
             campagne_id: croix.dataset.campagneRetirer,
             action: 'retirer',

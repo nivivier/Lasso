@@ -1052,7 +1052,7 @@ function route_structures(): void
             // Pays / régions / départements de l'entonnoir « Lieu » ; les villes
             // arrivent par ?p=structures_lieux (voir filtre_colonne_lieu_html()).
             'lieuxOptions' => lieux_options(['pays', 'region', 'dept']),
-            'campagnesParStructure' => [], 'campagnesDispo' => [], 'fondsParStructure' => [],
+            'campagnesParStructure' => [], 'campagnesDispo' => [], 'fondsParStructure' => [], 'fondsCampagnesDispo' => [],
             'tagsDispo' => module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [],
             'modeClient' => true, 'pgRoute' => 'structures', 'pgParams' => [], 'pgPage' => 1, 'pgTaille' => $pgTaille, 'pgTotal' => 0,
             'bulkCount' => null, 'okAnnule' => false, 'structBloquees' => 0,
@@ -1176,6 +1176,10 @@ function route_structures(): void
         // solliciter, rarement les deux à la fois.
         'fondsParStructure' => ($_GET['depuis'] ?? '') === 'fonds' && module_accessible('fonds')
             ? fonds_structures_campagnes(array_column($structures, 'id')) : [],
+        // Et celles où l'on peut encore ranger un bailleur, pour le « + » de la
+        // cellule.
+        'fondsCampagnesDispo' => ($_GET['depuis'] ?? '') === 'fonds' && module_accessible('fonds')
+            ? db()->query('SELECT id, nom FROM fonds_campagnes ORDER BY date_debut DESC, id DESC')->fetchAll() : [],
         'modeClient' => $modeClient,
         'pgRoute'   => 'structures',
         'pgParams'  => array_filter([

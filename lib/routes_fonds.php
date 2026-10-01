@@ -359,3 +359,58 @@ function route_fonds_pieces(): void
         ->execute([trim((string) ($_POST['fonds_pieces_autres'] ?? '')), $sid]);
     redirect('fonds_demande', ['id' => $id, 'ok' => 'pieces']);
 }
+
+// Ranger un bailleur dans une campagne de recherche de fonds, depuis la colonne
+// du même nom sur la liste des structures. Le pendant de
+// route_structure_campagne() (lib/routes_booking.php), au retrait près : on
+// n'en retire pas d'ici. Un dossier porte des montants, des dates et un
+// versement — le défaire d'un clic dans une ligne de liste effacerait tout cela
+// sans rien montrer. Il se retire depuis le suivi de la campagne, où l'on voit
+// ce qu'on efface.
+function route_fonds_structure_campagne(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('structures', ['depuis' => 'fonds']);
+    }
+    check_csrf();
+    require_ecriture('fonds');
+    $structureId = (int) ($_POST['structure_id'] ?? 0);
+    $campagneId  = (int) ($_POST['campagne_id'] ?? 0);
+    $campagne = fonds_campagne_charger($campagneId);
+    $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
+    $stmt->execute([$structureId]);
+    $nomStructure = (string) ($stmt->fetchColumn() ?: '');
+
+    // INSERT OR IGNORE : l'index unique (campagne_id, structure_id) dit qu'un
+    // bailleur n'a qu'un dossier par campagne (SPEC_SUBVENTIONS.md § 9.4). Un
+    // second clic ne doit donc pas échouer, il ne doit rien faire.
+    if ($campagne && $nomStructure !== '') {
+        $ins = db()->prepare('INSERT OR IGNORE INTO fonds_demandes (campagne_id, structure_id) VALUES (?, ?)');
+        $ins->execute([$campagneId, $structureId]);
+        // Journalisé seulement si une ligne a VRAIMENT été créée : un second
+        // clic ne doit pas poser une seconde entrée dans l'historique du
+        // bailleur pour un dossier qui existait déjà.
+        if ($ins->rowCount() > 0) {
+            journaliser('structure', $structureId, 'edition', 'Sollicitée dans la campagne de recherche de fonds : ' . $campagne['nom']);
+        }
+    }
+    // Même convention que les étiquettes et le démarchage : en JSON quand le
+    // JavaScript est là, pour ne remplacer que la cellule d'une liste qui pèse
+    // plusieurs mégaoctets.
+    if (($_POST['retour'] ?? '') === 'json') {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok'   => true,
+            'html' => fonds_campagnes_cellule_html(
+                $structureId,
+                fonds_structures_campagnes([$structureId])[$structureId] ?? [],
+                peut_ecrire('fonds')
+            ),
+        ]);
+        return;
+    }
+    // Sans JavaScript : on revient d'où l'on vient — la liste des structures,
+    // vue par la recherche de fonds.
+    redirect('structures', ['depuis' => 'fonds']);
+}
