@@ -60,6 +60,7 @@ Trois tables.
 | `montant_cible` | le budget à boucler — ce qui donne un sens à la jauge (§ 5) |
 | `criteres` | la sélection de bailleurs, même format qu'une campagne |
 | `axe_analytique_id` | FK nullable → `axes_analytiques` : **celui du projet financé** (tranché le 01.10.2026), pré-rempli à la création et modifiable. C'est lui que porteront la facture et les écritures de cette recherche (§ 3 ter) |
+| `drive_url` | **le dossier externe** où vivent toutes les pièces de cette recherche — budgets, lettres, décisions, bilans. Un lien, pas un dépôt de fichiers (§ 3 quater) |
 | `notes`, `cree_le` | |
 
 Projets visés : table de liaison `fonds_campagne_spectacles`, sur le modèle de
@@ -167,6 +168,32 @@ Le module **ne duplique aucun de ces trois objets** : il pose des clés vers eux
 Une subvention sans facture, sans écriture et sans axe reste parfaitement
 suivable — le lien comptable est une commodité, pas une condition.
 
+### 3 quater. Les pièces vivent sur un drive, pas ici
+
+**Tranché le 01.10.2026 : le module ne stocke aucun fichier.** Les dossiers de
+subvention sont volumineux, se relisent à plusieurs et s'éditent ailleurs — un
+drive fait ce travail mieux qu'une application de gestion. La campagne porte
+donc **un lien** vers le dossier qui contient tout : budgets, lettres, pièces
+exigées, décisions, bilans.
+
+Ce que ça évite, et qui n'est pas rien : aucune route de téléchargement
+authentifiée, aucun quota à surveiller, aucune pièce jointe à embarquer dans la
+sauvegarde — la base reste petite, et une restauration n'a pas de fichiers à
+retrouver (comparer avec la feuille de route d'un événement, § `README.md`,
+dont les pièces jointes vivent sous `data/fichiers/`).
+
+Un lien par **campagne**, pas par demande : c'est le dossier de la recherche
+qu'on ouvre, et il s'organise en sous-dossiers chez le prestataire. Si l'usage
+réclame un lien par bailleur, une colonne de plus sur `fonds_demandes` suffira —
+`ALTER TABLE … ADD COLUMN` est l'opération sans risque.
+
+Le lien s'affiche avec les mêmes garde-fous que « Formulaire de contact » :
+adresse **http(s) absolue** seulement, `target="_blank"`, `rel="noopener"`,
+icône `external-link`. C'est le moment de généraliser
+`bouton_formulaire_contact_html()` en un bouton de lien externe dont le
+formulaire de contact ne serait qu'un appelant — deux boutons identiques à un
+libellé près ne se dessinent pas deux fois.
+
 ## 4. Statut d'une demande
 
 **Dérivé quand c'est possible, stocké sinon** — même partage que le statut d'une
@@ -245,10 +272,9 @@ Chaque étape est livrable seule et laisse l'application utilisable.
    chacun, saisie des montants et des dates sur place (motif § 2d de
    `docs/UI.md`), jauge en francs.
 4. **Le dossier** — `?p=fonds_demande` : la fiche complète, les pièces exigées
-   par le bailleur (cochées à son niveau, § 3), l'historique, les pièces jointes
-   si retenues (§ 9.14). C'est aussi ici que se règlent les pièces d'un
-   bailleur, depuis sa première demande — on ne fait pas un écran à part pour
-   trois cases.
+   par le bailleur, l'historique, le lien vers le dossier de la campagne sur le
+   drive. C'est aussi ici que se règlent les pièces d'un bailleur, depuis sa
+   première demande — on ne fait pas un écran à part pour trois cases.
 5. **Les échéances** — statut dérivé, **les deux** : le dépôt et le bilan. Carte
    du tableau de bord, mise en valeur ambre de ce qui attend un geste.
 6. **Le versement** — une ligne, sa date, son rapprochement à une écriture.
@@ -311,14 +337,12 @@ pluriannuelle, versement échelonné. Les trois peuvent arriver plus tard sans
 rien défaire : le rappel est un écran de plus, le pluriannuel une demande par
 année, et l'échelonnement une table déjà là.
 
-### Reste à décider en chemin
+### Les pièces et les fichiers
 
-14. **Pièces jointes réelles** (budget, lettre, décision, bilan) : les range-t-on
-    hors webroot comme celles d'une feuille de route (`data/fichiers/`, route
-    authentifiée, 8 Mo) ? Rien ne bloque le démarrage sans elles.
-11 bis. **La facture au bailleur porte quel montant** : sans échelonnement en
-    v1, c'est le total accordé. La question se reposera le jour où
-    l'échelonnement arrivera.
+| | décision |
+|---|---|
+| 14 | **Aucun fichier stocké par l'application.** Un lien vers le drive externe, porté par la campagne (§ 3 quater). |
+| 11 bis | **Le montant d'une facture en cas d'échelonnement : pas maintenant.** Sans échelonnement en v1, c'est le total accordé. |
 
 ---
 
