@@ -22,6 +22,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **Les suggestions du champ « Ajouter une structure » passaient sous l'en-tête
+  du tableau** (`?p=campagne_form`) : la liste était coupée en son milieu, on
+  lisait la première proposition et la dernière. La barre d'outils s'élevait
+  déjà au-dessus de l'en-tête collant quand un filtre y était ouvert ; elle le
+  fait maintenant aussi quand ces suggestions le sont.
+
 ### Ajouté
 - **Un bouton « Formulaire de contact »** sur la fiche d'une structure et dans
   le suivi d'une campagne, dès qu'un de ses contacts porte l'adresse d'un

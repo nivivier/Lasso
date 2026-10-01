@@ -1142,8 +1142,14 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    z-index:2), le z-index:20 de .col-filter-menu ne vaut qu'À L'INTÉRIEUR
    d'elle : le menu passait donc sous l'en-tête, quel que soit son propre
    z-index. On relève la barre entière, et seulement tant qu'un menu y est
-   ouvert — au repos elle reprend sa place sous l'en-tête collant. */
-.toolbar:has(details[open]) { z-index: 5; }
+   ouvert — au repos elle reprend sa place sous l'en-tête collant.
+
+   Même raison pour la liste de suggestions du champ « Ajouter une structure »
+   (?p=campagne_form) : ce n'est pas un <details> mais un <ul> qu'on démasque,
+   donc le sélecteur dit les deux. Elle passait sous la rangée d'en-tête, coupée
+   en plein milieu — on lisait la première suggestion et la dernière. */
+.toolbar:has(details[open]),
+.toolbar:has(.cat-search-list:not([hidden])) { z-index: 5; }
 .toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
 /* form.filters (pas .carte-filters, qui est un <div>) : le <form> qui
    enveloppe .search-label doit lui-même grandir dans .toolbar pour que le
