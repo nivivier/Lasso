@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **La carte « Campagnes » du tableau de bord se lit dans l'ordre du temps** :
+  les campagnes de la saison s'y suivent de la plus anciennement commencée à la
+  plus récente, et non plus l'inverse. Une campagne bouclée en avance prend sa
+  place dans cette chronologie au lieu d'être reléguée en fin de carte — rien ne
+  l'en distingue à l'écran. Seules les campagnes en retard gardent la tête : ce
+  sont les seules que la carte montre autrement, par une étiquette.
+
 ## [2.9.4] — 2026-09-30
 
 ### Modifié

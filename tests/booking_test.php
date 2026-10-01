@@ -319,5 +319,53 @@ check('l\'ordre de la liste est conservé', ['b', 'a'], $actives([
     $camp('a', 'en_cours', '2026-01-01', '2026-12-31'),
 ]));
 
+// L'ordre de la carte : l'état d'abord (ce qui est en retard ouvre la liste),
+// puis la CHRONOLOGIE du début. Dates relatives à aujourd'hui, parce que
+// campagnes_actives() lit la date du jour — un jeu de dates figé rendrait le
+// test faux l'année prochaine.
+echo "\n17) Ordre de la carte « Campagnes »\n";
+$jour = fn (string $decalage): string => date('Y-m-d', strtotime($decalage));
+$cmp = fn (string $nom, string $statut, string $debut, string $fin, int $id): array
+    => ['nom' => $nom, 'statut' => $statut, 'date_debut' => $debut, 'date_fin' => $fin, 'id' => $id];
+$carte = [
+    $cmp('cours-mars',  'en_cours', $jour('-1 month'),   $jour('+6 months'), 3),
+    $cmp('retard',      'en_retard', $jour('-10 months'), $jour('-1 month'),  1),
+    $cmp('cours-janv',  'en_cours', $jour('-3 months'),  $jour('+6 months'), 2),
+    $cmp('bouclee',     'terminee', $jour('-2 months'),  $jour('+6 months'), 4),
+];
+check(
+    'en retard d\'abord, puis les autres du plus ancien début au plus récent',
+    ['retard', 'cours-janv', 'bouclee', 'cours-mars'],
+    array_column(campagnes_dashboard(9, $carte), 'nom')
+);
+// Une campagne bouclée dont la saison court n'est pas reléguée en fin de carte :
+// elle prend sa place dans la chronologie, comme celles encore à démarcher.
+check('une campagne bouclée en pleine saison garde son rang chronologique',
+    ['bouclee', 'cours-mars'],
+    array_column(campagnes_dashboard(9, [$carte[0], $carte[3]]), 'nom'));
+// Celle dont la saison est finie, elle, quitte la carte : il y a du démarchage
+// en cours, et c'est lui qu'on vient y chercher.
+check('une campagne vraiment passée sort de la carte', ['cours-mars'],
+    array_column(campagnes_dashboard(9, [
+        $cmp('passee', 'terminee', $jour('-2 years'), $jour('-1 year'), 9),
+        $carte[0],
+    ]), 'nom'));
+// Sans rien d'actif, en revanche, la carte montre la suite : à venir, puis passées.
+check('sans rien d\'actif : les prochaines, puis les passées', ['proche', 'passee'],
+    array_column(campagnes_dashboard(9, [
+        $cmp('passee', 'terminee', $jour('-2 years'), $jour('-1 year'), 9),
+        $cmp('proche', 'a_venir', $jour('+1 month'), '', 2),
+    ]), 'nom'));
+$aVenir = [
+    $cmp('lointaine', 'a_venir', $jour('+8 months'), '', 1),
+    $cmp('proche',    'a_venir', $jour('+1 month'),  '', 2),
+];
+check('sans campagne active, les prochaines passent en tête', ['proche', 'lointaine'],
+    array_column(campagnes_dashboard(9, $aVenir), 'nom'));
+check('à début égal, l\'id départage', ['a', 'b'], array_column(campagnes_dashboard(9, [
+    $cmp('b', 'en_cours', $jour('-1 month'), $jour('+6 months'), 7),
+    $cmp('a', 'en_cours', $jour('-1 month'), $jour('+6 months'), 2),
+]), 'nom'));
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

@@ -507,14 +507,16 @@ const CAMPAGNES_GROUPES = [
     ['titre' => 'Passées',  'statuts' => ['terminee']],
 ];
 
-// Les campagnes à venir se lisent dans l'autre sens que le reste : la plus
-// PROCHE d'abord. Ailleurs, c'est la plus récente qui ouvre la liste (date de
-// début décroissante, campagnes_liste()) — ce qui, pour ce qui n'a pas encore
-// commencé, mettait l'échéance la plus lointaine en tête. L'id départage deux
-// mêmes dates, pour que l'ordre ne dépende pas de celui de la requête.
-// Partagé par la liste (campagnes_groupees()) et le tableau de bord
-// (campagnes_dashboard()), pour que les deux rangent pareil.
-function campagne_cmp_a_venir(array $a, array $b): int
+// Ordre CHRONOLOGIQUE : la campagne commencée en premier d'abord. L'id départage
+// deux mêmes dates, pour que l'ordre ne dépende pas de celui de la requête.
+//
+// C'est l'inverse de campagnes_liste(), qui range la plus récente en tête —
+// bon pour une liste qu'on consulte, pas pour un suivi. Deux écrans s'en
+// servent, et les deux rangent donc pareil : la tranche « à venir » de la liste
+// des campagnes (campagnes_groupees()), où elle met en tête ce qui arrive le
+// plus tôt plutôt que l'échéance la plus lointaine, et la carte du tableau de
+// bord (campagnes_dashboard()), qui se parcourt comme un agenda.
+function campagne_cmp_debut(array $a, array $b): int
 {
     return [(string) $a['date_debut'], (int) $a['id']] <=> [(string) $b['date_debut'], (int) $b['id']];
 }
@@ -522,7 +524,7 @@ function campagne_cmp_a_venir(array $a, array $b): int
 // Range une liste de campagnes dans ces tranches, dans l'ordre, en sautant
 // celles qui n'ont rien : [['titre' => …, 'campagnes' => [...]], …]. L'ordre
 // interne de $campagnes est conservé (la plus récente d'abord), sauf la
-// tranche « à venir » — voir campagne_cmp_a_venir().
+// tranche « à venir » — voir campagne_cmp_debut().
 function campagnes_groupees(array $campagnes): array
 {
     $out = [];
@@ -535,7 +537,7 @@ function campagnes_groupees(array $campagnes): array
             continue;
         }
         if ($groupe['statuts'] === ['a_venir']) {
-            usort($lot, 'campagne_cmp_a_venir');
+            usort($lot, 'campagne_cmp_debut');
         }
         $out[] = ['titre' => $groupe['titre'], 'campagnes' => $lot];
     }
@@ -1991,18 +1993,27 @@ function campagnes_dashboard(int $max = 9, ?array $liste = null): array
     if ($actives) {
         $liste = $actives;
     }
-    // Tri stable : à état égal, l'ordre de campagnes_liste() est conservé
-    // (la plus récente d'abord) — sauf entre campagnes à venir, où c'est la
-    // plus proche qui passe devant (campagne_cmp_a_venir()). Sans quoi la
-    // carte, qui ne montre que les neuf premières, gardait les échéances
-    // lointaines et coupait celles qui arrivent.
-    usort($liste, function (array $a, array $b) use ($rang): int {
-        $c = ($rang[$a['statut']] ?? 9) <=> ($rang[$b['statut']] ?? 9);
-        if ($c !== 0) {
-            return $c;
+    // Une campagne bouclée dont la saison court se range AVEC celles en cours :
+    // à l'écran rien ne les distingue — même saison, même barre d'avancement —,
+    // et leur donner un rang à part les reléguait en fin de carte, en travers de
+    // l'ordre chronologique. Seul « en retard » garde le sien, en tête : c'est le
+    // seul état que la carte montre autrement (une étiquette, pas une barre).
+    $rangDe = function (array $c) use ($rang): int {
+        if ((string) $c['statut'] === 'terminee' && campagne_periode_courante($c)) {
+            return $rang['en_cours'];
         }
-        return $a['statut'] === 'a_venir' ? campagne_cmp_a_venir($a, $b) : 0;
-    });
+        return $rang[(string) $c['statut']] ?? 9;
+    };
+    // À rang égal, l'ordre est CHRONOLOGIQUE : la campagne commencée en premier
+    // ouvre la liste (campagne_cmp_debut()). La carte se lit comme un agenda —
+    // on y suit une saison, et une saison se parcourt dans le sens du temps ;
+    // l'ordre de campagnes_liste(), la plus récente d'abord, convient à une
+    // liste qu'on consulte, pas à un suivi. Même règle pour les campagnes à
+    // venir, où elle met en tête ce qui arrive le plus tôt — sans quoi la
+    // carte, qui ne montre que les neuf premières, gardait les échéances
+    // lointaines et coupait celles qui approchent.
+    usort($liste, fn (array $a, array $b): int => $rangDe($a) <=> $rangDe($b)
+        ?: campagne_cmp_debut($a, $b));
     return array_slice($liste, 0, $max);
 }
 
