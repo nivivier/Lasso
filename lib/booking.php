@@ -1198,7 +1198,8 @@ function structures_colonnes_liste_sql(): string
         (SELECT GROUP_CONCAT(nom, char(30)) FROM (
             SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
         )) AS contacts_noms,
-        " . structure_email_sql() . " AS email_affiche";
+        " . structure_email_sql() . " AS email_affiche,
+        " . structure_formulaire_sql() . " AS formulaire_affiche";
 }
 
 // L'e-mail qui REPRÉSENTE une structure, en SQL : celui du contact marqué
@@ -1217,6 +1218,71 @@ function structure_email_sql(string $colStructureId = 's.id'): string
             (SELECT email FROM structure_contacts WHERE structure_id = $colStructureId AND est_administration = 1 LIMIT 1),
             (SELECT email FROM structure_contacts WHERE structure_id = $colStructureId AND email <> '' ORDER BY id LIMIT 1)
         )";
+}
+
+// Le formulaire de contact d'une structure, en SQL — même forme et même ordre de
+// préférence que l'adresse ci-dessus. Beaucoup d'interlocuteurs n'exposent pas
+// d'adresse mais un formulaire sur leur site : une salle qui filtre ses
+// propositions, une commune, une fondation qui veut son propre guichet. Sans
+// lui, ces structures-là paraissent injoignables alors que le chemin existe.
+//
+// Un contact DÉSINSCRIT n'est pas écarté ici, contrairement à l'envoi d'un
+// message : se désinscrire d'un mailing ne ferme pas le formulaire public du
+// site, qui n'est pas à nous.
+function structure_formulaire_sql(string $colStructureId = 's.id'): string
+{
+    return "COALESCE(
+            (SELECT formulaire_url FROM structure_contacts WHERE structure_id = $colStructureId AND est_administration = 1 AND formulaire_url <> '' LIMIT 1),
+            (SELECT formulaire_url FROM structure_contacts WHERE structure_id = $colStructureId AND formulaire_url <> '' ORDER BY id LIMIT 1),
+            ''
+        )";
+}
+
+// La même chose pour UNE structure déjà identifiée (sa fiche) : une requête,
+// la chaîne vide s'il n'y en a pas.
+function structure_formulaire_url(int $structureId): string
+{
+    $stmt = db()->prepare('SELECT ' . structure_formulaire_sql('?'));
+    $stmt->execute([$structureId, $structureId]);
+    return trim((string) $stmt->fetchColumn());
+}
+
+// Le bouton « Formulaire de contact » : il mène chez l'interlocuteur, dans un
+// onglet à lui. Posé partout où l'on propose d'écrire à une structure — sa
+// fiche, le suivi d'une campagne, et demain le suivi d'une demande de fonds —,
+// d'où un seul rendu : trois écrans qui ouvrent le même lien n'ont pas à le
+// dessiner chacun à sa façon.
+//
+// Ce n'est pas « Contacter » : rien ne part de l'application, donc rien ne
+// s'inscrit dans l'historique. C'est au retour qu'on note le contact à la main
+// (bouton « Marquer comme contacté »), et le libellé dit bien qu'on sort.
+//
+// $url est rendue telle qu'elle a été saisie, échappée : jamais interprétée.
+// rel="noopener" parce que la page ouverte ne doit pas garder la main sur la
+// nôtre, et target="_blank" parce qu'on ne perd pas le suivi en cours.
+//
+// ⚠️ Seule une adresse http(s) ABSOLUE donne un bouton. Le champ est un
+// <input type="url">, mais les lignes importées ne sont passées par aucun
+// navigateur : il s'y trouve des adresses e-mail, un numéro de téléphone, le
+// mot « facebook ». Rendues telles quelles, elles ouvriraient un chemin
+// RELATIF — une page de notre propre application, qui n'existe pas. Mieux vaut
+// pas de bouton qu'un bouton qui ment.
+function bouton_formulaire_contact_html(string $url, array $opts = []): string
+{
+    $url = trim($url);
+    if ($url === '' || !preg_match('~^https?://~i', $url)) {
+        return '';
+    }
+    $nom     = trim((string) ($opts['nom'] ?? ''));
+    $libelle = 'Formulaire de contact' . ($nom !== '' ? ' — ' . $nom : '');
+    $sm      = !empty($opts['petit']) ? ' btn-sm' : '';
+    $texte   = !empty($opts['petit'])
+        ? ''
+        : ' <span class="lbl">Formulaire de contact</span>';
+    return '<a class="btn ghost' . $sm . (!empty($opts['petit']) ? ' icon-only' : '') . '"'
+        . ' href="' . e($url) . '" target="_blank" rel="noopener"'
+        . ' title="' . e($libelle) . '" aria-label="' . e($libelle) . '">'
+        . icon('external-link') . $texte . '</a>';
 }
 
 // Les mêmes colonnes, pour un lot d'identifiants déjà connus : une seule requête

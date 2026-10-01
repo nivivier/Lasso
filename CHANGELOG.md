@@ -20,6 +20,16 @@ puis sont promues sur le canal **stable** en figeant une version.
   une flèche de téléchargement ne dit pas si l'on prend une nouvelle version,
   si l'on réinstalle la même ou si l'on revient en arrière.
 
+## [Non publié]
+
+### Ajouté
+- **Un bouton « Formulaire de contact »** sur la fiche d'une structure et dans
+  le suivi d'une campagne, dès qu'un de ses contacts porte l'adresse d'un
+  formulaire. Il ouvre le site de la structure dans un onglet à lui. C'est
+  souvent le seul chemin vers celles qui n'exposent aucune adresse e-mail — là
+  où « Contacter » reste empêché, faute de destinataire. Le même bouton servira
+  au module de recherche de fonds.
+
 ## [2.9.5] — 2026-10-01
 
 ### Corrigé

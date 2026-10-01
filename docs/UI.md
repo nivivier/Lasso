@@ -842,6 +842,7 @@ Le vocabulaire est fixe :
 | `check` | Marquer comme fait |
 | `mail` / `send` | Contacter / envoyer |
 | `funnel` | Filtrer |
+| `external-link` | Ouvrir un AUTRE site, dans un onglet à lui (`bouton_formulaire_contact_html()`) |
 | `lock` | Jeton, secret |
 | `info` | Bulle d'explication (`info_tip()`) |
 | `rows-3` | Déroulé, gabarit de lignes |

@@ -24,6 +24,7 @@ Deux différences commandent toute la conception :
 | --- | --- |
 | Fiche d'un bailleur (adresse, contacts, notes, historique) | `structures` + `structure_contacts` + `historique` — la Facturation s'en sert déjà sans dépendre du Booking |
 | Écrire à un interlocuteur, garder trace | « Contacter » (`_structure_contacter.php`), `historique` type `mailing` |
+| Passer par le formulaire d'un site qui n'expose pas d'adresse | `bouton_formulaire_contact_html()` + `structure_formulaire_sql()` — fréquent chez les bailleurs, qui veulent leur propre guichet |
 | Sélectionner des interlocuteurs par filtres | `_structures_table.php`, `_structures_filtres.php`, `criteres` d'une campagne |
 | Rattacher à un ou plusieurs projets | `spectacles` + table de liaison (`SPECTACLES_LIAISONS`) |
 | Avancement en barre segmentée | `campagne_barre_html()` + `campagne_repartition()` |

@@ -287,6 +287,15 @@ $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string 
         //
         // Il ouvre la même fenêtre que sur la fiche structure, projets de la
         // campagne déjà cochés : rien de neuf à apprendre.
+        // Le formulaire de contact en premier : il ne modifie rien, il mène chez
+        // la structure. C'est souvent le SEUL chemin quand « Contacter » est
+        // empêché faute d'adresse — d'où sa place ici, où l'on démarche, et pas
+        // seulement sur la fiche.
+        $h .= bouton_formulaire_contact_html((string) ($d['formulaire_affiche'] ?? ''), [
+            'petit' => true,
+            'nom'   => (string) $d['nom'],
+        ]);
+        $h .= ' ';
         $h .= $d['contact_impossible'] === ''
             ? '<button type="button" class="btn btn-sm icon-only" data-contacter="' . $sid . '"'
               . ' title="Contacter" aria-label="Contacter ' . e((string) $d['nom']) . '">' . icon('mail') . '</button>'

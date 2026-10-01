@@ -31,6 +31,12 @@ $raisonPasContactable = $peutContacter
     ? structure_contact_impossible_raison((array) $structure, $contactsJoignables)
     : '';
 $contactable = $peutContacter && $raisonPasContactable === '';
+// Le formulaire de contact de la structure, s'il y en a un : il s'affiche à
+// côté de « Contacter » et SURTOUT quand celui-ci est empêché — c'est souvent
+// le seul chemin vers une structure qui n'expose pas d'adresse.
+$formulaireUrl = $isEdit && module_actif('booking') && peut_lire('booking')
+    ? structure_formulaire_url($sid)
+    : '';
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -69,8 +75,13 @@ $contactable = $peutContacter && $raisonPasContactable === '';
     <?php if (!$isEdit && $peutEcrireStruct): ?>
     <?= entete_form_actions_html('structure-creation-form', '?p=structures') ?>
     <?php endif; ?>
-    <?php if ($peutContacter || $titreEditable): ?>
+    <?php if ($peutContacter || $titreEditable || $formulaireUrl !== ''): ?>
     <div class="head-actions">
+        <?php // Le formulaire précède « Contacter » : il mène ailleurs, il ne
+              // modifie rien, et ce qui agit se range à droite (docs/UI.md § 1). ?>
+        <?php if ($formulaireUrl !== ''): ?>
+        <span class="d-inline entete-lecture"><?= bouton_formulaire_contact_html($formulaireUrl) ?></span>
+        <?php endif; ?>
         <?php if ($peutContacter): ?>
         <span class="d-inline entete-lecture">
             <?php if ($contactable): ?>
