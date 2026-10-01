@@ -24,7 +24,8 @@ $cibF = ciblage_filtres_vue([
     'nom'               => (string) ($campagne['nom'] ?? ''),
     'date_debut'        => (string) ($campagne['date_debut'] ?? ''),
     'date_fin'          => (string) ($campagne['date_fin'] ?? ''),
-    'montant_cible'     => (string) ($campagne['montant_cible'] ?? ''),
+    'montant_minimal'   => (string) ($campagne['montant_minimal'] ?? ''),
+    'montant_ideal'     => (string) ($campagne['montant_ideal'] ?? ''),
     'axe_analytique_id' => (string) ($campagne['axe_analytique_id'] ?? ''),
     'drive_url'         => (string) ($campagne['drive_url'] ?? ''),
     'notes'             => (string) ($campagne['notes'] ?? ''),
@@ -75,16 +76,34 @@ $cibF = ciblage_filtres_vue([
         </label>
     </div>
 
-    <div class="grid3 mt-16">
-        <label><span>Budget à trouver <?= info_tip(
-            "Le montant que cette campagne doit réunir. C'est lui qui donne son sens à la jauge : obtenu, en attente, reste à trouver."
+    <?php // Deux paliers, parce qu'une campagne vise deux montants : celui sans
+          // lequel le projet ne se fait pas, et celui qui le ferait comme on le
+          // voudrait. Un budget unique laissait croire qu'au-dessous de la barre
+          // tout est perdu, et au-dessus qu'il n'y a plus rien à chercher. ?>
+    <div class="grid2 mt-16">
+        <label><span>Objectif minimal <?= info_tip(
+            "Le plancher : en dessous, le projet ne se fait pas. C'est lui que marque le repère sur la jauge, "
+            . "et lui seul que l'argent déjà obtenu doit franchir pour que la campagne soit gagnée."
         ) ?></span>
             <span class="pct-input">
-                <input name="montant_cible" type="text" inputmode="decimal"
-                       value="<?= (float) ($campagne['montant_cible'] ?? 0) > 0 ? e(number_format((float) $campagne['montant_cible'], 2, '.', '')) : '' ?>">
+                <input name="montant_minimal" type="text" inputmode="decimal"
+                       value="<?= (float) ($campagne['montant_minimal'] ?? 0) > 0 ? e(number_format((float) $campagne['montant_minimal'], 2, '.', '')) : '' ?>">
                 <span class="pct-suffix">CHF</span>
             </span>
         </label>
+        <label><span>Objectif idéal <?= info_tip(
+            "Ce qu'il faudrait pour faire le projet comme on le voudrait. C'est lui qui donne sa longueur à la "
+            . "jauge : la barre peut ainsi dépasser le minimum sans déborder. Laissé vide, la jauge se cale sur le minimal."
+        ) ?></span>
+            <span class="pct-input">
+                <input name="montant_ideal" type="text" inputmode="decimal"
+                       value="<?= (float) ($campagne['montant_ideal'] ?? 0) > 0 ? e(number_format((float) $campagne['montant_ideal'], 2, '.', '')) : '' ?>">
+                <span class="pct-suffix">CHF</span>
+            </span>
+        </label>
+    </div>
+
+    <div class="grid2 mt-16">
         <?php if ($axes): ?>
         <label><span>Axe analytique <?= info_tip(
             "Celui du projet financé, repris automatiquement si vous le laissez vide. Il portera la facture et les écritures de cette campagne."

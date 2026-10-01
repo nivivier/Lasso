@@ -38,6 +38,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   montant accordé, l'axe analytique du projet financé ; la **fiche d'une
   structure** montre les dossiers déposés chez elle ; et la **recherche** du
   tableau de bord trouve les campagnes, par leur nom comme par celui du projet.
+  Une campagne vise enfin **deux objectifs et non un** : le minimum sans lequel
+  le projet ne se fait pas, et ce qu'il faudrait pour le faire comme on le
+  voudrait. La jauge se cale sur l'idéal et marque le minimum d'un repère —
+  un montant unique laissait croire qu'au-dessous de la barre tout est perdu,
+  et au-dessus qu'il n'y a plus rien à chercher. La liste des campagnes gagne
+  au passage la **colonne « Projet »** et son **champ de recherche**, comme
+  celle des campagnes de démarchage.
 
 ### Modifié
 - **Les commandes de « Mises à jour » montent en haut de la carte**, comme sur

@@ -57,7 +57,8 @@ Trois tables.
 | `id` | |
 | `nom` | « Création 2027 », « Fonctionnement 2027 » |
 | `date_debut`, `date_fin` | la période de la recherche, comme une campagne de booking |
-| `montant_cible` | le budget à boucler — ce qui donne un sens à la jauge (§ 5) |
+| `montant_minimal` | le plancher : en dessous, le projet ne se fait pas. C'est le repère de la jauge (§ 5) |
+| `montant_ideal` | ce qu'il faudrait pour faire le projet comme on le voudrait. C'est la longueur de la jauge (§ 5) |
 | `criteres` | la sélection de bailleurs, même format qu'une campagne |
 | `axe_analytique_id` | FK nullable → `axes_analytiques` : **celui du projet financé** (tranché le 01.10.2026), pré-rempli à la création et modifiable. C'est lui que porteront la facture et les écritures de cette recherche (§ 3 ter) |
 | `drive_url` | **le dossier externe** où vivent toutes les pièces de cette recherche — budgets, lettres, décisions, bilans. Un lien, pas un dépôt de fichiers (§ 3 quater) |
@@ -227,7 +228,18 @@ l'**argent**. Trois parts, mêmes couleurs que partout :
 - **obtenu** (teal) : somme des `montant_accorde` ;
 - **en attente** (ambre) : somme des `montant_demande` des dossiers déposés sans
   réponse ;
-- **reste à trouver** (gris) : `montant_cible` − les deux précédents.
+- **reste à trouver** (gris) : la base − les deux précédents.
+
+La base est `montant_ideal` s'il est chiffré, sinon `montant_minimal`, sinon ce
+qui est en jeu (obtenu + attente) — une barre pleine dit alors « tout est joué »,
+pas « c'est gagné ». **Deux paliers et non un** : une campagne vise le minimum
+sans lequel le projet ne se fait pas ET ce qu'il faudrait pour le faire comme on
+le voudrait. Un montant unique laissait croire qu'au-dessous de la barre tout est
+perdu, et au-dessus qu'il n'y a plus rien à chercher. La barre se cale donc sur
+l'idéal — elle peut dépasser le minimum sans déborder — et un **repère** dit où
+est ce minimum. Le verdict (« minimum atteint ») se tranche sur l'argent
+**acquis** : l'attente n'est pas de l'argent, et c'est précisément ce que ce
+seuil sert à trancher.
 
 Le compte en nombre de dossiers reste affiché à côté (« 7 / 12 déposés »), comme
 le « 3 / 6 » d'une campagne.
@@ -238,7 +250,7 @@ le « 3 / 6 » d'une campagne.
 |---|---|---|
 | `?p=fonds` | les recherches de fonds, en tranches (en cours / à venir / passées) | `?p=campagnes` |
 | `?p=fonds_campagne&id=` | le suivi : jauge en francs, tableau des bailleurs, montants, dates limites, statut par ligne, modification sur place | `?p=campagne` |
-| `?p=fonds_campagne_form` | créer/modifier : nom, période, cible, projets, sélection des bailleurs par filtres | `?p=campagne_form` |
+| `?p=fonds_campagne_form` | créer/modifier : nom, période, objectifs minimal et idéal, projets, sélection des bailleurs par filtres | `?p=campagne_form` |
 | `?p=fonds_demande&id=` | le dossier : montants, dates, référence, pièces jointes, historique | `?p=facture` |
 | Carte tableau de bord | **deux choses** : l'avancement de la recherche, comme une campagne de booking — ce qu'il reste à envoyer se voit d'un coup d'œil — et **les bilans dus** | carte « Campagnes » |
 

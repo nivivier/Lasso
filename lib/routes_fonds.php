@@ -21,6 +21,14 @@ require_once __DIR__ . '/compta.php';  // montant_float()
 // l'afficher, pour que la vue n'ait aucune requête à faire.
 function fonds_campagnes_liste(): array
 {
+    // Les projets financés, groupés d'avance : une requête pour toutes les
+    // campagnes, pas une par ligne (même préparation que campagnes_liste()).
+    $map = spectacle_map();
+    $projetsParCampagne = [];
+    foreach (db()->query('SELECT campagne_id, spectacle_id FROM fonds_campagne_spectacles ORDER BY spectacle_id') as $l) {
+        $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['spectacle_id'];
+    }
+
     $sql = "SELECT c.*,
                    (SELECT COUNT(*) FROM fonds_demandes d WHERE d.campagne_id = c.id) AS nb_demandes,
                    (SELECT COUNT(*) FROM fonds_demandes d WHERE d.campagne_id = c.id AND d.date_depot <> '') AS nb_deposees,
@@ -28,17 +36,35 @@ function fonds_campagnes_liste(): array
                    (SELECT COALESCE(SUM(d.montant_accorde), 0) FROM fonds_demandes d WHERE d.campagne_id = c.id) AS montant_obtenu
               FROM fonds_campagnes c
           ORDER BY c.date_debut DESC, c.id DESC";
-    return db()->query($sql)->fetchAll();
+    $out = [];
+    foreach (db()->query($sql) as $c) {
+        $projetIds = $projetsParCampagne[(int) $c['id']] ?? [];
+        $out[] = $c + [
+            'projet_ids' => $projetIds,
+            'projets'    => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projetIds),
+            // Les pastilles des mêmes projets, dans le même ordre : dans une
+            // liste de campagnes, une icône se repère avant un nom.
+            'projets_pastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projetIds),
+        ];
+    }
+    return $out;
 }
 
 // La liste des campagnes de recherche de fonds.
 function route_fonds(): void
 {
     require_login();
-    $campagnes = fonds_campagnes_liste();
+    // Recherche texte jamais mémorisée en session, comme les autres listes
+    // (voir route_campagnes()). Le même filtre que le démarchage, puisque
+    // c'est la même question — le nom de la campagne ou celui du projet.
+    $recherche = trim((string) ($_GET['q'] ?? ''));
+    $toutes = fonds_campagnes_liste();
+    $campagnes = array_values(array_filter($toutes, fn (array $c) => campagne_correspond($c, $recherche)));
     render('fonds', [
-        'groupes' => fonds_campagnes_groupees($campagnes),
-        'vide'    => !$campagnes,
+        'groupes'   => fonds_campagnes_groupees($campagnes),
+        'vide'      => !$campagnes,
+        'nbTotal'   => count($toutes),
+        'recherche' => $recherche,
     ], 'Recherche de fonds');
 }
 
@@ -74,7 +100,7 @@ function route_fonds_campagne_form(): void
     $projets = $id ? spectacles_lies('fonds_campagne_spectacles', $id) : [];
     if ($ciblage['previsualise']) {
         $campagne = (array) $campagne + ['id' => $id];
-        foreach (['nom', 'date_debut', 'date_fin', 'montant_cible', 'drive_url', 'notes'] as $champ) {
+        foreach (['nom', 'date_debut', 'date_fin', 'montant_minimal', 'montant_ideal', 'drive_url', 'notes'] as $champ) {
             $campagne[$champ] = trim((string) ($_GET[$champ] ?? ''));
         }
         $campagne['axe_analytique_id'] = ((int) ($_GET['axe_analytique_id'] ?? 0)) ?: null;
@@ -107,9 +133,14 @@ function route_fonds_campagne_enregistrer(): void
     if ($nom === '') {
         redirect('fonds_campagne_form', ($id ? ['id' => $id] : []) + ['err' => 'nom']);
     }
-    // montant_float() : la saisie tolère « 45'000 » et la virgule décimale,
-    // comme partout où l'application lit un montant (lib/compta.php).
-    $cible   = montant_float((string) ($_POST['montant_cible'] ?? ''));
+    // montant_float() : la saisie tolère les séparateurs de milliers (« 45'000 »,
+    // espaces fines comprises), comme partout où l'application lit un montant
+    // (lib/compta.php). Le séparateur décimal reste le point.
+    // Deux paliers : le minimum sans lequel le projet ne se fait pas, et ce
+    // qu'il faudrait pour le faire comme on le voudrait. L'un et l'autre
+    // facultatifs — une campagne peut n'avoir encore chiffré ni l'un ni l'autre.
+    $minimal = montant_float((string) ($_POST['montant_minimal'] ?? ''));
+    $ideal   = montant_float((string) ($_POST['montant_ideal'] ?? ''));
     $drive   = trim((string) ($_POST['drive_url'] ?? ''));
     $notes   = trim((string) ($_POST['notes'] ?? ''));
     $projets = (array) ($_POST['spectacle_ids'] ?? []);
@@ -133,11 +164,11 @@ function route_fonds_campagne_enregistrer(): void
     db()->beginTransaction();
     $criteres = json_encode(mailing_criteres_vers_url(mailing_criteres_depuis($_POST)), JSON_UNESCAPED_UNICODE);
     if ($id && fonds_campagne_charger($id)) {
-        db()->prepare('UPDATE fonds_campagnes SET nom = ?, date_debut = ?, date_fin = ?, montant_cible = ?, axe_analytique_id = ?, drive_url = ?, notes = ?, criteres = ? WHERE id = ?')
-            ->execute([$nom, $debut, $fin, $cible, $axe, $drive, $notes, $criteres, $id]);
+        db()->prepare('UPDATE fonds_campagnes SET nom = ?, date_debut = ?, date_fin = ?, montant_minimal = ?, montant_ideal = ?, axe_analytique_id = ?, drive_url = ?, notes = ?, criteres = ? WHERE id = ?')
+            ->execute([$nom, $debut, $fin, $minimal, $ideal, $axe, $drive, $notes, $criteres, $id]);
     } else {
-        db()->prepare('INSERT INTO fonds_campagnes (nom, date_debut, date_fin, montant_cible, axe_analytique_id, drive_url, notes, criteres) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$nom, $debut, $fin, $cible, $axe, $drive, $notes, $criteres]);
+        db()->prepare('INSERT INTO fonds_campagnes (nom, date_debut, date_fin, montant_minimal, montant_ideal, axe_analytique_id, drive_url, notes, criteres) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$nom, $debut, $fin, $minimal, $ideal, $axe, $drive, $notes, $criteres]);
         $id = (int) db()->lastInsertId();
     }
     spectacles_lier('fonds_campagne_spectacles', $id, $projets);
@@ -184,7 +215,7 @@ function route_fonds_campagne(): void
     render('fonds_campagne', [
         'campagne'    => $campagne,
         'demandes'    => $demandes,
-        'repartition' => fonds_repartition($demandes, (float) $campagne['montant_cible']),
+        'repartition' => fonds_repartition($demandes, (float) $campagne['montant_minimal'], (float) $campagne['montant_ideal']),
         'projets'     => array_map(
             fn (int $sid) => spectacle_chemin($sid, spectacle_map()),
             spectacles_lies('fonds_campagne_spectacles', $id)

@@ -150,6 +150,7 @@ function campagne_ouverte(string $dateDebut, string $aujourdhui): bool
 // $table => sa colonne porteuse : campagne_id, historique_id, modele_id.
 const SPECTACLES_LIAISONS = [
     'campagne_spectacles'       => 'campagne_id',
+    'fonds_campagne_spectacles' => 'campagne_id',
     'historique_spectacles'     => 'historique_id',
     'mailing_modele_spectacles' => 'modele_id',
 ];

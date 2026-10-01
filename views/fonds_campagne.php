@@ -40,14 +40,28 @@ $aujourdhui = date('Y-m-d');
             <li><span class="camp-pastille camp-oui"></span><b><?= chf($repartition['obtenu']) ?></b> obtenu</li>
             <li><span class="camp-pastille camp-attente"></span><b><?= chf($repartition['attente']) ?></b> en attente</li>
             <li><span class="camp-pastille"></span><b><?= chf($repartition['aTrouver']) ?></b> à trouver</li>
+            <?php // Le verdict, à droite de la légende : le projet peut-il se
+                  // faire ? C'est la seule question que pose un objectif
+                  // minimal, et elle se tranche sur l'argent ACQUIS. ?>
+            <?php if ($repartition['minimal'] > 0): ?>
+            <li class="camp-legende-fin<?= $repartition['minimalAtteint'] ? '' : ' muted' ?>">
+                <span class="ico-tiny"><?= icon($repartition['minimalAtteint'] ? 'circle-check' : 'target') ?></span>
+                <?= $repartition['minimalAtteint']
+                    ? 'Minimum atteint'
+                    : 'Minimum ' . e(chf((float) $repartition['minimal'])) ?>
+            </li>
+            <?php endif; ?>
         </ul>
     </div>
     <table class="kv-table mt-16">
         <tr><th>Période</th><td><?php $d = $jour($campagne['date_debut']); $f = $jour($campagne['date_fin']); ?>
             <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?></td></tr>
         <tr><th>Projet</th><td><?= $projets ? e(implode(', ', $projets)) : '<span class="muted">Aucun</span>' ?></td></tr>
-        <tr><th>Budget à trouver</th><td><?= (float) $campagne['montant_cible'] > 0
-            ? chf((float) $campagne['montant_cible'])
+        <tr><th>Objectif minimal</th><td><?= (float) $campagne['montant_minimal'] > 0
+            ? chf((float) $campagne['montant_minimal'])
+            : '<span class="muted">Non chiffré</span>' ?></td></tr>
+        <tr><th>Objectif idéal</th><td><?= (float) $campagne['montant_ideal'] > 0
+            ? chf((float) $campagne['montant_ideal'])
             : '<span class="muted">Non chiffré</span>' ?></td></tr>
     </table>
     <?php if (trim((string) $campagne['notes']) !== ''): ?>

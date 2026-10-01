@@ -1626,7 +1626,12 @@ function periode_courante(array $c, string $aujourdhui = ''): bool
 //
 // $segments : clé => [classe CSS, valeur]. La clé devient data-part, par quoi
 // un écran repeint la barre sans recharger (voir le script de views/campagne.php).
-function barre_segments_html(array $segments, float $total, string $titre, string $classe = ''): string
+//
+// $repere : ['pct' => position en %, 'classe' => classe CSS] — un trait posé en
+// travers de la piste, pour un seuil qui n'est pas la fin de la barre. La
+// recherche de fonds s'en sert pour son objectif minimal, que l'objectif idéal
+// dépasse. Facultatif : une barre à un seul horizon n'a pas de seuil à marquer.
+function barre_segments_html(array $segments, float $total, string $titre, string $classe = '', ?array $repere = null): string
 {
     $pct = fn (float $n): float => $total > 0 ? round($n * 100 / $total, 2) : 0;
     $h = '<span class="camp-barre' . ($classe !== '' ? ' ' . e($classe) : '') . '"'
@@ -1634,6 +1639,10 @@ function barre_segments_html(array $segments, float $total, string $titre, strin
     foreach ($segments as $cle => [$cl, $valeur]) {
         $h .= '<span class="camp-seg ' . $cl . '" data-part="' . e((string) $cle) . '"'
             . ' style="width:' . $pct((float) $valeur) . '%"></span>';
+    }
+    if ($repere !== null && (float) $repere['pct'] > 0) {
+        $h .= '<span class="' . e((string) ($repere['classe'] ?? 'camp-repere'))
+            . '" style="left:' . round((float) $repere['pct'], 2) . '%"></span>';
     }
     return $h . '</span>';
 }

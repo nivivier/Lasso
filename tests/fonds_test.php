@@ -8,6 +8,8 @@
 // rendrait ce fichier faux l'année prochaine.
 
 require_once __DIR__ . '/../lib/fonds.php';
+// Pour la seule déclaration SPECTACLES_LIAISONS, vérifiée au § 7.
+require_once __DIR__ . '/../lib/booking.php';
 
 $tests = 0;
 $fails = 0;
@@ -65,23 +67,48 @@ $dossiers = [
     ['montant_accorde' => 0,     'montant_demande' => 10000, 'date_depot' => ''],
     ['statut' => 'refusee',      'montant_demande' => 8000,  'date_depot' => '2026-07-01'],
 ];
-$parts = fonds_repartition($dossiers, 45000.0, $auj);
+$parts = fonds_repartition($dossiers, 45000.0, 0.0, $auj);
 check('obtenu : ce qui est accordé', 12000.0, $parts['obtenu']);
 check('en attente : le demandé des dossiers déposés sans réponse', 20000.0, $parts['attente']);
 check('un dossier pas encore déposé ne compte pas', 13000.0, $parts['aTrouver']);
-check('la base est la cible', 45000.0, $parts['base']);
+check('sans idéal, la base est le minimal', 45000.0, $parts['base']);
 
-$refus = fonds_repartition([['statut' => 'refusee', 'montant_demande' => 8000, 'date_depot' => '2026-07-01']], 10000.0, $auj);
+$refus = fonds_repartition([['statut' => 'refusee', 'montant_demande' => 8000, 'date_depot' => '2026-07-01']], 10000.0, 0.0, $auj);
 check('un refus ne reste pas « en attente »', 0.0, $refus['attente']);
 check('…et tout reste à trouver', 10000.0, $refus['aTrouver']);
 
-// Sans cible, la jauge se cale sur ce qui est en jeu : pleine, elle dit « tout
-// est joué », pas « c'est gagné ».
-$sansCible = fonds_repartition($dossiers, 0.0, $auj);
-check('sans cible, la base est obtenu + attente', 32000.0, $sansCible['base']);
-check('sans cible, rien « à trouver »', 0.0, $sansCible['aTrouver']);
+// Sans objectif chiffré, la jauge se cale sur ce qui est en jeu : pleine, elle
+// dit « tout est joué », pas « c'est gagné ».
+$sansCible = fonds_repartition($dossiers, 0.0, 0.0, $auj);
+check('sans objectif, la base est obtenu + attente', 32000.0, $sansCible['base']);
+check('sans objectif, rien « à trouver »', 0.0, $sansCible['aTrouver']);
+check('sans objectif, la jauge n\'est pas chiffrée', false, $sansCible['chiffree']);
 
-$vide = fonds_repartition([], 0.0, $auj);
+echo "\n5bis) Deux paliers : le minimum qui fait le projet, l'idéal qui le porte\n";
+$deux = fonds_repartition($dossiers, 20000.0, 50000.0, $auj);
+check('la barre se cale sur l\'idéal', 50000.0, $deux['base']);
+check('ce qui reste à trouver vise l\'idéal', 18000.0, $deux['aTrouver']);
+check('le repère se pose à la hauteur du minimum', 40.0, $deux['repere']);
+check('le minimum n\'est pas atteint : 12 000 obtenus sur 20 000', false, $deux['minimalAtteint']);
+// L'argent EN ATTENTE ne franchit pas le minimum : il n'est pas acquis, et
+// c'est précisément ce que ce seuil sert à trancher.
+check('l\'attente ne compte pas dans le verdict', false,
+    fonds_repartition($dossiers, 15000.0, 50000.0, $auj)['minimalAtteint']);
+check('minimum atteint dès que l\'obtenu l\'égale', true,
+    fonds_repartition($dossiers, 12000.0, 50000.0, $auj)['minimalAtteint']);
+// Un repère collé au bout de la barre ne dirait rien de plus que la barre.
+check('pas de repère si le minimum EST la base', 0.0, $parts['repere']);
+check('pas de repère sans minimum', 0.0, fonds_repartition($dossiers, 0.0, 50000.0, $auj)['repere']);
+check('la barre porte le repère', 1, substr_count(fonds_barre_html($deux), 'camp-repere" style="left:40%'));
+check('une barre sans repère n\'en rend aucun', 0, substr_count(fonds_barre_html($parts), 'camp-repere'));
+
+// La liste des campagnes ne parcourt pas les dossiers : elle part des sommes
+// déjà faites par SQL et doit dessiner exactement la même barre.
+check('fonds_jauge() donne la même jauge que fonds_repartition()',
+    fonds_repartition($dossiers, 20000.0, 50000.0, $auj),
+    fonds_jauge(12000.0, 20000.0, 20000.0, 50000.0));
+
+$vide = fonds_repartition([], 0.0, 0.0, $auj);
 check('aucun dossier : base nulle, pas de division par zéro', 0.0, $vide['base']);
 // Les deux segments retombent à zéro plutôt que de diviser par zéro.
 check('barre sans base : deux segments à zéro pour cent', 2, substr_count(fonds_barre_html($vide), 'width:0%'));
@@ -95,6 +122,14 @@ check('ce qui reste à trouver EST la piste, pas un segment', 2, substr_count($b
 // ce que chf() rend, jamais à une chaîne écrite à la main.
 check('la légende dit les trois montants', 1, substr_count($barre,
     'title="' . chf(12000.0) . ' obtenu, ' . chf(20000.0) . ' en attente, ' . chf(13000.0) . ' à trouver"'));
+
+echo "\n7) Le module se branche sur les projets de l'application\n";
+// Garde-fou : une table de liaison absente de SPECTACLES_LIAISONS ne lève
+// aucune erreur — spectacles_lies() rend un tableau vide et spectacles_lier()
+// n'écrit rien. La campagne perdait ses projets en silence, et c'est ainsi que
+// le bogue a vécu plusieurs livraisons.
+check('les projets d\'une campagne passent par SPECTACLES_LIAISONS', 'campagne_id',
+    SPECTACLES_LIAISONS['fonds_campagne_spectacles'] ?? null);
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

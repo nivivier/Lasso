@@ -3064,8 +3064,14 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .projet-pastilles.camp-projets { gap: 4px 24px; margin-bottom: 14px; }
 /* Une seule barre, quatre segments. Le reste à contacter n'est pas un segment :
    c'est le fond de la piste, ce qui n'a pas encore été rempli. */
-.camp-barre { display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+.camp-barre { position: relative; display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
 .camp-seg { display: block; height: 100%; }
+/* Le repère d'un seuil intermédiaire (barre_segments_html()) : la recherche de
+   fonds vise deux montants, le minimum sans lequel le projet ne se fait pas et
+   l'idéal. La barre se cale sur l'idéal et ce trait dit où est le minimum — une
+   seconde barre l'aurait dit deux fois, un trait le dit une. */
+.camp-repere { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+    background: var(--ink); opacity: .45; }
 /* Mêmes couleurs que les icônes de réponse (CAMPAGNE_REPONSES_CLASSES_ICONE) :
    teal pour un oui — la couleur de ce qui est acquis partout ailleurs —, rouge
    pour un non, ambre pour un contact établi dont la réponse se fait attendre.

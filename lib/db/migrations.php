@@ -118,6 +118,7 @@ function run_migrations(PDO $pdo): void
         90 => 'migration_90', // choix du fond (employeur_fond_decor) : quatre décors calculés ou l'image personnalisée
         91 => 'migration_91', // l'axe analytique appartient au PROJET (spectacles), plus à chaque date
         92 => 'migration_92', // module « Recherche de fonds » : campagnes, demandes, versements, pièces exigées
+        93 => 'migration_93', // recherche de fonds : deux paliers d'objectif (minimal, idéal) au lieu d'un budget unique
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2945,5 +2946,37 @@ function migration_92(PDO $pdo): void
         foreach (["Rapport d'activité", 'Bilan financier du projet', 'Comptes vérifiés'] as $i => $nom) {
             $ins->execute([$nom, $i + 1]);
         }
+    }
+}
+
+// Une campagne de recherche de fonds vise DEUX montants, pas un : le minimum
+// sans lequel le projet ne se fait pas, et ce qu'il faudrait pour le faire
+// comme on le voudrait. Un budget unique ne disait ni l'un ni l'autre — il
+// laissait croire qu'au-dessous de la barre tout est perdu, et au-dessus qu'il
+// n'y a plus rien à chercher.
+//
+// Report : l'ancien « budget à trouver » devient le MINIMAL. C'est la lecture
+// prudente — il désignait ce que le projet exige, pas ce qu'on espérait de
+// mieux —, et elle ne fait apparaître aucun objectif idéal qui n'aurait été
+// saisi par personne.
+//
+// L'ancienne colonne part en best-effort : DROP COLUMN exige SQLite >= 3.35,
+// pas garanti en mutualisé (docs/DECISIONS.md § Le SQLite d'un hébergement
+// mutualisé). Si le retrait échoue, elle reste en base, inerte — plus aucun
+// code ne la lit, et son DEFAULT suffit aux INSERT qui ne la nomment plus.
+function migration_93(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(fonds_campagnes)')->fetchAll(), 'name');
+    if (!in_array('montant_minimal', $cols, true)) {
+        $pdo->exec('ALTER TABLE fonds_campagnes ADD COLUMN montant_minimal REAL NOT NULL DEFAULT 0');
+        if (in_array('montant_cible', $cols, true)) {
+            $pdo->exec('UPDATE fonds_campagnes SET montant_minimal = montant_cible');
+        }
+    }
+    if (!in_array('montant_ideal', $cols, true)) {
+        $pdo->exec('ALTER TABLE fonds_campagnes ADD COLUMN montant_ideal REAL NOT NULL DEFAULT 0');
+    }
+    if (in_array('montant_cible', $cols, true)) {
+        try { $pdo->exec('ALTER TABLE fonds_campagnes DROP COLUMN montant_cible'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
 }

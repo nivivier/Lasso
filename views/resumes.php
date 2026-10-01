@@ -486,7 +486,7 @@ $cartes = [];
                         <td class="camp-avancement">
                             <?= fonds_barre_html($fc['repartition'], 'camp-barre-liste') ?>
                             <span class="camp-avancement-txt"><b><?= chf($fc['repartition']['obtenu']) ?></b>
-                                <?= (float) $fc['montant_cible'] > 0 ? ' / ' . chf((float) $fc['montant_cible']) : '' ?></span>
+                                <?= $fc['repartition']['chiffree'] ? ' / ' . chf((float) $fc['repartition']['base']) : '' ?></span>
                         </td>
                     </tr>
                 <?php endforeach; ?>

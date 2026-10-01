@@ -1,5 +1,6 @@
 <?php
 /** @var array $groupes */ /** @var bool $vide */
+/** @var int $nbTotal */ /** @var string $recherche */
 // La liste des campagnes de recherche de fonds. Même charpente que
 // ?p=campagnes, dont c'est le pendant : la zone du module, une barre d'outils,
 // puis le tableau d'un bord à l'autre de cette zone. L'onglet actif nomme la
@@ -11,11 +12,18 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
+        <?php // Le même champ que la liste des campagnes de démarchage : on y
+              // cherche la même chose, le nom de la campagne ou celui du projet. ?>
+        <form method="get" class="filters">
+            <input type="hidden" name="p" value="fonds">
+            <?= champ_recherche(['id' => 'fonds-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true, 'placeholder' => 'Nom de campagne, projet…']) ?>
+        </form>
         <div class="head-actions">
             <?= info_tip(
                 "Une campagne de recherche de fonds est une sélection de bailleurs à solliciter pour un projet,
                 entre deux dates. Chaque bailleur y a son dossier : ce qu'on lui demande, ce qu'il exige, ce
-                qu'il a répondu. La jauge se compte en francs — obtenu, en attente, reste à trouver."
+                qu'il a répondu. La jauge se compte en francs — obtenu, en attente, reste à trouver —, avec un
+                repère à l'objectif minimal, celui sans lequel le projet ne se fait pas."
             ) ?>
             <?php if (peut_ecrire('fonds')): ?>
             <a class="btn" href="?p=fonds_campagne_form"><?= icon('plus') ?> Nouvelle campagne</a>
@@ -26,12 +34,20 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
 <?php if (isset($_GET['ok'])): ?><p class="ok flash">Campagne enregistrée.</p><?php endif; ?>
 
 <?php if ($vide): ?>
-    <p class="muted">Aucune campagne de recherche de fonds pour l'instant.</p>
+    <p class="muted">
+        <?php if ($nbTotal === 0): ?>Aucune campagne de recherche de fonds pour l'instant.
+        <?php elseif ($recherche !== ''): ?>Aucune campagne ne correspond à « <?= e($recherche) ?> ».
+        <?php else: ?>Aucune campagne pour cette sélection.<?php endif; ?>
+    </p>
 <?php else: ?>
 <div class="table-scroll">
 <table class="list list-wide">
     <thead>
         <tr>
+            <?php // Le projet en tête, comme dans la liste des campagnes de
+                  // démarchage : c'est son icône qui donne à la ligne son point
+                  // d'accroche, et une image se repère avant un nom. ?>
+            <th>Projet</th>
             <th>Campagne</th>
             <th class="nowrap col-periode">Période</th>
             <th>Avancement</th>
@@ -42,22 +58,30 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
     <?php // Trois tranches, séparées comme les mois d'une liste de dates : ce
           // qui court, ce qui vient, ce qui est derrière. ?>
     <?php foreach ($groupes as $groupe): ?>
-        <tr class="mois-sep"><td colspan="4"><?= e($groupe['titre']) ?></td></tr>
+        <tr class="mois-sep"><td colspan="5"><?= e($groupe['titre']) ?></td></tr>
         <?php foreach ($groupe['campagnes'] as $c): $cid = (int) $c['id']; ?>
         <?php
             $enCours = periode_courante($c);
-            $parts = [
-                'obtenu'   => r2((float) $c['montant_obtenu']),
-                'attente'  => r2((float) $c['montant_en_attente']),
-                'aTrouver' => 0.0,
-                'base'     => 0.0,
-            ];
-            $cible = (float) $c['montant_cible'];
-            $base = $cible > 0 ? $cible : $parts['obtenu'] + $parts['attente'];
-            $parts['aTrouver'] = r2(max(0, $base - $parts['obtenu'] - $parts['attente']));
-            $parts['base'] = r2($base);
+            // La même jauge que la fiche d'une campagne, mais nourrie des sommes
+            // déjà faites par la requête : parcourir les dossiers de chaque
+            // campagne pour dessiner une barre de 120 px n'aurait pas de sens.
+            $parts = fonds_jauge(
+                (float) $c['montant_obtenu'], (float) $c['montant_en_attente'],
+                (float) $c['montant_minimal'], (float) $c['montant_ideal']
+            );
         ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=fonds_campagne&id=<?= $cid ?>">
+            <td>
+                <div class="projet-pastilles">
+                <?php if ($c['projets']): ?>
+                    <?php foreach ($c['projets'] as $i => $nomProjet): ?>
+                        <span class="projet-pastille"><?= $c['projets_pastilles'][$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <span class="muted">Aucun projet</span>
+                <?php endif; ?>
+                </div>
+            </td>
             <?php // La couleur d'accent est réservée à ce qui demande du travail :
                   // une campagne dont la saison court. Passée ou à venir, son nom
                   // s'écrit à l'encre — il reste un lien, il n'appelle plus. ?>
@@ -68,7 +92,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
             </td>
             <td class="camp-avancement">
                 <?= fonds_barre_html($parts, 'camp-barre-liste') ?>
-                <span class="camp-avancement-txt"><b><?= chf($parts['obtenu']) ?></b><?= $cible > 0 ? ' / ' . chf($cible) : '' ?></span>
+                <span class="camp-avancement-txt"><b><?= chf($parts['obtenu']) ?></b><?= $parts['chiffree'] ? ' / ' . chf($parts['base']) : '' ?></span>
             </td>
             <td class="num small nowrap"><?= (int) $c['nb_deposees'] ?> / <?= (int) $c['nb_demandes'] ?></td>
         </tr>

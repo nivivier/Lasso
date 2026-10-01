@@ -97,11 +97,17 @@ function fonds_demande_statut(array $d, string $aujourdhui = ''): string
 //
 //   obtenu     ce qui est accordé, quel que soit l'état du bilan ;
 //   en attente ce qui est demandé et pas encore tranché ;
-//   à trouver  ce qui manque pour atteindre la cible — zéro si on y est.
+//   à trouver  ce qui manque pour atteindre la base — zéro si on y est.
 //
-// Sans cible renseignée, la jauge se cale sur ce qui est en jeu (obtenu +
+// DEUX paliers, parce qu'une campagne vise deux montants et pas un : le
+// MINIMAL, sans lequel le projet ne se fait pas, et l'IDÉAL, ce qu'il faudrait
+// pour le faire comme on le voudrait. La barre se cale sur l'idéal — c'est le
+// plus grand, et une barre qui se remplit doit pouvoir dépasser le minimum
+// sans déborder —, et un repère dit où est ce minimum.
+//
+// Sans aucun des deux, la jauge se cale sur ce qui est en jeu (obtenu +
 // attente) : une barre pleine dit alors « tout est joué », pas « c'est gagné ».
-function fonds_repartition(array $demandes, float $cible, string $aujourdhui = ''): array
+function fonds_repartition(array $demandes, float $minimal, float $ideal = 0.0, string $aujourdhui = ''): array
 {
     $obtenu = 0.0;
     $attente = 0.0;
@@ -119,12 +125,34 @@ function fonds_repartition(array $demandes, float $cible, string $aujourdhui = '
             $attente += (float) ($d['montant_demande'] ?? 0);
         }
     }
-    $base = $cible > 0 ? $cible : $obtenu + $attente;
+    return fonds_jauge($obtenu, $attente, $minimal, $ideal);
+}
+
+// La jauge elle-même, à partir des DEUX sommes déjà faites. Séparée de
+// fonds_repartition() parce que la liste des campagnes ne parcourt pas les
+// dossiers : elle reçoit les totaux de SQL (fonds_campagnes_liste()) et doit
+// pourtant dessiner exactement la même barre. Une seule règle, un seul endroit.
+function fonds_jauge(float $obtenu, float $attente, float $minimal, float $ideal): array
+{
+    $base = $ideal > 0 ? $ideal : ($minimal > 0 ? $minimal : $obtenu + $attente);
     return [
         'obtenu'   => r2($obtenu),
         'attente'  => r2($attente),
         'aTrouver' => r2(max(0, $base - $obtenu - $attente)),
         'base'     => r2($base),
+        'minimal'  => r2($minimal),
+        'ideal'    => r2($ideal),
+        // Un objectif est-il chiffré ? Sans cela la barre se cale sur ce qui est
+        // en jeu, et le « X / Y » n'aurait pas de Y à montrer.
+        'chiffree' => $minimal > 0 || $ideal > 0,
+        // Le repère ne se pose que s'il a quelque chose à dire : un minimum
+        // saisi, et une barre plus longue que lui. Confondu avec le bout de la
+        // barre, il ne serait qu'un trait de plus.
+        'repere'   => ($minimal > 0 && $base > 0 && $minimal < $base) ? round($minimal * 100 / $base, 2) : 0.0,
+        // Le seul verdict qui compte au milieu d'une campagne : le projet
+        // peut-il se faire ? L'argent en attente ne compte pas — il n'est pas
+        // acquis, et c'est précisément ce que le minimum sert à trancher.
+        'minimalAtteint' => $minimal > 0 && r2($obtenu) >= r2($minimal),
     ];
 }
 
@@ -135,10 +163,16 @@ function fonds_barre_html(array $parts, string $classe = ''): string
 {
     $titre = chf($parts['obtenu']) . ' obtenu, ' . chf($parts['attente']) . ' en attente, '
            . chf($parts['aTrouver']) . ' à trouver';
+    $repere = null;
+    if (($parts['repere'] ?? 0.0) > 0) {
+        $titre .= ' — minimum ' . chf((float) $parts['minimal'])
+                . ($parts['minimalAtteint'] ? ' (atteint)' : ' (pas encore atteint)');
+        $repere = ['pct' => (float) $parts['repere'], 'classe' => 'camp-repere'];
+    }
     return barre_segments_html([
         'obtenu'  => ['camp-oui', $parts['obtenu']],
         'attente' => ['camp-attente', $parts['attente']],
-    ], (float) $parts['base'], $titre, $classe);
+    ], (float) $parts['base'], $titre, $classe, $repere);
 }
 
 // Les dossiers d'une recherche, avec le nom du bailleur et de quoi le joindre.
@@ -223,7 +257,7 @@ function fonds_demande_charger(int $id): ?array
 {
     $stmt = db()->prepare(
         'SELECT d.*, s.nom AS structure_nom, s.fonds_pieces_autres,
-                c.nom AS campagne_nom, c.drive_url, c.montant_cible,
+                c.nom AS campagne_nom, c.drive_url, c.montant_minimal, c.montant_ideal,
                 ' . structure_formulaire_sql('s.id') . ' AS formulaire_affiche
            FROM fonds_demandes d
            JOIN structures s ON s.id = d.structure_id
@@ -261,7 +295,7 @@ function fonds_dashboard(int $max = 5, string $aujourdhui = ''): array
             }
         }
         $campagnes[] = $c + [
-            'repartition' => fonds_repartition($demandes, (float) $c['montant_cible'], $aujourdhui),
+            'repartition' => fonds_repartition($demandes, (float) $c['montant_minimal'], (float) $c['montant_ideal'], $aujourdhui),
             'nb_total'    => count($demandes),
             'nb_deposees' => $deposees,
         ];
