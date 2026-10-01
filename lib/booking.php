@@ -2037,7 +2037,7 @@ function campagnes_dashboard(int $max = 9, ?array $liste = null): array
     // l'ordre chronologique. Seul « en retard » garde le sien, en tête : c'est le
     // seul état que la carte montre autrement (une étiquette, pas une barre).
     $rangDe = function (array $c) use ($rang): int {
-        if ((string) $c['statut'] === 'terminee' && campagne_periode_courante($c)) {
+        if ((string) $c['statut'] === 'terminee' && periode_courante($c)) {
             return $rang['en_cours'];
         }
         return $rang[(string) $c['statut']] ?? 9;
@@ -2070,23 +2070,10 @@ function campagnes_actives(array $liste, string $aujourdhui = ''): array
     return array_values(array_filter(
         $liste,
         fn (array $c): bool => in_array((string) $c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)
-            || ((string) $c['statut'] === 'terminee' && campagne_periode_courante($c, $aujourdhui))
+            || ((string) $c['statut'] === 'terminee' && periode_courante($c, $aujourdhui))
     ));
 }
 
-// La PÉRIODE d'une campagne court-elle encore ? Commencée, pas finie — les
-// dates seules, sans regarder où en est le démarchage. C'est ce qui distingue
-// une campagne bouclée en avance (tout le monde contacté, mais la saison n'est
-// pas finie : les réponses peuvent encore bouger, on montre son avancement)
-// d'une campagne vraiment derrière nous.
-function campagne_periode_courante(array $c, string $aujourdhui = ''): bool
-{
-    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
-    $debut = (string) ($c['date_debut'] ?? '');
-    $fin   = (string) ($c['date_fin'] ?? '');
-    return ($debut === '' || $debut <= $aujourdhui)
-        && ($fin === '' || $fin >= $aujourdhui);
-}
 
 // Ce que la carte du tableau de bord laisse de côté quand elle se limite aux
 // campagnes actives : celles qui n'ont pas commencé. Zéro quand la carte les

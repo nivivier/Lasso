@@ -2822,6 +2822,9 @@ function route_resumes(): void
     // Le décompte des campagnes à venir porte sur TOUTES les campagnes, pas
     // seulement sur les neuf que la carte montre.
     $campagnesToutes = module_accessible('booking') ? campagnes_liste() : [];
+    // Recherche de fonds : les campagnes dont la saison court, et les bilans
+    // dus — la seconde échéance, celle qu'on oublie une fois l'argent reçu.
+    $fondsDash = module_accessible('fonds') ? fonds_dashboard(5) : ['campagnes' => [], 'nbCampagnes' => 0, 'bilans' => [], 'nbBilans' => 0];
     $campagnesDash = $campagnesToutes ? campagnes_dashboard(9, $campagnesToutes) : [];
     $campagnesAVenir = campagnes_dashboard_a_venir($campagnesToutes);
     render('resumes', [
@@ -2829,6 +2832,7 @@ function route_resumes(): void
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
         'campagnesDash' => $campagnesDash, 'campagnesAVenir' => $campagnesAVenir,
+        'fondsDash' => $fondsDash,
     ], 'Tableau de bord');
 }
 

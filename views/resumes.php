@@ -3,7 +3,7 @@
 /** @var array $facturesEmises */ /** @var array $comptaSeries */
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaEnvoye */ /** @var int $suisaManquant */
-/** @var array $campagnesDash */ /** @var int $campagnesAVenir */
+/** @var array $campagnesDash */ /** @var int $campagnesAVenir */ /** @var array $fondsDash */
 
 // Une carte du tableau de bord met en valeur ce qui ATTEND UN GESTE : la ligne
 // se détache sur un fond ambre très clair (.ligne-action). C'est la seule
@@ -439,7 +439,7 @@ $cartes = [];
                               // et la barre de répartition de les montrer. ?>
                         <td class="camp-avancement">
                             <?php $avecBarre = $c['statut'] === 'en_cours'
-                                || ($c['statut'] === 'terminee' && campagne_periode_courante($c)); ?>
+                                || ($c['statut'] === 'terminee' && periode_courante($c)); ?>
                             <?php if ($avecBarre): ?>
                                 <?= campagne_barre_html($c['repartition'], (int) $c['nb_total'], 'camp-barre-liste') ?>
                                 <span class="camp-avancement-txt"><b><?= (int) $c['nb_faits'] ?></b> / <?= (int) $c['nb_total'] ?></span>
@@ -458,6 +458,66 @@ $cartes = [];
             <?php endif; ?>
         </div>
         <?php $cartes['campagnes'] = ['titre' => 'Campagnes', 'html' => ob_get_clean()]; ?>
+        <?php endif; ?>
+
+        <?php if (module_accessible('fonds')): ?>
+        <?php ob_start(); ?>
+        <div class="card dash-card">
+            <h2 class="mt-0">Recherche de fonds</h2>
+            <?php if (!$fondsDash['campagnes'] && !$fondsDash['bilans']): ?>
+                <p class="muted">Aucune campagne en cours.</p>
+            <?php else: ?>
+            <?php // Deux questions, deux tableaux : où en sont les campagnes de
+                  // la saison, et quels bilans sont dus. La seconde est celle
+                  // qu'on oublie — l'argent est encaissé, le dossier semble
+                  // clos, et il reste à rendre des comptes. ?>
+            <?php if ($fondsDash['campagnes']): ?>
+            <table class="list">
+                <thead>
+                    <tr><th>Campagne</th><th class="nowrap">Avancement</th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ($fondsDash['campagnes'] as $fc): ?>
+                    <?php // Une campagne attend un geste tant qu'il lui reste des
+                          // dossiers à déposer. Tout déposé, elle suit son cours. ?>
+                    <tr class="row-link<?= $dash_action((int) $fc['nb_deposees'] < (int) $fc['nb_total']) ?>"
+                        tabindex="0" role="link" data-href="?p=fonds_campagne&id=<?= (int) $fc['id'] ?>">
+                        <td><span class="dash-campagne-nom strong-encre"><?= e((string) $fc['nom']) ?></span></td>
+                        <td class="camp-avancement">
+                            <?= fonds_barre_html($fc['repartition'], 'camp-barre-liste') ?>
+                            <span class="camp-avancement-txt"><b><?= chf($fc['repartition']['obtenu']) ?></b>
+                                <?= (float) $fc['montant_cible'] > 0 ? ' / ' . chf((float) $fc['montant_cible']) : '' ?></span>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                <?= $dash_reste($fondsDash['nbCampagnes'] - count($fondsDash['campagnes']), 2, '?p=fonds') ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+
+            <?php if ($fondsDash['bilans']): ?>
+            <table class="list">
+                <thead>
+                    <tr><th>Bilan dû</th><th class="num nowrap">Échéance</th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ($fondsDash['bilans'] as $b): ?>
+                    <?php $enRetard = (string) $b['date_limite_bilan'] < date('Y-m-d'); ?>
+                    <tr class="row-link<?= $dash_action(true) ?>" tabindex="0" role="link"
+                        data-href="?p=fonds_demande&id=<?= (int) $b['id'] ?>">
+                        <td class="dash-nom"><?= e((string) $b['structure_nom']) ?>
+                            <div class="muted small"><?= e((string) $b['campagne_nom']) ?></div></td>
+                        <td class="num small<?= $enRetard ? ' num-retard' : '' ?>">
+                            <?= e(date('d.m.Y', strtotime((string) $b['date_limite_bilan']))) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <?= $dash_reste($fondsDash['nbBilans'] - count($fondsDash['bilans']), 2, '?p=fonds') ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        <?php $cartes['fonds'] = ['titre' => 'Recherche de fonds', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
 
 <?php // L'ordre retenu, les cartes masquées en moins. ?>

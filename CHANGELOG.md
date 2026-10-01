@@ -24,7 +24,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   ces dates plutôt que de se choisir. **Chaque dossier a enfin sa fiche** : tout
   ce qu'on sait de cette demande-là, ce que le bailleur exige pour déposer et
   pour le bilan — réglé une fois, valable pour tous ses dossiers — et
-  l'historique des échanges avec lui, le même que sur sa fiche de structure. Un bailleur y est une **structure**,
+  l'historique des échanges avec lui, le même que sur sa fiche de structure.
+  **Le tableau de bord gagne sa carte** : où en sont les campagnes de la saison,
+  et quels bilans sont dus — la seconde échéance, celle qu'on oublie une fois
+  l'argent encaissé. Un bailleur y est une **structure**,
   la même fiche que pour le booking et la facturation, et le projet financé un
   spectacle, dont l'axe analytique porte la ventilation.
 

@@ -233,3 +233,58 @@ function fonds_demande_charger(int $id): ?array
     $stmt->execute([$id]);
     return $stmt->fetch() ?: null;
 }
+
+// --- Ce que le tableau de bord montre ---------------------------------------
+
+// Deux choses, parce qu'il y a deux échéances dans la vie d'une subvention :
+//
+//   campagnes  celles dont la saison court, avec leur jauge — de quoi voir
+//              d'un coup d'œil ce qu'il reste à déposer ;
+//   bilans     les dossiers dont le bilan est dû, le plus pressé d'abord.
+//              C'est la seconde échéance, celle qu'on oublie une fois l'argent
+//              reçu — la première, personne ne l'oublie, elle apporte l'argent.
+//
+// $max borne chaque liste : une carte de tableau de bord ne s'étire pas.
+function fonds_dashboard(int $max = 5, string $aujourdhui = ''): array
+{
+    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
+    $campagnes = [];
+    foreach (db()->query('SELECT * FROM fonds_campagnes ORDER BY date_debut, id') as $c) {
+        if (!periode_courante($c, $aujourdhui)) {
+            continue;
+        }
+        $demandes = fonds_campagne_demandes((int) $c['id']);
+        $deposees = 0;
+        foreach ($demandes as $d) {
+            if (trim((string) $d['date_depot']) !== '') {
+                $deposees++;
+            }
+        }
+        $campagnes[] = $c + [
+            'repartition' => fonds_repartition($demandes, (float) $c['montant_cible'], $aujourdhui),
+            'nb_total'    => count($demandes),
+            'nb_deposees' => $deposees,
+        ];
+    }
+
+    // Les bilans dus : accordés, pas encore rendus, avec une date connue. Le
+    // tri met en tête ce qui est déjà en retard, puis ce qui vient.
+    $stmt = db()->prepare(
+        "SELECT d.*, s.nom AS structure_nom, c.nom AS campagne_nom
+           FROM fonds_demandes d
+           JOIN structures s ON s.id = d.structure_id
+           JOIN fonds_campagnes c ON c.id = d.campagne_id
+          WHERE d.montant_accorde > 0 AND d.date_bilan = '' AND d.date_limite_bilan <> ''
+            AND d.statut NOT IN ('refusee', 'abandonnee')
+       ORDER BY d.date_limite_bilan"
+    );
+    $stmt->execute();
+    $bilans = $stmt->fetchAll();
+
+    return [
+        'campagnes'      => array_slice($campagnes, 0, $max),
+        'nbCampagnes'    => count($campagnes),
+        'bilans'         => array_slice($bilans, 0, $max),
+        'nbBilans'       => count($bilans),
+    ];
+}

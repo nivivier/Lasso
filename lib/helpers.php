@@ -1603,6 +1603,21 @@ function bouton_lien_externe_html(string $url, string $libelle, array $opts = []
         . '</a>';
 }
 
+// La PÉRIODE d'une chose datée court-elle encore ? Commencée, pas finie — les
+// dates seules, sans regarder où en est le démarchage. C'est ce qui distingue
+// une campagne bouclée en avance (tout le monde contacté, mais la saison n'est
+// pas finie : les réponses peuvent encore bouger, on montre son avancement)
+// d'une campagne vraiment derrière nous. Sert aux campagnes de démarchage
+// comme à celles de recherche de fonds : ce sont les mêmes dates.
+function periode_courante(array $c, string $aujourdhui = ''): bool
+{
+    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
+    $debut = (string) ($c['date_debut'] ?? '');
+    $fin   = (string) ($c['date_fin'] ?? '');
+    return ($debut === '' || $debut <= $aujourdhui)
+        && ($fin === '' || $fin >= $aujourdhui);
+}
+
 // Une barre d'avancement segmentée : une piste, des segments posés dessus, et
 // ce qui reste EST la piste. Rendue ici plutôt que dans chaque vue — l'avancement
 // d'une campagne de démarchage (campagne_barre_html(), lib/booking.php) et celui

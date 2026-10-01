@@ -1793,6 +1793,14 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .dash-card td.facture-retard { color: var(--amber); }
 .dash-card td.facture-retard-long { color: var(--danger); }
 
+/* Deux tableaux dans une même carte du tableau de bord (Recherche de fonds :
+   les campagnes, puis les bilans dus). Le premier perd la marge négative basse
+   qui colle un tableau au bord de sa carte — elle ne vaut que pour le dernier,
+   et sans ça la rangée de titres du second venait se plaquer sur la dernière
+   ligne du premier. */
+.dash-card table.list:not(:last-child) { margin-bottom: 0; }
+.dash-card table.list + table.list { margin-top: 20px; }
+
 /* Suivi d'une recherche de fonds : la seconde ligne d'un dossier, celle qui
    s'ouvre au crayon. Une rangée souple plutôt qu'une grille : les dates ont
    toutes la même largeur, les deux champs de texte prennent ce qui reste, et

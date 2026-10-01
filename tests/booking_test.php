@@ -309,11 +309,11 @@ check('terminée sans date de fin, commencée : gardée', ['a'], $actives([$camp
 // La même question sert deux fois : garder la campagne sur la carte, ET y
 // montrer son avancement plutôt qu'une étiquette « Terminée » — tant que la
 // saison court, les réponses continuent d'arriver.
-check('période courante', true, campagne_periode_courante(['date_debut' => '2026-01-01', 'date_fin' => '2026-12-31'], $auj));
-check('période finie', false, campagne_periode_courante(['date_debut' => '2025-01-01', 'date_fin' => '2025-12-31'], $auj));
-check('période pas commencée', false, campagne_periode_courante(['date_debut' => '2026-09-01', 'date_fin' => ''], $auj));
-check('dernier jour inclus', true, campagne_periode_courante(['date_debut' => '2026-06-15', 'date_fin' => '2026-06-15'], $auj));
-check('sans aucune date', true, campagne_periode_courante(['date_debut' => '', 'date_fin' => ''], $auj));
+check('période courante', true, periode_courante(['date_debut' => '2026-01-01', 'date_fin' => '2026-12-31'], $auj));
+check('période finie', false, periode_courante(['date_debut' => '2025-01-01', 'date_fin' => '2025-12-31'], $auj));
+check('période pas commencée', false, periode_courante(['date_debut' => '2026-09-01', 'date_fin' => ''], $auj));
+check('dernier jour inclus', true, periode_courante(['date_debut' => '2026-06-15', 'date_fin' => '2026-06-15'], $auj));
+check('sans aucune date', true, periode_courante(['date_debut' => '', 'date_fin' => ''], $auj));
 check('l\'ordre de la liste est conservé', ['b', 'a'], $actives([
     $camp('b', 'terminee', '2026-01-01', '2026-12-31'),
     $camp('a', 'en_cours', '2026-01-01', '2026-12-31'),
