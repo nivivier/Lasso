@@ -320,3 +320,64 @@ function fonds_campagnes_groupees(array $campagnes, string $aujourdhui = ''): ar
     }
     return $out;
 }
+
+// --- Le versement -----------------------------------------------------------
+//
+// Un octroi arrive en une fois : la v1 n'affiche qu'une ligne, même si la table
+// en accepte plusieurs (SPEC_SUBVENTIONS.md § 3). Le jour où l'échelonnement
+// arrive, c'est l'écran qui change, pas le schéma.
+function fonds_versement_de(int $demandeId): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM fonds_versements WHERE demande_id = ? ORDER BY id LIMIT 1');
+    $stmt->execute([$demandeId]);
+    return $stmt->fetch() ?: null;
+}
+
+// Les écritures bancaires auxquelles un versement peut se rattacher : des
+// entrées d'argent, pas déjà prises par une facture ni par un AUTRE versement.
+// Celle de ce versement-ci reste dans la liste, sans quoi l'ouvrir pour
+// corriger une date la délierait.
+function fonds_ecritures_rapprochables(int $demandeId, int $max = 300): array
+{
+    if (!module_actif('compta')) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT e.id, e.date_op, e.texte, e.montant FROM ecritures e
+          WHERE e.montant > 0 AND e.facture_id IS NULL
+            AND NOT EXISTS (SELECT 1 FROM fonds_versements v
+                             WHERE v.ecriture_id = e.id AND v.demande_id <> ?)
+       ORDER BY e.date_op DESC LIMIT ?'
+    );
+    $stmt->bindValue(1, $demandeId, PDO::PARAM_INT);
+    $stmt->bindValue(2, $max, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll();
+}
+
+// Écrit le versement d'un dossier : une ligne, créée à la volée la première
+// fois. Tout vide = pas de versement du tout, et la ligne s'en va — c'est la
+// seule façon de revenir en arrière sans un bouton de suppression de plus.
+function fonds_versement_enregistrer(int $demandeId, array $v): void
+{
+    $montant = (float) ($v['montant'] ?? 0);
+    $prevue  = (string) ($v['date_prevue'] ?? '');
+    $recue   = (string) ($v['date_recue'] ?? '');
+    $ecrit   = ((int) ($v['ecriture_id'] ?? 0)) ?: null;
+    $notes   = trim((string) ($v['notes'] ?? ''));
+
+    $existant = fonds_versement_de($demandeId);
+    if ($montant <= 0 && $prevue === '' && $recue === '' && $ecrit === null && $notes === '') {
+        if ($existant) {
+            db()->prepare('DELETE FROM fonds_versements WHERE id = ?')->execute([(int) $existant['id']]);
+        }
+        return;
+    }
+    if ($existant) {
+        db()->prepare('UPDATE fonds_versements SET montant = ?, date_prevue = ?, date_recue = ?, ecriture_id = ?, notes = ? WHERE id = ?')
+            ->execute([$montant, $prevue, $recue, $ecrit, $notes, (int) $existant['id']]);
+        return;
+    }
+    db()->prepare('INSERT INTO fonds_versements (demande_id, montant, date_prevue, date_recue, ecriture_id, notes) VALUES (?, ?, ?, ?, ?, ?)')
+        ->execute([$demandeId, $montant, $prevue, $recue, $ecrit, $notes]);
+}

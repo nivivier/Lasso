@@ -258,9 +258,35 @@ function route_fonds_demande(): void
         'demande'    => $demande,
         'catalogue'  => fonds_pieces_catalogue(),
         'pieces'     => fonds_bailleur_pieces($sid),
+        'versement'  => fonds_versement_de($id),
+        'ecritures'  => fonds_ecritures_rapprochables($id),
         'historique' => historique_fusionne('structure', $sid),
         'ok'         => $_GET['ok'] ?? null,
     ], 'Dossier — ' . $demande['structure_nom']);
+}
+
+// Le versement d'un dossier : ce qui est arrivé sur le compte, et l'écriture
+// bancaire qui le prouve.
+function route_fonds_versement(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('fonds');
+    }
+    check_csrf();
+    require_ecriture('fonds');
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!fonds_demande_charger($id)) {
+        redirect('fonds');
+    }
+    fonds_versement_enregistrer($id, [
+        'montant'     => montant_float((string) ($_POST['montant'] ?? '')),
+        'date_prevue' => campagne_date((string) ($_POST['date_prevue'] ?? '')),
+        'date_recue'  => campagne_date((string) ($_POST['date_recue'] ?? '')),
+        'ecriture_id' => (int) ($_POST['ecriture_id'] ?? 0),
+        'notes'       => (string) ($_POST['notes'] ?? ''),
+    ]);
+    redirect('fonds_demande', ['id' => $id, 'ok' => 'versement']);
 }
 
 // Ce qu'un bailleur exige, réglé depuis l'un de ses dossiers. Vaut pour TOUS

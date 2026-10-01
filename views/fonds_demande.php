@@ -1,6 +1,7 @@
 <?php
 /** @var array $demande */ /** @var array $catalogue */ /** @var array $pieces */
-/** @var array $historique */ /** @var ?string $ok */
+/** @var array $historique */ /** @var ?array $versement */
+/** @var array $ecritures */ /** @var ?string $ok */
 // La fiche d'un dossier : ce que ce bailleur-là demande, ce qu'on lui a
 // déposé, ce qu'il a répondu. Trois cartes qui se lisent et s'ouvrent au
 // crayon, comme partout (docs/UI.md § 2a).
@@ -21,6 +22,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
     <?= icon('arrow-left') ?> <?= e((string) $d['campagne_nom']) ?></a>
 
 <?php if ($ok === 'pieces'): ?><p class="ok flash">Pièces exigées enregistrées.</p>
+<?php elseif ($ok === 'versement'): ?><p class="ok flash">Versement enregistré.</p>
 <?php elseif ($ok !== null): ?><p class="ok flash">Dossier enregistré.</p><?php endif; ?>
 
 <div class="page-head">
@@ -119,6 +121,83 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
     </form>
     <?php endif; ?>
 </div>
+
+<?php // Le versement n'apparaît qu'une fois l'argent accordé : avant, il n'y a
+      // rien à verser, et la carte ne ferait qu'encombrer.
+      //
+      // UNE ligne, alors que la table en accepte plusieurs : l'échelonnement
+      // est hors périmètre (SPEC_SUBVENTIONS.md § 7). Le jour où il arrive,
+      // c'est cette carte qui change, pas le schéma. ?>
+<?php if ((float) $d['montant_accorde'] > 0): ?>
+<div class="card card-editable mt-22">
+    <div class="card-head-row">
+        <h2 class="mt-0">Versement</h2>
+        <?php if ($peutEcrire): ?>
+        <?= carte_actions_html(['form' => 'versement-form', 'quoi' => 'le versement']) ?>
+        <?php endif; ?>
+    </div>
+
+    <div class="card-disp">
+        <?php if (!$versement): ?>
+            <p class="muted">Rien de noté. L'argent est accordé, reste à dire quand il est arrivé.</p>
+        <?php else: ?>
+        <?php
+            $ecr = null;
+            foreach ($ecritures as $e) {
+                if ((int) $e['id'] === (int) ($versement['ecriture_id'] ?? 0)) { $ecr = $e; break; }
+            }
+        ?>
+        <table class="kv-table">
+            <tr><th>Montant</th><td><?= $montant($versement['montant']) ?></td></tr>
+            <tr><th>Attendu le</th><td><?= $jour($versement['date_prevue']) !== '' ? e($jour($versement['date_prevue'])) : '<span class="muted">—</span>' ?></td></tr>
+            <tr><th>Reçu le</th><td><?= $jour($versement['date_recue']) !== '' ? e($jour($versement['date_recue'])) : '<span class="muted">—</span>' ?></td></tr>
+            <tr><th>Écriture bancaire</th><td><?= $ecr
+                ? e(date('d.m.Y', strtotime((string) $ecr['date_op'])) . ' — ' . chf((float) $ecr['montant']) . ' — ' . mb_substr((string) $ecr['texte'], 0, 60))
+                : '<span class="muted">Pas encore rapprochée</span>' ?></td></tr>
+            <?php if (trim((string) $versement['notes']) !== ''): ?>
+            <tr><th>Remarques</th><td><?= e((string) $versement['notes']) ?></td></tr>
+            <?php endif; ?>
+        </table>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($peutEcrire): ?>
+    <form method="post" action="?p=fonds_versement" id="versement-form" class="card-edit form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= $id ?>">
+        <div class="grid3">
+            <label><span>Montant <?= info_tip(
+                "Tout laisser vide efface le versement : c'est ainsi qu'on revient en arrière."
+            ) ?></span>
+                <span class="pct-input">
+                    <input name="montant" type="text" inputmode="decimal"
+                           value="<?= (float) ($versement['montant'] ?? 0) > 0 ? e(number_format((float) $versement['montant'], 2, '.', '')) : '' ?>">
+                    <span class="pct-suffix">CHF</span>
+                </span>
+            </label>
+            <label>Attendu le <input type="date" name="date_prevue" value="<?= e((string) ($versement['date_prevue'] ?? '')) ?>"></label>
+            <label>Reçu le <input type="date" name="date_recue" value="<?= e((string) ($versement['date_recue'] ?? '')) ?>"></label>
+        </div>
+        <?php if ($ecritures): ?>
+        <label class="mt-16"><span>Écriture bancaire <?= info_tip(
+            "L'entrée d'argent qui correspond, sur un relevé importé. Les écritures déjà prises par une facture "
+            . "ou par un autre versement ne sont pas proposées."
+        ) ?></span>
+            <select name="ecriture_id">
+                <option value="">— Pas encore rapprochée —</option>
+                <?php foreach ($ecritures as $e): ?>
+                <option value="<?= (int) $e['id'] ?>"<?= (int) $e['id'] === (int) ($versement['ecriture_id'] ?? 0) ? ' selected' : '' ?>>
+                    <?= e(date('d.m.Y', strtotime((string) $e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' — ' . mb_substr((string) $e['texte'], 0, 60)) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <?php endif; ?>
+        <label class="mt-16">Remarques <input name="notes" value="<?= e((string) ($versement['notes'] ?? '')) ?>"></label>
+    </form>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <?php // Les pièces appartiennent au BAILLEUR, pas à la campagne : la même
       // fondation demande les mêmes documents d'une année sur l'autre. La carte

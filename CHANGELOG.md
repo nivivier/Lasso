@@ -25,6 +25,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   ce qu'on sait de cette demande-là, ce que le bailleur exige pour déposer et
   pour le bilan — réglé une fois, valable pour tous ses dossiers — et
   l'historique des échanges avec lui, le même que sur sa fiche de structure.
+  **L'argent accordé s'y suit jusqu'au compte** : le montant promis, la date
+  attendue, celle où il est arrivé, et l'écriture bancaire à laquelle il
+  correspond — une subvention accordée n'est acquise que versée.
   **Le tableau de bord gagne sa carte** : où en sont les campagnes de la saison,
   et quels bilans sont dus — la seconde échéance, celle qu'on oublie une fois
   l'argent encaissé. Un bailleur y est une **structure**,
