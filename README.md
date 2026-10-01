@@ -22,6 +22,7 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Événements** | dates, spectacles, déclarations SUISA, exports JSON/iCal |
 | **Booking** | structures, contacts, tags, lieux (carte), message individuel |
 | **Envois groupés** | campagnes de mailing ciblé (dépend de Booking) |
+| **Recherche de fonds** | campagnes de demandes de subvention : un dossier par bailleur, délais de dépôt et de bilan, jauge en francs, versement rapproché d'une écriture |
 
 Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
 montrant que ce que le compte a le droit de lire.
@@ -568,7 +569,7 @@ php tests/run.php
 | `docs/UI.md` | avant d'écrire un écran : comment l'application modifie une ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document |
 | `docs/DECISIONS.md` | avant de toucher au schéma, à l'environnement ou à la CSP : le « pourquoi » des choix structurants et des impasses déjà rencontrées |
 | `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
-| `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md` | le besoin cadré avec l'utilisateur pour ces trois modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
+| `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md`, `SPEC_SUBVENTIONS.md` | le besoin cadré avec l'utilisateur pour ces quatre modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
 
 `docs/UI.md` se met à jour **en même temps** que la convention qu'il décrit :
 c'est ce qui évite de redécider à chaque page.
