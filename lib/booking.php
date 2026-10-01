@@ -2128,6 +2128,161 @@ function campagnes_dashboard_a_venir(array $liste): int
     return count(array_filter($liste, fn ($c) => $c['statut'] === 'a_venir'));
 }
 
+// Tout ce qu'il faut à un écran de CIBLAGE, quel qu'il soit : les filtres lus
+// dans l'URL, le résultat du ciblage ou les structures déjà retenues, celles
+// ajoutées à l'unité par la recherche, et les listes qui peuplent les
+// entonnoirs. Deux écrans s'en servent — composer une campagne de démarchage
+// (?p=campagne_form) et composer une recherche de fonds (?p=fonds_campagne_form)
+// —, parce qu'ils posent la même question : à qui s'adresse-t-on ?
+//
+// Rendu : le tableau à passer tel quel à la vue (ses clés sont celles que
+// views/_structures_table.php et views/_structures_filtres.php attendent).
+//
+// $retenues : les structures DÉJÀ liées à l'objet qu'on modifie — ce sont elles
+// qui sont cochées, et non le résultat du ciblage, qui a pu bouger depuis.
+// $get : la requête, d'où viennent les filtres, la prévisualisation et les
+// ajouts — l'écran recharge à chaque entonnoir, tout voyage donc dans l'URL.
+function ciblage_structures_preparer(array $retenues, array $get): array
+{
+    $criteres = mailing_criteres_depuis($get);
+    $previsualise = isset($get['previsualiser']);
+    $apercu = $previsualise ? mailing_structures_eligibles($criteres) : [];
+
+    // Les structures à cocher : celles du ciblage si l'on vient de prévisualiser,
+    // sinon celles déjà retenues.
+    if (!$apercu && $retenues) {
+        // En lots : une campagne peut retenir plusieurs milliers de structures,
+        // et tout lier d'un coup dépasserait le plafond de paramètres de SQLite.
+        $apercu = [];
+        foreach (lots_ids($retenues) as $lot) {
+            $stmt = db()->prepare('SELECT * FROM structures WHERE id IN (' . sql_in($lot) . ')');
+            $stmt->execute($lot);
+            $apercu = array_merge($apercu, $stmt->fetchAll());
+        }
+        usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
+    }
+    // Structures ajoutées une à une par la recherche du formulaire : elles
+    // rejoignent la liste au même titre que le résultat du ciblage, et y sont
+    // cochées — on ne va pas chercher une structure pour la décocher.
+    //
+    // Elles voyagent dans l'URL (?ajout[]=), comme les filtres et comme la
+    // saisie en cours : le moindre entonnoir recharge la page, et sans ça
+    // l'ajout serait perdu au filtre suivant.
+    $ajouts = array_values(array_unique(array_filter(array_map('intval', (array) ($get['ajout'] ?? [])))));
+    if ($ajouts) {
+        $manquants = array_diff($ajouts, array_map(fn ($s) => (int) $s['id'], $apercu));
+        foreach (lots_ids($manquants) as $lot) {
+            $stmt = db()->prepare('SELECT * FROM structures WHERE id IN (' . sql_in($lot) . ')');
+            $stmt->execute($lot);
+            $apercu = array_merge($apercu, $stmt->fetchAll());
+        }
+        // Même ordre que les deux sources ci-dessus (ORDER BY nom) : une
+        // structure ajoutée se retrouve à sa place alphabétique, pas en bout
+        // de liste où il faudrait la chercher.
+        usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
+    }
+    // Le tableau de sélection est celui de ?p=structures (views/_structures_table.php) :
+    // ses colonnes viennent donc des mêmes agrégats, complétés ici pour les seules
+    // lignes affichées — le ciblage passe par mailing_structures_eligibles(), qui
+    // ne rend que la table `structures`.
+    $ids = array_map(fn ($s) => (int) $s['id'], $apercu);
+    $colonnes = structures_colonnes_liste($ids);
+    foreach ($apercu as &$ligne) {
+        $ligne += $colonnes[(int) $ligne['id']] ?? [];
+    }
+    unset($ligne);
+
+    return [
+        'criteres'     => $criteres,
+        'apercu'       => $apercu,
+        'retenues'     => $retenues,
+        'ajouts'       => $ajouts,
+        'previsualise' => $previsualise,
+        'nbEvenements' => module_actif('evenements') ? structures_nb_evenements($ids) : [],
+        'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
+        // Pour l'entonnoir « Campagnes » du ciblage : composer une sélection en
+        // écartant les structures déjà démarchées par une autre, ou au contraire
+        // en les reprenant, est une question qu'on se pose souvent.
+        'campagnesDispo' => db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll(),
+        'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
+        'grandesRegions' => pays_regions_map(),
+        'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
+        'categoriesPourSelect' => structure_categories_pour_select(),
+    ];
+}
+
+// Le second étage du ciblage : tout ce dont la VUE a besoin pour dessiner les
+// entonnoirs — les étiquettes de chaque filtre, les paramètres à reporter d'un
+// panneau à l'autre, et ceux qu'emporte le champ d'ajout.
+//
+// Les filtres pilotent l'URL (GET) et non le formulaire d'enregistrement :
+// prévisualiser ne doit rien écrire. Ce qui est déjà saisi voyage donc AVEC
+// eux, en paramètres reportés dans chaque panneau — sans cela, cocher une
+// catégorie rechargeait la page et effaçait le nom, les dates et les projets
+// qu'on venait de choisir.
+//
+// $saisie : les champs en cours de saisie, propres à l'écran appelant (nom,
+// dates, projets…) ; ils reviennent par l'URL et la route les relit.
+function ciblage_filtres_vue(array $ciblage, array $saisie, int $id): array
+{
+    $criteres = $ciblage['criteres'];
+    $labels = fn (array $vals): array => array_combine($vals, $vals) ?: [];
+
+    $categorieLabels = [];
+    foreach ($ciblage['categoriesPourSelect'] as $c) {
+        $categorieLabels[(int) $c['id']] = str_repeat("\u{00A0}\u{00A0}", (int) ($c['profondeur'] ?? 0)) . $c['nom'];
+    }
+    // « Aucun » en tête des deux listes de liaison, comme sur ?p=structures
+    // (views/_structures_filtres.php) : « lesquelles n'ont encore aucun tag ? »,
+    // « lesquelles ne sont dans aucune campagne ? » sont justement les questions
+    // qu'on pose en composant une sélection.
+    $tagLabels = [];
+    foreach ($ciblage['tags'] as $t) { $tagLabels[(int) $t['id']] = $t['nom']; }
+    if ($tagLabels) { $tagLabels = ['aucun' => 'Aucun tag'] + $tagLabels; }
+    $campagneLabels = [];
+    foreach ($ciblage['campagnesDispo'] as $c) { $campagneLabels[(int) $c['id']] = $c['nom']; }
+    if ($campagneLabels) { $campagneLabels = ['aucun' => 'Aucune campagne'] + $campagneLabels; }
+    // Statut : seulement les statuts contactables. Un ciblage ne sort jamais de
+    // ceux-là (mailing_structures_eligibles()) — proposer « Inactif » aurait
+    // offert un filtre qui ne rend jamais rien.
+    $statutLabels = [];
+    foreach (STRUCTURE_STATUTS_CONTACTABLES as $st) { $statutLabels[$st] = structure_statut_libelle($st); }
+    $paysLabels = [];
+    foreach (array_keys($ciblage['grandesRegions']) as $pays) { $paysLabels[$pays] = $pays; }
+    $grandeRegionLabels = [];
+    foreach ($ciblage['grandesRegions'] as $regions) {
+        foreach ($regions as $r) { $grandeRegionLabels[$r] = $r; }
+    }
+
+    $base = ['id' => $id ?: null, 'previsualiser' => '1'];
+    $criteresActifs = array_filter([
+        'categorie_id' => $criteres['categorie_id'], 'tag_id' => $criteres['tag_id'],
+        'campagne_id' => $criteres['campagne_id'], 'statut' => $criteres['statut'],
+        'pays' => $criteres['pays'], 'grande_region' => $criteres['grande_region'],
+        'departement_canton' => $criteres['departement_canton'], 'ville' => $criteres['ville'],
+    ]);
+    // Les structures ajoutées à la main voyagent avec le reste : un entonnoir
+    // recharge la page, et sans elles l'ajout disparaîtrait au filtre suivant.
+    $saisie['ajout'] = array_map('strval', $ciblage['ajouts']);
+    $tousFiltres = array_filter($criteresActifs + array_filter($saisie) + array_filter($base));
+    // Le formulaire d'ajout emporte l'état de la page, moins « previsualiser »
+    // tant qu'aucun critère n'est posé : sans critère, prévisualiser veut dire
+    // TOUTES les structures — ce n'est pas ce qu'on demande en cherchant un nom.
+    $ajoutParams = $tousFiltres;
+    if (!$criteresActifs) {
+        unset($ajoutParams['previsualiser']);
+    }
+
+    return [
+        'labels' => $labels,
+        'categorieLabels' => $categorieLabels, 'tagLabels' => $tagLabels,
+        'campagneLabels' => $campagneLabels, 'statutLabels' => $statutLabels,
+        'paysLabels' => $paysLabels, 'grandeRegionLabels' => $grandeRegionLabels,
+        'criteresActifs' => $criteresActifs, 'tousFiltres' => $tousFiltres,
+        'autres' => autres_filtres_fn($tousFiltres), 'ajoutParams' => $ajoutParams,
+    ];
+}
+
 // --- Message individuel écrit depuis une fiche structure (bouton « Contacter »)
 
 // Contacts d'une structure joignables par e-mail. Mêmes conditions QUE POUR UN

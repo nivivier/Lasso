@@ -1697,9 +1697,16 @@ function route_campagne_form(): void
     if ($id && !$campagne) {
         redirect('campagnes');
     }
-    $criteres = mailing_criteres_depuis($_GET);
-    $previsualise = isset($_GET['previsualiser']);
-    $apercu = $previsualise ? mailing_structures_eligibles($criteres) : [];
+    // Tout l'appareil de ciblage — filtres, prévisualisation, structures déjà
+    // retenues, ajouts à l'unité, colonnes du tableau — est partagé avec la
+    // recherche de fonds : ciblage_structures_preparer() (lib/booking.php).
+    $retenues = [];
+    if ($id) {
+        $stmt = db()->prepare('SELECT structure_id FROM campagne_structures WHERE campagne_id = ?');
+        $stmt->execute([$id]);
+        $retenues = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+    $ciblage = ciblage_structures_preparer($retenues, $_GET);
 
     // Choisir un filtre recharge la page (GET) : ce qui est déjà saisi dans le
     // formulaire voyage donc avec lui, en paramètres d'URL, et c'est cette
@@ -1707,84 +1714,18 @@ function route_campagne_form(): void
     // nom et les dates qu'on venait d'écrire — et, sur une campagne existante,
     // les faisait revenir à leur valeur enregistrée.
     $projets = $id ? spectacles_lies('campagne_spectacles', $id) : [];
-    if ($previsualise) {
+    if ($ciblage['previsualise']) {
         $campagne = (array) $campagne + ['id' => $id];
         foreach (['nom', 'date_debut', 'date_fin'] as $champ) {
             $campagne[$champ] = trim((string) ($_GET[$champ] ?? ''));
         }
         $projets = array_values(array_filter(array_map('intval', (array) ($_GET['spectacle_ids'] ?? []))));
     }
-    // Structures déjà retenues : à la modification, ce sont elles qui sont
-    // cochées — pas le résultat du ciblage, qui a pu bouger depuis.
-    $retenues = [];
-    if ($id) {
-        $stmt = db()->prepare('SELECT structure_id FROM campagne_structures WHERE campagne_id = ?');
-        $stmt->execute([$id]);
-        $retenues = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-    }
-    // Les structures à cocher : celles du ciblage si l'on vient de prévisualiser,
-    // sinon celles déjà retenues.
-    if (!$apercu && $retenues) {
-        // En lots : une campagne peut retenir plusieurs milliers de structures,
-        // et tout lier d'un coup dépasserait le plafond de paramètres de SQLite.
-        $apercu = [];
-        foreach (lots_ids($retenues) as $lot) {
-            $stmt = db()->prepare('SELECT * FROM structures WHERE id IN (' . sql_in($lot) . ')');
-            $stmt->execute($lot);
-            $apercu = array_merge($apercu, $stmt->fetchAll());
-        }
-        usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
-    }
-    // Structures ajoutées une à une par la recherche du formulaire : elles
-    // rejoignent la liste au même titre que le résultat du ciblage, et y sont
-    // cochées — on ne va pas chercher une structure pour la décocher.
-    //
-    // Elles voyagent dans l'URL (?ajout[]=), comme les filtres et comme la
-    // saisie en cours : le moindre entonnoir recharge la page, et sans ça
-    // l'ajout serait perdu au filtre suivant.
-    $ajouts = array_values(array_unique(array_filter(array_map('intval', (array) ($_GET['ajout'] ?? [])))));
-    if ($ajouts) {
-        $manquants = array_diff($ajouts, array_map(fn ($s) => (int) $s['id'], $apercu));
-        foreach (lots_ids($manquants) as $lot) {
-            $stmt = db()->prepare('SELECT * FROM structures WHERE id IN (' . sql_in($lot) . ')');
-            $stmt->execute($lot);
-            $apercu = array_merge($apercu, $stmt->fetchAll());
-        }
-        // Même ordre que les deux sources ci-dessus (ORDER BY nom) : une
-        // structure ajoutée se retrouve à sa place alphabétique, pas en bout
-        // de liste où il faudrait la chercher.
-        usort($apercu, fn ($a, $b) => strcasecmp((string) $a['nom'], (string) $b['nom']));
-    }
-    // Le tableau de sélection est celui de ?p=structures (views/_structures_table.php) :
-    // ses colonnes viennent donc des mêmes agrégats, complétés ici pour les seules
-    // lignes affichées — le ciblage passe par mailing_structures_eligibles(), qui
-    // ne rend que la table `structures`.
-    $ids = array_map(fn ($s) => (int) $s['id'], $apercu);
-    $colonnes = structures_colonnes_liste($ids);
-    foreach ($apercu as &$ligne) {
-        $ligne += $colonnes[(int) $ligne['id']] ?? [];
-    }
-    unset($ligne);
 
-    render('campagne_form', [
+    render('campagne_form', $ciblage + [
         'campagne'   => $campagne ?: null,
-        'nbEvenements' => module_actif('evenements') ? structures_nb_evenements($ids) : [],
         'projets'    => $projets,
         'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
-        'criteres'   => $criteres,
-        'apercu'     => $apercu,
-        'retenues'   => $retenues,
-        'ajouts'     => $ajouts,
-        'previsualise' => $previsualise,
-        'tags' => db()->query('SELECT * FROM structure_tags ORDER BY nom')->fetchAll(),
-        // Pour l'entonnoir « Campagnes » du ciblage : composer une campagne en
-        // écartant les structures déjà démarchées par une autre, ou au contraire
-        // en les reprenant, est une question qu'on se pose souvent.
-        'campagnesDispo' => db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll(),
-        'regions' => db()->query("SELECT DISTINCT departement_canton FROM structures WHERE departement_canton <> '' ORDER BY departement_canton")->fetchAll(PDO::FETCH_COLUMN),
-        'grandesRegions' => pays_regions_map(),
-        'villes' => db()->query("SELECT DISTINCT adresse_localite FROM structures WHERE adresse_localite <> '' ORDER BY adresse_localite")->fetchAll(PDO::FETCH_COLUMN),
-        'categoriesPourSelect' => structure_categories_pour_select(),
         'err'        => $_GET['err'] ?? null,
     ], $id ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne');
 }
