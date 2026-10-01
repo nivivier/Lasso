@@ -1571,6 +1571,58 @@ function pays_options_code(string $selected): string
 // et facturation_badge() (lib/facturation.php). $classe :
 // suffixe de couleur ('ok'|'warn'|'muted'|'emise', voir .badge dans
 // assets/app.css) ou '' pour le badge neutre par défaut (mauve).
+// Un bouton qui mène AILLEURS : le site d'un interlocuteur, un dossier partagé.
+// Il ouvre dans un onglet à lui, puisque ce qu'on fait ici n'est pas fini.
+//
+// $opts : 'nom' (complète l'infobulle : « … — Le Mirage »), 'petit' (format
+// d'une ligne, icône seule).
+//
+// $url est rendue telle qu'elle a été saisie, échappée : jamais interprétée.
+// rel="noopener" parce que la page ouverte ne doit pas garder la main sur la
+// nôtre.
+//
+// ⚠️ Seule une adresse http(s) ABSOLUE donne un bouton. Les champs sont des
+// <input type="url">, mais les lignes importées ne sont passées par aucun
+// navigateur : il s'y trouve des adresses e-mail, un numéro de téléphone, le
+// mot « facebook ». Rendues telles quelles, elles ouvriraient un chemin
+// RELATIF — une page de notre propre application, qui n'existe pas. Mieux vaut
+// pas de bouton qu'un bouton qui ment.
+function bouton_lien_externe_html(string $url, string $libelle, array $opts = []): string
+{
+    $url = trim($url);
+    if ($url === '' || !preg_match('~^https?://~i', $url)) {
+        return '';
+    }
+    $nom   = trim((string) ($opts['nom'] ?? ''));
+    $titre = $libelle . ($nom !== '' ? ' — ' . $nom : '');
+    $petit = !empty($opts['petit']);
+    return '<a class="btn ghost' . ($petit ? ' btn-sm icon-only' : '') . '"'
+        . ' href="' . e($url) . '" target="_blank" rel="noopener"'
+        . ' title="' . e($titre) . '" aria-label="' . e($titre) . '">'
+        . icon('external-link') . ($petit ? '' : ' <span class="lbl">' . e($libelle) . '</span>')
+        . '</a>';
+}
+
+// Une barre d'avancement segmentée : une piste, des segments posés dessus, et
+// ce qui reste EST la piste. Rendue ici plutôt que dans chaque vue — l'avancement
+// d'une campagne de démarchage (campagne_barre_html(), lib/booking.php) et celui
+// d'une recherche de fonds en francs (fonds_barre_html(), lib/fonds.php) montrent
+// la même chose et doivent la montrer pareil.
+//
+// $segments : clé => [classe CSS, valeur]. La clé devient data-part, par quoi
+// un écran repeint la barre sans recharger (voir le script de views/campagne.php).
+function barre_segments_html(array $segments, float $total, string $titre, string $classe = ''): string
+{
+    $pct = fn (float $n): float => $total > 0 ? round($n * 100 / $total, 2) : 0;
+    $h = '<span class="camp-barre' . ($classe !== '' ? ' ' . e($classe) : '') . '"'
+       . ' role="img" title="' . e($titre) . '" aria-label="' . e($titre) . '">';
+    foreach ($segments as $cle => [$cl, $valeur]) {
+        $h .= '<span class="camp-seg ' . $cl . '" data-part="' . e((string) $cle) . '"'
+            . ' style="width:' . $pct((float) $valeur) . '%"></span>';
+    }
+    return $h . '</span>';
+}
+
 function badge(string $texte, string $classe = ''): string
 {
     $cls = $classe !== '' ? ' ' . $classe . '-badge' : '';

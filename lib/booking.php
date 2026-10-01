@@ -387,19 +387,15 @@ function campagne_repartition(int $total, int $faits, int $interesse, int $refus
 // même chose, elles doivent la montrer pareil.
 function campagne_barre_html(array $parts, int $total, string $classe = ''): string
 {
-    $pct = fn (int $n): float => $total > 0 ? round($n * 100 / $total, 2) : 0;
     $titre = $parts['interesse'] . ' intéressé, ' . $parts['refus'] . ' pas intéressé, '
            . $parts['sansReponse'] . ' sans réponse, ' . $parts['aContacter'] . ' à contacter';
-    // data-part sur chaque segment : ?p=campagne repeint la barre sans recharger
-    // quand on note une réponse dans la liste (voir le script de views/campagne.php).
-    $h = '<span class="camp-barre' . ($classe !== '' ? ' ' . e($classe) : '') . '"'
-       . ' role="img" title="' . e($titre) . '" aria-label="' . e($titre) . '">';
-    foreach (['interesse' => 'camp-oui', 'refus' => 'camp-non', 'sansReponse' => 'camp-attente'] as $cle => $cl) {
-        $h .= '<span class="camp-seg ' . $cl . '" data-part="' . $cle . '"'
-            . ' style="width:' . $pct((int) $parts[$cle]) . '%"></span>';
-    }
-    return $h . '</span>';
+    return barre_segments_html([
+        'interesse'   => ['camp-oui', (float) $parts['interesse']],
+        'refus'       => ['camp-non', (float) $parts['refus']],
+        'sansReponse' => ['camp-attente', (float) $parts['sansReponse']],
+    ], (float) $total, $titre, $classe);
 }
+
 
 // Réponses reçues, comptées pour TOUTES les campagnes en une requête — de quoi
 // dresser la liste sans une requête par ligne. [campagne_id => [réponse => n]].
@@ -1247,42 +1243,18 @@ function structure_formulaire_url(int $structureId): string
     return trim((string) $stmt->fetchColumn());
 }
 
-// Le bouton « Formulaire de contact » : il mène chez l'interlocuteur, dans un
-// onglet à lui. Posé partout où l'on propose d'écrire à une structure — sa
-// fiche, le suivi d'une campagne, et demain le suivi d'une demande de fonds —,
-// d'où un seul rendu : trois écrans qui ouvrent le même lien n'ont pas à le
-// dessiner chacun à sa façon.
+// Le bouton « Formulaire de contact » d'une structure : le lien externe
+// générique (bouton_lien_externe_html(), lib/helpers.php) avec le libellé et
+// l'infobulle de ce cas-là. Posé partout où l'on propose d'écrire à une
+// structure — sa fiche, le suivi d'une campagne, le suivi d'une recherche de
+// fonds.
 //
 // Ce n'est pas « Contacter » : rien ne part de l'application, donc rien ne
 // s'inscrit dans l'historique. C'est au retour qu'on note le contact à la main
 // (bouton « Marquer comme contacté »), et le libellé dit bien qu'on sort.
-//
-// $url est rendue telle qu'elle a été saisie, échappée : jamais interprétée.
-// rel="noopener" parce que la page ouverte ne doit pas garder la main sur la
-// nôtre, et target="_blank" parce qu'on ne perd pas le suivi en cours.
-//
-// ⚠️ Seule une adresse http(s) ABSOLUE donne un bouton. Le champ est un
-// <input type="url">, mais les lignes importées ne sont passées par aucun
-// navigateur : il s'y trouve des adresses e-mail, un numéro de téléphone, le
-// mot « facebook ». Rendues telles quelles, elles ouvriraient un chemin
-// RELATIF — une page de notre propre application, qui n'existe pas. Mieux vaut
-// pas de bouton qu'un bouton qui ment.
 function bouton_formulaire_contact_html(string $url, array $opts = []): string
 {
-    $url = trim($url);
-    if ($url === '' || !preg_match('~^https?://~i', $url)) {
-        return '';
-    }
-    $nom     = trim((string) ($opts['nom'] ?? ''));
-    $libelle = 'Formulaire de contact' . ($nom !== '' ? ' — ' . $nom : '');
-    $sm      = !empty($opts['petit']) ? ' btn-sm' : '';
-    $texte   = !empty($opts['petit'])
-        ? ''
-        : ' <span class="lbl">Formulaire de contact</span>';
-    return '<a class="btn ghost' . $sm . (!empty($opts['petit']) ? ' icon-only' : '') . '"'
-        . ' href="' . e($url) . '" target="_blank" rel="noopener"'
-        . ' title="' . e($libelle) . '" aria-label="' . e($libelle) . '">'
-        . icon('external-link') . $texte . '</a>';
+    return bouton_lien_externe_html($url, 'Formulaire de contact', $opts);
 }
 
 // Les mêmes colonnes, pour un lot d'identifiants déjà connus : une seule requête

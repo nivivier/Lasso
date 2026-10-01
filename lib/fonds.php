@@ -1,0 +1,159 @@
+<?php
+// Module « Recherche de fonds » — les règles, sans les écrans.
+// Le besoin et les décisions : SPEC_SUBVENTIONS.md. Les routes vivent dans
+// lib/routes_fonds.php ; ce fichier-ci ne contient que ce qui se décide, de
+// préférence sans toucher la base — c'est ce qui le rend testable
+// (tests/fonds_test.php), comme calc.php l'est pour la paie.
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/helpers.php';
+
+// Le cycle d'un dossier, dans l'ordre où il se vit. Deux temps, pas un : on
+// dépose, on obtient — puis on rend un bilan, à une date que le bailleur fixe.
+// C'est la seconde échéance qu'on oublie, une fois l'argent reçu.
+const FONDS_STATUTS = [
+    'a_preparer'    => 'À préparer',
+    'en_retard'     => 'Dépôt en retard',
+    'deposee'       => 'Déposée',
+    'accordee'      => 'Accordée',
+    'partielle'     => 'Accordée en partie',
+    'refusee'       => 'Refusée',
+    'abandonnee'    => 'Abandonnée',
+    'bilan_a_rendre' => 'Bilan à rendre',
+    'bilan_retard'  => 'Bilan en retard',
+    'soldee'        => 'Soldée',
+];
+
+// La couleur de chaque état, prise au vocabulaire de l'application : teal pour
+// ce qui est acquis, ambre pour ce qui attend un geste, rouge pour ce qui a
+// dépassé sa date ou s'est refermé, gris pour ce qui ne demande rien.
+const FONDS_STATUTS_CLASSES = [
+    'a_preparer'     => 'warn',
+    'en_retard'      => 'err',
+    'deposee'        => 'muted',
+    'accordee'       => 'ok',
+    'partielle'      => 'ok',
+    'refusee'        => 'err',
+    'abandonnee'     => 'muted',
+    'bilan_a_rendre' => 'warn',
+    'bilan_retard'   => 'err',
+    'soldee'         => 'ok',
+];
+
+// L'état d'un dossier, DÉRIVÉ de ses dates et de ses montants — jamais stocké,
+// comme le statut d'une campagne ou le « en retard » d'une facture. Une seule
+// règle, donc un seul endroit où la corriger.
+//
+// L'ordre des tests EST la règle de priorité :
+//   abandonné          décidé à la main, il prime sur tout le reste ;
+//   refusé             la réponse est tombée, il n'y a plus de bilan à rendre ;
+//   accordé            puis, DANS cet état, la question du bilan ;
+//   déposé             en attente d'une réponse ;
+//   à préparer         rien n'est parti — et si la date limite est passée,
+//                      c'est le seul moment où « en retard » veut dire
+//                      quelque chose : après le dépôt, le retard n'est plus
+//                      le nôtre.
+//
+// $aujourdhui : injectée pour que la fonction reste pure et testable.
+function fonds_demande_statut(array $d, string $aujourdhui = ''): string
+{
+    $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
+    $decision = (string) ($d['statut'] ?? '');
+    if ($decision === 'abandonnee') {
+        return 'abandonnee';
+    }
+    if ($decision === 'refusee') {
+        return 'refusee';
+    }
+
+    $accorde = (float) ($d['montant_accorde'] ?? 0);
+    $demande = (float) ($d['montant_demande'] ?? 0);
+    if ($accorde > 0) {
+        $limiteBilan = trim((string) ($d['date_limite_bilan'] ?? ''));
+        $bilanRendu  = trim((string) ($d['date_bilan'] ?? '')) !== '';
+        if (!$bilanRendu && $limiteBilan !== '') {
+            return $limiteBilan < $aujourdhui ? 'bilan_retard' : 'bilan_a_rendre';
+        }
+        if ($bilanRendu) {
+            return 'soldee';
+        }
+        // Accordée pour moins que demandé : l'écart se lit tout seul, mais il
+        // mérite son mot — c'est lui qui dit qu'il reste à trouver ailleurs.
+        return ($demande > 0 && $accorde < $demande) ? 'partielle' : 'accordee';
+    }
+
+    if (trim((string) ($d['date_depot'] ?? '')) !== '') {
+        return 'deposee';
+    }
+    $limite = trim((string) ($d['date_limite'] ?? ''));
+    return ($limite !== '' && $limite < $aujourdhui) ? 'en_retard' : 'a_preparer';
+}
+
+// Les trois parts de la jauge d'une recherche, EN FRANCS — c'est là que ce
+// module cesse d'être une campagne de démarchage : ce qu'on suit n'est pas un
+// nombre d'interlocuteurs, c'est un budget qui se remplit.
+//
+//   obtenu     ce qui est accordé, quel que soit l'état du bilan ;
+//   en attente ce qui est demandé et pas encore tranché ;
+//   à trouver  ce qui manque pour atteindre la cible — zéro si on y est.
+//
+// Sans cible renseignée, la jauge se cale sur ce qui est en jeu (obtenu +
+// attente) : une barre pleine dit alors « tout est joué », pas « c'est gagné ».
+function fonds_repartition(array $demandes, float $cible, string $aujourdhui = ''): array
+{
+    $obtenu = 0.0;
+    $attente = 0.0;
+    foreach ($demandes as $d) {
+        $statut = fonds_demande_statut($d, $aujourdhui);
+        if (in_array($statut, ['refusee', 'abandonnee'], true)) {
+            continue;
+        }
+        $accorde = (float) ($d['montant_accorde'] ?? 0);
+        if ($accorde > 0) {
+            $obtenu += $accorde;
+            continue;
+        }
+        if (trim((string) ($d['date_depot'] ?? '')) !== '') {
+            $attente += (float) ($d['montant_demande'] ?? 0);
+        }
+    }
+    $base = $cible > 0 ? $cible : $obtenu + $attente;
+    return [
+        'obtenu'   => r2($obtenu),
+        'attente'  => r2($attente),
+        'aTrouver' => r2(max(0, $base - $obtenu - $attente)),
+        'base'     => r2($base),
+    ];
+}
+
+// La barre de la jauge : mêmes segments et mêmes couleurs que partout ailleurs
+// (barre_segments_html(), lib/booking.php) — teal pour l'acquis, ambre pour ce
+// qui attend, et ce qui reste à trouver EST la piste.
+function fonds_barre_html(array $parts, string $classe = ''): string
+{
+    $titre = chf($parts['obtenu']) . ' obtenu, ' . chf($parts['attente']) . ' en attente, '
+           . chf($parts['aTrouver']) . ' à trouver';
+    return barre_segments_html([
+        'obtenu'  => ['camp-oui', $parts['obtenu']],
+        'attente' => ['camp-attente', $parts['attente']],
+    ], (float) $parts['base'], $titre, $classe);
+}
+
+// Les dossiers d'une recherche, avec le nom du bailleur et de quoi le joindre.
+// Une requête, pas une par ligne : le tableau en montre vingt.
+function fonds_campagne_demandes(int $campagneId): array
+{
+    $stmt = db()->prepare(
+        'SELECT d.*, s.nom AS structure_nom, s.adresse_localite, s.adresse_pays,
+                ' . structure_email_sql('s.id') . ' AS email_affiche,
+                ' . structure_formulaire_sql('s.id') . ' AS formulaire_affiche
+           FROM fonds_demandes d
+           JOIN structures s ON s.id = d.structure_id
+          WHERE d.campagne_id = ?
+       ORDER BY d.date_limite = \'\', d.date_limite, s.nom'
+    );
+    $stmt->execute([$campagneId]);
+    return $stmt->fetchAll();
+}

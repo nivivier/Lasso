@@ -144,7 +144,7 @@ disparaître.
 
 ## 2. Modifier
 
-**Cinq portées, cinq mécanismes** — et rien au-delà : si un besoin n'entre dans
+**Six portées, six mécanismes** — et rien au-delà : si un besoin n'entre dans
 aucun, on élargit celui qui s'en approche plutôt que d'en poser un sixième.
 
 | Portée | Mécanisme |
@@ -154,6 +154,7 @@ aucun, on élargit celui qui s'en approche plutôt que d'en poser un sixième.
 | Une section d'une carte | `.section-editable` (b) |
 | Un bloc répété | `lassoInitBlocEdition()` (c) |
 | Une ligne d'une liste ordonnable | `.plan-edit-btn` + `.editing` (d) |
+| Une ligne d'un tableau, plusieurs champs | `lassoInitLigneEdition()` (e) |
 
 ### L'exception : une étiquette se modifie dans son champ
 
@@ -243,6 +244,22 @@ JavaScript est le formulaire lui-même**. `.plan-nom` et `.plan-edit-btn` sont
 `display:none` par défaut ; c'est `.dnd-on`, posée sur le conteneur *par le
 script*, qui les révèle et masque le formulaire. Sans JavaScript, on édite
 directement, sans rien basculer.
+
+### e. Une ligne de tableau à plusieurs champs — `lassoInitLigneEdition()`
+
+Quand une ligne porte plusieurs champs mais ne se réordonne pas (les dossiers
+d'une recherche de fonds, les prestations d'une date), ses deux états vivent
+**dans ses cellules** : `.<prefixe>-disp` ce qui se lit, `.<prefixe>-editable`
+ce qui se saisit, et le crayon `.<prefixe>-edit-btn` les échange. Une ligne n'a
+pas, comme un bloc, un conteneur par état — d'où ce helper plutôt que
+`lassoInitBlocEdition()`.
+
+Par **délégation** sur une racine : une ligne ajoutée après coup s'ouvre sans
+qu'on repose d'écouteur. `apres(tr)` sert à ce qui dépasse la ligne — ouvrir
+une seconde rangée de détail, placer le curseur.
+
+Les boutons et leur ordre restent ceux de 2d : enregistrer mis en évidence, la
+croix à la place du crayon.
 
 ### Les boutons d'une ligne, dans les deux états
 

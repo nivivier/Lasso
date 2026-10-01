@@ -1955,6 +1955,49 @@ function lassoInitBlocEdition(opts) {
     });
 }
 
+// Bascule « lecture ↔ édition » d'une LIGNE de tableau. Même geste que
+// lassoInitBlocEdition() ci-dessus, mais une ligne n'a pas un conteneur par
+// état : ses deux jeux d'éléments sont répartis dans ses cellules, l'un lu
+// (.<prefixe>-disp), l'autre saisi (.<prefixe>-editable). Le crayon les
+// échange, et la croix referme sans rien enregistrer.
+//
+// Par délégation sur la racine : une ligne ajoutée après coup marche sans
+// qu'on repose d'écouteur — c'est ce qui manquait à ?p=comptes avant que ses
+// lignes ne s'insèrent sans recharger.
+//
+// opts : { prefixe, apres } — « apres(tr) » sert aux écrans qui ont un geste
+// de plus à l'ouverture (placer le curseur, rafraîchir un champ lié).
+//
+// La ligne de prestation de ?p=evenement fait la même chose avec son propre
+// script : elle pourra adopter celui-ci.
+function lassoInitLigneEdition(racineSelector, opts) {
+    const racine = document.querySelector(racineSelector);
+    if (!racine) return;
+    const prefixe = opts.prefixe;
+    const bascule = (tr, edition) => {
+        tr.querySelectorAll('.' + prefixe + '-disp').forEach(el => { el.hidden = edition; });
+        tr.querySelectorAll('.' + prefixe + '-editable').forEach(el => { el.hidden = !edition; });
+        const crayon = tr.querySelector('.' + prefixe + '-edit-btn');
+        if (crayon) crayon.hidden = edition;
+    };
+    racine.addEventListener('click', ev => {
+        const btn = ev.target.closest('.' + prefixe + '-edit-btn');
+        if (btn) {
+            const tr = btn.closest('tr');
+            bascule(tr, true);
+            const champ = tr.querySelector('.' + prefixe + '-editable:not([hidden])');
+            if (champ && champ.focus) champ.focus();
+            if (opts.apres) opts.apres(tr);
+            return;
+        }
+        // Annuler : referme la ligne sans rien enregistrer. Les champs gardent
+        // ce qui y a été tapé — la page n'est pas rechargée —, mais rien n'est
+        // parti ; quitter pour de bon se fait en rechargeant, comme partout.
+        const annul = ev.target.closest('.' + prefixe + '-annuler-btn');
+        if (annul) bascule(annul.closest('tr'), false);
+    });
+}
+
 function lassoInitTagGerer() {
     const csrfInput = document.querySelector('input[name="csrf"]');
 

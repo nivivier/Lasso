@@ -242,6 +242,8 @@ ajouter_routes_module($handlers, $routeModules, 'fonds', [
     'fonds'                      => 'route_fonds',
     'fonds_campagne_form'        => 'route_fonds_campagne_form',
     'fonds_campagne_enregistrer' => 'route_fonds_campagne_enregistrer',
+    'fonds_campagne'             => 'route_fonds_campagne',
+    'fonds_demande'              => 'route_fonds_demande',
 ]);
 
 ajouter_routes_module($handlers, $routeModules, 'evenements', [

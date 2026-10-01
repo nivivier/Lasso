@@ -16,7 +16,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   recherches. **On y compose maintenant une recherche** : son nom, sa période,
   le budget à trouver, le projet financé, le dossier partagé où vivent les
   pièces — et la sélection des bailleurs, avec les mêmes filtres que la liste
-  des structures, puisqu'un bailleur en est une. Un bailleur y est une **structure**,
+  des structures, puisqu'un bailleur en est une. **Et on suit une recherche** :
+  une jauge qui se compte en francs — obtenu, en attente, reste à trouver —,
+  puis un dossier par bailleur, du délai le plus proche au plus lointain. Chaque
+  ligne s'ouvre au crayon pour y noter le délai imposé, le montant demandé, la
+  réponse reçue et la date du bilan à rendre ; l'état du dossier se déduit de
+  ces dates plutôt que de se choisir. Un bailleur y est une **structure**,
   la même fiche que pour le booking et la facturation, et le projet financé un
   spectacle, dont l'axe analytique porte la ventilation.
 

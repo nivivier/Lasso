@@ -31,8 +31,8 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
         <tbody>
         <?php foreach ($campagnes as $c): ?>
             <?php $cid = (int) $c['id']; ?>
-            <tr class="row-link" tabindex="0" role="link" data-href="?p=fonds_campagne_form&id=<?= $cid ?>">
-                <td class="dash-nom"><a class="titre-lien" href="?p=fonds_campagne_form&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a></td>
+            <tr class="row-link" tabindex="0" role="link" data-href="?p=fonds_campagne&id=<?= $cid ?>">
+                <td class="dash-nom"><a class="titre-lien" href="?p=fonds_campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a></td>
                 <td class="muted small nowrap">
                     <?php $d = $jour($c['date_debut']); $f = $jour($c['date_fin']); ?>
                     <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?>

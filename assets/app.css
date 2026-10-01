@@ -1793,6 +1793,23 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .dash-card td.facture-retard { color: var(--amber); }
 .dash-card td.facture-retard-long { color: var(--danger); }
 
+/* Suivi d'une recherche de fonds : la seconde ligne d'un dossier, celle qui
+   s'ouvre au crayon. Une rangée souple plutôt qu'une grille : les dates ont
+   toutes la même largeur, les deux champs de texte prennent ce qui reste, et
+   l'ensemble repasse en colonnes sur un écran étroit sans règle à écrire. */
+.fonds-suite > td { background: var(--surface); }
+.fonds-suite-champs { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.fonds-suite-champs label { margin: 0; flex: 0 0 auto; }
+.fonds-suite-champs label.grow { flex: 1 1 220px; min-width: 160px; }
+.fonds-suite-champs input { margin: 0; }
+/* La pastille de légende sans icône (ce qui reste à trouver) : un carré de la
+   couleur du segment, comme la piste elle-même. */
+.camp-legende .camp-pastille {
+    width: 11px; height: 11px; border-radius: 3px; background: var(--line);
+}
+.camp-legende .camp-pastille.camp-oui { background: var(--ok); }
+.camp-legende .camp-pastille.camp-attente { background: var(--amber); }
+
 /* Carte « Campagnes » du tableau de bord : une ligne par campagne, l'icône de
    son projet en tête pour la reconnaître sans lire. La barre d'avancement est
    celle des listes (.camp-barre-liste). */

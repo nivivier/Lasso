@@ -13,6 +13,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/booking.php'; // ciblage_structures_preparer(), campagne_date()
+require_once __DIR__ . '/fonds.php';   // les règles : statut dérivé, jauge
 require_once __DIR__ . '/compta.php';  // montant_float()
 
 // Les recherches de fonds, de la plus récemment commencée à la plus ancienne.
@@ -164,4 +165,70 @@ function route_fonds_campagne_enregistrer(): void
     }
     db()->commit();
     redirect('fonds', ['ok' => 1]);
+}
+
+// Le suivi d'une recherche : où en est chaque dossier, et combien manque-t-il.
+function route_fonds_campagne(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? 0);
+    $campagne = fonds_campagne_charger($id);
+    if (!$campagne) {
+        redirect('fonds');
+    }
+    $demandes = fonds_campagne_demandes($id);
+    render('fonds_campagne', [
+        'campagne'    => $campagne,
+        'demandes'    => $demandes,
+        'repartition' => fonds_repartition($demandes, (float) $campagne['montant_cible']),
+        'projets'     => array_map(
+            fn (int $sid) => spectacle_chemin($sid, spectacle_map()),
+            spectacles_lies('fonds_campagne_spectacles', $id)
+        ),
+        'ok'          => $_GET['ok'] ?? null,
+    ], 'Recherche — ' . $campagne['nom']);
+}
+
+// Enregistre UNE ligne du suivi : les montants, les dates, la décision. Le
+// reste de la page ne bouge pas — c'est la ligne qu'on vient de remplir.
+function route_fonds_demande(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('fonds');
+    }
+    check_csrf();
+    require_ecriture('fonds');
+    $id = (int) ($_POST['id'] ?? 0);
+    $stmt = db()->prepare('SELECT * FROM fonds_demandes WHERE id = ?');
+    $stmt->execute([$id]);
+    $demande = $stmt->fetch();
+    if (!$demande) {
+        redirect('fonds');
+    }
+    // La décision ne se devine pas : « refusée » et « abandonnée » se posent à
+    // la main, tout le reste se dérive des dates et des montants
+    // (fonds_demande_statut()). D'où une liste fermée, et le vide comme défaut.
+    $decision = valeur_autorisee((string) ($_POST['statut'] ?? ''), ['refusee', 'abandonnee']);
+
+    db()->prepare(
+        'UPDATE fonds_demandes SET statut = ?, montant_demande = ?, montant_accorde = ?,
+                date_limite = ?, date_depot = ?, date_reponse = ?,
+                date_limite_bilan = ?, date_bilan = ?, reference = ?, pieces_autres = ?, notes = ?
+          WHERE id = ?'
+    )->execute([
+        $decision,
+        montant_float((string) ($_POST['montant_demande'] ?? '')),
+        montant_float((string) ($_POST['montant_accorde'] ?? '')),
+        campagne_date((string) ($_POST['date_limite'] ?? '')),
+        campagne_date((string) ($_POST['date_depot'] ?? '')),
+        campagne_date((string) ($_POST['date_reponse'] ?? '')),
+        campagne_date((string) ($_POST['date_limite_bilan'] ?? '')),
+        campagne_date((string) ($_POST['date_bilan'] ?? '')),
+        trim((string) ($_POST['reference'] ?? '')),
+        trim((string) ($_POST['pieces_autres'] ?? '')),
+        trim((string) ($_POST['notes'] ?? '')),
+        $id,
+    ]);
+    redirect('fonds_campagne', ['id' => (int) $demande['campagne_id'], 'ok' => 'demande']);
 }
