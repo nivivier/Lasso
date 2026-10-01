@@ -403,11 +403,21 @@ function nav_groupes(): array
         ]];
     }
 
+    // L'onglet des projets (spectacles). Il appartient au module Événements —
+    // c'est lui qui les tient —, mais trois modules travaillent dessus : une
+    // campagne de démarchage vise des projets, une campagne de recherche de
+    // fonds en finance un. L'onglet est donc repris dans Booking et dans
+    // Recherche de fonds, à la condition stricte que le module Événements soit
+    // allumé ET lisible : la route `spectacles` lui est rattachée (index.php),
+    // un compte qui n'y a pas accès se verrait proposer une page refusée.
+    $ongletProjets = [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'];
+    $projetsAccessibles = module_accessible('evenements');
+
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
             'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
             'structures'       => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
-            'spectacles'       => [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'],
+            'spectacles'       => $ongletProjets,
         ]];
     }
 
@@ -421,6 +431,11 @@ function nav_groupes(): array
             // groupés », puisqu'on y démarche structure par structure.
             'campagnes'          => ['Campagnes', ['campagnes', 'campagne', 'campagne_form'], 0, 'target'],
         ];
+        // Les projets, juste après les campagnes qui les portent : c'est sur eux
+        // qu'on démarche, et l'onglet évite de sortir du module pour les régler.
+        if ($projetsAccessibles) {
+            $ongletsBooking['spectacles'] = $ongletProjets;
+        }
         // Suivi et Nouvelle campagne appartiennent au sous-module « Envois
         // groupés » : sans lui, le booking garde ses structures, ses modèles de
         // message et sa liste d'exclusion — dont se sert le bouton
@@ -446,12 +461,19 @@ function nav_groupes(): array
     }
 
     if (module_actif('fonds') && peut_lire('fonds')) {
-        $g['fonds'] = ['Recherche de fonds', 'landmark', [
+        $ongletsFonds = [
             'fonds' => ['Campagnes', ['fonds', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
             // Les bailleurs sont des structures : le même écran que le booking
             // et la facturation, pas une seconde liste à tenir.
             'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
-        ]];
+        ];
+        // Ce qu'une campagne finance est un projet, et c'est lui qui porte l'axe
+        // analytique de la ventilation (migration_91) : on le règle sans quitter
+        // le module.
+        if ($projetsAccessibles) {
+            $ongletsFonds['spectacles'] = $ongletProjets;
+        }
+        $g['fonds'] = ['Recherche de fonds', 'landmark', $ongletsFonds];
     }
 
     return $cache = $g;
@@ -503,6 +525,15 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
         if ($groupeDuType !== null && in_array($groupeDuType, $candidats, true)) {
             return $groupeDuType;
         }
+    }
+    // Certaines routes partagées ont un groupe PROPRIÉTAIRE sans ambiguïté :
+    // les projets sont tenus par le module Événements, Booking et Recherche de
+    // fonds ne font que les reprendre en onglet. Sans cette table, l'ordre
+    // fixe ci-dessous allumerait Booking sur un ?p=spectacles arrivé sans
+    // provenance — depuis le rail, un signet ou la recherche unifiée.
+    $proprietaire = ['spectacles' => 'evenements', 'spectacle' => 'evenements'][$route] ?? null;
+    if ($proprietaire !== null && in_array($proprietaire, $candidats, true)) {
+        return $proprietaire;
     }
     foreach (['booking', 'compta', 'facturation', 'evenements'] as $prefere) {
         if (in_array($prefere, $candidats, true)) {

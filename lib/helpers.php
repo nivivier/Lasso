@@ -2460,22 +2460,22 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
         'dashboard'        => ['?p=resumes', 'Tableau de bord'],
         'compta_ecritures' => ['?p=compta_ecritures', 'Écritures'],
         'structures'       => ['?p=structures', 'Structures'],
-        // Structures est partagée par 3 groupes de nav (voir nav_groupe_actif())
-        // — structures_liste.php pose depuis=<groupe> (pas depuis=structures)
-        // sur ses liens vers une structure, pour que nav_groupe_actif() y
-        // mette en surbrillance le bon groupe. Sans ces 3 entrées, un tel
-        // depuis ne correspondait à rien ici et retombait sur le
-        // '?p=structures' générique ci-dessus, perdant le groupe de
-        // provenance sur le lien retour.
-        'booking'          => ['?p=structures&depuis=booking', 'Structures'],
-        'facturation'      => ['?p=structures&depuis=facturation', 'Structures'],
-        'evenements'       => ['?p=structures&depuis=evenements', 'Structures'],
-        // Quatrième groupe à partager la liste des structures : un bailleur
-        // est une structure comme une autre (SPEC_SUBVENTIONS.md § 9.1).
-        'fonds'            => ['?p=structures&depuis=fonds', 'Structures'],
     ];
     if (isset($statiques[$depuis])) {
         return lien_retour($avecExtras($statiques[$depuis][0]), $statiques[$depuis][1]);
+    }
+    // Une provenance qui nomme un GROUPE de navigation (booking, facturation,
+    // événements, recherche de fonds) ne désigne pas une page : elle dit dans
+    // quel module on se trouve. Les écrans partagés par plusieurs modules la
+    // posent sur leurs liens — la liste des structures, celle des projets —
+    // pour que le rail y reste sur le bon groupe (nav_groupe_actif()).
+    //
+    // Le retour est donc la liste de CETTE page, dans ce groupe-là : le groupe
+    // ne dit pas OÙ revenir, seulement sous quel module. Une table qui aurait
+    // renvoyé chaque groupe vers une page fixe aurait ramené la fiche d'un
+    // projet à la liste des structures, elle aussi partagée par ces groupes.
+    if ($depuis !== '' && isset(nav_groupes()[$depuis])) {
+        return lien_retour($avecExtras(url_avec_retour($defautHref, $depuis)), $defautLabel);
     }
     if (preg_match('/^(facture|evenement|fiche|employe|structure|campagne|fonds_demande):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];

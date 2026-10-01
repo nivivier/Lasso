@@ -47,6 +47,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   celle des campagnes de démarchage.
 
 ### Modifié
+- **L'onglet des projets apparaît aussi dans Booking et dans Recherche de
+  fonds** : une campagne de démarchage vise des projets, une campagne de
+  recherche de fonds en finance un — on les règle sans sortir du module. C'est
+  le même écran, pas une seconde liste : l'onglet n'apparaît que si le module
+  Événements, qui les tient, est allumé et lisible. Arriver sur un projet depuis
+  l'un ou l'autre module y laisse le rail et le bandeau, et le lien de retour
+  ramène à la liste des projets, pas à celle des structures.
 - **Sur le tableau de bord, une facture échue ne s'alarme plus tout de suite** :
   le fond ambre — qui dit « ceci attend un geste » — est réservé aux factures en
   retard depuis plus d'un mois, celles-là mêmes dont la ligne passe au rouge.

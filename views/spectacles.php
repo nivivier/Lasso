@@ -55,6 +55,13 @@ $parentOptions = function (int $excludeId) use ($map): string {
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
+<?php // Les projets sont tenus par le module Événements, mais repris en onglet
+      // par Booking et par Recherche de fonds (nav_groupes()). Chaque lien vers
+      // un projet reporte donc le groupe d'où l'on vient : sans lui, ouvrir une
+      // fiche depuis le rail du booking ferait basculer tout l'écran dans
+      // Événements. Même procédé que la liste des structures, partagée elle
+      // aussi par plusieurs modules (views/structures_liste.php). ?>
+<?php $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : ''; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
@@ -80,7 +87,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php $peutEcrireSpec = peut_ecrire('evenements'); ?>
 <?php if ($peutEcrireSpec): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
-<form method="post" action="?p=spectacles" id="reorder-form" hidden>
+<form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="section" value="reorder">
     <input type="hidden" name="id" value="">
@@ -92,7 +99,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php if (!$lignes): ?>
     <p class="muted">Aucun <?= e($termeSingulier) ?> pour l'instant. Commencez par en ajouter un.</p>
     <?php if ($peutEcrireSpec): ?>
-    <form method="post" action="?p=spectacles" class="inline-edit card form" id="spectacle-add" hidden>
+    <form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" class="inline-edit card form" id="spectacle-add" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="add">
         <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow" aria-label="Nom du spectacle">
@@ -130,7 +137,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
             };
         ?>
             <tr class="plan-row row-link <?= $s['a_enfants'] ? 'plan-groupe' : '' ?>" tabindex="0" role="link"
-                data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=spectacle&id=<?= $sid ?>">
+                data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=spectacle&id=<?= $sid ?><?= e($suffixeDepuis) ?>">
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
@@ -146,9 +153,9 @@ $parentOptions = function (int $excludeId) use ($map): string {
                         <?php else: ?>
                         <?= spectacle_pastille_html($sid, $map) ?>
                         <?php endif; ?>
-                        <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?>"><?= e($s['nom']) ?></a>
+                        <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?><?= e($suffixeDepuis) ?>"><?= e($s['nom']) ?></a>
                         <?php if ($peutEcrireSpec): ?>
-                        <form method="post" action="?p=spectacles" class="inline-edit plan-edit" id="plan-edit-<?= $sid ?>">
+                        <form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" class="inline-edit plan-edit" id="plan-edit-<?= $sid ?>">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="section" value="rename">
                             <input type="hidden" name="id" value="<?= $sid ?>">
@@ -170,7 +177,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                          'titre' => 'Synchroniser — liens de ' . $s['nom']],
                         $syncEntrees($sid)
                     ) ?>
-                    <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
+                    <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?><?= e($suffixeDepuis) ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
                     <?php if ($peutEcrireSpec): ?>
                     <?php // En édition, le crayon cède la place au trio : enregistrer
                           // (mis en évidence), supprimer (rouge) et annuler. La croix se
@@ -198,7 +205,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         <tfoot id="spectacle-add" hidden>
             <tr>
                 <td colspan="5">
-                    <form method="post" action="?p=spectacles" class="inline-edit">
+                    <form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="add">
                         <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow" aria-label="Nom du spectacle">
@@ -220,7 +227,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         containerSelector: '#spectacles-card',
         rowsSelector: '.spectacles-table .plan-row',
         scrollKey: 'spectaclesScroll',
-        formAction: '?p=spectacles',
+        formAction: <?= json_encode('?p=spectacles' . $suffixeDepuis, JSON_UNESCAPED_SLASHES) ?>,
     });
 
     // Copie d'un lien de synchronisation : l'entrée accuse réception en
