@@ -15,7 +15,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   relit — puis la mise à jour, qui est l'action. Celle-ci n'est **mise en
   évidence que lorsqu'il y a vraiment une version à prendre** : réinstaller
   celle déjà là, ou revenir en arrière, restent des boutons discrets. Un bouton
-  plein qui invite à réinstaller ce qui est installé n'invite à rien.
+  plein qui invite à réinstaller ce qui est installé n'invite à rien. Son
+  libellé reste écrit sur téléphone, contrairement aux autres boutons d'action :
+  une flèche de téléchargement ne dit pas si l'on prend une nouvelle version,
+  si l'on réinstalle la même ou si l'on revient en arrière.
 
 ## [2.9.5] — 2026-10-01
 

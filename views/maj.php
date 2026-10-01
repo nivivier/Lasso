@@ -42,9 +42,15 @@ $majLibelle  = $etat === 'a_jour'
         <h2 class="mt-0">Version installée</h2>
         <div class="head-actions">
             <a class="btn ghost" href="?p=maj&verifier=1"><?= icon('refresh-cw') ?> <span class="lbl">Vérifier maintenant</span></a>
+            <?php // Pas de <span class="lbl"> sur celui-ci : son libellé reste
+                  // écrit sur téléphone aussi. Une flèche de téléchargement ne
+                  // dit pas si l'on prend une nouvelle version, si l'on
+                  // réinstalle la même ou si l'on revient en arrière — trois
+                  // gestes qu'on ne confond pas sans les lire. .btn-compact lui
+                  // donne le corps de texte qui tient dans cette largeur. ?>
             <?php if ($majPossible): ?>
-            <button type="submit" form="maj-form" class="btn<?= $majEnAvant ? '' : ' ghost' ?>">
-                <?= icon('download') ?> <span class="lbl"><?= e($majLibelle) ?></span>
+            <button type="submit" form="maj-form" class="btn btn-compact<?= $majEnAvant ? '' : ' ghost' ?>">
+                <?= icon('download') ?> <?= e($majLibelle) ?>
             </button>
             <?php endif; ?>
         </div>
