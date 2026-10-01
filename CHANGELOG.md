@@ -7,6 +7,16 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **Les commandes de « Mises à jour » montent en haut de la carte**, comme sur
+  tous les autres écrans : « Vérifier maintenant » — qui ne change rien, il
+  relit — puis la mise à jour, qui est l'action. Celle-ci n'est **mise en
+  évidence que lorsqu'il y a vraiment une version à prendre** : réinstaller
+  celle déjà là, ou revenir en arrière, restent des boutons discrets. Un bouton
+  plein qui invite à réinstaller ce qui est installé n'invite à rien.
+
 ## [2.9.5] — 2026-10-01
 
 ### Corrigé

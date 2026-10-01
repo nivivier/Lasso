@@ -22,8 +22,33 @@ $oui = fn(bool $b) => $b
     <?php endif; ?>
 <?php endif; ?>
 
+<?php
+// Les commandes de la carte, en haut à droite comme partout (docs/UI.md § 1) :
+// « Vérifier maintenant » d'abord — il ne change rien, il relit —, puis la mise
+// à jour, qui est l'action.
+//
+// Une seule est MISE EN ÉVIDENCE, et seulement quand il y a vraiment une
+// version à prendre : réinstaller ce qui est déjà là, ou revenir en arrière, ne
+// sont pas ce qu'on vient faire ici. Un bouton plein qui invite à réinstaller
+// une version déjà installée ne propose rien, il attire pour rien.
+$majPossible = $webActive && $archivePossible;
+$majEnAvant  = $etat !== 'a_jour' && !$downgrade;
+$majLibelle  = $etat === 'a_jour'
+    ? 'Réinstaller la dernière version'
+    : ($downgrade ? 'Installer la version du canal (retour en arrière)' : 'Mettre à jour maintenant');
+?>
 <div class="card">
-    <h2 class="mt-0">Version installée</h2>
+    <div class="card-head-row">
+        <h2 class="mt-0">Version installée</h2>
+        <div class="head-actions">
+            <a class="btn ghost" href="?p=maj&verifier=1"><?= icon('refresh-cw') ?> <span class="lbl">Vérifier maintenant</span></a>
+            <?php if ($majPossible): ?>
+            <button type="submit" form="maj-form" class="btn<?= $majEnAvant ? '' : ' ghost' ?>">
+                <?= icon('download') ?> <span class="lbl"><?= e($majLibelle) ?></span>
+            </button>
+            <?php endif; ?>
+        </div>
+    </div>
     <dl class="info-grid">
         <div><dt>Version</dt><dd><strong><?= e($locale) ?></strong><?= $shaLocal ? ' <span class="muted small">(' . e($shaLocal) . ')</span>' : '' ?></dd></div>
         <div><dt>Canal suivi</dt><dd><?= $canal === 'stable' ? 'Stable' : 'Test' ?></dd></div>
@@ -44,8 +69,7 @@ $oui = fn(bool $b) => $b
         </dd></div>
     </dl>
     <p class="muted small">
-        Dernière vérification : <?= e(date('d.m.Y à H:i', strtotime($derniereVerif))) ?>
-        (<a href="?p=maj&verifier=1">vérifier maintenant</a>) —
+        Dernière vérification : <?= e(date('d.m.Y à H:i', strtotime($derniereVerif))) ?> —
         <a href="https://github.com/nivivier/Lasso/blob/<?= $canal === 'stable' ? 'stable' : 'main' ?>/CHANGELOG.md" target="_blank" rel="noopener">voir le journal des versions ↗</a>
     </p>
 
@@ -59,14 +83,15 @@ $oui = fn(bool $b) => $b
             ? "Attention : la version du canal $canal (" . $distante . ") est ANTÉRIEURE à la version installée ($locale). Un retour en arrière peut être incompatible avec la base déjà migrée. Continuer ?"
             : 'Télécharger et installer la dernière version du canal ' . $canal . ' ?';
         ?>
-        <form method="post" action="?p=maj" class="mt-18">
+        <?php // Le formulaire n'a plus que ses champs cachés : son bouton vit en
+              // haut de la carte et le vise par form="maj-form". La confirmation
+              // passe donc du bouton au FORMULAIRE, pour couvrir l'envoi quelle
+              // qu'en soit l'origine (docs/UI.md § 3). ?>
+        <form method="post" action="?p=maj" id="maj-form" data-confirm="<?= e($confirm) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="maj_go" value="1">
-            <button type="submit" data-confirm="<?= e($confirm) ?>">
-                <?= icon('download') ?> <?= $etat === 'a_jour' ? 'Réinstaller la dernière version' : ($downgrade ? 'Installer la version du canal (retour en arrière)' : 'Mettre à jour maintenant') ?>
-            </button>
-            <?php if ($downgrade): ?><span class="muted small">⚠️ Cette installation serait un retour en arrière.</span><?php endif; ?>
         </form>
+        <?php if ($downgrade): ?><p class="warn">⚠️ Cette installation serait un retour en arrière.</p><?php endif; ?>
         <p class="muted small mt-18">Une sauvegarde de la base est faite automatiquement avant chaque mise à jour. Vos données et votre configuration sont préservées.</p>
     <?php endif; ?>
 </div>
