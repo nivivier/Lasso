@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [2.9.5] — 2026-10-01
 
 ### Corrigé
 - **Les décomptes de `?p=spectacles` ouvraient la liste des événements sans

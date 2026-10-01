@@ -285,8 +285,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     le reste sur une dernière ligne « et X autres » qui mène à la liste. La
     carte des campagnes, en particulier, ne montre que la saison en cours dès
     qu'une campagne y est active — y compris une campagne dont tout le monde est
-    déjà contacté, dont les réponses peuvent encore bouger —, et annonce les
-    prochaines d'une ligne.
+    déjà contacté, dont les réponses peuvent encore bouger —, de la plus
+    anciennement commencée à la plus récente, et annonce les prochaines d'une
+    ligne.
     Ce qui **attend un geste** se détache sur fond ambre — une fiche à verser
     dont le mois est passé, une facture échue, une campagne ouverte, les
     déclarations SUISA à faire ; ce qui suit son cours reste à l'encre, et un
