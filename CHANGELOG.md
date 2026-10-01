@@ -13,7 +13,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Un module « Recherche de fonds »**, à activer dans Paramètres → Modules :
   le suivi des demandes de subvention. Cette première livraison en pose les
   fondations — les tables, l'entrée de menu, les droits — et montre la liste des
-  recherches ; les écrans de saisie suivent. Un bailleur y est une **structure**,
+  recherches. **On y compose maintenant une recherche** : son nom, sa période,
+  le budget à trouver, le projet financé, le dossier partagé où vivent les
+  pièces — et la sélection des bailleurs, avec les mêmes filtres que la liste
+  des structures, puisqu'un bailleur en est une. Un bailleur y est une **structure**,
   la même fiche que pour le booking et la facturation, et le projet financé un
   spectacle, dont l'axe analytique porte la ventilation.
 

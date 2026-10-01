@@ -239,7 +239,9 @@ if (module_actif('booking')) {
 }
 
 ajouter_routes_module($handlers, $routeModules, 'fonds', [
-    'fonds' => 'route_fonds',
+    'fonds'                      => 'route_fonds',
+    'fonds_campagne_form'        => 'route_fonds_campagne_form',
+    'fonds_campagne_enregistrer' => 'route_fonds_campagne_enregistrer',
 ]);
 
 ajouter_routes_module($handlers, $routeModules, 'evenements', [
