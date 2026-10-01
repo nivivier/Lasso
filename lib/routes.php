@@ -2825,6 +2825,11 @@ function route_resumes(): void
     // Recherche de fonds : les campagnes dont la saison court, et les bilans
     // dus — la seconde échéance, celle qu'on oublie une fois l'argent reçu.
     $fondsDash = module_accessible('fonds') ? fonds_dashboard(5) : ['campagnes' => [], 'nbCampagnes' => 0, 'bilans' => [], 'nbBilans' => 0];
+    // Les pastilles des projets financés, ajoutées ici et non dans
+    // fonds_dashboard() : elles viennent du module Événements, dont les règles
+    // de la recherche de fonds n'ont pas à dépendre
+    // (fonds_campagnes_avec_projets(), lib/routes_fonds.php).
+    $fondsDash['campagnes'] = fonds_campagnes_avec_projets($fondsDash['campagnes']);
     $campagnesDash = $campagnesToutes ? campagnes_dashboard(9, $campagnesToutes) : [];
     $campagnesAVenir = campagnes_dashboard_a_venir($campagnesToutes);
     render('resumes', [

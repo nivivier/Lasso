@@ -1,6 +1,6 @@
 <?php
 /** @var array $campagne */ /** @var array $demandes */ /** @var array $repartition */
-/** @var array $projets */ /** @var ?string $ok */
+/** @var array $projets */ /** @var array $projetsPastilles */ /** @var ?string $ok */
 // Le suivi d'une campagne de recherche de fonds : la jauge en francs, puis un dossier par
 // ligne. Chaque ligne se lit, et s'ouvre au crayon pour y noter ce qu'on vient
 // d'apprendre — un délai, un dépôt, une réponse (docs/UI.md § 2d).
@@ -31,9 +31,38 @@ $aujourdhui = date('Y-m-d');
     </div>
 </div>
 
-<?php // La carte de tête répond d'un coup d'œil à la seule question qui compte
-      // au milieu d'une campagne : combien manque-t-il encore. ?>
-<div class="card">
+<?php
+// La carte de tête répond d'un coup d'œil à la seule question qui compte au
+// milieu d'une campagne : combien manque-t-il encore. Même charpente que celle
+// d'une campagne de démarchage (views/campagne.php) — les icônes des projets en
+// grand à gauche, le reste à droite : c'est par elles qu'on reconnaît la
+// campagne avant même d'en lire le nom. Plusieurs projets se superposent en
+// pile, le premier devant ; au-delà de trois on s'arrête et on compte le reste.
+// Sans projet, pas de bloc du tout.
+$iconesPile = array_slice($projetsPastilles, 0, 3);
+$iconesReste = count($projetsPastilles) - count($iconesPile);
+?>
+<div class="card camp-carte">
+    <?php if ($iconesPile): ?>
+    <?php // aria-hidden : les projets sont nommés juste à côté, en toutes
+          // lettres. Répéter la pile à la lecture n'ajouterait rien. ?>
+    <div class="camp-icone" aria-hidden="true">
+        <?php foreach ($iconesPile as $i => $pastille): ?>
+        <span class="camp-icone-item" style="z-index:<?= count($iconesPile) - $i ?>"><?= $pastille ?></span>
+        <?php endforeach; ?>
+        <?php if ($iconesReste > 0): ?>
+        <span class="camp-icone-item"><span class="avatar-ini camp-icone-plus">+<?= (int) $iconesReste ?></span></span>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <div class="camp-corps">
+    <div class="camp-projets projet-pastilles">
+        <?php if (!$projets): ?><span class="muted">Aucun projet</span><?php endif; ?>
+        <?php foreach ($projets as $i => $nomProjet): ?>
+            <span class="projet-pastille"><?= $projetsPastilles[$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
+        <?php endforeach; ?>
+    </div>
     <div class="camp-jauge">
         <?= fonds_barre_html($repartition) ?>
         <ul class="camp-legende">
@@ -56,7 +85,6 @@ $aujourdhui = date('Y-m-d');
     <table class="kv-table mt-16">
         <tr><th>Période</th><td><?php $d = $jour($campagne['date_debut']); $f = $jour($campagne['date_fin']); ?>
             <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?></td></tr>
-        <tr><th>Projet</th><td><?= $projets ? e(implode(', ', $projets)) : '<span class="muted">Aucun</span>' ?></td></tr>
         <tr><th>Objectif minimal</th><td><?= (float) $campagne['montant_minimal'] > 0
             ? chf((float) $campagne['montant_minimal'])
             : '<span class="muted">Non chiffré</span>' ?></td></tr>
@@ -67,6 +95,7 @@ $aujourdhui = date('Y-m-d');
     <?php if (trim((string) $campagne['notes']) !== ''): ?>
         <p class="muted small mt-16"><?= nl2br(e((string) $campagne['notes'])) ?></p>
     <?php endif; ?>
+    </div>
 </div>
 
 <h2 class="mt-22">Dossiers <?= info_tip(

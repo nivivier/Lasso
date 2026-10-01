@@ -494,7 +494,15 @@ $cartes = [];
                           // dossiers à déposer. Tout déposé, elle suit son cours. ?>
                     <tr class="row-link<?= $dash_action((int) $fc['nb_deposees'] < (int) $fc['nb_total']) ?>"
                         tabindex="0" role="link" data-href="?p=fonds_campagne&id=<?= (int) $fc['id'] ?>">
-                        <td><span class="dash-campagne-nom strong-encre"><?= e((string) $fc['nom']) ?></span></td>
+                        <?php // L'icône du projet financé devant son nom, comme dans
+                              // la carte Booking : c'est par elle qu'on reconnaît
+                              // une campagne avant de la lire. ?>
+                        <td>
+                            <span class="dash-campagne">
+                                <?= $fc['projets_pastilles'][0] ?? '' ?>
+                                <span class="dash-campagne-nom strong-encre"><?= e((string) $fc['nom']) ?></span>
+                            </span>
+                        </td>
                         <td class="camp-avancement">
                             <?= fonds_barre_html($fc['repartition'], 'camp-barre-liste') ?>
                             <span class="camp-avancement-txt"><b><?= chf($fc['repartition']['obtenu']) ?></b>

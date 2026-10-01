@@ -16,19 +16,39 @@ require_once __DIR__ . '/booking.php'; // ciblage_structures_preparer(), campagn
 require_once __DIR__ . '/fonds.php';   // les règles : statut dérivé, jauge
 require_once __DIR__ . '/compta.php';  // montant_float()
 
-// Les campagnes de recherche de fonds, de la plus récemment commencée à la plus ancienne.
-// Même forme que campagnes_liste() : la liste porte déjà ce qu'il faut pour
-// l'afficher, pour que la vue n'ait aucune requête à faire.
-function fonds_campagnes_liste(): array
+// Ajoute à des lignes de campagne les projets qu'elles financent : leurs
+// identifiants, leurs noms, et leurs PASTILLES — l'icône du projet est ce par
+// quoi on reconnaît une campagne avant d'en lire le nom, sur la liste comme sur
+// le tableau de bord. Une requête pour toutes les campagnes, pas une par ligne.
+//
+// Isolé ici plutôt que dans fonds_dashboard() (lib/fonds.php) : les pastilles
+// viennent du module Événements (spectacle_map(), lib/evenements.php), et ce
+// fichier-là ne doit répondre que des règles de la recherche de fonds.
+function fonds_campagnes_avec_projets(array $campagnes): array
 {
-    // Les projets financés, groupés d'avance : une requête pour toutes les
-    // campagnes, pas une par ligne (même préparation que campagnes_liste()).
+    if (!$campagnes) {
+        return [];
+    }
     $map = spectacle_map();
     $projetsParCampagne = [];
     foreach (db()->query('SELECT campagne_id, spectacle_id FROM fonds_campagne_spectacles ORDER BY spectacle_id') as $l) {
         $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['spectacle_id'];
     }
+    return array_map(function (array $c) use ($map, $projetsParCampagne): array {
+        $projetIds = $projetsParCampagne[(int) $c['id']] ?? [];
+        return $c + [
+            'projet_ids'        => $projetIds,
+            'projets'           => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projetIds),
+            'projets_pastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projetIds),
+        ];
+    }, $campagnes);
+}
 
+// Les campagnes de recherche de fonds, de la plus récemment commencée à la plus ancienne.
+// Même forme que campagnes_liste() : la liste porte déjà ce qu'il faut pour
+// l'afficher, pour que la vue n'ait aucune requête à faire.
+function fonds_campagnes_liste(): array
+{
     $sql = "SELECT c.*,
                    (SELECT COUNT(*) FROM fonds_demandes d WHERE d.campagne_id = c.id) AS nb_demandes,
                    (SELECT COUNT(*) FROM fonds_demandes d WHERE d.campagne_id = c.id AND d.date_depot <> '') AS nb_deposees,
@@ -36,18 +56,7 @@ function fonds_campagnes_liste(): array
                    (SELECT COALESCE(SUM(d.montant_accorde), 0) FROM fonds_demandes d WHERE d.campagne_id = c.id) AS montant_obtenu
               FROM fonds_campagnes c
           ORDER BY c.date_debut DESC, c.id DESC";
-    $out = [];
-    foreach (db()->query($sql) as $c) {
-        $projetIds = $projetsParCampagne[(int) $c['id']] ?? [];
-        $out[] = $c + [
-            'projet_ids' => $projetIds,
-            'projets'    => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projetIds),
-            // Les pastilles des mêmes projets, dans le même ordre : dans une
-            // liste de campagnes, une icône se repère avant un nom.
-            'projets_pastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projetIds),
-        ];
-    }
-    return $out;
+    return fonds_campagnes_avec_projets(db()->query($sql)->fetchAll());
 }
 
 // La liste des campagnes de recherche de fonds.
@@ -212,14 +221,17 @@ function route_fonds_campagne(): void
         redirect('fonds');
     }
     $demandes = fonds_campagne_demandes($id);
+    $projetIds = spectacles_lies('fonds_campagne_spectacles', $id);
+    $mapProjets = spectacle_map();
     render('fonds_campagne', [
         'campagne'    => $campagne,
         'demandes'    => $demandes,
         'repartition' => fonds_repartition($demandes, (float) $campagne['montant_minimal'], (float) $campagne['montant_ideal']),
-        'projets'     => array_map(
-            fn (int $sid) => spectacle_chemin($sid, spectacle_map()),
-            spectacles_lies('fonds_campagne_spectacles', $id)
-        ),
+        // Les projets financés, nommés ET en pastilles : la carte de tête les
+        // montre comme celle d'une campagne de démarchage — l'icône d'abord,
+        // c'est par elle qu'on reconnaît la campagne.
+        'projets'     => array_map(fn (int $sid) => spectacle_chemin($sid, $mapProjets), $projetIds),
+        'projetsPastilles' => array_map(fn (int $sid) => spectacle_pastille_html($sid, $mapProjets), $projetIds),
         'ok'          => $_GET['ok'] ?? null,
     ], 'Campagne — ' . $campagne['nom']);
 }
