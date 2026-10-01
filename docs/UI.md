@@ -712,6 +712,14 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - **Filtres de colonne** : `filtre_colonne_html()`, un entonnoir par colonne,
   mémorisé en session, avec un bouton de remise à zéro quand au moins un est
   actif.
+- ⚠️ **Un lien vers une liste filtrée s'écrit avec `lien_liste_filtree()`**,
+  jamais à la main. Ces filtres sont des `filtre_coche()` : ils ne lisent l'URL
+  que si le marqueur `<clé>_set` l'accompagne, et retombent sinon sur la
+  session. `?p=evenements_liste&statut=annule` n'a donc aucun effet — la page
+  s'ouvre et montre ce qu'on avait laissé la dernière fois, sans rien signaler.
+  Le helper pose aussi les filtres qu'on veut **vider** (un tableau vide), seule
+  façon de garantir que le compte annoncé sur la carte et la liste ouverte
+  portent sur les mêmes lignes.
 - **Recherche** : instantanée sur les lignes affichées sous le seuil de
   pagination client (`pagination_mode_client()`), sinon envoyée au serveur.
 - **Une liste courte d'événements se rend par `evenement_mini_html()`**

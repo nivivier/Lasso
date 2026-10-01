@@ -817,6 +817,33 @@ function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, b
     return $normaliser((array) $_SESSION[$cleSession]);
 }
 
+// L'adresse d'une liste filtrée, pour un lien posé AILLEURS que sur la liste
+// elle-même : une carte du tableau de bord, un compte dans un tableau, un
+// décompte à côté d'un spectacle.
+//
+// ⚠️ C'est le seul moyen correct d'écrire un tel lien. Les filtres de colonne
+// sont des filtre_coche() : ils ne lisent `$_GET` que si le marqueur
+// « <clé>_set » l'accompagne, et retombent sinon sur la SESSION. Un lien écrit
+// « ?p=evenements_liste&statut=annule » n'a donc aucun effet — il rouvre la
+// liste telle qu'on l'avait laissée, en promettant autre chose. L'erreur a été
+// faite deux fois, et elle ne se voit pas à la lecture du lien : la page
+// s'ouvre, elle montre simplement les mauvaises lignes.
+//
+// $filtres : [clé => valeur | [valeurs]]. Chaque clé citée est POSÉE, donc un
+// tableau vide efface le filtre (« tous ») — ce qui est la seule façon de
+// garantir ce que le lien va montrer, quoi qu'on ait coché avant. Une clé
+// absente de $filtres garde ce qu'elle avait.
+// $params : les paramètres ordinaires de la page (q, vue, depuis…), tels quels.
+function lien_liste_filtree(string $route, array $filtres, array $params = []): string
+{
+    $qs = ['p' => $route];
+    foreach ($filtres as $cle => $valeurs) {
+        $qs[$cle] = array_values(array_map('strval', (array) $valeurs));
+        $qs[$cle . '_set'] = 1;
+    }
+    return '?' . http_build_query($qs + $params);
+}
+
 // Filtre de colonne à cases à cocher (EXPÉRIMENTAL, ?p=fiches — Paiement/
 // Date/Employé) : bouton entonnoir + panneau (voir .col-filter* dans
 // assets/app.css), plutôt qu'un <select> dans la barre d'outils, pour que

@@ -199,13 +199,17 @@ $cartes = [];
                 </thead>
                 <tbody>
                     <?php
-                    // statut_suisa[]=…&statut_suisa_set=1 (pas statut_suisa=… seul) : le
-                    // filtre de la colonne SUISA sur ?p=evenements_liste est un filtre_coche()
-                    // (0 à N valeurs cochées simultanément, voir evenements_lire_filtres()) —
-                    // un lien qui n'utiliserait pas ce format serait silencieusement ignoré
-                    // (filtre_coche() n'y verrait aucune sélection explicite, faute du
-                    // marqueur "_set", et retomberait sur la session ou « tous »).
-                    $suisaLien = fn (string $statut): string => '&statut_suisa[]=' . $statut . '&statut_suisa_set=1';
+                    // lien_liste_filtree() et pas une URL écrite à la main : les
+                    // filtres de ?p=evenements_liste sont des filtre_coche(), qui
+                    // ignorent silencieusement un paramètre sans son marqueur
+                    // « _set » (voir le helper). L'année est vidée au passage,
+                    // sinon le compte annoncé ici et la liste ouverte là-bas ne
+                    // porteraient pas sur les mêmes dates.
+                    $suisaLien = fn (string $statut): string => lien_liste_filtree(
+                        'evenements_liste',
+                        ['statut_suisa' => [$statut], 'annee' => []],
+                        ['vue' => 'liste']
+                    );
                     ?>
                     <?php // La ligne entière mène à la liste filtrée, comme les
                           // autres lignes du tableau de bord (.row-link) : deux
@@ -220,7 +224,7 @@ $cartes = [];
                           // une déclaration à envoyer. « Envoyés » et « Manquants »
                           // attendent la SUISA — le rouge du nombre dit déjà qu'un
                           // décompte tarde, sans en faire une tâche du jour. ?>
-                    <tr class="row-link<?= $dash_action($suisaAFaire > 0) ?>" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('a_faire') ?>">
+                    <tr class="row-link<?= $dash_action($suisaAFaire > 0) ?>" tabindex="0" role="link" data-href="<?= e($suisaLien('a_faire')) ?>">
                         <td class="strong-encre">À faire</td>
                         <?php // Le nombre porte la gravité : ambre pour ce qui
                               // attend, rouge pour ce qui manque. Un zéro reste
@@ -230,11 +234,11 @@ $cartes = [];
                     <?php // Envoyées, décompte pas encore revenu : rien à faire,
                           // donc un nombre neutre — la gravité est réservée à ce
                           // qui attend (ambre) et à ce qui manque (rouge). ?>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('envoye') ?>">
+                    <tr class="row-link" tabindex="0" role="link" data-href="<?= e($suisaLien('envoye')) ?>">
                         <td>Envoyés</td>
                         <td class="num strong"><?= $suisaEnvoye ?></td>
                     </tr>
-                    <tr class="row-link" tabindex="0" role="link" data-href="?p=evenements_liste&vue=liste<?= $suisaLien('manquant') ?>">
+                    <tr class="row-link" tabindex="0" role="link" data-href="<?= e($suisaLien('manquant')) ?>">
                         <td>Manquants</td>
                         <td class="num strong<?= $suisaManquant > 0 ? ' num-retard' : '' ?>"><?= $suisaManquant ?></td>
                     </tr>
@@ -272,7 +276,7 @@ $cartes = [];
         // silencieusement sur la session — voir la note du lien Suisa ci-dessus.
         // « echeance » affine sur le retard (filtre d'appoint, route_fiches()) :
         // sans lui le médaillon annoncerait 8 et ouvrirait les 13.
-        $aPayerLien = '?p=fiches&statut[]=apayer&statut_set=1';
+        $aPayerLien = lien_liste_filtree('fiches', ['statut' => ['apayer']]);
         ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
@@ -332,7 +336,7 @@ $cartes = [];
         // échue (« en retard » est dérivé de la date, voir
         // facturation_statut_effectif()) : le lien ouvre donc exactement les
         // mêmes factures que la carte.
-        $facturesLien = '?p=facturation_liste&statut[]=emise&statut_set=1';
+        $facturesLien = lien_liste_filtree('facturation_liste', ['statut' => ['emise']]);
         $totEmises = array_sum(array_map(fn ($f) => (float) $f['montant_total'], $facturesEmises));
         ?>
         <?php ob_start(); ?>

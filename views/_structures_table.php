@@ -251,7 +251,12 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
             <?php if ($stMontreFactures): ?>
             <td class="small col-factures">
                 <?php if ((int) $d['nb_factures'] > 0): ?>
-                    <a href="?p=facturation_liste&annee=0&statut=tous&q=<?= urlencode($d['nom']) ?>"><?= (int) $d['nb_factures'] ?></a>
+                    <?php // Toutes les factures de cette structure : les deux filtres
+                          // sont VIDÉS, pas laissés au hasard de la session. « annee=0 »
+                          // et « statut=tous » étaient les sentinelles d'avant
+                          // filtre_coche() — sans le marqueur _set, elles ne faisaient
+                          // plus rien et la liste s'ouvrait sur ses filtres précédents. ?>
+                    <a href="<?= e(lien_liste_filtree('facturation_liste', ['annee' => [], 'statut' => []], ['q' => (string) $d['nom']])) ?>"><?= (int) $d['nb_factures'] ?></a>
                 <?php else: ?>
                     0
                 <?php endif; ?>

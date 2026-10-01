@@ -9,6 +9,19 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **Les décomptes de `?p=spectacles` ouvraient la liste des événements sans
+  filtrer.** Cliquer « 3 » dans la colonne « Annulés » d'un spectacle devait
+  montrer ces trois dates ; la liste s'ouvrait en réalité sur les filtres de la
+  dernière visite — 128 dates au lieu d'aucune, sur les données de test. Même
+  panne sur le nombre de factures d'une structure (`?p=structures`), qui
+  utilisait encore les valeurs d'avant les filtres à cases à cocher.
+- **Ces liens s'écrivent maintenant avec `lien_liste_filtree()`**, qui porte le
+  format attendu et vide au passage les filtres qu'on ne veut pas voir
+  s'appliquer. Les quatre liens du tableau de bord, déjà corrects, y passent
+  aussi : l'erreur ne se voit pas à la lecture d'une URL, autant qu'il n'y ait
+  plus d'URL à relire.
+
 ### Modifié
 - **La carte « Campagnes » du tableau de bord se lit dans l'ordre du temps** :
   les campagnes de la saison s'y suivent de la plus anciennement commencée à la

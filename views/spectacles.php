@@ -93,7 +93,16 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 if ($s['a_enfants']) {
                     return (string) $n; // groupe : total agrégé, pas de filtre direct possible
                 }
-                return '<a href="?p=evenements_liste&spectacle_id=' . $sid . '&statut=' . e($statut) . '">' . $n . '</a>';
+                // Les deux filtres sont POSÉS, pas seulement ajoutés : sans quoi
+                // le lien hériterait de ce qui traînait en session (une année,
+                // un pays) et montrerait moins de dates qu'il n'en annonce.
+                // lien_liste_filtree() porte le format attendu par filtre_coche().
+                $href = lien_liste_filtree('evenements_liste', [
+                    'spectacle_id' => [$sid],
+                    'statut'       => [$statut],
+                    'annee'        => [],
+                ]);
+                return '<a href="' . e($href) . '">' . $n . '</a>';
             };
         ?>
             <tr class="plan-row row-link <?= $s['a_enfants'] ? 'plan-groupe' : '' ?>" tabindex="0" role="link"
