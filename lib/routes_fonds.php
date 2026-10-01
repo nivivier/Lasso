@@ -189,9 +189,10 @@ function route_fonds_campagne(): void
     ], 'Campagne — ' . $campagne['nom']);
 }
 
-// Enregistre UNE ligne du suivi : les montants, les dates, la décision. Le
-// reste de la page ne bouge pas — c'est la ligne qu'on vient de remplir.
-function route_fonds_demande(): void
+// Enregistre UN dossier : les montants, les dates, la décision. Appelée aussi
+// bien depuis la ligne du suivi que depuis la fiche du dossier — même
+// formulaire, mêmes champs, et le retour ramène d'où l'on vient.
+function route_fonds_demande_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -230,5 +231,55 @@ function route_fonds_demande(): void
         trim((string) ($_POST['notes'] ?? '')),
         $id,
     ]);
+    // Retour là où l'on était : la fiche du dossier si l'on y était, le suivi
+    // de la campagne sinon.
+    if (($_POST['retour'] ?? '') === 'demande') {
+        redirect('fonds_demande', ['id' => $id, 'ok' => 1]);
+    }
     redirect('fonds_campagne', ['id' => (int) $demande['campagne_id'], 'ok' => 'demande']);
+}
+
+// La fiche d'un dossier : tout ce qu'on sait de cette demande-là, et ce que ce
+// bailleur exige — réglable ici, depuis n'importe lequel de ses dossiers.
+function route_fonds_demande(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? 0);
+    $demande = fonds_demande_charger($id);
+    if (!$demande) {
+        redirect('fonds');
+    }
+    $sid = (int) $demande['structure_id'];
+    render('fonds_demande', [
+        'demande'    => $demande,
+        'catalogue'  => fonds_pieces_catalogue(),
+        'pieces'     => fonds_bailleur_pieces($sid),
+        'historique' => historique_fusionne('structure', $sid),
+        'ok'         => $_GET['ok'] ?? null,
+    ], 'Dossier — ' . $demande['structure_nom']);
+}
+
+// Ce qu'un bailleur exige, réglé depuis l'un de ses dossiers. Vaut pour TOUS
+// ses dossiers, présents et à venir : c'est lui qui l'exige, pas la campagne.
+function route_fonds_pieces(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('fonds');
+    }
+    check_csrf();
+    require_ecriture('fonds');
+    $id = (int) ($_POST['id'] ?? 0);
+    $demande = fonds_demande_charger($id);
+    if (!$demande) {
+        redirect('fonds');
+    }
+    $sid = (int) $demande['structure_id'];
+    fonds_bailleur_pieces_enregistrer($sid, [
+        'demande' => (array) ($_POST['pieces_demande'] ?? []),
+        'bilan'   => (array) ($_POST['pieces_bilan'] ?? []),
+    ]);
+    db()->prepare('UPDATE structures SET fonds_pieces_autres = ? WHERE id = ?')
+        ->execute([trim((string) ($_POST['fonds_pieces_autres'] ?? '')), $sid]);
+    redirect('fonds_demande', ['id' => $id, 'ok' => 'pieces']);
 }

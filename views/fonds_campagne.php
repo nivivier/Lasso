@@ -131,7 +131,7 @@ $aujourdhui = date('Y-m-d');
                         'petit' => true, 'nom' => (string) $d['structure_nom'],
                     ]) ?>
                     <?php if ($peutEcrire): ?>
-                    <form method="post" action="?p=fonds_demande" id="<?= e($formId) ?>" class="d-inline">
+                    <form method="post" action="?p=fonds_demande_enregistrer" id="<?= e($formId) ?>" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= $did ?>">
                     </form>

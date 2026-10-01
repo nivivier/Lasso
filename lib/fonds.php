@@ -157,3 +157,79 @@ function fonds_campagne_demandes(int $campagneId): array
     $stmt->execute([$campagneId]);
     return $stmt->fetchAll();
 }
+
+// --- Les pièces qu'un bailleur exige ----------------------------------------
+//
+// Elles appartiennent au BAILLEUR, pas à la campagne : la même fondation
+// demande les mêmes documents d'une année sur l'autre, et les redemander à
+// chaque campagne serait de la ressaisie. On les règle donc depuis n'importe
+// lequel de ses dossiers, et elles valent pour tous.
+//
+// Deux moments, parce que ce n'est pas la même liste à préparer : ce qu'il faut
+// pour DÉPOSER, et ce qu'il faut pour rendre le BILAN. « Comptes vérifiés » se
+// demande souvent aux deux.
+const FONDS_MOMENTS = [
+    'demande' => 'Pour déposer',
+    'bilan'   => 'Pour le bilan',
+];
+
+// Le catalogue, dans son ordre d'affichage. Semé par la migration 92 avec les
+// trois pièces du quotidien ; une quatrième s'ajoute en base, sans migration.
+function fonds_pieces_catalogue(): array
+{
+    return db()->query('SELECT * FROM fonds_pieces ORDER BY ordre, id')->fetchAll();
+}
+
+// Ce que CE bailleur exige : [moment => [piece_id, …]].
+function fonds_bailleur_pieces(int $structureId): array
+{
+    $out = array_fill_keys(array_keys(FONDS_MOMENTS), []);
+    $stmt = db()->prepare('SELECT piece_id, moment FROM fonds_bailleur_pieces WHERE structure_id = ?');
+    $stmt->execute([$structureId]);
+    foreach ($stmt->fetchAll() as $l) {
+        $moment = (string) $l['moment'];
+        if (isset($out[$moment])) {
+            $out[$moment][] = (int) $l['piece_id'];
+        }
+    }
+    return $out;
+}
+
+// Enregistre ce qu'un bailleur exige. Table rasée puis réécrite : la ligne ne
+// porte rien d'autre que le fait d'être cochée — contrairement au lien
+// campagne↔bailleur, qui porte tout un dossier et se met donc à niveau.
+//
+// $coches : [moment => [piece_id, …]], filtré contre le catalogue réel — un
+// identifiant forgé violerait la clé étrangère au lieu d'être ignoré.
+function fonds_bailleur_pieces_enregistrer(int $structureId, array $coches): void
+{
+    $connues = array_map(fn ($p) => (int) $p['id'], fonds_pieces_catalogue());
+    db()->beginTransaction();
+    db()->prepare('DELETE FROM fonds_bailleur_pieces WHERE structure_id = ?')->execute([$structureId]);
+    $ins = db()->prepare('INSERT OR IGNORE INTO fonds_bailleur_pieces (structure_id, piece_id, moment) VALUES (?, ?, ?)');
+    foreach (FONDS_MOMENTS as $moment => $_) {
+        foreach (array_map('intval', (array) ($coches[$moment] ?? [])) as $pieceId) {
+            if (in_array($pieceId, $connues, true)) {
+                $ins->execute([$structureId, $pieceId, $moment]);
+            }
+        }
+    }
+    db()->commit();
+}
+
+// Un dossier avec tout ce qu'il faut pour l'afficher : le bailleur, la campagne
+// à laquelle il appartient, et de quoi joindre l'un comme l'autre.
+function fonds_demande_charger(int $id): ?array
+{
+    $stmt = db()->prepare(
+        'SELECT d.*, s.nom AS structure_nom, s.fonds_pieces_autres,
+                c.nom AS campagne_nom, c.drive_url, c.montant_cible,
+                ' . structure_formulaire_sql('s.id') . ' AS formulaire_affiche
+           FROM fonds_demandes d
+           JOIN structures s ON s.id = d.structure_id
+           JOIN fonds_campagnes c ON c.id = d.campagne_id
+          WHERE d.id = ?'
+    );
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}

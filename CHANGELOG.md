@@ -21,7 +21,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   puis un dossier par bailleur, du délai le plus proche au plus lointain. Chaque
   ligne s'ouvre au crayon pour y noter le délai imposé, le montant demandé, la
   réponse reçue et la date du bilan à rendre ; l'état du dossier se déduit de
-  ces dates plutôt que de se choisir. Un bailleur y est une **structure**,
+  ces dates plutôt que de se choisir. **Chaque dossier a enfin sa fiche** : tout
+  ce qu'on sait de cette demande-là, ce que le bailleur exige pour déposer et
+  pour le bilan — réglé une fois, valable pour tous ses dossiers — et
+  l'historique des échanges avec lui, le même que sur sa fiche de structure. Un bailleur y est une **structure**,
   la même fiche que pour le booking et la facturation, et le projet financé un
   spectacle, dont l'axe analytique porte la ventilation.
 
