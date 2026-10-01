@@ -1,4 +1,4 @@
-<?php /** @var ?array $spectacle */ /** @var ?string $err */ /** @var array $map */
+<?php /** @var ?array $spectacle */ /** @var array $axes */ /** @var ?string $err */ /** @var array $map */
 $v = fn (string $k, $d = '') => e((string) ($spectacle[$k] ?? $d));
 $isEdit = !empty($spectacle['id']);
 $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
@@ -46,6 +46,28 @@ foreach (plan_liste_ordonnee($map) as $r) {
     ) ?></span>
         <select name="parent_id"><?= $parentOptions ?></select>
     </label>
+    <?php // L'axe analytique du PROJET : il descend sur toutes ses dates — les
+          // prestations qu'on y ajoute, les lignes d'une facture créée depuis
+          // l'une d'elles — et sur la recherche de fonds qui le finance. Il se
+          // réglait date par date jusqu'à la migration 91, alors que c'est le
+          // projet qui le sait. ?>
+    <?php if ($axes): ?>
+    <label><span>Axe analytique <?= info_tip(
+        "Présélectionné pour les prestations ajoutées à une date de ce " . mb_strtolower(evenements_terme_spectacle(false))
+        . ", et pour les lignes d'une facture créée depuis l'une d'elles. Modifiable au cas par cas ensuite, "
+        . "sans effet rétroactif sur ce qui est déjà enregistré."
+    ) ?></span>
+        <select name="axe_analytique_id">
+            <option value="">— Aucun —</option>
+            <?php $axeChoisi = (int) ($spectacle['axe_analytique_id'] ?? 0); ?>
+            <?php foreach ($axes as $ax): ?>
+            <option value="<?= (int) $ax['id'] ?>"<?= (int) $ax['id'] === $axeChoisi ? ' selected' : '' ?>>
+                <?= e(trim((string) ($ax['code'] ?? '')) !== '' ? $ax['code'] . ' — ' . $ax['libelle'] : (string) $ax['libelle']) ?>
+            </option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <?php endif; ?>
     <label>Notes (optionnel)
         <textarea name="notes" rows="2"><?= $v('notes') ?></textarea>
     </label>

@@ -223,10 +223,14 @@ function route_facturation_form(): void
     // effet sur une facture déjà enregistrée.
     $structureDefautEvenement = null;
     if ($evenementId && !$facture) {
-        $stmt = db()->prepare('SELECT axe_analytique_id_defaut, organisateur_structure_id FROM evenements WHERE id = ?');
+        // L'axe vient du PROJET de la date, plus de la date elle-même
+        // (migration_91) : toutes les dates d'une création se ventilent au même
+        // endroit, et c'est le projet qui le sait.
+        $stmt = db()->prepare('SELECT s.axe_analytique_id, e.organisateur_structure_id FROM evenements e
+                                LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
         $stmt->execute([$evenementId]);
         $evRow = $stmt->fetch();
-        $axeDefautEvenement = $axes ? ((int) ($evRow['axe_analytique_id_defaut'] ?? 0) ?: null) : null;
+        $axeDefautEvenement = $axes ? ((int) ($evRow['axe_analytique_id'] ?? 0) ?: null) : null;
         $structureDefautEvenement = (int) ($evRow['organisateur_structure_id'] ?? 0) ?: null;
     }
 

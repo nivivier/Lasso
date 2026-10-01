@@ -68,7 +68,7 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                             <?php if ($ligne): ?>
                                 <span class="epf-disp"><?= e($axeLabel !== '' ? $axeLabel : '—') ?></span>
                             <?php endif; ?>
-                            <?= str_replace('name="l_axe"', 'form="' . e($formId) . '" name="l_axe"', $axeSelect('l_axe', 'l-axe epf-editable', (int) ($ligne['axe_analytique_id'] ?? ($evenement['axe_analytique_id_defaut'] ?? 0)), (bool) $ligne)) ?>
+                            <?= str_replace('name="l_axe"', 'form="' . e($formId) . '" name="l_axe"', $axeSelect('l_axe', 'l-axe epf-editable', (int) ($ligne['axe_analytique_id'] ?? ($evenement['axe_projet'] ?? 0)), (bool) $ligne)) ?>
                         </td>
                         <?php endif; ?>
                         <td class="epf-col-sm">

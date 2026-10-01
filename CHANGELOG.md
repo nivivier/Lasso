@@ -22,6 +22,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **L'axe analytique appartient au projet, plus à chaque date.** Il se réglait
+  date par date, alors que toutes les dates d'une même création se ventilent au
+  même endroit : il se choisit maintenant sur la fiche du spectacle, une fois,
+  et les prestations comme les factures créées depuis l'une de ses dates en
+  héritent. La carte « Comptabilité analytique » disparaît de la fiche d'une
+  date. À la mise à jour, un projet dont les dates portaient toutes le même axe
+  le reçoit ; là où elles divergeaient, rien n'est inventé — le projet reste
+  sans axe et se règle à la main, une fois pour toutes ses dates.
+
 ### Corrigé
 - **Les suggestions du champ « Ajouter une structure » passaient sous l'en-tête
   du tableau** (`?p=campagne_form`) : la liste était coupée en son milieu, on

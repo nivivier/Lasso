@@ -249,7 +249,6 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenement_organisation' => 'route_evenement_organisation',
     'evenement_delete'   => 'route_evenement_delete',
     'evenement_suisa'    => 'route_evenement_suisa',
-    'evenement_axe_defaut' => 'route_evenement_axe_defaut',
     'evenement_production_externe' => 'route_evenement_production_externe',
     'evenement_employe_lier'   => 'route_evenement_employe_lier',
     'evenement_employe_delier' => 'route_evenement_employe_delier',

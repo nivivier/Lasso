@@ -9,7 +9,10 @@ require_once __DIR__ . '/evenements.php';
 // ----------------------------------------------------------- Helpers internes
 function evenement_charger(int $id): ?array
 {
-    $stmt = db()->prepare('SELECT e.*, s.nom AS spectacle_nom FROM evenements e
+    // axe_projet : l'axe analytique vient du PROJET depuis la migration 91 — une
+    // date n'en porte plus. Ramené ici parce que tout ce qui se crée DEPUIS une
+    // date s'en sert comme valeur de départ : une prestation, une facture.
+    $stmt = db()->prepare('SELECT e.*, s.nom AS spectacle_nom, s.axe_analytique_id AS axe_projet FROM evenements e
                             LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
     $stmt->execute([$id]);
     return $stmt->fetch() ?: null;
@@ -894,32 +897,6 @@ function route_evenement_suisa(): void
     redirect('evenement', ['id' => $id, 'ok' => 'suisa']);
 }
 
-// Carte « Comptabilité analytique » — axe par défaut de l'événement, présélectionné
-// pour les nouvelles prestations (route_evenement_ligne_ajouter) et pour les lignes
-// d'une facture créée depuis cet événement (route_facturation_form), modifiable
-// au cas par cas ensuite sans jamais toucher les lignes déjà enregistrées.
-function route_evenement_axe_defaut(): void
-{
-    require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('analytique')) {
-        redirect('evenements_liste');
-    }
-    check_csrf();
-    $id = (int) ($_POST['id'] ?? 0);
-    if (!evenement_charger($id)) {
-        redirect('evenements_liste');
-    }
-    $axeId = (int) ($_POST['axe_analytique_id_defaut'] ?? 0) ?: null;
-    if ($axeId !== null) {
-        $stmt = db()->prepare('SELECT 1 FROM axes_analytiques WHERE id = ? AND actif = 1');
-        $stmt->execute([$axeId]);
-        if (!$stmt->fetchColumn()) {
-            $axeId = null;
-        }
-    }
-    db()->prepare('UPDATE evenements SET axe_analytique_id_defaut = ? WHERE id = ?')->execute([$axeId, $id]);
-    redirect('evenement', ['id' => $id, 'ok' => 'axe']);
-}
 
 // Carte « Employés » — bascule « production externe » (cachet géré par un tiers,
 // pas de prestation/fiche de salaire liée). Cocher détache toutes les
@@ -1375,12 +1352,24 @@ function route_spectacle(): void
         }
     }
     $map = spectacle_map();
+    // Même expression que partout ailleurs (route_evenement, route_fiche_new…) :
+    // aucun axe à proposer quand le module analytique est éteint.
+    $axes = module_actif('analytique')
+        ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
+        : [];
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $nom = trim($_POST['nom'] ?? '');
         $notes = trim($_POST['notes'] ?? '');
         $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
+        // L'axe du PROJET : toutes ses dates et toute la recherche de fonds qui
+        // le finance s'y ventilent (migration_91). Nul s'il n'y en a pas, ou si
+        // le module analytique est éteint — ne jamais écraser un axe réglé
+        // avant son extinction, l'écran ne l'a alors pas montré.
+        $axeProjet = module_actif('analytique')
+            ? (((int) ($_POST['axe_analytique_id'] ?? 0)) ?: null)
+            : (($spectacle['axe_analytique_id'] ?? null) !== null ? (int) $spectacle['axe_analytique_id'] : null);
         $err = null;
         if ($nom === '') {
             $err = 'Le nom est obligatoire.';
@@ -1404,21 +1393,21 @@ function route_spectacle(): void
             }
         }
         if ($err) {
-            $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent]);
-            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err, 'map' => $map], evenements_terme_spectacle(false));
+            $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent, 'axe_analytique_id' => $axeProjet]);
+            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_spectacle(false));
             return;
         }
         if ($id) {
-            db()->prepare('UPDATE spectacles SET nom=?, notes=?, suisa_feuille_fichier=?, parent_id=? WHERE id=?')
-                ->execute([$nom, $notes, $fichier, $parent, $id]);
+            db()->prepare('UPDATE spectacles SET nom=?, notes=?, suisa_feuille_fichier=?, parent_id=?, axe_analytique_id=? WHERE id=?')
+                ->execute([$nom, $notes, $fichier, $parent, $axeProjet, $id]);
         } else {
             $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM spectacles')->fetchColumn();
-            db()->prepare('INSERT INTO spectacles (nom, notes, suisa_feuille_fichier, parent_id, ordre) VALUES (?, ?, ?, ?, ?)')
-                ->execute([$nom, $notes, $fichier, $parent, $ordre]);
+            db()->prepare('INSERT INTO spectacles (nom, notes, suisa_feuille_fichier, parent_id, ordre, axe_analytique_id) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$nom, $notes, $fichier, $parent, $ordre, $axeProjet]);
         }
         redirect('spectacles');
     }
-    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null, 'map' => $map], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
+    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
 }
 
 function route_spectacle_delete(): void

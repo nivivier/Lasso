@@ -116,6 +116,7 @@ function run_migrations(PDO $pdo): void
         88 => 'migration_88', // adresse (rue, NPA) et heures de début/fin d'un événement — champs publics, exportés
         89 => 'migration_89', // feuille de route d'un événement : une liste ordonnée d'éléments de types différents
         90 => 'migration_90', // choix du fond (employeur_fond_decor) : quatre décors calculés ou l'image personnalisée
+        91 => 'migration_91', // l'axe analytique appartient au PROJET (spectacles), plus à chaque date
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2785,4 +2786,42 @@ function migration_90(PDO $pdo): void
     $decor = ($fond !== false && (string) $fond !== '') ? 'image' : 'maillage';
     $pdo->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
         ->execute(['employeur_fond_decor', $decor]);
+}
+
+// L'axe analytique remonte de la DATE au PROJET. Il se choisissait date par
+// date (evenements.axe_analytique_id_defaut) alors que c'est le projet qui le
+// sait : toutes les dates d'une même création se ventilent au même endroit, et
+// le régler à chaque fois était autant d'occasions de se tromper. Le module de
+// recherche de fonds s'appuiera sur le même axe (SPEC_SUBVENTIONS.md § 3 ter) —
+// raison de plus pour qu'il n'ait qu'un seul domicile.
+//
+// Report : un projet dont les dates portaient TOUTES le même axe le reçoit. Là
+// où elles divergeaient, rien n'est inventé — le projet reste sans axe et se
+// règle à la main, une fois pour toutes ses dates.
+//
+// L'ancienne colonne part en best-effort : DROP COLUMN exige SQLite >= 3.35,
+// pas garanti en mutualisé (voir migration_63 et docs/DECISIONS.md § Le SQLite
+// d'un hébergement mutualisé). Si le retrait échoue, elle reste en base,
+// inerte : plus aucun code ne la lit.
+function migration_91(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(spectacles)')->fetchAll(), 'name');
+    if (!in_array('axe_analytique_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE spectacles ADD COLUMN axe_analytique_id INTEGER REFERENCES axes_analytiques(id)');
+    }
+    $evCols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
+    if (!in_array('axe_analytique_id_defaut', $evCols, true)) {
+        return; // déjà migrée
+    }
+    // MIN() ne choisit rien : la clause ne garde que les projets où il n'y a
+    // qu'une seule valeur distincte, donc MIN est cette valeur-là.
+    $pdo->exec(
+        "UPDATE spectacles SET axe_analytique_id = (
+             SELECT MIN(e.axe_analytique_id_defaut) FROM evenements e
+              WHERE e.spectacle_id = spectacles.id AND e.axe_analytique_id_defaut IS NOT NULL
+         )
+         WHERE (SELECT COUNT(DISTINCT e.axe_analytique_id_defaut) FROM evenements e
+                 WHERE e.spectacle_id = spectacles.id AND e.axe_analytique_id_defaut IS NOT NULL) = 1"
+    );
+    try { $pdo->exec('ALTER TABLE evenements DROP COLUMN axe_analytique_id_defaut'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
 }

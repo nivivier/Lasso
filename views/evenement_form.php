@@ -635,55 +635,10 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <?php endif; ?>
 </div>
 
-<?php if ($axes): ?>
-<div class="card card-editable">
-    <div class="page-head">
-        <h2 class="mt-0">Comptabilité analytique</h2>
-        <?php if ($peutEcrireEv): ?>
-        <?= carte_actions_html(['form' => 'axe-defaut-form', 'quoi' => "l'axe par défaut"]) ?>
-        <?php endif; ?>
-    </div>
-    <?php if ($ok === 'axe'): ?><p class="ok flash">Axe par défaut enregistré.</p><?php endif; ?>
-
-    <?php // Lecture par défaut, comme les autres cartes de la fiche : l'axe
-          // retenu, et à quoi il sert. La bulle d'explication reste ici plutôt
-          // que dans le formulaire — c'est en lisant qu'on se demande ce que ce
-          // réglage entraîne, pas en le changeant. ?>
-    <?php
-    $axeDefautId = (int) ($evenement['axe_analytique_id_defaut'] ?? 0);
-    $axeDefaut = null;
-    foreach ($axes as $ax) {
-        if ((int) $ax['id'] === $axeDefautId) { $axeDefaut = $ax; break; }
-    }
-    $axeAide = "Présélectionné pour les nouvelles prestations ajoutées ci-dessous et pour les lignes "
-        . "d'une facture créée depuis cet événement. Modifiable au cas par cas ensuite, sans "
-        . "effet rétroactif sur les prestations ou factures déjà enregistrées.";
-    ?>
-    <div class="card-disp">
-        <table class="kv-table">
-            <tr>
-                <th>Axe par défaut <?= info_tip($axeAide) ?></th>
-                <td><?= $axeDefaut
-                    ? e(trim((string) ($axeDefaut['code'] ?? '')) !== ''
-                        ? $axeDefaut['code'] . ' — ' . $axeDefaut['libelle']
-                        : (string) $axeDefaut['libelle'])
-                    : '<span class="muted">Aucun</span>' ?></td>
-            </tr>
-        </table>
-    </div>
-
-    <?php if ($peutEcrireEv): ?>
-    <form method="post" action="?p=evenement_axe_defaut<?= $depuisQs ?>" id="axe-defaut-form" class="card-edit form" hidden>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <label><span>Axe par défaut</span>
-            <?= $axeSelect('axe_analytique_id_defaut', '', $axeDefautId) ?>
-        </label>
-    </form>
-    <?php endif; ?>
-</div>
-<?php endif; ?>
-
+<?php // Pas de carte « Comptabilité analytique » ici : l'axe appartient au
+      // PROJET de la date (migration_91), il se règle sur sa fiche. Une date ne
+      // choisit plus le sien — elle en hérite, et toutes les dates d'une même
+      // création se ventilent donc au même endroit. ?>
 <div class="card">
     <div class="page-head">
         <h2 class="mt-0">Factures liées</h2>
