@@ -1,8 +1,9 @@
 # Spécification — Module Recherche de fonds (subventions)
 
-Statut : **à valider avant implémentation**. Ce document cadre le besoin et pose
-les questions à trancher ; il n'est pas un plan de code figé. Rien n'est écrit
-tant que les réponses du § 9 ne sont pas arrêtées.
+Statut : **cadrage complet, prêt pour l'implémentation** (01.10.2026). Toutes
+les questions ouvertes ont reçu une réponse (§ 9) ; le plan du § 8 devient la
+suite des commits. Ce document reste le « pourquoi » — en cas de désaccord avec
+le code livré, c'est le code qui fait foi.
 
 ## 1. Objectif
 
@@ -83,7 +84,10 @@ ce que l'association appelle un projet.
 | `reference` | numéro de dossier chez le bailleur |
 | `notes`, `cree_le` | |
 
-Une demande par (campagne, bailleur) — sauf si § 9.4 en décide autrement.
+**Une demande par (campagne, bailleur)**, garanti par un index unique : deux
+guichets chez le même bailleur dans la même recherche, ce n'est pas le besoin.
+Et `campagne_id` est **obligatoire** — une sollicitation ponctuelle hors
+campagne n'existe pas non plus ; au pire, on ouvre une recherche d'une ligne.
 
 ### `fonds_pieces` et `fonds_bailleur_pieces` — ce que le bailleur exige
 
@@ -209,15 +213,16 @@ le « 3 / 6 » d'une campagne.
 | `?p=fonds_campagne&id=` | le suivi : jauge en francs, tableau des bailleurs, montants, dates limites, statut par ligne, modification sur place | `?p=campagne` |
 | `?p=fonds_campagne_form` | créer/modifier : nom, période, cible, projets, sélection des bailleurs par filtres | `?p=campagne_form` |
 | `?p=fonds_demande&id=` | le dossier : montants, dates, référence, pièces jointes, historique | `?p=facture` |
-| Carte tableau de bord | ce qui attend un geste : dépôts dont la date limite approche, réponses qui tardent | carte « Campagnes » |
+| Carte tableau de bord | **deux choses** : l'avancement de la recherche, comme une campagne de booking — ce qu'il reste à envoyer se voit d'un coup d'œil — et **les bilans dus** | carte « Campagnes » |
 
 La fiche d'une structure gagne une carte **« Subventions »** listant ses
 demandes, comme elle liste déjà ses factures et ses événements.
 
 ## 7. Droits et activation
 
-- Nouveau module `fonds` dans `MODULES`, **`requires: []`** : il réutilise les
-  structures comme la Facturation, sans dépendre du Booking.
+- Nouveau module `fonds` dans `MODULES`, libellé **« Recherche de fonds »**,
+  **`requires: []`** : il réutilise les structures comme la Facturation, sans
+  dépendre du Booking.
 - Une couleur dans `MODULE_COULEURS` (les cinq prises : teal, ambre, indigo,
   rose, violet — contraste AA obligatoire sous texte blanc).
 - Une entrée dans `PERMISSION_MODULES`, et les routes rattachées par
@@ -248,79 +253,73 @@ Chaque étape est livrable seule et laisse l'application utilisable.
    du tableau de bord, mise en valeur ambre de ce qui attend un geste.
 6. **Le versement** — une ligne, sa date, son rapprochement à une écriture.
    L'échéancier à plusieurs lignes attendra d'être demandé (§ 9.7).
-7. **Les liens** — facture au bailleur, axe analytique, carte « Subventions »
-   sur la fiche d'une structure, recherche unifiée, export.
+7. **Les liens** — facture au bailleur, axe analytique (déjà posé sur le
+   projet, migration 91), carte « Recherche de fonds » sur la fiche d'une
+   structure, recherche unifiée.
 
 Tests attendus à chaque étape, dans `tests/fonds_test.php` : statut dérivé,
 répartition de la jauge, détection des échéances. Fonctions pures paramétrées
 par la date du jour, comme `campagne_statut()`.
 
-## 9. Questions
+## 9. Ce qui a été tranché
 
-### Ce qui est tranché (01.10.2026)
+Toutes les questions du cadrage ont reçu une réponse les 01.10.2026.
+
+### Le modèle
 
 | | décision |
 |---|---|
-| 1 | **Un bailleur est une `structure`**, et rien ne l'en distingue dans la liste pour l'instant — pas de catégorie ni de drapeau tant que le besoin d'un filtre ne s'est pas fait sentir. |
-| 3 | **Le projet visé est un `spectacle`.** Le terme « Spectacles » devient « Projets » **par défaut à l'installation** — une valeur semée, pas un changement de code : le paramètre existe déjà (« Terme pour une série d'événements »). ⚠️ Semé, il ne touche QUE les nouvelles installations ; celle de l'association garde « Spectacles » jusqu'à ce qu'on règle le paramètre à la main. C'est voulu : changer le repli en dur renommerait le vocabulaire de toutes les installations existantes sans prévenir. |
-| 7 | **Pas de versement échelonné en v1** — cas rare. Mais la table `fonds_versements` existe dès le départ, utilisée avec une seule ligne : c'est elle qui serait coûteuse à ajouter après coup, pas l'écran. |
-| 8 | **Les pièces exigées appartiennent au bailleur**, pas à la campagne. Trois cases semées — Rapport d'activité, Bilan financier du projet, Comptes vérifiés — plus un champ libre « Autres ». Catalogue + liaison, comme les étiquettes. |
-| 10 | Le **délai de dépôt est propre à la campagne** : le même bailleur n'a pas la même date d'une année sur l'autre. On suit aussi **le délai du bilan**. |
-| 11 | **Les trois liens comptables existent** : facture au bailleur, écriture par versement, axe analytique (§ 3 ter). Aucun n'est obligatoire. L'axe est **celui du projet**. |
-| 20 | **Aucune donnée à reprendre** : pas de tableur existant, donc pas d'import au périmètre. |
+| 1 | **Un bailleur est une `structure`**, et rien ne l'en distingue dans la liste — pas de catégorie ni de drapeau tant que le besoin d'un filtre ne s'est pas fait sentir. |
+| 2 | *(sans objet : pas de marque distinctive)* |
+| 3 | **Le projet visé est un `spectacle`.** Le terme « Spectacles » devient « Projets » **par défaut à l'installation** — une valeur semée, pas un changement de code. ⚠️ Elle ne touche QUE les nouvelles installations ; celle de l'association garde « Spectacles » jusqu'à ce qu'on règle le paramètre à la main. Changer le repli en dur renommerait le vocabulaire de toutes les installations existantes sans prévenir. |
+| 4 | **Une seule demande par (campagne, bailleur)** — index unique. |
+| 5 | **Pas de demande hors campagne.** Au pire, une recherche d'une ligne. |
 
-### Ce que ces réponses ouvrent
+### Le cycle de vie
 
-8 quater. **Une pièce exigée se coche-t-elle comme « fournie » ?** La liste du
-   bailleur dit ce qu'il faut ; sur une demande, savoir ce qui est déjà prêt est
-   une autre information — et c'est elle qui dirait « il manque les comptes
-   vérifiés » avant la date limite. Si oui, une table de plus
-   (`fonds_demande_pieces`), ou un simple compteur ?
+| | décision |
+|---|---|
+| 6 | **Les statuts du § 4 sont les bons**, bilan compris. |
+| 7 | **Pas de versement échelonné en v1.** Mais la table `fonds_versements` existe dès le départ, utilisée avec une seule ligne : c'est elle qui serait coûteuse à ajouter après coup, pas l'écran. |
+| 8 | **Les pièces exigées appartiennent au bailleur.** Trois cases semées — Rapport d'activité, Bilan financier du projet, Comptes vérifiés — plus un champ libre « Autres ». Catalogue + liaison, comme les étiquettes. **Aucune case « fournie »** : on note seulement si le bilan a été envoyé (`date_bilan`), pas pièce par pièce. |
+| 9 | **Pas de lien vers la demande précédente.** La campagne suivante et l'historique de la structure suffisent. |
+| 10 | Le **délai de dépôt est propre à la campagne** ; on suit aussi **le délai du bilan**. |
 
-11 quater. **Quel axe est « celui du projet » ?** Un `spectacle` n'en porte
-   aucun aujourd'hui — l'axe vit sur les événements, les lignes de fiche, de
-   facture et les écritures. Trois voies : (a) ajouter `axe_analytique_id` à
-   `spectacles`, ce qui servirait aussi aux événements, qui le choisissent un à
-   un alors que leur projet le sait ; (b) le choisir à la main sur la recherche
-   de fonds ; (c) le déduire des événements du projet, ce qui est fragile s'ils
-   divergent. Mon avis : (a), parce que la notion manque là où elle devrait
-   être — mais elle touche le module Événements, donc c'est à toi.
+### L'argent
 
-11 bis. **La facture au bailleur porte quel montant** : le total accordé, ou un
-   montant par versement ? (sans échelonnement en v1, c'est le total — la
-   question se repose le jour où l'échelonnement arrive)
+| | décision |
+|---|---|
+| 11 | **Les trois liens comptables existent** : facture au bailleur, écriture par versement, axe analytique (§ 3 ter). Aucun n'est obligatoire. |
+| 11 quater | **L'axe est celui du projet — fait.** `spectacles.axe_analytique_id` existe depuis la migration 91 : l'axe se réglait date par date, il appartient maintenant au projet, et les dates en héritent. Le module s'y branche, il n'a rien à inventer. |
+| 12 | **Pas de pluriannuel** en v1. |
 
-### Restées ouvertes
+### Les échanges et les écrans
 
-4. **Deux dossiers chez le même bailleur dans une même campagne** (deux guichets,
-   deux projets) : possible ou non ?
-5. **Une demande hors campagne** — une sollicitation ponctuelle en cours d'année ?
-6. **La liste de statuts du § 4 est-elle la bonne ?** Faut-il « en instruction » ?
-   « Partielle » mérite-t-elle un statut, ou suffit-il de comparer les montants ?
-9. **Un refus se retente l'année suivante** : faut-il relier une demande à la
-   précédente, ou la campagne suivante et l'historique de la structure
-   suffisent-ils ?
-12. **Pluriannuel** : une subvention de fonctionnement sur trois ans se saisit-elle
-    une fois avec trois versements, ou une fois par année ? (lié au § 7 : écarté
-    de la v1 avec l'échelonnement)
-13. **Réutilise-t-on « Contacter » et les modèles de message ?** Un envoi groupé
-    a-t-il un sens ici ? (ma lecture : non, chaque dossier est trop spécifique —
-    mais le bouton « Formulaire de contact », lui, sert déjà)
+| | décision |
+|---|---|
+| 13 | **Pas d'envoi groupé** : chaque dossier est trop spécifique. Le bouton « Formulaire de contact » et « Contacter », eux, servent déjà. |
+| 15 | **Un seul fil d'historique** par structure, booking et recherche de fonds mêlés — c'est déjà le comportement du fil unifié. |
+| 16 | **La carte du tableau de bord montre deux choses** : l'avancement de la recherche, comme une campagne de booking — ce qu'il reste à envoyer se voit d'un coup d'œil — et **les bilans dus**. |
+| 17 | **Pas d'export pour le comité.** |
+| 18 | **Le module s'appelle « Recherche de fonds ».** |
+| 20 | **Aucune donnée à reprendre** : pas de tableur existant, donc pas d'import. |
+
+### Hors périmètre v1, explicitement
+
+Rappel automatique par e-mail (aucune tâche planifiée), subvention
+pluriannuelle, versement échelonné. Les trois peuvent arriver plus tard sans
+rien défaire : le rappel est un écran de plus, le pluriannuel une demande par
+année, et l'échelonnement une table déjà là.
+
+### Reste à décider en chemin
+
 14. **Pièces jointes réelles** (budget, lettre, décision, bilan) : les range-t-on
     hors webroot comme celles d'une feuille de route (`data/fichiers/`, route
-    authentifiée, 8 Mo) ? C'est la suite logique du point 8.
-15. **L'historique d'une structure** mélange-t-il booking et subventions dans le
-    même fil ? (c'est le comportement par défaut, le fil est déjà unifié)
-16. **Que montre la carte du tableau de bord** : les dépôts qui approchent, les
-    bilans dus, les réponses qui tardent, le total obtenu sur l'année ?
-17. **Un rapport pour le comité** : export CSV ou PDF de l'état d'une recherche ?
-18. **Le nom du module à l'écran** : « Subventions », « Recherche de fonds »,
-    « Financement » ?
-19. **Le périmètre v1** : qu'écarte-t-on explicitement ? Proposition — pas de
-    rappel automatique par e-mail (aucune tâche planifiée), pas de pluriannuel.
+    authentifiée, 8 Mo) ? Rien ne bloque le démarrage sans elles.
+11 bis. **La facture au bailleur porte quel montant** : sans échelonnement en
+    v1, c'est le total accordé. La question se reposera le jour où
+    l'échelonnement arrivera.
 
 ---
 
-Une fois ces réponses arrêtées, ce document est repris avec elles, son bandeau
-passe à « module en service » le jour de la livraison, et le plan du § 8 devient
-la suite des commits.
+Le bandeau passera à « module en service » le jour de la livraison.
