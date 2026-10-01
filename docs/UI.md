@@ -722,6 +722,23 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 
 ## 9. Listes
 
+- ⚠️ **Un tableau posé dans une carte la REMPLIT, bord à bord.** Pas de marge
+  latérale : un tableau arrêté à quelques pixels des bords laisse ses
+  séparateurs de lignes flotter dans le vide, et la carte semble contenir deux
+  cadres emboîtés. Le tableau annule le retrait de la carte d'une marge
+  négative, et repose ce même retrait (`--card-pad`) sur sa première et sa
+  dernière cellule : le contenu reste ainsi aligné sur le titre du cadre —
+  exactement le procédé d'une liste pleine largeur, à l'échelle d'une carte.
+  Quand il **ferme** la carte, il la ferme vraiment : pas de bande vide sous sa
+  dernière ligne, et les coins du bas prennent l'arrondi de la carte.
+  **Rien à déclarer** : c'est le comportement de tout `.list` dans un `.card`,
+  avec ou sans conteneur `.table-scroll`. Les deux pièges qui y faisaient
+  échapper un écran : porter `.card` et `.table-scroll` sur le **même** élément
+  (le tableau prend alors le retrait de la PAGE et déborde du cadre — mettre le
+  conteneur de défilement DANS la carte), et calculer un retrait sur
+  `--content-pad` (celui de la page, qui change en mobile) au lieu de
+  `--card-pad`. Un tableau de clé-valeur (`.kv-table`) n'est pas concerné : ce
+  n'est pas une liste, il se lit comme du texte et garde le retrait de la carte.
 - **Tri** : `tri_entete_html()`, trois états au clic — croissant, décroissant,
   retour à l'ordre par défaut. Le tri se fait en SQL (les listes sont paginées)
   et se mémorise en session. Le sens s'applique à **chaque terme** de l'`ORDER

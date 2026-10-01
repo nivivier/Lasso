@@ -47,6 +47,14 @@ puis sont promues sur le canal **stable** en figeant une version.
   celle des campagnes de démarchage.
 
 ### Modifié
+- **Un tableau posé dans une carte la remplit, bord à bord.** C'était déjà le
+  cas du tableau de bord et des campagnes d'une structure ; ce l'est désormais
+  de tous — la recherche, le suivi d'une campagne de recherche de fonds, les
+  lignes du décompte, les comptes, une facture. Un tableau arrêté à quelques
+  pixels des bords laissait ses séparateurs de lignes flotter dans le vide, et
+  la carte paraissait contenir deux cadres emboîtés. La règle est dans
+  `docs/UI.md § 9` et n'a plus à se déclarer page par page : c'est ainsi que des
+  écrans y échappaient.
 - **Les commandes de « Mises à jour » montent en haut de la carte**, comme sur
   tous les autres écrans : « Vérifier maintenant » — qui ne change rien, il
   relit — puis la mise à jour, qui est l'action. Celle-ci n'est **mise en

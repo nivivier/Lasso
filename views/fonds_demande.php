@@ -222,7 +222,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
     <?php if (!$facture): ?>
         <p class="muted mb-0">Aucune facture pour ce dossier.</p>
     <?php else: ?>
-    <table class="list mb-0">
+    <table class="list">
         <thead><tr><th>Numéro</th><th class="num">Montant</th><th>Statut</th></tr></thead>
         <tbody>
             <tr>

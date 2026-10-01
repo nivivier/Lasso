@@ -833,9 +833,10 @@ $villeHtmlS = ville_departement_canton_html(
         <?php if (!$campagnesStructure && !$campagnesLiees): ?>
         <p class="muted mb-0 mt-16">Cette structure ne fait partie d'aucune campagne.</p>
         <?php else: ?>
-        <?php // Le tableau remplit la carte, bord à bord (.table-flush) : à cette
-              // largeur, deux retraits de 26px de plus coûtaient une ligne de
-              // repli sur presque chaque nom de projet. ?>
+        <?php // Le tableau remplit la carte, bord à bord — c'est la règle de
+              // tout tableau de carte (docs/UI.md § 9), plus rien à déclarer
+              // ici. À cette largeur, deux retraits de 26px de plus coûtaient
+              // une ligne de repli sur presque chaque nom de projet. ?>
         <?php
         // Période et réponse s'écrivent pareil pour les campagnes de la fiche et
         // pour celles des structures liées, plus bas : deux fermetures plutôt
@@ -874,7 +875,7 @@ $villeHtmlS = ville_departement_canton_html(
             return $h . '</span>';
         };
         ?>
-        <div class="table-scroll table-flush">
+        <div class="table-scroll">
         <table class="list mb-0 campagnes-fiche">
             <?php // Projet et campagne tiennent une seule colonne, l'un sous
                   // l'autre : à cinq colonnes, la carte débordait de l'écran
@@ -1006,7 +1007,7 @@ $villeHtmlS = ville_departement_canton_html(
             . "Ce qu'elle exige comme pièces se règle depuis l'un d'eux : c'est elle qui l'exige, pas la campagne."
         ) ?></h2>
         <?php $aujourdhuiFonds = date('Y-m-d'); ?>
-        <div class="table-scroll table-flush">
+        <div class="table-scroll">
         <table class="list mb-0">
             <thead><tr><th>Campagne</th><th class="num">Demandé</th><th class="num">Accordé</th><th>État</th></tr></thead>
             <tbody>

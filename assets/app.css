@@ -117,6 +117,12 @@
        .page-head-band/.module-content) suivent automatiquement, puisqu'ils
        référencent la variable. */
     --content-pad: clamp(20px, 3.2vw, 48px);
+    /* Le retrait intérieur d'une carte. Nommé parce qu'il ne sert pas qu'à
+       .card : un tableau qui remplit sa carte l'annule d'une marge négative et
+       le repose sur ses cellules de bord (docs/UI.md § 9). Les deux doivent
+       bouger ensemble, sans quoi le contenu du tableau cesse d'être aligné sur
+       le titre du cadre. */
+    --card-pad: 26px;
     /* Largeur du rail d'icônes (.sidebar) — voir aussi .carte-lieux-wrap et les
        débordements .page-head-band/.module-content. Fluide pour la même raison
        que --content-pad ci-dessus ; le plancher de 104px est dicté par les
@@ -1271,41 +1277,68 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
 .module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
 .module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
 .module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
-/* … sauf dans une CARTE. La marge négative ci-dessus vise les tableaux posés à
-   même la zone blanche (les listes) ; appliquée à un tableau de fiche
-   (?p=facture, lignes de la facture), elle le faisait dépasser du cadre de la
-   carte — d'un --content-pad de chaque côté — et alignait ses cellules sur le
-   retrait de la PAGE au lieu de celui de la carte. */
-.module-content-inner .card .table-scroll { margin: 0; border-radius: var(--radius); }
-.module-content-inner .card .table-scroll .list { border-left: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: var(--radius); }
+/* … et dans une CARTE, le même procédé à l'échelle de la carte : le tableau la
+   REMPLIT, bord à bord (docs/UI.md § 9). La marge négative annule le padding
+   de la carte, et ce même retrait est reposé sur la première et la dernière
+   cellule, pour que le contenu du tableau reste aligné sur le titre du cadre.
+   C'est --card-pad et non --content-pad : un tableau de carte se cale sur sa
+   carte, jamais sur le retrait de la PAGE, qui le ferait dépasser du cadre.
+
+   Pourquoi sans marge latérale : un tableau arrêté à 26px des bords laisse ses
+   séparateurs de lignes flotter dans le vide, et la carte semble alors contenir
+   deux cadres emboîtés. Règle sans exception — on ne la déclare pas page par
+   page, c'est ainsi que ?p=recherche et le suivi d'une campagne de recherche de
+   fonds avaient fini par y échapper. */
+.card .table-scroll { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); border-radius: 0; }
+.card table.list { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+/* Le tableau s'ouvre sur un filet de la MÊME épaisseur que ceux qui séparent
+   ses lignes : sans lui, sa bande d'en-tête commencerait dans le vide. Posé sur
+   la première rangée plutôt que sur thead — un tableau de carte n'a pas
+   toujours d'en-tête (?p=recherche). */
+.card table.list > :first-child > tr:first-child > * { border-top: 1px solid var(--line); }
+/* Hors d'un .table-scroll, c'est le tableau lui-même qui doit déborder : un
+   <table> ne s'élargit pas sous une marge négative, sa largeur est posée. */
+.card > table.list, .card-block > table.list, .card-disp > table.list {
+    width: calc(100% + 2 * var(--card-pad));
+    margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad));
+}
 /* --row-pad est un raccourci (« 10px 12px ») : on repose le padding complet
    plutôt qu'un padding-left/right, qui n'accepterait pas deux valeurs. */
-.module-content-inner .card .table-scroll .list tr > :first-child,
-.module-content-inner .card .table-scroll .list tr > :last-child { padding: var(--row-pad); }
-/* … sauf s'il est déclaré .table-flush : un tableau qui REMPLIT sa carte, bord
-   à bord (les campagnes d'une structure, ?p=structure). La marge négative
-   annule le padding de .card (26px), et ce même retrait est reposé sur la
-   première et la dernière cellule pour que le contenu reste aligné sur le titre
-   du cadre — exactement le procédé des listes pleine largeur plus haut, à
-   l'échelle d'une carte. Quatre classes pour passer devant la règle ci-dessus,
-   qui en compte trois. */
-/* … y compris en bas : le tableau finit AVEC la carte, sans bande vide sous sa
-   dernière ligne. Les coins du BAS gardent l'arrondi de la carte — c'est le
-   conteneur qui découpe (il défile déjà en overflow, lequel respecte le rayon),
-   pas les cellules : posé sur elles, l'arrondi laissait le fond du tableau
-   dépasser dans l'angle. En haut, rien à arrondir : le tableau y est coupé net
-   sous le titre du cadre. */
-.module-content-inner .card .table-scroll.table-flush { margin: 0 -26px -26px; border-radius: 0 0 var(--radius) var(--radius); }
+/* Le second sélecteur de chaque paire n'est pas un doublon : il égale la
+   spécificité de « .module-content-inner .table-scroll .list tr > :first-child »
+   ci-dessus (quatre classes), que le premier n'atteint pas — sans lui, un
+   tableau de carte reprenait le retrait de la PAGE. */
+.card .list tr > :first-child,
+.card .table-scroll .list tr > :first-child { padding: var(--row-pad); padding-left: var(--card-pad); }
+.card .list tr > :last-child,
+.card .table-scroll .list tr > :last-child { padding: var(--row-pad); padding-right: var(--card-pad); }
+/* Le tableau qui FERME la carte la ferme vraiment : pas de bande vide sous sa
+   dernière ligne. Les coins du BAS prennent l'arrondi de la carte — en haut,
+   rien à arrondir, le tableau y est coupé net sous le titre du cadre. Deux
+   niveaux, parce qu'un .card-block peut s'intercaler (?p=structure) ; au-delà
+   le tableau n'est plus ce qui ferme la carte. */
+/* « Ce qui ferme la carte », c'est le conteneur de défilement — ou le tableau
+   lui-même quand il n'y en a pas. La marge va sur CE bloc-là et sur lui seul :
+   posée en plus sur le tableau qu'il contient, elle le faisait sortir du cadre
+   par le bas. Un .card-block peut s'intercaler (?p=structure) ; au-delà, le
+   tableau n'est plus ce qui ferme la carte. */
+.card > :is(.table-scroll, table.list):last-child,
+.card > .card-block:last-child > :is(.table-scroll, table.list):last-child {
+    margin-bottom: calc(-1 * var(--card-pad));
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+/* Le tableau porte aussi l'arrondi du bas : à partir de 1280px le conteneur
+   repasse en overflow:visible (pour l'en-tête collant des listes) et ne découpe
+   plus rien — c'est alors le fond du <table>, carré, qui déborderait dans
+   l'angle de la carte. .list a son propre overflow:hidden. */
+.card > .table-scroll:last-child > table.list,
+.card > .card-block:last-child > .table-scroll:last-child > table.list {
+    border-radius: 0 0 var(--radius) var(--radius);
+}
 /* La dernière ligne ne porte plus sa propre bordure : celle de la carte est
    juste dessous, et les deux se doublaient sur un trait de 2px. */
-.module-content-inner .card .table-scroll.table-flush .list tr:last-child > * { border-bottom: 0; }
-/* Le tableau lui-même porte aussi l'arrondi du bas : à partir de 1280px le
-   conteneur repasse en overflow:visible (pour l'en-tête collant des listes) et
-   ne découpe donc plus rien — c'est alors le fond du <table>, carré, qui
-   déborderait dans l'angle de la carte. .list a son propre overflow:hidden. */
-.module-content-inner .card .table-scroll.table-flush .list { border-left: 0; border-right: 0; border-radius: 0 0 var(--radius) var(--radius); box-shadow: none; }
-.module-content-inner .card .table-scroll.table-flush .list tr > :first-child { padding: var(--row-pad); padding-left: 26px; }
-.module-content-inner .card .table-scroll.table-flush .list tr > :last-child { padding: var(--row-pad); padding-right: 26px; }
+.card > :is(.table-scroll, table.list):last-child tr:last-child > *,
+.card > .card-block:last-child > :is(.table-scroll, table.list):last-child tr:last-child > * { border-bottom: 0; }
 /* Bandeau d'onglets de module, niveau intermédiaire entre le rail (module)
    et la page (onglet) — voir
    views/_module_tabs.php. Réutilisé tel quel par les onglets principaux de
@@ -1858,21 +1891,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    principe que .module-content-inner .table-scroll (tableau plein cadre,
    contenu réinséré via le padding des premières/dernières cellules) mais
    sans le débordement horizontal plein écran de ce dernier, borné à cette
-   carte. Coins bas arrondis pour suivre ceux de .dash-card (le tableau
-   touche son bord bas) ; coins haut carrés (le tableau ne touche pas le
-   haut de la carte, pas besoin d'arrondi là). */
-.dash-card table.list {
-    width: calc(100% + 52px); margin: 0 -26px -26px;
-    border: none; border-radius: 0 0 var(--radius) var(--radius); box-shadow: none; background: transparent;
-}
-.dash-card table.list tr > :first-child { padding-left: 26px; }
-.dash-card table.list tr > :last-child { padding-right: 26px; }
-/* Le tableau d'une carte s'ouvre et se ferme sur un filet de la MÊME épaisseur
-   que ceux qui séparent ses lignes : un au-dessus de la rangée de titres, qui
-   n'en avait aucun et laissait sa bande commencer dans le vide, un au-dessus du
-   total — le 2px hérité de « .list tfoot td » y marquait une rupture que rien
-   ne justifie sur cinq lignes. */
-.dash-card table.list thead th { border-top: 1px solid var(--line); }
+   carte. Ce comportement est désormais celui de TOUT tableau de carte (voir
+   « le tableau REMPLIT la carte » plus haut) : il ne reste ici que ce qui
+   appartient en propre au tableau de bord. */
+/* Le filet au-dessus du total : le 2px hérité de « .list tfoot td » y marquait
+   une rupture que rien ne justifie sur cinq lignes. */
 .dash-card table.list tfoot td { border-top-width: 1px; }
 .dash-chart { width: 100%; height: auto; display: block; }
 /* Décor du graphique comptable : posé ici et non dans le SVG (views/resumes.php)
@@ -2968,11 +2991,6 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    .list porte de son côté overflow:hidden pour clipper ses coins arrondis :
    dans ce contexte il n'en a pas, et cet overflow clippait l'en-tête collant. */
 @media (min-width: 1280px) {
-    /* … sauf un tableau qui remplit sa carte : il doit DÉCOUPER, pour que ses
-       coins du bas suivent ceux de la carte. Il n'a pas d'en-tête collant à
-       laisser dépasser — c'est une carte, pas une liste qu'on fait défiler. */
-    .module-content-inner .card .table-scroll.table-flush .list { overflow: hidden; }
-    .module-content-inner .card .table-scroll.table-flush .list thead th { position: static; }
     .module-content-inner .table-scroll { overflow-x: visible; }
     .module-content-inner .table-scroll .list { overflow: visible; }
     .module-content-inner .table-scroll .list thead th {
@@ -2996,6 +3014,13 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
            plus fin ici, ou une ombre portée, ont été essayés puis retirés : le
            premier détonnait, la seconde ne se voyait pas. */
     }
+    /* … sauf un tableau de CARTE : il doit DÉCOUPER, pour que ses coins du bas
+       suivent ceux de la carte, et il n'a pas d'en-tête collant à laisser
+       dépasser — c'est une carte, pas une liste qu'on fait défiler. Déclaré
+       APRÈS les deux règles ci-dessus : à égalité de spécificité (trois
+       classes), c'est l'ordre qui tranche. */
+    .card .table-scroll .list { overflow: hidden; }
+    .card .table-scroll .list thead th { position: static; }
 }
 
 /* Tableaux de bord : largeurs de colonnes fixes (via colgroup) + en-têtes sur
@@ -3645,6 +3670,14 @@ abbr {
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
+    /* … sauf dans une carte : là aussi le tableau se cale sur SA carte et non
+       sur le retrait de la page (docs/UI.md § 9). Le retrait de page change
+       en mobile, celui d'une carte non — d'où cette reprise, sans quoi le
+       tableau rentrait de 8px dans le cadre et ses séparateurs de lignes
+       flottaient de nouveau dans le vide. */
+    .module-content-inner .card .table-scroll {
+        margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad));
+    }
     /* .toolbar-opaque (desktop, voir plus haut) annule le padding de
        .module-content-inner avec des valeurs fixes (24px haut / 48px
        gauche-droite) pour faire déborder son fond blanc jusqu'aux bords —

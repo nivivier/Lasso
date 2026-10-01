@@ -78,7 +78,11 @@ $aujourdhui = date('Y-m-d');
     <p class="muted">Aucun bailleur dans cette campagne.
         <?php if ($peutEcrire): ?><a href="?p=fonds_campagne_form&id=<?= $id ?>">Choisissez-en</a>.<?php endif; ?></p>
 <?php else: ?>
-<div class="card table-scroll" id="fonds-dossiers">
+<?php // Le conteneur de défilement est DANS la carte, pas la carte elle-même :
+      // porté par le même élément, il prenait le retrait négatif des listes
+      // pleine page et débordait du cadre (docs/UI.md § 9). ?>
+<div class="card" id="fonds-dossiers">
+    <div class="table-scroll">
     <table class="list fonds-dossiers">
         <thead>
             <tr>
@@ -191,6 +195,7 @@ $aujourdhui = date('Y-m-d');
         <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 </div>
 <?php endif; ?>
 
