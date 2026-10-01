@@ -47,6 +47,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   celle des campagnes de démarchage.
 
 ### Modifié
+- **Sur le tableau de bord, une facture échue ne s'alarme plus tout de suite** :
+  le fond ambre — qui dit « ceci attend un geste » — est réservé aux factures en
+  retard depuis plus d'un mois, celles-là mêmes dont la ligne passe au rouge.
+  Une facture échue d'hier garde la couleur de son échéance : le paiement est
+  peut-être en route, c'est la relance qui se signale, pas le retard d'un jour.
+- **La carte « Campagnes » du tableau de bord s'appelle « Booking »**, du nom de
+  son module : le tableau de bord porte maintenant deux sortes de campagnes — le
+  démarchage et la recherche de fonds — et, sans le module autour pour le dire,
+  le titre doit nommer celle dont il s'agit.
 - **Les liens de synchronisation se rangent dans un menu « Synchroniser »**, sur
   la liste des projets : un bouton dans la barre d'action pour tous les projets,
   un dans chaque ligne pour celui-là seul — trois boutons côte à côte, répétés à

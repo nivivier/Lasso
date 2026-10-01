@@ -366,9 +366,14 @@ $cartes = [];
                 </thead>
                 <tbody>
                 <?php // Une facture pas encore échue ne se détache pas : elle suit son
-                      // cours. C'est l'échéance dépassée qui appelle une relance. ?>
+                      // cours. Une facture échue d'hier non plus — le paiement est
+                      // peut-être en route. Le fond ambre, qui dit « ceci attend un
+                      // geste », est réservé au retard LONG : passé un mois, c'est
+                      // une relance qu'il faut, et c'est le même seuil qui fait
+                      // passer la ligne au rouge. Entre les deux, la couleur du
+                      // texte suffit à signaler l'échéance dépassée. ?>
                 <?php foreach ($facturesVisibles as $fac): $cl = $factEtat($fac); ?>
-                    <tr class="row-link<?= $dash_action($cl !== '') ?>" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
+                    <tr class="row-link<?= $dash_action($cl === ' facture-retard-long') ?>" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
                         title="<?= e(facturation_statut_effectif($fac) === 'en_retard' ? 'Échéance dépassée' : 'Émise, pas encore échue') ?>">
                         <td class="small<?= $cl ?>"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
                         <td class="dash-nom"><?= e($fac['structure_nom']) ?></td>
@@ -402,8 +407,12 @@ $cartes = [];
         $statutClasseDash = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
         ?>
         <?php ob_start(); ?>
+        <?php // « Booking » et non « Campagnes » : le tableau de bord croise deux
+              // sortes de campagnes — le démarchage et la recherche de fonds — et,
+              // sans le module autour pour le dire, le titre doit nommer celle
+              // dont il s'agit. Ici c'est le nom du module lui-même. ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Campagnes</h2>
+            <h2 class="mt-0">Booking</h2>
             <?php if (!$campagnesDash): ?>
                 <p class="muted">Aucune campagne. <a href="?p=campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
             <?php else: ?>
@@ -457,7 +466,10 @@ $cartes = [];
             </table>
             <?php endif; ?>
         </div>
-        <?php $cartes['campagnes'] = ['titre' => 'Campagnes', 'html' => ob_get_clean()]; ?>
+        <?php // La clé reste « campagnes » : c'est elle qui est rangée dans l'ordre
+              // des cartes choisi par l'utilisateur (paramètre dash_cartes). Seul
+              // le libellé change. ?>
+        <?php $cartes['campagnes'] = ['titre' => 'Booking', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
 
         <?php if (module_accessible('fonds')): ?>
