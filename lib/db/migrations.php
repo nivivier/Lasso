@@ -117,6 +117,7 @@ function run_migrations(PDO $pdo): void
         89 => 'migration_89', // feuille de route d'un événement : une liste ordonnée d'éléments de types différents
         90 => 'migration_90', // choix du fond (employeur_fond_decor) : quatre décors calculés ou l'image personnalisée
         91 => 'migration_91', // l'axe analytique appartient au PROJET (spectacles), plus à chaque date
+        92 => 'migration_92', // module « Recherche de fonds » : campagnes, demandes, versements, pièces exigées
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2824,4 +2825,125 @@ function migration_91(PDO $pdo): void
                  WHERE e.spectacle_id = spectacles.id AND e.axe_analytique_id_defaut IS NOT NULL) = 1"
     );
     try { $pdo->exec('ALTER TABLE evenements DROP COLUMN axe_analytique_id_defaut'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+}
+
+// Module « Recherche de fonds » (SPEC_SUBVENTIONS.md) : le suivi des demandes
+// de subvention, bâti sur ce qui existe. Un bailleur est une `structure` — la
+// même fiche que celle du booking et de la facturation, avec ses contacts et
+// son historique —, et le projet financé est un `spectacle`, dont l'axe
+// analytique porte la ventilation (migration_91).
+//
+// Cinq tables, et rien d'autre :
+//   fonds_campagnes            une recherche de fonds (période, cible, drive)
+//   fonds_campagne_spectacles  les projets qu'elle finance
+//   fonds_demandes             un dossier chez un bailleur
+//   fonds_versements           l'argent reçu — une seule ligne en v1 (§ 3)
+//   fonds_pieces / fonds_bailleur_pieces   ce que chaque bailleur exige
+//
+// fonds_versements existe dès maintenant alors que l'échelonnement est hors
+// périmètre : c'est la TABLE qui serait coûteuse à ajouter après coup, pas
+// l'écran. Déplacer plus tard deux colonnes d'une table peuplée demanderait la
+// manœuvre décrite en tête de ce fichier.
+function migration_92(PDO $pdo): void
+{
+    $pdo->exec(<<<SQL
+        CREATE TABLE IF NOT EXISTS fonds_campagnes (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom               TEXT NOT NULL,
+            date_debut        TEXT NOT NULL DEFAULT '',
+            date_fin          TEXT NOT NULL DEFAULT '',
+            -- Le budget à boucler : c'est lui qui donne son sens à la jauge.
+            montant_cible     REAL NOT NULL DEFAULT 0,
+            -- L'axe du projet financé, recopié à la création et modifiable.
+            axe_analytique_id INTEGER REFERENCES axes_analytiques(id) ON DELETE SET NULL,
+            -- Le dossier externe où vivent toutes les pièces : l'application
+            -- n'en stocke aucune (SPEC_SUBVENTIONS.md § 3 quater).
+            drive_url         TEXT NOT NULL DEFAULT '',
+            -- La sélection de bailleurs, même format que campagnes.criteres.
+            criteres          TEXT NOT NULL DEFAULT '',
+            notes             TEXT NOT NULL DEFAULT '',
+            cree_le           TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS fonds_campagne_spectacles (
+            campagne_id  INTEGER NOT NULL REFERENCES fonds_campagnes(id) ON DELETE CASCADE,
+            spectacle_id INTEGER NOT NULL REFERENCES spectacles(id) ON DELETE CASCADE,
+            PRIMARY KEY (campagne_id, spectacle_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS fonds_demandes (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            -- Obligatoire : une demande appartient toujours à une recherche.
+            campagne_id       INTEGER NOT NULL REFERENCES fonds_campagnes(id) ON DELETE CASCADE,
+            structure_id      INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            statut            TEXT NOT NULL DEFAULT 'a_preparer',
+            montant_demande   REAL NOT NULL DEFAULT 0,
+            montant_accorde   REAL NOT NULL DEFAULT 0,
+            -- Le délai imposé par CE bailleur pour CETTE recherche : il change
+            -- d'une année à l'autre, d'où sa place ici et non sur la structure.
+            date_limite       TEXT NOT NULL DEFAULT '',
+            date_depot        TEXT NOT NULL DEFAULT '',
+            date_reponse      TEXT NOT NULL DEFAULT '',
+            -- La seconde échéance, celle qu'on oublie une fois l'argent reçu.
+            date_limite_bilan TEXT NOT NULL DEFAULT '',
+            date_bilan        TEXT NOT NULL DEFAULT '',
+            -- Les pièces hors catalogue réclamées cette fois-là.
+            pieces_autres     TEXT NOT NULL DEFAULT '',
+            facture_id        INTEGER REFERENCES factures(id) ON DELETE SET NULL,
+            reference         TEXT NOT NULL DEFAULT '',
+            notes             TEXT NOT NULL DEFAULT '',
+            cree_le           TEXT NOT NULL DEFAULT (datetime('now')),
+            -- Un seul dossier par bailleur et par recherche.
+            UNIQUE (campagne_id, structure_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS fonds_versements (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            demande_id  INTEGER NOT NULL REFERENCES fonds_demandes(id) ON DELETE CASCADE,
+            montant     REAL NOT NULL DEFAULT 0,
+            date_prevue TEXT NOT NULL DEFAULT '',
+            date_recue  TEXT NOT NULL DEFAULT '',
+            ecriture_id INTEGER REFERENCES ecritures(id) ON DELETE SET NULL,
+            notes       TEXT NOT NULL DEFAULT '',
+            cree_le     TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- Catalogue des pièces couramment exigées. Une entrée de plus s'ajoute
+        -- par l'interface, sans migration.
+        CREATE TABLE IF NOT EXISTS fonds_pieces (
+            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom   TEXT NOT NULL,
+            ordre INTEGER NOT NULL DEFAULT 0
+        );
+
+        -- Ce que CE bailleur exige, et à quel moment : au dépôt ou au bilan.
+        -- « Comptes vérifiés » se demande souvent aux deux.
+        CREATE TABLE IF NOT EXISTS fonds_bailleur_pieces (
+            structure_id INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            piece_id     INTEGER NOT NULL REFERENCES fonds_pieces(id) ON DELETE CASCADE,
+            moment       TEXT NOT NULL DEFAULT 'demande',
+            PRIMARY KEY (structure_id, piece_id, moment)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_fonds_demandes_campagne  ON fonds_demandes(campagne_id);
+        CREATE INDEX IF NOT EXISTS idx_fonds_demandes_structure ON fonds_demandes(structure_id);
+        CREATE INDEX IF NOT EXISTS idx_fonds_versements_demande ON fonds_versements(demande_id);
+        CREATE INDEX IF NOT EXISTS idx_fonds_bp_structure       ON fonds_bailleur_pieces(structure_id);
+        SQL);
+
+    // Le texte libre « Autres » au niveau du bailleur : ce qu'il réclame
+    // toujours, par-dessus les cases du catalogue.
+    $cols = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
+    if (!in_array('fonds_pieces_autres', $cols, true)) {
+        $pdo->exec("ALTER TABLE structures ADD COLUMN fonds_pieces_autres TEXT NOT NULL DEFAULT ''");
+    }
+
+    // Les trois pièces du quotidien, semées seulement si le catalogue est vide
+    // — on ne réintroduit pas une entrée que l'utilisateur aurait retirée.
+    if (!$pdo->query('SELECT 1 FROM fonds_pieces LIMIT 1')->fetchColumn()) {
+        $ins = $pdo->prepare('INSERT INTO fonds_pieces (nom, ordre) VALUES (?, ?)');
+        foreach (["Rapport d'activité", 'Bilan financier du projet', 'Comptes vérifiés'] as $i => $nom) {
+            $ins->execute([$nom, $i + 1]);
+        }
+    }
 }

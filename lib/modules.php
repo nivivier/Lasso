@@ -40,6 +40,14 @@ const MODULES = [
         'description' => 'CRM des structures (salles, festivals, médias) : catégorie, contacts, notes, lieux, messages individuels, import CSV. Réutilise les structures (ex-débiteurs) de la Facturation, sans en dépendre.',
         'requires'    => [],
     ],
+    // Suivi des demandes de subvention (SPEC_SUBVENTIONS.md). Réutilise les
+    // structures comme la Facturation et le Booking, sans dépendre d'eux : un
+    // bailleur est une structure, et le projet financé un spectacle.
+    'fonds' => [
+        'label'       => 'Recherche de fonds',
+        'description' => "Demandes de subvention : à qui l'on demande, pour quel projet, combien, où en est le dossier et ce qui a été obtenu. Les bailleurs sont des structures, comme les salles et les débiteurs.",
+        'requires'    => [],
+    ],
     // Sous-module : écrire à plusieurs structures d'un coup. Le booking seul
     // permet déjà d'écrire à UNE structure depuis sa fiche (bouton
     // « Contacter ») ; celui-ci ajoute le ciblage, la file d'attente et le
@@ -71,6 +79,7 @@ const MODULE_COULEURS = [
     'facturation' => '#526be3', // indigo
     'evenements'  => '#e01670', // rose
     'booking'     => '#855cd5', // violet
+    'fonds'       => '#2f6d2a', // vert — 6.28:1 sous texte blanc
 ];
 
 // Cœur de l'application : jamais désactivable, listé à titre indicatif dans
@@ -135,7 +144,7 @@ function route_defaut(): string
 // index.php). Une table de permissions vide pour un utilisateur = aucun
 // accès nulle part ; c'est le premier compte créé (route_setup) qui reçoit
 // tout par défaut, pas les comptes suivants.
-const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking', 'mailing'];
+const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking', 'fonds', 'mailing'];
 
 // --- Fonctions pures (testées sans base de données, tests/permissions_test.php) ---
 
@@ -434,6 +443,15 @@ function nav_groupes(): array
         $ongletsBooking[peut_lire('coeur') ? 'parametres_pays' : 'parametres_structures'] =
             ['Catégories', ['parametres_pays', 'parametres_structures', 'parametres_tags'], 0, 'blocks'];
         $g['booking'] = ['Booking', 'house', $ongletsBooking];
+    }
+
+    if (module_actif('fonds') && peut_lire('fonds')) {
+        $g['fonds'] = ['Recherche de fonds', 'landmark', [
+            'fonds' => ['Recherches', ['fonds', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
+            // Les bailleurs sont des structures : le même écran que le booking
+            // et la facturation, pas une seconde liste à tenir.
+            'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
+        ]];
     }
 
     return $cache = $g;

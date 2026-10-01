@@ -415,4 +415,15 @@ function seed_parametres(PDO $pdo): void
     foreach ($defauts as $cle => $valeur) {
         $stmt->execute([$cle, $valeur]);
     }
+
+    // « Projets » plutôt que « Spectacles » — mais SEULEMENT sur une base
+    // neuve, repérée à l'absence de tout compte (le premier est créé par
+    // route_setup()). Une installation en service n'a jamais écrit cette clé
+    // tant qu'elle n'a pas touché au réglage : la semer ici sans condition
+    // renommerait d'un coup son onglet, sa liste et l'intitulé du champ d'une
+    // date — un vocabulaire qui change tout seul après une mise à jour.
+    // Le terme reste modifiable des deux côtés (Paramètres → Événements).
+    if (!$pdo->query('SELECT 1 FROM utilisateurs LIMIT 1')->fetchColumn()) {
+        $stmt->execute(['evenements_terme_spectacle', 'Projets']);
+    }
 }

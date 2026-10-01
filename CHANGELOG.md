@@ -9,6 +9,14 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Un module « Recherche de fonds »**, à activer dans Paramètres → Modules :
+  le suivi des demandes de subvention. Cette première livraison en pose les
+  fondations — les tables, l'entrée de menu, les droits — et montre la liste des
+  recherches ; les écrans de saisie suivent. Un bailleur y est une **structure**,
+  la même fiche que pour le booking et la facturation, et le projet financé un
+  spectacle, dont l'axe analytique porte la ventilation.
+
 ### Modifié
 - **Les commandes de « Mises à jour » montent en haut de la carte**, comme sur
   tous les autres écrans : « Vérifier maintenant » — qui ne change rien, il

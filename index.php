@@ -14,6 +14,7 @@ require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/routes_booking.php';
+require_once __DIR__ . '/lib/routes_fonds.php';
 require_once __DIR__ . '/lib/maj.php';
 require_once __DIR__ . '/lib/sauvegarde.php';
 require_once __DIR__ . '/lib/feuille_route.php';
@@ -236,6 +237,10 @@ if (module_actif('booking')) {
     $handlers['mailing_traiter']  = 'route_mailing_traiter';
     $handlers['desinscription']   = 'route_desinscription';
 }
+
+ajouter_routes_module($handlers, $routeModules, 'fonds', [
+    'fonds' => 'route_fonds',
+]);
 
 ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'evenements'         => 'route_evenements',
