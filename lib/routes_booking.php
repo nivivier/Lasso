@@ -290,8 +290,13 @@ function route_structure_note_modifier(): void
     $type = isset($_POST['est_contact']) ? 'mailing' : 'note';
     $creeLe = historique_date_stockee((string) ($_POST['date'] ?? ''), (string) $entree['cree_le'])
         ?? (string) $entree['cree_le'];
-    db()->prepare('UPDATE historique SET contenu = ?, type = ?, cree_le = ? WHERE id = ?')
-        ->execute([$contenu, $type, $creeLe, $id]);
+    // Qui corrige, et quand (migration_96) : une note se reprend à plusieurs
+    // mains, et l'écran ne disait que qui l'avait écrite. L'auteur d'origine
+    // (utilisateur_id) n'est jamais réécrit — c'est lui qui a vécu ce qui est
+    // raconté.
+    $u = current_user();
+    db()->prepare("UPDATE historique SET contenu = ?, type = ?, cree_le = ?, modifie_par = ?, modifie_le = datetime('now') WHERE id = ?")
+        ->execute([$contenu, $type, $creeLe, $u ? (int) $u['id'] : null, $id]);
     // Les projets concernés se modifient comme le reste de l'entrée : sans cette
     // ligne, le menu « Projet » du formulaire d'édition ne servait à rien — la
     // sélection partait bien en POST, personne ne l'écrivait, et l'entrée gardait

@@ -1583,15 +1583,24 @@ function journaliser_lien_structure_lieu(int $structureId, int $lieuId, bool $li
     journaliser('structure', $lieuId, 'edition', ($lie ? 'Organisateur lié : ' : 'Organisateur délié : ') . $sNom);
 }
 
-// Historique d'une fiche, plus récent d'abord, avec l'auteur.
+// Historique d'une fiche, plus récent d'abord, avec l'auteur — et, le cas
+// échéant, qui l'a modifié en dernier (migration_96).
+//
+// L'e-mail est ramené avec le nom parce qu'il en tient lieu quand le compte n'en
+// a pas (utilisateur_nom_affiche()) : sans lui, une note écrite par un compte
+// sans prénom ni nom s'affichait sans auteur.
 function historique_entite(string $entiteType, int $id): array
 {
     if ($id <= 0) {
         return [];
     }
     $stmt = db()->prepare(
-        "SELECT h.*, u.prenom AS u_prenom, u.nom AS u_nom
-         FROM historique h LEFT JOIN utilisateurs u ON u.id = h.utilisateur_id
+        "SELECT h.*,
+                u.prenom AS u_prenom, u.nom AS u_nom, u.email AS u_email,
+                m.prenom AS m_prenom, m.nom AS m_nom, m.email AS m_email
+         FROM historique h
+         LEFT JOIN utilisateurs u ON u.id = h.utilisateur_id
+         LEFT JOIN utilisateurs m ON m.id = h.modifie_par
          WHERE h.entite_type = ? AND h.entite_id = ?
          ORDER BY h.cree_le DESC, h.id DESC"
     );
@@ -1654,7 +1663,10 @@ function historique_fusionne(string $entiteType, int $id): array
                 'id' => 0, 'entite_type' => 'structure', 'entite_id' => $id,
                 'type' => 'creation', 'contenu' => 'Fiche créée ou importée',
                 'cree_le' => $creeLe, 'utilisateur_id' => null,
-                'u_prenom' => '', 'u_nom' => '', 'source_label' => '',
+                'u_prenom' => '', 'u_nom' => '', 'u_email' => '',
+                'modifie_par' => null, 'modifie_le' => '',
+                'm_prenom' => '', 'm_nom' => '', 'm_email' => '',
+                'source_label' => '',
             ];
         }
     }

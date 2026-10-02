@@ -9,7 +9,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Une note de structure dit qui l'a modifiée, et quand**, en plus de qui l'a
+  écrite. Une note se reprend à plusieurs mains — une date rectifiée, un compte
+  rendu complété —, et seule la première main était connue. L'auteur d'origine
+  n'est jamais réécrit : c'est lui qui a vécu ce qui est raconté.
+
 ### Corrigé
+- **Une note signée d'un compte sans prénom ni nom s'affichait sans auteur.**
+  Il était pourtant bien enregistré : c'est l'affichage qui restait muet faute
+  de nom à écrire. L'adresse e-mail en tient lieu, comme elle le fait déjà dans
+  la barre latérale pour le compte connecté.
 - **Sur téléphone, l'ordre des cartes du tableau de bord se change à nouveau.**
   La poignée de glisser-déposer y remplaçait les flèches, mais aucun navigateur
   mobile ne déclenche le glisser-déposer au doigt : il ne restait plus aucun

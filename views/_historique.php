@@ -36,7 +36,21 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
             // importées sont datées au jour, et « 00:00 » y annoncerait une
             // heure de contact que personne n'a jamais saisie.
             $horodate = $creeLe === '' ? '' : date(strlen($creeLe) > 10 ? 'd.m.Y H:i' : 'd.m.Y', strtotime($creeLe));
-            $auteur = trim((string) ($he['u_prenom'] ?? '') . ' ' . (string) ($he['u_nom'] ?? ''));
+            // L'e-mail tient lieu de nom quand le compte n'en a pas : sans ce
+            // repli, une note écrite par un second compte, créé sans prénom ni
+            // nom, s'affichait sans auteur — alors qu'il était bien enregistré.
+            $auteur = utilisateur_nom_affiche($he['u_prenom'] ?? '', $he['u_nom'] ?? '', $he['u_email'] ?? '');
+            // Qui l'a modifiée en dernier, si quelqu'un l'a fait (migration_96).
+            // Tu, pas affiché, quand c'est l'auteur lui-même : « écrite par X,
+            // modifiée par X » n'apprend rien, seule la date compte alors.
+            $modifieLe = trim((string) ($he['modifie_le'] ?? ''));
+            $modifiePar = $modifieLe === '' ? '' : utilisateur_nom_affiche($he['m_prenom'] ?? '', $he['m_nom'] ?? '', $he['m_email'] ?? '');
+            $modifMeta = '';
+            if ($modifieLe !== '') {
+                $quand = date(strlen($modifieLe) > 10 ? 'd.m.Y H:i' : 'd.m.Y', strtotime($modifieLe));
+                $modifMeta = 'modifiée le ' . $quand
+                    . ($modifiePar !== '' && $modifiePar !== $auteur ? ' par ' . $modifiePar : '');
+            }
         ?>
         <li class="hist-item hist-<?= e((string) $he['type']) ?>">
             <span class="hist-ico <?= e($hClasse) ?>" title="<?= e($hLibelle) ?>" aria-hidden="true"><?= icon($hIcone) ?></span>
@@ -63,6 +77,10 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                     <span class="hist-meta">
                         <?= e($hi[0]) ?>
                         <?php if ($auteur !== ''): ?> · <?= e($auteur) ?><?php endif; ?>
+                        <?php // La modification se dit au même endroit que
+                              // l'auteur, en plus discret : c'est une précision
+                              // sur l'entrée, pas un second événement. ?>
+                        <?php if ($modifMeta !== ''): ?> <span class="hist-modif">(<?= e($modifMeta) ?>)</span><?php endif; ?>
                         <?php if (($he['source_label'] ?? '') !== ''): ?> <span class="badge muted-badge"><?= e((string) $he['source_label']) ?></span><?php endif; ?>
                         <?php // Projets concernés : c'est par eux qu'une prise de contact
                               // compte dans une campagne, autant les voir dans le flux. ?>

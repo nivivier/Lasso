@@ -4145,6 +4145,9 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .hist-texte { flex: 1 1 220px; min-width: 0; font-size: var(--fs-basic); color: var(--ink); }
 .hist-meta { flex: 0 0 auto; font-size: var(--fs-tiny); color: var(--muted); text-align: right; }
 .hist-meta .badge { margin-left: 4px; }
+/* « (modifiée le …) » : une précision sur l'entrée, pas un second événement —
+   d'où la parenthèse et l'italique, dans la même méta grise que l'auteur. */
+.hist-modif { font-style: italic; }
 /* Les entrées se suivent de près : un filet plutôt qu'un écart, pour que la
    colonne de dates se lise comme une colonne. */
 .hist-list { gap: 0; }

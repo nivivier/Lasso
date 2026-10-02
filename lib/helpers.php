@@ -2006,6 +2006,20 @@ function valeur_autorisee(?string $valeur, array $whitelist, string $defaut = ''
 // registre sans le dire. Ils sont ici, et le choix se fait en appelant l'une
 // ou l'autre.
 //
+// Le nom sous lequel un compte s'affiche : prénom et nom, celui des deux qui est
+// rempli, et à défaut l'adresse e-mail. Jamais rien : un compte sans prénom ni
+// nom — rien ne les rend obligatoires — apparaissait comme une absence d'auteur,
+// et une note signée de personne ne se distinguait plus d'une note importée.
+// C'est la cascade que le rail de navigation appliquait déjà pour le compte
+// connecté ; elle vaut partout où l'on nomme quelqu'un.
+function utilisateur_nom_affiche($prenom, $nom, $email = ''): string
+{
+    $prenom = trim((string) $prenom);
+    $nom    = trim((string) $nom);
+    $plein  = trim($prenom . ' ' . $nom);
+    return $plein !== '' ? $plein : trim((string) $email);
+}
+
 // Options d'axe analytique pour un <select> de ligne de prestation (fiche de
 // salaire ou événement) — un « — » en tête pour l'absence d'axe.
 function options_axes(array $axes): string

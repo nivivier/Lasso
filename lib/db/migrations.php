@@ -121,6 +121,7 @@ function run_migrations(PDO $pdo): void
         93 => 'migration_93', // recherche de fonds : deux paliers d'objectif (minimal, idéal) au lieu d'un budget unique
         94 => 'migration_94', // « spectacle » devient « projet » : tables, colonnes, index, et le terme réglable scindé en singulier/pluriel
         95 => 'migration_95', // recherche de fonds : retrait du numéro de dossier (jamais utilisé)
+        96 => 'migration_96', // historique : qui a modifié une note, et quand
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -1569,6 +1570,8 @@ function migration_52(PDO $pdo): void
             cree_le        TEXT NOT NULL DEFAULT (datetime('now'))
         )
     ");
+    // modifie_par / modifie_le arrivent par migration_96 : cette création-ci est
+    // celle d'une base d'alors, la chaîne doit la rejouer telle quelle.
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_historique_entite ON historique(entite_type, entite_id, cree_le)");
     // Recopie unique des notes de structure existantes (idempotent : ne recopie
     // pas si des entrées de structure existent déjà dans historique).
@@ -3088,6 +3091,28 @@ function migration_94(PDO $pdo): void
 // 3.34 (docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé). Si le
 // retrait échoue, la colonne reste en base, inerte — plus aucun code ne la lit
 // ni ne l'écrit, et son DEFAULT suffit aux INSERT qui ne la nomment pas.
+// Migration 96 : une note d'historique garde l'auteur de sa DERNIÈRE
+// modification, à côté de celui de sa création (utilisateur_id).
+//
+// Une note se corrige à plusieurs mains — une date rectifiée, un compte rendu
+// complété — et l'écran ne disait que qui l'avait écrite. Deux colonnes et non
+// une : « modifiée » sans dire quand ne situe rien, et la date de création ne
+// peut pas servir de repère puisque c'est précisément elle qu'une modification
+// peut changer.
+//
+// Vides par défaut : une entrée jamais modifiée n'a rien à déclarer, et c'est
+// ce qui distingue « jamais touchée » de « modifiée par celui qui l'a écrite ».
+function migration_96(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(historique)')->fetchAll(), 'name');
+    if (!in_array('modifie_par', $cols, true)) {
+        $pdo->exec('ALTER TABLE historique ADD COLUMN modifie_par INTEGER REFERENCES utilisateurs(id) ON DELETE SET NULL');
+    }
+    if (!in_array('modifie_le', $cols, true)) {
+        $pdo->exec("ALTER TABLE historique ADD COLUMN modifie_le TEXT NOT NULL DEFAULT ''");
+    }
+}
+
 function migration_95(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(fonds_demandes)')->fetchAll(), 'name');
