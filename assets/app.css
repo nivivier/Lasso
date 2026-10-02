@@ -4296,6 +4296,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        teinte, donc l'identité du module, est préservée. */
     :root[data-theme="sombre"] .rail-btn.on, :root[data-theme="sombre"] .rail-btn.on .rail-label { color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white); }
     :root[data-theme="sombre"] .rail-btn .ico { color: color-mix(in srgb, var(--rail-accent, var(--muted)) 65%, white); }
+    /* Et l'icône ACTIVE, qui ne replie pas sur le même gris : sans couleur de
+       module (réglage « une couleur par module » décoché, ou tableau de bord),
+       --rail-accent n'existe pas et la règle ci-dessus la laissait grise là même
+       où l'on se trouve. Repli sur --primary, et le MÊME éclaircissement que le
+       libellé actif juste au-dessus, pour que l'icône et son mot s'accordent. */
+    :root[data-theme="sombre"] .rail-btn.on .ico { color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white); }
 
 /* Mode « automatique » : mêmes règles, sous la media query. */
 @media (prefers-color-scheme: dark) {
@@ -4312,6 +4318,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        teinte, donc l'identité du module, est préservée. */
     :root:not([data-theme="clair"]) .rail-btn.on, :root:not([data-theme="clair"]) .rail-btn.on .rail-label { color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white); }
     :root:not([data-theme="clair"]) .rail-btn .ico { color: color-mix(in srgb, var(--rail-accent, var(--muted)) 65%, white); }
+    /* Et l'icône ACTIVE, qui ne replie pas sur le même gris : sans couleur de
+       module (réglage « une couleur par module » décoché, ou tableau de bord),
+       --rail-accent n'existe pas et la règle ci-dessus la laissait grise là même
+       où l'on se trouve. Repli sur --primary, et le MÊME éclaircissement que le
+       libellé actif juste au-dessus, pour que l'icône et son mot s'accordent. */
+    :root:not([data-theme="clair"]) .rail-btn.on .ico { color: color-mix(in srgb, var(--rail-accent, var(--primary)) 55%, white); }
 }
 
 /* Logo du rail : une variante par thème, rendues toutes les deux (voir
