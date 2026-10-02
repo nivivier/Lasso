@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.3] — 2026-10-03
+
 ### Corrigé
 - **Les deux écrans de la recherche de fonds se lisent sur téléphone.** La liste
   des campagnes y faisait défiler cinq colonnes de biais ; elle se resserre
