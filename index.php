@@ -350,6 +350,24 @@ if ($route === null) {
     $route = route_defaut();
 }
 
+// LE contrôle de droits de l'application, et le seul : lecture pour un GET,
+// écriture pour un POST, sur le ou les modules de la route. Une route ne
+// revérifie JAMAIS ses propres droits — un second contrôle à l'intérieur d'une
+// route déjà rattachée à son module ne peut pas se déclencher (celui-ci aurait
+// déjà refusé, au même endroit et avec la même redirection), mais il laisse
+// croire que les routes qui n'en ont pas sont moins gardées. La règle vit ici,
+// une fois, et elle est traversée par chaque requête : elle ne peut pas pourrir
+// sans qu'on le voie.
+//
+// Le vrai risque est ailleurs, et il est silencieux : une route qui ÉCRIT sans
+// être déclarée dans un bloc ajouter_routes_module() n'a pas d'entrée dans
+// $routeModules, le isset() ci-dessous est donc faux, tout le contrôle est
+// sauté et n'importe quel compte connecté peut y poster. C'est ce que
+// tests/permissions_test.php (§ 6) interdit, en partant des routes qui appellent
+// check_csrf() plutôt que d'une liste à tenir à jour.
+//
+// Écart résiduel à résorber : dix-sept routes portent encore un
+// require_ecriture() redondant, hérité d'avant cette règle.
 if (isset($handlers[$route])) {
     if (isset($routeModules[$route]) && !route_autorisee($routeModules[$route])) {
         require_login();
