@@ -97,6 +97,81 @@ check(
 );
 check('aucun des deux → refusé', false, route_autorisee_pour(['salaires' => 'ecriture'], $partage, 'GET'));
 
+// Le contrôle de droits d'une mutation vit dans le dispatcher, et nulle part
+// ailleurs (index.php : $routeModules + route_autorisee(), « GET = lecture,
+// POST = écriture »). Une route qui écrit sans y être rattachée serait donc
+// ouverte à qui est connecté — c'est le seul trou possible dans ce modèle, et
+// il est silencieux : rien ne casse, tout le monde passe.
+//
+// Ce test le ferme en lisant index.php : toute fonction qui appelle
+// check_csrf() — autrement dit toute route qui MUTE — doit être déclarée dans
+// un bloc ajouter_routes_module() (son module la garde), dans le bloc
+// peut_ecrire('coeur') (sa seule présence la garde), ou figurer dans la liste
+// d'exceptions ci-dessous, chacune avec sa raison.
+echo "\n6) Toute route qui mute est gardée par le dispatcher\n";
+$racine = dirname(__DIR__);
+$idx = file_get_contents($racine . '/index.php');
+
+// Les routes qui mutent, lues dans les fichiers de routes.
+$mutantes = [];
+foreach (glob($racine . '/lib/routes*.php') as $f) {
+    $src = file_get_contents($f);
+    if (preg_match_all('/function (route_\w+)\(\)[^{]*\{(.*?)\n\}/s', $src, $m, PREG_SET_ORDER)) {
+        foreach ($m as $fn) {
+            if (str_contains($fn[2], 'check_csrf()')) {
+                $mutantes[] = $fn[1];
+            }
+        }
+    }
+}
+
+// Hors session, donc sans jeton CSRF possible : chacune porte sa propre
+// autorisation (signature, jeton dédié, lien de désinscription) — CLAUDE.md.
+// Les routes publiques ou universelles du cœur n'ont pas de module non plus.
+$EXCEPTIONS = [
+    'connexion' => 'publique', 'deconnexion' => 'publique', 'installation' => 'publique',
+    'motdepasse_oublie' => 'publique', 'motdepasse_reinitialiser' => 'publique',
+    'mon_compte' => 'tout compte, quels que soient ses droits',
+    'tableau_bord' => 'tout compte, quels que soient ses droits',
+    'sauvegarde' => 'gardée à part', 'mailing_traiter' => 'jeton du planificateur',
+    'desinscription' => 'jeton du lien de désinscription',
+];
+
+// Où une route est-elle déclarée dans index.php : dans un bloc de module, dans
+// le bloc réservé à l'écriture cœur, ou dans la table nue du haut ?
+$bornes = [];
+foreach (['/\$handlers = \[/' => 'nu', '/ajouter_routes_module/' => 'module',
+          "/if \(peut_ecrire\('coeur'\)\) \{/" => 'coeur'] as $re => $etat) {
+    if (preg_match_all($re, $idx, $mm, PREG_OFFSET_CAPTURE)) {
+        foreach ($mm[0] as $occ) {
+            $bornes[] = [$occ[1], $etat];
+        }
+    }
+}
+usort($bornes, fn ($a, $b) => $a[0] <=> $b[0]);
+
+$nues = [];
+foreach (array_unique($mutantes) as $fn) {
+    if (!preg_match("/'([a-z_0-9]+)'\s*=>\s*'" . $fn . "'\s*,/", $idx, $m, PREG_OFFSET_CAPTURE)) {
+        continue; // fonction appelée par une autre route, pas déclarée elle-même
+    }
+    [$route, $pos] = [$m[1][0], $m[0][1]];
+    if (isset($EXCEPTIONS[$route])) {
+        continue;
+    }
+    $etat = 'nu';
+    foreach ($bornes as [$b, $e]) {
+        if ($b < $pos) {
+            $etat = $e;
+        }
+    }
+    if ($etat === 'nu') {
+        $nues[] = $route;
+    }
+}
+sort($nues);
+check('aucune route mutante hors module et hors exception', [], $nues);
+
 echo "\n";
 if ($fails === 0) {
     echo "✅ TOUS LES TESTS PASSENT ($tests assertions)\n";
