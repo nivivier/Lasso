@@ -1,6 +1,6 @@
 <?php
 /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
-/** @var string $recherche */ /** @var int $annee */ /** @var string $statutSuisa */ /** @var int $spectacleId */
+/** @var string $recherche */ /** @var int $annee */ /** @var string $statutSuisa */ /** @var int $projetId */
 /** @var string $statut */ /** @var string $visibilite */ /** @var string $pays */ /** @var string $salaries */
 
 // Popup construit côté serveur (échappement e() habituel) : le JS se contente
@@ -19,7 +19,7 @@ $points = array_map(function (array $p): array {
 // géocoder automatiquement (typo, ville introuvable pour Nominatim…) — voir
 // views/_structures_carte.php pour le même principe.
 $lienNonLocalises = '?p=evenements&' . http_build_query([
-    'vue' => 'liste', 'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+    'vue' => 'liste', 'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'projet_id' => $projetId,
     'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries, 'non_localises' => 1,
 ]);
 ?>
@@ -32,7 +32,7 @@ $lienNonLocalises = '?p=evenements&' . http_build_query([
         $lienNonLocalises,
         '?p=evenements_geocoder',
         [
-            'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+            'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'projet_id' => $projetId,
             'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
         ],
         isset($_GET['geocode'])

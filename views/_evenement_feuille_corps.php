@@ -6,14 +6,14 @@
 // exister en deux versions qui divergeraient à la première retouche.
 //
 // Attendu de l'appelant :
-//   $evenement     (array) la ligne d'événement, spectacle_nom compris.
+//   $evenement     (array) la ligne d'événement, projet_nom compris.
 //   $elements      (array) les éléments de la feuille (feuille_elements()).
 //   $organisateurs (array) les structures liées et leurs contacts
 //                  (feuille_organisateurs()).
 $elements = $elements ?? [];
 $organisateurs = $organisateurs ?? [];
 $frJour = fn (string $d): string => $d !== '' ? date('d.m.Y', strtotime($d)) : '';
-$frTitre = trim((string) ($evenement['spectacle_nom'] ?? '')) ?: 'Date';
+$frTitre = trim((string) ($evenement['projet_nom'] ?? '')) ?: 'Date';
 $frHoraire = evenement_horaire_texte($evenement);
 $frSitue = implode(', ', array_filter([
     trim((string) ($evenement['departement_canton'] ?? '')),
@@ -23,7 +23,7 @@ $frSitue = implode(', ', array_filter([
 // en tête de feuille ; ce qui reste ici est ce qui mène à la porte.
 $frAdressePostale = trim(evenement_adresse_texte($evenement) . ($frSitue !== '' ? ' (' . $frSitue . ')' : ''));
 // Ce qu'on cherche des yeux en ouvrant une feuille de route : QUAND, OÙ, dans
-// quelle VILLE. Le reste — le spectacle, l'horaire de représentation — vient
+// quelle VILLE. Le reste — le projet, l'horaire de représentation — vient
 // après, parce qu'on le sait déjà. Le festival passe devant la salle quand il y
 // en a un : c'est sous son nom que la date est annoncée.
 $frOu = trim((string) ($evenement['festival'] ?? '')) ?: trim((string) ($evenement['salle'] ?? ''));

@@ -3,7 +3,7 @@
 // archive.
 //
 // La base seule ne suffit pas. Elle ne mémorise que l'EMPLACEMENT des fichiers
-// — logos de l'employeur, photos d'employés, icônes de spectacle, feuilles
+// — logos de l'employeur, photos d'employés, icônes de projet, feuilles
 // SUISA, pièces jointes des feuilles de route — dont le contenu vit sur le
 // disque. Restaurer la base seule rendait donc une application aux images
 // cassées et aux pièces jointes introuvables, et la page d'export en

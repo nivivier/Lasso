@@ -28,7 +28,7 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
 - **Exception actée** : le recadrage d'image utilise **Cropper.js**
   (`assets/vendor/cropperjs/`, bundlé dans le dépôt, pas de CDN, MIT), chargé
   sur les seules pages qui recadrent : la photo d'un employé (`?p=employe`)
-  et l'icône d'un spectacle (`?p=spectacles`). Le navigateur produit une
+  et l'icône d'un projet (`?p=projets`). Le navigateur produit une
   vignette carrée de 256 px envoyée en data URI ; le serveur la revalide comme
   un upload de fichier (`avatar_photo_enregistrer()` :
   `getimagesizefromstring()`, formats en liste blanche, 2 Mo max) avant de
@@ -142,7 +142,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     tester `module_actif()` seul laisse fuiter les données d'un module vers un
     compte qui n'y a pas accès.
 - **Recherche unifiée** `lib/recherche.php` (`?p=recherche`, champ sur le tableau
-  de bord) : traverse employés/structures/factures/événements/spectacles. Seule
+  de bord) : traverse employés/structures/factures/événements/projets. Seule
   fonctionnalité qui interroge plusieurs modules dans la même requête — chaque
   source est donc filtrée par `module_accessible()` **avant** toute requête, et la
   route n'est volontairement rattachée à aucun module. Ajouter une entité = une

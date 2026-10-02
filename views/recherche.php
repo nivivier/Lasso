@@ -21,7 +21,7 @@
 
     <?php elseif ($q === ''): ?>
         <p class="muted">
-            Cherchez dans les employés, structures, factures, événements et spectacles à la fois.
+            Cherchez dans les employés, structures, factures, événements et projets à la fois.
             Plusieurs mots se cumulent : « hector genève » ne remonte que ce qui contient les deux.
         </p>
 

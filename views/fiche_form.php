@@ -19,7 +19,7 @@ $axeOpts = options_axes($axes);
 // Options d'événement (select par ligne, affiché seulement pour les lignes déjà liées)
 $evLabel = function (array $ev): string {
     $d    = $ev['date'] ? date('d.m.Y', strtotime((string) $ev['date'])) : '';
-    $lieu = $ev['spectacle'] ?: ($ev['festival'] ?: ($ev['salle'] ?: $ev['ville']));
+    $lieu = $ev['projet'] ?: ($ev['festival'] ?: ($ev['salle'] ?: $ev['ville']));
     $s    = trim($d . ($lieu !== '' ? ' — ' . $lieu : ''));
     return $s !== '' ? $s : ('Événement #' . (int) $ev['id']);
 };

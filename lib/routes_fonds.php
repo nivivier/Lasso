@@ -8,7 +8,7 @@
 //   — stocker des fichiers : les pièces d'un dossier vivent sur un drive
 //     externe, la campagne n'en garde que le lien (§ 3 quater) ;
 //   — inventer une ventilation : l'axe analytique est celui du projet financé
-//     (spectacles.axe_analytique_id, migration_91).
+//     (projets.axe_analytique_id, migration_91).
 
 declare(strict_types=1);
 
@@ -22,24 +22,24 @@ require_once __DIR__ . '/compta.php';  // montant_float()
 // le tableau de bord. Une requête pour toutes les campagnes, pas une par ligne.
 //
 // Isolé ici plutôt que dans fonds_dashboard() (lib/fonds.php) : les pastilles
-// viennent du module Événements (spectacle_map(), lib/evenements.php), et ce
+// viennent du module Événements (projet_map(), lib/evenements.php), et ce
 // fichier-là ne doit répondre que des règles de la recherche de fonds.
 function fonds_campagnes_avec_projets(array $campagnes): array
 {
     if (!$campagnes) {
         return [];
     }
-    $map = spectacle_map();
+    $map = projet_map();
     $projetsParCampagne = [];
-    foreach (db()->query('SELECT campagne_id, spectacle_id FROM fonds_campagne_spectacles ORDER BY spectacle_id') as $l) {
-        $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['spectacle_id'];
+    foreach (db()->query('SELECT campagne_id, projet_id FROM fonds_campagne_projets ORDER BY projet_id') as $l) {
+        $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['projet_id'];
     }
     return array_map(function (array $c) use ($map, $projetsParCampagne): array {
         $projetIds = $projetsParCampagne[(int) $c['id']] ?? [];
         return $c + [
             'projet_ids'        => $projetIds,
-            'projets'           => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projetIds),
-            'projets_pastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projetIds),
+            'projets'           => array_map(fn ($sid) => projet_chemin($sid, $map), $projetIds),
+            'projets_pastilles' => array_map(fn ($sid) => projet_pastille_html($sid, $map), $projetIds),
         ];
     }, $campagnes);
 }
@@ -106,20 +106,20 @@ function route_fonds_campagne_form(): void
 
     // Un entonnoir recharge la page : ce qui vient d'être saisi revient par
     // l'URL, et c'est cette version-là qu'on réaffiche — pas celle de la base.
-    $projets = $id ? spectacles_lies('fonds_campagne_spectacles', $id) : [];
+    $projets = $id ? projets_lies('fonds_campagne_projets', $id) : [];
     if ($ciblage['previsualise']) {
         $campagne = (array) $campagne + ['id' => $id];
         foreach (['nom', 'date_debut', 'date_fin', 'montant_minimal', 'montant_ideal', 'drive_url', 'notes'] as $champ) {
             $campagne[$champ] = trim((string) ($_GET[$champ] ?? ''));
         }
         $campagne['axe_analytique_id'] = ((int) ($_GET['axe_analytique_id'] ?? 0)) ?: null;
-        $projets = array_values(array_filter(array_map('intval', (array) ($_GET['spectacle_ids'] ?? []))));
+        $projets = array_values(array_filter(array_map('intval', (array) ($_GET['projet_ids'] ?? []))));
     }
 
     render('fonds_campagne_form', $ciblage + [
         'campagne'   => $campagne ?: null,
         'projets'    => $projets,
-        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
+        'projetsDispo' => module_actif('evenements') ? projets_pour_selection() : [],
         'axes'       => module_actif('analytique')
             ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
             : [],
@@ -152,7 +152,7 @@ function route_fonds_campagne_enregistrer(): void
     $ideal   = montant_float((string) ($_POST['montant_ideal'] ?? ''));
     $drive   = trim((string) ($_POST['drive_url'] ?? ''));
     $notes   = trim((string) ($_POST['notes'] ?? ''));
-    $projets = (array) ($_POST['spectacle_ids'] ?? []);
+    $projets = (array) ($_POST['projet_ids'] ?? []);
 
     // L'axe est celui du projet financé : on ne le redemande pas si l'écran
     // l'a laissé vide et qu'un projet le porte (migration_91). Choisi
@@ -160,7 +160,7 @@ function route_fonds_campagne_enregistrer(): void
     // projets qui ne se ventilent pas au même endroit.
     $axe = ((int) ($_POST['axe_analytique_id'] ?? 0)) ?: null;
     if ($axe === null && $projets) {
-        $stmt = db()->prepare('SELECT axe_analytique_id FROM spectacles WHERE id = ? AND axe_analytique_id IS NOT NULL');
+        $stmt = db()->prepare('SELECT axe_analytique_id FROM projets WHERE id = ? AND axe_analytique_id IS NOT NULL');
         $stmt->execute([(int) reset($projets)]);
         $axe = ((int) $stmt->fetchColumn()) ?: null;
     }
@@ -180,7 +180,7 @@ function route_fonds_campagne_enregistrer(): void
             ->execute([$nom, $debut, $fin, $minimal, $ideal, $axe, $drive, $notes, $criteres]);
         $id = (int) db()->lastInsertId();
     }
-    spectacles_lier('fonds_campagne_spectacles', $id, $projets);
+    projets_lier('fonds_campagne_projets', $id, $projets);
 
     // Mise à niveau, et non table rasée : la ligne PORTE le dossier — montants,
     // dates, référence. La supprimer pour la réinsérer effacerait tout le suivi
@@ -221,8 +221,8 @@ function route_fonds_campagne(): void
         redirect('fonds_campagnes');
     }
     $demandes = fonds_campagne_demandes($id);
-    $projetIds = spectacles_lies('fonds_campagne_spectacles', $id);
-    $mapProjets = spectacle_map();
+    $projetIds = projets_lies('fonds_campagne_projets', $id);
+    $mapProjets = projet_map();
     render('fonds_campagne', [
         'campagne'    => $campagne,
         'demandes'    => $demandes,
@@ -230,8 +230,8 @@ function route_fonds_campagne(): void
         // Les projets financés, nommés ET en pastilles : la carte de tête les
         // montre comme celle d'une campagne de démarchage — l'icône d'abord,
         // c'est par elle qu'on reconnaît la campagne.
-        'projets'     => array_map(fn (int $sid) => spectacle_chemin($sid, $mapProjets), $projetIds),
-        'projetsPastilles' => array_map(fn (int $sid) => spectacle_pastille_html($sid, $mapProjets), $projetIds),
+        'projets'     => array_map(fn (int $sid) => projet_chemin($sid, $mapProjets), $projetIds),
+        'projetsPastilles' => array_map(fn (int $sid) => projet_pastille_html($sid, $mapProjets), $projetIds),
         'ok'          => $_GET['ok'] ?? null,
     ], 'Campagne — ' . $campagne['nom']);
 }

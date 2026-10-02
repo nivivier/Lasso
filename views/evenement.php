@@ -1,5 +1,5 @@
 <?php
-/** @var ?array $evenement */ /** @var int $id */ /** @var array $spectacles */ /** @var array $spectacleMap */
+/** @var ?array $evenement */ /** @var int $id */ /** @var array $projets */ /** @var array $projetMap */
 /** @var array $employesLies */ /** @var array $employesDispo */ /** @var array $prestations */
 /** @var array $fichesParEmploye */ /** @var array $unites */ /** @var array $tauxHoraires */
 /** @var array $factures */ /** @var array $facturesDispo */
@@ -22,7 +22,7 @@ $errOrganisation = ($_GET['errOrganisation'] ?? null) === '1';
 $errProdExterne = $_GET['errProdExterne'] ?? null;
 $errInformationsMsg = [
     'date'       => 'La date est invalide.',
-    'spectacle'  => 'Spectacle invalide.',
+    'projet'  => evenements_terme_projet(false) . ' invalide.',
     'lien'       => "Le lien doit être une URL valide (commençant par http:// ou https://).",
 ][$_GET['errInformations'] ?? ''] ?? null;
 $prodExterne = (bool) ($evenement['production_externe'] ?? false);
@@ -46,13 +46,13 @@ $axeSelect = function (string $name, string $class, int $selected, bool $hidden 
     $html = preselectionner_option($axeOpts, $selected ? (string) $selected : '');
     return '<select name="' . e($name) . '" class="' . e($class) . '"' . ($hidden ? ' hidden' : '') . '>' . $html . '</select>';
 };
-// Le spectacle déjà lié peut avoir gagné des enfants depuis (devenu un groupe
+// Le projet déjà lié peut avoir gagné des enfants depuis (devenu un groupe
 // « artiste », non assignable) : on le garde visible dans le select pour ne pas
 // changer silencieusement l'événement au prochain enregistrement.
-$spectacleActuelId = (int) $vRaw('spectacle_id', '0');
-if ($spectacleActuelId && !array_filter($spectacles, fn($s) => (int) $s['id'] === $spectacleActuelId)) {
-    if (isset($spectacleMap[$spectacleActuelId])) {
-        $spectacles[] = ['id' => $spectacleActuelId, 'nom' => spectacle_chemin($spectacleActuelId, $spectacleMap) . ' (groupe, non réassignable)'];
+$projetActuelId = (int) $vRaw('projet_id', '0');
+if ($projetActuelId && !array_filter($projets, fn($s) => (int) $s['id'] === $projetActuelId)) {
+    if (isset($projetMap[$projetActuelId])) {
+        $projets[] = ['id' => $projetActuelId, 'nom' => projet_chemin($projetActuelId, $projetMap) . ' (groupe, non réassignable)'];
     }
 }
 
@@ -134,11 +134,11 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 
         <div class="grid4">
             <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
-            <label><?= e(evenements_terme_spectacle(false)) ?>
-                <select name="spectacle_id">
+            <label><?= e(evenements_terme_projet(false)) ?>
+                <select name="projet_id">
                     <option value="">—</option>
-                    <?php foreach ($spectacles as $s): ?>
-                        <option value="<?= (int) $s['id'] ?>" <?= $vRaw('spectacle_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
+                    <?php foreach ($projets as $s): ?>
+                        <option value="<?= (int) $s['id'] ?>" <?= $vRaw('projet_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -151,7 +151,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             </label>
             <div class="field-group">
                 <span>Type d'audience <?= info_tip(
-                    "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
+                    "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_projet(false)) . " et remarques. "
                     . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
                     . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
                 ) ?></span>
@@ -217,7 +217,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
               // occupant déjà la largeur laissée par les boutons flottants. ?>
         <?php $horaireEv = evenement_horaire_texte((array) $evenement); ?>
         <?php if ($horaireEv !== ''): ?><div class="info-heure"><?= e($horaireEv) ?></div><?php endif; ?>
-        <div class="info-spectacle"><?= $evenement['spectacle_nom'] ? e($evenement['spectacle_nom']) : '—' ?></div>
+        <div class="info-projet"><?= $evenement['projet_nom'] ? e($evenement['projet_nom']) : '—' ?></div>
         <table class="kv-table">
             <tr>
                 <th>Statut</th>
@@ -262,11 +262,11 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <label>Début <input type="time" name="heure_debut" value="<?= $v('heure_debut') ?>"></label>
             <label>Fin <input type="time" name="heure_fin" value="<?= $v('heure_fin') ?>"></label>
         </div>
-        <label><?= e(evenements_terme_spectacle(false)) ?>
-            <select name="spectacle_id">
+        <label><?= e(evenements_terme_projet(false)) ?>
+            <select name="projet_id">
                 <option value="">—</option>
-                <?php foreach ($spectacles as $s): ?>
-                    <option value="<?= (int) $s['id'] ?>" <?= $vRaw('spectacle_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
+                <?php foreach ($projets as $s): ?>
+                    <option value="<?= (int) $s['id'] ?>" <?= $vRaw('projet_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
@@ -279,7 +279,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         </label>
         <div class="field-group">
             <span>Audience <?= info_tip(
-                "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_spectacle(false)) . " et remarques. "
+                "Public : affiché sur le site avec ville, salle, festival, lien, " . mb_strtolower(evenements_terme_projet(false)) . " et remarques. "
                 . "Privé : seule la date apparaît, avec la mention « Événement privé ». "
                 . "Non répertorié : n'apparaît jamais sur le site (usage interne)."
             ) ?></span>

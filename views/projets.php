@@ -1,8 +1,8 @@
 <?php
 /** @var array $lignes */ /** @var array $map */ /** @var array $comptes */ /** @var string $token */ /** @var ?string $flagErr */
 /** @var string $tokenEquipe */
-$termePluriel = evenements_terme_spectacle();
-$termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
+$termePluriel = evenements_terme_projet();
+$termeSingulier = mb_strtolower(evenements_terme_projet(false));
 
 $flashErr = [
     'children' => 'Suppression impossible : ce ' . $termeSingulier . ' contient des sous-' . mb_strtolower($termePluriel) . '.',
@@ -48,7 +48,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         if ($rid === $excludeId) {
             continue;
         }
-        $h .= '<option value="' . $rid . '">' . e(spectacle_chemin($rid, $map)) . '</option>';
+        $h .= '<option value="' . $rid . '">' . e(projet_chemin($rid, $map)) . '</option>';
     }
     return $h;
 };
@@ -66,7 +66,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
         <?php if ($lignes): ?>
-        <?= champ_recherche(['id' => 'spectacles-search']) ?>
+        <?= champ_recherche(['id' => 'projets-search']) ?>
         <?php endif; ?>
         <div class="head-actions">
             <?php if ($lignes): ?>
@@ -77,7 +77,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
             ) ?>
             <?php endif; ?>
             <?php if (peut_ecrire('evenements')): ?>
-            <button type="button" class="btn" data-show="spectacle-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
+            <button type="button" class="btn" data-show="projet-add"><?= icon('plus') ?><span class="lbl"> Nouveau <?= e($termeSingulier) ?></span></button>
             <?php endif; ?>
         </div>
     </div>
@@ -87,7 +87,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php $peutEcrireSpec = peut_ecrire('evenements'); ?>
 <?php if ($peutEcrireSpec): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
-<form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" id="reorder-form" hidden>
+<form method="post" action="?p=projets<?= e($suffixeDepuis) ?>" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="section" value="reorder">
     <input type="hidden" name="id" value="">
@@ -99,17 +99,17 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php if (!$lignes): ?>
     <p class="muted">Aucun <?= e($termeSingulier) ?> pour l'instant. Commencez par en ajouter un.</p>
     <?php if ($peutEcrireSpec): ?>
-    <form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" class="inline-edit card form" id="spectacle-add" hidden>
+    <form method="post" action="?p=projets<?= e($suffixeDepuis) ?>" class="inline-edit card form" id="projet-add" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="section" value="add">
-        <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow" aria-label="Nom du spectacle">
+        <input name="nom" placeholder="ex. Nom de l'artiste ou du projet" required class="grow" aria-label="Nom du projet">
         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
-        <button type="button" class="btn ghost btn-sm" data-hide="spectacle-add"><?= icon('x') ?> Annuler</button>
+        <button type="button" class="btn ghost btn-sm" data-hide="projet-add"><?= icon('x') ?> Annuler</button>
     </form>
     <?php endif; ?>
 <?php else: ?>
-<div class="form table-scroll" id="spectacles-card">
-    <table class="list mb-16 plan-table spectacles-table">
+<div class="form table-scroll" id="projets-card">
+    <table class="list mb-16 plan-table projets-table">
         <thead>
             <tr><th></th><th class="num">Confirmés</th><th class="num">En option</th><th class="num">Annulés</th><th></th></tr>
         </thead>
@@ -129,7 +129,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 // un pays) et montrerait moins de dates qu'il n'en annonce.
                 // lien_liste_filtree() porte le format attendu par filtre_coche().
                 $href = lien_liste_filtree('evenements', [
-                    'spectacle_id' => [$sid],
+                    'projet_id' => [$sid],
                     'statut'       => [$statut],
                     'annee'        => [],
                 ]);
@@ -137,29 +137,29 @@ $parentOptions = function (int $excludeId) use ($map): string {
             };
         ?>
             <tr class="plan-row row-link <?= $s['a_enfants'] ? 'plan-groupe' : '' ?>" tabindex="0" role="link"
-                data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=spectacle&id=<?= $sid ?><?= e($suffixeDepuis) ?>">
+                data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=projet&id=<?= $sid ?><?= e($suffixeDepuis) ?>">
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                         <span class="plan-puce" aria-hidden="true"><?= $s['a_enfants'] ? icon('chevron-down') : '•' ?></span>
-                        <?php // Icône du spectacle : la même pastille que les employés
+                        <?php // Icône du projet : la même pastille que les employés
                               // (avatar_initiales()), image si elle en a une, initiales
                               // sinon. Cliquable pour la changer — le cadreur s'ouvre
                               // ici, sans quitter la liste. ?>
                         <?php if ($peutEcrireSpec): ?>
                         <button type="button" class="plan-icone" data-image="<?= $sid ?>"
                                 data-image-nom="<?= e($s['nom']) ?>" data-image-a="<?= trim((string) ($s['image'] ?? '')) !== '' ? '1' : '' ?>"
-                                title="Changer l'icône" aria-label="Changer l'icône de <?= e($s['nom']) ?>"><?= spectacle_pastille_html($sid, $map) ?></button>
+                                title="Changer l'icône" aria-label="Changer l'icône de <?= e($s['nom']) ?>"><?= projet_pastille_html($sid, $map) ?></button>
                         <?php else: ?>
-                        <?= spectacle_pastille_html($sid, $map) ?>
+                        <?= projet_pastille_html($sid, $map) ?>
                         <?php endif; ?>
-                        <a class="plan-nom" href="?p=spectacle&id=<?= $sid ?><?= e($suffixeDepuis) ?>"><?= e($s['nom']) ?></a>
+                        <a class="plan-nom" href="?p=projet&id=<?= $sid ?><?= e($suffixeDepuis) ?>"><?= e($s['nom']) ?></a>
                         <?php if ($peutEcrireSpec): ?>
-                        <form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" class="inline-edit plan-edit" id="plan-edit-<?= $sid ?>">
+                        <form method="post" action="?p=projets<?= e($suffixeDepuis) ?>" class="inline-edit plan-edit" id="plan-edit-<?= $sid ?>">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="section" value="rename">
                             <input type="hidden" name="id" value="<?= $sid ?>">
-                            <input name="nom" value="<?= e($s['nom']) ?>" class="grow plan-libelle" required aria-label="Nom du spectacle">
+                            <input name="nom" value="<?= e($s['nom']) ?>" class="grow plan-libelle" required aria-label="Nom du projet">
                             <button type="submit" class="btn ghost btn-sm" title="Enregistrer" aria-label="Enregistrer le parent"><?= icon('save') ?></button>
                         </form>
                         <?php endif; ?>
@@ -177,7 +177,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                          'titre' => 'Synchroniser — liens de ' . $s['nom']],
                         $syncEntrees($sid)
                     ) ?>
-                    <a class="btn ghost btn-sm icon-only" href="?p=spectacle&id=<?= $sid ?><?= e($suffixeDepuis) ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
+                    <a class="btn ghost btn-sm icon-only" href="?p=projet&id=<?= $sid ?><?= e($suffixeDepuis) ?>" title="<?= $peutEcrireSpec ? 'Modifier (notes, PDF, parent)' : 'Voir' ?>" aria-label="<?= $peutEcrireSpec ? 'Modifier' : 'Voir' ?>"><?= icon('file-text') ?></a>
                     <?php if ($peutEcrireSpec): ?>
                     <?php // En édition, le crayon cède la place au trio : enregistrer
                           // (mis en évidence), supprimer (rouge) et annuler. La croix se
@@ -188,7 +188,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <button type="submit" form="plan-edit-<?= $sid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                     <?php endif; ?>
                     <?php if ($peutEcrireSpec && !$s['a_enfants'] && $total === 0): ?>
-                    <form method="post" action="?p=spectacle_delete" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline plan-supprimer">
+                    <form method="post" action="?p=projet_delete" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline plan-supprimer">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= $sid ?>">
                         <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
@@ -202,16 +202,16 @@ $parentOptions = function (int $excludeId) use ($map): string {
             </tr>
         <?php endforeach; ?>
         </tbody>
-        <tfoot id="spectacle-add" hidden>
+        <tfoot id="projet-add" hidden>
             <tr>
                 <td colspan="5">
-                    <form method="post" action="?p=spectacles<?= e($suffixeDepuis) ?>" class="inline-edit">
+                    <form method="post" action="?p=projets<?= e($suffixeDepuis) ?>" class="inline-edit">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="add">
-                        <input name="nom" placeholder="ex. Nom de l'artiste ou du spectacle" required class="grow" aria-label="Nom du spectacle">
-                        <select name="parent_id" title="Spectacle parent (artiste)"><?= $parentOptions(0) ?></select>
+                        <input name="nom" placeholder="ex. Nom de l'artiste ou du projet" required class="grow" aria-label="Nom du projet">
+                        <select name="parent_id" title="<?= e(evenements_terme_projet(false)) ?> parent (artiste)"><?= $parentOptions(0) ?></select>
                         <button type="submit" class="btn btn-sm"><?= icon('check') ?> Ajouter</button>
-                        <button type="button" class="btn ghost btn-sm" data-hide="spectacle-add"><?= icon('x') ?> Annuler</button>
+                        <button type="button" class="btn ghost btn-sm" data-hide="projet-add"><?= icon('x') ?> Annuler</button>
                     </form>
                 </td>
             </tr>
@@ -224,10 +224,10 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     lassoPlanArbre({
-        containerSelector: '#spectacles-card',
-        rowsSelector: '.spectacles-table .plan-row',
-        scrollKey: 'spectaclesScroll',
-        formAction: <?= json_encode('?p=spectacles' . $suffixeDepuis, JSON_UNESCAPED_SLASHES) ?>,
+        containerSelector: '#projets-card',
+        rowsSelector: '.projets-table .plan-row',
+        scrollKey: 'projetsScroll',
+        formAction: <?= json_encode('?p=projets' . $suffixeDepuis, JSON_UNESCAPED_SLASHES) ?>,
     });
 
     // Copie d'un lien de synchronisation : l'entrée accuse réception en
@@ -247,8 +247,8 @@ $parentOptions = function (int $excludeId) use ($map): string {
     });
 
     // Recherche instantanée (insensible à la casse et aux accents).
-    const search = document.getElementById('spectacles-search');
-    const rows   = Array.from(document.querySelectorAll('.spectacles-table tbody tr'));
+    const search = document.getElementById('projets-search');
+    const rows   = Array.from(document.querySelectorAll('.projets-table tbody tr'));
     if (search) {
         const apply = () => {
             const q = lassoNorm(search.value.trim());
@@ -264,31 +264,31 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php if ($peutEcrireSpec): ?>
 <?php // Cadreur d'icône : UNE fenêtre pour toute la liste, remplie à
       // l'ouverture — en poser une par ligne aurait recopié le même formulaire
-      // autant de fois qu'il y a de spectacles. Même geste et même traitement
+      // autant de fois qu'il y a de projets. Même geste et même traitement
       // que la photo d'un employé (?p=employe) : le recadrage se fait dans
       // le navigateur, le serveur revalide la vignette comme un vrai fichier. ?>
-<div id="spectacle-image-modal" class="modal-overlay" hidden>
+<div id="projet-image-modal" class="modal-overlay" hidden>
     <div class="modal-card">
-        <form method="post" action="?p=spectacle_image" class="form" id="spectacle-image-form">
+        <form method="post" action="?p=projet_image" class="form" id="projet-image-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="id" id="spectacle-image-id" value="">
-            <input type="hidden" name="image_data" id="spectacle-image-data">
+            <input type="hidden" name="id" id="projet-image-id" value="">
+            <input type="hidden" name="image_data" id="projet-image-data">
             <div class="modal-head">
-                <span class="modal-titre" id="spectacle-image-titre">Icône</span>
-                <button type="button" class="btn ghost modal-fermer" id="spectacle-image-annuler" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+                <span class="modal-titre" id="projet-image-titre">Icône</span>
+                <button type="button" class="btn ghost modal-fermer" id="projet-image-annuler" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
             <p class="muted small">Choisissez une image et cadrez-la. Sans icône, la pastille montre les initiales du nom.</p>
             <div class="avatar-photo-zone">
                 <label class="btn ghost btn-sm avatar-fichier">
                     <?= icon('image') ?> Choisir une image
-                    <input type="file" accept="image/png,image/jpeg,image/webp" id="spectacle-image-fichier" hidden>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" id="projet-image-fichier" hidden>
                 </label>
             </div>
-            <div class="avatar-crop-zone" id="spectacle-image-zone" hidden><img id="spectacle-image-img" alt=""></div>
+            <div class="avatar-crop-zone" id="projet-image-zone" hidden><img id="projet-image-img" alt=""></div>
             <div class="modal-actions">
-                <button type="submit" name="action" value="supprimer" class="btn danger btn-sm" id="spectacle-image-retirer"
+                <button type="submit" name="action" value="supprimer" class="btn danger btn-sm" id="projet-image-retirer"
                         formnovalidate hidden data-confirm="Retirer l'icône ? La pastille reviendra aux initiales."><?= icon('trash') ?> Retirer l'icône</button>
-                <button type="submit" id="spectacle-image-ok" disabled><?= icon('save') ?> Enregistrer</button>
+                <button type="submit" id="projet-image-ok" disabled><?= icon('save') ?> Enregistrer</button>
             </div>
         </form>
     </div>
@@ -298,16 +298,16 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <script src="assets/vendor/cropperjs/cropper.min.js"></script>
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
-    var modal   = document.getElementById('spectacle-image-modal');
-    var form    = document.getElementById('spectacle-image-form');
-    var fichier = document.getElementById('spectacle-image-fichier');
-    var zone    = document.getElementById('spectacle-image-zone');
-    var img     = document.getElementById('spectacle-image-img');
-    var champ   = document.getElementById('spectacle-image-data');
-    var titre   = document.getElementById('spectacle-image-titre');
-    var champId = document.getElementById('spectacle-image-id');
-    var retirer = document.getElementById('spectacle-image-retirer');
-    var valider = document.getElementById('spectacle-image-ok');
+    var modal   = document.getElementById('projet-image-modal');
+    var form    = document.getElementById('projet-image-form');
+    var fichier = document.getElementById('projet-image-fichier');
+    var zone    = document.getElementById('projet-image-zone');
+    var img     = document.getElementById('projet-image-img');
+    var champ   = document.getElementById('projet-image-data');
+    var titre   = document.getElementById('projet-image-titre');
+    var champId = document.getElementById('projet-image-id');
+    var retirer = document.getElementById('projet-image-retirer');
+    var valider = document.getElementById('projet-image-ok');
     if (!modal || typeof Cropper === 'undefined') { return; }
     var cropper = null;
 
@@ -360,7 +360,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
         champ.value = toile.toDataURL('image/jpeg', 0.85);
     });
 
-    document.getElementById('spectacle-image-annuler').addEventListener('click', fermer);
+    document.getElementById('projet-image-annuler').addEventListener('click', fermer);
     modal.addEventListener('click', function (e) { if (e.target === modal) fermer(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) fermer(); });
 })();

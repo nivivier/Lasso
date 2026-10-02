@@ -1,8 +1,8 @@
-<?php /** @var array $modeles */ /** @var array $spectacles */
+<?php /** @var array $modeles */ /** @var array $projets */
 // Projets par défaut d'un modèle : charger le modèle dans la fenêtre
 // « Contacter » coche ces projets, qu'on peut encore changer avant d'envoyer.
-$spectacleLabels = [];
-foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; } /** @var bool $saved */ /** @var ?string $err */
+$projetLabels = [];
+foreach ($projetsDispo as $sp) { $projetLabels[(int) $sp['id']] = $sp['nom']; } /** @var bool $saved */ /** @var ?string $err */
 /** @var array $expediteurs */ /** @var string $expediteurDefaut */
 
 // Liste déroulante des expéditeurs possibles (Paramètres → E-mails). L'option
@@ -43,10 +43,10 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
             <?php if ($expediteurs): ?>
             <label>Expéditeur <select name="expediteur_id"><?= $optionsExpediteur(null) ?></select></label>
             <?php endif; ?>
-            <?php if ($spectacleLabels): ?>
+            <?php if ($projetLabels): ?>
             <?php // <div> et non <label> : voir choix_coches_html(). ?>
             <div class="field-group"><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle. Ils rattachent la prise de contact à une campagne.") ?></span>
-                <?= choix_coches_html('spectacle_ids', $spectacleLabels, [], 'Aucun') ?>
+                <?= choix_coches_html('projet_ids', $projetLabels, [], 'Aucun') ?>
             </div>
             <?php endif; ?>
             <label>Sujet <input name="sujet"></label>
@@ -98,9 +98,9 @@ $optionsExpediteur = function (?int $choisi) use ($expediteurs, $expediteurDefau
                 <?php if ($expediteurs): ?>
                 <label>Expéditeur <select name="expediteur_id"><?= $optionsExpediteur($m['expediteur_id'] !== null ? (int) $m['expediteur_id'] : null) ?></select></label>
                 <?php endif; ?>
-                <?php if ($spectacleLabels): ?>
+                <?php if ($projetLabels): ?>
                 <div class="field-group"><span>Projet <?= info_tip("Projets pré-cochés dans la fenêtre « Contacter » quand on charge ce modèle.") ?></span>
-                    <?= choix_coches_html('spectacle_ids', $spectacleLabels, (array) ($m['spectacle_ids'] ?? []), 'Aucun') ?>
+                    <?= choix_coches_html('projet_ids', $projetLabels, (array) ($m['projet_ids'] ?? []), 'Aucun') ?>
                 </div>
                 <?php endif; ?>
                 <label>Objet <input name="sujet" value="<?= e($m['sujet']) ?>"></label>

@@ -685,7 +685,7 @@ function route_modules(): void
 // pays_liste()/pays_drapeau()/pays_options_*() dans lib/helpers.php) — partagée
 // par tous les champs pays de l'app (structures, lieux, employeur, événements,
 // facturation). Liste à plat (pas de hiérarchie) : même interface de
-// glisser-déposer que spectacles.php/compta_plan.php/parametres_structures.php
+// glisser-déposer que projets.php/compta_plan.php/parametres_structures.php
 // (lassoPlanArbre()), sans reparent puisqu'il n'y a qu'un seul niveau.
 function route_pays(): void
 {
@@ -1989,8 +1989,8 @@ function evenements_pour_ligne(): array
         return [];
     }
     return db()->query(
-        "SELECT e.id, e.date, e.ville, e.salle, e.festival, s.nom AS spectacle
-         FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id
+        "SELECT e.id, e.date, e.ville, e.salle, e.festival, s.nom AS projet
+         FROM evenements e LEFT JOIN projets s ON s.id = e.projet_id
          ORDER BY e.date DESC"
     )->fetchAll();
 }

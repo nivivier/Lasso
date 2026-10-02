@@ -166,7 +166,7 @@ document.addEventListener('click', e => {
 // document plutôt qu'un simple 'click'.
 // Même traitement pour les deux familles de menu : l'entonnoir d'une colonne et
 // le menu déroulant de menu_deroulant_html(), qui vit lui aussi dans une ligne
-// de tableau (« Synchroniser », ?p=spectacles) et s'y ferait rogner autant.
+// de tableau (« Synchroniser », ?p=projets) et s'y ferait rogner autant.
 // Hors d'un conteneur qui rogne, position:fixed donne le même résultat qu'absolu
 // — le panneau reste collé sous son bouton, recalculé à chaque ouverture.
 const LASSO_MENUS_FLOTTANTS = [
@@ -1008,7 +1008,7 @@ function lassoInitCarteLieux(mapId, points, storageKey) {
 }
 
 // Boutons « Nouveau »/« Annuler » qui affichent/masquent une ligne d'ajout
-// (id ciblé par data-show/data-hide). Couvre compta_plan.php, spectacles.php
+// (id ciblé par data-show/data-hide). Couvre compta_plan.php, projets.php
 // et taux_horaires.php. data-focus (optionnel, sur le bouton data-show) donne
 // le sélecteur du champ à focaliser à l'ouverture ; défaut : premier champ
 // texte non caché. Délégué sur document : ce script est chargé dans <head>,
@@ -1042,7 +1042,7 @@ document.addEventListener('click', e => {
 
 // Arbre hiérarchique avec glisser-déposer pour réordonner/reparenter (rangées
 // .plan-row avec data-id/data-parent/data-depth) — factorisé depuis
-// spectacles.php et compta_plan.php (mêmes classes CSS .plan-*/.dnd-on, voir
+// projets.php et compta_plan.php (mêmes classes CSS .plan-*/.dnd-on, voir
 // app.css). Glisser une ligne calcule (parent, profondeur, ordre des frères)
 // et soumet #reorder-form (id/parent_id/order — le serveur revalide toujours
 // la cohérence, ex. cycles interdits ou profondeur imposée). Gère aussi le
@@ -1056,7 +1056,7 @@ document.addEventListener('click', e => {
 // opts.groupAttr          : optionnel — nom d'attribut data-<groupAttr> (ex. 'sens') quand
 //                           plusieurs arbres indépendants coexistent sur la page (ex. plan comptable
 //                           produits/charges) ; une ligne ne peut être déposée que parmi celles du
-//                           même groupe. Omis si un seul arbre (spectacles, catégories de structures).
+//                           même groupe. Omis si un seul arbre (projets, catégories de structures).
 function lassoPlanArbre(opts) {
     const { containerSelector, rowsSelector, scrollKey, formAction, groupAttr = null } = opts;
 
@@ -1452,7 +1452,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Loupe des champs qui filtrent en direct (employés, spectacles, écritures d'un
+// Loupe des champs qui filtrent en direct (employés, projets, écritures d'un
 // axe) : il n'y a pas de formulaire à soumettre, donc champ_recherche() rend un
 // type="button" — le clic ramène simplement le focus dans le champ. Sans ça, la
 // loupe serait le seul élément de l'interface qui a l'air cliquable sans rien

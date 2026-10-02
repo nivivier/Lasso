@@ -32,7 +32,7 @@ const MODULES = [
     ],
     'evenements' => [
         'label'       => 'Événements',
-        'description' => 'Dates de concert/spectacle, suivi SUISA, export public JSON/iCal',
+        'description' => 'Dates de concert/projet, suivi SUISA, export public JSON/iCal',
         'requires'    => [],
     ],
     'booking' => [
@@ -42,7 +42,7 @@ const MODULES = [
     ],
     // Suivi des demandes de subvention (SPEC_SUBVENTIONS.md). Réutilise les
     // structures comme la Facturation et le Booking, sans dépendre d'eux : un
-    // bailleur est une structure, et le projet financé un spectacle.
+    // bailleur est une structure, et le projet financé un projet.
     'fonds' => [
         'label'       => 'Recherche de fonds',
         'description' => "Demandes de subvention : à qui l'on demande, pour quel projet, combien, où en est le dossier et ce qui a été obtenu. Les bailleurs sont des structures, comme les salles et les débiteurs.",
@@ -403,21 +403,21 @@ function nav_groupes(): array
         ]];
     }
 
-    // L'onglet des projets (spectacles). Il appartient au module Événements —
+    // L'onglet des projets (projets). Il appartient au module Événements —
     // c'est lui qui les tient —, mais trois modules travaillent dessus : une
     // campagne de démarchage vise des projets, une campagne de recherche de
     // fonds en finance un. L'onglet est donc repris dans Booking et dans
     // Recherche de fonds, à la condition stricte que le module Événements soit
-    // allumé ET lisible : la route `spectacles` lui est rattachée (index.php),
+    // allumé ET lisible : la route `projets` lui est rattachée (index.php),
     // un compte qui n'y a pas accès se verrait proposer une page refusée.
-    $ongletProjets = [evenements_terme_spectacle(), ['spectacles', 'spectacle'], 0, 'music'];
+    $ongletProjets = [evenements_terme_projet(), ['projets', 'projet'], 0, 'music'];
     $projetsAccessibles = module_accessible('evenements');
 
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
             'evenements' => ['Événements', ['evenements', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
             'structures'       => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
-            'spectacles'       => $ongletProjets,
+            'projets'       => $ongletProjets,
         ]];
     }
 
@@ -434,7 +434,7 @@ function nav_groupes(): array
         // Les projets, juste après les campagnes qui les portent : c'est sur eux
         // qu'on démarche, et l'onglet évite de sortir du module pour les régler.
         if ($projetsAccessibles) {
-            $ongletsBooking['spectacles'] = $ongletProjets;
+            $ongletsBooking['projets'] = $ongletProjets;
         }
         // Suivi et Nouvelle campagne appartiennent au sous-module « Envois
         // groupés » : sans lui, le booking garde ses structures, ses modèles de
@@ -471,7 +471,7 @@ function nav_groupes(): array
         // analytique de la ventilation (migration_91) : on le règle sans quitter
         // le module.
         if ($projetsAccessibles) {
-            $ongletsFonds['spectacles'] = $ongletProjets;
+            $ongletsFonds['projets'] = $ongletProjets;
         }
         $g['fonds'] = ['Recherche de fonds', 'landmark', $ongletsFonds];
     }
@@ -529,9 +529,9 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     // Certaines routes partagées ont un groupe PROPRIÉTAIRE sans ambiguïté :
     // les projets sont tenus par le module Événements, Booking et Recherche de
     // fonds ne font que les reprendre en onglet. Sans cette table, l'ordre
-    // fixe ci-dessous allumerait Booking sur un ?p=spectacles arrivé sans
+    // fixe ci-dessous allumerait Booking sur un ?p=projets arrivé sans
     // provenance — depuis le rail, un signet ou la recherche unifiée.
-    $proprietaire = ['spectacles' => 'evenements', 'spectacle' => 'evenements'][$route] ?? null;
+    $proprietaire = ['projets' => 'evenements', 'projet' => 'evenements'][$route] ?? null;
     if ($proprietaire !== null && in_array($proprietaire, $candidats, true)) {
         return $proprietaire;
     }

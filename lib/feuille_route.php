@@ -366,29 +366,29 @@ function feuille_supprimer(int $id): void
 //
 //   — une BANDE de journée entière, qui porte la feuille de route complète dans
 //     sa description et les pièces jointes en ATTACH ;
-//   — le SPECTACLE, sur l'heure de représentation de la date (celle qui
+//   — le PROJET, sur l'heure de représentation de la date (celle qui
 //     s'affiche sur sa fiche) ;
 //   — un ÉVÉNEMENT DATÉ par horaire du déroulé (get-in, balances, show), pour
 //     que la journée se lise dans la vue « jour » d'un téléphone.
 //
-// Les trois se complètent : la bande dit tout, le spectacle dit l'heure qu'on
+// Les trois se complètent : la bande dit tout, le projet dit l'heure qu'on
 // annonce, les horaires disent le reste de la journée. Leurs UID sont distincts
 // de ceux de l'export public, pour qu'un agenda abonné aux deux flux ne prenne
 // pas l'un pour une mise à jour de l'autre.
 
 // Les événements du calendrier d'équipe : tous, sans filtre de visibilité ni de
-// statut, avec leur feuille de route. $spectacleId restreint à un spectacle et
-// à ses sous-spectacles, comme l'export public.
-function feuille_evenements_equipe(?int $spectacleId = null): array
+// statut, avec leur feuille de route. $projetId restreint à un projet et
+// à ses sous-projets, comme l'export public.
+function feuille_evenements_equipe(?int $projetId = null): array
 {
-    $sql = 'SELECT e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_parent_nom
+    $sql = 'SELECT e.*, s.nom AS projet_nom, sp.nom AS projet_parent_nom
               FROM evenements e
-              LEFT JOIN spectacles s ON s.id = e.spectacle_id
-              LEFT JOIN spectacles sp ON sp.id = s.parent_id';
+              LEFT JOIN projets s ON s.id = e.projet_id
+              LEFT JOIN projets sp ON sp.id = s.parent_id';
     $params = [];
-    if ($spectacleId) {
-        $ids = array_merge([$spectacleId], spectacle_descendants($spectacleId, spectacle_map()));
-        $sql .= ' WHERE e.spectacle_id IN (' . sql_in($ids) . ')';
+    if ($projetId) {
+        $ids = array_merge([$projetId], projet_descendants($projetId, projet_map()));
+        $sql .= ' WHERE e.projet_id IN (' . sql_in($ids) . ')';
         $params = $ids;
     }
     $sql .= ' ORDER BY e.date';
@@ -405,13 +405,13 @@ function feuille_evenements_equipe(?int $spectacleId = null): array
     return $evenements;
 }
 
-// Titre d'une date dans le calendrier de l'équipe : le spectacle, précédé de ce
+// Titre d'une date dans le calendrier de l'équipe : le projet, précédé de ce
 // qui doit sauter aux yeux — une date annulée ou encore en option n'engage pas
 // au même titre qu'une date confirmée.
 function feuille_ical_titre(array $ev): string
 {
-    $parent = trim((string) ($ev['spectacle_parent_nom'] ?? ''));
-    $nom    = trim((string) ($ev['spectacle_nom'] ?? '')) ?: 'Date';
+    $parent = trim((string) ($ev['projet_parent_nom'] ?? ''));
+    $nom    = trim((string) ($ev['projet_nom'] ?? '')) ?: 'Date';
     $titre  = $parent !== '' ? $parent . ' (' . $nom . ')' : $nom;
     $prefixe = match ((string) $ev['statut']) {
         'annule' => '[ANNULÉ] ',
@@ -497,19 +497,19 @@ function feuille_sections(array $ev): array
         $par[(string) $el['type']][] = $el;
     }
 
-    $spectacle = heure_normalisee((string) ($ev['heure_debut'] ?? ''));
-    if ($spectacle !== '') {
+    $projet = heure_normalisee((string) ($ev['heure_debut'] ?? ''));
+    if ($projet !== '') {
         // Un élément de feuille comme les autres, mais sans id : il n'est pas en
         // base, il est déduit de la date elle-même. Les deux rendus le traitent
         // donc sans rien savoir de sa nature particulière.
-        $ligne = ['id' => 0, 'type' => 'horaire', 'libelle' => 'Spectacle',
+        $ligne = ['id' => 0, 'type' => 'horaire', 'libelle' => evenements_terme_projet(false),
                   'debut' => (string) ($ev['heure_debut'] ?? ''), 'fin' => (string) ($ev['heure_fin'] ?? ''),
                   'remarque' => ''];
         $horaires = [];
         $pose = false;
         foreach ($par['horaire'] ?? [] as $el) {
             $debut = heure_normalisee((string) ($el['debut'] ?? ''));
-            if (!$pose && $debut !== '' && $debut > $spectacle) {
+            if (!$pose && $debut !== '' && $debut > $projet) {
                 $horaires[] = $ligne;
                 $pose = true;
             }
@@ -660,7 +660,7 @@ function feuille_generer_ical_equipe(array $evenements, string $base): string
         // Une date annulée reste dans le flux, marquée comme telle : la faire
         // disparaître laisserait croire à un oubli, et l'agenda de chacun garde
         // ainsi la trace de ce qui était prévu. Les trois événements d'une même
-        // date portent le même statut — la bande, le spectacle et les horaires.
+        // date portent le même statut — la bande, le projet et les horaires.
         $statut = static function (array $ev): array {
             return match ((string) $ev['statut']) {
                 'annule' => ['STATUS:CANCELLED'],
@@ -678,7 +678,7 @@ function feuille_generer_ical_equipe(array $evenements, string $base): string
         $lignes[] = 'END:VEVENT';
 
         // L'heure de représentation de la date — celle qui s'affiche sur sa
-        // fiche — pose son propre créneau : « Spectacle », de début à fin. Elle
+        // fiche — pose son propre créneau : « Projet », de début à fin. Elle
         // ne vivait jusqu'ici que dans la description de la bande de journée,
         // où aucun agenda ne sait la placer sur une grille horaire. C'est
         // pourtant l'heure autour de laquelle tourne le reste de la journée.
@@ -689,13 +689,13 @@ function feuille_generer_ical_equipe(array $evenements, string $base): string
         $bornesEv = evenement_bornes_utc($ev);
         if ($bornesEv !== null) {
             $lignes[] = 'BEGIN:VEVENT';
-            $lignes[] = 'UID:equipe-spectacle-' . $id . '@lasso';
+            $lignes[] = 'UID:equipe-projet-' . $id . '@lasso';
             $lignes[] = 'DTSTAMP:' . $stamp;
             $lignes[] = 'DTSTART:' . $bornesEv['debut'];
             if ($bornesEv['fin'] !== null) {
                 $lignes[] = 'DTEND:' . $bornesEv['fin'];
             }
-            $lignes[] = 'SUMMARY:' . evenements_ical_echap('Spectacle — ' . feuille_ical_titre($ev));
+            $lignes[] = 'SUMMARY:' . evenements_ical_echap(evenements_terme_projet(false) . ' — ' . feuille_ical_titre($ev));
             if ($lieu !== '') {
                 $lignes[] = 'LOCATION:' . evenements_ical_echap($lieu);
             }

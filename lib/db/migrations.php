@@ -119,6 +119,7 @@ function run_migrations(PDO $pdo): void
         91 => 'migration_91', // l'axe analytique appartient au PROJET (spectacles), plus à chaque date
         92 => 'migration_92', // module « Recherche de fonds » : campagnes, demandes, versements, pièces exigées
         93 => 'migration_93', // recherche de fonds : deux paliers d'objectif (minimal, idéal) au lieu d'un budget unique
+        94 => 'migration_94', // « spectacle » devient « projet » : tables, colonnes, index, et le terme réglable scindé en singulier/pluriel
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -2978,5 +2979,101 @@ function migration_93(PDO $pdo): void
     }
     if (in_array('montant_cible', $cols, true)) {
         try { $pdo->exec('ALTER TABLE fonds_campagnes DROP COLUMN montant_cible'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
+    }
+}
+
+// « Spectacle » devient « projet » (docs/NOMMAGE.md § 4.6). Le mot visible
+// était déjà réglable et semé à « Projets » ; le code, lui, parlait encore de
+// spectacles jusque dans le schéma. Un projet n'est pas toujours un
+// spectacle — une campagne de recherche de fonds en finance un.
+//
+// RENOMMER, et surtout pas dupliquer. `ALTER TABLE … RENAME TO` reporte le
+// nouveau nom dans les clauses REFERENCES des autres tables — c'est le
+// comportement que docs/DECISIONS.md § Migrations SQLite consigne comme un
+// PIÈGE, et qui est ici exactement ce qu'on veut. Dupliquer obligerait à
+// reconstruire les quatre tables de liaison ET `evenements`, dont les colonnes
+// se sont accumulées sur quatre-vingt-dix migrations.
+//
+// Deux instructions suffisent, et toutes deux demandent SQLite >= 3.25 :
+// RENAME TO (avec report des FK) et RENAME COLUMN. L'hébergeur est en 3.34.
+// DROP COLUMN, qui exige 3.35, n'est pas utilisé ici.
+//
+// TRANSACTION explicite, contrairement aux autres migrations : run_migrations()
+// n'enveloppe pas ses étapes, et celle-ci touche six tables. Une étape qui
+// échouerait à mi-chemin laisserait PRAGMA user_version en arrière et ferait
+// planter toute requête sur db(). On vérifie donc avant de valider, et on
+// annule tout si le schéma n'est pas net.
+function migration_94(PDO $pdo): void
+{
+    $existe = function (string $t) use ($pdo): bool {
+        $st = $pdo->prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?");
+        $st->execute([$t]);
+        return (bool) $st->fetchColumn();
+    };
+    $colonnes = fn (string $t): array => array_column($pdo->query("PRAGMA table_info($t)")->fetchAll(), 'name');
+
+    $pdo->beginTransaction();
+    try {
+        foreach ([
+            'spectacles'                => 'projets',
+            'campagne_spectacles'       => 'campagne_projets',
+            'historique_spectacles'     => 'historique_projets',
+            'mailing_modele_spectacles' => 'mailing_modele_projets',
+            'fonds_campagne_spectacles' => 'fonds_campagne_projets',
+        ] as $ancien => $neuf) {
+            if ($existe($ancien) && !$existe($neuf)) {
+                $pdo->exec("ALTER TABLE $ancien RENAME TO $neuf");
+            }
+        }
+        foreach (['evenements', 'campagne_projets', 'historique_projets',
+                  'mailing_modele_projets', 'fonds_campagne_projets'] as $t) {
+            if (!$existe($t)) {
+                continue;
+            }
+            $cols = $colonnes($t);
+            if (in_array('spectacle_id', $cols, true) && !in_array('projet_id', $cols, true)) {
+                $pdo->exec("ALTER TABLE $t RENAME COLUMN spectacle_id TO projet_id");
+            }
+        }
+        // SQLite n'a pas de RENAME INDEX : on refait les trois index nommés.
+        // Ceux des clés primaires suivent le renommage de leur table tout seuls.
+        $pdo->exec('DROP INDEX IF EXISTS idx_spectacles_parent');
+        $pdo->exec('DROP INDEX IF EXISTS idx_evenements_spectacle');
+        $pdo->exec('DROP INDEX IF EXISTS idx_historique_spectacles_spectacle');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_projets_parent ON projets(parent_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_evenements_projet ON evenements(projet_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_historique_projets_projet ON historique_projets(projet_id)');
+
+        // Le terme réglable : UN paramètre au pluriel dont le singulier était
+        // deviné en retirant un « s » devient DEUX paramètres saisis. Le
+        // français ne suit pas toujours la règle — « Festival »/« Festivals » —,
+        // et une valeur saisie au singulier ressortait telle quelle au pluriel.
+        // L'existant est repris comme PLURIEL ; le singulier part de l'ancienne
+        // devinette, à corriger à la main là où elle se trompe.
+        $st = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'evenements_terme_spectacle'");
+        $st->execute();
+        $terme = trim((string) ($st->fetchColumn() ?: ''));
+        if ($terme !== '') {
+            $pdo->prepare("INSERT OR REPLACE INTO parametres (cle, valeur) VALUES ('evenements_terme_projet', ?)")
+                ->execute([$terme]);
+            $singulier = rtrim($terme, 's') ?: $terme;
+            $pdo->prepare("INSERT OR REPLACE INTO parametres (cle, valeur) VALUES ('evenements_terme_projet_singulier', ?)")
+                ->execute([$singulier]);
+            $pdo->exec("DELETE FROM parametres WHERE cle = 'evenements_terme_spectacle'");
+        }
+
+        // --- les deux vérifications, avant de valider ----------------------
+        $restes = $pdo->query("SELECT name FROM sqlite_master WHERE sql LIKE '%spectacle%'")
+            ->fetchAll(PDO::FETCH_COLUMN);
+        if ($restes) {
+            throw new RuntimeException('« spectacle » subsiste dans le schéma : ' . implode(', ', $restes));
+        }
+        if ($pdo->query('PRAGMA foreign_key_check')->fetchAll()) {
+            throw new RuntimeException('clés étrangères cassées après le renommage');
+        }
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
     }
 }

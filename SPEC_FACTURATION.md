@@ -9,7 +9,7 @@ l'application fait aujourd'hui.
 ## 1. Objectif
 
 Permettre à l'association d'émettre des factures pour :
-- **contrats de cession de spectacle** (le cas le plus fréquent — plusieurs postes :
+- **contrats de cession de projet** (le cas le plus fréquent — plusieurs postes :
   cachet, frais de déplacement, défraiement…) ;
 - **cotisations de membres** (facturation périodique, faible volume) ;
 - **participation aux frais du local** ;

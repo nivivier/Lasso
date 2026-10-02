@@ -32,7 +32,7 @@ bouton d'organisation des cartes à sa droite.
 
 ### Un écran qui EST un formulaire met aussi ses commandes en haut
 
-Créer un employé, une fiche, une facture, un spectacle, une campagne, une
+Créer un employé, une fiche, une facture, un projet, une campagne, une
 structure, une date : ces sept écrans n'ont rien à lire qu'un crayon ouvrirait —
 ils sont un formulaire du premier champ au dernier. « Enregistrer » et
 « Annuler » y tiennent donc l'en-tête de page, à la place où les cartes mettent
@@ -224,7 +224,7 @@ gestes courants.
 ### d. Une ligne d'une liste ordonnable — `.plan-edit-btn` + `.editing`
 
 Le motif des listes qui se réordonnent (`?p=compta_plan`, `?p=postes`,
-`?p=spectacles`, `?p=categories_structures`, `?p=pays`) :
+`?p=projets`, `?p=categories_structures`, `?p=pays`) :
 
 ```html
 <tr class="plan-row" data-id="12">
@@ -369,7 +369,7 @@ d'édition — deux `<form>` ne s'imbriquent pas — et son bouton le vise par
 
 **Glisser-déposer**, partout où c'est possible. C'est la convention de
 l'application : plan comptable, lignes du décompte, catégories de structure,
-pays et régions, spectacles, déroulé d'un événement, cartes du tableau de bord.
+pays et régions, projets, déroulé d'un événement, cartes du tableau de bord.
 
 Le vocabulaire est fixe et partagé :
 
@@ -386,7 +386,7 @@ Deux implémentations, selon la forme de la liste :
 - **`lassoPlanArbre()`** — liste hiérarchique : le décalage horizontal du
   curseur pendant le glissement change le **niveau** (22 px par cran), la
   position verticale change le rang. `?p=compta_plan`, `?p=categories_structures`,
-  `?p=spectacles`, `?p=pays`.
+  `?p=projets`, `?p=pays`.
 - **`lassoOrdreListe()`** — liste plate, même vocabulaire sans la hiérarchie.
   `?p=postes`, le déroulé d'un événement (`?p=evenement`), les cartes du tableau
   de bord (`?p=tableau_bord`, panneau « Organiser les cartes »).
@@ -794,7 +794,7 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   pagination client (`pagination_mode_client()`), sinon envoyée au serveur.
 - **Une liste courte d'événements se rend par `evenement_mini_html()`**
   (`lib/evenements.php`) : la date en pastille d'agenda (jour, mois, année),
-  l'artiste en petit — `Artiste › Spectacle`, le chevron de `spectacle_chemin()`
+  l'artiste en petit — `Artiste › Projet`, le chevron de `projet_chemin()`
   —, la VILLE en grand parce que c'est elle qu'on cherche des yeux, la salle en
   dessous, et le statut à droite (icône au-dessus du mot, largeur
   commune calée sur le plus long libellé pour que la colonne ne zigzague pas).

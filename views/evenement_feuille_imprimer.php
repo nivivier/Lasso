@@ -6,7 +6,7 @@
 /** @var array $evenement */ /** @var array $elements */ /** @var array $organisateurs */
 /** @var array $destinataires */ /** @var array $sansAdresse */ /** @var bool $peutEnvoyer */
 /** @var string $nomEmployeur */
-$titrePage = trim((string) ($evenement['spectacle_nom'] ?? '')) ?: 'Date';
+$titrePage = trim((string) ($evenement['projet_nom'] ?? '')) ?: 'Date';
 ?>
 <!DOCTYPE html>
 <?php // data-theme="clair" : un document s'imprime sur du papier BLANC, donc à

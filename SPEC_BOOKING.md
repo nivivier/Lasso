@@ -134,7 +134,7 @@ Clé primaire composite `(structure_id, lieu_id)`. Pas de champ « rôle » sur 
 (décidé) — le lien signifie simplement « cette structure est associée à ce lieu ».
 
 ### `structure_tags` + `structure_tag_liens`
-Étiquettes libres et réutilisables (même esprit que `spectacles`/`axes_analytiques` :
+Étiquettes libres et réutilisables (même esprit que `projets`/`axes_analytiques` :
 une liste de référence plutôt qu'un champ texte libre par structure, pour fiabiliser le
 filtre mailing). Couvre le besoin « structures marquées comme intéressantes pour des
 premières parties », mais aussi tout autre tag futur sans modification de schéma.
@@ -377,7 +377,7 @@ aura d'autres). L'import propose donc une **étape de correspondance des colonne
 3. **Simulation** (comme les imports existants) : pour chaque ligne, tentative de
    correspondance avec une structure existante (e-mail exact en priorité, sinon nom
    normalisé — casse/espaces/ponctuation ignorés, même logique que le rapprochement
-   spectacle de l'import événements).
+   projet de l'import événements).
    - Aucune correspondance → nouvelle structure, insérée directement sans confirmation
      individuelle (pas un « conflit »).
    - Correspondance trouvée avec des différences → mise en file de **conflits**.

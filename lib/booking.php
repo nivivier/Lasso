@@ -148,41 +148,41 @@ function campagne_ouverte(string $dateDebut, string $aujourdhui): bool
 // Projets d'une campagne, d'une entrée d'historique ou d'un modèle : la même
 // forme de table de liaison partout, donc une seule fonction.
 // $table => sa colonne porteuse : campagne_id, historique_id, modele_id.
-const SPECTACLES_LIAISONS = [
-    'campagne_spectacles'       => 'campagne_id',
-    'fonds_campagne_spectacles' => 'campagne_id',
-    'historique_spectacles'     => 'historique_id',
-    'mailing_modele_spectacles' => 'modele_id',
+const PROJETS_LIAISONS = [
+    'campagne_projets'       => 'campagne_id',
+    'fonds_campagne_projets' => 'campagne_id',
+    'historique_projets'     => 'historique_id',
+    'mailing_modele_projets' => 'modele_id',
 ];
 
-function spectacles_lies(string $table, int $id): array
+function projets_lies(string $table, int $id): array
 {
-    $col = SPECTACLES_LIAISONS[$table] ?? null;
+    $col = PROJETS_LIAISONS[$table] ?? null;
     if ($col === null || $id <= 0) {
         return [];
     }
-    $stmt = db()->prepare("SELECT spectacle_id FROM $table WHERE $col = ? ORDER BY spectacle_id");
+    $stmt = db()->prepare("SELECT projet_id FROM $table WHERE $col = ? ORDER BY projet_id");
     $stmt->execute([$id]);
     return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 }
 
 // Réécrit les projets liés : c'est une sélection, on la remplace en entier.
-// Les identifiants sont filtrés contre les spectacles existants — un id forgé
+// Les identifiants sont filtrés contre les projets existants — un id forgé
 // violerait la clé étrangère au lieu d'être simplement ignoré.
-function spectacles_lier(string $table, int $id, array $spectacleIds): void
+function projets_lier(string $table, int $id, array $projetIds): void
 {
-    $col = SPECTACLES_LIAISONS[$table] ?? null;
+    $col = PROJETS_LIAISONS[$table] ?? null;
     if ($col === null || $id <= 0) {
         return;
     }
     db()->prepare("DELETE FROM $table WHERE $col = ?")->execute([$id]);
-    $ids = array_values(array_unique(array_filter(array_map('intval', $spectacleIds))));
+    $ids = array_values(array_unique(array_filter(array_map('intval', $projetIds))));
     if (!$ids) {
         return;
     }
-    $stmt = db()->prepare('SELECT id FROM spectacles WHERE id IN (' . sql_in($ids) . ')');
+    $stmt = db()->prepare('SELECT id FROM projets WHERE id IN (' . sql_in($ids) . ')');
     $stmt->execute($ids);
-    $ins = db()->prepare("INSERT OR IGNORE INTO $table ($col, spectacle_id) VALUES (?, ?)");
+    $ins = db()->prepare("INSERT OR IGNORE INTO $table ($col, projet_id) VALUES (?, ?)");
     foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
         $ins->execute([$id, (int) $sid]);
     }
@@ -200,7 +200,7 @@ function spectacles_lier(string $table, int $id, array $spectacleIds): void
 // projets de la campagne, et pas antérieure à son ouverture.
 //
 // Les valeurs sont écrites DANS la requête plutôt que liées : ce sont des
-// identifiants de spectacle relus de la base (passés par intval()) et une date
+// identifiants de projet relus de la base (passés par intval()) et une date
 // citée par PDO, jamais une saisie. Sans cela, la même condition ne pourrait pas
 // servir dans un ORDER BY, où il n'y a pas de paramètres à lier.
 //
@@ -212,16 +212,16 @@ function spectacles_lier(string $table, int $id, array $spectacleIds): void
 function campagne_contactee_sql(int $campagneId, string $colStructureId): string
 {
     $c = campagne_charger($campagneId);
-    $spectacles = $c ? spectacles_lies('campagne_spectacles', $campagneId) : [];
-    if (!$spectacles) {
+    $projets = $c ? projets_lies('campagne_projets', $campagneId) : [];
+    if (!$projets) {
         return '0';
     }
-    $ids = implode(',', array_map('intval', $spectacles));
+    $ids = implode(',', array_map('intval', $projets));
     $sql = "EXISTS (SELECT 1 FROM historique h
-                      JOIN historique_spectacles hs ON hs.historique_id = h.id
+                      JOIN historique_projets hs ON hs.historique_id = h.id
                      WHERE h.entite_type = 'structure' AND h.type = 'mailing'
                        AND h.entite_id = $colStructureId
-                       AND hs.spectacle_id IN ($ids)";
+                       AND hs.projet_id IN ($ids)";
     if ((string) $c['date_debut'] !== '') {
         $sql .= ' AND h.cree_le >= ' . db()->quote((string) $c['date_debut']);
     }
@@ -286,7 +286,7 @@ function campagne_correspond(array $campagne, string $q): bool
 // d'œil ce qu'on lui a déjà proposé, et ce qu'elle en a dit.
 function campagnes_de_structure(int $structureId): array
 {
-    $map = spectacle_map();
+    $map = projet_map();
     $stmt = db()->prepare(
         'SELECT c.id, c.nom, c.date_debut, c.date_fin, cs.reponse
            FROM campagnes c
@@ -298,8 +298,8 @@ function campagnes_de_structure(int $structureId): array
     $out = [];
     foreach ($stmt->fetchAll() as $c) {
         $c['projets'] = array_map(
-            fn ($sid) => spectacle_chemin($sid, $map),
-            spectacles_lies('campagne_spectacles', (int) $c['id'])
+            fn ($sid) => projet_chemin($sid, $map),
+            projets_lies('campagne_projets', (int) $c['id'])
         );
         $out[] = $c;
     }
@@ -329,7 +329,7 @@ function campagnes_de_structures_liees(array $liees): array
     if (!$infos) {
         return [];
     }
-    $map = spectacle_map();
+    $map = projet_map();
     $projets = [];
     $out = [];
     foreach (lots_ids(array_keys($infos)) as $lot) {
@@ -345,8 +345,8 @@ function campagnes_de_structures_liees(array $liees): array
             // Les projets ne sont lus qu'une fois par campagne, même si
             // plusieurs structures liées y figurent.
             $projets[$cid] ??= array_map(
-                fn ($sid) => spectacle_chemin($sid, $map),
-                spectacles_lies('campagne_spectacles', $cid)
+                fn ($sid) => projet_chemin($sid, $map),
+                projets_lies('campagne_projets', $cid)
             );
             $lie = $infos[(int) $c['structure_id']];
             $out[] = $c + [
@@ -424,8 +424,8 @@ function campagnes_contactees_comptes(): array
     $sql = "SELECT cs.campagne_id AS cid, COUNT(DISTINCT cs.structure_id) AS n
               FROM campagne_structures cs
               JOIN campagnes c ON c.id = cs.campagne_id
-              JOIN campagne_spectacles cp ON cp.campagne_id = cs.campagne_id
-              JOIN historique_spectacles hs ON hs.spectacle_id = cp.spectacle_id
+              JOIN campagne_projets cp ON cp.campagne_id = cs.campagne_id
+              JOIN historique_projets hs ON hs.projet_id = cp.projet_id
               JOIN historique h ON h.id = hs.historique_id
              WHERE h.entite_type = 'structure'
                AND h.type = 'mailing'
@@ -443,11 +443,11 @@ function campagnes_contactees_comptes(): array
 // — en quatre requêtes pour tout l'onglet, quel qu'en soit le nombre.
 function campagnes_liste(): array
 {
-    $map = spectacle_map();
+    $map = projet_map();
     // Projets et effectifs de toutes les campagnes, groupés d'avance.
     $projetsParCampagne = [];
-    foreach (db()->query('SELECT campagne_id, spectacle_id FROM campagne_spectacles ORDER BY spectacle_id') as $l) {
-        $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['spectacle_id'];
+    foreach (db()->query('SELECT campagne_id, projet_id FROM campagne_projets ORDER BY projet_id') as $l) {
+        $projetsParCampagne[(int) $l['campagne_id']][] = (int) $l['projet_id'];
     }
     $totaux = [];
     foreach (db()->query('SELECT campagne_id, COUNT(*) AS n FROM campagne_structures GROUP BY campagne_id') as $l) {
@@ -464,10 +464,10 @@ function campagnes_liste(): array
         $total = $totaux[$id] ?? 0;
         $faits = $faitsParCampagne[$id] ?? 0;
         $out[] = $c + [
-            'projets'    => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projetIds),
+            'projets'    => array_map(fn ($sid) => projet_chemin($sid, $map), $projetIds),
             // Les pastilles des mêmes projets, dans le même ordre : une icône
             // se repère plus vite qu'un nom dans une liste de campagnes.
-            'projets_pastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projetIds),
+            'projets_pastilles' => array_map(fn ($sid) => projet_pastille_html($sid, $map), $projetIds),
             // Les mêmes projets en identifiants : c'est sur eux que filtre la liste.
             'projet_ids' => $projetIds,
             'annees'     => campagne_annees((string) $c['date_debut'], (string) $c['date_fin']),
@@ -789,7 +789,7 @@ function structure_statut_icone_classe(string $statut): string
 // Catégorie CRM d'une structure (booking), voir SPEC_BOOKING.md §5.
 // Configurable (Paramètres → Catégories). Une sous-catégorie
 // est nécessairement imbriquée dans une catégorie (structure_categories.parent_id,
-// même principe que spectacles/groupe-spectacle — voir lib/evenements.php) : une
+// même principe que projets/groupe-projet — voir lib/evenements.php) : une
 // catégorie racine a parent_id NULL, une sous-catégorie a pour parent_id l'id
 // d'une catégorie racine (2 niveaux max, imposé par l'UI plutôt que le schéma).
 // structures.categorie/sous_categorie restent des colonnes texte (comparaison
@@ -908,7 +908,7 @@ function structure_sous_categorie_booking_nom_pour(string $nom): string
 
 // Nom de structure normalisé pour un rapprochement insensible à la casse, aux
 // espaces et à la ponctuation (ex. « anti concert » ↔ « Anti-Concert ») — même
-// principe que normaliser_nom_spectacle() (lib/evenements.php), dupliqué
+// principe que normaliser_nom_projet() (lib/evenements.php), dupliqué
 // volontairement plutôt que partagé entre modules indépendants.
 function normaliser_nom_structure(string $s): string
 {
@@ -929,19 +929,19 @@ function structure_evenements(int $structureId): array
     if (!module_actif('evenements')) {
         return [];
     }
-    // spectacle = feuille rattachée à l'événement (evenements.spectacle_id,
-    // toujours une feuille — voir spectacle_assignable()) ; spectacle_groupe =
+    // projet = feuille rattachée à l'événement (evenements.projet_id,
+    // toujours une feuille — voir projet_assignable()) ; projet_groupe =
     // son parent (l'artiste), si elle est imbriquée sous un groupe — sinon
-    // NULL (spectacle autonome, pas de groupe). Voir views/structure.php,
+    // NULL (projet autonome, pas de groupe). Voir views/structure.php,
     // carte « Événements » : affiche le groupe en priorité, la feuille en
     // second si distincte.
     $stmt = db()->prepare(
         'SELECT DISTINCT e.id, e.date, e.statut, e.ville, e.pays, e.departement_canton,
-                e.salle, e.festival, sp.nom AS spectacle, spg.nom AS spectacle_groupe
+                e.salle, e.festival, sp.nom AS projet, spg.nom AS projet_groupe
          FROM evenements e
          JOIN evenement_structures es ON es.evenement_id = e.id
-         LEFT JOIN spectacles sp ON sp.id = e.spectacle_id
-         LEFT JOIN spectacles spg ON spg.id = sp.parent_id
+         LEFT JOIN projets sp ON sp.id = e.projet_id
+         LEFT JOIN projets spg ON spg.id = sp.parent_id
          WHERE es.structure_id = :sid
          ORDER BY e.date DESC, e.id DESC'
     );
@@ -1609,17 +1609,17 @@ function historique_entite(string $entiteType, int $id): array
     $parEntree = [];
     foreach (lots_ids(array_map(fn ($e) => (int) $e['id'], $entrees)) as $lot) {
         $stmtS = db()->prepare(
-            'SELECT hs.historique_id, hs.spectacle_id, sp.nom
-               FROM historique_spectacles hs JOIN spectacles sp ON sp.id = hs.spectacle_id
+            'SELECT hs.historique_id, hs.projet_id, sp.nom
+               FROM historique_projets hs JOIN projets sp ON sp.id = hs.projet_id
               WHERE hs.historique_id IN (' . sql_in($lot) . ') ORDER BY sp.nom'
         );
         $stmtS->execute($lot);
         foreach ($stmtS as $l) {
-            $parEntree[(int) $l['historique_id']][(int) $l['spectacle_id']] = (string) $l['nom'];
+            $parEntree[(int) $l['historique_id']][(int) $l['projet_id']] = (string) $l['nom'];
         }
     }
     foreach ($entrees as &$e) {
-        $e['spectacles'] = $parEntree[(int) $e['id']] ?? [];
+        $e['projets'] = $parEntree[(int) $e['id']] ?? [];
     }
     unset($e);
     return $entrees;

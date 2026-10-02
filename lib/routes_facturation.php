@@ -80,7 +80,7 @@ function route_factures(): void
     $avecEvenements = module_actif('evenements');
     $from = ' FROM factures f JOIN structures d ON d.id = f.structure_id';
     if ($avecEvenements) {
-        $from .= ' LEFT JOIN evenements ev ON ev.id = f.evenement_id LEFT JOIN spectacles sp ON sp.id = ev.spectacle_id';
+        $from .= ' LEFT JOIN evenements ev ON ev.id = f.evenement_id LEFT JOIN projets sp ON sp.id = ev.projet_id';
     }
     $where = ' WHERE 1=1';
     $params = [];
@@ -117,7 +117,7 @@ function route_factures(): void
     $modeClient = pagination_mode_client($totalSansRecherche);
 
     $pgTaille = pagination_taille('facturation_taille');
-    $selectCols = 'f.*, d.nom AS structure_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS spectacle_nom' : '');
+    $selectCols = 'f.*, d.nom AS structure_nom' . ($avecEvenements ? ', ev.date AS evenement_date, sp.nom AS projet_nom' : '');
     // Tri de colonne. L'ordre naturel — la plus récemment émise d'abord —
     // reste celui de l'arrivée sur la page. Le numéro se trie en TEXTE : il est
     // de la forme « 2026-014 », un tri alphabétique y est chronologique.
@@ -247,7 +247,7 @@ function route_facture_form(): void
         // (migration_91) : toutes les dates d'une création se ventilent au même
         // endroit, et c'est le projet qui le sait.
         $stmt = db()->prepare('SELECT s.axe_analytique_id, e.organisateur_structure_id FROM evenements e
-                                LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
+                                LEFT JOIN projets s ON s.id = e.projet_id WHERE e.id = ?');
         $stmt->execute([$evenementId]);
         $evRow = $stmt->fetch();
         $axeDefaut = $axes ? ((int) ($evRow['axe_analytique_id'] ?? 0) ?: null) : null;
@@ -1226,7 +1226,7 @@ function structure_donnees_crm(int $id): array
                 'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => [],
                 'contactsJoignables' => [], 'expediteurs' => [], 'modelesMessage' => [], 'brouillon' => null,
             'campagnesStructure' => [], 'campagnesLiees' => [], 'campagnesDispo' => [],
-                'spectacles' => [], 'campagneProjets' => []];
+                'projetsDispo' => [], 'campagneProjets' => []];
     }
     $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
     $stmtContacts->execute([$id]);
@@ -1326,7 +1326,7 @@ function structure_donnees_crm(int $id): array
         'contactsJoignables' => structure_contacts_joignables_etendus($id),
         'expediteurs' => mailing_expediteurs(),
         'modelesMessage' => array_map(
-            fn ($m) => $m + ['spectacle_ids' => spectacles_lies('mailing_modele_spectacles', (int) $m['id'])],
+            fn ($m) => $m + ['projet_ids' => projets_lies('mailing_modele_projets', (int) $m['id'])],
             db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll()
         ),
         'brouillon' => structure_message_brouillon($id),
@@ -1343,12 +1343,12 @@ function structure_donnees_crm(int $id): array
             ? db()->query('SELECT id, nom FROM campagnes ORDER BY date_debut DESC, id DESC')->fetchAll() : [],
         // Projets : le menu à cocher de la fenêtre « Contacter » et des notes
         // d'historique. Vide si le module Événements est éteint — il n'y a
-        // alors pas de spectacles à proposer.
-        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
+        // alors pas de projets à proposer.
+        'projetsDispo' => module_actif('evenements') ? projets_pour_selection() : [],
         // Arrivée depuis une campagne (?campagne=) : ses projets sont cochés
         // d'emblée dans la fenêtre « Contacter ».
         'campagneProjets' => isset($_GET['campagne'])
-            ? spectacles_lies('campagne_spectacles', (int) $_GET['campagne']) : [],
+            ? projets_lies('campagne_projets', (int) $_GET['campagne']) : [],
     ];
 }
 

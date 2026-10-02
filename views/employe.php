@@ -89,8 +89,8 @@
 </div>
 
 <?php // Cropper.js, bundlé dans le dépôt (pas de CDN), chargé sur les seules
-      // pages qui recadrent une image — celle-ci et ?p=spectacles, pour l'icône
-      // d'un spectacle. Voir CLAUDE.md, § Stack. ?>
+      // pages qui recadrent une image — celle-ci et ?p=projets, pour l'icône
+      // d'un projet. Voir CLAUDE.md, § Stack. ?>
 <link rel="stylesheet" href="assets/vendor/cropperjs/cropper.min.css">
 <script src="assets/vendor/cropperjs/cropper.min.js"></script>
 <script nonce="<?= e(csp_nonce()) ?>">

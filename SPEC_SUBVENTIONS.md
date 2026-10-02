@@ -27,7 +27,7 @@ Deux différences commandent toute la conception :
 | Écrire à un interlocuteur, garder trace | « Contacter » (`_structure_contacter.php`), `historique` type `mailing` |
 | Passer par le formulaire d'un site qui n'expose pas d'adresse | `bouton_formulaire_contact_html()` + `structure_formulaire_sql()` — fréquent chez les bailleurs, qui veulent leur propre guichet |
 | Sélectionner des interlocuteurs par filtres | `_structures_table.php`, `_structures_filtres.php`, `criteres` d'une campagne |
-| Rattacher à un ou plusieurs projets | `spectacles` + table de liaison (`SPECTACLES_LIAISONS`) |
+| Rattacher à un ou plusieurs projets | `projets` + table de liaison (`PROJETS_LIAISONS`) |
 | Avancement en barre segmentée | `campagne_barre_html()` + `campagne_repartition()` |
 | Carte de tableau de bord, mise en valeur de ce qui attend un geste | `.ligne-action`, `$dash_reste()`, `campagnes_dashboard()` |
 | Étiquettes, import CSV, fusion de doublons, carte | tout le CRM du Booking |
@@ -43,11 +43,11 @@ Trois tables.
 
 > **Tranché le 01.10.2026** — un bailleur est bien une `structure`, et rien ne
 > le distingue dans la liste pour l'instant : on verra à l'usage si le besoin
-> d'un filtre apparaît. Le **projet visé est un `spectacle`**, l'entité du
+> d'un filtre apparaît. Le **projet visé est un `projet`**, l'entité du
 > module Événements, dont le libellé se renomme déjà pour toute l'application
 > (`?p=evenements_reglages` → « Terme pour une série d'événements » ;
-> `evenements_terme_spectacle()`). Les écrans de ce module emploient donc ce
-> terme-là, jamais « spectacle » en dur — si l'association l'appelle « projet »,
+> `evenements_terme_projet()`). Les écrans de ce module emploient donc ce
+> terme-là, jamais « projet » en dur — si l'association l'appelle « projet »,
 > tout suit (voir la question 3 bis).
 
 ### `fonds_campagnes` — une recherche de fonds
@@ -64,8 +64,8 @@ Trois tables.
 | `drive_url` | **le dossier externe** où vivent toutes les pièces de cette recherche — budgets, lettres, décisions, bilans. Un lien, pas un dépôt de fichiers (§ 3 quater) |
 | `notes`, `cree_le` | |
 
-Projets visés : table de liaison `fonds_campagne_spectacles`, sur le modèle de
-`campagne_spectacles` — un `spectacle` au sens du module Événements, c'est-à-dire
+Projets visés : table de liaison `fonds_campagne_projets`, sur le modèle de
+`campagne_projets` — un `projet` au sens du module Événements, c'est-à-dire
 ce que l'association appelle un projet.
 
 ### `fonds_demandes` — un dossier chez un bailleur
@@ -160,7 +160,7 @@ pas — ils répondent à trois questions différentes.
 | une ou plusieurs **écritures** rapprochées (`fonds_versements.ecriture_id`) | à chaque versement reçu | savoir que l'argent est arrivé, et le voir dans les comptes |
 | un **axe analytique** (`fonds_campagnes.axe_analytique_id`) | dès l'ouverture de la recherche | rattacher l'argent au projet qu'il finance, comme le reste du module analytique |
 
-⚠️ **Un `spectacle` ne porte aujourd'hui aucun axe analytique** : la colonne
+⚠️ **Un `projet` ne porte aujourd'hui aucun axe analytique** : la colonne
 existe sur les événements, les lignes de fiche, les lignes de facture et les
 écritures, jamais sur le projet lui-même. « L'axe est celui du projet » suppose
 donc de savoir lequel — voir la question 11 quater.
@@ -309,7 +309,7 @@ Toutes les questions du cadrage ont reçu une réponse les 01.10.2026.
 |---|---|
 | 1 | **Un bailleur est une `structure`**, et rien ne l'en distingue dans la liste — pas de catégorie ni de drapeau tant que le besoin d'un filtre ne s'est pas fait sentir. |
 | 2 | *(sans objet : pas de marque distinctive)* |
-| 3 | **Le projet visé est un `spectacle`.** Le terme « Spectacles » devient « Projets » **par défaut à l'installation** — une valeur semée, pas un changement de code. ⚠️ Elle ne touche QUE les nouvelles installations ; celle de l'association garde « Spectacles » jusqu'à ce qu'on règle le paramètre à la main. Changer le repli en dur renommerait le vocabulaire de toutes les installations existantes sans prévenir. |
+| 3 | **Le projet visé est un `projet`.** Le terme « Projets » devient « Projets » **par défaut à l'installation** — une valeur semée, pas un changement de code. ⚠️ Elle ne touche QUE les nouvelles installations ; celle de l'association garde « Projets » jusqu'à ce qu'on règle le paramètre à la main. Changer le repli en dur renommerait le vocabulaire de toutes les installations existantes sans prévenir. |
 | 4 | **Une seule demande par (campagne, bailleur)** — index unique. |
 | 5 | **Pas de demande hors campagne.** Au pire, une recherche d'une ligne. |
 
@@ -328,7 +328,7 @@ Toutes les questions du cadrage ont reçu une réponse les 01.10.2026.
 | | décision |
 |---|---|
 | 11 | **Les trois liens comptables existent** : facture au bailleur, écriture par versement, axe analytique (§ 3 ter). Aucun n'est obligatoire. |
-| 11 quater | **L'axe est celui du projet — fait.** `spectacles.axe_analytique_id` existe depuis la migration 91 : l'axe se réglait date par date, il appartient maintenant au projet, et les dates en héritent. Le module s'y branche, il n'a rien à inventer. |
+| 11 quater | **L'axe est celui du projet — fait.** `projets.axe_analytique_id` existe depuis la migration 91 : l'axe se réglait date par date, il appartient maintenant au projet, et les dates en héritent. Le module s'y branche, il n'a rien à inventer. |
 | 12 | **Pas de pluriannuel** en v1. |
 
 ### Les échanges et les écrans

@@ -671,7 +671,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .loc-header strong { font-size: var(--fs-huge); }
 
 /* Carte « Informations » (?p=evenement) : sans titre de cadre, la date et le
-   spectacle en tiennent lieu visuellement. Le crayon/enregistrer/annuler
+   projet en tiennent lieu visuellement. Le crayon/enregistrer/annuler
    flottent en superposition (haut droite) plutôt que dans une ligne d'en-tête
    dédiée — sinon cette ligne, même sans titre, laisse un vide entre le haut
    de la carte et la date. */
@@ -682,7 +682,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .card-editable .card-edit:not([hidden]) { animation: card-edit-in .18s ease-out; }
 @keyframes card-edit-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .card-actions-overlay { position: absolute; top: 26px; right: 26px; z-index: 1; }
-.info-date, .info-spectacle { padding-right: 110px; } /* dégage les boutons flottants (.card-actions-overlay) même pour un long nom de spectacle */
+.info-date, .info-projet { padding-right: 110px; } /* dégage les boutons flottants (.card-actions-overlay) même pour un long nom de projet */
 /* Même traitement visuel que le titre de page (h1, .page-head h1 — dégradé
    de couleur en clip-text, gras, tracking resserré) : la date et le nom de
    ville (carte Localisation, .loc-header strong) en tiennent lieu depuis que
@@ -704,7 +704,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     font-size: var(--fs-basic); color: var(--muted); font-variant-numeric: tabular-nums;
     line-height: 1.3; margin-top: 2px; padding-right: 110px;
 }
-.info-spectacle { font-size: var(--fs-large); font-weight: 700; color: var(--ink); margin-top: 2px; }
+.info-projet { font-size: var(--fs-large); font-weight: 700; color: var(--ink); margin-top: 2px; }
 .kv-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
 .kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: var(--fs-basic); padding: 11px 14px 11px 0; white-space: nowrap; vertical-align: top; width: 1%; }
 .kv-table td { padding: 11px 0; border-top: 1px solid var(--line); font-size: var(--fs-basic); line-height: 1.5; }
@@ -2226,7 +2226,7 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
 .evt-corps { flex: 1 1 auto; min-width: 0; }
 /* L'artiste nomme, la ville situe : dans une liste de dates, c'est la ville
    qu'on cherche des yeux — elle passe donc au-dessus du lot, et le nom du
-   spectacle descend d'un cran. */
+   projet descend d'un cran. */
 .evt-titre {
     display: block; font-size: var(--fs-small); font-weight: 600; line-height: 1.35; color: var(--muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -3045,7 +3045,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 /* Liste des employés : la pastille et le nom sur une même ligne. */
 .emp-nom-ligne { display: inline-flex; align-items: center; }
 
-/* La pastille d'un spectacle (?p=spectacles) est un BOUTON : elle ouvre le
+/* La pastille d'un projet (?p=projets) est un BOUTON : elle ouvre le
    cadreur d'icône. Elle ne doit pas en avoir l'air — ni fond, ni bordure, ni
    ombre —, seulement se signaler au survol et au clavier. */
 .plan-icone { background: none; border: 0; padding: 0; box-shadow: none; line-height: 0; border-radius: 50%; }
@@ -3905,7 +3905,7 @@ abbr {
 /* Une ligne qui a un mode d'édition ne montre sa corbeille qu'EN édition : un
    geste irréversible n'a pas à être à portée de clic quand on ne fait que lire.
    Vaut pour toutes les listes ordonnables (plan comptable, lignes du décompte,
-   spectacles, catégories, pays, déroulé d'un événement).
+   projets, catégories, pays, déroulé d'un événement).
 
    Conditionné à .dnd-on, donc au script : sans JavaScript, ces lignes sont en
    édition permanente (le formulaire est affiché, voir docs/UI.md §2d) — la
@@ -5172,7 +5172,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    apparence que les filtres de colonne, sans le bouton « Appliquer » — la
    sélection part avec le formulaire qui l'entoure. */
 .choix-coches .col-filter-menu { padding-bottom: 8px; }
-/* Le bouton nomme ce qui est coché : un nom de spectacle, ou deux, peuvent être
+/* Le bouton nomme ce qui est coché : un nom de projet, ou deux, peuvent être
    longs — ils sont coupés plutôt que de déborder du champ qui les contient. */
 .choix-coches > .col-filter-btn-nomme { max-width: 100%; }
 .choix-coches .col-filter-lib { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -5383,7 +5383,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .fr-print { font-size: var(--fs-basic); line-height: 1.4; }
 .sheet-feuille { padding: 34px 38px; }
 /* En-tête d'une feuille de route : la DATE, puis OÙ et dans quelle VILLE. Ce
-   sont les trois choses qu'on cherche des yeux en l'ouvrant — le spectacle et
+   sont les trois choses qu'on cherche des yeux en l'ouvrant — le projet et
    l'horaire, on les sait déjà : ils passent en sous-titre. */
 .fr-print-head { margin-bottom: 18px; }
 .fr-print-date { font-size: 25px; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }

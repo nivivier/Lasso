@@ -66,7 +66,7 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                         <?php if (($he['source_label'] ?? '') !== ''): ?> <span class="badge muted-badge"><?= e((string) $he['source_label']) ?></span><?php endif; ?>
                         <?php // Projets concernés : c'est par eux qu'une prise de contact
                               // compte dans une campagne, autant les voir dans le flux. ?>
-                        <?php foreach ((array) ($he['spectacles'] ?? []) as $spNom): ?>
+                        <?php foreach ((array) ($he['projets'] ?? []) as $spNom): ?>
                             <span class="badge hist-projet"><?= e((string) $spNom) ?></span>
                         <?php endforeach; ?>
                     </span>
@@ -88,8 +88,8 @@ $histoModifiable = ($histoModifiable ?? false) && !empty($histoStructureId);
                         <label class="check hist-note-contact"><input type="checkbox" name="est_contact" value="1" <?= $he['type'] === 'mailing' ? 'checked' : '' ?>> Prise de contact</label>
                         <?php // Projet : juste après « Prise de contact », c'est lui qui
                               // rattache l'entrée à une campagne. ?>
-                        <?php if (!empty($histoSpectacles)): ?>
-                            <?= choix_coches_html('spectacle_ids', $histoSpectacles, array_keys((array) ($he['spectacles'] ?? [])), 'Projet') ?>
+                        <?php if (!empty($histoProjets)): ?>
+                            <?= choix_coches_html('projet_ids', $histoProjets, array_keys((array) ($he['projets'] ?? [])), evenements_terme_projet(false)) ?>
                         <?php endif; ?>
                     </div>
                 </form>

@@ -1,6 +1,6 @@
 <?php
 // Recherche unifiée : une seule saisie qui traverse employés, structures,
-// factures, événements et spectacles, au lieu d'imposer le parcours
+// factures, événements et projets, au lieu d'imposer le parcours
 // « choisir le module → ouvrir la liste → filtrer ».
 //
 // SÉCURITÉ — le point à ne jamais relâcher ici. C'est la seule fonctionnalité
@@ -35,8 +35,15 @@ const RECHERCHE_MIN = 2;
 //             projection est ce qui permet à la requête extérieure de filtrer
 //             et de compter sans rien savoir des tables sous-jacentes (les
 //             alias de colonnes internes n'y seraient plus accessibles).
-function recherche_sources(): array
+// $termeProjet : le terme réglable qui désigne une série d'événements, au
+// pluriel et au singulier (evenements_terme_projet(), lib/evenements.php).
+// Passé en argument plutôt que lu ici : cette fonction est une DÉCLARATION,
+// vérifiée par tests/recherche_test.php sans base ni session, et lire un
+// paramètre y demanderait une base. recherche_globale(), qui en a une,
+// renseigne les vraies valeurs ; le défaut sert au test.
+function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
 {
+    [$projetsLabel, $projetLabel] = $termeProjet;
     return [
         'employes' => [
             'label'   => 'Employés',
@@ -128,8 +135,8 @@ function recherche_sources(): array
             'route'   => 'evenement',
             'liste'   => 'evenements',
             'ordre'   => 'ORDER BY tri DESC',
-            // Même composition de titre que l'export iCal : « Artiste (Spectacle) »
-            // quand le spectacle a un parent.
+            // Même composition de titre que l'export iCal : « Artiste (Projet) »
+            // quand le projet a un parent.
             'sql'     => "SELECT ev.id,
                                  trim(coalesce(spp.nom || ' (' || sp.nom || ')', sp.nom, 'Événement')) AS titre,
                                  trim(ev.date ||
@@ -140,8 +147,8 @@ function recherche_sources(): array
                                       coalesce(ev.festival,'') || ' ' || coalesce(sp.nom,'') || ' ' ||
                                       coalesce(spp.nom,'') || ' ' || coalesce(ev.date,'')) AS texte
                           FROM evenements ev
-                          LEFT JOIN spectacles sp  ON sp.id  = ev.spectacle_id
-                          LEFT JOIN spectacles spp ON spp.id = sp.parent_id",
+                          LEFT JOIN projets sp  ON sp.id  = ev.projet_id
+                          LEFT JOIN projets spp ON spp.id = sp.parent_id",
         ],
         // Les campagnes de recherche de fonds. L'étiquette dit « de recherche
         // de fonds » en toutes lettres, alors qu'ailleurs le module se contente
@@ -161,31 +168,31 @@ function recherche_sources(): array
             // moins aussi souvent que par le sien.
             'sql'     => "SELECT c.id, c.nom AS titre,
                                  coalesce((SELECT group_concat(sp.nom, ' · ')
-                                             FROM fonds_campagne_spectacles cs
-                                             JOIN spectacles sp ON sp.id = cs.spectacle_id
+                                             FROM fonds_campagne_projets cs
+                                             JOIN projets sp ON sp.id = cs.projet_id
                                             WHERE cs.campagne_id = c.id), '') AS sous_titre,
                                  coalesce(c.date_debut,'') AS tri,
                                  trim(coalesce(c.nom,'') || ' ' || coalesce(c.notes,'') || ' ' ||
                                       coalesce((SELECT group_concat(sp.nom, ' ')
-                                                  FROM fonds_campagne_spectacles cs
-                                                  JOIN spectacles sp ON sp.id = cs.spectacle_id
+                                                  FROM fonds_campagne_projets cs
+                                                  JOIN projets sp ON sp.id = cs.projet_id
                                                  WHERE cs.campagne_id = c.id), '')) AS texte
                           FROM fonds_campagnes c",
         ],
-        'spectacles' => [
-            'label'   => 'Spectacles',
+        'projets' => [
+            'label'   => $projetsLabel,
             'icone'   => 'music',
             'modules' => ['evenements'],
-            'route'   => 'spectacle',
-            'liste'   => 'spectacles',
+            'route'   => 'projet',
+            'liste'   => 'projets',
             'ordre'   => 'ORDER BY titre',
             'sql'     => "SELECT sp.id,
                                  trim(coalesce(par.nom || ' (' || sp.nom || ')', sp.nom)) AS titre,
-                                 CASE WHEN par.nom IS NULL THEN 'Artiste' ELSE 'Spectacle' END AS sous_titre,
+                                 CASE WHEN par.nom IS NULL THEN 'Artiste' ELSE '" . str_replace("'", "''", $projetLabel) . "' END AS sous_titre,
                                  0 AS tri,
                                  trim(coalesce(sp.nom,'') || ' ' || coalesce(par.nom,'') || ' ' ||
                                       coalesce(sp.notes,'')) AS texte
-                          FROM spectacles sp LEFT JOIN spectacles par ON par.id = sp.parent_id",
+                          FROM projets sp LEFT JOIN projets par ON par.id = sp.parent_id",
         ],
     ];
 }
@@ -258,7 +265,7 @@ function recherche_globale(string $q): array
 
     $out = [];
     $accessibles = recherche_modules_accessibles();
-    foreach (recherche_sources() as $cle => $source) {
+    foreach (recherche_sources([evenements_terme_projet(), evenements_terme_projet(false)]) as $cle => $source) {
         if (!recherche_source_visible_pour($source, $accessibles)) {
             continue;
         }

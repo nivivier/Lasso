@@ -819,7 +819,7 @@ function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, b
 
 // L'adresse d'une liste filtrée, pour un lien posé AILLEURS que sur la liste
 // elle-même : une carte du tableau de bord, un compte dans un tableau, un
-// décompte à côté d'un spectacle.
+// décompte à côté d'un projet.
 //
 // ⚠️ C'est le seul moyen correct d'écrire un tel lien. Les filtres de colonne
 // sont des filtre_coche() : ils ne lisent `$_GET` que si le marqueur
@@ -1113,7 +1113,7 @@ function choix_coches_html(string $champ, array $options, array $actives, string
     // Le bouton porte TOUJOURS un nom, et celui de ce qui est coché. Dans un
     // en-tête de colonne, l'entonnoir seul suffit : la colonne dit déjà de quoi
     // il s'agit. Dans un formulaire, il ne dit rien — on lisait « Projet » puis
-    // un entonnoir muet, sans savoir quel spectacle était choisi sans dérouler.
+    // un entonnoir muet, sans savoir quel projet était choisi sans dérouler.
     $choisis = [];
     foreach ($options as $val => $lib) {
         if (in_array((string) $val, $activesTxt, true)) {
@@ -1232,7 +1232,7 @@ function avatar_initiales(string $nom, string $couleur = '', string $photo = '')
 // valide malgré tout comme un upload de fichier — un data URI reste une entrée
 // utilisateur, et rien n'oblige un client à passer par notre formulaire.
 // $prefixe : de quoi reconnaître le fichier dans uploads/ — « avatar » pour la
-// photo d'un employé, « spectacle » pour l'icône d'un spectacle. Le reste du
+// photo d'un employé, « projet » pour l'icône d'un projet. Le reste du
 // traitement est le même, d'où une seule fonction.
 function avatar_photo_enregistrer(string $dataUri, string $prefixe = 'avatar'): string
 {
@@ -2269,7 +2269,7 @@ function handle_logo_upload(string $field): ?string
     return 'uploads/' . $name;
 }
 
-// Traite l'upload d'un PDF (ex. feuille SUISA pré-remplie d'un spectacle).
+// Traite l'upload d'un PDF (ex. feuille SUISA pré-remplie d'un projet).
 // Même logique que handle_logo_upload() mais validation par mime réel (finfo)
 // plutôt que getimagesize(). Renvoie le chemin web relatif (uploads/…) si un
 // fichier valide a été envoyé, null si aucun fichier, ou lève RuntimeException.
@@ -2375,17 +2375,17 @@ function lien_retour(string $href, string $label): string
     return '<a class="back-link" href="' . e($href) . '">' . icon('arrow-left') . ' ' . e($label) . '</a>';
 }
 
-// Libellé court d'un événement (date + spectacle + ville), utilisé partout
+// Libellé court d'un événement (date + projet + ville), utilisé partout
 // où l'on affiche un lien vers un événement sans reprendre toute la fiche.
 function evenement_label_court(array $ev): string
 {
     $l = date('d.m.Y', strtotime((string) $ev['date']));
-    if (!empty($ev['spectacle_nom'])) $l .= ' — ' . $ev['spectacle_nom'];
+    if (!empty($ev['projet_nom'])) $l .= ' — ' . $ev['projet_nom'];
     if (!empty($ev['ville']))         $l .= ' (' . $ev['ville'] . ')';
     return $l;
 }
 
-// Titre de la page d'édition d'un événement (« Date : Spectacle, Ville »,
+// Titre de la page d'édition d'un événement (« Date : Projet, Ville »,
 // parties absentes proprement omises) — même champs que evenement_label_court()
 // mais mise en forme propre à cette page (« : » et virgule, pas « — »/parenthèses
 // déjà utilisés ailleurs pour les liens de retour contextuels et les tableaux
@@ -2393,7 +2393,7 @@ function evenement_label_court(array $ev): string
 function evenement_titre_page(array $ev): string
 {
     $titre = (string) ($ev['date'] ?? '') !== '' ? date('d.m.Y', strtotime((string) $ev['date'])) : '';
-    $reste = array_filter([$ev['spectacle_nom'] ?? null, $ev['ville'] ?? null], fn ($v) => trim((string) $v) !== '');
+    $reste = array_filter([$ev['projet_nom'] ?? null, $ev['ville'] ?? null], fn ($v) => trim((string) $v) !== '');
     if ($reste) {
         $titre .= ($titre !== '' ? ' : ' : '') . implode(', ', $reste);
     }
@@ -2501,8 +2501,8 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
                 return lien_retour('?p=facture&id=' . $id, $numero !== '' ? 'Facture ' . $numero : 'Facture (brouillon)');
             }
         } elseif ($m[1] === 'evenement') {
-            $stmt = db()->prepare('SELECT e.*, s.nom AS spectacle_nom FROM evenements e
-                                    LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
+            $stmt = db()->prepare('SELECT e.*, s.nom AS projet_nom FROM evenements e
+                                    LEFT JOIN projets s ON s.id = e.projet_id WHERE e.id = ?');
             $stmt->execute([$id]);
             $ev = $stmt->fetch();
             if ($ev) {
@@ -2999,11 +2999,11 @@ function fiche_lignes_de(array $f): array
 {
     $stmt = db()->prepare(
         'SELECT fl.*, a.code AS axe_code, a.libelle AS axe_libelle,
-                e.date AS evenement_date, s.nom AS evenement_spectacle_nom
+                e.date AS evenement_date, s.nom AS evenement_projet_nom
          FROM fiche_lignes fl
          LEFT JOIN axes_analytiques a ON a.id = fl.axe_analytique_id
          LEFT JOIN evenements e ON e.id = fl.evenement_id
-         LEFT JOIN spectacles s ON s.id = e.spectacle_id
+         LEFT JOIN projets s ON s.id = e.projet_id
          WHERE fl.fiche_id = ? ORDER BY fl.ordre, fl.id'
     );
     $stmt->execute([$f['id']]);
@@ -3025,7 +3025,7 @@ function fiche_lignes_de(array $f): array
             'axe_libelle'   => null,
             'evenement_id'  => null,
             'evenement_date' => null,
-            'evenement_spectacle_nom' => null,
+            'evenement_projet_nom' => null,
         ]];
     }
     return $rows;
@@ -3250,7 +3250,7 @@ function injecter_sprite(string $html): string
 // Deux natures de champ coexistent, d'où $submit :
 //   - true  : le champ est dans un <form> (listes filtrées côté serveur, page
 //             de recherche) — la loupe est un vrai bouton submit ;
-//   - false : le champ filtre en direct en JS (employés, spectacles, écritures
+//   - false : le champ filtre en direct en JS (employés, projets, écritures
 //             d'un axe) — il n'y a rien à soumettre, la loupe se contente de
 //             rendre le focus au champ (voir assets/app.js).
 //

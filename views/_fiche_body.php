@@ -17,7 +17,7 @@ $evenementLienHtml = function (array $l) use ($impression, $f): string {
     if (empty($l['evenement_id']) || !empty($impression) || !module_actif('evenements')) {
         return '';
     }
-    $label = trim((string) ($l['evenement_spectacle_nom'] ?? ''));
+    $label = trim((string) ($l['evenement_projet_nom'] ?? ''));
     if ($label === '') {
         $label = date('d.m.Y', strtotime((string) $l['evenement_date']));
     }

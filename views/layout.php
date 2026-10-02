@@ -259,7 +259,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     // Lignes cliquables (souris + clavier). Un clic sur un lien/bouton/case à
     // cocher dans la ligne garde son comportement propre — form inclus (ex.
     // formulaire d'ajout d'étiquette par ligne, ?p=structures, ou les
-    // formulaires déjà présents dans les lignes de ?p=spectacles) : sans ça,
+    // formulaires déjà présents dans les lignes de ?p=projets) : sans ça,
     // un clic dans un espace du formulaire hors bouton/champ (padding entre
     // deux champs, etc.) déclenchait quand même la navigation de la ligne.
     // .cat-search-list répétée à part (déjà couverte par closest('form') vu
@@ -274,12 +274,12 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         if (u) location.href = u;
     }
     document.querySelectorAll('tr.row-link').forEach(row => {
-        // .plan-grip : poignée de glisser-déposer (?p=spectacles). Elle portait
+        // .plan-grip : poignée de glisser-déposer (?p=projets). Elle portait
         // un onclick="event.stopPropagation()" ; les attributs de gestionnaire
         // ayant été supprimés pour permettre le durcissement de la CSP, son
         // exclusion se déclare ici, comme celle des autres éléments interactifs.
         // .menu-deroulant : un menu posé dans une ligne (« Synchroniser »,
-        // ?p=spectacles). Son <summary> n'est ni un <a> ni un <button> — sans
+        // ?p=projets). Son <summary> n'est ni un <a> ni un <button> — sans
         // cette exclusion, l'ouvrir naviguait vers la fiche.
         row.addEventListener('click', e => { if (!e.target.closest('a,button,input,form,.cat-search-list,.plan-grip,.menu-deroulant')) go(row); });
         row.addEventListener('keydown', e => {

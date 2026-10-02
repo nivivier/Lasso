@@ -185,7 +185,7 @@ function route_structure_message_envoyer(): void
         'E-mail à ' . ($nomContact !== '' ? $nomContact . ' <' . $contact['email'] . '>' : (string) $contact['email'])
         . ' — ' . $sujetFinal . "\n\n" . $corpsFinal);
     // Projets concernés : c'est ce qui fait avancer la jauge d'une campagne.
-    spectacles_lier('historique_spectacles', (int) db()->lastInsertId(), (array) ($_POST['spectacle_ids'] ?? []));
+    projets_lier('historique_projets', (int) db()->lastInsertId(), (array) ($_POST['projet_ids'] ?? []));
     structure_recalculer_dernier_contact($structureId);
     db()->prepare('DELETE FROM structure_message_brouillons WHERE structure_id = ?')->execute([$structureId]);
     $retour('envoye');
@@ -208,7 +208,7 @@ function route_structure_note_ajouter(): void
         journaliser('structure', $structureId, $estContact ? 'mailing' : 'note', $contenu, $creeLe);
         // Une note peut porter ses projets, prise de contact ou non : c'est ce
         // qui permet à un appel téléphonique de compter dans une campagne.
-        spectacles_lier('historique_spectacles', (int) db()->lastInsertId(), (array) ($_POST['spectacle_ids'] ?? []));
+        projets_lier('historique_projets', (int) db()->lastInsertId(), (array) ($_POST['projet_ids'] ?? []));
         if ($estContact) {
             structure_recalculer_dernier_contact($structureId);
         }
@@ -297,7 +297,7 @@ function route_structure_note_modifier(): void
     // sélection partait bien en POST, personne ne l'écrivait, et l'entrée gardait
     // ses projets d'origine. C'est par eux qu'une prise de contact compte dans
     // une campagne : les oublier fausse une jauge.
-    spectacles_lier('historique_spectacles', $id, (array) ($_POST['spectacle_ids'] ?? []));
+    projets_lier('historique_projets', $id, (array) ($_POST['projet_ids'] ?? []));
     // dernier_contact_le est dénormalisé depuis le MAX des entrées « mailing »
     // (structure_recalculer_dernier_contact()) : changer la date OU le type d'une
     // entrée le périme. Recalcul sur la structure PORTEUSE, qui n'est pas
@@ -831,7 +831,7 @@ function desinscription_url(int $structureId, ?int $contactId): string
 // Arbre à 2 niveaux (structure_categories.parent_id, voir migration_42) : une
 // sous-catégorie est toujours imbriquée dans une catégorie racine — jamais
 // promue racine, jamais nichée sous une autre sous-catégorie (contrôlé ici,
-// pas par le schéma). Même interface de glisser-déposer que spectacles.php et
+// pas par le schéma). Même interface de glisser-déposer que projets.php et
 // compta_plan.php (lassoPlanArbre(), voir assets/app.js) : add/rename+reparent
 // (« edit »)/move (haut/bas, repli sans JS)/reorder (glisser-déposer)/delete.
 // Renommer une catégorie/sous-catégorie met aussi à jour les structures qui
@@ -1232,14 +1232,14 @@ function route_mailing_modeles(): void
                 }
                 db()->prepare('UPDATE mailing_modeles SET nom = ?, sujet = ?, corps = ?, expediteur_id = ? WHERE id = ?')
                     ->execute([$nom, $sujet, $corps, $expediteurId, $id]);
-                spectacles_lier('mailing_modele_spectacles', $id, (array) ($_POST['spectacle_ids'] ?? []));
+                projets_lier('mailing_modele_projets', $id, (array) ($_POST['projet_ids'] ?? []));
             } else {
                 // Création — et écrasement délibéré d'un modèle de même nom :
                 // c'est ce que fait « Enregistrer comme modèle » depuis
                 // ?p=mailing_campagne, qui n'a que le nom saisi à l'écran.
                 db()->prepare('INSERT OR REPLACE INTO mailing_modeles (nom, sujet, corps, expediteur_id) VALUES (?, ?, ?, ?)')
                     ->execute([$nom, $sujet, $corps, $expediteurId]);
-                spectacles_lier('mailing_modele_spectacles', (int) db()->lastInsertId(), (array) ($_POST['spectacle_ids'] ?? []));
+                projets_lier('mailing_modele_projets', (int) db()->lastInsertId(), (array) ($_POST['projet_ids'] ?? []));
             }
         } elseif ($section === 'modele_delete') {
             db()->prepare('DELETE FROM mailing_modeles WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
@@ -1248,12 +1248,12 @@ function route_mailing_modeles(): void
     }
     $modeles = db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll();
     foreach ($modeles as &$m) {
-        $m['spectacle_ids'] = spectacles_lies('mailing_modele_spectacles', (int) $m['id']);
+        $m['projet_ids'] = projets_lies('mailing_modele_projets', (int) $m['id']);
     }
     unset($m);
     render('mailing_modeles', [
         'modeles' => $modeles,
-        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
+        'projetsDispo' => module_actif('evenements') ? projets_pour_selection() : [],
         'expediteurs' => mailing_expediteurs(),
         'expediteurDefaut' => mailing_expediteur_defaut_libelle(),
         'saved' => isset($_GET['ok']),
@@ -1713,19 +1713,19 @@ function route_booking_campagne_form(): void
     // version-là qu'on réaffiche. Sans quoi cocher une catégorie effaçait le
     // nom et les dates qu'on venait d'écrire — et, sur une campagne existante,
     // les faisait revenir à leur valeur enregistrée.
-    $projets = $id ? spectacles_lies('campagne_spectacles', $id) : [];
+    $projets = $id ? projets_lies('campagne_projets', $id) : [];
     if ($ciblage['previsualise']) {
         $campagne = (array) $campagne + ['id' => $id];
         foreach (['nom', 'date_debut', 'date_fin'] as $champ) {
             $campagne[$champ] = trim((string) ($_GET[$champ] ?? ''));
         }
-        $projets = array_values(array_filter(array_map('intval', (array) ($_GET['spectacle_ids'] ?? []))));
+        $projets = array_values(array_filter(array_map('intval', (array) ($_GET['projet_ids'] ?? []))));
     }
 
     render('booking_campagne_form', $ciblage + [
         'campagne'   => $campagne ?: null,
         'projets'    => $projets,
-        'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
+        'projetsDispo' => module_actif('evenements') ? projets_pour_selection() : [],
         'err'        => $_GET['err'] ?? null,
     ], $id ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne');
 }
@@ -1759,7 +1759,7 @@ function route_booking_campagne_enregistrer(): void
             ->execute([$nom, $debut, $fin, json_encode(mailing_criteres_vers_url(mailing_criteres_depuis($_POST)), JSON_UNESCAPED_UNICODE)]);
         $id = (int) db()->lastInsertId();
     }
-    spectacles_lier('campagne_spectacles', $id, (array) ($_POST['spectacle_ids'] ?? []));
+    projets_lier('campagne_projets', $id, (array) ($_POST['projet_ids'] ?? []));
 
     // Mise à niveau, et non table rasée : la ligne campagne↔structure PORTE la
     // réponse reçue (migration_86). La supprimer pour la réinsérer effaçait
@@ -1812,8 +1812,8 @@ function route_booking_campagne(): void
         require_ecriture('booking');
         structures_bulk_appliquer('campagne', ['id' => $id]);
     }
-    $map = spectacle_map();
-    $projets = spectacles_lies('campagne_spectacles', $id);
+    $map = projet_map();
+    $projets = projets_lies('campagne_projets', $id);
     $contactees = array_flip(campagne_structures_contactees($id));
 
     // Ouverte à l'envoi ? La réponse conditionne l'écran ET le travail de
@@ -1951,8 +1951,8 @@ function route_booking_campagne(): void
         'lieuxOptions' => lieux_options(['pays', 'region', 'dept']),
         'tagsDispo'   => db()->query('SELECT t.* FROM structure_tags t ORDER BY t.nom')->fetchAll(),
         'campagne'    => $campagne,
-        'projets'     => array_map(fn ($sid) => spectacle_chemin($sid, $map), $projets),
-        'projetsPastilles' => array_map(fn ($sid) => spectacle_pastille_html($sid, $map), $projets),
+        'projets'     => array_map(fn ($sid) => projet_chemin($sid, $map), $projets),
+        'projetsPastilles' => array_map(fn ($sid) => projet_pastille_html($sid, $map), $projets),
         // Les mêmes projets, en identifiants : la fenêtre « Marquer comme
         // contacté » les rattache à l'entrée d'historique qu'elle crée.
         'projetIds'   => $projets,
@@ -1969,13 +1969,13 @@ function route_booking_campagne(): void
         'nbEvenements' => module_actif('evenements') ? structures_nb_evenements(array_column($structures, 'id')) : [],
         'expediteurs' => mailing_expediteurs(),
         'modelesMessage' => array_map(
-            fn ($m) => $m + ['spectacle_ids' => spectacles_lies('mailing_modele_spectacles', (int) $m['id'])],
+            fn ($m) => $m + ['projet_ids' => projets_lies('mailing_modele_projets', (int) $m['id'])],
             db()->query('SELECT id, nom, sujet, corps, expediteur_id FROM mailing_modeles ORDER BY nom')->fetchAll()
         ),
         // Les projets de la campagne sont cochés d'emblée : c'est par eux que la
         // prise de contact la fera avancer.
         'campagneProjets' => $projets,
-        'spectacles'  => module_actif('evenements') ? spectacles_pour_selection() : [],
+        'projetsDispo'  => module_actif('evenements') ? projets_pour_selection() : [],
         // L'état se calcule lui aussi sur la campagne entière, pas sur l'écran filtré.
         'statut'      => campagne_statut((string) $campagne['date_debut'], (string) $campagne['date_fin'], $nbTotal, $faits, date('Y-m-d')),
         'ouverte'     => $ouverte,

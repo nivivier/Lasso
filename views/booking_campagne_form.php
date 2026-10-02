@@ -1,5 +1,5 @@
 <?php
-/** @var ?array $campagne */ /** @var array $projets */ /** @var array $spectacles */
+/** @var ?array $campagne */ /** @var array $projets */ /** @var array $projetsDispo */
 /** @var array $criteres */ /** @var array $apercu */ /** @var array $retenues */
 /** @var array $ajouts */
 /** @var bool $previsualise */ /** @var array $tags */ /** @var array $campagnesDispo */
@@ -12,8 +12,8 @@
 // décoche pour la sortir de la campagne.
 $id = (int) ($campagne['id'] ?? 0);
 $val = fn (string $c, $d = '') => e((string) ($campagne[$c] ?? $d));
-$spectacleLabels = [];
-foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
+$projetLabels = [];
+foreach ($projetsDispo as $sp) { $projetLabels[(int) $sp['id']] = $sp['nom']; }
 
 // Étiquettes des entonnoirs, report des paramètres d'un panneau à l'autre,
 // paramètres du champ d'ajout : tout vient du même endroit que pour la
@@ -27,7 +27,7 @@ $cibF = ciblage_filtres_vue([
     'nom'           => (string) ($campagne['nom'] ?? ''),
     'date_debut'    => (string) ($campagne['date_debut'] ?? ''),
     'date_fin'      => (string) ($campagne['date_fin'] ?? ''),
-    'spectacle_ids' => array_map('strval', $projets),
+    'projet_ids' => array_map('strval', $projets),
 ], $id);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
@@ -78,8 +78,8 @@ $cibF = ciblage_filtres_vue([
     <div class="grid4">
         <label>Nom <input name="nom" value="<?= $val('nom') ?>" required placeholder="ex. Tournée automne 2026"></label>
         <?php // <div> et non <label> : voir choix_coches_html(). ?>
-        <div class="field-group"><span>Projet <?= info_tip("Les spectacles concernés. C'est par eux qu'une prise de contact est rattachée à la campagne : sans projet, la jauge reste à zéro.") ?></span>
-            <?= choix_coches_html('spectacle_ids', $spectacleLabels, $projets, 'Aucun projet') ?>
+        <div class="field-group"><span>Projet <?= info_tip("Les projets concernés. C'est par eux qu'une prise de contact est rattachée à la campagne : sans projet, la jauge reste à zéro.") ?></span>
+            <?= choix_coches_html('projet_ids', $projetLabels, $projets, 'Aucun projet') ?>
         </div>
         <label><span>Début <?= info_tip("Avant cette date, la campagne se prépare : aucun message ne part.") ?></span>
             <input type="date" name="date_debut" value="<?= $val('date_debut') ?>">
@@ -194,9 +194,9 @@ require __DIR__ . '/_ciblage_structures.php';
                 const valeur = (form.elements[nom]?.value || '').trim();
                 if (valeur !== '') { poser(panneau, nom, valeur); }
             });
-            panneau.querySelectorAll('input[type="hidden"][name="spectacle_ids[]"]').forEach(e => e.remove());
-            form.querySelectorAll('input[name="spectacle_ids[]"]:checked')
-                .forEach(c => poser(panneau, 'spectacle_ids[]', c.value));
+            panneau.querySelectorAll('input[type="hidden"][name="projet_ids[]"]').forEach(e => e.remove());
+            form.querySelectorAll('input[name="projet_ids[]"]:checked')
+                .forEach(c => poser(panneau, 'projet_ids[]', c.value));
         });
     });
     function poser(panneau, nom, valeur) {

@@ -416,14 +416,17 @@ function seed_parametres(PDO $pdo): void
         $stmt->execute([$cle, $valeur]);
     }
 
-    // « Projets » plutôt que « Spectacles » — mais SEULEMENT sur une base
-    // neuve, repérée à l'absence de tout compte (le premier est créé par
-    // route_installation()). Une installation en service n'a jamais écrit cette clé
-    // tant qu'elle n'a pas touché au réglage : la semer ici sans condition
-    // renommerait d'un coup son onglet, sa liste et l'intitulé du champ d'une
-    // date — un vocabulaire qui change tout seul après une mise à jour.
-    // Le terme reste modifiable des deux côtés (Paramètres → Événements).
+    // Le terme qui désigne une série d'événements, au pluriel et au singulier.
+    // Deux clés, parce que le français ne forme pas toujours son pluriel en
+    // ajoutant un « s » (evenements_terme_projet(), lib/evenements.php).
+    //
+    // Semé SEULEMENT sur une base neuve, repérée à l'absence de tout compte
+    // (le premier est créé par route_installation()) : une installation en
+    // service a sa propre valeur, reprise par la migration 94, et la semer ici
+    // sans condition renommerait d'un coup son onglet, sa liste et l'intitulé
+    // du champ d'une date. Modifiable des deux côtés (Paramètres → Événements).
     if (!$pdo->query('SELECT 1 FROM utilisateurs LIMIT 1')->fetchColumn()) {
-        $stmt->execute(['evenements_terme_spectacle', 'Projets']);
+        $stmt->execute(['evenements_terme_projet', 'Projets']);
+        $stmt->execute(['evenements_terme_projet_singulier', 'Projet']);
     }
 }

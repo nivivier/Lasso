@@ -1,5 +1,5 @@
 <?php
-// Handlers de routes du module événements (préfixes « evenement »/« spectacle »).
+// Handlers de routes du module événements (préfixes « evenement »/« projet »).
 // Inclus depuis index.php après lib/routes.php. S'appuie sur lib/evenements.php.
 // Deux routes (evenements_json / evenements_ical) sont publiques, protégées par
 // jeton — pas de require_login() sur celles-ci (voir SPEC_EVENEMENTS.md §8).
@@ -12,8 +12,8 @@ function evenement_charger(int $id): ?array
     // axe_projet : l'axe analytique vient du PROJET depuis la migration 91 — une
     // date n'en porte plus. Ramené ici parce que tout ce qui se crée DEPUIS une
     // date s'en sert comme valeur de départ : une prestation, une facture.
-    $stmt = db()->prepare('SELECT e.*, s.nom AS spectacle_nom, s.axe_analytique_id AS axe_projet FROM evenements e
-                            LEFT JOIN spectacles s ON s.id = e.spectacle_id WHERE e.id = ?');
+    $stmt = db()->prepare('SELECT e.*, s.nom AS projet_nom, s.axe_analytique_id AS axe_projet FROM evenements e
+                            LEFT JOIN projets s ON s.id = e.projet_id WHERE e.id = ?');
     $stmt->execute([$id]);
     return $stmt->fetch() ?: null;
 }
@@ -120,8 +120,8 @@ function factures_sans_evenement(): array
 function evenements_pour_selection(): array
 {
     return db()->query(
-        "SELECT e.id, e.date, e.ville, s.nom AS spectacle_nom FROM evenements e
-         LEFT JOIN spectacles s ON s.id = e.spectacle_id ORDER BY e.date DESC"
+        "SELECT e.id, e.date, e.ville, s.nom AS projet_nom FROM evenements e
+         LEFT JOIN projets s ON s.id = e.projet_id ORDER BY e.date DESC"
     )->fetchAll();
 }
 
@@ -133,7 +133,7 @@ function route_evenements(): void
         "SELECT DISTINCT strftime('%Y', date) FROM evenements ORDER BY 1 DESC"
     )->fetchAll(PDO::FETCH_COLUMN));
     $f = evenements_lire_filtres();
-    $annee = $f['annee']; $statutSuisa = $f['statut_suisa']; $spectacleId = $f['spectacle_id'];
+    $annee = $f['annee']; $statutSuisa = $f['statut_suisa']; $projetId = $f['projet_id'];
     $statut = $f['statut']; $visibilite = $f['visibilite']; $pays = $f['pays']; $salaries = $f['salaries'];
     $recherche = $f['q'];
     $retourFiltres = $f;
@@ -165,11 +165,11 @@ function route_evenements(): void
                 // FK ON DELETE CASCADE/SET NULL (evenement_employes, evenement_fiches,
                 // factures, fiche_lignes) : pas de nettoyage manuel nécessaire.
                 db()->prepare("DELETE FROM evenements WHERE id IN ($in)")->execute($ids);
-            } elseif ($section === 'spectacle') {
-                $spId = ($_POST['bulk_spectacle_id'] ?? '') !== '' ? (int) $_POST['bulk_spectacle_id'] : null;
-                if ($spId === null || spectacle_assignable($spId)) {
-                    bulk_undo_memoriser('evenements', $ids, ['spectacle_id'], 'evenements', $retourFiltres);
-                    db()->prepare("UPDATE evenements SET spectacle_id = ? WHERE id IN ($in)")
+            } elseif ($section === 'projet') {
+                $spId = ($_POST['bulk_projet_id'] ?? '') !== '' ? (int) $_POST['bulk_projet_id'] : null;
+                if ($spId === null || projet_assignable($spId)) {
+                    bulk_undo_memoriser('evenements', $ids, ['projet_id'], 'evenements', $retourFiltres);
+                    db()->prepare("UPDATE evenements SET projet_id = ? WHERE id IN ($in)")
                         ->execute(array_merge([$spId], $ids));
                 }
             } elseif ($section === 'visibilite' && in_array($_POST['bulk_visibilite'] ?? '', EVENEMENTS_VISIBILITES, true)) {
@@ -253,14 +253,14 @@ function route_evenements(): void
         redirect('evenements', $retourFiltres);
     }
 
-    $spectacleMap = spectacle_map();
+    $projetMap = projet_map();
 
     // Tri de colonne — lu avant la branche carte, qui rend la même vue et doit
     // donc recevoir $tri comme la liste. L'ordre naturel (la date la plus
     // récente d'abord) reste celui de l'arrivée sur la page.
     $tri = tri_colonne('evenements', [
         'date'      => 'e.date',
-        'spectacle' => 's.nom COLLATE NOCASE',
+        'projet' => 's.nom COLLATE NOCASE',
         'ville'     => ['e.ville COLLATE NOCASE', 'e.salle COLLATE NOCASE'],
         'audience'  => 'e.visibilite',
         'statut'    => 'e.statut',
@@ -269,13 +269,13 @@ function route_evenements(): void
     ]);
 
     if ($vue === 'carte') {
-        [$whereCarte, $paramsCarte] = evenements_where_filtres($f, $spectacleMap, true);
+        [$whereCarte, $paramsCarte] = evenements_where_filtres($f, $projetMap, true);
         [$cartePoints, $carteVillesManquantes] = evenements_carte_points($whereCarte, $paramsCarte);
         render('evenements', [
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'evenements' => [], 'annee' => $annee, 'annees' => $annees ?: [(int) date('Y')],
-            'statutSuisa' => $statutSuisa, 'spectacleId' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
-            'spectacles' => [], 'spectaclesFiltre' => spectacles_pour_filtre($spectacleMap),
+            'statutSuisa' => $statutSuisa, 'projetId' => $projetId, 'statut' => $statut, 'visibilite' => $visibilite,
+            'projets' => [], 'projetsFiltre' => projets_pour_filtre($projetMap),
             'paysDisponibles' => evenements_pays_disponibles(), 'pays' => $pays, 'salaries' => $salaries,
             'recherche' => $recherche, 'modeClient' => true, 'nonLocalises' => $nonLocalises, 'tri' => $tri,
             'bulkCount' => null, 'okAnnule' => false, 'prodExterneOk' => null, 'prodExterneBloques' => null,
@@ -284,18 +284,18 @@ function route_evenements(): void
         return;
     }
 
-    $from = ' FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id';
+    $from = ' FROM evenements e LEFT JOIN projets s ON s.id = e.projet_id';
     // Une jointure de plus pour la mini-ligne de la vue téléphone
-    // (evenement_mini_html()) : l'artiste qui coiffe le spectacle. Réservée aux
+    // (evenement_mini_html()) : l'artiste qui coiffe le projet. Réservée aux
     // requêtes qui RAMÈNENT les lignes ; les COUNT gardent le $from court.
-    $fromData = $from . ' LEFT JOIN spectacles sp ON sp.id = s.parent_id';
-    $selectCols = "e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_groupe,
+    $fromData = $from . ' LEFT JOIN projets sp ON sp.id = s.parent_id';
+    $selectCols = "e.*, s.nom AS projet_nom, sp.nom AS projet_groupe,
                    (SELECT COUNT(*) FROM evenement_employes ee WHERE ee.evenement_id = e.id) AS nb_salaries";
     $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', e.id DESC' : ' ORDER BY e.date DESC, e.id DESC';
 
     // Total avec les seuls filtres structurés (hors recherche texte) : décide du
     // mode client vs serveur, voir pagination_mode_client() dans lib/helpers.php.
-    [$whereStruct, $paramsStruct] = evenements_where_filtres($f, $spectacleMap, false);
+    [$whereStruct, $paramsStruct] = evenements_where_filtres($f, $projetMap, false);
     $stmtTotStruct = db()->prepare('SELECT COUNT(*)' . $from . $whereStruct);
     $stmtTotStruct->execute($paramsStruct);
     $totalSansRecherche = (int) $stmtTotStruct->fetchColumn();
@@ -310,7 +310,7 @@ function route_evenements(): void
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$where, $params] = evenements_where_filtres($f, $spectacleMap);
+        [$where, $params] = evenements_where_filtres($f, $projetMap);
 
         $stmtTot = db()->prepare('SELECT COUNT(*)' . $from . $where);
         $stmtTot->execute($params);
@@ -325,12 +325,12 @@ function route_evenements(): void
         $evenements = $stmt->fetchAll();
     }
 
-    // $spectacles : feuilles assignables uniquement (select « Modifier spectacle »
+    // $projets : feuilles assignables uniquement (select « Modifier projet »
     // de la barre de modification groupée — un groupe n'y est jamais valide, voir
-    // spectacle_assignable()). $spectaclesFiltre : groupes + feuilles (filtre en
-    // haut de page, où un groupe est un filtre valide — voir spectacles_pour_filtre()).
-    $spectacles = spectacles_pour_selection($spectacleMap);
-    $spectaclesFiltre = spectacles_pour_filtre($spectacleMap);
+    // projet_assignable()). $projetsFiltre : groupes + feuilles (filtre en
+    // haut de page, où un groupe est un filtre valide — voir projets_pour_filtre()).
+    $projets = projets_pour_selection($projetMap);
+    $projetsFiltre = projets_pour_filtre($projetMap);
 
     render('evenements', [
         'vue' => $vue,
@@ -340,11 +340,11 @@ function route_evenements(): void
         'annee'           => $annee,
         'annees'          => $annees ?: [(int) date('Y')],
         'statutSuisa'     => $statutSuisa,
-        'spectacleId'     => $spectacleId,
+        'projetId'     => $projetId,
         'statut'          => $statut,
         'visibilite'      => $visibilite,
-        'spectacles'      => $spectacles,
-        'spectaclesFiltre' => $spectaclesFiltre,
+        'projets'      => $projets,
+        'projetsFiltre' => $projetsFiltre,
         'paysDisponibles' => evenements_pays_disponibles(),
         'pays'            => $pays,
         'salaries'        => $salaries,
@@ -373,14 +373,14 @@ function route_evenements_geocoder(): void
     check_csrf();
     $n = geocodage_traiter_lot('geocodage_villes_manquantes_evenements');
     $retour = array_intersect_key($_POST, array_flip([
-        'q', 'annee', 'statut_suisa', 'spectacle_id', 'statut', 'visibilite', 'pays', 'salaries',
+        'q', 'annee', 'statut_suisa', 'projet_id', 'statut', 'visibilite', 'pays', 'salaries',
     ]));
     redirect('evenements', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
 // Export CSV (« Excel ») des événements filtrés actuellement — mêmes filtres
 // que route_evenements() (evenements_lire_filtres()/evenements_where_filtres()),
-// sans pagination : date, spectacle, ville, région/canton, pays, salle, festival,
+// sans pagination : date, projet, ville, région/canton, pays, salle, festival,
 // suivi SUISA (envoyé à/date d'envoi/date du décompte), et tous les champs de
 // l'organisateur lié le cas échéant.
 // Données de l'export SUISA pour les filtres courants : l'en-tête et les lignes
@@ -389,9 +389,9 @@ function route_evenements_geocoder(): void
 // finiraient par ne plus montrer la même chose.
 function evenements_export_suisa_donnees(): array
 {
-    $spectacleMap = spectacle_map();
+    $projetMap = projet_map();
     $f = evenements_lire_filtres();
-    [$where, $params] = evenements_where_filtres($f, $spectacleMap);
+    [$where, $params] = evenements_where_filtres($f, $projetMap);
     // L'organisateur est résolu depuis evenement_structures, pas depuis le
     // miroir evenements.organisateur_structure_id : celui-ci ne reprend QUE la
     // structure marquée « à facturer » (evenement_resynchroniser_miroirs()), et
@@ -407,12 +407,12 @@ function evenements_export_suisa_donnees(): array
     // le SQLite de production refuse un alias de jointure dans un sous-select
     // de clause ON. Voir docs/DECISIONS.md § SQLite d'un hébergement mutualisé.
     $from = ' FROM evenements e
-              LEFT JOIN spectacles s ON s.id = e.spectacle_id
+              LEFT JOIN projets s ON s.id = e.projet_id
               LEFT JOIN structures d ON d.id = (
                   SELECT es.structure_id FROM evenement_structures es
                    WHERE es.evenement_id = e.id
                    ORDER BY es.est_facturation DESC, es.id ASC LIMIT 1)';
-    $sql = 'SELECT e.date, s.nom AS spectacle_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
+    $sql = 'SELECT e.date, s.nom AS projet_nom, e.ville, e.departement_canton, e.pays, e.salle, e.festival,
                    e.suisa_envoye_a, e.suisa_envoye_le, e.suisa_decompte_le,
                    d.id AS org_id,
                    d.nom AS org_nom, d.adresse_rue AS org_rue, d.adresse_npa AS org_npa,
@@ -429,7 +429,7 @@ function evenements_export_suisa_donnees(): array
         $ct = $contacts[(int) ($r['org_id'] ?? 0)] ?? [];
         $lignes[] = [
             $dateAffichee((string) $r['date']),
-            $r['spectacle_nom'] ?? '',
+            $r['projet_nom'] ?? '',
             $r['ville'],
             $r['departement_canton'],
             $r['pays'],
@@ -450,7 +450,7 @@ function evenements_export_suisa_donnees(): array
     }
     return [
         'entetes' => [
-            'Date', 'Spectacle', 'Ville', 'Région/canton', 'Pays', 'Salle', 'Festival',
+            'Date', evenements_terme_projet(false), 'Ville', 'Région/canton', 'Pays', 'Salle', 'Festival',
             'SUISA envoyée à', "SUISA date d'envoi", 'SUISA date du décompte',
             'Organisateur — Nom', 'Organisateur — Rue', 'Organisateur — NPA',
             'Organisateur — Localité', 'Organisateur — Pays', 'Organisateur — E-mail',
@@ -508,8 +508,8 @@ function route_evenement(): void
         redirect('evenements');
     }
 
-    $spectacleMap = spectacle_map();
-    $spectacles = spectacles_pour_selection($spectacleMap);
+    $projetMap = projet_map();
+    $projets = projets_pour_selection($projetMap);
     $employesTous = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
 
     // Sépare « déjà liés » / « disponibles » pour le picker (select + bouton
@@ -591,14 +591,14 @@ function route_evenement(): void
     }
 
     $renderForm = function (?string $err) use (
-        $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
+        $evenement, $id, $projets, $projetMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
         $axes, $structuresLiees, $peutLierLieu, $lieuActuel, $feuilleElements, $feuilleContacts
     ) {
         render('evenement', [
             'evenement'      => $evenement,
             'id'             => $id,
-            'spectacles'     => $spectacles,
-            'spectacleMap'   => $spectacleMap,
+            'projets'     => $projets,
+            'projetMap'   => $projetMap,
             'employesLies'   => $employesLies,
             'employesDispo'  => $employesDispo,
             'prestations'    => $prestations,
@@ -636,7 +636,7 @@ function route_evenement(): void
     $date = trim($_POST['date'] ?? '');
     $statut = valeur_autorisee($_POST['statut'] ?? '', EVENEMENTS_STATUTS, 'option');
     $visibilite = valeur_autorisee($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, 'non_repertorie');
-    $spectacleId = ($_POST['spectacle_id'] ?? '') !== '' ? (int) $_POST['spectacle_id'] : null;
+    $projetId = ($_POST['projet_id'] ?? '') !== '' ? (int) $_POST['projet_id'] : null;
     $ville = trim($_POST['ville'] ?? '');
     $departementCanton = trim($_POST['departement_canton'] ?? '');
     $pays = valeur_autorisee($_POST['pays'] ?? '', evenements_pays_disponibles());
@@ -659,8 +659,8 @@ function route_evenement(): void
     $err = null;
     if (!date_valide($date)) {
         $err = 'La date est invalide.';
-    } elseif ($spectacleId !== null && !spectacle_assignable($spectacleId)) {
-        $err = 'Spectacle invalide.';
+    } elseif ($projetId !== null && !projet_assignable($projetId)) {
+        $err = evenements_terme_projet(false) . ' invalide.';
     } elseif ($lienInfos !== '' && !preg_match('#^https?://#i', $lienInfos)) {
         $err = "Le lien doit être une URL valide (commençant par http:// ou https://).";
     } elseif ($lienInfos !== '' && !filter_var($lienInfos, FILTER_VALIDATE_URL)) {
@@ -682,7 +682,7 @@ function route_evenement(): void
     }
 
     $champs = [
-        'spectacle_id' => $spectacleId, 'date' => $date, 'statut' => $statut, 'visibilite' => $visibilite,
+        'projet_id' => $projetId, 'date' => $date, 'statut' => $statut, 'visibilite' => $visibilite,
         'ville' => $ville, 'departement_canton' => $departementCanton, 'pays' => $pays, 'salle' => $salle, 'festival' => $festival,
         'grande_region' => $grandeRegion,
         'lien_infos' => $lienInfos, 'lien_texte' => $lienTexte, 'remarques' => $remarques,
@@ -695,9 +695,9 @@ function route_evenement(): void
     // suisa_applicable/suisa_envoye_*/suisa_decompte_le gardent leurs valeurs
     // par défaut du schéma (applicable=1, dates vides) — modifiables ensuite
     // depuis la carte « SUISA », visible une fois l'événement créé.
-    db()->prepare('INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
+    db()->prepare('INSERT INTO evenements (projet_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival,
                     grande_region, lien_infos, lien_texte, remarques)
-                    VALUES (:spectacle_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
+                    VALUES (:projet_id, :date, :statut, :visibilite, :ville, :departement_canton, :pays, :salle, :festival,
                     :grande_region, :lien_infos, :lien_texte, :remarques)')
         ->execute($champs);
     $evenementId = (int) db()->lastInsertId();
@@ -716,7 +716,7 @@ function route_evenement(): void
     redirect('evenement', ['id' => $evenementId, 'ok' => 'infos']);
 }
 
-// Carte « Informations » — date, spectacle, statut, type d'audience, salle,
+// Carte « Informations » — date, projet, statut, type d'audience, salle,
 // festival, lien/texte du bouton/remarques. Séparée de la création
 // (route_evenement(), qui ne gère plus que id=0) : cette carte s'édite en
 // place (lecture par défaut, crayon → édition) une fois l'événement créé.
@@ -733,7 +733,7 @@ function route_evenement_informations_enregistrer(): void
     $date = trim($_POST['date'] ?? '');
     $statut = valeur_autorisee($_POST['statut'] ?? '', EVENEMENTS_STATUTS, 'option');
     $visibilite = valeur_autorisee($_POST['visibilite'] ?? '', EVENEMENTS_VISIBILITES, 'non_repertorie');
-    $spectacleId = ($_POST['spectacle_id'] ?? '') !== '' ? (int) $_POST['spectacle_id'] : null;
+    $projetId = ($_POST['projet_id'] ?? '') !== '' ? (int) $_POST['projet_id'] : null;
     $salle = trim($_POST['salle'] ?? '');
     $festival = trim($_POST['festival'] ?? '');
     $lienInfos = trim($_POST['lien_infos'] ?? '');
@@ -745,15 +745,15 @@ function route_evenement_informations_enregistrer(): void
     $heureDebut = heure_normalisee((string) ($_POST['heure_debut'] ?? ''));
     $heureFin = heure_normalisee((string) ($_POST['heure_fin'] ?? ''));
 
-    // Un spectacle-parent (groupe/artiste) n'est jamais assignable — sauf s'il
-    // s'agit du spectacle déjà en place (édition d'un autre champ sans y toucher :
+    // Un projet-parent (groupe/artiste) n'est jamais assignable — sauf s'il
+    // s'agit du projet déjà en place (édition d'un autre champ sans y toucher :
     // le <select> le réaffiche tel quel, marqué « non réassignable »).
-    $spectacleInchange = $spectacleId === (int) $evenement['spectacle_id'];
+    $projetInchange = $projetId === (int) $evenement['projet_id'];
     $err = null;
     if (!date_valide($date)) {
         $err = 'date';
-    } elseif ($spectacleId !== null && !$spectacleInchange && !spectacle_assignable($spectacleId)) {
-        $err = 'spectacle';
+    } elseif ($projetId !== null && !$projetInchange && !projet_assignable($projetId)) {
+        $err = 'projet';
     } elseif ($lienInfos !== '' && (!preg_match('#^https?://#i', $lienInfos) || !filter_var($lienInfos, FILTER_VALIDATE_URL))) {
         $err = 'lien';
     }
@@ -761,9 +761,9 @@ function route_evenement_informations_enregistrer(): void
         redirect('evenement', ['id' => $id, 'errInformations' => $err]);
     }
 
-    db()->prepare('UPDATE evenements SET spectacle_id=?, date=?, statut=?, visibilite=?, salle=?, festival=?,
+    db()->prepare('UPDATE evenements SET projet_id=?, date=?, statut=?, visibilite=?, salle=?, festival=?,
                     heure_debut=?, heure_fin=?, lien_infos=?, lien_texte=?, remarques=? WHERE id=?')
-        ->execute([$spectacleId, $date, $statut, $visibilite, $salle, $festival,
+        ->execute([$projetId, $date, $statut, $visibilite, $salle, $festival,
                    $heureDebut, $heureFin, $lienInfos, $lienTexte, $remarques, $id]);
 
     // La date a pu changer : re-dérive dernier_concert_le pour les structures
@@ -1216,24 +1216,24 @@ function route_facture_evenement_lier(): void
     redirect('facture', ['id' => $factureId]);
 }
 
-// --- Spectacles ---------------------------------------------------------------
+// --- Projets ---------------------------------------------------------------
 // Modification groupée en arbre (renommage/ajout/déplacement/glisser-déposer),
-// même esprit que le plan comptable (route_compta_plan()) — voir spectacle_map()/
-// spectacle_descendants() dans lib/evenements.php. Un spectacle-parent (nœud
+// même esprit que le plan comptable (route_compta_plan()) — voir projet_map()/
+// projet_descendants() dans lib/evenements.php. Un projet-parent (nœud
 // non-feuille) représente un artiste ; « trier par artiste » = l'ordre de l'arbre.
-function route_spectacles(): void
+function route_projets(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $section = $_POST['section'] ?? '';
-        $map = spectacle_map();
+        $map = projet_map();
         if ($section === 'add') {
             $nom = trim($_POST['nom'] ?? '');
             $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
             if ($nom !== '' && ($parent === null || isset($map[$parent]))) {
-                $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM spectacles')->fetchColumn();
-                db()->prepare('INSERT INTO spectacles (nom, parent_id, ordre) VALUES (?, ?, ?)')
+                $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM projets')->fetchColumn();
+                db()->prepare('INSERT INTO projets (nom, parent_id, ordre) VALUES (?, ?, ?)')
                     ->execute([$nom, $parent, $ordre]);
             }
         } elseif ($section === 'rename') {
@@ -1243,7 +1243,7 @@ function route_spectacles(): void
             $id  = (int) ($_POST['id'] ?? 0);
             $nom = trim($_POST['nom'] ?? '');
             if ($nom !== '' && isset($map[$id])) {
-                db()->prepare('UPDATE spectacles SET nom = ? WHERE id = ?')->execute([$nom, $id]);
+                db()->prepare('UPDATE projets SET nom = ? WHERE id = ?')->execute([$nom, $id]);
             }
         } elseif ($section === 'move') {
             $id  = (int) ($_POST['id'] ?? 0);
@@ -1256,7 +1256,7 @@ function route_spectacles(): void
                 $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
                 if ($pos !== false && $swap >= 0 && $swap < count($ids)) {
                     [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
-                    $upd = db()->prepare('UPDATE spectacles SET ordre = ? WHERE id = ?');
+                    $upd = db()->prepare('UPDATE projets SET ordre = ? WHERE id = ?');
                     db()->beginTransaction();
                     foreach ($ids as $i => $sid) {
                         $upd->execute([$i, $sid]);
@@ -1265,18 +1265,18 @@ function route_spectacles(): void
                 }
             }
         } elseif ($section === 'reorder') {
-            // Glisser-déposer : rattache un spectacle à $parent (vide = racine) et
+            // Glisser-déposer : rattache un projet à $parent (vide = racine) et
             // renumérote les frères selon l'ordre fourni (déplacé inclus).
             $id     = (int) ($_POST['id'] ?? 0);
             $parent = ($_POST['parent_id'] ?? '') === '' ? null : (int) $_POST['parent_id'];
             $order  = array_values(array_filter(array_map('intval', explode(',', $_POST['order'] ?? ''))));
             if (isset($map[$id]) && $order) {
-                $interdits = array_merge([$id], spectacle_descendants($id, $map));
+                $interdits = array_merge([$id], projet_descendants($id, $map));
                 $okParent = $parent === null || (isset($map[$parent]) && !in_array($parent, $interdits, true));
                 if ($okParent) {
                     db()->beginTransaction();
-                    db()->prepare('UPDATE spectacles SET parent_id = ? WHERE id = ?')->execute([$parent, $id]);
-                    $upd = db()->prepare('UPDATE spectacles SET ordre = ? WHERE id = ?');
+                    db()->prepare('UPDATE projets SET parent_id = ? WHERE id = ?')->execute([$parent, $id]);
+                    $upd = db()->prepare('UPDATE projets SET ordre = ? WHERE id = ?');
                     $i = 0;
                     foreach ($order as $sid) {
                         if ($sid === $id || (isset($map[$sid]) && plan_pid($map[$sid]['parent_id'] ?? null) === plan_pid($parent))) {
@@ -1287,27 +1287,27 @@ function route_spectacles(): void
                 }
             }
         }
-        redirect('spectacles');
+        redirect('projets');
     }
 
     $map = [];
-    foreach (db()->query('SELECT * FROM spectacles ORDER BY ordre, id') as $r) {
+    foreach (db()->query('SELECT * FROM projets ORDER BY ordre, id') as $r) {
         $map[(int) $r['id']] = $r;
     }
 
-    // Compte par statut (confirmé/option/annulé), propre à chaque spectacle —
-    // un spectacle-groupe (artiste) n'a jamais d'événement lié directement,
+    // Compte par statut (confirmé/option/annulé), propre à chaque projet —
+    // un projet-groupe (artiste) n'a jamais d'événement lié directement,
     // son total est la somme de ses feuilles descendantes.
     $comptesPropres = [];
     foreach (db()->query(
-        'SELECT spectacle_id, statut, COUNT(*) AS n FROM evenements
-         WHERE spectacle_id IS NOT NULL GROUP BY spectacle_id, statut'
+        'SELECT projet_id, statut, COUNT(*) AS n FROM evenements
+         WHERE projet_id IS NOT NULL GROUP BY projet_id, statut'
     ) as $r) {
-        $comptesPropres[(int) $r['spectacle_id']][(string) $r['statut']] = (int) $r['n'];
+        $comptesPropres[(int) $r['projet_id']][(string) $r['statut']] = (int) $r['n'];
     }
     $comptes = [];
     foreach (array_keys($map) as $id) {
-        $sousArbre = array_merge([$id], spectacle_descendants($id, $map));
+        $sousArbre = array_merge([$id], projet_descendants($id, $map));
         $c = ['confirme' => 0, 'option' => 0, 'annule' => 0];
         foreach ($sousArbre as $sid) {
             foreach ($comptesPropres[$sid] ?? [] as $statut => $n) {
@@ -1329,23 +1329,23 @@ function route_spectacles(): void
         // feuilles de route.
         'tokenEquipe' => evenements_equipe_token(),
         'flagErr' => $_GET['err'] ?? null,
-    ], evenements_terme_spectacle());
+    ], evenements_terme_projet());
 }
 
-function route_spectacle(): void
+function route_projet(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-    $spectacle = null;
+    $projet = null;
     if ($id) {
-        $stmt = db()->prepare('SELECT * FROM spectacles WHERE id = ?');
+        $stmt = db()->prepare('SELECT * FROM projets WHERE id = ?');
         $stmt->execute([$id]);
-        $spectacle = $stmt->fetch();
-        if (!$spectacle) {
-            redirect('spectacles');
+        $projet = $stmt->fetch();
+        if (!$projet) {
+            redirect('projets');
         }
     }
-    $map = spectacle_map();
+    $map = projet_map();
     // Même expression que partout ailleurs (route_evenement, route_fiche_form…) :
     // aucun axe à proposer quand le module analytique est éteint.
     $axes = module_actif('analytique')
@@ -1363,17 +1363,17 @@ function route_spectacle(): void
         // avant son extinction, l'écran ne l'a alors pas montré.
         $axeProjet = module_actif('analytique')
             ? (((int) ($_POST['axe_analytique_id'] ?? 0)) ?: null)
-            : (($spectacle['axe_analytique_id'] ?? null) !== null ? (int) $spectacle['axe_analytique_id'] : null);
+            : (($projet['axe_analytique_id'] ?? null) !== null ? (int) $projet['axe_analytique_id'] : null);
         $err = null;
         if ($nom === '') {
             $err = 'Le nom est obligatoire.';
         }
         // Rattachement invalide (cycle, parent inexistant) → racine.
-        $interdits = $id ? array_merge([$id], spectacle_descendants($id, $map)) : [];
+        $interdits = $id ? array_merge([$id], projet_descendants($id, $map)) : [];
         if ($parent !== null && (in_array($parent, $interdits, true) || !isset($map[$parent]))) {
             $parent = null;
         }
-        $fichier = $spectacle['suisa_feuille_fichier'] ?? '';
+        $fichier = $projet['suisa_feuille_fichier'] ?? '';
         if (!$err) {
             try {
                 $upload = handle_pdf_upload('suisa_feuille');
@@ -1387,77 +1387,77 @@ function route_spectacle(): void
             }
         }
         if ($err) {
-            $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent, 'axe_analytique_id' => $axeProjet]);
-            render('projet_form', ['spectacle' => $spectacleErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_spectacle(false));
+            $projetErr = array_merge((array) $projet, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent, 'axe_analytique_id' => $axeProjet]);
+            render('projet_form', ['projet' => $projetErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_projet(false));
             return;
         }
         if ($id) {
-            db()->prepare('UPDATE spectacles SET nom=?, notes=?, suisa_feuille_fichier=?, parent_id=?, axe_analytique_id=? WHERE id=?')
+            db()->prepare('UPDATE projets SET nom=?, notes=?, suisa_feuille_fichier=?, parent_id=?, axe_analytique_id=? WHERE id=?')
                 ->execute([$nom, $notes, $fichier, $parent, $axeProjet, $id]);
         } else {
-            $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM spectacles')->fetchColumn();
-            db()->prepare('INSERT INTO spectacles (nom, notes, suisa_feuille_fichier, parent_id, ordre, axe_analytique_id) VALUES (?, ?, ?, ?, ?, ?)')
+            $ordre = (int) db()->query('SELECT COALESCE(MAX(ordre),0)+1 FROM projets')->fetchColumn();
+            db()->prepare('INSERT INTO projets (nom, notes, suisa_feuille_fichier, parent_id, ordre, axe_analytique_id) VALUES (?, ?, ?, ?, ?, ?)')
                 ->execute([$nom, $notes, $fichier, $parent, $ordre, $axeProjet]);
         }
-        redirect('spectacles');
+        redirect('projets');
     }
-    render('projet_form', ['spectacle' => $spectacle, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
+    render('projet_form', ['projet' => $projet, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_projet(false)));
 }
 
-function route_spectacle_delete(): void
+function route_projet_delete(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
-        $map = spectacle_map();
+        $map = projet_map();
         if (isset($map[$id]) && !plan_est_feuille($id, $map)) {
-            redirect('spectacles', ['err' => 'children']); // groupe (artiste) → on refuse
+            redirect('projets', ['err' => 'children']); // groupe (artiste) → on refuse
         }
-        if (!supprimer_si_non_reference('spectacles', $id, 'evenements', 'spectacle_id')) {
-            redirect('spectacles', ['err' => 'used']);
+        if (!supprimer_si_non_reference('projets', $id, 'evenements', 'projet_id')) {
+            redirect('projets', ['err' => 'used']);
         }
     }
-    redirect('spectacles');
+    redirect('projets');
 }
 
-// Icône d'un spectacle : la vignette carrée recadrée dans le navigateur, ou son
+// Icône d'un projet : la vignette carrée recadrée dans le navigateur, ou son
 // retrait. Deux actions dans une seule route — elles écrivent la même colonne et
 // partagent le nettoyage de l'ancien fichier — sur le modèle de
 // route_employe_photo(), qui fait cela pour la photo d'un employé.
-function route_spectacle_image(): void
+function route_projet_image(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('spectacles');
+        redirect('projets');
     }
     check_csrf();
     require_ecriture('evenements');
     $id = (int) ($_POST['id'] ?? 0);
-    $stmt = db()->prepare('SELECT id, image FROM spectacles WHERE id = ?');
+    $stmt = db()->prepare('SELECT id, image FROM projets WHERE id = ?');
     $stmt->execute([$id]);
-    $spectacle = $stmt->fetch();
-    if (!$spectacle) {
-        redirect('spectacles');
+    $projet = $stmt->fetch();
+    if (!$projet) {
+        redirect('projets');
     }
-    $ancienne = (string) $spectacle['image'];
+    $ancienne = (string) $projet['image'];
     $err = null;
 
     if (($_POST['action'] ?? '') === 'supprimer') {
-        db()->prepare("UPDATE spectacles SET image = '' WHERE id = ?")->execute([$id]);
+        db()->prepare("UPDATE projets SET image = '' WHERE id = ?")->execute([$id]);
         avatar_photo_supprimer($ancienne);
     } else {
         try {
             // Le fichier n'est remplacé qu'une fois le nouveau écrit : si
             // l'image est refusée, l'ancienne icône est toujours là.
-            $chemin = avatar_photo_enregistrer((string) ($_POST['image_data'] ?? ''), 'spectacle');
-            db()->prepare('UPDATE spectacles SET image = ? WHERE id = ?')->execute([$chemin, $id]);
+            $chemin = avatar_photo_enregistrer((string) ($_POST['image_data'] ?? ''), 'projet');
+            db()->prepare('UPDATE projets SET image = ? WHERE id = ?')->execute([$chemin, $id]);
             avatar_photo_supprimer($ancienne);
         } catch (RuntimeException $ex) {
             $err = $ex->getMessage();
         }
     }
-    redirect('spectacles', $err === null ? [] : ['err_image' => $err]);
+    redirect('projets', $err === null ? [] : ['err_image' => $err]);
 }
 
 // --- Paramètres — onglet Événements -------------------------------------------
@@ -1474,12 +1474,16 @@ function route_evenements_reglages(): void
             $delai = max(1, (int) ($_POST['suisa_delai_decompte_mois'] ?? 12));
             $delaiAbandon = max(1, (int) ($_POST['suisa_delai_abandon_mois'] ?? 60));
             $lienTexteDefaut = trim($_POST['evenements_lien_texte_defaut'] ?? '');
-            $termeSpectacle = trim($_POST['evenements_terme_spectacle'] ?? '');
+            // Les deux formes du terme, saisies à part : voir
+            // evenements_terme_projet() pour le pourquoi.
+            $termeProjet = trim($_POST['evenements_terme_projet'] ?? '');
+            $termeProjetSingulier = trim($_POST['evenements_terme_projet_singulier'] ?? '');
             $ins = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
             $ins->execute(['suisa_delai_decompte_mois', (string) $delai]);
             $ins->execute(['suisa_delai_abandon_mois', (string) $delaiAbandon]);
             $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
-            $ins->execute(['evenements_terme_spectacle', $termeSpectacle]);
+            $ins->execute(['evenements_terme_projet', $termeProjet]);
+            $ins->execute(['evenements_terme_projet_singulier', $termeProjetSingulier]);
         }
         redirect('evenements_reglages', ['ok' => 1]);
     }
@@ -1488,7 +1492,8 @@ function route_evenements_reglages(): void
         'delai' => evenements_delai_decompte_mois(),
         'delaiAbandon' => evenements_delai_abandon_mois(),
         'lienTexteDefaut' => evenements_lien_texte_defaut(),
-        'termeSpectacle' => evenements_terme_spectacle(),
+        'termeProjet' => evenements_terme_projet(),
+        'termeProjetSingulier' => evenements_terme_projet(false),
         'saved' => $_GET['ok'] ?? null,
     ], 'Paramètres — Événements');
 }
@@ -1504,7 +1509,7 @@ function evenements_verifier_token(): void
     }
 }
 
-// Résout ?spectacle_id= pour les exports publics (JSON/iCal) — null si absent
+// Résout ?projet_id= pour les exports publics (JSON/iCal) — null si absent
 // (pas de filtre, comportement historique). Si présent, doit être un entier
 // positif ; toute autre valeur (chaîne non numérique, 0, négatif) est
 // rejetée explicitement plutôt que silencieusement traitée comme « tous ».
@@ -1512,15 +1517,15 @@ function evenements_verifier_token(): void
 // par un <select> contrôlé par l'app), cette valeur vient d'un appelant
 // externe : une faute de frappe ne doit jamais élargir silencieusement
 // l'export à la totalité des événements sans que l'appelant s'en aperçoive.
-function evenements_lire_spectacle_id_export(): ?int
+function evenements_lire_projet_id_export(): ?int
 {
-    if (!isset($_GET['spectacle_id'])) {
+    if (!isset($_GET['projet_id'])) {
         return null;
     }
-    $brut = (string) $_GET['spectacle_id'];
+    $brut = (string) $_GET['projet_id'];
     if (!ctype_digit($brut) || (int) $brut < 1) {
         http_response_code(400);
-        exit('spectacle_id invalide (entier positif attendu).');
+        exit('projet_id invalide (entier positif attendu).');
     }
     return (int) $brut;
 }
@@ -1528,8 +1533,8 @@ function evenements_lire_spectacle_id_export(): ?int
 function route_evenements_exporter_json(): void
 {
     evenements_verifier_token();
-    $spectacleId = evenements_lire_spectacle_id_export();
-    $items = evenements_a_exporter($spectacleId);
+    $projetId = evenements_lire_projet_id_export();
+    $items = evenements_a_exporter($projetId);
     header('Content-Type: application/json; charset=utf-8');
     // Route publique protégée par token (pas par cookie de session, voir
     // evenements_verifier_token()) : Access-Control-Allow-Origin: * sans risque,
@@ -1559,8 +1564,8 @@ function route_evenements_exporter_json(): void
 function route_evenements_exporter_ical(): void
 {
     evenements_verifier_token();
-    $spectacleId = evenements_lire_spectacle_id_export();
-    $items = evenements_a_exporter($spectacleId);
+    $projetId = evenements_lire_projet_id_export();
+    $items = evenements_a_exporter($projetId);
     header('Content-Type: text/calendar; charset=utf-8');
     header('Content-Disposition: inline; filename="evenements.ics"');
     echo evenements_generer_ical($items);
@@ -1843,11 +1848,11 @@ function route_evenements_equipe_exporter_ical(): void
         http_response_code(403);
         exit('Jeton invalide.');
     }
-    $spectacleId = evenements_lire_spectacle_id_export();
+    $projetId = evenements_lire_projet_id_export();
     $base = evenements_export_url('evenement_feuille_fichier', evenements_equipe_token());
     header('Content-Type: text/calendar; charset=utf-8');
     header('Content-Disposition: inline; filename="feuilles-de-route.ics"');
-    echo feuille_generer_ical_equipe(feuille_evenements_equipe($spectacleId), $base);
+    echo feuille_generer_ical_equipe(feuille_evenements_equipe($projetId), $base);
     exit;
 }
 

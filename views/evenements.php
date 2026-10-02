@@ -1,14 +1,14 @@
 <?php
 /** @var array $evenements */ /** @var array $annee */ /** @var array $annees */
-/** @var array $statutSuisa */ /** @var array $spectacleId */ /** @var array $statut */
-/** @var array $visibilite */ /** @var array $spectacles */ /** @var array $spectaclesFiltre */
+/** @var array $statutSuisa */ /** @var array $projetId */ /** @var array $statut */
+/** @var array $visibilite */ /** @var array $projets */ /** @var array $projetsFiltre */
 /** @var array $paysDisponibles */ /** @var array $pays */ /** @var array $salaries */ /** @var string $recherche */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var bool $modeClient */ /** @var array $tri */
 /** @var ?int $prodExterneOk */ /** @var ?int $prodExterneBloques */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var string $vue */ /** @var array $cartePoints */ /** @var int $carteVillesManquantes */
 /** @var bool $nonLocalises */
-$termeSingulier = evenements_terme_spectacle(false);
+$termeSingulier = evenements_terme_projet(false);
 // Liens des onglets Liste/Carte : mêmes filtres actifs, seule la vue change
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
@@ -22,7 +22,7 @@ $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
 
 // Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
 // filtre_colonne_html()/filtre_colonne_actifs_html() dans lib/helpers.php) :
-// Date/Spectacle/Audience/Statut/Suisa/Salariés, et le filtre Pays (ex-toolbar)
+// Date/Projet/Audience/Statut/Suisa/Salariés, et le filtre Pays (ex-toolbar)
 // porté par la colonne Ville/salle. En vue liste, remplacent la toolbar de
 // filtres ; en vue carte (pas de tableau, rien où accrocher un en-tête de
 // colonne), les mêmes composants restent affichés dans la toolbar.
@@ -34,15 +34,15 @@ $visibiliteLabels = [];
 foreach (EVENEMENTS_VISIBILITES as $vi) { $visibiliteLabels[$vi] = evenement_visibilite_libelle($vi); }
 $statutSuisaLabels = [];
 foreach (EVENEMENTS_STATUTS_SUISA_FILTRE as $ss) { $statutSuisaLabels[$ss] = evenement_statut_suisa_libelle($ss); }
-$spectacleLabels = ['-1' => 'Sans ' . mb_strtolower($termeSingulier)];
-foreach ($spectaclesFiltre as $s) { $spectacleLabels[(int) $s['id']] = $s['nom']; }
+$projetLabels = ['-1' => 'Sans ' . mb_strtolower($termeSingulier)];
+foreach ($projetsFiltre as $s) { $projetLabels[(int) $s['id']] = $s['nom']; }
 $paysLabels = [];
 foreach ($paysDisponibles as $code) { $paysLabels[$code] = pays_nom_depuis_code($code) ?: $code; }
 $salariesLabels = ['oui' => 'Oui', 'non' => 'Non'];
 // $autresFiltres('champ') : les AUTRES filtres actifs de la page (jamais
 // celui-ci), à reporter en hidden inputs par chaque panneau — voir
 // autres_filtres_fn(), lib/helpers.php.
-$tousFiltres = ['annee' => $annee, 'spectacle_id' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
+$tousFiltres = ['annee' => $annee, 'projet_id' => $projetId, 'statut' => $statut, 'visibilite' => $visibilite,
     'statut_suisa' => $statutSuisa, 'pays' => $pays, 'salaries' => $salaries, 'q' => $recherche];
 $autresFiltres = autres_filtres_fn($tousFiltres);
 ?>
@@ -71,7 +71,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         $vueExtraEv = $vue === 'carte' ? ['vue' => 'carte'] : [];
         $filtresEv = [
             ['annee', 'Date', $anneeLabels, $annee],
-            ['spectacle_id', $termeSingulier, $spectacleLabels, $spectacleId],
+            ['projet_id', $termeSingulier, $projetLabels, $projetId],
             ['pays', 'Pays', $paysLabels, $pays],
             ['visibilite', 'Audience', $visibiliteLabels, $visibilite],
             ['statut', 'Statut', $statutLabels, $statut],
@@ -102,7 +102,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                 <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte" aria-label="Affichage sur une carte"><?= icon('map') ?></a>
             </div>
             <?php $exportQs = http_build_query([
-                'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
+                'annee' => $annee, 'statut_suisa' => $statutSuisa, 'projet_id' => $projetId,
                 'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
                 'q' => $recherche,
             ]); ?>
@@ -131,7 +131,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             <option value="delete">Supprimer</option>
             <option value="statut">Modifier le statut</option>
             <option value="visibilite">Modifier le type d'audience</option>
-            <option value="spectacle">Modifier <?= mb_strtolower(e($termeSingulier)) ?></option>
+            <option value="projet">Modifier <?= mb_strtolower(e($termeSingulier)) ?></option>
             <option value="departement_canton">Modifier le département / canton</option>
             <option value="pays">Modifier le pays</option>
             <option value="suisa_applicable">Modifier si la SUISA s'applique</option>
@@ -154,10 +154,10 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                 <?php endforeach; ?>
             </select>
         </span>
-        <span class="bulk-field" data-for="spectacle" hidden>
-            <select name="bulk_spectacle_id" class="inline-year-select">
+        <span class="bulk-field" data-for="projet" hidden>
+            <select name="bulk_projet_id" class="inline-year-select">
                 <option value="">— Aucun —</option>
-                <?php foreach ($spectacles as $s): ?>
+                <?php foreach ($projets as $s): ?>
                     <option value="<?= (int) $s['id'] ?>"><?= e($s['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
@@ -204,7 +204,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
     <?php $nbCols = 8 - (peut_ecrire('evenements') ? 0 : 1); ?>
     <thead>
         <tr>
-            <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements', ['annee', 'statut', 'statut_suisa', 'spectacle_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $spectacleId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements', ['annee', 'statut', 'statut_suisa', 'projet_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $projetId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <?php // Chaque en-tête est à la fois triable (le libellé, un lien) et
                   // filtrable (l'entonnoir à côté) : deux gestes distincts sur la
                   // même colonne. Le lien emporte les filtres actifs, d'où
@@ -216,10 +216,10 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
                     <?= filtre_colonne_html('evenements', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
             </th>
-            <th class="col-spectacle">
+            <th class="col-projet">
                 <span class="col-th">
-                    <?= $triCol('spectacle', e($termeSingulier)) ?>
-                    <?= filtre_colonne_html('evenements', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
+                    <?= $triCol('projet', e($termeSingulier)) ?>
+                    <?= filtre_colonne_html('evenements', 'projet_id', $projetLabels, $projetId, $autresFiltres('projet_id')) ?>
                 </span>
             </th>
             <th class="col-ville">
@@ -281,7 +281,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <?php if (peut_ecrire('evenements')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td class="col-date-ev<?= $estAnnule ? ' text-strike' : '' ?>"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></a></td>
-            <td class="small col-spectacle<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['spectacle_nom'] ? e($ev['spectacle_nom']) : '—' ?></td>
+            <td class="small col-projet<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['projet_nom'] ? e($ev['projet_nom']) : '—' ?></td>
             <td class="col-lieu <?= $estAnnule ? 'text-strike' : '' ?>">
                 <?= ville_departement_canton_html((string) $ev['ville'], $drapeau, (string) $ev['pays'], (string) $ev['departement_canton']) ?>
                 <?php if ($festivalSalle !== ''): ?> <span class="muted small"><?= e($festivalSalle) ?></span><?php endif; ?>

@@ -106,7 +106,7 @@ echo "3) Filtrage des champs exposés selon la visibilité\n";
 $evPublic = [
     'id' => 1, 'date' => '2026-08-01', 'visibilite' => 'public', 'statut' => 'annule',
     'ville' => 'Genève', 'salle' => 'Salle du Faubourg', 'festival' => 'Festival X',
-    'lien_infos' => 'https://exemple.ch', 'spectacle_nom' => 'Mon spectacle', 'remarques' => 'Note interne',
+    'lien_infos' => 'https://exemple.ch', 'projet_nom' => 'Mon projet', 'remarques' => 'Note interne',
 ];
 $donneesPublic = evenement_export_donnees($evPublic);
 check('public : ville exposée', 'Genève', $donneesPublic['ville']);
@@ -127,7 +127,7 @@ check('public : pas de lien_texte si lien_infos absent', false, array_key_exists
 $evPrive = [
     'id' => 2, 'date' => '2026-09-01', 'visibilite' => 'prive', 'statut' => 'confirme',
     'ville' => 'Lausanne', 'salle' => 'Secret', 'festival' => '', 'lien_infos' => '',
-    'spectacle_nom' => 'Spectacle secret', 'remarques' => 'Ne jamais divulguer',
+    'projet_nom' => 'Projet secret', 'remarques' => 'Ne jamais divulguer',
 ];
 $donneesPrive = evenement_export_donnees($evPrive);
 check('privé : seuls id/date/prive présents', ['id', 'date', 'prive'], array_keys($donneesPrive));
@@ -137,33 +137,33 @@ check('privé : aucune fuite de ville/salle/remarques', false, isset($donneesPri
 echo "4) Génération iCal (échappement + événement privé)\n";
 $ics = evenements_generer_ical([$donneesPublic, $donneesPrive]);
 check('en-tête VCALENDAR', true, str_starts_with($ics, "BEGIN:VCALENDAR"));
-check('événement public : résumé annulé + spectacle', true, str_contains($ics, 'SUMMARY:[ANNULÉ] Mon spectacle'));
-check('événement privé : résumé générique, jamais le nom du spectacle', true,
-    str_contains($ics, 'SUMMARY:Événement privé') && !str_contains($ics, 'Spectacle secret'));
+check('événement public : résumé annulé + projet', true, str_contains($ics, 'SUMMARY:[ANNULÉ] Mon projet'));
+check('événement privé : résumé générique, jamais le nom du projet', true,
+    str_contains($ics, 'SUMMARY:Événement privé') && !str_contains($ics, 'Projet secret'));
 check('événement privé : jamais de LOCATION avec la salle secrète', false, str_contains($ics, 'Secret'));
 
 $evDepartementCantonPays = [
     'id' => 3, 'date' => '2026-10-10', 'visibilite' => 'public', 'statut' => 'confirme',
     'ville' => 'Besançon', 'departement_canton' => '25', 'pays' => 'FR', 'salle' => '', 'festival' => '',
-    'lien_infos' => '', 'spectacle_nom' => '', 'remarques' => '',
+    'lien_infos' => '', 'projet_nom' => '', 'remarques' => '',
 ];
 $icsDepartementCantonPays = evenements_generer_ical([evenement_export_donnees($evDepartementCantonPays)]);
 check('LOCATION combine ville, département/canton et pays', true, str_contains($icsDepartementCantonPays, 'LOCATION:Besançon (25\\, FR)'));
 
-// Sous-spectacle (feuille rattachée à un spectacle-groupe = artiste) : le résumé
+// Sous-projet (feuille rattachée à un projet-groupe = artiste) : le résumé
 // doit porter le nom du groupe, celui de la feuille entre parenthèses.
-$evSousSpectacle = [
+$evSousProjet = [
     'id' => 4, 'date' => '2026-11-11', 'visibilite' => 'public', 'statut' => 'confirme',
     'ville' => 'Vevey', 'salle' => '', 'festival' => '', 'lien_infos' => '',
-    'spectacle_nom' => "Tant qu'on déborde", 'spectacle_parent_nom' => 'Hector ou rien', 'remarques' => '',
+    'projet_nom' => "Tant qu'on déborde", 'projet_parent_nom' => 'Hector ou rien', 'remarques' => '',
 ];
-$icsSousSpectacle = evenements_generer_ical([evenement_export_donnees($evSousSpectacle)]);
-check('SUMMARY = « Groupe (sous-spectacle) » quand le spectacle a un parent', true,
-    str_contains($icsSousSpectacle, "SUMMARY:Hector ou rien (Tant qu'on déborde)"));
+$icsSousProjet = evenements_generer_ical([evenement_export_donnees($evSousProjet)]);
+check('SUMMARY = « Groupe (sous-projet) » quand le projet a un parent', true,
+    str_contains($icsSousProjet, "SUMMARY:Hector ou rien (Tant qu'on déborde)"));
 
-$evSansParent = $evSousSpectacle;
-unset($evSansParent['spectacle_parent_nom']);
-check('SUMMARY = nom du spectacle seul sans parent', true,
+$evSansParent = $evSousProjet;
+unset($evSansParent['projet_parent_nom']);
+check('SUMMARY = nom du projet seul sans parent', true,
     str_contains(evenements_generer_ical([evenement_export_donnees($evSansParent)]), "SUMMARY:Tant qu'on déborde"));
 
 echo "5) Validation stricte de date (checkdate, pas de \"roulement\")\n";
@@ -232,10 +232,10 @@ check('31 avril rejeté', null, date_csv_vers_iso('31/04/2026'));
 check('« TBA/2027 » rejeté (pas une date)', null, date_csv_vers_iso('TBA/2027'));
 check('format ISO refusé ici (JJ/MM/AAAA attendu)', null, date_csv_vers_iso('2026-01-30'));
 
-echo "8) Import CSV — normalisation du nom de spectacle (rapprochement)\n";
-check('« anticoncert » == « Anti-concert »', normaliser_nom_spectacle('Anti-concert'), normaliser_nom_spectacle('anticoncert'));
-check('espaces et casse ignorés', normaliser_nom_spectacle('Le Grand Spectacle'), normaliser_nom_spectacle(' le  grand-spectacle '));
-check('noms réellement différents restent différents', false, normaliser_nom_spectacle('Anti-concert') === normaliser_nom_spectacle('Autre spectacle'));
+echo "8) Import CSV — normalisation du nom de projet (rapprochement)\n";
+check('« anticoncert » == « Anti-concert »', normaliser_nom_projet('Anti-concert'), normaliser_nom_projet('anticoncert'));
+check('espaces et casse ignorés', normaliser_nom_projet('Le Grand Projet'), normaliser_nom_projet(' le  grand-projet '));
+check('noms réellement différents restent différents', false, normaliser_nom_projet('Anti-concert') === normaliser_nom_projet('Autre projet'));
 
 echo "9) Heures et adresse d'un événement (champs publics)\n";
 check('« 20:30 » normalisée', '20:30', heure_normalisee('20:30'));
@@ -271,7 +271,7 @@ check('rien du tout', '', evenement_adresse_texte(['adresse_rue' => '', 'adresse
 echo "\n12) Export public : les nouveaux champs suivent la visibilité\n";
 $evPublic = ['id' => 1, 'date' => '2026-07-16', 'visibilite' => 'public', 'statut' => 'confirme',
     'ville' => 'Genève', 'adresse_rue' => '12 rue des Lilas', 'adresse_npa' => '1200',
-    'heure_debut' => '20h30', 'heure_fin' => '22:00', 'spectacle_nom' => 'Kaceo'];
+    'heure_debut' => '20h30', 'heure_fin' => '22:00', 'projet_nom' => 'Kaceo'];
 $exp = evenement_export_donnees($evPublic);
 check('la rue est exportée', '12 rue des Lilas', $exp['adresse_rue'] ?? null);
 check('le NPA est exporté', '1200', $exp['adresse_npa'] ?? null);

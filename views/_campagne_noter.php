@@ -19,7 +19,7 @@
             <input type="hidden" name="est_contact" value="1">
             <input type="hidden" name="retour_campagne" value="<?= (int) $campagne['id'] ?>">
             <?php foreach ($projetIds as $pid): ?>
-            <input type="hidden" name="spectacle_ids[]" value="<?= (int) $pid ?>">
+            <input type="hidden" name="projet_ids[]" value="<?= (int) $pid ?>">
             <?php endforeach; ?>
             <div class="modal-head">
                 <span class="modal-titre" id="noter-titre">Marquer comme contacté</span>

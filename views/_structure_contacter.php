@@ -13,7 +13,7 @@
 //
 // Attendu de l'appelant :
 //   $contacterCibles  [id structure => ['nom', 'contacts' (joignables), 'brouillon']]
-//   $expediteurs, $modelesMessage, $spectacleLabels, $campagneProjets
+//   $expediteurs, $modelesMessage, $projetLabels, $campagneProjets
 //   $contacterRetourCampagne (facultatif) la campagne où revenir après l'envoi
 // et, pour ouvrir : un élément portant data-contacter="<id structure>".
 $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
@@ -98,9 +98,9 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                   // le dernier regard avant d'envoyer. Il s'enroule en dessous
                   // sur écran étroit. ?>
             <div class="contacter-pied">
-            <?php if (!empty($spectacleLabels)): ?>
+            <?php if (!empty($projetLabels)): ?>
             <div class="field-group"><span>Noter dans l'historique du projet</span>
-                <span id="contacter-projets"><?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Aucun') ?></span>
+                <span id="contacter-projets"><?= choix_coches_html('projet_ids', $projetLabels, $campagneProjets, 'Aucun') ?></span>
             </div>
             <?php endif; ?>
 
@@ -216,7 +216,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
     }
 
     function casesProjets() {
-        return blocProjets ? blocProjets.querySelectorAll('input[type=checkbox][name="spectacle_ids[]"]') : [];
+        return blocProjets ? blocProjets.querySelectorAll('input[type=checkbox][name="projet_ids[]"]') : [];
     }
     function reinitProjets() {
         [].forEach.call(casesProjets(), function (c) {
@@ -301,11 +301,11 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         // On ne les impose que si rien n'est coché — un choix déjà fait à la
         // main, ou hérité d'une campagne, l'emporte sur le modèle.
         var cases = casesProjets();
-        if (m.spectacle_ids && m.spectacle_ids.length) {
+        if (m.projet_ids && m.projet_ids.length) {
             var dejaCoche = [].some.call(cases, function (c) { return c.checked; });
             if (!dejaCoche) {
                 [].forEach.call(cases, function (c) {
-                    c.checked = m.spectacle_ids.indexOf(parseInt(c.value, 10)) !== -1;
+                    c.checked = m.projet_ids.indexOf(parseInt(c.value, 10)) !== -1;
                 });
                 majLibelleProjets();
             }

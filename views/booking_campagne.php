@@ -3,7 +3,7 @@
 /** @var int $nbTotal */ /** @var int $nbFaits */ /** @var string $statut */
 /** @var bool $ouverte */ /** @var bool $saved */
 /** @var array $contacterCibles */ /** @var array $expediteurs */ /** @var array $modelesMessage */
-/** @var array $campagneProjets */ /** @var array $spectacles */ /** @var array $projetIds */
+/** @var array $campagneProjets */ /** @var array $projetsDispo */ /** @var array $projetIds */
 /** @var array $repartition */ /** @var array $filtres */ /** @var array $suiviFiltre */ /** @var int $nbAffichees */
 /** @var array $categoriesPourSelect */ /** @var array $lieuxOptions */ /** @var array $tagsDispo */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var int $structBloquees */
@@ -15,8 +15,8 @@
 // masse : c'est le principe, on démarche une structure à la fois. La barre
 // d'action groupée, elle, est celle de ?p=structures : elle modifie des fiches
 // (tag, statut, ville…), elle n'écrit à personne.
-$spectacleLabels = [];
-foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
+$projetLabels = [];
+foreach ($projetsDispo as $sp) { $projetLabels[(int) $sp['id']] = $sp['nom']; }
 $statutClasse = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
 $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $d)) : '';
 $peutEcrire = peut_ecrire('booking');

@@ -144,24 +144,24 @@ foreach (FEUILLE_TYPES as $cle => $meta) {
         ['libelle', 'icone', 'aide', 'champs'], array_keys($meta));
 }
 
-echo "\n8) Calendrier de l'équipe : le spectacle a son créneau\n";
+echo "\n8) Calendrier de l'équipe : le projet a son créneau\n";
 // L'heure de représentation de la date pose son propre événement, distinct de
 // la bande de journée et des horaires du déroulé. Europe/Zurich : le 18.09,
 // 20:30 locales = 18:30 UTC (heure d'été).
 $evIcal = [
     'id' => 42, 'date' => '2026-09-18', 'statut' => 'confirme',
     'heure_debut' => '20:30', 'heure_fin' => '22:00',
-    'spectacle_nom' => 'Tant qu\'on déborde', 'spectacle_parent_nom' => 'Hector ou rien',
+    'projet_nom' => 'Tant qu\'on déborde', 'projet_parent_nom' => 'Hector ou rien',
     'ville' => 'Nyon', 'salle' => 'L\'Usine à Gaz',
     'adresse_rue' => '', 'adresse_npa' => '', 'remarques' => '',
     'feuille' => [['id' => 7, 'type' => 'horaire', 'libelle' => 'Get-in',
                    'debut' => '14:00', 'fin' => '', 'remarque' => '']],
 ];
 $ical = feuille_generer_ical_equipe([$evIcal], 'https://exemple.test/?p=evenement_feuille_fichier&jeton=x');
-check('un événement « Spectacle » est posé', 1, substr_count($ical, 'UID:equipe-spectacle-42@lasso'));
+check('un événement « Projet » est posé', 1, substr_count($ical, 'UID:equipe-projet-42@lasso'));
 check('il commence à l\'heure annoncée, en UTC', true, str_contains($ical, 'DTSTART:20260918T183000Z'));
 check('il finit à l\'heure annoncée', true, str_contains($ical, 'DTEND:20260918T200000Z'));
-check('son titre le nomme', true, str_contains($ical, 'SUMMARY:Spectacle — Hector ou rien (Tant qu\'on déborde) — Nyon'));
+check('son titre le nomme', true, str_contains($ical, 'SUMMARY:Projet — Hector ou rien (Tant qu\'on déborde) — Nyon'));
 check('la bande de journée reste une journée entière', true, str_contains($ical, 'DTSTART;VALUE=DATE:20260918'));
 check('les horaires du déroulé restent posés', 1, substr_count($ical, 'UID:equipe-feuille-7@lasso'));
 
@@ -169,14 +169,14 @@ check('les horaires du déroulé restent posés', 1, substr_count($ical, 'UID:eq
 $evSansHeure = ['heure_debut' => '', 'heure_fin' => ''] + $evIcal;
 $evSansHeure['id'] = 43;
 $icalSansHeure = feuille_generer_ical_equipe([$evSansHeure], 'https://exemple.test/?p=x');
-check('sans heure, pas d\'événement « Spectacle »', 0, substr_count($icalSansHeure, 'equipe-spectacle-43'));
+check('sans heure, pas d\'événement « Projet »', 0, substr_count($icalSansHeure, 'equipe-projet-43'));
 
 // Une date annulée l'est sur ses trois entrées, pas seulement sur la bande.
 $evAnnule = $evIcal;
 $evAnnule['id'] = 44;
 $evAnnule['statut'] = 'annule';
 $icalAnnule = feuille_generer_ical_equipe([$evAnnule], 'https://exemple.test/?p=x');
-check('annulée : la bande, le spectacle et l\'horaire portent le statut', 3,
+check('annulée : la bande, le projet et l\'horaire portent le statut', 3,
     substr_count($icalAnnule, 'STATUS:CANCELLED'));
 
 echo "\n9) Calendrier de l'équipe : la description est sectionnée\n";
@@ -243,21 +243,21 @@ $evOrdre['feuille'] = [
     ['id' => 2, 'type' => 'horaire', 'libelle' => 'Repas', 'debut' => '18:30', 'fin' => '', 'remarque' => ''],
     ['id' => 3, 'type' => 'horaire', 'libelle' => 'Loges libérées', 'debut' => '23:30', 'fin' => '', 'remarque' => ''],
 ];
-check('le spectacle se glisse à son rang chronologique',
-    ['14:00  Get-in', '18:30  Repas', '20:30 – 22:00  Spectacle', '23:30  Loges libérées'],
+check('le projet se glisse à son rang chronologique',
+    ['14:00  Get-in', '18:30  Repas', '20:30 – 22:00  Projet', '23:30  Loges libérées'],
     $lignesDeroule($evOrdre));
 
 $evTard = $evOrdre;
 $evTard['heure_debut'] = '23:59';
 $evTard['heure_fin'] = '';
 check('plus tardif que tous, il ferme la liste',
-    ['14:00  Get-in', '18:30  Repas', '23:30  Loges libérées', '23:59  Spectacle'],
+    ['14:00  Get-in', '18:30  Repas', '23:30  Loges libérées', '23:59  Projet'],
     $lignesDeroule($evTard));
 
 $evSeul = $evOrdre;
 $evSeul['feuille'] = [];
 check('sans aucun horaire, il est le déroulé à lui seul',
-    ['20:30 – 22:00  Spectacle'], $lignesDeroule($evSeul));
+    ['20:30 – 22:00  Projet'], $lignesDeroule($evSeul));
 
 $evMuet = $evOrdre;
 $evMuet['heure_debut'] = '';

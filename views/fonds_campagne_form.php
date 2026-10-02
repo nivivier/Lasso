@@ -1,5 +1,5 @@
 <?php
-/** @var ?array $campagne */ /** @var array $projets */ /** @var array $spectacles */
+/** @var ?array $campagne */ /** @var array $projets */ /** @var array $projetsDispo */
 /** @var array $axes */ /** @var array $criteres */ /** @var array $apercu */
 /** @var array $retenues */ /** @var array $ajouts */ /** @var bool $previsualise */
 /** @var array $tags */ /** @var array $campagnesDispo */ /** @var array $regions */
@@ -10,8 +10,8 @@
 // structure, et la question « à qui s'adresse-t-on » n'a pas deux réponses.
 $id = (int) ($campagne['id'] ?? 0);
 $val = fn (string $c, $d = '') => e((string) ($campagne[$c] ?? $d));
-$spectacleLabels = [];
-foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
+$projetLabels = [];
+foreach ($projetsDispo as $sp) { $projetLabels[(int) $sp['id']] = $sp['nom']; }
 
 // Étiquettes des entonnoirs et report des paramètres : le même helper que
 // ?p=booking_campagne_form. $saisie dit ce qui, sur CET écran, doit survivre au
@@ -29,7 +29,7 @@ $cibF = ciblage_filtres_vue([
     'axe_analytique_id' => (string) ($campagne['axe_analytique_id'] ?? ''),
     'drive_url'         => (string) ($campagne['drive_url'] ?? ''),
     'notes'             => (string) ($campagne['notes'] ?? ''),
-    'spectacle_ids'     => array_map('strval', $projets),
+    'projet_ids'     => array_map('strval', $projets),
 ], $id);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
@@ -66,7 +66,7 @@ $cibF = ciblage_filtres_vue([
         <div class="field-group"><span>Projet <?= info_tip(
             "Ce que cette campagne finance. L'axe analytique ci-dessous s'en déduit, puisque c'est le projet qui le porte."
         ) ?></span>
-            <?= choix_coches_html('spectacle_ids', $spectacleLabels, $projets, 'Aucun projet') ?>
+            <?= choix_coches_html('projet_ids', $projetLabels, $projets, 'Aucun projet') ?>
         </div>
         <label><span>Début <?= info_tip("Avant cette date, la campagne se prépare.") ?></span>
             <input type="date" name="date_debut" value="<?= $val('date_debut') ?>">

@@ -19,7 +19,7 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Comptabilité** | relevés PostFinance (CSV), plan comptable, lettrage, comptes annuels |
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
 | **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
-| **Événements** | dates, spectacles, déclarations SUISA, exports JSON/iCal |
+| **Événements** | dates, projets, déclarations SUISA, exports JSON/iCal |
 | **Booking** | structures, contacts, tags, lieux (carte), message individuel |
 | **Envois groupés** | campagnes de mailing ciblé (dépend de Booking) |
 | **Recherche de fonds** | campagnes de demandes de subvention : un dossier par bailleur, délais de dépôt et de bilan, jauge en francs, versement rapproché d'une écriture |
@@ -178,8 +178,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    bancaire, partagé avec la comptabilité.
 8. **Événements** : dates de tournée, avec leur **adresse** (rue, code postal)
    et leurs **heures de début et de fin** — facultatives, une date se pose
-   souvent des mois avant que l'horaire soit connu. Spectacles (un artiste peut
-   regrouper des sous-spectacles, et chacun peut porter une **icône** recadrée
+   souvent des mois avant que l'horaire soit connu. Projets (un artiste peut
+   regrouper des sous-projets, et chacun peut porter une **icône** recadrée
    sur place, qui le représente ensuite dans les listes — notamment les
    campagnes), suivi des déclarations **SUISA**, et **exports publics
    JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda
@@ -195,7 +195,7 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    dossiers servis par le web, et ne se téléchargent que depuis l'application,
    connecté. Un **calendrier iCal de l'équipe**, avec son propre jeton, diffuse
    ces feuilles de route : chaque date y est une bande de journée portant la
-   feuille entière, **le spectacle** sur son heure de représentation, et un
+   feuille entière, **le projet** sur son heure de représentation, et un
    événement daté par horaire du déroulé. Il montre aussi les
    dates en option et les non répertoriées, que l'export public tait — ce lien
    est un mot de passe, et le régénérer (Paramètres → Événements) coupe tous
@@ -294,7 +294,7 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     déclarations SUISA à faire ; ce qui suit son cours reste à l'encre, et un
     total ne porte jamais de couleur.
 13. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
-    employés, structures, contacts, factures, événements et spectacles. Plusieurs
+    employés, structures, contacts, factures, événements et projets. Plusieurs
     mots se cumulent, les accents sont ignorés.
 14. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
     déjà présentes sont ignorées, jamais écrasées), écritures comptables, structures
@@ -475,7 +475,7 @@ contient tout ce qu'il faut pour repartir :
 | dans l'archive | contenu |
 | --- | --- |
 | `base.sqlite` | la base entière, instantané cohérent pris par `VACUUM INTO` (indépendant du WAL) |
-| `uploads/` | logos, photos d'employés, icônes de spectacle, feuilles SUISA |
+| `uploads/` | logos, photos d'employés, icônes de projet, feuilles SUISA |
 | `data/fichiers/` | pièces jointes servies par une route authentifiée |
 | `SAUVEGARDE.txt` | ce que contient l'archive et la marche à suivre pour la restaurer |
 

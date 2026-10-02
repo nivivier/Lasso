@@ -1,4 +1,4 @@
-<?php /** @var int $delai */ /** @var int $delaiAbandon */ /** @var string $lienTexteDefaut */ /** @var string $termeSpectacle */
+<?php /** @var int $delai */ /** @var int $delaiAbandon */ /** @var string $lienTexteDefaut */ /** @var string $termeProjet */ /** @var string $termeProjetSingulier */
 /** @var ?bool $saved */ ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Paramètres enregistrés.</p><?php endif; ?>
@@ -17,7 +17,11 @@
             <tr><th>Décompte marqué « manquant » après</th><td><?= (int) $delai ?> mois</td></tr>
             <tr><th>Événement marqué « abandonné » après</th><td><?= (int) $delaiAbandon ?> mois</td></tr>
             <tr><th>Texte du bouton de lien</th><td><?= $lienTexteDefaut !== '' ? e($lienTexteDefaut) : '<span class="muted">Plus d\'informations</span>' ?></td></tr>
-            <tr><th>Terme pour une série d'événements</th><td><?= e($termeSpectacle !== '' ? $termeSpectacle : 'Spectacles') ?></td></tr>
+            <tr><th>Terme pour une série d'événements</th><td>
+                <?= e($termeProjet !== '' ? $termeProjet : 'Projets') ?>
+                <span class="muted small">(pluriel)</span> ·
+                <?= e($termeProjetSingulier !== '' ? $termeProjetSingulier : 'Projet') ?>
+                <span class="muted small">(singulier)</span></td></tr>
         </table>
         <p class="muted small">Les pays proposés dans le champ « Région et pays » se règlent dans l'onglet <a href="?p=pays">Pays</a>.</p>
     </div>
@@ -33,19 +37,31 @@
         <label>Texte du bouton de lien par défaut (si un événement n'en précise pas un)
             <input name="evenements_lien_texte_defaut" type="text" value="<?= e($lienTexteDefaut) ?>" placeholder="Plus d'informations">
         </label>
-        <label><span>Terme utilisé pour désigner une série d'événements <?= info_tip(
-            "Change l'affichage dans toute l'interface (menu, listes, formulaires) — "
-            . "ex. « Spectacles », « Concerts », « Tournées »."
-        ) ?></span>
-            <input name="evenements_terme_spectacle" type="text" value="<?= e($termeSpectacle) ?>" placeholder="Spectacles">
-        </label>
+        <?php // Les deux formes se saisissent : le français ne forme pas toujours
+              // son pluriel en ajoutant un « s », et deviner l'une à partir de
+              // l'autre s'est déjà trompé (evenements_terme_projet()). Chaque
+              // étiquette dit laquelle on attend. ?>
+        <div class="grid2">
+            <label><span>Terme pour une série d'événements, au <strong>pluriel</strong> <?= info_tip(
+                "Change l'affichage dans toute l'interface (menu, listes, formulaires) — "
+                . "ex. « Projets », « Concerts », « Tournées »."
+            ) ?></span>
+                <input name="evenements_terme_projet" type="text" value="<?= e($termeProjet) ?>" placeholder="Projets">
+            </label>
+            <label><span>…et au <strong>singulier</strong> <?= info_tip(
+                "Saisi à part, et non déduit du pluriel : « Festivals » donne « Festival », "
+                . "mais « Travaux » ne donnerait pas « Travail »."
+            ) ?></span>
+                <input name="evenements_terme_projet_singulier" type="text" value="<?= e($termeProjetSingulier) ?>" placeholder="Projet">
+            </label>
+        </div>
     </form>
 </div>
 
 <div class="card form mt-22">
     <h2 class="mt-0">Synchronisation</h2>
     <p class="muted small">
-        Les liens d'export (JSON/iCal) protégés par jeton se copient depuis la fiche de chaque <?= mb_strtolower(evenements_terme_spectacle(false)) ?>.
+        Les liens d'export (JSON/iCal) protégés par jeton se copient depuis la fiche de chaque <?= mb_strtolower(evenements_terme_projet(false)) ?>.
         Ils exposent en lecture seule les événements publics/privés (jamais les non répertoriés, jamais
         les informations SUISA/facturation/employés) — voir <code>SPEC_EVENEMENTS.md</code> §8.
     </p>
@@ -66,7 +82,7 @@
     <p class="muted small">
         Un second lien iCal, à ne donner qu'à l'équipe : il montre <strong>tout</strong> — les dates en option,
         celles qui ne sont pas répertoriées, et le contenu des <strong>feuilles de route</strong> (horaires, adresses,
-        contacts, pièces jointes). Il se copie depuis la liste des <?= mb_strtolower(evenements_terme_spectacle()) ?>,
+        contacts, pièces jointes). Il se copie depuis la liste des <?= mb_strtolower(evenements_terme_projet()) ?>,
         globalement ou pour un seul d'entre eux. Régénérer son jeton est la seule façon de révoquer un abonnement :
         cela coupe tout le monde d'un coup.
     </p>

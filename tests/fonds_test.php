@@ -8,7 +8,7 @@
 // rendrait ce fichier faux l'année prochaine.
 
 require_once __DIR__ . '/../lib/fonds.php';
-// Pour la seule déclaration SPECTACLES_LIAISONS, vérifiée au § 7.
+// Pour la seule déclaration PROJETS_LIAISONS, vérifiée au § 7.
 require_once __DIR__ . '/../lib/booking.php';
 
 $tests = 0;
@@ -124,12 +124,12 @@ check('la légende dit les trois montants', 1, substr_count($barre,
     'title="' . chf(12000.0) . ' obtenu, ' . chf(20000.0) . ' en attente, ' . chf(13000.0) . ' à trouver"'));
 
 echo "\n7) Le module se branche sur les projets de l'application\n";
-// Garde-fou : une table de liaison absente de SPECTACLES_LIAISONS ne lève
-// aucune erreur — spectacles_lies() rend un tableau vide et spectacles_lier()
+// Garde-fou : une table de liaison absente de PROJETS_LIAISONS ne lève
+// aucune erreur — projets_lies() rend un tableau vide et projets_lier()
 // n'écrit rien. La campagne perdait ses projets en silence, et c'est ainsi que
 // le bogue a vécu plusieurs livraisons.
-check('les projets d\'une campagne passent par SPECTACLES_LIAISONS', 'campagne_id',
-    SPECTACLES_LIAISONS['fonds_campagne_spectacles'] ?? null);
+check('les projets d\'une campagne passent par PROJETS_LIAISONS', 'campagne_id',
+    PROJETS_LIAISONS['fonds_campagne_projets'] ?? null);
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

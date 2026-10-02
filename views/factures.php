@@ -46,7 +46,7 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $
 <table class="list list-wide liste-cartes cartes-factures">
     <thead><tr>
         <?php // « Événement » n'est pas triable : la colonne n'existe que si le
-              // module est actif, et elle affiche une date ET un spectacle venus
+              // module est actif, et elle affiche une date ET un projet venus
               // d'une jointure optionnelle. ?>
         <th class="col-reinit-hote"><?= bouton_reinit_filtres('factures', ['statut', 'annee'], (bool) ($statut || $annee)) ?><?= $triCol('numero', 'Numéro') ?></th>
         <th><?= $triCol('structure', 'Structure') ?></th>
@@ -88,7 +88,7 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $
             <?php if ($avecEvenements): ?>
                 <td class="muted small">
                     <?php if (!empty($f['evenement_date'])): ?>
-                        <?= e(date('d.m.Y', strtotime($f['evenement_date']))) ?><?= $f['spectacle_nom'] ? ' — ' . e($f['spectacle_nom']) : '' ?>
+                        <?= e(date('d.m.Y', strtotime($f['evenement_date']))) ?><?= $f['projet_nom'] ? ' — ' . e($f['projet_nom']) : '' ?>
                     <?php else: ?>—<?php endif; ?>
                 </td>
             <?php endif; ?>

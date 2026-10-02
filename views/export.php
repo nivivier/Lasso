@@ -63,7 +63,7 @@ $anneeSansToutes = ['certificats' => true];
         <?php endif; ?>
         <p class="muted small mb-8">Copie intégrale de la base : <strong>toutes les tables</strong>, quels que soient les modules activés —
             salaires (employés, fiches, taux, unités), comptabilité (écritures, plan comptable, règles, axes analytiques),
-            facturation (factures, structures), événements (événements, spectacles),
+            facturation (factures, structures), événements (événements, projets),
             booking (lieux, contacts, tags, notes et historique, mailings, ciblages),
             ainsi que les paramètres, les comptes utilisateurs et les catégories (pays, régions, types de lieu).
             À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
@@ -137,7 +137,7 @@ $anneeSansToutes = ['certificats' => true];
     <?php if (module_actif('evenements')): ?>
     <div class="export-bloc mt-16" data-type="evenements" hidden>
         <p class="muted small mb-0">
-            Exporte les événements au format CSV (séparateur « ; », encodage UTF-8) : date, spectacle,
+            Exporte les événements au format CSV (séparateur « ; », encodage UTF-8) : date, projet,
             ville, département/canton, pays, salle, festival, suivi SUISA, et les coordonnées de
             l'organisateur lié le cas échéant. Même export que le bouton « Export SUISA » de la liste
             des événements, mais toujours sans filtre (hormis l'année ci-dessus) — indépendant des
@@ -149,7 +149,7 @@ $anneeSansToutes = ['certificats' => true];
         <form method="get" action="index.php" id="export-form-evenements" class="form-actions">
             <input type="hidden" name="p" value="evenements_suisa_exporter">
             <input type="hidden" name="statut_suisa" value="tous">
-            <input type="hidden" name="spectacle_id" value="0">
+            <input type="hidden" name="projet_id" value="0">
             <input type="hidden" name="statut" value="tous">
             <input type="hidden" name="visibilite" value="tous">
             <input type="hidden" name="pays" value="tous">

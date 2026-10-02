@@ -8,7 +8,7 @@ l'application fait aujourd'hui.
 
 ## 1. Objectif
 
-Gérer les dates de concert/spectacle de l'association : suivi de la diffusion publique
+Gérer les dates de concert/projet de l'association : suivi de la diffusion publique
 (site web), suivi des déclarations SUISA, et lien vers la facturation et les salaires.
 Petit volume (même esprit que les autres modules), 1–2 utilisateurs.
 
@@ -23,26 +23,26 @@ base est de toute façon toujours créé en entier, cf. commentaire en tête de
 
 ## 3. Modèle de données (nouvelles tables, migration versionnée)
 
-### `spectacles`
+### `projets`
 Liste réutilisable (comme `employes`/`debiteurs`), pour éviter les doublons/fautes de
-frappe et pouvoir filtrer/regrouper les événements par spectacle.
+frappe et pouvoir filtrer/regrouper les événements par projet.
 
 | champ | notes |
 |---|---|
 | `id` | |
 | `nom` | |
 | `notes` | libre |
-| `suisa_feuille_fichier` | chemin web relatif (`uploads/…`) vers la feuille SUISA pré-remplie du spectacle (PDF), vide si aucune |
+| `suisa_feuille_fichier` | chemin web relatif (`uploads/…`) vers la feuille SUISA pré-remplie du projet (PDF), vide si aucune |
 | `cree_le` | |
 
-**Upload de la feuille SUISA** : un seul fichier PDF par spectacle (pas par événement —
+**Upload de la feuille SUISA** : un seul fichier PDF par projet (pas par événement —
 la feuille pré-remplie décrit l'œuvre/le programme, commun à toutes les dates du même
-spectacle). Réutilise le mécanisme d'upload existant (`handle_logo_upload()` dans
+projet). Réutilise le mécanisme d'upload existant (`handle_logo_upload()` dans
 `lib/helpers.php`) adapté au PDF : même limite de taille (2 Mo), même stockage dans
 `uploads/` (web-servi, scripts bloqués par `.htaccess`), mais validation **mime stricte**
 via `finfo_file($f['tmp_name'])` = `application/pdf` (plutôt qu'une simple lecture de
 l'en-tête `%PDF-`) — même niveau de rigueur que `getimagesize()` qui valide le contenu
-réel, pas juste l'extension. Le fichier est téléchargeable depuis la fiche spectacle (et
+réel, pas juste l'extension. Le fichier est téléchargeable depuis la fiche projet (et
 depuis chaque événement qui lui est lié, en lecture seule).
 
 ### `evenements`
@@ -50,7 +50,7 @@ depuis chaque événement qui lui est lié, en lecture seule).
 | champ | notes |
 |---|---|
 | `id` | |
-| `spectacle_id` | FK nullable → `spectacles` |
+| `projet_id` | FK nullable → `projets` |
 | `date` | date de l'événement |
 | `statut` | `option` / `confirme` / `annule` — indépendant de la visibilité (ex. une date `public` peut passer `annule` sans changer de visibilité, cf. §4) |
 | `visibilite` | `public` / `prive` / `non_repertorie` |
@@ -104,7 +104,7 @@ Le **statut** (`option`/`confirme`/`annule`) et la **visibilité**
 avaient vu l'annonce, pas juste la faire disparaître).
 
 - **`public`** : affiché sur le site avec date, ville, nom de la salle (si renseigné),
-  nom du festival (si renseigné), lien « plus d'infos » (si renseigné), spectacle
+  nom du festival (si renseigné), lien « plus d'infos » (si renseigné), projet
   concerné, remarques. Si `statut = annule`, la date reste affichée mais marquée
   « Annulé ». Si `statut = option`, la date n'est pas encore assez sûre pour être
   publiée : traitée comme si elle n'était pas publique tant qu'elle n'est pas
@@ -193,23 +193,23 @@ serveur, jamais une simple comparaison `===`) :
   filtrage/mêmes champs que le JSON, adaptés au format iCal (`SUMMARY`, `DTSTART`,
   `LOCATION`, `DESCRIPTION`, `URL`).
 
-### Filtre par spectacle
+### Filtre par projet
 
-Paramètre optionnel **`spectacle_id`** sur les deux routes (ex.
-`?p=evenements_exporter_json&token=…&spectacle_id=3`) : ne renvoie que les événements liés à ce
-spectacle. Permet d'avoir un point d'accès dédié par spectacle (ex. une page web
+Paramètre optionnel **`projet_id`** sur les deux routes (ex.
+`?p=evenements_exporter_json&token=…&projet_id=3`) : ne renvoie que les événements liés à ce
+projet. Permet d'avoir un point d'accès dédié par projet (ex. une page web
 spécifique à une tournée qui n'affiche que son propre calendrier), sans exposer les
-événements des autres spectacles. Même **jeton global** pour toutes les URLs (pas de
-jeton par spectacle) — l'onglet « Événements » des paramètres (§7) affiche, en plus des
-deux URLs générales, un lien « Copier l'URL » par spectacle dans la liste des
-spectacles (`spectacle_id` pré-rempli, jeton déjà inclus). Régénérer le jeton global
-invalide donc aussi toutes les URLs par spectacle en une fois.
+événements des autres projets. Même **jeton global** pour toutes les URLs (pas de
+jeton par projet) — l'onglet « Événements » des paramètres (§7) affiche, en plus des
+deux URLs générales, un lien « Copier l'URL » par projet dans la liste des
+projets (`projet_id` pré-rempli, jeton déjà inclus). Régénérer le jeton global
+invalide donc aussi toutes les URLs par projet en une fois.
 
-Si `spectacle_id` désigne un **spectacle-groupe** (artiste — voir §hiérarchie des
-spectacles), l'export inclut aussi les événements de ses **feuilles** (sous-spectacles) :
+Si `projet_id` désigne un **projet-groupe** (artiste — voir §hiérarchie des
+projets), l'export inclut aussi les événements de ses **feuilles** (sous-projets) :
 un groupe n'est jamais assigné directement à un événement, donc sans cette agrégation
 l'URL d'un artiste serait toujours vide. Chaque événement conserve son propre nom de
-spectacle (`spectacle`/`SUMMARY`), pas celui du groupe.
+projet (`projet`/`SUMMARY`), pas celui du groupe.
 
 ### Jeton d'accès
 
@@ -218,8 +218,8 @@ spectacle (`spectacle`/`SUMMARY`), pas celui du groupe.
   paramètres si absente, avec bouton « Régénérer » (invalide l'ancienne URL — utile en
   cas de fuite).
 - Pas d'URL générale affichée dans les paramètres : les liens se copient depuis le
-  tableau des spectacles (colonne « Synchroniser », icônes JSON/iCal — un clic copie
-  l'URL du spectacle concerné dans le presse-papier, jeton déjà inclus).
+  tableau des projets (colonne « Synchroniser », icônes JSON/iCal — un clic copie
+  l'URL du projet concerné dans le presse-papier, jeton déjà inclus).
 - Vérification côté route : `hash_equals($tokenStocke, $_GET['token'] ?? '')` ; jeton
   absent/incorrect → `403` sans détail (pas de fuite d'info sur la validité partielle).
 
@@ -233,9 +233,9 @@ filtrage côté client :
 - **`public`** : `date`, `ville`, `departement_canton` (si renseigné), `pays` (si renseigné),
   `salle` (si renseignée), `festival` (si renseigné), `lien_infos` + `lien_texte` (si `lien_infos` renseigné —
   `lien_texte` retombe sur le texte par défaut configurable, §7, si vide), nom du
-  `spectacle` lié, `remarques`, et un indicateur `annule: true/false` (dérivé de `statut`).
+  `projet` lié, `remarques`, et un indicateur `annule: true/false` (dérivé de `statut`).
 - **`prive`** : uniquement `date` et un indicateur `prive: true` (le JSON/l'iCal ne
-  contiennent alors ni ville, ni salle, ni festival, ni lien, ni spectacle, ni
+  contiennent alors ni ville, ni salle, ni festival, ni lien, ni projet, ni
   remarques — le site web affiche par exemple « Événement privé » à la place).
 - Jamais exposés, quel que soit le champ : tout ce qui touche SUISA, les liens
   facture/employés/fiches, les remarques internes non destinées au public (les
@@ -273,9 +273,9 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
   du bouton de lien (ex. « Réserver ») ; ignoré si `lien` est absent/invalide. Si vide,
   l'export utilise le texte par défaut configurable (onglet Paramètres → Événements,
   « Plus d'informations » par défaut — voir `evenements_lien_texte_defaut()`).
-- **`type`** est rapproché d'un spectacle existant par nom normalisé (casse/espaces/
+- **`type`** est rapproché d'un projet existant par nom normalisé (casse/espaces/
   ponctuation ignorés, ex. « anticoncert » ↔ « Anti-concert ») ; à défaut de
-  correspondance, un nouveau spectacle est créé à la volée avec le nom brut du CSV.
+  correspondance, un nouveau projet est créé à la volée avec le nom brut du CSV.
 - **Déduplication** : un événement déjà présent à la même date/ville/salle (comparaison
   insensible à la casse) est ignoré, jamais réécrasé — même logique que l'import
   historique des factures (§ correspondante dans SPEC_FACTURATION.md).
@@ -310,13 +310,13 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
   même liste filtrée, pas deux implémentations divergentes).
 - `lib/helpers.php` — nouvelle fonction `handle_pdf_upload()` (ou généralisation de
   `handle_logo_upload()` avec un paramètre de type de fichier accepté), pour l'upload de
-  la feuille SUISA sur `spectacles`.
+  la feuille SUISA sur `projets`.
 - `lib/routes_evenements.php` — `route_evenements_*` (écrans authentifiés), inclus depuis
   `index.php` comme `routes_facturation.php`, **plus** `route_evenements_exporter_json()` et
   `route_evenements_exporter_ical()` (routes publiques par jeton, sans `require_login()`, cf. §8).
 - `views/evenements.php`, `evenements_form.php`, `evenements_voir.php`,
-  `views/spectacles_liste.php`, `spectacle_form.php`, `views/evenements_reglages.php`.
-- Migration(s) : nouvelles entrées `$steps` + `migration_N()` pour `spectacles`,
+  `views/projets_liste.php`, `projet_form.php`, `views/evenements_reglages.php`.
+- Migration(s) : nouvelles entrées `$steps` + `migration_N()` pour `projets`,
   `evenements`, `evenement_employes`, `evenement_fiches`, et l'ajout de la colonne
   `evenement_id` sur `factures`.
 - Tests : `tests/evenements_test.php` (statut SUISA dérivé, règles de
@@ -329,7 +329,7 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
 Les points cadrés lors des itérations précédentes (délai SUISA configurable et son
 emplacement — onglet « Événements » des paramètres, §7 —, statut `option`/`confirme`/
 `annule` séparé de la visibilité, validation URL de `lien_infos`, plusieurs factures par
-événement, upload de la feuille SUISA par spectacle avec validation mime stricte, filtre
+événement, upload de la feuille SUISA par projet avec validation mime stricte, filtre
 par statut SUISA, export public JSON/iCal par jeton §8) sont maintenant
 actés ci-dessus. Reste à trancher :
 
@@ -337,6 +337,6 @@ actés ci-dessus. Reste à trancher :
    `AAAA-MM-JJ`, ou faut-il une heure de concert distincte de la date ? — aucune heure
    n'a été demandée jusqu'ici dans le modèle de données, à confirmer avant de coder
    l'export).
-2. Nom d'affichage du spectacle dans l'export : le nom brut de `spectacles.nom` suffit-il,
+2. Nom d'affichage du projet dans l'export : le nom brut de `projets.nom` suffit-il,
    ou faut-il un champ distinct (ex. `titre_public`) si le nom interne diffère du nom
    commercial affiché au public ?

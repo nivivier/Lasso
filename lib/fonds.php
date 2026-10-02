@@ -438,8 +438,8 @@ function fonds_campagne_axe(int $campagneId): ?int
         return $axe;
     }
     $stmt = db()->prepare(
-        'SELECT sp.axe_analytique_id FROM fonds_campagne_spectacles cs
-           JOIN spectacles sp ON sp.id = cs.spectacle_id
+        'SELECT sp.axe_analytique_id FROM fonds_campagne_projets cs
+           JOIN projets sp ON sp.id = cs.projet_id
           WHERE cs.campagne_id = ? AND sp.axe_analytique_id IS NOT NULL
        ORDER BY sp.nom LIMIT 1'
     );

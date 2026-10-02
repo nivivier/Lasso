@@ -105,12 +105,12 @@ function evenement_statut_suisa_libelle(string $statut): string
 // partout.
 //
 // Trois blocs : la date en pastille d'agenda (jour, mois, année), le corps sur
-// trois lignes (l'artiste et son spectacle en petit ; la VILLE en grand — c'est
+// trois lignes (l'artiste et son projet en petit ; la VILLE en grand — c'est
 // elle qu'on cherche des yeux dans une liste de dates ; la salle en dessous),
 // et le statut à droite, icône au-dessus du mot.
 //
-// Champs lus, tous facultatifs sauf la date : statut, spectacle_nom ou
-// spectacle (la feuille), spectacle_groupe (l'artiste qui la coiffe), ville,
+// Champs lus, tous facultatifs sauf la date : statut, projet_nom ou
+// projet (la feuille), projet_groupe (l'artiste qui la coiffe), ville,
 // pays, departement_canton, salle, festival.
 //
 // $opts : 'href'   lien de la ligne ; vide = aucun (la ligne entière l'est déjà,
@@ -127,12 +127,12 @@ function evenement_mini_html(array $ev, array $opts = []): string
     $annule  = $statut === 'annule';
     $couleur = evenement_statut_couleur($ev);
 
-    $feuille = trim((string) ($ev['spectacle_nom'] ?? $ev['spectacle'] ?? ''));
-    $groupe  = trim((string) ($ev['spectacle_groupe'] ?? ''));
+    $feuille = trim((string) ($ev['projet_nom'] ?? $ev['projet'] ?? ''));
+    $groupe  = trim((string) ($ev['projet_groupe'] ?? ''));
     $titre   = $groupe !== '' ? $groupe : ($feuille !== '' ? $feuille : 'Événement');
     // La feuille en second quand un artiste la coiffe : « Hector ou rien ›
     // Tant qu'on déborde ». Les deux sont utiles, l'un ne remplace pas l'autre,
-    // et le chevron est celui de spectacle_chemin() — même symbole partout où
+    // et le chevron est celui de projet_chemin() — même symbole partout où
     // l'application écrit un chemin.
     $second  = ($groupe !== '' && $feuille !== '' && $feuille !== $groupe) ? $feuille : '';
 
@@ -293,20 +293,20 @@ function evenement_sql_statut_suisa_params(string $statut): array
 
 // Filtres actifs de la liste des événements (GET prioritaire, sinon session —
 // voir filtre_persistant()). Lu tôt par route_evenements() (avant que
-// spectacle_map() soit nécessaire, pour le retour après une action groupée) et
+// projet_map() soit nécessaire, pour le retour après une action groupée) et
 // par route_evenements_suisa_exporter() (même filtres, sans pagination).
 // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
 // filtre_coche() dans lib/helpers.php) : cases à cocher, 0 à N valeurs
 // simultanées par filtre (un tableau vide = « tous », remplace les anciennes
-// valeurs sentinelles "tous"/0). spectacle_id en texteLibre=true : mélange
-// d'ids numériques et de la sentinelle textuelle "-1" (sans spectacle) —
-// jamais 0 (spectacle_id est un id réel, jamais nul en base).
+// valeurs sentinelles "tous"/0). projet_id en texteLibre=true : mélange
+// d'ids numériques et de la sentinelle textuelle "-1" (sans projet) —
+// jamais 0 (projet_id est un id réel, jamais nul en base).
 function evenements_lire_filtres(): array
 {
     return [
         'annee'        => filtre_coche('annee', 'evenements_annee'),
         'statut_suisa' => filtre_coche('statut_suisa', 'evenements_statut_suisa', EVENEMENTS_STATUTS_SUISA_FILTRE),
-        'spectacle_id' => filtre_coche('spectacle_id', 'evenements_spectacle_id', null, true),
+        'projet_id' => filtre_coche('projet_id', 'evenements_projet_id', null, true),
         'statut'       => filtre_coche('statut', 'evenements_statut', EVENEMENTS_STATUTS),
         'visibilite'   => filtre_coche('visibilite', 'evenements_visibilite', EVENEMENTS_VISIBILITES),
         'pays'         => filtre_coche('pays', 'evenements_pays_filtre', evenements_pays_disponibles()),
@@ -318,9 +318,9 @@ function evenements_lire_filtres(): array
 // Clause SQL (WHERE + params, alias "e." attendu depuis "FROM evenements e")
 // correspondant aux filtres de evenements_lire_filtres() — réutilisée par
 // route_evenements() (liste + pagination) et route_evenements_suisa_exporter()
-// (mêmes filtres, sans pagination). $spectacleMap : requis pour résoudre un
-// spectacle-groupe (artiste) en lui-même + ses feuilles descendantes.
-function evenements_where_filtres(array $f, array $spectacleMap, bool $avecRecherche = true): array
+// (mêmes filtres, sans pagination). $projetMap : requis pour résoudre un
+// projet-groupe (artiste) en lui-même + ses feuilles descendantes.
+function evenements_where_filtres(array $f, array $projetMap, bool $avecRecherche = true): array
 {
     $where = ' WHERE 1=1';
     $params = [];
@@ -328,23 +328,23 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
         $where .= " AND strftime('%Y', e.date) IN (" . sql_in($f['annee']) . ')';
         $params = array_merge($params, array_map('strval', $f['annee']));
     }
-    if ($f['spectacle_id']) {
-        // Une condition par valeur cochée, unies en OR : "-1" (sans spectacle)
+    if ($f['projet_id']) {
+        // Une condition par valeur cochée, unies en OR : "-1" (sans projet)
         // directement, ids numériques regroupés dans un seul IN (chacun étendu
-        // à ses descendants si c'est un spectacle-groupe — spectacle_descendants()).
+        // à ses descendants si c'est un projet-groupe — projet_descendants()).
         $spConds  = [];
         $spParams = [];
         $spIds    = [];
-        foreach ($f['spectacle_id'] as $val) {
+        foreach ($f['projet_id'] as $val) {
             if ($val === '-1') {
-                $spConds[] = 'e.spectacle_id IS NULL';
+                $spConds[] = 'e.projet_id IS NULL';
             } elseif (ctype_digit((string) $val)) {
-                $spIds = array_merge($spIds, [(int) $val], spectacle_descendants((int) $val, $spectacleMap));
+                $spIds = array_merge($spIds, [(int) $val], projet_descendants((int) $val, $projetMap));
             }
         }
         if ($spIds) {
             $spIds = array_values(array_unique($spIds));
-            $spConds[] = 'e.spectacle_id IN (' . sql_in($spIds) . ')';
+            $spConds[] = 'e.projet_id IN (' . sql_in($spIds) . ')';
             $spParams  = $spIds;
         }
         if ($spConds) {
@@ -414,7 +414,7 @@ function evenements_carte_points(string $where, array $params): array
 {
     $stmt = db()->prepare(
         "SELECT e.id, e.date, e.ville, e.departement_canton, e.pays, e.salle, e.festival
-         FROM evenements e LEFT JOIN spectacles s ON s.id = e.spectacle_id" . $where
+         FROM evenements e LEFT JOIN projets s ON s.id = e.projet_id" . $where
         . " AND TRIM(e.ville) <> '' ORDER BY e.date DESC"
     );
     $stmt->execute($params);
@@ -476,20 +476,22 @@ function evenements_pays_disponibles(): array
 
 // Terme utilisé dans l'interface pour désigner une série d'événements (le
 // regroupement sous un même nom, ex. une pièce jouée à plusieurs dates) —
-// paramétrable (onglet Événements), par défaut « Spectacles ». La table et les
-// routes internes restent nommées « spectacle(s) », seul l'affichage change.
-function evenements_terme_spectacle(bool $pluriel = true): string
+// paramétrable (onglet Événements), par défaut « Projets » / « Projet ».
+//
+// DEUX paramètres, et aucune dérivation : le pluriel français n'est pas
+// toujours le singulier plus un « s » (« Festival » → « Festivals »), et la
+// devinette se trompait aussi dans l'autre sens — une valeur saisie au
+// singulier ressortait telle quelle là où l'écran attendait un pluriel. Les
+// deux formes se saisissent donc, et l'appelant dit laquelle il veut.
+//
+// Toute étiquette qui nomme un projet passe par ici : aucun écran n'écrit le
+// mot en dur, sans quoi le réglage ne vaudrait que pour une partie de
+// l'interface (docs/NOMMAGE.md § 4.6).
+function evenements_terme_projet(bool $pluriel = true): string
 {
-    $terme = trim((string) param('evenements_terme_spectacle', ''));
-    if ($terme === '') {
-        $terme = 'Spectacles';
-    }
-    if ($pluriel) {
-        return $terme;
-    }
-    // Singulier dérivé (règle française courante : le pluriel ajoute un « s »).
-    $singulier = rtrim($terme, 's');
-    return $singulier !== '' ? $singulier : $terme;
+    $cle = $pluriel ? 'evenements_terme_projet' : 'evenements_terme_projet_singulier';
+    $terme = trim((string) param($cle, ''));
+    return $terme !== '' ? $terme : ($pluriel ? 'Projets' : 'Projet');
 }
 
 // Les prochains événements (date ≥ aujourd'hui), pour le widget du tableau de
@@ -497,12 +499,12 @@ function evenements_terme_spectacle(bool $pluriel = true): string
 function evenements_a_venir(int $limite = 5): array
 {
     $stmt = db()->prepare(
-        // spectacle_groupe : l'artiste qui coiffe le spectacle, pour la
+        // projet_groupe : l'artiste qui coiffe le projet, pour la
         // mini-ligne (evenement_mini_html()).
-        "SELECT e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_groupe
+        "SELECT e.*, s.nom AS projet_nom, sp.nom AS projet_groupe
            FROM evenements e
-           LEFT JOIN spectacles s ON s.id = e.spectacle_id
-           LEFT JOIN spectacles sp ON sp.id = s.parent_id
+           LEFT JOIN projets s ON s.id = e.projet_id
+           LEFT JOIN projets sp ON sp.id = s.parent_id
           WHERE e.date >= date('now') ORDER BY e.date ASC LIMIT ?"
     );
     $stmt->bindValue(1, $limite, PDO::PARAM_INT);
@@ -562,90 +564,90 @@ function nb_evenements_suisa_statut(string $statut): int
     }
 }
 
-// Liste des spectacles assignables (feuilles uniquement — un spectacle-parent
+// Liste des projets assignables (feuilles uniquement — un projet-parent
 // représente un artiste, pure groupement, jamais assigné directement à un
 // événement) pour un <select> — formulaire événement. 'nom' porte le chemin
-// complet (« Artiste › Spectacle ») pour lever l'ambiguïté dans l'arbre
+// complet (« Artiste › Projet ») pour lever l'ambiguïté dans l'arbre
 // (plusieurs artistes peuvent avoir des feuilles au nom proche).
-function spectacles_pour_selection(?array $map = null): array
+function projets_pour_selection(?array $map = null): array
 {
-    $map ??= spectacle_map();
+    $map ??= projet_map();
     $out = [];
     foreach (plan_liste_ordonnee($map) as $r) {
         $id = (int) $r['id'];
         if (!plan_est_feuille($id, $map)) {
             continue;
         }
-        $out[] = ['id' => $id, 'nom' => spectacle_chemin($id, $map)];
+        $out[] = ['id' => $id, 'nom' => projet_chemin($id, $map)];
     }
     return $out;
 }
 
-// Liste combinée groupes+feuilles pour le filtre « Spectacle » de la liste des
-// événements — contrairement à spectacles_pour_selection() (assignation à un
-// événement, feuilles uniquement), un spectacle-groupe (artiste) y est un
+// Liste combinée groupes+feuilles pour le filtre « Projet » de la liste des
+// événements — contrairement à projets_pour_selection() (assignation à un
+// événement, feuilles uniquement), un projet-groupe (artiste) y est un
 // filtre valide : il élargit la recherche à tous ses descendants (même
 // principe que l'export public, voir evenements_a_exporter()). Les feuilles
 // gardent leur nom seul (pas de préfixe groupe, sinon le select devient vite
 // très large) ; les groupes portent leur chemin + suffixe « (groupe) ».
 // Ordre de l'arbre (plan_liste_ordonnee) : un groupe est suivi de ses propres
 // feuilles.
-function spectacles_pour_filtre(?array $map = null): array
+function projets_pour_filtre(?array $map = null): array
 {
-    $map ??= spectacle_map();
+    $map ??= projet_map();
     $out = [];
     foreach (plan_liste_ordonnee($map) as $r) {
         $id = (int) $r['id'];
         $feuille = plan_est_feuille($id, $map);
-        $out[] = ['id' => $id, 'nom' => $feuille ? (string) $r['nom'] : spectacle_chemin($id, $map) . ' (groupe)'];
+        $out[] = ['id' => $id, 'nom' => $feuille ? (string) $r['nom'] : projet_chemin($id, $map) . ' (groupe)'];
     }
     return $out;
 }
 
-// Vrai si $id correspond à un spectacle existant ET assignable (feuille) —
-// un spectacle-parent (groupe/artiste) ne peut jamais être lié directement à
-// un événement. Utilisé côté serveur partout où evenements.spectacle_id est
+// Vrai si $id correspond à un projet existant ET assignable (feuille) —
+// un projet-parent (groupe/artiste) ne peut jamais être lié directement à
+// un événement. Utilisé côté serveur partout où evenements.projet_id est
 // écrit (le <select> ne propose déjà que des feuilles, mais un POST forgé ou
 // une resoumission ne doit pas pouvoir contourner cette règle).
-function spectacle_assignable(int $id): bool
+function projet_assignable(int $id): bool
 {
-    $map = spectacle_map();
+    $map = projet_map();
     return isset($map[$id]) && plan_est_feuille($id, $map);
 }
 
-// ------------------------------------------------ Hiérarchie des spectacles
-// Même esprit que le plan comptable (lib/compta.php) : un spectacle-parent
+// ------------------------------------------------ Hiérarchie des projets
+// Même esprit que le plan comptable (lib/compta.php) : un projet-parent
 // (nœud non-feuille) représente un artiste, ses enfants ses dates/tournées —
 // pas de champ « artiste » séparé, le tri par artiste se fait via l'arbre.
 // plan_pid()/plan_enfants()/plan_parents_set()/plan_est_feuille()/
 // plan_liste_ordonnee() sont génériques (id/parent_id/ordre uniquement) et
 // donc réutilisées telles quelles.
 
-// Spectacles indexés par id (pour l'agrégation et l'affichage de l'arbre).
-function spectacle_map(): array
+// Projets indexés par id (pour l'agrégation et l'affichage de l'arbre).
+function projet_map(): array
 {
     $map = [];
-    foreach (db()->query('SELECT * FROM spectacles ORDER BY ordre, id') as $r) {
+    foreach (db()->query('SELECT * FROM projets ORDER BY ordre, id') as $r) {
         $map[(int) $r['id']] = $r;
     }
     return $map;
 }
 
-// Pastille d'un spectacle : son icône si elle en a une, sinon ses initiales sur
+// Pastille d'un projet : son icône si elle en a une, sinon ses initiales sur
 // fond coloré — la même pastille que celle d'un employé (avatar_initiales(),
 // lib/helpers.php), donc le même rendu et la même feuille de style.
 //
 // Le nom retenu est celui de la FEUILLE (« Anti-concert ») et non le chemin
 // entier : deux lettres suffisent, et « Hector ou rien › Anti-concert »
 // donnerait « HO », qui ne désigne rien.
-function spectacle_pastille_html(int $id, array $map): string
+function projet_pastille_html(int $id, array $map): string
 {
     $s = $map[$id] ?? null;
     return $s ? avatar_initiales((string) $s['nom'], '', (string) ($s['image'] ?? '')) : '';
 }
 
-// Chemin lisible « Artiste › Spectacle » d'un spectacle.
-function spectacle_chemin(int $id, array $map, string $sep = ' › '): string
+// Chemin lisible « Artiste › Projet » d'un projet.
+function projet_chemin(int $id, array $map, string $sep = ' › '): string
 {
     $parts = [];
     $cur = $id;
@@ -660,11 +662,11 @@ function spectacle_chemin(int $id, array $map, string $sep = ' › '): string
     return implode($sep, $parts);
 }
 
-// Ids de tous les descendants d'un spectacle (pour empêcher les cycles lors
+// Ids de tous les descendants d'un projet (pour empêcher les cycles lors
 // d'un rattachement à un autre parent). $vus protège contre une récursion
 // sans fin si parent_id contenait déjà un cycle (donnée corrompue) — chaque
 // id n'est parcouru qu'une fois.
-function spectacle_descendants(int $id, array $map): array
+function projet_descendants(int $id, array $map): array
 {
     $byParent = plan_enfants($map);
     $out = [];
@@ -778,9 +780,9 @@ function evenement_exportable(array $ev): bool
 }
 
 // Données exposables d'un événement, filtrées selon la visibilité. $ev doit
-// contenir un champ spectacle_nom (jointure sur spectacles) et, si ce
-// spectacle a un parent (spectacle-groupe = artiste, voir le commentaire sur
-// spectacle_map()), spectacle_parent_nom. Jamais de champ SUISA / facture /
+// contenir un champ projet_nom (jointure sur projets) et, si ce
+// projet a un parent (projet-groupe = artiste, voir le commentaire sur
+// projet_map()), projet_parent_nom. Jamais de champ SUISA / facture /
 // employés / fiches dans le résultat.
 function evenement_export_donnees(array $ev): array
 {
@@ -823,39 +825,39 @@ function evenement_export_donnees(array $ev): array
         $lienTexte = trim((string) ($ev['lien_texte'] ?? ''));
         $donnees['lien_texte'] = $lienTexte !== '' ? $lienTexte : evenements_lien_texte_defaut();
     }
-    if (trim((string) ($ev['spectacle_nom'] ?? '')) !== '') {
-        $donnees['spectacle'] = (string) $ev['spectacle_nom'];
-        // Nom de l'artiste (spectacle-groupe parent, voir spectacle_map()) si
-        // le spectacle assigné en a un — un spectacle assigné directement à
+    if (trim((string) ($ev['projet_nom'] ?? '')) !== '') {
+        $donnees['projet'] = (string) $ev['projet_nom'];
+        // Nom de l'artiste (projet-groupe parent, voir projet_map()) si
+        // le projet assigné en a un — un projet assigné directement à
         // un événement est toujours une feuille (jamais un groupe, voir
-        // spectacle_assignable()), donc jamais lui-même parent d'un autre
-        // spectacle exporté ici.
-        $parentNom = trim((string) ($ev['spectacle_parent_nom'] ?? ''));
+        // projet_assignable()), donc jamais lui-même parent d'un autre
+        // projet exporté ici.
+        $parentNom = trim((string) ($ev['projet_parent_nom'] ?? ''));
         if ($parentNom !== '') {
-            $donnees['spectacle_parent'] = $parentNom;
+            $donnees['projet_parent'] = $parentNom;
         }
     }
     $donnees['remarques'] = (string) ($ev['remarques'] ?? '');
     return $donnees;
 }
 
-// Liste filtrée/formatée des événements exposables, triée par date. $spectacleId
-// optionnel restreint l'export à un spectacle (point d'accès dédié, §8) — s'il
-// s'agit d'un spectacle-groupe (artiste), inclut aussi les événements de ses
+// Liste filtrée/formatée des événements exposables, triée par date. $projetId
+// optionnel restreint l'export à un projet (point d'accès dédié, §8) — s'il
+// s'agit d'un projet-groupe (artiste), inclut aussi les événements de ses
 // feuilles (un groupe n'est jamais assigné directement à un événement, voir
-// spectacle_assignable()) : sans ça, l'URL d'export d'un artiste serait toujours
+// projet_assignable()) : sans ça, l'URL d'export d'un artiste serait toujours
 // vide.
-function evenements_a_exporter(?int $spectacleId = null): array
+function evenements_a_exporter(?int $projetId = null): array
 {
-    $sql = "SELECT e.*, s.nom AS spectacle_nom, sp.nom AS spectacle_parent_nom FROM evenements e
-            LEFT JOIN spectacles s ON s.id = e.spectacle_id
-            LEFT JOIN spectacles sp ON sp.id = s.parent_id
+    $sql = "SELECT e.*, s.nom AS projet_nom, sp.nom AS projet_parent_nom FROM evenements e
+            LEFT JOIN projets s ON s.id = e.projet_id
+            LEFT JOIN projets sp ON sp.id = s.parent_id
             WHERE e.visibilite <> 'non_repertorie' AND e.statut <> 'option'";
     $params = [];
-    if ($spectacleId) {
-        $ids = array_merge([$spectacleId], spectacle_descendants($spectacleId, spectacle_map()));
+    if ($projetId) {
+        $ids = array_merge([$projetId], projet_descendants($projetId, projet_map()));
         $in  = sql_in($ids);
-        $sql .= " AND e.spectacle_id IN ($in)";
+        $sql .= " AND e.projet_id IN ($in)";
         $params = array_merge($params, $ids);
     }
     $sql .= ' ORDER BY e.date';
@@ -912,14 +914,14 @@ function evenements_regenerer_token(): string
 }
 
 // URL absolue d'un des deux points d'accès d'export, avec jeton (et filtre
-// spectacle optionnel) déjà inclus — prête à copier-coller (onglet Paramètres).
-function evenements_export_url(string $route, string $token, ?int $spectacleId = null): string
+// projet optionnel) déjà inclus — prête à copier-coller (onglet Paramètres).
+function evenements_export_url(string $route, string $token, ?int $projetId = null): string
 {
     $scheme = is_https() ? 'https' : 'http';
     $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $qs     = 'p=' . $route . '&token=' . urlencode($token);
-    if ($spectacleId) {
-        $qs .= '&spectacle_id=' . $spectacleId;
+    if ($projetId) {
+        $qs .= '&projet_id=' . $projetId;
     }
     return $scheme . '://' . $host . '/?' . $qs;
 }
@@ -939,14 +941,14 @@ function evenements_generer_ical(array $items): string
         if ($it['prive']) {
             $summary = 'Événement privé';
         } else {
-            // « Artiste (Spectacle) » quand le spectacle a un artiste parent
-            // (spectacle_parent, voir evenement_export_donnees()) — ex.
+            // « Artiste (Projet) » quand le projet a un artiste parent
+            // (projet_parent, voir evenement_export_donnees()) — ex.
             // "Hector ou rien (Tant qu'on déborde)" — sinon le nom de
-            // spectacle seul, comme avant.
-            $titreSpectacle = isset($it['spectacle_parent'])
-                ? $it['spectacle_parent'] . ' (' . $it['spectacle'] . ')'
-                : ($it['spectacle'] ?? 'Concert');
-            $summary = ((bool) $it['annule'] ? '[ANNULÉ] ' : '') . $titreSpectacle;
+            // projet seul, comme avant.
+            $titreProjet = isset($it['projet_parent'])
+                ? $it['projet_parent'] . ' (' . $it['projet'] . ')'
+                : ($it['projet'] ?? 'Concert');
+            $summary = ((bool) $it['annule'] ? '[ANNULÉ] ' : '') . $titreProjet;
         }
         $lignes[] = 'BEGIN:VEVENT';
         $lignes[] = 'UID:evenement-' . $it['id'] . '@lasso';
@@ -1004,9 +1006,9 @@ function date_csv_vers_iso(string $s): ?string
     return sprintf('%04d-%02d-%02d', (int) $annee, (int) $mois, (int) $jour);
 }
 
-// Nom de spectacle normalisé pour un rapprochement insensible à la casse, aux
+// Nom de projet normalisé pour un rapprochement insensible à la casse, aux
 // espaces et à la ponctuation (ex. « anticoncert » ↔ « Anti-concert »).
-function normaliser_nom_spectacle(string $s): string
+function normaliser_nom_projet(string $s): string
 {
     return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower(trim($s), 'UTF-8'));
 }
@@ -1021,7 +1023,7 @@ function normaliser_nom_spectacle(string $s): string
 // Un événement existant (même date + ville + salle, comparaison insensible à
 // la casse) est ignoré — jamais écrasé, même esprit que
 // importer_factures_historique(). La colonne « type » est recherchée parmi
-// les spectacles existants (nom normalisé) ; à défaut, un nouveau spectacle
+// les projets existants (nom normalisé) ; à défaut, un nouveau projet
 // est créé à la volée. « lien_texte » est le texte du bouton de lien
 // (ex. « Réserver ») ; ignoré si « lien » est absent/invalide, sinon stocké tel
 // quel (une valeur vide utilisera le texte par défaut configurable à l'export,
@@ -1038,7 +1040,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
 {
     $csv = preg_replace('/^\xEF\xBB\xBF/', '', $csv); // BOM UTF-8 (export Excel)
     $lignes = array_values(array_filter(preg_split('/\r\n|\r|\n/', (string) $csv), fn ($l) => trim($l) !== ''));
-    $resume = ['total' => 0, 'nouveaux' => 0, 'existants' => 0, 'erreurs' => 0, 'spectacles_crees' => 0];
+    $resume = ['total' => 0, 'nouveaux' => 0, 'existants' => 0, 'erreurs' => 0, 'projets_crees' => 0];
     if (!$lignes) {
         return [[], $resume];
     }
@@ -1051,21 +1053,21 @@ function importer_evenements_csv(string $csv, bool $simule): array
     $idx = array_flip($entete);
     $col = fn (array $r, string $nom): string => trim((string) ($r[$idx[$nom] ?? -1] ?? ''));
 
-    // Spectacles existants, indexés par nom normalisé (complété au fil de l'import).
-    $spectaclesParNom = [];
-    foreach (db()->query('SELECT id, nom FROM spectacles') as $s) {
-        $spectaclesParNom[normaliser_nom_spectacle($s['nom'])] = (int) $s['id'];
+    // Projets existants, indexés par nom normalisé (complété au fil de l'import).
+    $projetsParNom = [];
+    foreach (db()->query('SELECT id, nom FROM projets') as $s) {
+        $projetsParNom[normaliser_nom_projet($s['nom'])] = (int) $s['id'];
     }
-    $spectaclesACreer = []; // nom normalisé → nom original, pour ne compter/annoncer qu'une fois par lot
+    $projetsACreer = []; // nom normalisé → nom original, pour ne compter/annoncer qu'une fois par lot
 
     $existe = db()->prepare(
         "SELECT 1 FROM evenements WHERE date = ? AND lower(trim(ville)) = lower(trim(?)) AND lower(trim(salle)) = lower(trim(?))"
     );
     $insEv = db()->prepare(
-        "INSERT INTO evenements (spectacle_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival, grande_region, lien_infos, lien_texte, remarques)
+        "INSERT INTO evenements (projet_id, date, statut, visibilite, ville, departement_canton, pays, salle, festival, grande_region, lien_infos, lien_texte, remarques)
          VALUES (?, ?, ?, 'non_repertorie', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    $insSpec = db()->prepare('INSERT INTO spectacles (nom) VALUES (?)');
+    $insSpec = db()->prepare('INSERT INTO projets (nom) VALUES (?)');
     // Même liste blanche que le formulaire d'édition (route_evenement()) : un
     // pays hors liste stocké tel quel serait silencieusement effacé à la
     // première réouverture/sauvegarde de l'événement (le <select> ne peut pas
@@ -1118,18 +1120,18 @@ function importer_evenements_csv(string $csv, bool $simule): array
                 $resume['existants']++; $resultats[] = $ligneRes; continue;
             }
 
-            $spectacleId = null;
+            $projetId = null;
             if ($type !== '') {
-                $norm = normaliser_nom_spectacle($type);
-                if (isset($spectaclesParNom[$norm])) {
-                    $spectacleId = $spectaclesParNom[$norm];
-                } elseif (!isset($spectaclesACreer[$norm])) {
-                    $spectaclesACreer[$norm] = $type;
-                    $resume['spectacles_crees']++;
+                $norm = normaliser_nom_projet($type);
+                if (isset($projetsParNom[$norm])) {
+                    $projetId = $projetsParNom[$norm];
+                } elseif (!isset($projetsACreer[$norm])) {
+                    $projetsACreer[$norm] = $type;
+                    $resume['projets_crees']++;
                     if (!$simule) {
                         $insSpec->execute([$type]);
-                        $spectacleId = (int) db()->lastInsertId();
-                        $spectaclesParNom[$norm] = $spectacleId;
+                        $projetId = (int) db()->lastInsertId();
+                        $projetsParNom[$norm] = $projetId;
                     }
                 }
             }
@@ -1147,7 +1149,7 @@ function importer_evenements_csv(string $csv, bool $simule): array
             $ligneRes['statut'] = 'nouveau';
             $resume['nouveaux']++;
             if (!$simule) {
-                $insEv->execute([$spectacleId, $dateIso, $statut, $ville, $departementCanton, $pays, $lieu, $festival, $grandeRegion, $lienValide, $lienTexte, $details]);
+                $insEv->execute([$projetId, $dateIso, $statut, $ville, $departementCanton, $pays, $lieu, $festival, $grandeRegion, $lienValide, $lienTexte, $details]);
             }
             $resultats[] = $ligneRes;
         }

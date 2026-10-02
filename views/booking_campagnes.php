@@ -39,7 +39,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
         <?php // Sur téléphone, la mise en cartes masque le <thead> : ce panneau
               // reprend les entonnoirs qui y sont accrochés (voir ?p=fiches). ?>
         <?php ob_start(); ?>
-            <?= $projetsDispo ? filtre_colonne_html('booking_campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id'), 'Projet') : '' ?>
+            <?= $projetsDispo ? filtre_colonne_html('booking_campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id'), evenements_terme_projet(false)) : '' ?>
             <?= $anneesDispo ? filtre_colonne_html('booking_campagnes', 'annee', $anneesDispo, $annee, $autres('annee'), 'Période') : '' ?>
             <?= filtre_colonne_html('booking_campagnes', 'statut', $statutLabels, $statut, $autres('statut'), 'État') ?>
         <?php

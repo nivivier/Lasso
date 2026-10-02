@@ -1,7 +1,7 @@
 <?php /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */
 // Résultats de l'import d'événements — le formulaire d'upload est désormais
 // unique (voir import_fiches.php, « Importer des données »).
-$termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
+$termeSingulier = mb_strtolower(evenements_terme_projet(false));
 ?>
 <?php if ($errEvenements): ?><p class="err"><?= e($errEvenements) ?></p><?php endif; ?>
 
@@ -12,8 +12,8 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
                 <?php if ((int) $resumeEvenements['nouveaux'] > 0): ?>
                     <?= (int) $resumeEvenements['nouveaux'] ?> événement(s) seraient ajouté(s).
                 <?php endif; ?>
-                <?php if ((int) $resumeEvenements['spectacles_crees'] > 0): ?>
-                    <?= (int) $resumeEvenements['spectacles_crees'] ?> nouveau(x) <?= e($termeSingulier) ?>(s) seraient créé(s).
+                <?php if ((int) $resumeEvenements['projets_crees'] > 0): ?>
+                    <?= (int) $resumeEvenements['projets_crees'] ?> nouveau(x) <?= e($termeSingulier) ?>(s) seraient créé(s).
                 <?php endif; ?>
             </p>
             <?php if ((int) $resumeEvenements['nouveaux'] > 0): ?>
@@ -25,7 +25,7 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <p class="ok flash">Import effectué : <?= (int) $resumeEvenements['nouveaux'] ?> événement(s) ajouté(s), <?= (int) $resumeEvenements['spectacles_crees'] ?> <?= e($termeSingulier) ?>(s) créé(s).</p>
+        <p class="ok flash">Import effectué : <?= (int) $resumeEvenements['nouveaux'] ?> événement(s) ajouté(s), <?= (int) $resumeEvenements['projets_crees'] ?> <?= e($termeSingulier) ?>(s) créé(s).</p>
     <?php endif; ?>
 
     <div class="card mt-22">

@@ -13,7 +13,7 @@
             "date_echeance": "2025-04-11",
             "statut": "payee",
             "payee_le": "2025-04-02",
-            "communication": "Cession du spectacle X, 2 représentations",
+            "communication": "Cession du projet X, 2 représentations",
             "lignes": [
                 { "description": "Cachet représentation", "quantite": 1, "prix_unitaire": 1200 },
                 { "description": "Frais de déplacement", "quantite": 1, "prix_unitaire": 150 }

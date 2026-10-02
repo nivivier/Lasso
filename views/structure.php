@@ -3,11 +3,11 @@
 /** @var array $contacts */ /** @var array $notes */ /** @var array $tags */ /** @var array $tagsDispo */
 /** @var array $lieuxLies */ /** @var array $lieuxDispo */ /** @var array $organisateurDispo */ /** @var array $categoriesLieu */
 /** @var array $campagnesStructure */ /** @var array $campagnesLiees */ /** @var array $campagnesDispo */ /** @var array $contactsJoignables */ /** @var array $expediteurs */ /** @var array $modelesMessage */ /** @var ?array $brouillon */
-/** @var array $spectacles */ /** @var array $campagneProjets */ /** @var array $dossiersFonds */
+/** @var array $projetsDispo */ /** @var array $campagneProjets */ /** @var array $dossiersFonds */
 // Projets proposés dans les menus « Projet » (note d'historique, fenêtre
 // « Contacter ») — vides si le module Événements est éteint.
-$spectacleLabels = [];
-foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
+$projetLabels = [];
+foreach ($projetsDispo as $sp) { $projetLabels[(int) $sp['id']] = $sp['nom']; }
 $v = fn(string $k, $d = '') => e((string) ($structure[$k] ?? $d));
 $isEdit = !empty($structure['id']);
 $sid = (int) ($structure['id'] ?? 0);
@@ -1067,8 +1067,8 @@ $villeHtmlS = ville_departement_canton_html(
             <?php // Projet concerné, juste après « Prise de contact » : c'est lui qui
                   // fait avancer la jauge d'une campagne, y compris pour un appel
                   // téléphonique noté ici à la main. ?>
-            <?php if (!empty($spectacles)): ?>
-                <?= choix_coches_html('spectacle_ids', $spectacleLabels, $campagneProjets, 'Projet') ?>
+            <?php if (!empty($projetsDispo)): ?>
+                <?= choix_coches_html('projet_ids', $projetLabels, $campagneProjets, evenements_terme_projet(false)) ?>
             <?php endif; ?>
             <button type="submit"><?= icon('message-square') ?> Ajouter</button>
         </div>
@@ -1080,7 +1080,7 @@ $villeHtmlS = ville_departement_canton_html(
                   // tient sur une ligne, cinq se lisent donc d'un coup d'œil sans
                   // allonger la page. Le reste attend derrière « Voir les … ». ?>
             <?php $notesRecentes = array_slice($notes, 0, 5); $notesReste = array_slice($notes, 5); ?>
-            <?php $histoModifiable = $peutEcrireBooking; $histoStructureId = $sid; $histoSpectacles = $spectacleLabels; ?>
+            <?php $histoModifiable = $peutEcrireBooking; $histoStructureId = $sid; $histoProjets = $projetLabels; ?>
             <?php $histoEntrees = $notesRecentes; require __DIR__ . '/_historique.php'; ?>
             <?php if ($notesReste): ?>
                 <div class="hist-reste" hidden>
