@@ -123,54 +123,6 @@ require __DIR__ . '/_ciblage_structures.php';
 </script>
 
 <script nonce="<?= e(csp_nonce()) ?>">
-// Recherche d'une structure à ajouter. Les noms ne sont pas écrits dans la
-// page : il y en a plusieurs milliers, et la page pèse déjà lourd. Ils sont
-// chargés au PREMIER focus (?p=lieux_json, la route qui sert déjà le même
-// choix à ?p=evenement), puis filtrés à la frappe par lassoInitCatSearch().
-//
-// Choisir une suggestion envoie le formulaire : l'ajout part dans l'URL avec
-// les filtres et la saisie en cours, et la page revient avec la structure à sa
-// place alphabétique, cochée. Sans JavaScript, la liste reste vide — le champ
-// ne propose alors rien, et le ciblage par filtres reste le chemin.
-(function () {
-    const wrap = document.getElementById('campagne-ajout-search');
-    const form = document.getElementById('campagne-ajout-form');
-    if (!wrap || !form || !window.lassoInitCatSearch) { return; }
-    const champ = wrap.querySelector('.cat-search-input');
-    const liste = wrap.querySelector('.cat-search-list');
-    lassoInitCatSearch(wrap, {
-        clearHiddenOnInput: true,
-        onSelect: () => form.submit(),
-    });
-    let chargee = false;
-    champ.addEventListener('focus', function () {
-        if (chargee) { return; }
-        chargee = true;
-        fetch('?p=lieux_json', { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(function (opts) {
-                // Celles déjà dans le tableau ne sont pas proposées : les
-                // rajouter ne ferait rien, et la suggestion serait un leurre.
-                const dejaLa = new Set(
-                    [...document.querySelectorAll('.campagne-case')].map(c => c.value)
-                );
-                const frag = document.createDocumentFragment();
-                opts.forEach(function (o) {
-                    if (dejaLa.has(String(o.id))) { return; }
-                    const li = document.createElement('li');
-                    li.dataset.val = o.id;
-                    li.textContent = o.nom;
-                    frag.appendChild(li);
-                });
-                liste.appendChild(frag);
-                champ.dispatchEvent(new Event('input'));
-            })
-            .catch(function () { chargee = false; });
-    });
-})();
-</script>
-
-<script nonce="<?= e(csp_nonce()) ?>">
 // Un panneau de filtre est un formulaire GET : il recharge la page avec ce qu'il
 // porte, et rien d'autre. Les champs de la campagne y sont bien reportés en
 // champs cachés — mais écrits AU RENDU, donc avec les valeurs que le serveur

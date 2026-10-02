@@ -55,6 +55,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   laisse se demander si l'on a cherché. C'est la question qu'on vient poser sur
   la fiche d'un bailleur.
 
+### Corrigé
+- **Le champ qui ajoute une structure à une campagne de recherche de fonds
+  cherche à nouveau.** Il s'affichait, mais restait muet : le ciblage des
+  structures est partagé par les deux sortes de campagnes, et le script qui le
+  fait chercher n'habitait que l'écran du démarchage. Il vit désormais avec le
+  champ, donc partout où ce champ paraît.
+
 ## [3.0.0] — 2026-10-02
 
 ### Ajouté
