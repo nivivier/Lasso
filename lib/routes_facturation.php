@@ -164,7 +164,7 @@ function route_facturation_liste(): void
         $factures = $stmt->fetchAll();
     }
 
-    render('facturation_liste', [
+    render('factures', [
         'factures'       => $factures,
         'statut'         => $statut,
         'annee'          => $annee,
@@ -270,7 +270,7 @@ function route_facturation_form(): void
         $facture, $id, $structures, $comptes, $axes, $delaiDefaut, $evenementId,
         $axeDefaut, $structureDefaut, $ligneDefaut, $fondsDemandeId, $fondsDemande
     ) {
-        render('facturation_form', [
+        render('facture_form', [
             'facture' => $facture, 'id' => $id, 'structures' => $structures, 'comptes' => $comptes, 'axes' => $axes,
             'delaiDefaut' => $delaiDefaut, 'evenementId' => $evenementId, 'axeDefaut' => $axeDefaut,
             'structureDefaut' => $structureDefaut, 'ligneDefaut' => $ligneDefaut,
@@ -362,7 +362,7 @@ function route_facture(): void
     // Liste des événements pour le picker « Événement lié » (lib/routes_evenements.php,
     // toujours chargé — voir index.php — mais n'a de sens que si le module est actif).
     $evenementsListe = module_actif('evenements') ? evenements_pour_selection() : [];
-    render('facturation_voir', [
+    render('facture', [
         'facture' => $facture,
         'lignes'  => facturation_lignes_de($id),
         'statutEffectif' => facturation_statut_effectif($facture),
@@ -604,7 +604,7 @@ function route_facture_rappel(): void
     if (!$facture || $facture['statut'] === 'brouillon') {
         redirect('facturation_liste');
     }
-    render_bare('facturation_rappel_print', ['facture' => $facture]);
+    render_bare('facture_rappel_imprimer', ['facture' => $facture]);
 }
 
 // --- Structures (ex-débiteurs) : liste/fiche partagées entre les modules
@@ -1031,7 +1031,7 @@ function route_structures(): void
 
     if ($vue === 'carte') {
         [$cartePoints, $carteVillesManquantes] = structures_carte_points($where, $params);
-        render('structures_liste', [
+        render('structures', [
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'structures' => [], 'nbEvenements' => [],
             'recherche' => $recherche, 'categorieId' => $categorieId, 'lieu' => $lieu,
@@ -1133,7 +1133,7 @@ function route_structures(): void
     $lieuxOptions = lieux_options(['pays', 'region', 'dept']);
     $tagsDispo = module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [];
 
-    render('structures_liste', [
+    render('structures', [
         'vue' => $vue,
         'cartePoints' => [],
         'carteVillesManquantes' => 0,
@@ -1377,7 +1377,7 @@ function route_structure(): void
     }
     $renderForm = function (?string $err, array $structureAffichee) use ($id) {
         $map = structure_categorie_map();
-        render('structure_form', array_merge(
+        render('structure', array_merge(
             ['structure' => $structureAffichee, 'err' => $err,
              'categoriesPourSelect' => structure_categories_pour_select($map),
              'categorieIdSelectionnee' => structure_categorie_id_pour(

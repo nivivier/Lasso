@@ -501,7 +501,7 @@ function route_evenements_export_suisa_apercu(): void
     // barre d'outils pour qu'il exporte exactement ce qui est affiché.
     $filtres = $_GET;
     unset($filtres['p']);
-    render_bare('evenements_export_suisa_print',
+    render_bare('evenements_suisa_exporter_imprimer',
         evenements_export_suisa_donnees() + ['exportQs' => http_build_query($filtres)]);
 }
 
@@ -600,7 +600,7 @@ function route_evenement(): void
         $evenement, $id, $spectacles, $spectacleMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
         $axes, $structuresLiees, $peutLierLieu, $lieuActuel, $feuilleElements, $feuilleContacts
     ) {
-        render('evenement_form', [
+        render('evenement', [
             'evenement'      => $evenement,
             'id'             => $id,
             'spectacles'     => $spectacles,
@@ -1325,7 +1325,7 @@ function route_spectacles(): void
         $comptes[$id] = $c;
     }
 
-    render('spectacles', [
+    render('projets', [
         'lignes' => plan_liste_ordonnee($map),
         'map'    => $map,
         'comptes' => $comptes,
@@ -1394,7 +1394,7 @@ function route_spectacle(): void
         }
         if ($err) {
             $spectacleErr = array_merge((array) $spectacle, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent, 'axe_analytique_id' => $axeProjet]);
-            render('spectacle_form', ['spectacle' => $spectacleErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_spectacle(false));
+            render('projet_form', ['spectacle' => $spectacleErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_spectacle(false));
             return;
         }
         if ($id) {
@@ -1407,7 +1407,7 @@ function route_spectacle(): void
         }
         redirect('spectacles');
     }
-    render('spectacle_form', ['spectacle' => $spectacle, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
+    render('projet_form', ['spectacle' => $spectacle, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_spectacle(false)));
 }
 
 function route_spectacle_delete(): void
@@ -1490,7 +1490,7 @@ function route_parametres_evenements(): void
         redirect('parametres_evenements', ['ok' => 1]);
     }
 
-    render('parametres_evenements', [
+    render('evenements_reglages', [
         'delai' => evenements_delai_decompte_mois(),
         'delaiAbandon' => evenements_delai_abandon_mois(),
         'lienTexteDefaut' => evenements_lien_texte_defaut(),
@@ -1870,7 +1870,7 @@ function route_evenement_feuille_imprimer(): void
         redirect('evenements_liste');
     }
     [$destinataires, $sansAdresse] = feuille_destinataires($id);
-    render_bare('evenement_feuille_print', [
+    render_bare('evenement_feuille_imprimer', [
         'evenement'     => $evenement,
         'elements'      => feuille_elements($id),
         'organisateurs' => feuille_organisateurs($id),

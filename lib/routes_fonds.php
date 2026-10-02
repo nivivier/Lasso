@@ -69,7 +69,7 @@ function route_fonds(): void
     $recherche = trim((string) ($_GET['q'] ?? ''));
     $toutes = fonds_campagnes_liste();
     $campagnes = array_values(array_filter($toutes, fn (array $c) => campagne_correspond($c, $recherche)));
-    render('fonds', [
+    render('fonds_campagnes', [
         'groupes'   => fonds_campagnes_groupees($campagnes),
         'vide'      => !$campagnes,
         'nbTotal'   => count($toutes),

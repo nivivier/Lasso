@@ -55,7 +55,7 @@ function route_setup(): void
             $err = 'Le mot de passe doit faire au moins ' . PASSWORD_MIN . ' caractères.';
         }
         if ($err) {
-            render('setup', ['err' => $err, 'email' => $email, 'key' => $key], 'Installation');
+            render('installation', ['err' => $err, 'email' => $email, 'key' => $key], 'Installation');
             return;
         }
         $stmt = db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)');
@@ -71,7 +71,7 @@ function route_setup(): void
         $_SESSION['last_activity'] = time();
         redirect('resumes');
     }
-    render('setup', ['err' => null, 'email' => '', 'key' => $key], 'Installation');
+    render('installation', ['err' => null, 'email' => '', 'key' => $key], 'Installation');
 }
 
 function route_login(): void
@@ -90,7 +90,7 @@ function route_login(): void
         // Anti-force-brute : blocage temporaire après trop d'échecs.
         if (login_is_locked($ip, $email)) {
             $min = (int) ceil(LOGIN_WINDOW / 60);
-            render('login', ['err' => "Trop de tentatives. Réessayez dans $min minutes.", 'email' => ''], 'Connexion');
+            render('connexion', ['err' => "Trop de tentatives. Réessayez dans $min minutes.", 'email' => ''], 'Connexion');
             return;
         }
         usleep(random_int(200000, 500000)); // ralentit l'automatisation
@@ -116,14 +116,14 @@ function route_login(): void
             redirect('resumes');
         }
         login_record_failure($ip, $email);
-        render('login', ['err' => 'Identifiants incorrects.', 'email' => $email], 'Connexion');
+        render('connexion', ['err' => 'Identifiants incorrects.', 'email' => $email], 'Connexion');
         return;
     }
     $msg = isset($_GET['expired']) ? 'Session expirée. Reconnectez-vous.' : null;
     if (isset($_GET['reinit'])) {
         $msg = 'Mot de passe modifié. Connectez-vous avec le nouveau.';
     }
-    render('login', ['err' => null, 'info' => $msg, 'email' => ''], 'Connexion');
+    render('connexion', ['err' => null, 'info' => $msg, 'email' => ''], 'Connexion');
 }
 
 function route_logout(): void
@@ -179,11 +179,11 @@ function route_motdepasse_reinit(): void
     $jeton   = (string) ($_POST['jeton'] ?? $_GET['jeton'] ?? '');
     $demande = reinit_demande($jeton);
     if (!$demande) {
-        render('motdepasse_reinit', ['jeton' => '', 'err' => null, 'invalide' => true], 'Nouveau mot de passe');
+        render('motdepasse_reinitialiser', ['jeton' => '', 'err' => null, 'invalide' => true], 'Nouveau mot de passe');
         return;
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        render('motdepasse_reinit', ['jeton' => $jeton, 'err' => null, 'invalide' => false], 'Nouveau mot de passe');
+        render('motdepasse_reinitialiser', ['jeton' => $jeton, 'err' => null, 'invalide' => false], 'Nouveau mot de passe');
         return;
     }
     check_csrf();
@@ -196,7 +196,7 @@ function route_motdepasse_reinit(): void
         $err = 'La confirmation ne correspond pas.';
     }
     if ($err) {
-        render('motdepasse_reinit', ['jeton' => $jeton, 'err' => $err, 'invalide' => false], 'Nouveau mot de passe');
+        render('motdepasse_reinitialiser', ['jeton' => $jeton, 'err' => $err, 'invalide' => false], 'Nouveau mot de passe');
         return;
     }
     db()->beginTransaction();
@@ -246,7 +246,7 @@ function route_compte(): void
             }
         }
         if ($err) {
-            render('compte', ['u' => ['prenom' => $prenom, 'nom' => $nom, 'email' => $email] + $u, 'err' => $err, 'saved' => null], 'Mon compte');
+            render('mon_compte', ['u' => ['prenom' => $prenom, 'nom' => $nom, 'email' => $email] + $u, 'err' => $err, 'saved' => null], 'Mon compte');
             return;
         }
         $hash = $nouveau !== '' ? hacher_mot_de_passe($nouveau) : $u['mot_de_passe'];
@@ -254,7 +254,7 @@ function route_compte(): void
             ->execute([$prenom, $nom, $email, $hash, $u['id']]);
         redirect('compte', ['ok' => 1]);
     }
-    render('compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
+    render('mon_compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
 }
 
 // -------------------------------------------------------------- COMPTES (admin)
@@ -316,7 +316,7 @@ function route_comptes(): void
     foreach ($comptes as $c) {
         $permissions[(int) $c['id']] = permissions_utilisateur((int) $c['id']);
     }
-    render('comptes', [
+    render('utilisateurs', [
         'comptes'     => $comptes,
         'permissions' => $permissions,
         'err'         => $err,
@@ -517,7 +517,7 @@ function route_employe_voir(): void
     $stmt = db()->prepare('SELECT * FROM fiches WHERE employe_id = ? ORDER BY annee DESC, mois DESC');
     $stmt->execute([$id]);
     $fiches = $stmt->fetchAll();
-    render('employe_voir', ['emp' => $emp, 'fiches' => $fiches], $emp['prenom'] . ' ' . $emp['nom']);
+    render('employe', ['emp' => $emp, 'fiches' => $fiches], $emp['prenom'] . ' ' . $emp['nom']);
 }
 
 // Pastille d'identité d'un employé (?p=employe_voir) : une couleur choisie dans
@@ -685,7 +685,7 @@ function route_parametres_modules(): void
         }
         redirect('parametres_modules');
     }
-    render('parametres_modules', ['actifs' => modules_actifs()], 'Modules');
+    render('modules', ['actifs' => modules_actifs()], 'Modules');
 }
 
 // Liste de pays configurable (Paramètres → Pays, voir migration_43 et
@@ -923,7 +923,7 @@ function route_parametres_pays(): void
         $paysNom = (string) ($map[plan_pid($r['parent_id'] ?? null)]['nom'] ?? '');
         $usageRegion[(int) $id] = $usageParRegion[$paysNom . "\0" . (string) $r['nom']] ?? 0;
     }
-    render('parametres_pays', [
+    render('pays', [
         'saved' => isset($_GET['ok']),
         'err' => $_GET['err'] ?? null,
         'lignes' => plan_liste_ordonnee($map),
@@ -2135,7 +2135,7 @@ function route_fiche(): void
         $stmt->execute([$id]);
         $ecrituresLibres = $stmt->fetchAll();
     }
-    render('fiche_view', [
+    render('fiche', [
         'f' => $f, 'modifiable' => $modifiable, 'saved' => $_GET['ok'] ?? null,
         'mail' => $_GET['mail'] ?? null,
         'emailEmploye' => $emailEmploye, 'emailExp' => $emailExp,
@@ -2250,7 +2250,7 @@ function route_certificat_print(): void
     if ($ctx === null) {
         redirect('employes');
     }
-    render_bare('certificat_print', $ctx);
+    render_bare('certificat_imprimer', $ctx);
 }
 
 // Génère le XML « eCertificat de salaire CSI » (schéma eLohnausweis-ssk) pour une
@@ -2471,7 +2471,7 @@ function route_fiche_print(): void
     if (!$f) {
         redirect('fiches');
     }
-    render_bare('fiche_print', ['f' => $f]);
+    render_bare('fiche_imprimer', ['f' => $f]);
 }
 
 function route_fiche_delete(): void
@@ -2832,7 +2832,7 @@ function route_resumes(): void
     $fondsDash['campagnes'] = fonds_campagnes_avec_projets($fondsDash['campagnes']);
     $campagnesDash = $campagnesToutes ? campagnes_dashboard(9, $campagnesToutes) : [];
     $campagnesAVenir = campagnes_dashboard_a_venir($campagnesToutes);
-    render('resumes', [
+    render('tableau_bord', [
         'aPayer' => $aPayer,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
@@ -2960,7 +2960,7 @@ function route_resume(): void
         ['label' => 'Total annuel',     'vals' => $tot,     'type' => 'total'],
     ];
 
-    render('resume', [
+    render('cotisations', [
         'annee'     => $annee,
         'annees'    => $annees,
         'employes'  => $employes,

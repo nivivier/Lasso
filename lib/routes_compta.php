@@ -1401,7 +1401,7 @@ function route_compta_analyse_print(): void
 {
     require_login();
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : null;
-    render_bare('compta_analyse_print', compta_analyse_data($annee));
+    render_bare('compta_analyse_imprimer', compta_analyse_data($annee));
 }
 
 function route_compta_analyse_axe_print(): void
@@ -1462,7 +1462,7 @@ function route_compta_analyse_axe_print(): void
     // Quand toutes les années : aucune colonne isolée n'est mise en valeur, seul le total l'est.
     $anneeRef = $annee === 0 ? -1 : (int) ($cols[0] ?? $annee);
 
-    render_bare('compta_analyse_axe_print', [
+    render_bare('compta_analyse_axe_imprimer', [
         'axe'            => $axe,
         'annee'          => $annee,
         'anneeRef'       => $anneeRef,
@@ -1705,7 +1705,7 @@ function route_compta_bilan_print(): void
     require_login();
     $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
     $nbPrec = max(0, min(3, (int) ($_GET['prec'] ?? ($_SESSION['bilan_prec'] ?? 2))));
-    render_bare('compta_bilan_print', compta_bilan_data($annee, $nbPrec) + ['nomEmployeur' => (string) param('employeur_nom')]);
+    render_bare('compta_bilan_imprimer', compta_bilan_data($annee, $nbPrec) + ['nomEmployeur' => (string) param('employeur_nom')]);
 }
 
 // --- Export CSV des écritures -----------------------------------------------

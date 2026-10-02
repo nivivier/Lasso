@@ -527,7 +527,7 @@ function route_parametres_tags(): void
          FROM structure_tags t ORDER BY t.nom COLLATE NOCASE'
     )->fetchAll();
 
-    render('parametres_tags', [
+    render('tags', [
         'saved'  => isset($_GET['ok']),
         'lignes' => $lignes,
     ], 'Paramètres — Tags');
@@ -1048,7 +1048,7 @@ function route_parametres_structures(): void
             $usage[(int) $cid] = $usageSous[$parentNom . "\0" . (string) $r['nom']] ?? 0;
         }
     }
-    render('parametres_structures', [
+    render('categories_structures', [
         'saved' => isset($_GET['ok']),
         'err' => $_GET['err'] ?? null,
         'lignes' => structure_categories_liste_ordonnee($map),
@@ -1670,7 +1670,7 @@ function route_campagnes(): void
             && campagne_correspond($c, $recherche);
     }));
 
-    render('campagnes', [
+    render('booking_campagnes', [
         'campagnes'    => $campagnes,
         'nbTotal'      => count($toutes),
         'projet'       => $projet,
@@ -1722,7 +1722,7 @@ function route_campagne_form(): void
         $projets = array_values(array_filter(array_map('intval', (array) ($_GET['spectacle_ids'] ?? []))));
     }
 
-    render('campagne_form', $ciblage + [
+    render('booking_campagne_form', $ciblage + [
         'campagne'   => $campagne ?: null,
         'projets'    => $projets,
         'spectacles' => module_actif('evenements') ? spectacles_pour_selection() : [],
@@ -1936,7 +1936,7 @@ function route_campagne(): void
     foreach ($stmtRep->fetchAll() as $l) {
         $parReponse[(string) $l['reponse']] = (int) $l['n'];
     }
-    render('campagne', [
+    render('booking_campagne', [
         'repartition' => campagne_repartition(
             $nbTotal, $faits,
             $parReponse['interesse'] ?? 0,
