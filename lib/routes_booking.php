@@ -137,6 +137,12 @@ function route_structure_message_envoyer(): void
     $expediteurId = (int) ($_POST['expediteur_id'] ?? 0);
     $sujet = trim((string) ($_POST['sujet'] ?? ''));
     $corps = trim((string) ($_POST['corps'] ?? ''));
+    // Copies visibles et copies cachées, saisies librement (adresses_email_liste()
+    // accepte la virgule, le point-virgule et le retour à la ligne). Ce qui n'est
+    // pas une adresse est écarté : on ne refuse pas un envoi pour une virgule en
+    // trop, et l'historique dit ensuite ce qui est réellement parti.
+    $cc  = adresses_email_liste((string) ($_POST['cc'] ?? ''));
+    $cci = adresses_email_liste((string) ($_POST['cci'] ?? ''));
 
     if (($_POST['section'] ?? '') === 'brouillon') {
         // Destinataire et boîte d'envoi vérifiés avant d'être stockés : un
@@ -149,9 +155,14 @@ function route_structure_message_envoyer(): void
                 $contactValide = (int) $c['id'];
             }
         }
-        db()->prepare('INSERT OR REPLACE INTO structure_message_brouillons (structure_id, contact_id, expediteur_id, sujet, corps, maj_le)
-                       VALUES (?, ?, ?, ?, ?, datetime(\'now\'))')
-            ->execute([$structureId, $contactValide, mailing_expediteur($expediteurId)['id'] ?? null, $sujet, $corps]);
+        // Les copies font partie du brouillon (migration_97) : saisies puis
+        // perdues à l'enregistrement, c'est exactement ce qu'on ne retape pas
+        // volontiers. Rangées telles qu'elles ont été NETTOYÉES, pour que le
+        // brouillon rouvert montre ce qui partira vraiment.
+        db()->prepare('INSERT OR REPLACE INTO structure_message_brouillons (structure_id, contact_id, expediteur_id, sujet, corps, cc, cci, maj_le)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))')
+            ->execute([$structureId, $contactValide, mailing_expediteur($expediteurId)['id'] ?? null, $sujet, $corps,
+                implode(', ', $cc), implode(', ', $cci)]);
         $retour('brouillon');
     }
 
@@ -176,14 +187,18 @@ function route_structure_message_envoyer(): void
     $expediteur = mailing_expediteur_ou_defaut($expediteurId);
     // Copie cachée à l'expéditeur : c'est ce qui tient lieu de « messages
     // envoyés » pour un message parti d'ici (voir envoyer_mailing_email()).
-    [$ok] = envoyer_mailing_email((string) $contact['email'], $expediteur, $sujetFinal, $corpsFinal, true);
+    [$ok] = envoyer_mailing_email((string) $contact['email'], $expediteur, $sujetFinal, $corpsFinal, true, $cc, $cci);
     if (!$ok) {
         $retour('envoi_ko');
     }
     $nomContact = trim((string) $contact['prenom'] . ' ' . (string) $contact['nom']);
+    // Les copies sont dites dans l'historique : un message parti à trois
+    // personnes doit se relire comme tel, un an plus tard. Les cachées aussi —
+    // elles sont cachées du destinataire, pas de l'association qui a écrit.
+    $copies = ($cc ? "\nCc : " . implode(', ', $cc) : '') . ($cci ? "\nCci : " . implode(', ', $cci) : '');
     journaliser('structure', $structureId, 'mailing',
         'E-mail à ' . ($nomContact !== '' ? $nomContact . ' <' . $contact['email'] . '>' : (string) $contact['email'])
-        . ' — ' . $sujetFinal . "\n\n" . $corpsFinal);
+        . $copies . ' — ' . $sujetFinal . "\n\n" . $corpsFinal);
     // Projets concernés : c'est ce qui fait avancer la jauge d'une campagne.
     projets_lier('historique_projets', (int) db()->lastInsertId(), (array) ($_POST['projet_ids'] ?? []));
     structure_recalculer_dernier_contact($structureId);

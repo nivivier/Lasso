@@ -719,8 +719,15 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .kv-table tr:first-child th, .kv-table tr:first-child td { border-top: none; }
 /* « voir tout » d'un texte tronqué (> 200 caractères, ex. Remarques) — voir
    le délégué click générique .voir-tout-btn dans assets/app.js. */
-.voir-tout-btn { background: none; border: none; padding: 0; margin-left: 4px; color: var(--highlight); text-decoration: underline; cursor: pointer; font-size: inherit; font-weight: 600; }
-.voir-tout-btn:hover { color: var(--highlight-d); }
+/* Un bouton qui se lit comme un lien : .lien-bouton est le nom général,
+   .voir-tout-btn le premier usage, resté sous son nom pour ce que le délégué de
+   assets/app.js cible. Une seule déclaration, pas deux styles à tenir. */
+.voir-tout-btn, .lien-bouton { background: none; border: none; padding: 0; margin-left: 4px; color: var(--highlight); text-decoration: underline; cursor: pointer; font-size: inherit; font-weight: 600; }
+.voir-tout-btn:hover, .lien-bouton:hover { color: var(--highlight-d); }
+/* Dans la fenêtre « Contacter », il vit sous le destinataire : discret, au corps
+   de la ligne qu'il prolonge — au corps courant et en gras, il se lisait comme
+   un titre au milieu du formulaire. */
+.contacter-copies-lien { margin: 2px 0 0; font-size: var(--fs-small); font-weight: 500; }
 /* Pas de règle de position pour le message d'enregistrement de ce cadre : il
    porte la classe .flash comme tous les autres de l'application et reste donc
    une pastille flottante en haut de la page. Une règle le ramenait ici en flux

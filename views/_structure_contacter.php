@@ -72,7 +72,21 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                         <select name="contact_id" id="contacter-destinataire" required></select>
                     </label>
                     <p class="muted small contacter-fiche" id="contacter-fiche"></p>
+                    <?php // Les copies restent repliées : écrire à une structure,
+                          // c'est écrire à UNE personne neuf fois sur dix, et deux
+                          // champs vides de plus à chaque ouverture diraient le
+                          // contraire. Le lien les appelle quand il les faut. ?>
+                    <button type="button" class="lien-bouton contacter-copies-lien" data-show="contacter-copies">Ajouter des copies (Cc, Cci)</button>
                 </div>
+            </div>
+
+            <div class="grid2-optional" id="contacter-copies" hidden>
+                <label>Cc <span class="muted small">— lues par le destinataire</span>
+                    <input name="cc" id="contacter-cc" placeholder="adresse@exemple.com, autre@exemple.com">
+                </label>
+                <label>Cci <span class="muted small">— invisibles pour lui</span>
+                    <input name="cci" id="contacter-cci" placeholder="adresse@exemple.com">
+                </label>
             </div>
 
             <label>Objet <input name="sujet" id="contacter-sujet" value="" required></label>
@@ -131,6 +145,8 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
             'expediteur_id' => (int) ($c['brouillon']['expediteur_id'] ?? 0),
             'sujet' => (string) ($c['brouillon']['sujet'] ?? ''),
             'corps' => (string) ($c['brouillon']['corps'] ?? ''),
+            'cc'    => (string) ($c['brouillon']['cc'] ?? ''),
+            'cci'   => (string) ($c['brouillon']['cci'] ?? ''),
         ] : null,
         'contacts' => array_map(fn ($ct) => [
             'id' => (int) $ct['id'],
@@ -148,6 +164,14 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
     var modeles = <?= json_encode(array_column($modelesMessage, null, 'id'), JSON_UNESCAPED_UNICODE) ?>;
     var projetsDefaut = <?= json_encode(array_map('intval', $campagneProjets)) ?>;
 
+    var cc = document.getElementById('contacter-cc');
+    var cci = document.getElementById('contacter-cci');
+    var blocCopies = document.getElementById('contacter-copies');
+    var lienCopies = document.querySelector('.contacter-copies-lien');
+    // Le lien s'efface quand les champs paraissent : il n'a plus rien à ouvrir,
+    // et « Ajouter des copies » au-dessus d'un champ Cc ouvert se contredit.
+    // (Le dépliage lui-même est le délégué générique data-show d'app.js.)
+    if (lienCopies) { lienCopies.addEventListener('click', function () { lienCopies.hidden = true; }); }
     var champStructure = document.getElementById('contacter-structure');
     var titre = document.getElementById('contacter-titre');
     var destinataire = document.getElementById('contacter-destinataire');
@@ -250,6 +274,12 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         expediteur.value = b && b.expediteur_id ? String(b.expediteur_id) : '';
         sujet.value = b ? b.sujet : '';
         corps.value = b ? b.corps : '';
+        // Les copies d'un brouillon : remises dans les champs ET dépliées, sinon
+        // elles partiraient sans que personne les ait revues.
+        cc.value = b ? (b.cc || '') : '';
+        cci.value = b ? (b.cci || '') : '';
+        blocCopies.hidden = cc.value === '' && cci.value === '';
+        if (lienCopies) { lienCopies.hidden = !blocCopies.hidden; }
         if (modeleMenu) { modeleMenu.open = false; }
         modeleCharge = null;
         produit.sujet = null;

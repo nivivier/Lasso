@@ -122,6 +122,7 @@ function run_migrations(PDO $pdo): void
         94 => 'migration_94', // « spectacle » devient « projet » : tables, colonnes, index, et le terme réglable scindé en singulier/pluriel
         95 => 'migration_95', // recherche de fonds : retrait du numéro de dossier (jamais utilisé)
         96 => 'migration_96', // historique : qui a modifié une note, et quand
+        97 => 'migration_97', // brouillon de message : les copies (cc) et copies cachées (cci)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3102,6 +3103,21 @@ function migration_94(PDO $pdo): void
 //
 // Vides par défaut : une entrée jamais modifiée n'a rien à déclarer, et c'est
 // ce qui distingue « jamais touchée » de « modifiée par celui qui l'a écrite ».
+// Migration 97 : un brouillon de message garde ses copies.
+//
+// La fenêtre « Contacter » accepte des Cc et des Cci ; sans ces deux colonnes,
+// les saisir puis enregistrer le brouillon les perdait en silence — et c'est
+// précisément ce qu'on ne retape pas volontiers.
+function migration_97(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(structure_message_brouillons)')->fetchAll(), 'name');
+    foreach (['cc', 'cci'] as $col) {
+        if (!in_array($col, $cols, true)) {
+            $pdo->exec("ALTER TABLE structure_message_brouillons ADD COLUMN $col TEXT NOT NULL DEFAULT ''");
+        }
+    }
+}
+
 function migration_96(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(historique)')->fetchAll(), 'name');

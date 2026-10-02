@@ -10,6 +10,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Des copies dans la fenêtre « Contacter »** : un lien discret sous le
+  destinataire ouvre deux champs, Cc — lues par le destinataire — et Cci —
+  invisibles pour lui. Les adresses se séparent par une virgule, un
+  point-virgule ou un retour à la ligne ; ce qui n'en est pas une est écarté
+  sans refuser l'envoi. Les copies sont dites dans l'historique de la structure,
+  les cachées comprises, et un brouillon les garde.
 - **Une adresse s'exclut depuis la liste elle-même** : un champ et un « + » en
   tête de Booking → Liste d'exclusion. C'est le geste courant — quelqu'un
   demande à ne plus rien recevoir —, et il n'avait d'autre chemin que l'écran

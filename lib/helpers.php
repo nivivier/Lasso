@@ -15,6 +15,22 @@ function date_valide(string $s): bool
 // http(s) explicite, donc jamais "javascript:" ou autre schéma actif, +
 // FILTER_VALIDATE_URL) — partagé entre l'import événements
 // (lib/evenements.php) et son aperçu (views/_import_evenements_section.php).
+// Les adresses VALIDES d'une saisie libre : séparateur virgule, point-virgule
+// ou retour à la ligne, au choix de qui tape. Ce qui n'est pas une adresse est
+// écarté sans bruit — on ne refuse pas l'envoi d'un message pour une virgule en
+// trop, et l'écran montre ensuite ce qui est parti.
+function adresses_email_liste(string $brut): array
+{
+    $out = [];
+    foreach (preg_split('/[\s,;]+/', $brut) as $a) {
+        $a = trim($a);
+        if ($a !== '' && filter_var($a, FILTER_VALIDATE_EMAIL)) {
+            $out[strtolower($a)] = $a;
+        }
+    }
+    return array_values($out);
+}
+
 function lien_http_valide(string $lien): bool
 {
     return $lien !== '' && preg_match('#^https?://#i', $lien) === 1 && filter_var($lien, FILTER_VALIDATE_URL) !== false;
@@ -2959,7 +2975,11 @@ function smtp_config_booking(?array $expediteur = null): array
 // tout seul dans le dossier « Envoyés » : ce dossier est une notion IMAP, que
 // seul un logiciel de messagerie alimente. La copie arrive donc dans la boîte
 // de réception, pas dans les envoyés.
-function envoyer_mailing_email(string $destinataire, ?array $expediteur, string $sujet, string $corps, bool $copieExpediteur = false): array
+// $cc : copies VISIBLES — elles figurent dans l'en-tête, le destinataire les
+// lit, et c'est tout l'intérêt (« je mets ton collègue en copie »).
+// $cci : copies cachées — l'adresse est servie par l'enveloppe et le message ne
+// la nomme pas, exactement comme la copie à l'expéditeur plus bas.
+function envoyer_mailing_email(string $destinataire, ?array $expediteur, string $sujet, string $corps, bool $copieExpediteur = false, array $cc = [], array $cci = []): array
 {
     $from = mailing_expediteur_from($expediteur);
     $adresseExpediteur = trim((string) ($expediteur['email'] ?? param('employeur_email_expediteur')));
@@ -2967,6 +2987,8 @@ function envoyer_mailing_email(string $destinataire, ?array $expediteur, string 
     if (APP_ENV === 'dev') {
         $log = dirname(APP_DB_PATH) . '/emails_envoyes.log';
         @file_put_contents($log, '[' . date('c') . "] Mailing To: $destinataire | De: $from"
+            . ($cc ? ' | Cc: ' . implode(', ', $cc) : '')
+            . ($cci ? ' | Cci: ' . implode(', ', $cci) : '')
             . ($copie ? " | Cci: $adresseExpediteur" : '') . " | $sujet\n", FILE_APPEND);
         return [true, 'local'];
     }
@@ -2984,11 +3006,18 @@ function envoyer_mailing_email(string $destinataire, ?array $expediteur, string 
         // réponse générale : un mailing part au nom d'une équipe précise.
         'Reply-To: ' . $from,
     ]);
-    $message = 'To: ' . $destinataire . "\r\n" . 'Subject: ' . $sujetEnc . "\r\n" . $entetes . "\r\n\r\n" . $corps;
-    // La copie passe par l'enveloppe seulement : aucun en-tête « Bcc: » dans le
-    // message, sinon le destinataire la lirait.
-    $adresses = $copie ? [$destinataire, $adresseExpediteur] : $destinataire;
-    return [smtp_transmettre($cfg, $adresses, $message), 'smtp'];
+    $enteteCc = $cc ? 'Cc: ' . implode(', ', $cc) . "\r\n" : '';
+    $message = 'To: ' . $destinataire . "\r\n" . $enteteCc . 'Subject: ' . $sujetEnc . "\r\n" . $entetes . "\r\n\r\n" . $corps;
+    // Les copies CACHÉES passent par l'enveloppe seulement : aucun en-tête
+    // « Bcc: » dans le message, sinon le destinataire les lirait. C'est déjà
+    // ainsi que la copie à l'expéditeur voyage.
+    $adresses = array_values(array_unique(array_merge(
+        [$destinataire],
+        $cc,
+        $cci,
+        $copie ? [$adresseExpediteur] : []
+    )));
+    return [smtp_transmettre($cfg, count($adresses) > 1 ? $adresses : $destinataire, $message), 'smtp'];
 }
 
 // Transmet un message brut déjà complet (en-têtes To/Subject/… + ligne vide + corps)
