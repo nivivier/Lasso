@@ -56,6 +56,11 @@
     --teal-tint: #e2f7f3;
     --amber: #9a6700;       /* « à payer », statut SUISA « à faire » */
     --amber-tint: #fff4e0;
+    /* L'ambre de la PISTE d'une jauge (ce qui reste à contacter, à trouver) :
+       assez clair pour se lire comme « pas encore fait » — l'ambre plein
+       donnait une barre qui semblait remplie —, assez soutenu pour se voir sur
+       le blanc d'une carte, là où --amber-tint disparaîtrait. */
+    --amber-piste: #fbe6bd;
     --orange: #c2410c;      /* statut SUISA « manquant » */
     --orange-tint: #fdece1;
     --ink: #1e2430;
@@ -264,6 +269,7 @@ h1 * { -webkit-text-fill-color: currentColor; }
     --d-teal-tint: #12312e;
     --d-amber: #e0a745;
     --d-amber-tint: #33260f;
+    --d-amber-piste: #4a3a1b;
     --d-orange: #f0743f;
     --d-orange-tint: #3a1e11;
     --d-danger: #f2685c;
@@ -309,6 +315,7 @@ h1 * { -webkit-text-fill-color: currentColor; }
         --teal-tint: var(--d-teal-tint);
         --amber: var(--d-amber);
         --amber-tint: var(--d-amber-tint);
+        --amber-piste: var(--d-amber-piste);
         --orange: var(--d-orange);
         --orange-tint: var(--d-orange-tint);
         --danger: var(--d-danger);
@@ -350,6 +357,7 @@ h1 * { -webkit-text-fill-color: currentColor; }
     --teal-tint: var(--d-teal-tint);
     --amber: var(--d-amber);
     --amber-tint: var(--d-amber-tint);
+    --amber-piste: var(--d-amber-piste);
     --orange: var(--d-orange);
     --orange-tint: var(--d-orange-tint);
     --danger: var(--d-danger);
@@ -738,6 +746,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    ?p=evenement) : mêmes couleurs que les usages existants ailleurs dans
    l'appli (--amber = « à faire »/en attente, --ok = confirmé/positif). */
 .ico-amber { color: var(--amber); }
+.ico-muted { color: var(--muted); }
 .ico-ok { color: var(--ok); }
 .ico-danger { color: var(--danger); }
 .ico-pink { color: var(--rose); }
@@ -1844,12 +1853,13 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .fonds-suite-champs label.grow { flex: 1 1 220px; min-width: 160px; }
 .fonds-suite-champs input { margin: 0; }
 /* La pastille de légende sans icône (ce qui reste à trouver) : un carré de la
-   couleur du segment, comme la piste elle-même. */
+   couleur du segment, comme la piste elle-même — donc l'ambre de ce qui reste
+   à faire. */
 .camp-legende .camp-pastille {
-    width: 11px; height: 11px; border-radius: 3px; background: var(--line);
+    width: 11px; height: 11px; border-radius: 3px; background: var(--amber-piste);
 }
 .camp-legende .camp-pastille.camp-oui { background: var(--ok); }
-.camp-legende .camp-pastille.camp-attente { background: var(--amber); }
+.camp-legende .camp-pastille.camp-attente { background: var(--muted); }
 
 /* Carte « Campagnes » du tableau de bord : une ligne par campagne, l'icône de
    son projet en tête pour la reconnaître sans lire. La barre d'avancement est
@@ -2953,11 +2963,12 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .statut-toggle .seg-btn[data-statut-valeur="inactif"].on { background: var(--line); color: var(--muted); }
 
 /* Le sélecteur de réponse d'une campagne, sur le même principe et avec les
-   couleurs de la jauge : ambre « sans réponse », rouge « pas intéressé », teal
+   couleurs de la jauge : gris « sans réponse », rouge « pas intéressé », teal
    « intéressé ». La valeur vide est celle d'un contact établi qui n'a pas
-   encore répondu — d'où l'ambre de ce qui est en suspens, et non le gris de ce
-   qu'on n'a pas encore touché. */
-.reponse-toggle .seg-btn[data-reponse-valeur=""].on { background: var(--amber-tint); color: var(--amber); }
+   encore répondu : la balle est dans son camp, il n'y a rien à faire de notre
+   côté — d'où le gris, et non l'ambre, qui est réservé au geste qui reste à
+   poser (ici le fond de la piste, ce qui n'a pas été contacté). */
+.reponse-toggle .seg-btn[data-reponse-valeur=""].on { background: var(--line); color: var(--muted); }
 .reponse-toggle .seg-btn[data-reponse-valeur="pas_interesse"].on { background: var(--danger-tint); color: var(--danger); }
 .reponse-toggle .seg-btn[data-reponse-valeur="interesse"].on { background: var(--teal-tint); color: var(--ok); }
 
@@ -3087,9 +3098,11 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    pastilles y respirent. Sélecteur à deux classes pour l'emporter sur le gap
    de .projet-pastilles quel que soit l'ordre des règles. */
 .projet-pastilles.camp-projets { gap: 4px 24px; margin-bottom: 14px; }
-/* Une seule barre, quatre segments. Le reste à contacter n'est pas un segment :
-   c'est le fond de la piste, ce qui n'a pas encore été rempli. */
-.camp-barre { position: relative; display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+/* Une seule barre, quatre segments. Le reste à contacter (ou à trouver) n'est
+   pas un segment : c'est le fond de la piste, ce qui n'a pas encore été rempli
+   — et c'est LUI qui porte l'ambre, parce que c'est lui qui demande un geste.
+   Voir la note sur les couleurs plus bas. */
+.camp-barre { position: relative; display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--amber-piste); overflow: hidden; }
 .camp-seg { display: block; height: 100%; }
 /* Le repère d'un seuil intermédiaire (barre_segments_html()) : la recherche de
    fonds vise deux montants, le minimum sans lequel le projet ne se fait pas et
@@ -3099,11 +3112,20 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
     background: var(--ink); opacity: .45; }
 /* Mêmes couleurs que les icônes de réponse (CAMPAGNE_REPONSES_CLASSES_ICONE) :
    teal pour un oui — la couleur de ce qui est acquis partout ailleurs —, rouge
-   pour un non, ambre pour un contact établi dont la réponse se fait attendre.
-   Le gris de la piste, lui, dit ce qui n'a pas encore été approché. */
+   pour un non, gris pour un contact établi dont la réponse se fait attendre.
+   L'AMBRE EST CELUI DE LA PISTE, c'est-à-dire de ce qui reste à contacter ou à
+   trouver : dans toute l'application, l'ambre dit un geste à faire — une fiche
+   à verser, une facture échue, une déclaration SUISA. Attendre une réponse
+   n'est pas un geste, le gris suffit ; un bailleur qu'on n'a pas encore
+   sollicité, si. (C'était l'inverse jusqu'à la 3.0.2.)
+   Deux registres, et c'est ce qui rend la barre lisible : les segments sont
+   PLEINS — ils disent ce qui est traité, réponse reçue ou non —, la piste est
+   PÂLE (--amber-piste) et dit ce qui ne l'est pas. Un ambre plein en fond
+   donnait une barre qui semblait remplie ; un gris de trait en segment se
+   serait confondu avec une piste claire. */
 .camp-oui { background: var(--ok); }
 .camp-non { background: var(--danger); }
-.camp-attente { background: var(--amber); }
+.camp-attente { background: var(--muted); }
 .camp-legende { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 22px;
     margin: 12px 0 0; padding: 0; font-size: var(--fs-small); align-items: center; }
 .camp-legende li { display: inline-flex; align-items: center; }

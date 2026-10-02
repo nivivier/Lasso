@@ -936,15 +936,27 @@ Les tokens portent le **sens**, jamais la teinte, et se déclinent en `-d`
 | --- | --- |
 | `--ok` (teal) | Acquis, confirmé, intéressé |
 | `--danger` | Destructeur, refusé |
-| `--amber` | En attente, à faire |
+| `--amber` | **Un geste à faire**, et rien d'autre |
+| `--amber-piste` | Le même sens, en fond : la part d'une jauge qui reste à faire |
 | `--rose` | Contact privilégié |
-| `--muted` | Secondaire, pas encore approché |
+| `--muted` | Secondaire, en attente d'autrui, déjà traité de notre côté |
 | `--primary` / `--highlight` | Accents, réglés par l'employeur |
+
+**L'ambre dit un geste qui nous revient** — une fiche à verser, une facture
+échue, une déclaration SUISA, un bailleur à solliciter. Il ne dit pas
+« en attente » : attendre la réponse de quelqu'un n'est pas une tâche, c'est du
+gris (`--muted`). La règle se vérifie vite — si l'utilisateur ne peut rien
+faire de la chose colorée, elle n'est pas ambre.
 
 Les mêmes couleurs doivent dire la même chose partout : un sélecteur de réponse,
 les segments d'une jauge et sa légende se peignent depuis la même table
 (`CAMPAGNE_REPONSES_CLASSES_ICONE`, `lib/booking.php`). Une couleur ne porte
 jamais le sens **seule** : une icône ou un libellé l'accompagne.
+
+Dans une jauge, deux registres se répondent : les **segments sont pleins** (ce
+qui est traité), la **piste est pâle** (ce qui ne l'est pas). D'où
+`--amber-piste` plutôt que `--amber` en fond : un ambre plein donnait une barre
+qui semblait remplie, c'est-à-dire l'inverse de ce qu'elle dit.
 
 Tout écran existe en thème clair **et** sombre : n'écrire aucune couleur en dur,
 toujours un token.

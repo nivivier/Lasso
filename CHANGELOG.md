@@ -10,6 +10,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Les jauges inversent leur ambre et leur gris** — booking et recherche de
+  fonds, sur une campagne, dans la liste et au tableau de bord. Ce qui reste à
+  contacter ou à trouver passe en ambre, ce qui attend une réponse passe en
+  gris, et le sélecteur de réponse suit. L'ambre dit un geste à faire partout
+  ailleurs dans l'application : attendre la réponse d'un bailleur n'en est pas
+  un, le solliciter si. L'ambre de la piste est **pâle** — en plein, la barre
+  semblait remplie, soit l'inverse de ce qu'elle dit.
 - **« Bilan à rendre » ne s'affiche plus qu'à l'approche de l'échéance**, sur
   un dossier comme au tableau de bord, avec le même délai (Paramètres →
   Valeurs et libellés → Recherche de fonds). Un dossier accordé portait

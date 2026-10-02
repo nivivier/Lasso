@@ -95,17 +95,18 @@ const CAMPAGNE_REPONSES = [
 //
 // Les couleurs sont celles de la barre d'avancement, segment par segment : teal
 // pour un oui — la couleur de ce qui est acquis dans toute l'application —,
-// rouge pour un non, ambre pour un contact établi dont la réponse se fait
-// attendre — l'ambre de ce qui est en suspens, « à payer », « SUISA à faire ».
-// Le gris reste à ce qui n'a pas encore été approché, et qui n'a donc pas de
-// réponse à afficher.
+// rouge pour un non, gris pour un contact établi dont la réponse se fait
+// attendre : la balle est dans son camp, il n'y a rien à faire du nôtre.
+// L'ambre, dans toute l'application, dit un geste à faire — une fiche à verser,
+// une facture échue, une déclaration SUISA ; il revient donc à ce qui n'a pas
+// encore été contacté, c'est-à-dire au fond de la piste.
 const CAMPAGNE_REPONSES_ICONES = [
     ''              => 'message-circle-dashed',
     'pas_interesse' => 'message-circle-x',
     'interesse'     => 'message-circle-heart',
 ];
 const CAMPAGNE_REPONSES_CLASSES_ICONE = [
-    ''              => 'ico-amber',
+    ''              => 'ico-muted',
     'pas_interesse' => 'ico-danger',
     'interesse'     => 'ico-ok',
 ];

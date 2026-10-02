@@ -136,8 +136,8 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
         <ul class="camp-legende">
             <li><span class="ico-ok"><?= icon('message-circle-heart') ?></span><b data-part="interesse"><?= (int) $repartition['interesse'] ?></b> intéressé</li>
             <li><span class="ico-danger"><?= icon('message-circle-x') ?></span><b data-part="refus"><?= (int) $repartition['refus'] ?></b> pas intéressé</li>
-            <li><span class="ico-amber"><?= icon('message-circle-dashed') ?></span><b data-part="sansReponse"><?= (int) $repartition['sansReponse'] ?></b> sans réponse</li>
-            <li><span class="muted"><?= icon('mail') ?></span><b data-part="aContacter"><?= (int) $repartition['aContacter'] ?></b> à contacter</li>
+            <li><span class="ico-muted"><?= icon('message-circle-dashed') ?></span><b data-part="sansReponse"><?= (int) $repartition['sansReponse'] ?></b> sans réponse</li>
+            <li><span class="ico-amber"><?= icon('mail') ?></span><b data-part="aContacter"><?= (int) $repartition['aContacter'] ?></b> à contacter</li>
             <?php $d = $jour($campagne['date_debut']); $f = $jour($campagne['date_fin']); ?>
             <?php if ($d !== '' || $f !== ''): ?>
             <li class="camp-legende-fin muted"><?= icon('clock') ?> <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?></li>
