@@ -14,6 +14,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Booking »**, du nom de son module : la fiche porte aussi les campagnes de
   recherche de fonds, juste en dessous, et deux cartes nommées « Campagnes » sur
   le même écran ne disaient plus laquelle était laquelle.
+- **Le statut « actif » d'une structure n'est plus une coche**, mais un point
+  plein. La coche dit un geste accompli — un envoi parti, une date confirmée —,
+  pas un état : une structure active n'a rien accompli, elle compte, c'est
+  tout. L'en-tête de la colonne change avec elle, pour ne plus ressembler à
+  l'un des états qu'il coiffe.
 - **Un bilan n'entre dans le tableau de bord que lorsque son échéance
   approche** — 60 jours par défaut, réglable sur la nouvelle page
   Paramètres → Valeurs et libellés → **Recherche de fonds**. Un bilan dû dans

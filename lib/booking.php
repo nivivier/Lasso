@@ -34,9 +34,13 @@ const STRUCTURE_STATUTS_LIBELLES = [
     'inactif'             => 'Inactif',
 ];
 
+// La coche est réservée à ce qui a ÉTÉ FAIT — un envoi, une confirmation, un
+// seuil franchi (docs/UI.md § 12). « Actif » n'est pas un geste accompli, c'est
+// un état : d'où le point plein, qui dit « celle-ci compte » sans prétendre
+// qu'on lui a écrit.
 const STRUCTURE_STATUTS_ICONES = [
     'contact_privilegie' => 'heart',
-    'actif'               => 'circle-check',
+    'actif'               => 'circle-dot',
     'ne_pas_contacter'    => 'circle-x',
     'inactif'             => 'circle-dashed',
 ];

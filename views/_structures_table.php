@@ -89,7 +89,12 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
               // lecteurs d'écran — comme les colonnes Factures et Événements. ?>
         <th class="col-petit col-statut-th<?= $stCheck ? '' : ' col-reinit-hote' ?>"><?php if (!$stCheck): ?><?= $stReinit ?><?php endif; ?>
             <span class="col-th">
-                <?= $stTh('statut', '<span title="Statut" aria-label="Statut">' . icon('circle-dot') . '</span>') ?>
+                <?php // L'en-tête ne doit ressembler à AUCUN des quatre états qu'il
+                      // coiffe : circle-dot est celui d'« Actif » depuis que la
+                      // coche est réservée à ce qui a été fait (docs/UI.md § 12).
+                      // Les trois points disent « l'un de plusieurs », sans en
+                      // désigner un. ?>
+                <?= $stTh('statut', '<span title="Statut" aria-label="Statut">' . icon('circle-ellipsis') . '</span>') ?>
                 <?= $stFiltres['statut'] ?? '' ?>
             </span>
         </th>

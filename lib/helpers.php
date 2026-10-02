@@ -3121,9 +3121,9 @@ function icone_table(): array
         'earth'      => '<path d="M21.54 15H17a2 2 0 0 0-2 2v4.54"/><path d="M7 3.34V5a3 3 0 0 0 3 3a2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17"/><path d="M11 21.95V18a2 2 0 0 0-2-2a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05"/><circle cx="12" cy="12" r="10"/>',
         'circle-check' => '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
         'circle-x'     => '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
-        // Lucide « circle-dot » — en-tête de la colonne Statut de ?p=structures :
-        // un point dans un cercle, neutre, qui ne préjuge d'aucun des quatre
-        // états (cœur, coche, croix, cercle pointillé) qu'il coiffe.
+        // Lucide « circle-dot » — le statut « actif » d'une structure : un point
+        // plein, qui dit « celle-ci compte » sans prétendre qu'on lui a écrit.
+        // La coche, elle, est réservée à ce qui a été fait (docs/UI.md § 12).
         'circle-dot'   => '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/>',
         'circle-ellipsis' => '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01"/><path d="M12 12h.01"/><path d="M7 12h.01"/>',
         'circle-dashed' => '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',

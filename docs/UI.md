@@ -909,7 +909,17 @@ Le vocabulaire est fixe :
 | `printer` | Imprimer |
 | `download` / `import` | Télécharger / importer |
 | `chevron-up` / `chevron-down` | Déplacer dans une liste |
-| `check` | Marquer comme fait |
+| `check` / `circle-check` | ⚠️ **Un geste ACCOMPLI, jamais un état.** Marquer comme fait, un envoi parti, une date confirmée, un seuil franchi. Une structure « active » ne porte donc pas de coche — elle n'a rien accompli, elle est dans un certain état : `circle-dot` |
+| `circle-dot` | Un état qui compte, sans qu'il se soit rien passé |
+| `circle-dashed` | Un état en pointillé : inactif, mis de côté |
+| `circle-x` | Un état qui ferme : ne pas contacter, refusé |
+
+⚠️ **Une icône rendue en MASQUE CSS ne se voit pas dans le balisage.** La
+colonne « Statut » de `?p=structures` dessine ses quatre états par
+`--ico-m-*` (`assets/app.css`), pour ne pas écrire six mille `<svg>` dans une
+page : changer `icone_table()` seul n'y change rien. Les deux doivent bouger
+ensemble — et un tracé plein (un point, un cœur) y a besoin de son `fill`, un
+masque ne gardant que l'alpha du dessin.
 | `mail` / `send` | Contacter / envoyer |
 | `funnel` | Filtrer |
 | `external-link` | Ouvrir un AUTRE site, dans un onglet à lui (`bouton_formulaire_contact_html()`) |
