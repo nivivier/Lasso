@@ -782,7 +782,11 @@ $villeHtmlS = ville_departement_canton_html(
 <div class="card">
     <div class="card-block">
         <div class="card-head-row">
-            <h2 class="mt-0">Campagnes<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Les campagnes de démarchage où cette structure a été retenue, la plus récente d'abord. La réponse se note ici comme depuis la campagne. Sous « Structures liées » figurent les campagnes qui visent son organisateur ou les salles et festivals qu'elle organise : en lecture seule, la réponse y est celle de l'autre structure.") ?></h2>
+            <?php // « Booking », du nom du module, et non « Campagnes » : la fiche
+                  // porte aussi les campagnes de recherche de fonds, juste en
+                  // dessous. Deux cartes nommées « Campagnes » sur le même écran
+                  // ne diraient plus laquelle est laquelle. ?>
+            <h2 class="mt-0">Booking<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Les campagnes de démarchage où cette structure a été retenue, la plus récente d'abord. La réponse se note ici comme depuis la campagne. Sous « Structures liées » figurent les campagnes qui visent son organisateur ou les salles et festivals qu'elle organise : en lecture seule, la réponse y est celle de l'autre structure.") ?></h2>
             <?php if ($peutEcrireBooking && $campagnesDispo): ?>
             <div class="head-actions">
                 <?php // Une icône seule, comme les autres en-têtes de cadre de la
@@ -994,18 +998,24 @@ $villeHtmlS = ville_departement_canton_html(
 <?php endif; ?>
 
 <?php // Les dossiers de subvention déposés chez ce bailleur, toutes campagnes
-      // confondues. L'étiquette dit « recherche de fonds » et non « campagnes »
-      // tout court : la carte juste au-dessus porte les campagnes de
-      // démarchage, et les deux se ressemblent assez pour qu'on les confonde.
-      // La carte ne paraît que s'il y a quelque chose à montrer — une structure
-      // à qui l'on n'a jamais rien demandé n'est pas un bailleur. ?>
-<?php if (module_accessible('fonds') && $dossiersFonds): ?>
+      // confondues. L'étiquette nomme le MODULE, comme celle du booking juste
+      // au-dessus : deux cartes de campagnes sur le même écran ne diraient plus
+      // laquelle est laquelle.
+      //
+      // Affichée même vide, comme sa jumelle : « aucun dossier » est une
+      // réponse, alors qu'une carte absente laisse se demander si l'on a
+      // cherché. C'est la question qu'on vient poser sur la fiche d'un
+      // bailleur — a-t-on déjà demandé quelque chose ici ? ?>
+<?php if (module_accessible('fonds')): ?>
 <div class="card">
     <div class="card-block">
-        <h2 class="mt-0">Recherche de fonds (<?= count($dossiersFonds) ?>) <?= info_tip(
+        <h2 class="mt-0">Recherche de fonds<?= $dossiersFonds ? ' (' . count($dossiersFonds) . ')' : '' ?> <?= info_tip(
             "Les dossiers de subvention déposés chez cette structure, du plus récent au plus ancien. "
             . "Ce qu'elle exige comme pièces se règle depuis l'un d'eux : c'est elle qui l'exige, pas la campagne."
         ) ?></h2>
+        <?php if (!$dossiersFonds): ?>
+        <p class="muted mb-0">Aucun dossier de subvention chez cette structure.</p>
+        <?php else: ?>
         <?php $aujourdhuiFonds = date('Y-m-d'); ?>
         <div class="table-scroll">
         <table class="list mb-0">
@@ -1028,6 +1038,7 @@ $villeHtmlS = ville_departement_canton_html(
             </tbody>
         </table>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php endif; ?>

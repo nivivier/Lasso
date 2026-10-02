@@ -7,6 +7,18 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
+## [Non publié]
+
+### Modifié
+- **Sur la fiche d'une structure, la carte « Campagnes » s'appelle
+  « Booking »**, du nom de son module : la fiche porte aussi les campagnes de
+  recherche de fonds, juste en dessous, et deux cartes nommées « Campagnes » sur
+  le même écran ne disaient plus laquelle était laquelle.
+- **La carte « Recherche de fonds » s'affiche même vide**, comme sa jumelle :
+  « aucun dossier de subvention » est une réponse, alors qu'une carte absente
+  laisse se demander si l'on a cherché. C'est la question qu'on vient poser sur
+  la fiche d'un bailleur.
+
 ## [3.0.0] — 2026-10-02
 
 ### Ajouté
