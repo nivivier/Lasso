@@ -657,7 +657,7 @@ function projet_pastille_html(int $id, array $map): string
 function projets_pastilles_html(array $noms, array $pastilles): string
 {
     if (!$noms) {
-        return '<span class="muted">Aucun projet</span>';
+        return '<span class="muted projet-aucun">Aucun projet</span>';
     }
     $h = '';
     foreach ($noms as $i => $nom) {

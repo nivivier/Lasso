@@ -409,6 +409,21 @@ Quatre règles qui comptent :
 2. **Il y a toujours un repli sans JavaScript** (`.plan-fallback`) : un menu
    « dans <parent> » avec son bouton d'enregistrement, ou des flèches. Le script
    pose `.dnd-on`, qui les masque — donc sans lui, ils restent là.
+**Un tableau large sur téléphone a deux issues, et pas une troisième.** Soit il
+se resserre et reste un tableau — on masque les colonnes secondaires, on en
+replie une dans sa voisine (`.campagnes-table`, les deux listes de campagnes) ;
+soit il se relit en cartes, chaque ligne passant en grille
+(`.liste-cartes` + des classes `col-*` qui placent les cellules : la liste des
+structures, les dossiers d'une campagne de recherche de fonds). Le choix tient
+au nombre de colonnes : cinq se resserrent, douze ne se resserrent pas. Dans les
+deux cas, **aucun second gabarit** — ce sont les mêmes cellules, repositionnées.
+
+En cartes, attention aux lignes qui s'ouvrent en édition : les cellules masquées
+emportent leurs champs. D'où la règle inverse — on ne masque pas la cellule, on
+la replace —, et le libellé de colonne qui disparaît avec l'en-tête se repose
+sur la cellule (`data-libelle` + `::before`), sans quoi deux champs voisins ne
+disent plus lequel est lequel.
+
 3. **Sur téléphone, la poignée s'efface** et les flèches de repli reprennent la
    main (`@media (max-width: 700px)`), pour **toutes** les listes. Deux raisons,
    et la seconde est dirimante : glisser au doigt dans une page qui défile est

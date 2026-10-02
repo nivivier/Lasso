@@ -9,6 +9,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **Les deux écrans de la recherche de fonds se lisent sur téléphone.** La liste
+  des campagnes y faisait défiler cinq colonnes de biais ; elle se resserre
+  maintenant comme celle du démarchage — la période sort, le nom du projet
+  s'efface derrière son icône, et le compte des dossiers rejoint l'avancement.
+  La fiche d'une campagne, elle, relit ses dossiers **en cartes**, une par
+  bailleur, comme la liste des structures d'une campagne de démarchage : montants
+  étiquetés, état à droite, et l'ouverture d'une ligne pour la modifier reste
+  possible, ce que six colonnes en défilement ne permettaient pas vraiment.
+
 ## [3.0.2] — 2026-10-02
 
 ### Ajouté

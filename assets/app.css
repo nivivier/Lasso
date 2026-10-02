@@ -1845,6 +1845,73 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    toutes la même largeur, les deux champs de texte prennent ce qui reste, et
    l'ensemble repasse en colonnes sur un écran étroit sans règle à écrire. */
 .fonds-suite > td { background: var(--surface); }
+
+/* Les dossiers d'une campagne de recherche de fonds, en cartes sur téléphone.
+   Six colonnes ne tiennent pas dans 375px : le tableau défilait de biais, et
+   l'on ne voyait ni les montants ni l'état sans pousser l'écran du doigt.
+   Même geste que la liste des structures d'une campagne de démarchage — c'est
+   la mécanique de .liste-cartes qui est reprise (en-têtes masqués, lignes en
+   grille, cellules sans bordure), seule la grille est propre à ce tableau :
+
+       Bailleur                              [état]
+       délai                              [✎ actions]
+       Demandé 12 000.00     Accordé 5 000.00
+
+   La ligne de détail (dépôt, réponse, bilan), elle, reprend toute la largeur :
+   c'est un formulaire, pas une rangée de données. */
+@media (max-width: 700px) {
+    .fonds-dossiers tbody tr:not(.fonds-suite) {
+        /* Deux colonnes égales et non « 1fr auto » : en édition, les cellules
+           portent des champs, et une colonne dimensionnée sur son contenu
+           donnait 52px au montant demandé contre 225 à l'accordé. */
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "nom     etat"
+            "delai   actions"
+            "demande accorde";
+        row-gap: 4px;
+        /* Le plancher de .liste-cartes est calculé pour SA colonne de droite,
+           posée hors flux ; ici tout est dans le flux. */
+        min-height: 0;
+        /* Le tableau est à fleur de carte (docs/UI.md § 9) : c'est donc à la
+           ligne de rendre la gouttière, et celle de la carte qui l'héberge. */
+        padding: 12px var(--card-pad);
+    }
+    .fonds-dossiers .dash-nom { grid-area: nom; }
+    .fonds-dossiers .col-delai { grid-area: delai; color: var(--muted); }
+    .fonds-dossiers .col-etat { grid-area: etat; justify-self: end; }
+    .fonds-dossiers .actions { grid-area: actions; justify-self: end; align-self: start; }
+    /* Les deux montants reprennent leur libellé : sans en-tête de colonne, un
+       nombre seul ne dit pas s'il est demandé ou obtenu — et c'est toute la
+       question d'un dossier. Alignés à gauche, parce qu'ils ne sont plus en
+       colonne et qu'il n'y a donc plus rien à aligner. */
+    /* .fonds-dossiers.list et non .fonds-dossiers seul : « .list .num » aligne
+       à droite, à spécificité égale et plus bas dans la feuille — il
+       l'emportait. */
+    .fonds-dossiers.list :is(.col-demande, .col-accorde) { grid-area: demande; text-align: left; }
+    .fonds-dossiers.list .col-accorde { grid-area: accorde; }
+    /* Le libellé est porté par la cellule de LECTURE et non par le <td> : il
+       disparaît ainsi de lui-même quand la ligne s'ouvre en édition, où il
+       ferait doublon avec l'intitulé du champ. La bascule ne pose aucune classe
+       sur la ligne (lassoInitLigneEdition(), assets/app.js) : elle masque les
+       .fonds-disp et montre les .fonds-editable, et c'est tout ce sur quoi on
+       peut s'appuyer. */
+    .fonds-dossiers.list :is(.col-demande, .col-accorde) .fonds-disp::before {
+        content: attr(data-libelle) " "; color: var(--muted); font-weight: 400; font-size: var(--fs-small);
+    }
+    /* En ÉDITION, le même libellé passe au-dessus du champ : sans en-tête de
+       colonne, deux cases de montant côte à côte ne disent pas laquelle est la
+       demande et laquelle la réponse. Reconnu à la cellule de lecture masquée,
+       faute d'une classe posée sur la ligne. */
+    .fonds-dossiers.list :is(.col-delai, .col-demande, .col-accorde):has(.fonds-disp[hidden])::before {
+        content: attr(data-libelle); display: block; color: var(--muted); font-size: var(--fs-small); margin-bottom: 2px;
+    }
+    /* Les champs occupent leur colonne : à leur largeur par défaut, ils en
+       sortaient. */
+    .fonds-dossiers.list :is(.col-delai, .col-demande, .col-accorde, .col-etat) :is(input, select) { width: 100%; min-width: 0; }
+    .fonds-dossiers tr.fonds-suite { display: block; padding: 0; }
+    .fonds-dossiers tr.fonds-suite > td { padding: 12px var(--card-pad); }
+}
 .fonds-suite-champs { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
 .fonds-suite-champs label { margin: 0; flex: 0 0 auto; }
 .fonds-suite-champs label.grow { flex: 1 1 220px; min-width: 160px; }
@@ -3147,6 +3214,9 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 /* Le badge d'état replié dans la colonne « Avancement » : rendu par la liste des
    campagnes, invisible tant qu'il y a la place de garder les deux colonnes. */
 .camp-etat-repli { display: none; }
+/* Son équivalent pour la recherche de fonds : le compte des dossiers déposés,
+   replié dans la colonne « Avancement » sur écran étroit. */
+.camp-dossiers-repli { display: none; font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* Liste des campagnes sur téléphone. Le tableau reste un tableau (il n'a que
    cinq colonnes, la mise en cartes n'y gagnerait rien) mais se resserre :
@@ -3158,13 +3228,26 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 @media (max-width: 700px) {
     .campagnes-table :is(th, td).col-periode,
     .campagnes-table :is(th, td).col-etat { display: none; }
-    .campagnes-table .projet-nom { display: none; }
+    /* Le nom du projet s'efface, son icône suffit. Et « Aucun projet » avec
+       lui : la mention s'enroulait sur deux lignes pour dire qu'il n'y a rien à
+       voir, là où une colonne vide le dit aussi bien. */
+    .campagnes-table :is(.projet-nom, .projet-aucun) { display: none; }
     /* Réduites à leurs icônes, les pastilles se serrent : à l'écart de bureau,
        deux d'entre elles demandaient 70px pour une colonne qui en offrait 69,
        et la seconde passait à la ligne pour rien. */
     .campagnes-table .projet-pastilles { gap: 6px; }
     .campagnes-table .camp-avancement-etat :is(.camp-barre, .camp-avancement-txt) { display: none; }
     .campagnes-table .camp-avancement-etat .camp-etat-repli { display: inline-block; }
+    /* Recherche de fonds : « Dossiers » sort de la même façon que « État », et
+       son compte rejoint l'avancement. La jauge s'y compte en francs, et un
+       montant est bien plus long qu'un « 3 / 6 » de démarchage : la barre et les
+       sommes s'empilent au lieu de se disputer la largeur, et la barre se
+       raccourcit — elle illustre un chiffre qui est juste en dessous, elle n'a
+       plus à le remplacer. */
+    .campagnes-table :is(th, td).col-dossiers { display: none; }
+    .campagnes-table .camp-avancement { line-height: 1.5; }
+    .campagnes-table .camp-avancement .camp-barre-liste { width: 72px; }
+    .campagnes-table .camp-avancement :is(.camp-avancement-txt, .camp-dossiers-repli) { display: block; margin-left: 0; }
 }
 /* Sur écran étroit, la carte s'empile : l'icône et le compte passent sur une
    ligne à part plutôt que d'écraser la barre entre eux. */

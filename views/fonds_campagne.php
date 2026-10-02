@@ -111,14 +111,18 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
       // pleine page et débordait du cadre (docs/UI.md § 9). ?>
 <div class="card" id="fonds-dossiers">
     <div class="table-scroll">
-    <table class="list fonds-dossiers">
+    <?php // .liste-cartes : sous 700px, chaque dossier se relit en carte plutôt
+          // que de faire défiler six colonnes — même geste que la liste des
+          // structures d'une campagne de démarchage. Les classes col-* ne
+          // servent qu'à placer les cellules dans cette grille. ?>
+    <table class="list fonds-dossiers liste-cartes">
         <thead>
             <tr>
                 <th>Bailleur</th>
-                <th class="nowrap">Délai</th>
-                <th class="num">Demandé</th>
-                <th class="num">Accordé</th>
-                <th>État</th>
+                <th class="nowrap col-delai">Délai</th>
+                <th class="num col-demande">Demandé</th>
+                <th class="num col-accorde">Accordé</th>
+                <th class="col-etat">État</th>
                 <th class="nowrap"></th>
             </tr>
         </thead>
@@ -132,28 +136,28 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
                 <td class="dash-nom">
                     <a class="titre-lien" href="?p=structure&id=<?= (int) $d['structure_id'] ?>&depuis=fonds"><?= e((string) $d['structure_nom']) ?></a>
                 </td>
-                <td class="small nowrap">
+                <td class="small nowrap col-delai" data-libelle="Délai">
                     <span class="fonds-disp"><?= $jour($d['date_limite']) !== '' ? e($jour($d['date_limite'])) : '—' ?></span>
                     <?php if ($peutEcrire): ?>
                     <input form="<?= e($formId) ?>" type="date" name="date_limite" class="fonds-editable" hidden
                            value="<?= e((string) $d['date_limite']) ?>" aria-label="Délai de dépôt">
                     <?php endif; ?>
                 </td>
-                <td class="num">
-                    <span class="fonds-disp"><?= (float) $d['montant_demande'] > 0 ? chf((float) $d['montant_demande']) : '—' ?></span>
+                <td class="num col-demande" data-libelle="Demandé">
+                    <span class="fonds-disp" data-libelle="Demandé"><?= (float) $d['montant_demande'] > 0 ? chf((float) $d['montant_demande']) : '—' ?></span>
                     <?php if ($peutEcrire): ?>
                     <input form="<?= e($formId) ?>" name="montant_demande" class="fonds-editable" hidden type="text" inputmode="decimal"
                            value="<?= (float) $d['montant_demande'] > 0 ? e(number_format((float) $d['montant_demande'], 2, '.', '')) : '' ?>" aria-label="Montant demandé">
                     <?php endif; ?>
                 </td>
-                <td class="num strong">
-                    <span class="fonds-disp"><?= (float) $d['montant_accorde'] > 0 ? chf((float) $d['montant_accorde']) : '—' ?></span>
+                <td class="num strong col-accorde" data-libelle="Accordé">
+                    <span class="fonds-disp" data-libelle="Accordé"><?= (float) $d['montant_accorde'] > 0 ? chf((float) $d['montant_accorde']) : '—' ?></span>
                     <?php if ($peutEcrire): ?>
                     <input form="<?= e($formId) ?>" name="montant_accorde" class="fonds-editable" hidden type="text" inputmode="decimal"
                            value="<?= (float) $d['montant_accorde'] > 0 ? e(number_format((float) $d['montant_accorde'], 2, '.', '')) : '' ?>" aria-label="Montant accordé">
                     <?php endif; ?>
                 </td>
-                <td>
+                <td class="col-etat">
                     <span class="fonds-disp"><?= badge(FONDS_STATUTS[$statut] ?? $statut, FONDS_STATUTS_CLASSES[$statut] ?? 'muted') ?></span>
                     <?php if ($peutEcrire): ?>
                     <?php // La décision seule se pose à la main : le reste de

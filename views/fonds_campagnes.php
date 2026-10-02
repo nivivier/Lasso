@@ -42,7 +42,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
     </p>
 <?php else: ?>
 <div class="table-scroll">
-<table class="list list-wide">
+<table class="list list-wide campagnes-table">
     <thead>
         <tr>
             <?php // Le projet en tête, comme dans la liste des campagnes de
@@ -52,7 +52,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
             <th>Campagne</th>
             <th class="nowrap col-periode">Période</th>
             <th>Avancement</th>
-            <th class="num nowrap">Dossiers</th>
+            <th class="num nowrap col-dossiers">Dossiers</th>
         </tr>
     </thead>
     <tbody>
@@ -83,11 +83,17 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
                 <?php $d = $jour($c['date_debut']); $f = $jour($c['date_fin']); ?>
                 <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?>
             </td>
+            <?php // Sur écran étroit, « Dossiers » disparaît et son compte se
+                  // replie ici, comme l'état d'une campagne de démarchage : une
+                  // seule des deux questions se pose à la fois, et c'est
+                  // l'argent qui mène celle-ci. Les deux sont rendus, le CSS
+                  // choisit (assets/app.css). ?>
             <td class="camp-avancement">
                 <?= fonds_barre_html($parts, 'camp-barre-liste') ?>
                 <span class="camp-avancement-txt"><b><?= chf($parts['obtenu']) ?></b><?= $parts['chiffree'] ? ' / ' . chf($parts['base']) : '' ?></span>
+                <span class="camp-dossiers-repli"><?= (int) $c['nb_deposees'] ?> / <?= (int) $c['nb_demandes'] ?> déposé<?= (int) $c['nb_deposees'] > 1 ? 's' : '' ?></span>
             </td>
-            <td class="num small nowrap"><?= (int) $c['nb_deposees'] ?> / <?= (int) $c['nb_demandes'] ?></td>
+            <td class="num small nowrap col-dossiers"><?= (int) $c['nb_deposees'] ?> / <?= (int) $c['nb_demandes'] ?></td>
         </tr>
         <?php endforeach; ?>
     <?php endforeach; ?>
