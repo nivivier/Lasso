@@ -1,8 +1,9 @@
-<?php /** @var array $emails */ /** @var array $contacts */ /** @var array $structures */ /** @var bool $saved */ ?>
+<?php /** @var array $emails */ /** @var array $contacts */ /** @var array $structures */ /** @var bool $saved */ /** @var ?string $err */ ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <?php if ($saved): ?><p class="ok flash">Liste mise à jour.</p><?php endif; ?>
+<?php if (($err ?? null) === 'email'): ?><p class="err flash">Cette adresse e-mail n'est pas valide.</p><?php endif; ?>
 
 <p class="muted small">
     Ces destinataires sont <strong>définitivement écartés</strong> de tout mailing (désinscription par
@@ -10,7 +11,22 @@
     réintroduire. Pour réinscrire quelqu'un, passez par la fiche de sa structure.
 </p>
 
-<h2>Adresses exclues (<?= count($emails) ?>)</h2>
+<?php // Le champ d'ajout vit en tête de la liste qu'il nourrit, à droite du
+      // titre (.section-head, comme les catégories) : exclure une adresse est
+      // le geste courant de cet écran — quelqu'un demande à ne plus rien
+      // recevoir —, et il n'avait d'autre chemin que l'écran d'import, qui
+      // attend un fichier ou un bloc d'adresses collées. ?>
+<div class="section-head">
+    <h2 class="mt-0">Adresses exclues (<?= count($emails) ?>)</h2>
+    <?php if (peut_ecrire('booking')): ?>
+    <form method="post" action="?p=mailing_exclusions" class="linked-add ml-auto">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="section" value="ajouter">
+        <input type="email" name="email" placeholder="adresse@exemple.com" required aria-label="Adresse à exclure">
+        <button type="submit" class="btn btn-sm icon-only" title="Ajouter à la liste" aria-label="Ajouter cette adresse à la liste d'exclusion"><?= icon('plus') ?></button>
+    </form>
+    <?php endif; ?>
+</div>
 <p class="muted small">La liste « ne pas contacter » elle-même (importée depuis Paramètres → Importer) —
     aucune fiche n'est créée pour ces adresses. Retirer une adresse ne réinscrit pas les contacts déjà
     désinscrits qui la portent.</p>

@@ -1357,6 +1357,20 @@ function route_mailing_exclusions(): void
             // et les e-mails de repli ; la réinscription d'un contact se fait sur
             // sa fiche.
         }
+        // Ajout d'une adresse, depuis le champ posé en tête de liste : c'est le
+        // geste courant — une personne demande à ne plus rien recevoir —, et il
+        // ne valait pas de passer par l'écran d'import pour une seule ligne.
+        // Même fonction que l'import (structures_importer_liste_exclusion()) :
+        // elle désinscrit aussi les contacts qui portent déjà cette adresse,
+        // et un doublon est ignoré sans bruit.
+        if (($_POST['section'] ?? '') === 'ajouter') {
+            $email = trim((string) ($_POST['email'] ?? ''));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                redirect('mailing_exclusions', ['err' => 'email']);
+            }
+            structures_importer_liste_exclusion([$email]);
+            redirect('mailing_exclusions', ['ok' => 1]);
+        }
         redirect('mailing_exclusions', ['ok' => 1]);
     }
     $emails = db()->query('SELECT id, email, cree_le FROM mailing_exclusions ORDER BY email')->fetchAll();
@@ -1373,6 +1387,7 @@ function route_mailing_exclusions(): void
            FROM structures s WHERE s.statut IN ('ne_pas_contacter','inactif') ORDER BY s.nom"
     )->fetchAll();
     render('mailing_exclusions', [
+        'err'    => $_GET['err'] ?? null,
         'emails' => $emails,
         'contacts' => $contacts,
         'structures' => $structures,

@@ -10,6 +10,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Une adresse s'exclut depuis la liste elle-même** : un champ et un « + » en
+  tête de Booking → Liste d'exclusion. C'est le geste courant — quelqu'un
+  demande à ne plus rien recevoir —, et il n'avait d'autre chemin que l'écran
+  d'import, qui attend un fichier ou un bloc d'adresses collées.
 - **Les couleurs des modules se coupent.** Paramètres → Apparence propose
   désormais « Une couleur par module » — le comportement actuel, coché par
   défaut — ou, décoché, la couleur principale de l'employeur dans toute
