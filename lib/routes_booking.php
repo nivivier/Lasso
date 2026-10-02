@@ -365,14 +365,23 @@ function route_booking_campagne_structure(): void
     $nomStructure = (string) ($stmt->fetchColumn() ?: '');
 
     if ($campagne && $nomStructure !== '') {
+        // Journalisé seulement si une ligne a VRAIMENT bougé : l'INSERT OR
+        // IGNORE d'un second clic ne crée rien, et le DELETE d'une structure
+        // déjà retirée ne supprime rien — poser quand même une entrée dans
+        // l'historique de la structure y raconterait des gestes qui n'ont pas
+        // eu lieu. Même garde que du côté de la recherche de fonds.
         if (($_POST['action'] ?? '') === 'retirer') {
-            db()->prepare('DELETE FROM campagne_structures WHERE campagne_id = ? AND structure_id = ?')
-                ->execute([$campagneId, $structureId]);
-            journaliser('structure', $structureId, 'edition', 'Retirée de la campagne : ' . $campagne['nom']);
+            $del = db()->prepare('DELETE FROM campagne_structures WHERE campagne_id = ? AND structure_id = ?');
+            $del->execute([$campagneId, $structureId]);
+            if ($del->rowCount() > 0) {
+                journaliser('structure', $structureId, 'edition', 'Retirée de la campagne : ' . $campagne['nom']);
+            }
         } else {
-            db()->prepare('INSERT OR IGNORE INTO campagne_structures (campagne_id, structure_id) VALUES (?, ?)')
-                ->execute([$campagneId, $structureId]);
-            journaliser('structure', $structureId, 'edition', 'Ajoutée à la campagne : ' . $campagne['nom']);
+            $ins = db()->prepare('INSERT OR IGNORE INTO campagne_structures (campagne_id, structure_id) VALUES (?, ?)');
+            $ins->execute([$campagneId, $structureId]);
+            if ($ins->rowCount() > 0) {
+                journaliser('structure', $structureId, 'edition', 'Ajoutée à la campagne : ' . $campagne['nom']);
+            }
         }
     }
     // Même convention que les étiquettes : en JSON quand le JavaScript est là,

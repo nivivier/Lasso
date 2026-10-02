@@ -204,6 +204,34 @@ function fonds_barre_html(array $parts, string $classe = ''): string
     ], (float) $parts['base'], $titre, $classe, $repere);
 }
 
+// Les dossiers de PLUSIEURS campagnes, réduits aux colonnes dont dépendent la
+// jauge et le statut : [campagne_id => dossiers]. Une requête pour toutes, et
+// pas une par campagne.
+//
+// Distincte de fonds_campagne_demandes() ci-dessous, et pas un cas particulier
+// d'elle : celle-là joint les structures et va chercher, pour chaque bailleur,
+// son e-mail et son formulaire par sous-requête — tout ce qu'il faut pour
+// DRESSER un tableau de dossiers. Le tableau de bord n'affiche aucun bailleur ;
+// lui servir cette requête-là revenait à payer un carnet d'adresses pour
+// compter des francs.
+function fonds_demandes_par_campagne(array $campagneIds): array
+{
+    $out = [];
+    foreach (lots_ids($campagneIds) as $lot) {
+        $stmt = db()->prepare(
+            'SELECT campagne_id, statut, montant_demande, montant_accorde,
+                    date_limite, date_depot, date_limite_bilan, date_bilan
+               FROM fonds_demandes
+              WHERE campagne_id IN (' . sql_in($lot) . ')'
+        );
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll() as $l) {
+            $out[(int) $l['campagne_id']][] = $l;
+        }
+    }
+    return $out;
+}
+
 // Les dossiers d'une recherche, avec le nom du bailleur et de quoi le joindre.
 // Une requête, pas une par ligne : le tableau en montre vingt.
 function fonds_campagne_demandes(int $campagneId): array
@@ -311,12 +339,17 @@ function fonds_demande_charger(int $id): ?array
 function fonds_dashboard(int $max = 5, string $aujourdhui = ''): array
 {
     $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
-    $campagnes = [];
+    $enCours = [];
     foreach (db()->query('SELECT * FROM fonds_campagnes ORDER BY date_debut, id') as $c) {
-        if (!periode_courante($c, $aujourdhui)) {
-            continue;
+        if (periode_courante($c, $aujourdhui)) {
+            $enCours[] = $c;
         }
-        $demandes = fonds_campagne_demandes((int) $c['id']);
+    }
+    // Tous les dossiers en UNE requête, allégée (fonds_demandes_par_campagne()).
+    $parCampagne = fonds_demandes_par_campagne(array_map(fn (array $c) => (int) $c['id'], $enCours));
+    $campagnes = [];
+    foreach ($enCours as $c) {
+        $demandes = $parCampagne[(int) $c['id']] ?? [];
         $deposees = 0;
         foreach ($demandes as $d) {
             if (trim((string) $d['date_depot']) !== '') {
