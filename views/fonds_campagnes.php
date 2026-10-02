@@ -31,7 +31,8 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
         </div>
     </div>
 
-<?php if (isset($_GET['ok'])): ?><p class="ok flash">Campagne enregistrée.</p><?php endif; ?>
+<?php if (($_GET['ok'] ?? '') === 'suppr'): ?><p class="ok flash">Campagne supprimée.</p>
+<?php elseif (isset($_GET['ok'])): ?><p class="ok flash">Campagne enregistrée.</p><?php endif; ?>
 
 <?php if ($vide): ?>
     <p class="muted">

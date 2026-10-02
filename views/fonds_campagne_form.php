@@ -43,8 +43,25 @@ $cibF = ciblage_filtres_vue([
 
 <div class="page-head">
     <h1><?= $id ? 'Modifier la campagne' : 'Nouvelle campagne de recherche de fonds' ?></h1>
+    <?php // La suppression vit ICI, sur l'écran de modification, et pas sur le
+          // suivi : celui-ci sert à travailler une campagne, on y clique cent
+          // fois sans rien vouloir détruire (docs/UI.md § 3). Même place que sur
+          // une campagne de démarchage — à gauche d'« Enregistrer ».
+          //
+          // La phrase dit ce que la cascade emporte : les dossiers et leurs
+          // versements. Celle du démarchage rassure au contraire — là-bas, rien
+          // d'autre que la campagne ne disparaît. ?>
     <?php if (peut_ecrire('fonds')): ?>
-    <?= entete_form_actions_html('fonds-campagne-form', '', ['libelle' => 'Enregistrer la campagne']) ?>
+    <?php ob_start(); ?>
+        <?php if ($id): ?>
+        <form method="post" action="?p=fonds_campagne_supprimer" class="d-inline"
+              data-confirm="Supprimer la campagne « <?= e((string) ($campagne['nom'] ?? '')) ?> » ?<?= $retenues ? ' Ses ' . count($retenues) . ' dossier(s) partent avec elle' : ' Son suivi part avec elle' ?> — montants, dates, pièces demandées et versements. Les bailleurs, eux, ne sont pas touchés.">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la campagne"><?= icon('trash') ?></button>
+        </form>
+        <?php endif; ?>
+    <?= entete_form_actions_html('fonds-campagne-form', '', ['libelle' => 'Enregistrer la campagne', 'avant' => (string) ob_get_clean()]) ?>
     <?php endif; ?>
 </div>
 

@@ -39,6 +39,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   s'en servait. Le bailleur et la campagne suffisent à désigner un dossier, et
   un champ vide sur chaque ligne en disait plus long sur ce qu'on ne faisait pas
   que sur ce qu'on suit.
+- **Une campagne de recherche de fonds se supprime**, depuis son écran de
+  modification — à gauche d'« Enregistrer », comme une campagne de démarchage.
+  La confirmation compte ce qu'elle emporte : les dossiers de la campagne, leurs
+  montants, leurs dates et leurs versements. Les bailleurs, eux, ne sont pas
+  touchés — ils n'appartiennent pas à une campagne.
 - **Un bailleur se retire d'une campagne de recherche de fonds**, par la petite
   croix de la colonne « Campagnes de recherche de fonds » (liste des
   structures) ou par la corbeille d'une ligne ouverte au crayon (suivi d'une

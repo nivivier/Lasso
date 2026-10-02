@@ -452,3 +452,21 @@ function route_fonds_reglages(): void
         'saved' => isset($_GET['ok']),
     ], 'Paramètres — Recherche de fonds');
 }
+
+// Supprimer une campagne de recherche de fonds. Contrairement à son équivalent
+// du démarchage, qui ne touche ni les structures ni l'historique, celle-ci
+// emporte TOUT son suivi : les dossiers partent par cascade
+// (fonds_demandes.campagne_id ON DELETE CASCADE, migration_92), et les
+// versements avec eux. Les structures elles-mêmes ne bougent pas — un bailleur
+// n'appartient pas à une campagne —, et l'historique non plus.
+function route_fonds_campagne_supprimer(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('fonds_campagnes');
+    }
+    check_csrf();
+    require_ecriture('fonds');
+    db()->prepare('DELETE FROM fonds_campagnes WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+    redirect('fonds_campagnes', ['ok' => 'suppr']);
+}
