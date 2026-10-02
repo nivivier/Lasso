@@ -209,7 +209,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    les échecs et ceux qui n'ont pas d'adresse.
    Elle se compose sur la fiche, dans la carte **« Infos supplémentaires »** —
    on y saisit dans l'ordre où l'on a les informations ; ses lignes se
-   réordonnent au **glisser-déposer**, sans recharger la page. Les moments
+   réordonnent au **glisser-déposer** — par des flèches sur téléphone —, sans
+   recharger la page. Les moments
    d'une journée de tournée (Départ, Get-in, Soundcheck, Repas, Show) sont
    proposés en suggestions sous le champ « Intitulé » d'un horaire. La feuille,
    elle, range tout par
@@ -220,8 +221,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    chronologique.
 9. **Booking** : structures et contacts, tags, lieux géocodés sur une carte,
    et un bouton **Contacter** sur chaque fiche pour écrire à un contact précis —
-   modèle de message, brouillon, copie cachée à l'expéditeur, et une entrée
-   d'historique à l'envoi. Une structure rattachée à une autre (salle d'un festival,
+   modèle de message, brouillon, **copies Cc et Cci** dépliables sous le
+   destinataire, copie cachée à l'expéditeur, et une entrée d'historique à
+   l'envoi, qui nomme aussi les copies. Une structure rattachée à une autre (salle d'un festival,
    antenne d'une faîtière) propose aussi les contacts de celle qui l'organise.
    La colonne « Ville » de la liste porte un entonnoir **« Lieu »** unique où
    l'on cherche un pays, une région, un département ou une ville, et où les
@@ -280,7 +282,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     évolution financière, salaires à verser, factures émises, campagnes —
     chacune n'apparaissant que si son module est actif et lisible par le compte.
     Le bouton en haut à droite ouvre « Organiser les cartes » : on les range au
-    **glisser-déposer** et on décoche celles qu'on ne veut pas voir. C'est un
+    **glisser-déposer** — par des flèches sur téléphone, où le glisser-déposer
+    n'existe pas — et on décoche celles qu'on ne veut pas voir. C'est un
     réglage **par compte**, pas un paramètre de l'association.
     Une carte ne s'étire pas : elle montre ce qui demande du travail et referme
     le reste sur une dernière ligne « et X autres » qui mène à la liste. La
@@ -430,6 +433,11 @@ toute l'installation, comme les couleurs et le fond, et n'est modifiable que par
 un administrateur. Les couleurs principale et de mise en évidence restent celles
 que vous avez choisies : leurs variantes sombres en sont dérivées
 automatiquement, de même que la variante du logo utilisée dans la barre latérale.
+
+La même page règle les **couleurs des modules** : chacun porte sa teinte — le
+rail de navigation, le titre de ses pages, ses accents —, ou bien toute
+l'application s'en tient à la couleur principale, au choix. La couleur de mise
+en évidence, elle, ne change jamais d'un module à l'autre.
 
 **Paramètres → Employeur** accepte quatre logos : deux pour les affichages en
 grand (fiches de salaire, factures, e-mails, écran de connexion) sur fond clair

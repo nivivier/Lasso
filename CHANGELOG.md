@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.2] — 2026-10-02
+
 ### Ajouté
 - **Des copies dans la fenêtre « Contacter »** : un lien discret sous le
   destinataire ouvre deux champs, Cc — lues par le destinataire — et Cci —
