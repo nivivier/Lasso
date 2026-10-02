@@ -268,6 +268,18 @@ function fonds_demande_charger(int $id): ?array
     return $stmt->fetch() ?: null;
 }
 
+// Combien de jours avant l'échéance un bilan entre dans le tableau de bord.
+// Réglable (Paramètres → Valeurs et libellés → Recherche de fonds) : un bilan
+// dû dans huit mois n'est pas une tâche, c'est du bruit — et la bonne avance
+// dépend de ce que le bailleur demande à rassembler.
+const FONDS_PREAVIS_BILAN_DEFAUT = 60;
+
+function fonds_preavis_bilan_jours(): int
+{
+    $v = (int) param('fonds_preavis_bilan_jours', (string) FONDS_PREAVIS_BILAN_DEFAUT);
+    return $v > 0 ? $v : FONDS_PREAVIS_BILAN_DEFAUT;
+}
+
 // --- Ce que le tableau de bord montre ---------------------------------------
 
 // Deux choses, parce qu'il y a deux échéances dans la vie d'une subvention :
@@ -301,18 +313,26 @@ function fonds_dashboard(int $max = 5, string $aujourdhui = ''): array
         ];
     }
 
-    // Les bilans dus : accordés, pas encore rendus, avec une date connue. Le
-    // tri met en tête ce qui est déjà en retard, puis ce qui vient.
+    // Les bilans dus : accordés, pas encore rendus, avec une date connue — et
+    // dont l'échéance APPROCHE. Un bilan dû dans huit mois n'est pas une tâche :
+    // la carte montrerait toute la saison et on cesserait de la lire. Le délai
+    // de préavis se règle (fonds_preavis_bilan_jours()).
+    //
+    // Pas de borne inférieure : ce qui est en retard reste affiché, et le tri
+    // le met en tête. Une échéance ratée ne disparaît pas parce qu'elle est
+    // passée — c'est au contraire là qu'elle presse.
+    $limite = date('Y-m-d', strtotime($aujourdhui . ' +' . fonds_preavis_bilan_jours() . ' day'));
     $stmt = db()->prepare(
         "SELECT d.*, s.nom AS structure_nom, c.nom AS campagne_nom
            FROM fonds_demandes d
            JOIN structures s ON s.id = d.structure_id
            JOIN fonds_campagnes c ON c.id = d.campagne_id
           WHERE d.montant_accorde > 0 AND d.date_bilan = '' AND d.date_limite_bilan <> ''
+            AND d.date_limite_bilan <= ?
             AND d.statut NOT IN ('refusee', 'abandonnee')
        ORDER BY d.date_limite_bilan"
     );
-    $stmt->execute();
+    $stmt->execute([$limite]);
     $bilans = $stmt->fetchAll();
 
     return [

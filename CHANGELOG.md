@@ -14,6 +14,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Booking »**, du nom de son module : la fiche porte aussi les campagnes de
   recherche de fonds, juste en dessous, et deux cartes nommées « Campagnes » sur
   le même écran ne disaient plus laquelle était laquelle.
+- **Un bilan n'entre dans le tableau de bord que lorsque son échéance
+  approche** — 60 jours par défaut, réglable sur la nouvelle page
+  Paramètres → Valeurs et libellés → **Recherche de fonds**. Un bilan dû dans
+  huit mois n'est pas une tâche : la carte montrait toute la saison, et on
+  cessait de la lire. Ce qui est en retard, lui, reste affiché quoi qu'il
+  arrive — c'est là qu'il presse.
 - **Les Paramètres se rangent autrement.** L'onglet « Taux » devient
   **« Valeurs et libellés »** — il ne porte pas que des pourcentages : une ligne
   de décompte y a son intitulé, et les réglages des événements y posent le terme

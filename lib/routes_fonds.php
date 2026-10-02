@@ -430,3 +430,25 @@ function route_fonds_campagne_structure(): void
     }
     redirect('structures', ['depuis' => 'fonds']);
 }
+
+// Les réglages du module. Un seul pour l'instant — le préavis des bilans —,
+// mais il a sa page : c'est un nombre qui change ce que le tableau de bord
+// montre, pas une préférence d'affichage à glisser dans un coin.
+function route_fonds_reglages(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        require_ecriture('fonds');
+        // Au moins un jour : à zéro, un bilan n'apparaîtrait que le jour même,
+        // ce qui est une façon de ne jamais l'annoncer.
+        $jours = max(1, (int) ($_POST['fonds_preavis_bilan_jours'] ?? FONDS_PREAVIS_BILAN_DEFAUT));
+        db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+            ->execute(['fonds_preavis_bilan_jours', (string) $jours]);
+        redirect('fonds_reglages', ['ok' => 1]);
+    }
+    render('fonds_reglages', [
+        'preavisBilan' => fonds_preavis_bilan_jours(),
+        'saved' => isset($_GET['ok']),
+    ], 'Paramètres — Recherche de fonds');
+}

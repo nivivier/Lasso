@@ -52,6 +52,9 @@ if (module_actif('salaires') && peut_lire('salaires')) {
 if (module_actif('evenements') && peut_lire('evenements')) {
     $ptValeursSections['evenements_reglages'] = 'Événements';
 }
+if (module_actif('fonds') && peut_lire('fonds')) {
+    $ptValeursSections['fonds_reglages'] = 'Recherche de fonds';
+}
 if ($ptValeursSections) {
     $ptGroupes['valeurs'] = ['Valeurs et libellés', $ptValeursSections];
 }

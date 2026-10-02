@@ -336,6 +336,7 @@ Toutes les questions du cadrage ont reçu une réponse les 01.10.2026.
 |---|---|
 | 13 | **Pas d'envoi groupé** : chaque dossier est trop spécifique. Le bouton « Formulaire de contact » et « Contacter », eux, servent déjà. |
 | 15 | **Un seul fil d'historique** par structure, booking et recherche de fonds mêlés — c'est déjà le comportement du fil unifié. |
+| 16 bis | **Un bilan n'entre dans le tableau de bord que lorsque son échéance approche** — 60 jours par défaut, réglable (Paramètres → Valeurs et libellés → Recherche de fonds). Un bilan dû dans huit mois n'est pas une tâche : la carte montrerait toute la saison et on cesserait de la lire. Ce qui est en retard reste affiché quoi qu'il arrive. |
 | 16 | **La carte du tableau de bord montre deux choses** : l'avancement de la recherche, comme une campagne de booking — ce qu'il reste à envoyer se voit d'un coup d'œil — et **les bilans dus**. |
 | 17 | **Pas d'export pour le comité.** |
 | 18 | **Le module s'appelle « Recherche de fonds »**, et ce qu'on y crée une **campagne** — « campagne de recherche de fonds » en entier, « campagne » dans le module, qui dit déjà desquelles il s'agit. « Recherche » seul entrait en collision avec la recherche unifiée de l'application. |
