@@ -17,6 +17,14 @@ puis sont promues sur le canal **stable** en figeant une version.
   ailleurs dans l'application : attendre la réponse d'un bailleur n'en est pas
   un, le solliciter si. L'ambre de la piste est **pâle** — en plein, la barre
   semblait remplie, soit l'inverse de ce qu'elle dit.
+- **L'historique d'une structure dit juste.** Rattacher deux fois une structure
+  à une campagne n'y écrit plus deux lignes ; retirer une structure en la
+  décochant dans le formulaire d'une campagne y laisse désormais une trace,
+  comme le fait depuis toujours la croix de la liste — côté recherche de fonds,
+  ce retrait emporte le dossier entier.
+- **Un axe analytique s'écrit partout de la même façon** dans un formulaire :
+  « code — libellé ». En ligne de tableau, il garde son code seul, faute de
+  place.
 - **« Bilan à rendre » ne s'affiche plus qu'à l'approche de l'échéance**, sur
   un dossier comme au tableau de bord, avec le même délai (Paramètres →
   Valeurs et libellés → Recherche de fonds). Un dossier accordé portait
