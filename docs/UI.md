@@ -410,10 +410,14 @@ Quatre règles qui comptent :
    « dans <parent> » avec son bouton d'enregistrement, ou des flèches. Le script
    pose `.dnd-on`, qui les masque — donc sans lui, ils restent là.
 3. **Sur téléphone, la poignée s'efface** et les flèches de repli reprennent la
-   main : glisser au doigt dans une page qui défile est un combat perdu.
-   ⚠️ Appliqué au seul déroulé d'un événement pour l'instant ; les cinq autres
-   listes gardent leur poignée au doigt. À trancher : étendre, ou retirer la
-   règle.
+   main (`@media (max-width: 700px)`), pour **toutes** les listes. Deux raisons,
+   et la seconde est dirimante : glisser au doigt dans une page qui défile est
+   un combat perdu, et l'API employée — `dragstart`/`dragover`/`drop` — n'est
+   de toute façon **jamais déclenchée par un doigt**, ni sur iOS ni sur Android.
+   Sans cette règle, `.dnd-on` retire les flèches en échange d'une poignée qui
+   ne fait rien, et réordonner devient impossible. C'est ce qui est arrivé au
+   tableau de bord, le temps que la règle, écrite d'abord pour le déroulé d'un
+   événement, soit étendue aux six listes.
 4. **La position de défilement est mémorisée** (`sessionStorage`) avant l'envoi
    et restaurée au retour, `history.scrollRestoration = 'manual'`. Sans cela,
    déplacer la trentième ligne d'une liste renvoie en haut de page à chaque

@@ -5370,11 +5370,17 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        ouverte en modification. Deux boutons de 41px prenaient 84px des 285
        disponibles, et le texte, réduit à 128px, passait à la ligne alors qu'il
        tenait largement. Réordonner est de toute façon un geste d'édition. */
-    /* La poignée disparaît sur téléphone : le glisser-déposer au doigt dans une
-       page qui défile est un combat perdu. Les flèches de repli reprennent la
-       main (.dnd-on ne les masque plus ici). */
-    .feuille-item .plan-grip { display: none; }
-    .dnd-on .feuille-item .plan-fallback { display: inline-flex; }
+    /* La poignée disparaît sur téléphone, et les flèches de repli reprennent la
+       main : le glisser-déposer au doigt dans une page qui défile est un combat
+       perdu, et l'API HTML5 que lassoOrdreListe() emploie (dragstart/dragover/
+       drop) n'est de toute façon jamais déclenchée par un doigt — ni sur iOS ni
+       sur Android. Sans cette règle, .dnd-on retirait les flèches en échange
+       d'une poignée qui ne fait rien : réordonner devenait impossible.
+       Vaut pour les SIX listes réordonnables (tableau de bord, lignes du
+       décompte, plan comptable, pays, catégories, feuille de route) et non pour
+       la seule qui l'avait obtenue la première. */
+    .dnd-on .plan-grip { display: none; }
+    .dnd-on .plan-fallback { display: inline-flex; }
     .menu-deroulant-panneau { min-width: 170px; }
 }
 

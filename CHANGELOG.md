@@ -9,6 +9,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **Sur téléphone, l'ordre des cartes du tableau de bord se change à nouveau.**
+  La poignée de glisser-déposer y remplaçait les flèches, mais aucun navigateur
+  mobile ne déclenche le glisser-déposer au doigt : il ne restait plus aucun
+  moyen de réordonner. Les flèches reviennent dès que l'écran est étroit — dans
+  les six listes qui se réordonnent, pas seulement celle-ci.
+
 ### Modifié
 - **Les jauges inversent leur ambre et leur gris** — booking et recherche de
   fonds, sur une campagne, dans la liste et au tableau de bord. Ce qui reste à
