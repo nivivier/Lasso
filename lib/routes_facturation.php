@@ -1661,7 +1661,7 @@ function route_structure_renommer(): void
     redirect('structure', ['id' => $id]);
 }
 
-function route_structure_delete(): void
+function route_structure_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

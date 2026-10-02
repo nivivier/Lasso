@@ -1,6 +1,7 @@
 # Nommage des routes, des vues et des fonctions
 
-État : **proposition**, non appliquée. À valider avant toute exécution.
+État : **appliqué**. Le chantier a été mené en quatre livraisons ; ce document
+reste la convention de référence, et `tests/nommage_test.php` la vérifie.
 
 L'application a grandi par couches successives : chaque module a apporté ses
 habitudes, et personne n'a jamais relu l'ensemble d'un coup. Ce document fait
@@ -571,11 +572,13 @@ une case à cocher.
 
 Chacune est livrable seule et laisse l'application entière.
 
-**1. Le test.** `tests/nommage_test.php` avec les règles du § 6 et une liste
-d'exceptions aussi longue que l'existant — mais **aucun renommage**. Le test
-passe au vert sur le code actuel. C'est le filet qu'on tend avant de marcher
-dessus, et la liste d'exceptions est l'inventaire exact de ce qui reste à
-faire.
+**1. Le test.** `tests/nommage_test.php`. Écrit **en dernier** et non en
+premier, contrairement à ce que ce plan prévoyait : le chantier ayant été mené
+d'une traite, une liste d'exceptions à vider livraison par livraison n'aurait
+mesuré qu'elle-même. Le test est donc né strict — et a immédiatement trouvé
+quatre routes oubliées (`projet_delete`, `structure_delete`,
+`fiche_ligne_axe_save`) et deux vues sans route. C'est sa seule vraie
+justification : il trouve ce qu'une relecture laisse passer.
 
 **2. Les vues** (§ 4.9). Aucune URL ne change : seuls des noms de fichiers et
 les 104 appels `render()`. Risque quasi nul, et la moitié de la confusion

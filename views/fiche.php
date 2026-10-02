@@ -182,7 +182,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         fd.append('csrf', CSRF);
         fd.append('ligne_id', cell.dataset.ligneId);
         fd.append('axe_id', sel.value || '0');
-        const data = await fetch('?p=fiche_ligne_axe_save', { method: 'POST', body: fd })
+        const data = await fetch('?p=fiche_ligne_axe_enregistrer', { method: 'POST', body: fd })
             .then(r => r.json()).catch(() => ({ ok: false }));
         if (data.ok) applyState(cell, sel.value);
         else rollback(cell);

@@ -2121,7 +2121,7 @@ function route_fiche(): void
 }
 
 // Sauvegarde AJAX de l'axe analytique d'une ligne de fiche (modifiable même après paiement).
-function route_fiche_ligne_axe_save(): void
+function route_fiche_ligne_axe_enregistrer(): void
 {
     require_login();
     check_csrf();

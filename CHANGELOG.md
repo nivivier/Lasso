@@ -47,6 +47,38 @@ puis sont promues sur le canal **stable** en figeant une version.
   celle des campagnes de démarchage.
 
 ### Modifié
+- ⚠️ **Toutes les adresses de l'application ont changé.** L'application avait
+  grandi par couches, et ses noms avec elle : `?p=resumes` pour le tableau de
+  bord, `?p=comptes` pour les utilisateurs — à une lettre de `compta_comptes`,
+  les comptes bancaires —, `_delete` à côté de `_supprimer`, `facturation_liste`
+  à côté de `fiches`, et `?p=campagne` qui ne disait pas de laquelle des trois
+  sortes de campagnes il s'agissait. Tout est renommé d'un bloc, selon une
+  convention écrite (`docs/NOMMAGE.md`) : tout en français, pluriel pour une
+  liste et singulier pour une fiche, un verbe sur ce qui écrit, et le nom du
+  module là où le mot nu serait ambigu. **Les signets et les liens enregistrés
+  vers l'ancienne application ne fonctionnent plus** — aucune redirection n'est
+  conservée, parce qu'une redirection oubliée survit des années quand une
+  adresse morte se voit et se corrige.
+- ⚠️ **« Spectacle » devient « projet » partout**, jusqu'au nom des tables :
+  un projet n'est pas toujours un spectacle, et c'est ce que finance une
+  campagne de recherche de fonds. Le terme affiché reste réglable
+  (Paramètres → Événements) et se saisit désormais **au singulier ET au
+  pluriel** — le français ne forme pas toujours son pluriel en ajoutant un
+  « s », et la forme devinée s'était déjà trompée. Plus aucun écran n'écrit le
+  mot en dur : dix-sept endroits le faisaient, y compris la recherche, la
+  feuille de route et l'en-tête du CSV SUISA.
+
+  **À faire après la mise à jour** :
+  1. **Réabonner les agendas** aux liens iCal et JSON (menu « Synchroniser » de
+     la liste des projets) : les anciennes adresses ne répondent plus, et un
+     agenda abonné cesse de se mettre à jour **sans rien dire**. Même chose
+     pour le site web qui lit l'export.
+  2. **Changer l'URL dans le planificateur de tâches de l'hébergeur**
+     (`?p=mailing_traiter`), sinon la file d'envoi s'arrête en silence.
+  3. **Vérifier le terme** dans Paramètres → Événements : la migration reprend
+     la valeur existante comme pluriel et devine le singulier.
+  4. La clé `spectacle` de l'export JSON s'appelle désormais `projet` : le site
+     qui la lit est à adapter.
 - **La colonne « Campagnes » de la liste des structures dit desquelles il
   s'agit**, et change avec le module d'où l'on vient : « Campagnes de booking »
   partout, « Campagnes de recherche de fonds » quand on arrive par ce module —

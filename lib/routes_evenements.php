@@ -495,7 +495,7 @@ function route_evenements_suisa_exporter_apercu(): void
     // barre d'outils pour qu'il exporte exactement ce qui est affiché.
     $filtres = $_GET;
     unset($filtres['p']);
-    render_bare('evenements_suisa_exporter_imprimer',
+    render_bare('evenements_suisa_exporter',
         evenements_export_suisa_donnees() + ['exportQs' => http_build_query($filtres)]);
 }
 
@@ -1388,7 +1388,7 @@ function route_projet(): void
         }
         if ($err) {
             $projetErr = array_merge((array) $projet, ['id' => $id, 'nom' => $nom, 'notes' => $notes, 'parent_id' => $parent, 'axe_analytique_id' => $axeProjet]);
-            render('projet_form', ['projet' => $projetErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_projet(false));
+            render('projet', ['projet' => $projetErr, 'err' => $err, 'map' => $map, 'axes' => $axes], evenements_terme_projet(false));
             return;
         }
         if ($id) {
@@ -1401,10 +1401,10 @@ function route_projet(): void
         }
         redirect('projets');
     }
-    render('projet_form', ['projet' => $projet, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_projet(false)));
+    render('projet', ['projet' => $projet, 'err' => null, 'map' => $map, 'axes' => $axes], ($id ? 'Modifier le ' : 'Nouveau ') . mb_strtolower(evenements_terme_projet(false)));
 }
 
-function route_projet_delete(): void
+function route_projet_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -1425,7 +1425,7 @@ function route_projet_delete(): void
 // retrait. Deux actions dans une seule route — elles écrivent la même colonne et
 // partagent le nettoyage de l'ancien fichier — sur le modèle de
 // route_employe_photo(), qui fait cela pour la photo d'un employé.
-function route_projet_image(): void
+function route_projet_icone(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

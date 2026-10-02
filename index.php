@@ -148,8 +148,8 @@ ajouter_routes_module($handlers, $routeModules, 'analytique', [
     'compta_ventilation_suggestion_apercu'       => 'route_compta_ventilation_suggestion_apercu',
 ]);
 if (module_actif('analytique') && module_actif('salaires')) {
-    $handlers['fiche_ligne_axe_save'] = 'route_fiche_ligne_axe_save';
-    $routeModules['fiche_ligne_axe_save'] = ['analytique'];
+    $handlers['fiche_ligne_axe_enregistrer'] = 'route_fiche_ligne_axe_enregistrer';
+    $routeModules['fiche_ligne_axe_enregistrer'] = ['analytique'];
 }
 
 ajouter_routes_module($handlers, $routeModules, 'facturation', [
@@ -178,9 +178,9 @@ if (module_actif('facturation') || module_actif('booking')) {
     $handlers['structure']       = 'route_structure';
     $handlers['structure_renommer'] = 'route_structure_renommer';
     $handlers['structure_statut'] = 'route_structure_statut';
-    $handlers['structure_delete'] = 'route_structure_delete';
+    $handlers['structure_supprimer'] = 'route_structure_supprimer';
     $handlers['structure_fusion'] = 'route_structure_fusion';
-    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_delete', 'structure_fusion'] as $r) {
+    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_supprimer', 'structure_fusion'] as $r) {
         $routeModules[$r] = ['facturation', 'booking'];
     }
 }
@@ -272,8 +272,8 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'facture_evenement_lier'   => 'route_facture_evenement_lier',
     'projets'         => 'route_projets',
     'projet'          => 'route_projet',
-    'projet_delete'   => 'route_projet_delete',
-    'projet_image'    => 'route_projet_image',
+    'projet_supprimer'   => 'route_projet_supprimer',
+    'projet_icone'    => 'route_projet_icone',
     'evenements_reglages' => 'route_evenements_reglages',
     'evenements_importer'  => 'route_evenements_importer',
 ]);

@@ -188,7 +188,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     <button type="submit" form="plan-edit-<?= $sid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                     <?php endif; ?>
                     <?php if ($peutEcrireSpec && !$s['a_enfants'] && $total === 0): ?>
-                    <form method="post" action="?p=projet_delete" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline plan-supprimer">
+                    <form method="post" action="?p=projet_supprimer" data-confirm="Supprimer ce <?= e($termeSingulier) ?> ?" class="d-inline plan-supprimer">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= $sid ?>">
                         <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
@@ -269,7 +269,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
       // le navigateur, le serveur revalide la vignette comme un vrai fichier. ?>
 <div id="projet-image-modal" class="modal-overlay" hidden>
     <div class="modal-card">
-        <form method="post" action="?p=projet_image" class="form" id="projet-image-form">
+        <form method="post" action="?p=projet_icone" class="form" id="projet-image-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" id="projet-image-id" value="">
             <input type="hidden" name="image_data" id="projet-image-data">

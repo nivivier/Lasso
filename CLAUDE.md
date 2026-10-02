@@ -63,6 +63,10 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   change** : c'est ce fichier qui évite de redécider à chaque page. La règle
   qu'il pose en premier : un geste qui existe déjà se refait pareil — on élargit
   le mécanisme en place plutôt que d'en poser un second à côté.
+- **Nommage** : `docs/NOMMAGE.md` — la convention des noms de routes, de vues et
+  de fonctions, et le chantier qui l'a appliquée. **À lire avant d'ajouter un
+  écran** ; `tests/nommage_test.php` la vérifie à chaque exécution de la suite,
+  c'est lui qui empêche la dette de revenir.
 - **Décisions & impasses connues** : `docs/DECISIONS.md` — le « pourquoi » des choix
   structurants et des pièges déjà rencontrés (migrations SQLite, résolution de
   `APP_ENV`, CSP, cache des data-URI, tests). **À lire avant de toucher au schéma,
@@ -88,8 +92,8 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   Postes salariaux`) : `postes_salariaux` définit les lignes, `poste_taux` leurs
   taux par année (**fait foi** ; `taux_par_annee` n'est plus qu'un repli),
   `poste_bareme_age` les paliers d'âge. Tout se règle sur `?p=postes` (« Lignes
-  du décompte »), qui a absorbé l'ancienne page `?p=taux` — celle-ci n'est plus
-  qu'une redirection, pour les liens déjà posés. `calculer_fiche()` boucle sur
+  du décompte »), qui a absorbé l'ancienne page `?p=taux`, supprimée avec les
+  autres redirections de compatibilité. `calculer_fiche()` boucle sur
   `postes_actifs()` ; `poste_montant()` connaît quatre modes (`taux`,
   `taux_employe`, `laa_seuil`, `bareme_age`) et deux bases (`brut`,
   `coordonne`). **À l'enregistrement, une fiche FIGE ses lignes dans

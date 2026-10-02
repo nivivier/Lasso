@@ -99,7 +99,7 @@ $formulaireUrl = $isEdit && module_actif('booking') && peut_lire('booking')
                 title="Enregistrer" aria-label="Enregistrer le nom"><?= icon('save') ?></button>
         <?php endif; ?>
         <?php if ($peutSupprimerStruct): ?>
-        <form method="post" action="?p=structure_delete" data-confirm="Supprimer définitivement cette structure ?" class="d-inline entete-edition" hidden>
+        <form method="post" action="?p=structure_supprimer" data-confirm="Supprimer définitivement cette structure ?" class="d-inline entete-edition" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $sid ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la structure"><?= icon('trash') ?></button>
