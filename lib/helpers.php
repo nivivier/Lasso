@@ -1938,7 +1938,7 @@ function couleurs_css_vars(): string
 // donc cette surcharge ne le fait pas changer de couleur.
 function module_couleur_css_vars(?string $module): string
 {
-    if ($module === null || !isset(MODULE_COULEURS[$module])) {
+    if ($module === null || !isset(MODULE_COULEURS[$module]) || !param_couleurs_modules()) {
         return '';
     }
     $c = couleurs_derivees(MODULE_COULEURS[$module]);
@@ -2331,6 +2331,17 @@ function param_fond(): string
 // Effets appliqués à l'image de fond (page Apparence, cases à cocher
 // combinables — les deux peuvent être actives en même temps) : 'clair'
 // (adoucie/éclaircie, meilleure lisibilité) et 'floute'.
+// Chaque module porte-t-il sa couleur, ou l'application entière s'en tient-elle
+// à la couleur principale de l'employeur ? Par défaut oui, une par module :
+// c'est le comportement qu'ont connu toutes les installations jusqu'ici, et le
+// rail de navigation s'y lit d'un coup d'œil. Mais une association dont
+// l'identité tient à UNE couleur voit son application en arborer six, ce qui
+// n'est pas un réglage qu'on devrait subir.
+function param_couleurs_modules(): bool
+{
+    return (string) param('employeur_couleurs_modules', '1') === '1';
+}
+
 function param_fond_clair(): bool
 {
     return (string) param('employeur_fond_clair', '') === '1';

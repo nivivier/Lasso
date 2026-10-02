@@ -27,6 +27,10 @@
                     <code><?= e(param('employeur_couleur_principale', '#6d4ade')) ?></code></td>
             </tr>
             <tr>
+                <th>Couleurs des modules</th>
+                <td><?= param_couleurs_modules() ? 'Une couleur par module' : 'La couleur principale partout' ?></td>
+            </tr>
+            <tr>
                 <th>Couleur de mise en évidence</th>
                 <td><span class="pastille-couleur" style="background:<?= e(param('employeur_couleur_evidence', '#2563eb')) ?>"></span>
                     <code><?= e(param('employeur_couleur_evidence', '#2563eb')) ?></code></td>
@@ -69,6 +73,19 @@
                    value="<?= e(param('employeur_couleur_principale', '#6d4ade')) ?>">
             <code id="couleur-principale-hex"><?= e(param('employeur_couleur_principale', '#6d4ade')) ?></code>
         </div>
+
+        <?php // Sous la couleur principale, parce que c'est d'elle qu'il s'agit :
+              // la décocher, c'est l'étendre aux six modules. ?>
+        <label class="check mt-10">
+            <input type="checkbox" name="employeur_couleurs_modules" value="1" <?= param_couleurs_modules() ? 'checked' : '' ?>>
+            Une couleur par module <?= info_tip(
+                "Chaque module porte sa teinte — le rail de navigation, le titre de ses pages et "
+                . "ses accents : vert pour les salaires, ambre pour la comptabilité, et ainsi de "
+                . "suite. Décoché, toute l'application s'en tient à la couleur principale "
+                . "ci-dessus. La couleur de mise en évidence, elle, ne change jamais d'un module "
+                . "à l'autre."
+            ) ?>
+        </label>
 
         <h3 class="sub">Couleur de mise en évidence <?= info_tip(
             'Remplace la couleur principale à certains endroits : boutons principaux, sommes de '

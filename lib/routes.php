@@ -999,6 +999,12 @@ function route_apparence(): void
         foreach (['employeur_fond_clair', 'employeur_fond_floute'] as $cleEffet) {
             $stmt->execute([$cleEffet, isset($_POST[$cleEffet]) ? '1' : '']);
         }
+        // Une couleur par module, ou la couleur principale partout. Même forme
+        // que les deux effets ci-dessus, mais sa valeur par défaut est « oui »
+        // (param_couleurs_modules()) : une case décochée s'écrit donc en clair,
+        // sinon l'absence de ligne vaudrait « oui » et le réglage ne pourrait
+        // jamais être éteint.
+        $stmt->execute(['employeur_couleurs_modules', isset($_POST['employeur_couleurs_modules']) ? '1' : '0']);
         // Thème : liste blanche, une valeur inattendue est ignorée plutôt
         // qu'écrite (elle finirait en attribut data-theme sur <html>).
         $theme = (string) ($_POST['employeur_theme'] ?? '');

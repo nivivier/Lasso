@@ -138,7 +138,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
               // événements), et sans ce marqueur le rail y arrivait sans dire d'où,
               // laissant nav_groupe_actif() deviner — et la liste afficher des
               // colonnes qui ne concernent pas le module d'où l'on vient. ?>
-        <a href="?p=<?= array_key_first($navG[2]) ?>&depuis=<?= e($navCle) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" style="--rail-accent: <?= e(MODULE_COULEURS[$navCle] ?? '') ?>">
+        <a href="?p=<?= array_key_first($navG[2]) ?>&depuis=<?= e($navCle) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" <?= param_couleurs_modules() ? ' style="--rail-accent: ' . e(MODULE_COULEURS[$navCle] ?? '') . '"' : '' ?>>
             <?= icon($navG[1]) ?>
             <span class="rail-label"><?= e($navG[0]) ?></span>
             <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
