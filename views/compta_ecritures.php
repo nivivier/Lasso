@@ -79,7 +79,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         if ($grp !== $grpCourant) { $grpCourant = $grp; if ($grp !== '') $items .= '<li class="cat-search-group">' . e($grp) . '</li>'; }
         $items .= '<li data-val="' . $fid . '">' . e($f['chemin']) . '</li>';
     }
-    return '<div class="cat-search form-cat-search">'
+    return '<div class="cat-search form-cat-search" data-cat-search data-filtre-groupes>'
          . '<input type="text" class="cat-search-input" placeholder="' . e($placeholder) . '" autocomplete="off" value="' . e($initChemin) . '">'
          . '<input type="hidden" name="' . e($name) . '" class="cat-search-val" value="' . e($hiddenVal) . '">'
          . '<ul class="cat-search-list" hidden role="listbox"><li data-val="">— Sans catégorie —</li>'
@@ -180,7 +180,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </select>
 
         <span class="bulk-field" data-for="lettrer" hidden>
-            <div class="cat-search bulk-cat-search">
+            <div class="cat-search bulk-cat-search" data-cat-search data-filtre-groupes data-hydrater data-texte-vide>
                 <input type="text" class="cat-search-input" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
                 <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
                 <ul class="cat-search-list" hidden role="listbox">
@@ -538,17 +538,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     });
 })();
 
-// Cat-search — formulaire écriture manuelle (texte déjà pré-rempli côté serveur)
-(function () {
-    const wrap = document.querySelector('.form-cat-search');
-    if (wrap) lassoInitCatSearch(wrap, { groupsFilter: true });
-})();
-
-// Dropdown cherchable — bulk-lettrage (dropdown propre à la barre)
-(function () {
-    const wrap = document.querySelector('.bulk-cat-search');
-    if (wrap) lassoInitCatSearch(wrap, { groupsFilter: true, hydrateInitial: true, showPlaceholderText: true });
-})();
 
 // Dropdown partagé — lettrage individuel par ligne
 (function () {

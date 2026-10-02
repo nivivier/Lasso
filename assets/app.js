@@ -615,9 +615,49 @@ function lassoInitCatSearch(wrap, opts = {}) {
         hidden.value = li.dataset.val;
         input.value = textFor(li);
         list.hidden = true;
+        // Choisir une option lève toujours le message de validité que le
+        // formulaire avait posé sur le champ (« choisissez une catégorie »,
+        // « choisissez une facture ») : deux appelants le faisaient par
+        // onSelect, et c'est vrai pour tous. Sans effet sur un champ qui n'en
+        // a jamais eu.
+        input.setCustomValidity('');
         if (onSelect) onSelect(li);
     });
 }
+
+// Les champs cherchables qui se branchent SEULS, par leurs attributs. Huit
+// écrans recopiaient la même amorce — trouver le wrap, vérifier que la
+// fonction existe, l'appeler —, et chacun avait sa variante : var ou const,
+// garde ou pas, querySelector ou forEach.
+//
+// Un champ porteur de data-cat-search est initialisé au chargement, ses options
+// lues sur l'élément :
+//   data-filtre-groupes    masque les en-têtes de groupe sans résultat
+//   data-hydrater          pré-remplit le texte depuis la valeur cachée
+//   data-texte-vide        affiche le texte même pour une option de valeur ""
+//   data-vider-en-saisie   taper vide la valeur cachée (oblige à resélectionner)
+//   data-revele="#id"      montre cet élément quand « __new__ » est choisi —
+//                          le « — Nouveau… » de la plupart de ces champs
+//
+// lassoInitCatSearch() reste appelable à la main : deux champs peuplent leur
+// liste par fetch au premier focus et ont besoin de la refermer eux-mêmes.
+// L'initialisation est idempotente, pour qu'un fragment inséré après coup
+// puisse rappeler cette fonction sans doubler les écouteurs.
+function lassoInitCatSearchAuto(racine = document) {
+    racine.querySelectorAll('.cat-search[data-cat-search]').forEach(wrap => {
+        if (wrap.dataset.catSearchPret) return;
+        wrap.dataset.catSearchPret = '1';
+        const revele = wrap.dataset.revele ? document.querySelector(wrap.dataset.revele) : null;
+        lassoInitCatSearch(wrap, {
+            groupsFilter:        'filtreGroupes' in wrap.dataset,
+            hydrateInitial:      'hydrater' in wrap.dataset,
+            showPlaceholderText: 'texteVide' in wrap.dataset,
+            clearHiddenOnInput:  'viderEnSaisie' in wrap.dataset,
+            onSelect: revele ? (li => { revele.hidden = li.dataset.val !== '__new__'; }) : null,
+        });
+    });
+}
+window.addEventListener('DOMContentLoaded', () => lassoInitCatSearchAuto());
 
 
 // Entonnoir « Lieu » (filtre_colonne_lieu_html(), lib/helpers.php) : le seul

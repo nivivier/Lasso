@@ -23,7 +23,7 @@ $catSearchable = function ($selected, bool $editable = true) use ($feuilles): st
     foreach ($feuilles as $f) {
         $items .= '<li data-val="' . (int) $f['id'] . '">' . e($f['chemin']) . '</li>';
     }
-    return '<div class="cat-search">'
+    return '<div class="cat-search" data-cat-search data-hydrater data-texte-vide>'
          . '<input type="text" class="cat-search-input" placeholder="Chercher une catégorie…" autocomplete="off">'
          . '<input type="hidden" name="plan_compte_id" class="cat-search-val" value="' . e($sel) . '">'
          . '<ul class="cat-search-list" hidden role="listbox">' . $items . '</ul>'
@@ -302,16 +302,6 @@ $peutEcrireRegles = peut_ecrire('compta');
             initCondRow(clone);
             clone.querySelector('input, select')?.focus();
             if (form) updateOperateurVisibility(form);
-        });
-    });
-
-    // Catégorie cherchable.
-    document.querySelectorAll('.cat-search').forEach(wrap => {
-        const input = wrap.querySelector('.cat-search-input');
-        lassoInitCatSearch(wrap, {
-            hydrateInitial: true,
-            showPlaceholderText: true,
-            onSelect: () => input.setCustomValidity(''),
         });
     });
 

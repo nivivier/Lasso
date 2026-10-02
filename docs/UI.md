@@ -544,6 +544,22 @@ par une sélection, `clearHiddenOnInput` la vide à la frappe : on ne crée pas
 l'entité depuis là. Un `<li data-val="__new__">` en tête ouvre le cas
 contraire, quand la création est prévue (lier une salle depuis une structure).
 
+**Le champ se branche par ses attributs, pas par un script dans la vue.** Poser
+`data-cat-search` sur le `.cat-search` suffit ; les options se déclarent à côté :
+
+| attribut | effet |
+| --- | --- |
+| `data-vider-en-saisie` | taper vide la valeur cachée — liste fermée |
+| `data-texte-vide` | afficher le texte même pour une option de valeur vide (« — Aucun — ») |
+| `data-hydrater` | pré-remplir le champ depuis la valeur cachée au chargement |
+| `data-filtre-groupes` | masquer les en-têtes de groupe devenus vides |
+| `data-revele="#id"` | montrer ce bloc quand `__new__` est choisi |
+
+`lassoInitCatSearch()` reste appelable à la main, et c'est l'exception : deux
+champs seulement en ont besoin, ceux qui chargent leur liste par `fetch` au
+premier focus. Huit écrans avaient chacun leur variante de la même amorce ;
+c'est précisément ce que la première règle de ce document interdit.
+
 ```html
 <form class="linked-add">
   <input type="text" class="cat-search-input" placeholder="Rechercher une facture à lier…">

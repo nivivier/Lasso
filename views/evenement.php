@@ -665,7 +665,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
               data-ajout="#factures-liees" data-ajout-vide="#factures-liees-vide" data-ajout-message="Facture liée.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
-            <div class="cat-search facture-search">
+            <div class="cat-search facture-search" data-cat-search data-texte-vide data-vider-en-saisie>
                 <input type="text" class="cat-search-input" placeholder="Rechercher une facture à lier…" autocomplete="off">
                 <input type="hidden" name="facture_id" class="cat-search-val" value="">
                 <ul class="cat-search-list" hidden role="listbox">
@@ -791,15 +791,8 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         }
     }
 
-    // Recherche de facture à lier (même widget que le rapprochement d'écriture/catégorie).
-    document.querySelectorAll('.facture-search').forEach(wrap => {
-        const input = wrap.querySelector('.cat-search-input');
-        lassoInitCatSearch(wrap, {
-            showPlaceholderText: true,
-            clearHiddenOnInput: true,
-            onSelect: () => input.setCustomValidity(''),
-        });
-    });
+    // Recherche de facture à lier : le champ se branche seul (data-cat-search),
+    // il ne reste ici que l'exigence d'un CHOIX dans la liste avant l'envoi.
     document.querySelectorAll('.facture-search').forEach(wrap => {
         wrap.closest('form').addEventListener('submit', e => {
             const hidden = wrap.querySelector('.cat-search-val');

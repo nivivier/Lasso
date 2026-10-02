@@ -605,7 +605,7 @@ lassoInitTagSuggest();
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <input type="hidden" name="sens" value="organise">
-            <div class="cat-search lieu-search">
+            <div class="cat-search lieu-search" data-cat-search data-texte-vide data-vider-en-saisie data-revele="#lieu-nouveau">
                 <input type="text" class="cat-search-input" placeholder="Rechercher une salle/un festival…" autocomplete="off">
                 <input type="hidden" name="lieu_id" class="cat-search-val" value="">
                 <ul class="cat-search-list" hidden role="listbox">
@@ -638,7 +638,7 @@ lassoInitTagSuggest();
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <input type="hidden" name="sens" value="organise_par">
-            <div class="cat-search organisateur-search">
+            <div class="cat-search organisateur-search" data-cat-search data-texte-vide data-vider-en-saisie data-revele="#organisateur-nouveau">
                 <input type="text" class="cat-search-input" placeholder="Rechercher une structure organisatrice…" autocomplete="off">
                 <input type="hidden" name="lieu_id" class="cat-search-val" value="">
                 <ul class="cat-search-list" hidden role="listbox">
@@ -655,28 +655,6 @@ lassoInitTagSuggest();
                 <label>Pays <input name="nl_pays" placeholder="Suisse"></label>
             </div>
         </form>
-        <script nonce="<?= e(csp_nonce()) ?>">
-        (function () {
-            var wrapLieu = document.querySelector('.lieu-search');
-            var nouveauLieu = document.getElementById('lieu-nouveau');
-            if (wrapLieu && window.lassoInitCatSearch) {
-                lassoInitCatSearch(wrapLieu, {
-                    showPlaceholderText: true,
-                    clearHiddenOnInput: true,
-                    onSelect: function (li) { nouveauLieu.hidden = li.dataset.val !== '__new__'; },
-                });
-            }
-            var wrapOrga = document.querySelector('.organisateur-search');
-            var nouveauOrga = document.getElementById('organisateur-nouveau');
-            if (wrapOrga && window.lassoInitCatSearch) {
-                lassoInitCatSearch(wrapOrga, {
-                    showPlaceholderText: true,
-                    clearHiddenOnInput: true,
-                    onSelect: function (li) { nouveauOrga.hidden = li.dataset.val !== '__new__'; },
-                });
-            }
-        })();
-        </script>
     </div>
 </div>
 
@@ -811,7 +789,7 @@ $villeHtmlS = ville_departement_canton_html(
                   // fermée — on rattache à une campagne existante, on n'en crée
                   // pas d'ici —, d'où la valeur cachée que seule une sélection
                   // remplit. Celles où la structure figure déjà n'y sont pas. ?>
-            <div class="cat-search campagne-search">
+            <div class="cat-search campagne-search" data-cat-search data-vider-en-saisie>
                 <input type="text" class="cat-search-input" placeholder="Campagne…" autocomplete="off" aria-label="Campagne">
                 <input type="hidden" name="campagne_id" class="cat-search-val" value="" required>
                 <ul class="cat-search-list" hidden role="listbox">
@@ -824,16 +802,6 @@ $villeHtmlS = ville_departement_canton_html(
             <button type="submit" class="btn btn-sm icon-only" title="Ajouter" aria-label="Ajouter à cette campagne"><?= icon('plus') ?></button>
             <button type="button" class="btn ghost btn-sm icon-only" data-hide="campagne-ajouter-fiche" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
         </form>
-        <?php // Le champ de campagne se cherche à la frappe, comme celui des
-              // étiquettes (lassoInitCatSearch(), assets/app.js). ?>
-        <script nonce="<?= e(csp_nonce()) ?>">
-        (function () {
-            var wrap = document.querySelector('#campagne-ajouter-fiche .campagne-search');
-            if (wrap && window.lassoInitCatSearch) {
-                lassoInitCatSearch(wrap, { clearHiddenOnInput: true });
-            }
-        })();
-        </script>
         <?php endif; ?>
 
         <?php if (!$campagnesStructure && !$campagnesLiees): ?>

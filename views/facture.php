@@ -247,7 +247,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
             <?php // Champ de recherche et non menu déroulant : la liste porte tous
                   // les événements, du plus récent au plus ancien. ?>
-            <div class="cat-search evenement-search">
+            <div class="cat-search evenement-search" data-cat-search data-vider-en-saisie data-texte-vide>
                 <input type="text" class="cat-search-input" autocomplete="off"
                        placeholder="Rechercher un événement…" value="<?= e($evenementLabel) ?>">
                 <input type="hidden" name="evenement_id" class="cat-search-val" value="<?= (int) $f['evenement_id'] ?: '' ?>">
@@ -288,9 +288,6 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 (function () {
     const wrap = document.querySelector('.evenement-search');
     if (!wrap) return;
-    // showPlaceholderText : « — aucun — » doit s'écrire dans le champ quand on
-    // le choisit, sinon délier ne se voit pas.
-    lassoInitCatSearch(wrap, { clearHiddenOnInput: true, showPlaceholderText: true });
     const btn = document.querySelector('.evenement-edit-btn');
     if (!btn) return;
     btn.addEventListener('click', () => {
