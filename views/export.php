@@ -6,7 +6,7 @@
 // Types de données exportables : un seul sélecteur, une seule carte — le
 // contenu (description + formulaire) de chaque type est montré/masqué selon
 // la sélection, sans reprendre le libellé du type en titre (déjà donné par le
-// menu déroulant). Même esprit que le sélecteur de views/import_fiches.php.
+// menu déroulant). Même esprit que le sélecteur de views/fiches_importer.php.
 // Le champ « Année » est lui aussi mutualisé (un seul <select>, à droite du
 // type) : rattaché en JS au formulaire du type actif via l'attribut form=
 // (même principe que les cases à cocher de l'onglet Incohérences), ses
@@ -16,7 +16,7 @@
 // seule sinon, auquel cas la carte le dit au lieu de laisser croire que les
 // fichiers déposés sont dedans.
 $formatSauvegarde = sauvegarde_format();
-$typesExport = ['backup' => 'Sauvegarde complète (.' . $formatSauvegarde . ')'];
+$typesExport = ['sauvegarde' => 'Sauvegarde complète (.' . $formatSauvegarde . ')'];
 if (module_actif('compta')) {
     $typesExport['ecritures_csv']  = 'Écritures comptables — CSV';
     $typesExport['ecritures_camt'] = 'Écritures comptables — CAMT.053';
@@ -56,7 +56,7 @@ $anneeSansToutes = ['certificats' => true];
     </div>
     <noscript><p class="muted small">JavaScript est requis pour choisir le type de données — sans lui, seule la sauvegarde complète ci-dessous reste disponible.</p></noscript>
 
-    <div class="export-bloc mt-16" data-type="backup">
+    <div class="export-bloc mt-16" data-type="sauvegarde">
         <?php if ($errSauvegarde ?? false): ?>
         <p class="err mb-8">La sauvegarde n'a pas pu être créée — disque plein, droits insuffisants, ou archive impossible à finaliser.
             Le détail est dans le journal d'erreurs du serveur. Rien n'a été téléchargé.</p>
@@ -79,7 +79,7 @@ $anneeSansToutes = ['certificats' => true];
             <strong>configuration du serveur</strong> en est absent : il contient des mots de passe et se conserve à part.</p>
         <?php endif; ?>
         <div class="form-actions">
-            <a class="btn" href="?p=backup"><?= icon('download') ?> Télécharger la sauvegarde</a>
+            <a class="btn" href="?p=sauvegarde"><?= icon('download') ?> Télécharger la sauvegarde</a>
         </div>
     </div>
 
@@ -90,7 +90,7 @@ $anneeSansToutes = ['certificats' => true];
             <div class="form-actions"><p class="muted mb-0">Aucune écriture à exporter.</p></div>
         <?php else: ?>
         <form method="get" action="index.php" id="export-form-ecritures_csv" class="form-actions">
-            <input type="hidden" name="p" value="compta_ecritures_csv">
+            <input type="hidden" name="p" value="compta_ecritures_exporter_csv">
             <button type="submit"><?= icon('download') ?> Télécharger le CSV</button>
         </form>
         <?php endif; ?>
@@ -102,7 +102,7 @@ $anneeSansToutes = ['certificats' => true];
             <div class="form-actions"><p class="muted mb-0">Aucun compte bancaire avec IBAN renseignée.</p></div>
         <?php else: ?>
         <form method="get" action="index.php" id="export-form-ecritures_camt" class="form-actions">
-            <input type="hidden" name="p" value="compta_ecritures_camt053">
+            <input type="hidden" name="p" value="compta_ecritures_exporter_camt053">
             <label class="inline">Compte
                 <select name="compte">
                     <?php foreach ($comptesCamt as $c): ?>
@@ -127,7 +127,7 @@ $anneeSansToutes = ['certificats' => true];
             <div class="form-actions"><p class="muted mb-0">Aucune fiche de salaire à exporter.</p></div>
         <?php else: ?>
         <form method="get" action="index.php" id="export-form-certificats" class="form-actions">
-            <input type="hidden" name="p" value="certificat_xml">
+            <input type="hidden" name="p" value="certificat_exporter_xml">
             <button type="submit"><?= icon('download') ?> Télécharger le XML</button>
         </form>
         <?php endif; ?>
@@ -147,7 +147,7 @@ $anneeSansToutes = ['certificats' => true];
             <div class="form-actions"><p class="muted mb-0">Aucun événement à exporter.</p></div>
         <?php else: ?>
         <form method="get" action="index.php" id="export-form-evenements" class="form-actions">
-            <input type="hidden" name="p" value="evenements_export_suisa">
+            <input type="hidden" name="p" value="evenements_suisa_exporter">
             <input type="hidden" name="statut_suisa" value="tous">
             <input type="hidden" name="spectacle_id" value="0">
             <input type="hidden" name="statut" value="tous">

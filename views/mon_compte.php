@@ -25,7 +25,7 @@
         </table>
     </div>
 
-    <form method="post" action="?p=compte" id="compte-form" class="card-edit form" hidden>
+    <form method="post" action="?p=mon_compte" id="compte-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <div class="grid2">

@@ -19,14 +19,14 @@ $syncEntrees = fn (int $sid = 0): array => [
         'icone'   => 'calendar-sync',
         'classe'  => 'export-copy',
         'titre'   => 'Copier le lien de synchronisation iCal',
-        'attrs'   => ['data-url' => evenements_export_url('evenements_ical', $token, $sid ?: null)],
+        'attrs'   => ['data-url' => evenements_export_url('evenements_exporter_ical', $token, $sid ?: null)],
     ],
     [
         'libelle' => 'Dates publiques (JSON)',
         'icone'   => 'file-braces',
         'classe'  => 'export-copy',
         'titre'   => 'Copier le lien de synchronisation JSON',
-        'attrs'   => ['data-url' => evenements_export_url('evenements_json', $token, $sid ?: null)],
+        'attrs'   => ['data-url' => evenements_export_url('evenements_exporter_json', $token, $sid ?: null)],
     ],
     // Troisième lien, d'une autre nature : celui de l'ÉQUIPE. Il montre les
     // options, les dates non répertoriées et le contenu des feuilles de route —
@@ -38,7 +38,7 @@ $syncEntrees = fn (int $sid = 0): array => [
         'icone'   => 'rows-3',
         'classe'  => 'export-copy',
         'titre'   => "Copier le lien du calendrier de l'équipe (feuilles de route comprises — à ne pas publier)",
-        'attrs'   => ['data-url' => evenements_export_url('evenements_equipe_ical', $tokenEquipe, $sid ?: null)],
+        'attrs'   => ['data-url' => evenements_export_url('evenements_equipe_exporter_ical', $tokenEquipe, $sid ?: null)],
     ],
 ];
 $parentOptions = function (int $excludeId) use ($map): string {
@@ -60,7 +60,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
       // un projet reporte donc le groupe d'où l'on vient : sans lui, ouvrir une
       // fiche depuis le rail du booking ferait basculer tout l'écran dans
       // Événements. Même procédé que la liste des structures, partagée elle
-      // aussi par plusieurs modules (views/structures_liste.php). ?>
+      // aussi par plusieurs modules (views/structures.php). ?>
 <?php $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : ''; ?>
 
 <div class="module-content"><div class="module-content-inner">
@@ -128,7 +128,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 // le lien hériterait de ce qui traînait en session (une année,
                 // un pays) et montrerait moins de dates qu'il n'en annonce.
                 // lien_liste_filtree() porte le format attendu par filtre_coche().
-                $href = lien_liste_filtree('evenements_liste', [
+                $href = lien_liste_filtree('evenements', [
                     'spectacle_id' => [$sid],
                     'statut'       => [$statut],
                     'annee'        => [],
@@ -265,7 +265,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
 <?php // Cadreur d'icône : UNE fenêtre pour toute la liste, remplie à
       // l'ouverture — en poser une par ligne aurait recopié le même formulaire
       // autant de fois qu'il y a de spectacles. Même geste et même traitement
-      // que la photo d'un employé (?p=employe_voir) : le recadrage se fait dans
+      // que la photo d'un employé (?p=employe) : le recadrage se fait dans
       // le navigateur, le serveur revalide la vignette comme un vrai fichier. ?>
 <div id="spectacle-image-modal" class="modal-overlay" hidden>
     <div class="modal-card">

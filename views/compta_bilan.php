@@ -96,7 +96,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <a class="btn ghost" href="?p=compta_bilan_print&annee=<?= (int) $annee ?>&prec=<?= $nbPrec ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
+                <a class="btn ghost" href="?p=compta_bilan_imprimer&annee=<?= (int) $annee ?>&prec=<?= $nbPrec ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
             </div>
 
         </div>

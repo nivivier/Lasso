@@ -25,7 +25,7 @@
                     <?= compte_structures_html($nb, lien_structures_tag($tid)) ?>
                 </div>
                 <?php if ($peutEcrireTags): ?>
-                <form method="post" action="?p=parametres_tags" class="inline-edit tag-edit-form" hidden>
+                <form method="post" action="?p=tags" class="inline-edit tag-edit-form" hidden>
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="edit">
                     <input type="hidden" name="id" value="<?= $tid ?>">
@@ -41,7 +41,7 @@
                       // (dans le formulaire, mis en évidence), supprimer (rouge) et
                       // annuler. La croix se pose exactement là où était le crayon,
                       // tout à droite ; la corbeille se range avant elle. ?>
-                <form method="post" action="?p=parametres_tags" class="d-inline tag-delete-form" hidden
+                <form method="post" action="?p=tags" class="d-inline tag-delete-form" hidden
                       data-confirm="<?= e($nb > 0
                           ? "Supprimer le tag « " . $t['nom'] . " » ? Il sera retiré de $nb structure(s)."
                           : "Supprimer le tag « " . $t['nom'] . " » ?") ?>">
@@ -60,7 +60,7 @@
     <tfoot id="tag-add" hidden>
         <tr>
             <td colspan="2">
-                <form method="post" action="?p=parametres_tags" class="inline-edit">
+                <form method="post" action="?p=tags" class="inline-edit">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="add">
                     <input type="color" name="couleur" value="#2563eb" title="Couleur">

@@ -13,7 +13,7 @@ $statutClasse = [
     'terminee'  => 'muted-badge',
 ];
 $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $d)) : '';
-// Filtres de colonne (mêmes composants que ?p=structures et ?p=facturation_liste) :
+// Filtres de colonne (mêmes composants que ?p=structures et ?p=factures) :
 // chacun repart dans l'URL avec les autres, et avec la recherche en cours.
 $statutLabels = CAMPAGNE_STATUTS;
 $tousFiltres = array_filter(['projet_id' => $projet, 'annee' => $annee, 'statut' => $statut, 'q' => $recherche]);
@@ -32,21 +32,21 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
         <?php // La recherche voyage avec les filtres en cours : les retrouver
               // décochés après avoir tapé trois lettres serait une surprise. ?>
         <form method="get" class="filters">
-            <input type="hidden" name="p" value="campagnes">
+            <input type="hidden" name="p" value="booking_campagnes">
             <?= hidden_inputs_html($tousFiltres) ?>
             <?= champ_recherche(['id' => 'campagnes-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true, 'placeholder' => 'Nom de campagne, projet…']) ?>
         </form>
         <?php // Sur téléphone, la mise en cartes masque le <thead> : ce panneau
               // reprend les entonnoirs qui y sont accrochés (voir ?p=fiches). ?>
         <?php ob_start(); ?>
-            <?= $projetsDispo ? filtre_colonne_html('campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id'), 'Projet') : '' ?>
-            <?= $anneesDispo ? filtre_colonne_html('campagnes', 'annee', $anneesDispo, $annee, $autres('annee'), 'Période') : '' ?>
-            <?= filtre_colonne_html('campagnes', 'statut', $statutLabels, $statut, $autres('statut'), 'État') ?>
+            <?= $projetsDispo ? filtre_colonne_html('booking_campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id'), 'Projet') : '' ?>
+            <?= $anneesDispo ? filtre_colonne_html('booking_campagnes', 'annee', $anneesDispo, $annee, $autres('annee'), 'Période') : '' ?>
+            <?= filtre_colonne_html('booking_campagnes', 'statut', $statutLabels, $statut, $autres('statut'), 'État') ?>
         <?php
         $fmColonnes = ob_get_clean();
-        $fmActifs = filtre_colonne_actifs_html('campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id'))
-            . filtre_colonne_actifs_html('campagnes', 'annee', $anneesDispo, $annee, $autres('annee'))
-            . filtre_colonne_actifs_html('campagnes', 'statut', $statutLabels, $statut, $autres('statut'));
+        $fmActifs = filtre_colonne_actifs_html('booking_campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id'))
+            . filtre_colonne_actifs_html('booking_campagnes', 'annee', $anneesDispo, $annee, $autres('annee'))
+            . filtre_colonne_actifs_html('booking_campagnes', 'statut', $statutLabels, $statut, $autres('statut'));
         require __DIR__ . '/_filtres_mobile.php';
         ?>
         <div class="head-actions">
@@ -56,7 +56,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
                 comme appel noté à la main. Avant la date de début, aucun message ne part."
             ) ?>
             <?php if (peut_ecrire('booking')): ?>
-            <a class="btn" href="?p=campagne_form"><?= icon('plus') ?> Nouvelle campagne</a>
+            <a class="btn" href="?p=booking_campagne_form"><?= icon('plus') ?> Nouvelle campagne</a>
             <?php endif; ?>
         </div>
     </div>
@@ -74,11 +74,11 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
             <?php // Un entonnoir dont la liste d'options est vide n'aurait rien à
                   // filtrer : Projet et Période sont dérivés des campagnes
                   // elles-mêmes, et n'existent donc pas tant qu'il n'y en a aucune. ?>
-            <th class="col-reinit-hote"><span class="col-th"><?= bouton_reinit_filtres('campagnes', ['projet_id', 'annee', 'statut'], $filtreActif) ?>Projet <?= $projetsDispo ? filtre_colonne_html('campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id')) : '' ?></span></th>
+            <th class="col-reinit-hote"><span class="col-th"><?= bouton_reinit_filtres('booking_campagnes', ['projet_id', 'annee', 'statut'], $filtreActif) ?>Projet <?= $projetsDispo ? filtre_colonne_html('booking_campagnes', 'projet_id', $projetsDispo, $projet, $autres('projet_id')) : '' ?></span></th>
             <th>Campagne</th>
-            <th class="nowrap col-periode"><span class="col-th">Période <?= $anneesDispo ? filtre_colonne_html('campagnes', 'annee', $anneesDispo, $annee, $autres('annee')) : '' ?></span></th>
+            <th class="nowrap col-periode"><span class="col-th">Période <?= $anneesDispo ? filtre_colonne_html('booking_campagnes', 'annee', $anneesDispo, $annee, $autres('annee')) : '' ?></span></th>
             <th>Avancement</th>
-            <th class="nowrap col-etat"><span class="col-th">État <?= filtre_colonne_html('campagnes', 'statut', $statutLabels, $statut, $autres('statut')) ?></span></th>
+            <th class="nowrap col-etat"><span class="col-th">État <?= filtre_colonne_html('booking_campagnes', 'statut', $statutLabels, $statut, $autres('statut')) ?></span></th>
         </tr>
     </thead>
     <tbody>
@@ -98,7 +98,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
     <?php foreach (campagnes_groupees($campagnes) as $groupe): ?>
         <tr class="mois-sep"><td colspan="5"><?= e($groupe['titre']) ?></td></tr>
     <?php foreach ($groupe['campagnes'] as $c): $cid = (int) $c['id']; ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
+        <tr class="row-link" tabindex="0" role="link" data-href="?p=booking_campagne&id=<?= $cid ?>">
             <td>
                 <div class="projet-pastilles">
                 <?php if ($c['projets']): ?>
@@ -115,7 +115,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
             <?php // La couleur d'accent est réservée à ce qui demande du travail :
                   // une campagne en cours. À venir, en retard ou terminée, son nom
                   // s'écrit à l'encre — il reste un lien, il n'appelle plus. ?>
-            <td><a class="strong<?= $c['statut'] === 'en_cours' ? '' : ' lien-encre' ?>" href="?p=campagne&id=<?= $cid ?>"><?= e($c['nom']) ?></a></td>
+            <td><a class="strong<?= $c['statut'] === 'en_cours' ? '' : ' lien-encre' ?>" href="?p=booking_campagne&id=<?= $cid ?>"><?= e($c['nom']) ?></a></td>
             <td class="muted small nowrap col-periode">
                 <?php $d = $jour($c['date_debut']); $f = $jour($c['date_fin']); ?>
                 <?= $d !== '' ? e($d) : '—' ?><?= $f !== '' ? ' → ' . e($f) : '' ?>

@@ -107,7 +107,7 @@ function run_migrations(PDO $pdo): void
         79 => 'migration_79', // rapprochement fiche de salaire ↔ écriture bancaire (fiches.ecriture_id + ecritures.fiche_id), symétrique de la facture
         80 => 'migration_80', // postes salariaux : les lignes d'un décompte deviennent des enregistrements, et chaque fiche en fige une copie (étape 1, aucun changement de comportement)
         81 => 'migration_81', // reinit_motdepasse : jetons à usage unique du « mot de passe oublié » (empreinte seule, jamais le jeton)
-        82 => 'migration_82', // utilisateurs.derniere_connexion_le : la dernière connexion réussie, affichée dans ?p=comptes
+        82 => 'migration_82', // utilisateurs.derniere_connexion_le : la dernière connexion réussie, affichée dans ?p=utilisateurs
         83 => 'migration_83', // structures.email/telephone/personne_contact → un contact de la structure (structure_contacts)
         84 => 'migration_84', // …puis retrait de ces trois colonnes, devenues sans lecteur
         85 => 'migration_85', // campagnes de contact du booking : sélection de structures, projets concernés, et le projet sur un contact / un modèle
@@ -833,7 +833,7 @@ function migration_32(PDO $pdo): void
 // Carte « Employés » (fiche événement) : bascule « production externe » — les
 // employés liés n'ont alors pas de prestation/fiche de salaire (cachet géré
 // par l'organisateur externe) ; cocher détache les prestations déjà liées,
-// voir route_evenement_production_externe().
+// voir route_evenement_production_externe_enregistrer().
 function migration_33(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(evenements)')->fetchAll(), 'name');
@@ -1662,7 +1662,7 @@ function migration_57(PDO $pdo): void
 // Migration 58 : un événement peut être rattaché à plusieurs lieux et
 // plusieurs organisateurs (jusqu'ici : un seul de chaque, evenements.lieu_id/
 // organisateur_structure_id) — voir lib/routes_evenements.php
-// route_evenement_organisation(). Les deux colonnes existantes sont
+// route_evenement_organisation_enregistrer(). Les deux colonnes existantes sont
 // conservées comme miroir du premier lieu/organisateur lié (MIN(id) dans la
 // table de jointure), pour que tout le code qui les lit déjà (fiche lieu/
 // structure « événements liés », pré-remplissage facture, export SUISA,
@@ -1934,7 +1934,7 @@ function migration_61(PDO $pdo): void
 }
 
 // Migration 62 : couleur (hex, "" = couleur par défaut du badge) sur les
-// étiquettes de structure (?p=parametres_tags).
+// étiquettes de structure (?p=tags).
 function migration_62(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(structure_tags)')->fetchAll(), 'name');
@@ -2546,7 +2546,7 @@ function migration_81(PDO $pdo): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_reinit_jeton ON reinit_motdepasse(jeton_hash)');
 }
 
-// Dernière connexion réussie d'un compte, affichée dans ?p=comptes. Vide pour
+// Dernière connexion réussie d'un compte, affichée dans ?p=utilisateurs. Vide pour
 // les comptes existants jusqu'à leur prochaine connexion : on ne peut pas
 // inventer une date qui n'a jamais été enregistrée.
 function migration_82(PDO $pdo): void

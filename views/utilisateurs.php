@@ -63,7 +63,7 @@ $flashErr = [
         <tbody>
             <tr id="compte-ajout-row" hidden>
                 <td colspan="<?= 3 + count(PERMISSION_MODULES) ?>">
-                    <form method="post" action="?p=comptes" autocomplete="off" class="compte-ajout-form"
+                    <form method="post" action="?p=utilisateurs" autocomplete="off" class="compte-ajout-form"
                           data-ajout="#comptes-corps" data-ajout-message="Compte créé.">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <label>E-mail <input name="email" type="email" value="<?= e($emailSaisi) ?>" placeholder="personne@exemple.ch" required></label>

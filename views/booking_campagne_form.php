@@ -35,7 +35,7 @@ $cibF = ciblage_filtres_vue([
 <?php // Même charpente que les autres pages du module : la zone du module, un
       // en-tête de page, puis le tableau de sélection d'un bord à l'autre. ?>
 <div class="module-content"><div class="module-content-inner">
-<a class="back-link" href="<?= $id ? '?p=campagne&id=' . $id : '?p=campagnes' ?>"><?= icon('arrow-left') ?> <?= $id ? 'Campagne' : 'Campagnes' ?></a>
+<a class="back-link" href="<?= $id ? '?p=booking_campagne&id=' . $id : '?p=booking_campagnes' ?>"><?= icon('arrow-left') ?> <?= $id ? 'Campagne' : 'Campagnes' ?></a>
 
 <?php if ($err === 'nom'): ?><p class="err flash">Le nom de la campagne est obligatoire.</p><?php endif; ?>
 
@@ -52,7 +52,7 @@ $cibF = ciblage_filtres_vue([
     <?php if (peut_ecrire('booking')): ?>
     <?php ob_start(); ?>
         <?php if ($id): ?>
-        <form method="post" action="?p=campagne_delete" class="d-inline"
+        <form method="post" action="?p=booking_campagne_supprimer" class="d-inline"
               data-confirm="Supprimer la campagne « <?= e((string) ($campagne['nom'] ?? '')) ?> » ? Les structures et l'historique ne sont pas touchés.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $id ?>">
@@ -67,8 +67,8 @@ $cibF = ciblage_filtres_vue([
       // peuvent pas tenir dans le même <form> : les filtres sont des
       // formulaires GET (prévisualiser ne doit rien écrire), et un formulaire
       // ne s'imbrique pas. Les cases des structures se rattachent donc à
-      // celui-ci par form="campagne-form", comme les droits de ?p=comptes. ?>
-<form method="post" action="?p=campagne_enregistrer" class="card form" id="campagne-form">
+      // celui-ci par form="campagne-form", comme les droits de ?p=utilisateurs. ?>
+<form method="post" action="?p=booking_campagne_enregistrer" class="card form" id="campagne-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="id" value="<?= $id ?>">
     <?php // Les critères repartent avec l'enregistrement : ils sont gardés en
@@ -93,7 +93,7 @@ $cibF = ciblage_filtres_vue([
 <?php
 // Le ciblage lui-même : filtres, ajout par le nom, tableau à cocher. Le même
 // bloc que la composition d'une recherche de fonds.
-$cibPage = 'campagne_form';
+$cibPage = 'booking_campagne_form';
 $cibForm = 'campagne-form';
 $cibPrefixe = 'campagne';
 $cibTitre = 'Qui contacter';
@@ -125,8 +125,8 @@ require __DIR__ . '/_ciblage_structures.php';
 <script nonce="<?= e(csp_nonce()) ?>">
 // Recherche d'une structure à ajouter. Les noms ne sont pas écrits dans la
 // page : il y en a plusieurs milliers, et la page pèse déjà lourd. Ils sont
-// chargés au PREMIER focus (?p=lieux_options, la route qui sert déjà le même
-// choix à ?p=evenement_form), puis filtrés à la frappe par lassoInitCatSearch().
+// chargés au PREMIER focus (?p=lieux_json, la route qui sert déjà le même
+// choix à ?p=evenement), puis filtrés à la frappe par lassoInitCatSearch().
 //
 // Choisir une suggestion envoie le formulaire : l'ajout part dans l'URL avec
 // les filtres et la saisie en cours, et la page revient avec la structure à sa
@@ -146,7 +146,7 @@ require __DIR__ . '/_ciblage_structures.php';
     champ.addEventListener('focus', function () {
         if (chargee) { return; }
         chargee = true;
-        fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
+        fetch('?p=lieux_json', { headers: { 'Accept': 'application/json' } })
             .then(r => r.json())
             .then(function (opts) {
                 // Celles déjà dans le tableau ne sont pas proposées : les

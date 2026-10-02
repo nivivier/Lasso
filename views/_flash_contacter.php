@@ -1,5 +1,5 @@
 <?php
-// Retours de la fenêtre « Contacter » (route_structure_message). Partagés par la
+// Retours de la fenêtre « Contacter » (route_structure_message_envoyer). Partagés par la
 // fiche structure et la page d'une campagne : l'envoi ramène à celle des deux
 // d'où il est parti, et le message doit y être le même.
 $msg = (string) ($_GET['msg'] ?? '');

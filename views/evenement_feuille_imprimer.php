@@ -43,7 +43,7 @@ $titrePage = trim((string) ($evenement['spectacle_nom'] ?? '')) ?: 'Date';
         <?php $frRaison = $destinataires ? '' : ($sansAdresse
             ? "Aucun employé lié à cette date n'a d'adresse e-mail."
             : "Aucun employé n'est lié à cette date."); ?>
-        <form method="post" action="?p=evenement_feuille_email" target="_top" class="d-inline"
+        <form method="post" action="?p=evenement_feuille_envoyer" target="_top" class="d-inline"
               data-confirm="<?= $destinataires
                   ? 'Envoyer cette feuille de route à ' . count($destinataires) . ' employé(e)s : '
                     . e(implode(', ', array_column($destinataires, 'nom'))) . ' ?'

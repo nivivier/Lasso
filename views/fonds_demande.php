@@ -162,7 +162,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
     </div>
 
     <?php if ($peutEcrire): ?>
-    <form method="post" action="?p=fonds_versement" id="versement-form" class="card-edit form" hidden>
+    <form method="post" action="?p=fonds_versement_enregistrer" id="versement-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= $id ?>">
         <div class="grid3">
@@ -214,7 +214,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
         ) ?></h2>
         <?php if (!$facture && $peutEcrire && peut_ecrire('facturation')): ?>
         <div class="head-actions">
-            <a class="btn ghost" href="?p=facturation_form&fonds_demande_id=<?= $id ?>"><?= icon('file-plus') ?> <span class="lbl">Créer</span></a>
+            <a class="btn ghost" href="?p=facture_form&fonds_demande_id=<?= $id ?>"><?= icon('file-plus') ?> <span class="lbl">Créer</span></a>
         </div>
         <?php endif; ?>
     </div>
@@ -276,7 +276,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
     </div>
 
     <?php if ($peutEcrire): ?>
-    <form method="post" action="?p=fonds_pieces" id="pieces-form" class="card-edit form" hidden>
+    <form method="post" action="?p=fonds_bailleur_pieces_enregistrer" id="pieces-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= $id ?>">
         <div class="grid2">

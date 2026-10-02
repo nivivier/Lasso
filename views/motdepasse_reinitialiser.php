@@ -8,7 +8,7 @@
         <p><a href="?p=motdepasse_oublie">Demander un nouveau lien</a></p>
     <?php else: ?>
         <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
-        <form method="post" action="?p=motdepasse_reinit" class="form auth-form">
+        <form method="post" action="?p=motdepasse_reinitialiser" class="form auth-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="jeton" value="<?= e($jeton) ?>">
             <label>Nouveau mot de passe

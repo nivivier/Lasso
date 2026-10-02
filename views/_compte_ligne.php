@@ -1,7 +1,7 @@
 <?php
-// Les deux lignes d'un compte dans le tableau de ?p=comptes : celle qu'on lit,
+// Les deux lignes d'un compte dans le tableau de ?p=utilisateurs : celle qu'on lit,
 // et celle qui s'ouvre au crayon. Un seul gabarit, rendu par la boucle de la
-// page ET par route_comptes() quand un compte vient d'être créé sans recharger
+// page ET par route_utilisateurs() quand un compte vient d'être créé sans recharger
 // (docs/UI.md § 5) — deux exemplaires divergeraient à la première retouche.
 //
 // Le <form> d'édition vit dans la PREMIÈRE cellule de la ligne d'édition, et
@@ -53,7 +53,7 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                   // n'est modifiable tant qu'elle est fermée. ?>
             <tr class="compte-edit-row" hidden>
                 <td class="compte-edit-identite">
-                    <form method="post" action="?p=compte_modifier" id="<?= e($fid) ?>" autocomplete="off">
+                    <form method="post" action="?p=utilisateur_enregistrer" id="<?= e($fid) ?>" autocomplete="off">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                     </form>
@@ -81,10 +81,10 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                 <td colspan="3" class="compte-edit-actions">
                     <?php // Enregistrer, supprimer, annuler — l'ordre du geste
                           // (docs/UI.md § 2). Supprimer son propre compte n'est pas
-                          // proposé : route_compte_delete() le refuserait. ?>
+                          // proposé : route_utilisateur_supprimer() le refuserait. ?>
                     <button type="submit" form="<?= $fid ?>" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
                     <?php if (!$estMoi): ?>
-                    <form method="post" action="?p=compte_delete" class="d-inline"
+                    <form method="post" action="?p=utilisateur_supprimer" class="d-inline"
                           data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">

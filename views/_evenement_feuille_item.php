@@ -57,7 +57,7 @@ $feuilleTotal = $feuilleTotal ?? 0;
                         <button type="submit" name="sens" value="descendre" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $i === $feuilleTotal - 1 ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
                     </form>
                     <?php if ($type === 'fichier' && trim((string) $el['fichier']) !== ''): ?>
-                    <a class="btn ghost btn-sm icon-only" href="?p=evenement_fichier&id=<?= (int) $el['id'] ?>"
+                    <a class="btn ghost btn-sm icon-only" href="?p=evenement_feuille_fichier&id=<?= (int) $el['id'] ?>"
                        title="Télécharger" aria-label="Télécharger la pièce jointe"><?= icon('download') ?></a>
                     <?php endif; ?>
                     <?php // En édition, le crayon cède la place au trio : enregistrer

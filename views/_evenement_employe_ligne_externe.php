@@ -11,7 +11,7 @@ $depuisQs = $depuisQs ?? '';
                     <td><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
                     <td class="epf-actions-cell">
                         <?php if ($peutEcrireEv): ?>
-                        <form method="post" action="?p=evenement_employe_delier<?= $depuisQs ?>" data-confirm="Retirer cet employé de l'événement ?">
+                        <form method="post" action="?p=evenement_employe_retirer<?= $depuisQs ?>" data-confirm="Retirer cet employé de l'événement ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="employe_id" value="<?= (int) $emp['id'] ?>">

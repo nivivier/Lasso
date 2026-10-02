@@ -56,8 +56,8 @@ start_session();
 $route = $_GET['p'] ?? null;
 
 // Première installation : forcer la création du compte admin.
-if (!has_users() && $route !== 'setup') {
-    redirect('setup');
+if (!has_users() && $route !== 'installation') {
+    redirect('installation');
 }
 
 // Table de routage : route → handler, + route → module(s) dont dépend le
@@ -67,14 +67,14 @@ if (!has_users() && $route !== 'setup') {
 // de contrôle de droits au-delà de require_login() (routes du cœur toujours
 // universelles : tableau de bord, mon compte).
 $handlers = [
-    'setup'  => 'route_setup',
-    'login'  => 'route_login',
-    'logout' => 'route_logout',
+    'installation'  => 'route_installation',
+    'connexion'  => 'route_connexion',
+    'deconnexion' => 'route_deconnexion',
     // Mot de passe oublié : publiques par nature, comme la connexion.
     'motdepasse_oublie' => 'route_motdepasse_oublie',
-    'motdepasse_reinit' => 'route_motdepasse_reinit',
-    'compte' => 'route_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
-    'resumes' => 'route_resumes', // Tableau de bord : fait partie du cœur, toujours accessible.
+    'motdepasse_reinitialiser' => 'route_motdepasse_reinitialiser',
+    'mon_compte' => 'route_mon_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
+    'tableau_bord' => 'route_tableau_bord', // Tableau de bord : fait partie du cœur, toujours accessible.
     // Choix d'étiquette du widget « Suivi du booking » : une préférence
     // d'AFFICHAGE, pas une écriture sur le booking — un compte qui n'a que la
     // lecture doit pouvoir changer ce qu'il regarde. D'où l'absence de
@@ -92,44 +92,40 @@ $handlers = [
 $routeModules = [];
 
 ajouter_routes_module($handlers, $routeModules, 'salaires', [
-    'resume'       => 'route_resume',
+    'cotisations'       => 'route_cotisations',
     'employes'     => 'route_employes',
-    'employe_voir' => 'route_employe_voir',
-    'employe'      => 'route_employe',
-    'employe_delete' => 'route_employe_delete',
-    'employe_avatar' => 'route_employe_avatar',
+    'employe' => 'route_employe',
+    'employe_form'      => 'route_employe_form',
+    'employe_supprimer' => 'route_employe_supprimer',
+    'employe_photo' => 'route_employe_photo',
     'taux_horaires' => 'route_taux_horaires',
-    'unites'        => 'route_unites',
-    'taux'          => 'route_taux',
     'postes'        => 'route_postes',
-    'import_fiches' => 'route_import_fiches',
+    'fiches_importer' => 'route_fiches_importer',
     'fiches'       => 'route_fiches',
-    'fiche_new'    => 'route_fiche_new',
+    'fiche_form'    => 'route_fiche_form',
     'fiche'        => 'route_fiche',
-    'fiche_print'  => 'route_fiche_print',
-    'fiche_delete' => 'route_fiche_delete',
-    'fiche_edit'   => 'route_fiche_edit',
-    'fiches_recalcul' => 'route_fiches_recalcul',
-    'fiche_date'   => 'route_fiche_date',
-    'fiche_cout'   => 'route_fiche_cout',
-    'fiche_email'  => 'route_fiche_email',
+    'fiche_imprimer'  => 'route_fiche_imprimer',
+    'fiche_supprimer' => 'route_fiche_supprimer',
+    'fiche_modifier'   => 'route_fiche_modifier',
+    'fiches_recalculer' => 'route_fiches_recalculer',
+    'fiche_paiement'   => 'route_fiche_paiement',
+    'fiche_cout_employeur'   => 'route_fiche_cout_employeur',
+    'fiche_envoyer'  => 'route_fiche_envoyer',
     'certificat'       => 'route_certificat',
-    'certificat_print' => 'route_certificat_print',
-    'certificat_xml'   => 'route_certificat_xml',
+    'certificat_imprimer' => 'route_certificat_imprimer',
+    'certificat_exporter_xml'   => 'route_certificat_exporter_xml',
 ]);
 
 ajouter_routes_module($handlers, $routeModules, 'compta', [
-    'compta'           => 'route_compta',
     'compta_plan'      => 'route_compta_plan',
-    'compta_import'    => 'route_compta_import',
+    'compta_ecritures_importer'    => 'route_compta_ecritures_importer',
     'compta_ecritures' => 'route_compta_ecritures',
-    'compta_lettrage'  => 'route_compta_ecritures', // alias pour compatibilité
     'compta_regles'    => 'route_compta_regles',
     'compta_bilan'          => 'route_compta_bilan',
-    'compta_bilan_print'    => 'route_compta_bilan_print',
-    'compta_ecritures_csv'     => 'route_compta_ecritures_csv',
-    'compta_ecritures_camt053' => 'route_compta_ecritures_camt053',
-    'import_ecritures'         => 'route_import_ecritures',
+    'compta_bilan_imprimer'    => 'route_compta_bilan_imprimer',
+    'compta_ecritures_exporter_csv'     => 'route_compta_ecritures_exporter_csv',
+    'compta_ecritures_exporter_camt053' => 'route_compta_ecritures_exporter_camt053',
+    'compta_ecritures_importer_valider'         => 'route_compta_ecritures_importer_valider',
 ]);
 
 // Comptes bancaires : partagés entre Comptabilité (relevés, lettrage) et
@@ -144,12 +140,12 @@ if (module_actif('compta') || module_actif('facturation')) {
 ajouter_routes_module($handlers, $routeModules, 'analytique', [
     'compta_axes'           => 'route_compta_axes',
     'compta_analyse'        => 'route_compta_analyse',
-    'compta_analyse_print'      => 'route_compta_analyse_print',
+    'compta_analyse_imprimer'      => 'route_compta_analyse_imprimer',
     'compta_analyse_axe'        => 'route_compta_analyse_axe',
-    'compta_analyse_axe_print'  => 'route_compta_analyse_axe_print',
-    'compta_ventilation_save'         => 'route_compta_ventilation_save',
-    'compta_suggestion_ventilation'   => 'route_compta_suggestion_ventilation',
-    'compta_suggestion_preview'       => 'route_compta_suggestion_preview',
+    'compta_analyse_axe_imprimer'  => 'route_compta_analyse_axe_imprimer',
+    'compta_ventilation_enregistrer'         => 'route_compta_ventilation_enregistrer',
+    'compta_ventilation_suggestion'   => 'route_compta_ventilation_suggestion',
+    'compta_ventilation_suggestion_apercu'       => 'route_compta_ventilation_suggestion_apercu',
 ]);
 if (module_actif('analytique') && module_actif('salaires')) {
     $handlers['fiche_ligne_axe_save'] = 'route_fiche_ligne_axe_save';
@@ -157,19 +153,18 @@ if (module_actif('analytique') && module_actif('salaires')) {
 }
 
 ajouter_routes_module($handlers, $routeModules, 'facturation', [
-    'facturation'           => 'route_facturation',
-    'facturation_liste'     => 'route_facturation_liste',
-    'facturation_form'      => 'route_facturation_form',
+    'factures'     => 'route_factures',
+    'facture_form'      => 'route_facture_form',
     'facture'               => 'route_facture',
     'facture_emettre'       => 'route_facture_emettre',
-    'facture_payee'         => 'route_facture_payee',
+    'facture_paiement'         => 'route_facture_paiement',
     'facture_annuler'       => 'route_facture_annuler',
-    'facture_delete'        => 'route_facture_delete',
-    'facture_pdf'           => 'route_facture_pdf',
-    'facture_email'         => 'route_facture_email',
-    'facture_rappel'        => 'route_facture_rappel',
-    'facture_ligne_axe'     => 'route_facture_ligne_axe',
-    'import_factures'       => 'route_import_factures',
+    'facture_supprimer'        => 'route_facture_supprimer',
+    'facture_exporter_pdf'           => 'route_facture_exporter_pdf',
+    'facture_envoyer'         => 'route_facture_envoyer',
+    'facture_rappel_imprimer'        => 'route_facture_rappel_imprimer',
+    'facture_ligne_axe_enregistrer'     => 'route_facture_ligne_axe_enregistrer',
+    'factures_importer'       => 'route_factures_importer',
 ]);
 
 // Structures (ex-débiteurs) : liste/fiche/suppression partagées entre
@@ -192,33 +187,33 @@ if (module_actif('facturation') || module_actif('booking')) {
 
 ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_contact_ajouter' => 'route_structure_contact_ajouter',
-    'structure_contact_delete'  => 'route_structure_contact_delete',
+    'structure_contact_supprimer'  => 'route_structure_contact_supprimer',
     'structure_note_ajouter' => 'route_structure_note_ajouter',
     'structure_note_modifier' => 'route_structure_note_modifier',
     'structure_tag_ajouter'  => 'route_structure_tag_ajouter',
     'structure_tag_retirer'  => 'route_structure_tag_retirer',
     'structure_tag_gerer'    => 'route_structure_tag_gerer',
     'structure_lieu_lier'    => 'route_structure_lieu_lier',
-    'structure_lieu_delier'  => 'route_structure_lieu_delier',
-    'structure_localisation' => 'route_structure_localisation',
-    'structure_message'      => 'route_structure_message',
-    'structures_options'     => 'route_structures_options',
-    'lieux_options'          => 'route_lieux_options',
+    'structure_lieu_retirer'  => 'route_structure_lieu_retirer',
+    'structure_localisation_enregistrer' => 'route_structure_localisation_enregistrer',
+    'structure_message_envoyer'      => 'route_structure_message_envoyer',
+    'structures_json'     => 'route_structures_json',
+    'lieux_json'          => 'route_lieux_json',
     'mailing_modeles'        => 'route_mailing_modeles',
     // Campagnes de contact : une sélection de structures à démarcher, contact
     // par contact. Rattachées au booking et non au sous-module « Envois
     // groupés » — elles fonctionnent sans le mailing de masse.
-    'campagnes'              => 'route_campagnes',
-    'campagne'               => 'route_campagne',
-    'campagne_form'          => 'route_campagne_form',
-    'campagne_enregistrer'   => 'route_campagne_enregistrer',
-    'campagne_delete'        => 'route_campagne_delete',
-    'campagne_reponse'       => 'route_campagne_reponse',
-    'structure_campagne'     => 'route_structure_campagne',
+    'booking_campagnes'              => 'route_booking_campagnes',
+    'booking_campagne'               => 'route_booking_campagne',
+    'booking_campagne_form'          => 'route_booking_campagne_form',
+    'booking_campagne_enregistrer'   => 'route_booking_campagne_enregistrer',
+    'booking_campagne_supprimer'        => 'route_booking_campagne_supprimer',
+    'booking_campagne_reponse_enregistrer'       => 'route_booking_campagne_reponse_enregistrer',
+    'booking_campagne_structure'     => 'route_booking_campagne_structure',
     'mailing_exclusions'     => 'route_mailing_exclusions',
-    'import_structures'      => 'route_import_structures',
-    'parametres_structures'  => 'route_parametres_structures',
-    'parametres_tags'        => 'route_parametres_tags',
+    'structures_importer'      => 'route_structures_importer',
+    'categories_structures'  => 'route_categories_structures',
+    'tags'        => 'route_tags',
 ]);
 // Envois groupés (sous-module du booking) : le ciblage, la file d'attente et
 // son suivi. Le reste du mailing — modèles de message, liste d'exclusion —
@@ -239,63 +234,62 @@ if (module_actif('booking')) {
 }
 
 ajouter_routes_module($handlers, $routeModules, 'fonds', [
-    'fonds'                      => 'route_fonds',
+    'fonds_campagnes'                      => 'route_fonds_campagnes',
     'fonds_campagne_form'        => 'route_fonds_campagne_form',
     'fonds_campagne_enregistrer' => 'route_fonds_campagne_enregistrer',
     'fonds_campagne'             => 'route_fonds_campagne',
     'fonds_demande'              => 'route_fonds_demande',
     'fonds_demande_enregistrer'  => 'route_fonds_demande_enregistrer',
-    'fonds_pieces'               => 'route_fonds_pieces',
-    'fonds_versement'            => 'route_fonds_versement',
-    'fonds_structure_campagne'   => 'route_fonds_structure_campagne',
+    'fonds_bailleur_pieces_enregistrer'               => 'route_fonds_bailleur_pieces_enregistrer',
+    'fonds_versement_enregistrer'            => 'route_fonds_versement_enregistrer',
+    'fonds_campagne_structure_ajouter'   => 'route_fonds_campagne_structure_ajouter',
 ]);
 
 ajouter_routes_module($handlers, $routeModules, 'evenements', [
-    'evenements'         => 'route_evenements',
-    'evenements_liste'   => 'route_evenements_liste',
+    'evenements'   => 'route_evenements',
     'evenements_geocoder' => 'route_evenements_geocoder',
-    'evenements_export_suisa' => 'route_evenements_export_suisa',
-    'evenements_export_suisa_apercu' => 'route_evenements_export_suisa_apercu',
+    'evenements_suisa_exporter' => 'route_evenements_suisa_exporter',
+    'evenements_suisa_exporter_apercu' => 'route_evenements_suisa_exporter_apercu',
     'evenement'          => 'route_evenement',
-    'evenement_informations' => 'route_evenement_informations',
-    'evenement_localisation' => 'route_evenement_localisation',
-    'evenement_organisation' => 'route_evenement_organisation',
-    'evenement_delete'   => 'route_evenement_delete',
-    'evenement_suisa'    => 'route_evenement_suisa',
-    'evenement_production_externe' => 'route_evenement_production_externe',
+    'evenement_informations_enregistrer' => 'route_evenement_informations_enregistrer',
+    'evenement_localisation_enregistrer' => 'route_evenement_localisation_enregistrer',
+    'evenement_organisation_enregistrer' => 'route_evenement_organisation_enregistrer',
+    'evenement_supprimer'   => 'route_evenement_supprimer',
+    'evenement_suisa_enregistrer'    => 'route_evenement_suisa_enregistrer',
+    'evenement_production_externe_enregistrer' => 'route_evenement_production_externe_enregistrer',
     'evenement_employe_lier'   => 'route_evenement_employe_lier',
-    'evenement_employe_delier' => 'route_evenement_employe_delier',
+    'evenement_employe_retirer' => 'route_evenement_employe_retirer',
     'evenement_ligne_ajouter'     => 'route_evenement_ligne_ajouter',
     'evenement_feuille_ajouter'   => 'route_evenement_feuille_ajouter',
     'evenement_feuille_imprimer'  => 'route_evenement_feuille_imprimer',
-    'evenement_feuille_email'     => 'route_evenement_feuille_email',
+    'evenement_feuille_envoyer'     => 'route_evenement_feuille_envoyer',
     'evenement_feuille_modifier'  => 'route_evenement_feuille_modifier',
     'evenement_feuille_supprimer' => 'route_evenement_feuille_supprimer',
     'evenement_feuille_deplacer'  => 'route_evenement_feuille_deplacer',
     'evenement_feuille_ordre'     => 'route_evenement_feuille_ordre',
     'evenement_facture_lier'   => 'route_evenement_facture_lier',
-    'evenement_facture_delier' => 'route_evenement_facture_delier',
+    'evenement_facture_retirer' => 'route_evenement_facture_retirer',
     'facture_evenement_lier'   => 'route_facture_evenement_lier',
     'spectacles'         => 'route_spectacles',
     'spectacle'          => 'route_spectacle',
     'spectacle_delete'   => 'route_spectacle_delete',
     'spectacle_image'    => 'route_spectacle_image',
-    'parametres_evenements' => 'route_parametres_evenements',
-    'import_evenements'  => 'route_import_evenements',
+    'evenements_reglages' => 'route_evenements_reglages',
+    'evenements_importer'  => 'route_evenements_importer',
 ]);
 // Export public (site web / agenda externe) : protégé par un jeton dédié
 // (evenements_verifier_token()), pas par une session utilisateur — reste
 // accessible même à un visiteur non connecté, donc jamais soumis à
 // peut_lire()/peut_ecrire() comme le reste du module.
 if (module_actif('evenements')) {
-    $handlers['evenements_json'] = 'route_evenements_json';
-    $handlers['evenements_ical'] = 'route_evenements_ical';
+    $handlers['evenements_exporter_json'] = 'route_evenements_exporter_json';
+    $handlers['evenements_exporter_ical'] = 'route_evenements_exporter_ical';
     // Calendrier de l'équipe et pièces jointes qu'il référence : hors session,
     // protégés par leur propre jeton (feuille_jeton_equipe_fourni()). La route
     // des fichiers accepte AUSSI une session — c'est par elle que la fiche d'un
     // événement les télécharge.
-    $handlers['evenements_equipe_ical'] = 'route_evenements_equipe_ical';
-    $handlers['evenement_fichier']      = 'route_evenement_fichier';
+    $handlers['evenements_equipe_exporter_ical'] = 'route_evenements_equipe_exporter_ical';
+    $handlers['evenement_feuille_fichier']      = 'route_evenement_feuille_fichier';
 }
 
 // Géocodage d'une seule ville (mini-carte de localisation sur ?p=structure,
@@ -314,14 +308,13 @@ if (module_actif('booking') || module_actif('evenements')) {
 // sauvegarde complète de la base) — voir SPEC_PERMISSIONS.md §7.
 if (peut_lire('coeur')) {
     $handlers += [
-        'parametres'      => 'route_parametres',
         'employeur'       => 'route_employeur',
         'emails'          => 'route_emails',
         'emails_booking'  => 'route_emails_booking',
         'export'          => 'route_export',
-        'parametres_pays' => 'route_parametres_pays',
+        'pays' => 'route_pays',
     ];
-    foreach (['parametres', 'employeur', 'emails', 'emails_booking', 'export', 'parametres_pays'] as $r) {
+    foreach (['parametres', 'employeur', 'emails', 'emails_booking', 'export', 'pays'] as $r) {
         $routeModules[$r] = ['coeur'];
     }
 }
@@ -330,15 +323,15 @@ if (peut_ecrire('coeur')) {
     // seule, elles sont entièrement réservées à l'écriture cœur (déjà
     // conditionnées par leur présence même dans $handlers, ci-dessus).
     $handlers += [
-        'comptes'             => 'route_comptes',
-        'compte_modifier'     => 'route_compte_modifier',
-        'compte_delete'       => 'route_compte_delete',
-        'parametres_modules'  => 'route_parametres_modules',
+        'utilisateurs'             => 'route_utilisateurs',
+        'utilisateur_enregistrer'     => 'route_utilisateur_enregistrer',
+        'utilisateur_supprimer'       => 'route_utilisateur_supprimer',
+        'modules'  => 'route_modules',
         'maj'                 => 'route_maj',
         'diagnostic'          => 'route_diagnostic',
         'apparence'           => 'route_apparence',
         'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
-        'backup'              => 'route_backup',
+        'sauvegarde'              => 'route_sauvegarde',
         'dev'                 => 'route_dev',
     ];
 }

@@ -13,7 +13,7 @@
 <div class="card form">
     <h2>Importer un relevé bancaire</h2>
     <p class="muted small">Téléversez un export PostFinance (CSV) ou un relevé <strong>ISO 20022 camt.053</strong> (XML). Le compte bancaire est reconnu automatiquement par son IBAN — <strong>s'il n'existe pas encore, vous pourrez lui donner un nom</strong> après avoir simulé l'import. Les doublons sont ignorés : vous pouvez réimporter ou ajouter des périodes qui se chevauchent sans risque. Les règles de lettrage sont appliquées automatiquement après l'import.</p>
-    <form method="post" action="?p=compta_import" enctype="multipart/form-data">
+    <form method="post" action="?p=compta_ecritures_importer" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="add-row">
             <label>Fichier (CSV ou XML) <input type="file" name="fichier" accept=".csv,text/csv,.xml,application/xml,text/xml" required></label>
@@ -26,7 +26,7 @@
     </form>
 </div>
 
-<?php $actionUrl = '?p=compta_import'; require __DIR__ . '/_import_ecritures_preview.php'; ?>
+<?php $actionUrl = '?p=compta_ecritures_importer'; require __DIR__ . '/_import_ecritures_preview.php'; ?>
 
 <?php if ($imports): ?>
 <div class="card">
@@ -54,7 +54,7 @@
                     $confirm = "Annuler cet import ?\n\n$nbAct écriture(s) seront supprimées"
                         . ($nbLet > 0 ? " (dont $nbLet déjà lettrée(s) — leur lettrage sera perdu)" : '') . '.';
                     ?>
-                    <form method="post" action="?p=compta_import" data-confirm="<?= e($confirm) ?>" class="d-inline">
+                    <form method="post" action="?p=compta_ecritures_importer" data-confirm="<?= e($confirm) ?>" class="d-inline">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="del">
                         <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">

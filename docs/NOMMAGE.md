@@ -76,7 +76,7 @@ un lien lui aussi, et `evenement_feuille_supprimer` détruit.
 |---|---|
 | `facturation_liste`, `evenements_liste` | `fiches`, `employes`, `campagnes`, `spectacles`, `structures`, `postes`, `comptes`, `fonds` |
 
-Et `views/structures_liste.php` porte le suffixe alors que **sa route ne l'a
+Et `views/structures.php` porte le suffixe alors que **sa route ne l'a
 pas**.
 
 ### 2.5 Quatre conventions pour « le formulaire »
@@ -107,7 +107,7 @@ de tous les autres modules, où le nom nu est la fiche.
 | `mailing_campagne` | une campagne d'**envoi groupé** |
 
 Le démarchage, arrivé le premier, a pris le mot nu. Les deux autres ont dû se
-préfixer. Résultat : `?p=campagne` ne dit pas de laquelle il s'agit, et c'est
+préfixer. Résultat : `?p=booking_campagne` ne dit pas de laquelle il s'agit, et c'est
 la seule des trois qui ne le dit pas — l'ancienneté n'est pas une raison.
 
 Le piège est le même que celui déjà rencontré à l'écran, où la carte du tableau
@@ -115,7 +115,7 @@ de bord a été renommée « Booking » et la colonne des structures « Campagne
 booking » : **là où les deux sortes se croisent, le nom doit dire laquelle.**
 Les URL n'ont pas encore suivi.
 
-Deuxième anomalie du même endroit : `?p=fonds` est la **liste des campagnes**
+Deuxième anomalie du même endroit : `?p=fonds_campagnes` est la **liste des campagnes**
 de recherche de fonds — un pluriel qui manque (N2), et un nom de module servant
 de nom d'écran.
 
@@ -335,7 +335,7 @@ profondeurs, et elles ne coûtent pas la même chose :
 
 | couche | ce que c'est | volume | risque |
 |---|---|---|---|
-| **1. Routes, vues, fonctions `route_*()`** | `?p=spectacles`, `views/spectacle_form.php` | 20 citations `?p=`, 12 `redirect()`/`render()`, 2 fichiers, 4 fonctions | nul — **on la fait** |
+| **1. Routes, vues, fonctions `route_*()`** | `?p=spectacles`, `views/projet_form.php` | 20 citations `?p=`, 12 `redirect()`/`render()`, 2 fichiers, 4 fonctions | nul — **on la fait** |
 | **2. Identifiants PHP** | `spectacle_map()`, `$spectacles`, `spectacle_nom`, `spectacleId` | ~700 occurrences | nul, purement mécanique — **on la fait**, dans la même livraison |
 | **3. Le schéma** | table `spectacles`, colonne `evenements.spectacle_id`, et quatre tables de liaison (`campagne_spectacles`, `historique_spectacles`, `mailing_modele_spectacles`, `fonds_campagne_spectacles`) | 5 tables, 5 colonnes, 3 index | **on la fait aussi** — la version de SQLite de l'hébergeur a été relevée : 3.34, voir ci-dessous |
 | **4. La clé `spectacle` de l'export JSON** | contrat avec le site web qui le consomme | 1 clé | contrat externe — § 5 |
@@ -594,7 +594,7 @@ Comptabilité, Facturation, Événements, Booking. Pour chacun :
    - relire les commentaires : 75 citations dans le CSS, 58 dans `docs/`.
 
    L'ordre va du moins cité au plus cité ; Booking en dernier, qui porte la
-   famille « campagne » et ses 25 citations de `?p=campagne*`. La livraison
+   famille « campagne » et ses 25 citations de `?p=booking_campagne*`. La livraison
    **Événements** porte en plus les six gestes du § 5 : elle doit l'annoncer en
    tête de son entrée de CHANGELOG.
 
@@ -622,7 +622,7 @@ pièges le rendent non trivial :
   travail que rien ne vérifie, sauf une relecture.
 
 **Gain** : une route se devine au lieu de se chercher ; `comptes` et
-`compta_comptes` cessent de se confondre ; `?p=campagne` ne laisse plus
+`compta_comptes` cessent de se confondre ; `?p=booking_campagne` ne laisse plus
 deviner de quelle sorte de campagne il s'agit, puisqu'il n'existe plus ; le
 test de nommage empêche la dette de revenir. Et chaque fois qu'un écran est
 ajouté, la question « il s'appelle comment, déjà ? » a une réponse écrite.
@@ -641,7 +641,7 @@ ajouté, la question « il s'appelle comment, déjà ? » a une réponse écrite
 | 6 | `fiche_cout` règle l'affichage du **coût employeur** sur une fiche : `fiche_cout_employeur`. |
 | 7 | **Aucune redirection depuis les anciens noms.** Même raison qu'au § 1 : un seul utilisateur, des signets qui se refont en un après-midi. Une table d'alias serait un second jeu de noms à entretenir — et à retirer un jour, ce qu'on ne ferait jamais. Les six redirections déjà écrites à la main disparaissent avec. |
 | 8 | **Aucune route ne s'appelle `campagne` tout court.** Trois modules emploient le mot : `booking_campagne`, `fonds_campagne`, `mailing_campagne`. Le démarchage perd le mot nu qu'il avait pris le premier — l'ancienneté n'est pas une raison. |
-| 9 | `?p=fonds` devient **`fonds_campagnes`** : c'est une liste (N2), et un nom de module ne fait pas un nom d'écran. |
+| 9 | `?p=fonds_campagnes` devient **`fonds_campagnes`** : c'est une liste (N2), et un nom de module ne fait pas un nom d'écran. |
 | 10 | **« spectacle » devient « projet »** dans les routes, les vues et les identifiants PHP — le mot visible est réglable, mais le code doit en figer un, et autant figer celui que l'application propose par défaut. Le repli en dur de `evenements_terme_spectacle()` passe de `'Spectacles'` à `'Projets'` dans la même livraison, sans quoi l'écran dirait « Spectacles » sous une URL `?p=projets`. |
 | 11 | **Le schéma suit aussi.** L'hébergeur est en SQLite **3.34**, au-dessus du seuil de 3.25 où `RENAME TO` répare les clés étrangères des autres tables et où `RENAME COLUMN` existe. On renomme, on ne duplique pas : dupliquer obligerait à reconstruire six tables, dont `evenements`. Procédure essayée et vérifiée, § 4.6. |
 | 12 | **Le terme réglable devient DEUX paramètres**, `evenements_terme_projet` (pluriel) et `evenements_terme_projet_singulier` : le français ne forme pas toujours son pluriel en ajoutant un « s », et la dérivation automatique disparaît. `evenements_terme_spectacle()` devient `evenements_terme_projet()`, même signature. La clé bouge en base — cette livraison écrit déjà une migration, reporter une ligne de `parametres` y tient en une instruction. |

@@ -144,7 +144,7 @@ bibliothèque serait déraisonnable.
   génération référence SCOR, statut dérivé, détection retard.
 - `lib/routes_facturation.php` — `route_facturation_*`, inclus depuis `index.php` comme
   `routes_compta.php`.
-- `views/facturation_liste.php`, `facturation_form.php`, `facturation_voir.php`,
+- `views/factures.php`, `facturation_form.php`, `facturation_voir.php`,
   `facturation_debiteurs.php`, `facturation_debiteur_form.php`.
 - Génération PDF : soit une route dédiée renvoyant `application/pdf`, soit un helper
   appelé aussi bien pour le téléchargement que pour la pièce jointe e-mail.

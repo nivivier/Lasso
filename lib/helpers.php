@@ -198,7 +198,7 @@ function current_user(): ?array
 function require_login(): void
 {
     if (!current_user()) {
-        redirect('login');
+        redirect('connexion');
     }
     // Expiration : inactivité (SESSION_IDLE) ou durée de vie absolue (SESSION_ABSOLUTE).
     $now = time();
@@ -206,7 +206,7 @@ function require_login(): void
     $old  = isset($_SESSION['login_time']) && ($now - (int) $_SESSION['login_time']) > session_duree_absolue();
     if ($idle || $old) {
         logout_session();
-        redirect('login', ['expired' => 1]);
+        redirect('connexion', ['expired' => 1]);
     }
     $_SESSION['last_activity'] = $now;
 }
@@ -824,7 +824,7 @@ function filtre_coche(string $cle, string $cleSession, ?array $valeurs = null, b
 // ⚠️ C'est le seul moyen correct d'écrire un tel lien. Les filtres de colonne
 // sont des filtre_coche() : ils ne lisent `$_GET` que si le marqueur
 // « <clé>_set » l'accompagne, et retombent sinon sur la SESSION. Un lien écrit
-// « ?p=evenements_liste&statut=annule » n'a donc aucun effet — il rouvre la
+// « ?p=evenements&statut=annule » n'a donc aucun effet — il rouvre la
 // liste telle qu'on l'avait laissée, en promettant autre chose. L'erreur a été
 // faite deux fois, et elle ne se voit pas à la lecture du lien : la page
 // s'ouvre, elle montre simplement les mauvaises lignes.
@@ -1625,7 +1625,7 @@ function periode_courante(array $c, string $aujourdhui = ''): bool
 // la même chose et doivent la montrer pareil.
 //
 // $segments : clé => [classe CSS, valeur]. La clé devient data-part, par quoi
-// un écran repeint la barre sans recharger (voir le script de views/campagne.php).
+// un écran repeint la barre sans recharger (voir le script de views/booking_campagne.php).
 //
 // $repere : ['pct' => position en %, 'classe' => classe CSS] — un trait posé en
 // travers de la piste, pour un seuil qui n'est pas la fin de la barre. La
@@ -2457,7 +2457,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     // actif (compte/année/catégorie…) est repris automatiquement au retour
     // via filtre_persistant() (session), pas besoin de l'encoder dans l'URL.
     $statiques = [
-        'dashboard'        => ['?p=resumes', 'Tableau de bord'],
+        'dashboard'        => ['?p=tableau_bord', 'Tableau de bord'],
         'compta_ecritures' => ['?p=compta_ecritures', 'Écritures'],
         'structures'       => ['?p=structures', 'Structures'],
     ];
@@ -2491,7 +2491,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             $stmt->execute([$id]);
             $emp = $stmt->fetch();
             if ($emp) {
-                return lien_retour('?p=employe_voir&id=' . $id, $emp['prenom'] . ' ' . $emp['nom']);
+                return lien_retour('?p=employe&id=' . $id, $emp['prenom'] . ' ' . $emp['nom']);
             }
         } elseif ($m[1] === 'facture') {
             $stmt = db()->prepare('SELECT numero FROM factures WHERE id = ?');
@@ -2513,7 +2513,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             // retourne — pas sur la liste des structures, où l'on n'était pas.
             $c = campagne_charger($id);
             if ($c) {
-                return lien_retour('?p=campagne&id=' . $id, (string) $c['nom']);
+                return lien_retour('?p=booking_campagne&id=' . $id, (string) $c['nom']);
             }
         } elseif ($m[1] === 'fonds_demande') {
             // Arrivé sur une facture depuis le dossier qu'elle règle, on y
@@ -3057,7 +3057,7 @@ function icone_table(): array
         'settings'  => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
         'menu'      => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
         'x'         => '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
-        // Réglage de la pastille d'identité d'un employé (?p=employe_voir).
+        // Réglage de la pastille d'identité d'un employé (?p=employe).
         // Les trois décors de fond de ?p=apparence (le quatrième, « maillage »,
         // emprunte 'sparkles' ci-dessous, et l'image personnalisée 'image').
         'waves'     => '<path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>',
@@ -3298,7 +3298,7 @@ function info_tip(string $texte): string
 
 // Sélecteur segmenté à icônes (ex. type de structure, visibilité d'un
 // événement) — remplace un <select> par des boutons-icônes connectés dont un
-// seul est actif, exactement le format des droits par module de ?p=comptes
+// seul est actif, exactement le format des droits par module de ?p=utilisateurs
 // (.perm-toggle), mais horizontal. Radios cachés : la valeur est soumise
 // naturellement dans le formulaire, sans JS. $options : [valeur => ['icone' =>
 // nom pour icon(), 'label' => texte accessible/tooltip]], dans l'ordre voulu.
@@ -3528,7 +3528,7 @@ function entete_form_actions_html(string $form, string $retour = '', array $opts
 // Réponse reçue d'une structure dans une campagne — même sélecteur segmenté que
 // le statut d'une structure (structure_statut_toggle_html() ci-dessus), et même
 // enregistrement à la volée : un clic écrit, sans formulaire ni rechargement
-// (route_campagne_reponse() + lassoInitReponseToggle(), assets/app.js).
+// (route_booking_campagne_reponse_enregistrer() + lassoInitReponseToggle(), assets/app.js).
 function campagne_reponse_toggle_html(int $campagneId, int $structureId, string $reponse): string
 {
     $h = '<div class="seg-picker reponse-toggle" role="radiogroup" aria-label="Réponse reçue"'
@@ -3543,7 +3543,7 @@ function campagne_reponse_toggle_html(int $campagneId, int $structureId, string 
 }
 
 // Attribut style="…" d'un badge d'étiquette à la couleur choisie par
-// l'utilisateur (?p=parametres_tags, structure_tags.couleur) — fond teinté à
+// l'utilisateur (?p=tags, structure_tags.couleur) — fond teinté à
 // faible opacité (même esprit que --highlight-tint/-d) + texte à la couleur
 // pleine. '' (attribut vide) si pas de couleur : le badge garde son style par
 // défaut (.badge, assets/app.css).

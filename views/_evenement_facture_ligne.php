@@ -16,7 +16,7 @@ $depuisQs = $depuisQs ?? '';
                     <td><?= facturation_badge($fa) ?></td>
                     <td>
                         <?php if ($peutEcrireEv): ?>
-                        <form method="post" action="?p=evenement_facture_delier<?= $depuisQs ?>" data-confirm="Délier cette facture de l'événement ?">
+                        <form method="post" action="?p=evenement_facture_retirer<?= $depuisQs ?>" data-confirm="Délier cette facture de l'événement ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $id ?>">
                             <input type="hidden" name="facture_id" value="<?= (int) $fa['id'] ?>">

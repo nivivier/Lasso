@@ -13,9 +13,9 @@ $termeSingulier = evenements_terme_spectacle(false);
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
 unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
-$lienVue = fn (string $v) => '?p=evenements_liste&' . http_build_query($qsSansVue + ['vue' => $v]);
+$lienVue = fn (string $v) => '?p=evenements&' . http_build_query($qsSansVue + ['vue' => $v]);
 // Lien pour quitter le filtre « non localisés » (venu de la vue carte) sans
-// perdre les autres filtres actifs — voir views/structures_liste.php.
+// perdre les autres filtres actifs — voir views/structures.php.
 $qsSansNonLocalises = $_GET;
 unset($qsSansNonLocalises['non_localises']);
 $lienQuitterNonLocalises = '?' . http_build_query($qsSansNonLocalises);
@@ -47,7 +47,7 @@ $tousFiltres = ['annee' => $annee, 'spectacle_id' => $spectacleId, 'statut' => $
 $autresFiltres = autres_filtres_fn($tousFiltres);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
-<?php $actionUrl = '?p=evenements_liste'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?php $actionUrl = '?p=evenements'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?= filtre_non_localises_flash_html($nonLocalises, 'événements', $lienQuitterNonLocalises) ?>
 <?php if ($prodExterneOk): ?><p class="flash"><?= (int) $prodExterneOk ?> événement(s) passé(s) en « Production externe ».</p><?php endif; ?>
 <?php if ($prodExterneBloques): ?><p class="err flash"><?= (int) $prodExterneBloques ?> événement(s) non modifié(s) : une prestation liée est déjà sur une fiche payée (figée, jamais modifiée).</p><?php endif; ?>
@@ -56,7 +56,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
-            <input type="hidden" name="p" value="evenements_liste">
+            <input type="hidden" name="p" value="evenements">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <?= champ_recherche(['id' => 'evenements-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
@@ -80,7 +80,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         ];
         $actifsFiltresEv = '';
         foreach ($filtresEv as [$champ, $lib, $labels, $actives]) {
-            $actifsFiltresEv .= filtre_colonne_actifs_html('evenements_liste', $champ, $labels, $actives, $autresFiltres($champ));
+            $actifsFiltresEv .= filtre_colonne_actifs_html('evenements', $champ, $labels, $actives, $autresFiltres($champ));
         }
         ?>
         <details class="filters-more filtres-mobile<?= $vue === 'carte' ? ' filtres-carte' : '' ?>">
@@ -88,7 +88,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             <div class="filtres-mobile-panneau">
                 <div class="filters carte-filters filters-more-body">
                     <?php foreach ($filtresEv as [$champ, $lib, $labels, $actives]): ?>
-                    <?= filtre_colonne_html('evenements_liste', $champ, $labels, $actives, $autresFiltres($champ) + $vueExtraEv, $lib) ?>
+                    <?= filtre_colonne_html('evenements', $champ, $labels, $actives, $autresFiltres($champ) + $vueExtraEv, $lib) ?>
                     <?php endforeach; ?>
                 </div>
                 <?php if ($actifsFiltresEv !== ''): ?>
@@ -109,7 +109,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             <?php // Même mécanique que « Aperçu » sur une fiche, un certificat ou un
                   // bilan : [data-preview] ouvre la page dans la fenêtre partagée
                   // (views/layout.php), et le téléchargement part de sa barre d'outils. ?>
-            <a class="btn ghost" href="?p=evenements_export_suisa_apercu&amp;<?= $exportQs ?>" data-preview="ajuste" target="_blank"
+            <a class="btn ghost" href="?p=evenements_suisa_exporter_apercu&amp;<?= $exportQs ?>" data-preview="ajuste" target="_blank"
                title="Voir puis exporter les événements filtrés actuellement (SUISA + organisateur)">
                 <?= icon('eye') ?> <span class="lbl">Export SUISA</span>
             </a>
@@ -124,7 +124,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <?php else: ?>
 <?php if (peut_ecrire('evenements')): ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
-    <form method="post" id="bulkform" action="?p=evenements_liste">
+    <form method="post" id="bulkform" action="?p=evenements">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <select name="section" id="bulk-action" class="inline-year-select">
             <option value="">— Choisir une action —</option>
@@ -204,52 +204,52 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
     <?php $nbCols = 8 - (peut_ecrire('evenements') ? 0 : 1); ?>
     <thead>
         <tr>
-            <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements_liste', ['annee', 'statut', 'statut_suisa', 'spectacle_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $spectacleId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements', ['annee', 'statut', 'statut_suisa', 'spectacle_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $spectacleId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <?php // Chaque en-tête est à la fois triable (le libellé, un lien) et
                   // filtrable (l'entonnoir à côté) : deux gestes distincts sur la
                   // même colonne. Le lien emporte les filtres actifs, d'où
                   // $autresFiltres('') — la closure sans clé à retirer. ?>
-            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('evenements_liste', $cle, $lib, $tri, $autresFiltres('')); ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('evenements', $cle, $lib, $tri, $autresFiltres('')); ?>
             <th class="col-date">
                 <span class="col-th">
                     <?= $triCol('date', 'Date') ?>
-                    <?= filtre_colonne_html('evenements_liste', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
+                    <?= filtre_colonne_html('evenements', 'annee', $anneeLabels, $annee, $autresFiltres('annee')) ?>
                 </span>
             </th>
             <th class="col-spectacle">
                 <span class="col-th">
                     <?= $triCol('spectacle', e($termeSingulier)) ?>
-                    <?= filtre_colonne_html('evenements_liste', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
+                    <?= filtre_colonne_html('evenements', 'spectacle_id', $spectacleLabels, $spectacleId, $autresFiltres('spectacle_id')) ?>
                 </span>
             </th>
             <th class="col-ville">
                 <span class="col-th">
                     <?= $triCol('ville', 'Ville / salle') ?>
-                    <?= filtre_colonne_html('evenements_liste', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
+                    <?= filtre_colonne_html('evenements', 'pays', $paysLabels, $pays, $autresFiltres('pays')) ?>
                 </span>
             </th>
             <th class="col-audience">
                 <span class="col-th">
                     <?= $triCol('audience', 'Audience') ?>
-                    <?= filtre_colonne_html('evenements_liste', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
+                    <?= filtre_colonne_html('evenements', 'visibilite', $visibiliteLabels, $visibilite, $autresFiltres('visibilite')) ?>
                 </span>
             </th>
             <th class="col-statut">
                 <span class="col-th">
                     <?= $triCol('statut', 'Statut') ?>
-                    <?= filtre_colonne_html('evenements_liste', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
+                    <?= filtre_colonne_html('evenements', 'statut', $statutLabels, $statut, $autresFiltres('statut')) ?>
                 </span>
             </th>
             <th class="col-suisa">
                 <span class="col-th">
                     <?= $triCol('suisa', 'SUISA') ?>
-                    <?= filtre_colonne_html('evenements_liste', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
+                    <?= filtre_colonne_html('evenements', 'statut_suisa', $statutSuisaLabels, $statutSuisa, $autresFiltres('statut_suisa')) ?>
                 </span>
             </th>
             <th class="num col-salaries">
                 <span class="col-th">
                     <?= $triCol('salaries', 'Salariés') ?>
-                    <?= filtre_colonne_html('evenements_liste', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
+                    <?= filtre_colonne_html('evenements', 'salaries', $salariesLabels, $salaries, $autresFiltres('salaries')) ?>
                 </span>
             </th>
             <?php // Colonne sans en-tête : elle ne paraît que sur téléphone, où

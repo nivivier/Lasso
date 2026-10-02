@@ -19,10 +19,10 @@
             <tr><th>Texte du bouton de lien</th><td><?= $lienTexteDefaut !== '' ? e($lienTexteDefaut) : '<span class="muted">Plus d\'informations</span>' ?></td></tr>
             <tr><th>Terme pour une série d'événements</th><td><?= e($termeSpectacle !== '' ? $termeSpectacle : 'Spectacles') ?></td></tr>
         </table>
-        <p class="muted small">Les pays proposés dans le champ « Région et pays » se règlent dans l'onglet <a href="?p=parametres_pays">Pays</a>.</p>
+        <p class="muted small">Les pays proposés dans le champ « Région et pays » se règlent dans l'onglet <a href="?p=pays">Pays</a>.</p>
     </div>
 
-    <form method="post" action="?p=parametres_evenements" id="evenements-defauts-form" class="card-edit form" hidden>
+    <form method="post" action="?p=evenements_reglages" id="evenements-defauts-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>Délai avant qu'une date envoyée sans décompte soit marquée « manquante » (mois)
             <input name="suisa_delai_decompte_mois" type="text" inputmode="numeric" value="<?= (int) $delai ?>" style="max-width:120px">
@@ -49,7 +49,7 @@
         Ils exposent en lecture seule les événements publics/privés (jamais les non répertoriés, jamais
         les informations SUISA/facturation/employés) — voir <code>SPEC_EVENEMENTS.md</code> §8.
     </p>
-    <form method="post" action="?p=parametres_evenements" data-confirm="Régénérer le jeton invalidera tous les liens déjà copiés (à recopier partout où ils sont utilisés). Continuer ?">
+    <form method="post" action="?p=evenements_reglages" data-confirm="Régénérer le jeton invalidera tous les liens déjà copiés (à recopier partout où ils sont utilisés). Continuer ?">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="regenerer_token" value="1">
         <div class="form-actions">
@@ -70,7 +70,7 @@
         globalement ou pour un seul d'entre eux. Régénérer son jeton est la seule façon de révoquer un abonnement :
         cela coupe tout le monde d'un coup.
     </p>
-    <form method="post" action="?p=parametres_evenements" data-confirm="Régénérer ce jeton coupera TOUS les abonnements au calendrier de l'équipe, pour tout le monde. Continuer ?">
+    <form method="post" action="?p=evenements_reglages" data-confirm="Régénérer ce jeton coupera TOUS les abonnements au calendrier de l'équipe, pour tout le monde. Continuer ?">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="regenerer_token_equipe" value="1">
         <div class="form-actions">

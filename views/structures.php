@@ -124,7 +124,7 @@ $montreContacte = $depuisNav !== 'facturation';
     <?php // toolbar-carte-panneau : la vue carte de ?p=structures range ses filtres
           // dans le panneau « Filtres » et n'a donc plus besoin de rétrécir la
           // recherche pour leur faire de la place — contrairement à
-          // ?p=evenements_liste, qui les affiche toujours à plat. ?>
+          // ?p=evenements, qui les affiche toujours à plat. ?>
     <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
@@ -233,10 +233,10 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 $caCampagnes = [];
 if ($campagnesFonds && peut_ecrire('fonds')) {
     $caCampagnes = $fondsCampagnesDispo;
-    $caAction = '?p=fonds_structure_campagne';
+    $caAction = '?p=fonds_campagne_structure_ajouter';
 } elseif (!$campagnesFonds && $peutEcrireTags) {
     $caCampagnes = $campagnesDispo;
-    $caAction = '?p=structure_campagne';
+    $caAction = '?p=booking_campagne_structure';
 }
 $caRetour = ['retour' => 'structures'];
 ?>

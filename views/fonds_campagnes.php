@@ -2,7 +2,7 @@
 /** @var array $groupes */ /** @var bool $vide */
 /** @var int $nbTotal */ /** @var string $recherche */
 // La liste des campagnes de recherche de fonds. Même charpente que
-// ?p=campagnes, dont c'est le pendant : la zone du module, une barre d'outils,
+// ?p=booking_campagnes, dont c'est le pendant : la zone du module, une barre d'outils,
 // puis le tableau d'un bord à l'autre de cette zone. L'onglet actif nomme la
 // page, elle n'a donc pas de titre à elle.
 $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $d)) : '';
@@ -15,7 +15,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
         <?php // Le même champ que la liste des campagnes de démarchage : on y
               // cherche la même chose, le nom de la campagne ou celui du projet. ?>
         <form method="get" class="filters">
-            <input type="hidden" name="p" value="fonds">
+            <input type="hidden" name="p" value="fonds_campagnes">
             <?= champ_recherche(['id' => 'fonds-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true, 'placeholder' => 'Nom de campagne, projet…']) ?>
         </form>
         <div class="head-actions">

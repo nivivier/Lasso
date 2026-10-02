@@ -12,16 +12,16 @@ function setup_secret_defini(): bool
 function setup_secret_ok(): bool
 {
     if (!setup_secret_defini()) {
-        return true; // protection désactivée (local) — en prod, voir route_setup()
+        return true; // protection désactivée (local) — en prod, voir route_installation()
     }
     $key = (string) ($_POST['key'] ?? $_GET['key'] ?? '');
     return $key !== '' && hash_equals(SETUP_SECRET, $key);
 }
 
-function route_setup(): void
+function route_installation(): void
 {
     if (has_users()) {
-        redirect('login');
+        redirect('connexion');
     }
     // En production, l'écran de création du premier compte exige un secret
     // d'installation. Sans lui, il resterait ouvert à quiconque passe entre la
@@ -35,7 +35,7 @@ function route_setup(): void
     if (APP_ENV === 'prod' && !setup_secret_defini()) {
         http_response_code(503);
         exit("Installation désactivée : définissez SETUP_SECRET dans lib/config.local.php "
-            . "(une longue valeur aléatoire), puis ouvrez ?p=setup&key=<ce secret>.");
+            . "(une longue valeur aléatoire), puis ouvrez ?p=installation&key=<ce secret>.");
     }
     if (!setup_secret_ok()) {
         // Clé absente ou fausse alors qu'un secret est défini : on ne révèle pas
@@ -63,21 +63,21 @@ function route_setup(): void
         $uid = (int) db()->lastInsertId();
         // Premier compte : accès complet (administrateur) pour pouvoir
         // configurer l'application dès l'installation — les comptes créés
-        // ensuite démarrent sans aucun droit (voir route_comptes()).
+        // ensuite démarrent sans aucun droit (voir route_utilisateurs()).
         enregistrer_permissions_utilisateur($uid, array_fill_keys(PERMISSION_MODULES, 'ecriture'));
         session_regenerate_id(true);
         $_SESSION['uid']           = $uid;
         $_SESSION['login_time']    = time();
         $_SESSION['last_activity'] = time();
-        redirect('resumes');
+        redirect('tableau_bord');
     }
     render('installation', ['err' => null, 'email' => '', 'key' => $key], 'Installation');
 }
 
-function route_login(): void
+function route_connexion(): void
 {
     if (current_user()) {
-        redirect('resumes');
+        redirect('tableau_bord');
     }
     $ip = client_ip();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -113,7 +113,7 @@ function route_login(): void
             $_SESSION['uid']           = (int) $u['id'];
             $_SESSION['login_time']    = time();
             $_SESSION['last_activity'] = time();
-            redirect('resumes');
+            redirect('tableau_bord');
         }
         login_record_failure($ip, $email);
         render('connexion', ['err' => 'Identifiants incorrects.', 'email' => $email], 'Connexion');
@@ -126,10 +126,10 @@ function route_login(): void
     render('connexion', ['err' => null, 'info' => $msg, 'email' => ''], 'Connexion');
 }
 
-function route_logout(): void
+function route_deconnexion(): void
 {
     logout_session();
-    redirect('login');
+    redirect('connexion');
 }
 
 // « J'ai oublié mon mot de passe » : on demande l'adresse, on envoie un lien.
@@ -140,7 +140,7 @@ function route_logout(): void
 function route_motdepasse_oublie(): void
 {
     if (current_user()) {
-        redirect('compte');
+        redirect('mon_compte');
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         render('motdepasse_oublie', ['envoye' => isset($_GET['envoye'])], 'Mot de passe oublié');
@@ -156,7 +156,7 @@ function route_motdepasse_oublie(): void
         $ip = client_ip();
         if ($u && !reinit_trop_de_demandes($ip, (int) $u['id'])) {
             $jeton = reinit_creer_jeton((int) $u['id'], $ip);
-            $lien  = url_site() . '/?p=motdepasse_reinit&jeton=' . rawurlencode($jeton);
+            $lien  = url_site() . '/?p=motdepasse_reinitialiser&jeton=' . rawurlencode($jeton);
             [$ok] = envoyer_email_reinit((string) $u['email'], $lien);
             if (!$ok) {
                 // Journalisé côté serveur uniquement : l'écran ne dit rien de
@@ -171,10 +171,10 @@ function route_motdepasse_oublie(): void
 // Choix du nouveau mot de passe, sur présentation du jeton reçu par e-mail.
 // Le jeton est revalidé à l'affichage ET à l'enregistrement : entre les deux,
 // il a pu expirer ou servir ailleurs.
-function route_motdepasse_reinit(): void
+function route_motdepasse_reinitialiser(): void
 {
     if (current_user()) {
-        redirect('compte');
+        redirect('mon_compte');
     }
     $jeton   = (string) ($_POST['jeton'] ?? $_GET['jeton'] ?? '');
     $demande = reinit_demande($jeton);
@@ -213,10 +213,10 @@ function route_motdepasse_reinit(): void
     db()->commit();
     // Pas de connexion automatique : celui qui ouvre le lien prouve qu'il a
     // accès à la boîte, pas qu'il est devant le bon écran.
-    redirect('login', ['reinit' => 1]);
+    redirect('connexion', ['reinit' => 1]);
 }
 
-function route_compte(): void
+function route_mon_compte(): void
 {
     require_login();
     $u = current_user();
@@ -252,7 +252,7 @@ function route_compte(): void
         $hash = $nouveau !== '' ? hacher_mot_de_passe($nouveau) : $u['mot_de_passe'];
         db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, mot_de_passe = ? WHERE id = ?')
             ->execute([$prenom, $nom, $email, $hash, $u['id']]);
-        redirect('compte', ['ok' => 1]);
+        redirect('mon_compte', ['ok' => 1]);
     }
     render('mon_compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
 }
@@ -262,7 +262,7 @@ function route_compte(): void
 // suppression, droits par module (voir SPEC_PERMISSIONS.md). Réservé à
 // l'écriture cœur (index.php) : un compte avec accès en lecture seule au
 // cœur ne voit même pas cette page.
-function route_comptes(): void
+function route_utilisateurs(): void
 {
     require_login();
     $err = null;
@@ -285,7 +285,7 @@ function route_comptes(): void
         }
         if (!$err) {
             // Aucun droit par défaut (principe du moindre privilège) : à
-            // l'inverse du tout premier compte (route_setup), qui reçoit
+            // l'inverse du tout premier compte (route_installation), qui reçoit
             // tout pour pouvoir configurer l'application dès l'installation.
             db()->prepare('INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)')
                 ->execute([$email, hacher_mot_de_passe($mdp)]);
@@ -302,7 +302,7 @@ function route_comptes(): void
             ]))) {
                 return;
             }
-            redirect('comptes', ['ok' => 'created']);
+            redirect('utilisateurs', ['ok' => 'created']);
         }
         // Erreur métier : en arrière-plan elle revient en JSON et s'affiche
         // au-dessus du formulaire, qui garde la saisie (docs/UI.md § 5).
@@ -327,16 +327,16 @@ function route_comptes(): void
     ], 'Paramètres — Comptes');
 }
 
-// Édition d'un compte depuis ?p=comptes : identité, adresse de connexion, et
+// Édition d'un compte depuis ?p=utilisateurs : identité, adresse de connexion, et
 // mot de passe si l'on en saisit un. Un seul enregistrement pour toute la
 // ligne — c'est le crayon qui ouvre l'ensemble, rien n'est modifiable en
 // lecture. Cette route n'existe que pour un administrateur (écriture sur
 // « cœur », voir index.php).
-function route_compte_modifier(): void
+function route_utilisateur_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('comptes');
+        redirect('utilisateurs');
     }
     check_csrf();
     $id    = (int) ($_POST['id'] ?? 0);
@@ -347,18 +347,18 @@ function route_compte_modifier(): void
     $stmt->execute([$id]);
     $ancienEmail = $stmt->fetchColumn();
     if ($ancienEmail === false) {
-        redirect('comptes');
+        redirect('utilisateurs');
     }
     if ($mdp !== '' && strlen($mdp) < PASSWORD_MIN) {
-        redirect('comptes', ['err' => 'short']);
+        redirect('utilisateurs', ['err' => 'short']);
     }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        redirect('comptes', ['err' => 'email']);
+        redirect('utilisateurs', ['err' => 'email']);
     }
     $dejaPris = db()->prepare('SELECT id FROM utilisateurs WHERE email = ? AND id <> ?');
     $dejaPris->execute([$email, $id]);
     if ($dejaPris->fetch()) {
-        redirect('comptes', ['err' => 'email_pris']);
+        redirect('utilisateurs', ['err' => 'email_pris']);
     }
 
     // Les droits font partie de la ligne : un seul enregistrement pour tout ce
@@ -367,7 +367,7 @@ function route_compte_modifier(): void
     // enregistrée.
     $niveaux = is_array($_POST['niveaux'] ?? null) ? $_POST['niveaux'] : [];
     if (!enregistrer_permissions_utilisateur($id, $niveaux)) {
-        redirect('comptes', ['err' => 'last_admin']);
+        redirect('utilisateurs', ['err' => 'last_admin']);
     }
     db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ? WHERE id = ?')
         ->execute([trim((string) ($_POST['prenom'] ?? '')), trim((string) ($_POST['nom'] ?? '')), $email, $id]);
@@ -381,34 +381,34 @@ function route_compte_modifier(): void
     if ($mdp !== '') {
         db()->prepare('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?')
             ->execute([hacher_mot_de_passe($mdp), $id]);
-        redirect('comptes', ['ok' => 'reset']);
+        redirect('utilisateurs', ['ok' => 'reset']);
     }
-    redirect('comptes', ['ok' => 'modified']);
+    redirect('utilisateurs', ['ok' => 'modified']);
 }
 
-function route_compte_delete(): void
+function route_utilisateur_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('comptes');
+        redirect('utilisateurs');
     }
     check_csrf();
     $id  = (int) ($_POST['id'] ?? 0);
     $moi = (int) current_user()['id'];
     if ($id === $moi) {
-        redirect('comptes', ['err' => 'self']);     // pas d'auto-suppression
+        redirect('utilisateurs', ['err' => 'self']);     // pas d'auto-suppression
     }
     $total = (int) db()->query('SELECT COUNT(*) FROM utilisateurs')->fetchColumn();
     if ($total <= 1) {
-        redirect('comptes', ['err' => 'last']);      // ne jamais vider la table
+        redirect('utilisateurs', ['err' => 'last']);      // ne jamais vider la table
     }
     // Ne jamais supprimer le dernier administrateur (écriture cœur), même
     // s'il reste d'autres comptes non-admin.
     if (permission_donne_ecriture(permissions_utilisateur($id), 'coeur') && nb_admins() <= 1) {
-        redirect('comptes', ['err' => 'last_admin']);
+        redirect('utilisateurs', ['err' => 'last_admin']);
     }
     db()->prepare('DELETE FROM utilisateurs WHERE id = ?')->execute([$id]);
-    redirect('comptes', ['ok' => 'deleted']);
+    redirect('utilisateurs', ['ok' => 'deleted']);
 }
 
 // Met à jour la matrice de droits (lecture/écriture par module) d'un compte.
@@ -504,7 +504,7 @@ function route_employes(): void
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
 }
 
-function route_employe_voir(): void
+function route_employe(): void
 {
     require_login();
     $id   = (int) ($_GET['id'] ?? 0);
@@ -520,11 +520,11 @@ function route_employe_voir(): void
     render('employe', ['emp' => $emp, 'fiches' => $fiches], $emp['prenom'] . ' ' . $emp['nom']);
 }
 
-// Pastille d'identité d'un employé (?p=employe_voir) : une couleur choisie dans
+// Pastille d'identité d'un employé (?p=employe) : une couleur choisie dans
 // la palette, ou une photo recadrée. Trois actions exclusives, distinguées par
 // « action » — une seule route plutôt que trois, elles écrivent les deux mêmes
 // colonnes et partagent le nettoyage de l'ancienne photo.
-function route_employe_avatar(): void
+function route_employe_photo(): void
 {
     require_ecriture('salaires');
     $id = (int) ($_POST['id'] ?? 0);
@@ -564,10 +564,10 @@ function route_employe_avatar(): void
         avatar_photo_supprimer($ancienne);
     }
 
-    redirect('employe_voir', $err === null ? ['id' => $id] : ['id' => $id, 'err_avatar' => $err]);
+    redirect('employe', $err === null ? ['id' => $id] : ['id' => $id, 'err_avatar' => $err]);
 }
 
-function route_employe(): void
+function route_employe_form(): void
 {
     require_login();
     $id  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -631,7 +631,7 @@ function route_employe(): void
         }
         redirect('employes');
     }
-    // Un employé qui a des fiches ne se supprime pas (route_employe_delete() le
+    // Un employé qui a des fiches ne se supprime pas (route_employe_supprimer() le
     // refuse) : la corbeille de l'écran de modification n'a donc pas à s'y
     // afficher. Compté ici plutôt que dans la vue — une vue n'interroge pas la
     // base.
@@ -645,7 +645,7 @@ function route_employe(): void
     render('employe_form', ['emp' => $emp, 'err' => null, 'nbFiches' => $nbFichesEmp], $id ? 'Modifier employé' : 'Nouvel employé');
 }
 
-function route_employe_delete(): void
+function route_employe_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -655,22 +655,15 @@ function route_employe_delete(): void
             redirect('employes');
         }
         // A des fiches → suppression refusée
-        redirect('employe_voir', ['id' => $id, 'err' => 'fiches']);
+        redirect('employe', ['id' => $id, 'err' => 'fiches']);
     }
     redirect('employes');
-}
-
-// ------------------------------------------------------ EMPLOYEUR / TAUX
-function route_parametres(): void
-{
-    require_login();
-    redirect('employeur');
 }
 
 // Activation/désactivation des modules optionnels (salaires, compta, analytique).
 // Un module à la fois (interrupteur à bascule immédiate, comme les règles de
 // lettrage et les axes analytiques) : POST { module, actif? }.
-function route_parametres_modules(): void
+function route_modules(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -683,7 +676,7 @@ function route_parametres_modules(): void
                 : array_diff($actifs, [$module]);
             set_modules_actifs($actifs);
         }
-        redirect('parametres_modules');
+        redirect('modules');
     }
     render('modules', ['actifs' => modules_actifs()], 'Modules');
 }
@@ -694,7 +687,7 @@ function route_parametres_modules(): void
 // facturation). Liste à plat (pas de hiérarchie) : même interface de
 // glisser-déposer que spectacles.php/compta_plan.php/parametres_structures.php
 // (lassoPlanArbre()), sans reparent puisqu'il n'y a qu'un seul niveau.
-function route_parametres_pays(): void
+function route_pays(): void
 {
     require_login();
     // Carte id → ligne (pays + régions) pour raisonner sur la hiérarchie.
@@ -854,7 +847,7 @@ function route_parametres_pays(): void
                     if ((int) $stmtEnf->fetchColumn() === 0 && (int) $stmtRefS->fetchColumn() === 0 && (int) $stmtRefE->fetchColumn() === 0 && $total > 1) {
                         db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
                     } else {
-                        redirect('parametres_pays', ['err' => 'used']);
+                        redirect('pays', ['err' => 'used']);
                         return;
                     }
                 } else {
@@ -886,14 +879,14 @@ function route_parametres_pays(): void
                             db()->prepare('DELETE FROM pays_liste WHERE id = ?')->execute([$id]);
                             db()->commit();
                         } else {
-                            redirect('parametres_pays', ['err' => 'region_used']);
+                            redirect('pays', ['err' => 'region_used']);
                             return;
                         }
                     }
                 }
             }
         }
-        redirect('parametres_pays', ['ok' => 1]);
+        redirect('pays', ['ok' => 1]);
     }
 
     // Nombre de structures par pays et par région, indexé par id de la ligne :
@@ -1208,13 +1201,6 @@ function route_taux_horaires(): void
     ], 'Salaires horaires');
 }
 
-// Fusionné dans « Salaires horaires » : on redirige les anciens liens.
-function route_unites(): void
-{
-    require_login();
-    redirect('taux_horaires');
-}
-
 function route_export(): void
 {
     require_login();
@@ -1239,7 +1225,7 @@ function route_export(): void
 // Import de fiches de salaire depuis un fichier JSON (format d'export, type
 // « fiches_salaire »). N'insère que les fiches nouvelles : une fiche déjà
 // présente (même employé/année/mois) est ignorée, jamais écrasée (historique figé).
-function route_import_fiches(): void
+function route_fiches_importer(): void
 {
     require_login();
     $err = null; $resultats = null; $resume = null; $simule = true;
@@ -1271,7 +1257,7 @@ function route_import_fiches(): void
             }
         }
     }
-    render('import_fiches', [
+    render('fiches_importer', [
         'errFiches' => $err, 'resultatsFiches' => $resultats, 'resumeFiches' => $resume, 'simuleFiches' => $simule,
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => null,
@@ -1372,15 +1358,6 @@ function importer_fiches_salaire(array $fiches, bool $simule): array
     return [$resultats, $resume];
 }
 
-// Ancienne page « Taux » : ses réglages ont rejoint ?p=postes, où l'on voit du
-// même coup la ligne et ce qu'elle prélève. La route reste, pour les liens et
-// les favoris déjà posés.
-function route_taux(): void
-{
-    require_login();
-    redirect('postes', isset($_GET['annee']) ? ['annee' => (int) $_GET['annee']] : []);
-}
-
 // Paliers d'âge d'une année, par poste : [poste_id => [[min, max, valeur], …]].
 // Repli sur la dernière année configurée avant elle, comme les taux — sinon
 // ouvrir une nouvelle année afficherait une grille vide à remplir de zéro.
@@ -1478,7 +1455,7 @@ const RECALCUL_COLONNES = [
     'total_charges_emp', 'cout_total_emp',
 ];
 
-function route_fiches_recalcul(): void
+function route_fiches_recalculer(): void
 {
     require_login();
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
@@ -1488,14 +1465,14 @@ function route_fiches_recalcul(): void
         $annee = (int) ($_POST['annee'] ?? date('Y'));
         $ids = array_values(array_unique(array_map('intval', (array) ($_POST['fiches'] ?? []))));
         if (!$ids) {
-            redirect('fiches_recalcul', ['annee' => $annee, 'vide' => 1]);
+            redirect('fiches_recalculer', ['annee' => $annee, 'vide' => 1]);
         }
         // Borné à l'année affichée : on ne réécrit que ce que l'aperçu a montré.
         $stmt = db()->prepare('SELECT * FROM fiches WHERE annee = ? AND id IN (' . sql_in($ids) . ')');
         $stmt->execute(array_merge([$annee], $ids));
         $fiches = $stmt->fetchAll();
         if (!$fiches) {
-            redirect('fiches_recalcul', ['annee' => $annee, 'vide' => 1]);
+            redirect('fiches_recalculer', ['annee' => $annee, 'vide' => 1]);
         }
 
         // Sauvegarde AVANT d'écrire : un recalcul touche des documents déjà
@@ -1513,7 +1490,7 @@ function route_fiches_recalcul(): void
             fiche_postes_ecrire((int) $f['id'], $c, $taux);
         }
         db()->commit();
-        redirect('fiches_recalcul', ['annee' => $annee, 'faites' => count($fiches),
+        redirect('fiches_recalculer', ['annee' => $annee, 'faites' => count($fiches),
                                      'sauv' => $sauvegarde ? basename($sauvegarde) : '']);
     }
 
@@ -1540,7 +1517,7 @@ function route_fiches_recalcul(): void
         $annees[] = $annee;
         rsort($annees);
     }
-    render('fiches_recalcul', [
+    render('fiches_recalculer', [
         'annee'  => $annee,
         'annees' => $annees,
         'lignes' => $lignes,
@@ -1910,7 +1887,7 @@ function lire_lignes_postees(): array
 // taux_horaire, plus axe_analytique_id/evenement_id optionnels). $emp doit déjà
 // porter les éventuelles surcharges figées (supplement_vacances/impot_source_taux)
 // — cette fonction ne fait que recalculer et écrire, pas de valeurs par défaut.
-// Partagée entre le formulaire de fiche complet (route_fiche_new) et l'ajout
+// Partagée entre le formulaire de fiche complet (route_fiche_form) et l'ajout
 // rapide d'une ligne de prestation depuis un événement (route_evenement_ligne_ajouter).
 function sauvegarder_fiche(array $emp, int $annee, int $mois, string $datePaiement, array $lignes, ?int $ficheId, int $afficherCoutEmp = 0): int
 {
@@ -2018,7 +1995,7 @@ function evenements_pour_ligne(): array
     )->fetchAll();
 }
 
-function route_fiche_new(): void
+function route_fiche_form(): void
 {
     require_login();
     $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
@@ -2097,7 +2074,7 @@ function route_fiche_new(): void
     }
 
     if ($ficheIdPoste) {
-        redirect('fiche_edit', ['id' => $ficheId, 'success' => '1']); // reste sur la page de modification
+        redirect('fiche_modifier', ['id' => $ficheId, 'success' => '1']); // reste sur la page de modification
     } else {
         redirect('fiche', ['id' => $ficheId, 'success' => '1']);
     }
@@ -2241,7 +2218,7 @@ function route_certificat(): void
     render('certificat', $ctx, 'Certificat ' . $ctx['emp']['prenom'] . ' ' . $ctx['emp']['nom']);
 }
 
-function route_certificat_print(): void
+function route_certificat_imprimer(): void
 {
     require_login();
     $empId = (int) ($_GET['employe_id'] ?? 0);
@@ -2445,7 +2422,7 @@ function build_person_xml(callable $el, array $emp, array $ctx): DOMElement
     return $person;
 }
 
-function route_certificat_xml(): void
+function route_certificat_exporter_xml(): void
 {
     require_login();
     $annee     = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
@@ -2461,7 +2438,7 @@ function route_certificat_xml(): void
     exit;
 }
 
-function route_fiche_print(): void
+function route_fiche_imprimer(): void
 {
     require_login();
     $id   = (int) ($_GET['id'] ?? 0);
@@ -2474,7 +2451,7 @@ function route_fiche_print(): void
     render_bare('fiche_imprimer', ['f' => $f]);
 }
 
-function route_fiche_delete(): void
+function route_fiche_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -2484,7 +2461,7 @@ function route_fiche_delete(): void
     redirect('fiches');
 }
 
-function route_fiche_edit(): void
+function route_fiche_modifier(): void
 {
     require_login();
     $id   = (int) ($_GET['id'] ?? 0);
@@ -2556,8 +2533,8 @@ function route_fiche_edit(): void
 
 // Date de paiement d'une fiche, et l'écriture bancaire qui l'a payée. Les deux
 // dans le même formulaire — et donc la même route — parce que c'est le même
-// geste : constater le versement. Symétrique de route_facture_payee().
-function route_fiche_date(): void
+// geste : constater le versement. Symétrique de route_facture_paiement().
+function route_fiche_paiement(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -2602,7 +2579,7 @@ function route_fiche_date(): void
     redirect('fiches');
 }
 
-function route_fiche_cout(): void
+function route_fiche_cout_employeur(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -2615,7 +2592,7 @@ function route_fiche_cout(): void
     redirect('fiches');
 }
 
-function route_fiche_email(): void
+function route_fiche_envoyer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -2653,7 +2630,7 @@ function route_fiche_email(): void
 }
 
 // -------------------------------------------------------------- SAUVEGARDE
-function route_backup(): void
+function route_sauvegarde(): void
 {
     require_login();
     // La base ET les fichiers déposés, dans une archive (lib/sauvegarde.php) :
@@ -2710,7 +2687,7 @@ function route_resumes_reglages(): void
     )));
     if ($_POST['section'] === 'reinit') {
         preference_definir(DASHBOARD_PREFERENCE, '');
-        redirect('resumes', ['reglages' => 1]);
+        redirect('tableau_bord', ['reglages' => 1]);
     }
     [$ordre, $cachees] = dashboard_disposition($dispo);
 
@@ -2733,13 +2710,13 @@ function route_resumes_reglages(): void
             echo json_encode(['ok' => true]);
             return;
         }
-        redirect('resumes', ['reglages' => 1]);
+        redirect('tableau_bord', ['reglages' => 1]);
     }
 
     $carte = (string) ($_POST['carte'] ?? '');
     $i = array_search($carte, $ordre, true);
     if ($i === false) {
-        redirect('resumes', ['reglages' => 1]);
+        redirect('tableau_bord', ['reglages' => 1]);
     }
     if ($_POST['section'] === 'visible') {
         $k = array_search($carte, $cachees, true);
@@ -2758,10 +2735,10 @@ function route_resumes_reglages(): void
         }
     }
     dashboard_disposition_definir($ordre, $cachees);
-    redirect('resumes', ['reglages' => 1]);
+    redirect('tableau_bord', ['reglages' => 1]);
 }
 
-function route_resumes(): void
+function route_tableau_bord(): void
 {
     require_login();
     // Organisation des cartes : un choix d'AFFICHAGE propre au compte, pas une
@@ -2769,7 +2746,7 @@ function route_resumes(): void
     // il ne touche qu'à utilisateur_preferences, et seulement pour son auteur.
     //
     // Un aller-retour par déplacement, comme le rangement des pays ou du plan
-    // comptable (?p=parametres_pays, section=move) : même geste, même code
+    // comptable (?p=pays, section=move) : même geste, même code
     // d'apparence, et rien à faire fonctionner en JavaScript.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -2782,7 +2759,7 @@ function route_resumes(): void
     // vérifier le droit de LECTURE de chaque module, sinon un compte limité à un
     // seul module y verrait les données de tous les autres. Le rail de
     // navigation posait déjà les deux conditions ; cette page ne posait que la
-    // première. Les conditions de views/resumes.php ont été alignées.
+    // première. Les conditions de views/tableau_bord.php ont été alignées.
     $aPayer = [];
     // Une fiche du mois M se verse pendant M+1 : elle est « à faire » tout ce
     // mois-là, et « en retard » seulement à partir de M+2. Une fiche du mois
@@ -2842,7 +2819,7 @@ function route_resumes(): void
 }
 
 // Page « Cotisations » : résumé complet (par période) + charges totales.
-function route_resume(): void
+function route_cotisations(): void
 {
     require_login();
     $annee     = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');

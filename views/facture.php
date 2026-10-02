@@ -13,7 +13,7 @@ $aDesAxes = $axesModifiables || (bool) array_filter($lignes, fn($l) => $l['axe_a
 $axeOpts = $axesModifiables ? options_axes($axes) : '';
 $numeroAffiche = $f['numero'] !== '' ? e($f['numero']) : '(brouillon)';
 
-// Paiement manuel : écriture bancaire à lier (voir route_facture_payee()).
+// Paiement manuel : écriture bancaire à lier (voir route_facture_paiement()).
 $peutPayer = in_array($f['statut'], ['emise', 'payee'], true);
 $libelleEcr = fn(array $e): string => date('d.m.Y', strtotime($e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' CHF — ' . mb_substr((string) $e['texte'], 0, 50);
 $ecritureActuelleId = (int) ($f['ecriture_id'] ?? 0);
@@ -40,7 +40,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     case 'emission': echo '<p class="err flash">L\'émission a échoué (numéro ou référence de paiement invalide). Réessayez.</p>'; break;
     case 'pdf':      echo '<p class="err flash">La génération du PDF a échoué (vérifiez l\'IBAN et l\'adresse de la structure).</p>'; break;
 } ?>
-<?= lien_retour_contextuel('?p=facturation_liste', 'Facturation') ?>
+<?= lien_retour_contextuel('?p=factures', 'Facturation') ?>
 <div class="page-head">
     <h1>Facture <?= $numeroAffiche ?></h1>
     <div class="head-actions">
@@ -54,18 +54,18 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <?php // « Modifier » ferme le groupe, à droite : c'est le geste qui
                   // ouvre l'écran d'édition, et c'est là-bas que vit la
                   // suppression (docs/UI.md § 1). ?>
-            <a class="btn ghost" href="?p=facturation_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+            <a class="btn ghost" href="?p=facture_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
             <?php // Pas de suppression ici : elle vit sur l'écran de modification,
                   // avec les autres gestes qui touchent au brouillon lui-même. ?>
             <?php endif; ?>
         <?php else: ?>
-            <a class="btn ghost" href="?p=facture_pdf&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu / PDF"><?= icon('eye') ?> <span class="lbl">PDF</span></a>
+            <a class="btn ghost" href="?p=facture_exporter_pdf&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu / PDF"><?= icon('eye') ?> <span class="lbl">PDF</span></a>
             <?php if ($statutEffectif === 'en_retard'): ?>
-                <a class="btn ghost" href="?p=facture_rappel&id=<?= (int) $f['id'] ?>" data-preview target="_blank"><?= icon('mail') ?> <span class="lbl">Lettre de rappel</span></a>
+                <a class="btn ghost" href="?p=facture_rappel_imprimer&id=<?= (int) $f['id'] ?>" data-preview target="_blank"><?= icon('mail') ?> <span class="lbl">Lettre de rappel</span></a>
             <?php endif; ?>
             <?php if (peut_ecrire('facturation')): ?>
             <?php if ($peutEmail): ?>
-                <form method="post" action="?p=facture_email<?= $depuisQs ?>" class="d-inline" data-confirm="Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?">
+                <form method="post" action="?p=facture_envoyer<?= $depuisQs ?>" class="d-inline" data-confirm="Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
                     <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
@@ -161,7 +161,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
                             <?php // data-ajax : l'axe n'engage que sa ligne, et la
                                   // facture est longue — la recharger entière pour un
                                   // menu renvoyait en haut de page. ?>
-                            <form method="post" action="?p=facture_ligne_axe" data-ajax="Axe analytique enregistré.">
+                            <form method="post" action="?p=facture_ligne_axe_enregistrer" data-ajax="Axe analytique enregistré.">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
                                 <input type="hidden" name="ligne_id" value="<?= (int) $l['id'] ?>">
@@ -185,7 +185,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php if (($peutPayer || module_actif('evenements')) && peut_ecrire('facturation')): ?>
 <aside class="fiche-aside facture-aside">
     <?php if ($peutPayer): ?>
-    <form method="post" action="?p=facture_payee<?= $depuisQs ?>" class="paiement-form">
+    <form method="post" action="?p=facture_paiement<?= $depuisQs ?>" class="paiement-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
         <h2>Paiement</h2>

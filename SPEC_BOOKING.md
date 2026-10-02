@@ -497,14 +497,14 @@ le modèle ci-dessus.
   événements).
 - `lib/routes_booking.php` — `route_structures_*`, `route_structure_notes_*`,
   `route_structure_tags_*`, `route_mailing_*` (création de campagne + suivi de file
-  d'attente), `route_import_structures` (écrans authentifiés), **plus** deux routes
+  d'attente), `route_structures_importer` (écrans authentifiés), **plus** deux routes
   publiques par jeton, sans `require_login()` : `route_desinscription` (§7) et
   `route_mailing_traiter` (traitement par lots de la file d'attente, déclenchée par le
   planificateur de tâches Infomaniak toutes les 15 minutes, §7).
 - `lib/helpers.php` — nouvelle fonction `smtp_config_booking()` (miroir de
   `smtp_config()` existant) et fonction d'envoi dédiée au mailing (sans repli `mail()`,
   §7), distincte d'`envoyer_email()`.
-- `views/structures_liste.php` (remplace `facturation_debiteurs.php`),
+- `views/structures.php` (remplace `facturation_debiteurs.php`),
   `structure_form.php`, `structure_voir.php` (fiche avec flux de notes), `lieux_liste.php`,
   `lieu_form.php`, `mailing_form.php` (filtres + gabarit), `mailing_suivi.php` (progression
   de la file d'attente), `import_structures.php`, ajout des champs SMTP booking + débit

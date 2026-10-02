@@ -18,7 +18,7 @@ $points = array_map(function (array $p): array {
 // Lien de secours pour les villes qu'on ne parviendra sans doute jamais à
 // géocoder automatiquement (typo, ville introuvable pour Nominatim…) — voir
 // views/_structures_carte.php pour le même principe.
-$lienNonLocalises = '?p=evenements_liste&' . http_build_query([
+$lienNonLocalises = '?p=evenements&' . http_build_query([
     'vue' => 'liste', 'q' => $recherche, 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'spectacle_id' => $spectacleId,
     'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries, 'non_localises' => 1,
 ]);

@@ -42,7 +42,7 @@ const STRUCTURE_STATUTS_ICONES = [
 ];
 
 // Classe CSS de couleur de l'icône (assets/app.css) — utilisée par la colonne
-// « Statut » de ?p=structures (icône seule, voir views/structures_liste.php).
+// « Statut » de ?p=structures (icône seule, voir views/structures.php).
 const STRUCTURE_STATUTS_CLASSES_ICONE = [
     'contact_privilegie' => 'ico-pink',
     'actif'               => 'ico-ok',
@@ -251,7 +251,7 @@ function campagne_charger(int $id): ?array
 
 // Années couvertes par une campagne : de celle de son début à celle de sa fin.
 // Une campagne à cheval sur deux ans appartient donc aux deux — c'est ce que le
-// filtre « Période » de ?p=campagnes doit dire. Une campagne sans aucune date
+// filtre « Période » de ?p=booking_campagnes doit dire. Une campagne sans aucune date
 // n'appartient à aucune année : filtrer par année l'écarte, à raison, puisque
 // rien ne la situe dans le temps.
 function campagne_annees(string $dateDebut, string $dateFin): array
@@ -384,7 +384,7 @@ function campagne_repartition(int $total, int $faits, int $interesse, int $refus
 
 // La barre d'avancement d'une campagne : une piste, trois segments posés dessus
 // (le quatrième — ce qui reste — EST la piste). Rendue ici plutôt que dans
-// chaque vue : la carte de ?p=campagne et la liste de ?p=campagnes montrent la
+// chaque vue : la carte de ?p=booking_campagne et la liste de ?p=booking_campagnes montrent la
 // même chose, elles doivent la montrer pareil.
 function campagne_barre_html(array $parts, int $total, string $classe = ''): string
 {
@@ -548,7 +548,7 @@ function campagnes_groupees(array $campagnes): array
 // cours » veut aussi dire « il reste des structures à contacter » — une
 // campagne entièrement démarchée est terminée avant sa date de fin. Une seule
 // définition, pour qu'une campagne ne soit pas « en cours » ici et « terminée »
-// sur ?p=campagnes.
+// sur ?p=booking_campagnes.
 function campagnes_en_cours_ids(): array
 {
     $totaux = [];
@@ -613,11 +613,11 @@ function structure_campagnes_cellule_html(int $structureId, array $campagnes, bo
 {
     $h = '';
     foreach ($campagnes as [$id, $nom, $enCours]) {
-        // Teal pour une campagne en cours, comme son nom sur ?p=campagnes : dans
+        // Teal pour une campagne en cours, comme son nom sur ?p=booking_campagnes : dans
         // une file de pastilles, c'est celle qui appelle du travail. Les autres
         // restent au ton neutre — elles sont du contexte, pas une tâche.
         $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
-            . '<a href="?p=campagne&id=' . $id . '">' . e($nom) . '</a>';
+            . '<a href="?p=booking_campagne&id=' . $id . '">' . e($nom) . '</a>';
         if ($peutEcrire) {
             $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
                 . '" data-campagne-nom="' . e($nom) . '"'
@@ -794,7 +794,7 @@ function structure_statut_icone_classe(string $statut): string
 // d'une catégorie racine (2 niveaux max, imposé par l'UI plutôt que le schéma).
 // structures.categorie/sous_categorie restent des colonnes texte (comparaison
 // par nom) — renommer une catégorie/sous-catégorie dans les paramètres met à
-// jour les structures existantes en même temps (voir route_parametres_structures()).
+// jour les structures existantes en même temps (voir route_categories_structures()).
 
 // Toutes les catégories/sous-catégories indexées par id, pour les fonctions
 // d'arbre génériques (lib/compta.php) et la résolution catégorie/sous-catégorie.
@@ -822,7 +822,7 @@ function structure_categories_pour_select(?array $map = null): array
 
 // Liste à plat avec toutes les métadonnées d'arbre (profondeur, a_enfants,
 // est_premier, est_dernier) — pour l'écran d'admin en glisser-déposer
-// (parametres_structures, voir route_parametres_structures()).
+// (parametres_structures, voir route_categories_structures()).
 function structure_categories_liste_ordonnee(?array $map = null): array
 {
     return plan_liste_ordonnee($map ?? structure_categorie_map());
@@ -932,7 +932,7 @@ function structure_evenements(int $structureId): array
     // spectacle = feuille rattachée à l'événement (evenements.spectacle_id,
     // toujours une feuille — voir spectacle_assignable()) ; spectacle_groupe =
     // son parent (l'artiste), si elle est imbriquée sous un groupe — sinon
-    // NULL (spectacle autonome, pas de groupe). Voir views/structure_form.php,
+    // NULL (spectacle autonome, pas de groupe). Voir views/structure.php,
     // carte « Événements » : affiche le groupe en priorité, la feuille en
     // second si distincte.
     $stmt = db()->prepare(
@@ -1511,7 +1511,7 @@ function lien_structures_tag(int $tagId): string
 // Un pays, ou une région DE ce pays : un seul jeton de l'entonnoir « Lieu »
 // (lieu_jeton()), qui porte déjà le couple — deux pays peuvent nommer
 // pareillement une région, et le compte affiché à côté du lien est lui-même
-// calculé sur le couple (voir route_parametres_pays()).
+// calculé sur le couple (voir route_pays()).
 function lien_structures_pays(string $pays, string $region = ''): string
 {
     $jeton = $region !== '' ? lieu_jeton('region', $pays, $region) : lieu_jeton('pays', $pays, $pays);
@@ -1529,7 +1529,7 @@ function compte_structures_html(int $nb, string $lien = '', string $vide = 'inut
         return '<span class="muted small">' . e($vide) . '</span>';
     }
     $txt = $nb . ' structure' . ($nb > 1 ? 's' : '');
-    // ?p=parametres_pays est un écran « cœur » : son visiteur peut très bien
+    // ?p=pays est un écran « cœur » : son visiteur peut très bien
     // n'avoir aucun droit sur le booking. Le compte reste (il sert aussi à la
     // réaffectation avant suppression), mais pas le lien vers une liste qui lui
     // serait refusée.
@@ -2114,7 +2114,7 @@ function campagnes_dashboard_a_venir(array $liste): int
 // dans l'URL, le résultat du ciblage ou les structures déjà retenues, celles
 // ajoutées à l'unité par la recherche, et les listes qui peuplent les
 // entonnoirs. Deux écrans s'en servent — composer une campagne de démarchage
-// (?p=campagne_form) et composer une recherche de fonds (?p=fonds_campagne_form)
+// (?p=booking_campagne_form) et composer une recherche de fonds (?p=fonds_campagne_form)
 // —, parce qu'ils posent la même question : à qui s'adresse-t-on ?
 //
 // Rendu : le tableau à passer tel quel à la vue (ses clés sont celles que

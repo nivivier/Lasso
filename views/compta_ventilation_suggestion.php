@@ -11,7 +11,7 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     <div class="page-head-title">
         <h1>Suggérer une ventilation de charges</h1>
         <form method="get">
-            <input type="hidden" name="p" value="compta_suggestion_ventilation">
+            <input type="hidden" name="p" value="compta_ventilation_suggestion">
             <select name="annee" class="inline-year-select" data-submit-on-change>
                 <?php foreach ($anneesEcr as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>
@@ -52,7 +52,7 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                 <?php if ($sel): ?>
                     <span class="muted small">sélectionnée</span>
                 <?php else: ?>
-                    <a class="btn ghost btn-sm" href="?p=compta_suggestion_ventilation&annee=<?= (int) $annee ?>&ecriture_id=<?= (int) $ecr['id'] ?>">Sélectionner</a>
+                    <a class="btn ghost btn-sm" href="?p=compta_ventilation_suggestion&annee=<?= (int) $annee ?>&ecriture_id=<?= (int) $ecr['id'] ?>">Sélectionner</a>
                 <?php endif; ?>
             </td>
         </tr>
@@ -207,7 +207,7 @@ $_axesJson   = json_encode(array_values(array_map(
         const btn = document.getElementById('btn-enregistrer');
         btn.disabled = true;
         const fd = new FormData(ev.target);
-        const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd })
+        const data = await fetch('?p=compta_ventilation_enregistrer', { method: 'POST', body: fd })
             .then(r => r.json()).catch(() => null);
         if (data?.ok) {
             window.location.href = '?p=compta_ecritures';
@@ -238,7 +238,7 @@ $_axesJson   = json_encode(array_values(array_map(
         const btn = document.getElementById('btn-calculer');
         btn.disabled = true;
         try {
-            const url = `?p=compta_suggestion_preview&annee_debut=${aD}&mois_debut=${mD}&annee_fin=${aF}&mois_fin=${mF}&type=${t}`;
+            const url = `?p=compta_ventilation_suggestion_apercu&annee_debut=${aD}&mois_debut=${mD}&annee_fin=${aF}&mois_fin=${mF}&type=${t}`;
             const data = await fetch(url).then(r => r.json()).catch(() => null);
             if (!data?.ok) { alert('Erreur lors du calcul. Vérifiez la période.'); return; }
             renderSuggestion(data.suggestions);

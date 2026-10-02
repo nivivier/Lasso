@@ -49,7 +49,7 @@ $tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id
         ?>
         <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
-            <a class="btn" href="?p=fiche_new" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
+            <a class="btn" href="?p=fiche_form" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
         </div>
         <?php endif; ?>
     </div>

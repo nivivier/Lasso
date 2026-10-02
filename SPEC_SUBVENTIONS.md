@@ -45,7 +45,7 @@ Trois tables.
 > le distingue dans la liste pour l'instant : on verra à l'usage si le besoin
 > d'un filtre apparaît. Le **projet visé est un `spectacle`**, l'entité du
 > module Événements, dont le libellé se renomme déjà pour toute l'application
-> (`?p=parametres_evenements` → « Terme pour une série d'événements » ;
+> (`?p=evenements_reglages` → « Terme pour une série d'événements » ;
 > `evenements_terme_spectacle()`). Les écrans de ce module emploient donc ce
 > terme-là, jamais « spectacle » en dur — si l'association l'appelle « projet »,
 > tout suit (voir la question 3 bis).
@@ -248,9 +248,9 @@ le « 3 / 6 » d'une campagne.
 
 | route | contenu | modèle existant |
 |---|---|---|
-| `?p=fonds` | les recherches de fonds, en tranches (en cours / à venir / passées) | `?p=campagnes` |
-| `?p=fonds_campagne&id=` | le suivi : jauge en francs, tableau des bailleurs, montants, dates limites, statut par ligne, modification sur place | `?p=campagne` |
-| `?p=fonds_campagne_form` | créer/modifier : nom, période, objectifs minimal et idéal, projets, sélection des bailleurs par filtres | `?p=campagne_form` |
+| `?p=fonds_campagnes` | les recherches de fonds, en tranches (en cours / à venir / passées) | `?p=booking_campagnes` |
+| `?p=fonds_campagne&id=` | le suivi : jauge en francs, tableau des bailleurs, montants, dates limites, statut par ligne, modification sur place | `?p=booking_campagne` |
+| `?p=fonds_campagne_form` | créer/modifier : nom, période, objectifs minimal et idéal, projets, sélection des bailleurs par filtres | `?p=booking_campagne_form` |
 | `?p=fonds_demande&id=` | le dossier : montants, dates, référence, pièces jointes, historique | `?p=facture` |
 | Carte tableau de bord | **deux choses** : l'avancement de la recherche, comme une campagne de booking — ce qu'il reste à envoyer se voit d'un coup d'œil — et **les bilans dus** | carte « Campagnes » |
 
@@ -278,7 +278,7 @@ Chaque étape est livrable seule et laisse l'application utilisable.
    avec ses trois entrées, « Projets » semé comme terme par défaut, entrée
    `MODULES`, couleur, permissions, routes vides, onglets. Rien d'autre : c'est
    l'étape qui vérifie que le module s'allume et s'éteint proprement.
-2. **Les campagnes** — `?p=fonds` et `?p=fonds_campagne_form`, en reprenant
+2. **Les campagnes** — `?p=fonds_campagnes` et `?p=fonds_campagne_form`, en reprenant
    `campagnes.php` / `campagne_form.php` et la sélection par filtres.
 3. **Le suivi** — `?p=fonds_campagne` : tableau des bailleurs, délai propre à
    chacun, saisie des montants et des dates sur place (motif § 2d de

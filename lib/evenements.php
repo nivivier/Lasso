@@ -292,9 +292,9 @@ function evenement_sql_statut_suisa_params(string $statut): array
 }
 
 // Filtres actifs de la liste des événements (GET prioritaire, sinon session —
-// voir filtre_persistant()). Lu tôt par route_evenements_liste() (avant que
+// voir filtre_persistant()). Lu tôt par route_evenements() (avant que
 // spectacle_map() soit nécessaire, pour le retour après une action groupée) et
-// par route_evenements_export_suisa() (même filtres, sans pagination).
+// par route_evenements_suisa_exporter() (même filtres, sans pagination).
 // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
 // filtre_coche() dans lib/helpers.php) : cases à cocher, 0 à N valeurs
 // simultanées par filtre (un tableau vide = « tous », remplace les anciennes
@@ -317,7 +317,7 @@ function evenements_lire_filtres(): array
 
 // Clause SQL (WHERE + params, alias "e." attendu depuis "FROM evenements e")
 // correspondant aux filtres de evenements_lire_filtres() — réutilisée par
-// route_evenements_liste() (liste + pagination) et route_evenements_export_suisa()
+// route_evenements() (liste + pagination) et route_evenements_suisa_exporter()
 // (mêmes filtres, sans pagination). $spectacleMap : requis pour résoudre un
 // spectacle-groupe (artiste) en lui-même + ses feuilles descendantes.
 function evenements_where_filtres(array $f, array $spectacleMap, bool $avecRecherche = true): array
@@ -404,7 +404,7 @@ function evenements_where_filtres(array $f, array $spectacleMap, bool $avecReche
     return [$where, $params];
 }
 
-// Points de la vue carte (?p=evenements_liste&vue=carte) : événements filtrés
+// Points de la vue carte (?p=evenements&vue=carte) : événements filtrés
 // (mêmes critères que la liste, $where/$params de evenements_where_filtres()),
 // groupés par ville géolocalisée — jamais paginé (voir carte_points_grouper(),
 // lib/geocodage.php). evenements.pays est un code ISO2 : converti en nom
@@ -433,7 +433,7 @@ function evenements_carte_points(string $where, array $params): array
 }
 
 // Libellé du canal d'envoi SUISA (suisa_envoye_a) — utilisé par le formulaire
-// événement et l'export SUISA (route_evenements_export_suisa()).
+// événement et l'export SUISA (route_evenements_suisa_exporter()).
 function evenement_suisa_envoye_a_libelle(string $envoyeA): string
 {
     return match ($envoyeA) {

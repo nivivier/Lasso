@@ -36,14 +36,14 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <h1>Fiche · <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></h1>
     <div class="head-actions">
 
-        <a class="btn ghost" href="?p=fiche_print&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
+        <a class="btn ghost" href="?p=fiche_imprimer&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu"><?= icon('eye') ?> <span class="lbl">Aperçu</span></a>
         <?php
         $envoyee = trim((string) ($f['email_envoye_le'] ?? '')) !== '';
         $peutEnvoyer = filter_var($emailEmploye, FILTER_VALIDATE_EMAIL) && filter_var($emailExp, FILTER_VALIDATE_EMAIL);
         ?>
         <?php if (peut_ecrire('salaires')): ?>
         <?php if ($peutEnvoyer): ?>
-            <form method="post" action="?p=fiche_email<?= $depuisQs ?>" class="d-inline"
+            <form method="post" action="?p=fiche_envoyer<?= $depuisQs ?>" class="d-inline"
                   data-confirm="Envoyer cette fiche par e-mail à <?= e($emailEmploye) ?> ?">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
@@ -64,7 +64,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
               // — cette page-ci se consulte, s'imprime et s'envoie. ?>
         <?php if (peut_ecrire('salaires')): ?>
         <?php if (!empty($modifiable)): ?>
-            <a class="btn ghost" href="?p=fiche_edit&id=<?= (int) $f['id'] ?><?= $depuisQs ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+            <a class="btn ghost" href="?p=fiche_modifier&id=<?= (int) $f['id'] ?><?= $depuisQs ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
         <?php else: ?>
             <button class="btn ghost" disabled title="Fiche déjà payée : non modifiable"><?= icon('pencil') ?> <span class="lbl">Modifier</span></button>
         <?php endif; ?>
@@ -80,7 +80,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     </div>
     <aside class="fiche-aside">
         <?php if (peut_ecrire('salaires')): ?>
-        <form method="post" action="?p=fiche_date<?= $depuisQs ?>" class="paiement-form">
+        <form method="post" action="?p=fiche_paiement<?= $depuisQs ?>" class="paiement-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <h2>Date de paiement <?= info_tip('Laissez la date vide pour marquer la fiche « à payer ».') ?></h2>
@@ -125,7 +125,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         </form>
 
                     <h2>Affichage avancé</h2>
-                <form method="post" action="?p=fiche_cout<?= $depuisQs ?>" id="cout-form" class="cout-toggle">
+                <form method="post" action="?p=fiche_cout_employeur<?= $depuisQs ?>" id="cout-form" class="cout-toggle">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <label class="check">

@@ -47,7 +47,7 @@ désactivées disparaissent du menu, sans perte de données. Les réactiver rest
         $nomsManquants = implode(' et ', array_map(fn ($m) => MODULES[$m]['label'], $manque));
     ?>
     <div class="module-row<?= $niveau ? ' module-row-sous' : '' ?>">
-        <form method="post" action="?p=parametres_modules">
+        <form method="post" action="?p=modules">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="module" value="<?= e($id) ?>">
             <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : ($bloque ? e('Activer d\'abord ' . $nomsManquants) : 'Activer') ?>">

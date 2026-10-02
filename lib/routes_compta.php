@@ -283,13 +283,6 @@ function periode_defaut_charges(string $dateOp): array
     return [$annee, 1, $annee, 9];                             // Oct–Déc → 9 mois
 }
 
-// ------------------------------------------------------------------- ROUTES
-function route_compta(): void
-{
-    require_login();
-    redirect('compta_ecritures');
-}
-
 // --- Plan comptable (catégories) -------------------------------------------
 function route_compta_plan(): void
 {
@@ -485,7 +478,7 @@ function route_compta_comptes(): void
 // retrouve/crée le compte par IBAN, insère les écritures (dédoublonnées),
 // applique les règles de lettrage, tente le rapprochement facturation.
 // Ne fait ni redirect ni render — juste ['ok'|'err', message]. Partagée entre
-// route_compta_import() (Comptabilité → Importer) et route_import_ecritures()
+// route_compta_ecritures_importer() (Comptabilité → Importer) et route_compta_ecritures_importer_valider()
 // (Paramètres → Importer), pour ne pas dupliquer cette logique.
 // Détecte le format d'un export bancaire (extension + contenu, l'un ou
 // l'autre pouvant manquer/mentir) et le parse en conséquence — CSV PostFinance
@@ -549,7 +542,7 @@ function compta_traiter_fichier_importe(string $contenu, string $nomFichier, boo
 // Résout la simulation ou l'application d'un import d'écritures depuis
 // $_POST/$_FILES : fichier fraîchement téléversé, ou contenu mémorisé en
 // session après une simulation (bouton « Importer réellement », sans
-// re-téléversement). Partagé par route_compta_import() et route_import_ecritures().
+// re-téléversement). Partagé par route_compta_ecritures_importer() et route_compta_ecritures_importer_valider().
 function compta_import_ecritures_requete(): array
 {
     $simule = !isset($_POST['appliquer']);
@@ -580,7 +573,7 @@ function compta_import_ecritures_requete(): array
 }
 
 // --- Import d'un export PostFinance -----------------------------------------
-function route_compta_import(): void
+function route_compta_ecritures_importer(): void
 {
     require_login();
     $msg = null;
@@ -591,12 +584,12 @@ function route_compta_import(): void
                 // Supprime un import et toutes ses écritures.
                 db()->prepare('DELETE FROM ecritures WHERE import_id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
                 db()->prepare('DELETE FROM imports WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
-                redirect('compta_import', ['ok' => 'del']);
+                redirect('compta_ecritures_importer', ['ok' => 'del']);
             }
         }
         $msg = compta_import_ecritures_requete();
     }
-    render('compta_import', [
+    render('compta_ecritures_importer', [
         'comptes' => compta_comptes(),
         'imports' => db()->query('SELECT i.*, c.libelle AS compte_libelle,
                                   (SELECT COUNT(*) FROM ecritures e WHERE e.import_id = i.id) AS nb_actuelles,
@@ -609,9 +602,9 @@ function route_compta_import(): void
 }
 
 // Import d'écritures depuis Paramètres → Importer (même traitement que
-// route_compta_import(), sans l'historique des imports/suppression — dupliqué
+// route_compta_ecritures_importer(), sans l'historique des imports/suppression — dupliqué
 // pour l'instant comme point d'entrée, mais le code reste factorisé).
-function route_import_ecritures(): void
+function route_compta_ecritures_importer_valider(): void
 {
     require_login();
     $msg = null;
@@ -619,7 +612,7 @@ function route_import_ecritures(): void
         check_csrf();
         $msg = compta_import_ecritures_requete();
     }
-    render('import_fiches', [
+    render('fiches_importer', [
         'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => $msg,
@@ -1397,14 +1390,14 @@ function route_compta_analyse_axe(): void
     ], 'Analytique — ' . $axe['libelle']);
 }
 
-function route_compta_analyse_print(): void
+function route_compta_analyse_imprimer(): void
 {
     require_login();
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : null;
     render_bare('compta_analyse_imprimer', compta_analyse_data($annee));
 }
 
-function route_compta_analyse_axe_print(): void
+function route_compta_analyse_axe_imprimer(): void
 {
     require_login();
     $axeId = (int) ($_GET['axe'] ?? 0);
@@ -1700,7 +1693,7 @@ function compta_dashboard_series(): array
     return $series;
 }
 
-function route_compta_bilan_print(): void
+function route_compta_bilan_imprimer(): void
 {
     require_login();
     $annee  = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
@@ -1709,7 +1702,7 @@ function route_compta_bilan_print(): void
 }
 
 // --- Export CSV des écritures -----------------------------------------------
-function route_compta_ecritures_csv(): void
+function route_compta_ecritures_exporter_csv(): void
 {
     require_login();
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : (int) date('Y');
@@ -1771,8 +1764,8 @@ function route_compta_ecritures_csv(): void
 
 // Export d'un relevé ISO 20022 camt.053 (XML) pour UN compte bancaire — le
 // format porte une seule IBAN par relevé, contrairement à l'export CSV
-// (route_compta_ecritures_csv()) qui combine tous les comptes.
-function route_compta_ecritures_camt053(): void
+// (route_compta_ecritures_exporter_csv()) qui combine tous les comptes.
+function route_compta_ecritures_exporter_camt053(): void
 {
     require_login();
     $compteId = (int) ($_GET['compte'] ?? 0);
@@ -1815,7 +1808,7 @@ function route_compta_ecritures_camt053(): void
 
 // Sauvegarde AJAX des ventilations d'une écriture (remplace DELETE + INSERT).
 // Retourne JSON {ok, ventilations[]}.
-function route_compta_ventilation_save(): void
+function route_compta_ventilation_enregistrer(): void
 {
     require_login();
     header('Content-Type: application/json; charset=UTF-8');
@@ -1846,7 +1839,7 @@ function route_compta_ventilation_save(): void
 }
 
 // Page de suggestion de ventilation pour une écriture de charges sociales.
-function route_compta_suggestion_ventilation(): void
+function route_compta_ventilation_suggestion(): void
 {
     require_login();
 
@@ -1894,7 +1887,7 @@ function route_compta_suggestion_ventilation(): void
     $anneesFich = array_map('intval', db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN));
     $axes       = db()->query('SELECT id, code, libelle FROM axes_analytiques WHERE actif = 1 ORDER BY code, libelle')->fetchAll();
 
-    render('compta_suggestion_ventilation', [
+    render('compta_ventilation_suggestion', [
         'ecritures'    => $ecritures,
         'annee'        => $annee,
         'anneesEcr'    => $anneesEcr,
@@ -1908,7 +1901,7 @@ function route_compta_suggestion_ventilation(): void
 }
 
 // Endpoint AJAX : calcule la ventilation suggérée pour une période donnée (GET, retourne JSON).
-function route_compta_suggestion_preview(): void
+function route_compta_ventilation_suggestion_apercu(): void
 {
     require_login();
     header('Content-Type: application/json; charset=UTF-8');

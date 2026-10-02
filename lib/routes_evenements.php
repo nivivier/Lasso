@@ -129,12 +129,6 @@ function evenements_pour_selection(): array
 function route_evenements(): void
 {
     require_login();
-    redirect('evenements_liste');
-}
-
-function route_evenements_liste(): void
-{
-    require_login();
     $annees = array_map('intval', db()->query(
         "SELECT DISTINCT strftime('%Y', date) FROM evenements ORDER BY 1 DESC"
     )->fetchAll(PDO::FETCH_COLUMN));
@@ -158,7 +152,7 @@ function route_evenements_liste(): void
         $section = $_POST['section'] ?? '';
         if ($section === 'bulk_undo') {
             $r = bulk_undo_appliquer();
-            redirect($r['route'] ?? 'evenements_liste', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
+            redirect($r['route'] ?? 'evenements', ($r['retour'] ?? $retourFiltres) + ($r ? ['ok' => 'annule'] : []));
         }
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if ($ids) {
@@ -174,48 +168,48 @@ function route_evenements_liste(): void
             } elseif ($section === 'spectacle') {
                 $spId = ($_POST['bulk_spectacle_id'] ?? '') !== '' ? (int) $_POST['bulk_spectacle_id'] : null;
                 if ($spId === null || spectacle_assignable($spId)) {
-                    bulk_undo_memoriser('evenements', $ids, ['spectacle_id'], 'evenements_liste', $retourFiltres);
+                    bulk_undo_memoriser('evenements', $ids, ['spectacle_id'], 'evenements', $retourFiltres);
                     db()->prepare("UPDATE evenements SET spectacle_id = ? WHERE id IN ($in)")
                         ->execute(array_merge([$spId], $ids));
                 }
             } elseif ($section === 'visibilite' && in_array($_POST['bulk_visibilite'] ?? '', EVENEMENTS_VISIBILITES, true)) {
-                bulk_undo_memoriser('evenements', $ids, ['visibilite'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['visibilite'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET visibilite = ? WHERE id IN ($in)")
                     ->execute(array_merge([$_POST['bulk_visibilite']], $ids));
             } elseif ($section === 'statut' && in_array($_POST['bulk_statut'] ?? '', EVENEMENTS_STATUTS, true)) {
-                bulk_undo_memoriser('evenements', $ids, ['statut'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['statut'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET statut = ? WHERE id IN ($in)")
                     ->execute(array_merge([$_POST['bulk_statut']], $ids));
             } elseif ($section === 'departement_canton') {
                 $departementCanton = trim((string) ($_POST['bulk_departement_canton'] ?? ''));
-                bulk_undo_memoriser('evenements', $ids, ['departement_canton'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['departement_canton'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET departement_canton = ? WHERE id IN ($in)")
                     ->execute(array_merge([$departementCanton], $ids));
             } elseif ($section === 'pays') {
                 $pays = valeur_autorisee($_POST['bulk_pays'] ?? '', evenements_pays_disponibles());
-                bulk_undo_memoriser('evenements', $ids, ['pays'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['pays'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET pays = ? WHERE id IN ($in)")
                     ->execute(array_merge([$pays], $ids));
             } elseif ($section === 'suisa_applicable') {
                 $applicable = ($_POST['bulk_suisa_applicable'] ?? '') === '1' ? 1 : 0;
-                bulk_undo_memoriser('evenements', $ids, ['suisa_applicable'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['suisa_applicable'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_applicable = ? WHERE id IN ($in)")
                     ->execute(array_merge([$applicable], $ids));
             } elseif ($section === 'suisa_envoi') {
                 $envoyeA = valeur_autorisee($_POST['bulk_suisa_envoye_a'] ?? '', EVENEMENTS_SUISA_ENVOYE_A);
                 $envoyeLe = trim((string) ($_POST['bulk_suisa_envoye_le'] ?? ''));
-                bulk_undo_memoriser('evenements', $ids, ['suisa_envoye_a', 'suisa_envoye_le'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['suisa_envoye_a', 'suisa_envoye_le'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_envoye_a = ?, suisa_envoye_le = ? WHERE id IN ($in)")
                     ->execute(array_merge([$envoyeA, $envoyeLe], $ids));
             } elseif ($section === 'suisa_decompte') {
                 $decompteLe = trim((string) ($_POST['bulk_suisa_decompte_le'] ?? ''));
-                bulk_undo_memoriser('evenements', $ids, ['suisa_decompte_le'], 'evenements_liste', $retourFiltres);
+                bulk_undo_memoriser('evenements', $ids, ['suisa_decompte_le'], 'evenements', $retourFiltres);
                 db()->prepare("UPDATE evenements SET suisa_decompte_le = ? WHERE id IN ($in)")
                     ->execute(array_merge([$decompteLe], $ids));
             } elseif ($section === 'production_externe') {
                 $active = ($_POST['bulk_production_externe'] ?? '') === '1' ? 1 : 0;
                 if ($active) {
-                    // Comme pour l'activation individuelle (route_evenement_production_externe) :
+                    // Comme pour l'activation individuelle (route_evenement_production_externe_enregistrer) :
                     // un événement dont un employé a déjà une prestation payée est ignoré (fiche
                     // figée, jamais modifiée) plutôt que de bloquer toute la sélection.
                     $idsActivables = [];
@@ -248,7 +242,7 @@ function route_evenements_liste(): void
                         $retourFiltres['prodExterneBloques'] = $nBloques;
                     }
                 } else {
-                    bulk_undo_memoriser('evenements', $ids, ['production_externe'], 'evenements_liste', $retourFiltres);
+                    bulk_undo_memoriser('evenements', $ids, ['production_externe'], 'evenements', $retourFiltres);
                     db()->prepare("UPDATE evenements SET production_externe = 0 WHERE id IN ($in)")->execute($ids);
                 }
             }
@@ -256,7 +250,7 @@ function route_evenements_liste(): void
                 $retourFiltres['bulk'] = count($ids);
             }
         }
-        redirect('evenements_liste', $retourFiltres);
+        redirect('evenements', $retourFiltres);
     }
 
     $spectacleMap = spectacle_map();
@@ -264,7 +258,7 @@ function route_evenements_liste(): void
     // Tri de colonne — lu avant la branche carte, qui rend la même vue et doit
     // donc recevoir $tri comme la liste. L'ordre naturel (la date la plus
     // récente d'abord) reste celui de l'arrivée sur la page.
-    $tri = tri_colonne('evenements_liste', [
+    $tri = tri_colonne('evenements', [
         'date'      => 'e.date',
         'spectacle' => 's.nom COLLATE NOCASE',
         'ville'     => ['e.ville COLLATE NOCASE', 'e.salle COLLATE NOCASE'],
@@ -277,7 +271,7 @@ function route_evenements_liste(): void
     if ($vue === 'carte') {
         [$whereCarte, $paramsCarte] = evenements_where_filtres($f, $spectacleMap, true);
         [$cartePoints, $carteVillesManquantes] = evenements_carte_points($whereCarte, $paramsCarte);
-        render('evenements_liste', [
+        render('evenements', [
             'vue' => $vue, 'cartePoints' => $cartePoints, 'carteVillesManquantes' => $carteVillesManquantes,
             'evenements' => [], 'annee' => $annee, 'annees' => $annees ?: [(int) date('Y')],
             'statutSuisa' => $statutSuisa, 'spectacleId' => $spectacleId, 'statut' => $statut, 'visibilite' => $visibilite,
@@ -285,7 +279,7 @@ function route_evenements_liste(): void
             'paysDisponibles' => evenements_pays_disponibles(), 'pays' => $pays, 'salaries' => $salaries,
             'recherche' => $recherche, 'modeClient' => true, 'nonLocalises' => $nonLocalises, 'tri' => $tri,
             'bulkCount' => null, 'okAnnule' => false, 'prodExterneOk' => null, 'prodExterneBloques' => null,
-            'pgRoute' => 'evenements_liste', 'pgParams' => $retourFiltres, 'pgPage' => 1, 'pgTaille' => pagination_taille('evenements_taille'), 'pgTotal' => 0,
+            'pgRoute' => 'evenements', 'pgParams' => $retourFiltres, 'pgPage' => 1, 'pgTaille' => pagination_taille('evenements_taille'), 'pgTotal' => 0,
         ], 'Événements');
         return;
     }
@@ -338,7 +332,7 @@ function route_evenements_liste(): void
     $spectacles = spectacles_pour_selection($spectacleMap);
     $spectaclesFiltre = spectacles_pour_filtre($spectacleMap);
 
-    render('evenements_liste', [
+    render('evenements', [
         'vue' => $vue,
         'cartePoints' => [],
         'carteVillesManquantes' => 0,
@@ -362,7 +356,7 @@ function route_evenements_liste(): void
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',
         'prodExterneOk'      => isset($_GET['prodExterneOk']) ? (int) $_GET['prodExterneOk'] : null,
         'prodExterneBloques' => isset($_GET['prodExterneBloques']) ? (int) $_GET['prodExterneBloques'] : null,
-        'pgRoute'         => 'evenements_liste',
+        'pgRoute'         => 'evenements',
         'pgParams'        => $retourFiltres,
         'pgPage'          => $pgPage,
         'pgTaille'        => $pgTaille,
@@ -371,21 +365,21 @@ function route_evenements_liste(): void
 }
 
 // Géocode un lot de villes d'événements encore manquantes (bouton de la vue
-// carte, ?p=evenements_liste&vue=carte) — même principe que route_lieux_geocoder().
+// carte, ?p=evenements&vue=carte) — même principe que route_lieux_geocoder().
 function route_evenements_geocoder(): void
 {
     require_login();
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('evenements_liste', ['vue' => 'carte']); }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('evenements', ['vue' => 'carte']); }
     check_csrf();
     $n = geocodage_traiter_lot('geocodage_villes_manquantes_evenements');
     $retour = array_intersect_key($_POST, array_flip([
         'q', 'annee', 'statut_suisa', 'spectacle_id', 'statut', 'visibilite', 'pays', 'salaries',
     ]));
-    redirect('evenements_liste', $retour + ['vue' => 'carte', 'geocode' => $n]);
+    redirect('evenements', $retour + ['vue' => 'carte', 'geocode' => $n]);
 }
 
 // Export CSV (« Excel ») des événements filtrés actuellement — mêmes filtres
-// que route_evenements_liste() (evenements_lire_filtres()/evenements_where_filtres()),
+// que route_evenements() (evenements_lire_filtres()/evenements_where_filtres()),
 // sans pagination : date, spectacle, ville, région/canton, pays, salle, festival,
 // suivi SUISA (envoyé à/date d'envoi/date du décompte), et tous les champs de
 // l'organisateur lié le cas échéant.
@@ -466,7 +460,7 @@ function evenements_export_suisa_donnees(): array
     ];
 }
 
-function route_evenements_export_suisa(): void
+function route_evenements_suisa_exporter(): void
 {
     require_login();
     ['entetes' => $entetes, 'lignes' => $lignes] = evenements_export_suisa_donnees();
@@ -494,7 +488,7 @@ function route_evenements_export_suisa(): void
 // que « Aperçu » sur une fiche de salaire, un certificat ou un bilan. Rien de
 // spécifique ici : la fenêtre, la fermeture et la touche Échap sont déjà
 // gérées une fois pour toutes.
-function route_evenements_export_suisa_apercu(): void
+function route_evenements_suisa_exporter_apercu(): void
 {
     require_login();
     // Les filtres courants, à reporter sur le lien de téléchargement de la
@@ -511,7 +505,7 @@ function route_evenement(): void
     $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
     $evenement = $id ? evenement_charger($id) : null;
     if ($id && !$evenement) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
 
     $spectacleMap = spectacle_map();
@@ -519,7 +513,7 @@ function route_evenement(): void
     $employesTous = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
 
     // Sépare « déjà liés » / « disponibles » pour le picker (select + bouton
-    // Ajouter, cf. views/evenement_form.php) — évite d'afficher une case à
+    // Ajouter, cf. views/evenement.php) — évite d'afficher une case à
     // cocher par employé, peu lisible dès que la liste grossit.
     $employeIds = $id ? evenement_employe_ids($id) : [];
     $employesLies  = array_values(array_filter($employesTous, fn ($e) => in_array((int) $e['id'], $employeIds, true)));
@@ -558,7 +552,7 @@ function route_evenement(): void
     // Carte « Organisation » : structures liées, sans distinction lieu/
     // organisateur (voir migration_58/66, evenement_structures_liees() —
     // lib/evenements.php). Candidats à l'ajout chargés à la demande côté
-    // client (?p=lieux_options, potentiellement des milliers de structures) —
+    // client (?p=lieux_json, potentiellement des milliers de structures) —
     // pas de liste serveur ici, contrairement à l'ancienne recherche
     // « Organisateur(s) » seule.
     $structuresLiees = $id ? evenement_structures_liees($id) : [];
@@ -587,7 +581,7 @@ function route_evenement(): void
     // Lien vers une structure de la base (module booking) — recherche
     // disponible dès la création (une seule à ce stade) ; d'autres structures
     // ne se gèrent qu'une fois l'événement créé, depuis la carte
-    // « Organisation » (chargée à la demande via ?p=lieux_options).
+    // « Organisation » (chargée à la demande via ?p=lieux_json).
     $peutLierLieu = module_actif('booking') && peut_lire('booking');
     $lieuActuel = null;
     if (!$id && $peutLierLieu && !empty($_POST['lieu_id'])) {
@@ -632,7 +626,7 @@ function route_evenement(): void
 
     // Une fois l'événement créé, cette route ne gère plus l'enregistrement :
     // chaque carte (Informations/Organisation/Localisation) se sauvegarde
-    // désormais séparément (route_evenement_informations()/_organisation()/
+    // désormais séparément (route_evenement_informations_enregistrer()/_organisation()/
     // _localisation()), en place, avec son propre bouton crayon.
     if ($id) {
         redirect('evenement', ['id' => $id]);
@@ -726,13 +720,13 @@ function route_evenement(): void
 // festival, lien/texte du bouton/remarques. Séparée de la création
 // (route_evenement(), qui ne gère plus que id=0) : cette carte s'édite en
 // place (lecture par défaut, crayon → édition) une fois l'événement créé.
-function route_evenement_informations(): void
+function route_evenement_informations_enregistrer(): void
 {
     require_login();
     $id = (int) ($_POST['id'] ?? 0);
     $evenement = evenement_charger($id);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$evenement) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
 
@@ -785,12 +779,12 @@ function route_evenement_informations(): void
 
 // Carte « Localisation » — ville, département/canton, région, pays (la
 // mini-carte elle-même reste en lecture seule, dérivée du cache de géocodage).
-function route_evenement_localisation(): void
+function route_evenement_localisation_enregistrer(): void
 {
     require_login();
     $id = (int) ($_POST['id'] ?? 0);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($id)) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
 
@@ -820,18 +814,18 @@ function route_evenement_localisation(): void
 }
 
 // Carte « Organisation » — remplace en un seul POST l'ensemble des structures
-// liées (voir evenement_form.php : rien n'est envoyé tant que « Enregistrer »
+// liées (voir evenement.php : rien n'est envoyé tant que « Enregistrer »
 // n'est pas cliqué, contrairement aux anciennes routes lier/délier qui
 // agissaient immédiatement sur un seul lien à la fois). Plus de distinction
 // lieu/organisateur (voir migration_66) : une seule liste de structures,
 // dont au plus une marquée « à facturer » (facturation_id) pour la facture/
 // l'export SUISA. Remplace route_evenement_organisateur_lier()/_delier().
-function route_evenement_organisation(): void
+function route_evenement_organisation_enregistrer(): void
 {
     require_login();
     $id = (int) ($_POST['id'] ?? 0);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($id)) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
 
@@ -857,7 +851,7 @@ function route_evenement_organisation(): void
     // SUISA, voir evenement_resynchroniser_miroirs()) : au plus une, doit
     // faire partie de la sélection courante — sinon aucune (le JS en
     // présélectionne une côté client dès le premier ajout, voir
-    // views/evenement_form.php, mais on ne devine rien côté serveur).
+    // views/evenement.php, mais on ne devine rien côté serveur).
     $facturationId = (int) ($_POST['facturation_id'] ?? 0);
     if (!in_array($facturationId, $structureIds, true)) {
         $facturationId = 0;
@@ -877,16 +871,16 @@ function route_evenement_organisation(): void
 }
 
 // Carte « SUISA » — sauvegarde indépendante de la carte « Informations ».
-function route_evenement_suisa(): void
+function route_evenement_suisa_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     if (!evenement_charger($id)) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     $suisaApplicable = isset($_POST['suisa_applicable']) ? 1 : 0;
     $suisaEnvoyeA = valeur_autorisee($_POST['suisa_envoye_a'] ?? '', EVENEMENTS_SUISA_ENVOYE_A);
@@ -901,19 +895,19 @@ function route_evenement_suisa(): void
 // Carte « Employés » — bascule « production externe » (cachet géré par un tiers,
 // pas de prestation/fiche de salaire liée). Cocher détache toutes les
 // prestations déjà liées (evenement_detacher_prestation(), même mécanisme que
-// route_evenement_employe_delier()) ; refuse si l'une d'elles est sur une fiche
+// route_evenement_employe_retirer()) ; refuse si l'une d'elles est sur une fiche
 // déjà payée (historique figé, jamais touché). Décocher n'a besoin d'aucune
 // confirmation : ça ne supprime rien, juste réaffiche les colonnes de prestation.
-function route_evenement_production_externe(): void
+function route_evenement_production_externe_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     if (!evenement_charger($id)) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     $active = isset($_POST['production_externe']) ? 1 : 0;
     if ($active) {
@@ -938,7 +932,7 @@ function route_evenement_employe_lier(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
@@ -996,11 +990,11 @@ function route_evenement_employe_lier(): void
 // événement pour cet employé (invariant : pas de fiche liée sans employé lié).
 // Refuse (no-op) si cette prestation a déjà été payée : on ne délie jamais un
 // employé « en douce » d'une fiche figée, il faut d'abord la corriger à la main.
-function route_evenement_employe_delier(): void
+function route_evenement_employe_retirer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
@@ -1024,7 +1018,7 @@ function route_evenement_ligne_ajouter(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $evenementId = (int) ($_POST['id'] ?? 0);
@@ -1135,7 +1129,7 @@ function route_evenement_ligne_ajouter(): void
     redirect('evenement', ['id' => $evenementId]);
 }
 
-function route_evenement_delete(): void
+function route_evenement_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -1143,7 +1137,7 @@ function route_evenement_delete(): void
         $id = (int) ($_POST['id'] ?? 0);
         db()->prepare('DELETE FROM evenements WHERE id = ?')->execute([$id]);
     }
-    redirect('evenements_liste');
+    redirect('evenements');
 }
 
 // Lie une facture existante (pas encore liée) à cet événement, depuis la fiche
@@ -1153,7 +1147,7 @@ function route_evenement_facture_lier(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('facturation')) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $evenementId = (int) ($_POST['id'] ?? 0);
@@ -1189,11 +1183,11 @@ function route_evenement_facture_lier(): void
 
 // Détache une facture de cet événement (la facture elle-même n'est jamais
 // supprimée ni modifiée à part son lien).
-function route_evenement_facture_delier(): void
+function route_evenement_facture_retirer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $evenementId = (int) ($_POST['id'] ?? 0);
@@ -1209,7 +1203,7 @@ function route_facture_evenement_lier(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('facturation')) {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $factureId    = (int) ($_POST['facture_id'] ?? 0);
@@ -1352,7 +1346,7 @@ function route_spectacle(): void
         }
     }
     $map = spectacle_map();
-    // Même expression que partout ailleurs (route_evenement, route_fiche_new…) :
+    // Même expression que partout ailleurs (route_evenement, route_fiche_form…) :
     // aucun axe à proposer quand le module analytique est éteint.
     $axes = module_actif('analytique')
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
@@ -1430,7 +1424,7 @@ function route_spectacle_delete(): void
 // Icône d'un spectacle : la vignette carrée recadrée dans le navigateur, ou son
 // retrait. Deux actions dans une seule route — elles écrivent la même colonne et
 // partagent le nettoyage de l'ancien fichier — sur le modèle de
-// route_employe_avatar(), qui fait cela pour la photo d'un employé.
+// route_employe_photo(), qui fait cela pour la photo d'un employé.
 function route_spectacle_image(): void
 {
     require_login();
@@ -1467,7 +1461,7 @@ function route_spectacle_image(): void
 }
 
 // --- Paramètres — onglet Événements -------------------------------------------
-function route_parametres_evenements(): void
+function route_evenements_reglages(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -1487,7 +1481,7 @@ function route_parametres_evenements(): void
             $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
             $ins->execute(['evenements_terme_spectacle', $termeSpectacle]);
         }
-        redirect('parametres_evenements', ['ok' => 1]);
+        redirect('evenements_reglages', ['ok' => 1]);
     }
 
     render('evenements_reglages', [
@@ -1531,7 +1525,7 @@ function evenements_lire_spectacle_id_export(): ?int
     return (int) $brut;
 }
 
-function route_evenements_json(): void
+function route_evenements_exporter_json(): void
 {
     evenements_verifier_token();
     $spectacleId = evenements_lire_spectacle_id_export();
@@ -1562,7 +1556,7 @@ function route_evenements_json(): void
     exit;
 }
 
-function route_evenements_ical(): void
+function route_evenements_exporter_ical(): void
 {
     evenements_verifier_token();
     $spectacleId = evenements_lire_spectacle_id_export();
@@ -1574,7 +1568,7 @@ function route_evenements_ical(): void
 }
 
 // --- Import CSV (agenda de tournée) ------------------------------------------
-function route_import_evenements(): void
+function route_evenements_importer(): void
 {
     require_login();
     $err = null; $resultats = null; $resume = null; $simule = true;
@@ -1597,7 +1591,7 @@ function route_import_evenements(): void
             }
         }
     }
-    render('import_fiches', [
+    render('fiches_importer', [
         'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => null,
@@ -1698,7 +1692,7 @@ function route_evenement_feuille_ajouter(): void
     require_login();
     $evenementId = (int) ($_POST['evenement_id'] ?? 0);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($evenementId)) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $type = valeur_autorisee($_POST['type'] ?? '', array_keys(FEUILLE_TYPES));
@@ -1749,7 +1743,7 @@ function route_evenement_feuille_modifier(): void
     $id = (int) ($_POST['id'] ?? 0);
     $el = $id ? feuille_element($id) : null;
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$el) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     $evenementId = (int) $el['evenement_id'];
@@ -1773,7 +1767,7 @@ function route_evenement_feuille_supprimer(): void
     $id = (int) ($_POST['id'] ?? 0);
     $el = $id ? feuille_element($id) : null;
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$el) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     feuille_supprimer($id);
@@ -1786,7 +1780,7 @@ function route_evenement_feuille_deplacer(): void
     $id = (int) ($_POST['id'] ?? 0);
     $el = $id ? feuille_element($id) : null;
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$el) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     feuille_deplacer($id, valeur_autorisee($_POST['sens'] ?? '', ['monter', 'descendre'], 'descendre'));
@@ -1799,7 +1793,7 @@ function route_evenement_feuille_deplacer(): void
 //
 // Content-Disposition: attachment, toujours : un PDF ou une image ouverts dans
 // l'onglet s'exécuteraient dans l'origine de l'application.
-function route_evenement_fichier(): void
+function route_evenement_feuille_fichier(): void
 {
     // Deux façons d'y avoir droit : une session avec lecture sur le module, ou
     // le jeton du calendrier de l'équipe — les pièces jointes sont référencées
@@ -1813,7 +1807,7 @@ function route_evenement_fichier(): void
     $id = (int) ($_GET['id'] ?? 0);
     $el = $id ? feuille_element($id) : null;
     if (!$el || (string) $el['type'] !== 'fichier' || trim((string) $el['fichier']) === '') {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     $chemin = feuille_fichiers_dir() . '/' . basename((string) $el['fichier']);
     if (!is_file($chemin)) {
@@ -1843,14 +1837,14 @@ function feuille_jeton_equipe_fourni(): bool
 
 // Flux iCal de l'équipe. Hors session, comme l'export public : un agenda ne sait
 // pas s'authentifier autrement qu'en portant son jeton dans l'URL.
-function route_evenements_equipe_ical(): void
+function route_evenements_equipe_exporter_ical(): void
 {
     if (!feuille_jeton_equipe_fourni()) {
         http_response_code(403);
         exit('Jeton invalide.');
     }
     $spectacleId = evenements_lire_spectacle_id_export();
-    $base = evenements_export_url('evenement_fichier', evenements_equipe_token());
+    $base = evenements_export_url('evenement_feuille_fichier', evenements_equipe_token());
     header('Content-Type: text/calendar; charset=utf-8');
     header('Content-Disposition: inline; filename="feuilles-de-route.ics"');
     echo feuille_generer_ical_equipe(feuille_evenements_equipe($spectacleId), $base);
@@ -1867,7 +1861,7 @@ function route_evenement_feuille_imprimer(): void
     $id = (int) ($_GET['id'] ?? 0);
     $evenement = evenement_charger($id);
     if (!$evenement) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     [$destinataires, $sansAdresse] = feuille_destinataires($id);
     render_bare('evenement_feuille_imprimer', [
@@ -1888,13 +1882,13 @@ function route_evenement_feuille_imprimer(): void
 // Un message par destinataire et non un envoi groupé en copie : les adresses de
 // l'équipe n'ont pas à circuler entre elles, et un échec sur l'une n'emporte pas
 // les autres.
-function route_evenement_feuille_email(): void
+function route_evenement_feuille_envoyer(): void
 {
     require_login();
     $id = (int) ($_POST['id'] ?? 0);
     $evenement = $id ? evenement_charger($id) : null;
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$evenement) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     require_ecriture('evenements');
@@ -1947,7 +1941,7 @@ function route_evenement_feuille_ordre(): void
     require_login();
     $evenementId = (int) ($_POST['evenement_id'] ?? 0);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !evenement_charger($evenementId)) {
-        redirect('evenements_liste');
+        redirect('evenements');
     }
     check_csrf();
     require_ecriture('evenements');

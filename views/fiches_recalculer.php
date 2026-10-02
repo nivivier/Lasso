@@ -24,7 +24,7 @@ $cle = ['salaire_brut' => 'Brut', 'total_deductions' => 'Déductions',
     <div class="year-bar">
         <h2>Année <?= $annee ?></h2>
         <label class="inline">
-            <select data-go-on-change="?p=fiches_recalcul&annee=">
+            <select data-go-on-change="?p=fiches_recalculer&annee=">
                 <?php foreach ($annees as $a): ?>
                     <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
                 <?php endforeach; ?>
@@ -49,7 +49,7 @@ $cle = ['salaire_brut' => 'Brut', 'total_deductions' => 'Déductions',
             <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour recalculer des fiches.</p>
         <?php endif; ?>
 
-        <form method="post" action="?p=fiches_recalcul" data-confirm="Recalculer les fiches cochées ? Les montants figés seront réécrits.">
+        <form method="post" action="?p=fiches_recalculer" data-confirm="Recalculer les fiches cochées ? Les montants figés seront réécrits.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="annee" value="<?= $annee ?>">
             <div class="table-scroll">

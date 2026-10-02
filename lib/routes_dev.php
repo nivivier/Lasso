@@ -3,7 +3,7 @@
 // maintenance ponctuels (lib/dev.php), réservée aux administrateurs (écriture
 // cœur, voir index.php). Toujours dry-run avant écriture, sauvegarde
 // automatique de la base avant toute fusion/écriture — même principe que
-// route_maj()/route_import_structures().
+// route_maj()/route_structures_importer().
 
 declare(strict_types=1);
 

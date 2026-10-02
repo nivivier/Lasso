@@ -109,7 +109,7 @@ check('structures INVISIBLES sans aucun des deux', false,
 
 // Les contacts sont plus restreints que les structures qui les portent : la
 // fiche structure ne les montre qu'avec booking (voir $avecAside dans
-// views/structure_form.php). Les exposer à un compte « facturation » les
+// views/structure.php). Les exposer à un compte « facturation » les
 // rendrait visibles là où la fiche elle-même les cache.
 check('contacts visibles avec « booking »', true,
     recherche_source_visible_pour($src['contacts'], ['booking']));

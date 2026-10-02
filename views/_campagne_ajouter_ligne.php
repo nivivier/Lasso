@@ -14,14 +14,14 @@
 // Attendu de l'appelant (préfixe « ca ») :
 //   $caCampagnes (array) les campagnes où l'on peut ranger la structure.
 //   $caRetour    (array) où revenir SANS JavaScript : ['retour' => 'structures'],
-//                ou ['retour' => 'campagne', 'campagne_id' => N].
+//                ou ['retour' => 'booking_campagne', 'campagne_id' => N].
 //   $caAction    (string) la route qui enregistre. Par défaut celle du
 //                démarchage ; la liste des structures atteinte depuis la
 //                recherche de fonds vise la sienne — une page ne montre jamais
 //                les deux colonnes à la fois, un seul formulaire suffit donc.
 $caCampagnes = $caCampagnes ?? [];
 $caRetour = $caRetour ?? [];
-$caAction = $caAction ?? '?p=structure_campagne';
+$caAction = $caAction ?? '?p=booking_campagne_structure';
 ?>
 <?php // Exemplaire unique, comme le formulaire d'étiquette juste au-dessus :
       // déplacé dans la cellule de la ligne dont on clique le « + ». Une liste

@@ -1,6 +1,6 @@
 <?php
 // Le tableau des structures — celui de ?p=structures, et le seul. La sélection
-// d'une campagne (?p=campagne_form) montre les mêmes colonnes : elles sont donc
+// d'une campagne (?p=booking_campagne_form) montre les mêmes colonnes : elles sont donc
 // écrites ici une fois, et leurs données viennent toutes de
 // structures_colonnes_liste_sql() (lib/booking.php).
 //
@@ -269,7 +269,7 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
                           // et « statut=tous » étaient les sentinelles d'avant
                           // filtre_coche() — sans le marqueur _set, elles ne faisaient
                           // plus rien et la liste s'ouvrait sur ses filtres précédents. ?>
-                    <a href="<?= e(lien_liste_filtree('facturation_liste', ['annee' => [], 'statut' => []], ['q' => (string) $d['nom']])) ?>"><?= (int) $d['nb_factures'] ?></a>
+                    <a href="<?= e(lien_liste_filtree('factures', ['annee' => [], 'statut' => []], ['q' => (string) $d['nom']])) ?>"><?= (int) $d['nb_factures'] ?></a>
                 <?php else: ?>
                     0
                 <?php endif; ?>

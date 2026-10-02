@@ -9,7 +9,7 @@ $isEdit = $id > 0;
 $peutEcrireEv = peut_ecrire('evenements');
 $v = fn (string $k, $d = '') => e((string) ($post[$k] ?? $evenement[$k] ?? $d));
 $vRaw = fn (string $k, $d = '') => (string) ($post[$k] ?? $evenement[$k] ?? $d);
-$retour = $isEdit ? '?p=evenement&id=' . (int) $id : '?p=evenements_liste';
+$retour = $isEdit ? '?p=evenement&id=' . (int) $id : '?p=evenements';
 // Reporté sur les formulaires de cette page qui redirigent vers elle-même,
 // pour que le lien de retour contextuel (lien_retour_contextuel()) survive à
 // un enregistrement (voir redirect() dans lib/helpers.php).
@@ -73,7 +73,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 
 <div class="module-content"><div class="module-content-inner">
 <div class="page-head entete-editable">
-    <?= lien_retour_contextuel('?p=evenements_liste', 'Événements') ?>
+    <?= lien_retour_contextuel('?p=evenements', 'Événements') ?>
     <?php if ($isEdit): ?>
     <div class="head-actions">
         <?php // La feuille de route se consulte d'ici, sans descendre la page :
@@ -97,7 +97,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
               // découvre, et la croix qui la referme — sans recharger. Pendant
               // ce temps « Feuille de route » s'efface : on consulte ou on
               // décide du sort de la date, pas les deux. ?>
-        <form method="post" action="?p=evenement_delete" class="d-inline entete-edition" hidden data-confirm="<?= e($confirmSuppr) ?>">
+        <form method="post" action="?p=evenement_supprimer" class="d-inline entete-edition" hidden data-confirm="<?= e($confirmSuppr) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la date"><?= icon('trash') ?></button>
@@ -248,7 +248,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         </table>
     </div>
 
-    <form method="post" id="informations-form" action="?p=evenement_informations<?= $depuisQs ?>" class="card-edit form" hidden>
+    <form method="post" id="informations-form" action="?p=evenement_informations_enregistrer<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <?php // Champ court : la date n'a pas besoin de toute la largeur, et
@@ -332,7 +332,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         </div>
     </div>
 
-    <form method="post" id="localisation-form" action="?p=evenement_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
+    <form method="post" id="localisation-form" action="?p=evenement_localisation_enregistrer<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <input name="adresse_rue" value="<?= $v('adresse_rue') ?>" placeholder="Rue et numéro" aria-label="Rue et numéro" class="mb-16">
@@ -432,7 +432,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <?php endif; ?>
     </div>
 
-    <form method="post" action="?p=evenement_organisation<?= $depuisQs ?>" class="card-edit form" hidden id="organisation-form">
+    <form method="post" action="?p=evenement_organisation_enregistrer<?= $depuisQs ?>" class="card-edit form" hidden id="organisation-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
 
@@ -492,7 +492,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         ) ?></h2>
         <?php if ($peutEcrireEv): ?>
         <div class="head-actions">
-            <form method="post" action="?p=evenement_production_externe<?= $depuisQs ?>" id="prod-externe-form">
+            <form method="post" action="?p=evenement_production_externe_enregistrer<?= $depuisQs ?>" id="prod-externe-form">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $id ?>">
                 <label class="check">
@@ -610,7 +610,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
           // autres, qui ne se coche qu'en édition. Les trois champs qu'il
           // commande restent masqués tant qu'il n'est pas coché (script en bas
           // de page). ?>
-    <form method="post" id="suisa-form" action="?p=evenement_suisa<?= $depuisQs ?>" class="card-edit form" hidden>
+    <form method="post" id="suisa-form" action="?p=evenement_suisa_enregistrer<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $id ?>">
         <label class="check mb-16">
@@ -643,7 +643,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <div class="page-head">
         <h2 class="mt-0">Factures liées</h2>
         <?php if (module_actif('facturation') && peut_ecrire('facturation')): ?>
-            <a class="btn ghost" href="?p=facturation_form&evenement_id=<?= (int) $id ?>"><?= icon('file-plus') ?> Créer</a>
+            <a class="btn ghost" href="?p=facture_form&evenement_id=<?= (int) $id ?>"><?= icon('file-plus') ?> Créer</a>
         <?php endif; ?>
     </div>
     <?php // Le tableau est rendu même vide, et c'est une LIGNE qui porte le
@@ -699,7 +699,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     }
 
     // Case « Production externe » : cocher détache les prestations déjà liées
-    // (côté serveur, route_evenement_production_externe()) — confirmation avant
+    // (côté serveur, route_evenement_production_externe_enregistrer()) — confirmation avant
     // de soumettre si des prestations existent. Décocher ne supprime rien.
     const prodCheck = document.getElementById('prod-externe-check');
     if (prodCheck) {
@@ -813,7 +813,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     });
 
     // Lieu (base), recherche à la création (un seul lieu à ce stade) : widget
-    // alimenté à la demande via ?p=lieux_options au premier focus (potentiellement
+    // alimenté à la demande via ?p=lieux_json au premier focus (potentiellement
     // des milliers de lieux → pas d'injection dans la page). lassoInitCatSearch()
     // est appelée tout de suite (liste encore vide) — pas dans le .then() — pour
     // que le champ réagisse dès le premier focus/frappe/clic pendant que la
@@ -828,7 +828,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         lieuInput.addEventListener('focus', function () {
             if (lieuCharge) { return; }
             lieuCharge = true;
-            fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
+            fetch('?p=lieux_json', { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(function (opts) {
                     const frag = document.createDocumentFragment();
@@ -920,7 +920,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         const structureNouveau = document.getElementById('organisation-nouveau');
         // lassoInitCatSearch() appelée tout de suite (liste encore vide, hormis
         // « + Nouvelle structure » déjà en dur), pas dans le .then() du fetch :
-        // sinon le champ ne réagit à rien tant que ?p=lieux_options n'a pas abouti.
+        // sinon le champ ne réagit à rien tant que ?p=lieux_json n'a pas abouti.
         lassoInitCatSearch(structureWrap, {
             clearHiddenOnInput: true,
             onSelect: li => {
@@ -942,7 +942,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         structureInput.addEventListener('focus', function () {
             if (structureChargee) return;
             structureChargee = true;
-            fetch('?p=lieux_options', { headers: { 'Accept': 'application/json' } })
+            fetch('?p=lieux_json', { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(function (opts) {
                     const dejaLies = new Set([...structureChips.querySelectorAll('.badge')].map(b => b.dataset.id));

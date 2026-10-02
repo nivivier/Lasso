@@ -71,7 +71,7 @@ calculer les fiches **à venir**. C'est ce qui permet de modifier la grille sans
 craindre de réécrire quoi que ce soit.
 
 Conséquence assumée : un changement de taux ne se propage pas. Le recalcul est un
-geste séparé et explicite (`?p=fiches_recalcul`), avec aperçu avant/après, le
+geste séparé et explicite (`?p=fiches_recalculer`), avec aperçu avant/après, le
 nombre de fiches touchées annoncé, les fiches déjà payées décochées par défaut,
 et une sauvegarde automatique de la base juste avant l'écriture.
 

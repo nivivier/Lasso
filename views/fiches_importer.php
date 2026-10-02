@@ -11,7 +11,7 @@ $types = [];
 if (module_actif('salaires') && peut_ecrire('salaires')) {
     $types['fiches'] = [
         'libelle' => 'Fiches de salaire (JSON)',
-        'action'  => '?p=import_fiches',
+        'action'  => '?p=fiches_importer',
         'accept'  => 'application/json,.json',
         'simuler' => true,
         'bouton'  => 'Importer',
@@ -21,7 +21,7 @@ if (module_actif('salaires') && peut_ecrire('salaires')) {
 if (module_actif('facturation') && peut_ecrire('facturation')) {
     $types['factures'] = [
         'libelle' => 'Factures (JSON)',
-        'action'  => '?p=import_factures',
+        'action'  => '?p=factures_importer',
         'accept'  => 'application/json,.json',
         'simuler' => true,
         'bouton'  => 'Importer',
@@ -31,7 +31,7 @@ if (module_actif('facturation') && peut_ecrire('facturation')) {
 if (module_actif('compta') && peut_ecrire('compta')) {
     $types['ecritures'] = [
         'libelle' => 'Écritures bancaires (CSV / XML camt.053)',
-        'action'  => '?p=import_ecritures',
+        'action'  => '?p=compta_ecritures_importer_valider',
         'accept'  => '.csv,text/csv,.xml,application/xml,text/xml',
         'simuler' => true,
         'bouton'  => 'Importer directement',
@@ -41,7 +41,7 @@ if (module_actif('compta') && peut_ecrire('compta')) {
 if (module_actif('evenements') && peut_ecrire('evenements')) {
     $types['evenements'] = [
         'libelle' => 'Événements (CSV)',
-        'action'  => '?p=import_evenements',
+        'action'  => '?p=evenements_importer',
         'accept'  => 'text/csv,.csv',
         'simuler' => true,
         'bouton'  => 'Importer',
@@ -51,7 +51,7 @@ if (module_actif('evenements') && peut_ecrire('evenements')) {
 if (module_actif('booking') && peut_ecrire('booking')) {
     $types['structures'] = [
         'libelle' => 'Structures — carnet d\'adresses (CSV)',
-        'action'  => '?p=import_structures',
+        'action'  => '?p=structures_importer',
         'accept'  => 'text/csv,.csv',
         'simuler' => false,
         'bouton'  => 'Analyser le fichier',
@@ -75,7 +75,7 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
 <?php else: ?>
 <div class="card form" id="import-unifie" data-type-actif="<?= e((string) $typeActif) ?>">
     <h2 class="mt-0">Importer des données</h2>
-    <form method="post" action="?p=import_fiches" enctype="multipart/form-data" id="import-form">
+    <form method="post" action="?p=fiches_importer" enctype="multipart/form-data" id="import-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="" id="import-etape" disabled>
         <div class="grid2">
@@ -124,7 +124,7 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
 <div class="card form mt-22 import-extra" data-for="structures" hidden>
     <h3 class="sub no-mt">Liste « ne pas contacter » (structures)</h3>
     <p class="muted small">Une adresse par ligne — désinscrit immédiatement du mailing, sans jamais pouvoir être réimportée par erreur.</p>
-    <form method="post" action="?p=import_structures">
+    <form method="post" action="?p=structures_importer">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="exclusion">
         <textarea name="emails" rows="3" placeholder="contact1@exemple.com&#10;contact2@exemple.com"></textarea>

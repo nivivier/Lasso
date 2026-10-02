@@ -27,7 +27,7 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
   génération d'une QR-facture.
 - **Exception actée** : le recadrage d'image utilise **Cropper.js**
   (`assets/vendor/cropperjs/`, bundlé dans le dépôt, pas de CDN, MIT), chargé
-  sur les seules pages qui recadrent : la photo d'un employé (`?p=employe_voir`)
+  sur les seules pages qui recadrent : la photo d'un employé (`?p=employe`)
   et l'icône d'un spectacle (`?p=spectacles`). Le navigateur produit une
   vignette carrée de 256 px envoyée en data URI ; le serveur la revalide comme
   un upload de fichier (`avatar_photo_enregistrer()` :
@@ -97,7 +97,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   impression, e-mail, certificat via `rubrique_certificat`, agrégats compta via
   `groupe_compta`) lit cette copie, jamais `postes_salariaux`. Changer un taux
   ou un poste ne réécrit donc rien : le recalcul est explicite
-  (`?p=fiches_recalcul`, aperçu avant/après + sauvegarde auto). **Invariante :
+  (`?p=fiches_recalculer`, aperçu avant/après + sauvegarde auto). **Invariante :
   les totaux sont la somme des montants arrondis, jamais recalculés depuis la
   copie figée** (16 fiches sur 38 suivent une règle d'arrondi plus ancienne et
   se décaleraient d'un centime).
@@ -112,7 +112,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     analytique/facturation/evenements/booking/mailing), indépendante des droits
     ci-dessous. Deux modules en dépendent d'un autre (`requires`) : `analytique`
     → `compta`, `mailing` (« Envois groupés ») → `booking` ; ils s'affichent
-    décalés sous leur parent dans `?p=parametres_modules` et s'éteignent avec lui.
+    décalés sous leur parent dans `?p=modules` et s'éteignent avec lui.
   - Droits par utilisateur, table `utilisateur_permissions` (module → lecture/
     écriture, absence de ligne = aucun accès) : `peut_lire()`/`peut_ecrire()`
     (utilisateur courant), `require_lecture()`/`require_ecriture()`.
@@ -120,7 +120,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     paramètres/comptes/modules/mises à jour/sauvegarde ; **écriture sur `coeur`
     = administrateur**, `est_admin()`. Il doit toujours en rester au moins un
     (garde-fou dans `enregistrer_permissions_utilisateur()` et
-    `route_compte_delete()`).
+    `route_utilisateur_supprimer()`).
   - Dispatch (`index.php`) : chaque route est associée au(x) module(s) dont
     dépend son accès (`ajouter_routes_module()`) ; `route_autorisee()` exige la
     lecture pour un GET, l'écriture pour un POST (convention stricte : toute
@@ -128,15 +128,15 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     mutante en GET casserait ce contrôle — ne pas le faire. **Trois routes y
     échappent**, toutes hors session et donc sans jeton CSRF possible, chacune
     autorisée par une signature ou un jeton dédié :
-    - `route_backup()` — exporte toute la base, gardée à part ;
+    - `route_sauvegarde()` — exporte toute la base, gardée à part ;
     - `route_mailing_traiter()` — vide la file d'envoi, déclenchée par le
       planificateur de tâches de l'hébergeur (jeton `mailing_traiter_token`) ;
     - `route_desinscription()` — lien de désinscription d'un e-mail. Elle
       n'écrit **que sur un POST** : le GET n'affiche qu'une page de
       confirmation, parce qu'un antivirus de messagerie ou un aperçu de lien
       suit les URL d'un message et aurait désinscrit tout seul.
-  - Un nouveau compte (`route_comptes()`) démarre **sans aucun droit** ; seul
-    le tout premier compte (`route_setup()`) reçoit tout par défaut.
+  - Un nouveau compte (`route_utilisateurs()`) démarre **sans aucun droit** ; seul
+    le tout premier compte (`route_installation()`) reçoit tout par défaut.
   - **`module_accessible($id)`** = `module_actif()` **ET** `peut_lire()`. Les deux
     conditions vont toujours ensemble pour décider d'afficher quelque chose :
     tester `module_actif()` seul laisse fuiter les données d'un module vers un
@@ -172,7 +172,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 - **Sécurité** : `check_csrf()` sur tout POST ; `e()` sur toute sortie ; requêtes
   **toujours** préparées (paramétrées). bcrypt coût 12 ; anti-force-brute ; sessions
   expirantes ; secret d'installation ; base hors webroot en prod.
-  **Mot de passe oublié** (`?p=motdepasse_oublie` / `?p=motdepasse_reinit`, routes
+  **Mot de passe oublié** (`?p=motdepasse_oublie` / `?p=motdepasse_reinitialiser`, routes
   publiques) : jeton à usage unique d'1 h, **seule son empreinte SHA-256 est en
   base** (`reinit_motdepasse`), réponse identique que le compte existe ou non,
   quota propre (`RESET_MAX_PAR_HEURE`) qui ne doit **jamais** alimenter le

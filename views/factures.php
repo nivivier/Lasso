@@ -11,7 +11,7 @@ $autresStatut = array_filter(['annee' => $annee, 'q' => $recherche]);
 $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
 // Les liens de tri emportent tous les filtres actifs, comme les entonnoirs.
 $tousFiltres  = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]);
-$triCol = fn (string $cle, string $lib): string => tri_entete_html('facturation_liste', $cle, $lib, $tri, $tousFiltres);
+$triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $cle, $lib, $tri, $tousFiltres);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -19,24 +19,24 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('facturation_
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
         <form method="get" class="filters">
-            <input type="hidden" name="p" value="facturation_liste">
+            <input type="hidden" name="p" value="factures">
             <?= champ_recherche(['id' => 'facturation-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php
         // Voir ?p=fiches : sur téléphone la mise en cartes masque le <thead>,
         // le bouton « Filtres » reprend les entonnoirs qui y étaient accrochés.
         ob_start(); ?>
-            <?= filtre_colonne_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee, 'Émission') ?>
-            <?= filtre_colonne_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut, 'Paiement') ?>
+            <?= filtre_colonne_html('factures', 'annee', $anneeLabels, $annee, $autresAnnee, 'Émission') ?>
+            <?= filtre_colonne_html('factures', 'statut', $statutLabels, $statut, $autresStatut, 'Paiement') ?>
         <?php
         $fmColonnes = ob_get_clean();
-        $fmActifs = filtre_colonne_actifs_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee)
-            . filtre_colonne_actifs_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut);
+        $fmActifs = filtre_colonne_actifs_html('factures', 'annee', $anneeLabels, $annee, $autresAnnee)
+            . filtre_colonne_actifs_html('factures', 'statut', $statutLabels, $statut, $autresStatut);
         require __DIR__ . '/_filtres_mobile.php';
         ?>
         <?php if (peut_ecrire('facturation')): ?>
         <div class="head-actions">
-            <a class="btn" href="?p=facturation_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
+            <a class="btn" href="?p=facture_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
         </div>
         <?php endif; ?>
     </div>
@@ -48,12 +48,12 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('facturation_
         <?php // « Événement » n'est pas triable : la colonne n'existe que si le
               // module est actif, et elle affiche une date ET un spectacle venus
               // d'une jointure optionnelle. ?>
-        <th class="col-reinit-hote"><?= bouton_reinit_filtres('facturation_liste', ['statut', 'annee'], (bool) ($statut || $annee)) ?><?= $triCol('numero', 'Numéro') ?></th>
+        <th class="col-reinit-hote"><?= bouton_reinit_filtres('factures', ['statut', 'annee'], (bool) ($statut || $annee)) ?><?= $triCol('numero', 'Numéro') ?></th>
         <th><?= $triCol('structure', 'Structure') ?></th>
         <th class="col-date">
             <span class="col-th">
                 <?= $triCol('emission', 'Émission') ?>
-                <?= filtre_colonne_html('facturation_liste', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
+                <?= filtre_colonne_html('factures', 'annee', $anneeLabels, $annee, $autresAnnee) ?>
             </span>
         </th>
         <th><?= $triCol('echeance', 'Échéance') ?></th>
@@ -62,7 +62,7 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('facturation_
         <th class="col-paiement">
             <span class="col-th">
                 <?= $triCol('paiement', 'Paiement') ?>
-                <?= filtre_colonne_html('facturation_liste', 'statut', $statutLabels, $statut, $autresStatut) ?>
+                <?= filtre_colonne_html('factures', 'statut', $statutLabels, $statut, $autresStatut) ?>
             </span>
             </th>
     </tr></thead>

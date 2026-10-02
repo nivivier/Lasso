@@ -66,7 +66,7 @@ $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenem
         . '<button type="button" class="btn ghost btn-sm l-del" aria-label="Supprimer la ligne">✕</button>'
         . '</div>';
 };
-// Reporté sur le formulaire (redirige vers ?p=fiche_new même en édition),
+// Reporté sur le formulaire (redirige vers ?p=fiche_form même en édition),
 // pour que le lien de retour contextuel survive à une erreur de validation
 // qui réaffiche cette page (voir lien_retour_contextuel() dans lib/helpers.php).
 $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
@@ -106,7 +106,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <?php if (peut_ecrire('salaires') && $employes && $unites): ?>
     <?php ob_start(); ?>
         <?php if ($edit && isset($fiche_id)): ?>
-        <form method="post" action="?p=fiche_delete" data-confirm="Supprimer définitivement cette fiche ?" class="d-inline">
+        <form method="post" action="?p=fiche_supprimer" data-confirm="Supprimer définitivement cette fiche ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $fiche_id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la fiche"><?= icon('trash') ?></button>
@@ -125,13 +125,13 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php if (!peut_ecrire('salaires')): ?>
     <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php elseif (!$employes): ?>
-    <p class="muted">Aucun employé actif. <a href="?p=employe">Ajoutez un employé</a> d'abord.</p>
+    <p class="muted">Aucun employé actif. <a href="?p=employe_form">Ajoutez un employé</a> d'abord.</p>
 <?php elseif (!$unites): ?>
     <p class="muted">Aucune unité de temps définie. <a href="?p=employeur">Ajoutez au moins « Heure » (1 h)</a> d'abord.</p>
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=fiche_new<?= $depuisQs ?>" class="card form" id="fiche-form">
+<form method="post" action="?p=fiche_form<?= $depuisQs ?>" class="card form" id="fiche-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($edit && isset($fiche_id)): ?>
         <input type="hidden" name="fiche_id" value="<?= (int) $fiche_id ?>">

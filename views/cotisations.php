@@ -31,7 +31,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
 <div class="section-head">
     <h2 class="mt-0">Résumé</h2>
     <form method="get" class="annee-pick">
-        <input type="hidden" name="p" value="resume">
+        <input type="hidden" name="p" value="cotisations">
         <select name="groupe" aria-label="Regroupement" data-submit-on-change>
             <?php foreach ($groupes as $val => $lib): ?>
                 <option value="<?= $val ?>" <?= $groupe === $val ? 'selected' : '' ?>><?= $lib ?></option>
@@ -101,7 +101,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
 <div class="section-head">
     <h2>Charges totales <?= info_tip('Montants en CHF, part employé + part patronale.') ?></h2>
     <form method="get" class="annee-pick">
-        <input type="hidden" name="p" value="resume">
+        <input type="hidden" name="p" value="cotisations">
         <input type="hidden" name="groupe" value="<?= e($groupe) ?>">
         <input type="hidden" name="annee" value="<?= (int) $annee ?>">
         <input type="hidden" name="employe_id" value="<?= (int) $employeId ?>">

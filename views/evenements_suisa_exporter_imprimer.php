@@ -17,7 +17,7 @@ $nomEmployeur = (string) param('employeur_nom');
           // de cet écran. La copie reste secondaire. Pas d'impression : un
           // tableau de dix-huit colonnes n'est pas fait pour le papier. ?>
     <div class="print-toolbar">
-        <a class="btn" href="?p=evenements_export_suisa&amp;<?= e($exportQs) ?>"><?= icon('download') ?> Télécharger en CSV</a>
+        <a class="btn" href="?p=evenements_suisa_exporter&amp;<?= e($exportQs) ?>"><?= icon('download') ?> Télécharger en CSV</a>
         <button type="button" class="btn ghost" id="suisa-copier"><?= icon('copy') ?> Copier</button>
     </div>
     <div class="sheet sheet-ajuste">

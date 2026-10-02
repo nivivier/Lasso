@@ -60,11 +60,11 @@ function fonds_campagnes_liste(): array
 }
 
 // La liste des campagnes de recherche de fonds.
-function route_fonds(): void
+function route_fonds_campagnes(): void
 {
     require_login();
     // Recherche texte jamais mémorisée en session, comme les autres listes
-    // (voir route_campagnes()). Le même filtre que le démarchage, puisque
+    // (voir route_booking_campagnes()). Le même filtre que le démarchage, puisque
     // c'est la même question — le nom de la campagne ou celui du projet.
     $recherche = trim((string) ($_GET['q'] ?? ''));
     $toutes = fonds_campagnes_liste();
@@ -94,7 +94,7 @@ function route_fonds_campagne_form(): void
     $id = (int) ($_GET['id'] ?? 0);
     $campagne = $id ? fonds_campagne_charger($id) : null;
     if ($id && !$campagne) {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     $retenues = [];
     if ($id) {
@@ -131,7 +131,7 @@ function route_fonds_campagne_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     check_csrf();
     require_ecriture('fonds');
@@ -208,7 +208,7 @@ function route_fonds_campagne_enregistrer(): void
         $ins->execute([$id, $sid]);
     }
     db()->commit();
-    redirect('fonds', ['ok' => 1]);
+    redirect('fonds_campagnes', ['ok' => 1]);
 }
 
 // Le suivi d'une campagne : où en est chaque dossier, et combien manque-t-il.
@@ -218,7 +218,7 @@ function route_fonds_campagne(): void
     $id = (int) ($_GET['id'] ?? 0);
     $campagne = fonds_campagne_charger($id);
     if (!$campagne) {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     $demandes = fonds_campagne_demandes($id);
     $projetIds = spectacles_lies('fonds_campagne_spectacles', $id);
@@ -243,7 +243,7 @@ function route_fonds_demande_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     check_csrf();
     require_ecriture('fonds');
@@ -252,7 +252,7 @@ function route_fonds_demande_enregistrer(): void
     $stmt->execute([$id]);
     $demande = $stmt->fetch();
     if (!$demande) {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     // La décision ne se devine pas : « refusée » et « abandonnée » se posent à
     // la main, tout le reste se dérive des dates et des montants
@@ -294,7 +294,7 @@ function route_fonds_demande(): void
     $id = (int) ($_GET['id'] ?? 0);
     $demande = fonds_demande_charger($id);
     if (!$demande) {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     $sid = (int) $demande['structure_id'];
     render('fonds_demande', [
@@ -313,17 +313,17 @@ function route_fonds_demande(): void
 
 // Le versement d'un dossier : ce qui est arrivé sur le compte, et l'écriture
 // bancaire qui le prouve.
-function route_fonds_versement(): void
+function route_fonds_versement_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     check_csrf();
     require_ecriture('fonds');
     $id = (int) ($_POST['id'] ?? 0);
     if (!fonds_demande_charger($id)) {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     fonds_versement_enregistrer($id, [
         'montant'     => montant_float((string) ($_POST['montant'] ?? '')),
@@ -337,18 +337,18 @@ function route_fonds_versement(): void
 
 // Ce qu'un bailleur exige, réglé depuis l'un de ses dossiers. Vaut pour TOUS
 // ses dossiers, présents et à venir : c'est lui qui l'exige, pas la campagne.
-function route_fonds_pieces(): void
+function route_fonds_bailleur_pieces_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     check_csrf();
     require_ecriture('fonds');
     $id = (int) ($_POST['id'] ?? 0);
     $demande = fonds_demande_charger($id);
     if (!$demande) {
-        redirect('fonds');
+        redirect('fonds_campagnes');
     }
     $sid = (int) $demande['structure_id'];
     fonds_bailleur_pieces_enregistrer($sid, [
@@ -362,12 +362,12 @@ function route_fonds_pieces(): void
 
 // Ranger un bailleur dans une campagne de recherche de fonds, depuis la colonne
 // du même nom sur la liste des structures. Le pendant de
-// route_structure_campagne() (lib/routes_booking.php), au retrait près : on
+// route_booking_campagne_structure() (lib/routes_booking.php), au retrait près : on
 // n'en retire pas d'ici. Un dossier porte des montants, des dates et un
 // versement — le défaire d'un clic dans une ligne de liste effacerait tout cela
 // sans rien montrer. Il se retire depuis le suivi de la campagne, où l'on voit
 // ce qu'on efface.
-function route_fonds_structure_campagne(): void
+function route_fonds_campagne_structure_ajouter(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

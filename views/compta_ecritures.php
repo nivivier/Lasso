@@ -100,7 +100,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <?php if (peut_ecrire('compta')): ?>
         <div class="head-actions">
             <button type="button" id="btn-new-ecr" class="btn ghost btn-compact"><?= icon('plus') ?> Écriture<br class="btn-compact-break"> manuelle</button>
-            <a href="?p=compta_import" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
+            <a href="?p=compta_ecritures_importer" class="btn"><?= icon('upload') ?><span class="lbl"> Importer</span></a>
         </div>
         <?php endif; ?>
     </div>
@@ -166,7 +166,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <?php endif; ?>
 
 <?php if (!$comptes): ?>
-    <p class="muted">Aucun compte bancaire. Commencez par en <a href="?p=compta_comptes">créer un</a> puis <a href="?p=compta_import">importer</a> un export.</p>
+    <p class="muted">Aucun compte bancaire. Commencez par en <a href="?p=compta_comptes">créer un</a> puis <a href="?p=compta_ecritures_importer">importer</a> un export.</p>
 <?php else: ?>
 
 <?php if (peut_ecrire('compta')): ?>
@@ -367,7 +367,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
                 <?php endif; ?>
                 <?php // Pendant du lien vers la facture : une écriture peut aussi
-                      // payer une fiche de salaire (route_fiche_date()). ?>
+                      // payer une fiche de salaire (route_fiche_paiement()). ?>
                 <?php if (!empty($ecr['fiche_id'])): ?>
                     <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ecr['fiche_id'], 'compta_ecritures')) ?>" title="Voir la fiche de salaire liée"><?= icon('file-text') ?></a>
                 <?php endif; ?>
@@ -722,7 +722,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         fd.append('ecriture_id', cell.dataset.ecrId);
         if (axeId) { fd.append('axe_id[]', axeId); fd.append('montant[]', montant.toFixed(2)); }
         try {
-            const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd }).then(r => r.json());
+            const data = await fetch('?p=compta_ventilation_enregistrer', { method: 'POST', body: fd }).then(r => r.json());
             updateCellDOM(cell, data.ok ? data.ventilations : prevVents);
         } catch (_) { updateCellDOM(cell, prevVents); }
     }
@@ -793,7 +793,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         });
         saveBtn.disabled = true;
         try {
-            const data = await fetch('?p=compta_ventilation_save', { method: 'POST', body: fd }).then(r => r.json());
+            const data = await fetch('?p=compta_ventilation_enregistrer', { method: 'POST', body: fd }).then(r => r.json());
             if (data.ok) { updateCellDOM(currentCell, data.ventilations); closePanel(); }
         } finally { saveBtn.disabled = false; }
     }

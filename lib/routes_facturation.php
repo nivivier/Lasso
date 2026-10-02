@@ -65,14 +65,7 @@ function facturation_lignes_de(int $factureId): array
     return $stmt->fetchAll();
 }
 
-// ------------------------------------------------------------------- ROUTES
-function route_facturation(): void
-{
-    require_login();
-    redirect('facturation_liste');
-}
-
-function route_facturation_liste(): void
+function route_factures(): void
 {
     require_login();
     // Filtres de colonne (EXPÉRIMENTAL — même mécanique que ?p=fiches, voir
@@ -128,7 +121,7 @@ function route_facturation_liste(): void
     // Tri de colonne. L'ordre naturel — la plus récemment émise d'abord —
     // reste celui de l'arrivée sur la page. Le numéro se trie en TEXTE : il est
     // de la forme « 2026-014 », un tri alphabétique y est chronologique.
-    $tri = tri_colonne('facturation_liste', [
+    $tri = tri_colonne('factures', [
         'numero'    => 'f.numero COLLATE NOCASE',
         'structure' => 'd.nom COLLATE NOCASE',
         'emission'  => "COALESCE(NULLIF(f.date_emission, ''), f.cree_le)",
@@ -173,7 +166,7 @@ function route_facturation_liste(): void
         'recherche'      => $recherche,
         'modeClient'     => $modeClient,
         'tri'            => $tri,
-        'pgRoute'        => 'facturation_liste',
+        'pgRoute'        => 'factures',
         'pgParams'       => array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]),
         'pgPage'         => $pgPage,
         'pgTaille'       => $pgTaille,
@@ -182,13 +175,13 @@ function route_facturation_liste(): void
 }
 
 // Formulaire (brouillon) — création ou modification, tant que non émise.
-function route_facturation_form(): void
+function route_facture_form(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
     $facture = $id ? facturation_charger($id) : null;
     if ($id && !$facture) {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     if ($facture && $facture['statut'] !== 'brouillon') {
         redirect('facture', ['id' => $id]);
@@ -343,7 +336,7 @@ function route_facture(): void
     $id = (int) ($_GET['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture) {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     // Écritures créditrices pas encore liées à une facture (+ celle déjà liée
     // à cette facture, le cas échéant) : proposées pour un rapprochement
@@ -369,7 +362,7 @@ function route_facture(): void
         'ecrituresLibres' => $ecrituresLibres,
         'evenementsListe' => $evenementsListe,
         // Axes actifs : la colonne « Axe » du tableau des lignes est modifiable
-        // même sur une facture émise (voir route_facture_ligne_axe()).
+        // même sur une facture émise (voir route_facture_ligne_axe_enregistrer()).
         'axes' => module_actif('analytique')
             ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
             : [],
@@ -383,17 +376,17 @@ function route_facture(): void
 // optionnel : lie l'écriture choisie (si encore libre, ou déjà liée à cette
 // facture) en plus de marquer payée. Rejouable tant que la facture est déjà
 // « payée » : permet de corriger la date ou l'écriture liée après coup.
-function route_facture_payee(): void
+function route_facture_paiement(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture || !in_array($facture['statut'], ['emise', 'payee'], true)) {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     $payeeLe = trim($_POST['payee_le'] ?? '') ?: date('Y-m-d');
 
@@ -426,13 +419,13 @@ function route_facture_emettre(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture || $facture['statut'] !== 'brouillon') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     if (!$facture['compte_bancaire_id']) {
         redirect('facture', ['id' => $id, 'err' => 'compte']);
@@ -463,7 +456,7 @@ function route_facture_annuler(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
@@ -474,28 +467,28 @@ function route_facture_annuler(): void
     redirect('facture', ['id' => $id]);
 }
 
-function route_facture_delete(): void
+function route_facture_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     db()->prepare("DELETE FROM factures WHERE id = ? AND statut = 'brouillon'")->execute([$id]);
-    redirect('facturation_liste');
+    redirect('factures');
 }
 
 // Axe analytique d'UNE ligne de facture, modifiable quel que soit le statut —
 // y compris sur une facture déjà émise. L'axe ne figure pas sur le document
 // envoyé au débiteur : c'est une donnée de comptabilité analytique, qu'on
 // affine souvent après coup, une fois le rattachement au projet tranché. Les
-// montants, eux, restent figés dès l'émission (route_facturation_form()).
-function route_facture_ligne_axe(): void
+// montants, eux, restent figés dès l'émission (route_facture_form()).
+function route_facture_ligne_axe_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !module_actif('analytique')) {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $factureId = (int) ($_POST['facture_id'] ?? 0);
@@ -546,13 +539,13 @@ function facturation_pdf_de(array $facture): string
     return facturation_generer_pdf($facture, $lignes, $structure, $compte);
 }
 
-function route_facture_pdf(): void
+function route_facture_exporter_pdf(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture || $facture['statut'] === 'brouillon') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     try {
         $pdf = facturation_pdf_de($facture);
@@ -566,17 +559,17 @@ function route_facture_pdf(): void
     exit;
 }
 
-function route_facture_email(): void
+function route_facture_envoyer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture || $facture['statut'] === 'brouillon') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     $destinataire = trim((string) ($_POST['destinataire'] ?? $facture['structure_email']));
     if (!filter_var($destinataire, FILTER_VALIDATE_EMAIL)) {
@@ -596,13 +589,13 @@ function route_facture_email(): void
 }
 
 // Lettre de rappel (impression) pour une facture émise en retard de paiement.
-function route_facture_rappel(): void
+function route_facture_rappel_imprimer(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture || $facture['statut'] === 'brouillon') {
-        redirect('facturation_liste');
+        redirect('factures');
     }
     render_bare('facture_rappel_imprimer', ['facture' => $facture]);
 }
@@ -655,7 +648,7 @@ function structures_filtres(string $prefixeSession = 'structures', array $statut
     //
     // Sauf arrivé de la recherche de fonds : la colonne y montre les campagnes
     // de SUBVENTION et son entonnoir disparaît avec elle
-    // (views/structures_liste.php). Un filtre de démarchage resté en session
+    // (views/structures.php). Un filtre de démarchage resté en session
     // continuerait sinon de réduire la liste sans que rien ne le dise — une
     // liste silencieusement filtrée est le pire des deux mondes.
     $campagneId = ($_GET['depuis'] ?? '') === 'fonds'
@@ -1069,7 +1062,7 @@ function route_structures(): void
     // celles que la structure organise (sens='organise', ex. ses salles/festivals)
     // et celle(s) qui l'organisent (sens='organise_par', si c'est elle-même un
     // lieu) — fusionnées dans une seule colonne « Structures liées », affichage
-    // distingué par icône (voir views/structures_liste.php).
+    // distingué par icône (voir views/structures.php).
     $selectCols = 's.*, ' . structures_colonnes_liste_sql();
     // « Contact privilégié » puis « actif » d'abord, « ne_pas_contacter » puis
     // « inactif » en dernier (même esprit que l'ancien ORDER BY s.actif DESC).
@@ -1189,7 +1182,7 @@ function route_structures(): void
             // Structures est partagée par 3 groupes de nav (booking/facturation/
             // evenements) — reporté dans les liens de pagination pour que le
             // rail/bandeau reste dans le groupe de provenance (voir la même
-            // remarque sur $tousFiltres dans views/structures_liste.php).
+            // remarque sur $tousFiltres dans views/structures.php).
             'depuis' => (string) ($_GET['depuis'] ?? ''),
         ]),
         'pgPage'    => $pgPage,
@@ -1222,7 +1215,7 @@ function structure_donnees_crm(int $id): array
         // tagsDispo indépendant de $id (toutes les étiquettes existantes, pas
         // celles d'une structure précise) : renseigné même à la création
         // (?p=structure sans id), pour les suggestions du champ « Tags »
-        // du formulaire de création (views/structure_form.php) — mais pas si
+        // du formulaire de création (views/structure.php) — mais pas si
         // $id est set (structure existante) avec le module booking inactif,
         // seul autre cas menant ici : rien à suggérer, la carte qui les
         // afficherait n'est de toute façon pas rendue dans ce cas.
@@ -1253,7 +1246,7 @@ function structure_donnees_crm(int $id): array
     // celles que $id organise (sens='organise'), et celle(s) qui organisent
     // $id (sens='organise_par' — $id est alors elle-même un lieu). ville/type
     // alias sur les colonnes structures pour ne pas devoir changer le
-    // formulaire (views/structure_form.php).
+    // formulaire (views/structure.php).
     $stmtOrganise = db()->prepare(
         "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville, 'organise' AS sens FROM structures s
          JOIN structure_organisateurs so ON so.structure_id = s.id
@@ -1402,7 +1395,7 @@ function route_structure(): void
         }
         // Champs communs à la création et à l'édition (carte « Informations
         // générales ») : Coordonnées/localisation en sont sorties, gérées à
-        // part par route_structure_localisation() (carte « Localisation »
+        // part par route_structure_localisation_enregistrer() (carte « Localisation »
         // dédiée) — sauf en création, où tout reste dans un seul formulaire.
         $champs = [
             'categorie'        => $categorieChamps['categorie'],
@@ -1475,9 +1468,9 @@ function route_structure(): void
                 ];
             }
             // Sans accès en lecture au module booking (mêmes conditions que
-            // $avecAside, views/structure_form.php), pas de carte
+            // $avecAside, views/structure.php), pas de carte
             // « Localisation » séparée : les coordonnées restent dans ce même
-            // formulaire, comme avant route_structure_localisation().
+            // formulaire, comme avant route_structure_localisation_enregistrer().
             if (!(module_actif('booking') && peut_lire('booking'))) {
                 $champs['adresse_rue']        = trim($_POST['adresse_rue'] ?? '');
                 $champs['adresse_npa']        = trim($_POST['adresse_npa'] ?? '');
@@ -1529,7 +1522,7 @@ function route_structure(): void
             // soient renseignables dès la création plutôt que seulement après
             // coup — mêmes conditions d'accès que leurs équivalents en édition
             // (module booking lu pour la période, écrit pour statut/étiquettes,
-            // voir plus haut et views/structure_form.php).
+            // voir plus haut et views/structure.php).
             $bookingOk = module_actif('booking') && peut_lire('booking');
             $champs['mois_evenement_debut'] = null;
             $champs['mois_evenement_fin']   = null;
@@ -1577,7 +1570,7 @@ function route_structure(): void
 // Carte « Localisation » (?p=structure, édition) — adresse postale complète
 // (rue/NPA/localité) + département-canton/région/pays, sauvegardée à part
 // de la carte « Informations générales » (route_structure() ci-dessus).
-function route_structure_localisation(): void
+function route_structure_localisation_enregistrer(): void
 {
     require_login();
     $id = (int) ($_POST['id'] ?? 0);
@@ -1727,7 +1720,7 @@ function route_structure_fusion(): void
 }
 
 // --- Import de factures historiques (JSON) ----------------------------------
-function route_import_factures(): void
+function route_factures_importer(): void
 {
     require_login();
     $err = null; $resultats = null; $resume = null; $simule = true;
@@ -1756,7 +1749,7 @@ function route_import_factures(): void
             }
         }
     }
-    render('import_fiches', [
+    render('fiches_importer', [
         'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
         'errFactures' => $err, 'resultatsFactures' => $resultats, 'resumeFactures' => $resume, 'simuleFactures' => $simule,
         'msgEcritures' => null,

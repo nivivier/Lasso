@@ -225,7 +225,7 @@ function init_schema(PDO $pdo): void
             email_envoye_le     TEXT NOT NULL DEFAULT '',
             -- Écriture bancaire qui a payé cette fiche (rapprochement manuel,
             -- symétrique de factures.ecriture_id). ecritures.fiche_id porte le
-            -- lien inverse ; les deux s'écrivent ensemble (route_fiche_date()).
+            -- lien inverse ; les deux s'écrivent ensemble (route_fiche_paiement()).
             ecriture_id         INTEGER REFERENCES ecritures(id) ON DELETE SET NULL,
             -- Taux utilisés (figés), JSON
             taux_json           TEXT NOT NULL DEFAULT '{}',
@@ -418,7 +418,7 @@ function seed_parametres(PDO $pdo): void
 
     // « Projets » plutôt que « Spectacles » — mais SEULEMENT sur une base
     // neuve, repérée à l'absence de tout compte (le premier est créé par
-    // route_setup()). Une installation en service n'a jamais écrit cette clé
+    // route_installation()). Une installation en service n'a jamais écrit cette clé
     // tant qu'elle n'a pas touché au réglage : la semer ici sans condition
     // renommerait d'un coup son onglet, sa liste et l'intitulé du champ d'une
     // date — un vocabulaire qui change tout seul après une mise à jour.

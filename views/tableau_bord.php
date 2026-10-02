@@ -200,13 +200,13 @@ $cartes = [];
                 <tbody>
                     <?php
                     // lien_liste_filtree() et pas une URL écrite à la main : les
-                    // filtres de ?p=evenements_liste sont des filtre_coche(), qui
+                    // filtres de ?p=evenements sont des filtre_coche(), qui
                     // ignorent silencieusement un paramètre sans son marqueur
                     // « _set » (voir le helper). L'année est vidée au passage,
                     // sinon le compte annoncé ici et la liste ouverte là-bas ne
                     // porteraient pas sur les mêmes dates.
                     $suisaLien = fn (string $statut): string => lien_liste_filtree(
-                        'evenements_liste',
+                        'evenements',
                         ['statut_suisa' => [$statut], 'annee' => []],
                         ['vue' => 'liste']
                     );
@@ -264,7 +264,7 @@ $cartes = [];
         // s'étirait sans limite : 11 fiches faisaient 792 px contre 390 px pour
         // le graphique voisin, ce qui déséquilibrait les colonnes de .dash-cols
         // (832 / 824 / 526 px mesurés à 1800 px de large). Les plus anciennes
-        // sont en tête (ORDER BY annee, mois dans route_resumes()), donc la
+        // sont en tête (ORDER BY annee, mois dans route_tableau_bord()), donc la
         // troncature garde les plus urgentes et renvoie le reste à la liste.
         $aPayerMax      = 5;
         $aPayerVisibles = array_slice($aPayer, 0, $aPayerMax);
@@ -291,7 +291,7 @@ $cartes = [];
                 <tbody>
                 <?php // Une fiche du mois courant reste à verser mais n'appelle rien
                       // aujourd'hui : elle ne se détache pas. Celles du mois
-                      // précédent et d'avant, si (echeance_etat, route_resumes()). ?>
+                      // précédent et d'avant, si (echeance_etat, route_tableau_bord()). ?>
                 <?php foreach ($aPayerVisibles as $f): ?>
                     <tr class="row-link<?= $dash_action(($f['echeance_etat'] ?? '') !== '') ?>" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
                         <td class="small"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
@@ -336,7 +336,7 @@ $cartes = [];
         // échue (« en retard » est dérivé de la date, voir
         // facturation_statut_effectif()) : le lien ouvre donc exactement les
         // mêmes factures que la carte.
-        $facturesLien = lien_liste_filtree('facturation_liste', ['statut' => ['emise']]);
+        $facturesLien = lien_liste_filtree('factures', ['statut' => ['emise']]);
         $totEmises = array_sum(array_map(fn ($f) => (float) $f['montant_total'], $facturesEmises));
         ?>
         <?php ob_start(); ?>
@@ -397,7 +397,7 @@ $cartes = [];
         // campagne est ouverte, la carte ne montre qu'elles (en retard d'abord) et
         // résume le reste en une ligne ; sinon, les prochaines puis les terminées
         // — et seulement ce qui tient ici (campagnes_dashboard()).
-        // La barre est celle de ?p=campagnes et de la carte d'une campagne :
+        // La barre est celle de ?p=booking_campagnes et de la carte d'une campagne :
         // même segments, mêmes couleurs, une seule définition (campagne_barre_html()).
         // Le médaillon compte ce qui RESTE À FAIRE, pas les campagnes ouvertes :
         // savoir qu'il y a deux campagnes en cours n'apprend rien tant qu'on
@@ -414,7 +414,7 @@ $cartes = [];
         <div class="card dash-card">
             <h2 class="mt-0">Booking</h2>
             <?php if (!$campagnesDash): ?>
-                <p class="muted">Aucune campagne. <a href="?p=campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
+                <p class="muted">Aucune campagne. <a href="?p=booking_campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
             <?php else: ?>
             <table class="list">
                 <thead>
@@ -424,7 +424,7 @@ $cartes = [];
                 <?php // Une campagne ouverte est un démarchage en cours : c'est là
                       // qu'il reste des structures à contacter. ?>
                 <?php foreach ($campagnesDash as $c): $cid = (int) $c['id']; ?>
-                    <tr class="row-link<?= $dash_action(in_array($c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)) ?>" tabindex="0" role="link" data-href="?p=campagne&id=<?= $cid ?>">
+                    <tr class="row-link<?= $dash_action(in_array($c['statut'], CAMPAGNE_STATUTS_OUVERTS, true)) ?>" tabindex="0" role="link" data-href="?p=booking_campagne&id=<?= $cid ?>">
                         <td>
                             <span class="dash-campagne">
                                 <?= $c['projets_pastilles'][0] ?? '' ?>
@@ -461,7 +461,7 @@ $cartes = [];
                 <?php // Dès qu'un démarchage est ouvert, la carte s'y tient (voir
                       // campagnes_dashboard()) : les campagnes pas encore
                       // commencées tiennent en une ligne, qui mène à la liste. ?>
-                <?= $dash_reste($campagnesAVenir, 2, '?p=campagnes', 'à venir') ?>
+                <?= $dash_reste($campagnesAVenir, 2, '?p=booking_campagnes', 'à venir') ?>
                 </tbody>
             </table>
             <?php endif; ?>
@@ -510,7 +510,7 @@ $cartes = [];
                         </td>
                     </tr>
                 <?php endforeach; ?>
-                <?= $dash_reste($fondsDash['nbCampagnes'] - count($fondsDash['campagnes']), 2, '?p=fonds') ?>
+                <?= $dash_reste($fondsDash['nbCampagnes'] - count($fondsDash['campagnes']), 2, '?p=fonds_campagnes') ?>
                 </tbody>
             </table>
             <?php endif; ?>
@@ -531,7 +531,7 @@ $cartes = [];
                             <?= e(date('d.m.Y', strtotime((string) $b['date_limite_bilan']))) ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?= $dash_reste($fondsDash['nbBilans'] - count($fondsDash['bilans']), 2, '?p=fonds') ?>
+                <?= $dash_reste($fondsDash['nbBilans'] - count($fondsDash['bilans']), 2, '?p=fonds_campagnes') ?>
                 </tbody>
             </table>
             <?php endif; ?>
@@ -582,7 +582,7 @@ $cartes = [];
                 <span class="dash-reglage-nom"><?= e($cartes[$dashId]['titre']) ?></span>
                 <?php // Repli sans JavaScript : les flèches, masquées dès que le
                       // glisser-déposer est actif (.dnd-on .plan-fallback). ?>
-                <form method="post" action="?p=resumes" class="d-inline plan-fallback">
+                <form method="post" action="?p=tableau_bord" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="deplacer">
                     <input type="hidden" name="carte" value="<?= e($dashId) ?>">
@@ -593,7 +593,7 @@ $cartes = [];
                 <?php // L'œil ferme la ligne, tout à droite : c'est l'action de
                       // cette ligne-là (docs/UI.md § 1), et les yeux alignés se
                       // lisent comme une colonne. ?>
-                <form method="post" action="?p=resumes" class="d-inline">
+                <form method="post" action="?p=tableau_bord" class="d-inline">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="visible">
                     <input type="hidden" name="carte" value="<?= e($dashId) ?>">
@@ -607,14 +607,14 @@ $cartes = [];
             <?php // Exemplaire unique du formulaire de repositionnement : le script
                   // y écrit l'ordre complet au dépôt et l'envoie. Le serveur
                   // renumérote, la page n'invente aucun rang (docs/UI.md § 4). ?>
-            <form method="post" action="?p=resumes" id="reorder-form" hidden>
+            <form method="post" action="?p=tableau_bord" id="reorder-form" hidden>
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="section" value="ordre">
                 <input type="hidden" name="id" value="">
                 <input type="hidden" name="order" value="">
                 <?= hidden_inputs_html(['dispo' => array_keys($cartes)]) ?>
             </form>
-            <form method="post" action="?p=resumes" class="mt-10">
+            <form method="post" action="?p=tableau_bord" class="mt-10">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="section" value="reinit">
                 <button type="submit" class="btn ghost btn-sm">Rétablir l'ordre par défaut</button>
@@ -624,7 +624,7 @@ $cartes = [];
                 containerSelector: '.dash-reglages-panneau',
                 rowsSelector: '.dash-reglage-ligne',
                 scrollKey: 'dashReglagesScroll',
-                formAction: '?p=resumes',
+                formAction: '?p=tableau_bord',
             });
             </script>
         </div>
@@ -635,7 +635,7 @@ $cartes = [];
 
 <?php if (!$cartes): ?>
     <p class="muted">Aucun module actif n'alimente le tableau de bord pour l'instant. Active
-    des modules dans <a href="?p=parametres_modules">Paramètres → Modules</a>.</p>
+    des modules dans <a href="?p=modules">Paramètres → Modules</a>.</p>
 <?php elseif (!$cartesVisibles): ?>
     <p class="muted">Toutes les cartes sont masquées. Le bouton ci-dessus permet d'en rétablir.</p>
 <?php else: ?>

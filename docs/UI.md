@@ -44,7 +44,7 @@ Un seul appel les pose : `entete_form_actions_html($form, $retour, $opts)`
 propose — elle garde sa place, tout à gauche du trio ; `$opts['libelle']` dit ce
 que le bouton fait vraiment quand « Enregistrer » serait faux (« Calculer et
 créer la fiche »). `$retour` vide = pas d'« Annuler », pour un écran dont le lien
-de retour est juste au-dessus (`?p=campagne_form`).
+de retour est juste au-dessus (`?p=booking_campagne_form`).
 
 ### « Modifier » est TOUJOURS le dernier bouton, tout à droite
 
@@ -59,8 +59,8 @@ contacter, émettre.
 | `?p=fiche` | Aperçu · Envoyer · **Modifier** |
 | `?p=facture` (brouillon) | Émettre · **Modifier** |
 | `?p=structure` | Contacter · **Modifier** |
-| `?p=employe_voir` | **Modifier** |
-| `?p=campagne` | **Modifier** |
+| `?p=employe` | **Modifier** |
+| `?p=booking_campagne` | **Modifier** |
 
 ### « Supprimer » n'est pas dans cette barre
 
@@ -69,8 +69,8 @@ Un écran de consultation s'ouvre cent fois pour lire, imprimer, envoyer ; on ne
 vient sur celui d'édition que pour toucher à l'objet. C'est la même règle que
 pour les lignes de liste, où la corbeille n'apparaît qu'en mode édition (§ 3).
 
-Elle s'y place **tout à droite** de l'en-tête (`?p=fiche_edit`,
-`?p=facturation_form`, `?p=employe`, `?p=campagne_form`), et jamais à la
+Elle s'y place **tout à droite** de l'en-tête (`?p=fiche_modifier`,
+`?p=facture_form`, `?p=employe_form`, `?p=booking_campagne_form`), et jamais à la
 création — il n'y a encore rien à détruire.
 
 **Quand il n'y a pas d'écran de modification** — tout s'édite en place, carte par
@@ -104,7 +104,7 @@ par page :
 
 ### Le retour d'un écran de modification
 
-Il ramène à **ce qu'on modifiait**, pas à la liste : `?p=fiche_edit&id=X` revient
+Il ramène à **ce qu'on modifiait**, pas à la liste : `?p=fiche_modifier&id=X` revient
 sur `?p=fiche&id=X`. Le `?depuis=` continue de voyager dans le lien, pour que
 l'écran de consultation garde de son côté son propre retour contextuel.
 
@@ -224,7 +224,7 @@ gestes courants.
 ### d. Une ligne d'une liste ordonnable — `.plan-edit-btn` + `.editing`
 
 Le motif des listes qui se réordonnent (`?p=compta_plan`, `?p=postes`,
-`?p=spectacles`, `?p=parametres_structures`, `?p=parametres_pays`) :
+`?p=spectacles`, `?p=categories_structures`, `?p=pays`) :
 
 ```html
 <tr class="plan-row" data-id="12">
@@ -351,7 +351,7 @@ portée de clic quand on ne fait que lire.
 | Liste ordonnable (`.plan-row`) | classe `.plan-supprimer` — une règle globale la masque hors `.editing` |
 | Section éditable (`.section-editable`) | `.edit-only` : révélée par le crayon de section |
 | Bloc répété (`lassoInitBlocEdition`) | **dans le panneau d'édition**, en bas |
-| Script de page (`?p=compta_axes`, `?p=compta_comptes`, `?p=taux_horaires`, `?p=comptes`) | `hidden` posé au chargement, levé par le crayon — même résultat, sans le helper. Quand la liste s'allonge sans recharger (`?p=comptes`), les écouteurs sont **délégués** au tableau, sinon la ligne neuve naît avec un crayon mort |
+| Script de page (`?p=compta_axes`, `?p=compta_comptes`, `?p=taux_horaires`, `?p=utilisateurs`) | `hidden` posé au chargement, levé par le crayon — même résultat, sans le helper. Quand la liste s'allonge sans recharger (`?p=utilisateurs`), les écouteurs sont **délégués** au tableau, sinon la ligne neuve naît avec un crayon mort |
 
 ```css
 .dnd-on .plan-row .plan-supprimer { display: none; }
@@ -385,11 +385,11 @@ Deux implémentations, selon la forme de la liste :
 
 - **`lassoPlanArbre()`** — liste hiérarchique : le décalage horizontal du
   curseur pendant le glissement change le **niveau** (22 px par cran), la
-  position verticale change le rang. `?p=compta_plan`, `?p=parametres_structures`,
-  `?p=spectacles`, `?p=parametres_pays`.
+  position verticale change le rang. `?p=compta_plan`, `?p=categories_structures`,
+  `?p=spectacles`, `?p=pays`.
 - **`lassoOrdreListe()`** — liste plate, même vocabulaire sans la hiérarchie.
   `?p=postes`, le déroulé d'un événement (`?p=evenement`), les cartes du tableau
-  de bord (`?p=resumes`, panneau « Organiser les cartes »).
+  de bord (`?p=tableau_bord`, panneau « Organiser les cartes »).
 
 Quatre règles qui comptent :
 
@@ -418,7 +418,7 @@ Quatre règles qui comptent :
    et restaurée au retour, `history.scrollRestoration = 'manual'`. Sans cela,
    déplacer la trentième ligne d'une liste renvoie en haut de page à chaque
    dépôt. Les deux helpers le font ; ailleurs, `?p=evenement` et
-   `?p=import_fiches` le réimplémentent à la main, faute d'une liste ordonnable
+   `?p=fiches_importer` le réimplémentent à la main, faute d'une liste ordonnable
    à qui le confier.
 
 ### Quand des flèches, alors ?
@@ -534,7 +534,7 @@ d'annulation l'accompagne, petite elle aussi.
 ```
 
 Concerne l'ajout d'une étiquette et d'une campagne, sur `?p=structures`,
-`?p=campagne` et la fiche d'une structure.
+`?p=booking_campagne` et la fiche d'une structure.
 
 **Le champ y est cherchable, pas un menu déroulant** (`lassoInitCatSearch()`,
 `.cat-search` + `.cat-search-input` + `.cat-search-val` + `.cat-search-list`) :
@@ -785,7 +785,7 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - ⚠️ **Un lien vers une liste filtrée s'écrit avec `lien_liste_filtree()`**,
   jamais à la main. Ces filtres sont des `filtre_coche()` : ils ne lisent l'URL
   que si le marqueur `<clé>_set` l'accompagne, et retombent sinon sur la
-  session. `?p=evenements_liste&statut=annule` n'a donc aucun effet — la page
+  session. `?p=evenements&statut=annule` n'a donc aucun effet — la page
   s'ouvre et montre ce qu'on avait laissé la dernière fois, sans rien signaler.
   Le helper pose aussi les filtres qu'on veut **vider** (un tableau vide), seule
   façon de garantir que le compte annoncé sur la carte et la liste ouverte
@@ -813,7 +813,7 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   même épaisseur que ceux qui séparent ses lignes.
 - **Une carte du tableau de bord ne s'étire pas** : elle montre ce qui demande
   du travail et referme le reste sur une dernière ligne « et X autres », qui
-  mène à la liste complète (`$dash_reste()` dans `views/resumes.php`, posée
+  mène à la liste complète (`$dash_reste()` dans `views/tableau_bord.php`, posée
   DANS le tableau). Un suffixe dit ce que sont ces autres quand ils ne sont pas
   de la même espèce que les lignes montrées — « et 2 autres à venir » sous les
   seules campagnes en cours. Le total d'un pied de carte porte alors sur TOUT,
@@ -827,7 +827,7 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   décompte de position.
 - **Un tableau que le téléphone ne peut pas montrer se relit en blocs.** Quand
   les colonnes sont trop nombreuses pour tenir (les huit droits de
-  `?p=comptes`), les réduire ne les rend pas lisibles : sous une largeur donnée,
+  `?p=utilisateurs`), les réduire ne les rend pas lisibles : sous une largeur donnée,
   `thead` disparaît, `tr` et `td` passent en `display: block`, et chaque cellule
   porte son intitulé par `data-label` + `::before`. Même balisage, même contenu
   — seule la forme change. Attention aux largeurs de colonne déclarées par

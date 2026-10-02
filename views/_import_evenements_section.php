@@ -17,7 +17,7 @@ $termeSingulier = mb_strtolower(evenements_terme_spectacle(false));
                 <?php endif; ?>
             </p>
             <?php if ((int) $resumeEvenements['nouveaux'] > 0): ?>
-                <form method="post" action="?p=import_evenements" class="mt-0">
+                <form method="post" action="?p=evenements_importer" class="mt-0">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="depuis_session" value="1">
                     <button type="submit" name="appliquer" value="1" data-confirm="Importer réellement les événements nouveaux ?"><?= icon('import') ?> Importer réellement</button>

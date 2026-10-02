@@ -52,7 +52,7 @@ function route_structure_contact_ajouter(): void
     redirect('structure', ['id' => $structureId]);
 }
 
-function route_structure_contact_delete(): void
+function route_structure_contact_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -110,7 +110,7 @@ function historique_date_stockee(string $saisie, string $reference = ''): ?strin
 // envoi. Un envoi réussi laisse une trace dans l'historique (type « mailing »,
 // comme une campagne) et met donc à jour la date de dernier contact — c'est le
 // même geste, écrit à une personne plutôt qu'à une liste.
-function route_structure_message(): void
+function route_structure_message_envoyer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -224,7 +224,7 @@ function route_structure_note_ajouter(): void
 // Réponse reçue d'une structure dans une campagne — enregistrée à la volée par
 // le sélecteur segmenté de la ligne, sans formulaire (même procédé que
 // route_structure_statut()). Réponse en JSON : l'appelant repeint les boutons.
-function route_campagne_reponse(): void
+function route_booking_campagne_reponse_enregistrer(): void
 {
     require_login();
     header('Content-Type: application/json');
@@ -349,7 +349,7 @@ function structure_tags_reponse_json(int $structureId): void
 // Le retrait supprime la ligne campagne↔structure, donc AUSSI la réponse qui y
 // était notée — c'est le sens même du geste : cette structure ne fait plus
 // partie de cette campagne. Le message de confirmation le dit.
-function route_structure_campagne(): void
+function route_booking_campagne_structure(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -409,7 +409,7 @@ function tag_retour_redirect(int $structureId): void
         redirect('structures');
     }
     if ($retour === 'campagne' && $campagneId > 0) {
-        redirect('campagne', ['id' => $campagneId]);
+        redirect('booking_campagne', ['id' => $campagneId]);
     }
     redirect('structure', ['id' => $structureId]);
 }
@@ -489,7 +489,7 @@ function tag_couleur_valide(string $couleur): string
     return preg_match('/^#[0-9a-fA-F]{6}$/', $couleur) ? strtolower($couleur) : '';
 }
 
-function route_parametres_tags(): void
+function route_tags(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -518,7 +518,7 @@ function route_parametres_tags(): void
         } elseif ($section === 'delete') {
             tag_supprimer((int) ($_POST['id'] ?? 0));
         }
-        redirect('parametres_tags', ['ok' => 1]);
+        redirect('tags', ['ok' => 1]);
     }
 
     // Étiquettes + nombre de structures qui les portent (une seule requête).
@@ -624,7 +624,7 @@ function structure_organisateur_creer_depuis_post(string $prefixe): int
 // 'organise' (défaut) = la structure courante organise l'autre (un lieu) ;
 // 'organise_par' = la structure courante EST organisée par l'autre (elle est
 // alors elle-même un lieu, l'autre son organisateur — pas forcément
-// elle-même « booking »). Carte « Structures liées » (views/structure_form.php),
+// elle-même « booking »). Carte « Structures liées » (views/structure.php),
 // bidirectionnelle depuis le fil de discussion.
 function route_structure_lieu_lier(): void
 {
@@ -684,7 +684,7 @@ function route_structure_lieu_lier(): void
     redirect('structure', ['id' => $structureId]);
 }
 
-function route_structure_lieu_delier(): void
+function route_structure_lieu_retirer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -705,7 +705,7 @@ function route_structure_lieu_delier(): void
 // Liste JSON { id, nom } de toutes les structures, pour alimenter à la demande
 // le sélecteur d'organisateur de la fiche lieu (évite d'injecter des milliers
 // de <li> dans chaque page). Lecture seule, GET.
-function route_structures_options(): void
+function route_structures_json(): void
 {
     require_login();
     header('Content-Type: application/json; charset=utf-8');
@@ -720,7 +720,7 @@ function route_structures_options(): void
 // Liste JSON { id, nom } de toutes les structures (nom suffixé de la ville
 // pour distinguer les homonymes), pour alimenter à la demande le sélecteur de
 // lieu d'un événement. Non filtré sur la catégorie/sous-catégorie booking :
-// même principe que route_structures_options() pour l'organisateur — « lieu »
+// même principe que route_structures_json() pour l'organisateur — « lieu »
 // est un rôle choisi via le sélecteur utilisé, pas une propriété de la
 // structure (cf. retrait du filtre est_booking équivalent sur le CRM
 // facturation). Lecture seule, GET.
@@ -747,7 +747,7 @@ function route_structures_lieux(): void
     exit;
 }
 
-function route_lieux_options(): void
+function route_lieux_json(): void
 {
     require_login();
     header('Content-Type: application/json; charset=utf-8');
@@ -838,7 +838,7 @@ function desinscription_url(int $structureId, ?int $contactId): string
 // l'utilisent déjà (comparaison par nom, pas par id). Suppression refusée si
 // des structures l'utilisent encore, ou si une catégorie a encore des
 // sous-catégories (pas de suppression en cascade silencieuse).
-function route_parametres_structures(): void
+function route_categories_structures(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -962,12 +962,12 @@ function route_parametres_structures(): void
                     $stmtEnfants = db()->prepare('SELECT COUNT(*) FROM structure_categories WHERE parent_id = ?');
                     $stmtEnfants->execute([$id]);
                     if ((int) $stmtEnfants->fetchColumn() > 0) {
-                        redirect('parametres_structures', ['err' => 'cat_a_des_enfants']);
+                        redirect('categories_structures', ['err' => 'cat_a_des_enfants']);
                         return;
                     }
                     $racines = (int) db()->query('SELECT COUNT(*) FROM structure_categories WHERE parent_id IS NULL')->fetchColumn();
                     if ($racines <= 1) {
-                        redirect('parametres_structures', ['err' => 'cat_used']); // jamais la dernière racine
+                        redirect('categories_structures', ['err' => 'cat_used']); // jamais la dernière racine
                         return;
                     }
                     $stmtRef = db()->prepare('SELECT COUNT(*) FROM structures WHERE categorie = ?');
@@ -984,7 +984,7 @@ function route_parametres_structures(): void
                             db()->prepare('DELETE FROM structure_categories WHERE id = ?')->execute([$id]);
                             db()->commit();
                         } else {
-                            redirect('parametres_structures', ['err' => 'cat_used']);
+                            redirect('categories_structures', ['err' => 'cat_used']);
                             return;
                         }
                     }
@@ -1014,14 +1014,14 @@ function route_parametres_structures(): void
                             db()->prepare('DELETE FROM structure_categories WHERE id = ?')->execute([$id]);
                             db()->commit();
                         } else {
-                            redirect('parametres_structures', ['err' => 'souscat_used']);
+                            redirect('categories_structures', ['err' => 'souscat_used']);
                             return;
                         }
                     }
                 }
             }
         }
-        redirect('parametres_structures', ['ok' => 1]);
+        redirect('categories_structures', ['ok' => 1]);
     }
 
     $map = structure_categorie_map();
@@ -1403,7 +1403,7 @@ function route_mailing_envoyer(): void
 // ⚠️ Dérogation délibérée à la convention « aucune mutation sur un GET » (voir
 // CLAUDE.md) : cette route est déclenchée par le planificateur de tâches de
 // l'hébergeur (URL fetchée périodiquement, sans possibilité de CSRF ni de
-// session) — même carve-out que route_backup(), protégée par jeton
+// session) — même carve-out que route_sauvegarde(), protégée par jeton
 // (hash_equals()) plutôt que par check_csrf(). Voir SPEC_BOOKING.md §7/§13.
 function route_mailing_traiter(): void
 {
@@ -1525,7 +1525,7 @@ function route_desinscription(): void
 // mémorisé en session entre les étapes (lire_fichier_importe(), même
 // mécanisme que les imports existants) — pas besoin de re-téléverser à chaque
 // étape ; seul le mapping choisi doit être reposté (formulaire intermédiaire).
-function route_import_structures(): void
+function route_structures_importer(): void
 {
     require_login();
     $etape = $_POST['etape'] ?? '';
@@ -1542,7 +1542,7 @@ function route_import_structures(): void
         $emails = preg_split('/[\r\n,;]+/', (string) ($_POST['emails'] ?? ''));
         $vars['etape'] = 'exclusion_ok';
         $vars['nExclusion'] = structures_importer_liste_exclusion(array_filter(array_map('trim', $emails)));
-        render('import_structures', $vars, 'Importer');
+        render('structures_importer', $vars, 'Importer');
         return;
     }
 
@@ -1552,7 +1552,7 @@ function route_import_structures(): void
             'Veuillez choisir un fichier CSV à importer.', 'import_structures_nom');
         if ($r['err'] !== null) {
             $vars['err'] = $r['err'];
-            render('import_structures', $vars, 'Importer');
+            render('structures_importer', $vars, 'Importer');
             return;
         }
         $_SESSION['import_structures_csv'] = $r['contenu'];
@@ -1560,14 +1560,14 @@ function route_import_structures(): void
         [$entete, ] = structures_lire_csv((string) $r['contenu']);
         if (!$entete) {
             $vars['err'] = 'Fichier vide ou illisible.';
-            render('import_structures', $vars, 'Importer');
+            render('structures_importer', $vars, 'Importer');
             return;
         }
         $vars['etape'] = 'mapping';
         $vars['entete'] = $entete;
         // Pré-remplissage depuis les noms de colonnes mémorisés au dernier import.
         $vars['mappingSuggere'] = structure_import_mapping_suggere($entete);
-        render('import_structures', $vars, 'Importer');
+        render('structures_importer', $vars, 'Importer');
         return;
     }
 
@@ -1599,7 +1599,7 @@ function route_import_structures(): void
             $vars['conflits'] = $conflits;
             $vars['nNouvelles'] = count($analyse) - $nCorrespondances;
             $vars['nFusion'] = $nCorrespondances - count($conflits); // fusionnées sans conflit
-            render('import_structures', $vars, 'Importer');
+            render('structures_importer', $vars, 'Importer');
             return;
         }
 
@@ -1619,11 +1619,11 @@ function route_import_structures(): void
         $vars['etape'] = 'resume';
         $vars['resume'] = structures_appliquer_import($analyse, $choix);
         unset($_SESSION['import_structures_csv'], $_SESSION['import_structures_nom'], $_SESSION['import_structures_mapping']);
-        render('import_structures', $vars, 'Importer');
+        render('structures_importer', $vars, 'Importer');
         return;
     }
 
-    render('import_structures', $vars, 'Importer');
+    render('structures_importer', $vars, 'Importer');
 }
 
 // ------------------------------------------------------------- CAMPAGNES
@@ -1635,7 +1635,7 @@ function route_import_structures(): void
 //
 // À ne pas confondre avec ?p=mailing_campagne, qui prépare un envoi GROUPÉ :
 // les deux se rejoindront peut-être un jour, ce n'est pas le sujet ici.
-function route_campagnes(): void
+function route_booking_campagnes(): void
 {
     require_login();
     // Filtres de colonne mémorisés en session (filtre_coche(), lib/helpers.php)
@@ -1689,13 +1689,13 @@ function route_campagnes(): void
 // question — « quelles structures ? » — et deux implémentations finiraient par
 // diverger. La sélection obtenue est ensuite figée dans campagne_structures,
 // où elle peut être élaguée à la main.
-function route_campagne_form(): void
+function route_booking_campagne_form(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? 0);
     $campagne = $id ? campagne_charger($id) : null;
     if ($id && !$campagne) {
-        redirect('campagnes');
+        redirect('booking_campagnes');
     }
     // Tout l'appareil de ciblage — filtres, prévisualisation, structures déjà
     // retenues, ajouts à l'unité, colonnes du tableau — est partagé avec la
@@ -1730,11 +1730,11 @@ function route_campagne_form(): void
     ], $id ? 'Campagne — ' . $campagne['nom'] : 'Nouvelle campagne');
 }
 
-function route_campagne_enregistrer(): void
+function route_booking_campagne_enregistrer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('campagnes');
+        redirect('booking_campagnes');
     }
     check_csrf();
     require_ecriture('booking');
@@ -1743,7 +1743,7 @@ function route_campagne_enregistrer(): void
     $debut = campagne_date((string) ($_POST['date_debut'] ?? ''));
     $fin   = campagne_date((string) ($_POST['date_fin'] ?? ''));
     if ($nom === '') {
-        redirect('campagne_form', ($id ? ['id' => $id] : []) + ['err' => 'nom']);
+        redirect('booking_campagne_form', ($id ? ['id' => $id] : []) + ['err' => 'nom']);
     }
     // Les structures retenues : ce que l'écran a coché, et rien d'autre. On
     // n'infère pas depuis les critères, sinon la désélection manuelle serait
@@ -1790,18 +1790,18 @@ function route_campagne_enregistrer(): void
         $ins->execute([$id, $sid]);
     }
     db()->commit();
-    redirect('campagne', ['id' => $id, 'ok' => 1]);
+    redirect('booking_campagne', ['id' => $id, 'ok' => 1]);
 }
 
 // Une campagne et ses structures, avec pour chacune l'état « à contacter » ou
 // « contactée » et le bouton qui ouvre la fenêtre d'envoi.
-function route_campagne(): void
+function route_booking_campagne(): void
 {
     require_login();
     $id = (int) ($_GET['id'] ?? 0);
     $campagne = campagne_charger($id);
     if (!$campagne) {
-        redirect('campagnes');
+        redirect('booking_campagnes');
     }
     // Modification groupée : la même barre et les mêmes actions que
     // ?p=structures, appliquées par le même code (structures_bulk_appliquer(),
@@ -1997,14 +1997,14 @@ function route_campagne(): void
     ], 'Campagne — ' . $campagne['nom']);
 }
 
-function route_campagne_delete(): void
+function route_booking_campagne_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        redirect('campagnes');
+        redirect('booking_campagnes');
     }
     check_csrf();
     require_ecriture('booking');
     db()->prepare('DELETE FROM campagnes WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
-    redirect('campagnes', ['ok' => 'suppr']);
+    redirect('booking_campagnes', ['ok' => 'suppr']);
 }

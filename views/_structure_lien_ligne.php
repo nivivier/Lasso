@@ -15,7 +15,7 @@ $depuisQs = $depuisQs ?? '';
                     <div class="muted small"><?= e((string) $l['type']) ?>
                     <?php if ($l['ville']): ?> · <?= e($l['ville']) ?><?php endif; ?></div>
                 </span>
-                <form method="post" action="?p=structure_lieu_delier<?= $depuisQs ?>" class="edit-only" data-confirm="Délier ?">
+                <form method="post" action="?p=structure_lieu_retirer<?= $depuisQs ?>" class="edit-only" data-confirm="Délier ?">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="structure_id" value="<?= $sid ?>">
                     <input type="hidden" name="lieu_id" value="<?= (int) $l['id'] ?>">

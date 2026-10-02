@@ -73,7 +73,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <?= lien_retour('?p=facture&id=' . (int) $id . $depuisQs,
         $numeroRetour !== '' ? 'Facture ' . $numeroRetour : 'Facture (brouillon)') ?>
 <?php else: ?>
-    <?= lien_retour_contextuel('?p=facturation_liste', 'Facturation') ?>
+    <?= lien_retour_contextuel('?p=factures', 'Facturation') ?>
 <?php endif; ?>
 <div class="page-head">
     <h1><?= $edit ? 'Modifier la facture' : 'Nouvelle facture' ?></h1>
@@ -85,13 +85,13 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
     <?php if (peut_ecrire('facturation') && $comptes): ?>
     <?php ob_start(); ?>
         <?php if ($edit): ?>
-        <form method="post" action="?p=facture_delete" class="d-inline" data-confirm="Supprimer ce brouillon ?">
+        <form method="post" action="?p=facture_supprimer" class="d-inline" data-confirm="Supprimer ce brouillon ?">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $id ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer le brouillon"><?= icon('trash') ?></button>
         </form>
         <?php endif; ?>
-    <?= entete_form_actions_html('facture-form', '?p=facturation_liste', ['libelle' => 'Enregistrer le brouillon', 'avant' => (string) ob_get_clean()]) ?>
+    <?= entete_form_actions_html('facture-form', '?p=factures', ['libelle' => 'Enregistrer le brouillon', 'avant' => (string) ob_get_clean()]) ?>
     <?php endif; ?>
 </div>
 
@@ -102,7 +102,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=facturation_form" class="card form" id="facture-form">
+<form method="post" action="?p=facture_form" class="card form" id="facture-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int) $id ?>"><?php endif; ?>
     <?php if ($evenementId): ?>

@@ -21,8 +21,8 @@ if (peut_ecrire('coeur')) {
     $ptGroupes['application'] = ['Application', [
         'maj'                => 'Mises à jour',
         'apparence'          => 'Apparence',
-        'parametres_modules' => 'Modules',
-        'comptes'            => 'Utilisateurs',
+        'modules'            => 'Modules',
+        'utilisateurs'       => 'Utilisateurs',
         'diagnostic'         => 'Serveur',
     ]];
 }
@@ -44,15 +44,15 @@ if (module_actif('salaires') && peut_lire('salaires')) {
     ], ['taux']];
 }
 
-$ptCatSections = ['parametres_pays' => 'Pays'];
+$ptCatSections = ['pays' => 'Pays'];
 if (module_actif('booking') && peut_lire('booking')) {
-    $ptCatSections['parametres_structures'] = 'Catégories';
-    $ptCatSections['parametres_tags']       = 'Tags';
+    $ptCatSections['categories_structures'] = 'Catégories';
+    $ptCatSections['tags']                  = 'Tags';
 }
 $ptGroupes['categories'] = ['Catégories', $ptCatSections];
 
 if (module_actif('evenements') && peut_lire('evenements')) {
-    $ptGroupes['evenements'] = ['Événements', ['parametres_evenements' => 'Événements']];
+    $ptGroupes['evenements'] = ['Événements', ['evenements_reglages' => 'Événements']];
 }
 
 // Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
@@ -63,11 +63,11 @@ if (module_actif('evenements') && peut_lire('evenements')) {
 // une section-alias est signalée active via le 3ᵉ élément du groupe, pas via
 // sa propre clé, d'où le cas particulier « première section du groupe »).
 $ptRoutesImport = [];
-if (module_actif('salaires')    && peut_lire('salaires'))    $ptRoutesImport[] = 'import_fiches';
-if (module_actif('facturation') && peut_lire('facturation')) $ptRoutesImport[] = 'import_factures';
-if (module_actif('compta')      && peut_lire('compta'))      $ptRoutesImport[] = 'import_ecritures';
-if (module_actif('evenements')  && peut_lire('evenements'))  $ptRoutesImport[] = 'import_evenements';
-if (module_actif('booking')     && peut_lire('booking'))     $ptRoutesImport[] = 'import_structures';
+if (module_actif('salaires')    && peut_lire('salaires'))    $ptRoutesImport[] = 'fiches_importer';
+if (module_actif('facturation') && peut_lire('facturation')) $ptRoutesImport[] = 'factures_importer';
+if (module_actif('compta')      && peut_lire('compta'))      $ptRoutesImport[] = 'compta_ecritures_importer';
+if (module_actif('evenements')  && peut_lire('evenements'))  $ptRoutesImport[] = 'evenements_importer';
+if (module_actif('booking')     && peut_lire('booking'))     $ptRoutesImport[] = 'structures_importer';
 $ptDonneesSections = [];
 if ($ptRoutesImport) {
     $ptDonneesSections[$ptRoutesImport[0]] = 'Importer';

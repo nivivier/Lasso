@@ -42,7 +42,7 @@ function recherche_sources(): array
             'label'   => 'Employés',
             'icone'   => 'users',
             'modules' => ['salaires'],
-            'route'   => 'employe_voir',
+            'route'   => 'employe',
             'liste'   => 'employes',
             'ordre'   => 'ORDER BY tri DESC, titre',
             'sql'     => "SELECT e.id,
@@ -77,7 +77,7 @@ function recherche_sources(): array
         // 1. « booking » seul, alors que les structures elles-mêmes sont
         //    partagées avec « facturation » — le bloc qui affiche les contacts
         //    sur la fiche structure est gardé par booking (voir $avecAside dans
-        //    views/structure_form.php). Élargir à facturation exposerait ici des
+        //    views/structure.php). Élargir à facturation exposerait ici des
         //    données que la fiche elle-même refuse de montrer.
         // 2. L'id projeté est celui de la STRUCTURE, pas du contact : un contact
         //    n'a pas de page à lui, il vit dans la fiche de sa structure — donc
@@ -108,7 +108,7 @@ function recherche_sources(): array
             'icone'   => 'receipt-swiss-franc',
             'modules' => ['facturation'],
             'route'   => 'facture',
-            'liste'   => 'facturation_liste',
+            'liste'   => 'factures',
             'ordre'   => 'ORDER BY tri DESC',
             'sql'     => "SELECT f.id,
                                  CASE WHEN trim(coalesce(f.numero,'')) <> '' THEN f.numero
@@ -126,7 +126,7 @@ function recherche_sources(): array
             'icone'   => 'calendar',
             'modules' => ['evenements'],
             'route'   => 'evenement',
-            'liste'   => 'evenements_liste',
+            'liste'   => 'evenements',
             'ordre'   => 'ORDER BY tri DESC',
             // Même composition de titre que l'export iCal : « Artiste (Spectacle) »
             // quand le spectacle a un parent.
@@ -154,7 +154,7 @@ function recherche_sources(): array
             'icone'   => 'landmark',
             'modules' => ['fonds'],
             'route'   => 'fonds_campagne',
-            'liste'   => 'fonds',
+            'liste'   => 'fonds_campagnes',
             'ordre'   => 'ORDER BY tri DESC',
             // Les projets financés remontent dans le texte cherché ET dans le
             // sous-titre : on cherche une campagne par le nom du projet au

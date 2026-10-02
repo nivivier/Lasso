@@ -20,7 +20,7 @@ $paysOptions = function (?int $selected) use ($map): string {
 <?php $peutEcrirePays = peut_ecrire('coeur'); ?>
 <?php if ($peutEcrirePays): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
-<form method="post" action="?p=parametres_pays" id="reorder-form" hidden>
+<form method="post" action="?p=pays" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="section" value="reorder">
     <input type="hidden" name="id" value="">
@@ -58,7 +58,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                     <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                     <span class="plan-nom"><?= $estPays ? pays_drapeau((string) ($p['code_iso2'] ?? '')) . ' ' : '' ?><?= e($p['nom']) ?></span>
                     <?php if ($peutEcrirePays): ?>
-                    <form method="post" action="?p=parametres_pays" class="inline-edit plan-edit" id="plan-edit-<?= $pid ?>">
+                    <form method="post" action="?p=pays" class="inline-edit plan-edit" id="plan-edit-<?= $pid ?>">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= $pid ?>">
@@ -78,7 +78,7 @@ $paysOptions = function (?int $selected) use ($map): string {
             </td>
             <td class="actions nowrap">
                 <?php if ($peutEcrirePays): ?>
-                <form method="post" action="?p=parametres_pays" class="d-inline plan-fallback">
+                <form method="post" action="?p=pays" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="move">
                     <input type="hidden" name="id" value="<?= $pid ?>">
@@ -93,7 +93,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                       // de lui. ?>
                 <button type="submit" form="plan-edit-<?= $pid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                 <?php $nbUsage = (int) ($usageRegion[$pid] ?? 0); if ($estPays || $nbUsage === 0): ?>
-                <form method="post" action="?p=parametres_pays" data-confirm="Supprimer <?= $estPays ? 'ce pays' : 'cette région' ?> ?" class="d-inline plan-supprimer">
+                <form method="post" action="?p=pays" data-confirm="Supprimer <?= $estPays ? 'ce pays' : 'cette région' ?> ?" class="d-inline plan-supprimer">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $pid ?>">
@@ -114,7 +114,7 @@ $paysOptions = function (?int $selected) use ($map): string {
     <tfoot id="pays-add" hidden>
         <tr>
             <td colspan="2">
-                <form method="post" action="?p=parametres_pays" class="inline-edit" id="pays-add-form">
+                <form method="post" action="?p=pays" class="inline-edit" id="pays-add-form">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="add">
                     <select name="parent_id" id="pays-add-parent" title="Vide = nouveau pays ; sinon = région du pays choisi">
@@ -140,7 +140,7 @@ $paysOptions = function (?int $selected) use ($map): string {
             <button type="button" class="btn ghost modal-fermer" id="region-del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
         </div>
         <p class="muted small"><strong id="region-del-nb"></strong> fiche(s) utilisent cette région. Réaffectez-les avant de supprimer.</p>
-        <form method="post" action="?p=parametres_pays" id="region-del-form">
+        <form method="post" action="?p=pays" id="region-del-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="delete">
             <input type="hidden" name="id" id="region-del-id" value="">
@@ -165,7 +165,7 @@ $paysOptions = function (?int $selected) use ($map): string {
         containerSelector: '#pays-card',
         rowsSelector: '.plan-row',
         scrollKey: 'paysScroll',
-        formAction: '?p=parametres_pays',
+        formAction: '?p=pays',
     });
 
     // Formulaire d'ajout : le code ISO2 n'a de sens que pour un pays — masqué et

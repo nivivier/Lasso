@@ -14,7 +14,7 @@ $spectacleLabels = [];
 foreach ($spectacles as $sp) { $spectacleLabels[(int) $sp['id']] = $sp['nom']; }
 
 // Étiquettes des entonnoirs et report des paramètres : le même helper que
-// ?p=campagne_form. $saisie dit ce qui, sur CET écran, doit survivre au
+// ?p=booking_campagne_form. $saisie dit ce qui, sur CET écran, doit survivre au
 // rechargement qu'impose un entonnoir.
 $cibF = ciblage_filtres_vue([
     'criteres' => $criteres, 'categoriesPourSelect' => $categoriesPourSelect,
@@ -37,7 +37,7 @@ $cibF = ciblage_filtres_vue([
 <?php // Même charpente que la composition d'une campagne : la zone du module,
       // un en-tête, puis le tableau de sélection d'un bord à l'autre. ?>
 <div class="module-content"><div class="module-content-inner">
-<a class="back-link" href="<?= $id ? '?p=fonds' : '?p=fonds' ?>"><?= icon('arrow-left') ?> Campagnes</a>
+<a class="back-link" href="<?= $id ? '?p=fonds_campagnes' : '?p=fonds_campagnes' ?>"><?= icon('arrow-left') ?> Campagnes</a>
 
 <?php if ($err === 'nom'): ?><p class="err flash">Le nom de la campagne est obligatoire.</p><?php endif; ?>
 

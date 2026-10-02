@@ -131,7 +131,7 @@ function set_modules_actifs(array $ids): void
 // toujours accessible quels que soient les modules actifs.
 function route_defaut(): string
 {
-    return 'resumes';
+    return 'tableau_bord';
 }
 
 // --------------------------------------------------------------------------
@@ -142,7 +142,7 @@ function route_defaut(): string
 // vue des droits : écriture sur coeur = administrateur (gestion des
 // comptes/permissions, modules actifs, mises à jour, sauvegarde — voir
 // index.php). Une table de permissions vide pour un utilisateur = aucun
-// accès nulle part ; c'est le premier compte créé (route_setup) qui reçoit
+// accès nulle part ; c'est le premier compte créé (route_installation) qui reçoit
 // tout par défaut, pas les comptes suivants.
 const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking', 'fonds', 'mailing'];
 
@@ -258,7 +258,7 @@ function require_ecriture(string $module): void
 
 // Nombre de comptes ayant l'écriture sur coeur (administrateurs) — garde-fou :
 // il doit toujours en rester au moins un (voir enregistrer_permissions_utilisateur()
-// et route_compte_delete()).
+// et route_utilisateur_supprimer()).
 function nb_admins(): int
 {
     return (int) db()
@@ -374,16 +374,16 @@ function nav_groupes(): array
 
     if (module_actif('salaires') && peut_lire('salaires')) {
         $g['salaires'] = ['Salaires', 'file-text', [
-            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_new', 'fiche_edit'], nb_fiches_a_payer(), 'file-text'],
-            'employes' => ['Employés', ['employes', 'employe', 'employe_voir'], 0, 'users'],
-            'resume'   => ['Cotisations', ['resume'], 0, 'bar-chart'],
+            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_form', 'fiche_modifier'], nb_fiches_a_payer(), 'file-text'],
+            'employes' => ['Employés', ['employes', 'employe_form', 'employe'], 0, 'users'],
+            'cotisations'   => ['Cotisations', ['cotisations'], 0, 'bar-chart'],
         ]];
     }
 
     $analytiqueOk = module_actif('analytique') && peut_lire('analytique');
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
-            'compta_ecritures' => ['Écritures', ['compta', 'compta_ecritures', 'compta_lettrage', 'compta_import'], nb_ecritures_a_lettrer(), 'banknote'],
+            'compta_ecritures' => ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'],
             'compta_comptes'   => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
             'compta_plan'      => ['Plan comptable', ['compta_plan'], 0, 'rows-3'],
             'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'pencil-sparkles'],
@@ -397,7 +397,7 @@ function nav_groupes(): array
 
     if (module_actif('facturation') && peut_lire('facturation')) {
         $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
-            'facturation_liste' => ['Factures', ['facturation', 'facturation_liste', 'facturation_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
+            'factures' => ['Factures', ['factures', 'facture_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
             'compta_comptes'    => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
             'structures'        => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
         ]];
@@ -415,7 +415,7 @@ function nav_groupes(): array
 
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
-            'evenements_liste' => ['Événements', ['evenements', 'evenements_liste', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
+            'evenements' => ['Événements', ['evenements', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
             'structures'       => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'spectacles'       => $ongletProjets,
         ]];
@@ -429,7 +429,7 @@ function nav_groupes(): array
             'structures'         => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             // Campagnes de contact : indépendantes du sous-module « Envois
             // groupés », puisqu'on y démarche structure par structure.
-            'campagnes'          => ['Campagnes', ['campagnes', 'campagne', 'campagne_form'], 0, 'target'],
+            'booking_campagnes'          => ['Campagnes', ['booking_campagnes', 'booking_campagne', 'booking_campagne_form'], 0, 'target'],
         ];
         // Les projets, juste après les campagnes qui les portent : c'est sur eux
         // qu'on démarche, et l'onglet évite de sortir du module pour les régler.
@@ -455,14 +455,14 @@ function nav_groupes(): array
         // Les trois routes restent listées pour la mise en surbrillance : une
         // fois sur place, c'est la barre d'onglets des paramètres qui prend le
         // relais pour naviguer entre elles (views/_param_tabs.php).
-        $ongletsBooking[peut_lire('coeur') ? 'parametres_pays' : 'parametres_structures'] =
-            ['Catégories', ['parametres_pays', 'parametres_structures', 'parametres_tags'], 0, 'blocks'];
+        $ongletsBooking[peut_lire('coeur') ? 'pays' : 'categories_structures'] =
+            ['Catégories', ['pays', 'categories_structures', 'tags'], 0, 'blocks'];
         $g['booking'] = ['Booking', 'house', $ongletsBooking];
     }
 
     if (module_actif('fonds') && peut_lire('fonds')) {
         $ongletsFonds = [
-            'fonds' => ['Campagnes', ['fonds', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
+            'fonds_campagnes' => ['Campagnes', ['fonds_campagnes', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
             // Les bailleurs sont des structures : le même écran que le booking
             // et la facturation, pas une seconde liste à tenir.
             'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
@@ -507,7 +507,7 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     // paramètres : ils n'appartiennent à un module que si le lien le dit.
     // Sans ce cas particulier, y arriver par Paramètres allumait quand même
     // Booking dans le rail, sous un bandeau « Paramètres ».
-    if (in_array($route, ['parametres_pays', 'parametres_structures', 'parametres_tags'], true)) {
+    if (in_array($route, ['pays', 'categories_structures', 'tags'], true)) {
         return $depuis !== '' && in_array($depuis, $candidats, true) ? $depuis : null;
     }
     if ($depuis !== '' && in_array($depuis, $candidats, true)) {
@@ -520,7 +520,7 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     // sur la page cible). Complété au fil des besoins : lien vers une structure
     // depuis un événement, ou depuis le suivi d'une campagne.
     if ($depuis !== '' && preg_match('/^([a-z_]+):\d+$/', $depuis, $m)) {
-        $groupeDuType = ['evenement' => 'evenements', 'campagne' => 'booking',
+        $groupeDuType = ['evenement' => 'evenements', 'booking_campagne' => 'booking',
                          'fonds_demande' => 'fonds'][$m[1]] ?? null;
         if ($groupeDuType !== null && in_array($groupeDuType, $candidats, true)) {
             return $groupeDuType;

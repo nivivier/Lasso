@@ -97,7 +97,7 @@ if (!defined('APP_URL')) define('APP_URL', '');
 
 // --- Sécurité : secret d'installation -------------------------------------
 // Si NON vide, l'écran de création du premier compte (setup) n'est accessible
-// qu'avec l'URL  ?p=setup&key=<ce secret>. Empêche un inconnu de créer le compte
+// qu'avec l'URL  ?p=installation&key=<ce secret>. Empêche un inconnu de créer le compte
 // admin pendant la fenêtre entre la mise en ligne et votre première connexion.
 // Laissez vide en local ; renseignez une longue valeur aléatoire avant un déploiement public.
 if (!defined('SETUP_SECRET')) define('SETUP_SECRET', '');

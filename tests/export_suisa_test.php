@@ -1,5 +1,5 @@
 <?php
-// Test de l'export SUISA (?p=evenements_export_suisa) : les coordonnées de
+// Test de l'export SUISA (?p=evenements_suisa_exporter) : les coordonnées de
 // l'organisateur doivent y figurer. Lancement : php tests/export_suisa_test.php
 //
 // Base TEMPORAIRE, comme tests/migrations_test.php.
@@ -109,13 +109,13 @@ $miroir2 = db()->query("SELECT organisateur_structure_id FROM evenements WHERE i
 // vivent donc dans une fonction d'arrêt, enregistrée avant l'appel. Rien n'est
 // affiché avant, sinon header() se plaint que la sortie a déjà commencé.
 $_SERVER['REQUEST_METHOD'] = 'GET';
-$_GET = ['p' => 'evenements_export_suisa'];
+$_GET = ['p' => 'evenements_suisa_exporter'];
 ob_start();
 register_shutdown_function(function () use ($miroir2) {
     $csv = ob_get_clean();
     verifier($csv, $miroir2);
 });
-route_evenements_export_suisa();
+route_evenements_suisa_exporter();
 
 function verifier(string $csv, $miroir2): void
 {

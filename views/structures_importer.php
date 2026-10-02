@@ -17,7 +17,7 @@
         Fichier CSV (export Excel/LibreOffice/Google Sheets). Les colonnes peuvent porter
         n'importe quel nom : l'écran suivant permet de les faire correspondre aux champs connus.
     </p>
-    <form method="post" action="?p=import_structures" enctype="multipart/form-data">
+    <form method="post" action="?p=structures_importer" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="mapper">
         <label>Fichier CSV <input type="file" name="fichier" accept=".csv,text/csv" required></label>
@@ -31,7 +31,7 @@
 <div class="card form">
     <p class="muted small">Associez chaque champ connu à la colonne correspondante du fichier (laissez « — » si absente). Seul « Nom de la structure » est obligatoire.</p>
     <?php if ($mappingSuggere): ?><p class="muted small"><?= icon('wand') ?> <?= count($mappingSuggere) ?> champ(s) pré-remplis d'après le dernier import (colonnes de même nom). Vérifiez et ajustez si besoin.</p><?php endif; ?>
-    <form method="post" action="?p=import_structures">
+    <form method="post" action="?p=structures_importer">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="analyser">
         <input type="hidden" name="depuis_session" value="1">
@@ -68,7 +68,7 @@
     <?php else: ?>
     <p class="muted small">Aucun conflit à trancher : l'import peut être appliqué directement.</p>
     <?php endif; ?>
-    <form method="post" action="?p=import_structures" id="form-resoudre">
+    <form method="post" action="?p=structures_importer" id="form-resoudre">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="appliquer">
         <input type="hidden" name="depuis_session" value="1">
@@ -115,13 +115,13 @@
        <strong><?= (int) $resume['mises_a_jour'] ?></strong> mise(s) à jour, <strong><?= (int) $resume['ignorees'] ?></strong> ignorée(s)<?php if ((int) ($resume['sous_categories'] ?? 0) > 0): ?>,
        <strong><?= (int) $resume['sous_categories'] ?></strong> sous-catégorie(s) ajoutée(s) à la taxonomie<?php endif; ?>.</p>
     <a class="btn ghost" href="?p=structures">Voir les structures</a>
-    <a class="btn ghost" href="?p=import_structures">Importer un autre fichier</a>
+    <a class="btn ghost" href="?p=structures_importer">Importer un autre fichier</a>
 </div>
 
 <?php elseif ($etape === 'exclusion_ok'): ?>
 <div class="card">
     <p class="ok flash"><strong><?= (int) $nExclusion ?></strong> adresse(s) ajoutée(s) à la liste d'exclusion.</p>
-    <a class="btn ghost" href="?p=import_structures">Retour à l'import</a>
+    <a class="btn ghost" href="?p=structures_importer">Retour à l'import</a>
 </div>
 <?php endif; ?>
 <?php endif; ?>

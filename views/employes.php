@@ -11,7 +11,7 @@
         <?php endif; ?>
         <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
-            <a class="btn" href="?p=employe" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
+            <a class="btn" href="?p=employe_form" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
         </div>
         <?php endif; ?>
     </div>
@@ -45,7 +45,7 @@
     </thead>
     <tbody>
     <?php foreach ($employes as $emp): ?>
-        <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=employe_voir&id=<?= (int) $emp['id'] ?>">
+        <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=employe&id=<?= (int) $emp['id'] ?>">
             <td class="col-nom-emp">
                 <span class="emp-nom-ligne"><?= avatar_initiales(
                         $emp['prenom'] . ' ' . $emp['nom'],

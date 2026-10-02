@@ -157,7 +157,7 @@ $evIcal = [
     'feuille' => [['id' => 7, 'type' => 'horaire', 'libelle' => 'Get-in',
                    'debut' => '14:00', 'fin' => '', 'remarque' => '']],
 ];
-$ical = feuille_generer_ical_equipe([$evIcal], 'https://exemple.test/?p=evenement_fichier&jeton=x');
+$ical = feuille_generer_ical_equipe([$evIcal], 'https://exemple.test/?p=evenement_feuille_fichier&jeton=x');
 check('un événement « Spectacle » est posé', 1, substr_count($ical, 'UID:equipe-spectacle-42@lasso'));
 check('il commence à l\'heure annoncée, en UTC', true, str_contains($ical, 'DTSTART:20260918T183000Z'));
 check('il finit à l\'heure annoncée', true, str_contains($ical, 'DTEND:20260918T200000Z'));

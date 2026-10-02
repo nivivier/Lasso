@@ -63,7 +63,7 @@ const FEUILLE_HORAIRES_TYPES = ['Départ', 'Get-in', 'Soundcheck', 'Repas', 'Sho
 // « RedirectMatch 404 ^/data/ » dans le .htaccess racine, qui ne dépend d'aucun
 // fichier du dossier lui-même). Ces pièces-là — réservations d'hôtel, contrats,
 // fiches techniques — portent des noms, des numéros de chambre et des montants :
-// elles ne sont servies que par route_evenement_fichier(), qui vérifie qui
+// elles ne sont servies que par route_evenement_feuille_fichier(), qui vérifie qui
 // demande.
 //
 // ⚠️ En développement (php -S), .htaccess est ignoré : tout le dossier data/ est

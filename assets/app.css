@@ -149,7 +149,7 @@
        hauteur — voir .btn.icon-only plus bas. */
     --btn-sm-padding-v: 4px;
     --action-height-sm: calc(var(--fs-basic) * 1.6 + 2 * var(--btn-sm-padding-v) + 2 * var(--btn-border-w));
-    /* ?p=structures / ?p=evenements_liste en vue carte (.toolbar-carte, voir
+    /* ?p=structures / ?p=evenements en vue carte (.toolbar-carte, voir
        plus bas) : largeur du <form class="filters"> qui contient la
        recherche (+ le bouton « Plus de filtres » sur structures) — détail de
        la dérivation juste avant la règle qui l'utilise. */
@@ -750,7 +750,7 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    La couleur vient de currentColor, donc des classes .ico-ok/.ico-danger/…
    posées sur ce même <span> — thème sombre compris, comme avant. */
 /* Sélecteur ancré sur tr[data-statut] : la classe .col-statut sert aussi à
-   l'EN-TÊTE « Statut » de ?p=evenements_liste, dont le <span> se voyait alors
+   l'EN-TÊTE « Statut » de ?p=evenements, dont le <span> se voyait alors
    coiffé de ce bloc de 16px — un carré gris plein, faute de masque à lui
    appliquer. Seule une ligne portant un statut mérite l'icône. */
 tr[data-statut] .col-statut > span::before {
@@ -1151,7 +1151,7 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    ouvert — au repos elle reprend sa place sous l'en-tête collant.
 
    Même raison pour la liste de suggestions du champ « Ajouter une structure »
-   (?p=campagne_form) : ce n'est pas un <details> mais un <ul> qu'on démasque,
+   (?p=booking_campagne_form) : ce n'est pas un <details> mais un <ul> qu'on démasque,
    donc le sélecteur dit les deux. Elle passait sous la rangée d'en-tête, coupée
    en plein milieu — on lisait la première suggestion et la dernière. */
 .toolbar:has(details[open]),
@@ -1167,7 +1167,7 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    doit rester géré uniquement par sa propre règle. */
 .toolbar > form.filters { flex-grow: 1; }
 .toolbar > .head-actions { margin-left: auto; }
-/* Champ « Ajouter une structure » de ?p=campagne_form : au bout de la rangée
+/* Champ « Ajouter une structure » de ?p=booking_campagne_form : au bout de la rangée
    d'entonnoirs, comme les actions des autres barres d'outils. Il ne s'étire
    pas (contrairement à .toolbar > form.filters juste au-dessus) — large et au
    milieu d'une barre de filtres, il se lirait comme le filtre principal, alors
@@ -1178,7 +1178,7 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    collé à droite de la barre, et une liste plus large que lui déborderait
    sinon hors de la zone du module. */
 .ajout-structure .cat-search-list { left: auto; right: 0; }
-/* ?p=evenements_liste / ?p=structures (vues liste ET carte, voir
+/* ?p=evenements / ?p=structures (vues liste ET carte, voir
    views/*_liste.php — .toolbar-opaque posé sans condition sur $vue) : la
    toolbar garde le placement/marge habituel de .module-content-inner — pas
    une card, pas de bordure/ombre/coins arrondis, pas de padding propre visible
@@ -1207,7 +1207,7 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     padding-top: 24px; padding-left: var(--content-pad); padding-right: var(--content-pad);
 }
 /* .toolbar-carte : classe explicite posée par la vue (pas une inférence
-   :has(.carte-filters)) sur ?p=structures/?p=evenements_liste EN VUE CARTE
+   :has(.carte-filters)) sur ?p=structures/?p=evenements EN VUE CARTE
    uniquement (voir views/*_liste.php — `<?= $vue === 'carte' ? '
    toolbar-carte' : '' ?>`). Avant cette classe, ".toolbar:has(.carte-filters)"
    servait à cibler la même situation, mais forçait 3 règles génériques
@@ -1222,7 +1222,7 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    au lieu que ce dernier soit rejeté sur sa propre ligne DANS le formulaire
    (mesuré : flex-basis:auto ne donnait que 247.5px, 10px trop juste pour les
    deux côte à côte avec le gap de 16px entre eux — 200 + 41 + 16 = 257,
-   260 pour une marge de sécurité). Sans effet sur ?p=evenements_liste
+   260 pour une marge de sécurité). Sans effet sur ?p=evenements
    (recherche seule dans le formulaire, marge simplement inutilisée — le
    <form> n'a pas de fond propre, cette largeur est invisible). Variable
    définie dans :root (voir tout en haut du fichier), pas ici : une custom
@@ -1243,8 +1243,8 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    touchait donc directement le bas de la dernière ligne de filtres, sans
    respiration. */
 .toolbar-carte { padding-bottom: 20px; }
-/* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements_liste.php
-   / views/structures_liste.php) : placé dans le flux ENTRE la recherche et
+/* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements.php
+   / views/structures.php) : placé dans le flux ENTRE la recherche et
    .head-actions, TOUJOURS sur la même ligne qu'eux (flex-basis:100% essayé
    avant — .carte-filters sur sa propre ligne pleine largeur — a été refusé :
    ça donnait 3 lignes recherche/filtres/boutons au lieu d'une seule).
@@ -1488,7 +1488,7 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
 
 /* Sélecteur segmenté à icônes (icon_picker(), lib/helpers.php) : boutons
    connectés dont un seul est actif — même format que les droits par module de
-   ?p=comptes (.perm-toggle), mais horizontal. */
+   ?p=utilisateurs (.perm-toggle), mais horizontal. */
 .seg-picker { display: inline-flex; flex-direction: row !important; width: max-content; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .seg-picker .seg-btn {
     display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
@@ -1859,7 +1859,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    deux lignes) rendait la rangée plus haute que l'icône. En bloc, c'est le
    vertical-align: middle de la cellule qui la centre, comme le reste. */
 .dash-campagne { display: flex; align-items: center; gap: 8px; min-width: 0; }
-/* Même taille que dans ?p=campagnes (.campagnes-table .projet-pastille) :
+/* Même taille que dans ?p=booking_campagnes (.campagnes-table .projet-pastille) :
    c'est la même icône pour le même projet, elle doit se reconnaître pareil
    d'un écran à l'autre. */
 .dash-campagne .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); margin: 0; flex: 0 0 auto; }
@@ -1898,7 +1898,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    une rupture que rien ne justifie sur cinq lignes. */
 .dash-card table.list tfoot td { border-top-width: 1px; }
 .dash-chart { width: 100%; height: auto; display: block; }
-/* Décor du graphique comptable : posé ici et non dans le SVG (views/resumes.php)
+/* Décor du graphique comptable : posé ici et non dans le SVG (views/tableau_bord.php)
    pour suivre le thème. Les valeurs claires reprennent à l'identique celles qui
    étaient codées en dur (--line = #e8e9f1, --muted = #6b7280) — le changement
    ne se voit qu'en sombre, où elles étaient restées celles du thème clair. */
@@ -2265,7 +2265,7 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
 .mt-22 { margin-top: 22px; }
 .mb-0 { margin-bottom: 0; }
 
-/* ?p=comptes — l'identité d'un compte en tête de ligne, et son édition dans une
+/* ?p=utilisateurs — l'identité d'un compte en tête de ligne, et son édition dans une
    ligne dépliée par le crayon (aucun champ modifiable tant qu'elle est fermée,
    comme sur les axes analytiques ou les lignes du décompte). */
 .compte-identite { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -2293,7 +2293,7 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
 .compte-ajout-form input { width: 100%; }
 .compte-ajout-form > p { flex: 1 1 100%; margin: 0; }
 
-/* ?p=comptes sur téléphone : onze colonnes ne tiennent pas, et les réduire les
+/* ?p=utilisateurs sur téléphone : onze colonnes ne tiennent pas, et les réduire les
    rend illisibles. Le tableau se relit alors en BLOCS — un compte, un bloc —,
    l'en-tête disparaît et chaque cellule porte son intitulé (data-label, posé
    dans views/_compte_ligne.php). Même contenu, même balisage : c'est
@@ -2395,7 +2395,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    plus élevée.) */
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 110px; }
 /* L'exception "recherche compacte + <form> figé" pour ?p=structures /
-   ?p=evenements_liste en vue carte vit désormais sur .toolbar-carte (classe
+   ?p=evenements en vue carte vit désormais sur .toolbar-carte (classe
    explicite posée par la vue), pas ici — voir juste après .toolbar-opaque,
    tout en haut de ce fichier. */
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
@@ -2764,7 +2764,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
    souligne, pour ne pas suggérer un lien "à part" du reste de la ligne. */
 .titre-lien { color: inherit; text-decoration: none; }
 .titre-lien:hover { text-decoration: underline; }
-/* .text-strike (événement annulé, ?p=evenements_liste) posé sur le <td>
+/* .text-strike (événement annulé, ?p=evenements) posé sur le <td>
    plutôt que directement sur .titre-lien : text-decoration:none ci-dessus
    annulerait sinon le barré hérité du parent pour ce lien précis. */
 .text-strike .titre-lien { text-decoration: line-through; }
@@ -2903,7 +2903,7 @@ td.col-maj-le.a-date.est-creation::before {
 /* Le nom d'une campagne mène à sa page : le lien prend la couleur de sa
    pastille, sinon il trancherait en bleu au milieu d'une file de badges. */
 /* Pastille d'une campagne EN COURS : le teal du reste de l'application pour
-   ce qui appelle du travail (le nom teal de ?p=campagnes, le médaillon du
+   ce qui appelle du travail (le nom teal de ?p=booking_campagnes, le médaillon du
    tableau de bord). Les couleurs seulement, sans passer par .ok-badge, qui
    remet aussi la marge à zéro et décalerait cette pastille-là dans la file. */
 td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var(--teal-d); }
@@ -3060,7 +3060,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .list .strong.lien-encre { color: var(--ink); }
 .list .strong.lien-encre:hover, .list .strong.lien-encre:focus-visible { color: var(--highlight-d); }
 
-/* Carte de tête d'une campagne (?p=campagne) : l'icône du premier projet en
+/* Carte de tête d'une campagne (?p=booking_campagne) : l'icône du premier projet en
    grand, puis ce qu'il reste à faire, puis le compte en gros. Elle répond à
    deux questions d'un coup d'œil — où en est le démarchage, et qu'ont répondu
    ceux qu'on a déjà contactés. */
@@ -3210,7 +3210,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
     width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: 9px;
 }
 
-/* Pastille au format du titre (?p=employe_voir), avec son bouton de réglage. */
+/* Pastille au format du titre (?p=employe), avec son bouton de réglage. */
 .titre-avatar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .avatar-titre { position: relative; display: inline-flex; flex: 0 0 auto; }
 .avatar-titre .avatar-ini { width: 46px; height: 46px; font-size: var(--fs-basic); margin-right: 0; }
@@ -3330,7 +3330,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .info-grid dt { color: var(--muted); font-size: var(--fs-small); }
 .info-grid dd { margin: 0; font-size: var(--fs-basic); overflow-wrap: anywhere; }
 .info-grid > div:nth-last-child(-n+2) { border-bottom: none; } /* pas de trait sous la dernière ligne (2 colonnes) */
-/* Variante responsive (?p=employe_voir) : jusqu'à 4 colonnes selon la largeur
+/* Variante responsive (?p=employe) : jusqu'à 4 colonnes selon la largeur
    disponible, plutôt que le fixe 2 colonnes ci-dessus (gardé tel quel pour
    les autres usages de .info-grid — diagnostic, mises à jour — où les
    valeurs sont plus longues et ne profiteraient pas de colonnes en plus).
@@ -4480,7 +4480,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    Sous 700px, le tableau des structures — douze colonnes — se relit en
    cartes : une par structure, six champs réagencés. Aucune duplication de
    balisage, ce sont les MÊMES <td> repositionnés en grille (les classes
-   col-* de views/structures_liste.php ne servent qu'à ça) ; à 4000 lignes
+   col-* de views/structures.php ne servent qu'à ça) ; à 4000 lignes
    possibles en mode client, un second gabarit aurait pesé plus que la page
    entière.
 
@@ -4765,7 +4765,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     .liste-cartes .nom-liees,
     .liste-cartes td.col-factures,
     .liste-cartes td.col-nb-evenements { display: none; }
-    /* La colonne « Suivi » du démarchage (?p=campagne) : la grille de la carte
+    /* La colonne « Suivi » du démarchage (?p=booking_campagne) : la grille de la carte
        ne connaît que les colonnes de ?p=structures, et sans place assignée elle
        se rangerait d'elle-même dans la première case libre — par-dessus le nom. */
     .liste-cartes td.col-suivi:empty { display: none; margin: 0; }
@@ -4895,7 +4895,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     }
 
     /* ============================================================
-       ?p=employes, ?p=evenements_liste, ?p=facturation_liste en mini-cartes
+       ?p=employes, ?p=evenements, ?p=factures en mini-cartes
        ============================================================
        Même principe que les deux listes ci-dessus : les MÊMES <td> replacés en
        grille, les colonnes qui ne tiennent pas sur un téléphone restant dans la

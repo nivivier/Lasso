@@ -11,7 +11,7 @@
 // Attendu de l'appelant (préfixe « ta ») :
 //   $taTags   (array) les tags existants, pour les suggestions.
 //   $taRetour (array) où revenir SANS JavaScript : ['retour' => 'structures'],
-//             ou ['retour' => 'campagne', 'campagne_id' => N]. Avec JavaScript,
+//             ou ['retour' => 'booking_campagne', 'campagne_id' => N]. Avec JavaScript,
 //             la requête part en JSON et seule la cellule est remplacée.
 $taTags = $taTags ?? [];
 $taRetour = $taRetour ?? [];

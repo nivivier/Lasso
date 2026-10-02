@@ -11,7 +11,7 @@
 // Lecture d'abord : le crayon ouvre le formulaire d'une ligne (paliers d'âge
 // compris, ils n'ont de sens que pour la leur), l'ordre se change en glissant la
 // poignée, et les interrupteurs s'appliquent au clic — mêmes gestes que
-// ?p=compta_axes et ?p=parametres_pays.
+// ?p=compta_axes et ?p=pays.
 $sens = ['deduction' => 'Déduction employé', 'charge' => 'Charge patronale'];
 $modes = [
     'taux'         => "Taux de l'année",
@@ -65,7 +65,7 @@ foreach ($postes as $p) {
 <?php endif; ?>
 <p class="muted small">
     Modifier un taux ne touche aucune fiche déjà enregistrée : pour les mettre à jour, passez par le
-    <a href="?p=fiches_recalcul&amp;annee=<?= $annee ?>">recalcul des fiches</a>.
+    <a href="?p=fiches_recalculer&amp;annee=<?= $annee ?>">recalcul des fiches</a>.
     Les taux par défaut sont indicatifs — confirmez-les avec votre affiliation OCAS et votre caisse LPP/LAA.
 </p>
 

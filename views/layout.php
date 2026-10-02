@@ -76,7 +76,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <?php $vMbar = $logoSombre !== '' ? 'sombre' : logo_petit_variante('sombre'); ?>
     <?php // Le logo ramène au tableau de bord : c'est le geste attendu d'un
           // logo d'application, et sur téléphone le rail est replié. ?>
-    <a href="?p=resumes" class="mbar-accueil" title="Tableau de bord" aria-label="Tableau de bord">
+    <a href="?p=tableau_bord" class="mbar-accueil" title="Tableau de bord" aria-label="Tableau de bord">
         <?php if ($vMbar !== null): ?><img src="<?= e(param_logo($vMbar)) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo<?= str_starts_with($vMbar, 'mini_') ? ' mbar-logo-mini' : '' ?>"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
     </a>
 </header>
@@ -107,7 +107,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
             ?>
             <?php // Le logo du rail est un lien vers le tableau de bord — le
                   // geste qu'on tente d'instinct sur le logo d'une application. ?>
-            <a href="?p=resumes" class="side-accueil" title="Tableau de bord" aria-label="Tableau de bord">
+            <a href="?p=tableau_bord" class="side-accueil" title="Tableau de bord" aria-label="Tableau de bord">
             <?php if ($logoRailClair !== ''): ?>
                 <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailClair ?>">
                 <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailSombre ?>">
@@ -127,7 +127,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
               // qui ferait changer de teinte l'icône du tableau de bord au fil
               // de la navigation — alors qu'elle doit rester un repère
               // constant, exactement comme les icônes de module. ?>
-        <a href="?p=resumes" class="rail-btn <?= $cur === 'resumes' ? 'on' : '' ?>" title="Tableau de bord" style="--rail-accent: var(--primary-base)">
+        <a href="?p=tableau_bord" class="rail-btn <?= $cur === 'tableau_bord' ? 'on' : '' ?>" title="Tableau de bord" style="--rail-accent: var(--primary-base)">
             <?= icon('circle-gauge') ?>
             <span class="rail-label">Tableau de bord</span>
         </a>
@@ -170,7 +170,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
                 <?= e($initiales) ?>
             </button>
             <?php if (peut_lire('coeur')): ?>
-            <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'unites', 'taux', 'export', 'import_fiches', 'import_structures', 'comptes', 'parametres_modules', 'maj', 'parametres', 'parametres_evenements', 'parametres_structures']; ?>
+            <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'export', 'fiches_importer', 'structures_importer', 'utilisateurs', 'modules', 'maj', 'evenements_reglages', 'categories_structures']; ?>
             <a href="?p=maj" class="side-cog <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres" aria-label="Paramètres">
                 <?= icon('settings') ?>
             </a>
@@ -181,8 +181,8 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
                 <strong><?= e($nomComplet) ?></strong>
                 <span><?= e($u['email']) ?></span>
             </div>
-            <a href="?p=compte" class="<?= $cur === 'compte' ? 'on' : '' ?>">Mon compte</a>
-            <a href="?p=logout">Déconnexion</a>
+            <a href="?p=mon_compte" class="<?= $cur === 'mon_compte' ? 'on' : '' ?>">Mon compte</a>
+            <a href="?p=deconnexion">Déconnexion</a>
         </div>
     </div>
     <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">

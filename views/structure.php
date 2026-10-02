@@ -751,7 +751,7 @@ $villeHtmlS = ville_departement_canton_html(
         </div>
     </div>
 
-    <form method="post" id="structure-localisation-form" action="?p=structure_localisation<?= $depuisQs ?>" class="card-edit form" hidden>
+    <form method="post" id="structure-localisation-form" action="?p=structure_localisation_enregistrer<?= $depuisQs ?>" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= $sid ?>">
         <input name="adresse_rue" value="<?= $v('adresse_rue') ?>" placeholder="Rue et numéro" aria-label="Rue et numéro" class="mb-16">
@@ -797,7 +797,7 @@ $villeHtmlS = ville_departement_canton_html(
         <?php // Liste fermée : on range la structure dans une campagne existante,
               // on n'en crée pas d'ici. Celles où elle figure déjà n'y sont pas. ?>
         <?php $dejaDedans = array_map(fn ($c) => (int) $c['id'], $campagnesStructure); ?>
-        <form method="post" action="?p=structure_campagne<?= $depuisQs ?>" class="linked-add linked-add-ligne" id="campagne-ajouter-fiche" hidden>
+        <form method="post" action="?p=booking_campagne_structure<?= $depuisQs ?>" class="linked-add linked-add-ligne" id="campagne-ajouter-fiche" hidden>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="structure_id" value="<?= $sid ?>">
             <?php // Champ cherchable plutôt que menu déroulant, comme pour les
@@ -892,15 +892,15 @@ $villeHtmlS = ville_departement_canton_html(
                       // demandé à personne : sa réponse ne se note pas, pas
                       // plus qu'on ne peut y envoyer un message avant la date
                       // de début (campagne_ouverte(), même règle qu'à
-                      // ?p=campagne). Le crayon garde tout son sens pour
+                      // ?p=booking_campagne). Le crayon garde tout son sens pour
                       // autant : on prépare la liste, donc on doit pouvoir en
                       // retirer la structure.
-                      // La route refuse elle aussi (route_campagne_reponse()).
+                      // La route refuse elle aussi (route_booking_campagne_reponse_enregistrer()).
                       $campOuverte = campagne_ouverte((string) $c['date_debut'], $aujourdhuiCamp); ?>
                 <tr class="camp-ligne">
                     <td>
                         <div class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">Sans projet</span>' ?></div>
-                        <a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
+                        <a href="?p=booking_campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
                     </td>
                     <td class="muted small"><?= $campPeriode($c) ?></td>
                     <td class="nowrap">
@@ -918,7 +918,7 @@ $villeHtmlS = ville_departement_canton_html(
                               // sélecteur de réponse et le retrait de la campagne. ?>
                         <button type="button" class="btn ghost btn-sm icon-only camp-ligne-crayon" title="Modifier" aria-label="Modifier cette campagne"><?= icon('pencil') ?></button>
                         <span class="camp-ligne-edition" hidden>
-                            <form method="post" action="?p=structure_campagne<?= $depuisQs ?>" class="d-inline"
+                            <form method="post" action="?p=booking_campagne_structure<?= $depuisQs ?>" class="d-inline"
                                   data-confirm="Retirer cette structure de la campagne « <?= e((string) $c['nom']) ?> » ? La réponse qui y est notée sera perdue.">
                                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="structure_id" value="<?= $sid ?>">
@@ -944,7 +944,7 @@ $villeHtmlS = ville_departement_canton_html(
                 <tr>
                     <td>
                         <div class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">Sans projet</span>' ?></div>
-                        <a href="?p=campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
+                        <a href="?p=booking_campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
                         <div class="muted small">
                             <span class="ico-tiny"><?= icon($c['structure_sens'] === 'organise' ? 'blocks' : 'building') ?></span>
                             <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a>

@@ -98,7 +98,7 @@ $deductions = $figees['deduction'] ?: [
           // À l'écran, les deux variantes sont rendues et le CSS montre celle
           // qui convient au fond (mécanique du rail, de la page de connexion et
           // de l'en-tête d'une facture). La page d'impression et l'aperçu qui
-          // l'affiche forcent data-theme="clair" (views/fiche_print.php) : la
+          // l'affiche forcent data-theme="clair" (views/fiche_imprimer.php) : la
           // variante pour fond clair y reste seule visible, sur sa feuille
           // blanche, quel que soit le thème de l'application. ?>
     <?php if (isset($logo_src)): ?>
@@ -129,7 +129,7 @@ $deductions = $figees['deduction'] ?: [
         </div>
         <div>
             <h3>Employé</h3>
-            <p><strong><?php if (empty($impression) && !empty($f['employe_id'])): ?><a href="<?= e(url_avec_retour('?p=employe_voir&id=' . (int) $f['employe_id'], 'fiche', (int) $f['id'])) ?>"><?= e($f['employe_nom']) ?></a><?php else: ?><?= e($f['employe_nom']) ?><?php endif; ?></strong><br>
+            <p><strong><?php if (empty($impression) && !empty($f['employe_id'])): ?><a href="<?= e(url_avec_retour('?p=employe&id=' . (int) $f['employe_id'], 'fiche', (int) $f['id'])) ?>"><?= e($f['employe_nom']) ?></a><?php else: ?><?= e($f['employe_nom']) ?><?php endif; ?></strong><br>
             <?= e($f['employe_rue']) ?><br>
             <?= e($f['employe_npa']) ?><br>
             <?php if ($f['employe_avs']): ?>N° AVS : <?= e($f['employe_avs']) ?><?php endif; ?></p>

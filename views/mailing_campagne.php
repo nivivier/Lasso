@@ -92,7 +92,7 @@ $contacteContenu = '<label class="col-filter-champ">Pas contactées depuis le <i
 
 // Valeurs actives des 7 filtres à cases à cocher, une pastille par valeur
 // avec sa propre croix de retrait (filtre_colonne_actifs_html(), même
-// composant que les en-têtes de colonne de ?p=structures/?p=evenements_liste)
+// composant que les en-têtes de colonne de ?p=structures/?p=evenements)
 // — affichée sous la rangée de filtres plutôt que dans l'en-tête d'une
 // colonne, cette page n'ayant pas de tableau à qui l'accrocher.
 $actifsCiblageHtml = filtre_colonne_actifs_html('mailing_campagne', 'categorie_id', $categorieLabels, $criteres['categorie_id'], $autresFiltresCiblage('categorie_id'))

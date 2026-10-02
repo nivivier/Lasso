@@ -624,7 +624,7 @@ function evenements_lieux_detecter(): array
     // normalisés, chargé une fois pour tous les événements (pas une requête
     // par ligne). Non filtré sur la sous-catégorie « booking » : une salle
     // peut être catégorisée autrement (ex. Organisateur) et rester un
-    // candidat valable — même principe que route_lieux_options().
+    // candidat valable — même principe que route_lieux_json().
     $lieuxParVille = [];
     foreach (db()->query(
         "SELECT id, nom, sous_categorie AS type, adresse_localite AS ville, departement_canton, adresse_pays AS pays

@@ -73,7 +73,7 @@ define('SETUP_SECRET', '<longue valeur aléatoire>');        // protège l'écra
 | `APP_ENV` | `prod` : erreurs masquées, e-mails envoyés, HTTPS forcé. `dev` : erreurs affichées, e-mails journalisés. | variable serveur `APP_ENV`, sinon `dev` en ligne de commande et sous `php -S`, sinon **`prod`** |
 | `APP_DB_PATH` | Chemin absolu du fichier SQLite. **À placer hors de la racine web.** | `data/database.sqlite` |
 | `FORCE_HTTPS` | Redirection 301 vers HTTPS + en-tête HSTS. | `true` en prod |
-| `SETUP_SECRET` | L'écran de création du 1ᵉʳ compte exige `?p=setup&key=<secret>`. **En production, son absence bloque l'installation** (réponse 503 explicite) plutôt que de laisser l'écran ouvert. | vide — obligatoire en `prod` |
+| `SETUP_SECRET` | L'écran de création du 1ᵉʳ compte exige `?p=installation&key=<secret>`. **En production, son absence bloque l'installation** (réponse 503 explicite) plutôt que de laisser l'écran ouvert. | vide — obligatoire en `prod` |
 
 **Envoi d'e-mails (SMTP)** — beaucoup d'hébergements mutualisés désactivent `mail()`.
 Le serveur d'envoi se règle de préférence dans **Paramètres → E-mails** (stocké en
@@ -110,7 +110,7 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 7. **Compte administrateur** :
    - Si vous avez transféré votre base, le compte existe déjà → allez directement
      sur la page de connexion.
-   - Sinon, ouvrez **`https://votre-domaine/?p=setup&key=<SETUP_SECRET>`** et créez
+   - Sinon, ouvrez **`https://votre-domaine/?p=installation&key=<SETUP_SECRET>`** et créez
      le compte (e-mail + mot de passe d'au moins 8 caractères, `PASSWORD_MIN`).
 
 ---
@@ -384,7 +384,7 @@ de la précédente jusqu'à ce qu'on en enregistre une.
 
 Pour appliquer un changement de taux ou de poste à des fiches **déjà enregistrées**,
 il faut le demander explicitement : **Paramètres → Taux → recalcul des fiches**
-(`?p=fiches_recalcul`). La page liste, pour l'année choisie, les seules fiches dont
+(`?p=fiches_recalculer`). La page liste, pour l'année choisie, les seules fiches dont
 les montants changeraient, avec l'**avant et l'après** côte à côte et le nombre de
 fiches concernées. Les fiches **déjà payées ne sont pas cochées par défaut**, et la
 base est **sauvegardée automatiquement** juste avant l'écriture.

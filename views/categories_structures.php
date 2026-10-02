@@ -24,7 +24,7 @@ $parentOptions = function (?int $selected) use ($map): string {
 <?php $peutEcrireCat = peut_ecrire('booking'); ?>
 <?php if ($peutEcrireCat): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
-<form method="post" action="?p=parametres_structures" id="reorder-form" hidden>
+<form method="post" action="?p=categories_structures" id="reorder-form" hidden>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="section" value="reorder">
     <input type="hidden" name="id" value="">
@@ -54,7 +54,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                     <span class="plan-puce" aria-hidden="true"><?= $c['a_enfants'] ? icon('chevron-down') : '•' ?></span>
                     <span class="plan-nom"><?= e($c['nom']) ?></span>
                     <?php if ($peutEcrireCat): ?>
-                    <form method="post" action="?p=parametres_structures" class="inline-edit plan-edit" id="plan-edit-<?= $cid ?>">
+                    <form method="post" action="?p=categories_structures" class="inline-edit plan-edit" id="plan-edit-<?= $cid ?>">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="edit">
                         <input type="hidden" name="id" value="<?= $cid ?>">
@@ -72,7 +72,7 @@ $parentOptions = function (?int $selected) use ($map): string {
             </td>
             <td class="actions nowrap">
                 <?php if ($peutEcrireCat): ?>
-                <form method="post" action="?p=parametres_structures" class="d-inline plan-fallback">
+                <form method="post" action="?p=categories_structures" class="d-inline plan-fallback">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="move">
                     <input type="hidden" name="id" value="<?= $cid ?>">
@@ -87,7 +87,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                       // de lui. ?>
                 <button type="submit" form="plan-edit-<?= $cid ?>" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
                 <?php if ($nbUsage === 0 || $c['a_enfants']): ?>
-                <form method="post" action="?p=parametres_structures" data-confirm="Supprimer <?= $estRacine ? 'cette catégorie' : 'cette sous-catégorie' ?> ?" class="d-inline plan-supprimer">
+                <form method="post" action="?p=categories_structures" data-confirm="Supprimer <?= $estRacine ? 'cette catégorie' : 'cette sous-catégorie' ?> ?" class="d-inline plan-supprimer">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="delete">
                     <input type="hidden" name="id" value="<?= $cid ?>">
@@ -108,7 +108,7 @@ $parentOptions = function (?int $selected) use ($map): string {
     <tfoot id="cat-add" hidden>
         <tr>
             <td colspan="2">
-                <form method="post" action="?p=parametres_structures" class="inline-edit">
+                <form method="post" action="?p=categories_structures" class="inline-edit">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="section" value="add">
                     <input name="nom" placeholder="ex. Festival, Salle de concert…" required class="grow" aria-label="Nom">
@@ -133,7 +133,7 @@ $parentOptions = function (?int $selected) use ($map): string {
             <button type="button" class="btn ghost modal-fermer" id="cat-del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
         </div>
         <p class="muted small"><strong id="cat-del-nb"></strong> structure(s) utilisent <span id="cat-del-type">cette catégorie</span>. Réaffectez-les avant de supprimer.</p>
-        <form method="post" action="?p=parametres_structures" id="cat-del-form">
+        <form method="post" action="?p=categories_structures" id="cat-del-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="section" value="delete">
             <input type="hidden" name="id" id="cat-del-id" value="">
@@ -158,7 +158,7 @@ $parentOptions = function (?int $selected) use ($map): string {
         containerSelector: '#categories-card',
         rowsSelector: '.plan-row',
         scrollKey: 'categoriesScroll',
-        formAction: '?p=parametres_structures',
+        formAction: '?p=categories_structures',
     });
 
     // Modale de suppression avec réaffectation : cible = une racine (pour une

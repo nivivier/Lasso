@@ -168,8 +168,8 @@ facture annulée puis refaite. La fiche événement liste toutes les factures li
 
 Ajout d'un onglet `evenements` dans `views/_param_tabs.php` (masqué si le module
 `evenements` est désactivé, même logique que les onglets `taux`/`taux_horaires` pour le
-module `salaires`). Route `route_parametres_evenements()` dans `lib/routes.php`, vue
-`views/parametres_evenements.php`. Contenu :
+module `salaires`). Route `route_evenements_reglages()` dans `lib/routes.php`, vue
+`views/evenements_reglages.php`. Contenu :
 
 - **Délai de décompte SUISA** (`suisa_delai_decompte_mois`, défaut `12`) — cf. §5.
 - **Texte du bouton de lien par défaut** (`evenements_lien_texte_defaut`, défaut « Plus
@@ -183,12 +183,12 @@ module `salaires`). Route `route_parametres_evenements()` dans `lib/routes.php`,
 
 Deux **routes publiques en lecture seule**, sans session (ajoutées à `$handlers` dans
 `index.php` en dehors des blocs `require_login()`, sur le modèle de la vérification par
-jeton déjà utilisée pour `route_setup()` — `hash_equals()` contre un secret stocké côté
+jeton déjà utilisée pour `route_installation()` — `hash_equals()` contre un secret stocké côté
 serveur, jamais une simple comparaison `===`) :
 
-- **`?p=evenements_json&token=…`** — tableau JSON de tous les événements exposables (voir
+- **`?p=evenements_exporter_json&token=…`** — tableau JSON de tous les événements exposables (voir
   règles de filtrage ci-dessous), pour un site web ou tout autre export.
-- **`?p=evenements_ical&token=…`** — flux `text/calendar` (`.ics`), un `VEVENT` par
+- **`?p=evenements_exporter_ical&token=…`** — flux `text/calendar` (`.ics`), un `VEVENT` par
   événement exposable, pour import direct dans un calendrier (Google Agenda, etc.). Même
   filtrage/mêmes champs que le JSON, adaptés au format iCal (`SUMMARY`, `DTSTART`,
   `LOCATION`, `DESCRIPTION`, `URL`).
@@ -196,7 +196,7 @@ serveur, jamais une simple comparaison `===`) :
 ### Filtre par spectacle
 
 Paramètre optionnel **`spectacle_id`** sur les deux routes (ex.
-`?p=evenements_json&token=…&spectacle_id=3`) : ne renvoie que les événements liés à ce
+`?p=evenements_exporter_json&token=…&spectacle_id=3`) : ne renvoie que les événements liés à ce
 spectacle. Permet d'avoir un point d'accès dédié par spectacle (ex. une page web
 spécifique à une tournée qui n'affiche que son propre calendrier), sans exposer les
 événements des autres spectacles. Même **jeton global** pour toutes les URLs (pas de
@@ -312,10 +312,10 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
   `handle_logo_upload()` avec un paramètre de type de fichier accepté), pour l'upload de
   la feuille SUISA sur `spectacles`.
 - `lib/routes_evenements.php` — `route_evenements_*` (écrans authentifiés), inclus depuis
-  `index.php` comme `routes_facturation.php`, **plus** `route_evenements_json()` et
-  `route_evenements_ical()` (routes publiques par jeton, sans `require_login()`, cf. §8).
-- `views/evenements_liste.php`, `evenements_form.php`, `evenements_voir.php`,
-  `views/spectacles_liste.php`, `spectacle_form.php`, `views/parametres_evenements.php`.
+  `index.php` comme `routes_facturation.php`, **plus** `route_evenements_exporter_json()` et
+  `route_evenements_exporter_ical()` (routes publiques par jeton, sans `require_login()`, cf. §8).
+- `views/evenements.php`, `evenements_form.php`, `evenements_voir.php`,
+  `views/spectacles_liste.php`, `spectacle_form.php`, `views/evenements_reglages.php`.
 - Migration(s) : nouvelles entrées `$steps` + `migration_N()` pour `spectacles`,
   `evenements`, `evenement_employes`, `evenement_fiches`, et l'ajout de la colonne
   `evenement_id` sur `factures`.

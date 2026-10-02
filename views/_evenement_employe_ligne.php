@@ -92,7 +92,7 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                             </form>
                             <div class="epf-actions">
                                 <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation"<?= $ligne ? ' hidden' : '' ?>><?= icon('save') ?></button>
-                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_delier<?= $depuisQs ?>" class="btn danger btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_retirer<?= $depuisQs ?>" class="btn danger btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
                                 <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"<?= $ligne ? '' : ' hidden' ?>><?= icon('pencil') ?></button>
                                 <?php // La croix se pose exactement là où était le crayon,
                                       // tout à droite : un seul emplacement pour ouvrir

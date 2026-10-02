@@ -81,7 +81,7 @@ if ($cfTitre === '') {
 
     <?php // Supprimer vit en bas du cadre, loin des deux commandes courantes, et
           // pilote un <form> posé À CÔTÉ de celui-ci (attribut form=…) : deux
-          // formulaires ne peuvent pas s'imbriquer. Voir views/structure_form.php. ?>
+          // formulaires ne peuvent pas s'imbriquer. Voir views/structure.php. ?>
     <?php if ($cfEdition): ?>
     <div class="cadre-edit-pied">
         <button type="submit" form="contact-del-<?= (int) $cfC['id'] ?>" class="btn danger btn-sm"><?= icon('trash') ?> Supprimer le contact</button>

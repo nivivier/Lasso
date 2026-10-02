@@ -13,7 +13,7 @@ $aujourdhui = date('Y-m-d');
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-<a class="back-link" href="?p=fonds"><?= icon('arrow-left') ?> Campagnes</a>
+<a class="back-link" href="?p=fonds_campagnes"><?= icon('arrow-left') ?> Campagnes</a>
 
 <?php if ($ok === 'demande'): ?><p class="ok flash">Dossier enregistré.</p><?php endif; ?>
 
@@ -34,7 +34,7 @@ $aujourdhui = date('Y-m-d');
 <?php
 // La carte de tête répond d'un coup d'œil à la seule question qui compte au
 // milieu d'une campagne : combien manque-t-il encore. Même charpente que celle
-// d'une campagne de démarchage (views/campagne.php) — les icônes des projets en
+// d'une campagne de démarchage (views/booking_campagne.php) — les icônes des projets en
 // grand à gauche, le reste à droite : c'est par elles qu'on reconnaît la
 // campagne avant même d'en lire le nom. Plusieurs projets se superposent en
 // pile, le premier devant ; au-delà de trois on s'arrête et on compte le reste.

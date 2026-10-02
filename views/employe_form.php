@@ -5,7 +5,7 @@ $nbFiches = (int) ($nbFiches ?? 0);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
-<?= lien_retour($isEdit ? '?p=employe_voir&id=' . (int) $emp['id'] : '?p=employes', $isEdit ? 'Fiche employé' : 'Employés') ?>
+<?= lien_retour($isEdit ? '?p=employe&id=' . (int) $emp['id'] : '?p=employes', $isEdit ? 'Fiche employé' : 'Employés') ?>
 <div class="page-head">
     <h1><?= $isEdit ? 'Modifier l\'employé' : 'Nouvel employé' ?></h1>
     <?php // La suppression vit ici, sur l'écran qui modifie l'employé, et pas sur
@@ -20,7 +20,7 @@ $nbFiches = (int) ($nbFiches ?? 0);
     <?php if (peut_ecrire('salaires')): ?>
     <?php ob_start(); ?>
         <?php if ($isEdit && $nbFiches === 0): ?>
-        <form method="post" action="?p=employe_delete" data-confirm="Supprimer définitivement cet employé ?" class="d-inline">
+        <form method="post" action="?p=employe_supprimer" data-confirm="Supprimer définitivement cet employé ?" class="d-inline">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
             <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer l'employé"><?= icon('trash') ?></button>
@@ -36,7 +36,7 @@ $nbFiches = (int) ($nbFiches ?? 0);
 <?php else: ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-<form method="post" action="?p=employe<?= $isEdit ? '&id=' . (int) $emp['id'] : '' ?>" class="card form" id="employe-form">
+<form method="post" action="?p=employe_form<?= $isEdit ? '&id=' . (int) $emp['id'] : '' ?>" class="card form" id="employe-form">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
     <div class="grid2">

@@ -26,7 +26,7 @@ $peutEcrire = peut_ecrire('booking');
 // route et gardent l'id de la campagne — sans lui, filtrer renverrait à la
 // liste des campagnes. La réponse reçue s'y ajoute : elle n'existe que sur une
 // campagne, et vit sur le lien campagne↔structure.
-$sfPage = 'campagne';
+$sfPage = 'booking_campagne';
 $sfVals = $filtres;
 $sfSources = ['categoriesPourSelect' => $categoriesPourSelect, 'tagsDispo' => $tagsDispo,
     'lieuxOptions' => $lieuxOptions, 'campagnesDispo' => $campagnesDispo];
@@ -38,13 +38,13 @@ require __DIR__ . '/_structures_filtres.php';
 // d'avancement — « à contacter » compris, qui est la question qu'on se pose en
 // ouvrant cet écran.
 $suiviAutres = $sfAutres('suivi');
-$suiviFiltreHtml = filtre_colonne_html('campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres);
+$suiviFiltreHtml = filtre_colonne_html('booking_campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres);
 // Nu dans l'en-tête (la colonne le nomme), nommé dans le panneau hors tableau.
-$sfColonnes .= filtre_colonne_html('campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres, 'Suivi');
-$sfActifs .= filtre_colonne_actifs_html('campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres);
+$sfColonnes .= filtre_colonne_html('booking_campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres, 'Suivi');
+$sfActifs .= filtre_colonne_actifs_html('booking_campagne', 'suivi', CAMPAGNE_SUIVI, $suiviFiltre, $suiviAutres);
 // Le bouton de retrait doit vider la réponse comme le reste.
 $sfReinit = bouton_reinit_filtres(
-    'campagne',
+    'booking_campagne',
     ['categorie_id', 'statut', 'lieu', 'tag_id', 'avec_evenements', 'contact_periode', 'maj_periode', 'suivi'],
     (bool) $sfActif,
     [],
@@ -56,12 +56,12 @@ $sfReinit = bouton_reinit_filtres(
 <?php // Même charpente qu'une fiche (?p=structure) : la zone du module, un
       // en-tête de page, puis le tableau d'un bord à l'autre de cette zone. ?>
 <div class="module-content"><div class="module-content-inner">
-<a class="back-link" href="?p=campagnes"><?= icon('arrow-left') ?> Campagnes</a>
+<a class="back-link" href="?p=booking_campagnes"><?= icon('arrow-left') ?> Campagnes</a>
 <?php if ($saved): ?><p class="ok flash">Enregistré.</p><?php endif; ?>
 <?php require __DIR__ . '/_flash_contacter.php'; ?>
 <?php // Retours d'une modification groupée : les mêmes bandeaux que
       // ?p=structures, puisque c'est la même barre et le même code serveur. ?>
-<?php $actionUrl = '?p=campagne&id=' . (int) $campagne['id']; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+<?php $actionUrl = '?p=booking_campagne&id=' . (int) $campagne['id']; require __DIR__ . '/_bulk_undo_flash.php'; ?>
 <?php require __DIR__ . '/_bulk_liaison_flash.php'; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
 
@@ -83,7 +83,7 @@ $sfReinit = bouton_reinit_filtres(
           // sert à SUIVRE un démarchage en cours — on y clique cent fois sans
           // rien vouloir détruire. ?>
     <div class="head-actions">
-    <a class="btn ghost" href="?p=campagne_form&id=<?= (int) $campagne['id'] ?>"><?= icon('pencil') ?> Modifier</a>
+    <a class="btn ghost" href="?p=booking_campagne_form&id=<?= (int) $campagne['id'] ?>"><?= icon('pencil') ?> Modifier</a>
     </div>
     <?php endif; ?>
 </div>
@@ -179,7 +179,7 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
 // L'exemplaire unique du formulaire d'ajout de tag, celui de ?p=structures : la
 // colonne « Tags » se modifie ici aussi.
 $taTags = $tagsDispo;
-$taRetour = ['retour' => 'campagne', 'retour_campagne_id' => (int) $campagne['id']];
+$taRetour = ['retour' => 'booking_campagne', 'retour_campagne_id' => (int) $campagne['id']];
 require __DIR__ . '/_tag_ajouter_ligne.php';
 ?>
 <?php if ($campagnesDispo): ?>
@@ -187,7 +187,7 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 // Idem pour la colonne « Campagnes » : sans cet exemplaire, son « + » et sa
 // croix n'ont rien à ouvrir et ne font rien.
 $caCampagnes = $campagnesDispo;
-$caRetour = ['retour' => 'campagne', 'retour_campagne_id' => (int) $campagne['id']];
+$caRetour = ['retour' => 'booking_campagne', 'retour_campagne_id' => (int) $campagne['id']];
 require __DIR__ . '/_campagne_ajouter_ligne.php';
 ?>
 <?php endif; ?>
@@ -195,7 +195,7 @@ require __DIR__ . '/_campagne_ajouter_ligne.php';
 // La barre d'action groupée de ?p=structures, telle quelle : on modifie ici les
 // fiches d'une sélection sans quitter le démarchage. Elle poste sur cette page,
 // qui délègue à structures_bulk_appliquer() — même code, même annulation.
-$bbAction = '?p=campagne&id=' . (int) $campagne['id'];
+$bbAction = '?p=booking_campagne&id=' . (int) $campagne['id'];
 $bbTagsDispo = $tagsDispo;
 $bbCategories = $categoriesPourSelect;
 $bbCampagnes = $campagnesDispo;
@@ -242,7 +242,7 @@ $stColCampagnes = $campagnesDispo
 // En-têtes triables, comme sur ?p=structures. Les liens emportent les filtres
 // de cet écran, l'id de la campagne et le filtre de réponse — sans quoi trier
 // renverrait à la liste des campagnes, filtres perdus.
-$stTri = $tri + ['page' => 'campagne', 'params' => $sfTousFiltres];
+$stTri = $tri + ['page' => 'booking_campagne', 'params' => $sfTousFiltres];
 // UNE seule colonne pour les deux gestes, parce qu'ils se suivent : tant que le
 // contact reste à faire, on agit et il n'y a pas de réponse à noter ; une fois
 // qu'il a eu lieu, il n'y a plus rien à déclencher et c'est la réponse qui
@@ -253,7 +253,7 @@ $stTri = $tri + ['page' => 'campagne', 'params' => $sfTousFiltres];
 // L'entonnoir et le tri restent ceux de la RÉPONSE : c'est la seule des deux
 // moitiés qui porte une donnée.
 $stExtraTh = '<th class="nowrap col-suivi"><span class="col-th">'
-    . tri_entete_html('campagne', 'suivi', 'Suivi', $stTri, $stTri['params'])
+    . tri_entete_html('booking_campagne', 'suivi', 'Suivi', $stTri, $stTri['params'])
     . ' ' . $suiviFiltreHtml . '</span></th>';
 $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string {
     $sid = (int) $d['id'];
@@ -312,7 +312,7 @@ $stExtraTd = function (array $d) use ($campagne, $peutEcrire, $ouverte): string 
             . ' aria-label="Marquer ' . e((string) $d['nom']) . ' comme contactée">' . icon('check') . '</button>';
     }
     // Pas de retrait ici : la composition de la sélection se fait sur
-    // ?p=campagne_form, où l'on décoche — et où l'on ajoute. Cette page-ci sert
+    // ?p=booking_campagne_form, où l'on décoche — et où l'on ajoute. Cette page-ci sert
     // à démarcher, pas à refaire la liste.
     return $h . '</span></td>';
 };

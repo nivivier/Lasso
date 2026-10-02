@@ -23,7 +23,7 @@
     </h1>
     <?php if (peut_ecrire('salaires')): ?>
     <div class="head-actions">
-        <a class="btn ghost" href="?p=employe&id=<?= (int) $emp['id'] ?>"><?= icon('pencil') ?> Modifier l'employé</a>
+        <a class="btn ghost" href="?p=employe_form&id=<?= (int) $emp['id'] ?>"><?= icon('pencil') ?> Modifier l'employé</a>
         <?php // Pas de suppression ici : elle vit sur l'écran de modification,
               // et « Modifier » ferme le groupe (docs/UI.md § 1). ?>
     </div>
@@ -40,7 +40,7 @@
     <p class="muted small">Elle apparaît devant le nom dans les listes. Sans réglage, sa couleur est déduite
         du nom — elle est donc déjà stable et différente d'un employé à l'autre.</p>
 
-    <form method="post" action="?p=employe_avatar" class="avatar-couleurs">
+    <form method="post" action="?p=employe_photo" class="avatar-couleurs">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
         <input type="hidden" name="action" value="couleur">
@@ -64,7 +64,7 @@
             <input type="file" accept="image/png,image/jpeg,image/webp" id="avatar-fichier" hidden>
         </label>
         <?php if (trim((string) ($emp['avatar_photo'] ?? '')) !== ''): ?>
-        <form method="post" action="?p=employe_avatar" class="d-inline"
+        <form method="post" action="?p=employe_photo" class="d-inline"
               data-confirm="Retirer la photo ? La pastille reviendra à sa couleur.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
@@ -75,7 +75,7 @@
     </div>
 
     <?php // Le cadreur n'apparaît qu'une fois un fichier choisi. ?>
-    <form method="post" action="?p=employe_avatar" id="avatar-crop" hidden>
+    <form method="post" action="?p=employe_photo" id="avatar-crop" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $emp['id'] ?>">
         <input type="hidden" name="action" value="photo">
@@ -160,7 +160,7 @@
             <a class="btn ghost" href="?p=certificat&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-text') ?> Certificat de salaire</a>
         <?php endif; ?>
         <?php if (peut_ecrire('salaires')): ?>
-        <a class="btn" href="?p=fiche_new&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-plus') ?> Nouvelle fiche</a>
+        <a class="btn" href="?p=fiche_form&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-plus') ?> Nouvelle fiche</a>
         <?php endif; ?>
     </div>
 </div>

@@ -55,7 +55,7 @@
             <ul class="cat-search-list" hidden role="listbox"></ul>
         </div>
         <?php // Repli sans JavaScript : la liste des noms se peuple au premier
-              // focus (?p=lieux_options), ce bouton reste le moyen d'envoyer
+              // focus (?p=lieux_json), ce bouton reste le moyen d'envoyer
               // le choix si le clic sur une suggestion n'a pas déjà soumis. ?>
         <button type="submit" class="btn ghost btn-sm icon-only" title="Ajouter à la sélection"
                 aria-label="Ajouter à la sélection"><?= icon('plus') ?></button>

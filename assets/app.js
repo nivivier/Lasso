@@ -934,7 +934,7 @@ function lassoInitStatutToggle() {
 
 // Réponse reçue d'une structure dans une campagne — le suivi d'une campagne, et
 // le cadre « Campagnes » d'une fiche structure. Voir
-// campagne_reponse_toggle_html() et route_campagne_reponse().
+// campagne_reponse_toggle_html() et route_booking_campagne_reponse_enregistrer().
 //
 // Branché sur DOMContentLoaded et non par un appel dans la page : sur la fiche
 // structure, le script des cadres s'exécute AVANT que le cadre « Campagnes »
@@ -942,7 +942,7 @@ function lassoInitStatutToggle() {
 // cliquer une réponse n'y faisait rien. L'ordre des blocs cesse ainsi de compter.
 function lassoInitReponseToggle() {
     lassoInitSegToggleAjax(
-        'reponse-toggle', 'reponseValeur', '?p=campagne_reponse',
+        'reponse-toggle', 'reponseValeur', '?p=booking_campagne_reponse_enregistrer',
         picker => ({ campagne_id: picker.dataset.campagneId, structure_id: picker.dataset.structureId }),
         'reponse'
     );
@@ -1549,7 +1549,7 @@ document.addEventListener('click', e => {
             let restaurees = 0;
             liste.forEach(c => { if (voulus.has(c.value)) { c.checked = true; restaurees++; } });
             // Un seul évènement après coup : les scripts de liste
-            // (views/compta_ecritures.php, views/structures_liste.php) écoutent
+            // (views/compta_ecritures.php, views/structures.php) écoutent
             // « change » pour afficher leur barre d'actions groupées. Ils sont
             // attachés par un script en fin de <body>, donc avant ce
             // DOMContentLoaded — la barre se met bien à jour.
@@ -1582,7 +1582,7 @@ document.addEventListener('click', e => {
 // Confirmation avant une action destructrice. Sur un <form> : intercepte l'envoi.
 // Sur un bouton ou un lien : intercepte le clic.
 // Un data-confirm VIDE ne demande rien : certains écrans le posent en JS puis
-// le vident selon le contexte (voir views/import_fiches.php, où le message
+// le vident selon le contexte (voir views/fiches_importer.php, où le message
 // dépend du type d'import choisi). Sans ce garde-fou, ils afficheraient une
 // boîte de dialogue sans texte.
 document.addEventListener('submit', e => {
@@ -2010,7 +2010,7 @@ function lassoInitBlocEdition(opts) {
 // échange, et la croix referme sans rien enregistrer.
 //
 // Par délégation sur la racine : une ligne ajoutée après coup marche sans
-// qu'on repose d'écouteur — c'est ce qui manquait à ?p=comptes avant que ses
+// qu'on repose d'écouteur — c'est ce qui manquait à ?p=utilisateurs avant que ses
 // lignes ne s'insèrent sans recharger.
 //
 // opts : { prefixe, apres } — « apres(tr) » sert aux écrans qui ont un geste

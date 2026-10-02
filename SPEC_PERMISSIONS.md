@@ -9,7 +9,7 @@ l'application fait aujourd'hui.
 ## 1. Objectif
 
 Aujourd'hui, `utilisateurs` n'a aucune notion de rôle : tout compte connecté a un accès
-total à toute l'application (cf. commentaire actuel de `route_comptes()` : *« Tous les
+total à toute l'application (cf. commentaire actuel de `route_utilisateurs()` : *« Tous les
 comptes ont les mêmes droits »*). On introduit des **droits par module**, à deux niveaux
 (**lecture** / **écriture**), par utilisateur — dans l'esprit des modules déjà
 activables/désactivables globalement (`lib/modules.php`), mais appliqués individuellement.
@@ -60,7 +60,7 @@ Absence de ligne pour une paire (utilisateur, module) = aucun accès. Table volo
 
 ## 4. Garde-fou « au moins un admin »
 
-- **Premier compte** créé (`route_setup`, première installation) : reçoit
+- **Premier compte** créé (`route_installation`, première installation) : reçoit
   automatiquement écriture sur `coeur` + sur tous les modules actifs — comportement
   identique à aujourd'hui, aucune régression pour une installation neuve.
 - **Retrait de droits** : impossible de retirer l'écriture sur `coeur` au dernier
@@ -115,7 +115,7 @@ modules — cohérent avec le gate global existant. À confirmer, voir §10.
   en plus du masquage sidebar. Un seul point de contrôle pour le *minimum* (lecture).
 - **Actions d'écriture** : le contrôle fin doit rester **dans** chaque fonction
   `route_*` qui traite un POST (beaucoup de routes mélangent affichage GET et action(s)
-  POST dans la même fonction, ex. `route_evenements_liste()`) — appel à
+  POST dans la même fonction, ex. `route_evenements()`) — appel à
   `require_ecriture('module')` juste avant `check_csrf()`, sur le modèle exact de
   `require_login()` aujourd'hui. C'est le chantier le plus long : env. 80 fonctions
   `route_*` à parcourir et modifier, module par module, testable indépendamment. C'est
@@ -126,7 +126,7 @@ modules — cohérent avec le gate global existant. À confirmer, voir §10.
 
 ## 8. UI/UX
 
-- Page **Comptes** (`views/comptes.php`) étendue : pour chaque utilisateur listé, une
+- Page **Comptes** (`views/utilisateurs.php`) étendue : pour chaque utilisateur listé, une
   matrice compacte {module → Aucun / Lecture / Écriture}, `coeur` inclus. Une ligne =
   un petit formulaire POST, dans l'esprit des éléments déjà « inline » de l'appli.
 - Badge **« Admin »** à côté de l'e-mail si écriture sur `coeur` (en plus du badge
@@ -183,9 +183,9 @@ modules — cohérent avec le gate global existant. À confirmer, voir §10.
 - `lib/modules.php` — étendu avec les helpers de permission (§7), plutôt qu'un nouveau
   fichier séparé (évite de dupliquer la liste des modules).
 - Migration : nouvelle entrée `34 => 'migration_34'` dans `lib/db.php`.
-- `views/comptes.php` — matrice de permissions par utilisateur.
+- `views/utilisateurs.php` — matrice de permissions par utilisateur.
 - `lib/routes.php` — nouvelle route POST dédiée (ex. `route_compte_permissions`) pour la
-  mise à jour de la matrice, à côté de `route_comptes()`/`route_compte_delete()`.
+  mise à jour de la matrice, à côté de `route_utilisateurs()`/`route_utilisateur_supprimer()`.
 - `require_ecriture('module')` ajouté en tête de chaque bloc de mutation dans les
   fichiers `lib/routes*.php` existants, module par module.
 - Tests : `tests/permissions_test.php` — garde-fou dernier admin, résolution
