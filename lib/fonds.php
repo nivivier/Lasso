@@ -531,20 +531,30 @@ function fonds_structures_campagnes(array $ids, string $aujourdhui = ''): array
     return $out;
 }
 
-// La cellule correspondante. Même dessin et même « + » que celle du démarchage
-// (structure_campagnes_cellule_html(), lib/booking.php) — teal pour une
-// campagne dont la saison court, ton neutre pour les autres.
-//
-// Pas de croix de RETRAIT, en revanche : un dossier de subvention porte des
-// montants, des dates et un versement ; le défaire d'un clic dans une ligne de
-// liste effacerait tout cela sans que rien ne le montre. Ajouter n'ouvre qu'un
-// dossier vide, et se défait depuis le suivi de la campagne.
-function fonds_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire): string
+// Ce qu'un retrait détruit ici : non pas une réponse, mais le dossier entier.
+// La phrase est écrite une fois — la colonne de la liste des structures et le
+// suivi d'une campagne retirent la même chose et doivent le dire pareil.
+function fonds_retrait_confirme(string $bailleur, string $campagne): string
+{
+    return 'Retirer ' . $bailleur . ' de la campagne « ' . $campagne . ' » ? '
+        . 'Son dossier sera supprimé : montants, dates, pièces demandées et versement.';
+}
+
+// La cellule correspondante. Même dessin, même « + » et même croix que celle du
+// démarchage (structure_campagnes_cellule_html(), lib/booking.php) — teal pour
+// une campagne dont la saison court, ton neutre pour les autres.
+function fonds_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire, string $bailleur = 'ce bailleur'): string
 {
     $h = '';
     foreach ($campagnes as [$id, $nom, $enCours]) {
         $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
-            . '<a href="?p=fonds_campagne&id=' . $id . '">' . e($nom) . '</a></span> ';
+            . '<a href="?p=fonds_campagne&id=' . $id . '">' . e($nom) . '</a>';
+        if ($peutEcrire) {
+            $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
+                . '" data-retirer-confirme="' . e(fonds_retrait_confirme($bailleur, $nom)) . '"'
+                . ' title="Retirer de cette campagne" aria-label="Retirer de la campagne ' . e($nom) . '">×</button>';
+        }
+        $h .= '</span> ';
     }
     // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
     // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
@@ -561,7 +571,9 @@ function fonds_campagnes_cellule_html(int $structureId, array $campagnes, bool $
 // liste des structures atteinte depuis la recherche de fonds. Pas d'entonnoir :
 // on ne filtre pas encore les bailleurs par campagne — le jour où le besoin
 // vient, c'est un argument de plus, pas une seconde colonne.
-function colonne_campagnes_fonds(array $parStructure, bool $peutEcrire): array
+// $noms : [structure_id => nom], pour que la confirmation d'un retrait nomme le
+// bailleur — on clique une croix parmi des dizaines de lignes.
+function colonne_campagnes_fonds(array $parStructure, bool $peutEcrire, array $noms = []): array
 {
     return [
         // Chaque ligne insécable (même raison que la colonne jumelle) : deux
@@ -570,6 +582,6 @@ function colonne_campagnes_fonds(array $parStructure, bool $peutEcrire): array
         'filtre'        => '',
         'par_structure' => $parStructure,
         'cellule'       => fn (int $sid, array $campagnes): string
-            => fonds_campagnes_cellule_html($sid, $campagnes, $peutEcrire),
+            => fonds_campagnes_cellule_html($sid, $campagnes, $peutEcrire, $noms[$sid] ?? 'ce bailleur'),
     ];
 }

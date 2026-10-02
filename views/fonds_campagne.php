@@ -15,7 +15,8 @@ $aujourdhui = date('Y-m-d');
 <div class="module-content"><div class="module-content-inner">
 <a class="back-link" href="?p=fonds_campagnes"><?= icon('arrow-left') ?> Campagnes</a>
 
-<?php if ($ok === 'demande'): ?><p class="ok flash">Dossier enregistré.</p><?php endif; ?>
+<?php if ($ok === 'demande'): ?><p class="ok flash">Dossier enregistré.</p>
+<?php elseif ($ok === 'retire'): ?><p class="ok flash">Bailleur retiré de la campagne.</p><?php endif; ?>
 
 <div class="page-head">
     <div class="page-head-title">
@@ -184,6 +185,21 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
                     </form>
                     <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only fonds-editable" hidden
                             title="Enregistrer" aria-label="Enregistrer le dossier"><?= icon('save') ?></button>
+                    <?php // Retirer le bailleur de la campagne : la ligne ouverte
+                          // seulement, entre « Enregistrer » et « Annuler », comme
+                          // sur le suivi d'une campagne de démarchage
+                          // (docs/UI.md § 3). Le dossier part en entier — d'où la
+                          // confirmation, qui dit ce qu'elle emporte. ?>
+                    <form method="post" action="?p=fonds_campagne_structure" class="d-inline fonds-editable" hidden
+                          data-confirm="<?= e(fonds_retrait_confirme((string) $d['structure_nom'], (string) $campagne['nom'])) ?>">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="structure_id" value="<?= (int) $d['structure_id'] ?>">
+                        <input type="hidden" name="campagne_id" value="<?= $id ?>">
+                        <input type="hidden" name="action" value="retirer">
+                        <input type="hidden" name="retour" value="campagne">
+                        <button type="submit" class="btn danger btn-sm icon-only"
+                                title="Retirer de la campagne" aria-label="Retirer <?= e((string) $d['structure_nom']) ?> de la campagne"><?= icon('trash') ?></button>
+                    </form>
                     <button type="button" class="btn ghost btn-sm icon-only fonds-edit-btn"
                             title="Modifier" aria-label="Modifier le dossier de <?= e((string) $d['structure_nom']) ?>"><?= icon('pencil') ?></button>
                     <button type="button" class="btn ghost btn-sm icon-only fonds-editable fonds-annuler-btn" hidden

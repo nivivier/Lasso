@@ -233,7 +233,7 @@ require __DIR__ . '/_tag_ajouter_ligne.php';
 $caCampagnes = [];
 if ($campagnesFonds && peut_ecrire('fonds')) {
     $caCampagnes = $fondsCampagnesDispo;
-    $caAction = '?p=fonds_campagne_structure_ajouter';
+    $caAction = '?p=fonds_campagne_structure';
 } elseif (!$campagnesFonds && $peutEcrireTags) {
     $caCampagnes = $campagnesDispo;
     $caAction = '?p=booking_campagne_structure';
@@ -284,7 +284,8 @@ $stNbEvenements = $nbEvenements;
 // plus haut). Celle du démarchage n'apparaît que si le booking est accessible —
 // $campagnesDispo est vide sinon, et la colonne disparaît avec lui.
 $stColCampagnes = $campagnesFonds
-    ? colonne_campagnes_fonds($fondsParStructure, peut_ecrire('fonds'))
+    ? colonne_campagnes_fonds($fondsParStructure, peut_ecrire('fonds'),
+        array_column($structures, 'nom', 'id'))
     : ($campagnesDispo
         ? colonne_campagnes_booking($campagnesParStructure, $peutEcrireTags, $sfFiltres['campagnes'] ?? '')
         : null);

@@ -360,14 +360,16 @@ function route_fonds_bailleur_pieces_enregistrer(): void
     redirect('fonds_demande', ['id' => $id, 'ok' => 'pieces']);
 }
 
-// Ranger un bailleur dans une campagne de recherche de fonds, depuis la colonne
-// du même nom sur la liste des structures. Le pendant de
-// route_booking_campagne_structure() (lib/routes_booking.php), au retrait près : on
-// n'en retire pas d'ici. Un dossier porte des montants, des dates et un
-// versement — le défaire d'un clic dans une ligne de liste effacerait tout cela
-// sans rien montrer. Il se retire depuis le suivi de la campagne, où l'on voit
-// ce qu'on efface.
-function route_fonds_campagne_structure_ajouter(): void
+// Ranger un bailleur dans une campagne de recherche de fonds, ou l'en retirer —
+// depuis la colonne du même nom sur la liste des structures, ou depuis le suivi
+// d'une campagne. Le pendant de route_booking_campagne_structure()
+// (lib/routes_booking.php).
+//
+// Pose ET défait le même lien selon `action` : d'où le nom de paire, sans verbe
+// (docs/NOMMAGE.md § 3, N4). Le retrait SUPPRIME le dossier — montants, dates,
+// pièces, et le versement par cascade —, ce que la confirmation annonce avant
+// (fonds_retrait_confirme(), lib/fonds.php).
+function route_fonds_campagne_structure(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -382,17 +384,28 @@ function route_fonds_campagne_structure_ajouter(): void
     $stmt->execute([$structureId]);
     $nomStructure = (string) ($stmt->fetchColumn() ?: '');
 
-    // INSERT OR IGNORE : l'index unique (campagne_id, structure_id) dit qu'un
-    // bailleur n'a qu'un dossier par campagne (SPEC_SUBVENTIONS.md § 9.4). Un
-    // second clic ne doit donc pas échouer, il ne doit rien faire.
     if ($campagne && $nomStructure !== '') {
-        $ins = db()->prepare('INSERT OR IGNORE INTO fonds_demandes (campagne_id, structure_id) VALUES (?, ?)');
-        $ins->execute([$campagneId, $structureId]);
-        // Journalisé seulement si une ligne a VRAIMENT été créée : un second
-        // clic ne doit pas poser une seconde entrée dans l'historique du
-        // bailleur pour un dossier qui existait déjà.
-        if ($ins->rowCount() > 0) {
-            journaliser('structure', $structureId, 'edition', 'Sollicitée dans la campagne de recherche de fonds : ' . $campagne['nom']);
+        if (($_POST['action'] ?? '') === 'retirer') {
+            // Le dossier part en entier : son versement suit par cascade
+            // (fonds_versements.demande_id ON DELETE CASCADE, migration_92).
+            $del = db()->prepare('DELETE FROM fonds_demandes WHERE campagne_id = ? AND structure_id = ?');
+            $del->execute([$campagneId, $structureId]);
+            if ($del->rowCount() > 0) {
+                journaliser('structure', $structureId, 'edition', 'Retirée de la campagne de recherche de fonds : ' . $campagne['nom']);
+            }
+        } else {
+            // INSERT OR IGNORE : l'index unique (campagne_id, structure_id) dit
+            // qu'un bailleur n'a qu'un dossier par campagne
+            // (SPEC_SUBVENTIONS.md § 9.4). Un second clic ne doit donc pas
+            // échouer, il ne doit rien faire.
+            $ins = db()->prepare('INSERT OR IGNORE INTO fonds_demandes (campagne_id, structure_id) VALUES (?, ?)');
+            $ins->execute([$campagneId, $structureId]);
+            // Journalisé seulement si une ligne a VRAIMENT été créée : un second
+            // clic ne doit pas poser une seconde entrée dans l'historique du
+            // bailleur pour un dossier qui existait déjà.
+            if ($ins->rowCount() > 0) {
+                journaliser('structure', $structureId, 'edition', 'Sollicitée dans la campagne de recherche de fonds : ' . $campagne['nom']);
+            }
         }
     }
     // Même convention que les étiquettes et le démarchage : en JSON quand le
@@ -405,12 +418,16 @@ function route_fonds_campagne_structure_ajouter(): void
             'html' => fonds_campagnes_cellule_html(
                 $structureId,
                 fonds_structures_campagnes([$structureId])[$structureId] ?? [],
-                peut_ecrire('fonds')
+                peut_ecrire('fonds'),
+                $nomStructure !== '' ? $nomStructure : 'ce bailleur'
             ),
         ]);
         return;
     }
-    // Sans JavaScript : on revient d'où l'on vient — la liste des structures,
-    // vue par la recherche de fonds.
+    // Sans JavaScript : on revient d'où l'on vient — le suivi de la campagne
+    // quand le geste en part, la liste des structures sinon.
+    if (($_POST['retour'] ?? '') === 'campagne') {
+        redirect('fonds_campagne', ['id' => $campagneId, 'ok' => 'retire']);
+    }
     redirect('structures', ['depuis' => 'fonds']);
 }

@@ -14,6 +14,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Booking »**, du nom de son module : la fiche porte aussi les campagnes de
   recherche de fonds, juste en dessous, et deux cartes nommées « Campagnes » sur
   le même écran ne disaient plus laquelle était laquelle.
+- **Un bailleur se retire d'une campagne de recherche de fonds**, par la petite
+  croix de la colonne « Campagnes de recherche de fonds » (liste des
+  structures) ou par la corbeille d'une ligne ouverte au crayon (suivi d'une
+  campagne) — les deux gestes du démarchage, au même endroit. La confirmation
+  dit ce qu'elle emporte : le dossier entier, montants, dates, pièces demandées
+  et versement.
 - **La carte « Recherche de fonds » s'affiche même vide**, comme sa jumelle :
   « aucun dossier de subvention » est une réponse, alors qu'une carte absente
   laisse se demander si l'on a cherché. C'est la question qu'on vient poser sur

@@ -1805,14 +1805,17 @@ function lassoInitCampagneCellule() {
         e.stopPropagation();
         const cellule = croix.closest('td.col-campagnes');
         if (!cellule) return;
-        // Retirer une structure d'une campagne efface la réponse qui y était
-        // notée : la ligne campagne↔structure la porte. D'où la confirmation,
-        // contrairement au retrait d'une étiquette, qui ne détruit rien.
-        // La campagne est nommée : une ligne peut en porter plusieurs, et l'on
-        // clique une croix parmi d'autres. Même phrase que sur la fiche structure.
-        const nom = croix.dataset.campagneNom || '';
-        if (!confirm('Retirer cette structure de la campagne' + (nom ? ' « ' + nom + ' »' : '')
-            + ' ? La réponse qui y est notée sera perdue.')) { return; }
+        // Retirer une structure d'une campagne DÉTRUIT ce que la ligne portait —
+        // une réponse pour le démarchage, tout un dossier pour la recherche de
+        // fonds. D'où la confirmation, contrairement au retrait d'une étiquette,
+        // qui ne détruit rien.
+        //
+        // La phrase vient de la cellule (data-retirer-confirme) et non d'ici :
+        // les deux sortes de campagnes n'effacent pas la même chose, et c'est
+        // celle qui rend la cellule qui sait laquelle. La campagne y est nommée —
+        // une ligne peut en porter plusieurs, et l'on clique une croix parmi
+        // d'autres.
+        if (!confirm(croix.dataset.retirerConfirme || 'Retirer cette structure de la campagne ?')) { return; }
         croix.closest('.badge')?.classList.add('badge-attente');
         lassoMajCellule(cellule, route, {
             structure_id: cellule.dataset.structure,

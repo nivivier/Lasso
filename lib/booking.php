@@ -619,8 +619,13 @@ function structure_campagnes_cellule_html(int $structureId, array $campagnes, bo
         $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
             . '<a href="?p=booking_campagne&id=' . $id . '">' . e($nom) . '</a>';
         if ($peutEcrire) {
+            // data-retirer-confirme : ce que ce retrait détruit, dit par celui
+            // qui le sait. Ici une réponse ; la colonne jumelle de la recherche
+            // de fonds efface tout un dossier et le dit autrement
+            // (fonds_campagnes_cellule_html(), lib/fonds.php).
             $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
-                . '" data-campagne-nom="' . e($nom) . '"'
+                . '" data-retirer-confirme="' . e('Retirer cette structure de la campagne « ' . $nom
+                    . ' » ? La réponse qui y est notée sera perdue.') . '"'
                 . ' title="Retirer de cette campagne" aria-label="Retirer de la campagne ' . e($nom) . '">×</button>';
         }
         $h .= '</span> ';

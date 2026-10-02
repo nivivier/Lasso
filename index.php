@@ -242,7 +242,7 @@ ajouter_routes_module($handlers, $routeModules, 'fonds', [
     'fonds_demande_enregistrer'  => 'route_fonds_demande_enregistrer',
     'fonds_bailleur_pieces_enregistrer'               => 'route_fonds_bailleur_pieces_enregistrer',
     'fonds_versement_enregistrer'            => 'route_fonds_versement_enregistrer',
-    'fonds_campagne_structure_ajouter'   => 'route_fonds_campagne_structure_ajouter',
+    'fonds_campagne_structure'   => 'route_fonds_campagne_structure',
 ]);
 
 ajouter_routes_module($handlers, $routeModules, 'evenements', [
