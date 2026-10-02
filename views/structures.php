@@ -209,7 +209,10 @@ $montreContacte = $depuisNav !== 'facturation';
                 <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte" aria-label="Affichage sur une carte"><?= icon('map') ?></a>
             </div>
             <?php if ($peutEcrireStruct): ?>
-            <a class="btn" href="?p=structure"><?= icon('house-plus') ?><span class="lbl"> Nouvelle structure</span></a>
+            <?php // La provenance suit : créer une structure depuis la recherche
+                  // de fonds ne doit pas faire basculer l'écran dans le booking,
+                  // pas plus qu'en ouvrir une existante (même $suffixeDepuis). ?>
+            <a class="btn" href="?p=structure<?= e($suffixeDepuis) ?>"><?= icon('house-plus') ?><span class="lbl"> Nouvelle structure</span></a>
             <?php endif; ?>
         </div>
     </div>

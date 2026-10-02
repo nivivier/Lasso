@@ -73,7 +73,9 @@ $formulaireUrl = $isEdit && module_actif('booking') && peut_lire('booking')
     <?php // À la création, l'écran EST un formulaire : « Enregistrer » et
           // « Annuler » tiennent l'en-tête, là où la fiche met son crayon. ?>
     <?php if (!$isEdit && $peutEcrireStruct): ?>
-    <?= entete_form_actions_html('structure-creation-form', '?p=structures') ?>
+    <?php // « Annuler » ramène à la liste DU MODULE d'où l'on vient : $depuisQs
+          // commence par « & », et l'adresse porte déjà son « ?p= ». ?>
+    <?= entete_form_actions_html('structure-creation-form', '?p=structures' . $depuisQs) ?>
     <?php endif; ?>
     <?php if ($peutContacter || $titreEditable || $formulaireUrl !== ''): ?>
     <div class="head-actions">

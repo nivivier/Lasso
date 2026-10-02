@@ -191,6 +191,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   sans axe et se règle à la main, une fois pour toutes ses dates.
 
 ### Corrigé
+- **« Nouvelle structure » ne faisait plus sortir du module.** Depuis la liste
+  des structures vue par la recherche de fonds, créer une structure basculait
+  l'écran dans le booking — rail, onglets et lien de retour compris. Le bouton
+  reporte maintenant la provenance, comme le font déjà les liens vers une
+  structure existante, et « Annuler » ramène à la liste du module d'où l'on
+  vient.
 - **Les suggestions du champ « Ajouter une structure » passaient sous l'en-tête
   du tableau** (`?p=booking_campagne_form`) : la liste était coupée en son milieu, on
   lisait la première proposition et la dernière. La barre d'outils s'élevait
