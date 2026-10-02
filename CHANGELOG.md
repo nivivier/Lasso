@@ -24,7 +24,8 @@ puis sont promues sur le canal **stable** en figeant une version.
   désormais « Une couleur par module » — le comportement actuel, coché par
   défaut — ou, décoché, la couleur principale de l'employeur dans toute
   l'application. Une association dont l'identité tient à une couleur n'a pas à
-  en voir six.
+  en voir six. Le rail de navigation suit alors la convention de partout
+  ailleurs : gris au repos, à la couleur de l'employeur là où l'on se trouve.
 - **Une note de structure dit qui l'a modifiée, et quand**, en plus de qui l'a
   écrite. Une note se reprend à plusieurs mains — une date rectifiée, un compte
   rendu complété —, et seule la première main était connue. L'auteur d'origine

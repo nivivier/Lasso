@@ -503,7 +503,14 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     transition: transform .4s cubic-bezier(.34, 1.56, .64, 1), opacity .18s ease;
 }
 .rail-btn:hover .ico { transform: rotate(0deg) translateY(-1px) scale(1.1); opacity: 1; }
-.rail-btn.on .ico { transform: rotate(0deg) scale(1.08); opacity: 1; }
+/* La couleur de l'icône ACTIVE est dite ici, et pas seulement sur .rail-btn :
+   .rail-btn .ico pose sa propre color, qui l'emporterait sur l'héritage.
+   Sans module (réglage « une couleur par module » décoché, ou tableau de bord),
+   --rail-accent n'existe pas et le repli --muted de l'état de repos faisait
+   rester grise l'icône du module où l'on se trouve. Ici le repli est --primary,
+   la couleur de l'employeur : grise au repos, accentuée là où l'on est, qui est
+   la convention de toute l'application. */
+.rail-btn.on .ico { transform: rotate(0deg) scale(1.08); opacity: 1; color: var(--rail-accent, var(--primary)); }
 .rail-label { color: var(--muted); transition: color .15s ease; }
 .rail-btn:hover .rail-label { color: var(--ink); }
 .rail-btn.on .rail-label { color: var(--rail-accent, var(--primary)); font-weight: 800; }

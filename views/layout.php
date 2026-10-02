@@ -118,16 +118,22 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
         <button type="button" class="side-close" id="side-close" title="Fermer" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
     <nav class="side-nav">
-        <?php // --rail-accent explicite : sans lui, .rail-btn .ico retombe sur
-              // --muted et l'icône reste grise au repos, alors que celles des
-              // modules portent toujours leur couleur. C'est la couleur
-              // principale de l'application, via --primary-base et NON
-              // --primary : cette dernière est réécrite par
-              // module_couleur_css_vars() à la couleur du module courant, ce
-              // qui ferait changer de teinte l'icône du tableau de bord au fil
-              // de la navigation — alors qu'elle doit rester un repère
-              // constant, exactement comme les icônes de module. ?>
-        <a href="?p=tableau_bord" class="rail-btn <?= $cur === 'tableau_bord' ? 'on' : '' ?>" title="Tableau de bord" style="--rail-accent: var(--primary-base)">
+        <?php // --rail-accent explicite TANT QUE chaque module porte sa couleur :
+              // sans lui, .rail-btn .ico retombe sur --muted et l'icône reste
+              // grise au repos, alors que celles des modules portent toujours
+              // la leur. C'est la couleur principale de l'application, via
+              // --primary-base et NON --primary : cette dernière est réécrite
+              // par module_couleur_css_vars() à la couleur du module courant,
+              // ce qui ferait changer de teinte l'icône du tableau de bord au
+              // fil de la navigation — alors qu'elle doit rester un repère
+              // constant, exactement comme les icônes de module.
+              //
+              // Le réglage décoché, le rail n'a plus de teintes à tenir : il
+              // revient à la convention de toute l'application — gris au repos,
+              // accentué là où l'on est. L'icône du tableau de bord doit alors
+              // grisonner comme les autres quand on n'y est pas, d'où l'absence
+              // d'accent ici aussi. ?>
+        <a href="?p=tableau_bord" class="rail-btn <?= $cur === 'tableau_bord' ? 'on' : '' ?>" title="Tableau de bord"<?= param_couleurs_modules() ? ' style="--rail-accent: var(--primary-base)"' : '' ?>>
             <?= icon('circle-gauge') ?>
             <span class="rail-label">Tableau de bord</span>
         </a>
