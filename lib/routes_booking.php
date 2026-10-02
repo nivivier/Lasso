@@ -248,7 +248,6 @@ function route_booking_campagne_reponse_enregistrer(): void
         return;
     }
     check_csrf();
-    require_ecriture('booking');
     $campagneId = (int) ($_POST['campagne_id'] ?? 0);
     $structureId = (int) ($_POST['structure_id'] ?? 0);
     $reponse = (string) ($_POST['reponse'] ?? '');
@@ -376,7 +375,6 @@ function route_booking_campagne_structure(): void
         redirect('structures');
     }
     check_csrf();
-    require_ecriture('booking');
     $structureId = (int) ($_POST['structure_id'] ?? 0);
     $campagneId = (int) ($_POST['campagne_id'] ?? 0);
     $campagne = campagne_charger($campagneId);
@@ -1781,7 +1779,6 @@ function route_booking_campagne_enregistrer(): void
         redirect('booking_campagnes');
     }
     check_csrf();
-    require_ecriture('booking');
     $id   = (int) ($_POST['id'] ?? 0);
     $nom  = trim((string) ($_POST['nom'] ?? ''));
     $debut = campagne_date((string) ($_POST['date_debut'] ?? ''));
@@ -1849,7 +1846,6 @@ function route_booking_campagne(): void
     // ici : les entonnoirs de cette page ont leur propre mémoire de session, il
     // n'y a que l'id à reporter.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        require_ecriture('booking');
         structures_bulk_appliquer('booking_campagne', ['id' => $id]);
     }
     $map = projet_map();
@@ -2044,7 +2040,6 @@ function route_booking_campagne_supprimer(): void
         redirect('booking_campagnes');
     }
     check_csrf();
-    require_ecriture('booking');
     db()->prepare('DELETE FROM campagnes WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
     redirect('booking_campagnes', ['ok' => 'suppr']);
 }

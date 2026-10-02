@@ -1432,7 +1432,6 @@ function route_projet_icone(): void
         redirect('projets');
     }
     check_csrf();
-    require_ecriture('evenements');
     $id = (int) ($_POST['id'] ?? 0);
     $stmt = db()->prepare('SELECT id, image FROM projets WHERE id = ?');
     $stmt->execute([$id]);
@@ -1505,7 +1504,6 @@ function route_synchronisation(): void
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
-        require_ecriture('evenements');
         if (isset($_POST['regenerer_token_equipe'])) {
             evenements_equipe_regenerer_token();
             redirect('synchronisation', ['ok' => 'equipe']);
@@ -1913,7 +1911,6 @@ function route_evenement_feuille_envoyer(): void
         redirect('evenements');
     }
     check_csrf();
-    require_ecriture('evenements');
 
     $expediteur = trim((string) param('employeur_email_expediteur'));
     if (!filter_var($expediteur, FILTER_VALIDATE_EMAIL)) {
@@ -1966,7 +1963,6 @@ function route_evenement_feuille_ordre(): void
         redirect('evenements');
     }
     check_csrf();
-    require_ecriture('evenements');
     feuille_ordonner($evenementId, explode(',', (string) ($_POST['order'] ?? '')));
     // Même convention que les cellules de ?p=structures : en JSON quand le
     // JavaScript est là, pour que la ligne se déplace sans recharger la page.

@@ -526,7 +526,6 @@ function route_employe(): void
 // colonnes et partagent le nettoyage de l'ancienne photo.
 function route_employe_photo(): void
 {
-    require_ecriture('salaires');
     $id = (int) ($_POST['id'] ?? 0);
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         redirect('employes');

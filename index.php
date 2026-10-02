@@ -365,9 +365,6 @@ if ($route === null) {
 // sauté et n'importe quel compte connecté peut y poster. C'est ce que
 // tests/permissions_test.php (§ 6) interdit, en partant des routes qui appellent
 // check_csrf() plutôt que d'une liste à tenir à jour.
-//
-// Écart résiduel à résorber : dix-sept routes portent encore un
-// require_ecriture() redondant, hérité d'avant cette règle.
 if (isset($handlers[$route])) {
     if (isset($routeModules[$route]) && !route_autorisee($routeModules[$route])) {
         require_login();

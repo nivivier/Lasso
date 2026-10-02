@@ -134,7 +134,6 @@ function route_fonds_campagne_enregistrer(): void
         redirect('fonds_campagnes');
     }
     check_csrf();
-    require_ecriture('fonds');
     $id    = (int) ($_POST['id'] ?? 0);
     $nom   = trim((string) ($_POST['nom'] ?? ''));
     $debut = campagne_date((string) ($_POST['date_debut'] ?? ''));
@@ -245,7 +244,6 @@ function route_fonds_demande_enregistrer(): void
         redirect('fonds_campagnes');
     }
     check_csrf();
-    require_ecriture('fonds');
     $id = (int) ($_POST['id'] ?? 0);
     $stmt = db()->prepare('SELECT * FROM fonds_demandes WHERE id = ?');
     $stmt->execute([$id]);
@@ -318,7 +316,6 @@ function route_fonds_versement_enregistrer(): void
         redirect('fonds_campagnes');
     }
     check_csrf();
-    require_ecriture('fonds');
     $id = (int) ($_POST['id'] ?? 0);
     if (!fonds_demande_charger($id)) {
         redirect('fonds_campagnes');
@@ -342,7 +339,6 @@ function route_fonds_bailleur_pieces_enregistrer(): void
         redirect('fonds_campagnes');
     }
     check_csrf();
-    require_ecriture('fonds');
     $id = (int) ($_POST['id'] ?? 0);
     $demande = fonds_demande_charger($id);
     if (!$demande) {
@@ -374,7 +370,6 @@ function route_fonds_campagne_structure(): void
         redirect('structures', ['depuis' => 'fonds']);
     }
     check_csrf();
-    require_ecriture('fonds');
     $structureId = (int) ($_POST['structure_id'] ?? 0);
     $campagneId  = (int) ($_POST['campagne_id'] ?? 0);
     $campagne = fonds_campagne_charger($campagneId);
@@ -438,7 +433,6 @@ function route_fonds_reglages(): void
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
-        require_ecriture('fonds');
         // Au moins un jour : à zéro, un bilan n'apparaîtrait que le jour même,
         // ce qui est une façon de ne jamais l'annoncer.
         $jours = max(1, (int) ($_POST['fonds_preavis_bilan_jours'] ?? FONDS_PREAVIS_BILAN_DEFAUT));
@@ -465,7 +459,6 @@ function route_fonds_campagne_supprimer(): void
         redirect('fonds_campagnes');
     }
     check_csrf();
-    require_ecriture('fonds');
     db()->prepare('DELETE FROM fonds_campagnes WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
     redirect('fonds_campagnes', ['ok' => 'suppr']);
 }

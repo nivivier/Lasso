@@ -134,10 +134,9 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     siens.** Un `require_lecture()`/`require_ecriture()` à l'intérieur d'une
     route déjà rattachée à son module ne peut pas se déclencher — le dispatcher
     aurait déjà refusé, au même endroit —, mais il laisse croire que les routes
-    qui n'en ont pas sont moins gardées. *(Dix-sept routes en portent encore un,
-    hérité d'avant cette règle : à retirer, pas à imiter.)* Ces fonctions
-    gardent leur usage là où il n'y a pas de dispatcher : un fragment, une
-    sous-action atteinte autrement que par la table de routage.
+    qui n'en ont pas sont moins gardées. Ces fonctions gardent leur usage là où
+    il n'y a pas de dispatcher : un fragment, une sous-action atteinte autrement
+    que par la table de routage.
     **Le vrai risque est l'oubli inverse**, et il est silencieux : une route qui
     écrit sans être déclarée dans un bloc `ajouter_routes_module()` n'a pas
     d'entrée dans `$routeModules`, le contrôle est entièrement sauté et tout
