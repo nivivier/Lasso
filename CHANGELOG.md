@@ -25,6 +25,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   n'est jamais réécrit : c'est lui qui a vécu ce qui est raconté.
 
 ### Corrigé
+- **Quatre retours en arrière ramenaient au tableau de bord** au lieu de l'écran
+  d'où l'on venait : écrire à une structure ou noter un contact depuis une
+  campagne de démarchage, agir en masse sur les structures d'une campagne, ou
+  ouvrir l'agenda sans avoir accès au module. Des noms de routes oubliés par le
+  renommage de la 3.0.0, qu'aucun test ne regardait.
 - **Une note signée d'un compte sans prénom ni nom s'affichait sans auteur.**
   Il était pourtant bien enregistré : c'est l'affichage qui restait muet faute
   de nom à écrire. L'adresse e-mail en tient lieu, comme elle le fait déjà dans

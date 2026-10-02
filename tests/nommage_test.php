@@ -88,6 +88,45 @@ foreach ($citees as $r => $ou) {
 }
 check('aucun ?p= vers une route inexistante', [], $mortes);
 
+// Même chose pour les redirections, qui ne s'écrivent PAS « ?p= » et étaient
+// donc hors de portée de la règle ci-dessus. Le renommage en avait laissé
+// quatre derrière lui — redirect('tableau_de_bord'), trois 'campagne' — et rien
+// ne le disait : une redirection vers une route inconnue ramène au tableau de
+// bord, en silence, et seul l'utilisateur qui ne revient pas où il était s'en
+// aperçoit.
+//
+// Trois formes couvertes, celles que le code emploie : le littéral en premier
+// argument, le ternaire entre deux littéraux, et le premier argument de
+// structures_bulk_appliquer(), qui est la route de retour.
+$redirs = [];
+foreach (glob($racine . '/lib/*.php') as $f) {
+    $src = file_get_contents($f);
+    $rel = str_replace($racine . '/', '', $f);
+    $motifs = [
+        "/redirect\(\s*'([a-z0-9_]+)'/",
+        "/redirect\(\s*[^,;]*?\?\s*'([a-z0-9_]+)'\s*:\s*'([a-z0-9_]+)'/",
+        "/structures_bulk_appliquer\(\s*'([a-z0-9_]+)'/",
+    ];
+    foreach ($motifs as $motif) {
+        preg_match_all($motif, $src, $mr, PREG_SET_ORDER);
+        foreach ($mr as $occ) {
+            foreach (array_slice($occ, 1) as $r) {
+                if ($r !== '') {
+                    $redirs[$r] = $rel;
+                }
+            }
+        }
+    }
+}
+$redirsMortes = [];
+foreach ($redirs as $r => $ou) {
+    if (!isset($routes[$r])) {
+        $redirsMortes[] = "$r ($ou)";
+    }
+}
+sort($redirsMortes);
+check('aucun redirect() vers une route inexistante', [], $redirsMortes);
+
 echo "\n4) Tout en français (N1)\n";
 // Les mots qui avaient survécu : _delete, _print, _save, _new, _edit, _view,
 // backup, login, logout, setup, preview. « json », « ical », « csv », « pdf »,

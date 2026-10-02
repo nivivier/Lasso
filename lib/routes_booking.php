@@ -129,7 +129,7 @@ function route_structure_message_envoyer(): void
     $retourCampagne = (int) ($_POST['retour_campagne'] ?? 0);
     $retour = function (string $msg) use ($structureId, $retourCampagne): void {
         redirect(
-            $retourCampagne ? 'campagne' : 'structure',
+            $retourCampagne ? 'booking_campagne' : 'structure',
             ['id' => $retourCampagne ?: $structureId, 'msg' => $msg]
         );
     };
@@ -216,7 +216,7 @@ function route_structure_note_ajouter(): void
     // Noter depuis une campagne y ramène, comme pour un message envoyé.
     $retourCampagne = (int) ($_POST['retour_campagne'] ?? 0);
     redirect(
-        $retourCampagne ? 'campagne' : 'structure',
+        $retourCampagne ? 'booking_campagne' : 'structure',
         $retourCampagne ? ['id' => $retourCampagne, 'msg' => 'note'] : ['id' => $structureId]
     );
 }
@@ -1835,7 +1835,7 @@ function route_booking_campagne(): void
     // n'y a que l'id à reporter.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_ecriture('booking');
-        structures_bulk_appliquer('campagne', ['id' => $id]);
+        structures_bulk_appliquer('booking_campagne', ['id' => $id]);
     }
     $map = projet_map();
     $projets = projets_lies('campagne_projets', $id);

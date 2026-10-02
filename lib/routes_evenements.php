@@ -1823,7 +1823,7 @@ function route_evenement_feuille_fichier(): void
     if (!feuille_jeton_equipe_fourni()) {
         require_login();
         if (!module_accessible('evenements')) {
-            redirect('tableau_de_bord');
+            redirect('tableau_bord');
         }
     }
     $id = (int) ($_GET['id'] ?? 0);
