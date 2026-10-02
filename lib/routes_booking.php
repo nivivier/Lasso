@@ -1774,18 +1774,7 @@ function route_booking_campagne_enregistrer(): void
     // réponse reçue (migration_86). La supprimer pour la réinsérer effaçait
     // toutes les réponses notées au premier enregistrement — renommer une
     // campagne suffisait à perdre le travail de démarchage.
-    //
-    // Les identifiants postés sont filtrés contre les structures existantes :
-    // un identifiant forgé violerait la clé étrangère au lieu d'être ignoré. En
-    // lots, car une sélection large en compte des milliers (lots_ids()).
-    $valides = [];
-    foreach (lots_ids($structures) as $lot) {
-        $stmt = db()->prepare('SELECT id FROM structures WHERE id IN (' . sql_in($lot) . ')');
-        $stmt->execute($lot);
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
-            $valides[] = (int) $sid;
-        }
-    }
+    $valides = structures_existantes($structures);
     $stmt = db()->prepare('SELECT structure_id FROM campagne_structures WHERE campagne_id = ?');
     $stmt->execute([$id]);
     $avant = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));

@@ -616,33 +616,16 @@ function structure_campagnes(int $structureId): array
 // (structure_tags_cellule_html()) — c'est le même geste, sur une autre liaison.
 function structure_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire): string
 {
-    $h = '';
-    foreach ($campagnes as [$id, $nom, $enCours]) {
-        // Teal pour une campagne en cours, comme son nom sur ?p=booking_campagnes : dans
-        // une file de pastilles, c'est celle qui appelle du travail. Les autres
-        // restent au ton neutre — elles sont du contexte, pas une tâche.
-        $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
-            . '<a href="?p=booking_campagne&id=' . $id . '">' . e($nom) . '</a>';
-        if ($peutEcrire) {
-            // data-retirer-confirme : ce que ce retrait détruit, dit par celui
-            // qui le sait. Ici une réponse ; la colonne jumelle de la recherche
-            // de fonds efface tout un dossier et le dit autrement
-            // (fonds_campagnes_cellule_html(), lib/fonds.php).
-            $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
-                . '" data-retirer-confirme="' . e('Retirer cette structure de la campagne « ' . $nom
-                    . ' » ? La réponse qui y est notée sera perdue.') . '"'
-                . ' title="Retirer de cette campagne" aria-label="Retirer de la campagne ' . e($nom) . '">×</button>';
-        }
-        $h .= '</span> ';
-    }
-    // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
-    // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
-    // n'existe pas — même choix que pour les étiquettes.
-    if ($peutEcrire) {
-        $h .= '<button type="button" class="badge campagne-ajouter-btn" data-campagne-structure="' . $structureId
-            . '" title="Ajouter à une campagne" aria-label="Ajouter à une campagne">+</button>';
-    }
-    return $h;
+    return campagnes_cellule_html($structureId, $campagnes, $peutEcrire, [
+        'route' => 'booking_campagne',
+        // Ce que CE retrait détruit, dit par celui qui le sait : ici une
+        // réponse. La cellule jumelle de la recherche de fonds efface tout un
+        // dossier, et le dit autrement (fonds_campagnes_cellule_html()).
+        'confirme' => fn (string $nom): string => 'Retirer cette structure de la campagne « ' . $nom
+            . ' » ? La réponse qui y est notée sera perdue.',
+        'ajouter_title' => 'Ajouter à une campagne',
+        'ajouter_aria'  => 'Ajouter à une campagne',
+    ]);
 }
 
 // La colonne « Campagnes de booking » du tableau des structures, telle que

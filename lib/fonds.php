@@ -615,26 +615,12 @@ function fonds_retrait_confirme(string $bailleur, string $campagne): string
 // une campagne dont la saison court, ton neutre pour les autres.
 function fonds_campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire, string $bailleur = 'ce bailleur'): string
 {
-    $h = '';
-    foreach ($campagnes as [$id, $nom, $enCours]) {
-        $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
-            . '<a href="?p=fonds_campagne&id=' . $id . '">' . e($nom) . '</a>';
-        if ($peutEcrire) {
-            $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
-                . '" data-retirer-confirme="' . e(fonds_retrait_confirme($bailleur, $nom)) . '"'
-                . ' title="Retirer de cette campagne" aria-label="Retirer de la campagne ' . e($nom) . '">×</button>';
-        }
-        $h .= '</span> ';
-    }
-    // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
-    // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
-    // n'existe pas — même choix que pour les étiquettes.
-    if ($peutEcrire) {
-        $h .= '<button type="button" class="badge campagne-ajouter-btn" data-campagne-structure="' . $structureId
-            . '" title="Solliciter ce bailleur dans une campagne"'
-            . ' aria-label="Ajouter ce bailleur à une campagne de recherche de fonds">+</button>';
-    }
-    return $h;
+    return campagnes_cellule_html($structureId, $campagnes, $peutEcrire, [
+        'route'         => 'fonds_campagne',
+        'confirme'      => fn (string $nom): string => fonds_retrait_confirme($bailleur, $nom),
+        'ajouter_title' => 'Solliciter ce bailleur dans une campagne',
+        'ajouter_aria'  => 'Ajouter ce bailleur à une campagne de recherche de fonds',
+    ]);
 }
 
 // La colonne jumelle de colonne_campagnes_booking() (lib/booking.php), pour la

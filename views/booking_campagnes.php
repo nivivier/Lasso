@@ -100,17 +100,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
     <?php foreach ($groupe['campagnes'] as $c): $cid = (int) $c['id']; ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=booking_campagne&id=<?= $cid ?>">
             <td>
-                <div class="projet-pastilles">
-                <?php if ($c['projets']): ?>
-                    <?php // Chaque projet avec son icône : c'est elle qu'on
-                          // reconnaît d'un coup d'œil dans une liste de campagnes. ?>
-                    <?php foreach ($c['projets'] as $i => $nomProjet): ?>
-                        <span class="projet-pastille"><?= $c['projets_pastilles'][$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <span class="muted">Aucun projet</span>
-                <?php endif; ?>
-                </div>
+                <div class="projet-pastilles"><?= projets_pastilles_html($c['projets'], $c['projets_pastilles']) ?></div>
             </td>
             <?php // La couleur d'accent est réservée à ce qui demande du travail :
                   // une campagne en cours. À venir, en retard ou terminée, son nom

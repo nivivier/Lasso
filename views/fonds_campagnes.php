@@ -73,15 +73,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
         ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=fonds_campagne&id=<?= $cid ?>">
             <td>
-                <div class="projet-pastilles">
-                <?php if ($c['projets']): ?>
-                    <?php foreach ($c['projets'] as $i => $nomProjet): ?>
-                        <span class="projet-pastille"><?= $c['projets_pastilles'][$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <span class="muted">Aucun projet</span>
-                <?php endif; ?>
-                </div>
+                <div class="projet-pastilles"><?= projets_pastilles_html($c['projets'], $c['projets_pastilles']) ?></div>
             </td>
             <?php // La couleur d'accent est réservée à ce qui demande du travail :
                   // une campagne dont la saison court. Passée ou à venir, son nom

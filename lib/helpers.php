@@ -1618,6 +1618,65 @@ function periode_courante(array $c, string $aujourdhui = ''): bool
         && ($fin === '' || $fin >= $aujourdhui);
 }
 
+// La cellule « campagnes » d'une ligne de la liste des structures : une pastille
+// par campagne, une croix pour l'en retirer, un « + » pour l'y ajouter. Rendue
+// ici plutôt que dans chaque module, pour la même raison que la barre
+// ci-dessous : le démarchage et la recherche de fonds posent la MÊME cellule, et
+// ce qui les sépare tient en quatre chaînes — la route d'une campagne et trois
+// phrases. Écrite deux fois, elle divergeait au premier ajustement.
+//
+// $campagnes : [[id, nom, saison en cours], …] — la forme que rendent
+// structures_campagnes() (lib/booking.php) et fonds_structures_campagnes()
+// (lib/fonds.php).
+// $textes : 'route' (celle d'une campagne), 'confirme' (fn(string $nom): string,
+// ce que le retrait détruit, dit par celui qui le sait), 'ajouter_title' et
+// 'ajouter_aria'.
+function campagnes_cellule_html(int $structureId, array $campagnes, bool $peutEcrire, array $textes): string
+{
+    $h = '';
+    foreach ($campagnes as [$id, $nom, $enCours]) {
+        // Teal pour une campagne dont la saison court, comme son nom sur la
+        // liste des campagnes : dans une file de pastilles, c'est celle qui
+        // appelle du travail. Les autres restent au ton neutre — elles sont du
+        // contexte, pas une tâche.
+        $h .= '<span class="badge' . ($enCours ? ' camp-en-cours' : '') . '">'
+            . '<a href="?p=' . $textes['route'] . '&id=' . $id . '">' . e($nom) . '</a>';
+        if ($peutEcrire) {
+            $h .= '<button type="button" class="btn-tag-x" data-campagne-retirer="' . $id
+                . '" data-retirer-confirme="' . e(($textes['confirme'])($nom)) . '"'
+                . ' title="Retirer de cette campagne" aria-label="Retirer de la campagne ' . e($nom) . '">×</button>';
+        }
+        $h .= '</span> ';
+    }
+    // Pas de tiret quand il n'y en a aucune : sur une colonne où la plupart des
+    // cellules sont vides, une rangée de tirets attirerait l'œil sur ce qui
+    // n'existe pas — même choix que pour les étiquettes.
+    if ($peutEcrire) {
+        $h .= '<button type="button" class="badge campagne-ajouter-btn" data-campagne-structure="' . $structureId
+            . '" title="' . e($textes['ajouter_title']) . '"'
+            . ' aria-label="' . e($textes['ajouter_aria']) . '">+</button>';
+    }
+    return $h;
+}
+
+// Les identifiants de structures qui EXISTENT, parmi ceux qu'un formulaire a
+// postés. Un identifiant forgé doit être ignoré, pas violer une clé étrangère.
+// En lots, car une sélection large en compte des milliers (lots_ids()).
+// Partagée par les deux formulaires qui enregistrent une sélection de
+// structures : une campagne de démarchage et une campagne de recherche de fonds.
+function structures_existantes(array $ids): array
+{
+    $valides = [];
+    foreach (lots_ids($ids) as $lot) {
+        $stmt = db()->prepare('SELECT id FROM structures WHERE id IN (' . sql_in($lot) . ')');
+        $stmt->execute($lot);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
+            $valides[] = (int) $sid;
+        }
+    }
+    return $valides;
+}
+
 // Une barre d'avancement segmentée : une piste, des segments posés dessus, et
 // ce qui reste EST la piste. Rendue ici plutôt que dans chaque vue — l'avancement
 // d'une campagne de démarchage (campagne_barre_html(), lib/booking.php) et celui

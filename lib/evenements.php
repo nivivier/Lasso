@@ -646,6 +646,27 @@ function projet_pastille_html(int $id, array $map): string
     return $s ? avatar_initiales((string) $s['nom'], '', (string) ($s['image'] ?? '')) : '';
 }
 
+// Une file de projets : leur icône d'abord, leur nom ensuite — c'est par
+// l'icône qu'on reconnaît une campagne avant d'en lire le nom, dans une liste
+// comme sur l'en-tête d'une fiche. Rendue ici et non dans chaque vue : quatre
+// écrans la posent (les deux listes de campagnes et les deux en-têtes,
+// démarchage et recherche de fonds), et elle doit se lire pareil sur les quatre.
+//
+// Seul le CONTENU : le <div> qui l'enveloppe reste à la vue, parce que les
+// quatre ne lui donnent pas la même largeur.
+function projets_pastilles_html(array $noms, array $pastilles): string
+{
+    if (!$noms) {
+        return '<span class="muted">Aucun projet</span>';
+    }
+    $h = '';
+    foreach ($noms as $i => $nom) {
+        $h .= '<span class="projet-pastille">' . ($pastilles[$i] ?? '')
+            . '<span class="projet-nom">' . e((string) $nom) . '</span></span>';
+    }
+    return $h;
+}
+
 // Chemin lisible « Artiste › Projet » d'un projet.
 function projet_chemin(int $id, array $map, string $sep = ' › '): string
 {

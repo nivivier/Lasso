@@ -118,12 +118,7 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
     <?php endif; ?>
 
     <div class="camp-corps">
-        <div class="camp-projets projet-pastilles">
-            <?php if (!$projets): ?><span class="muted">Aucun projet</span><?php endif; ?>
-            <?php foreach ($projets as $i => $nomProjet): ?>
-                <span class="projet-pastille"><?= $projetsPastilles[$i] ?? '' ?><span class="projet-nom"><?= e($nomProjet) ?></span></span>
-            <?php endforeach; ?>
-        </div>
+        <div class="camp-projets projet-pastilles"><?= projets_pastilles_html($projets, $projetsPastilles) ?></div>
 
         <?= campagne_barre_html($repartition, $nbTotal) ?>
 

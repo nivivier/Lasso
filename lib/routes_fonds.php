@@ -185,14 +185,7 @@ function route_fonds_campagne_enregistrer(): void
     // Mise à niveau, et non table rasée : la ligne PORTE le dossier — montants,
     // dates, référence. La supprimer pour la réinsérer effacerait tout le suivi
     // au premier enregistrement ; renommer une campagne suffirait à le perdre.
-    $valides = [];
-    foreach (lots_ids($structures) as $lot) {
-        $stmt = db()->prepare('SELECT id FROM structures WHERE id IN (' . sql_in($lot) . ')');
-        $stmt->execute($lot);
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
-            $valides[] = (int) $sid;
-        }
-    }
+    $valides = structures_existantes($structures);
     $stmt = db()->prepare('SELECT structure_id FROM fonds_demandes WHERE campagne_id = ?');
     $stmt->execute([$id]);
     $avant = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
