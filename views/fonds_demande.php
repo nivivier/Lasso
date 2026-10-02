@@ -8,7 +8,7 @@
 $d = $demande;
 $id = (int) $d['id'];
 $sid = (int) $d['structure_id'];
-$statut = fonds_demande_statut($d);
+$statut = fonds_demande_statut($d, '', fonds_preavis_bilan_jours());
 $peutEcrire = peut_ecrire('fonds');
 $jour = fn ($v) => trim((string) $v) !== '' ? date('d.m.Y', strtotime((string) $v)) : '';
 $montant = fn ($v) => (float) $v > 0 ? chf((float) $v) : '<span class="muted">—</span>';

@@ -1018,13 +1018,13 @@ $villeHtmlS = ville_departement_canton_html(
         <?php if (!$dossiersFonds): ?>
         <p class="muted mb-0">Aucun dossier de subvention chez cette structure.</p>
         <?php else: ?>
-        <?php $aujourdhuiFonds = date('Y-m-d'); ?>
+        <?php $aujourdhuiFonds = date('Y-m-d'); $preavisBilanFonds = fonds_preavis_bilan_jours(); ?>
         <div class="table-scroll">
         <table class="list mb-0">
             <thead><tr><th>Campagne</th><th class="num">Demandé</th><th class="num">Accordé</th><th>État</th></tr></thead>
             <tbody>
             <?php foreach ($dossiersFonds as $df): ?>
-                <?php $statutF = fonds_demande_statut($df, $aujourdhuiFonds); ?>
+                <?php $statutF = fonds_demande_statut($df, $aujourdhuiFonds, $preavisBilanFonds); ?>
                 <tr>
                     <td>
                         <a href="<?= url_avec_retour('?p=fonds_demande&id=' . (int) $df['id'], 'structure', $sid) ?>"><?= e((string) $df['campagne_nom']) ?></a>

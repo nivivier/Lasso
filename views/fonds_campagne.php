@@ -8,6 +8,9 @@ $id = (int) $campagne['id'];
 $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $d)) : '';
 $peutEcrire = peut_ecrire('fonds');
 $aujourdhui = date('Y-m-d');
+// Le préavis règle quand « Bilan à rendre » s'affiche : le même délai qu'au
+// tableau de bord (Paramètres → Valeurs et libellés → Recherche de fonds).
+$preavisBilan = fonds_preavis_bilan_jours();
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -127,7 +130,7 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
         <tbody>
         <?php foreach ($demandes as $d):
             $did = (int) $d['id'];
-            $statut = fonds_demande_statut($d, $aujourdhui);
+            $statut = fonds_demande_statut($d, $aujourdhui, $preavisBilan);
             $formId = 'dossier-' . $did;
         ?>
             <tr>

@@ -45,11 +45,25 @@ check('accordée en partie', 'partielle', $st(['date_depot' => '2026-08-20', 'mo
 check('sans montant demandé, pas de « partielle »', 'accordee', $st(['montant_accorde' => 12000]));
 
 echo "\n3) Le second cycle : le bilan\n";
-check('bilan dû plus tard', 'bilan_a_rendre', $st(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-12-31']));
+// Le préavis est injecté comme la date du jour : 60 jours par défaut, et
+// $auj + 60 tombe le 30 novembre. Un bilan n'est annoncé qu'à partir de là —
+// avant, le dossier est simplement accordé.
+check('bilan dû dans trois mois : pas encore une tâche', 'accordee', $st(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-12-31']));
+check('bilan dû le dernier jour du préavis', 'bilan_a_rendre', $st(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-11-30']));
+check('bilan dû le lendemain du préavis', 'accordee', $st(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-12-01']));
 check('bilan dû hier', 'bilan_retard', $st(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-09-15']));
 check('bilan dû aujourd\'hui : pas encore en retard', 'bilan_a_rendre', $st(['montant_accorde' => 12000, 'date_limite_bilan' => $auj]));
 check('bilan transmis', 'soldee', $st(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-09-15', 'date_bilan' => '2026-09-10']));
 check('bilan transmis sans date limite connue', 'soldee', $st(['montant_accorde' => 12000, 'date_bilan' => '2026-09-10']));
+// Un retard ne dépend PAS du préavis : une échéance ratée presse, quel que
+// soit le réglage — même à zéro jour d'avance.
+check('préavis nul : le retard reste un retard', 'bilan_retard', fonds_demande_statut(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-09-15'], $auj, 0));
+check('préavis nul : le jour même est encore à rendre', 'bilan_a_rendre', fonds_demande_statut(['montant_accorde' => 12000, 'date_limite_bilan' => $auj], $auj, 0));
+// Élargir le préavis fait réapparaître le même dossier : c'est bien le
+// réglage qui décide, pas la date du bilan seule.
+check('préavis d\'un an : le bilan lointain redevient une tâche', 'bilan_a_rendre', fonds_demande_statut(['montant_accorde' => 12000, 'date_limite_bilan' => '2026-12-31'], $auj, 365));
+// Hors préavis, c'est l'état de l'octroi qui reste — y compris « partielle ».
+check('accordée en partie, bilan lointain', 'partielle', $st(['montant_demande' => 20000, 'montant_accorde' => 12000, 'date_limite_bilan' => '2026-12-31']));
 // Sans date limite ET sans bilan rendu, rien n'est dû : le bailleur n'en
 // demande pas. L'état reste celui de l'octroi.
 check('aucun bilan attendu', 'accordee', $st(['montant_accorde' => 12000, 'montant_demande' => 12000]));

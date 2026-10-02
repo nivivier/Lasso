@@ -42,6 +42,21 @@ const FONDS_STATUTS_CLASSES = [
     'soldee'         => 'ok',
 ];
 
+// Combien de jours avant l'échéance un bilan devient une tâche : avant ce
+// délai, le dossier reste « accordé » et le bilan n'est annoncé nulle part.
+// Réglable (Paramètres → Valeurs et libellés → Recherche de fonds) : un bilan
+// dû dans huit mois n'est pas une tâche, c'est du bruit — et la bonne avance
+// dépend de ce que le bailleur demande à rassembler. Le même délai sert au
+// tableau de bord et à l'état affiché sur un dossier : deux avances
+// différentes diraient deux choses sur la même échéance.
+const FONDS_PREAVIS_BILAN_DEFAUT = 60;
+
+function fonds_preavis_bilan_jours(): int
+{
+    $v = (int) param('fonds_preavis_bilan_jours', (string) FONDS_PREAVIS_BILAN_DEFAUT);
+    return $v > 0 ? $v : FONDS_PREAVIS_BILAN_DEFAUT;
+}
+
 // L'état d'un dossier, DÉRIVÉ de ses dates et de ses montants — jamais stocké,
 // comme le statut d'une campagne ou le « en retard » d'une facture. Une seule
 // règle, donc un seul endroit où la corriger.
@@ -49,15 +64,19 @@ const FONDS_STATUTS_CLASSES = [
 // L'ordre des tests EST la règle de priorité :
 //   abandonné          décidé à la main, il prime sur tout le reste ;
 //   refusé             la réponse est tombée, il n'y a plus de bilan à rendre ;
-//   accordé            puis, DANS cet état, la question du bilan ;
+//   accordé            puis, DANS cet état, la question du bilan — mais
+//                      seulement quand son échéance approche (voir
+//                      $preavisBilan) : tant qu'elle est lointaine, le dossier
+//                      est simplement accordé ;
 //   déposé             en attente d'une réponse ;
 //   à préparer         rien n'est parti — et si la date limite est passée,
 //                      c'est le seul moment où « en retard » veut dire
 //                      quelque chose : après le dépôt, le retard n'est plus
 //                      le nôtre.
 //
-// $aujourdhui : injectée pour que la fonction reste pure et testable.
-function fonds_demande_statut(array $d, string $aujourdhui = ''): string
+// $aujourdhui et $preavisBilan : injectés pour que la fonction reste pure et
+// testable. En vrai, le préavis vient de fonds_preavis_bilan_jours().
+function fonds_demande_statut(array $d, string $aujourdhui = '', int $preavisBilan = FONDS_PREAVIS_BILAN_DEFAUT): string
 {
     $aujourdhui = $aujourdhui !== '' ? $aujourdhui : date('Y-m-d');
     $decision = (string) ($d['statut'] ?? '');
@@ -72,12 +91,22 @@ function fonds_demande_statut(array $d, string $aujourdhui = ''): string
     $demande = (float) ($d['montant_demande'] ?? 0);
     if ($accorde > 0) {
         $limiteBilan = trim((string) ($d['date_limite_bilan'] ?? ''));
-        $bilanRendu  = trim((string) ($d['date_bilan'] ?? '')) !== '';
-        if (!$bilanRendu && $limiteBilan !== '') {
-            return $limiteBilan < $aujourdhui ? 'bilan_retard' : 'bilan_a_rendre';
-        }
-        if ($bilanRendu) {
+        if (trim((string) ($d['date_bilan'] ?? '')) !== '') {
             return 'soldee';
+        }
+        if ($limiteBilan !== '') {
+            if ($limiteBilan < $aujourdhui) {
+                return 'bilan_retard';
+            }
+            // Un bilan n'est annoncé que lorsque son échéance approche. Sinon
+            // tout dossier accordé porterait « Bilan à rendre » dès le jour de
+            // l'accord, parfois un an à l'avance : l'étiquette ne dirait plus
+            // rien, et on cesserait de la lire — exactement ce que le tableau
+            // de bord évite déjà avec le même délai.
+            $annonce = date('Y-m-d', strtotime($aujourdhui . ' +' . max(0, $preavisBilan) . ' day'));
+            if ($limiteBilan <= $annonce) {
+                return 'bilan_a_rendre';
+            }
         }
         // Accordée pour moins que demandé : l'écart se lit tout seul, mais il
         // mérite son mot — c'est lui qui dit qu'il reste à trouver ailleurs.
@@ -266,18 +295,6 @@ function fonds_demande_charger(int $id): ?array
     );
     $stmt->execute([$id]);
     return $stmt->fetch() ?: null;
-}
-
-// Combien de jours avant l'échéance un bilan entre dans le tableau de bord.
-// Réglable (Paramètres → Valeurs et libellés → Recherche de fonds) : un bilan
-// dû dans huit mois n'est pas une tâche, c'est du bruit — et la bonne avance
-// dépend de ce que le bailleur demande à rassembler.
-const FONDS_PREAVIS_BILAN_DEFAUT = 60;
-
-function fonds_preavis_bilan_jours(): int
-{
-    $v = (int) param('fonds_preavis_bilan_jours', (string) FONDS_PREAVIS_BILAN_DEFAUT);
-    return $v > 0 ? $v : FONDS_PREAVIS_BILAN_DEFAUT;
 }
 
 // --- Ce que le tableau de bord montre ---------------------------------------

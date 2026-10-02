@@ -24,9 +24,11 @@
     <form method="post" action="?p=fonds_reglages" id="fonds-defauts-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label><span>Annoncer un bilan à rendre combien de jours à l'avance <?= info_tip(
-            "Le tableau de bord ne montre un bilan que lorsque son échéance approche. Un bilan dû dans huit mois "
-            . "n'est pas une tâche : la carte montrerait toute la saison et on cesserait de la lire. "
-            . "Ce qui est déjà en retard, lui, reste affiché quoi qu'il arrive."
+            "Un bilan n'est annoncé que lorsque son échéance approche : avant ce délai, le dossier reste "
+            . "simplement « accordé ». Un bilan dû dans huit mois n'est pas une tâche — le tableau de bord "
+            . "montrerait toute la saison et on cesserait de le lire, et l'étiquette « Bilan à rendre » se "
+            . "poserait sur un dossier dès le jour de l'accord. Ce qui est déjà en retard, lui, reste affiché "
+            . "quoi qu'il arrive."
         ) ?></span>
             <input name="fonds_preavis_bilan_jours" type="text" inputmode="numeric"
                    value="<?= (int) $preavisBilan ?>" style="max-width:120px">

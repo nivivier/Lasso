@@ -214,9 +214,18 @@ depuis plus de N mois sans réponse (N configurable, comme le délai SUISA).
 **Le bilan est un second cycle, après l'argent.** Une demande accordée n'est pas
 finie : il reste à rendre un bilan, à une date que le bailleur fixe. Deux états
 de plus, dérivés eux aussi de `date_limite_bilan` et `date_bilan` :
-**bilan à rendre** (accordée, date limite connue, rien de transmis) et **bilan en
-retard** (la date est passée). C'est la seconde échéance que le module doit
-rappeler — la première, personne ne l'oublie, c'est elle qui apporte l'argent.
+**bilan à rendre** (accordée, date limite connue, rien de transmis, et
+**l'échéance approche**) et **bilan en retard** (la date est passée). C'est la
+seconde échéance que le module doit rappeler — la première, personne ne
+l'oublie, c'est elle qui apporte l'argent.
+
+L'avance à partir de laquelle un bilan est annoncé se règle (Paramètres →
+Valeurs et libellés → Recherche de fonds, 60 jours par défaut) et vaut
+**partout** : le tableau de bord et l'état affiché sur un dossier. Hors de ce
+délai, un dossier accordé reste « accordée » ou « accordée en partie » — sans
+quoi l'étiquette se poserait dès le jour de l'accord, parfois un an à l'avance,
+et cesserait de vouloir dire quelque chose. Le retard, lui, ne dépend d'aucun
+réglage.
 
 ## 5. L'avancement se compte en francs
 

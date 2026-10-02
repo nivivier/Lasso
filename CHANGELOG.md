@@ -9,6 +9,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **« Bilan à rendre » ne s'affiche plus qu'à l'approche de l'échéance**, sur
+  un dossier comme au tableau de bord, avec le même délai (Paramètres →
+  Valeurs et libellés → Recherche de fonds). Un dossier accordé portait
+  l'étiquette dès le jour de l'accord, parfois un an à l'avance : elle ne
+  disait plus rien. Hors de ce délai, l'état reste celui de l'octroi —
+  « accordée », ou « accordée en partie ». Le retard, lui, s'affiche quoi
+  qu'il arrive.
+
 ## [3.0.1] — 2026-10-02
 
 ### Modifié
