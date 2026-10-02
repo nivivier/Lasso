@@ -418,7 +418,7 @@ Quatre règles qui comptent :
    et restaurée au retour, `history.scrollRestoration = 'manual'`. Sans cela,
    déplacer la trentième ligne d'une liste renvoie en haut de page à chaque
    dépôt. Les deux helpers le font ; ailleurs, `?p=evenement` et
-   `?p=fiches_importer` le réimplémentent à la main, faute d'une liste ordonnable
+   `?p=import` le réimplémentent à la main, faute d'une liste ordonnable
    à qui le confier.
 
 ### Quand des flèches, alors ?

@@ -170,7 +170,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
                 <?= e($initiales) ?>
             </button>
             <?php if (peut_lire('coeur')): ?>
-            <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'export', 'fiches_importer', 'structures_importer', 'utilisateurs', 'modules', 'maj', 'evenements_reglages', 'categories_structures']; ?>
+            <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'export', 'import', 'fiches_importer', 'structures_importer', 'utilisateurs', 'modules', 'maj', 'evenements_reglages', 'categories_structures']; ?>
             <a href="?p=maj" class="side-cog <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres" aria-label="Paramètres">
                 <?= icon('settings') ?>
             </a>

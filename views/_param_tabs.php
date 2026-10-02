@@ -68,11 +68,11 @@ $ptGroupes['categories'] = ['Catégories', $ptCatSections];
 
 // Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
 // principal, avec ces 3 sections en sous-onglets.
-// Importer couvre plusieurs routes de traitement (selon les modules actifs) —
-// le sous-onglet pointe vers la première, toutes comptent comme la section
-// active (aliases, voir la mise en surbrillance des sous-onglets plus bas :
-// une section-alias est signalée active via le 3ᵉ élément du groupe, pas via
-// sa propre clé, d'où le cas particulier « première section du groupe »).
+// Importer : le sous-onglet pointe sur ?p=import, la page elle-même. Les routes
+// de traitement (une par module) reviennent rendre cette même page avec leurs
+// résultats : elles comptent donc aussi comme la section active, en alias (3ᵉ
+// élément du groupe, voir la mise en surbrillance plus bas). Pas de sous-onglet
+// du tout si aucun module importable n'est lisible — la page n'offrirait rien.
 $ptRoutesImport = [];
 if (module_actif('salaires')    && peut_lire('salaires'))    $ptRoutesImport[] = 'fiches_importer';
 if (module_actif('facturation') && peut_lire('facturation')) $ptRoutesImport[] = 'factures_importer';
@@ -81,7 +81,8 @@ if (module_actif('evenements')  && peut_lire('evenements'))  $ptRoutesImport[] =
 if (module_actif('booking')     && peut_lire('booking'))     $ptRoutesImport[] = 'structures_importer';
 $ptDonneesSections = [];
 if ($ptRoutesImport) {
-    $ptDonneesSections[$ptRoutesImport[0]] = 'Importer';
+    $ptDonneesSections['import'] = 'Importer';
+    array_unshift($ptRoutesImport, 'import');
 }
 $ptDonneesSections['export'] = 'Exporter';
 // Les jetons d'export : une porte vers l'extérieur, pas un réglage d'affichage.
@@ -156,9 +157,10 @@ $ptSuffixeDepuis = $ptDansModule ? '&depuis=' . rawurlencode($ptDepuis) : '';
 <?php if (count($ptSectionsActives) > 1): ?>
 <nav class="param-subtabs">
     <?php
-    // Une section-alias (ex. Importer, voir plus haut) n'est jamais elle-même
-    // la route courante : sa mise en surbrillance passe par les alias du
-    // groupe (3ᵉ élément), rattachés par convention à la toute première section.
+    // Une section peut aussi être atteinte par une route-alias (ex. Importer,
+    // voir plus haut, que les routes de traitement rendent) : la surbrillance
+    // passe alors par les alias du groupe (3ᵉ élément), rattachés par
+    // convention à la toute première section.
     $ptPremiereSection = array_key_first($ptSectionsActives);
     $ptAliasesGroupe = $ptGroupes[$ptGroupeActif][2] ?? [];
     ?>

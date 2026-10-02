@@ -1222,6 +1222,33 @@ function route_export(): void
     ], 'Exporter les données');
 }
 
+// « Importer des données » : LA page d'import, partagée par tous les modules
+// (fiches, factures, écritures, événements, structures). Rattachée à aucun
+// module — comme ?p=structures et ?p=recherche, pour la même raison : elle
+// n'appartient à aucun, et le filtrage se fait ligne par ligne dans la vue
+// (module_actif() + peut_ecrire(), un type d'import par module).
+// Elle n'affiche que le choix ; chaque geste d'import garde sa propre route
+// verbale (<objet>_importer, N4 de docs/NOMMAGE.md), qui revient rendre cette
+// même page avec ses résultats via rendre_import().
+function route_import(): void
+{
+    require_login();
+    rendre_import();
+}
+
+// Rend la page d'import avec le jeu COMPLET de variables attendues par la vue
+// (render() ne fournit aucun défaut pour une clé absente, cf. extract()) :
+// chaque route d'import ne remplit que les siennes, les autres restent vides.
+function rendre_import(array $vars = []): void
+{
+    render('import', $vars + [
+        'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
+        'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
+        'msgEcritures' => null,
+        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
+    ], 'Importer');
+}
+
 // Import de fiches de salaire depuis un fichier JSON (format d'export, type
 // « fiches_salaire »). N'insère que les fiches nouvelles : une fiche déjà
 // présente (même employé/année/mois) est ignorée, jamais écrasée (historique figé).
@@ -1257,12 +1284,9 @@ function route_fiches_importer(): void
             }
         }
     }
-    render('fiches_importer', [
+    rendre_import([
         'errFiches' => $err, 'resultatsFiches' => $resultats, 'resumeFiches' => $resume, 'simuleFiches' => $simule,
-        'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
-        'msgEcritures' => null,
-        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
-    ], 'Importer');
+    ]);
 }
 
 // Évalue (et, si !$simule, insère) une liste de fiches. Correspondance employé

@@ -6,7 +6,7 @@
 // Types de données exportables : un seul sélecteur, une seule carte — le
 // contenu (description + formulaire) de chaque type est montré/masqué selon
 // la sélection, sans reprendre le libellé du type en titre (déjà donné par le
-// menu déroulant). Même esprit que le sélecteur de views/fiches_importer.php.
+// menu déroulant). Même esprit que le sélecteur de views/import.php.
 // Le champ « Année » est lui aussi mutualisé (un seul <select>, à droite du
 // type) : rattaché en JS au formulaire du type actif via l'attribut form=
 // (même principe que les cases à cocher de l'onglet Incohérences), ses

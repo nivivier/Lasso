@@ -1616,12 +1616,9 @@ function route_evenements_importer(): void
             }
         }
     }
-    render('fiches_importer', [
-        'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
-        'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
-        'msgEcritures' => null,
+    rendre_import([
         'errEvenements' => $err, 'resultatsEvenements' => $resultats, 'resumeEvenements' => $resume, 'simuleEvenements' => $simule,
-    ], 'Importer');
+    ]);
 }
 
 // --- Feuille de route -------------------------------------------------------

@@ -1,6 +1,6 @@
 <?php /** @var ?string $errFiches */ /** @var ?array $resultatsFiches */ /** @var ?array $resumeFiches */ /** @var bool $simuleFiches */
 // Résultats de l'import de fiches de salaire — le formulaire d'upload est
-// désormais unique (voir import_fiches.php, « Importer des données »). ?>
+// désormais unique (voir import.php, « Importer des données »). ?>
 <?php if ($errFiches): ?><p class="err"><?= e($errFiches) ?></p><?php endif; ?>
 
 <?php if ($resumeFiches !== null): ?>

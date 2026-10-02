@@ -88,6 +88,13 @@ $handlers = [
     // la même raison que ?p=structures elle-même : trois modules s'en servent,
     // et la route ne rend qu'une liste de noms de lieux, sans donnée de fiche.
     'structures_lieux' => 'route_structures_lieux',
+    // « Importer des données » : la page est partagée par cinq modules, donc
+    // rattachable à aucun, comme ?p=structures. Elle n'affiche que le choix du
+    // type ; chaque geste d'import garde sa route verbale dans SON module
+    // (fiches_importer, factures_importer, …), et c'est elle qui porte le
+    // contrôle de droits. Le filtrage de la liste des types se fait dans la vue
+    // (module_actif() + peut_ecrire()).
+    'import' => 'route_import',
 ];
 $routeModules = [];
 

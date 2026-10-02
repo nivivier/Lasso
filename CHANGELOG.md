@@ -10,6 +10,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **La page d'import s'appelle `?p=import`**, et non plus du nom des fiches de
+  salaire : cinq modules y déposent un type de données, et la page
+  n'appartenait déjà plus au seul module des salaires. Comme la liste des
+  structures et la recherche, elle n'est rattachée à aucun module ; chaque
+  geste d'import garde sa route dans le sien.
+- **La liste « ne pas contacter » devient un type d'import à part entière**,
+  choisi dans le même menu que les autres. Elle apparaissait jusqu'ici en
+  seconde carte sous le carnet d'adresses, ce qui la faisait prendre pour une
+  étape de celui-ci : ce sont deux imports différents — l'un ajoute des
+  structures, l'autre désinscrit des adresses.
 - **Sur la fiche d'une structure, la carte « Campagnes » s'appelle
   « Booking »**, du nom de son module : la fiche porte aussi les campagnes de
   recherche de fonds, juste en dessous, et deux cartes nommées « Campagnes » sur

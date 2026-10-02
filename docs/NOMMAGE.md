@@ -209,7 +209,16 @@ quelles : `maj`, `suisa`, `lpp`, `laa`, et les noms de formats (`csv`, `pdf`,
 | `resumes` | `tableau_bord` |
 | `compte` *(son propre compte)* | `mon_compte` |
 | `backup` | `sauvegarde` |
+| `import_fiches` *(la page « Importer des données »)* | `import` |
 | `recherche`, `motdepasse_oublie`, `dev` | inchangées |
+
+`import` est passée ici, hors du module salaires, parce que la page n'est pas
+celle des fiches : cinq modules y déposent un type de données. Elle suit donc
+`structures` et `recherche` — nom nu, rattachée à aucun module (N6). Ce qui
+reste dans les modules, ce sont les **gestes** : `fiches_importer`,
+`factures_importer`, `compta_ecritures_importer`, `evenements_importer`,
+`structures_importer`, chacun verbal (N4) et porteur du contrôle de droits.
+C'est le même partage que pour l'export.
 
 ### 4.2 Salaires
 
@@ -230,7 +239,7 @@ quelles : `maj`, `suisa`, `lpp`, `laa`, et les noms de formats (`csv`, `pdf`,
 | `certificat_xml` | `certificat_exporter_xml` |
 | `resume` | `cotisations` |
 | `unites`, `taux` | **supprimées** (déjà de simples redirections) |
-| `import_fiches` | `fiches_importer` |
+| `import_fiches` | scindée : `import` (la page, § 4.1) + `fiches_importer` (le geste) |
 | `fiches`, `fiche`, `postes`, `taux_horaires`, `certificat` | inchangées |
 
 ### 4.3 Comptabilité
@@ -650,3 +659,4 @@ ajouté, la question « il s'appelle comment, déjà ? » a une réponse écrite
 | 12 | **Le terme réglable devient DEUX paramètres**, `evenements_terme_projet` (pluriel) et `evenements_terme_projet_singulier` : le français ne forme pas toujours son pluriel en ajoutant un « s », et la dérivation automatique disparaît. `evenements_terme_projet()` devient `evenements_terme_projet()`, même signature. La clé bouge en base — cette livraison écrit déjà une migration, reporter une ligne de `parametres` y tient en une instruction. |
 | 13 | **La clé `projet` de l'export JSON est renommée `projet`** comme le reste ; le site qui la consomme sera adapté ensuite. L'en-tête `Projet` de l'export CSV suit le terme réglé. |
 | 14 | **Plus un seul libellé en dur** : les dix-sept endroits qui écrivaient « Projet » passent par `evenements_terme_projet()`, chacun choisissant son nombre. Y compris les sorties de fichier — en-tête CSV, ligne par défaut d'une feuille de route, `SUMMARY` iCal. |
+| 15 | **La page d'import ne porte plus le nom d'un seul module.** `import_fiches` affichait le choix ET traitait les fiches : le nom disait le second, l'écran faisait le premier. La page devient `import`, rattachée à aucun module ; les cinq gestes gardent leur route verbale dans le leur et reviennent rendre cette même page avec leurs résultats (`rendre_import()`). |

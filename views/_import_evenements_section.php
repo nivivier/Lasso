@@ -1,6 +1,6 @@
 <?php /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */
 // Résultats de l'import d'événements — le formulaire d'upload est désormais
-// unique (voir import_fiches.php, « Importer des données »).
+// unique (voir import.php, « Importer des données »).
 $termeSingulier = mb_strtolower(evenements_terme_projet(false));
 ?>
 <?php if ($errEvenements): ?><p class="err"><?= e($errEvenements) ?></p><?php endif; ?>

@@ -612,12 +612,7 @@ function route_compta_ecritures_importer_valider(): void
         check_csrf();
         $msg = compta_import_ecritures_requete();
     }
-    render('fiches_importer', [
-        'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
-        'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
-        'msgEcritures' => $msg,
-        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
-    ], 'Importer');
+    rendre_import(['msgEcritures' => $msg]);
 }
 
 // --- Lettrage (écran principal) --------------------------------------------

@@ -1749,10 +1749,7 @@ function route_factures_importer(): void
             }
         }
     }
-    render('fiches_importer', [
-        'errFiches' => null, 'resultatsFiches' => null, 'resumeFiches' => null, 'simuleFiches' => true,
+    rendre_import([
         'errFactures' => $err, 'resultatsFactures' => $resultats, 'resumeFactures' => $resume, 'simuleFactures' => $simule,
-        'msgEcritures' => null,
-        'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
-    ], 'Importer');
+    ]);
 }

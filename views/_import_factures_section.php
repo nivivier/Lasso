@@ -1,6 +1,6 @@
 <?php /** @var ?string $errFactures */ /** @var ?array $resultatsFactures */ /** @var ?array $resumeFactures */ /** @var bool $simuleFactures */
 // Résultats de l'import de factures — le formulaire d'upload est désormais
-// unique (voir import_fiches.php, « Importer des données »). ?>
+// unique (voir import.php, « Importer des données »). ?>
 <?php if ($errFactures): ?><p class="err"><?= e($errFactures) ?></p><?php endif; ?>
 
 <?php if ($resumeFactures !== null): ?>

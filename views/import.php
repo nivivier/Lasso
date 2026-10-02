@@ -5,8 +5,10 @@
 /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */
 
 // Types de données importables : un seul formulaire, la logique (route cible,
-// formats acceptés, boutons) change selon la sélection. Chaque route de
-// traitement reste distincte (import_fiches / import_factures / …).
+// formats acceptés, champ de saisie, boutons) change selon la sélection. La
+// page, elle, n'appartient à aucun module (?p=import) ; chaque route de
+// traitement reste distincte et vit dans le sien (fiches_importer,
+// factures_importer, …).
 $types = [];
 if (module_actif('salaires') && peut_ecrire('salaires')) {
     $types['fiches'] = [
@@ -58,6 +60,21 @@ if (module_actif('booking') && peut_ecrire('booking')) {
         'confirm' => '',
         'etape'   => 'mapper', // entre dans l'assistant (correspondance des colonnes…)
     ];
+    // La liste « ne pas contacter » est un import à part, pas une variante du
+    // carnet d'adresses : elle n'ajoute aucune structure, elle en désinscrit —
+    // et elle se colle au lieu de se téléverser (d'où 'saisie'). Elle était
+    // auparavant une carte qui apparaissait sous le carnet, ce qui laissait
+    // croire à une étape de celui-ci.
+    $types['exclusions'] = [
+        'libelle' => 'Liste « ne pas contacter » (adresses e-mail)',
+        'action'  => '?p=structures_importer',
+        'accept'  => '',
+        'simuler' => false,
+        'bouton'  => 'Ajouter à la liste',
+        'confirm' => '',
+        'etape'   => 'exclusion',
+        'saisie'  => true,
+    ];
 }
 
 // Type actif : déduit des résultats affichés (la route qui vient de tourner),
@@ -75,7 +92,10 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
 <?php else: ?>
 <div class="card form" id="import-unifie" data-type-actif="<?= e((string) $typeActif) ?>">
     <h2 class="mt-0">Importer des données</h2>
-    <form method="post" action="?p=fiches_importer" enctype="multipart/form-data" id="import-form">
+    <?php // Sans JavaScript, le menu ne reconfigure rien : le formulaire part sur
+          // le premier type disponible (et non sur les fiches de salaire en dur,
+          // qui n'existent pas si le module est éteint). ?>
+    <form method="post" action="<?= e($types[array_key_first($types)]['action']) ?>" enctype="multipart/form-data" id="import-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="etape" value="" id="import-etape" disabled>
         <div class="grid2">
@@ -86,10 +106,15 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>Fichier à importer
+            <label id="import-champ-fichier">Fichier à importer
                 <input type="file" name="fichier" id="import-fichier" required>
             </label>
         </div>
+        <?php if (module_actif('booking') && peut_ecrire('booking')): ?>
+        <label id="import-champ-emails" hidden>Adresses à exclure
+            <textarea name="emails" id="import-emails" rows="3" placeholder="contact1@exemple.com&#10;contact2@exemple.com"></textarea>
+        </label>
+        <?php endif; ?>
 
         <?php if (module_actif('salaires')): ?>
         <p class="muted small import-aide" data-for="fiches" hidden>Fichier <strong>JSON</strong> (format d'export « fiches_salaire »). Correspondance des employés par <strong>numéro AVS</strong>. Une fiche déjà présente (même employé, année, mois) est <strong>ignorée</strong> — jamais écrasée.
@@ -108,6 +133,7 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
         <?php endif; ?>
         <?php if (module_actif('booking')): ?>
         <p class="muted small import-aide" data-for="structures" hidden>Carnet d'adresses <strong>CSV</strong> à colonnes libres : la correspondance des colonnes se fait à l'écran suivant, puis regroupements par organisateur et résolution des conflits un par un.</p>
+        <p class="muted small import-aide" data-for="exclusions" hidden>Une adresse par ligne (ou séparées par des virgules). Chacune est <strong>désinscrite immédiatement</strong> du mailing, sans jamais pouvoir être réimportée par erreur. N'ajoute ni ne modifie aucune structure.</p>
         <?php endif; ?>
 
         <div class="form-actions">
@@ -115,22 +141,7 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
             <button type="submit" name="appliquer" value="1" id="import-go"><?= icon('import') ?> <span id="import-go-lbl">Importer</span></button>
         </div>
         <p class="muted small" id="import-note">« Simuler » montre ce qui serait importé sans rien enregistrer. « Importer » enregistre réellement.</p>
-        <noscript><p class="warn">JavaScript est requis pour choisir le type de données (sans lui, le formulaire importe des fiches de salaire).</p></noscript>
-    </form>
-</div>
-<?php endif; ?>
-
-<?php if (module_actif('booking') && peut_ecrire('booking')): ?>
-<div class="card form mt-22 import-extra" data-for="structures" hidden>
-    <h3 class="sub no-mt">Liste « ne pas contacter » (structures)</h3>
-    <p class="muted small">Une adresse par ligne — désinscrit immédiatement du mailing, sans jamais pouvoir être réimportée par erreur.</p>
-    <form method="post" action="?p=structures_importer">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="etape" value="exclusion">
-        <textarea name="emails" rows="3" placeholder="contact1@exemple.com&#10;contact2@exemple.com"></textarea>
-        <div class="form-actions">
-            <button type="submit" class="btn ghost btn-sm">Ajouter à la liste d'exclusion</button>
-        </div>
+        <noscript><p class="warn">JavaScript est requis pour choisir le type de données (sans lui, le formulaire importe le premier type de la liste : <?= e($types[array_key_first($types)]['libelle']) ?>).</p></noscript>
     </form>
 </div>
 <?php endif; ?>
@@ -159,6 +170,9 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
     var btnGo = document.getElementById('import-go');
     var lblGo = document.getElementById('import-go-lbl');
     var note = document.getElementById('import-note');
+    var champFichier = document.getElementById('import-champ-fichier');
+    var champEmails = document.getElementById('import-champ-emails');
+    var emails = document.getElementById('import-emails');
 
     function applique() {
         var c = configs[sel.value];
@@ -171,8 +185,19 @@ elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'eve
         btnGo.dataset.confirm = c.confirm || '';
         // Assistant structures : le POST d'upload attend etape=mapper.
         if (c.etape) { etape.value = c.etape; etape.disabled = false; } else { etape.disabled = true; }
+        // Un type se colle (la liste « ne pas contacter »), les autres se
+        // téléversent : on échange le champ, et on DÉSACTIVE celui qu'on cache
+        // — un champ requis mais invisible empêcherait l'envoi du formulaire.
+        if (champEmails) {
+            var saisie = !!c.saisie;
+            champFichier.hidden = saisie;
+            fichier.disabled = saisie;
+            fichier.required = !saisie;
+            champEmails.hidden = !saisie;
+            emails.disabled = !saisie;
+            emails.required = saisie;
+        }
         document.querySelectorAll('.import-aide').forEach(function (p) { p.hidden = p.dataset.for !== sel.value; });
-        document.querySelectorAll('.import-extra').forEach(function (d) { d.hidden = d.dataset.for !== sel.value; });
         try { localStorage.setItem('importType', sel.value); } catch (e) {}
     }
     // La confirmation elle-même est prise en charge par l'écouteur global de
