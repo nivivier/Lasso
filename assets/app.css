@@ -1432,22 +1432,6 @@ h3.sub.no-mt { margin-top: 0; }
 .form-split-side .grid2, .form-split-side .grid3, .form-split-side .grid4 { grid-template-columns: 1fr; }
 @media (max-width: 800px) { .form-split { grid-template-columns: 1fr; } }
 
-/* Fiche structure : contenu principal (édition, étiquettes, historique) à
-   gauche, sidebar SANS card (contacts, salles/festivals liés) à droite — même
-   esprit que la sidebar d'une fiche de salaire (.fiche-aside : pas de card,
-   juste des titres + du contenu), mais plus large pour les formulaires de
-   contact. */
-.struct-wrapper { display: flex; gap: 24px; align-items: flex-start; }
-.struct-main { flex: 1; min-width: 0; }
-/* La sidebar réduit la colonne principale : le formulaire d'édition y passe ses
-   coordonnées SOUS les champs généraux (au lieu d'une colonne latérale interne),
-   pour ne pas s'y trouver à l'étroit. */
-.struct-main .form-split { grid-template-columns: 1fr; }
-.struct-aside { flex: 0 0 340px; min-width: 0; }
-.struct-aside .aside-block + .aside-block { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
-.struct-aside h2 { font-size: var(--fs-large); margin: 0 0 12px; font-weight: 700; }
-.struct-aside .grid2, .struct-aside .grid3, .struct-aside .grid4 { grid-template-columns: 1fr; }
-@media (max-width: 900px) { .struct-wrapper { flex-direction: column; } .struct-aside { flex-basis: auto; width: 100%; } }
 /* Sections éditables de la sidebar structure (Salles & festivals, Contacts) :
    les commandes ajouter/lier/modifier/supprimer (.edit-only) restent masquées
    tant que le crayon d'en-tête n'a pas basculé la section en mode édition. */
@@ -1462,9 +1446,9 @@ h3.sub.no-mt { margin-top: 0; }
 .card-head-row h2 { margin: 0; }
 
 /* Sous-sections empilées dans une même carte (?p=structure : Lieux liés +
-   Événements liés) — même esprit que .struct-aside .aside-block
-   (lieu_form.php/structure_form.php, colonne de droite historique), mais sans
-   exiger cet ancêtre précis puisque ces cartes ne sont plus dans une barre
+   Événements liés). Héritées de la colonne de droite que la fiche d'une
+   structure portait autrefois (.struct-aside .aside-block, retirée avec elle),
+   mais sans exiger d'ancêtre : ces cartes ne sont plus dans une barre
    latérale. */
 .card-block + .card-block { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
 .card-block .grid2, .card-block .grid3, .card-block .grid4 { grid-template-columns: 1fr; }
@@ -1708,7 +1692,6 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 18px; }
-.grid3-full { grid-column: 1 / -1; }
 /* row-gap:0 ci-dessus est voulu pour l'usage courant de .grid2/3/4 (grille de
    CHAMPS de formulaire) : chaque champ porte déjà sa propre marge basse, un
    row-gap en plus la doublerait. Mais ces mêmes classes servent aussi,
@@ -2056,8 +2039,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .linked-add button { flex: 0 0 auto; }
 .page-head .linked-add { margin-bottom: 0; }
 .souscat-liste { margin: 6px 0 18px 28px; padding-left: 14px; border-left: 2px solid var(--line); }
-.souscat-liste .souscat-row.linked-add,
-.souscat-liste .cat-row.souscat-row { margin-bottom: 8px; }
+.souscat-liste .souscat-row.linked-add { margin-bottom: 8px; }
 .souscat-liste .souscat-row .linked-add { margin-bottom: 0; }
 /* .facture-search .cat-search-input : mutualisé avec .bulk-cat-search plus haut. */
 .form-actions label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
@@ -2972,9 +2954,6 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .reponse-toggle .seg-btn[data-reponse-valeur="pas_interesse"].on { background: var(--danger-tint); color: var(--danger); }
 .reponse-toggle .seg-btn[data-reponse-valeur="interesse"].on { background: var(--teal-tint); color: var(--ok); }
 
-/* Flux de notes (fiche structure, booking) : liste chronologique inversée. */
-.notes-flux { display: flex; flex-direction: column; gap: 14px; }
-.note-item { padding: 10px 14px; background: var(--surface); border-radius: var(--radius-sm); }
 /* Date colorée par statut, ex. widget « Prochains événements » du tableau de
    bord — pas de colonne dédiée. */
 .statut-date-ok { color: var(--teal-d); font-weight: 600; }
@@ -3517,8 +3496,6 @@ body.print-page { background: #e9e9f2; }
 .logo-preview.sombre { background: var(--brand-surface); }
 /* Aperçu d'une version réduite : montrée à la taille où elle sert vraiment. */
 .logo-preview.mini img { max-height: 52px; max-width: 52px; }
-.fond-preview { display: block; margin: 4px 0 10px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); max-width: 360px; }
-.fond-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
 /* Pastille d'une couleur choisie, dans la lecture d'une carte de réglages :
    la valeur en toutes lettres ne dit pas ce qu'elle vaut à l'œil. */
 .pastille-couleur {
@@ -5440,7 +5417,6 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 }
 .fr-print-table td { vertical-align: top; padding: 6px 0; border-top: 1px solid var(--line); }
 .fr-print-table tr:first-child th, .fr-print-table tr:first-child td { border-top: 0; }
-.fr-print-remarques { margin-top: 16px; }
 .fr-print-pied { margin-top: 20px; color: var(--muted); font-size: var(--fs-small); }
 /* « organisateur de … » sous le nom d'une structure mère : un rappel de son
    rôle, pas un second nom — d'où un corps plus petit et le poids normal. */
