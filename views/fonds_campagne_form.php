@@ -125,15 +125,7 @@ $cibF = ciblage_filtres_vue([
         <label><span>Axe analytique <?= info_tip(
             "Celui du projet financé, repris automatiquement si vous le laissez vide. Il portera la facture et les écritures de cette campagne."
         ) ?></span>
-            <select name="axe_analytique_id">
-                <option value="">— Celui du projet —</option>
-                <?php $axeChoisi = (int) ($campagne['axe_analytique_id'] ?? 0); ?>
-                <?php foreach ($axes as $ax): ?>
-                <option value="<?= (int) $ax['id'] ?>"<?= (int) $ax['id'] === $axeChoisi ? ' selected' : '' ?>>
-                    <?= e(trim((string) ($ax['code'] ?? '')) !== '' ? $ax['code'] . ' — ' . $ax['libelle'] : (string) $ax['libelle']) ?>
-                </option>
-                <?php endforeach; ?>
-            </select>
+            <select name="axe_analytique_id"><?= options_axes_longues($axes, (int) ($campagne['axe_analytique_id'] ?? 0), '— Celui du projet —') ?></select>
         </label>
         <?php endif; ?>
         <label><span>Dossier partagé <?= info_tip(

@@ -1993,6 +1993,19 @@ function valeur_autorisee(?string $valeur, array $whitelist, string $defaut = ''
     return in_array($valeur, $whitelist, true) ? $valeur : $defaut;
 }
 
+// Un axe analytique s'écrit dans DEUX registres, et c'est voulu :
+//
+//   court  — le CODE seul (options_axes() ci-dessous), dans une ligne de
+//            tableau : une prestation, une écriture. La cellule est étroite,
+//            et qui ventile reconnaît ses axes à leur code.
+//   long   — « code — libellé » (options_axes_longues()), dans un formulaire
+//            plein écran, où l'on choisit une fois pour toutes et où rien
+//            n'oblige à connaître les codes par cœur.
+//
+// Les deux étaient écrits à la main à cinq endroits, chacun choisissant son
+// registre sans le dire. Ils sont ici, et le choix se fait en appelant l'une
+// ou l'autre.
+//
 // Options d'axe analytique pour un <select> de ligne de prestation (fiche de
 // salaire ou événement) — un « — » en tête pour l'absence d'axe.
 function options_axes(array $axes): string
@@ -2001,6 +2014,22 @@ function options_axes(array $axes): string
     foreach ($axes as $ax) {
         $label = ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
         $opts .= '<option value="' . (int) $ax['id'] . '">' . e($label) . '</option>';
+    }
+    return $opts;
+}
+
+// Le registre long, pour un <select> de formulaire : « code — libellé », ou le
+// seul libellé quand l'axe n'a pas de code. $vide est le texte de l'option
+// « aucun axe », qui ne dit pas la même chose selon l'écran (« — Aucun — » sur
+// un projet, « — Celui du projet — » sur une campagne qui en hérite).
+function options_axes_longues(array $axes, int $choisi, string $vide): string
+{
+    $opts = '<option value="">' . e($vide) . '</option>';
+    foreach ($axes as $ax) {
+        $code = trim((string) ($ax['code'] ?? ''));
+        $label = $code !== '' ? $code . ' — ' . (string) $ax['libelle'] : (string) $ax['libelle'];
+        $opts .= '<option value="' . (int) $ax['id'] . '"' . ((int) $ax['id'] === $choisi ? ' selected' : '') . '>'
+            . e($label) . '</option>';
     }
     return $opts;
 }

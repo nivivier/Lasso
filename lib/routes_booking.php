@@ -1779,13 +1779,20 @@ function route_booking_campagne_enregistrer(): void
     $stmt->execute([$id]);
     $avant = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 
+    // Journalisé comme le geste unitaire de la colonne « Campagnes de booking »
+    // (route_booking_campagne_structure()) : la sélection d'un formulaire et le
+    // clic sur une croix font exactement la même chose à une structure, et
+    // l'historique de cette structure doit le raconter des deux façons. Il ne
+    // le faisait que de l'une.
     $supp = db()->prepare('DELETE FROM campagne_structures WHERE campagne_id = ? AND structure_id = ?');
     foreach (array_diff($avant, $valides) as $sid) {
         $supp->execute([$id, $sid]);
+        journaliser('structure', (int) $sid, 'edition', 'Retirée de la campagne : ' . $nom);
     }
     $ins = db()->prepare('INSERT OR IGNORE INTO campagne_structures (campagne_id, structure_id) VALUES (?, ?)');
     foreach (array_diff($valides, $avant) as $sid) {
         $ins->execute([$id, $sid]);
+        journaliser('structure', (int) $sid, 'edition', 'Ajoutée à la campagne : ' . $nom);
     }
     db()->commit();
     redirect('booking_campagne', ['id' => $id, 'ok' => 1]);

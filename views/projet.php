@@ -57,15 +57,7 @@ foreach (plan_liste_ordonnee($map) as $r) {
         . ", et pour les lignes d'une facture créée depuis l'une d'elles. Modifiable au cas par cas ensuite, "
         . "sans effet rétroactif sur ce qui est déjà enregistré."
     ) ?></span>
-        <select name="axe_analytique_id">
-            <option value="">— Aucun —</option>
-            <?php $axeChoisi = (int) ($projet['axe_analytique_id'] ?? 0); ?>
-            <?php foreach ($axes as $ax): ?>
-            <option value="<?= (int) $ax['id'] ?>"<?= (int) $ax['id'] === $axeChoisi ? ' selected' : '' ?>>
-                <?= e(trim((string) ($ax['code'] ?? '')) !== '' ? $ax['code'] . ' — ' . $ax['libelle'] : (string) $ax['libelle']) ?>
-            </option>
-            <?php endforeach; ?>
-        </select>
+        <select name="axe_analytique_id"><?= options_axes_longues($axes, (int) ($projet['axe_analytique_id'] ?? 0), '— Aucun —') ?></select>
     </label>
     <?php endif; ?>
     <label>Notes (optionnel)

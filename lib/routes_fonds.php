@@ -192,13 +192,19 @@ function route_fonds_campagne_enregistrer(): void
 
     // Une demande retirée emporte son dossier : c'est voulu, et c'est pourquoi
     // l'écran demande confirmation avant d'enregistrer une sélection réduite.
+    // Et c'est aussi pourquoi le retrait se journalise ici comme il le fait
+    // depuis la croix de la liste (route_fonds_campagne_structure()) : ce qui
+    // disparaît — montants, dates, pièces, versement — laisse au moins une
+    // trace de sa disparition dans l'historique du bailleur.
     $supp = db()->prepare('DELETE FROM fonds_demandes WHERE campagne_id = ? AND structure_id = ?');
     foreach (array_diff($avant, $valides) as $sid) {
         $supp->execute([$id, $sid]);
+        journaliser('structure', (int) $sid, 'edition', 'Retirée de la campagne de recherche de fonds : ' . $nom);
     }
     $ins = db()->prepare('INSERT OR IGNORE INTO fonds_demandes (campagne_id, structure_id) VALUES (?, ?)');
     foreach (array_diff($valides, $avant) as $sid) {
         $ins->execute([$id, $sid]);
+        journaliser('structure', (int) $sid, 'edition', 'Sollicitée dans la campagne de recherche de fonds : ' . $nom);
     }
     db()->commit();
     redirect('fonds_campagnes', ['ok' => 1]);
