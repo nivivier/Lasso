@@ -198,8 +198,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    feuille entière, **le projet** sur son heure de représentation, et un
    événement daté par horaire du déroulé. Il montre aussi les
    dates en option et les non répertoriées, que l'export public tait — ce lien
-   est un mot de passe, et le régénérer (Paramètres → Événements) coupe tous
-   les abonnements d'un coup. Depuis la fiche de l'événement, la feuille se
+   est un mot de passe, et le régénérer (Paramètres → Données → Synchronisation)
+   coupe tous les abonnements d'un coup. Depuis la fiche de l'événement, la feuille se
    consulte dans la fenêtre d'aperçu partagée — celle d'un décompte de salaire
    — et s'imprime de là ; elle y reprend aussi les structures organisatrices et
    leurs contacts et leurs structures mères, pris dans le carnet d'adresses.
@@ -296,10 +296,17 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
 13. **Recherche** (champ du tableau de bord ou `/`) : une seule saisie traverse
     employés, structures, contacts, factures, événements et projets. Plusieurs
     mots se cumulent, les accents sont ignorés.
-14. **Imports** : fiches de salaire (JSON, correspondance par n° AVS — les fiches
-    déjà présentes sont ignorées, jamais écrasées), écritures comptables, structures
-    et agendas de tournée (CSV). Chaque import a un bouton « Simuler » qui
-    prévisualise sans rien enregistrer.
+14. **Imports** (`?p=import`, une seule page pour tous les modules) : fiches de
+    salaire et factures (JSON — les pièces déjà présentes sont ignorées, jamais
+    écrasées ; correspondance par n° AVS pour les fiches, par nom de structure
+    pour les factures), écritures bancaires (CSV ou camt.053), agendas de
+    tournée (CSV), carnet d'adresses des structures (CSV à colonnes libres,
+    avec un assistant de correspondance), et la liste « ne pas contacter »
+    (adresses collées). Le menu ne propose que ce que les modules actifs et vos
+    droits autorisent. Les quatre premiers ont un bouton « Simuler » qui
+    prévisualise sans rien enregistrer ; les deux imports du carnet d'adresses
+    ont leur propre garde-fou (écran de correspondance, désinscription
+    définitive).
 
 ### Mot de passe oublié
 
@@ -319,7 +326,7 @@ e-mail et mène à un écran de choix du nouveau mot de passe.
   (`define('APP_URL', 'https://salaires.exemple.ch');`). Sans elle, le lien est construit
   depuis l'en-tête `Host` de la requête, que le client contrôle.
 
-Les comptes se gèrent dans **Paramètres → Comptes**. Chacun reçoit des droits de
+Les comptes se gèrent dans **Paramètres → Application → Utilisateurs**. Chacun reçoit des droits de
 **lecture ou écriture, module par module** ; un nouveau compte démarre **sans aucun
 droit**, et il doit toujours rester au moins un administrateur. Les modules eux-mêmes
 s'activent dans **Paramètres → Modules**, indépendamment de ces droits.
@@ -337,7 +344,7 @@ faute de place pour huit colonnes de droits.
 
 ### Les lignes du décompte (postes salariaux)
 
-Tout se règle sur une seule page, **Paramètres → Taux → Lignes du décompte** : les
+Tout se règle sur une seule page, **Paramètres → Valeurs et libellés → Lignes du décompte** : les
 lignes elles-mêmes *et* le taux que chacune applique, pour l'**année choisie en haut
 de page**. On peut ajouter une ligne, la renommer, la réordonner **en la glissant**,
 ou l'éteindre d'un interrupteur — ce qui permet d'adapter la paie à un autre canton
@@ -383,7 +390,7 @@ de la précédente jusqu'à ce qu'on en enregistre une.
 ### Recalculer des fiches existantes
 
 Pour appliquer un changement de taux ou de poste à des fiches **déjà enregistrées**,
-il faut le demander explicitement : **Paramètres → Taux → recalcul des fiches**
+il faut le demander explicitement : **Paramètres → Valeurs et libellés → recalcul des fiches**
 (`?p=fiches_recalculer`). La page liste, pour l'année choisie, les seules fiches dont
 les montants changeraient, avec l'**avant et l'après** côte à côte et le nombre de
 fiches concernées. Les fiches **déjà payées ne sont pas cochées par défaut**, et la
@@ -585,5 +592,6 @@ c'est ce qui évite de redécider à chaque page.
   (adresse d'expédition renseignée dans Paramètres → E-mails, et SMTP configuré en
   production). Sans cela, l'écran répond la même chose mais aucun message ne part —
   l'échec n'est visible que dans le journal d'erreurs du serveur. Un administrateur
-  peut toujours réinitialiser un mot de passe depuis Paramètres → Comptes.
+  peut toujours réinitialiser un mot de passe depuis Paramètres → Application
+  → Utilisateurs.
 - Les sauvegardes ne sont pas chiffrées : l'archive exportée est en clair, base et fichiers déposés compris.

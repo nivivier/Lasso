@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.1] — 2026-10-02
+
 ### Modifié
 - **La page d'import s'appelle `?p=import`**, et non plus du nom des fiches de
   salaire : cinq modules y déposent un type de données, et la page
