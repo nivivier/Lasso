@@ -568,6 +568,7 @@ php tests/run.php
 | `CLAUDE.md` | avant de toucher au code : architecture, domaine (paie suisse), pièges |
 | `docs/UI.md` | avant d'écrire un écran : comment l'application modifie une ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document |
 | `docs/DECISIONS.md` | avant de toucher au schéma, à l'environnement ou à la CSP : le « pourquoi » des choix structurants et des impasses déjà rencontrées |
+| `docs/NOMMAGE.md` | avant d'ajouter un écran : comment se nomment une route, une vue, une fonction. `tests/nommage_test.php` vérifie la convention à chaque exécution de la suite |
 | `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
 | `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md`, `SPEC_SUBVENTIONS.md` | le besoin cadré avec l'utilisateur pour ces quatre modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
 

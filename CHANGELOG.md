@@ -7,7 +7,7 @@ Toutes les modifications notables de Lasso. Format inspiré de
 Les nouveautés arrivent d'abord sur le canal **test** (section « Non publié »),
 puis sont promues sur le canal **stable** en figeant une version.
 
-## [Non publié]
+## [3.0.0] — 2026-10-02
 
 ### Ajouté
 - **Un module « Recherche de fonds »**, à activer dans Paramètres → Modules :
@@ -32,7 +32,7 @@ puis sont promues sur le canal **stable** en figeant une version.
   et quels bilans sont dus — la seconde échéance, celle qu'on oublie une fois
   l'argent encaissé. Un bailleur y est une **structure**,
   la même fiche que pour le booking et la facturation, et le projet financé un
-  spectacle, dont l'axe analytique porte la ventilation.
+  projet, dont l'axe analytique porte la ventilation.
   **Et le module se raccorde au reste** : un dossier accordé peut émettre sa
   **facture au bailleur**, déjà remplie de ce qu'on sait — le destinataire, le
   montant accordé, l'axe analytique du projet financé ; la **fiche d'une
@@ -45,6 +45,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   et au-dessus qu'il n'y a plus rien à chercher. La liste des campagnes gagne
   au passage la **colonne « Projet »** et son **champ de recherche**, comme
   celle des campagnes de démarchage.
+
+- **Un bouton « Formulaire de contact »** sur la fiche d'une structure et dans
+  le suivi d'une campagne, dès qu'un de ses contacts porte l'adresse d'un
+  formulaire. Il ouvre le site de la structure dans un onglet à lui. C'est
+  souvent le seul chemin vers celles qui n'exposent aucune adresse e-mail — là
+  où « Contacter » reste empêché, faute de destinataire. Le même bouton servira
+  au module de recherche de fonds.
 
 ### Modifié
 - ⚠️ **Toutes les adresses de l'application ont changé.** L'application avait
@@ -131,12 +138,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   une flèche de téléchargement ne dit pas si l'on prend une nouvelle version,
   si l'on réinstalle la même ou si l'on revient en arrière.
 
-## [Non publié]
-
-### Modifié
 - **L'axe analytique appartient au projet, plus à chaque date.** Il se réglait
   date par date, alors que toutes les dates d'une même création se ventilent au
-  même endroit : il se choisit maintenant sur la fiche du spectacle, une fois,
+  même endroit : il se choisit maintenant sur la fiche du projet, une fois,
   et les prestations comme les factures créées depuis l'une de ses dates en
   héritent. La carte « Comptabilité analytique » disparaît de la fiche d'une
   date. À la mise à jour, un projet dont les dates portaient toutes le même axe
@@ -145,18 +149,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ### Corrigé
 - **Les suggestions du champ « Ajouter une structure » passaient sous l'en-tête
-  du tableau** (`?p=campagne_form`) : la liste était coupée en son milieu, on
+  du tableau** (`?p=booking_campagne_form`) : la liste était coupée en son milieu, on
   lisait la première proposition et la dernière. La barre d'outils s'élevait
   déjà au-dessus de l'en-tête collant quand un filtre y était ouvert ; elle le
   fait maintenant aussi quand ces suggestions le sont.
-
-### Ajouté
-- **Un bouton « Formulaire de contact »** sur la fiche d'une structure et dans
-  le suivi d'une campagne, dès qu'un de ses contacts porte l'adresse d'un
-  formulaire. Il ouvre le site de la structure dans un onglet à lui. C'est
-  souvent le seul chemin vers celles qui n'exposent aucune adresse e-mail — là
-  où « Contacter » reste empêché, faute de destinataire. Le même bouton servira
-  au module de recherche de fonds.
 
 ## [2.9.5] — 2026-10-01
 
