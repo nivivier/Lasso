@@ -37,11 +37,23 @@ if (module_actif('booking')) {
 }
 $ptGroupes['emails']    = ['E-mails', $ptEmailsSections];
 
+// « Valeurs et libellés » plutôt que « Taux » : le groupe ne porte pas que des
+// pourcentages. Une ligne de décompte y a aussi son intitulé — celui que les
+// fiches figent à l'enregistrement —, et les réglages des événements y posent
+// le terme qui désigne un projet, dans toute l'interface.
+//
+// Construit section par section, comme « Catégories » juste en dessous : deux
+// modules l'alimentent, et le groupe doit exister dès que l'un des deux est là.
+$ptValeursSections = [];
 if (module_actif('salaires') && peut_lire('salaires')) {
-    $ptGroupes['taux'] = ['Taux', [
-        'postes'        => 'Lignes du décompte',
-        'taux_horaires' => 'Salaires horaires et unités',
-    ], ['taux']];
+    $ptValeursSections['postes']        = 'Lignes du décompte';
+    $ptValeursSections['taux_horaires'] = 'Salaires horaires et unités';
+}
+if (module_actif('evenements') && peut_lire('evenements')) {
+    $ptValeursSections['evenements_reglages'] = 'Événements';
+}
+if ($ptValeursSections) {
+    $ptGroupes['valeurs'] = ['Valeurs et libellés', $ptValeursSections];
 }
 
 $ptCatSections = ['pays' => 'Pays'];
@@ -50,10 +62,6 @@ if (module_actif('booking') && peut_lire('booking')) {
     $ptCatSections['tags']                  = 'Tags';
 }
 $ptGroupes['categories'] = ['Catégories', $ptCatSections];
-
-if (module_actif('evenements') && peut_lire('evenements')) {
-    $ptGroupes['evenements'] = ['Événements', ['evenements_reglages' => 'Événements']];
-}
 
 // Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
 // principal, avec ces 3 sections en sous-onglets.
@@ -73,6 +81,10 @@ if ($ptRoutesImport) {
     $ptDonneesSections[$ptRoutesImport[0]] = 'Importer';
 }
 $ptDonneesSections['export'] = 'Exporter';
+// Les jetons d'export : une porte vers l'extérieur, pas un réglage d'affichage.
+if (module_actif('evenements') && peut_lire('evenements')) {
+    $ptDonneesSections['synchronisation'] = 'Synchronisation';
+}
 if (peut_ecrire('coeur')) {
     $ptDonneesSections['dev'] = 'Incohérences';
 }
@@ -84,9 +96,8 @@ $ptIcones = [
     'application' => 'settings',
     'employeur'   => 'building',
     'emails'      => 'mail',
-    'taux'        => 'percent',
+    'valeurs'     => 'percent',
     'categories'  => 'blocks',
-    'evenements'  => 'calendar',
     'donnees'     => 'import',
 ];
 

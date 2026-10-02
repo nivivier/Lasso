@@ -14,6 +14,16 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Booking »**, du nom de son module : la fiche porte aussi les campagnes de
   recherche de fonds, juste en dessous, et deux cartes nommées « Campagnes » sur
   le même écran ne disaient plus laquelle était laquelle.
+- **Les Paramètres se rangent autrement.** L'onglet « Taux » devient
+  **« Valeurs et libellés »** — il ne porte pas que des pourcentages : une ligne
+  de décompte y a son intitulé, et les réglages des événements y posent le terme
+  qui désigne un projet dans toute l'interface. Ces réglages, justement, quittent
+  leur onglet à eux pour le rejoindre.
+- **Les jetons d'export ont leur page, « Synchronisation »**, sous l'onglet
+  « Données » : le lien public des dates et le calendrier de l'équipe ne sont
+  pas des réglages d'affichage, ce sont des portes — on vient y changer une
+  serrure. Régénérer dit maintenant ce qui vient d'être cassé plutôt qu'un
+  « enregistré » de politesse.
 - **Le numéro de dossier d'une demande de subvention disparaît** : personne ne
   s'en servait. Le bailleur et la campagne suffisent à désigner un dossier, et
   un champ vide sur chaque ligne en disait plus long sur ce qu'on ne faisait pas

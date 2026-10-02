@@ -1466,25 +1466,19 @@ function route_evenements_reglages(): void
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
-        if (isset($_POST['regenerer_token'])) {
-            evenements_regenerer_token();
-        } elseif (isset($_POST['regenerer_token_equipe'])) {
-            evenements_equipe_regenerer_token();
-        } else {
-            $delai = max(1, (int) ($_POST['suisa_delai_decompte_mois'] ?? 12));
-            $delaiAbandon = max(1, (int) ($_POST['suisa_delai_abandon_mois'] ?? 60));
-            $lienTexteDefaut = trim($_POST['evenements_lien_texte_defaut'] ?? '');
-            // Les deux formes du terme, saisies à part : voir
-            // evenements_terme_projet() pour le pourquoi.
-            $termeProjet = trim($_POST['evenements_terme_projet'] ?? '');
-            $termeProjetSingulier = trim($_POST['evenements_terme_projet_singulier'] ?? '');
-            $ins = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
-            $ins->execute(['suisa_delai_decompte_mois', (string) $delai]);
-            $ins->execute(['suisa_delai_abandon_mois', (string) $delaiAbandon]);
-            $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
-            $ins->execute(['evenements_terme_projet', $termeProjet]);
-            $ins->execute(['evenements_terme_projet_singulier', $termeProjetSingulier]);
-        }
+        $delai = max(1, (int) ($_POST['suisa_delai_decompte_mois'] ?? 12));
+        $delaiAbandon = max(1, (int) ($_POST['suisa_delai_abandon_mois'] ?? 60));
+        $lienTexteDefaut = trim($_POST['evenements_lien_texte_defaut'] ?? '');
+        // Les deux formes du terme, saisies à part : voir
+        // evenements_terme_projet() pour le pourquoi.
+        $termeProjet = trim($_POST['evenements_terme_projet'] ?? '');
+        $termeProjetSingulier = trim($_POST['evenements_terme_projet_singulier'] ?? '');
+        $ins = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+        $ins->execute(['suisa_delai_decompte_mois', (string) $delai]);
+        $ins->execute(['suisa_delai_abandon_mois', (string) $delaiAbandon]);
+        $ins->execute(['evenements_lien_texte_defaut', $lienTexteDefaut]);
+        $ins->execute(['evenements_terme_projet', $termeProjet]);
+        $ins->execute(['evenements_terme_projet_singulier', $termeProjetSingulier]);
         redirect('evenements_reglages', ['ok' => 1]);
     }
 
@@ -1496,6 +1490,32 @@ function route_evenements_reglages(): void
         'termeProjetSingulier' => evenements_terme_projet(false),
         'saved' => $_GET['ok'] ?? null,
     ], 'Paramètres — Événements');
+}
+
+// Les deux jetons qui ouvrent l'application vers l'extérieur — le lien public
+// des dates, et le calendrier de l'équipe qui montre tout. Sous « Données » et
+// non sous les réglages des événements : on ne vient pas y régler un
+// affichage, on vient changer une serrure.
+//
+// Régénérer est irréversible et coupe ce qui était abonné : d'où une
+// confirmation sur chaque bouton, et un message qui dit ce qui vient d'être
+// cassé plutôt qu'un « enregistré » de politesse.
+function route_synchronisation(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        require_ecriture('evenements');
+        if (isset($_POST['regenerer_token_equipe'])) {
+            evenements_equipe_regenerer_token();
+            redirect('synchronisation', ['ok' => 'equipe']);
+        }
+        evenements_regenerer_token();
+        redirect('synchronisation', ['ok' => 'public']);
+    }
+    render('synchronisation', [
+        'regenere' => $_GET['ok'] ?? null,
+    ], 'Synchronisation');
 }
 
 // --- Export public (JSON / iCal) — sans session, protégé par jeton -----------

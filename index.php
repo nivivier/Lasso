@@ -275,6 +275,7 @@ ajouter_routes_module($handlers, $routeModules, 'evenements', [
     'projet_supprimer'   => 'route_projet_supprimer',
     'projet_icone'    => 'route_projet_icone',
     'evenements_reglages' => 'route_evenements_reglages',
+    'synchronisation'    => 'route_synchronisation',
     'evenements_importer'  => 'route_evenements_importer',
 ]);
 // Export public (site web / agenda externe) : protégé par un jeton dédié
