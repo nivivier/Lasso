@@ -262,7 +262,7 @@ function route_fonds_demande_enregistrer(): void
     db()->prepare(
         'UPDATE fonds_demandes SET statut = ?, montant_demande = ?, montant_accorde = ?,
                 date_limite = ?, date_depot = ?, date_reponse = ?,
-                date_limite_bilan = ?, date_bilan = ?, reference = ?, pieces_autres = ?, notes = ?
+                date_limite_bilan = ?, date_bilan = ?, pieces_autres = ?, notes = ?
           WHERE id = ?'
     )->execute([
         $decision,
@@ -273,7 +273,6 @@ function route_fonds_demande_enregistrer(): void
         campagne_date((string) ($_POST['date_reponse'] ?? '')),
         campagne_date((string) ($_POST['date_limite_bilan'] ?? '')),
         campagne_date((string) ($_POST['date_bilan'] ?? '')),
-        trim((string) ($_POST['reference'] ?? '')),
         trim((string) ($_POST['pieces_autres'] ?? '')),
         trim((string) ($_POST['notes'] ?? '')),
         $id,

@@ -83,7 +83,6 @@ ce que l'association appelle un projet.
 | `date_bilan` | quand il a été transmis |
 | `pieces_autres` | les pièces hors catalogue réclamées pour CETTE demande (texte libre) |
 | `facture_id` | FK nullable → `factures` : certains bailleurs veulent une facture (§ 3 ter) |
-| `reference` | numéro de dossier chez le bailleur |
 | `notes`, `cree_le` | |
 
 **Une demande par (campagne, bailleur)**, garanti par un index unique : deux

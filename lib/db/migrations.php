@@ -120,6 +120,7 @@ function run_migrations(PDO $pdo): void
         92 => 'migration_92', // module « Recherche de fonds » : campagnes, demandes, versements, pièces exigées
         93 => 'migration_93', // recherche de fonds : deux paliers d'objectif (minimal, idéal) au lieu d'un budget unique
         94 => 'migration_94', // « spectacle » devient « projet » : tables, colonnes, index, et le terme réglable scindé en singulier/pluriel
+        95 => 'migration_95', // recherche de fonds : retrait du numéro de dossier (jamais utilisé)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3075,5 +3076,22 @@ function migration_94(PDO $pdo): void
     } catch (\Throwable $e) {
         $pdo->rollBack();
         throw $e;
+    }
+}
+
+// Le numéro de dossier d'une demande de subvention : retiré, personne ne s'en
+// servait. Le bailleur et la campagne suffisent à désigner un dossier, et un
+// champ vide sur chaque ligne en dit plus long sur ce qu'on n'a pas fait que
+// sur ce qu'on suit.
+//
+// DROP COLUMN en best-effort : il exige SQLite >= 3.35 et l'hébergeur est en
+// 3.34 (docs/DECISIONS.md § Le SQLite d'un hébergement mutualisé). Si le
+// retrait échoue, la colonne reste en base, inerte — plus aucun code ne la lit
+// ni ne l'écrit, et son DEFAULT suffit aux INSERT qui ne la nomment pas.
+function migration_95(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(fonds_demandes)')->fetchAll(), 'name');
+    if (in_array('reference', $cols, true)) {
+        try { $pdo->exec('ALTER TABLE fonds_demandes DROP COLUMN reference'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
     }
 }

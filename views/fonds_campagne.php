@@ -133,13 +133,6 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
             <tr>
                 <td class="dash-nom">
                     <a class="titre-lien" href="?p=structure&id=<?= (int) $d['structure_id'] ?>&depuis=fonds"><?= e((string) $d['structure_nom']) ?></a>
-                    <?php if (trim((string) $d['reference']) !== ''): ?>
-                        <div class="muted small fonds-disp"><?= e((string) $d['reference']) ?></div>
-                    <?php endif; ?>
-                    <?php if ($peutEcrire): ?>
-                    <input form="<?= e($formId) ?>" name="reference" class="fonds-editable" hidden
-                           value="<?= e((string) $d['reference']) ?>" placeholder="N° de dossier" aria-label="Numéro de dossier">
-                    <?php endif; ?>
                 </td>
                 <td class="small nowrap">
                     <span class="fonds-disp"><?= $jour($d['date_limite']) !== '' ? e($jour($d['date_limite'])) : '—' ?></span>

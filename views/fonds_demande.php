@@ -55,7 +55,6 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
             <tr><th>Réponse le</th><td><?= $jour($d['date_reponse']) !== '' ? e($jour($d['date_reponse'])) : '<span class="muted">—</span>' ?></td></tr>
             <tr><th>Bilan dû le</th><td><?= $jour($d['date_limite_bilan']) !== '' ? e($jour($d['date_limite_bilan'])) : '<span class="muted">—</span>' ?></td></tr>
             <tr><th>Bilan transmis le</th><td><?= $jour($d['date_bilan']) !== '' ? e($jour($d['date_bilan'])) : '<span class="muted">—</span>' ?></td></tr>
-            <tr><th>N° de dossier</th><td><?= trim((string) $d['reference']) !== '' ? e((string) $d['reference']) : '<span class="muted">—</span>' ?></td></tr>
             <?php if (trim((string) $d['pieces_autres']) !== ''): ?>
             <tr><th>Pièces demandées cette fois</th><td><?= e((string) $d['pieces_autres']) ?></td></tr>
             <?php endif; ?>
@@ -95,12 +94,11 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
             <label>Déposée le <input type="date" name="date_depot" value="<?= $champ('date_depot') ?>"></label>
             <label>Réponse le <input type="date" name="date_reponse" value="<?= $champ('date_reponse') ?>"></label>
         </div>
-        <div class="grid3 mt-16">
+        <div class="grid2 mt-16">
             <label><span>Bilan dû le <?= info_tip(
                 "La seconde échéance, celle qu'on oublie une fois l'argent reçu. Renseignée, elle fait apparaître le dossier dans les bilans dus."
             ) ?></span><input type="date" name="date_limite_bilan" value="<?= $champ('date_limite_bilan') ?>"></label>
             <label>Bilan transmis le <input type="date" name="date_bilan" value="<?= $champ('date_bilan') ?>"></label>
-            <label>N° de dossier <input name="reference" value="<?= $champ('reference') ?>"></label>
         </div>
         <?php // La décision seule se pose à la main : tout le reste de l'état se
               // lit dans les dates et les montants (fonds_demande_statut()). ?>
