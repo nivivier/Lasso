@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.4] — 2026-10-04
+
 ### Modifié
 - **Lettrer une écriture ne recharge plus la page.** Choisir une catégorie sur
   sa ligne réécrit la seule cellule, comme le fait déjà l'axe analytique juste
