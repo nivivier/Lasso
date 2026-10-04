@@ -9,6 +9,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Lettrer une écriture ne recharge plus la page.** Choisir une catégorie sur
+  sa ligne réécrit la seule cellule, comme le fait déjà l'axe analytique juste
+  à côté. Sous un entonnoir « à lettrer », la ligne quitte la liste, puisqu'elle
+  n'y répond plus. L'action groupée, elle, garde son rechargement et son bandeau
+  « Annuler » : c'est là qu'on ne voit pas ce qui a changé.
+
 ## [3.0.3] — 2026-10-03
 
 ### Corrigé

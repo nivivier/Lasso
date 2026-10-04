@@ -88,6 +88,21 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 };
 ?>
 <?php $actionUrl = '?p=compta_ecritures'; require __DIR__ . '/_bulk_undo_flash.php'; ?>
+
+<?php // Le gabarit de la cellule de lecture d'une catégorie. Une écriture
+      // jamais lettrée n'en a pas — elle n'affiche que son champ, pour qu'on
+      // puisse la lettrer d'un clic sans passer par un crayon. Quand elle
+      // reçoit sa catégorie sans recharger la page, c'est d'ici que sa cellule
+      // de lecture est tirée : le balisage reste écrit une fois.
+      // Hors de la boucle : un gabarit par page, pas un par ligne. ?>
+<?php if (peut_ecrire('compta')): ?>
+<template id="tpl-cat-disp">
+    <div class="row-field-disp">
+        <span class="row-field-txt"><span class="row-field-prefix"></span><span class="row-field-leaf"></span></span>
+        <button type="button" class="row-edit-btn" title="Modifier" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
+    </div>
+</template>
+<?php endif; ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
@@ -389,7 +404,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
                     <?php if ($rowCatVal !== ''): ?>
                     <div class="row-field-disp">
-                        <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?><span><?= e($rowCatLeaf) ?></span></span>
+                        <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?><span class="row-field-leaf"><?= e($rowCatLeaf) ?></span></span>
                         <button type="button" class="row-edit-btn" title="Modifier" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
                     </div>
                     <div class="row-field-inp" hidden>
@@ -587,6 +602,81 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         });
     });
 
+    // Les valeurs de l'entonnoir « Catégorie » en cours : une ligne qui cesse
+    // d'y répondre n'a plus sa place dans la liste affichée, et la laisser là
+    // ferait mentir le filtre. Seuls les deux états — « à lettrer », « ne pas
+    // lettrer » — sont traités : un filtre sur une catégorie précise porte
+    // aussi sur ses descendants, que le navigateur ne connaît pas, et la ligne
+    // y reste alors avec sa nouvelle valeur, ce qui ne ment sur rien.
+    const CAT_FILTRE = <?= json_encode(array_values((array) $categorieFilter), JSON_UNESCAPED_UNICODE) ?>;
+    const tplDisp = document.getElementById('tpl-cat-disp');
+
+    // Réécrit la cellule après un enregistrement : le libellé choisi, l'état de
+    // la ligne, et son retrait si elle sort du filtre. Rien n'est reconstruit
+    // qui puisse l'être — on déplace et on renseigne.
+    function majCellule(form, li) {
+        const val = li.dataset.val;
+        const prefixe = val !== '' ? (li.dataset.prefix || '') : '';
+        const feuille = val !== '' ? (li.dataset.leaf || '') : '';
+        let disp = form.querySelector('.row-field-disp');
+        let inp  = form.querySelector('.row-field-inp');
+        if (val === '') {
+            // Délettrée : retour au champ nu, celui d'une ligne jamais lettrée.
+            if (disp) { disp.remove(); }
+            if (inp) { inp.replaceWith(inp.querySelector('.row-cat-input')); }
+            const champ = form.querySelector('.row-cat-input');
+            if (champ) { champ.value = ''; }
+        } else {
+            if (!disp) {
+                // Première catégorie de cette ligne : elle se dote de sa cellule
+                // de lecture, et son champ passe derrière (gabarit ci-dessus).
+                const champ = form.querySelector('.row-cat-input');
+                inp = document.createElement('div');
+                inp.className = 'row-field-inp';
+                inp.hidden = true;
+                const pfx = document.createElement('div');
+                pfx.className = 'cat-prefix';
+                inp.appendChild(pfx);
+                champ.replaceWith(inp);
+                inp.appendChild(champ);
+                disp = tplDisp.content.firstElementChild.cloneNode(true);
+                form.insertBefore(disp, inp);
+            }
+            disp.querySelector('.row-field-prefix').textContent = prefixe;
+            disp.querySelector('.row-field-leaf').textContent = feuille;
+            const pfx = inp.querySelector('.cat-prefix');
+            if (pfx) { pfx.textContent = prefixe; }
+            disp.hidden = false;
+            inp.hidden = true;
+        }
+        // L'état de la ligne : il porte sa couleur de fond (non lettrée,
+        // « ne pas lettrer »).
+        const tr = form.closest('tr');
+        tr.classList.toggle('non-lettre', val === '');
+        tr.classList.toggle('ecr-ignore', val === 'ignore');
+        const etat = val === '' ? 'a_lettrer' : (val === 'ignore' ? 'ignore' : 'categorie');
+        const filtreEtat = CAT_FILTRE.filter(v => v === 'a_lettrer' || v === 'ignore');
+        if (filtreEtat.length && !filtreEtat.includes(etat)) {
+            tr.remove();
+        }
+    }
+
+    async function enregistrerCategorie(form, li) {
+        const fd = new FormData(form);
+        fd.append('retour', 'json');
+        try {
+            const data = await fetch('?p=compta_ecritures', { method: 'POST', body: fd }).then(r => r.json());
+            if (!data || !data.ok) { form.submit(); return; }
+        } catch (_) {
+            // Repli : l'envoi classique du formulaire, qui rechargera la page et
+            // montrera l'état réel plutôt que de laisser une cellule réécrite à
+            // l'écran et rien en base (docs/UI.md § 4).
+            form.submit();
+            return;
+        }
+        majCellule(form, li);
+    }
+
     items.forEach(li => {
         li.addEventListener('mousedown', e => {
             e.preventDefault();
@@ -594,7 +684,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             activeHidden.value = li.dataset.val;
             applyLeaf(li);
             list.hidden = true;
-            activeForm.submit();
+            // Le formulaire est capté MAINTENANT : le blur qui suit remet
+            // activeForm à null avant que la requête ne revienne.
+            enregistrerCategorie(activeForm, li);
         });
     });
 

@@ -710,6 +710,23 @@ function route_compta_ecritures(): void
                     $retour['bulk'] = count($ids);
                 }
             }
+            // Lettrage d'UNE ligne depuis sa cellule : la page ne se recharge
+            // pas, seule la cellule se réécrit — même convention que l'axe
+            // analytique juste à côté, et que les cellules de campagne d'une
+            // liste de structures. Le client connaît déjà le libellé qu'il
+            // vient de choisir, il le lit sur l'option : il n'y a rien à lui
+            // renvoyer qu'un accusé de réception.
+            //
+            // Le bandeau « Annuler » ne paraît pas pour ce geste-là. Il est
+            // fait pour une action de masse, dont on ne voit pas ce qu'elle a
+            // changé ; ici la cellule est sous les yeux et se rouvre d'un clic,
+            // ce qui est l'annulation la plus courte. L'action groupée, elle,
+            // garde son rechargement et son bandeau.
+            if (($_POST['retour'] ?? '') === 'json') {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                return;
+            }
             redirect('compta_ecritures', $retour);
         } elseif ($section === 'axer') {
             // Affectation d'un axe analytique (une ou plusieurs écritures) — remplace toutes
