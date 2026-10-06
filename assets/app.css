@@ -1602,16 +1602,33 @@ select:disabled { cursor: not-allowed; }
 .suggestion-table tfoot tr:last-child td { font-weight: bold; }
 
 /* Panneau de ventilation multi-axe (flottant, positionné par JS) */
-.axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 300px; }
-.axe-panel-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
-.axe-panel-row .vent-axe { flex: 1; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
-.axe-panel-row .vent-mont { width: 90px; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: right; }
+.axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 340px; }
+/* Grille et non flex, avec des pistes nommées : la règle globale des champs
+   (« input:not([type=checkbox])… , select, textarea ») impose width:100% à une
+   spécificité de (0,2,1), au-dessus du (0,2,0) d'un « .axe-panel-row .vent-mont ».
+   En flex, le montant réclamait donc toute la ligne et l'axe se réduisait à
+   seize pixels : on ne lisait plus ce qu'on avait choisi. La grille fixe la
+   part de chacun avant que les champs n'aient leur mot à dire ; le width:100%
+   qu'ils reçoivent les fait alors remplir LEUR piste, ce qui est exactement ce
+   qu'on veut. */
+.axe-panel-row { display: grid; grid-template-columns: minmax(0, 1fr) 104px auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+.axe-panel-row .vent-axe { min-width: 0; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.axe-panel-row .vent-mont { min-width: 0; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: right; }
 .axe-panel-row .vent-axe:focus,
 .axe-panel-row .vent-mont:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 .axe-panel-row .vent-del { flex-shrink: 0; color: var(--muted); background: none; border: none; cursor: pointer; padding: 3px; border-radius: var(--radius-sm); display: flex; align-items: center; }
 .axe-panel-row .vent-del:hover { color: var(--danger); background: var(--danger-tint); }
 .axe-panel-row .vent-del .ico { width: 14px; height: 14px; }
 .axe-panel-total { font-size: var(--fs-small); color: var(--muted); margin: 4px 0 10px; }
+/* Ce qu'il RESTE à répartir, à côté de ce qui l'est déjà : c'est le chiffre
+   qu'on cherche en ventilant, et une soustraction de tête à chaque ligne saisie
+   est exactement ce qu'un écran doit épargner. Ambre tant qu'il reste un geste
+   à faire — la règle de docs/UI.md § 13 —, rouge quand on a dépassé le montant
+   de l'écriture, teal quand tout est placé. */
+.axe-panel-reste { font-weight: 600; }
+.axe-panel-reste.est-reste { color: var(--amber); }
+.axe-panel-reste.est-trop { color: var(--danger); }
+.axe-panel-reste.est-complet { color: var(--ok); }
 .axe-panel-btns { display: flex; gap: 6px; }
 /* Grille 2 colonnes pour la section catégorie+axe dans le formulaire manuel */
 .grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

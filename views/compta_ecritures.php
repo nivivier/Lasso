@@ -467,7 +467,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <?php if ($axes): ?>
 <div id="axe-panel" class="axe-panel" hidden aria-label="Ventilation analytique">
     <div id="axe-panel-rows"></div>
-    <div class="axe-panel-total"><span id="axe-panel-sum">0.00</span> / <span id="axe-panel-ref"></span> CHF</div>
+    <?php // Ce qui est réparti, et surtout ce qu'il RESTE à répartir : c'est le
+          // chiffre qu'on cherche en ventilant, et le calculer de tête à chaque
+          // ligne saisie est le genre de peine qu'un écran doit s'épargner. ?>
+    <div class="axe-panel-total">
+        <span id="axe-panel-sum">0.00</span> / <span id="axe-panel-ref"></span> CHF
+        <span id="axe-panel-reste" class="axe-panel-reste"></span>
+    </div>
     <div class="axe-panel-btns">
         <button type="button" id="axe-panel-add" class="btn ghost btn-sm"><?= icon('plus') ?> Ajouter</button>
         <button type="button" id="axe-panel-save" class="btn btn-sm"><?= icon('check') ?> Enregistrer</button>
@@ -703,6 +709,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     const rowsEl    = document.getElementById('axe-panel-rows');
     const sumEl     = document.getElementById('axe-panel-sum');
     const refEl     = document.getElementById('axe-panel-ref');
+    const resteEl   = document.getElementById('axe-panel-reste');
     const addBtn    = document.getElementById('axe-panel-add');
     const saveBtn   = document.getElementById('axe-panel-save');
     const cancelBtn = document.getElementById('axe-panel-cancel');
@@ -838,8 +845,20 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         const total = Array.from(rowsEl.querySelectorAll('.vent-mont'))
             .reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
         sumEl.textContent = total.toFixed(2);
-        const ref = parseFloat(currentCell?.dataset.ecrMontant || 0);
-        sumEl.style.color = Math.abs(Math.abs(total) - Math.abs(ref)) < 0.005 ? '' : 'var(--amber)';
+        const ref = Math.abs(parseFloat(currentCell?.dataset.ecrMontant || 0));
+        // Le reste porte seul la couleur : la somme la portait aussi, et deux
+        // chiffres teintés pour une même information en disaient une de trop.
+        const reste = Math.round((ref - Math.abs(total)) * 100) / 100;
+        if (Math.abs(reste) < 0.005) {
+            resteEl.textContent = '· tout est réparti';
+            resteEl.className = 'axe-panel-reste est-complet';
+        } else if (reste > 0) {
+            resteEl.textContent = '· reste ' + reste.toFixed(2) + ' à répartir';
+            resteEl.className = 'axe-panel-reste est-reste';
+        } else {
+            resteEl.textContent = '· ' + Math.abs(reste).toFixed(2) + ' de trop';
+            resteEl.className = 'axe-panel-reste est-trop';
+        }
     }
 
     function openPanel(cell, addNew) {

@@ -9,6 +9,18 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **Le panneau de ventilation analytique laisse voir l'axe choisi.** Le champ du
+  montant prenait toute la ligne et le menu de l'axe tombait à seize pixels : on
+  ne lisait plus ce qu'on venait de sélectionner, dès le deuxième axe.
+
+### Modifié
+- **Le panneau de ventilation dit ce qu'il reste à répartir**, et plus seulement
+  ce qui l'est déjà : « 1.25 / 5.00 CHF · reste 3.75 à répartir », en ambre tant
+  qu'il manque quelque chose, en rouge si l'on a dépassé, en teal quand tout est
+  placé. C'est le chiffre qu'on cherche en ventilant, et le calculer de tête à
+  chaque ligne saisie était une peine inutile.
+
 ## [3.0.4] — 2026-10-04
 
 ### Modifié
