@@ -20,11 +20,17 @@ $catSearchable = function ($selected, bool $editable = true) use ($feuilles): st
         return '<div class="cat-search"><input type="text" class="cat-search-input" value="' . e($lib) . '" disabled></div>';
     }
     $items = '';
+    $lib   = '';
     foreach ($feuilles as $f) {
+        if ((int) $f['id'] === (int) $sel) { $lib = (string) $f['chemin']; }
         $items .= '<li data-val="' . (int) $f['id'] . '">' . e($f['chemin']) . '</li>';
     }
-    return '<div class="cat-search" data-cat-search data-hydrater data-texte-vide>'
-         . '<input type="text" class="cat-search-input" placeholder="Chercher une catégorie…" autocomplete="off">'
+    // Le libellé est écrit ICI et non rempli au chargement par data-hydrater :
+    // « Annuler » réinitialise le formulaire de la carte, et un champ sans
+    // valeur par défaut se vide alors — la catégorie disparaissait de l'écran
+    // alors qu'elle était toujours enregistrée.
+    return '<div class="cat-search" data-cat-search data-texte-vide>'
+         . '<input type="text" class="cat-search-input" value="' . e($lib) . '" placeholder="Chercher une catégorie…" autocomplete="off">'
          . '<input type="hidden" name="plan_compte_id" class="cat-search-val" value="' . e($sel) . '">'
          . '<ul class="cat-search-list" hidden role="listbox">' . $items . '</ul>'
          . '</div>';
@@ -74,7 +80,36 @@ $condRow = function (array $cond): string {
          . '</div>';
 };
 
+// La même condition, dite en toutes lettres : c'est ce que la règle montre au
+// repos. Les trois types de $condRow() ci-dessus, en texte plutôt qu'en champs.
+$condTexte = function (array $cond): string {
+    $type   = $cond['type']   ?? 'texte';
+    $op     = $cond['op']     ?? 'contient';
+    $valeur = (string) ($cond['valeur'] ?? '');
+    if (in_array($type, ['montant_min', 'montant_max', 'montant_exact'], true)) {
+        $op   = match ($type) { 'montant_max' => '<=', 'montant_exact' => '=', default => '>=' };
+        $type = 'montant';
+    }
+    if ($type === 'sens') {
+        return $valeur === 'debit' ? 'sens débit' : 'sens crédit';
+    }
+    if ($type === 'montant') {
+        $sym = ['>=' => '≥', '<=' => '≤', '=' => '='][$op] ?? '≥';
+        return 'montant ' . $sym . ' ' . chf((float) $valeur);
+    }
+    $mots = ['contient' => 'contient', 'commence' => 'commence par', 'exact' => 'est exactement'];
+    return 'texte ' . ($mots[$op] ?? 'contient') . ' « ' . $valeur . ' »';
+};
+
 $condVide  = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
+// Le libellé d'un compte et le chemin d'une catégorie, par identifiant : la
+// ligne de lecture les nomme, là où le formulaire se contentait de les
+// présélectionner dans ses menus.
+$compteLibelles = [];
+foreach ($comptes as $c) { $compteLibelles[(int) $c['id']] = (string) $c['libelle']; }
+$cheminsCat = [];
+foreach ($feuilles as $f) { $cheminsCat[(int) $f['id']] = (string) $f['chemin']; }
+
 $ouvrirNew = $prefillMotif !== '' || $prefillCompte !== null || isset($_GET['new']);
 $peutEcrireRegles = peut_ecrire('compta');
 ?>
@@ -177,25 +212,61 @@ $peutEcrireRegles = peut_ecrire('compta');
         $imp     = (int) ($impacts[$rid] ?? 0);
         $nbConds = count($r['conditions']);
     ?>
-    <div class="regle-card <?= $actif ? '' : 'regle-inactive' ?>">
+    <?php
+        // La règle dite en une phrase : le compte, ses conditions reliées par
+        // son ET/OU, et la catégorie qu'elle pose. C'est ce qu'on lit en
+        // parcourant la liste ; les champs n'apparaissent qu'au crayon.
+        $compteLib = $r['compte_bancaire_id'] === null
+            ? 'Tous les comptes'
+            : ($compteLibelles[(int) $r['compte_bancaire_id']] ?? 'Compte supprimé');
+        $condsTexte = implode(
+            ' ' . (($r['operateur'] ?? 'ET') === 'OU' ? 'ou' : 'et') . ' ',
+            array_map($condTexte, $r['conditions'])
+        );
+        $catLib = $cheminsCat[(int) $r['plan_compte_id']] ?? '';
+    ?>
+    <div class="regle-card card-editable <?= $actif ? '' : 'regle-inactive' ?>">
         <form method="post" action="?p=compta_regles">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= $rid ?>">
             <input type="hidden" name="section" value="edit">
-            <div class="regle-head">
-                <!-- Toggle actif/inactif -->
+            <?php // La rangée du haut reste visible dans les deux états : elle
+                  // porte l'interrupteur, les flèches et le crayon. Seul le
+                  // RÉSUMÉ (.card-disp) cède la place aux champs (.card-edit),
+                  // par la bascule générique des cartes (assets/app.js). ?>
+            <div class="regle-rangee">
                 <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
                     <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?> <?= $peutEcrireRegles ? '' : 'disabled' ?>
                            class="regle-actif-cb" data-submit-on-change>
                     <span class="regle-toggle-pill"></span>
                 </label>
                 <?php if ($peutEcrireRegles): ?>
-                <!-- Flèches de réordonnancement -->
                 <div class="regle-arrows">
                     <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter" aria-label="Monter"><?= icon('chevron-up') ?></button>
                     <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
                 </div>
                 <?php endif; ?>
+                <div class="card-disp regle-disp">
+                    <span class="regle-disp-compte"><?= e($compteLib) ?></span>
+                    <span class="regle-disp-conds"><?= $condsTexte !== '' ? e($condsTexte) : '<span class="warn-txt">aucune condition</span>' ?></span>
+                    <span class="regle-disp-fleche" aria-hidden="true">→</span>
+                    <span class="regle-disp-cat"><?= $catLib !== '' ? e($catLib) : '<span class="warn-txt">aucune catégorie</span>' ?></span>
+                </div>
+                <span class="flex-spacer"></span>
+                <?php if ($actif): ?>
+                    <?php if ($imp > 0): ?>
+                        <span class="badge" title="Écritures non lettrées que cette règle attraperait">Touche : <?= $imp ?></span>
+                    <?php else: ?>
+                        <span class="muted small">Touche : 0</span>
+                    <?php endif; ?>
+                <?php endif; ?>
+                <?php if ($peutEcrireRegles): ?>
+                <span class="test-result muted small"></span>
+                <?= carte_actions_html(['petit' => true, 'quoi' => 'cette règle']) ?>
+                <?php endif; ?>
+            </div>
+            <div class="card-edit regle-edit" hidden>
+            <div class="regle-head">
                 <!-- Compte -->
                 <div class="regle-cond-ctrl">
                     <span class="regle-sub">Compte</span>
@@ -212,19 +283,12 @@ $peutEcrireRegles = peut_ecrire('compta');
                         </select>
                     </div>
                 </div>
-                <!-- Spacer + boutons -->
+                <?php // « Tester » et « Supprimer » n'ont de sens qu'une règle
+                      // ouverte : enregistrer et annuler sont au crayon, en haut
+                      // (carte_actions_html()), comme sur toutes les cartes. ?>
                 <span class="flex-spacer"></span>
-                <?php if ($actif): ?>
-                    <?php if ($imp > 0): ?>
-                        <span class="badge" title="Écritures non lettrées que cette règle attraperait">Touche : <?= $imp ?></span>
-                    <?php else: ?>
-                        <span class="muted small">Touche : 0</span>
-                    <?php endif; ?>
-                <?php endif; ?>
                 <?php if ($peutEcrireRegles): ?>
-                <span class="test-result muted small"></span>
                 <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
-                <button type="submit" name="section" value="edit" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
                 <button type="submit" name="section" value="del" class="btn danger btn-sm icon-only"
                         title="Supprimer" aria-label="Supprimer cette règle"
                         data-confirm="Supprimer cette règle ?"><?= icon('trash') ?></button>
@@ -240,6 +304,7 @@ $peutEcrireRegles = peut_ecrire('compta');
             </div>
             <div class="regle-cat">
                 <label class="regle-label grow">Catégorie cible<?= $catSearchable((int) $r['plan_compte_id'], $peutEcrireRegles) ?></label>
+            </div>
             </div>
         </form>
     </div>

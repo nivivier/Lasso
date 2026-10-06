@@ -4121,6 +4121,24 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .regle-card.regle-new { background: var(--primary-tint); border-color: #d4c8f8; }
 .regle-card.regle-inactive { opacity: .55; }
 .regle-card.hidden { display: none; }
+/* La rangée du haut d'une règle : elle reste en place dans les deux états, et
+   c'est le RÉSUMÉ qu'elle porte qui cède la place aux champs. Sans cela, le
+   crayon et l'interrupteur disparaîtraient avec la lecture. */
+.regle-rangee { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.regle-rangee .flex-spacer { flex: 1 1 auto; }
+/* La règle dite en une phrase. Le compte et la catégorie à l'encre, les
+   conditions en gris : ce sont les deux bouts qu'on cherche en parcourant une
+   liste de règles — d'où vient l'écriture, où elle va. */
+.regle-disp { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; font-size: var(--fs-small); }
+.regle-disp-compte { color: var(--muted); }
+.regle-disp-conds { color: var(--muted); }
+.regle-disp-fleche { color: var(--muted); }
+.regle-disp-cat { font-weight: 600; color: var(--ink); }
+/* Ce qui manque à une règle pour fonctionner : ni une erreur du moment, ni un
+   geste à faire tout de suite — l'ambre du vocabulaire, sans l'alarme. */
+.regle-disp .warn-txt { color: var(--amber); font-weight: 600; }
+.regle-edit { margin-top: 12px; }
+
 .regle-head { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
 .regle-head .flex-spacer { flex: 1 1 auto; }
 /* Toggle actif/inactif : pill CSS */

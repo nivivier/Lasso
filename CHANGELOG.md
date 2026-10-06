@@ -9,6 +9,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les règles de lettrage se lisent avant de se modifier.** Chaque règle tenait
+  ses menus et ses champs dépliés en permanence ; elle se résume maintenant en
+  une phrase — le compte, ses conditions reliées par son « et »/« ou », la
+  catégorie qu'elle pose —, et le crayon ouvre le formulaire, comme partout
+  ailleurs. L'interrupteur et les flèches restent à portée dans les deux états.
+
 ### Corrigé
 - **Le panneau de ventilation analytique laisse voir l'axe choisi.** Le champ du
   montant prenait toute la ligne et le menu de l'axe tombait à seize pixels : on
