@@ -48,7 +48,11 @@ $condRow = function (array $cond): string {
     }
 
     $typeOpts = '';
-    foreach (['texte' => 'Texte', 'sens' => 'Sens (crédit/débit)', 'montant' => 'Montant'] as $k => $v) {
+    // Les trois champs de texte d'une écriture — libellé, contre-partie,
+    // communication —, puis le sens et le montant. Un relevé camt.053 remplit
+    // les deux derniers séparément du libellé : une contre-partie peut n'y
+    // figurer nulle part (voir regle_match(), lib/compta.php).
+    foreach (['texte' => 'Texte', 'tiers' => 'Contre-partie', 'communication' => 'Communication', 'sens' => 'Sens (crédit/débit)', 'montant' => 'Montant'] as $k => $v) {
         $typeOpts .= '<option value="' . $k . '"' . ($type === $k ? ' selected' : '') . '>' . e($v) . '</option>';
     }
     $opOpts = '';
@@ -60,7 +64,7 @@ $condRow = function (array $cond): string {
         $opNumOpts .= '<option value="' . $k . '"' . ($op === $k ? ' selected' : '') . '>' . e($v) . '</option>';
     }
 
-    $isTexte   = $type === 'texte';
+    $isTexte   = in_array($type, ['texte', 'tiers', 'communication'], true);
     $isSens    = $type === 'sens';
     $isMontant = $type === 'montant';
     $valSens   = in_array($valeur, ['credit', 'debit'], true) ? $valeur : 'credit';
@@ -93,12 +97,13 @@ $condTexte = function (array $cond): string {
     if ($type === 'sens') {
         return $valeur === 'debit' ? 'sens débit' : 'sens crédit';
     }
+    $champs = ['texte' => 'texte', 'tiers' => 'contre-partie', 'communication' => 'communication'];
     if ($type === 'montant') {
         $sym = ['>=' => '≥', '<=' => '≤', '=' => '='][$op] ?? '≥';
         return 'montant ' . $sym . ' ' . chf((float) $valeur);
     }
     $mots = ['contient' => 'contient', 'commence' => 'commence par', 'exact' => 'est exactement'];
-    return 'texte ' . ($mots[$op] ?? 'contient') . ' « ' . $valeur . ' »';
+    return ($champs[$type] ?? 'texte') . ' ' . ($mots[$op] ?? 'contient') . ' « ' . $valeur . ' »';
 };
 
 $condVide  = fn(string $motif = '') => $condRow(['type' => 'texte', 'op' => 'contient', 'valeur' => $motif]);
@@ -319,7 +324,10 @@ $peutEcrireRegles = peut_ecrire('compta');
     function updateCondType(row) {
         const type = row.querySelector('.cond-type').value;
         row.dataset.type = type;
-        row.querySelectorAll('.cond-vis-texte').forEach(el   => el.hidden = (type !== 'texte'));
+        // Les trois types de texte partagent le même champ de valeur et les
+        // mêmes opérateurs : seul le champ fouillé change, côté serveur.
+        const estTexte = ['texte', 'tiers', 'communication'].includes(type);
+        row.querySelectorAll('.cond-vis-texte').forEach(el   => el.hidden = !estTexte);
         row.querySelectorAll('.cond-vis-sens').forEach(el    => el.hidden = (type !== 'sens'));
         row.querySelectorAll('.cond-vis-montant').forEach(el => el.hidden = (type !== 'montant'));
     }

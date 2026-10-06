@@ -592,7 +592,15 @@ function extraire_tiers(string $texte): array
     return ['tiers' => tiers_couper($tiers), 'communication' => $comm];
 }
 
-// Une règle correspond-elle à une écriture ? $ecr a 'texte' et 'montant'.
+// Une règle correspond-elle à une écriture ? $ecr a 'texte' et 'montant', et
+// facultativement 'tiers' et 'communication'.
+//
+// Trois champs de TEXTE et non un seul : un relevé camt.053 livre le nom du
+// donneur d'ordre et le motif de paiement dans des champs structurés, séparés du
+// libellé — c'est même ce qui le distingue d'un CSV. « Séverine Gonzalez » peut
+// donc être la contre-partie d'une écriture dont le libellé n'est que « 2026-10 »,
+// et aucune règle sur le libellé ne l'attrapera jamais.
+//
 // Si $regle contient 'conditions' (nouveau format migration_10), utilise le builder ET/OU.
 // Sinon, rétrocompatibilité avec l'ancien format plat (motif / type_match / sens_filtre / montant_*).
 function regle_match(array $regle, array $ecr): bool
@@ -605,9 +613,17 @@ function regle_match(array $regle, array $ecr): bool
         $operateur = $regle['operateur'] ?? 'ET';
         $montant   = (float) $ecr['montant'];
         $abs       = abs($montant);
-        $texte     = normaliser_texte((string) $ecr['texte']);
+        // Les trois champs cherchables, normalisés une fois pour toutes les
+        // conditions de la règle. Absents d'une écriture (ancien appel, test),
+        // ils valent la chaîne vide — une condition posée dessus ne trouve
+        // alors rien, ce qui est la bonne réponse.
+        $champs = [
+            'texte'         => normaliser_texte((string) ($ecr['texte'] ?? '')),
+            'tiers'         => normaliser_texte((string) ($ecr['tiers'] ?? '')),
+            'communication' => normaliser_texte((string) ($ecr['communication'] ?? '')),
+        ];
 
-        $evalCond = static function (array $cond) use ($montant, $abs, $texte): bool {
+        $evalCond = static function (array $cond) use ($montant, $abs, $champs): bool {
             $type   = $cond['type']   ?? 'texte';
             $op     = $cond['op']     ?? 'contient';
             $valeur = (string) ($cond['valeur'] ?? '');
@@ -622,13 +638,15 @@ function regle_match(array $regle, array $ecr): bool
                 if ($type === 'montant_max') return $abs <= $val + 0.0001;
                 return match ($op) { '>=' => $abs >= $val - 0.0001, '<=' => $abs <= $val + 0.0001, default => abs($abs - $val) < 0.01 };
             }
-            // type texte
+            // Types de texte : libellé, contre-partie, communication. Mêmes
+            // opérateurs pour les trois — ce qui change est le champ fouillé.
             if ($valeur === '') return false;
+            $foin  = $champs[$type] ?? $champs['texte'];
             $motif = normaliser_texte($valeur);
             return match ($op) {
-                'commence' => str_starts_with($texte, $motif),
-                'exact'    => $texte === $motif,
-                default    => str_contains($texte, $motif),
+                'commence' => str_starts_with($foin, $motif),
+                'exact'    => $foin === $motif,
+                default    => str_contains($foin, $motif),
             };
         };
 

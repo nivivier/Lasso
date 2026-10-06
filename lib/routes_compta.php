@@ -82,7 +82,9 @@ function compta_annees(): array
 // $compteId / $annee : filtres optionnels. Renvoie le nombre d'écritures lettrées.
 function compta_lettrer_par_regles(?int $compteId, ?int $annee): int
 {
-    $sql = "SELECT id, compte_bancaire_id, texte, montant FROM ecritures WHERE origine_lettrage NOT IN ('manuel', 'ignore')";
+    // tiers et communication voyagent avec le libellé : une règle peut
+    // désormais porter sur l'un des trois (regle_match(), lib/compta.php).
+    $sql = "SELECT id, compte_bancaire_id, texte, tiers, communication, montant FROM ecritures WHERE origine_lettrage NOT IN ('manuel', 'ignore')";
     $params = [];
     if ($compteId) {
         $sql .= ' AND compte_bancaire_id = ?';
@@ -963,7 +965,10 @@ function route_compta_regles(): void
             $valNum   = $_POST['cond_valeur_num']   ?? [];
             $conds = [];
             foreach ($types as $i => $type) {
-                $type = in_array($type, ['texte', 'sens', 'montant'], true) ? $type : 'texte';
+                // « tiers » et « communication » se saisissent comme « texte »
+                // — mêmes opérateurs, même champ de valeur ; seul le champ
+                // fouillé change (regle_match()).
+                $type = in_array($type, ['texte', 'tiers', 'communication', 'sens', 'montant'], true) ? $type : 'texte';
                 [$valeur, $op] = match ($type) {
                     'sens'    => [in_array($valSens[$i] ?? '', ['credit', 'debit'], true) ? ($valSens[$i] ?? 'credit') : 'credit', '='],
                     'montant' => [
@@ -1066,7 +1071,7 @@ function route_compta_regles(): void
 // Écritures non lettrées (id, compte, texte, montant) — pour l'aperçu d'impact.
 function compta_ecritures_non_lettrees(): array
 {
-    return db()->query("SELECT id, compte_bancaire_id, texte, montant FROM ecritures WHERE plan_compte_id IS NULL AND origine_lettrage <> 'ignore'")->fetchAll();
+    return db()->query("SELECT id, compte_bancaire_id, texte, tiers, communication, montant FROM ecritures WHERE plan_compte_id IS NULL AND origine_lettrage <> 'ignore'")->fetchAll();
 }
 
 // Combien d'écritures (parmi $ecritures) la règle toucherait (scope compte inclus).

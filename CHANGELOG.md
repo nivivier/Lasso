@@ -10,6 +10,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Une règle de lettrage peut porter sur la contre-partie ou la
+  communication**, et plus seulement sur le libellé. Un relevé camt.053 livre le
+  nom du donneur d'ordre et le motif de paiement dans des champs à part : une
+  écriture dont le libellé n'est que « 2026-10 » a bien « Séverine Gonzalez »
+  pour contre-partie, et aucune règle sur le libellé ne pouvait l'attraper.
+  Mêmes opérateurs que le texte — contient, commence par, est exactement.
 - **Un projet peut être mis de côté** (interrupteur sur Événements → Projets).
   Il ne disparaît de nulle part — ses événements, ses campagnes et la liste des
   projets le montrent toujours —, il cesse seulement d'être **proposé par

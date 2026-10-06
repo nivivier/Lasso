@@ -103,7 +103,33 @@ check('montant sous la borne min', false, regle_match($rMontant, ['texte' => 'CR
 check('montant au-dessus de la borne max', false, regle_match($rMontant, ['texte' => 'CRÉDIT LOCAL', 'montant' => 470.0]));
 check('borne min seule sur un débit (|−470| ≥ 100)', true, regle_match(['motif' => 'local', 'montant_min' => 100, 'montant_max' => null], ['texte' => 'DÉBIT LOCAL', 'montant' => -470.0]));
 
-echo "3b) Extraction du tiers / communication (extraire_tiers)\n";
+echo "3a bis) Conditions sur la contre-partie et la communication\n";
+// Le cas qui a motivé ces deux types : un camt.053 livre le nom du donneur
+// d'ordre dans un champ structuré, séparé du libellé. Une écriture dont le
+// texte n'est que « 2026-10 » a bien une contre-partie « Séverine Gonzalez »,
+// qu'aucune règle sur le libellé ne peut attraper.
+$ecrCamt = ['texte' => '2026-10', 'tiers' => 'Séverine Gonzalez', 'communication' => '2026-10 — HoR Frais de booking', 'montant' => -180.0];
+$cond = fn (string $type, string $op, string $val) => ['conditions' => [['type' => $type, 'op' => $op, 'valeur' => $val]], 'operateur' => 'ET'];
+
+check('le libellé ne contient pas la contre-partie', false, regle_match($cond('texte', 'contient', 'Gonzalez'), $ecrCamt));
+check('mais une condition « contre-partie » l\'attrape', true, regle_match($cond('tiers', 'contient', 'Gonzalez'), $ecrCamt));
+check('contre-partie : commence par',  true,  regle_match($cond('tiers', 'commence', 'Séverine'), $ecrCamt));
+check('contre-partie : égal à',        true,  regle_match($cond('tiers', 'exact', 'Séverine Gonzalez'), $ecrCamt));
+check('contre-partie : accents et casse ignorés', true, regle_match($cond('tiers', 'contient', 'SEVERINE'), $ecrCamt));
+check('contre-partie : ce qui ne correspond pas', false, regle_match($cond('tiers', 'contient', 'Martin'), $ecrCamt));
+check('communication attrapée',        true,  regle_match($cond('communication', 'contient', 'Frais de booking'), $ecrCamt));
+check('communication : rien d\'autre', false, regle_match($cond('communication', 'contient', 'loyer'), $ecrCamt));
+// Une écriture sans ces champs — import CSV, ancien appel — ne doit pas faire
+// correspondre une condition posée dessus, ni lever d'erreur.
+check('champ absent : aucune correspondance', false, regle_match($cond('tiers', 'contient', 'Gonzalez'), ['texte' => '2026-10', 'montant' => -180.0]));
+// Les trois champs se combinent comme les autres conditions.
+$combi = ['conditions' => [
+    ['type' => 'tiers', 'op' => 'contient', 'valeur' => 'Gonzalez'],
+    ['type' => 'montant', 'op' => '>=', 'valeur' => '100'],
+], 'operateur' => 'ET'];
+check('contre-partie ET montant', true, regle_match($combi, $ecrCamt));
+
+echo "\n3b) Extraction du tiers / communication (extraire_tiers)\n";
 $ex = fn($t) => extraire_tiers($t);
 $e1 = $ex("CRÉDIT CH5604835012345678009 EXPÉDITEUR: MARTIN PIERRE RUE DES ACACIAS 12 1227 CAROUGE COMMUNICATIONS: LOCAL");
 check('expéditeur → tiers', 'MARTIN PIERRE', $e1['tiers']);
