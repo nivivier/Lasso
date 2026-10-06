@@ -578,9 +578,37 @@ function projets_pour_selection(?array $map = null): array
         if (!plan_est_feuille($id, $map)) {
             continue;
         }
-        $out[] = ['id' => $id, 'nom' => projet_chemin($id, $map)];
+        // « actif » accompagne chaque projet au lieu de le retirer de la liste :
+        // l'écran les rend TOUS et la case « Actifs seulement » choisit ce qu'on
+        // en voit (lassoInitProjetsActifs(), assets/app.js). Les filtrer ici
+        // aurait fait disparaître d'un formulaire le projet déjà choisi, et
+        // l'enregistrement l'aurait perdu sans rien dire.
+        $out[] = ['id' => $id, 'nom' => projet_chemin($id, $map), 'actif' => (int) ($r['actif'] ?? 1) === 1];
     }
     return $out;
+}
+
+// L'intitulé d'un sélecteur de projet, avec sa case « Actifs seulement » à
+// droite. Rendu ici et non recopié : trois sélecteurs le portent — la création
+// et la modification d'un événement, les projets financés par une campagne de
+// recherche de fonds — et une case qui ne dirait pas la même chose d'un écran à
+// l'autre serait pire que pas de case du tout.
+//
+// Un <div> et non un <label> : la case est elle-même un label, et deux labels
+// imbriqués ne sont pas du HTML valide. D'où $pourId, qui rattache l'intitulé
+// au champ qu'il nomme.
+// $pourId vide : l'intitulé n'a pas de champ à nommer — le sélecteur multiple
+// d'une campagne est un <details>, pas un contrôle de formulaire.
+function projet_entete_actifs_html(string $libelle, string $pourId, string $cible, string $apres = ''): string
+{
+    return '<div class="champ-entete">'
+        . ($pourId !== ''
+            ? '<label for="' . e($pourId) . '">' . e($libelle) . $apres . '</label>'
+            : '<span>' . e($libelle) . $apres . '</span>')
+        . '<label class="check check-mini" title="Masquer les projets mis de côté">'
+        . '<input type="checkbox" data-projets-actifs="' . e($cible) . '" checked> Actifs seulement'
+        . '</label>'
+        . '</div>';
 }
 
 // Liste combinée groupes+feuilles pour le filtre « Projet » de la liste des

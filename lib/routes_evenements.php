@@ -1245,6 +1245,16 @@ function route_projets(): void
             if ($nom !== '' && isset($map[$id])) {
                 db()->prepare('UPDATE projets SET nom = ? WHERE id = ?')->execute([$nom, $id]);
             }
+        } elseif ($section === 'actif') {
+            // Mettre un projet de côté, ou le reprendre. Rien n'est supprimé ni
+            // caché : ses événements, ses campagnes et cette liste-ci le
+            // montrent toujours — il cesse seulement d'être PROPOSÉ par défaut
+            // dans les menus de projet (migration_98).
+            $id = (int) ($_POST['id'] ?? 0);
+            if (isset($map[$id])) {
+                db()->prepare('UPDATE projets SET actif = ? WHERE id = ?')
+                    ->execute([isset($_POST['actif']) ? 1 : 0, $id]);
+            }
         } elseif ($section === 'move') {
             $id  = (int) ($_POST['id'] ?? 0);
             $dir = ($_POST['dir'] ?? '') === 'up' ? 'up' : 'down';

@@ -134,14 +134,15 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 
         <div class="grid4">
             <label>Date <input type="date" name="date" value="<?= $v('date') ?>" required></label>
-            <label><?= e(evenements_terme_projet(false)) ?>
-                <select name="projet_id">
+            <div>
+                <?= projet_entete_actifs_html(evenements_terme_projet(false), 'ev-projet-new', '#ev-projet-new') ?>
+                <select name="projet_id" id="ev-projet-new">
                     <option value="">—</option>
                     <?php foreach ($projets as $s): ?>
-                        <option value="<?= (int) $s['id'] ?>" <?= $vRaw('projet_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
+                        <option value="<?= (int) $s['id'] ?>" <?= $vRaw('projet_id') === (string) $s['id'] ? 'selected' : '' ?><?= ($s['actif'] ?? true) ? '' : ' data-projet-inactif' ?>><?= e($s['nom']) ?></option>
                     <?php endforeach; ?>
                 </select>
-            </label>
+            </div>
             <label>Statut
                 <select name="statut">
                     <?php foreach (EVENEMENTS_STATUTS as $s): ?>
@@ -262,14 +263,15 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
             <label>Début <input type="time" name="heure_debut" value="<?= $v('heure_debut') ?>"></label>
             <label>Fin <input type="time" name="heure_fin" value="<?= $v('heure_fin') ?>"></label>
         </div>
-        <label><?= e(evenements_terme_projet(false)) ?>
-            <select name="projet_id">
+        <div>
+            <?= projet_entete_actifs_html(evenements_terme_projet(false), 'ev-projet', '#ev-projet') ?>
+            <select name="projet_id" id="ev-projet">
                 <option value="">—</option>
                 <?php foreach ($projets as $s): ?>
-                    <option value="<?= (int) $s['id'] ?>" <?= $vRaw('projet_id') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nom']) ?></option>
+                    <option value="<?= (int) $s['id'] ?>" <?= $vRaw('projet_id') === (string) $s['id'] ? 'selected' : '' ?><?= ($s['actif'] ?? true) ? '' : ' data-projet-inactif' ?>><?= e($s['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
-        </label>
+        </div>
         <label>Statut
             <select name="statut">
                 <?php foreach (EVENEMENTS_STATUTS as $s): ?>

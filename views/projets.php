@@ -136,7 +136,8 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 return '<a href="' . e($href) . '">' . $n . '</a>';
             };
         ?>
-            <tr class="plan-row row-link <?= $s['a_enfants'] ? 'plan-groupe' : '' ?>" tabindex="0" role="link"
+            <?php $projetActif = (int) ($s['actif'] ?? 1) === 1; ?>
+            <tr class="plan-row row-link <?= $s['a_enfants'] ? 'plan-groupe' : '' ?><?= $projetActif ? '' : ' projet-inactif' ?>" tabindex="0" role="link"
                 data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=projet&id=<?= $sid ?><?= e($suffixeDepuis) ?>">
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
@@ -172,6 +173,24 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 <td class="num"><?= $compteLien('option', $c['option']) ?></td>
                 <td class="num"><?= $compteLien('annule', $c['annule']) ?></td>
                 <td class="actions nowrap">
+                    <?php if ($peutEcrireSpec && !$s['a_enfants']): ?>
+                    <?php // Mettre de côté : le projet reste partout où il est
+                          // déjà, il cesse seulement d'être proposé par défaut
+                          // dans les menus de projet. Un interrupteur, comme
+                          // celui d'une règle de lettrage — un seul clic pour un
+                          // seul état. Le <form> le tient hors du lien de ligne
+                          // (voir l'écouteur de .row-link, views/layout.php). ?>
+                    <form method="post" action="?p=projets<?= e($suffixeDepuis) ?>" class="d-inline">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="section" value="actif">
+                        <input type="hidden" name="id" value="<?= $sid ?>">
+                        <label class="regle-toggle" title="<?= $projetActif ? 'Mettre de côté — ne plus le proposer par défaut' : 'Reprendre — le proposer à nouveau' ?>">
+                            <input type="checkbox" name="actif" value="1" <?= $projetActif ? 'checked' : '' ?> data-submit-on-change
+                                   aria-label="<?= $projetActif ? 'Mettre de côté' : 'Reprendre' ?> <?= e($s['nom']) ?>">
+                            <span class="regle-toggle-pill"></span>
+                        </label>
+                    </form>
+                    <?php endif; ?>
                     <?= menu_deroulant_html(
                         ['icone' => 'calendar-sync', 'petit' => true,
                          'titre' => 'Synchroniser — liens de ' . $s['nom']],

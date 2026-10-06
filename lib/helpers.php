@@ -1123,7 +1123,11 @@ function filtre_colonne_lieu_html(string $page, array $actifs, array $autresPara
 // se produit dès qu'on clique le libellé du champ ou l'espace vide à côté du
 // bouton — donc sans cesse. Utiliser <div class="field-group"> (assets/app.css),
 // qui a la même apparence sans être un label.
-function choix_coches_html(string $champ, array $options, array $actives, string $libelleVide = 'Tout'): string
+// $attrsParValeur : des attributs HTML à poser sur le <label> d'une option
+// donnée — « data-projet-inactif » pour les projets mis de côté, que la case
+// « Actifs seulement » masque ensuite (lassoInitProjetsActifs()). Le libellé
+// seul ne pouvait pas les porter.
+function choix_coches_html(string $champ, array $options, array $actives, string $libelleVide = 'Tout', array $attrsParValeur = []): string
 {
     $activesTxt = array_map('strval', $actives);
     // Le bouton porte TOUJOURS un nom, et celui de ce qui est coché. Dans un
@@ -1149,7 +1153,8 @@ function choix_coches_html(string $champ, array $options, array $actives, string
        . '<div class="col-filter-sep"></div><div class="col-filter-options">';
     foreach ($options as $val => $lib) {
         $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
-        $h .= '<label><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e((string) $lib) . '</label>';
+        $attrs = (string) ($attrsParValeur[$val] ?? '');
+        $h .= '<label' . ($attrs !== '' ? ' ' . $attrs : '') . '><input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e((string) $lib) . '</label>';
     }
     return $h . '</div></div></details>';
 }

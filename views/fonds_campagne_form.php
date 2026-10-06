@@ -11,7 +11,13 @@
 $id = (int) ($campagne['id'] ?? 0);
 $val = fn (string $c, $d = '') => e((string) ($campagne[$c] ?? $d));
 $projetLabels = [];
-foreach ($projetsDispo as $sp) { $projetLabels[(int) $sp['id']] = $sp['nom']; }
+// Les projets mis de côté sont rendus comme les autres et marqués : la case
+// « Actifs seulement » décide de ce qu'on en voit, sans recharger la page.
+$projetAttrs = [];
+foreach ($projetsDispo as $sp) {
+    $projetLabels[(int) $sp['id']] = $sp['nom'];
+    if (!($sp['actif'] ?? true)) { $projetAttrs[(int) $sp['id']] = 'data-projet-inactif'; }
+}
 
 // Étiquettes des entonnoirs et report des paramètres : le même helper que
 // ?p=booking_campagne_form. $saisie dit ce qui, sur CET écran, doit survivre au
@@ -80,10 +86,11 @@ $cibF = ciblage_filtres_vue([
     <div class="grid4">
         <label>Nom <input name="nom" value="<?= $val('nom') ?>" required placeholder="ex. Création 2027"></label>
         <?php // <div> et non <label> : voir choix_coches_html(). ?>
-        <div class="field-group"><span>Projet <?= info_tip(
-            "Ce que cette campagne finance. L'axe analytique ci-dessous s'en déduit, puisque c'est le projet qui le porte."
-        ) ?></span>
-            <?= choix_coches_html('projet_ids', $projetLabels, $projets, 'Aucun projet') ?>
+        <div class="field-group" id="fonds-projets">
+            <?= projet_entete_actifs_html('Projet', '', '#fonds-projets', ' ' . info_tip(
+                "Ce que cette campagne finance. L'axe analytique ci-dessous s'en déduit, puisque c'est le projet qui le porte."
+            )) ?>
+            <?= choix_coches_html('projet_ids', $projetLabels, $projets, 'Aucun projet', $projetAttrs) ?>
         </div>
         <label><span>Début <?= info_tip("Avant cette date, la campagne se prépare.") ?></span>
             <input type="date" name="date_debut" value="<?= $val('date_debut') ?>">

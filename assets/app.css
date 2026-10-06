@@ -3230,6 +3230,13 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .camp-note { margin: -14px 0 22px; }
 /* Le badge d'état replié dans la colonne « Avancement » : rendu par la liste des
    campagnes, invisible tant qu'il y a la place de garder les deux colonnes. */
+/* L'intitulé d'un champ et, à sa droite, une case qui en règle le contenu —
+   « Actifs seulement » d'un sélecteur de projets. Le label du champ et celui de
+   la case sont frères : deux labels imbriqués ne sont pas du HTML valide. */
+.champ-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.champ-entete > label:first-child { margin: 0; }
+.check-mini { font-size: var(--fs-small); color: var(--muted); font-weight: 400; margin: 0; }
+
 .camp-etat-repli { display: none; }
 /* Son équivalent pour la recherche de fonds : le compte des dossiers déposés,
    replié dans la colonne « Avancement » sur écran étroit. */
@@ -4120,6 +4127,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .regle-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 8px; margin-bottom: 10px; background: var(--card); }
 .regle-card.regle-new { background: var(--primary-tint); border-color: #d4c8f8; }
 .regle-card.regle-inactive { opacity: .55; }
+/* Un projet mis de côté : la même atténuation qu'une règle éteinte. Il reste
+   entièrement lisible et manipulable — il n'est retiré que des menus qui le
+   proposaient par défaut. */
+.plan-row.projet-inactif .plan-nom,
+.plan-row.projet-inactif .plan-icone,
+.plan-row.projet-inactif .plan-puce { opacity: .5; }
 .regle-card.hidden { display: none; }
 /* La rangée du haut d'une règle : elle reste en place dans les deux états, et
    c'est le RÉSUMÉ qu'elle porte qui cède la place aux champs. Sans cela, le
@@ -4142,6 +4155,10 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .regle-head { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
 .regle-head .flex-spacer { flex: 1 1 auto; }
 /* Toggle actif/inactif : pill CSS */
+/* L'interrupteur à bascule. Né sur les règles de lettrage, repris tel quel pour
+   mettre un projet de côté (?p=projets) : un seul clic pour un seul état, c'est
+   le même geste et ce doit être le même objet (docs/UI.md, première règle). Le
+   nom reste celui de son premier usage. */
 .regle-toggle { cursor: pointer; display: flex; align-items: center; }
 /* L'interrupteur est un <label> : dans une carte .form il héritait des 16 px de
    marge basse des libellés (règle .form label), ce qui donnait à sa boîte 33 px

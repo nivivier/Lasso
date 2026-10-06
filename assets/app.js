@@ -643,6 +643,35 @@ function lassoInitCatSearch(wrap, opts = {}) {
 // liste par fetch au premier focus et ont besoin de la refermer eux-mêmes.
 // L'initialisation est idempotente, pour qu'un fragment inséré après coup
 // puisse rappeler cette fonction sans doubler les écouteurs.
+// « Actifs seulement » : une case qui masque, dans un sélecteur de projets, ceux
+// qui ont été mis de côté. Tous sont rendus par le serveur — la case choisit
+// seulement ce qu'on en voit, et la décocher les rappelle sans recharger la page.
+//
+// data-projets-actifs porte le sélecteur du champ concerné ; les projets éteints
+// y portent data-projet-inactif. Marche sur une <option> comme sur le <label>
+// d'une case à cocher, ce qui couvre les deux formes de sélecteur de projet.
+//
+// INVARIANTE : ce qui est DÉJÀ choisi ne se masque jamais, même éteint. Sans
+// cela, modifier un vieil événement aurait fait disparaître son projet du menu,
+// et l'enregistrement l'aurait perdu sans rien dire.
+function lassoInitProjetsActifs(racine = document) {
+    racine.querySelectorAll('[data-projets-actifs]').forEach(case_ => {
+        const cible = document.querySelector(case_.dataset.projetsActifs);
+        if (!cible) return;
+        const choisi = el => el.tagName === 'OPTION' ? el.selected : !!el.querySelector('input:checked');
+        const appliquer = () => {
+            cible.querySelectorAll('[data-projet-inactif]').forEach(el => {
+                const masquer = case_.checked && !choisi(el);
+                el.hidden = masquer;
+                if (el.tagName === 'OPTION') el.disabled = masquer;
+            });
+        };
+        case_.addEventListener('change', appliquer);
+        appliquer();
+    });
+}
+window.addEventListener('DOMContentLoaded', () => lassoInitProjetsActifs());
+
 function lassoInitCatSearchAuto(racine = document) {
     racine.querySelectorAll('.cat-search[data-cat-search]').forEach(wrap => {
         if (wrap.dataset.catSearchPret) return;

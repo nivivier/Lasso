@@ -123,6 +123,7 @@ function run_migrations(PDO $pdo): void
         95 => 'migration_95', // recherche de fonds : retrait du numéro de dossier (jamais utilisé)
         96 => 'migration_96', // historique : qui a modifié une note, et quand
         97 => 'migration_97', // brouillon de message : les copies (cc) et copies cachées (cci)
+        98 => 'migration_98', // projets : actif/inactif, pour alléger les menus de projet
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3108,6 +3109,24 @@ function migration_94(PDO $pdo): void
 // La fenêtre « Contacter » accepte des Cc et des Cci ; sans ces deux colonnes,
 // les saisir puis enregistrer le brouillon les perdait en silence — et c'est
 // précisément ce qu'on ne retape pas volontiers.
+// Migration 98 : un projet peut être mis de côté.
+//
+// Les menus de projet — assignation d'un événement, projets financés par une
+// campagne — proposent TOUS les projets, à jamais : une tournée de 2019 y reste
+// entre deux projets de la saison. « Inactif » ne supprime rien et ne cache
+// rien de ce qui existe (un événement garde le sien, la liste des projets les
+// montre tous) : il retire seulement de ce qui est PROPOSÉ par défaut, et une
+// case « Actifs seulement » les rappelle à l'écran.
+//
+// Actif par défaut : une base existante ne change pas de comportement.
+function migration_98(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(projets)')->fetchAll(), 'name');
+    if (!in_array('actif', $cols, true)) {
+        $pdo->exec('ALTER TABLE projets ADD COLUMN actif INTEGER NOT NULL DEFAULT 1');
+    }
+}
+
 function migration_97(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(structure_message_brouillons)')->fetchAll(), 'name');

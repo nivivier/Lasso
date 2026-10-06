@@ -9,6 +9,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Un projet peut être mis de côté** (interrupteur sur Événements → Projets).
+  Il ne disparaît de nulle part — ses événements, ses campagnes et la liste des
+  projets le montrent toujours —, il cesse seulement d'être **proposé par
+  défaut** dans les menus de projet d'un événement et d'une campagne de
+  recherche de fonds. Une case « Actifs seulement », cochée d'origine, les
+  rappelle à l'écran quand on en a besoin. Un projet déjà choisi reste visible
+  même mis de côté : sans quoi l'enregistrer l'aurait perdu.
+
 ### Modifié
 - **Les règles de lettrage se lisent avant de se modifier.** Chaque règle tenait
   ses menus et ses champs dépliés en permanence ; elle se résume maintenant en
