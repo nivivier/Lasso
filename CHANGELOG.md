@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.5] — 2026-10-06
+
 ### Ajouté
 - **Une règle de lettrage peut porter sur la contre-partie ou la
   communication**, et plus seulement sur le libellé. Un relevé camt.053 livre le
@@ -30,18 +32,16 @@ puis sont promues sur le canal **stable** en figeant une version.
   une phrase — le compte, ses conditions reliées par son « et »/« ou », la
   catégorie qu'elle pose —, et le crayon ouvre le formulaire, comme partout
   ailleurs. L'interrupteur et les flèches restent à portée dans les deux états.
-
-### Corrigé
-- **Le panneau de ventilation analytique laisse voir l'axe choisi.** Le champ du
-  montant prenait toute la ligne et le menu de l'axe tombait à seize pixels : on
-  ne lisait plus ce qu'on venait de sélectionner, dès le deuxième axe.
-
-### Modifié
 - **Le panneau de ventilation dit ce qu'il reste à répartir**, et plus seulement
   ce qui l'est déjà : « 1.25 / 5.00 CHF · reste 3.75 à répartir », en ambre tant
   qu'il manque quelque chose, en rouge si l'on a dépassé, en teal quand tout est
   placé. C'est le chiffre qu'on cherche en ventilant, et le calculer de tête à
   chaque ligne saisie était une peine inutile.
+
+### Corrigé
+- **Le panneau de ventilation analytique laisse voir l'axe choisi.** Le champ du
+  montant prenait toute la ligne et le menu de l'axe tombait à seize pixels : on
+  ne lisait plus ce qu'on venait de sélectionner, dès le deuxième axe.
 
 ## [3.0.4] — 2026-10-04
 

@@ -167,7 +167,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    officielle *eCertificat de salaire CSI* pour produire les PDF certifiés.
 6. **Comptabilité** : créez vos comptes bancaires, importez les relevés au format
    **camt.053** (XML ISO 20022) ou l'export **CSV PostFinance**, lettrez les écritures
-   (catégorie du plan comptable), définissez des règles de lettrage automatiques,
+   (catégorie du plan comptable), définissez des **règles de lettrage
+   automatiques** — sur le libellé, la contre-partie, la communication, le sens
+   ou le montant, combinés en « et »/« ou » —,
    ventilez par axes analytiques, et consultez les **comptes annuels** (résultat +
    patrimoine). D'un relevé camt.053 sont repris la contre-partie, la communication,
    la référence QR et la nature de l'opération ; l'écriture garde la trace de la
@@ -181,7 +183,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    souvent des mois avant que l'horaire soit connu. Projets (un artiste peut
    regrouper des sous-projets, et chacun peut porter une **icône** recadrée
    sur place, qui le représente ensuite dans les listes — notamment les
-   campagnes), suivi des déclarations **SUISA**, et **exports publics
+   campagnes ; un projet terminé se **met de côté** d'un interrupteur et cesse
+   d'être proposé par défaut dans les menus, sans rien perdre de ce qui s'y
+   rattache), suivi des déclarations **SUISA**, et **exports publics
    JSON/iCal** protégés par jeton — de quoi alimenter un site ou un agenda
    externe. Adresse et horaire y figurent au même titre que la ville ou la
    salle ; un événement *privé* n'y expose que sa date. Les heures se lisent en
