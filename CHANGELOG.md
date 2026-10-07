@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.7] — 2026-10-07
+
 ### Ajouté
 - **Détailler ou résumer toute la colonne « Texte » d'un coup** sur l'écran de
   lettrage : une petite icône à côté du titre de la colonne déplie les libellés
@@ -27,6 +29,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   des fiches, des factures et des événements. Le filtre lui-même ne changeait
   pas de comportement — il est mémorisé d'une page à l'autre —, c'est l'adresse
   qui restait muette.
+- **Le bouton « Filtres » des événements compte les filtres actifs.** Il était
+  réimplémenté à la main au lieu de reprendre le panneau commun, et le compte
+  lui manquait : panneau fermé, rien ne disait qu'on ne regardait pas tous les
+  événements. Il passe sur le panneau commun — sept filtres, la vue liste sur
+  téléphone comme la vue carte à toute largeur, à l'identique pour le reste.
 - **Les conventions d'interface (`docs/UI.md`) disent trois choses de plus** :
   qu'une liste qui passe en mini-cartes sur téléphone doit son bouton
   « Filtres » (c'est le défaut corrigé ci-dessus, et il ne se voit pas au

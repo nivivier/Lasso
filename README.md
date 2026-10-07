@@ -172,7 +172,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    ou le montant, combinés en « et »/« ou », et rangées au glisser-déposer
    puisque la première qui correspond l'emporte —,
    ventilez par axes analytiques, et consultez les **comptes annuels** (résultat +
-   patrimoine). D'un relevé camt.053 sont repris la contre-partie, la communication,
+   patrimoine). Le libellé d'une écriture est long : la colonne « Texte » le
+   résume, un clic sur une cellule la détaille, et l'icône posée à côté du
+   titre de la colonne détaille — ou résume — toute la colonne d'un coup.
+   D'un relevé camt.053 sont repris la contre-partie, la communication,
    la référence QR et la nature de l'opération ; l'écriture garde la trace de la
    provenance de sa contre-partie, selon qu'elle est déclarée par le relevé ou
    déduite de son libellé.
@@ -281,7 +284,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     fiche d'une structure : la date en pastille d'agenda, l'artiste, la ville,
     la salle, et son statut à droite. Les
     filtres passent derrière un bouton « Filtres » à côté de la recherche, le
-    même qui sert aux vues carte. Au-delà de 700 px de large, les tableaux
+    même qui sert aux vues carte ; il porte le nombre de filtres actifs, pour
+    que panneau fermé on sache qu'on ne voit pas tout. Au-delà de 700 px de large, les tableaux
     complets reprennent.
 12. **Tableau de bord** : une carte par sujet — prochains événements, SUISA,
     évolution financière, salaires à verser, factures émises, campagnes —

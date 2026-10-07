@@ -64,10 +64,13 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         // Filtres de colonne hors tableau. Deux cas les réclament : la vue
         // carte, qui n'a pas de <thead> où les accrocher, et la vue liste sur
         // téléphone, dont le <thead> est masqué par la mise en mini-cartes.
-        // Même panneau que ?p=structures, au bouton près : en carte il
-        // s'affiche à toute largeur (.filtres-carte), en liste seulement sous
-        // 700px. 'vue' => 'carte' n'est reconduit qu'en carte — chaque filtre
-        // est un <form> qui ne connaît que ses propres champs.
+        // Même panneau que ?p=structures — le partiel _filtres_mobile.php, pas
+        // une seconde copie à côté : en carte il s'affiche à toute largeur
+        // (.filtres-carte), en liste seulement sous 700 px, et il porte le
+        // compte des filtres actifs, sans quoi rien ne dirait, panneau fermé,
+        // qu'on ne regarde pas tous les événements. 'vue' => 'carte' n'est
+        // reconduit qu'en carte — chaque filtre est un <form> qui ne connaît
+        // que ses propres champs.
         $vueExtraEv = $vue === 'carte' ? ['vue' => 'carte'] : [];
         $filtresEv = [
             ['annee', 'Date', $anneeLabels, $annee],
@@ -82,20 +85,15 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         foreach ($filtresEv as [$champ, $lib, $labels, $actives]) {
             $actifsFiltresEv .= filtre_colonne_actifs_html('evenements', $champ, $labels, $actives, $autresFiltres($champ));
         }
+        ob_start();
+        foreach ($filtresEv as [$champ, $lib, $labels, $actives]) {
+            echo filtre_colonne_html('evenements', $champ, $labels, $actives, $autresFiltres($champ) + $vueExtraEv, $lib);
+        }
+        $fmColonnes = ob_get_clean();
+        $fmActifs = $actifsFiltresEv;
+        $fmClasse = $vue === 'carte' ? 'filtres-carte' : '';
+        require __DIR__ . '/_filtres_mobile.php';
         ?>
-        <details class="filters-more filtres-mobile<?= $vue === 'carte' ? ' filtres-carte' : '' ?>">
-            <summary title="Filtres" aria-label="Filtres"><?= icon('funnel') ?></summary>
-            <div class="filtres-mobile-panneau">
-                <div class="filters carte-filters filters-more-body">
-                    <?php foreach ($filtresEv as [$champ, $lib, $labels, $actives]): ?>
-                    <?= filtre_colonne_html('evenements', $champ, $labels, $actives, $autresFiltres($champ) + $vueExtraEv, $lib) ?>
-                    <?php endforeach; ?>
-                </div>
-                <?php if ($actifsFiltresEv !== ''): ?>
-                <div class="filtres-ciblage-actifs"><?= $actifsFiltresEv ?></div>
-                <?php endif; ?>
-            </div>
-        </details>
         <div class="head-actions">
             <div class="seg-picker" role="radiogroup" aria-label="Affichage">
                 <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste" aria-label="Affichage en liste"><?= icon('rows-3') ?></a>

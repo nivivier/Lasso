@@ -916,7 +916,9 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   `?p=employes` est resté dans cet état : on ne pouvait pas y afficher les
   employés inactifs. Le panneau prend les mêmes filtres, **avec leur libellé**
   (hors tableau, aucun en-tête ne les nomme) et porte le compte des filtres
-  actifs. Les libellés et les paramètres reportés se posent **une fois** en tête
+  actifs. **Il se pose par le partiel, jamais par une copie** : `?p=evenements`
+  avait le sien réécrit à la main, et c'est le compte qui lui manquait — panneau
+  fermé, rien ne disait qu'on ne regardait pas tous les événements. Les libellés et les paramètres reportés se posent **une fois** en tête
   de vue, puis servent à l'entonnoir d'en-tête comme à celui du panneau : les
   écrire deux fois, c'est les voir diverger. Le bouton suit la recherche — sans
   rien à filtrer, ni l'un ni l'autre n'a de raison d'être là —, sauf quand un
