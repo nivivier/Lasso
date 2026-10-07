@@ -2621,6 +2621,15 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .col-paiement { min-width: 128px; }
 .col-date { white-space: nowrap; }
 .col-th { display: inline-flex; align-items: center; gap: 4px; }
+/* Un bouton d'en-tête de colonne qui agit sur toute la colonne — « tout
+   détailler » du libellé des écritures. Même discrétion que l'entonnoir voisin :
+   il accompagne le titre, il ne le concurrence pas, et il s'allume quand son
+   effet est en cours. */
+.col-th-btn { background: none; border: 0; padding: 2px; margin: 0; cursor: pointer; color: var(--muted);
+    display: inline-flex; align-items: center; border-radius: var(--radius-sm); line-height: 0; }
+.col-th-btn .ico { width: 14px; height: 14px; }
+.col-th-btn:hover { color: var(--ink); background: var(--glass-hover); }
+.col-th-btn.on { color: var(--primary); }
 /* En-tête de colonne triable : le libellé devient un lien. Il garde l'allure
    d'un en-tête — c'est la colonne qui se trie, pas un lien qui mène ailleurs —
    et ne se signale qu'au survol, sauf sur la colonne active, qui porte sa

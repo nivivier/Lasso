@@ -302,13 +302,33 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     });
 
     // Clic sur le texte résumé → bascule résumé ↔ texte brut complet (toutes pages).
+    // Une seule fonction pour la cellule et pour la colonne entière : deux
+    // chemins vers le même état finiraient par en donner deux différents.
+    const basculerTexte = (td, expanded) => {
+        const txt = td.querySelector('.texte-cell-txt');
+        if (!txt) return;
+        td.classList.toggle('expanded', expanded);
+        txt.textContent = expanded ? td.title : txt.dataset.summary;
+    };
     document.addEventListener('click', e => {
         const td = e.target.closest('.compta-lettrage .texte-cell');
         if (!td || e.target.closest('a,button')) return;
-        const txt = td.querySelector('.texte-cell-txt');
-        if (!txt) return;
-        const expanded = td.classList.toggle('expanded');
-        txt.textContent = expanded ? td.title : txt.dataset.summary;
+        basculerTexte(td, !td.classList.contains('expanded'));
+    });
+    // Et le bouton d'en-tête, qui fait d'un coup ce que la colonne fait une
+    // cellule à la fois. Il regarde l'état réel des cellules plutôt que de
+    // garder le sien : une cellule dépliée à la main ne doit pas le
+    // désynchroniser. Tant qu'il en reste une repliée, il déplie tout.
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.texte-tout-btn');
+        if (!btn) return;
+        const cells = [...document.querySelectorAll('.compta-lettrage .texte-cell')];
+        const tout = cells.some(td => !td.classList.contains('expanded'));
+        cells.forEach(td => basculerTexte(td, tout));
+        btn.classList.toggle('on', tout);
+        btn.title = tout ? 'Tout résumer' : 'Tout détailler';
+        btn.setAttribute('aria-label', btn.title);
+        btn.innerHTML = btn.dataset[tout ? 'icoFold' : 'icoUnfold'];
     });
 
     // Fenêtre d'aperçu (liens [data-preview]). DEUX formats, et pas un de plus :

@@ -253,7 +253,19 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php // Colonne à part plutôt que noyée dans le texte : c'est la
                   // réponse à « qui ? », que le relevé donne en clair. ?>
             <th class="col-tiers"><?= $triCol('tiers', 'Contre-partie') ?></th>
-            <th><?= $triCol('texte', 'Texte') ?></th>
+            <?php // Le bouton déplie ou replie TOUTE la colonne d'un coup — ce que
+                  // chaque cellule fait déjà au clic. Les deux icônes voyagent sur
+                  // le bouton (data-ico-*) plutôt que d'être redessinées en
+                  // JavaScript : le SVG reste produit par icon(), une seule fois. ?>
+            <th>
+                <span class="col-th">
+                    <?= $triCol('texte', 'Texte') ?>
+                    <button type="button" class="col-th-btn texte-tout-btn"
+                            title="Tout détailler" aria-label="Tout détailler"
+                            data-ico-unfold="<?= e(icon('unfold-vertical')) ?>"
+                            data-ico-fold="<?= e(icon('fold-vertical')) ?>"><?= icon('unfold-vertical') ?></button>
+                </span>
+            </th>
             <th class="num">
                 <span class="col-th">
                     <?= $triCol('montant', 'Montant') ?>

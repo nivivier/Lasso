@@ -9,6 +9,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Détailler ou résumer toute la colonne « Texte » d'un coup** sur l'écran de
+  lettrage : une petite icône à côté du titre de la colonne déplie les libellés
+  tronqués de toutes les lignes, et les replie au clic suivant. Le détail
+  ligne à ligne, au clic sur une cellule, ne change pas ; le bouton lit l'état
+  réel des cellules, donc une cellule dépliée à la main ne le désynchronise pas.
+
 ## [3.0.6] — 2026-10-07
 
 ### Ajouté
