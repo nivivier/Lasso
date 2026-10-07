@@ -9,6 +9,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Un champ de recherche sur les règles de lettrage.** Il cherche dans la
+  phrase d'une règle — son compte, ses conditions, la catégorie qu'elle pose —
+  et filtre à la frappe, sans recharger.
+
 ### Modifié
 - **Les règles de lettrage se rangent au glisser-déposer**, comme toutes les
   listes ordonnées de l'application, et ne sont plus une carte chacune mais des

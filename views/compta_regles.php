@@ -130,6 +130,13 @@ $peutEcrireRegles = peut_ecrire('compta');
 <div class="module-content"><div class="module-content-inner">
     <?php if ($peutEcrireRegles): ?>
     <div class="toolbar">
+        <?php // Recherche immédiate, sur les lignes déjà chargées : une
+              // installation en compte quelques dizaines, et filtrer côté
+              // serveur ferait perdre la ligne ouverte à chaque frappe. Le
+              // champ cherche dans la PHRASE d'une règle — compte, conditions,
+              // catégorie —, c'est-à-dire dans ce qui s'y lit. ?>
+        <?= champ_recherche(['id' => 'regles-search', 'placeholder' => 'Catégorie, motif, compte…']) ?>
+        <span id="regles-count" class="muted small"></span>
         <div class="head-actions">
             <form method="post" action="?p=compta_ecritures">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -357,6 +364,14 @@ lassoOrdreListe({
     rowsSelector: '.regles-table .plan-row',
     scrollKey: 'reglesScroll',
     formAction: '?p=compta_regles',
+});
+lassoListeClient({
+    tableSelector: '.regles-table',
+    searchInputSelector: '#regles-search',
+    searchCountSelector: '#regles-count',
+    // La phrase de la règle, pas la ligne entière : le formulaire replié
+    // contient tout le plan comptable (voir lassoListeClient()).
+    matchSelector: '.plan-nom',
 });
 </script>
 

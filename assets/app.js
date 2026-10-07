@@ -461,9 +461,18 @@ function lassoListeClient(config) {
         }
     }
 
+    // Le texte sur lequel une ligne est cherchée. Par défaut la ligne entière ;
+    // config.matchSelector le restreint à ce qui s'y LIT — une ligne qui porte
+    // un formulaire replié (les règles de lettrage, et leurs menus de
+    // catégories) contient sinon tout le plan comptable, et répond à n'importe
+    // quelle recherche.
+    const texteDe = r => lassoNorm(
+        config.matchSelector ? (r.querySelector(config.matchSelector)?.textContent || '') : r.textContent
+    );
+
     function filtrer() {
         const q = search ? lassoNorm(search.value.trim()) : '';
-        matched = q === '' ? rows : rows.filter(r => lassoNorm(r.textContent).includes(q));
+        matched = q === '' ? rows : rows.filter(r => texteDe(r).includes(q));
         page = 1;
         if (searchCount) {
             searchCount.textContent = q === '' ? '' : matched.length + ' / ' + rows.length + ' affiché(e)s';
