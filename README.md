@@ -169,7 +169,8 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    **camt.053** (XML ISO 20022) ou l'export **CSV PostFinance**, lettrez les écritures
    (catégorie du plan comptable), définissez des **règles de lettrage
    automatiques** — sur le libellé, la contre-partie, la communication, le sens
-   ou le montant, combinés en « et »/« ou » —,
+   ou le montant, combinés en « et »/« ou », et rangées au glisser-déposer
+   puisque la première qui correspond l'emporte —,
    ventilez par axes analytiques, et consultez les **comptes annuels** (résultat +
    patrimoine). D'un relevé camt.053 sont repris la contre-partie, la communication,
    la référence QR et la nature de l'opération ; l'écriture garde la trace de la
@@ -287,7 +288,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     chacune n'apparaissant que si son module est actif et lisible par le compte.
     Le bouton en haut à droite ouvre « Organiser les cartes » : on les range au
     **glisser-déposer** — par des flèches sur téléphone, où le glisser-déposer
-    n'existe pas — et on décoche celles qu'on ne veut pas voir. C'est un
+    n'existe pas — et on décoche celles qu'on ne veut pas voir. À côté, un
+    **« + »** déroule ce qui se crée depuis l'accueil : fiche de salaire,
+    facture, événement, structure, campagne de booking, recherche de fonds —
+    chaque entrée selon les modules actifs et vos droits. C'est un
     réglage **par compte**, pas un paramètre de l'association.
     Une carte ne s'étire pas : elle montre ce qui demande du travail et referme
     le reste sur une dernière ligne « et X autres » qui mène à la liste. La

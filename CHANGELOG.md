@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.6] — 2026-10-07
+
 ### Ajouté
 - **Un bouton « + » sur le tableau de bord**, à droite de celui qui organise les
   cartes : il déroule ce qu'on peut créer depuis l'accueil — fiche de salaire,
