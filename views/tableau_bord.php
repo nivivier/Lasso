@@ -562,6 +562,30 @@ $cartes = [];
             'submit'      => true,
         ]) ?>
     </form>
+    <?php
+    // Le « + » : ce qu'on vient créer depuis l'accueil. Chaque entrée n'y figure
+    // que si son module est accessible ET qu'on a le droit d'y écrire — proposer
+    // de créer ce qu'on ne pourra pas enregistrer serait une promesse en l'air.
+    // Les adresses sont celles des boutons « Nouveau… » de chaque liste, pas des
+    // routes inventées pour ce menu.
+    $dashCreer = [];
+    if (module_accessible('salaires') && peut_ecrire('salaires')) {
+        $dashCreer[] = ['libelle' => 'Fiche de salaire', 'icone' => 'file-plus', 'href' => '?p=fiche_form'];
+    }
+    if (module_accessible('facturation') && peut_ecrire('facturation')) {
+        $dashCreer[] = ['libelle' => 'Facture', 'icone' => 'file-plus', 'href' => '?p=facture_form'];
+    }
+    if (module_accessible('evenements') && peut_ecrire('evenements')) {
+        $dashCreer[] = ['libelle' => 'Événement', 'icone' => 'calendar-plus', 'href' => '?p=evenement'];
+    }
+    if (module_accessible('booking') && peut_ecrire('booking')) {
+        $dashCreer[] = ['libelle' => 'Structure', 'icone' => 'house-plus', 'href' => '?p=structure&depuis=booking'];
+        $dashCreer[] = ['libelle' => 'Campagne de booking', 'icone' => 'message-circle-plus', 'href' => '?p=booking_campagne_form'];
+    }
+    if (module_accessible('fonds') && peut_ecrire('fonds')) {
+        $dashCreer[] = ['libelle' => 'Recherche de fonds', 'icone' => 'landmark', 'href' => '?p=fonds_campagne_form'];
+    }
+    ?>
     <?php if ($cartes): ?>
     <?php
     // Organiser les cartes. Panneau ouvert/fermé par <details>, donc sans une
@@ -630,6 +654,13 @@ $cartes = [];
         </div>
     </details>
     <?php endif; ?>
+    <?php // Le « + » à droite de tout : c'est le geste qui AJOUTE, pas celui qui
+          // range l'écran, et c'est lui qu'on vient chercher le plus souvent. ?>
+    <?= menu_deroulant_html(
+        ['icone' => 'plus', 'plein' => true, 'titre' => 'Créer…'],
+        $dashCreer,
+        ['classe' => 'dash-creer']
+    ) ?>
 </div>
 
 

@@ -3602,6 +3602,9 @@ function carte_actions_html(array $opts = []): string
 //
 // $bouton  ['libelle', 'icone', 'titre', 'classe'] — un libellé vide donne un
 //          bouton à l'icône seule ; 'classe' complète « btn ghost ».
+//          'plein' => true pour un bouton de mise en évidence plutôt que
+//          fantôme : un menu qui PROPOSE (le « + » du tableau de bord) n'a pas
+//          le même poids qu'un menu qui règle un détail de la page.
 // $entrees chacune : ['libelle', 'icone', 'href' (lien) ou absent (bouton),
 //          'titre', 'classe', 'attrs' => [attribut => valeur]].
 // $opts    'classe' et 'id' posés sur le <details>, 'gauche' => true pour que le
@@ -3626,7 +3629,7 @@ function menu_deroulant_html(array $bouton, array $entrees, array $opts = []): s
     $h = '<details class="menu-deroulant' . (!empty($opts['gauche']) ? ' menu-deroulant-gauche' : '')
        . (!empty($opts['classe']) ? ' ' . e((string) $opts['classe']) : '') . '"'
        . (!empty($opts['id']) ? ' id="' . e((string) $opts['id']) . '"' : '') . '>';
-    $h .= '<summary class="btn ghost' . ($petit ? ' btn-sm' : '') . ($libelle === '' ? ' icon-only' : '')
+    $h .= '<summary class="btn' . (empty($bouton['plein']) ? ' ghost' : '') . ($petit ? ' btn-sm' : '') . ($libelle === '' ? ' icon-only' : '')
         . (!empty($bouton['classe']) ? ' ' . e((string) $bouton['classe']) : '') . '"'
         . ' title="' . e($titre) . '" aria-label="' . e($titre) . '">'
         . icon((string) ($bouton['icone'] ?? ''))

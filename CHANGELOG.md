@@ -10,6 +10,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Un bouton « + » sur le tableau de bord**, à droite de celui qui organise les
+  cartes : il déroule ce qu'on peut créer depuis l'accueil — fiche de salaire,
+  facture, événement, structure, campagne de booking, recherche de fonds.
+  Chaque entrée n'y figure que si son module est actif et qu'on a le droit d'y
+  écrire.
 - **Un champ de recherche sur les règles de lettrage.** Il cherche dans la
   phrase d'une règle — son compte, ses conditions, la catégorie qu'elle pose —
   et filtre à la frappe, sans recharger.
