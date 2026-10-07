@@ -9,6 +9,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **L'interrupteur « mettre de côté » d'un projet rejoint les autres boutons de
+  sa ligne**, et ne paraît plus qu'en édition. Il s'affichait en permanence et
+  passait à la ligne au-dessus d'eux, ce qui épaississait chaque rangée de la
+  liste pour un geste qu'on fait rarement.
+
 ## [3.0.5] — 2026-10-06
 
 ### Ajouté
