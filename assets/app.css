@@ -1028,7 +1028,13 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    posaient dessus. min-width : en dessous, le sélecteur natif du navigateur
    tronque son propre gabarit. */
 .form label.champ-court { max-width: 50%; min-width: 155px; }
-.td-toggle { padding: 0 0 0 12px; }
+/* La cellule de tête d'une liste qui se glisse ET qui s'allume : la poignée
+   d'abord, l'interrupteur ensuite (?p=postes, ?p=compta_regles). Les deux sur
+   une ligne, alignés au centre — sans quoi la poignée se posait sur la ligne de
+   base de l'interrupteur, deux pixels trop bas. */
+.td-toggle { padding: 0 0 0 12px; white-space: nowrap; }
+.td-toggle .plan-grip { vertical-align: middle; margin-right: 4px; }
+.td-toggle .regle-toggle { display: inline-flex; vertical-align: middle; }
 .page-head-title { display: flex; align-items: center; gap: 12px; }
 
 .titre-read { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -5300,7 +5306,9 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    donc explicitement sur la hauteur utile de la ligne, le vertical-align de la
    cellule ne suffit pas quand son contenu est un formulaire.
 --------------------------------------------------------------------------- */
-.postes-table .toggle-cell,
+/* inline-flex pour le formulaire d'interrupteur : en flex (bloc), il passait
+   sous la poignée qui ouvre désormais la cellule. */
+.postes-table .toggle-cell { display: inline-flex; align-items: center; min-height: 30px; vertical-align: middle; }
 .postes-table .taux-form { display: flex; align-items: center; min-height: 30px; }
 .postes-table .taux-form .pct-input { margin: 0; }
 /* En édition, les deux taux de la LAA se replient plutôt que de se comprimer :

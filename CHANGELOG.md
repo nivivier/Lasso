@@ -19,6 +19,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   d'un projet.
 
 ### Corrigé
+- **La poignée de glisser-déposer est tout à gauche de sa ligne**, partout. Deux
+  listes la plaçaient en deuxième position parce qu'elles ouvrent sur une
+  colonne d'interrupteur — les règles de lettrage et les lignes du décompte —,
+  obligeant à la chercher d'un écran à l'autre.
 - **L'interrupteur « mettre de côté » d'un projet rejoint les autres boutons de
   sa ligne**, et ne paraît plus qu'en édition. Il s'affichait en permanence et
   passait à la ligne au-dessus d'eux, ce qui épaississait chaque rangée de la

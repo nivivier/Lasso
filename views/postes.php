@@ -98,7 +98,10 @@ foreach ($postes as $p) {
               $code = (string) $p['code']; $mode = (string) $p['mode']; ?>
             <tr class="plan-row <?= (int) $p['actif'] ? '' : 'plan-archive' ?>" data-id="<?= $id ?>" data-sens="<?= e($p['sens']) ?>">
                 <td class="td-toggle">
+                    <?php // La poignée ouvre la ligne, tout à gauche : sa place dans
+                          // toutes les listes qui se glissent (docs/UI.md § 4). ?>
                     <?php if ($ecriture): ?>
+                    <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
                     <?php // data-ajax : allumer ou éteindre une ligne n'engage que cette
                           // ligne-là — sa grise suit l'interrupteur par CSS. Rien à
                           // recharger (docs/UI.md § 14). ?>
@@ -119,7 +122,6 @@ foreach ($postes as $p) {
                 </td>
                 <td>
                     <div class="inline-edit">
-                        <?php if ($ecriture): ?><span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span><?php endif; ?>
                         <span class="plan-nom">
                             <?= e($p['libelle']) ?>
                             <span class="muted small">

@@ -388,12 +388,22 @@ Deux implémentations, selon la forme de la liste :
   position verticale change le rang. `?p=compta_plan`, `?p=categories_structures`,
   `?p=projets`, `?p=pays`.
 - **`lassoOrdreListe()`** — liste plate, même vocabulaire sans la hiérarchie.
-  `?p=postes`, le déroulé d'un événement (`?p=evenement`), les cartes du tableau
-  de bord (`?p=tableau_bord`, panneau « Organiser les cartes »).
+  `?p=postes`, `?p=compta_regles`, le déroulé d'un événement (`?p=evenement`),
+  les cartes du tableau de bord (`?p=tableau_bord`, panneau « Organiser les
+  cartes »).
 
-Quatre règles qui comptent :
+Cinq règles qui comptent :
 
-1. **Le dépôt poste, le serveur renumérote.** Le script renseigne un formulaire
+1. **La poignée ouvre la ligne, tout à gauche**, avant toute autre chose —
+   avant l'interrupteur d'une ligne qui s'allume, avant la puce d'une liste
+   hiérarchique, avant le nom. C'est un repère de position : on doit la trouver
+   sans la chercher, au même endroit sur les six listes qui se glissent, et une
+   colonne qui la décale d'un écran à l'autre oblige à viser. Deux écrans y
+   dérogeaient parce qu'ils ouvrent sur une colonne d'interrupteur
+   (`?p=postes`, `?p=compta_regles`) : la poignée y est passée devant, dans la
+   même cellule.
+
+2. **Le dépôt poste, le serveur renumérote.** Le script renseigne un formulaire
    caché (`#reorder-form` : `id` + `order` complet) et l'envoie ; la page
    n'invente aucun ordre local. Un rang calculé côté client et un rang stocké
    qui divergent, c'est une liste qui se réordonne toute seule au rechargement.
@@ -406,7 +416,7 @@ Quatre règles qui comptent :
    l'état réel, plutôt que de laisser une ligne déplacée à l'écran et pas en
    base. Les listes **hiérarchiques** rechargent encore : un dépôt y change aussi
    le niveau et le parent, que le document ne peut pas mettre à jour seul.
-2. **Il y a toujours un repli sans JavaScript** (`.plan-fallback`) : un menu
+3. **Il y a toujours un repli sans JavaScript** (`.plan-fallback`) : un menu
    « dans <parent> » avec son bouton d'enregistrement, ou des flèches. Le script
    pose `.dnd-on`, qui les masque — donc sans lui, ils restent là.
 **Un tableau large sur téléphone a deux issues, et pas une troisième.** Soit il
@@ -424,7 +434,7 @@ la replace —, et le libellé de colonne qui disparaît avec l'en-tête se repo
 sur la cellule (`data-libelle` + `::before`), sans quoi deux champs voisins ne
 disent plus lequel est lequel.
 
-3. **Sur téléphone, la poignée s'efface** et les flèches de repli reprennent la
+4. **Sur téléphone, la poignée s'efface** et les flèches de repli reprennent la
    main (`@media (max-width: 700px)`), pour **toutes** les listes. Deux raisons,
    et la seconde est dirimante : glisser au doigt dans une page qui défile est
    un combat perdu, et l'API employée — `dragstart`/`dragover`/`drop` — n'est
@@ -433,7 +443,7 @@ disent plus lequel est lequel.
    ne fait rien, et réordonner devient impossible. C'est ce qui est arrivé au
    tableau de bord, le temps que la règle, écrite d'abord pour le déroulé d'un
    événement, soit étendue aux six listes.
-4. **La position de défilement est mémorisée** (`sessionStorage`) avant l'envoi
+5. **La position de défilement est mémorisée** (`sessionStorage`) avant l'envoi
    et restaurée au retour, `history.scrollRestoration = 'manual'`. Sans cela,
    déplacer la trentième ligne d'une liste renvoie en haut de page à chaque
    dépôt. Les deux helpers le font ; ailleurs, `?p=evenement` et

@@ -257,10 +257,14 @@ $peutEcrireRegles = peut_ecrire('compta');
         ?>
             <tr class="plan-row <?= $actif ? '' : 'plan-archive' ?>" data-id="<?= $rid ?>">
                 <td class="td-toggle">
-                    <?php // L'interrupteur ne paraît qu'une ligne ouverte (.cell-edition),
-                          // comme celui d'un projet : au repos, c'est l'atténuation de la
-                          // ligne qui dit qu'une règle est éteinte. ?>
+                    <?php // La poignée ouvre la ligne, tout à gauche : c'est la place
+                          // qu'elle a dans toutes les listes qui se glissent
+                          // (docs/UI.md § 4). L'interrupteur la suit, et ne paraît
+                          // qu'une ligne ouverte (.cell-edition) comme celui d'un
+                          // projet : au repos, c'est l'atténuation de la ligne qui
+                          // dit qu'une règle est éteinte. ?>
                     <?php if ($peutEcrireRegles): ?>
+                    <span class="plan-grip" draggable="true" title="Glisser pour changer l'ordre d'application" aria-hidden="true"><?= icon('grip') ?></span>
                     <label class="regle-toggle cell-edition" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
                         <input form="regle-edit-<?= $rid ?>" type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?>
                                class="regle-actif-cb" aria-label="<?= $actif ? 'Désactiver' : 'Activer' ?> cette règle">
@@ -272,7 +276,6 @@ $peutEcrireRegles = peut_ecrire('compta');
                 </td>
                 <td>
                     <div class="inline-edit">
-                        <?php if ($peutEcrireRegles): ?><span class="plan-grip" draggable="true" title="Glisser pour changer l'ordre d'application" aria-hidden="true"><?= icon('grip') ?></span><?php endif; ?>
                         <span class="plan-nom regle-disp">
                             <span class="regle-disp-compte"><?= e($compteLib) ?></span>
                             <span class="regle-disp-conds"><?= $condsTexte !== '' ? e($condsTexte) : '<span class="warn-txt">aucune condition</span>' ?></span>
