@@ -832,6 +832,23 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - **Filtres de colonne** : `filtre_colonne_html()`, un entonnoir par colonne,
   mémorisé en session, avec un bouton de remise à zéro quand au moins un est
   actif.
+- **Un bouton d'en-tête de colonne qui agit sur TOUTE la colonne** se range à
+  côté du titre, avec la discrétion de l'entonnoir voisin (`.col-th-btn`) : il
+  accompagne le titre, il ne le concurrence pas, et il s'allume en couleur
+  primaire tant que son effet est en cours. Il **lit l'état réel des cellules**
+  plutôt que de tenir son propre compteur — sinon une cellule qu'on a ouverte à
+  la main le désynchronise, et le clic suivant ne fait rien de ce qu'on attend.
+  Un seul écran s'en sert pour l'instant : « tout détailler / tout résumer » le
+  libellé des écritures (`?p=compta_ecritures`).
+- ⚠️ **Les liens de tri reportent les filtres actifs, mais ce report ne pilote
+  rien.** Un filtre de colonne est un `filtre_coche()` : sans son marqueur
+  `<clé>_set`, il ignore l'URL et retombe sur la **session**. C'est donc la
+  session — et elle seule — qui fait survivre un entonnoir au clic sur un
+  en-tête ; les valeurs qu'on lit dans l'URL d'une liste triée n'en sont que le
+  reflet, utile parce qu'il dit ce que la page montre. Ne pas en conclure qu'un
+  lien écrit à la main avec ces mêmes paramètres filtrerait quoi que ce soit :
+  il faut `lien_liste_filtree()` (voir ci-dessous). L'erreur a été faite dans un
+  commentaire avant de l'être dans un lien.
 - ⚠️ **Un lien vers une liste filtrée s'écrit avec `lien_liste_filtree()`**,
   jamais à la main. Ces filtres sont des `filtre_coche()` : ils ne lisent l'URL
   que si le marqueur `<clé>_set` l'accompagne, et retombent sinon sur la
@@ -889,9 +906,21 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - **Modification groupée** : cases à cocher + barre d'action
   (`_structures_bulk_bar.php`), et un bandeau d'annulation qui survit dix
   secondes à l'écran, Ctrl-Z au-delà.
-- **Sur téléphone**, une liste devient des mini-cartes (`.liste-cartes`) : le
+- ⚠️ **Sur téléphone**, une liste devient des mini-cartes (`.liste-cartes`) : le
   `<thead>` disparaît, les entonnoirs sont repris par `_filtres_mobile.php`.
   Une cellule sans place assignée dans la grille se rangerait par-dessus le nom.
+  **Le panneau n'est pas un agrément : il est la contrepartie obligée du
+  `<thead>` masqué.** Une liste en mini-cartes qui porte un entonnoir en
+  en-tête et pas de bouton « Filtres » rend ce filtre inatteignable depuis un
+  téléphone — et c'est invisible au développement, qui se fait au large.
+  `?p=employes` est resté dans cet état : on ne pouvait pas y afficher les
+  employés inactifs. Le panneau prend les mêmes filtres, **avec leur libellé**
+  (hors tableau, aucun en-tête ne les nomme) et porte le compte des filtres
+  actifs. Les libellés et les paramètres reportés se posent **une fois** en tête
+  de vue, puis servent à l'entonnoir d'en-tête comme à celui du panneau : les
+  écrire deux fois, c'est les voir diverger. Le bouton suit la recherche — sans
+  rien à filtrer, ni l'un ni l'autre n'a de raison d'être là —, sauf quand un
+  filtre est actif, sinon on ne pourrait plus le retirer.
 
 ## 10. Formulaires
 
@@ -1056,6 +1085,9 @@ module), ou un libellé repris ailleurs dans la page (renommer une étiquette).
 - [ ] L'écran rendu **sans JavaScript** reste utilisable.
 - [ ] Testé à **375 px** de large : rien ne déborde, aucune ligne inutilement
       coupée en deux.
+- [ ] Une liste qui passe en mini-cartes a son bouton « Filtres » (§ 9) : le
+      `<thead>` masqué emporte sinon ses entonnoirs, et le filtre devient
+      inatteignable sur téléphone sans que rien ne le signale.
 - [ ] Thème **sombre** vérifié.
 - [ ] Chaque bouton en icône seule a `title` **et** `aria-label`.
 - [ ] Aucun bouton d'enregistrement au pied d'une carte ou d'une page : il est en

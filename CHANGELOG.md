@@ -21,6 +21,21 @@ puis sont promues sur le canal **stable** en figeant une version.
   téléphone. Il revient derrière le même bouton que sur les structures, les
   factures et les fiches, avec le compte des filtres actifs.
 
+### Modifié
+- **L'adresse d'une liste d'employés triée dit maintenant ce qu'elle montre** :
+  les liens de tri des colonnes reportent le filtre actif/inactif, comme ceux
+  des fiches, des factures et des événements. Le filtre lui-même ne changeait
+  pas de comportement — il est mémorisé d'une page à l'autre —, c'est l'adresse
+  qui restait muette.
+- **Les conventions d'interface (`docs/UI.md`) disent trois choses de plus** :
+  qu'une liste qui passe en mini-cartes sur téléphone doit son bouton
+  « Filtres » (c'est le défaut corrigé ci-dessus, et il ne se voit pas au
+  large) ; à quoi ressemble un bouton d'en-tête qui agit sur toute une colonne ;
+  et que les filtres lus dans l'adresse d'une liste triée n'en sont qu'un
+  reflet — c'est la session qui les porte, et un lien qui veut vraiment filtrer
+  s'écrit avec `lien_liste_filtree()`. Un commentaire du code affirmait le
+  contraire.
+
 ## [3.0.6] — 2026-10-07
 
 ### Ajouté

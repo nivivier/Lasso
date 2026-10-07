@@ -17,9 +17,12 @@ foreach ($employes as $emp) { $employeLabels[(int) $emp['id']] = trim($emp['pren
 $autresStatut  = array_filter(['annee' => $annee, 'employe_id' => $employeId, 'q' => $recherche]);
 $autresAnnee   = array_filter(['statut' => $statut, 'employe_id' => $employeId, 'q' => $recherche]);
 $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]);
-// Les liens de tri emportent TOUS les filtres actifs — comme les entonnoirs, un
-// lien ne connaît que ce qu'on lui écrit. Le marqueur « _set » est inutile ici :
-// les valeurs sont présentes, filtre_coche() les lit telles quelles.
+// Les liens de tri reportent tous les filtres actifs : l'URL d'une liste triée
+// dit alors ce qu'elle montre. ⚠️ Ce report n'est qu'un reflet, il ne PILOTE
+// rien — sans son marqueur « <clé>_set », filtre_coche() ignore `$_GET` et
+// retombe sur la session (voir lien_liste_filtree() pour un lien qui, lui, doit
+// vraiment imposer un filtre). C'est la session qui fait survivre les
+// entonnoirs au clic sur un en-tête.
 $tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id' => $employeId, 'q' => $recherche]);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>

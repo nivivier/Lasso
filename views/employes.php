@@ -10,6 +10,14 @@
 // lien de tri ne reporte que ce qu'on lui écrit.
 $actifLabels = ['1' => 'Actif', '0' => 'Inactif'];
 $paramsRecherche = $recherche !== '' ? ['q' => $recherche] : [];
+// Les liens de tri reportent tous les filtres actifs, comme ceux de ?p=fiches,
+// ?p=factures et ?p=evenements : l'URL d'une liste triée dit alors ce qu'elle
+// montre. ⚠️ Ce report n'est qu'un reflet, il ne PILOTE rien — un filtre de
+// colonne est un filtre_coche(), qui ignore `$_GET` sans son marqueur
+// « <clé>_set » et retombe sur la session (voir lien_liste_filtree() pour un
+// lien qui, lui, doit vraiment imposer un filtre). C'est la session qui fait
+// survivre l'entonnoir au clic sur un en-tête, ici comme ailleurs.
+$tousFiltres = array_filter(['actif' => $actif, 'q' => $recherche]);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -53,7 +61,7 @@ $paramsRecherche = $recherche !== '' ? ['q' => $recherche] : [];
             <?php // Les en-têtes triables portent un lien (tri_entete_html()) ; les
                   // autres — « Dernière fiche », qui est une synthèse calculée hors
                   // de la requête — restent du texte. ?>
-            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('employes', $cle, $lib, $tri, $paramsRecherche); ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('employes', $cle, $lib, $tri, $tousFiltres); ?>
             <th>
                 <span class="col-th">
                     <?= $triCol('nom', 'Nom') ?>
