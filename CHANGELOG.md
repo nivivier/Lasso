@@ -15,6 +15,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   tronqués de toutes les lignes, et les replie au clic suivant. Le détail
   ligne à ligne, au clic sur une cellule, ne change pas ; le bouton lit l'état
   réel des cellules, donc une cellule dépliée à la main ne le désynchronise pas.
+- **Le bouton « Filtres » manquait sur la liste des employés en mobile.** La
+  mise en cartes masque les en-têtes de colonne, et l'entonnoir actif/inactif
+  partait avec eux : on ne pouvait plus voir les employés inactifs depuis un
+  téléphone. Il revient derrière le même bouton que sur les structures, les
+  factures et les fiches, avec le compte des filtres actifs.
 
 ## [3.0.6] — 2026-10-07
 

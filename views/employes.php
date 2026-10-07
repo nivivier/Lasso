@@ -1,6 +1,16 @@
 <?php /** @var array $actif */ /** @var array $employes */ /** @var array $derniere */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var array $tri */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */ ?>
+<?php
+// L'unique filtre de colonne de la page — actif/inactif — servi à deux endroits :
+// l'entonnoir accroché à l'en-tête « Nom », et le panneau « Filtres » de la
+// barre d'outils qui le reprend quand la mise en cartes masque le <thead>.
+// Les libellés sont donc posés ici, une fois : les écrire deux fois, c'est les
+// voir diverger. La recherche en cours les accompagne — un entonnoir comme un
+// lien de tri ne reporte que ce qu'on lui écrit.
+$actifLabels = ['1' => 'Actif', '0' => 'Inactif'];
+$paramsRecherche = $recherche !== '' ? ['q' => $recherche] : [];
+?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
@@ -8,6 +18,19 @@
     <div class="toolbar">
         <?php if ($employes || $recherche !== ''): ?>
         <?= champ_recherche(['id' => 'employes-search', 'valeur' => $recherche]) ?>
+        <?php endif; ?>
+        <?php if ($employes || $recherche !== '' || $actif): ?>
+        <?php
+        // Voir ?p=fiches : sur téléphone la mise en cartes masque le <thead>, et
+        // l'entonnoir accroché à « Nom » avec lui. Le bouton « Filtres » le
+        // reprend, avec son libellé — hors tableau, aucun en-tête ne le nomme.
+        // Il suit la recherche : sans aucun employé à filtrer, ni l'un ni
+        // l'autre n'a de raison d'être là (mais un filtre actif qui ne ramène
+        // rien doit rester visible, sinon on ne peut plus le retirer).
+        $fmColonnes = filtre_colonne_html('employes', 'actif', $actifLabels, $actif, $paramsRecherche, 'Statut');
+        $fmActifs = filtre_colonne_actifs_html('employes', 'actif', $actifLabels, $actif, $paramsRecherche);
+        require __DIR__ . '/_filtres_mobile.php';
+        ?>
         <?php endif; ?>
         <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
@@ -30,12 +53,11 @@
             <?php // Les en-têtes triables portent un lien (tri_entete_html()) ; les
                   // autres — « Dernière fiche », qui est une synthèse calculée hors
                   // de la requête — restent du texte. ?>
-            <?php $triParams = $recherche !== '' ? ['q' => $recherche] : []; ?>
-            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('employes', $cle, $lib, $tri, $triParams); ?>
+            <?php $triCol = fn (string $cle, string $lib): string => tri_entete_html('employes', $cle, $lib, $tri, $paramsRecherche); ?>
             <th>
                 <span class="col-th">
                     <?= $triCol('nom', 'Nom') ?>
-                    <?= filtre_colonne_html('employes', 'actif', ['1' => 'Actif', '0' => 'Inactif'], $actif, $triParams) ?>
+                    <?= filtre_colonne_html('employes', 'actif', $actifLabels, $actif, $paramsRecherche) ?>
                 </span>
             </th>
             <th><?= $triCol('adresse', 'Adresse') ?></th>
