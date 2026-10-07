@@ -19,6 +19,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   d'un projet.
 
 ### Corrigé
+- **La bande vide en tête de tableau disparaît** sur les pays, les catégories et
+  les tags : elle se lisait comme une première ligne sans contenu. Un tableau
+  qui remplit sa carte la remplit maintenant des quatre côtés, et plus
+  seulement de trois.
 - **La poignée de glisser-déposer est tout à gauche de sa ligne**, partout. Deux
   listes la plaçaient en deuxième position parce qu'elles ouvrent sur une
   colonne d'interrupteur — les règles de lettrage et les lignes du décompte —,

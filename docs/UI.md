@@ -811,7 +811,12 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   dernière cellule : le contenu reste ainsi aligné sur le titre du cadre —
   exactement le procédé d'une liste pleine largeur, à l'échelle d'une carte.
   Quand il **ferme** la carte, il la ferme vraiment : pas de bande vide sous sa
-  dernière ligne, et les coins du bas prennent l'arrondi de la carte.
+  dernière ligne, et les coins du bas prennent l'arrondi de la carte. Et quand
+  il l'**ouvre** — une carte qui porte son titre au-dessus d'elle plutôt que
+  dedans (`?p=pays`, `?p=categories_structures`, `?p=tags`) —, il l'ouvre de
+  même : pas de bande vide au-dessus de sa première ligne, qui se lisait comme
+  une rangée sans contenu. Trois bords tirés à fleur et le quatrième laissé en
+  arrière est pire que les quatre en retrait.
   **Rien à déclarer** : c'est le comportement de tout `.list` dans un `.card`,
   avec ou sans conteneur `.table-scroll`. Les deux pièges qui y faisaient
   échapper un écran : porter `.card` et `.table-scroll` sur le **même** élément

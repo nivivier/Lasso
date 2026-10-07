@@ -1356,6 +1356,19 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     margin-bottom: calc(-1 * var(--card-pad));
     border-radius: 0 0 var(--radius) var(--radius);
 }
+/* Et ce qui l'OUVRE, symétriquement. Sans cette règle, un tableau qui n'est
+   précédé d'aucun titre touchait trois bords sur quatre et gardait la marge du
+   quatrième : la bande vide en haut se lisait comme une première rangée sans
+   contenu (?p=pays, ?p=categories_structures, ?p=tags, qui portent leur titre
+   HORS de la carte). Le filet d'ouverture posé plus haut n'a alors plus lieu
+   d'être — il doublerait le bord de la carte. */
+.card > :is(.table-scroll, table.list):first-child,
+.card > .card-block:first-child > :is(.table-scroll, table.list):first-child {
+    margin-top: calc(-1 * var(--card-pad));
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+.card > :is(.table-scroll, table.list):first-child table.list > :first-child > tr:first-child > *,
+.card > table.list:first-child > :first-child > tr:first-child > * { border-top: 0; }
 /* Le tableau porte aussi l'arrondi du bas : à partir de 1280px le conteneur
    repasse en overflow:visible (pour l'en-tête collant des listes) et ne découpe
    plus rien — c'est alors le fond du <table>, carré, qui déborderait dans
