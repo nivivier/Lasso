@@ -9,6 +9,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les règles de lettrage se rangent au glisser-déposer**, comme toutes les
+  listes ordonnées de l'application, et ne sont plus une carte chacune mais des
+  lignes, comme les lignes du décompte. L'ordre d'une règle n'est pas un détail
+  d'affichage — la première qui correspond l'emporte —, et on le relit mieux sur
+  dix lignes que sur dix cadres. Les flèches restent là sans JavaScript et sur
+  téléphone. L'interrupteur actif/inactif ne paraît qu'en édition, comme celui
+  d'un projet.
+
 ### Corrigé
 - **L'interrupteur « mettre de côté » d'un projet rejoint les autres boutons de
   sa ligne**, et ne paraît plus qu'en édition. Il s'affichait en permanence et

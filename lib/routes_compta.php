@@ -1024,6 +1024,28 @@ function route_compta_regles(): void
             exit;
         } elseif ($section === 'del') {
             db()->prepare('DELETE FROM regles_lettrage WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+        } elseif ($section === 'reorder') {
+            // Glisser-déposer : la liste est plate, on renumérote dans l'ordre
+            // reçu. L'ordre EST la règle de priorité — la première qui
+            // correspond l'emporte (appliquer_regles(), lib/compta.php) —, donc
+            // ce geste ne range pas un affichage, il change ce que fait le
+            // lettrage automatique.
+            $order = array_values(array_filter(array_map('intval', explode(',', (string) ($_POST['order'] ?? '')))));
+            if ($order) {
+                $upd = db()->prepare('UPDATE regles_lettrage SET priorite = ? WHERE id = ?');
+                db()->beginTransaction();
+                foreach ($order as $i => $rid) {
+                    $upd->execute([($i + 1) * 10, $rid]);
+                }
+                db()->commit();
+            }
+            // En JSON quand le JavaScript est là : la ligne se déplace dans le
+            // document sans recharger la page (lassoOrdreListe(), app.js).
+            if (($_POST['retour'] ?? '') === 'json') {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                return;
+            }
         } elseif ($section === 'move_up' || $section === 'move_down') {
             $id  = (int) ($_POST['id'] ?? 0);
             $all = db()->query('SELECT id FROM regles_lettrage ORDER BY priorite ASC, id ASC')->fetchAll(PDO::FETCH_COLUMN);

@@ -4134,15 +4134,10 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .plan-row.projet-inactif .plan-icone,
 .plan-row.projet-inactif .plan-puce { opacity: .5; }
 .regle-card.hidden { display: none; }
-/* La rangée du haut d'une règle : elle reste en place dans les deux états, et
-   c'est le RÉSUMÉ qu'elle porte qui cède la place aux champs. Sans cela, le
-   crayon et l'interrupteur disparaîtraient avec la lecture. */
-.regle-rangee { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.regle-rangee .flex-spacer { flex: 1 1 auto; }
 /* La règle dite en une phrase. Le compte et la catégorie à l'encre, les
    conditions en gris : ce sont les deux bouts qu'on cherche en parcourant une
    liste de règles — d'où vient l'écriture, où elle va. */
-.regle-disp { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; font-size: var(--fs-small); }
+.regle-disp { display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; font-size: var(--fs-small); }
 .regle-disp-compte { color: var(--muted); }
 .regle-disp-conds { color: var(--muted); }
 .regle-disp-fleche { color: var(--muted); }
@@ -4150,7 +4145,14 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 /* Ce qui manque à une règle pour fonctionner : ni une erreur du moment, ni un
    geste à faire tout de suite — l'ambre du vocabulaire, sans l'alarme. */
 .regle-disp .warn-txt { color: var(--amber); font-weight: 600; }
-.regle-edit { margin-top: 12px; }
+/* Le formulaire d'une règle occupe toute la largeur de sa ligne et s'empile :
+   compte et conditions, puis les conditions elles-mêmes, puis la catégorie. Il
+   déroge au .plan-edit des autres listes, qui est une rangée de champs — une
+   règle en a trop pour tenir sur une ligne. */
+.regles-table .plan-row.editing .plan-edit { display: block; width: 100%; margin-top: 10px; }
+.regle-edit .regle-head { margin-bottom: 8px; }
+/* Au repos, la ligne se lit d'un bout à l'autre sans être coupée. */
+.regles-table .plan-nom { white-space: normal; }
 
 .regle-head { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
 .regle-head .flex-spacer { flex: 1 1 auto; }

@@ -207,115 +207,155 @@ $peutEcrireRegles = peut_ecrire('compta');
     </div>
     <?php endif; ?>
 
-    <?php if (!$regles): ?>
-    <p class="muted small" id="no-rule">Aucune règle définie. Cliquez sur « Nouvelle règle ».</p>
+    <?php if ($peutEcrireRegles): ?>
+    <?php // Exemplaire unique du formulaire de repositionnement : le script y
+          // écrit l'ordre complet au dépôt et l'envoie (docs/UI.md § 4). ?>
+    <form method="post" action="?p=compta_regles" id="reorder-form" hidden>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="section" value="reorder">
+        <input type="hidden" name="id" value="">
+        <input type="hidden" name="order" value="">
+    </form>
     <?php endif; ?>
 
-    <?php foreach ($regles as $r):
-        $rid     = (int) $r['id'];
-        $actif   = (int) $r['actif'] === 1;
-        $imp     = (int) ($impacts[$rid] ?? 0);
-        $nbConds = count($r['conditions']);
-    ?>
-    <?php
-        // La règle dite en une phrase : le compte, ses conditions reliées par
-        // son ET/OU, et la catégorie qu'elle pose. C'est ce qu'on lit en
-        // parcourant la liste ; les champs n'apparaissent qu'au crayon.
-        $compteLib = $r['compte_bancaire_id'] === null
-            ? 'Tous les comptes'
-            : ($compteLibelles[(int) $r['compte_bancaire_id']] ?? 'Compte supprimé');
-        $condsTexte = implode(
-            ' ' . (($r['operateur'] ?? 'ET') === 'OU' ? 'ou' : 'et') . ' ',
-            array_map($condTexte, $r['conditions'])
-        );
-        $catLib = $cheminsCat[(int) $r['plan_compte_id']] ?? '';
-    ?>
-    <div class="regle-card card-editable <?= $actif ? '' : 'regle-inactive' ?>">
-        <form method="post" action="?p=compta_regles">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="id" value="<?= $rid ?>">
-            <input type="hidden" name="section" value="edit">
-            <?php // La rangée du haut reste visible dans les deux états : elle
-                  // porte l'interrupteur, les flèches et le crayon. Seul le
-                  // RÉSUMÉ (.card-disp) cède la place aux champs (.card-edit),
-                  // par la bascule générique des cartes (assets/app.js). ?>
-            <div class="regle-rangee">
-                <label class="regle-toggle" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
-                    <input type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?> <?= $peutEcrireRegles ? '' : 'disabled' ?>
-                           class="regle-actif-cb" data-submit-on-change>
-                    <span class="regle-toggle-pill"></span>
-                </label>
-                <?php if ($peutEcrireRegles): ?>
-                <div class="regle-arrows">
-                    <button type="submit" name="section" value="move_up"   class="btn ghost btn-xs icon-only" title="Monter" aria-label="Monter"><?= icon('chevron-up') ?></button>
-                    <button type="submit" name="section" value="move_down" class="btn ghost btn-xs icon-only" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
-                </div>
-                <?php endif; ?>
-                <div class="card-disp regle-disp">
-                    <span class="regle-disp-compte"><?= e($compteLib) ?></span>
-                    <span class="regle-disp-conds"><?= $condsTexte !== '' ? e($condsTexte) : '<span class="warn-txt">aucune condition</span>' ?></span>
-                    <span class="regle-disp-fleche" aria-hidden="true">→</span>
-                    <span class="regle-disp-cat"><?= $catLib !== '' ? e($catLib) : '<span class="warn-txt">aucune catégorie</span>' ?></span>
-                </div>
-                <span class="flex-spacer"></span>
-                <?php if ($actif): ?>
-                    <?php if ($imp > 0): ?>
-                        <span class="badge" title="Écritures non lettrées que cette règle attraperait">Touche : <?= $imp ?></span>
+    <?php // Les règles se rangent comme les lignes du décompte (?p=postes) : un
+          // tableau de LIGNES, pas une pile de cartes — on en relit dix d'affilée
+          // pour comprendre dans quel ordre elles s'appliquent, et une carte par
+          // règle noyait cet ordre sous les cadres. Le glisser-déposer vient avec,
+          // qui EST la convention de l'application pour réordonner (docs/UI.md § 4) ;
+          // les flèches restent en repli sans JavaScript et sur téléphone. ?>
+    <div class="card form table-scroll" id="regles-card">
+    <table class="list mb-0 plan-table regles-table">
+        <thead>
+            <tr>
+                <th class="col-icon" title="Règle appliquée lors du lettrage automatique">Active</th>
+                <th>Règle</th>
+                <th class="num nowrap">Touche</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if (!$regles): ?>
+            <tr id="no-rule"><td colspan="4" class="muted small">Aucune règle définie. Cliquez sur « Nouvelle règle ».</td></tr>
+        <?php endif; ?>
+        <?php foreach ($regles as $r):
+            $rid     = (int) $r['id'];
+            $actif   = (int) $r['actif'] === 1;
+            $imp     = (int) ($impacts[$rid] ?? 0);
+            $nbConds = count($r['conditions']);
+            // La règle dite en une phrase : le compte, ses conditions reliées par
+            // son ET/OU, et la catégorie qu'elle pose. C'est ce qu'on lit en
+            // parcourant la liste ; les champs n'apparaissent qu'au crayon.
+            $compteLib = $r['compte_bancaire_id'] === null
+                ? 'Tous les comptes'
+                : ($compteLibelles[(int) $r['compte_bancaire_id']] ?? 'Compte supprimé');
+            $condsTexte = implode(
+                ' ' . (($r['operateur'] ?? 'ET') === 'OU' ? 'ou' : 'et') . ' ',
+                array_map($condTexte, $r['conditions'])
+            );
+            $catLib = $cheminsCat[(int) $r['plan_compte_id']] ?? '';
+        ?>
+            <tr class="plan-row <?= $actif ? '' : 'plan-archive' ?>" data-id="<?= $rid ?>">
+                <td class="td-toggle">
+                    <?php // L'interrupteur ne paraît qu'une ligne ouverte (.cell-edition),
+                          // comme celui d'un projet : au repos, c'est l'atténuation de la
+                          // ligne qui dit qu'une règle est éteinte. ?>
+                    <?php if ($peutEcrireRegles): ?>
+                    <label class="regle-toggle cell-edition" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
+                        <input form="regle-edit-<?= $rid ?>" type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?>
+                               class="regle-actif-cb" aria-label="<?= $actif ? 'Désactiver' : 'Activer' ?> cette règle">
+                        <span class="regle-toggle-pill"></span>
+                    </label>
                     <?php else: ?>
-                        <span class="muted small">Touche : 0</span>
+                    <span class="badge <?= $actif ? 'ok-badge' : 'muted-badge' ?>"><?= $actif ? 'Active' : 'Inactive' ?></span>
                     <?php endif; ?>
-                <?php endif; ?>
-                <?php if ($peutEcrireRegles): ?>
-                <span class="test-result muted small"></span>
-                <?= carte_actions_html(['petit' => true, 'quoi' => 'cette règle']) ?>
-                <?php endif; ?>
-            </div>
-            <div class="card-edit regle-edit" hidden>
-            <div class="regle-head">
-                <!-- Compte -->
-                <div class="regle-cond-ctrl">
-                    <span class="regle-sub">Compte</span>
-                    <select name="compte_bancaire_id" class="regle-ctrl-select" <?= $peutEcrireRegles ? '' : 'disabled' ?>><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
-                </div>
-                <!-- Groupe Conditions : toujours affiché ; ET/OU visible si >1 condition -->
-                <div class="regle-cond-ctrl">
-                    <span class="regle-sub">Conditions</span>
-                    <div class="regle-cond-row">
-                        <?php if ($peutEcrireRegles): ?><button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition" aria-label="Ajouter une condition"><?= icon('plus') ?></button><?php endif; ?>
-                        <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?> <?= $peutEcrireRegles ? '' : 'disabled' ?>>
-                            <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET</option>
-                            <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU</option>
-                        </select>
+                </td>
+                <td>
+                    <div class="inline-edit">
+                        <?php if ($peutEcrireRegles): ?><span class="plan-grip" draggable="true" title="Glisser pour changer l'ordre d'application" aria-hidden="true"><?= icon('grip') ?></span><?php endif; ?>
+                        <span class="plan-nom regle-disp">
+                            <span class="regle-disp-compte"><?= e($compteLib) ?></span>
+                            <span class="regle-disp-conds"><?= $condsTexte !== '' ? e($condsTexte) : '<span class="warn-txt">aucune condition</span>' ?></span>
+                            <span class="regle-disp-fleche" aria-hidden="true">→</span>
+                            <span class="regle-disp-cat"><?= $catLib !== '' ? e($catLib) : '<span class="warn-txt">aucune catégorie</span>' ?></span>
+                        </span>
+                        <?php if ($peutEcrireRegles): ?>
+                        <form method="post" action="?p=compta_regles" class="plan-edit regle-edit" id="regle-edit-<?= $rid ?>">
+                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="id" value="<?= $rid ?>">
+                            <input type="hidden" name="section" value="edit">
+                            <div class="regle-head">
+                                <div class="regle-cond-ctrl">
+                                    <span class="regle-sub">Compte</span>
+                                    <select name="compte_bancaire_id" class="regle-ctrl-select"><?= $compteOptions($r['compte_bancaire_id'] === null ? '' : (string) $r['compte_bancaire_id']) ?></select>
+                                </div>
+                                <div class="regle-cond-ctrl">
+                                    <span class="regle-sub">Conditions</span>
+                                    <div class="regle-cond-row">
+                                        <button type="button" class="btn ghost btn-xs icon-only add-cond" data-target="conds-<?= $rid ?>" title="Ajouter une condition" aria-label="Ajouter une condition"><?= icon('plus') ?></button>
+                                        <select name="operateur" class="regle-op-select" <?= $nbConds <= 1 ? 'hidden' : '' ?>>
+                                            <option value="ET" <?= ($r['operateur'] ?? 'ET') === 'ET' ? 'selected' : '' ?>>ET</option>
+                                            <option value="OU" <?= ($r['operateur'] ?? 'ET') === 'OU' ? 'selected' : '' ?>>OU</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="regle-conds" id="conds-<?= $rid ?>">
+                                <?php foreach ($r['conditions'] as $cond): ?>
+                                    <?= $condRow($cond) ?>
+                                <?php endforeach; ?>
+                                <?php if (empty($r['conditions'])): ?>
+                                    <p class="muted small regle-no-cond">Aucune condition — la règle ne s'applique pas.</p>
+                                <?php endif; ?>
+                            </div>
+                            <div class="regle-cat">
+                                <label class="regle-label grow">Catégorie cible<?= $catSearchable((int) $r['plan_compte_id'], true) ?></label>
+                            </div>
+                        </form>
+                        <?php endif; ?>
                     </div>
-                </div>
-                <?php // « Tester » et « Supprimer » n'ont de sens qu'une règle
-                      // ouverte : enregistrer et annuler sont au crayon, en haut
-                      // (carte_actions_html()), comme sur toutes les cartes. ?>
-                <span class="flex-spacer"></span>
-                <?php if ($peutEcrireRegles): ?>
-                <button type="button" class="btn ghost btn-sm btn-tester"><?= icon('search') ?> Tester</button>
-                <button type="submit" name="section" value="del" class="btn danger btn-sm icon-only"
-                        title="Supprimer" aria-label="Supprimer cette règle"
-                        data-confirm="Supprimer cette règle ?"><?= icon('trash') ?></button>
-                <?php endif; ?>
-            </div>
-            <div class="regle-conds" id="conds-<?= $rid ?>">
-                <?php foreach ($r['conditions'] as $cond): ?>
-                    <?= $condRow($cond) ?>
-                <?php endforeach; ?>
-                <?php if (empty($r['conditions'])): ?>
-                    <p class="muted small regle-no-cond">Aucune condition — la règle ne s'applique pas.</p>
-                <?php endif; ?>
-            </div>
-            <div class="regle-cat">
-                <label class="regle-label grow">Catégorie cible<?= $catSearchable((int) $r['plan_compte_id'], $peutEcrireRegles) ?></label>
-            </div>
-            </div>
-        </form>
+                </td>
+                <td class="num nowrap">
+                    <?php if ($actif): ?>
+                        <span class="muted small" title="Écritures non lettrées que cette règle attraperait">Touche&nbsp;: <?= $imp ?></span>
+                    <?php endif; ?>
+                    <span class="test-result muted small"></span>
+                </td>
+                <td class="actions nowrap">
+                    <?php if ($peutEcrireRegles): ?>
+                    <?php // Repli sans glisser-déposer (et sur téléphone, où il
+                          // n'existe pas) : les deux flèches, rattachées au
+                          // formulaire de la ligne par form=. ?>
+                    <button type="submit" form="regle-edit-<?= $rid ?>" name="section" value="move_up"   class="btn ghost btn-sm icon-only plan-fallback" title="Monter" aria-label="Monter"><?= icon('chevron-up') ?></button>
+                    <button type="submit" form="regle-edit-<?= $rid ?>" name="section" value="move_down" class="btn ghost btn-sm icon-only plan-fallback" title="Descendre" aria-label="Descendre"><?= icon('chevron-down') ?></button>
+                    <button type="button" class="btn ghost btn-sm btn-tester cell-edition"><?= icon('search') ?> Tester</button>
+                    <button type="submit" form="regle-edit-<?= $rid ?>" name="section" value="edit" class="btn btn-sm cell-edition" title="Enregistrer"><?= icon('save') ?> Enregistrer</button>
+                    <button type="submit" form="regle-edit-<?= $rid ?>" name="section" value="del" class="btn danger btn-sm icon-only cell-edition plan-supprimer"
+                            title="Supprimer" aria-label="Supprimer cette règle"
+                            data-confirm="Supprimer cette règle ?"><?= icon('trash') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier cette règle"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
     </div>
-    <?php endforeach; ?>
 
 </div></div>
+
+<?php // Toujours exécuté, même sans droit d'écriture : c'est « dnd-on » qui
+      // bascule la liste en mode lecture — sans lui, les formulaires d'édition
+      // resteraient dépliés sur chaque ligne. ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+lassoOrdreListe({
+    containerSelector: '#regles-card',
+    rowsSelector: '.regles-table .plan-row',
+    scrollKey: 'reglesScroll',
+    formAction: '?p=compta_regles',
+});
+</script>
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
@@ -378,8 +418,10 @@ $peutEcrireRegles = peut_ecrire('compta');
         });
     });
 
-    // Validation catégorie avant envoi.
-    document.querySelectorAll('.regle-card form').forEach(form => {
+    // Validation catégorie avant envoi. La carte « nouvelle règle » et les
+    // lignes du tableau portent toutes deux leur formulaire : on les prend par
+    // le formulaire lui-même, pas par ce qui l'enveloppe.
+    document.querySelectorAll('#new-rule-card form, .regles-table .plan-edit').forEach(form => {
         form.addEventListener('submit', function (e) {
             const section = e.submitter?.value;
             if (section === 'move_up' || section === 'move_down') return;
@@ -395,16 +437,18 @@ $peutEcrireRegles = peut_ecrire('compta');
         });
     });
 
-    // Tester : fetch sans rechargement.
-    function bindTester(card) {
-        const btn = card.querySelector('.btn-tester');
+    // Tester : fetch sans rechargement. $hote est la carte « nouvelle règle »
+    // ou la LIGNE d'une règle existante — l'une et l'autre portent un bouton,
+    // un formulaire et un emplacement de résultat.
+    function bindTester(hote) {
+        const btn = hote.querySelector('.btn-tester');
         if (!btn) return;
         btn.addEventListener('click', () => {
-            const form = card.querySelector('form');
+            const form = hote.querySelector('form, .plan-edit');
             if (!form) return;
             const data = new FormData(form);
             data.set('section', 'test');
-            const result = card.querySelector('.test-result');
+            const result = hote.querySelector('.test-result');
             btn.disabled = true;
             fetch('?p=compta_regles', { method: 'POST', body: data })
                 .then(r => r.json())
@@ -413,7 +457,7 @@ $peutEcrireRegles = peut_ecrire('compta');
                 .finally(() => { btn.disabled = false; });
         });
     }
-    document.querySelectorAll('.regle-card').forEach(bindTester);
+    document.querySelectorAll('#new-rule-card, .regles-table .plan-row').forEach(bindTester);
 
     // Ouvrir / fermer la nouvelle règle.
     const card      = document.getElementById('new-rule-card');
