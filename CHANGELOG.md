@@ -23,6 +23,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Les barres de titre des fenêtres s'éclairent** du même léger dégradé que la
   barre supérieure du téléphone : deux surfaces sombres à texte blanc, un seul
   traitement, écrit une fois pour les deux.
+- **La barre d'une fenêtre tient sur une ligne au téléphone.** « Fermer » s'y
+  réduit à sa croix — le geste le plus connu d'une interface se passe de son
+  mot — et « Charger un modèle » garde le sien, en plus petit : une icône de
+  document ne dit pas qu'elle charge un modèle. Les deux traitements existaient
+  déjà séparément ; ils basculent désormais à la même largeur, et le bouton
+  « Fermer », que six fenêtres recopiaient à l'identique, s'écrit d'un seul
+  appel.
 
 ## [3.0.8] — 2026-10-08
 

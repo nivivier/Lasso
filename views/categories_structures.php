@@ -130,7 +130,7 @@ $parentOptions = function (?int $selected) use ($map): string {
     <div class="modal-card">
         <div class="modal-head">
             <span class="modal-titre">Supprimer « <span id="cat-del-nom"></span> »</span>
-            <button type="button" class="btn ghost modal-fermer" id="cat-del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+            <?= bouton_fermer_modal_html('cat-del-cancel') ?>
         </div>
         <p class="muted small"><strong id="cat-del-nb"></strong> structure(s) utilisent <span id="cat-del-type">cette catégorie</span>. Réaffectez-les avant de supprimer.</p>
         <form method="post" action="?p=categories_structures" id="cat-del-form">

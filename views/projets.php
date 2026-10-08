@@ -299,7 +299,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
             <input type="hidden" name="image_data" id="projet-image-data">
             <div class="modal-head">
                 <span class="modal-titre" id="projet-image-titre">Icône</span>
-                <button type="button" class="btn ghost modal-fermer" id="projet-image-annuler" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+                <?= bouton_fermer_modal_html('projet-image-annuler') ?>
             </div>
             <p class="muted small">Choisissez une image et cadrez-la. Sans icône, la pastille montre les initiales du nom.</p>
             <div class="avatar-photo-zone">

@@ -137,7 +137,7 @@ $paysOptions = function (?int $selected) use ($map): string {
     <div class="modal-card">
         <div class="modal-head">
             <span class="modal-titre">Supprimer la région « <span id="region-del-nom"></span> »</span>
-            <button type="button" class="btn ghost modal-fermer" id="region-del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+            <?= bouton_fermer_modal_html('region-del-cancel') ?>
         </div>
         <p class="muted small"><strong id="region-del-nb"></strong> fiche(s) utilisent cette région. Réaffectez-les avant de supprimer.</p>
         <form method="post" action="?p=pays" id="region-del-form">

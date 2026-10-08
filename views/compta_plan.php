@@ -148,7 +148,7 @@ $flashErr = [
     <div class="modal-card">
         <div class="modal-head">
             <span class="modal-titre">Supprimer « <span id="del-nom"></span> »</span>
-            <button type="button" class="btn ghost modal-fermer" id="del-cancel" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+            <?= bouton_fermer_modal_html('del-cancel') ?>
         </div>
         <p class="muted small">Cette catégorie contient <strong id="del-nb"></strong> écriture(s) déjà classée(s). Que faire de ces écritures ?</p>
         <form method="post" action="?p=compta_plan" id="del-form">

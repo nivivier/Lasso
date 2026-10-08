@@ -3553,6 +3553,22 @@ function structure_statut_toggle_html(int $id, string $statut): string
     return $h . '</div>';
 }
 
+// Le bouton « Fermer » de la barre d'une fenêtre. Six fenêtres l'écrivaient à
+// l'identique, à l'identifiant près ; une seule l'écrit maintenant.
+//
+// Son intitulé vit dans un <span class="btn-txt"> : sur un téléphone, la croix
+// seule suffit — c'est le geste le plus connu de toute interface —, et la place
+// rendue revient aux commandes qui, elles, ont besoin de leurs mots. C'est la
+// même convention que .btn-compact-mobile ailleurs dans la barre (docs/UI.md
+// § 7). $id : facultatif, pour le script qui ferme la fenêtre.
+function bouton_fermer_modal_html(string $id = ''): string
+{
+    return '<button type="button" class="btn ghost modal-fermer btn-compact-mobile"'
+        . ($id !== '' ? ' id="' . e($id) . '"' : '')
+        . ' title="Fermer" aria-label="Fermer">'
+        . icon('x') . ' <span class="btn-txt">Fermer</span></button>';
+}
+
 // Les commandes d'une carte (ou d'une ligne) modifiable, dans l'ordre et sous
 // l'aspect que l'application leur donne partout : le crayon quand on lit ;
 // enregistrer, puis ce que l'écran ajoute, puis fermer, quand on modifie. Le

@@ -23,7 +23,7 @@
             <?php endforeach; ?>
             <div class="modal-head">
                 <span class="modal-titre" id="noter-titre">Marquer comme contacté</span>
-                <button type="button" class="btn ghost modal-fermer" id="noter-annuler" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+                <?= bouton_fermer_modal_html('noter-annuler') ?>
             </div>
 
             <label><span>Date <?= info_tip("La date du démarchage, pas celle de la saisie : on consigne souvent après coup.") ?></span>

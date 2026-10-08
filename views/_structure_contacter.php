@@ -39,15 +39,20 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                       // action, pas un réglage du message. Même menu que celui
                       // du déroulé d'une date (menu_deroulant_html()) — il se referme
                       // au clic hors de lui, comme les autres. ?>
+                <?php // .btn-compact : sur téléphone, le libellé reste écrit mais
+                      // en plus petit et sur deux lignes, comme « Réinstaller la
+                      // dernière version » de ?p=maj. Le garder entier compte ici :
+                      // une icône de document ne dit pas qu'elle CHARGE un modèle,
+                      // et le geste n'est pas rattrapable d'un coup d'œil. ?>
                 <?= menu_deroulant_html(
-                    ['icone' => 'file-text', 'libelle' => 'Charger un modèle'],
+                    ['icone' => 'file-text', 'libelle' => 'Charger un modèle', 'classe' => 'btn-compact'],
                     array_map(fn ($m) => [
                         'libelle' => (string) $m['nom'],
                         'attrs'   => ['data-modele' => (int) $m['id']],
                     ], $modelesMessage),
                     ['classe' => 'contacter-modele', 'id' => 'contacter-modele']
                 ) ?>
-                <button type="button" class="btn ghost modal-fermer" id="contacter-fermer" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
+                <?= bouton_fermer_modal_html('contacter-fermer') ?>
             </div>
 
             <?php // Une structure « À vérifier » reste contactable — c'est le sens

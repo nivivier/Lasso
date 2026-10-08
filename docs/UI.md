@@ -718,12 +718,35 @@ et au bas ce qui conclut. Un aperçu de document n'en est qu'un cas particulier 
 même fenêtre, même barre, et pour seule différence un contenu qui est un
 document posé sur son fond gris.
 
+**« Fermer » s'écrit `bouton_fermer_modal_html()`**, jamais à la main : six
+fenêtres l'avaient recopié à l'identique, à l'identifiant près, et la septième
+aurait dérivé.
+
+### Un bouton à l'étroit : réduire le mot, ou le texte
+
+Deux traitements, et ils ne disent pas la même chose. Le choix se fait sur une
+question : **l'icône seule suffit-elle à dire le geste ?**
+
+- `.btn-compact-mobile` + `<span class="btn-txt">` : le libellé **part**, l'icône
+  reste. Pour un geste dont le dessin est universel — la croix de « Fermer ».
+- `.btn-compact` : le libellé **reste**, en plus petit, sur deux lignes s'il le
+  faut, aligné à gauche sous l'icône. Pour un geste que son icône ne raconte
+  pas : une flèche de téléchargement ne dit pas si l'on installe, réinstalle ou
+  revient en arrière (`?p=maj`) ; un document ne dit pas qu'il *charge* un
+  modèle (fenêtre « Contacter »).
+- `.btn-compact-break` pose en plus un `<br>` à un endroit choisi, quand la
+  coupure naturelle tomberait mal.
+
+Les deux basculent au **même seuil** que tout ce qui se réduit sur un
+téléphone. Un menu déroulant prend son traitement par l'option `classe` de
+`menu_deroulant_html()` — pas par une règle écrite pour lui.
+
 ```html
 <div class="modal-overlay" hidden>
   <div class="modal-card">
     <div class="modal-head">
       <span class="modal-titre">Supprimer « … »</span>
-      <button class="btn ghost modal-fermer">✕ Fermer</button>
+      <?= bouton_fermer_modal_html('…-annuler') ?>
     </div>
     …
     <div class="modal-actions">…</div>

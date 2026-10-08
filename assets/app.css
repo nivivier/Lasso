@@ -2138,11 +2138,6 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
     .cadre-edit .grid2 { grid-template-columns: 1fr; }
     .contact-fin { flex-direction: column; }
     .contact-fin .contact-langue { align-self: flex-start; }
-    /* Commandes secondaires réduites à leur icône : trois boutons libellés ne
-       tiennent pas sur la largeur d'un téléphone, et la rangée se cassait
-       autour d'« Envoyer ». Voir views/_structure_contacter.php. */
-    .btn-compact-mobile .btn-txt { display: none; }
-    .btn-compact-mobile { padding: 9px 11px; gap: 0; }
 }
 .linked-add select { width: auto; flex: 1; }
 /* Champ de recherche dans une rangée « lier » : il prend la place, le bouton
@@ -3995,6 +3990,13 @@ abbr {
        axe) paraît désaligné ; aligné à gauche, les deux lignes démarrent au
        même point sous l'icône, lisible quel que soit le nombre de lignes. */
     .btn.btn-compact { font-size: var(--fs-small); line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; text-align: left; }
+    /* Son contraire, pour un bouton dont l'icône se suffit : le libellé part
+       et seule l'icône reste. Deux gestes dans la même barre peuvent demander
+       l'un ou l'autre — « Fermer » tient dans sa croix, « Charger un modèle »
+       non. Vivait sous un seuil à 720px, déplacé ici pour que « se réduire sur
+       un téléphone » n'ait qu'UNE largeur de bascule dans toute la feuille. */
+    .btn-compact-mobile .btn-txt { display: none; }
+    .btn-compact-mobile { padding: 9px 11px; gap: 0; }
     /* Réactive le <br> cadré ci-dessus (masqué sur bureau) : choix de style
        délibéré pour ce bouton précis, pas un repli sous contrainte d'espace
        — le texte reste sur 2 lignes même quand une seule suffirait. */
