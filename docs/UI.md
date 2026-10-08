@@ -36,7 +36,7 @@ Sous 800 px le rail se replie et une barre fixe le remplace. Elle tient quatre
 choses, dans cet ordre : **le burger, le logo réduit, le nom du module, l'action
 principale de la page**. Le titre de la page (`.page-head-titre-module`)
 s'efface alors — la barre le dit déjà une rangée plus haut, et cette rangée
-rendue, c'est 49 px de contenu gagnés sur chaque écran.
+rendue, c'est 34 px de contenu gagnés sur chaque écran.
 
 - **Le nom du module** vient de `nav_groupes()` + `nav_groupe_actif()`, deux
   fonctions pures de `?p=` : le gabarit le connaît donc avant que la vue ne

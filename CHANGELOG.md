@@ -13,8 +13,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Sur téléphone, la barre supérieure porte le nom du module et l'action de la
   page.** Le titre occupait jusqu'ici une rangée à lui seul sous la barre
   burger + logo : il la rejoint, le logo passant à sa pastille carrée pour lui
-  faire place. La rangée rendue, ce sont **49 px de contenu gagnés sur chaque
-  écran** — une ligne et demie de liste. L'action principale de la page (le
+  faire place. La rangée rendue, ce sont **34 px de contenu gagnés sur chaque
+  écran** une fois les marges rééquilibrées — une ligne de liste. L'action principale de la page (le
   bouton mis en évidence de la barre d'outils, « Nouvelle facture », « Nouvel
   employé »…) monte à sa droite : le geste le plus fréquent est au pouce,
   toujours au même endroit, et la barre d'outils rend sa place au champ de

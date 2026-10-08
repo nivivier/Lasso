@@ -3807,8 +3807,11 @@ abbr {
        titre à montrer et celui de la page doit rester. */
     body.titre-dans-barre .page-head-titre-module { display: none; }
     /* Le bandeau ne porte plus que la rangée d'onglets : il se resserre en
-       haut, sinon le retrait du titre disparu resterait en vide. */
-    body.titre-dans-barre .page-head-band .page-head { padding-top: 8px; }
+       haut, sinon le retrait du titre disparu resterait en vide. Même valeur
+       que le retrait latéral : les onglets sont alors à égale distance du bord
+       gauche et de la barre au-dessus, et le cadre qu'ils occupent se lit
+       comme un carré de marge, pas comme une bande écrasée. */
+    body.titre-dans-barre .page-head-band .page-head { padding-top: 18px; }
 
     /* La sidebar devient un tiroir hors écran, ouvert depuis la GAUCHE — du
        côté où vit le rail sur bureau, et du côté du burger. */
