@@ -233,6 +233,10 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    destinataire, copie cachée à l'expéditeur, et une entrée d'historique à
    l'envoi, qui nomme aussi les copies. Une structure rattachée à une autre (salle d'un festival,
    antenne d'une faîtière) propose aussi les contacts de celle qui l'organise.
+   Chaque structure porte un **statut** unique — *Contact privilégié*, *Actif*,
+   *À vérifier*, *Ne pas contacter*, *Inactif* — qui décide si elle entre dans
+   les envois. *À vérifier* reste contactable : il dit qu'on doute de ce qu'on a
+   d'elle, et la fenêtre « Contacter » le rappelle avant qu'on écrive.
    La colonne « Ville » de la liste porte un entonnoir **« Lieu »** unique où
    l'on cherche un pays, une région, un département ou une ville, et où les
    valeurs cochées se cumulent (« Suisse ou Lyon »).

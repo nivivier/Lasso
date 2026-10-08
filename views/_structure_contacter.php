@@ -12,7 +12,7 @@
 // à chaque fois, et dupliqué les identifiants du document.
 //
 // Attendu de l'appelant :
-//   $contacterCibles  [id structure => ['nom', 'contacts' (joignables), 'brouillon']]
+//   $contacterCibles  [id structure => ['nom', 'statut', 'contacts' (joignables), 'brouillon']]
 //   $expediteurs, $modelesMessage, $projetLabels, $campagneProjets
 //   $contacterRetourCampagne (facultatif) la campagne où revenir après l'envoi
 // et, pour ouvrir : un élément portant data-contacter="<id structure>".
@@ -49,6 +49,14 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                 ) ?>
                 <button type="button" class="btn ghost modal-fermer" id="contacter-fermer" title="Fermer" aria-label="Fermer"><?= icon('x') ?> Fermer</button>
             </div>
+
+            <?php // Une structure « À vérifier » reste contactable — c'est le sens
+                  // du statut : on lui écrit, mais on doute de ce qu'on a d'elle.
+                  // La mise en garde se lit AVANT les champs, pleine largeur et
+                  // hors de la grille à deux colonnes, sinon elle se rangerait à
+                  // côté de l'expéditeur comme si elle le concernait. Ambre :
+                  // elle appelle un geste (docs/UI.md § 13). ?>
+            <p class="warn" id="contacter-avertissement" hidden></p>
 
             <?php // De qui vers qui : les deux bouts de l'envoi se lisent d'une
                   // seule rangée, tant que la largeur le permet (.grid2-optional
@@ -140,6 +148,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
     if (!modal) return;
     var cibles = <?= json_encode(array_map(fn (array $c): array => [
         'nom' => (string) $c['nom'],
+        'statut' => (string) ($c['statut'] ?? ''),
         'brouillon' => $c['brouillon'] ? [
             'contact_id' => (int) ($c['brouillon']['contact_id'] ?? 0),
             'expediteur_id' => (int) ($c['brouillon']['expediteur_id'] ?? 0),
@@ -174,6 +183,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
     if (lienCopies) { lienCopies.addEventListener('click', function () { lienCopies.hidden = true; }); }
     var champStructure = document.getElementById('contacter-structure');
     var titre = document.getElementById('contacter-titre');
+    var avertissement = document.getElementById('contacter-avertissement');
     var destinataire = document.getElementById('contacter-destinataire');
     var fiche = document.getElementById('contacter-fiche');
     var expediteur = document.getElementById('contacter-expediteur');
@@ -260,6 +270,15 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
         if (!cible) { return; }
         champStructure.value = sid;
         titre.textContent = 'Contacter ' + cible.nom;
+        // Le libellé vient du serveur (STRUCTURE_STATUTS_LIBELLES) : un seul
+        // endroit nomme les statuts, ici comme ailleurs.
+        var aVerifier = cible.statut === <?= json_encode(STRUCTURE_STATUT_A_VERIFIER) ?>;
+        avertissement.hidden = !aVerifier;
+        if (aVerifier) {
+            avertissement.textContent = 'Cette structure est notée « '
+                + <?= json_encode(structure_statut_libelle(STRUCTURE_STATUT_A_VERIFIER)) ?>
+                + ' » : ses coordonnées ne sont peut-être plus à jour.';
+        }
         // Destinataires de CETTE structure ; la requête met les « booking » en tête.
         destinataire.innerHTML = '';
         cible.contacts.forEach(function (ct) {

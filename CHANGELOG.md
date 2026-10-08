@@ -9,6 +9,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Un statut « À vérifier » pour les structures**, au centre des cinq, entre
+  « Actif » et « Ne pas contacter » : il dit qu'on doute de ce qu'on a de la
+  structure — une adresse qui a peut-être changé, une personne qui a peut-être
+  quitté le poste — sans la retirer de la circulation. Un point d'interrogation
+  ambre le signale dans la liste comme sur la fiche, l'ambre disant comme
+  ailleurs un geste qui nous revient. **On continue de lui écrire**, envois
+  groupés compris ; la fenêtre « Contacter » rappelle alors, avant qu'on
+  choisisse le destinataire, que les coordonnées ne sont peut-être plus à jour.
+
 ## [3.0.8] — 2026-10-08
 
 ### Modifié

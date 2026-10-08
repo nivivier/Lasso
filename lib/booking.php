@@ -12,24 +12,34 @@ require_once __DIR__ . '/compta.php'; // plan_pid()/plan_enfants()/plan_est_feui
 // Statut unique d'une structure (structures.statut, migration_63 — remplace
 // actif+desinscrit) : « contact_privilegie » (prioritaire, jamais déduit
 // automatiquement d'un import/backfill — uniquement une action manuelle sur
-// la fiche), « actif », « ne_pas_contacter » (active mais désinscrite du
+// la fiche), « actif », « a_verifier » (on lui écrit toujours, mais on doute
+// de ce qu'on a d'elle), « ne_pas_contacter » (active mais désinscrite du
 // mailing), « inactif ». Ordre = ordre d'affichage du sélecteur segmenté
 // (structure_statut_toggle_html(), lib/helpers.php) et des filtres/bulk
-// (?p=structures). « actif »/« contact_privilegie » comptent pour éligibles
+// (?p=structures) : il va du plus engagé au plus éteint, et « a_verifier »
+// occupe le centre des cinq, entre ce qui marche et ce à quoi on n'écrit plus.
+// « actif »/« contact_privilegie »/« a_verifier » comptent pour éligibles
 // au mailing (mailing_structures_eligibles()) ; « ne_pas_contacter »/
 // « inactif » en sont toujours exclus.
-const STRUCTURE_STATUTS = ['contact_privilegie', 'actif', 'ne_pas_contacter', 'inactif'];
+const STRUCTURE_STATUTS = ['contact_privilegie', 'actif', 'a_verifier', 'ne_pas_contacter', 'inactif'];
+
+// Celui des cinq que du code doit pouvoir NOMMER : la fenêtre « Contacter »
+// l'affiche en mise en garde (views/_structure_contacter.php). Une constante
+// plutôt que la chaîne écrite une seconde fois — c'est ainsi qu'un statut
+// renommé ne laisse pas un test d'égalité muet derrière lui.
+const STRUCTURE_STATUT_A_VERIFIER = 'a_verifier';
 
 // Les statuts qui acceptent qu'on écrive à la structure — mailing groupé comme
 // message individuel. UNE seule liste : elle vivait en trois exemplaires (une
 // liste blanche dans mailing_structures_eligibles(), deux listes noires dans le
 // bouton « Contacter » et sa vue), qui ne s'accordaient que parce qu'il n'y a
 // que quatre statuts. Un cinquième les aurait fait diverger en silence.
-const STRUCTURE_STATUTS_CONTACTABLES = ['actif', 'contact_privilegie'];
+const STRUCTURE_STATUTS_CONTACTABLES = ['actif', 'contact_privilegie', 'a_verifier'];
 
 const STRUCTURE_STATUTS_LIBELLES = [
     'contact_privilegie' => 'Contact privilégié',
     'actif'               => 'Actif',
+    'a_verifier'          => 'À vérifier',
     'ne_pas_contacter'    => 'Ne pas contacter',
     'inactif'             => 'Inactif',
 ];
@@ -38,9 +48,13 @@ const STRUCTURE_STATUTS_LIBELLES = [
 // seuil franchi (docs/UI.md § 12). « Actif » n'est pas un geste accompli, c'est
 // un état : d'où le point plein, qui dit « celle-ci compte » sans prétendre
 // qu'on lui a écrit.
+// « À vérifier » : un point d'interrogation, parce que ce statut dit un DOUTE —
+// l'adresse a peut-être changé, la personne a peut-être quitté le poste — et
+// non un manque de champs, qui appellerait une autre icône.
 const STRUCTURE_STATUTS_ICONES = [
     'contact_privilegie' => 'heart',
     'actif'               => 'circle-dot',
+    'a_verifier'          => 'circle-question-mark',
     'ne_pas_contacter'    => 'circle-x',
     'inactif'             => 'circle-dashed',
 ];
@@ -50,6 +64,8 @@ const STRUCTURE_STATUTS_ICONES = [
 const STRUCTURE_STATUTS_CLASSES_ICONE = [
     'contact_privilegie' => 'ico-pink',
     'actif'               => 'ico-ok',
+    // Ambre : la fiche demande un geste de notre part (docs/UI.md § 13).
+    'a_verifier'          => 'ico-amber',
     'ne_pas_contacter'    => 'ico-danger',
     'inactif'             => 'muted',
 ];

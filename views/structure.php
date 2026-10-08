@@ -1091,7 +1091,8 @@ $villeHtmlS = ville_departement_canton_html(
 <?php if ($contactable): ?>
 <?php // Une seule cible ici : la structure de la fiche. La même fenêtre en sert
       // plusieurs sur la page d'une campagne. ?>
-<?php $contacterCibles = [$sid => ['nom' => (string) $structure['nom'], 'contacts' => $contactsJoignables, 'brouillon' => $brouillon]]; ?>
+<?php $contacterCibles = [$sid => ['nom' => (string) $structure['nom'], 'statut' => (string) $structure['statut'],
+    'contacts' => $contactsJoignables, 'brouillon' => $brouillon]]; ?>
 <?php require __DIR__ . '/_structure_contacter.php'; ?>
 <?php endif; ?>
 </div></div>

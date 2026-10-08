@@ -1957,7 +1957,8 @@ function route_booking_campagne(): void
             // qui écrire. La ligne dit pourquoi, plutôt que d'offrir un bouton mort.
             $s['contact_impossible'] = structure_contact_impossible_raison($s, $joignables);
             if ($s['contact_impossible'] === '') {
-                $cibles[$sid] = ['nom' => (string) $s['nom'], 'contacts' => $joignables, 'brouillon' => structure_message_brouillon($sid)];
+                $cibles[$sid] = ['nom' => (string) $s['nom'], 'statut' => (string) $s['statut'],
+                    'contacts' => $joignables, 'brouillon' => structure_message_brouillon($sid)];
             }
         }
         $structures[] = $s;
