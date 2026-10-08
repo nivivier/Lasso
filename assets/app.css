@@ -3745,23 +3745,10 @@ abbr {
         display: flex; align-items: center; justify-content: flex-start; gap: 12px;
         padding: 10px 16px;
         position: sticky; top: 0; z-index: 30;
-        /* Un aplat sombre sur toute la largeur du haut d'écran pesait lourd.
-           Le dégradé part d'un coin réchauffé d'une pointe de la couleur du
-           module, traverse la surface de marque telle quelle, et se referme un
-           peu plus profond : la barre respire sans changer de nature.
-           150deg est l'angle des dégradés de l'application (titres de page,
-           .info-date). Construit sur --brand-surface et NON sur --brand : la
-           seconde sert aussi de couleur de texte et s'éclaircit en thème
-           sombre, ce qui donnerait ici une barre claire sous du texte blanc.
-           Les proportions restent faibles (14% / 8%) — assez pour que la
-           lumière se voie, assez peu pour que le blanc garde son contraste
-           dans les deux thèmes. background-color en repli : un navigateur qui
-           ignore color-mix() retombe sur l'aplat d'avant, pas sur rien. */
-        background-color: var(--brand-surface);
-        background-image: linear-gradient(150deg,
-            color-mix(in srgb, var(--brand-surface) 86%, var(--primary)) 0%,
-            var(--brand-surface) 58%,
-            color-mix(in srgb, var(--brand-surface) 92%, #000) 100%);
+        /* Le fond est celui, commun, des barres sombres (voir .mobile-bar,
+           .modal-head plus haut). ⚠️ Sur --brand-surface et NON sur --brand :
+           la seconde sert aussi de couleur de texte et s'éclaircit en thème
+           sombre, ce qui donnerait ici une barre claire sous du texte blanc. */
     }
     .mbar-logo { width: auto; height: 28px; }
     /* Version réduite (carrée) : bornée en hauteur, pas en largeur. */
@@ -4212,10 +4199,33 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    coins arrondis. */
 .modal-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0 24px 22px; max-width: 460px; width: 100%; overflow: hidden; }
 .modal-card h3 { font-size: var(--fs-large); }
+/* Les barres sombres à texte blanc — la barre supérieure du téléphone,
+   l'en-tête d'une fenêtre — partagent leur fond. Un aplat sur toute la largeur
+   pesait lourd ; ce dégradé part d'un coin réchauffé d'une pointe de la couleur
+   du module, traverse la surface telle quelle, et se referme un peu plus
+   profond. 150deg est l'angle des dégradés de l'application (titres de page,
+   .info-date). Les proportions restent faibles : assez pour que la lumière se
+   voie, assez peu pour que le blanc garde son contraste dans les deux thèmes
+   (mesuré : 7.2 au pire, en thème clair).
+   ⚠️ Un sélecteur partagé, et NON un jeton `--degrade-barre` posé sur :root :
+   les var() d'une propriété personnalisée se résolvent là où elle est
+   DÉCLARÉE, pas là où elle est utilisée — un tel jeton lirait la surface sur
+   :root, où elle n'existe pas, et ne donnerait rien. Écrite ici, la recette
+   est calculée sur chaque barre, qui n'a plus qu'à désigner la sienne.
+   background-color en repli, pour un navigateur sans color-mix(). */
+.mobile-bar { --barre-surface: var(--brand-surface); }
+.modal-head { --barre-surface: var(--modal-head-bg); }
+.mobile-bar, .modal-head {
+    background-color: var(--barre-surface);
+    background-image: linear-gradient(150deg,
+        color-mix(in srgb, var(--barre-surface) 86%, var(--primary)) 0%,
+        var(--barre-surface) 58%,
+        color-mix(in srgb, var(--barre-surface) 92%, #000) 100%);
+}
 .modal-head {
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     margin: 0 -24px 18px; padding: 13px 18px 13px 24px;
-    background: var(--modal-head-bg); color: #fff;
+    color: #fff;
     position: sticky; top: 0; z-index: 2;
 }
 .modal-titre { font-weight: 700; font-size: var(--fs-large); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }

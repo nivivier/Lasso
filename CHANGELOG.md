@@ -19,6 +19,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   groupés compris ; la fenêtre « Contacter » rappelle alors, avant qu'on
   choisisse le destinataire, que les coordonnées ne sont peut-être plus à jour.
 
+### Modifié
+- **Les barres de titre des fenêtres s'éclairent** du même léger dégradé que la
+  barre supérieure du téléphone : deux surfaces sombres à texte blanc, un seul
+  traitement, écrit une fois pour les deux.
+
 ## [3.0.8] — 2026-10-08
 
 ### Modifié
