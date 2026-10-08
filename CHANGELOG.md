@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.9] — 2026-10-08
+
 ### Ajouté
 - **Un statut « À vérifier » pour les structures**, au centre des cinq, entre
   « Actif » et « Ne pas contacter » : il dit qu'on doute de ce qu'on a de la
@@ -20,9 +22,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   choisisse le destinataire, que les coordonnées ne sont peut-être plus à jour.
 
 ### Modifié
-- **Les barres de titre des fenêtres s'éclairent** du même léger dégradé que la
-  barre supérieure du téléphone : deux surfaces sombres à texte blanc, un seul
-  traitement, écrit une fois pour les deux.
+- **Les barres de titre des fenêtres s'éclairent** du même dégradé que la barre
+  supérieure du téléphone : deux surfaces sombres à texte blanc, un seul
+  traitement, écrit une fois pour les deux — chacune gardant sa propre couleur,
+  qui n'est pas la même en thème sombre. Le dégradé lui-même est un cran plus
+  vif qu'à la 3.0.8, des deux côtés ; le blanc y garde un contraste de 6,1 au
+  pire, pour 4,5 exigés.
 - **La barre d'une fenêtre tient sur une ligne au téléphone.** « Fermer » s'y
   réduit à sa croix — le geste le plus connu d'une interface se passe de son
   mot — et « Charger un modèle » garde le sien, en plus petit : une icône de
