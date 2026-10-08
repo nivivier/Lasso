@@ -35,6 +35,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   24 px sous lui et seulement 16 au-dessus, donc paraissait collé au bandeau
   d'onglets. Les deux marges sont égales, comme elles l'ont toujours été sur
   grand écran.
+- **Plus de trait de couleur vive sous la barre supérieure sur téléphone.** Il
+  ouvre la page sur grand écran et y dit le module ; sous une barre qui porte
+  désormais le logo et le nom du module, il faisait double emploi.
 
 ## [3.0.7] — 2026-10-07
 

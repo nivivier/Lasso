@@ -64,6 +64,10 @@ rendue, c'est 49 px de contenu gagnés sur chaque écran.
   à leur taille propre, elles divergent : le « + » du tableau de bord est un
   `<summary class="icon-only">` (41 × 43), les autres des `<a class="btn">`
   (38 × 32), et la barre changeait de hauteur d'un écran à l'autre.
+- **Pas de trait d'accent sous elle.** Les 3 px de couleur vive qui ouvrent la
+  page sur grand écran y disent le module ; sur téléphone la barre le dit déjà,
+  juste au-dessus, et le trait se lisait comme un second soulignement collé
+  sous elle.
 - ⚠️ **C'est l'un des rares endroits qui exige du JavaScript**, et il vaut de
   savoir pourquoi : la barre est écrite avant la vue, donc le serveur ne connaît
   pas encore le bouton ; et le poser en CSS ne marche pas, parce que `.toolbar`
