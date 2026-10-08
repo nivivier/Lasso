@@ -3893,7 +3893,12 @@ abbr {
         background-position: left bottom;
     }
     .module-content { width: auto; margin: 0 -18px 20px; }
-    .module-content-inner { margin-left: 0; padding: 16px 18px; }
+    /* Retrait HAUT à 24px, pas 16 comme les autres côtés : c'est la distance
+       qui sépare la barre d'outils de ce qui la suit (sa marge basse de 22px
+       plus ses 2px de remplissage), et le champ de recherche se lisait de
+       travers, plus près du bandeau au-dessus que de la liste en dessous. Le
+       bureau a toujours eu ses deux marges égales ; le téléphone les retrouve. */
+    .module-content-inner { margin-left: 0; padding: 24px 18px 16px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
     /* … sauf dans une carte : là aussi le tableau se cale sur SA carte et non
        sur le retrait de la page (docs/UI.md § 9). Le retrait de page change

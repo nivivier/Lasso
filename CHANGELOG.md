@@ -29,7 +29,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   collaient au bord de l'écran ; elles gardent leur retrait. Le filet gris qui
   sépare les deux rangées d'onglets, lui, manquait tout court sur téléphone
   alors qu'il est là sur grand écran : il est revenu, et comme sur grand écran
-  il s'interrompt sous l'onglet actif, qui s'y raccorde au contenu.
+  il s'interrompt sous l'onglet actif, qui s'y raccorde au contenu. Il manquait
+  de la même façon sous les onglets d'un module, `?p=fiches` par exemple.
+- **Le champ de recherche ne se lit plus de travers sur téléphone** : il avait
+  24 px sous lui et seulement 16 au-dessus, donc paraissait collé au bandeau
+  d'onglets. Les deux marges sont égales, comme elles l'ont toujours été sur
+  grand écran.
 
 ## [3.0.7] — 2026-10-07
 
