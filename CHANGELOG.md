@@ -9,14 +9,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.8] — 2026-10-08
+
 ### Modifié
 - **Sur téléphone, la barre supérieure porte le nom du module et l'action de la
   page.** Le titre occupait jusqu'ici une rangée à lui seul sous la barre
   burger + logo : il la rejoint, le logo passant à sa pastille carrée pour lui
   faire place. La rangée rendue, ce sont **34 px de contenu gagnés sur chaque
-  écran** une fois les marges rééquilibrées — une ligne de liste. L'action principale de la page (le
-  bouton mis en évidence de la barre d'outils, « Nouvelle facture », « Nouvel
-  employé »…) monte à sa droite : le geste le plus fréquent est au pouce,
+  écran** une fois les marges rééquilibrées — une ligne de liste. L'action
+  principale de la page (le bouton mis en évidence de la barre d'outils,
+  « Nouvelle facture », « Nouvel employé »…) monte à sa droite : le geste le
+  plus fréquent est au pouce,
   toujours au même endroit, et la barre d'outils rend sa place au champ de
   recherche — de 80 à 136 px sur l'écran des événements, le plus à l'étroit de
   l'application. Au-delà de 800 px rien ne change, et sans JavaScript non plus :
@@ -34,7 +37,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Le champ de recherche ne se lit plus de travers sur téléphone** : il avait
   24 px sous lui et seulement 16 au-dessus, donc paraissait collé au bandeau
   d'onglets. Les deux marges sont égales, comme elles l'ont toujours été sur
-  grand écran.
+  grand écran. Les onglets, eux, étaient serrés contre la barre : ils ont
+  maintenant autant d'air au-dessus d'eux qu'à leur gauche.
 - **Plus de trait de couleur vive sous la barre supérieure sur téléphone.** Il
   ouvre la page sur grand écran et y dit le module ; sous une barre qui porte
   désormais le logo et le nom du module, il faisait double emploi. En échange,

@@ -277,8 +277,14 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
     filtres, chaque liste ayant la sienne. Un troisième clic rend la liste à son
     ordre par défaut. Sur téléphone, où l'en-tête laisse place aux fiches, le
     tri n'est pas accessible.
-11. **Sur téléphone**, les grandes listes — structures, salaires, employés,
-    événements, factures — se relisent en **fiches** plutôt qu'en tableau à
+11. **Sur téléphone**, une barre fixe coiffe l'écran : le menu, le logo réduit,
+    le **nom du module** et, à droite, l'**action principale de la page** —
+    celle que la barre d'outils met en évidence (« Nouvelle facture »,
+    « Nouvel employé »…). Le titre de la page n'occupe donc plus une rangée à
+    lui seul, et le geste le plus fréquent reste sous le pouce, au même endroit
+    d'un écran à l'autre.
+    Les grandes listes — structures, salaires, employés,
+    événements, factures — s'y relisent en **fiches** plutôt qu'en tableau à
     faire défiler, chacune montrant les champs qui comptent pour elle. Un
     événement s'y présente exactement comme sur le tableau de bord et sur la
     fiche d'une structure : la date en pastille d'agenda, l'artiste, la ville,
