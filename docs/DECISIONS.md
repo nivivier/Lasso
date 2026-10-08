@@ -395,6 +395,28 @@ fonction `check()` globale, les inclure ensemble déclencherait un
 en code de sortie 255, donc en échec visible. La CI lance exactement la même
 commande.
 
+### Les listes que le CSS doit connaître, mais ne peut pas lire
+
+`STRUCTURE_STATUTS` (lib/booking.php) est la liste de référence des statuts
+d'une structure, et presque tout en découle : le sélecteur, les entonnoirs, la
+modification groupée bouclent dessus. Mais **quatre endroits la réécrivent**,
+parce qu'ils ne peuvent pas la lire — le masque du tableau, la couleur du
+segment actif, la case à cocher des mini-cartes, et le nom du tracé dans
+`icone_table()`. Les trois premiers sont du CSS : aucune boucle ne les parcourt,
+aucune erreur ne les signale.
+
+Le jour où « À vérifier » a été ajouté, les constantes PHP étaient complètes et
+la couleur du tableau aussi — et le statut restait bleu dans le sélecteur,
+incolore sur téléphone. Rien ne l'avait dit.
+
+`tests/statuts_structure_test.php` compare donc, pour chaque famille de règles,
+**l'ensemble que la feuille de style déclare** à la liste de référence. Il ne
+tient aucune liste de ce qui devrait exister — elle dériverait comme le reste.
+Un sixième statut ajouté aux seules constantes fait tomber six assertions, qui
+nomment chacune l'endroit à compléter. Même principe que
+`tests/permissions_test.php` § 6, qui part des routes appelant `check_csrf()`
+plutôt que d'une liste tenue à la main.
+
 ### Fonctions pures extraites pour être testables
 
 Motif déjà présent dans le projet (`permission_donne_lecture()` pure vs
