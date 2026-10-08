@@ -3560,10 +3560,14 @@ function structure_statut_toggle_html(int $id, string $statut): string
 // seule suffit — c'est le geste le plus connu de toute interface —, et la place
 // rendue revient aux commandes qui, elles, ont besoin de leurs mots. C'est la
 // même convention que .btn-compact-mobile ailleurs dans la barre (docs/UI.md
-// § 7). $id : facultatif, pour le script qui ferme la fenêtre.
-function bouton_fermer_modal_html(string $id = ''): string
+// § 7). $id : facultatif, pour le script qui ferme la fenêtre. $classe : la
+// classe d'accroche, « modal-fermer » pour une fenêtre ordinaire — l'aperçu de
+// document pose la sienne, parce que son bouton est injecté dans la barre de la
+// page affichée, qui vit dans une iframe (views/layout.php). La FORME du
+// bouton, elle, reste décidée ici dans les deux cas.
+function bouton_fermer_modal_html(string $id = '', string $classe = 'modal-fermer'): string
 {
-    return '<button type="button" class="btn ghost modal-fermer btn-compact-mobile"'
+    return '<button type="button" class="btn ghost ' . e($classe) . ' btn-compact-mobile"'
         . ($id !== '' ? ' id="' . e($id) . '"' : '')
         . ' title="Fermer" aria-label="Fermer">'
         . icon('x') . ' <span class="btn-txt">Fermer</span></button>';

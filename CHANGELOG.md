@@ -29,7 +29,8 @@ puis sont promues sur le canal **stable** en figeant une version.
   document ne dit pas qu'elle charge un modèle. Les deux traitements existaient
   déjà séparément ; ils basculent désormais à la même largeur, et le bouton
   « Fermer », que six fenêtres recopiaient à l'identique, s'écrit d'un seul
-  appel.
+  appel — celui des aperçus de document (fiche de salaire, export SUISA,
+  certificat…) compris, qui était écrit à part et restait donc libellé.
 
 ## [3.0.8] — 2026-10-08
 

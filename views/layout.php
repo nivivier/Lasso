@@ -226,7 +226,13 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
       // page affichée, qui vit dans l'iframe — laquelle n'a pas le sprite de
       // CETTE page. Son icône doit donc être un SVG complet, pas un <use>. ?>
 <?php $spriteAvant = icones_mode_sprite(); icones_mode_sprite(false);
-      $icoFermerApercu = icon('x'); icones_mode_sprite($spriteAvant); ?>
+      $icoFermerApercu = icon('x');
+      // Le bouton « Fermer » injecté dans la barre de la page affichée : le même
+      // que celui des fenêtres (bouton_fermer_modal_html()), à sa classe
+      // d'accroche près. Écrit ici — sprite coupé — pour que son icône soit un
+      // SVG complet : l'iframe n'a pas le sprite de CETTE page.
+      $htmlFermerApercu = bouton_fermer_modal_html('', 'print-toolbar-fermer');
+      icones_mode_sprite($spriteAvant); ?>
 <div id="preview-modal" hidden aria-modal="true" role="dialog" aria-label="Aperçu">
     <div id="preview-modal-inner">
         <?php // Repli : ce bouton flottant ne paraît que si la page affichée n'a
@@ -458,19 +464,20 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
     // document. Il est injecté d'ici plutôt qu'écrit dans les huit vues
     // d'impression : ces pages s'ouvrent aussi seules, hors de la fenêtre
     // d'aperçu, où « Fermer » n'aurait rien à fermer.
-    const fermerHtml = <?= json_encode($icoFermerApercu . ' Fermer', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const fermerHtml = <?= json_encode($htmlFermerApercu, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
     previewFrame.addEventListener('load', () => {
         ajusterHauteur();
         try {
             const doc = previewFrame.contentDocument;
             const barre = doc.querySelector('.print-toolbar');
             if (barre && !barre.querySelector('.print-toolbar-fermer')) {
-                const bouton = doc.createElement('button');
-                bouton.type = 'button';
-                bouton.className = 'btn ghost print-toolbar-fermer';
-                bouton.innerHTML = fermerHtml;
-                bouton.addEventListener('click', closePreview);
-                barre.appendChild(bouton);
+                // Inséré en HTML, et non monté nœud par nœud : le bouton vient
+                // tout fait du serveur, classes et <span class="btn-txt">
+                // compris — c'est ce span qui laisse « Fermer » s'effacer sur
+                // un téléphone, et le réécrire ici le ferait diverger.
+                barre.insertAdjacentHTML('beforeend', fermerHtml);
+                barre.querySelector('.print-toolbar-fermer')
+                     .addEventListener('click', closePreview);
             }
             previewClose.hidden = !!barre;
             doc.addEventListener('keydown', ev => {
