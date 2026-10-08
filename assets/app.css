@@ -3736,16 +3736,62 @@ abbr {
     .side-close { display: inline-flex; }
     .sidebar .side-close .ico { width: 24px; height: 24px; }
 
-    /* Barre supérieure fixe : burger puis logo, groupés à gauche. Pas de
-       space-between — il renverrait le logo contre le bord droit, seul. */
+    /* Barre supérieure fixe : burger, logo, nom du module, puis l'action
+       principale de la page poussée à droite. Pas de space-between — il
+       écarterait aussi le logo du burger, alors que les deux vont ensemble. */
     .mobile-bar {
         display: flex; align-items: center; justify-content: flex-start; gap: 12px;
         background: var(--brand-surface); padding: 10px 16px;
         position: sticky; top: 0; z-index: 30;
     }
-    .mbar-logo { width: 104px; height: auto; }
-    /* Repli sur la version réduite (carrée) : bornée en hauteur, pas en largeur. */
-    .mbar-logo-mini { width: auto; height: 34px; }
+    .mbar-logo { width: auto; height: 28px; }
+    /* Version réduite (carrée) : bornée en hauteur, pas en largeur. */
+    .mbar-logo-mini { width: auto; height: 28px; }
+    /* Le nom du module. Un filet le sépare de la marque : sans lui, « Souka
+       Événements » se lit comme un seul groupe de mots. Il cède la largeur
+       avant l'action — un titre tronqué reste lisible, un bouton rogné non. */
+    .mbar-titre {
+        min-width: 0; flex: 0 1 auto;
+        padding-left: 12px; border-left: 1px solid rgba(255,255,255,.22);
+        color: #fff; font-weight: 800; font-size: var(--fs-large); line-height: 1.1;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    /* Le créneau d'action : toujours présent (il pousse le titre à gauche),
+       vide sur les pages qui n'ont pas d'action mise en évidence. */
+    .mbar-action-slot { margin-left: auto; display: inline-flex; flex: 0 0 auto; }
+    /* Le bouton, une fois dans la barre : l'icône seule — le libellé complet
+       (« Nouvel événement ») n'y tiendrait pas, et le nom du module juste à
+       côté dit déjà de quoi il s'agit. Il garde la couleur de mise en
+       évidence : c'est elle qui le désigne comme l'action de la page. */
+    /* ⚠️ Même boîte pour TOUTES, et la même que le burger à l'autre bout de la
+       barre : 36 px de côté. Sans taille explicite, chaque bouton gardait la
+       sienne — le « + » du tableau de bord est un <summary class="icon-only">
+       (41 × 43 px), les autres des <a class="btn"> (38 × 32) —, et la barre
+       changeait de hauteur d'un écran à l'autre (77 px sur le tableau de bord,
+       56 ailleurs). La règle vise le BOUTON, qui est l'élément lui-même ou, pour
+       un menu déroulant, son <summary>. */
+    .mobile-bar .mbar-action.btn,
+    .mobile-bar .mbar-action > summary.btn {
+        width: 36px; height: 36px; padding: 0; flex: 0 0 auto;
+        /* min-height AUSSI : .btn.icon-only en pose une (--action-height, la
+           hauteur d'un champ de saisie) qui l'emporte sur une simple height. */
+        min-height: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .mobile-bar .mbar-action .ico { width: 20px; height: 20px; }
+    /* Le libellé (« Nouvel événement ») n'y tiendrait pas, et le nom du module
+       juste à côté dit déjà de quoi il s'agit. La règle générale
+       (.head-actions .lbl) ne suffit pas : dans la barre, le bouton n'est plus
+       dans une rangée d'actions. */
+    .mobile-bar .mbar-action .lbl { display: none; }
+    /* Le titre de la page s'efface : la barre le dit, une rangée plus haut.
+       C'est tout le gain de place — une rangée entière par écran. Conditionné
+       à .titre-dans-barre : sur une page hors module, la barre n'a pas de
+       titre à montrer et celui de la page doit rester. */
+    body.titre-dans-barre .page-head-titre-module { display: none; }
+    /* Le bandeau ne porte plus que la rangée d'onglets : il se resserre en
+       haut, sinon le retrait du titre disparu resterait en vide. */
+    body.titre-dans-barre .page-head-band .page-head { padding-top: 8px; }
 
     /* La sidebar devient un tiroir hors écran, ouvert depuis la GAUCHE — du
        côté où vit le rail sur bureau, et du côté du burger. */
@@ -3794,6 +3840,17 @@ abbr {
     .module-tab, .param-subtabs a { flex: 0 0 auto; scroll-snap-align: start; }
     .module-tab { white-space: nowrap; }
     .param-subtabs { padding-right: 26px; }
+    /* ⚠️ Et sa marge de gauche doit SURVIVRE au défilement. Un accrochage
+       `start` aligne le lien sur le début du « scrollport », qui est le bord de
+       la boîte de REMPLISSAGE — pas celui du contenu. Quand le sous-onglet
+       actif est le premier de la bande, assets/app.js le ramène en vue, la
+       bande s'accroche, et les 18px de marge passent sous le bord : les
+       pastilles se collaient au bord gauche de l'écran dès que la bande
+       débordait (Apparence, Importer), alors qu'elles gardaient leur retrait
+       sur une bande courte (Pays). scroll-padding décale le scrollport
+       d'autant, et la marge reste. Même valeur littérale que le padding
+       juste au-dessus et que le retrait de .content en mobile. */
+    .param-subtabs { scroll-padding-left: 18px; }
     /* Sur bureau, l'onglet actif « efface » le trait .page-head-band sous
        lui via un débord de -1px (margin-bottom sur .module-tab, plus haut)
        qui déborde exprès de sa boîte pour recouvrir le trait ancestral.

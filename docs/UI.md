@@ -30,6 +30,48 @@ d'un document. Rien d'important ne se met en bas.
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
 bouton d'organisation des cartes à sa droite.
 
+### Sur téléphone, la barre supérieure porte le module ET l'action
+
+Sous 800 px le rail se replie et une barre fixe le remplace. Elle tient quatre
+choses, dans cet ordre : **le burger, le logo réduit, le nom du module, l'action
+principale de la page**. Le titre de la page (`.page-head-titre-module`)
+s'efface alors — la barre le dit déjà une rangée plus haut, et cette rangée
+rendue, c'est 49 px de contenu gagnés sur chaque écran.
+
+- **Le nom du module** vient de `nav_groupes()` + `nav_groupe_actif()`, deux
+  fonctions pures de `?p=` : le gabarit le connaît donc avant que la vue ne
+  s'exécute. Les Paramètres ne sont pas un module mais sont bien une section :
+  `parametres_groupes()` (`lib/modules.php`, la même liste que leurs onglets)
+  dit si la route en fait partie, et la barre affiche alors « Paramètres ».
+  ⚠️ Le `<h1>` ne s'efface que si la barre en a VRAIMENT un
+  (`body.titre-dans-barre`), sinon l'écran n'aurait plus de nom. Et seul le
+  `<h1>` qui nomme le MODULE porte cette classe : celui qui nomme un
+  enregistrement (une campagne, un certificat) ne doublonne rien et reste.
+- **L'action principale, c'est le bouton MIS EN ÉVIDENCE de la barre d'outils** —
+  un `.btn` sans `.ghost`, dans `.toolbar > .head-actions`. Il y en a un par
+  écran, ou aucun. Pas « le dernier », pas une liste à tenir à jour : la mise en
+  évidence est déjà la façon dont l'application désigne l'action d'un écran, on
+  la lit plutôt que de la redéclarer ailleurs. Dans la barre, le bouton garde sa
+  couleur et perd son libellé (`.lbl`) : le nom du module juste à côté dit de
+  quoi il s'agit. **Tout bouton de barre d'outils met donc son intitulé dans un
+  `<span class="lbl">`** — sans quoi il entre dans la barre avec son texte et
+  écrase le titre.
+- **Le bouton est DÉPLACÉ, pas dupliqué.** Un second exemplaire se
+  désynchroniserait du premier (lien, libellé, droits) au premier écran qui
+  change le sien.
+- ⚠️ **Toutes ces actions ont la MÊME boîte**, 36 px de côté, celle du burger à
+  l'autre bout de la barre — posée explicitement, `min-height` comprise. Laissées
+  à leur taille propre, elles divergent : le « + » du tableau de bord est un
+  `<summary class="icon-only">` (41 × 43), les autres des `<a class="btn">`
+  (38 × 32), et la barre changeait de hauteur d'un écran à l'autre.
+- ⚠️ **C'est l'un des rares endroits qui exige du JavaScript**, et il vaut de
+  savoir pourquoi : la barre est écrite avant la vue, donc le serveur ne connaît
+  pas encore le bouton ; et le poser en CSS ne marche pas, parce que `.toolbar`
+  ouvre un contexte d'empilement (`z-index: 2`) dont un enfant en
+  `position: fixed` ne sort pas — il est peint SOUS la barre quel que soit son
+  `z-index`. Essayé, mesuré. Sans script, le bouton reste à sa place d'origine
+  et la page garde exactement le comportement qu'elle avait.
+
 ### Un écran qui EST un formulaire met aussi ses commandes en haut
 
 Créer un employé, une fiche, une facture, un projet, une campagne, une
@@ -825,6 +867,14 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   `--content-pad` (celui de la page, qui change en mobile) au lieu de
   `--card-pad`. Un tableau de clé-valeur (`.kv-table`) n'est pas concerné : ce
   n'est pas une liste, il se lit comme du texte et garde le retrait de la carte.
+- ⚠️ **Une bande d'onglets qui défile garde sa marge de gauche.** Les onglets et
+  sous-onglets passent sur une seule ligne défilante sous 800 px, avec un
+  accrochage (`scroll-snap-align: start`). Or `start` aligne sur le début du
+  *scrollport*, qui est le bord de la boîte de REMPLISSAGE : la bande s'accroche
+  et le retrait de gauche passe sous le bord, pastilles collées à l'écran — mais
+  seulement quand la bande déborde, donc invisible sur les sections courtes.
+  `scroll-padding-left` de la même valeur que le retrait décale le scrollport et
+  la marge tient.
 - **Tri** : `tri_entete_html()`, trois états au clic — croissant, décroissant,
   retour à l'ordre par défaut. Le tri se fait en SQL (les listes sont paginées)
   et se mémorise en session. Le sens s'applique à **chaque terme** de l'`ORDER

@@ -14,85 +14,10 @@
 // extract($data) puis inclut ce fichier, donc tout nom générique ($groupes,
 // $g…) écraserait une donnée de la vue appelante (cf. import_structures et son
 // propre $groupes de regroupements). Ne pas réintroduire de nom générique ici.
-$ptGroupes = [];
-
-// Application : administration (écriture cœur), voir index.php.
-if (peut_ecrire('coeur')) {
-    $ptGroupes['application'] = ['Application', [
-        'maj'                => 'Mises à jour',
-        'apparence'          => 'Apparence',
-        'modules'            => 'Modules',
-        'utilisateurs'       => 'Utilisateurs',
-        'diagnostic'         => 'Serveur',
-    ]];
-}
-
-$ptGroupes['employeur'] = ['Employeur', ['employeur' => 'Employeur']];
-// Deux écrans bien distincts : rien n'est partagé entre les envois généraux
-// (fiches de salaire, factures) et ceux du booking — ni adresses, ni serveur,
-// ni rythme d'envoi.
-$ptEmailsSections = ['emails' => 'Envois généraux'];
-if (module_actif('booking')) {
-    $ptEmailsSections['emails_booking'] = 'Envois pour le booking';
-}
-$ptGroupes['emails']    = ['E-mails', $ptEmailsSections];
-
-// « Valeurs et libellés » plutôt que « Taux » : le groupe ne porte pas que des
-// pourcentages. Une ligne de décompte y a aussi son intitulé — celui que les
-// fiches figent à l'enregistrement —, et les réglages des événements y posent
-// le terme qui désigne un projet, dans toute l'interface.
-//
-// Construit section par section, comme « Catégories » juste en dessous : deux
-// modules l'alimentent, et le groupe doit exister dès que l'un des deux est là.
-$ptValeursSections = [];
-if (module_actif('salaires') && peut_lire('salaires')) {
-    $ptValeursSections['postes']        = 'Lignes du décompte';
-    $ptValeursSections['taux_horaires'] = 'Salaires horaires et unités';
-}
-if (module_actif('evenements') && peut_lire('evenements')) {
-    $ptValeursSections['evenements_reglages'] = 'Événements';
-}
-if (module_actif('fonds') && peut_lire('fonds')) {
-    $ptValeursSections['fonds_reglages'] = 'Recherche de fonds';
-}
-if ($ptValeursSections) {
-    $ptGroupes['valeurs'] = ['Valeurs et libellés', $ptValeursSections];
-}
-
-$ptCatSections = ['pays' => 'Pays'];
-if (module_actif('booking') && peut_lire('booking')) {
-    $ptCatSections['categories_structures'] = 'Catégories';
-    $ptCatSections['tags']                  = 'Tags';
-}
-$ptGroupes['categories'] = ['Catégories', $ptCatSections];
-
-// Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
-// principal, avec ces 3 sections en sous-onglets.
-// Importer : le sous-onglet pointe sur ?p=import, la page elle-même. Les routes
-// de traitement (une par module) reviennent rendre cette même page avec leurs
-// résultats : elles comptent donc aussi comme la section active, en alias (3ᵉ
-// élément du groupe, voir la mise en surbrillance plus bas). Pas de sous-onglet
-// du tout si aucun module importable n'est lisible — la page n'offrirait rien.
-$ptRoutesImport = [];
-if (module_actif('salaires')    && peut_lire('salaires'))    $ptRoutesImport[] = 'fiches_importer';
-if (module_actif('facturation') && peut_lire('facturation')) $ptRoutesImport[] = 'factures_importer';
-if (module_actif('compta')      && peut_lire('compta'))      $ptRoutesImport[] = 'compta_ecritures_importer';
-if (module_actif('evenements')  && peut_lire('evenements'))  $ptRoutesImport[] = 'evenements_importer';
-if (module_actif('booking')     && peut_lire('booking'))     $ptRoutesImport[] = 'structures_importer';
-$ptDonneesSections = [];
-if ($ptRoutesImport) {
-    $ptDonneesSections['import'] = 'Importer';
-    array_unshift($ptRoutesImport, 'import');
-}
-$ptDonneesSections['export'] = 'Exporter';
-// Les jetons d'export : une porte vers l'extérieur, pas un réglage d'affichage.
-if (module_actif('evenements') && peut_lire('evenements')) {
-    $ptDonneesSections['synchronisation'] = 'Synchronisation';
-}
-if (peut_ecrire('coeur')) {
-    $ptDonneesSections['dev'] = 'Incohérences';
-}
-$ptGroupes['donnees'] = ['Données', $ptDonneesSections, $ptRoutesImport];
+// Les groupes et leurs sections vivent dans lib/modules.php
+// (parametres_groupes()) : le gabarit en a besoin AVANT que cette vue ne
+// s'exécute, pour poser « Paramètres » dans la barre supérieure sur téléphone.
+$ptGroupes = parametres_groupes();
 
 // Icônes des onglets principaux — même esprit que nav_groupes() (lib/modules.php),
 // une icône par groupe, purement décorative (pas de sens fonctionnel supplémentaire).
@@ -108,13 +33,7 @@ $ptIcones = [
 $ptCurParam = $_GET['p'] ?? '';
 
 // Groupe actif : celui dont une section (ou un alias) correspond à la route.
-$ptGroupeActif = null;
-foreach ($ptGroupes as $ptCle => $ptG) {
-    if (in_array($ptCurParam, array_keys($ptG[1]), true) || in_array($ptCurParam, $ptG[2] ?? [], true)) {
-        $ptGroupeActif = $ptCle;
-        break;
-    }
-}
+$ptGroupeActif = parametres_groupe_actif($ptGroupes, $ptCurParam);
 $ptSectionsActives = $ptGroupeActif !== null ? $ptGroupes[$ptGroupeActif][1] : [];
 
 // Arrivée depuis un module (?depuis=booking sur Pays/Catégories/Tags,
@@ -143,7 +62,7 @@ $ptSuffixeDepuis = $ptDansModule ? '&depuis=' . rawurlencode($ptDepuis) : '';
 <?php else: ?>
 <div class="page-head-band">
 <div class="page-head">
-    <div class="page-head-title">
+    <div class="page-head-title page-head-titre-module">
         <h1>Paramètres</h1>
     </div>
     <nav class="module-tabs">

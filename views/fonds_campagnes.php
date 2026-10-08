@@ -26,7 +26,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
                 repère à l'objectif minimal, celui sans lequel le projet ne se fait pas."
             ) ?>
             <?php if (peut_ecrire('fonds')): ?>
-            <a class="btn" href="?p=fonds_campagne_form"><?= icon('plus') ?> Nouvelle campagne</a>
+            <a class="btn" href="?p=fonds_campagne_form"><?= icon('plus') ?><span class="lbl"> Nouvelle campagne</span></a>
             <?php endif; ?>
         </div>
     </div>

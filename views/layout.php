@@ -13,6 +13,20 @@ $fondDecorAuth    = $fondPersonnalise ? 'maillage' : $fondDecor;
 // pour pouvoir injecter module_couleur_css_vars($navActif) dans <head>.
 $navGroupes = $u ? nav_groupes() : [];
 $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis'] ?? '')) : null;
+// Le nom du module, affiché dans la barre supérieure sur téléphone. C'est la
+// même source que $ntLabel (_module_tabs.php) : nav_groupes() ne dépend que de
+// ?p=, la barre peut donc le connaître avant que la vue ne s'exécute. Il
+// commande aussi l'effacement du <h1> de la page, qui dirait la même chose
+// deux fois — d'où la classe posée sur <body> : si la barre n'a PAS de titre
+// (une page hors module), le <h1> reste, sinon l'écran n'aurait plus de nom.
+$mbarTitre = $navActif !== null ? (string) ($navGroupes[$navActif][0] ?? '') : '';
+// Les paramètres ne sont pas un module — pas de groupe dans nav_groupes() —,
+// mais ils forment bien une section, avec son bandeau et ses onglets. La barre
+// la nomme comme les autres : c'est parametres_groupes() qui dit si la route
+// courante en fait partie (lib/modules.php, la même liste que les onglets).
+if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cur) !== null) {
+    $mbarTitre = 'Paramètres';
+}
 ?>
 <!DOCTYPE html>
 <?php // data-theme n'est posé que pour un choix EXPLICITE : en mode « auto »
@@ -61,7 +75,7 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
 </head>
 <?php // La classe du décor porte le fond de <body> qui va avec lui : chaque
       // décor a le sien (assets/app.css, section « Décors de fond »). ?>
-<body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?> fond-<?= e($u ? $fondDecor : $fondDecorAuth) ?>">
+<body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?> fond-<?= e($u ? $fondDecor : $fondDecorAuth) ?><?= $mbarTitre !== '' ? ' titre-dans-barre' : '' ?>">
 <?php if ($u): ?>
 <?php if (!$fondPersonnalise) { require __DIR__ . '/_fond_decor.php'; } ?>
 <?php // Burger AVANT le logo : la navigation est à gauche sur bureau (le rail),
@@ -71,14 +85,24 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     <button type="button" class="burger" id="burger" title="Menu" aria-label="Menu" aria-expanded="false">
         <?= icon('menu') ?>
     </button>
-    <?php // La barre est large : le logo normal y a sa place, et la version
-          // réduite ne sert que de repli si aucun logo large n'est configuré. ?>
-    <?php $vMbar = $logoSombre !== '' ? 'sombre' : logo_petit_variante('sombre'); ?>
+    <?php // La barre porte le NOM DU MODULE à droite du logo : sans lui, le titre
+          // de la page occupait une rangée entière à lui seul juste en dessous.
+          // Le logo passe donc à sa version réduite (la pastille carrée du rail)
+          // — c'est elle qui libère la largeur. logo_petit_variante() préfère la
+          // mini et retombe sur le logo large si elle n'est pas configurée. ?>
+    <?php $vMbar = logo_petit_variante('sombre'); ?>
     <?php // Le logo ramène au tableau de bord : c'est le geste attendu d'un
           // logo d'application, et sur téléphone le rail est replié. ?>
     <a href="?p=tableau_bord" class="mbar-accueil" title="Tableau de bord" aria-label="Tableau de bord">
         <?php if ($vMbar !== null): ?><img src="<?= e(param_logo($vMbar)) ?>" alt="<?= e($nomEmployeur) ?>" class="mbar-logo<?= str_starts_with($vMbar, 'mini_') ? ' mbar-logo-mini' : '' ?>"><?php else: ?><span class="mbar-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
     </a>
+    <?php // Le même libellé que le <h1> de la page : $navActif est déjà résolu
+          // plus haut (il sert aux variables de couleur du module), et c'est la
+          // même source que $ntLabel dans _module_tabs.php. ?>
+    <?php if ($mbarTitre !== ''): ?><span class="mbar-titre"><?= e($mbarTitre) ?></span><?php endif; ?>
+    <?php // L'action principale de la page vient se poser ici, à droite — voir
+          // le script en fin de page. Créneau vide tant qu'il n'y en a pas. ?>
+    <span class="mbar-action-slot" id="mbar-action-slot"></span>
 </header>
 <div class="scrim" id="scrim"></div>
 <aside class="sidebar" id="sidebar">
@@ -224,6 +248,56 @@ $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis']
     burger.addEventListener('click', () => toggle(!body.classList.contains('nav-open')));
     close.addEventListener('click', () => toggle(false));
     scrim.addEventListener('click', () => toggle(false));
+
+    // L'action principale de la page remonte dans la barre supérieure sur
+    // téléphone (docs/UI.md § 1). Laquelle : le bouton MIS EN ÉVIDENCE de la
+    // barre d'outils — un `.btn` sans `.ghost` —, il y en a un ou aucun. Le
+    // bouton est DÉPLACÉ, pas dupliqué : un second exemplaire se serait
+    // désynchronisé du premier (libellé, lien, droits) au premier écran qui
+    // change le sien.
+    //
+    // Pourquoi en JavaScript, alors que l'application en met le moins possible :
+    // la barre est écrite AVANT la vue (elle est dans le gabarit), donc le
+    // serveur ne connaît pas encore le bouton quand il la rend. Et le poser en
+    // CSS ne marche pas : `.toolbar` ouvre un contexte d'empilement (z-index:2),
+    // dont un enfant en position:fixed ne sort pas — il serait peint SOUS la
+    // barre quel que soit son z-index. Sans script, le bouton reste donc à sa
+    // place d'origine dans la barre d'outils : la page garde exactement le
+    // comportement qu'elle avait.
+    //
+    // Où le chercher : la rangée d'actions d'une barre d'outils ou d'un en-tête
+    // de page — et rien d'autre, surtout pas « un .btn quelque part dans
+    // l'en-tête » : le bouton « Appliquer » d'un panneau d'entonnoir serait
+    // parti dans la barre. Un menu déroulant (le « + » du tableau de bord) a
+    // son bouton pour <summary> : c'est alors le <details> entier qui monte,
+    // son panneau avec lui.
+    //
+    // ⚠️ Un LIEN ou un menu, jamais un <button> : sur un écran qui est un
+    // formulaire, « Enregistrer » est lui aussi mis en évidence dans l'en-tête
+    // (entete_form_actions_html()), et le monter dans la barre le séparerait
+    // d'« Annuler » et de « Supprimer », qui forment un trio. Ce que la barre
+    // prend, c'est l'action qui mène AILLEURS — créer, importer, choisir.
+    const slotAction = document.getElementById('mbar-action-slot');
+    const creneaux = ['.toolbar > .head-actions', '.page-head > .head-actions', '.page-head']
+        .flatMap(c => [c + ' > a.btn:not(.ghost)', c + ' > .menu-deroulant > summary.btn:not(.ghost)'])
+        .join(',');
+    const trouve = document.querySelector(creneaux);
+    const actionPrinc = trouve && trouve.tagName === 'SUMMARY' ? trouve.parentElement : trouve;
+    if (slotAction && actionPrinc) {
+        // Ancre invisible laissée à la place d'origine : au-delà du seuil, le
+        // bouton doit revenir EXACTEMENT là où il était, et non à la fin de la
+        // rangée d'actions — « Modifier » y est toujours le dernier.
+        const ancre = document.createComment('action principale');
+        actionPrinc.after(ancre);
+        const etroit = matchMedia('(max-width: 800px)');
+        const placer = () => {
+            if (etroit.matches) { slotAction.appendChild(actionPrinc); }
+            else { ancre.parentNode.insertBefore(actionPrinc, ancre); }
+            actionPrinc.classList.toggle('mbar-action', etroit.matches);
+        };
+        placer();
+        etroit.addEventListener('change', placer);
+    }
 
     // Pastille utilisateur : ouvre/ferme le menu au clic, ferme si clic dehors.
     const avatarBtn  = document.getElementById('side-avatar-btn');

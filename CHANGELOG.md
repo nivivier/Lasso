@@ -9,6 +9,25 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Sur téléphone, la barre supérieure porte le nom du module et l'action de la
+  page.** Le titre occupait jusqu'ici une rangée à lui seul sous la barre
+  burger + logo : il la rejoint, le logo passant à sa pastille carrée pour lui
+  faire place. La rangée rendue, ce sont **49 px de contenu gagnés sur chaque
+  écran** — une ligne et demie de liste. L'action principale de la page (le
+  bouton mis en évidence de la barre d'outils, « Nouvelle facture », « Nouvel
+  employé »…) monte à sa droite : le geste le plus fréquent est au pouce,
+  toujours au même endroit, et la barre d'outils rend sa place au champ de
+  recherche — de 80 à 136 px sur l'écran des événements, le plus à l'étroit de
+  l'application. Au-delà de 800 px rien ne change, et sans JavaScript non plus :
+  le bouton reste alors dans la barre d'outils, comme avant. Les Paramètres,
+  qui ne sont pas un module, se nomment eux aussi dans la barre : la liste de
+  leurs écrans, jusqu'ici enfermée dans la vue des onglets, est devenue une
+  fonction que le gabarit peut interroger.
+- **La marge de gauche des sous-onglets des Paramètres ne saute plus** sur
+  téléphone. Dès que la bande débordait et devait défiler, les pastilles se
+  collaient au bord de l'écran ; elles gardent leur retrait.
+
 ## [3.0.7] — 2026-10-07
 
 ### Ajouté

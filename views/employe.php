@@ -160,7 +160,7 @@
             <a class="btn ghost" href="?p=certificat&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-text') ?> Certificat de salaire</a>
         <?php endif; ?>
         <?php if (peut_ecrire('salaires')): ?>
-        <a class="btn" href="?p=fiche_form&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-plus') ?> Nouvelle fiche</a>
+        <a class="btn" href="?p=fiche_form&employe_id=<?= (int) $emp['id'] ?>"><?= icon('file-plus') ?><span class="lbl"> Nouvelle fiche</span></a>
         <?php endif; ?>
     </div>
 </div>

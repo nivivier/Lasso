@@ -488,6 +488,117 @@ function nav_groupes(): array
 // propriétaire du CRM des structures — voir SPEC_BOOKING.md ; Comptabilité
 // avant Facturation pour compta_comptes, également partagée entre ces deux
 // groupes, car les comptes bancaires sont d'abord une notion comptable).
+// Les groupes de la section « Paramètres » : [clé => [libellé, [route => section],
+// [alias de route]]]. Même rôle que nav_groupes() pour les modules, et même
+// raison d'être ici plutôt que dans la vue : le gabarit doit savoir, AVANT que
+// la vue ne s'exécute, si la route courante appartient aux paramètres — c'est
+// ce qui met « Paramètres » dans la barre supérieure sur téléphone. Le partiel
+// views/_param_tabs.php rend les onglets à partir de la même liste : une seule
+// source, sinon les deux divergent au premier écran ajouté.
+//
+// Le contenu dépend des droits et des modules actifs : un groupe dont aucune
+// section n'est lisible n'existe pas.
+function parametres_groupes(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $groupes = [];
+
+    // Application : administration (écriture cœur), voir index.php.
+    if (peut_ecrire('coeur')) {
+        $groupes['application'] = ['Application', [
+            'maj'                => 'Mises à jour',
+            'apparence'          => 'Apparence',
+            'modules'            => 'Modules',
+            'utilisateurs'       => 'Utilisateurs',
+            'diagnostic'         => 'Serveur',
+        ]];
+    }
+
+    $groupes['employeur'] = ['Employeur', ['employeur' => 'Employeur']];
+    // Deux écrans bien distincts : rien n'est partagé entre les envois généraux
+    // (fiches de salaire, factures) et ceux du booking — ni adresses, ni serveur,
+    // ni rythme d'envoi.
+    $emails = ['emails' => 'Envois généraux'];
+    if (module_actif('booking')) {
+        $emails['emails_booking'] = 'Envois pour le booking';
+    }
+    $groupes['emails']    = ['E-mails', $emails];
+
+    // « Valeurs et libellés » plutôt que « Taux » : le groupe ne porte pas que des
+    // pourcentages. Une ligne de décompte y a aussi son intitulé — celui que les
+    // fiches figent à l'enregistrement —, et les réglages des événements y posent
+    // le terme qui désigne un projet, dans toute l'interface.
+    //
+    // Construit section par section, comme « Catégories » juste en dessous : deux
+    // modules l'alimentent, et le groupe doit exister dès que l'un des deux est là.
+    $valeurs = [];
+    if (module_actif('salaires') && peut_lire('salaires')) {
+        $valeurs['postes']        = 'Lignes du décompte';
+        $valeurs['taux_horaires'] = 'Salaires horaires et unités';
+    }
+    if (module_actif('evenements') && peut_lire('evenements')) {
+        $valeurs['evenements_reglages'] = 'Événements';
+    }
+    if (module_actif('fonds') && peut_lire('fonds')) {
+        $valeurs['fonds_reglages'] = 'Recherche de fonds';
+    }
+    if ($valeurs) {
+        $groupes['valeurs'] = ['Valeurs et libellés', $valeurs];
+    }
+
+    $categories = ['pays' => 'Pays'];
+    if (module_actif('booking') && peut_lire('booking')) {
+        $categories['categories_structures'] = 'Catégories';
+        $categories['tags']                  = 'Tags';
+    }
+    $groupes['categories'] = ['Catégories', $categories];
+
+    // Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
+    // principal, avec ces 3 sections en sous-onglets.
+    // Importer : le sous-onglet pointe sur ?p=import, la page elle-même. Les routes
+    // de traitement (une par module) reviennent rendre cette même page avec leurs
+    // résultats : elles comptent donc aussi comme la section active, en alias (3ᵉ
+    // élément du groupe, voir la mise en surbrillance plus bas). Pas de sous-onglet
+    // du tout si aucun module importable n'est lisible — la page n'offrirait rien.
+    $routesImport = [];
+    if (module_actif('salaires')    && peut_lire('salaires'))    $routesImport[] = 'fiches_importer';
+    if (module_actif('facturation') && peut_lire('facturation')) $routesImport[] = 'factures_importer';
+    if (module_actif('compta')      && peut_lire('compta'))      $routesImport[] = 'compta_ecritures_importer';
+    if (module_actif('evenements')  && peut_lire('evenements'))  $routesImport[] = 'evenements_importer';
+    if (module_actif('booking')     && peut_lire('booking'))     $routesImport[] = 'structures_importer';
+    $donnees = [];
+    if ($routesImport) {
+        $donnees['import'] = 'Importer';
+        array_unshift($routesImport, 'import');
+    }
+    $donnees['export'] = 'Exporter';
+    // Les jetons d'export : une porte vers l'extérieur, pas un réglage d'affichage.
+    if (module_actif('evenements') && peut_lire('evenements')) {
+        $donnees['synchronisation'] = 'Synchronisation';
+    }
+    if (peut_ecrire('coeur')) {
+        $donnees['dev'] = 'Incohérences';
+    }
+    $groupes['donnees'] = ['Données', $donnees, $routesImport];
+
+    return $cache = $groupes;
+}
+
+// Le groupe actif pour une route — par ses sections ou ses alias. Null si la
+// route n'est pas une page de paramètres.
+function parametres_groupe_actif(array $groupes, string $route): ?string
+{
+    foreach ($groupes as $cle => $g) {
+        if (in_array($route, array_keys($g[1]), true) || in_array($route, $g[2] ?? [], true)) {
+            return $cle;
+        }
+    }
+    return null;
+}
+
 function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?string
 {
     $candidats = [];

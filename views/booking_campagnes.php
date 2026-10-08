@@ -56,7 +56,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
                 comme appel noté à la main. Avant la date de début, aucun message ne part."
             ) ?>
             <?php if (peut_ecrire('booking')): ?>
-            <a class="btn" href="?p=booking_campagne_form"><?= icon('plus') ?> Nouvelle campagne</a>
+            <a class="btn" href="?p=booking_campagne_form"><?= icon('plus') ?><span class="lbl"> Nouvelle campagne</span></a>
             <?php endif; ?>
         </div>
     </div>
