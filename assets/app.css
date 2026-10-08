@@ -3068,6 +3068,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on { background: var(--rose-tint); color: var(--rose); }
 .statut-toggle .seg-btn[data-statut-valeur="contact_privilegie"].on .ico { fill: currentColor; }
 .statut-toggle .seg-btn[data-statut-valeur="actif"].on { background: var(--teal-tint); color: var(--ok); }
+.statut-toggle .seg-btn[data-statut-valeur="a_verifier"].on { background: var(--amber-tint); color: var(--amber); }
 .statut-toggle .seg-btn[data-statut-valeur="ne_pas_contacter"].on { background: var(--danger-tint); color: var(--danger); }
 .statut-toggle .seg-btn[data-statut-valeur="inactif"].on { background: var(--line); color: var(--muted); }
 
@@ -4953,6 +4954,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        ligne effacerait son statut. */
     .liste-cartes tbody tr[data-statut="contact_privilegie"] td.col-check input { border-color: var(--rose); }
     .liste-cartes tbody tr[data-statut="actif"] td.col-check input { border-color: var(--ok); }
+    .liste-cartes tbody tr[data-statut="a_verifier"] td.col-check input { border-color: var(--amber); }
     .liste-cartes tbody tr[data-statut="ne_pas_contacter"] td.col-check input {
         border-color: var(--danger); border-style: dashed;
     }
