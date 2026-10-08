@@ -4206,7 +4206,9 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    profond. 150deg est l'angle des dégradés de l'application (titres de page,
    .info-date). Les proportions restent faibles : assez pour que la lumière se
    voie, assez peu pour que le blanc garde son contraste dans les deux thèmes
-   (mesuré : 7.2 au pire, en thème clair).
+   (mesuré sur les trois arrêts : 6.1 au pire, en thème clair, pour 4.5 exigés —
+   au-delà de 30% de primary on passerait sous 5, et le blanc des boutons de la
+   barre, lui, n'est pas du gros texte).
    ⚠️ Un sélecteur partagé, et NON un jeton `--degrade-barre` posé sur :root :
    les var() d'une propriété personnalisée se résolvent là où elle est
    DÉCLARÉE, pas là où elle est utilisée — un tel jeton lirait la surface sur
@@ -4218,9 +4220,9 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .mobile-bar, .modal-head {
     background-color: var(--barre-surface);
     background-image: linear-gradient(150deg,
-        color-mix(in srgb, var(--barre-surface) 86%, var(--primary)) 0%,
+        color-mix(in srgb, var(--barre-surface) 78%, var(--primary)) 0%,
         var(--barre-surface) 58%,
-        color-mix(in srgb, var(--barre-surface) 92%, #000) 100%);
+        color-mix(in srgb, var(--barre-surface) 88%, #000) 100%);
 }
 .modal-head {
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
