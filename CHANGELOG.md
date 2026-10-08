@@ -37,7 +37,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   grand écran.
 - **Plus de trait de couleur vive sous la barre supérieure sur téléphone.** Il
   ouvre la page sur grand écran et y dit le module ; sous une barre qui porte
-  désormais le logo et le nom du module, il faisait double emploi.
+  désormais le logo et le nom du module, il faisait double emploi. En échange,
+  la barre elle-même s'éclaire : un léger dégradé la traverse, réchauffé d'une
+  pointe de la couleur du module, là où elle était un aplat sombre d'un bord à
+  l'autre de l'écran.
 
 ## [3.0.7] — 2026-10-07
 

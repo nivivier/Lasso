@@ -3741,8 +3741,25 @@ abbr {
        écarterait aussi le logo du burger, alors que les deux vont ensemble. */
     .mobile-bar {
         display: flex; align-items: center; justify-content: flex-start; gap: 12px;
-        background: var(--brand-surface); padding: 10px 16px;
+        padding: 10px 16px;
         position: sticky; top: 0; z-index: 30;
+        /* Un aplat sombre sur toute la largeur du haut d'écran pesait lourd.
+           Le dégradé part d'un coin réchauffé d'une pointe de la couleur du
+           module, traverse la surface de marque telle quelle, et se referme un
+           peu plus profond : la barre respire sans changer de nature.
+           150deg est l'angle des dégradés de l'application (titres de page,
+           .info-date). Construit sur --brand-surface et NON sur --brand : la
+           seconde sert aussi de couleur de texte et s'éclaircit en thème
+           sombre, ce qui donnerait ici une barre claire sous du texte blanc.
+           Les proportions restent faibles (14% / 8%) — assez pour que la
+           lumière se voie, assez peu pour que le blanc garde son contraste
+           dans les deux thèmes. background-color en repli : un navigateur qui
+           ignore color-mix() retombe sur l'aplat d'avant, pas sur rien. */
+        background-color: var(--brand-surface);
+        background-image: linear-gradient(150deg,
+            color-mix(in srgb, var(--brand-surface) 86%, var(--primary)) 0%,
+            var(--brand-surface) 58%,
+            color-mix(in srgb, var(--brand-surface) 92%, #000) 100%);
     }
     .mbar-logo { width: auto; height: 28px; }
     /* Version réduite (carrée) : bornée en hauteur, pas en largeur. */
