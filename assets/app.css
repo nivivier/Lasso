@@ -3872,6 +3872,26 @@ abbr {
        (image de fond personnalisable, Apparence). Largeur à 0 : plus de
        zone du tout à cet endroit, donc plus rien à traverser en transparence. */
     .page-head-band:has(.module-tabs) { border-bottom-width: 0; }
+    /* …mais il manque alors tout court : le bureau a bien son trait sous la
+       rangée d'onglets — interrompu sous l'onglet actif, qui s'y raccorde au
+       contenu —, et le téléphone n'en avait plus aucun, ni sous les onglets
+       d'un module (?p=fiches) ni entre les deux rangées des Paramètres.
+       ⚠️ Ni une bordure sur le bandeau ni une sur .param-subtabs ne conviennent :
+       toutes deux passent SOUS l'onglet actif sans qu'il puisse les couvrir,
+       puisque son débord de -1px est rogné par la bande défilante (voir le
+       commentaire ci-dessus). Le trait est donc peint en FOND de .page-head,
+       sur son dernier pixel : il est alors dans la zone que l'onglet actif
+       recouvre, et le fond d'un descendant se peint toujours par-dessus celui
+       de son ancêtre. Résultat identique au bureau — pleine largeur, interrompu
+       sous l'onglet actif, et l'interruption suit l'onglet quand la bande
+       défile. Un fond plutôt qu'une bordure parce qu'une bordure se pose à
+       l'EXTÉRIEUR de cette zone, hors de portée de l'onglet. */
+    .page-head-band:has(.module-tabs) .page-head {
+        background-image: linear-gradient(var(--line), var(--line));
+        background-repeat: no-repeat;
+        background-size: 100% 1px;
+        background-position: left bottom;
+    }
     .module-content { width: auto; margin: 0 -18px 20px; }
     .module-content-inner { margin-left: 0; padding: 16px 18px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }

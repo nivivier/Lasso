@@ -26,7 +26,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   fonction que le gabarit peut interroger.
 - **La marge de gauche des sous-onglets des Paramètres ne saute plus** sur
   téléphone. Dès que la bande débordait et devait défiler, les pastilles se
-  collaient au bord de l'écran ; elles gardent leur retrait.
+  collaient au bord de l'écran ; elles gardent leur retrait. Le filet gris qui
+  sépare les deux rangées d'onglets, lui, manquait tout court sur téléphone
+  alors qu'il est là sur grand écran : il est revenu, et comme sur grand écran
+  il s'interrompt sous l'onglet actif, qui s'y raccorde au contenu.
 
 ## [3.0.7] — 2026-10-07
 
