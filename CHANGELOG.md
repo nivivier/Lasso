@@ -9,6 +9,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **`?p=compta_regles` : le tableau ne se prend plus pour une carte.** Il
+  portait `.card` sur l'élément qui est aussi sa zone de défilement — le piège
+  que la convention d'interface nomme : la marge négative de la page le tirait
+  bord à bord, ses coins restaient arrondis en haut sur un bord devenu droit,
+  et son filet du bas s'ajoutait à celui de la dernière rangée, deux pixels
+  juste là où l'on venait d'en retirer. Il se range maintenant comme
+  `?p=projets`, dont il est le jumeau.
+
 ### Modifié
 - **Les tailles de texte passent toutes par l'échelle.** Vingt-trois
   déclarations s'en écartaient : douze recopiaient un token à l'identique

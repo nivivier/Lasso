@@ -1378,11 +1378,13 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    la première/dernière cellule de chaque ligne plutôt que sur <table> (rendu
    plus fiable entre navigateurs que le padding directement sur <table>). */
 .module-content-inner .table-scroll { margin: 0 calc(-1 * var(--content-pad)); border-radius: 0; }
-/* ⚠️ Une CARTE qui est elle-même la zone de défilement (?p=compta_regles) est
-   tirée bord à bord par la règle ci-dessus : ses traits latéraux tombent alors
-   pile sur les bords du bloc blanc, où ils ne séparent plus rien de rien. Seuls
-   restent ceux du haut et du bas, qui la détachent de ce qui l'entoure. */
-.module-content-inner .card.table-scroll { border-left: 0; border-right: 0; box-shadow: none; }
+/* ⚠️ Rien ici pour une CARTE qui serait elle-même la zone de défilement : ce
+   cas ne doit pas exister. La marge négative ci-dessus la tirerait bord à
+   bord, et il faudrait ensuite lui reprendre un par un ses traits latéraux,
+   ses coins arrondis et son filet du bas — trois rattrapages pour une carte
+   qui n'en est plus une. Une carte dans un bloc de module met le conteneur de
+   défilement DEDANS ; une liste bord à bord se passe de .card
+   (?p=compta_regles, ?p=projets). docs/UI.md § 9. */
 /* ⚠️ Et pas de bordure BASSE non plus : dans une liste paginée côté client,
    toutes les rangées sont dans le document et le script cache celles des
    autres pages — la dernière VISIBLE n'est donc pas :last-child, elle garde

@@ -231,7 +231,14 @@ $peutEcrireRegles = peut_ecrire('compta');
           // règle noyait cet ordre sous les cadres. Le glisser-déposer vient avec,
           // qui EST la convention de l'application pour réordonner (docs/UI.md § 4) ;
           // les flèches restent en repli sans JavaScript et sur téléphone. ?>
-    <div class="card form table-scroll" id="regles-card">
+    <?php // Pas de .card : dans un bloc de module, une liste va bord à bord
+          // (docs/UI.md § 9) — comme ?p=projets, qui est le même tableau de
+          // lignes ordonnables. Porter .card ICI, c'est-à-dire sur l'élément
+          // qui EST la zone de défilement, c'est le piège que la guideline
+          // nomme : la marge négative de la page tire la carte bord à bord,
+          // ses coins restent arrondis en haut sur un bord devenu droit, et
+          // son filet du bas s'ajoute à celui de la dernière rangée. ?>
+    <div class="form table-scroll" id="regles-card">
     <table class="list mb-0 plan-table regles-table">
         <thead>
             <tr>

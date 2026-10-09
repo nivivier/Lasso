@@ -955,6 +955,31 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   bloc ni sur le `<table>`, sinon le verre se recompose dessus et l'effet
   disparaît sans rien signaler. Le survol, lui, ne touche pas un séparateur :
   ce n'est pas une ligne qu'on ouvre, et le teinter crèverait son verre.
+- ⚠️ **C'est la dernière rangée MONTRÉE qui ferme une liste, jamais le
+  tableau.** Un `.list` pleine largeur ne porte pas de `border-bottom` : chaque
+  rangée garde le sien, et celle qu'on voit en dernier referme la liste d'un
+  trait d'un pixel, comme tous les autres. La raison tient à la pagination
+  **côté client** (`pagination_mode_client()`) : toutes les rangées sont dans
+  le document et le script cache celles des autres pages, si bien que la
+  dernière visible n'est pas `:last-child` — elle gardait son filet, celui du
+  tableau s'y ajoutait, et la liste finissait sur 2px (`?p=structures`,
+  `?p=evenements`). Aucun sélecteur CSS ne peut désigner « la dernière rangée
+  affichée » ; c'est pourquoi la règle s'inverse. Plus généralement : **aucun
+  trait épais dans un tableau** — un filet deux fois plus lourd que ceux qui
+  séparent les lignes se lit comme une erreur, jamais comme une structure.
+- ⚠️ **Dans un bloc de module, une liste n'est pas une carte.** Porter `.card`
+  sur l'élément qui EST la zone de défilement (`.card.table-scroll`) dans un
+  `.module-content` tire la carte bord à bord par la marge négative de la page,
+  et il faut ensuite lui reprendre un par un ses traits latéraux, ses coins
+  arrondis et son filet du bas — trois rattrapages pour une carte qui n'en est
+  plus une, et le filet du bas se doublait avec celui de la dernière rangée.
+  Deux formes, deux écritures : une liste bord à bord se passe de `.card`
+  (`?p=projets`, `?p=compta_regles`) ; une vraie carte met le conteneur de
+  défilement DEDANS.
+- **La pagination touche son tableau** : aucune marge entre les deux — la
+  séparation est déjà faite par le filet de la dernière rangée. L'air se met
+  DANS la pagination, en remplissage haut et bas, pour que son fond blanc
+  l'accompagne plutôt que de laisser une bande de décor s'intercaler.
 - ⚠️ **Le retrait d'une cellule de liste, c'est `--row-pad`, et rien d'autre.**
   Trois écrans s'en écartaient — les écritures à 5px, les listes ordonnées à
   2px, le compte d'exploitation à 5px —, chacun pour une raison oubliée, et une
