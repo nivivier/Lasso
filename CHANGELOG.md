@@ -9,6 +9,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **L'onglet « Fiches de salaire » s'appelle « Fiches ».** Le titre du module,
+  juste à sa gauche, dit déjà « Salaires » : un onglet n'a pas à répéter le
+  bandeau qui le porte.
+
 ## [3.0.10] — 2026-10-09
 
 ### Ajouté

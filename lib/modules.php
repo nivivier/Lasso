@@ -374,7 +374,10 @@ function nav_groupes(): array
 
     if (module_actif('salaires') && peut_lire('salaires')) {
         $g['salaires'] = ['Salaires', 'file-text', [
-            'fiches'   => ['Fiches de salaire', ['fiches', 'fiche', 'fiche_form', 'fiche_modifier'], nb_fiches_a_payer(), 'file-text'],
+            // « Fiches » et non « Fiches de salaire » : le titre du module, à
+            // deux centimètres à gauche, dit déjà « Salaires ». Un onglet ne
+            // répète pas le bandeau qui le porte.
+            'fiches'   => ['Fiches', ['fiches', 'fiche', 'fiche_form', 'fiche_modifier'], nb_fiches_a_payer(), 'file-text'],
             'employes' => ['Employés', ['employes', 'employe_form', 'employe'], 0, 'users'],
             'cotisations'   => ['Cotisations', ['cotisations'], 0, 'bar-chart'],
         ]];
