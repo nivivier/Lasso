@@ -1383,7 +1383,20 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    pile sur les bords du bloc blanc, où ils ne séparent plus rien de rien. Seuls
    restent ceux du haut et du bas, qui la détachent de ce qui l'entoure. */
 .module-content-inner .card.table-scroll { border-left: 0; border-right: 0; box-shadow: none; }
-.module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
+/* ⚠️ Et pas de bordure BASSE non plus : dans une liste paginée côté client,
+   toutes les rangées sont dans le document et le script cache celles des
+   autres pages — la dernière VISIBLE n'est donc pas :last-child, elle garde
+   son filet, et celui du tableau s'y ajoutait : deux pixels à la fin du
+   tableau, juste avant la pagination (?p=structures, ?p=evenements). Aucune
+   règle CSS ne peut désigner « la dernière rangée affichée ». On retire donc
+   le filet du TABLEAU : c'est celui de la dernière rangée montrée, quelle
+   qu'elle soit, qui ferme la liste — un seul trait dans tous les cas.
+   La contrepartie est juste en dessous : la règle qui effaçait le filet de la
+   dernière rangée n'a plus lieu d'être ici, sinon une liste entièrement
+   affichée ne se refermerait sur rien. */
+.module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-bottom: 0; border-radius: 0; box-shadow: none; }
+.module-content-inner .table-scroll .list tbody tr:last-child td,
+.module-content-inner .table-scroll .list > :last-child > tr:last-child > * { border-bottom: 1px solid var(--line); }
 .module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
 .module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
 /* … et dans une CARTE, le même procédé à l'échelle de la carte : le tableau la

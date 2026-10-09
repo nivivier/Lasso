@@ -16,6 +16,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   ligne au lieu de 47), « large » les aère d'autant (59 px). Seul le retrait
   vertical change : les colonnes restent alignées d'un réglage à l'autre.
 
+### Corrigé
+- **Plus de trait doublé à la fin d'une liste paginée** (structures,
+  événements) : toutes les rangées sont dans la page et le script cache celles
+  des autres pages, si bien que la dernière affichée gardait son filet et que
+  celui du tableau s'y ajoutait.
+
 ### Modifié
 - **Les lignes de tableau ont partout le même retrait.** Trois écrans s'en
   écartaient sans raison — les écritures à la moitié du reste du site, les
