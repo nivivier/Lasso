@@ -23,6 +23,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce
   retrait sert à aligner les cellules sur le titre de la carte, et ces
   cartes-là n'en ont pas, leur titre étant posé au-dessus d'elles.
+- **L'onglet « Plan comptable » passe tout à droite** : on y règle la machine,
+  on ne s'en sert pas au quotidien. Les onglets de la comptabilité vont
+  maintenant du travail courant à ce qui le rend possible.
 - **Le lettrage automatique n'a plus de vide sous ses sous-onglets**, ni de
   traits verticaux au bord de son tableau : la rangée de sous-onglets posait sa
   marge par-dessus le retrait du bloc de contenu, et la carte tirée bord à bord

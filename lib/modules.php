@@ -387,26 +387,29 @@ function nav_groupes(): array
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
             'compta_ecritures' => ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'],
-            // Le plan comptable porte TROIS écrans, en sous-onglets. Les deux
-            // premiers sont le même objet — la liste des comptes —, l'un pour
-            // ce qu'on gagne et dépense, l'autre pour les endroits où l'argent
-            // dort. Le troisième dit comment une écriture y tombe toute seule :
-            // une règle de lettrage ne vaut que par la catégorie du plan
-            // qu'elle désigne, elle n'a pas de sens hors de lui. Les tenir
-            // ensemble rend deux onglets au bandeau.
-            // 5e élément = les sous-onglets [route => libellé] ; la 2e entrée
-            // (les routes) doit les contenir tous, c'est elle qui allume
-            // l'onglet principal.
-            'compta_plan'      => ['Plan comptable', ['compta_plan', 'compta_comptes', 'compta_regles'], 0, 'rows-3', [
-                'compta_plan'    => 'Produits et charges',
-                'compta_comptes' => 'Comptes bancaires',
-                'compta_regles'  => 'Lettrage automatique',
-            ]],
             'compta_bilan'     => ['Comptes annuels', ['compta_bilan'], 0, 'book-open'],
         ];
         if ($analytiqueOk) {
             $onglets['compta_analyse'] = ['Analyse', ['compta_analyse', 'compta_analyse_axe', 'compta_axes'], 0, 'layers'];
         }
+        // Le plan comptable TOUT À DROITE, et ajouté après l'analyse pour y
+        // rester que celle-ci soit active ou non : on y règle la machine, on
+        // ne s'en sert pas au quotidien. Les onglets vont ainsi du travail
+        // courant à ce qui le rend possible.
+        //
+        // Il porte TROIS écrans, en sous-onglets. Les deux premiers sont le
+        // même objet — la liste des comptes —, l'un pour ce qu'on gagne et
+        // dépense, l'autre pour les endroits où l'argent dort. Le troisième dit
+        // comment une écriture y tombe toute seule : une règle de lettrage ne
+        // vaut que par la catégorie du plan qu'elle désigne, elle n'a pas de
+        // sens hors de lui.
+        // 5e élément = les sous-onglets [route => libellé] ; la 2e entrée (les
+        // routes) doit les contenir tous, c'est elle qui allume l'onglet.
+        $onglets['compta_plan'] = ['Plan comptable', ['compta_plan', 'compta_comptes', 'compta_regles'], 0, 'rows-3', [
+            'compta_plan'    => 'Produits et charges',
+            'compta_comptes' => 'Comptes bancaires',
+            'compta_regles'  => 'Lettrage automatique',
+        ]];
         $g['compta'] = ['Comptabilité', 'banknote', $onglets];
     }
 
