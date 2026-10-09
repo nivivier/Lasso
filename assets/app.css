@@ -4066,17 +4066,23 @@ abbr {
        ture » centré, « manuelle » centré en dessous, chacun sur son propre
        axe) paraît désaligné ; aligné à gauche, les deux lignes démarrent au
        même point sous l'icône, lisible quel que soit le nombre de lignes. */
-    .btn.btn-compact { font-size: var(--fs-small); line-height: 1.15; gap: 5px; padding: 3px 10px; justify-content: flex-start; text-align: left; }
-    /* ⚠️ Les deux traitements se côtoient dans la même barre : ils doivent faire
-       la MÊME hauteur, sinon la rangée est bancale. Celle du bouton à icône
-       seule fait loi — son icône, son remplissage, ses bordures. Le libellé
-       réduit se range DANS cette hauteur, sur une ou deux lignes : d'où le
-       remplissage vertical resserré ci-dessus, sans quoi deux lignes de petit
-       texte feraient grandir le bouton au lieu de tenir dedans. */
-    .btn.btn-compact, .btn.btn-compact-mobile {
+    .btn.btn-compact { font-size: var(--fs-small); line-height: 1.15; gap: 5px; padding: 7px 10px; justify-content: flex-start; text-align: left; }
+    /* ⚠️ Dans une BARRE DE FENÊTRE seulement, les deux traitements compacts
+       prennent la hauteur du bouton à icône seule — son icône, son
+       remplissage, ses bordures. Ils s'y côtoient (« Fermer » réduit à sa
+       croix, « Charger un modèle » réduit à son petit texte) et une rangée de
+       deux hauteurs est bancale. Le remplissage vertical se resserre d'autant,
+       sans quoi deux lignes de petit texte grandiraient le bouton au lieu de
+       tenir dedans.
+       Et SEULEMENT là : ailleurs, un .btn-compact voisine des boutons de
+       taille normale — « Écriture manuelle » à côté d'« Importer » sur
+       ?p=compta_ecritures —, et lui imposer cette hauteur le rendait plus
+       court qu'eux. Hors d'une fenêtre, il garde le remplissage d'un bouton. */
+    .modal-head .btn.btn-compact, .modal-head .btn.btn-compact-mobile {
         min-height: calc(16px + 2 * 9px + 2 * var(--btn-border-w));
         align-items: center;
     }
+    .modal-head .btn.btn-compact { padding: 3px 10px; }
     /* Son contraire, pour un bouton dont l'icône se suffit : le libellé part
        et seule l'icône reste. Deux gestes dans la même barre peuvent demander
        l'un ou l'autre — « Fermer » tient dans sa croix, « Charger un modèle »

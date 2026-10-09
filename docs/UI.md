@@ -760,10 +760,12 @@ question : **l'icône seule suffit-elle à dire le geste ?**
   `menu_deroulant_html()` : le helper le traduit en `<br>` coupé, et laisse
   l'infobulle d'un tenant.
 
-⚠️ **Les deux font la même hauteur**, celle du bouton à icône seule : ils se
-côtoient dans la même barre, et un voisin plus court trahit le bricolage. Le
-libellé réduit se range DANS cette hauteur, sur une ou deux lignes — c'est le
-remplissage vertical qui cède, pas le bouton qui rapetisse.
+⚠️ **Dans une barre de FENÊTRE, les deux font la même hauteur**, celle du
+bouton à icône seule : ils s'y côtoient, et un voisin plus court trahit le
+bricolage. Le libellé réduit se range DANS cette hauteur, sur une ou deux
+lignes — c'est le remplissage vertical qui cède, pas le bouton qui rapetisse.
+**Et seulement là** : ailleurs, un `.btn-compact` voisine des boutons de taille
+normale, et cette hauteur-là le rendrait plus court qu'eux.
 
 Les deux basculent au **même seuil** que tout ce qui se réduit sur un
 téléphone. Un menu déroulant prend son traitement par l'option `classe` de
