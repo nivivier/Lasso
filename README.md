@@ -456,6 +456,11 @@ un administrateur. Les couleurs principale et de mise en évidence restent celle
 que vous avez choisies : leurs variantes sombres en sont dérivées
 automatiquement, de même que la variante du logo utilisée dans la barre latérale.
 
+Elle règle aussi la **densité des tableaux** — *dense*, *normal* ou *large* —,
+c'est-à-dire la hauteur des lignes dans toutes les listes : « dense » en fait
+tenir un quart de plus à l'écran, « large » les aère d'autant. Seul le retrait
+vertical change ; les colonnes restent alignées.
+
 La même page règle les **couleurs des modules** : chacun porte sa teinte — le
 rail de navigation, le titre de ses pages, ses accents —, ou bien toute
 l'application s'en tient à la couleur principale, au choix. La couleur de mise

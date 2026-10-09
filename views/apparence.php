@@ -22,6 +22,10 @@
                 <td><?= e(['auto' => 'Automatique (système)', 'clair' => 'Clair', 'sombre' => 'Sombre'][param_theme()]) ?></td>
             </tr>
             <tr>
+                <th>Densité des tableaux</th>
+                <td><?= e(DENSITES_LIBELLES[param_densite()]) ?></td>
+            </tr>
+            <tr>
                 <th>Couleur principale</th>
                 <td><span class="pastille-couleur" style="background:<?= e(param('employeur_couleur_principale', '#6d4ade')) ?>"></span>
                     <code><?= e(param('employeur_couleur_principale', '#6d4ade')) ?></code></td>
@@ -63,6 +67,17 @@
             'clair'  => ['icone' => 'sun',     'label' => 'Clair'],
             'sombre' => ['icone' => 'moon',    'label' => 'Sombre'],
         ], param_theme(), 'Thème de l\'interface') ?>
+
+        <h3 class="sub">Densité des tableaux <?= info_tip(
+            'La hauteur des lignes dans toutes les listes de l\'application. '
+            . '« Dense » en fait tenir davantage à l\'écran, « Large » les aère. '
+            . 'Ce choix vaut pour toute l\'installation, comme le thème.'
+        ) ?></h3>
+        <?= icon_picker('employeur_densite', [
+            'dense'  => ['icone' => 'rows-4', 'label' => 'Dense'],
+            'normal' => ['icone' => 'rows-3', 'label' => 'Normal'],
+            'large'  => ['icone' => 'rows-2', 'label' => 'Large'],
+        ], param_densite(), 'Densité des lignes de tableau') ?>
 
         <h3 class="sub">Couleur principale <?= info_tip(
             "Utilisée pour les accents dans toute l'application (barre latérale, survols, fonds, "

@@ -1010,6 +1010,12 @@ function route_apparence(): void
         if (in_array($theme, ['auto', 'clair', 'sombre'], true)) {
             $stmt->execute(['employeur_theme', $theme]);
         }
+        // Densité des lignes : même précaution, pour la même raison — la valeur
+        // finit en attribut data-densite sur <html>.
+        $densite = (string) ($_POST['employeur_densite'] ?? '');
+        if (in_array($densite, ['dense', 'normal', 'large'], true)) {
+            $stmt->execute(['employeur_densite', $densite]);
+        }
         if ($fond !== null) {
             $ancien = param('employeur_fond', '');
             $stmt->execute(['employeur_fond', $fond]);

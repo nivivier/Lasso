@@ -9,6 +9,21 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Un réglage de densité des tableaux** dans Paramètres → Apparence : *dense*,
+  *normal* ou *large*. Il règle la hauteur des lignes dans toutes les listes de
+  l'application — « dense » en fait tenir un quart de plus à l'écran (37 px par
+  ligne au lieu de 47), « large » les aère d'autant (59 px). Seul le retrait
+  vertical change : les colonnes restent alignées d'un réglage à l'autre.
+
+### Modifié
+- **Les lignes de tableau ont partout le même retrait.** Trois écrans s'en
+  écartaient sans raison — les écritures à la moitié du reste du site, les
+  listes ordonnées (projets, postes, plan comptable, pays, catégories, règles,
+  axes) au cinquième, le compte d'exploitation à la moitié. Une liste ne change
+  plus de densité d'un écran à l'autre, et c'est ce qui permet au réglage
+  ci-dessus de valoir pour toutes.
+
 ### Corrigé
 - **L'en-tête collant d'un tableau se repose au bon endroit.** Il visait une
   hauteur de bandeau écrite en dur, valable du temps où le titre et les onglets

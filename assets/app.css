@@ -113,12 +113,13 @@
     --focus-ring: 0 0 0 3px var(--primary-tint);
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
+    --row-pad-y: 10px;                 /* sa part verticale — ce que règle la densité */
     --row-pad-x: 12px;                 /* sa part horizontale, seule réutilisable */
     /* Retrait HAUT d'un bloc de contenu. Un jeton, parce que la barre d'outils
        doit le reprendre à l'identique pour porter son fond blanc jusqu'en haut
        du bloc (voir .module-content-inner > .toolbar). */
     --content-haut: 24px;
-    --row-pad: 10px var(--row-pad-x);  /* padding standard des cellules .list */
+    --row-pad: var(--row-pad-y) var(--row-pad-x);  /* padding standard des cellules .list */
     /* Respiration horizontale (.content, .page-head, .module-content-inner…).
        clamp() plutôt qu'une constante : à 48px fixes, un portable 13 pouces
        perdait 96px de largeur utile, et un téléphone en perdait un quart. La
@@ -396,6 +397,16 @@ body.has-sidebar { display: flex; min-height: 100vh; }
    libellé à droite » par un rail
    étroit, icône au-dessus d'un petit libellé, largeur 84px (voir aussi les
    offsets de .page-head-band, calés sur cette largeur). */
+/* Densité des lignes de tableau (?p=apparence). Elle ne touche qu'au retrait
+   VERTICAL : c'est lui qui fait tenir plus ou moins de lignes à l'écran.
+   L'horizontal aligne le texte sur le bord de sa carte ou de sa page et ne
+   bouge pas, sinon les colonnes se décaleraient d'un réglage à l'autre.
+   Rendu côté serveur sur <html>, comme le thème : aucun scintillement, aucun
+   JavaScript. Une seule valeur à changer, parce que toutes les listes du site
+   lisent --row-pad — c'est à cela que servait de les normaliser d'abord. */
+:root[data-densite="dense"] { --row-pad-y: 5px; }
+:root[data-densite="large"] { --row-pad-y: 16px; }
+
 /* Rail clair par défaut (pas de dégradé --brand/--brand-2 : depuis que
    --brand suit la couleur du module actif — module_couleur_css_vars(),
    lib/helpers.php —, un fond de rail dérivé de --brand changerait de
@@ -3270,7 +3281,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .resume th, .resume td { padding-left: 11px; padding-right: 11px; }
 .resume thead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
 .resume tbody td.num, .resume tfoot td.num { white-space: nowrap; }
-.resume tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--brand); }
+.resume tfoot td { background: var(--surface); border-top: 1px solid var(--line); font-weight: 700; color: var(--brand); }
 /* Pastille d'initiales (avatar_initiales(), lib/helpers.php) : point d'accroche
    en début de ligne, pour repérer un nom sans le lire. La teinte vient du nom,
    elle est donc stable d'un écran à l'autre — c'est ce qui la rend utile. */
@@ -4183,7 +4194,9 @@ abbr {
 .bulk-field { display: flex; align-items: center; }
 .compta-lettrage { min-width: 900px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
 .compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
-.compta-lettrage td { padding-top: 5px; padding-bottom: 5px; }
+/* (retrait des cellules : celui de toutes les listes, --row-pad — voir
+   docs/UI.md § 9. Cet écran posait 5px, soit la moitié, sans autre raison que
+   son histoire.) */
 .list .col-check { width: 34px; text-align: center; }
 /* La case et l'icône de statut occupent deux cellules voisines et doivent se
    lire sur la même ligne. Elles s'alignaient pourtant selon deux règles
@@ -4245,7 +4258,8 @@ abbr {
 }
 
 /* Compte de résultat */
-.compta-cr td { padding: 5px 12px; }
+/* Idem : le compte d'exploitation est dense par nature, mais sa densité est
+   celle du réglage d'affichage, pas une valeur à lui. */
 .compta-cr.cr-flat td { padding: var(--row-pad); }
 .compta-cr .cr-section th { background: var(--primary-tint); text-transform: uppercase; font-size: var(--fs-small); letter-spacing: .05em; color: var(--primary-d); text-align: left; padding: 8px 12px; }
 .compta-cr tr.cr-spacer td { height: 14px; padding: 0; background: var(--bg); border-top: none; border-bottom: none; }
@@ -4284,7 +4298,11 @@ abbr {
 .compta-cr tfoot .cr-note td { font-weight: 400; font-size: var(--fs-small); color: var(--muted); background: transparent; border-top: none; }
 
 /* Plan comptable hiérarchique */
-.plan-table td { vertical-align: middle; padding: 2px 10px; }
+/* Retrait de cellule : celui de toutes les listes. Ces tableaux posaient 2px,
+   un cinquième du reste du site — leurs lignes portent des contrôles dont la
+   hauteur propre les tenait déjà ouvertes, mais une liste ne change pas de
+   densité d'un écran à l'autre. */
+.plan-table td { vertical-align: middle; }
 .plan-table .inline-edit { gap: 6px; min-height: 30px; padding-left: calc(var(--depth, 0) * 22px); }
 .plan-puce { display: inline-flex; align-items: center; justify-content: center; width: 16px; color: var(--muted); flex: 0 0 auto; }
 .plan-puce .ico { width: 14px; height: 14px; }

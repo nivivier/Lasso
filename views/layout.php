@@ -33,7 +33,7 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
       // l'attribut reste absent, et c'est la media query prefers-color-scheme
       // qui décide. Rendu côté serveur, donc aucun scintillement au chargement
       // et aucun JavaScript — c'est l'avantage d'un réglage stocké en base. ?>
-<html lang="fr"<?= param_theme() !== 'auto' ? ' data-theme="' . e(param_theme()) . '"' : '' ?>>
+<html lang="fr"<?= param_theme() !== 'auto' ? ' data-theme="' . e(param_theme()) . '"' : '' ?><?= param_densite() !== 'normal' ? ' data-densite="' . e(param_densite()) . '"' : '' ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

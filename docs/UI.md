@@ -955,6 +955,15 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   bloc ni sur le `<table>`, sinon le verre se recompose dessus et l'effet
   disparaît sans rien signaler. Le survol, lui, ne touche pas un séparateur :
   ce n'est pas une ligne qu'on ouvre, et le teinter crèverait son verre.
+- ⚠️ **Le retrait d'une cellule de liste, c'est `--row-pad`, et rien d'autre.**
+  Trois écrans s'en écartaient — les écritures à 5px, les listes ordonnées à
+  2px, le compte d'exploitation à 5px —, chacun pour une raison oubliée, et une
+  liste finissait par changer de densité d'un écran à l'autre. Un écran dont
+  les lignes doivent respirer autrement se trompe de problème : la densité est
+  un RÉGLAGE, `?p=apparence` → Densité des tableaux, qui fait varier
+  `--row-pad-y` sur tout le site (`:root[data-densite]`). Elle ne touche qu'au
+  vertical : l'horizontal aligne le texte sur le bord de sa carte ou de sa
+  page, et le faire varier décalerait les colonnes d'un réglage à l'autre.
 - **Tri** : `tri_entete_html()`, trois états au clic — croissant, décroissant,
   retour à l'ordre par défaut. Le tri se fait en SQL (les listes sont paginées)
   et se mémorise en session. Le sens s'applique à **chaque terme** de l'`ORDER
