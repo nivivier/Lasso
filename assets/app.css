@@ -1343,7 +1343,7 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    tirée bord à bord par la règle ci-dessus : ses traits latéraux tombent alors
    pile sur les bords du bloc blanc, où ils ne séparent plus rien de rien. Seuls
    restent ceux du haut et du bas, qui la détachent de ce qui l'entoure. */
-.module-content-inner .card.table-scroll { border-left: 0; border-right: 0; }
+.module-content-inner .card.table-scroll { border-left: 0; border-right: 0; box-shadow: none; }
 .module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
 .module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
 .module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
@@ -2955,6 +2955,12 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .text-strike .titre-lien { text-decoration: line-through; }
 .text-strike .titre-lien:hover { text-decoration: line-through underline; }
 .list tbody tr:last-child td { border-bottom: none; }
+/* …et la VRAIE dernière rangée, même quand c'est un <tfoot> qui ferme le
+   tableau (le total de ?p=compta_analyse, la rangée d'ajout d'une liste
+   ordonnée). La règle ci-dessus ne voit que le <tbody> : le trait du pied
+   s'ajoutait alors à celui du tableau lui-même, et la liste finissait sur une
+   ligne deux fois plus épaisse que toutes les autres. */
+.list > :last-child > tr:last-child > * { border-bottom: none; }
 .list .num { text-align: right; font-variant-numeric: tabular-nums; }
 .list .strong { font-weight: 700; color: var(--teal-d); }
 /* Gras à l'encre : ce qui demande un geste se repère au gras seul, sans prendre

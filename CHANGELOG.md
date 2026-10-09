@@ -23,6 +23,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce
   retrait sert à aligner les cellules sur le titre de la carte, et ces
   cartes-là n'en ont pas, leur titre étant posé au-dessus d'elles.
+- **Deux fins de tableau rentrent dans le rang.** L'analyse se fermait sur un
+  trait deux fois plus épais que les autres — celui de son pied s'ajoutait à
+  celui du tableau — et les règles de lettrage sur une ombre, que leur carte
+  tirée bord à bord n'avait plus lieu de porter.
 - **L'onglet « Plan comptable » passe tout à droite** : on y règle la machine,
   on ne s'en sert pas au quotidien. Les onglets de la comptabilité vont
   maintenant du travail courant à ce qui le rend possible.
