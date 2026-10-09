@@ -1230,8 +1230,8 @@ les chiffres d'un tableau.
 
 ## 13 bis. Tailles de texte
 
-**Une taille de texte est un token, jamais une valeur.** Six crans, et rien
-entre eux :
+**Une taille de texte est un token, jamais une valeur.** Sept crans, et rien
+entre eux — aucune règle de la feuille n'écrit un nombre de pixels :
 
 | Token | Taille | Pour |
 | --- | --- | --- |
@@ -1239,7 +1239,8 @@ entre eux :
 | `--fs-small` | 11px | Libellés, légendes, intitulés de colonne |
 | `--fs-basic` | 13px | Le corps de l'application |
 | `--fs-large` | 16px | Le nom que porte une ligne, un titre de carte |
-| `--fs-big` | 20px | Un séparateur de groupe, un sous-titre d'écran |
+| `--fs-big` | 20px | Un séparateur de groupe, un montant mis en avant |
+| `--fs-bigger` | 24px | Une date d'en-tête, des initiales en médaillon |
 | `--fs-huge` | 32px | Le chiffre d'un en-tête |
 
 C'est la même règle que pour les couleurs (§ 13), et pour la même raison : une
@@ -1251,22 +1252,33 @@ plus la même le jour où le token bouge — sans que rien ne le signale.
 correct, il a seulement cessé de suivre l'échelle. Douze déclarations étaient
 dans cet état.
 
-⚠️ **Et un écran qui tombe entre deux crans ne les écarte pas, il choisit.**
-Les mini-cartes de téléphone s'étaient réglées à l'œil — 10px et 12px, onze
-fois, entre `--fs-tiny` et `--fs-basic` — et ces écrans vivaient leur propre
-vie, invisible au développement qui se fait au large. Un corps intermédiaire
-n'est pas un besoin : c'est le signe qu'on n'a pas tranché.
+⚠️ **Et un écran qui tombe entre deux crans ne les écarte pas : il prend le
+plus proche, ou il fait un cran.** Les mini-cartes de téléphone s'étaient
+réglées à l'œil — 10px et 12px, onze fois, entre `--fs-tiny` et `--fs-basic` —
+et ces écrans vivaient leur propre vie, invisible au développement qui se fait
+au large. Un corps intermédiaire n'est pas un besoin : c'est le signe qu'on n'a
+pas tranché. **Si le besoin est réel, il devient un CRAN**, déclaré en tête de
+feuille avec les autres — c'est ainsi que `--fs-bigger` est né : l'échelle
+sautait de 20 à 32, soixante pour cent d'un coup, et les corps d'affichage qui
+tombaient dans ce trou n'avaient nulle part où aller.
 
-Neuf tailles restent hors échelle, toutes des corps d'**affichage** — un
-chiffre, une date, le nom qu'on cherche des yeux : `.camp-chiffre b` (34px),
-`.fr-print-date` (25px), `.camp-icone .avatar-ini` (22px), `.cartes-factures
-.col-montant` et `.fr-print-ou` (18px), `.evt-date-j` (17px), `.evt-ville` et
-`.ms-nom` (15px), `.dash-chart .ch-label` (12px). Elles sont **nommées une par
-une** dans `tests/tailles_texte_test.php`, qui vérifie en prime qu'aucune
-valeur en dur ne recopie un token et qu'aucun `var(--fs-…)` ne pointe un token
-inexistant — une faute de frappe y donne une règle valide qui ne dessine rien.
-En ajouter une dixième fait échouer la suite : c'est voulu, la question doit se
-poser.
+⚠️ **À égalité, on monte.** Un corps qui tombe à mi-chemin de deux crans (18
+entre 16 et 20, 22 entre 20 et 24) est presque toujours là pour RESSORTIR —
+un montant à côté d'un nom, un chiffre, une date. Descendre est la direction
+qui efface la distinction qu'il portait : le montant d'une facture tombé à 16
+aurait pesé exactement le poids du nom posé à côté de lui. Seule exception,
+ce qui est secondaire par nature : la légende d'un graphique prend le cran du
+dessous.
+
+Deux tailles séparées de deux pixels ne se distinguent sur aucune capture ;
+c'est bien pourquoi l'échelle se dissout sans qu'on la voie partir. Avant la
+réforme : 23 valeurs distinctes de 9 à 32.
+
+`tests/tailles_texte_test.php` refuse toute taille écrite en pixels — qu'elle
+double un token ou qu'elle tombe entre deux —, la même chose en `em`/`rem`
+(changer d'unité contournerait l'échelle), et vérifie qu'aucun `var(--fs-…)`
+ne pointe un token inexistant : cette faute-là donne une règle valide qui ne
+dessine rien, et l'écart se voit à peine.
 
 ## 14. Comportements déclaratifs
 

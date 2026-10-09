@@ -54,6 +54,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   et `tests/tailles_texte_test.php` la vérifie — y compris qu'aucun
   `var(--fs-…)` ne pointe un token inexistant, faute qui donne une règle valide
   qui ne dessine rien.
+- **Plus une seule taille de texte écrite en pixels**, nulle part dans la
+  feuille de style. Les neuf dernières étaient des corps d'affichage — le
+  total d'une campagne, la date d'une feuille de route imprimée, des initiales
+  en médaillon — tombés entre deux crans ; elles ont rejoint le plus proche.
+  L'échelle gagne un septième cran, `--fs-bigger` (24 px) : de 20 à 32 elle
+  sautait de soixante pour cent d'un coup, le plus grand écart de la série, et
+  ces corps-là n'avaient nulle part où aller.
 
 ### Ajouté
 - **Un réglage de densité des tableaux** dans Paramètres → Apparence : *dense*,
