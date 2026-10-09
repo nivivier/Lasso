@@ -125,7 +125,7 @@ $montreContacte = $depuisNav !== 'facturation';
           // dans le panneau « Filtres » et n'a donc plus besoin de rétrécir la
           // recherche pour leur faire de la place — contrairement à
           // ?p=evenements, qui les affiche toujours à plat. ?>
-    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
+    <div class="toolbar<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">

@@ -1282,34 +1282,13 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    collé à droite de la barre, et une liste plus large que lui déborderait
    sinon hors de la zone du module. */
 .ajout-structure .cat-search-list { left: auto; right: 0; }
-/* ?p=evenements / ?p=structures (vues liste ET carte, voir
-   views/*_liste.php — .toolbar-opaque posé sans condition sur $vue) : la
-   toolbar garde le placement/marge habituel de .module-content-inner — pas
-   une card, pas de bordure/ombre/coins arrondis, pas de padding propre visible
-   (identique à toutes les autres pages). Seul besoin réel : un fond blanc
-   opaque, sans effet en vue liste (déjà posée sur le fond blanc de
-   .module-content), mais nécessaire en vue carte où la toolbar est posée
-   directement sur la carte plein écran (.carte-lieux-wrap, position:fixed,
-   voir plus haut). Marge négative + padding égal au padding haut/gauche/droite
-   de .module-content-inner (24px / var(--content-pad)) : le fond déborde
-   jusqu'au bandeau d'onglets et jusqu'aux bords, alors que le contenu de la
-   toolbar (recherche, boutons) reste exactement à sa position habituelle (la
-   marge négative et le padding s'annulent) — .module-content-inner GARDE son
-   propre padding intact (pas de :has() pour le retirer, contrairement à un
-   essai précédent) pour ne pas casser le calcul plein-cadre de
-   .table-scroll en vue liste (margin: calc(-1 * var(--content-pad)), plus
-   bas). Sans condition sur $vue : la bascule Liste/Carte ne doit déplacer ni
-   la toolbar, ni le champ de recherche, ni les boutons d'action — même
-   placement dans les deux vues, seul le contenu en dessous change.
-   margin-top/left/right seulement (PAS le raccourci margin: qui réinitialise
-   aussi margin-bottom à 0 et écraserait le margin-bottom:22px de .toolbar
-   ci-dessus — espace toolbar/tableau supprimé par erreur une première fois
-   pour cette raison). Idem padding-top/left/right seulement. */
-.toolbar-opaque {
-    background: var(--card);
-    margin-top: -24px; margin-left: calc(-1 * var(--content-pad)); margin-right: calc(-1 * var(--content-pad));
-    padding-top: 24px; padding-left: var(--content-pad); padding-right: var(--content-pad);
-}
+/* .toolbar-opaque n'existe plus : elle donnait à la barre d'outils de
+   ?p=structures et ?p=evenements un fond blanc débordant jusqu'aux bords, dont
+   la vue carte a besoin — la barre y est posée sur la carte plein écran
+   (.carte-lieux-wrap, position:fixed). Depuis que .module-content a cessé
+   d'être un aplat, .module-content-inner > .toolbar (plus haut) fait
+   exactement cela pour TOUTES les pages, avec les mêmes valeurs : la classe
+   ne distinguait plus rien. */
 /* .toolbar-carte : classe explicite posée par la vue (pas une inférence
    :has(.carte-filters)) sur ?p=structures/?p=evenements EN VUE CARTE
    uniquement (voir views/*_liste.php — `<?= $vue === 'carte' ? '
@@ -1341,11 +1320,11 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
 .toolbar-carte-panneau .search-label,
 .toolbar-carte-panneau > form.filters { flex-grow: 1; }
 .toolbar-carte-panneau > form.filters { flex-basis: auto; }
-/* Espace sous la toolbar en vue carte : .toolbar-opaque ne couvre que sa
-   propre boîte (pas de padding-bottom propre, hérite du padding-bottom:2px
-   de .toolbar) — la carte plein écran (.carte-lieux-wrap, position:fixed)
-   touchait donc directement le bas de la dernière ligne de filtres, sans
-   respiration. */
+/* Espace sous la toolbar en vue carte : son fond blanc ne couvre que sa
+   propre boîte (pas de padding-bottom propre, elle hérite du
+   padding-bottom:2px de .toolbar) — la carte plein écran (.carte-lieux-wrap,
+   position:fixed) touchait donc directement le bas de la dernière ligne de
+   filtres, sans respiration. */
 .toolbar-carte { padding-bottom: 20px; }
 /* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements.php
    / views/structures.php) : placé dans le flux ENTRE la recherche et
@@ -2626,8 +2605,8 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 110px; }
 /* L'exception "recherche compacte + <form> figé" pour ?p=structures /
    ?p=evenements en vue carte vit désormais sur .toolbar-carte (classe
-   explicite posée par la vue), pas ici — voir juste après .toolbar-opaque,
-   tout en haut de ce fichier. */
+   explicite posée par la vue), pas ici — voir .toolbar-carte, plus haut dans
+   ce fichier. */
 /* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
    <details> natif. .filters-more-body en position:fixed (repositionné par JS
    à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai
@@ -3875,6 +3854,23 @@ abbr {
 
 /* =================== Responsive : tiroir + burger =================== */
 @media (max-width: 800px) {
+    /* ⚠️ LA GOUTTIÈRE DE LA PAGE, une seule fois. Elle était écrite en dur à
+       18px dans huit règles de ce bloc, tandis qu'une vingtaine d'autres la
+       calculaient depuis --content-pad — qui vaut 20px sous 625px de large.
+       Deux valeurs pour une seule distance, donc tout ce qui doit ANNULER le
+       retrait pour aller bord à bord manquait de 2px : la barre d'outils et la
+       pagination faisaient 379px de large dans une fenêtre de 375 (débordement
+       horizontal sur toute page de module), et le texte d'un tableau se posait
+       2px plus à droite que le titre et la recherche au-dessus de lui.
+       Le rattrapage au cas par cas ne tient pas : .table-scroll avait déjà le
+       sien, écrit à la main, et celui de .toolbar-opaque était MORT (une
+       classe contre deux, il n'a jamais rien fait) — et faux en prime.
+       Le token est donc redéfini ici, et le bloc n'écrit plus un seul pixel de
+       gouttière. Valeur fixe et non le clamp du bureau : sous 800px la fenêtre
+       est trop étroite pour qu'une gouttière proportionnelle apporte quoi que
+       ce soit. */
+    :root { --content-pad: 20px; }
+
     .ligne-row { flex-wrap: wrap; }
     .ligne-row .l-unite, .ligne-row .l-qte { flex: 1 1 40%; }
     /* Tableau de bord, widget « Prochains événements » : la date prend moins
@@ -3968,22 +3964,22 @@ abbr {
         opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 40; }
     body.nav-open .scrim { opacity: 1; pointer-events: auto; }
 
-    .content { padding: 22px 18px; max-width: none; }
+    .content { padding: 22px var(--content-pad); max-width: none; }
     /* Pas de sidebar en place (tiroir hors écran) : le bandeau n'a plus besoin
        d'être sticky ni de déborder sous quoi que ce soit. margin-top:-22px
        (au lieu de 0) reprend le même principe que sur bureau (margin-top:-40px,
        voir plus haut) : annule le padding-top de .content (22px ici) pour ne
        pas s'ajouter au padding-top de .page-head (16px) — sans ça, ~38px de
        vide séparaient la barre mobile du titre au lieu des 16px voulus. */
-    .page-head-band { position: static; width: auto; margin: -22px -18px 20px; }
+    .page-head-band { position: static; width: auto; margin: -22px calc(-1 * var(--content-pad)) 20px; }
     /* Pas de trait d'accent ici. Sur grand écran, ces 3px de couleur vive sont
        le tout premier pixel de la page et disent le module. Sur téléphone, la
        barre supérieure est juste au-dessus — elle porte déjà le logo et le nom
        du module —, et le trait se lisait comme un second soulignement collé
        sous elle. */
     .page-head-band { border-top-width: 0; }
-    .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px 18px; }
-    .param-subtabs { width: auto; margin: 0 -18px 20px; padding: 10px 18px; }
+    .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px var(--content-pad); }
+    .param-subtabs { width: auto; margin: 0 calc(-1 * var(--content-pad)) 20px; padding: 10px var(--content-pad); }
     /* Onglets et sous-onglets : une seule ligne qui défile horizontalement au
        lieu de passer à la ligne (jusqu'à ~500px cumulés avant tout contenu
        sur une page à deux niveaux comme Paramètres). CSS seul (scroll-snap +
@@ -4009,13 +4005,13 @@ abbr {
        `start` aligne le lien sur le début du « scrollport », qui est le bord de
        la boîte de REMPLISSAGE — pas celui du contenu. Quand le sous-onglet
        actif est le premier de la bande, assets/app.js le ramène en vue, la
-       bande s'accroche, et les 18px de marge passent sous le bord : les
+       bande s'accroche, et la marge de gauche passe sous le bord : les
        pastilles se collaient au bord gauche de l'écran dès que la bande
        débordait (Apparence, Importer), alors qu'elles gardaient leur retrait
        sur une bande courte (Pays). scroll-padding décale le scrollport
-       d'autant, et la marge reste. Même valeur littérale que le padding
-       juste au-dessus et que le retrait de .content en mobile. */
-    .param-subtabs { scroll-padding-left: 18px; }
+       d'autant, et la marge reste. Même valeur que le padding juste
+       au-dessus, donc le même token. */
+    .param-subtabs { scroll-padding-left: var(--content-pad); }
     /* Sur bureau, l'onglet actif « efface » le trait .page-head-band sous
        lui via un débord de -1px (margin-bottom sur .module-tab, plus haut)
        qui déborde exprès de sa boîte pour recouvrir le trait ancestral.
@@ -4057,14 +4053,13 @@ abbr {
         background-size: 100% 1px;
         background-position: left bottom;
     }
-    .module-content { width: auto; margin: 0 -18px 20px; }
+    .module-content { width: auto; margin: 0 calc(-1 * var(--content-pad)) 20px; }
     /* Retrait HAUT à 24px, pas 16 comme les autres côtés : c'est la distance
        qui sépare la barre d'outils de ce qui la suit (sa marge basse de 22px
        plus ses 2px de remplissage), et le champ de recherche se lisait de
        travers, plus près du bandeau au-dessus que de la liste en dessous. Le
        bureau a toujours eu ses deux marges égales ; le téléphone les retrouve. */
-    .module-content-inner { margin-left: 0; padding: var(--content-haut) 18px 16px; }
-    .module-content-inner .table-scroll { margin: 0 -18px; }
+    .module-content-inner { margin-left: 0; padding: var(--content-haut) var(--content-pad) 16px; }
     /* … sauf dans une carte : là aussi le tableau se cale sur SA carte et non
        sur le retrait de la page (docs/UI.md § 9). Le retrait de page change
        en mobile, celui d'une carte non — d'où cette reprise, sans quoi le
@@ -4072,17 +4067,6 @@ abbr {
        flottaient de nouveau dans le vide. */
     .module-content-inner .card .table-scroll {
         margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad));
-    }
-    /* .toolbar-opaque (desktop, voir plus haut) annule le padding de
-       .module-content-inner avec des valeurs fixes (24px haut / 48px
-       gauche-droite) pour faire déborder son fond blanc jusqu'aux bords —
-       sans ce reset, ces mêmes valeurs s'appliqueraient ici contre un
-       .module-content-inner qui ne fait plus que 16px/18px (juste au-dessus),
-       et le fond blanc + le contenu de la toolbar déborderaient d'~30px hors
-       du cadre. */
-    .toolbar-opaque {
-        margin-top: -16px; margin-left: -18px; margin-right: -18px;
-        padding-top: 16px; padding-left: 18px; padding-right: 18px;
     }
     /* .toolbar > .head-actions { margin-left: auto } pousse les actions à
        l'extrême droite (desktop) — en mobile la recherche est réduite à une

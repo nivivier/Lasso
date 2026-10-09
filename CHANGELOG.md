@@ -10,6 +10,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Corrigé
+- **Plus de débordement horizontal sur téléphone.** Toute page de module
+  dépassait de 2 px à 375 px de large : la barre d'outils et la pagination
+  faisaient 379 px dans une fenêtre de 375. Même cause pour un défaut qu'on ne
+  voyait pas : le texte d'un tableau se posait 2 px plus à droite que le titre
+  et la recherche au-dessus de lui. Le téléphone avait deux gouttières, 18 px
+  écrits à la main dans huit règles et 20 px calculés par une vingtaine
+  d'autres ; il n'en a plus qu'une, à 20 px.
+
+### Corrigé
 - **`?p=compta_regles` : le tableau ne se prend plus pour une carte.** Il
   portait `.card` sur l'élément qui est aussi sa zone de défilement — le piège
   que la convention d'interface nomme : la marge négative de la page le tirait

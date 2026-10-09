@@ -54,7 +54,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar toolbar-opaque<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
+    <div class="toolbar<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="evenements">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
