@@ -737,6 +737,11 @@ question : **l'icône seule suffit-elle à dire le geste ?**
 - `.btn-compact-break` pose en plus un `<br>` à un endroit choisi, quand la
   coupure naturelle tomberait mal.
 
+⚠️ **Les deux font la même hauteur**, celle du bouton à icône seule : ils se
+côtoient dans la même barre, et un voisin plus court trahit le bricolage. Le
+libellé réduit se range DANS cette hauteur, sur une ou deux lignes — c'est le
+remplissage vertical qui cède, pas le bouton qui rapetisse.
+
 Les deux basculent au **même seuil** que tout ce qui se réduit sur un
 téléphone. Un menu déroulant prend son traitement par l'option `classe` de
 `menu_deroulant_html()` — pas par une règle écrite pour lui.

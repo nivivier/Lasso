@@ -9,6 +9,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les deux boutons de la barre d'une fenêtre font la même hauteur** sur
+  téléphone. « Charger un modèle » était plus court de quatre pixels que la
+  croix à côté de lui : son texte réduit se range maintenant dans la même
+  boîte, sur deux lignes au besoin, au lieu de rapetisser le bouton.
+
 ## [3.0.9] — 2026-10-08
 
 ### Ajouté

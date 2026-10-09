@@ -587,6 +587,24 @@ function parametres_groupes(): array
     return $cache = $groupes;
 }
 
+// L'adresse d'accueil d'un module : la première route de son bandeau d'onglets,
+// celle sur laquelle son icône du rail mène déjà. Rend '' si le module n'est
+// pas dans nav_groupes() — éteint, ou hors des droits du compte —, ce qui
+// permet à l'appelant de ne PAS poser de lien plutôt que d'en poser un mort.
+//
+// Sert aux titres des cartes du tableau de bord (views/tableau_bord.php) :
+// chacune mène au module dont elle montre un extrait, sans que la vue ait à
+// écrire sept adresses qui dérivaient au premier onglet renommé.
+function nav_groupe_accueil(string $cle): string
+{
+    $groupes = nav_groupes();
+    if (!isset($groupes[$cle][2])) {
+        return '';
+    }
+    $premiere = array_key_first($groupes[$cle][2]);
+    return $premiere === null ? '' : '?p=' . $premiere;
+}
+
 // Le groupe actif pour une route — par ses sections ou ses alias. Null si la
 // route n'est pas une page de paramètres.
 function parametres_groupe_actif(array $groupes, string $route): ?string
