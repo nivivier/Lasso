@@ -10,6 +10,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Le lettrage automatique rejoint les sous-onglets du plan comptable**, à
+  côté de « Produits et charges » et « Comptes bancaires ». Une règle de
+  lettrage ne vaut que par la catégorie du plan qu'elle désigne : elle n'a pas
+  de sens hors de lui. La comptabilité passe à quatre onglets, et sa rangée
+  tient à côté du titre jusque sur un écran étroit.
 - **L'onglet « Fiches de salaire » s'appelle « Fiches ».** Le titre du module,
   juste à sa gauche, dit déjà « Salaires » : un onglet n'a pas à répéter le
   bandeau qui le porte.

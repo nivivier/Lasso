@@ -387,20 +387,21 @@ function nav_groupes(): array
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
             'compta_ecritures' => ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'],
-            // Le plan comptable porte DEUX écrans, en sous-onglets : les
-            // produits et charges, et les comptes bancaires. Les deux sont le
-            // même objet — la liste des comptes —, l'un pour ce qu'on gagne et
-            // dépense, l'autre pour les endroits où l'argent dort. Les tenir
-            // ensemble rend un onglet au bandeau, qui en avait un de trop pour
-            // la largeur disponible.
+            // Le plan comptable porte TROIS écrans, en sous-onglets. Les deux
+            // premiers sont le même objet — la liste des comptes —, l'un pour
+            // ce qu'on gagne et dépense, l'autre pour les endroits où l'argent
+            // dort. Le troisième dit comment une écriture y tombe toute seule :
+            // une règle de lettrage ne vaut que par la catégorie du plan
+            // qu'elle désigne, elle n'a pas de sens hors de lui. Les tenir
+            // ensemble rend deux onglets au bandeau.
             // 5e élément = les sous-onglets [route => libellé] ; la 2e entrée
             // (les routes) doit les contenir tous, c'est elle qui allume
             // l'onglet principal.
-            'compta_plan'      => ['Plan comptable', ['compta_plan', 'compta_comptes'], 0, 'rows-3', [
+            'compta_plan'      => ['Plan comptable', ['compta_plan', 'compta_comptes', 'compta_regles'], 0, 'rows-3', [
                 'compta_plan'    => 'Produits et charges',
                 'compta_comptes' => 'Comptes bancaires',
+                'compta_regles'  => 'Lettrage automatique',
             ]],
-            'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'pencil-sparkles'],
             'compta_bilan'     => ['Comptes annuels', ['compta_bilan'], 0, 'book-open'],
         ];
         if ($analytiqueOk) {
