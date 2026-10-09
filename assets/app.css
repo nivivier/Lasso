@@ -1161,6 +1161,13 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    padding sur mobile uniquement, doublant l'espace. Neutralisée ici pour les
    deux tailles d'écran (no-op sur bureau, où elle vaut déjà 0). */
 .content:has(> .module-content) > .page-head-band { margin-bottom: 0; }
+/* Et la même chose quand une rangée de SOUS-onglets s'intercale (?p=compta_plan,
+   ?p=compta_comptes, ?p=compta_regles) : elle porte sa marge basse de 24px pour
+   les pages de Paramètres, qui n'ont pas de bloc de contenu derrière elles.
+   Devant un .module-content, cette marge s'ajoutait au padding du bloc — 48px
+   entre les sous-onglets et la barre d'outils, deux fois ce qu'une page sans
+   sous-onglets laisse au même endroit. */
+.param-subtabs:has(+ .module-content) { margin-bottom: 0; }
 /* Paramètres (views/_param_tabs.php) : mêmes onglets .module-tabs que les
    autres modules, mais pas de .module-content (pas de fond blanc pleine
    largeur, ces pages restent en cartes classiques) — :not(:has(...)) exclut
@@ -1332,6 +1339,11 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    la première/dernière cellule de chaque ligne plutôt que sur <table> (rendu
    plus fiable entre navigateurs que le padding directement sur <table>). */
 .module-content-inner .table-scroll { margin: 0 calc(-1 * var(--content-pad)); border-radius: 0; }
+/* ⚠️ Une CARTE qui est elle-même la zone de défilement (?p=compta_regles) est
+   tirée bord à bord par la règle ci-dessus : ses traits latéraux tombent alors
+   pile sur les bords du bloc blanc, où ils ne séparent plus rien de rien. Seuls
+   restent ceux du haut et du bas, qui la détachent de ce qui l'entoure. */
+.module-content-inner .card.table-scroll { border-left: 0; border-right: 0; }
 .module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
 .module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
 .module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }

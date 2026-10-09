@@ -23,6 +23,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce
   retrait sert à aligner les cellules sur le titre de la carte, et ces
   cartes-là n'en ont pas, leur titre étant posé au-dessus d'elles.
+- **Le lettrage automatique n'a plus de vide sous ses sous-onglets**, ni de
+  traits verticaux au bord de son tableau : la rangée de sous-onglets posait sa
+  marge par-dessus le retrait du bloc de contenu, et la carte tirée bord à bord
+  gardait des bordures latérales qui ne séparaient plus rien.
 - **Les comptes bancaires prennent la même apparence** que l'autre face du plan
   comptable : un titre « Comptes bancaires » au-dessus de la carte, la liste
   dedans. L'en-tête de colonne disparaît — « Compte bancaire » au-dessus d'une
