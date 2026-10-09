@@ -10,6 +10,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Les séparateurs de mois des listes changent d'allure.** Le mois s'écrit
+  grand et léger, en bas-de-casse, au-dessus d'un filet fin — à la place des
+  petites capitales sur bande teintée, surmontées d'un trait gris deux fois
+  plus épais que ceux qui séparent les lignes. La rangée est translucide et
+  laisse voir le décor de la page, comme les cartes du tableau de bord.
+  Concerne les écritures, les factures, les événements, les campagnes de
+  booking et de recherche de fonds, et les fiches de salaire.
+
+### Modifié
 - **Plus de puce au début d'une ligne qui porte une poignée.** Deux marques au
   début de la même ligne, c'en était une de trop. La puce reste sur téléphone,
   où la poignée s'efface, et le chevron d'une ligne à enfants reste partout :

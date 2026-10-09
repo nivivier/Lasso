@@ -943,6 +943,18 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   seulement quand la bande déborde, donc invisible sur les sections courtes.
   `scroll-padding-left` de la même valeur que le retrait décale le scrollport et
   la marge tient.
+- **Le séparateur de groupe d'une liste** — le mois, l'année, l'étape — écrit
+  son nom GRAND et MAIGRE, en bas-de-casse, au-dessus d'un filet d'un cheveu :
+  c'est l'air au-dessus de lui qui sépare, pas un trait. La rangée est en
+  VERRE (`--glass` + le flou des cartes du tableau de bord), donc le décor de
+  la page se voit au travers.
+  ⚠️ C'est pour cela que **`.module-content` ne porte plus d'aplat blanc** : un
+  fond translucide ne montre que ce qui est peint DERRIÈRE lui, et un bloc
+  opaque ne montrait que lui-même. Le blanc est posé morceau par morceau, sur
+  la barre d'outils, les rangées du tableau et la pagination — jamais sur le
+  bloc ni sur le `<table>`, sinon le verre se recompose dessus et l'effet
+  disparaît sans rien signaler. Le survol, lui, ne touche pas un séparateur :
+  ce n'est pas une ligne qu'on ouvre, et le teinter crèverait son verre.
 - **Tri** : `tri_entete_html()`, trois états au clic — croissant, décroissant,
   retour à l'ordre par défaut. Le tri se fait en SQL (les listes sont paginées)
   et se mémorise en session. Le sens s'applique à **chaque terme** de l'`ORDER

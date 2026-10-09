@@ -114,6 +114,10 @@
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
     --row-pad-x: 12px;                 /* sa part horizontale, seule réutilisable */
+    /* Retrait HAUT d'un bloc de contenu. Un jeton, parce que la barre d'outils
+       doit le reprendre à l'identique pour porter son fond blanc jusqu'en haut
+       du bloc (voir .module-content-inner > .toolbar). */
+    --content-haut: 24px;
     --row-pad: 10px var(--row-pad-x);  /* padding standard des cellules .list */
     /* Respiration horizontale (.content, .page-head, .module-content-inner…).
        clamp() plutôt qu'une constante : à 48px fixes, un portable 13 pouces
@@ -1194,8 +1198,32 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
 .content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band:has(+ .param-subtabs) { margin-bottom: 0; }
 /* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
-.module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); background: var(--card); }
-.module-content-inner { margin: 0 0 0 var(--rail-width); padding: 24px var(--content-pad) 30px; }
+/* ⚠️ Pas d'aplat blanc sur le bloc : il est posé morceau par morceau, juste
+   en dessous. C'est ce qui permet au séparateur de groupe d'une liste (le mois,
+   l'année) de laisser voir le décor de la page au travers — un fond
+   translucide ne montre que ce qui est peint DERRIÈRE lui, et un bloc opaque
+   ne montrait que lui-même. Tout ce qui doit rester lisible porte donc son
+   propre blanc : la barre d'outils, les rangées du tableau, la pagination. */
+.module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); }
+.module-content-inner { margin: 0 0 0 var(--rail-width); padding: var(--content-haut) var(--content-pad) 30px; }
+/* La barre d'outils et la pagination reprennent le blanc du bloc, d'un bord à
+   l'autre : marges négatives, et le retrait du bloc reposé en remplissage pour
+   que le contenu ne bouge pas d'un pixel.
+   ⚠️ L'espace qui sépare la barre du tableau est du REMPLISSAGE et non une
+   marge : en marge il tomberait HORS de la barre, le blanc s'arrêterait sous
+   les boutons et une bande de décor s'intercalerait avant le tableau. */
+.module-content-inner > .toolbar {
+    background: var(--card);
+    margin: calc(-1 * var(--content-haut)) calc(-1 * var(--content-pad)) 0;
+    padding: var(--content-haut) var(--content-pad);
+}
+.module-content-inner > .pagination {
+    background: var(--card);
+    margin-left: calc(-1 * var(--content-pad));
+    margin-right: calc(-1 * var(--content-pad));
+    padding-left: var(--content-pad);
+    padding-right: var(--content-pad);
+}
 /* Barre d'outils : regroupe filtres/recherche et boutons
    d'action sur une seule ligne, posée directement sur le fond blanc de
    .module-content-inner (pas de carte encadrée comme l'ancien .filters
@@ -1791,7 +1819,7 @@ input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: var(-
 /* Survol des lignes : même teinte calculée (dérivée de la couleur de marque)
    que .row-link:hover ailleurs (tableau de bord, listes…), pas une couleur
    fixe indépendante du thème. */
-.compta-lettrage tbody tr:hover td { background: var(--primary-tint); }
+.compta-lettrage tbody tr:not(.ecr-mois-sep):hover td { background: var(--primary-tint); }
 .filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
 input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
 .auth-form { margin-top: 4px; }
@@ -2935,7 +2963,17 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .filtres-ciblage-actifs { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: -6px 0 16px; }
 .filtres-ciblage-actifs .col-th-actif-list { max-width: none; margin-top: 0; }
 .list tbody tr { transition: background .12s; }
-.list tbody tr:hover { background: var(--surface); }
+/* Dans un bloc de contenu, c'est la RANGÉE qui porte le blanc, plus le tableau
+   (voir .module-content) : une rangée peut ainsi s'en passer — le séparateur
+   de groupe — et laisser voir le décor. Posé sur le <tr> : les règles qui
+   teintent une ligne (survol, ligne à traiter) sont plus spécifiques et
+   gardent la main. */
+.module-content .list { background: none; }
+.module-content .list > * > tr { background: var(--card); }
+.module-content .list > tbody > tr:is(.ecr-mois-sep, .mois-sep, .fiche-mois-sep) { background: none; }
+/* Le survol ne dit rien d'un séparateur de groupe : ce n'est pas une ligne
+   qu'on ouvre, et le teinter crevait son verre au passage de la souris. */
+.list tbody tr:not(.ecr-mois-sep):not(.mois-sep):not(.fiche-mois-sep):hover { background: var(--surface); }
 .list tr.row-link { cursor: pointer; transition: background .12s ease; }
 .list tr.row-link:hover { background: var(--primary-tint); }
 /* Nom/titre d'une ligne de liste cliquable (?p=structures/evenements_liste/
@@ -3985,7 +4023,7 @@ abbr {
        plus ses 2px de remplissage), et le champ de recherche se lisait de
        travers, plus près du bandeau au-dessus que de la liste en dessous. Le
        bureau a toujours eu ses deux marges égales ; le téléphone les retrouve. */
-    .module-content-inner { margin-left: 0; padding: 24px 18px 16px; }
+    .module-content-inner { margin-left: 0; padding: var(--content-haut) 18px 16px; }
     .module-content-inner .table-scroll { margin: 0 -18px; }
     /* … sauf dans une carte : là aussi le tableau se cale sur SA carte et non
        sur le retrait de la page (docs/UI.md § 9). Le retrait de page change
@@ -4168,7 +4206,29 @@ abbr {
 .compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
 /* Bandeau d'année/mois : un repère, pas un filet — il structure une liste
    longue et donne à l'œil où se raccrocher en défilant. */
-.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .campagnes-fiche tr.mois-sep td, .list tr.fiche-mois-sep td { background: var(--primary-tint); font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand); padding: 8px 12px 4px; border-top: 2px solid var(--line); }
+/* Séparateur de groupe d'une liste : le mois, l'année, l'étape.
+   Le nom est écrit GRAND et MAIGRE, en bas-de-casse, au-dessus d'un filet d'un
+   cheveu : c'est l'air au-dessus de lui qui sépare, pas un trait. Il portait un
+   filet gris de 2px — deux fois l'épaisseur de ceux qui séparent les lignes,
+   donc plus lourd que tout le reste du tableau.
+   Et la rangée est en VERRE : le fond translucide des cartes du tableau de
+   bord (--glass) avec le même flou, de sorte que le décor de la page se voit
+   au travers. C'est la seule rangée qui ne porte pas de blanc — voir
+   .module-content, qui a dû cesser d'être un aplat pour qu'il y ait quelque
+   chose à voir derrière. */
+.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .campagnes-fiche tr.mois-sep td, .list tr.fiche-mois-sep td {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    font-size: 26px;
+    font-weight: 300;
+    letter-spacing: -.02em;
+    line-height: 1;
+    color: var(--brand);
+    padding: 34px 12px 6px;
+    border-top: 0;
+    border-bottom: 1px solid var(--line);
+}
 
 /* Compte de résultat */
 .compta-cr td { padding: 5px 12px; }
