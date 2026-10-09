@@ -16,6 +16,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   son allure et ne se signale qu'au survol.
 
 ### Corrigé
+- **Le plan comptable se lit sans risquer d'archiver une catégorie.** Le bouton
+  « Archiver » s'affichait en lecture, à portée de clic de qui parcourait la
+  liste, alors qu'il retire la catégorie de tous les menus ; il rejoint le mode
+  édition, comme la suppression. Le crayon, lui, disait « Renommer » alors
+  qu'il ouvre toute la ligne : il dit « Modifier ».
 - **La page des axes analytiques reste dans la comptabilité.** Elle perdait
   l'en-tête du module et sa rangée d'onglets, alors qu'elle vit sous l'onglet
   « Analyse » : on avait l'impression d'être sorti du module pour un réglage

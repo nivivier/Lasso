@@ -89,8 +89,13 @@ $flashErr = [
                         <button type="submit" name="dir" value="up" class="btn ghost btn-sm icon-only" title="Monter" aria-label="Monter" <?= $p['est_premier'] ? 'disabled' : '' ?>><?= icon('chevron-up') ?></button>
                         <button type="submit" name="dir" value="down" class="btn ghost btn-sm icon-only" title="Descendre" aria-label="Descendre" <?= $p['est_dernier'] ? 'disabled' : '' ?>><?= icon('chevron-down') ?></button>
                     </form>
+                    <?php // Archiver ne s'ouvre qu'en édition (.cell-edition), comme
+                          // supprimer : c'est un geste qui retire la catégorie de
+                          // tous les menus, pas quelque chose qu'on frôle en
+                          // parcourant le plan. Réactiver suit la même règle — il
+                          // se trouve au même endroit et sur le même bouton. ?>
                     <?php if (!$p['a_enfants']): ?>
-                    <form method="post" action="?p=compta_plan" class="d-inline">
+                    <form method="post" action="?p=compta_plan" class="d-inline cell-edition">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="section" value="archive">
                         <input type="hidden" name="id" value="<?= $pid ?>">
@@ -115,7 +120,7 @@ $flashErr = [
                         <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
                     <?php endif; ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
+                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                     <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     <?php endif; ?>
                 </td>
