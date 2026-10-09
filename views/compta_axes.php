@@ -2,9 +2,19 @@
 /** @var array $axes */ /** @var bool $saved */
 $peutEcrireAxes = peut_ecrire('analytique');
 ?>
+<?php // Le bandeau du module, comme ?p=compta_analyse et ?p=compta_analyse_axe :
+      // cet écran vit SOUS l'onglet « Analyse » (nav_groupes() le compte déjà
+      // parmi ses routes), et le quitter des yeux donnait l'impression de
+      // sortir de la comptabilité pour un réglage perdu ailleurs. Le <h1> de la
+      // page nomme l'écran, pas le module — il ne porte donc pas
+      // .page-head-titre-module et reste sur téléphone. ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
+
+<div class="module-content"><div class="module-content-inner">
+<?= lien_retour('?p=compta_analyse', 'Analyse') ?>
 <div class="page-head">
-    <div>
-        <?= lien_retour('?p=compta_analyse', 'Analyse') ?>
+    <div class="page-head-title">
         <h1>Axes analytiques</h1>
     </div>
     <?php if ($peutEcrireAxes): ?>
@@ -116,6 +126,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
         </tfoot>
     </table>
     </div>
+</div></div>
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {

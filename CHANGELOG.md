@@ -9,6 +9,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **La page des axes analytiques reste dans la comptabilité.** Elle perdait
+  l'en-tête du module et sa rangée d'onglets, alors qu'elle vit sous l'onglet
+  « Analyse » : on avait l'impression d'être sorti du module pour un réglage
+  posé ailleurs. L'onglet « Analyse » s'y allume maintenant comme sur les deux
+  autres écrans de l'analytique.
+
 ### Modifié
 - **Les deux boutons de la barre d'une fenêtre font la même hauteur** sur
   téléphone. « Charger un modèle » était plus court de quatre pixels que la
