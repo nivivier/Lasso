@@ -9,12 +9,25 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.0.10] — 2026-10-09
+
+### Ajouté
+- **Les titres des cartes du tableau de bord mènent à leur module.** « Salaires
+  à verser » ouvre les fiches, « Factures émises » les factures, « Booking » les
+  structures : la carte est un aperçu, son titre en est la porte. Le titre garde
+  son allure et ne se signale qu'au survol.
+
 ### Modifié
+- **Les onglets d'un module se rangent à droite de son titre** sur grand écran,
+  quand la place le permet : l'en-tête fait une hauteur au lieu de deux, et
+  c'est autant de contenu visible sans défiler. La décision se prend sur la
+  largeur réelle et non sur un seuil. Le titre gagne au passage un peu d'air
+  sous lui et avant les onglets.
 - **Les comptes bancaires passent sous l'onglet « Plan comptable »**, en
   sous-onglet à côté de « Produits et charges ». Les deux écrans sont la même
   matière — la liste des comptes, ici ce qu'on gagne et dépense, là où l'argent
-  dort — et la comptabilité, qui avait un onglet de trop pour la largeur
-  disponible, tient maintenant sur une seule rangée.
+  dort. La comptabilité, seul module trop large pour une seule rangée, y gagne
+  l'onglet qui lui manquait pour tenir.
 - **Les axes analytiques se rangent au glisser-déposer et s'ouvrent au crayon**,
   comme les règles de lettrage et les lignes du décompte : poignée à gauche, la
   ligne se lit, le crayon l'ouvre sur son libellé, son code, son interrupteur et
@@ -22,18 +35,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   ordre est celui de tous les menus qui proposent un axe, pas seulement de cet
   écran. Sur l'analyse, « Gérer les axes » devient **« Modifier »** et passe tout
   à droite, à la place qu'a ce geste partout ailleurs.
-- **Les onglets d'un module se rangent à droite de son titre** sur grand écran,
-  quand la place le permet : l'en-tête fait une hauteur au lieu de deux, et
-  c'est autant de contenu visible sans défiler. La décision se prend sur la
-  largeur réelle et non sur un seuil — seule la comptabilité, avec ses six
-  onglets, reste sur deux lignes. Le titre gagne au passage un peu d'air sous
-  lui et avant les onglets.
-
-### Ajouté
-- **Les titres des cartes du tableau de bord mènent à leur module.** « Salaires
-  à verser » ouvre les fiches, « Factures émises » les factures, « Booking » les
-  structures : la carte est un aperçu, son titre en est la porte. Le titre garde
-  son allure et ne se signale qu'au survol.
+- **Les deux boutons de la barre d'une fenêtre font la même hauteur** sur
+  téléphone. « Charger un modèle » était plus court de quatre pixels que la
+  croix à côté de lui : son texte réduit se range maintenant dans la même
+  boîte, sur deux lignes — « Charger un / modèle » —, au lieu de rapetisser le
+  bouton.
 
 ### Corrigé
 - **Le plan comptable se lit sans risquer d'archiver une catégorie.** Le bouton
@@ -46,13 +52,6 @@ puis sont promues sur le canal **stable** en figeant une version.
   « Analyse » : on avait l'impression d'être sorti du module pour un réglage
   posé ailleurs. L'onglet « Analyse » s'y allume maintenant comme sur les deux
   autres écrans de l'analytique.
-
-### Modifié
-- **Les deux boutons de la barre d'une fenêtre font la même hauteur** sur
-  téléphone. « Charger un modèle » était plus court de quatre pixels que la
-  croix à côté de lui : son texte réduit se range maintenant dans la même
-  boîte, sur deux lignes — « Charger un / modèle » —, au lieu de rapetisser le
-  bouton.
 
 ## [3.0.9] — 2026-10-08
 
