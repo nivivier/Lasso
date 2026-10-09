@@ -1193,6 +1193,46 @@ met en gras sans prendre la couleur d'accent — le nom d'une campagne en cours,
 la ligne « À faire » de la carte Suisa. `.list .strong` (gras + teal) reste pour
 les chiffres d'un tableau.
 
+## 13 bis. Tailles de texte
+
+**Une taille de texte est un token, jamais une valeur.** Six crans, et rien
+entre eux :
+
+| Token | Taille | Pour |
+| --- | --- | --- |
+| `--fs-tiny` | 9px | Mentions d'une mini-carte, pastilles |
+| `--fs-small` | 11px | Libellés, légendes, intitulés de colonne |
+| `--fs-basic` | 13px | Le corps de l'application |
+| `--fs-large` | 16px | Le nom que porte une ligne, un titre de carte |
+| `--fs-big` | 20px | Un séparateur de groupe, un sous-titre d'écran |
+| `--fs-huge` | 32px | Le chiffre d'un en-tête |
+
+C'est la même règle que pour les couleurs (§ 13), et pour la même raison : une
+valeur écrite en dur dit la même chose que le token le jour où on l'écrit, et
+plus la même le jour où le token bouge — sans que rien ne le signale.
+
+⚠️ **Le piège n'est pas la valeur inconnue, c'est la valeur JUSTE.** Écrire
+`font-size: 11px` là où `--fs-small` vaut 11px ne se voit pas : l'écran est
+correct, il a seulement cessé de suivre l'échelle. Douze déclarations étaient
+dans cet état.
+
+⚠️ **Et un écran qui tombe entre deux crans ne les écarte pas, il choisit.**
+Les mini-cartes de téléphone s'étaient réglées à l'œil — 10px et 12px, onze
+fois, entre `--fs-tiny` et `--fs-basic` — et ces écrans vivaient leur propre
+vie, invisible au développement qui se fait au large. Un corps intermédiaire
+n'est pas un besoin : c'est le signe qu'on n'a pas tranché.
+
+Neuf tailles restent hors échelle, toutes des corps d'**affichage** — un
+chiffre, une date, le nom qu'on cherche des yeux : `.camp-chiffre b` (34px),
+`.fr-print-date` (25px), `.camp-icone .avatar-ini` (22px), `.cartes-factures
+.col-montant` et `.fr-print-ou` (18px), `.evt-date-j` (17px), `.evt-ville` et
+`.ms-nom` (15px), `.dash-chart .ch-label` (12px). Elles sont **nommées une par
+une** dans `tests/tailles_texte_test.php`, qui vérifie en prime qu'aucune
+valeur en dur ne recopie un token et qu'aucun `var(--fs-…)` ne pointe un token
+inexistant — une faute de frappe y donne une règle valide qui ne dessine rien.
+En ajouter une dixième fait échouer la suite : c'est voulu, la question doit se
+poser.
+
 ## 14. Comportements déclaratifs
 
 Le balisage **déclare l'intention**, le comportement vit dans `app.js`. Aucun
@@ -1236,6 +1276,9 @@ module), ou un libellé repris ailleurs dans la page (renommer une étiquette).
       `<thead>` masqué emporte sinon ses entonnoirs, et le filtre devient
       inatteignable sur téléphone sans que rien ne le signale.
 - [ ] Thème **sombre** vérifié.
+- [ ] Aucune couleur (§ 13) ni **taille de texte** (§ 13 bis) écrite en dur :
+      toujours un token. `tests/tailles_texte_test.php` le vérifie pour les
+      tailles.
 - [ ] Chaque bouton en icône seule a `title` **et** `aria-label`.
 - [ ] Aucun bouton d'enregistrement au pied d'une carte ou d'une page : il est en
       haut à droite, rendu par `carte_actions_html()` (§ 2a) ou

@@ -3181,7 +3181,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
         50% { opacity: .75; }
     }
 }
-:is(td.col-tags, td.col-campagnes) .btn-tag-x { font-size: 11px; line-height: 1; opacity: .5; transition: opacity .12s; }
+:is(td.col-tags, td.col-campagnes) .btn-tag-x { font-size: var(--fs-small); line-height: 1; opacity: .5; transition: opacity .12s; }
 :is(td.col-tags, td.col-campagnes) .btn-tag-x:hover, :is(td.col-tags, td.col-campagnes) .btn-tag-x:focus-visible { opacity: 1; }
 
 /* Étiquettes de structure (booking) : badge + petit bouton de retrait intégré. */
@@ -3504,7 +3504,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
     line-height: var(--pastille-taille);
 }
 .projet-pastille .avatar-ini {
-    width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: 9px;
+    width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: var(--fs-tiny);
 }
 
 /* Pastille au format du titre (?p=employe), avec son bouton de réglage. */
@@ -4260,8 +4260,8 @@ abbr {
     background: var(--glass);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    font-size: 26px;
-    font-weight: 300;
+    font-size: var(--fs-big);
+    font-weight: 200;
     letter-spacing: -.02em;
     line-height: 1;
     color: var(--brand);
@@ -5184,7 +5184,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     /* --- Colonne du milieu : le nom, puis la ville --- */
     .liste-cartes td.col-nom {
         grid-column: 2; grid-row: 1;
-        min-width: 0; font-size: 16px; line-height: 1.3;
+        min-width: 0; font-size: var(--fs-large); line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     /* Le marquage rapide (étoile / cœur) sort de la carte : deux icônes de plus
@@ -5194,16 +5194,16 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        traitement qu'avant : masquée en mini-cartes, où la place manque. */
     .liste-cartes td.col-ville {
         grid-column: 2; grid-row: 2;
-        min-width: 0; font-size: 12px; line-height: 1.45;
+        min-width: 0; font-size: var(--fs-small); line-height: 1.45;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     /* Ville, drapeau et canton restent sur une seule ligne — le canton au même
        corps que la catégorie, pour qu'il se lise comme un repère et non comme
        le nom du lieu. */
-    .liste-cartes td.col-ville .tiny { font-size: 10px; }
+    .liste-cartes td.col-ville .tiny { font-size: var(--fs-tiny); }
     /* La carte a son propre corps pour la ville : la remonter d'un cran ici la
        mettrait au niveau du nom de la structure, juste au-dessus. */
-    .liste-cartes td.col-ville strong { font-size: 12px; }
+    .liste-cartes td.col-ville strong { font-size: var(--fs-small); }
 
     /* --- Colonne de droite : catégorie, puis les deux dates --- */
     .liste-cartes td.col-categorie,
@@ -5224,7 +5224,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     .liste-cartes td.col-maj-le,
     .liste-cartes td.col-contact-le { position: absolute; right: var(--content-pad); }
     .liste-cartes td.col-categorie,
-    .liste-cartes td.col-categorie .row-field-txt { font-size: 10px; color: var(--muted); }
+    .liste-cartes td.col-categorie .row-field-txt { font-size: var(--fs-tiny); color: var(--muted); }
     /* La catégorie ne garde que sa feuille : le préfixe (catégorie parente)
        ferait une deuxième ligne pour une information redondante ici. */
     .liste-cartes td.col-categorie .row-field-prefix { display: none; }
@@ -5237,14 +5237,14 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     .liste-cartes td.col-categorie .row-field-txt > span:not(.row-field-prefix) {
         display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         /* Répété ici parce que la règle de la vue tableau vise le même élément
-           avec une spécificité supérieure à celle qui fixe 10px sur .row-field-txt
+           avec une spécificité supérieure à celle qui fixe --fs-tiny sur .row-field-txt
            juste au-dessus — sans cette ligne, la carte hériterait du corps du
            tableau. */
-        font-size: 10px;
+        font-size: var(--fs-tiny);
     }
     .liste-cartes td.col-maj-le,
     .liste-cartes td.col-contact-le {
-        font-size: 10px; line-height: var(--carte-l-date); font-variant-numeric: tabular-nums;
+        font-size: var(--fs-tiny); line-height: var(--carte-l-date); font-variant-numeric: tabular-nums;
     }
     /* Contacté d'abord, modifié ensuite : c'est la date de contact qui décide
        d'une relance, celle de modification n'est qu'un repère de fraîcheur de
@@ -5364,16 +5364,16 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     }
     .cartes-fiches td.col-employe {
         grid-column: 1 / 4; grid-row: 1;
-        min-width: 0; font-size: 16px; line-height: 1.3; font-weight: 600;
+        min-width: 0; font-size: var(--fs-large); line-height: 1.3; font-weight: 600;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .cartes-fiches td.col-date {
         grid-column: 4; grid-row: 1; justify-self: end;
-        font-size: 16px; line-height: 1.3; color: var(--muted); white-space: nowrap;
+        font-size: var(--fs-large); line-height: 1.3; color: var(--muted); white-space: nowrap;
     }
     .cartes-fiches td.col-brut,
     .cartes-fiches td.col-net {
-        grid-row: 2; font-size: 11px; white-space: nowrap;
+        grid-row: 2; font-size: var(--fs-small); white-space: nowrap;
         font-variant-numeric: tabular-nums;
     }
     .cartes-fiches td.col-brut { grid-column: 1; }
@@ -5435,12 +5435,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     .cartes-employes tbody tr { grid-template-columns: minmax(0, 1fr); }
     .cartes-employes td.col-nom-emp {
         grid-column: 1; grid-row: 1; min-width: 0;
-        font-size: 16px; line-height: 1.3;
+        font-size: var(--fs-large); line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .cartes-employes td.col-derniere {
         grid-column: 1; grid-row: 2; min-width: 0;
-        font-size: 11px; line-height: 1.45;
+        font-size: var(--fs-small); line-height: 1.45;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .cartes-employes td.col-derniere::before { content: "Dernière fiche : "; color: var(--muted); }
@@ -5478,14 +5478,14 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     }
     .cartes-factures td.col-structure {
         grid-column: 1 / 3; grid-row: 1; min-width: 0;
-        font-size: 16px; line-height: 1.3;
+        font-size: var(--fs-large); line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     /* Le numéro passe SOUS la structure, à sa gauche : c'est une référence, pas
        un titre. Le montant prend sa place à droite, en grand. */
     .cartes-factures td.col-numero {
         grid-column: 1; grid-row: 2; justify-self: start;
-        font-size: 11px; color: var(--muted); white-space: nowrap;
+        font-size: var(--fs-small); color: var(--muted); white-space: nowrap;
     }
     .cartes-factures td.col-montant {
         grid-column: 3; grid-row: 1; justify-self: end; text-align: right;
@@ -5494,7 +5494,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     }
     .cartes-factures td.col-echeance {
         grid-column: 2; grid-row: 2; justify-self: start; padding-left: 12px;
-        font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums;
+        font-size: var(--fs-small); white-space: nowrap; font-variant-numeric: tabular-nums;
     }
     .cartes-factures td.col-echeance::before { content: "Échéance "; color: var(--muted); }
     .cartes-factures td.col-paiement {
@@ -5615,21 +5615,21 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ms-lieu {
-    font-size: 12px; line-height: 1.45;
+    font-size: var(--fs-small); line-height: 1.45;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.ms-lieu .tiny { font-size: 10px; }
+.ms-lieu .tiny { font-size: var(--fs-tiny); }
 .ms-cote {
     display: flex; flex-direction: column; align-items: flex-end; text-align: right;
     max-width: 136px; min-width: 0;
 }
 .ms-cat {
-    font-size: 10px; line-height: 1.4; color: var(--muted); max-width: 100%;
+    font-size: var(--fs-tiny); line-height: 1.4; color: var(--muted); max-width: 100%;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ms-dates {
     display: flex; flex-direction: column; align-items: flex-end;
-    font-size: 10px; line-height: 1.4; color: var(--muted);
+    font-size: var(--fs-tiny); line-height: 1.4; color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
 /* Crayon = dernière modification, enveloppe = dernier contact, en masque comme
@@ -5647,7 +5647,7 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     grid-column: 1 / -1; grid-row: 2;
     display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
 }
-.ms-tags .badge { margin-left: 0; font-size: 9px; }
+.ms-tags .badge { margin-left: 0; font-size: var(--fs-tiny); }
 .ms-maj::before { -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon); }
 /* Repli sur la date de création : le crayon dirait « modifiée », ce qui est faux. */
 .ms-maj.est-creation { font-style: italic; }

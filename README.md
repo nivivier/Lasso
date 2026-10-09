@@ -505,7 +505,12 @@ choisi avant d'enregistrer.
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
 tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une
 couleur de fond en dur dans une règle produit un aplat clair au milieu d'une page
-sombre — `php tests/run.php` le refuse.
+sombre — `php tests/run.php` le refuse. Même discipline pour les **tailles de
+texte** : six crans (`--fs-tiny` … `--fs-huge`), jamais une valeur. Une taille
+écrite en dur dit la même chose que le token le jour où on l'écrit, et plus la
+même le jour où le token bouge ; `tests/tailles_texte_test.php` refuse une
+valeur qui a déjà son token, et nomme une par une les neuf tailles d'affichage
+qu'on a décidé de laisser hors échelle.
 
 ---
 

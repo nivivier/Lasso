@@ -9,6 +9,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les tailles de texte passent toutes par l'échelle.** Vingt-trois
+  déclarations s'en écartaient : douze recopiaient un token à l'identique
+  (11 px là où `--fs-small` vaut 11 px), onze réglaient les mini-cartes de
+  téléphone à l'œil, entre deux crans. Le séparateur de mois rentre lui aussi
+  dans l'échelle, en `--fs-big` et plus maigre. La règle manquait à la
+  convention d'interface, qui ne la disait nulle part : elle y est désormais,
+  et `tests/tailles_texte_test.php` la vérifie — y compris qu'aucun
+  `var(--fs-…)` ne pointe un token inexistant, faute qui donne une règle valide
+  qui ne dessine rien.
+
 ### Ajouté
 - **Un réglage de densité des tableaux** dans Paramètres → Apparence : *dense*,
   *normal* ou *large*. Il règle la hauteur des lignes dans toutes les listes de
