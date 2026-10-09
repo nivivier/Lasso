@@ -734,8 +734,12 @@ question : **l'icône seule suffit-elle à dire le geste ?**
   pas : une flèche de téléchargement ne dit pas si l'on installe, réinstalle ou
   revient en arrière (`?p=maj`) ; un document ne dit pas qu'il *charge* un
   modèle (fenêtre « Contacter »).
-- `.btn-compact-break` pose en plus un `<br>` à un endroit choisi, quand la
-  coupure naturelle tomberait mal.
+- `.btn-compact-break` pose en plus un `<br>` à un endroit choisi : la coupure
+  devient un choix de mise en page, et non un repli sous contrainte — le texte
+  reste sur deux lignes même quand une seule suffirait. Dans un menu déroulant,
+  il suffit d'un saut de ligne au milieu du libellé passé à
+  `menu_deroulant_html()` : le helper le traduit en `<br>` coupé, et laisse
+  l'infobulle d'un tenant.
 
 ⚠️ **Les deux font la même hauteur**, celle du bouton à icône seule : ils se
 côtoient dans la même barre, et un voisin plus court trahit le bricolage. Le

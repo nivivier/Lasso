@@ -45,7 +45,7 @@ $contacterRetourCampagne = (int) ($contacterRetourCampagne ?? 0);
                       // une icône de document ne dit pas qu'elle CHARGE un modèle,
                       // et le geste n'est pas rattrapable d'un coup d'œil. ?>
                 <?= menu_deroulant_html(
-                    ['icone' => 'file-text', 'libelle' => 'Charger un modèle', 'classe' => 'btn-compact'],
+                    ['icone' => 'file-text', 'libelle' => "Charger un\nmodèle", 'classe' => 'btn-compact'],
                     array_map(fn ($m) => [
                         'libelle' => (string) $m['nom'],
                         'attrs'   => ['data-modele' => (int) $m['id']],

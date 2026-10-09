@@ -3649,7 +3649,21 @@ function menu_deroulant_html(array $bouton, array $entrees, array $opts = []): s
         return $h;
     };
     $libelle = trim((string) ($bouton['libelle'] ?? ''));
-    $titre   = trim((string) ($bouton['titre'] ?? $libelle));
+    // Un saut de ligne DANS le libellé est une coupure voulue : elle ne paraît
+    // que sur écran étroit (.btn-compact-break, assets/app.css), là où le
+    // libellé se réduit et se range sur deux lignes. Ailleurs le <br> n'existe
+    // pas — ce n'est pas un repli sous contrainte, c'est un choix de mise en
+    // page pour un bouton précis. L'infobulle, elle, reste d'un tenant.
+    // ⚠️ L'espace vient APRÈS le <br>, comme sur le bouton « Écriture manuelle »
+    // de ?p=compta_ecritures : hors écran étroit le saut de ligne n'existe plus
+    // du tout (display:none), et sans cet espace les deux bouts se recollent en
+    // « Charger unmodèle ». Sur deux lignes il ouvre la seconde, où il se
+    // réduit à rien.
+    $libelleHtml = implode(
+        '<br class="btn-compact-break"> ',
+        array_map(fn (string $bout): string => e(trim($bout)), explode("\n", $libelle))
+    );
+    $titre   = trim((string) ($bouton['titre'] ?? str_replace("\n", ' ', $libelle)));
     $petit   = !empty($bouton['petit']);
 
     $h = '<details class="menu-deroulant' . (!empty($opts['gauche']) ? ' menu-deroulant-gauche' : '')
@@ -3659,7 +3673,7 @@ function menu_deroulant_html(array $bouton, array $entrees, array $opts = []): s
         . (!empty($bouton['classe']) ? ' ' . e((string) $bouton['classe']) : '') . '"'
         . ' title="' . e($titre) . '" aria-label="' . e($titre) . '">'
         . icon((string) ($bouton['icone'] ?? ''))
-        . ($libelle !== '' ? ' <span class="lbl">' . e($libelle) . '</span>' : '')
+        . ($libelle !== '' ? ' <span class="lbl">' . $libelleHtml . '</span>' : '')
         . '</summary>';
     $h .= '<div class="menu-deroulant-panneau">';
     foreach ($entrees as $entree) {
