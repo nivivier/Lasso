@@ -37,7 +37,7 @@
 <div class="card">
     <div class="section-head">
         <h2>Comptabilité analytique</h2>
-        <a href="?p=compta_axes" class="btn btn-sm ml-auto"><?= icon('plus') ?> Créer des axes</a>
+        <a href="?p=compta_axes" class="btn ml-auto"><?= icon('plus') ?> Créer des axes</a>
     </div>
     <p class="muted small card-note">
         Aucun axe analytique défini. Créez des axes (ex. Label, Tour, Stages, Local)

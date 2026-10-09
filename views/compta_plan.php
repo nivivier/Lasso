@@ -55,7 +55,7 @@ $flashErr = [
     <div class="section-head <?= $sens === 'produit' ? 'mt-0' : '' ?>">
         <h2 class="mt-0"><?= e($titre) ?></h2>
         <?php if ($peutEcrirePlan): ?>
-        <button type="button" class="btn btn-sm ml-auto"
+        <button type="button" class="btn ml-auto"
                 data-show="plan-add-<?= $sens ?>"><?= icon('plus') ?> Nouveau</button>
         <?php endif; ?>
     </div>
@@ -71,7 +71,7 @@ $flashErr = [
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
-                        <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
+                        <?= plan_puce_html((bool) $p['a_enfants']) ?>
                         <?php if ($peutEcrirePlan): ?>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>
                         <form method="post" action="?p=compta_plan" class="inline-edit plan-edit" id="plan-edit-<?= $pid ?>">

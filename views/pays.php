@@ -55,7 +55,7 @@ $paysOptions = function (?int $selected) use ($map): string {
             <td>
                 <div class="inline-edit" style="--depth:<?= $prof ?>">
                     <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
-                    <span class="plan-puce" aria-hidden="true"><?= $p['a_enfants'] ? icon('chevron-down') : '•' ?></span>
+                    <?= plan_puce_html((bool) $p['a_enfants']) ?>
                     <span class="plan-nom"><?= $estPays ? pays_drapeau((string) ($p['code_iso2'] ?? '')) . ' ' : '' ?><?= e($p['nom']) ?></span>
                     <?php if ($peutEcrirePays): ?>
                     <form method="post" action="?p=pays" class="inline-edit plan-edit" id="plan-edit-<?= $pid ?>">

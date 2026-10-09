@@ -345,7 +345,10 @@ choix de parent. Elles se rangent avant la croix, qui reste la dernière.
 
 **Tous ces boutons sont au petit format** (`btn-sm`), y compris celui qui est
 mis en évidence : une ligne de liste n'a pas la place d'une barre de carte, et
-un bouton de taille normale y déforme la hauteur de la ligne. `btn-sm` et
+un bouton de taille normale y déforme la hauteur de la ligne. ⚠️ **Et seulement
+là** : le petit format dit « je commande cette ligne ». Un bouton posé dans un
+en-tête de section (`.section-head`) ou une barre d'outils commande la page, et
+garde donc sa taille normale. `btn-sm` et
 `icon-only` se combinent — `.btn.icon-only.btn-sm` donne à la corbeille et à la
 croix exactement la hauteur du bouton « Enregistrer » à côté d'elles.
 

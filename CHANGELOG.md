@@ -10,6 +10,14 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Plus de puce au début d'une ligne qui porte une poignée.** Deux marques au
+  début de la même ligne, c'en était une de trop. La puce reste sur téléphone,
+  où la poignée s'efface, et le chevron d'une ligne à enfants reste partout :
+  lui annonce ce qu'elle contient.
+- **Les boutons d'en-tête de section retrouvent leur taille normale** — les
+  « + Nouveau » du plan comptable et des salaires horaires, « Créer des axes »,
+  les deux « Aperçu » et « Modifier » de l'analyse. Le petit format est réservé
+  à ce qui commande UNE ligne.
 - **Les listes posées seules dans une carte respirent mieux** — les pays, les
   catégories, les tags, les deux listes du plan comptable. Leur texte était
   repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce

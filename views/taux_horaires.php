@@ -7,7 +7,7 @@
     <h2 class="mt-0">Salaires horaires <?= info_tip(
         "Proposés lors de la création d'une fiche de salaire. Un taux manuel reste toujours possible."
     ) ?></h2>
-    <?php if (peut_ecrire('salaires')): ?><button type="button" class="btn btn-sm ml-auto" data-show="th-add"><?= icon('plus') ?> Nouveau</button><?php endif; ?>
+    <?php if (peut_ecrire('salaires')): ?><button type="button" class="btn ml-auto" data-show="th-add"><?= icon('plus') ?> Nouveau</button><?php endif; ?>
 </div>
     <?php if ($tauxHoraires): ?>
     <div class="table-scroll">
@@ -87,7 +87,7 @@
         "Utilisées dans les fiches de salaire. Chaque unité vaut un nombre d'heures (le calcul du salaire se fait "
         . "toujours sur le total d'heures). Supprimer une unité ne modifie pas les fiches déjà créées."
     ) ?></h2>
-    <?php if (peut_ecrire('salaires')): ?><button type="button" class="btn btn-sm ml-auto" data-show="u-add"><?= icon('plus') ?> Nouveau</button><?php endif; ?>
+    <?php if (peut_ecrire('salaires')): ?><button type="button" class="btn ml-auto" data-show="u-add"><?= icon('plus') ?> Nouveau</button><?php endif; ?>
 </div>
     <?php if ($unites): ?>
     <div class="table-scroll">

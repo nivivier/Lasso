@@ -3553,6 +3553,21 @@ function structure_statut_toggle_html(int $id, string $statut): string
     return $h . '</div>';
 }
 
+// La puce d'une ligne d'arbre (plan comptable, pays, catégories, projets) :
+// un chevron si la ligne a des enfants, sinon un point. Quatre vues l'écrivaient
+// à l'identique.
+//
+// Le point porte une classe à lui : il disparaît là où la POIGNÉE de
+// glisser-déposer paraît, pour ne pas poser deux marques au début de la même
+// ligne. Le chevron reste, lui — il ne décore pas, il dit que la ligne en
+// contient d'autres.
+function plan_puce_html(bool $aEnfants): string
+{
+    return $aEnfants
+        ? '<span class="plan-puce" aria-hidden="true">' . icon('chevron-down') . '</span>'
+        : '<span class="plan-puce plan-puce-feuille" aria-hidden="true">•</span>';
+}
+
 // Le bouton « Fermer » de la barre d'une fenêtre. Six fenêtres l'écrivaient à
 // l'identique, à l'identifiant près ; une seule l'écrit maintenant.
 //

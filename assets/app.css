@@ -4237,6 +4237,13 @@ abbr {
 
 .plan-grip { display: none; align-items: center; color: var(--muted); cursor: grab; flex: 0 0 auto; }
 .dnd-on .plan-grip { display: inline-flex; }
+/* Le point d'une ligne sans enfant s'efface là où la poignée paraît : deux
+   marques au début de la même ligne, c'en est une de trop, et c'est la poignée
+   qui dit quelque chose — on peut la saisir. Le chevron d'une ligne À enfants
+   reste : lui n'est pas une décoration, il annonce ce qu'elle contient.
+   La règle suit la poignée au pixel près (voir sa contrepartie en mobile, où la
+   poignée s'efface et le point revient). */
+.dnd-on .plan-puce-feuille { display: none; }
 .plan-grip:active { cursor: grabbing; }
 .plan-grip .ico { width: 16px; height: 16px; }
 .plan-row.plan-archive { opacity: .55; }
@@ -5774,6 +5781,8 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        la seule qui l'avait obtenue la première. */
     .dnd-on .plan-grip { display: none; }
     .dnd-on .plan-fallback { display: inline-flex; }
+    /* …et le point revient avec, puisque c'est la poignée qui l'avait remplacé. */
+    .dnd-on .plan-puce-feuille { display: inline-flex; }
     .menu-deroulant-panneau { min-width: 170px; }
 }
 

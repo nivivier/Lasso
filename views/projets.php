@@ -142,7 +142,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
-                        <span class="plan-puce" aria-hidden="true"><?= $s['a_enfants'] ? icon('chevron-down') : '•' ?></span>
+                        <?= plan_puce_html((bool) $s['a_enfants']) ?>
                         <?php // Icône du projet : la même pastille que les employés
                               // (avatar_initiales()), image si elle en a une, initiales
                               // sinon. Cliquable pour la changer — le cadreur s'ouvre
