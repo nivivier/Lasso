@@ -50,7 +50,7 @@ $parentOptions = function (?int $selected) use ($map): string {
             data-id="<?= $cid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($c['parent_id'] ?? null) ?>">
             <td>
                 <div class="inline-edit" style="--depth:<?= $prof ?>">
-                    <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                    <?= plan_poignee_html() ?>
                     <?= plan_puce_html((bool) $c['a_enfants']) ?>
                     <span class="plan-nom"><?= e($c['nom']) ?></span>
                     <?php if ($peutEcrireCat): ?>
@@ -98,8 +98,7 @@ $parentOptions = function (?int $selected) use ($map): string {
                         data-id="<?= $cid ?>" data-nom="<?= e($c['nom']) ?>" data-nb="<?= $nbUsage ?>"
                         data-kind="<?= $estRacine ? 'root' : 'sub' ?>" data-parent="<?= (int) plan_pid($c['parent_id'] ?? null) ?>"><?= icon('trash') ?></button>
                 <?php endif; ?>
-                <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
-                <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                <?= plan_boutons_edition_html() ?>
                 <?php endif; ?>
             </td>
         </tr>

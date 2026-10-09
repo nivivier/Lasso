@@ -54,7 +54,7 @@ $paysOptions = function (?int $selected) use ($map): string {
             data-id="<?= $pid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>">
             <td>
                 <div class="inline-edit" style="--depth:<?= $prof ?>">
-                    <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                    <?= plan_poignee_html() ?>
                     <?= plan_puce_html((bool) $p['a_enfants']) ?>
                     <span class="plan-nom"><?= $estPays ? pays_drapeau((string) ($p['code_iso2'] ?? '')) . ' ' : '' ?><?= e($p['nom']) ?></span>
                     <?php if ($peutEcrirePays): ?>
@@ -104,8 +104,7 @@ $paysOptions = function (?int $selected) use ($map): string {
                         data-id="<?= $pid ?>" data-nom="<?= e($p['nom']) ?>" data-nb="<?= $nbUsage ?>"
                         data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>"><?= icon('trash') ?></button>
                 <?php endif; ?>
-                <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
-                <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                <?= plan_boutons_edition_html() ?>
                 <?php endif; ?>
             </td>
         </tr>

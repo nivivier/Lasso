@@ -1880,10 +1880,21 @@ if ($l > 75) {
 // Thème choisi dans Paramètres → Apparence : 'auto' (suit le système), 'clair'
 // ou 'sombre'. Réglage commun à l'installation, comme les couleurs et le fond
 // — voir docs/DECISIONS.md § Thème.
+// Les trois thèmes, dans l'ordre du sélecteur : la valeur stockée, son icône
+// et son nom. UNE table, parce que trois endroits énuméraient la même liste —
+// le sélecteur de ?p=apparence, le résumé juste au-dessus de lui, et la liste
+// blanche de l'enregistrement (lib/routes.php). La forme est celle
+// qu'attend icon_picker().
+const THEMES = [
+    'auto'   => ['icone' => 'monitor', 'label' => 'Automatique (système)'],
+    'clair'  => ['icone' => 'sun',     'label' => 'Clair'],
+    'sombre' => ['icone' => 'moon',    'label' => 'Sombre'],
+];
+
 function param_theme(): string
 {
     $t = (string) param('employeur_theme', 'auto');
-    return in_array($t, ['auto', 'clair', 'sombre'], true) ? $t : 'auto';
+    return isset(THEMES[$t]) ? $t : 'auto';
 }
 
 // Densité des lignes de tableau : « dense », « normal » (défaut) ou « large ».
@@ -1891,13 +1902,20 @@ function param_theme(): string
 // qui fait tenir plus ou moins de lignes à l'écran. L'horizontal, lui, aligne
 // le texte sur le bord de sa carte ou de sa page et n'a pas à bouger.
 // Même forme que param_theme() : liste blanche, repli sur le défaut.
+// Même table, même raison que THEMES ci-dessus : une quatrième densité ajoutée
+// à une seule des listes aurait été acceptée en base et ignorée à l'affichage,
+// ou l'inverse. L'icône dit le nombre de rangées qui tiennent.
+const DENSITES = [
+    'dense'  => ['icone' => 'rows-4', 'label' => 'Dense'],
+    'normal' => ['icone' => 'rows-3', 'label' => 'Normal'],
+    'large'  => ['icone' => 'rows-2', 'label' => 'Large'],
+];
+
 function param_densite(): string
 {
     $d = (string) param('employeur_densite', 'normal');
-    return in_array($d, ['dense', 'normal', 'large'], true) ? $d : 'normal';
+    return isset(DENSITES[$d]) ? $d : 'normal';
 }
-
-const DENSITES_LIBELLES = ['dense' => 'Dense', 'normal' => 'Normal', 'large' => 'Large'];
 
 function css_palette_sombre(array $valeurs): string
 {
@@ -3584,6 +3602,32 @@ function plan_puce_html(bool $aEnfants): string
     return $aEnfants
         ? '<span class="plan-puce" aria-hidden="true">' . icon('chevron-down') . '</span>'
         : '<span class="plan-puce plan-puce-feuille" aria-hidden="true">•</span>';
+}
+
+// La POIGNÉE de glisser-déposer d'une ligne ordonnable, et les DEUX boutons
+// qui ouvrent et referment son édition : le trio que porte toute ligne de
+// liste réordonnable (docs/UI.md § 2d et § 4). Neuf vues écrivaient la
+// poignée à l'identique, huit les deux boutons — au titre près à chaque fois,
+// et c'est précisément là que la dérive s'était installée : le même crayon
+// disait « Modifier » sur trois écrans et « Renommer » sur trois autres.
+//
+// Le crayon n'ouvre PAS un champ de nom : il ouvre le mode édition de la
+// ligne, qui découvre aussi la corbeille et tout ce qui porte .cell-edition.
+// Son mot est donc « Modifier », partout.
+//
+// $quoi nomme la ligne pour les lecteurs d'écran — « cet axe », « cette
+// règle ». Vide, l'intitulé reste « Modifier » tout court : dans une liste
+// d'une seule espèce, la colonne le dit déjà.
+function plan_poignee_html(string $titre = 'Glisser pour ranger ailleurs'): string
+{
+    return '<span class="plan-grip" draggable="true" title="' . e($titre) . '" aria-hidden="true">' . icon('grip') . '</span>';
+}
+
+function plan_boutons_edition_html(string $quoi = ''): string
+{
+    $label = 'Modifier' . ($quoi !== '' ? ' ' . $quoi : '');
+    return '<button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="' . e($label) . '">' . icon('pencil') . '</button>'
+        . '<button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler">' . icon('x') . '</button>';
 }
 
 // Le bouton « Fermer » de la barre d'une fenêtre. Six fenêtres l'écrivaient à

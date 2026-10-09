@@ -1007,13 +1007,13 @@ function route_apparence(): void
         // Thème : liste blanche, une valeur inattendue est ignorée plutôt
         // qu'écrite (elle finirait en attribut data-theme sur <html>).
         $theme = (string) ($_POST['employeur_theme'] ?? '');
-        if (in_array($theme, ['auto', 'clair', 'sombre'], true)) {
+        if (isset(THEMES[$theme])) {
             $stmt->execute(['employeur_theme', $theme]);
         }
         // Densité des lignes : même précaution, pour la même raison — la valeur
         // finit en attribut data-densite sur <html>.
         $densite = (string) ($_POST['employeur_densite'] ?? '');
-        if (in_array($densite, ['dense', 'normal', 'large'], true)) {
+        if (isset(DENSITES[$densite])) {
             $stmt->execute(['employeur_densite', $densite]);
         }
         if ($fond !== null) {

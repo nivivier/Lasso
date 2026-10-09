@@ -307,6 +307,16 @@ JavaScript est le formulaire lui-même**. `.plan-nom` et `.plan-edit-btn` sont
 script*, qui les révèle et masque le formulaire. Sans JavaScript, on édite
 directement, sans rien basculer.
 
+⚠️ **La poignée et les deux boutons ne s'écrivent pas à la main** :
+`plan_poignee_html()` et `plan_boutons_edition_html()` (`lib/helpers.php`),
+comme `plan_puce_html()` pour la puce. Neuf vues recopiaient la poignée, huit
+la paire crayon + croix, et la dérive s'y était logée : le même crayon disait
+« Modifier » sur trois écrans et « Renommer » sur trois autres. **Son mot est
+« Modifier »** — il n'ouvre pas un champ de nom, il ouvre le mode édition de la
+ligne, qui découvre aussi la corbeille et tout ce qui porte `.cell-edition`.
+L'argument de `plan_boutons_edition_html()` nomme la ligne pour les lecteurs
+d'écran (« cet axe », « cette règle ») quand la colonne ne suffit pas.
+
 ### e. Une ligne de tableau à plusieurs champs — `lassoInitLigneEdition()`
 
 Quand une ligne porte plusieurs champs mais ne se réordonne pas (les dossiers

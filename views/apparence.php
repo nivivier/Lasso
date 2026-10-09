@@ -19,11 +19,11 @@
         <table class="kv-table">
             <tr>
                 <th>Thème</th>
-                <td><?= e(['auto' => 'Automatique (système)', 'clair' => 'Clair', 'sombre' => 'Sombre'][param_theme()]) ?></td>
+                <td><?= e(THEMES[param_theme()]['label']) ?></td>
             </tr>
             <tr>
                 <th>Densité des tableaux</th>
-                <td><?= e(DENSITES_LIBELLES[param_densite()]) ?></td>
+                <td><?= e(DENSITES[param_densite()]['label']) ?></td>
             </tr>
             <tr>
                 <th>Couleur principale</th>
@@ -62,22 +62,14 @@
             "« Automatique » suit le réglage clair/sombre de votre système d'exploitation. "
             . 'Ce choix vaut pour toute l\'installation, comme les couleurs ci-dessous.'
         ) ?></h3>
-        <?= icon_picker('employeur_theme', [
-            'auto'   => ['icone' => 'monitor', 'label' => 'Automatique (système)'],
-            'clair'  => ['icone' => 'sun',     'label' => 'Clair'],
-            'sombre' => ['icone' => 'moon',    'label' => 'Sombre'],
-        ], param_theme(), 'Thème de l\'interface') ?>
+        <?= icon_picker('employeur_theme', THEMES, param_theme(), 'Thème de l\'interface') ?>
 
         <h3 class="sub">Densité des tableaux <?= info_tip(
             'La hauteur des lignes dans toutes les listes de l\'application. '
             . '« Dense » en fait tenir davantage à l\'écran, « Large » les aère. '
             . 'Ce choix vaut pour toute l\'installation, comme le thème.'
         ) ?></h3>
-        <?= icon_picker('employeur_densite', [
-            'dense'  => ['icone' => 'rows-4', 'label' => 'Dense'],
-            'normal' => ['icone' => 'rows-3', 'label' => 'Normal'],
-            'large'  => ['icone' => 'rows-2', 'label' => 'Large'],
-        ], param_densite(), 'Densité des lignes de tableau') ?>
+        <?= icon_picker('employeur_densite', DENSITES, param_densite(), 'Densité des lignes de tableau') ?>
 
         <h3 class="sub">Couleur principale <?= info_tip(
             "Utilisée pour les accents dans toute l'application (barre latérale, survols, fonds, "

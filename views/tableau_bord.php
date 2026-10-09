@@ -614,7 +614,7 @@ $dashTitre = function (string $groupe, string $titre): string {
             <?php foreach ($dashOrdre as $dashRang => $dashId): ?>
             <?php $dashCachee = in_array($dashId, $dashCachees, true); ?>
             <div class="dash-reglage-ligne plan-row<?= $dashCachee ? ' est-cachee' : '' ?>" data-id="<?= e($dashId) ?>">
-                <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                <?= plan_poignee_html() ?>
                 <span class="dash-reglage-nom"><?= e($cartes[$dashId]['titre']) ?></span>
                 <?php // Repli sans JavaScript : les flèches, masquées dès que le
                       // glisser-déposer est actif (.dnd-on .plan-fallback). ?>

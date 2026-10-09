@@ -23,13 +23,12 @@
 </div>
 </div>
 <?php if (!empty($ntSousOnglets)): ?>
-<?php // Second niveau, hors du bandeau et juste sous lui : c'est exactement la
-      // place et la classe de la rangée des Paramètres (views/_param_tabs.php),
-      // pour que deux niveaux d'onglets se lisent partout de la même façon. ?>
-<nav class="param-subtabs">
-    <?php foreach ($ntSousOnglets as $ntSousRoute => $ntSousLib): ?>
-        <a href="?p=<?= e($ntSousRoute) ?>&depuis=<?= e((string) $ntCle) ?>"
-           class="<?= $ntCur === $ntSousRoute ? 'on' : '' ?>"><?= e($ntSousLib) ?></a>
-    <?php endforeach; ?>
-</nav>
+<?php // Second niveau : même rangée que celle des Paramètres, par le même
+      // partiel, pour que deux niveaux d'onglets se lisent partout pareil. ?>
+<?php
+$stOnglets = $ntSousOnglets;
+$stActif   = $ntCur;
+$stSuffixe = '&depuis=' . rawurlencode((string) $ntCle);
+require __DIR__ . '/_subtabs.php';
+?>
 <?php endif; ?>

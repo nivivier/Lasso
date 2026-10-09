@@ -141,7 +141,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                 data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=projet&id=<?= $sid ?><?= e($suffixeDepuis) ?>">
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
-                        <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                        <?= plan_poignee_html() ?>
                         <?= plan_puce_html((bool) $s['a_enfants']) ?>
                         <?php // Icône du projet : la même pastille que les employés
                               // (avatar_initiales()), image si elle en a une, initiales
@@ -219,8 +219,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
                     </form>
                     <?php endif; ?>
                     <?php if ($peutEcrireSpec): ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Renommer" aria-label="Renommer"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?= plan_boutons_edition_html() ?>
                     <?php endif; ?>
                 </td>
             </tr>

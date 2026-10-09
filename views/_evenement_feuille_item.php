@@ -27,7 +27,7 @@ $feuilleTotal = $feuilleTotal ?? 0;
                       // SANS JavaScript, c'est le formulaire qui s'affiche, et
                       // l'on édite directement. Rien à basculer. ?>
                 <?php if ($peutEcrireEv): ?>
-                <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                <?= plan_poignee_html() ?>
                 <?php endif; ?>
 
                 <div class="feuille-sommaire">
@@ -77,8 +77,7 @@ $feuilleTotal = $feuilleTotal ?? 0;
                         <input type="hidden" name="id" value="<?= (int) $el['id'] ?>">
                         <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?= plan_boutons_edition_html() ?>
                     <?php endif; ?>
                 </div>
             </li>

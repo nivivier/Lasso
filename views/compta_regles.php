@@ -278,7 +278,7 @@ $peutEcrireRegles = peut_ecrire('compta');
                           // projet : au repos, c'est l'atténuation de la ligne qui
                           // dit qu'une règle est éteinte. ?>
                     <?php if ($peutEcrireRegles): ?>
-                    <span class="plan-grip" draggable="true" title="Glisser pour changer l'ordre d'application" aria-hidden="true"><?= icon('grip') ?></span>
+                    <?= plan_poignee_html('Glisser pour changer l\'ordre d\'application') ?>
                     <label class="regle-toggle cell-edition" title="<?= $actif ? 'Désactiver' : 'Activer' ?>">
                         <input form="regle-edit-<?= $rid ?>" type="checkbox" name="actif" value="1" <?= $actif ? 'checked' : '' ?>
                                class="regle-actif-cb" aria-label="<?= $actif ? 'Désactiver' : 'Activer' ?> cette règle">
@@ -350,8 +350,7 @@ $peutEcrireRegles = peut_ecrire('compta');
                     <button type="submit" form="regle-edit-<?= $rid ?>" name="section" value="del" class="btn danger btn-sm icon-only cell-edition plan-supprimer"
                             title="Supprimer" aria-label="Supprimer cette règle"
                             data-confirm="Supprimer cette règle ?"><?= icon('trash') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier cette règle"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?= plan_boutons_edition_html('cette règle') ?>
                     <?php endif; ?>
                 </td>
             </tr>

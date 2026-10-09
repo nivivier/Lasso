@@ -19,6 +19,23 @@ puis sont promues sur le canal **stable** en figeant une version.
   `?p=projets`, dont il est le jumeau.
 
 ### Modifié
+- **Un seul endroit décrit la poignée et les boutons d'une ligne ordonnable.**
+  Neuf vues écrivaient la poignée de glisser-déposer, huit la paire
+  crayon + croix. La dérive s'y était logée : le même crayon disait
+  « Modifier » sur trois écrans et « Renommer » sur trois autres, alors qu'il
+  ouvre partout le mode édition de la ligne — corbeille comprise. Il dit
+  « Modifier ».
+- **Une seule rangée de sous-onglets.** Les Paramètres et les modules la
+  rendaient chacun de leur côté à partir du même balisage ; l'une avait déjà
+  oublié d'échapper l'adresse.
+- **Le thème et la densité ne s'énumèrent plus qu'une fois.** Trois endroits
+  listaient les mêmes valeurs — le sélecteur, le résumé au-dessus, la liste
+  blanche de l'enregistrement : une quatrième valeur ajoutée à l'une d'elles
+  seulement aurait été acceptée en base puis ignorée à l'affichage.
+- **L'action qui monte dans la barre du téléphone** était cherchée dans trois
+  emplacements réunis en un seul sélecteur, ce qui rend le premier élément de
+  la *page* et non le premier emplacement de la liste : l'ordre de priorité
+  écrit juste au-dessus ne s'appliquait pas. Ils sont essayés un à un.
 - **Les tailles de texte passent toutes par l'échelle.** Vingt-trois
   déclarations s'en écartaient : douze recopiaient un token à l'identique
   (11 px là où `--fs-small` vaut 11 px), onze réglaient les mini-cartes de

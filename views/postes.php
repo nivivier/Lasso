@@ -101,7 +101,7 @@ foreach ($postes as $p) {
                     <?php // La poignée ouvre la ligne, tout à gauche : sa place dans
                           // toutes les listes qui se glissent (docs/UI.md § 4). ?>
                     <?php if ($ecriture): ?>
-                    <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                    <?= plan_poignee_html() ?>
                     <?php // data-ajax : allumer ou éteindre une ligne n'engage que cette
                           // ligne-là — sa grise suit l'interrupteur par CSS. Rien à
                           // recharger (docs/UI.md § 14). ?>
@@ -252,8 +252,7 @@ foreach ($postes as $p) {
                         <input type="hidden" name="id" value="<?= $id ?>">
                         <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?= plan_boutons_edition_html() ?>
                     <?php endif; ?>
                 </td>
             </tr>

@@ -298,11 +298,17 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
     // (entete_form_actions_html()), et le monter dans la barre le séparerait
     // d'« Annuler » et de « Supprimer », qui forment un trio. Ce que la barre
     // prend, c'est l'action qui mène AILLEURS — créer, importer, choisir.
+    //
+    // ⚠️ Les créneaux sont essayés UN À UN, du plus précis au plus large, et
+    // non réunis en une seule liste de sélecteurs : querySelector('a, b') rend
+    // le premier élément dans l'ordre du DOCUMENT, pas le premier sélecteur qui
+    // trouve. Comme le bandeau de page précède la barre d'outils, une page qui
+    // aurait un bouton aux deux endroits aurait laissé monter celui du bandeau,
+    // l'inverse de l'ordre écrit ici.
     const slotAction = document.getElementById('mbar-action-slot');
     const creneaux = ['.toolbar > .head-actions', '.page-head > .head-actions', '.page-head']
-        .flatMap(c => [c + ' > a.btn:not(.ghost)', c + ' > .menu-deroulant > summary.btn:not(.ghost)'])
-        .join(',');
-    const trouve = document.querySelector(creneaux);
+        .flatMap(c => [c + ' > a.btn:not(.ghost)', c + ' > .menu-deroulant > summary.btn:not(.ghost)']);
+    const trouve = creneaux.reduce((trouvee, sel) => trouvee || document.querySelector(sel), null);
     const actionPrinc = trouve && trouve.tagName === 'SUMMARY' ? trouve.parentElement : trouve;
     if (slotAction && actionPrinc) {
         // Ancre invisible laissée à la place d'origine : au-delà du seuil, le

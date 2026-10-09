@@ -53,7 +53,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
             <tr class="plan-row <?= $a['actif'] ? '' : 'plan-archive' ?>" data-id="<?= $aid ?>">
                 <td class="td-toggle">
                     <?php if ($peutEcrireAxes): ?>
-                    <span class="plan-grip" draggable="true" title="Glisser pour changer l'ordre" aria-hidden="true"><?= icon('grip') ?></span>
+                    <?= plan_poignee_html('Glisser pour changer l\'ordre') ?>
                     <?php // data-ajax : l'interrupteur n'engage que sa ligne, l'envoi
                           // part donc en arrière-plan (docs/UI.md § 14). Il ne paraît
                           // qu'une ligne ouverte, comme celui d'une règle : au repos,
@@ -117,8 +117,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
                     <button type="submit" form="axe-edit-<?= $aid ?>" name="section" value="delete" formnovalidate
                             class="btn danger btn-sm icon-only cell-edition plan-supprimer" title="Supprimer" aria-label="Supprimer cet axe"
                             data-confirm="Supprimer cet axe ? Les écritures associées ne seront pas supprimées."><?= icon('trash') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier cet axe"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?= plan_boutons_edition_html('cet axe') ?>
                     <?php endif; ?>
                 </td>
             </tr>

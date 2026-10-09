@@ -74,18 +74,17 @@ $ptSuffixeDepuis = $ptDansModule ? '&depuis=' . rawurlencode($ptDepuis) : '';
 </div>
 <?php endif; ?>
 <?php if (count($ptSectionsActives) > 1): ?>
-<nav class="param-subtabs">
-    <?php
-    // Une section peut aussi être atteinte par une route-alias (ex. Importer,
-    // voir plus haut, que les routes de traitement rendent) : la surbrillance
-    // passe alors par les alias du groupe (3ᵉ élément), rattachés par
-    // convention à la toute première section.
-    $ptPremiereSection = array_key_first($ptSectionsActives);
-    $ptAliasesGroupe = $ptGroupes[$ptGroupeActif][2] ?? [];
-    ?>
-    <?php foreach ($ptSectionsActives as $ptRoute => $ptLib): ?>
-        <?php $ptOn = $ptCurParam === $ptRoute || ($ptRoute === $ptPremiereSection && in_array($ptCurParam, $ptAliasesGroupe, true)); ?>
-        <a href="?p=<?= $ptRoute ?><?= $ptSuffixeDepuis ?>" class="<?= $ptOn ? 'on' : '' ?>"><?= e($ptLib) ?></a>
-    <?php endforeach; ?>
-</nav>
+<?php
+// Une section peut aussi être atteinte par une route-alias (ex. Importer, voir
+// plus haut, que les routes de traitement rendent) : la route à mettre en
+// évidence est alors la toute première section, à laquelle les alias du groupe
+// (3ᵉ élément) sont rattachés par convention. C'est le seul point où cette
+// rangée diffère de celle des modules, et il se règle ICI — le partiel, lui,
+// se contente d'allumer la route qu'on lui désigne.
+$ptAliasesGroupe = $ptGroupes[$ptGroupeActif][2] ?? [];
+$stOnglets = $ptSectionsActives;
+$stActif   = in_array($ptCurParam, $ptAliasesGroupe, true) ? array_key_first($ptSectionsActives) : $ptCurParam;
+$stSuffixe = $ptSuffixeDepuis;
+require __DIR__ . '/_subtabs.php';
+?>
 <?php endif; ?>

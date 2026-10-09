@@ -634,24 +634,6 @@ function lassoInitCatSearch(wrap, opts = {}) {
     });
 }
 
-// Les champs cherchables qui se branchent SEULS, par leurs attributs. Huit
-// écrans recopiaient la même amorce — trouver le wrap, vérifier que la
-// fonction existe, l'appeler —, et chacun avait sa variante : var ou const,
-// garde ou pas, querySelector ou forEach.
-//
-// Un champ porteur de data-cat-search est initialisé au chargement, ses options
-// lues sur l'élément :
-//   data-filtre-groupes    masque les en-têtes de groupe sans résultat
-//   data-hydrater          pré-remplit le texte depuis la valeur cachée
-//   data-texte-vide        affiche le texte même pour une option de valeur ""
-//   data-vider-en-saisie   taper vide la valeur cachée (oblige à resélectionner)
-//   data-revele="#id"      montre cet élément quand « __new__ » est choisi —
-//                          le « — Nouveau… » de la plupart de ces champs
-//
-// lassoInitCatSearch() reste appelable à la main : deux champs peuplent leur
-// liste par fetch au premier focus et ont besoin de la refermer eux-mêmes.
-// L'initialisation est idempotente, pour qu'un fragment inséré après coup
-// puisse rappeler cette fonction sans doubler les écouteurs.
 // « Actifs seulement » : une case qui masque, dans un sélecteur de projets, ceux
 // qui ont été mis de côté. Tous sont rendus par le serveur — la case choisit
 // seulement ce qu'on en voit, et la décocher les rappelle sans recharger la page.
@@ -681,6 +663,24 @@ function lassoInitProjetsActifs(racine = document) {
 }
 window.addEventListener('DOMContentLoaded', () => lassoInitProjetsActifs());
 
+// Les champs cherchables qui se branchent SEULS, par leurs attributs. Huit
+// écrans recopiaient la même amorce — trouver le wrap, vérifier que la
+// fonction existe, l'appeler —, et chacun avait sa variante : var ou const,
+// garde ou pas, querySelector ou forEach.
+//
+// Un champ porteur de data-cat-search est initialisé au chargement, ses options
+// lues sur l'élément :
+//   data-filtre-groupes    masque les en-têtes de groupe sans résultat
+//   data-hydrater          pré-remplit le texte depuis la valeur cachée
+//   data-texte-vide        affiche le texte même pour une option de valeur ""
+//   data-vider-en-saisie   taper vide la valeur cachée (oblige à resélectionner)
+//   data-revele="#id"      montre cet élément quand « __new__ » est choisi —
+//                          le « — Nouveau… » de la plupart de ces champs
+//
+// lassoInitCatSearch() reste appelable à la main : deux champs peuplent leur
+// liste par fetch au premier focus et ont besoin de la refermer eux-mêmes.
+// L'initialisation est idempotente, pour qu'un fragment inséré après coup
+// puisse rappeler cette fonction sans doubler les écouteurs.
 function lassoInitCatSearchAuto(racine = document) {
     racine.querySelectorAll('.cat-search[data-cat-search]').forEach(wrap => {
         if (wrap.dataset.catSearchPret) return;

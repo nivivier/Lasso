@@ -70,7 +70,7 @@ $flashErr = [
                 data-id="<?= $pid ?>" data-sens="<?= $sens ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($p['parent_id'] ?? null) ?>">
                 <td>
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
-                        <span class="plan-grip" draggable="true" title="Glisser pour ranger ailleurs" aria-hidden="true"><?= icon('grip') ?></span>
+                        <?= plan_poignee_html() ?>
                         <?= plan_puce_html((bool) $p['a_enfants']) ?>
                         <?php if ($peutEcrirePlan): ?>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>
@@ -130,8 +130,7 @@ $flashErr = [
                         <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer" aria-label="Supprimer"><?= icon('trash') ?></button>
                     </form>
                     <?php endif; ?>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
-                    <button type="button" class="btn ghost btn-sm icon-only plan-annuler-btn cell-edition" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <?= plan_boutons_edition_html() ?>
                     <?php endif; ?>
                 </td>
             </tr>
