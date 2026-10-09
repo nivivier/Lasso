@@ -1836,6 +1836,18 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    d'alerte qui se posaient sur les titres (« 3 à contacter », « 1 en retard ») :
    ils annonçaient en chiffre ce que les lignes juste en dessous montraient
    déjà. Une ligne de TOTAL n'en porte jamais — elle ne demande rien. */
+/* Le titre d'une carte du tableau de bord mène à son module. Même parti que
+   l'en-tête de colonne triable (.col-tri) : il GARDE l'allure d'un titre —
+   c'est la carte qui mène ailleurs, pas un lien posé dedans — et ne se signale
+   qu'au survol. Le retrait négatif compense le remplissage, pour que la
+   surface cliquable déborde du mot sans décaler le titre d'un pixel. */
+.dash-titre-lien {
+    color: inherit; text-decoration: none; border-radius: var(--radius-sm);
+    padding: 2px 6px; margin: -2px -6px;
+}
+.dash-titre-lien:hover, .dash-titre-lien:focus-visible {
+    color: var(--primary-d); background: var(--primary-tint); text-decoration: none;
+}
 .dash-card tbody tr.ligne-action { background: var(--amber-tint); }
 
 /* Nombres colorés par gravité dans les tableaux du tableau de bord (carte

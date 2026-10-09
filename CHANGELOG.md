@@ -9,6 +9,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Les titres des cartes du tableau de bord mènent à leur module.** « Salaires
+  à verser » ouvre les fiches, « Factures émises » les factures, « Booking » les
+  structures : la carte est un aperçu, son titre en est la porte. Le titre garde
+  son allure et ne se signale qu'au survol.
+
 ### Corrigé
 - **La page des axes analytiques reste dans la comptabilité.** Elle perdait
   l'en-tête du module et sa rangée d'onglets, alors qu'elle vit sous l'onglet

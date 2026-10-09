@@ -960,6 +960,12 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   la carte comme son titre — aucun fond —, un simple filet le séparant des
   lignes qu'il additionne. Le tableau s'ouvre et se ferme sur des filets de la
   même épaisseur que ceux qui séparent ses lignes.
+- **Le titre d'une carte du tableau de bord mène à son module** : la carte est
+  un aperçu, son titre est la porte. L'adresse vient de `nav_groupe_accueil()`,
+  jamais écrite dans la vue — c'est celle où l'icône du rail mène déjà, et elle
+  suit un onglet renommé. Le titre garde son allure et ne se signale qu'au
+  survol, comme un en-tête de colonne triable (§ 9, `.col-tri`) : c'est la
+  carte qui mène ailleurs, pas un lien posé dedans.
 - **Une carte du tableau de bord ne s'étire pas** : elle montre ce qui demande
   du travail et referme le reste sur une dernière ligne « et X autres », qui
   mène à la liste complète (`$dash_reste()` dans `views/tableau_bord.php`, posée

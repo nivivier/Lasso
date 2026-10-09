@@ -171,12 +171,24 @@ $dash_svg = function (array $series): string {
 // qui dit au tableau de bord s'il est vide.
 $dashComptaActif = module_accessible('compta') && count($comptaSeries) >= 1;
 $cartes = [];
+// Le titre d'une carte mène au module dont elle montre un extrait : la carte
+// est un aperçu, son titre est la porte. L'adresse vient de nav_groupe_accueil()
+// — la première route du bandeau du module, celle où son icône du rail mène
+// déjà — plutôt que d'être écrite ici sept fois, où elle dériverait au premier
+// onglet renommé. Pas de lien si le module n'est pas dans nav_groupes() : une
+// carte peut rester visible là où la navigation ne mène plus.
+$dashTitre = function (string $groupe, string $titre): string {
+    $href = nav_groupe_accueil($groupe);
+    return '<h2 class="mt-0">'
+        . ($href !== '' ? '<a class="dash-titre-lien" href="' . e($href) . '">' . e($titre) . '</a>' : e($titre))
+        . '</h2>';
+};
 ?>
 
     <?php if (module_accessible('evenements')): ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Prochains événements</h2>
+            <?= $dashTitre('evenements', 'Prochains événements') ?>
             <?php if (!$prochainsEvenements): ?>
                 <p class="muted">Aucun événement à venir.</p>
             <?php else: ?>
@@ -192,7 +204,7 @@ $cartes = [];
         <?php $cartes['evenements'] = ['titre' => 'Prochains événements', 'html' => ob_get_clean()]; ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Suisa</h2>
+            <?= $dashTitre('evenements', 'Suisa') ?>
             <table class="list">
                 <thead>
                     <tr><th>Statut</th><th class="num">Nombre</th></tr>
@@ -251,7 +263,7 @@ $cartes = [];
         <?php if ($dashComptaActif): ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Évolution financière</h2>
+            <?= $dashTitre('compta', 'Évolution financière') ?>
             <?= $dash_svg($comptaSeries) ?>
         </div>
         <?php $cartes['compta'] = ['titre' => 'Évolution financière', 'html' => ob_get_clean()]; ?>
@@ -280,7 +292,7 @@ $cartes = [];
         ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Salaires à verser</h2>
+            <?= $dashTitre('salaires', 'Salaires à verser') ?>
             <?php if (!$aPayer): ?>
                 <p class="muted">Vous êtes à jour.</p>
             <?php else: ?>
@@ -341,7 +353,7 @@ $cartes = [];
         ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Factures émises</h2>
+            <?= $dashTitre('facturation', 'Factures émises') ?>
             <?php if (!$facturesEmises): ?>
                 <p class="muted">Aucune facture émise en attente de paiement.</p>
             <?php else: ?>
@@ -412,7 +424,7 @@ $cartes = [];
               // sans le module autour pour le dire, le titre doit nommer celle
               // dont il s'agit. Ici c'est le nom du module lui-même. ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Booking</h2>
+            <?= $dashTitre('booking', 'Booking') ?>
             <?php if (!$campagnesDash): ?>
                 <p class="muted">Aucune campagne. <a href="?p=booking_campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
             <?php else: ?>
@@ -475,7 +487,7 @@ $cartes = [];
         <?php if (module_accessible('fonds')): ?>
         <?php ob_start(); ?>
         <div class="card dash-card">
-            <h2 class="mt-0">Recherche de fonds</h2>
+            <?= $dashTitre('fonds', 'Recherche de fonds') ?>
             <?php if (!$fondsDash['campagnes'] && !$fondsDash['bilans']): ?>
                 <p class="muted">Aucune campagne en cours.</p>
             <?php else: ?>
