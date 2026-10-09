@@ -2674,7 +2674,13 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 
 /* Pagination des listes longues (fiches, employés, écritures, factures,
    débiteurs, événements) — voir views/_pagination.php. */
-.pagination { display: flex; align-items: center; gap: 16px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+/* ⚠️ Son air est du REMPLISSAGE, pas une marge : en marge, il tombait entre le
+   tableau et elle — une bande vide que rien ne remplissait, et sur laquelle le
+   fond blanc de la pagination ne s'étendait pas (voir .module-content). En
+   remplissage, elle se pose contre le tableau et porte son espace elle-même.
+   Longhands et non le raccourci : .module-content-inner > .pagination pose
+   déjà ses retraits latéraux, qu'un `padding` les écraserait. */
+.pagination { display: flex; align-items: center; gap: 16px; justify-content: center; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
 .pagination-taille { display: flex; }
 .pagination-taille label { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: var(--fs-basic); color: var(--muted); }
 .pagination-taille select { font: inherit; font-size: var(--fs-basic); padding: 4px 24px 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card); background-position: right 6px center; background-size: 12px; cursor: pointer; }
@@ -3560,7 +3566,10 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .resume tfoot td.col-cout { color: var(--ink); } /* total coût employeur en noir */
 .list td.net-apayer { color: var(--amber); }      /* net en jaune quand à payer */
 .list td.net-avenir { color: var(--muted); }  /* net en gris quand à venir */
-.list tfoot td { background: var(--surface); border-top: 2px solid var(--line); font-weight: 700; color: var(--ink); }
+/* Le pied se détache par son fond et sa graisse, pas par un trait deux fois
+   plus épais que ceux qui séparent les lignes : dans un tableau où tous les
+   filets font un pixel, un filet de deux se lit comme une faute de frappe. */
+.list tfoot td { background: var(--surface); border-top: 1px solid var(--line); font-weight: 700; color: var(--ink); }
 
 /* Mini-fiches dans la liste employés */
 .mini-fiche { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-small); }
@@ -4269,7 +4278,7 @@ abbr {
     .cr-det-row .cpt { display: none; }
 }
 .compta-cr .cr-total td { font-weight: 700; border-top: 1px solid var(--line); background: var(--surface); font-size: var(--fs-large); }
-.compta-cr .cr-resultat td { font-weight: 800; color: var(--primary); border-top: 2px solid var(--primary); font-size: var(--fs-large); }
+.compta-cr .cr-resultat td { font-weight: 800; color: var(--primary); border-top: 1px solid var(--primary); font-size: var(--fs-large); }
 .compta-cr .cr-resultat td.col-prec { color: var(--muted); border-top-color: var(--line); }
 .list tr.cr-total td { font-weight: 700; background: var(--surface); }
 .compta-cr tfoot .cr-note td { font-weight: 400; font-size: var(--fs-small); color: var(--muted); background: transparent; border-top: none; }

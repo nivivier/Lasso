@@ -16,6 +16,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   se posait 46 px trop bas. La hauteur est maintenant mesurée.
 
 ### Modifié
+- **Plus de traits deux fois trop épais dans les tableaux** : celui qui annonce
+  un total (fiches de salaire, comptes annuels) et celui de la ligne de
+  résultat passent à l'épaisseur de tous les autres. Un pied se distingue par
+  son fond et sa graisse, pas par un filet plus lourd que le reste.
+- **La pagination se pose contre le tableau** et porte son air elle-même, en
+  haut comme en bas : l'espace était une marge, donc une bande vide entre les
+  deux que le fond blanc ne couvrait pas.
 - **Les séparateurs de mois des listes changent d'allure.** Le mois s'écrit
   grand et léger, en bas-de-casse, au-dessus d'un filet fin — à la place des
   petites capitales sur bande teintée, surmontées d'un trait gris deux fois
