@@ -10,6 +10,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Les axes analytiques se rangent au glisser-déposer et s'ouvrent au crayon**,
+  comme les règles de lettrage et les lignes du décompte : poignée à gauche, la
+  ligne se lit, le crayon l'ouvre sur son libellé, son code, son interrupteur et
+  sa suppression. Les flèches restent là sans JavaScript et sur téléphone. Leur
+  ordre est celui de tous les menus qui proposent un axe, pas seulement de cet
+  écran. Sur l'analyse, « Gérer les axes » devient **« Modifier »** et passe tout
+  à droite, à la place qu'a ce geste partout ailleurs.
 - **Les onglets d'un module se rangent à droite de son titre** sur grand écran,
   quand la place le permet : l'en-tête fait une hauteur au lieu de deux, et
   c'est autant de contenu visible sans défiler. La décision se prend sur la

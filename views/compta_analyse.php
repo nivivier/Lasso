@@ -19,13 +19,17 @@
         </label>
     </form>
     <div class="head-actions">
-        <a href="?p=compta_axes" class="btn ghost"><?= icon('settings') ?> <span><span class="lbl">Gérer les axes</span><span class="lbl-m">Axes</span></span></a>
         <?php if ($axes): ?>
         <a href="?p=compta_ventilation_suggestion&annee=<?= (int) $annee ?>" class="btn ghost"><?= icon('wand') ?> <span><span class="lbl">Ventilation charges</span><span class="lbl-m">Charges</span></span></a>
         <?php endif; ?>
         <?php if ($ventilation): ?>
         <a class="btn ghost" href="?p=compta_analyse_imprimer&annee=<?= (int) $annee ?>" data-preview target="_blank" rel="noopener"><?= icon('eye') ?><span class="lbl"> Aperçu</span></a>
         <?php endif; ?>
+        <?php // « Modifier », tout à droite et en dernier : c'est la place de ce
+              // geste dans toute l'application (docs/UI.md § 1). Ce qu'on modifie
+              // ici, ce sont les axes — la matière même de l'écran —, et la page
+              // où l'on atterrit le redit dans son titre. ?>
+        <a href="?p=compta_axes" class="btn ghost"><?= icon('pencil') ?><span class="lbl"> Modifier</span></a>
     </div>
     </div>
 

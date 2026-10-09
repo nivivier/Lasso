@@ -1162,6 +1162,27 @@ function route_compta_axes(): void
                 db()->prepare('DELETE FROM ecritures_ventilations WHERE axe_id = ?')->execute([$id]);
                 db()->prepare('DELETE FROM axes_analytiques WHERE id = ?')->execute([$id]);
             }
+        } elseif ($section === 'reorder') {
+            // Glisser-déposer : la liste est plate, on renumérote dans l'ordre
+            // reçu. Cet ordre est celui de TOUS les menus qui proposent un axe
+            // — la ventilation d'une écriture, les colonnes de l'analyse —, pas
+            // seulement celui de cet écran.
+            $order = array_values(array_filter(array_map('intval', explode(',', (string) ($_POST['order'] ?? '')))));
+            if ($order) {
+                $upd = db()->prepare('UPDATE axes_analytiques SET ordre = ? WHERE id = ?');
+                db()->beginTransaction();
+                foreach ($order as $i => $aid) {
+                    $upd->execute([($i + 1) * 10, $aid]);
+                }
+                db()->commit();
+            }
+            // En JSON quand le JavaScript est là : la ligne se déplace dans le
+            // document sans recharger la page (lassoOrdreListe(), app.js).
+            if (($_POST['retour'] ?? '') === 'json') {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                return;
+            }
         } elseif ($section === 'move_up' || $section === 'move_down') {
             $id  = (int) ($_POST['id'] ?? 0);
             $all = db()->query('SELECT id FROM axes_analytiques ORDER BY ordre ASC, id ASC')->fetchAll(PDO::FETCH_COLUMN);
