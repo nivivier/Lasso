@@ -7,19 +7,22 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
 <?php if ($flagErr === 'used'): ?><p class="err flash">Suppression impossible : des écritures sont rattachées à ce compte.</p><?php endif; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
-<div class="module-content"><div class="module-content-inner">
-    <div class="toolbar">
-        <?php if ($peutEcrireComptes): ?>
-        <div class="head-actions">
-            <button type="button" id="btn-new-compte" class="btn"><?= icon('plus') ?><span class="lbl"> Ajouter un compte</span></button>
-        </div>
-        <?php endif; ?>
-    </div>
-    <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
+<?php // Même apparence que l'autre face du plan comptable (?p=compta_plan) :
+      // pas de .module-content — ce fond blanc pleine largeur est celui des
+      // pages de liste, des cartes posées dessus ne se détachent de rien —, le
+      // titre au-dessus de la carte, et la liste dedans. L'en-tête de colonne
+      // tombe avec : « Compte bancaire » au-dessus d'une liste de comptes
+      // bancaires ne dit rien que le titre ne dise déjà. ?>
+<?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
 
-    <div class="table-scroll">
-    <table class="list mt-10">
-        <thead><tr><th>Compte bancaire</th><th></th></tr></thead>
+<div class="section-head mt-0">
+    <h2 class="mt-0">Comptes bancaires</h2>
+    <?php if ($peutEcrireComptes): ?>
+    <button type="button" id="btn-new-compte" class="btn ml-auto"><?= icon('plus') ?> Ajouter un compte</button>
+    <?php endif; ?>
+</div>
+<div class="card form table-scroll" id="comptes-card">
+    <table class="list mb-16">
         <tbody>
         <?php if (!$comptes): ?>
             <tr><td colspan="2" class="muted small">Aucun compte bancaire.</td></tr>
@@ -85,8 +88,7 @@ $peutEcrireComptes = peut_ecrire('compta') || peut_ecrire('facturation');
             </tr>
         </tfoot>
     </table>
-    </div>
-</div></div>
+</div>
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {

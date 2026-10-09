@@ -23,6 +23,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce
   retrait sert à aligner les cellules sur le titre de la carte, et ces
   cartes-là n'en ont pas, leur titre étant posé au-dessus d'elles.
+- **Les comptes bancaires prennent la même apparence** que l'autre face du plan
+  comptable : un titre « Comptes bancaires » au-dessus de la carte, la liste
+  dedans. L'en-tête de colonne disparaît — « Compte bancaire » au-dessus d'une
+  liste de comptes bancaires ne disait rien que le titre ne dise déjà.
 - **Le plan comptable se lit en deux cartes**, « Produits » et « Charges », leur
   titre posé au-dessus d'elles comme sur les pays, les catégories et les tags.
   Les parenthèses des titres tombent : une liste de produits n'a pas besoin
