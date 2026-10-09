@@ -30,6 +30,16 @@ d'un document. Rien d'important ne se met en bas.
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
 bouton d'organisation des cartes à sa droite.
 
+**Un onglet peut porter des SOUS-ONGLETS** quand il recouvre deux écrans de la
+même matière — le plan comptable, qui tient les produits et charges d'un côté
+et les comptes bancaires de l'autre. Ils se déclarent en 5ᵉ élément de l'entrée
+dans `nav_groupes()` (`[route => libellé]`), et la 2ᵉ — la liste des routes qui
+allument l'onglet — doit tous les contenir. Le rendu réutilise la rangée
+`.param-subtabs` des Paramètres, à la même place : deux niveaux d'onglets se
+lisent partout de la même façon. **À préférer à un onglet de plus** dès que
+deux écrans sont deux faces d'une même chose ; pas pour ranger ensemble ce qui
+n'a en commun que d'être rarement ouvert.
+
 **La rangée d'onglets se range à droite du titre quand elle y tient**, et ne
 descend sur sa propre ligne que sinon : le bandeau fait alors une hauteur au
 lieu de deux. Rien à déclarer — c'est le comportement de `.page-head-band`. La

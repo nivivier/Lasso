@@ -384,8 +384,19 @@ function nav_groupes(): array
     if (module_actif('compta') && peut_lire('compta')) {
         $onglets = [
             'compta_ecritures' => ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'],
-            'compta_comptes'   => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
-            'compta_plan'      => ['Plan comptable', ['compta_plan'], 0, 'rows-3'],
+            // Le plan comptable porte DEUX écrans, en sous-onglets : les
+            // produits et charges, et les comptes bancaires. Les deux sont le
+            // même objet — la liste des comptes —, l'un pour ce qu'on gagne et
+            // dépense, l'autre pour les endroits où l'argent dort. Les tenir
+            // ensemble rend un onglet au bandeau, qui en avait un de trop pour
+            // la largeur disponible.
+            // 5e élément = les sous-onglets [route => libellé] ; la 2e entrée
+            // (les routes) doit les contenir tous, c'est elle qui allume
+            // l'onglet principal.
+            'compta_plan'      => ['Plan comptable', ['compta_plan', 'compta_comptes'], 0, 'rows-3', [
+                'compta_plan'    => 'Produits et charges',
+                'compta_comptes' => 'Comptes bancaires',
+            ]],
             'compta_regles'    => ['Lettrage automatique', ['compta_regles'], 0, 'pencil-sparkles'],
             'compta_bilan'     => ['Comptes annuels', ['compta_bilan'], 0, 'book-open'],
         ];

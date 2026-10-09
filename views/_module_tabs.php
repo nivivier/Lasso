@@ -14,3 +14,16 @@ $ntGroupes = nav_groupes();
 $ntCle     = nav_groupe_actif($ntGroupes, (string) ($_GET['p'] ?? ''), (string) ($_GET['depuis'] ?? ''));
 $ntLabel   = $ntCle !== null ? $ntGroupes[$ntCle][0] : '';
 $ntOnglets = $ntCle !== null ? $ntGroupes[$ntCle][2] : [];
+// Les sous-onglets de l'onglet ACTIF, s'il en a (5e élément de son entrée dans
+// nav_groupes()). Même dispositif à deux niveaux que les Paramètres, et même
+// rangée .param-subtabs pour le rendre : un onglet qui porte deux écrans de la
+// même matière les montre sous lui plutôt que de prendre deux places dans le
+// bandeau. Vide partout ailleurs, donc rien ne s'affiche.
+$ntSousOnglets = [];
+$ntCur = (string) ($_GET['p'] ?? '');
+foreach ($ntOnglets as $ntO) {
+    if (!empty($ntO[4]) && in_array($ntCur, $ntO[1], true)) {
+        $ntSousOnglets = $ntO[4];
+        break;
+    }
+}

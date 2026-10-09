@@ -10,6 +10,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Les comptes bancaires passent sous l'onglet « Plan comptable »**, en
+  sous-onglet à côté de « Produits et charges ». Les deux écrans sont la même
+  matière — la liste des comptes, ici ce qu'on gagne et dépense, là où l'argent
+  dort — et la comptabilité, qui avait un onglet de trop pour la largeur
+  disponible, tient maintenant sur une seule rangée.
 - **Les axes analytiques se rangent au glisser-déposer et s'ouvrent au crayon**,
   comme les règles de lettrage et les lignes du décompte : poignée à gauche, la
   ligne se lit, le crayon l'ouvre sur son libellé, son code, son interrupteur et
