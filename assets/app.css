@@ -1110,7 +1110,14 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    align-self : les onglets collent au BAS du bandeau, où l'onglet actif couvre
    le filet d'un pixel qui le raccorde au contenu — le titre, plus haut d'un
    cheveu, ne doit pas les recentrer. */
-.page-head-band .page-head { justify-content: flex-start; }
+.page-head-band .page-head { justify-content: flex-start; column-gap: 28px; }
+/* Un peu d'air sous le titre et entre lui et les onglets : sur une seule
+   hauteur, les trois se touchaient presque. Le retrait est posé sur le TITRE
+   et non en bas du bandeau — celui-ci doit rester à zéro pour que les onglets
+   collent au filet qu'ils recouvrent. Le titre étant l'élément le plus haut de
+   la rangée, le grandir grandit la rangée, et les onglets descendent avec
+   elle. */
+.page-head-band .page-head-title { padding-bottom: 10px; }
 .page-head-band .module-tabs {
     flex: 0 0 auto;
     max-width: 100%;
