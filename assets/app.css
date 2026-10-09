@@ -113,7 +113,8 @@
     --focus-ring: 0 0 0 3px var(--primary-tint);
     --surface: #faf9fe;                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
-    --row-pad: 10px 12px;              /* padding standard des cellules .list */
+    --row-pad-x: 12px;                 /* sa part horizontale, seule réutilisable */
+    --row-pad: 10px var(--row-pad-x);  /* padding standard des cellules .list */
     /* Respiration horizontale (.content, .page-head, .module-content-inner…).
        clamp() plutôt qu'une constante : à 48px fixes, un portable 13 pouces
        perdait 96px de largeur utile, et un téléphone en perdait un quart. La
@@ -1365,6 +1366,25 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    spécificité de « .module-content-inner .table-scroll .list tr > :first-child »
    ci-dessus (quatre classes), que le premier n'atteint pas — sans lui, un
    tableau de carte reprenait le retrait de la PAGE. */
+/* ⚠️ …sauf quand la liste est TOUT le contenu de sa carte — titre posé
+   au-dessus d'elle (?p=pays, ?p=tags, ?p=categories_structures, les deux
+   cartes de ?p=compta_plan). Le retrait de 26px existe pour aligner les
+   cellules sur le titre INTÉRIEUR du cadre ; sans titre à l'intérieur, il
+   n'aligne plus rien et ne fait qu'éloigner le texte du bord, bien plus qu'il
+   ne l'est du haut et du bas. Les cellules de bord reprennent alors le retrait
+   de n'importe quelle autre cellule : plus de cas particulier du tout.
+   ⚠️ Et c'est le padding des CELLULES qu'on corrige, surtout pas --card-pad :
+   .card porte 26px en dur, et --card-pad sert justement à les annuler d'une
+   marge négative pour que le tableau affleure. Redéfinir la variable n'a pas
+   déplacé le bord de la carte — il a seulement cessé d'être annulé, et le
+   tableau s'est mis à flotter à 15px de ses bords, séparateurs de lignes
+   suspendus dans le vide. Essayé, mesuré.
+   La spécificité est celle qu'il faut pour battre la paire ci-dessous (quatre
+   classes) : .card plus son :has() et le reste du sélecteur. */
+.card:has(> table.list:only-child) .list tr > :first-child,
+.card:has(> table.list:only-child) .list tr > :last-child,
+.card:has(> .table-scroll:only-child) .table-scroll .list tr > :first-child,
+.card:has(> .table-scroll:only-child) .table-scroll .list tr > :last-child { padding: var(--row-pad); }
 .card .list tr > :first-child,
 .card .table-scroll .list tr > :first-child { padding: var(--row-pad); padding-left: var(--card-pad); }
 .card .list tr > :last-child,

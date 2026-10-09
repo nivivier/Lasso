@@ -911,6 +911,17 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   même : pas de bande vide au-dessus de sa première ligne, qui se lisait comme
   une rangée sans contenu. Trois bords tirés à fleur et le quatrième laissé en
   arrière est pire que les quatre en retrait.
+  ⚠️ **Et le retrait latéral suit le titre.** Les 26px reposés sur les cellules
+  de bord servent à les aligner sur le titre INTÉRIEUR du cadre. Une carte dont
+  la liste est tout le contenu — titre posé au-dessus d'elle — n'a rien à quoi
+  s'aligner : ses cellules de bord reprennent alors le retrait de n'importe
+  quelle autre cellule, et la carte n'a plus de cas particulier du tout.
+  ⚠️ C'est le padding des CELLULES qu'on corrige, surtout pas `--card-pad` :
+  `.card` porte ses 26 px en dur, et `--card-pad` sert justement à les annuler
+  d'une marge négative pour que le tableau affleure. Redéfinir la variable ne
+  déplace pas le bord de la carte — il cesse seulement d'être annulé, et le
+  tableau se met à flotter à 15 px de ses bords, séparateurs suspendus dans le
+  vide. Essayé, mesuré.
   **Rien à déclarer** : c'est le comportement de tout `.list` dans un `.card`,
   avec ou sans conteneur `.table-scroll`. Les deux pièges qui y faisaient
   échapper un écran : porter `.card` et `.table-scroll` sur le **même** élément
