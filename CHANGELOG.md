@@ -10,6 +10,10 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Modifié
+- **Le plan comptable se lit en deux cartes**, « Produits » et « Charges », leur
+  titre posé au-dessus d'elles comme sur les pays, les catégories et les tags.
+  Les parenthèses des titres tombent : une liste de produits n'a pas besoin
+  qu'on lui précise que ce sont des recettes.
 - **Le lettrage automatique rejoint les sous-onglets du plan comptable**, à
   côté de « Produits et charges » et « Comptes bancaires ». Une règle de
   lettrage ne vaut que par la catégorie du plan qu'elle désigne : elle n'a pas

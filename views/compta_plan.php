@@ -27,7 +27,12 @@ $flashErr = [
 <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 
 <?php $peutEcrirePlan = peut_ecrire('compta'); ?>
-<div class="module-content"><div class="module-content-inner">
+<?php // Pas de .module-content ici : ce bloc est le fond blanc pleine largeur
+      // des pages de LISTE (les écritures, les factures), et des cartes posées
+      // dessus ne se détachent de rien. Cette page est une page de cartes, comme
+      // ?p=pays dont elle reprend le modèle, ou ?p=mailing_modeles dans un
+      // module : elles flottent sur le décor de la page, arrondies et en
+      // retrait des bords. ?>
 <?php if ($peutEcrirePlan): ?>
 <!-- Formulaire de repositionnement, déclenché par le glisser-déposer -->
 <form method="post" action="?p=compta_plan" id="reorder-form" hidden>
@@ -39,8 +44,13 @@ $flashErr = [
 </form>
 <?php endif; ?>
 
-<div class="form" id="plan-card">
-    <?php foreach (['produit' => 'Produits (recettes)', 'charge' => 'Charges (dépenses)'] as $sens => $titre):
+<?php // Le conteneur garde son identifiant : c'est lui que le glisser-déposer
+      // surveille, et il doit couvrir LES DEUX listes — une catégorie ne passe
+      // pas d'un sens à l'autre (groupAttr), mais le même script les gère. Il
+      // n'est plus la carte pour autant : chaque sens a la sienne, titre
+      // au-dessus d'elle, comme ?p=pays ou ?p=tags (docs/UI.md § 9). ?>
+<div id="plan-card">
+    <?php foreach (['produit' => 'Produits', 'charge' => 'Charges'] as $sens => $titre):
         $rows = array_values(array_filter($lignes, fn($l) => $l['sens'] === $sens)); ?>
     <div class="section-head <?= $sens === 'produit' ? 'mt-0' : '' ?>">
         <h2 class="mt-0"><?= e($titre) ?></h2>
@@ -49,7 +59,7 @@ $flashErr = [
                 data-show="plan-add-<?= $sens ?>"><?= icon('plus') ?> Nouveau</button>
         <?php endif; ?>
     </div>
-    <div class="table-scroll">
+    <div class="card form table-scroll" id="plan-card-<?= $sens ?>">
     <table class="list mb-16 plan-table" data-sens="<?= $sens ?>">
         <tbody>
         <?php if (!$rows): ?>
@@ -146,7 +156,6 @@ $flashErr = [
     </div>
     <?php endforeach; ?>
 </div>
-</div></div>
 
 <!-- Boîte de dialogue : suppression d'une catégorie contenant des écritures -->
 <div id="del-modal" class="modal-overlay" hidden>
