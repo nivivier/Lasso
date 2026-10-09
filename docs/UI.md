@@ -30,6 +30,12 @@ d'un document. Rien d'important ne se met en bas.
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
 bouton d'organisation des cartes à sa droite.
 
+**La rangée d'onglets se range à droite du titre quand elle y tient**, et ne
+descend sur sa propre ligne que sinon : le bandeau fait alors une hauteur au
+lieu de deux. Rien à déclarer — c'est le comportement de `.page-head-band`. La
+décision se prend sur la largeur réelle, pas sur un seuil : aujourd'hui seule
+la comptabilité, avec ses six onglets, reste sur deux lignes.
+
 ### Sur téléphone, la barre supérieure porte le module ET l'action
 
 Sous 800 px le rail se replie et une barre fixe le remplace. Elle tient quatre

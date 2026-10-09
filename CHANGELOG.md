@@ -9,6 +9,13 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les onglets d'un module se rangent à droite de son titre** sur grand écran,
+  quand la place le permet : l'en-tête fait une hauteur au lieu de deux, et
+  c'est autant de contenu visible sans défiler. La décision se prend sur la
+  largeur réelle et non sur un seuil — seule la comptabilité, avec ses six
+  onglets, reste sur deux lignes.
+
 ### Ajouté
 - **Les titres des cartes du tableau de bord mènent à leur module.** « Salaires
   à verser » ouvre les fiches, « Factures émises » les factures, « Booking » les

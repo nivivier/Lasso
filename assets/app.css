@@ -1093,8 +1093,28 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     margin: 0 0 0 var(--rail-width); /* replique le décalage de .content après le rail */
     padding: 22px var(--content-pad) 20px;
 }
+/* La rangée d'onglets se range À DROITE DU TITRE quand elle y tient, et ne
+   descend sur sa propre ligne que si elle n'y tient pas : le bandeau fait
+   alors une hauteur au lieu de deux, et c'est autant de contenu gagné sur
+   chaque écran.
+   ⚠️ Le couple flex:0 0 auto + max-width:100% n'est pas un hasard, et les deux
+   sont nécessaires :
+     - flex-shrink à 0 pour que la rangée ne se laisse PAS comprimer à côté du
+       titre. Compressible, elle y resterait en se repliant sur deux ou trois
+       rangs serrés au lieu de descendre — un .module-tabs sait se replier tout
+       seul (flex-wrap), donc sa largeur minimale est celle d'un seul onglet ;
+     - max-width pour que, une fois descendue, elle ne déborde pas de la page :
+       c'est ce plafond qui la fait de nouveau se replier quand même la ligne
+       entière ne suffit plus. Il entre AUSSI dans le calcul du passage à la
+       ligne, donc il ne gêne pas la décision de monter ou non.
+   align-self : les onglets collent au BAS du bandeau, où l'onglet actif couvre
+   le filet d'un pixel qui le raccorde au contenu — le titre, plus haut d'un
+   cheveu, ne doit pas les recentrer. */
+.page-head-band .page-head { justify-content: flex-start; }
 .page-head-band .module-tabs {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
+    max-width: 100%;
+    align-self: flex-end;
     margin: 0;
     padding: 0;
     background: transparent;
