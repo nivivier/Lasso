@@ -251,6 +251,21 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
         body.classList.toggle('nav-open', open);
         burger.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
+    // Hauteur du bandeau de page, pour que l'en-tête collant d'un tableau se
+    // pose JUSTE dessous (--hauteur-bandeau, assets/app.css). Mesurée et non
+    // écrite en dur : le bandeau fait une hauteur ou deux selon que la rangée
+    // d'onglets tient à côté du titre, ce qui dépend du nom du module et du
+    // nombre d'onglets — donc des droits du compte. Un ResizeObserver suit les
+    // changements de largeur comme de contenu ; sans script, la valeur de repli
+    // du CSS s'applique et l'en-tête reste utilisable.
+    const bandeau = document.querySelector('.page-head-band');
+    if (bandeau && window.ResizeObserver) {
+        const majBandeau = () => document.documentElement.style.setProperty(
+            '--hauteur-bandeau', Math.round(bandeau.getBoundingClientRect().height) + 'px');
+        majBandeau();
+        new ResizeObserver(majBandeau).observe(bandeau);
+    }
+
     burger.addEventListener('click', () => toggle(!body.classList.contains('nav-open')));
     close.addEventListener('click', () => toggle(false));
     scrim.addEventListener('click', () => toggle(false));

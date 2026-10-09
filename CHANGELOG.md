@@ -9,6 +9,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **L'en-tête collant d'un tableau se repose au bon endroit.** Il visait une
+  hauteur de bandeau écrite en dur, valable du temps où le titre et les onglets
+  occupaient toujours deux lignes ; depuis qu'ils tiennent souvent sur une, il
+  se posait 46 px trop bas. La hauteur est maintenant mesurée.
+
 ### Modifié
 - **Les séparateurs de mois des listes changent d'allure.** Le mois s'écrit
   grand et léger, en bas-de-casse, au-dessus d'un filet fin — à la place des

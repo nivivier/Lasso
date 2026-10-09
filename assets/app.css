@@ -3225,9 +3225,14 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
         position: sticky;
         /* Sous le bandeau de page, pas sous le haut de la fenêtre : le bandeau
            est collant lui aussi (.page-head-band) et couvrirait l'en-tête.
-           120px mesurés, identiques sur les six listes du site — même squelette,
-           titre plus rangée d'onglets. Déclaré en variable pour qu'une page au
-           bandeau différent puisse la redéfinir sans toucher à cette règle. */
+           ⚠️ --hauteur-bandeau est MESURÉE au chargement et à chaque
+           redimensionnement (views/layout.php) : elle ne peut pas être une
+           constante, puisque le bandeau fait une hauteur ou deux selon que la
+           rangée d'onglets tient à côté du titre — ce qui dépend du nom du
+           module et du nombre d'onglets, donc du compte connecté. Elle valait
+           120px en dur, du temps où le bandeau faisait toujours deux hauteurs ;
+           l'en-tête collant se posait depuis 46px trop bas. La valeur de repli
+           ne sert qu'avant le premier calcul. */
         top: var(--hauteur-bandeau, 120px);
         z-index: 3;
         /* Tous au MÊME z-index : à égalité, c'est l'ordre du document qui
