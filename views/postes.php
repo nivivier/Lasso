@@ -285,7 +285,7 @@ foreach ($postes as $p) {
 </div>
 
 <?php if ($ecriture): ?>
-<div class="card card-editable">
+<div class="card card-editable mt-22">
     <div class="card-head-row">
         <h2 class="mt-0">Salaire coordonné <?= info_tip(
             "Base des lignes assises sur le salaire coordonné (LPP). Montants ANNUELS, ramenés au mois par le calcul.

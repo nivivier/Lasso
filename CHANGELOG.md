@@ -9,6 +9,11 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Corrigé
+- **La carte « Salaire coordonné » touchait le tableau au-dessus d'elle**
+  (Paramètres → Lignes du décompte). Elle reprend l'écart que met n'importe
+  quelle autre carte posée à la suite d'un bloc.
+
 ## [3.0.11] — 2026-10-10
 
 ### Ajouté
