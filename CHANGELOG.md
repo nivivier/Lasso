@@ -9,25 +9,85 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
-### Corrigé
-- **Plus de débordement horizontal sur téléphone.** Toute page de module
-  dépassait de 2 px à 375 px de large : la barre d'outils et la pagination
-  faisaient 379 px dans une fenêtre de 375. Même cause pour un défaut qu'on ne
-  voyait pas : le texte d'un tableau se posait 2 px plus à droite que le titre
-  et la recherche au-dessus de lui. Le téléphone avait deux gouttières, 18 px
-  écrits à la main dans huit règles et 20 px calculés par une vingtaine
-  d'autres ; il n'en a plus qu'une, à 20 px.
+## [3.0.11] — 2026-10-10
 
-### Corrigé
-- **`?p=compta_regles` : le tableau ne se prend plus pour une carte.** Il
-  portait `.card` sur l'élément qui est aussi sa zone de défilement — le piège
-  que la convention d'interface nomme : la marge négative de la page le tirait
-  bord à bord, ses coins restaient arrondis en haut sur un bord devenu droit,
-  et son filet du bas s'ajoutait à celui de la dernière rangée, deux pixels
-  juste là où l'on venait d'en retirer. Il se range maintenant comme
-  `?p=projets`, dont il est le jumeau.
+### Ajouté
+- **Un réglage de densité des tableaux** dans Paramètres → Apparence : *dense*,
+  *normal* ou *large*. Il règle la hauteur des lignes dans toutes les listes de
+  l'application — « dense » en fait tenir un quart de plus à l'écran (37 px par
+  ligne au lieu de 47), « large » les aère d'autant (59 px). Seul le retrait
+  vertical change : les colonnes restent alignées d'un réglage à l'autre.
 
 ### Modifié
+- **Les séparateurs de mois des listes changent d'allure.** Le mois s'écrit
+  grand et léger, en bas-de-casse, au-dessus d'un filet fin — à la place des
+  petites capitales sur bande teintée, surmontées d'un trait gris deux fois
+  plus épais que ceux qui séparent les lignes. La rangée est translucide et
+  laisse voir le décor de la page, comme les cartes du tableau de bord.
+  Concerne les écritures, les factures, les événements, les campagnes de
+  booking et de recherche de fonds, et les fiches de salaire.
+- **Les lignes de tableau ont partout le même retrait.** Trois écrans s'en
+  écartaient sans raison — les écritures à la moitié du reste du site, les
+  listes ordonnées (projets, postes, plan comptable, pays, catégories, règles,
+  axes) au cinquième, le compte d'exploitation à la moitié. Une liste ne change
+  plus de densité d'un écran à l'autre, et c'est ce qui permet au réglage
+  ci-dessus de valoir pour toutes.
+- **Plus de traits deux fois trop épais dans les tableaux** : celui qui annonce
+  un total (fiches de salaire, comptes annuels) et celui de la ligne de
+  résultat passent à l'épaisseur de tous les autres. Un pied se distingue par
+  son fond et sa graisse, pas par un filet plus lourd que le reste.
+- **Deux fins de tableau rentrent dans le rang.** L'analyse se fermait sur un
+  trait deux fois plus épais que les autres — celui de son pied s'ajoutait à
+  celui du tableau — et les règles de lettrage sur une ombre, que leur carte
+  tirée bord à bord n'avait plus lieu de porter.
+- **La pagination se pose contre le tableau** et porte son air elle-même, en
+  haut comme en bas : l'espace était une marge, donc une bande vide entre les
+  deux que le fond blanc ne couvrait pas.
+- **Plus de puce au début d'une ligne qui porte une poignée.** Deux marques au
+  début de la même ligne, c'en était une de trop. La puce reste sur téléphone,
+  où la poignée s'efface, et le chevron d'une ligne à enfants reste partout :
+  lui annonce ce qu'elle contient.
+- **Les boutons d'en-tête de section retrouvent leur taille normale** — les
+  « + Nouveau » du plan comptable et des salaires horaires, « Créer des axes »,
+  les deux « Aperçu » et « Modifier » de l'analyse. Le petit format est réservé
+  à ce qui commande UNE ligne.
+- **Les listes posées seules dans une carte respirent mieux** — les pays, les
+  catégories, les tags, les deux listes du plan comptable. Leur texte était
+  repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce
+  retrait sert à aligner les cellules sur le titre de la carte, et ces
+  cartes-là n'en ont pas, leur titre étant posé au-dessus d'elles.
+- **Le plan comptable se lit en deux cartes**, « Produits » et « Charges », leur
+  titre posé au-dessus d'elles comme sur les pays, les catégories et les tags.
+  Les parenthèses des titres tombent : une liste de produits n'a pas besoin
+  qu'on lui précise que ce sont des recettes.
+- **Les comptes bancaires prennent la même apparence** que l'autre face du plan
+  comptable : un titre « Comptes bancaires » au-dessus de la carte, la liste
+  dedans. L'en-tête de colonne disparaît — « Compte bancaire » au-dessus d'une
+  liste de comptes bancaires ne disait rien que le titre ne dise déjà.
+- **Le lettrage automatique rejoint les sous-onglets du plan comptable**, à
+  côté de « Produits et charges » et « Comptes bancaires ». Une règle de
+  lettrage ne vaut que par la catégorie du plan qu'elle désigne : elle n'a pas
+  de sens hors de lui. La comptabilité passe à quatre onglets, et sa rangée
+  tient à côté du titre jusque sur un écran étroit.
+- **Le lettrage automatique n'a plus de vide sous ses sous-onglets**, ni de
+  traits verticaux au bord de son tableau : la rangée de sous-onglets posait sa
+  marge par-dessus le retrait du bloc de contenu, et la carte tirée bord à bord
+  gardait des bordures latérales qui ne séparaient plus rien.
+- **L'onglet « Plan comptable » passe tout à droite** : on y règle la machine,
+  on ne s'en sert pas au quotidien. Les onglets de la comptabilité vont
+  maintenant du travail courant à ce qui le rend possible.
+- **L'onglet « Fiches de salaire » s'appelle « Fiches ».** Le titre du module,
+  juste à sa gauche, dit déjà « Salaires » : un onglet n'a pas à répéter le
+  bandeau qui le porte.
+- **Toutes les tailles de texte passent par l'échelle**, et la feuille de style
+  n'en écrit plus une seule en pixels. Trente-deux déclarations s'en
+  écartaient : douze recopiaient un token à l'identique (11 px là où
+  `--fs-small` vaut 11 px), onze réglaient les mini-cartes de téléphone à
+  l'œil, neuf étaient des corps d'affichage tombés entre deux crans. L'échelle
+  gagne un septième cran, `--fs-bigger` (24 px) : de 20 à 32 elle sautait de
+  soixante pour cent d'un coup, le plus grand écart de la série. La règle
+  manquait à la convention d'interface, qui ne la disait nulle part : elle y
+  est désormais, et un test la vérifie.
 - **Un seul endroit décrit la poignée et les boutons d'une ligne ordonnable.**
   Neuf vues écrivaient la poignée de glisser-déposer, huit la paire
   crayon + croix. La dérive s'y était logée : le même crayon disait
@@ -45,107 +105,28 @@ puis sont promues sur le canal **stable** en figeant une version.
   emplacements réunis en un seul sélecteur, ce qui rend le premier élément de
   la *page* et non le premier emplacement de la liste : l'ordre de priorité
   écrit juste au-dessus ne s'appliquait pas. Ils sont essayés un à un.
-- **Les tailles de texte passent toutes par l'échelle.** Vingt-trois
-  déclarations s'en écartaient : douze recopiaient un token à l'identique
-  (11 px là où `--fs-small` vaut 11 px), onze réglaient les mini-cartes de
-  téléphone à l'œil, entre deux crans. Le séparateur de mois rentre lui aussi
-  dans l'échelle, en `--fs-big` et plus maigre. La règle manquait à la
-  convention d'interface, qui ne la disait nulle part : elle y est désormais,
-  et `tests/tailles_texte_test.php` la vérifie — y compris qu'aucun
-  `var(--fs-…)` ne pointe un token inexistant, faute qui donne une règle valide
-  qui ne dessine rien.
-- **Plus une seule taille de texte écrite en pixels**, nulle part dans la
-  feuille de style. Les neuf dernières étaient des corps d'affichage — le
-  total d'une campagne, la date d'une feuille de route imprimée, des initiales
-  en médaillon — tombés entre deux crans ; elles ont rejoint le plus proche.
-  L'échelle gagne un septième cran, `--fs-bigger` (24 px) : de 20 à 32 elle
-  sautait de soixante pour cent d'un coup, le plus grand écart de la série, et
-  ces corps-là n'avaient nulle part où aller.
-
-### Ajouté
-- **Un réglage de densité des tableaux** dans Paramètres → Apparence : *dense*,
-  *normal* ou *large*. Il règle la hauteur des lignes dans toutes les listes de
-  l'application — « dense » en fait tenir un quart de plus à l'écran (37 px par
-  ligne au lieu de 47), « large » les aère d'autant (59 px). Seul le retrait
-  vertical change : les colonnes restent alignées d'un réglage à l'autre.
 
 ### Corrigé
+- **Plus de débordement horizontal sur téléphone.** Toute page de module
+  dépassait de 2 px à 375 px de large : la barre d'outils et la pagination
+  faisaient 379 px dans une fenêtre de 375. Même cause pour un défaut qu'on ne
+  voyait pas : le texte d'un tableau se posait 2 px plus à droite que le titre
+  et la recherche au-dessus de lui. Le téléphone avait deux gouttières, 18 px
+  écrits à la main dans huit règles et 20 px calculés par une vingtaine
+  d'autres ; il n'en a plus qu'une, à 20 px.
 - **Plus de trait doublé à la fin d'une liste paginée** (structures,
   événements) : toutes les rangées sont dans la page et le script cache celles
   des autres pages, si bien que la dernière affichée gardait son filet et que
   celui du tableau s'y ajoutait.
-
-### Modifié
-- **Les lignes de tableau ont partout le même retrait.** Trois écrans s'en
-  écartaient sans raison — les écritures à la moitié du reste du site, les
-  listes ordonnées (projets, postes, plan comptable, pays, catégories, règles,
-  axes) au cinquième, le compte d'exploitation à la moitié. Une liste ne change
-  plus de densité d'un écran à l'autre, et c'est ce qui permet au réglage
-  ci-dessus de valoir pour toutes.
-
-### Corrigé
+- **`?p=compta_regles` : le tableau ne se prend plus pour une carte.** Il
+  portait `.card` sur l'élément qui est aussi sa zone de défilement — le piège
+  que la convention d'interface nomme : la marge négative de la page le tirait
+  bord à bord, ses coins restaient arrondis en haut sur un bord devenu droit,
+  et son filet du bas s'ajoutait à celui de la dernière rangée.
 - **L'en-tête collant d'un tableau se repose au bon endroit.** Il visait une
   hauteur de bandeau écrite en dur, valable du temps où le titre et les onglets
   occupaient toujours deux lignes ; depuis qu'ils tiennent souvent sur une, il
   se posait 46 px trop bas. La hauteur est maintenant mesurée.
-
-### Modifié
-- **Plus de traits deux fois trop épais dans les tableaux** : celui qui annonce
-  un total (fiches de salaire, comptes annuels) et celui de la ligne de
-  résultat passent à l'épaisseur de tous les autres. Un pied se distingue par
-  son fond et sa graisse, pas par un filet plus lourd que le reste.
-- **La pagination se pose contre le tableau** et porte son air elle-même, en
-  haut comme en bas : l'espace était une marge, donc une bande vide entre les
-  deux que le fond blanc ne couvrait pas.
-- **Les séparateurs de mois des listes changent d'allure.** Le mois s'écrit
-  grand et léger, en bas-de-casse, au-dessus d'un filet fin — à la place des
-  petites capitales sur bande teintée, surmontées d'un trait gris deux fois
-  plus épais que ceux qui séparent les lignes. La rangée est translucide et
-  laisse voir le décor de la page, comme les cartes du tableau de bord.
-  Concerne les écritures, les factures, les événements, les campagnes de
-  booking et de recherche de fonds, et les fiches de salaire.
-
-### Modifié
-- **Plus de puce au début d'une ligne qui porte une poignée.** Deux marques au
-  début de la même ligne, c'en était une de trop. La puce reste sur téléphone,
-  où la poignée s'efface, et le chevron d'une ligne à enfants reste partout :
-  lui annonce ce qu'elle contient.
-- **Les boutons d'en-tête de section retrouvent leur taille normale** — les
-  « + Nouveau » du plan comptable et des salaires horaires, « Créer des axes »,
-  les deux « Aperçu » et « Modifier » de l'analyse. Le petit format est réservé
-  à ce qui commande UNE ligne.
-- **Les listes posées seules dans une carte respirent mieux** — les pays, les
-  catégories, les tags, les deux listes du plan comptable. Leur texte était
-  repoussé à 26 px des bords gauche et droit contre 10 en haut et en bas : ce
-  retrait sert à aligner les cellules sur le titre de la carte, et ces
-  cartes-là n'en ont pas, leur titre étant posé au-dessus d'elles.
-- **Deux fins de tableau rentrent dans le rang.** L'analyse se fermait sur un
-  trait deux fois plus épais que les autres — celui de son pied s'ajoutait à
-  celui du tableau — et les règles de lettrage sur une ombre, que leur carte
-  tirée bord à bord n'avait plus lieu de porter.
-- **L'onglet « Plan comptable » passe tout à droite** : on y règle la machine,
-  on ne s'en sert pas au quotidien. Les onglets de la comptabilité vont
-  maintenant du travail courant à ce qui le rend possible.
-- **Le lettrage automatique n'a plus de vide sous ses sous-onglets**, ni de
-  traits verticaux au bord de son tableau : la rangée de sous-onglets posait sa
-  marge par-dessus le retrait du bloc de contenu, et la carte tirée bord à bord
-  gardait des bordures latérales qui ne séparaient plus rien.
-- **Les comptes bancaires prennent la même apparence** que l'autre face du plan
-  comptable : un titre « Comptes bancaires » au-dessus de la carte, la liste
-  dedans. L'en-tête de colonne disparaît — « Compte bancaire » au-dessus d'une
-  liste de comptes bancaires ne disait rien que le titre ne dise déjà.
-- **Le plan comptable se lit en deux cartes**, « Produits » et « Charges », leur
-  titre posé au-dessus d'elles comme sur les pays, les catégories et les tags.
-  Les parenthèses des titres tombent : une liste de produits n'a pas besoin
-  qu'on lui précise que ce sont des recettes.
-- **Le lettrage automatique rejoint les sous-onglets du plan comptable**, à
-  côté de « Produits et charges » et « Comptes bancaires ». Une règle de
-  lettrage ne vaut que par la catégorie du plan qu'elle désigne : elle n'a pas
-  de sens hors de lui. La comptabilité passe à quatre onglets, et sa rangée
-  tient à côté du titre jusque sur un écran étroit.
-- **L'onglet « Fiches de salaire » s'appelle « Fiches ».** Le titre du module,
-  juste à sa gauche, dit déjà « Salaires » : un onglet n'a pas à répéter le
-  bandeau qui le porte.
 
 ## [3.0.10] — 2026-10-09
 
