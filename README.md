@@ -619,6 +619,7 @@ php tests/run.php
 | `docs/NOMMAGE.md` | avant d'ajouter un écran : comment se nomment une route, une vue, une fonction. `tests/nommage_test.php` vérifie la convention à chaque exécution de la suite |
 | `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
 | `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md`, `SPEC_SUBVENTIONS.md` | le besoin cadré avec l'utilisateur pour ces quatre modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
+| `SPEC_PIECES.md`, `SPEC_PERSONNES.md` | deux chantiers **cadrés mais pas encore écrits** : les justificatifs de la comptabilité, et la personne comme objet à part entière. Ici c'est l'inverse des quatre précédents — rien n'est implémenté, le document fait foi |
 
 `docs/UI.md` se met à jour **en même temps** que la convention qu'il décrit :
 c'est ce qui évite de redécider à chaque page.
