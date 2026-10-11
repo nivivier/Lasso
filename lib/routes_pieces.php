@@ -407,6 +407,116 @@ function route_pieces_rapprochements(): void
     ], 'Rapprochements proposés');
 }
 
+// L'archive d'un exercice : tous les justificatifs de l'année dans un ZIP,
+// avec un index CSV qui relie chaque pièce à son écriture. C'est ce qu'un
+// vérificateur aux comptes ou une fiduciaire demande, et la sauvegarde
+// complète ne le remplace pas : elle contient TOUT, sans tri par année ni
+// lien avec la comptabilité — inexploitable pour un contrôle.
+//
+// Les fichiers sont nommés « 2026-03-14_Swisscom_Facture-janvier.pdf » plutôt
+// que par leur nom de stockage tiré au sort : une archive se parcourt dans un
+// explorateur de fichiers, pas en lisant l'index.
+function route_pieces_archive(): void
+{
+    require_login();
+    if (!peut_lire('pieces')) {
+        redirect('pieces');
+    }
+    if (!class_exists('ZipArchive')) {
+        redirect('pieces', ['err' => 'archive']);
+    }
+    $annee = (int) ($_GET['annee'] ?? date('Y'));
+    $stmt = db()->prepare(
+        "SELECT p.*, pc.libelle AS categorie_nom, e.date_op, e.texte AS ecriture_texte
+           FROM pieces p
+           LEFT JOIN plan_comptes pc ON pc.id = p.plan_compte_id
+           LEFT JOIN ecritures e ON e.id = p.ecriture_id
+          WHERE strftime('%Y', COALESCE(NULLIF(p.date_piece,''), p.cree_le)) = ?
+       ORDER BY COALESCE(NULLIF(p.date_piece,''), p.cree_le), p.id"
+    );
+    $stmt->execute([(string) $annee]);
+    $pieces = $stmt->fetchAll();
+    if (!$pieces) {
+        redirect('pieces', ['err' => 'archive_vide']);
+    }
+
+    $archive = tempnam(sys_get_temp_dir(), 'pieces_') . '.zip';
+    @unlink($archive);
+    $zip = new ZipArchive();
+    if ($zip->open($archive, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        redirect('pieces', ['err' => 'archive']);
+    }
+
+    $index = fopen('php://temp', 'r+');
+    fwrite($index, "\xEF\xBB\xBF"); // BOM UTF-8, pour qu'Excel lise les accents
+    fputcsv($index, ['Date', 'Type', 'Intitulé', 'Tiers', 'Montant CHF', 'Échéance', 'Payée le',
+                     'Moyen', 'Catégorie', 'Écriture', 'Fichier'], ';', '"', '\\');
+    $utilises = [];
+    foreach ($pieces as $p) {
+        $nomDansZip = '';
+        $fichier = basename(trim((string) $p['fichier']));
+        if ($fichier !== '' && is_file(fichiers_prives_dir() . '/' . $fichier)) {
+            $nomDansZip = pieces_nom_archive($p, $fichier, $utilises);
+            $zip->addFile(fichiers_prives_dir() . '/' . $fichier, $nomDansZip);
+        }
+        fputcsv($index, [
+            (string) $p['date_piece'],
+            PIECE_TYPES[$p['type']]['libelle'] ?? (string) $p['type'],
+            (string) $p['libelle'],
+            (string) $p['tiers'],
+            number_format((float) $p['montant'], 2, '.', ''),
+            (string) $p['date_echeance'],
+            (string) $p['date_payee'],
+            PIECE_MODES_PAIEMENT[$p['mode_paiement']] ?? '',
+            (string) ($p['categorie_nom'] ?? ''),
+            $p['date_op'] ? $p['date_op'] . ' — ' . $p['ecriture_texte'] : '',
+            $nomDansZip,
+        ], ';', '"', '\\');
+    }
+    rewind($index);
+    $zip->addFromString('index.csv', (string) stream_get_contents($index));
+    fclose($index);
+    if (!$zip->close()) {
+        redirect('pieces', ['err' => 'archive']);
+    }
+
+    $employeur = preg_replace('/[^a-z0-9]+/i', '-', (string) param('employeur_nom'));
+    $nom = 'pieces-' . $annee . ($employeur !== '' ? '-' . trim($employeur, '-') : '') . '.zip';
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $nom . '"');
+    header('Content-Length: ' . filesize($archive));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    readfile($archive);
+    @unlink($archive);
+    exit;
+}
+
+// Le nom d'un fichier DANS l'archive : date, tiers, intitulé. Deux pièces
+// peuvent produire le même — d'où le compteur, sans lequel ZipArchive écrase
+// silencieusement la première.
+function pieces_nom_archive(array $p, string $fichier, array &$utilises): string
+{
+    $ext = pathinfo($fichier, PATHINFO_EXTENSION);
+    $propre = function (string $t): string {
+        $t = (string) preg_replace('/[^\p{L}\p{N}]+/u', '-', $t);
+        return trim(mb_substr($t, 0, 40, 'UTF-8'), '-');
+    };
+    $base = trim(implode('_', array_filter([
+        (string) $p['date_piece'],
+        $propre((string) $p['tiers']),
+        $propre((string) $p['libelle']),
+    ])), '_');
+    $base = $base !== '' ? $base : 'piece-' . (int) $p['id'];
+    $nom = $base . ($ext !== '' ? '.' . $ext : '');
+    $n = 2;
+    while (isset($utilises[$nom])) {
+        $nom = $base . '-' . $n++ . ($ext !== '' ? '.' . $ext : '');
+    }
+    $utilises[$nom] = true;
+    return $nom;
+}
+
 // Sert le fichier d'une pièce. Il vit hors racine web (data/fichiers/) : c'est
 // cette route, et elle seule, qui décide qui le lit. Ici, une session avec
 // lecture sur le module — pas de jeton, aucun flux extérieur n'y renvoie.

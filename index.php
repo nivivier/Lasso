@@ -151,6 +151,7 @@ ajouter_routes_module($handlers, $routeModules, 'pieces', [
     'piece_rapprocher'  => 'route_piece_rapprocher',
     'piece_payee'       => 'route_piece_payee',
     'pieces_rapprochements' => 'route_pieces_rapprochements',
+    'pieces_archive'    => 'route_pieces_archive',
 ]);
 
 // Comptes bancaires : partagés entre Comptabilité (relevés, lettrage) et

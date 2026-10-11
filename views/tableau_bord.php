@@ -269,6 +269,37 @@ $dashTitre = function (string $groupe, string $titre): string {
         <?php $cartes['compta'] = ['titre' => 'Évolution financière', 'html' => ob_get_clean()]; ?>
         <?php endif; ?>
 
+        <?php if (module_accessible('pieces') && $piecesDash['nb'] > 0): ?>
+        <?php ob_start(); ?>
+        <div class="card dash-card">
+            <?= $dashTitre('compta', 'Pièces à payer') ?>
+            <table class="list">
+                <thead><tr><th>Échéance</th><th>Pièce</th><th class="num">Montant</th></tr></thead>
+                <tbody>
+                <?php // L'ambre dit UN GESTE À FAIRE : une échéance dépassée en
+                      // est un. Une facture dont le délai court n'en est pas
+                      // encore un, et elle reste à l'encre. ?>
+                <?php foreach ($piecesDash['pieces'] as $pc): ?>
+                    <tr class="row-link<?= $dash_action(piece_en_retard($pc)) ?>" tabindex="0" role="link"
+                        data-href="?p=piece&id=<?= (int) $pc['id'] ?>&depuis=dashboard">
+                        <td class="small"><?= $pc['date_echeance'] !== '' ? e(date('d.m.Y', strtotime((string) $pc['date_echeance']))) : '<span class="muted">—</span>' ?></td>
+                        <td class="dash-nom"><?= e((string) $pc['libelle']) ?></td>
+                        <td class="num strong"><?= chf(abs((float) $pc['montant'])) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php // lien_liste_filtree() et pas une URL écrite à la main : les
+                      // filtres de ?p=pieces sont des filtre_coche(), qui ignorent
+                      // l'URL sans leur marqueur et retombent sur la session
+                      // (docs/UI.md § 9). Sans lui, le compte annoncé ici et la
+                      // liste ouverte ne porteraient pas sur les mêmes lignes. ?>
+                <?= $dash_reste($piecesDash['nb'] - count($piecesDash['pieces']), 3,
+                        lien_liste_filtree('pieces', ['etat' => ['a_payer'], 'type' => [], 'annee' => []])) ?>
+                </tbody>
+            </table>
+        </div>
+        <?php $cartes['pieces'] = ['titre' => 'Pièces à payer', 'html' => ob_get_clean()]; ?>
+        <?php endif; ?>
+
         <?php if (module_accessible('salaires')): ?>
         <?php
         // Carte plafonnée. La route renvoie TOUTES les fiches impayées — le
@@ -586,6 +617,9 @@ $dashTitre = function (string $groupe, string $titre): string {
     }
     if (module_accessible('facturation') && peut_ecrire('facturation')) {
         $dashCreer[] = ['libelle' => 'Facture', 'icone' => 'file-plus', 'href' => '?p=facture_form'];
+    }
+    if (module_accessible('pieces') && peut_ecrire('pieces')) {
+        $dashCreer[] = ['libelle' => 'Pièce comptable', 'icone' => 'paperclip', 'href' => '?p=piece_form'];
     }
     if (module_accessible('evenements') && peut_ecrire('evenements')) {
         $dashCreer[] = ['libelle' => 'Événement', 'icone' => 'calendar-plus', 'href' => '?p=evenement'];

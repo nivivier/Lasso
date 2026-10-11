@@ -2823,6 +2823,7 @@ function route_tableau_bord(): void
         )->fetchAll()
         : [];
     $comptaSeries = module_accessible('compta') ? compta_dashboard_series() : [];
+    $piecesDash = pieces_dashboard(5);
     $prochainsEvenements = module_accessible('evenements') ? evenements_a_venir(5) : [];
     $suisaAFaire   = module_accessible('evenements') ? nb_evenements_suisa_a_faire() : 0;
     $suisaEnvoye   = module_accessible('evenements') ? nb_evenements_suisa_envoyes() : 0;
@@ -2847,6 +2848,7 @@ function route_tableau_bord(): void
     render('tableau_bord', [
         'aPayer' => $aPayer,
         'facturesEmises' => $facturesEmises, 'comptaSeries' => $comptaSeries,
+        'piecesDash' => $piecesDash,
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
         'campagnesDash' => $campagnesDash, 'campagnesAVenir' => $campagnesAVenir,
         'fondsDash' => $fondsDash,

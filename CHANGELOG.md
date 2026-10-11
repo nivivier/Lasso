@@ -20,6 +20,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   sans écriture.
   Sur téléphone, le bouton de dépôt ouvre l'appareil photo ; l'image est
   réduite par le navigateur avant l'envoi.
+  La liste des écritures gagne une colonne « Pièce » et son filtre : on y voit
+  d'un coup d'œil ce qui n'a pas de justificatif, et on en dépose un depuis la
+  ligne. Les catégories qui n'en attendent jamais — frais bancaires,
+  cotisations — se déclarent une fois dans le plan comptable ; l'exception
+  isolée se note sur l'écriture, avec sa raison.
+  Un écran propose les rapprochements évidents (même montant au centime, dates
+  voisines) sans rien poser : on coche ce qui est juste. Et un bouton
+  télécharge les justificatifs d'une année avec leur index, pour le
+  bouclement.
 
 ### Corrigé
 - **La carte « Salaire coordonné » touchait le tableau au-dessus d'elle**

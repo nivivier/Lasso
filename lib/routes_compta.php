@@ -1829,7 +1829,8 @@ function route_compta_ecritures_exporter_csv(): void
             'SELECT e.date_op, e.texte, e.tiers, e.communication, e.montant,
                     cb.libelle AS compte_bancaire,
                     p.libelle  AS categorie,
-                    e.origine_lettrage
+                    e.origine_lettrage, e.fiche_id, e.facture_id,
+                    e.plan_compte_id, e.piece_dispense_motif' . ECRITURE_PIECE_SELECT . '
              FROM ecritures e
              JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
              LEFT JOIN plan_comptes p  ON p.id  = e.plan_compte_id
@@ -1840,7 +1841,8 @@ function route_compta_ecritures_exporter_csv(): void
             'SELECT e.date_op, e.texte, e.tiers, e.communication, e.montant,
                     cb.libelle AS compte_bancaire,
                     p.libelle  AS categorie,
-                    e.origine_lettrage
+                    e.origine_lettrage, e.fiche_id, e.facture_id,
+                    e.plan_compte_id, e.piece_dispense_motif' . ECRITURE_PIECE_SELECT . '
              FROM ecritures e
              JOIN comptes_bancaires cb ON cb.id = e.compte_bancaire_id
              LEFT JOIN plan_comptes p  ON p.id  = e.plan_compte_id
@@ -1862,9 +1864,14 @@ function route_compta_ecritures_exporter_csv(): void
     $out = fopen('php://output', 'w');
     // BOM UTF-8 pour compatibilité Excel
     fwrite($out, "\xEF\xBB\xBF");
-    fputcsv($out, ['Date', 'Texte', 'Tiers', 'Communication', 'Montant CHF', 'Compte bancaire', 'Catégorie', 'Lettrage'], ';', '"', '\\');
+    // La colonne « Justificatif » ne paraît que si le module est là : sans
+    // pièces, elle ne dirait rien d'autre que « rien partout ».
+    $avecPieces = module_accessible('pieces');
+    $entetes = ['Date', 'Texte', 'Tiers', 'Communication', 'Montant CHF', 'Compte bancaire', 'Catégorie', 'Lettrage'];
+    if ($avecPieces) { $entetes[] = 'Justificatif'; }
+    fputcsv($out, $entetes, ';', '"', '\\');
     foreach ($rows as $r) {
-        fputcsv($out, [
+        $ligne = [
             $r['date_op'],
             $r['texte'],
             $r['tiers'] ?? '',
@@ -1873,7 +1880,14 @@ function route_compta_ecritures_exporter_csv(): void
             $r['compte_bancaire'],
             $r['categorie'] ?? '',
             $r['origine_lettrage'] ?? '',
-        ], ';', '"', '\\');
+        ];
+        if ($avecPieces) {
+            // Le même libellé que la colonne de l'écran, par la même table :
+            // un vérificateur qui lit le CSV et l'utilisateur qui lit l'écran
+            // doivent voir le même mot.
+            $ligne[] = ECRITURE_PIECE_LIBELLES[ecriture_piece_etat($r)] ?? '';
+        }
+        fputcsv($out, $ligne, ';', '"', '\\');
     }
     fclose($out);
     exit;

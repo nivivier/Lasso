@@ -4,6 +4,10 @@
 
 $peutEcrire = peut_ecrire('pieces');
 $nbSuggestions = $peutEcrire ? nb_pieces_suggestions() : 0;
+// L'année de l'archive : celle qu'on filtre si une seule est cochée, sinon
+// l'année en cours. Deux années cochées ne donnent pas une archive à deux
+// exercices — une archive comptable porte sur UN exercice.
+$anneeArchive = count($annee) === 1 ? (int) $annee[0] : (int) date('Y');
 $etatLabels = PIECE_ETATS;
 $typeLabels = array_map(fn ($t) => $t['libelle'], PIECE_TYPES);
 $anneeLabels = [];
@@ -22,6 +26,12 @@ $nbCols = 6;
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
+    <?php $errArchive = (string) ($_GET['err'] ?? ''); ?>
+    <?php if ($errArchive === 'archive_vide'): ?>
+        <p class="err flash">Aucune pièce pour cette année : rien à archiver.</p>
+    <?php elseif ($errArchive === 'archive'): ?>
+        <p class="err flash">L'archive n'a pas pu être créée sur le serveur.</p>
+    <?php endif; ?>
     <div class="toolbar">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="pieces">
@@ -50,6 +60,14 @@ $nbCols = 6;
             <?php if ($nbSuggestions > 0): ?>
             <a class="btn ghost" href="?p=pieces_rapprochements"><?= icon('check') ?>
                 <span class="lbl"> Rapprochements</span> <span class="nav-badge"><?= $nbSuggestions ?></span></a>
+            <?php endif; ?>
+            <?php // L'archive de l'exercice : ce qu'une fiduciaire ou un
+                  // vérificateur demande au bouclement. L'année suit les
+                  // filtres si l'on en a coché une, sinon c'est l'année en
+                  // cours — le geste se fait sur ce qu'on regarde. ?>
+            <?php if ($pieces): ?>
+            <a class="btn ghost" href="?p=pieces_archive&amp;annee=<?= $anneeArchive ?>"
+               title="Les justificatifs de <?= $anneeArchive ?> et leur index, en une archive"><?= icon('download') ?><span class="lbl"> Archive <?= $anneeArchive ?></span></a>
             <?php endif; ?>
             <?php if ($peutEcrire): ?>
             <a class="btn" href="?p=piece_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle pièce</span></a>

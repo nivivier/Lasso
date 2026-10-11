@@ -413,3 +413,26 @@ function nb_pieces_suggestions(): int
 {
     return count(pieces_suggestions());
 }
+
+// Ce que la carte du tableau de bord montre : les pièces à payer, les plus
+// pressées d'abord — une échéance proche passe avant une échéance lointaine,
+// et une pièce sans échéance ferme la marche. Plus le compte TOTAL, qui porte
+// sur tout et non sur les cinq lignes montrées : c'est l'écart entre les deux
+// que la dernière ligne « et X autres » rend lisible (docs/UI.md § 9).
+function pieces_dashboard(int $max = 5): array
+{
+    if (!module_accessible('pieces')) {
+        return ['pieces' => [], 'nb' => 0];
+    }
+    $nb = (int) db()->query('SELECT COUNT(*) FROM pieces p WHERE ' . piece_etat_sql('a_payer'))->fetchColumn();
+    if ($nb === 0) {
+        return ['pieces' => [], 'nb' => 0];
+    }
+    $stmt = db()->prepare(
+        'SELECT p.* FROM pieces p WHERE ' . piece_etat_sql('a_payer')
+        . " ORDER BY CASE WHEN p.date_echeance = '' THEN 1 ELSE 0 END, p.date_echeance, p.id LIMIT ?"
+    );
+    $stmt->bindValue(1, $max, PDO::PARAM_INT);
+    $stmt->execute();
+    return ['pieces' => $stmt->fetchAll(), 'nb' => $nb];
+}
