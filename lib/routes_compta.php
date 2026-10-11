@@ -637,6 +637,12 @@ function route_compta_ecritures(): void
     // « ou égal » côté crédit — cocher les deux revient à tout afficher, et une
     // écriture manuelle à 0 n'est jamais escamotée.
     $sensFiltre = filtre_coche('sens', 'ecr_sens', ['credit', 'debit']);
+    // Le justificatif : cinq valeurs qui se partagent toute la liste (voir
+    // ECRITURE_PIECE_ETATS, lib/pieces.php). N'a de sens que si le module des
+    // pièces est accessible — sans lui, « manquante » voudrait dire « il n'y a
+    // pas de pièces du tout », ce qui n'apprend rien.
+    $piecesOk = module_accessible('pieces');
+    $pieceFiltre = $piecesOk ? filtre_coche('piece', 'ecr_piece', ECRITURE_PIECE_ETATS) : [];
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -818,6 +824,12 @@ function route_compta_ecritures(): void
         }
         $where .= ' AND (' . implode(' OR ', $sensConds) . ')';
     }
+    if ($pieceFiltre) {
+        // Les conditions viennent d'ecriture_piece_etat_sql(), la MÊME source
+        // que la colonne et les compteurs : une requête écrite ici aurait fini
+        // par ne plus dire la même chose qu'elle.
+        $where .= ' AND (' . implode(' OR ', array_map(fn ($v) => '(' . ecriture_piece_etat_sql($v) . ')', $pieceFiltre)) . ')';
+    }
     if (module_actif('analytique') && $axeFilter) {
         $axeConds  = [];
         $axeParams = [];
@@ -869,7 +881,7 @@ function route_compta_ecritures(): void
     $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', e.id ASC' : ' ORDER BY e.date_op DESC, e.id ASC';
 
     if ($modeClient) {
-        $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . $from . $where . $orderBy;
+        $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . ECRITURE_PIECE_SELECT . $from . $where . $orderBy;
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
         $ecritures = $stmt->fetchAll();
@@ -890,7 +902,7 @@ function route_compta_ecritures(): void
         $pgPage = pagination_page();
         [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
 
-        $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . $from . $where;
+        $sql = 'SELECT e.*, p.libelle AS cat_libelle, cb.libelle AS compte_libelle' . ECRITURE_PIECE_SELECT . $from . $where;
         $sql .= $orderBy;
         $sql .= $limitSql;
         $stmt = db()->prepare($sql);
@@ -930,6 +942,8 @@ function route_compta_ecritures(): void
         'categoriesArbre'    => $categoriesArbre,
         'axeFilter'          => $axeFilter,
         'sensFiltre'         => $sensFiltre,
+        'pieceFiltre'        => $pieceFiltre,
+        'piecesOk'           => $piecesOk,
         'ecritures'          => $ecritures,
         'ventilationsParEcr' => $ventilationsParEcr,
         'feuilles'           => $feuilles,
@@ -942,7 +956,7 @@ function route_compta_ecritures(): void
         'recherche'       => $recherche,
         'modeClient' => $modeClient,
         'pgRoute' => 'compta_ecritures',
-        'pgParams' => array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'q' => $recherche]),
+        'pgParams' => array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'piece' => $pieceFiltre, 'q' => $recherche]),
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
     ], 'Comptabilité — Lettrage');
 }

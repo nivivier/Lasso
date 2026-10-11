@@ -1,13 +1,28 @@
 <?php /** @var ?array $p */ /** @var ?array $champs */ /** @var string $err */ /** @var array $categories */
+/** @var ?array $ecrSource */
 
-// $champs n'est rempli que lorsqu'on revient sur une erreur : la saisie ne doit
-// pas se perdre. Sinon on lit la pièce, ou les valeurs de départ.
-$v = function (string $cle, $defaut = '') use ($p, $champs) {
+// Trois sources, dans cet ordre : la saisie qu'on vient de refuser (il ne faut
+// jamais la perdre), la pièce qu'on modifie, l'écriture d'où l'on vient. Cette
+// dernière ne remplit que ce qu'elle sait — date, montant, contre-partie,
+// catégorie —, et c'est déjà tout sauf l'intitulé et le fichier.
+$depuisEcr = $ecrSource !== null;
+$v = function (string $cle, $defaut = '') use ($p, $champs, $ecrSource) {
     if ($champs !== null) { return (string) ($champs[$cle] ?? ''); }
-    return (string) ($p[$cle] ?? $defaut);
+    if ($p !== null)      { return (string) ($p[$cle] ?? $defaut); }
+    if ($ecrSource !== null) {
+        $depuis = [
+            'date_piece'     => (string) $ecrSource['date_op'],
+            'date_payee'     => (string) $ecrSource['date_op'],
+            'tiers'          => (string) ($ecrSource['tiers'] ?? ''),
+            'plan_compte_id' => (string) ($ecrSource['plan_compte_id'] ?? ''),
+            'mode_paiement'  => 'compte',
+        ];
+        if (isset($depuis[$cle])) { return $depuis[$cle]; }
+    }
+    return (string) $defaut;
 };
 $id      = (int) ($p['id'] ?? 0);
-$montant = (float) ($champs['montant'] ?? $p['montant'] ?? 0);
+$montant = (float) ($champs['montant'] ?? $p['montant'] ?? $ecrSource['montant'] ?? 0);
 $sens    = $montant > 0 ? 'recette' : 'depense';
 $type    = $v('type', 'facture_recue');
 $modePaie = $v('mode_paiement');
@@ -31,6 +46,14 @@ $modePaie = $v('mode_paiement');
 <form method="post" action="?p=piece_form" id="piece-form" class="card form" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($id): ?><input type="hidden" name="id" value="<?= $id ?>"><?php endif; ?>
+    <?php if ($depuisEcr): ?>
+    <input type="hidden" name="ecriture_id" value="<?= (int) $ecrSource['id'] ?>">
+    <p class="muted small mb-16">
+        <?= icon('banknote') ?> Sera rattachée à l'écriture du
+        <?= e(date('d.m.Y', strtotime((string) $ecrSource['date_op']))) ?>,
+        <?= e(chf((float) $ecrSource['montant'])) ?> — <?= e(mb_substr((string) $ecrSource['texte'], 0, 60, 'UTF-8')) ?>
+    </p>
+    <?php endif; ?>
 
     <h3 class="sub no-mt">Ce que c'est</h3>
     <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce') ?>

@@ -1,6 +1,7 @@
 <?php
 /** @var array $tri */ /** @var array $comptes */ /** @var array $compteId */ /** @var array $annee */ /** @var array $annees */
 /** @var array $categorieFilter */ /** @var array $axeFilter */ /** @var array $sensFiltre */ /** @var array $ecritures */
+/** @var array $pieceFiltre */ /** @var bool $piecesOk */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
 /** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */ /** @var bool $modeClient */
@@ -36,7 +37,7 @@ $isEdit   = $editEcr !== null;
 // http_build_query gère aussi bien les valeurs scalaires que les tableaux
 // (compte[0]=1&compte[1]=2 — reparsable tel quel par PHP), donc pas besoin
 // de distinguer les filtres à valeur unique des filtres multi-valeurs ici.
-$qs = '&' . http_build_query(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre]);
+$qs = '&' . http_build_query(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'piece' => $pieceFiltre]);
 $axeLabel = fn(array $ax): string => ($ax['code'] !== '' && $ax['code'] !== null) ? $ax['code'] : $ax['libelle'];
 
 // Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches — voir
@@ -55,10 +56,13 @@ foreach ($categoriesArbre as $c) {
 $sensLabels = ['credit' => 'Crédit (+)', 'debit' => 'Débit (−)'];
 $axeLabels = ['sans_axe' => '— Sans axe —'];
 foreach ($axes as $ax) { $axeLabels[(int) $ax['id']] = $axeLabel($ax); }
+// Le justificatif. Les libellés viennent de lib/pieces.php, la même table qui
+// nomme les icônes de la colonne : un état renommé l'est partout d'un coup.
+$pieceLabels = ECRITURE_PIECE_LIBELLES;
 // $autresFiltres('champ') : les AUTRES filtres actifs de la page (jamais
 // celui-ci), à reporter en hidden inputs par chaque panneau — voir
 // autres_filtres_fn(), lib/helpers.php.
-$tousFiltres = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'q' => $recherche];
+$tousFiltres = ['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'piece' => $pieceFiltre, 'q' => $recherche];
 $autresFiltres = autres_filtres_fn($tousFiltres);
 // Colonne Compte masquée quand le filtre la rend redondante (un seul compte
 // coché) — généralise l'ancien "$compteId === 0" (affiché) / valeur unique
@@ -228,7 +232,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <div class="table-scroll">
 <table class="list compta-lettrage">
     <?php // 7 = case + Date + Contre-partie + Texte + Montant + Catégorie + actions ?>
-    <?php $nbCols = 7 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
+    <?php $nbCols = 7 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) + ($piecesOk ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
     <thead>
         <tr>
             <?php if (peut_ecrire('compta')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('compta_ecritures', ['annee', 'compte', 'categorie', 'axe', 'sens'], (bool) ($annee || $compteId || $categorieFilter || $axeFilter || $sensFiltre)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
@@ -283,6 +287,18 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <span class="col-th">
                     Axe
                     <?= filtre_colonne_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe')) ?>
+                </span>
+            </th>
+            <?php endif; ?>
+            <?php if ($piecesOk): ?>
+            <?php // Le justificatif : une icône par nature de preuve, rien du
+                  // tout quand elle manque. C'est l'ABSENCE qui doit sauter aux
+                  // yeux dans une colonne d'icônes, pas la présence — l'inverse
+                  // aurait fait clignoter les lignes en ordre. ?>
+            <th class="col-piece">
+                <span class="col-th">
+                    Pièce
+                    <?= filtre_colonne_html('compta_ecritures', 'piece', $pieceLabels, $pieceFiltre, $autresFiltres('piece')) ?>
                 </span>
             </th>
             <?php endif; ?>
@@ -453,6 +469,22 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                         <button type="button" class="row-edit-btn axe-edit-btn" title="Modifier la ventilation" aria-label="Modifier la ventilation analytique"><?= icon('pencil') ?></button>
                     <?php endif; ?>
                 </div>
+            </td>
+            <?php endif; ?>
+            <?php if ($piecesOk): $etatPiece = ecriture_piece_etat($ecr); ?>
+            <td class="col-piece piece-cell">
+                <?php if ($etatPiece === 'manquante'): ?>
+                    <?php if (peut_ecrire('pieces')): ?>
+                        <?php // Rien à montrer, mais quelque chose à faire : le
+                              // bouton n'apparaît qu'au survol de la ligne, comme
+                              // les crayons des cellules voisines. ?>
+                        <a class="row-edit-btn piece-lier-btn" title="Joindre une pièce" aria-label="Joindre une pièce à cette écriture"
+                           href="?p=piece_form&amp;ecriture_id=<?= (int) $ecr['id'] ?>"><?= icon('paperclip') ?></a>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <span class="piece-etat piece-etat-<?= e($etatPiece) ?>" title="<?= e(ECRITURE_PIECE_LIBELLES[$etatPiece]) ?>"
+                          aria-label="<?= e(ECRITURE_PIECE_LIBELLES[$etatPiece]) ?>"><?= icon(ECRITURE_PIECE_ICONES[$etatPiece]) ?></span>
+                <?php endif; ?>
             </td>
             <?php endif; ?>
             <td class="actions">

@@ -1673,7 +1673,8 @@ select:disabled { cursor: not-allowed; }
 .row-field-prefix { font-size: var(--fs-tiny); color: var(--muted); }
 .row-edit-btn { background: none; border: none; padding: 2px 3px; cursor: pointer; color: var(--muted);
     opacity: 0; flex-shrink: 0; line-height: 0; border-radius: var(--radius-sm); transition: opacity .12s; }
-.cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn, .row-field-disp:hover .row-edit-btn { opacity: 1; }
+.cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn, .row-field-disp:hover .row-edit-btn,
+.piece-cell:hover .row-edit-btn { opacity: 1; }
 .row-edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--primary); outline-offset: 1px; }
 .row-edit-btn svg { width: 12px; height: 12px; }
 /* Texte plus compact pour Date et Compte */
@@ -5972,6 +5973,23 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .piece-type, .piece-attache { color: var(--muted); display: inline-flex; vertical-align: -2px; }
 .piece-type .ico, .piece-attache .ico { width: 15px; height: 15px; }
 .piece-attache { margin-left: 5px; }
+
+/* La colonne « Pièce » de ?p=compta_ecritures : une colonne d'ICÔNES, serrée
+   sur son contenu. C'est l'ABSENCE qu'on y cherche — une ligne sans
+   justificatif —, donc rien ne s'y affiche quand il manque : l'œil descend la
+   colonne et s'arrête sur les trous. L'inverse aurait fait clignoter les
+   lignes en ordre, qui sont la majorité. */
+.col-piece { width: 1%; white-space: nowrap; text-align: center; }
+.piece-etat { display: inline-flex; color: var(--muted); }
+.piece-etat .ico { width: 16px; height: 16px; }
+/* Une dispense n'est pas un justificatif : le tiret se tient en retrait des
+   trois icônes qui, elles, désignent une preuve. */
+.piece-etat-dispensee { opacity: .45; }
+/* Le bouton de dépôt est un .row-edit-btn ordinaire : il ne paraît qu'au
+   survol de sa cellule, comme les crayons voisins — une colonne pleine de
+   trombones gris aurait dit « il manque partout » là où elle doit dire « il
+   manque ICI ». La règle de survol est celle de .row-edit-btn, élargie à
+   .piece-cell plutôt que redite ici. */
 
 /* Le fichier joint, sur la fiche : un trombone, le nom d'origine, le poids. */
 .piece-fichier { display: flex; align-items: center; gap: 8px; }

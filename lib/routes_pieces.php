@@ -144,6 +144,18 @@ function route_piece_form(): void
         redirect('pieces');
     }
 
+    // Arrivée depuis la colonne « Pièce » d'une écriture : le justificatif
+    // manque, on le dépose depuis là. L'écriture donne ses valeurs de départ —
+    // date, montant, contre-partie, catégorie — et le rattachement se fait à
+    // l'enregistrement : la saisie se réduit au fichier et à l'intitulé.
+    $ecrSource = null;
+    $ecrId = (int) ($_GET['ecriture_id'] ?? $_POST['ecriture_id'] ?? 0);
+    if ($ecrId && !$piece && module_accessible('compta')) {
+        $stmt = db()->prepare('SELECT * FROM ecritures WHERE id = ?');
+        $stmt->execute([$ecrId]);
+        $ecrSource = $stmt->fetch() ?: null;
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $champs = piece_champs_postes();
@@ -158,7 +170,7 @@ function route_piece_form(): void
             $fichier = fichier_prive_enregistrer('fichier', 'piece')
                 ?? piece_photo_enregistrer('photo');
         } catch (RuntimeException $e) {
-            render('piece_form', piece_form_data($piece, $champs, $e->getMessage()), 'Pièce');
+            render('piece_form', piece_form_data($piece, $champs, $e->getMessage(), $ecrSource), 'Pièce');
             return;
         }
 
@@ -185,11 +197,14 @@ function route_piece_form(): void
             $sql = 'INSERT INTO pieces (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')';
             db()->prepare($sql)->execute($args);
             $id = (int) db()->lastInsertId();
+            if ($ecrSource) {
+                piece_rapprocher($id, (int) $ecrSource['id']);
+            }
         }
         redirect('piece', ['id' => $id, 'ok' => 1]);
     }
 
-    render('piece_form', piece_form_data($piece, null, ''), $piece ? 'Modifier la pièce' : 'Nouvelle pièce');
+    render('piece_form', piece_form_data($piece, null, '', $ecrSource), $piece ? 'Modifier la pièce' : 'Nouvelle pièce');
 }
 
 // Ce que le formulaire renvoie, nettoyé. L'ordre des clés EST celui des
@@ -232,12 +247,13 @@ function piece_montant_poste(): float
 }
 
 // Les données du formulaire, qu'on arrive dessus ou qu'on y revienne sur erreur.
-function piece_form_data(?array $piece, ?array $champs, string $err): array
+function piece_form_data(?array $piece, ?array $champs, string $err, ?array $ecrSource = null): array
 {
     return [
         'p'          => $piece,
         'champs'     => $champs,
         'err'        => $err,
+        'ecrSource'  => $ecrSource,
         // Les feuilles de l'arbre : seules elles sont assignables, comme
         // pour le lettrage d'une écriture (plan_feuilles(), lib/compta.php).
         'categories' => plan_feuilles(compta_plan_actif()),
