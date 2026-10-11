@@ -4209,6 +4209,10 @@ abbr {
 .bulk-bar { display: flex; gap: 16px; align-items: center; flex-wrap: nowrap; background: var(--card); border: 1px solid var(--primary-tint); border-radius: var(--radius); padding: 12px 16px; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 24px rgb(var(--primary-rgb) / .22); z-index: 100; white-space: nowrap; }
 .bulk-bar form { display: flex; align-items: center; gap: 10px; }
 .bulk-field { display: flex; align-items: center; }
+/* Le motif d'une dispense : une phrase courte, pas un mot. Assez large pour
+   qu'on lise ce qu'on écrit sans que la barre flottante déborde de l'écran —
+   elle est en white-space:nowrap et ne se replie pas. */
+.bulk-motif { width: 20rem; max-width: 42vw; }
 .compta-lettrage { min-width: 900px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
 .compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
 /* (retrait des cellules : celui de toutes les listes, --row-pad — voir
@@ -5990,6 +5994,11 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    trombones gris aurait dit « il manque partout » là où elle doit dire « il
    manque ICI ». La règle de survol est celle de .row-edit-btn, élargie à
    .piece-cell plutôt que redite ici. */
+
+/* « Pièce attendue », dans l'édition d'une ligne du plan comptable : sur une
+   seule ligne, sans quoi la case et son libellé se coupent en deux au milieu
+   d'un formulaire déjà horizontal. */
+.plan-piece { white-space: nowrap; flex: 0 0 auto; }
 
 /* Le fichier joint, sur la fiche : un trombone, le nom d'origine, le poids. */
 .piece-fichier { display: flex; align-items: center; gap: 8px; }

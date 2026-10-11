@@ -196,6 +196,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <option value="">— Choisir une action —</option>
             <option value="lettrer">Modifier la catégorie</option>
             <?php if ($axes): ?><option value="axer">Modifier l'axe</option><?php endif; ?>
+            <?php if ($piecesOk && peut_ecrire('pieces')): ?><option value="dispenser">Dispenser de pièce</option><?php endif; ?>
         </select>
 
         <span class="bulk-field" data-for="lettrer" hidden>
@@ -224,6 +225,14 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </span>
         <?php endif; ?>
 
+        <?php if ($piecesOk && peut_ecrire('pieces')): ?>
+        <?php // Le motif FAIT FOI : vide, la dispense se retire. D'où l'absence
+              // de « required » — on efface en effaçant, sans second bouton. ?>
+        <span class="bulk-field" data-for="dispenser" hidden>
+            <input type="text" name="dispense_motif" class="bulk-motif"
+                   placeholder="Pourquoi pas de pièce ? (vide = retirer la dispense)">
+        </span>
+        <?php endif; ?>
         <button type="submit" class="btn" id="bulk-submit" disabled>Modifier la sélection</button>
     </form>
 </div>
@@ -482,8 +491,15 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                            href="?p=piece_form&amp;ecriture_id=<?= (int) $ecr['id'] ?>"><?= icon('paperclip') ?></a>
                     <?php endif; ?>
                 <?php else: ?>
-                    <span class="piece-etat piece-etat-<?= e($etatPiece) ?>" title="<?= e(ECRITURE_PIECE_LIBELLES[$etatPiece]) ?>"
-                          aria-label="<?= e(ECRITURE_PIECE_LIBELLES[$etatPiece]) ?>"><?= icon(ECRITURE_PIECE_ICONES[$etatPiece]) ?></span>
+                    <?php
+                    // Une dispense motivée dit SA RAISON en infobulle : « sans
+                    // pièce attendue » tout court laisserait chercher pourquoi.
+                    $motifDispense = trim((string) ($ecr['piece_dispense_motif'] ?? ''));
+                    $titrePiece = ECRITURE_PIECE_LIBELLES[$etatPiece]
+                        . ($etatPiece === 'dispensee' && $motifDispense !== '' ? ' — ' . $motifDispense : '');
+                    ?>
+                    <span class="piece-etat piece-etat-<?= e($etatPiece) ?>" title="<?= e($titrePiece) ?>"
+                          aria-label="<?= e($titrePiece) ?>"><?= icon(ECRITURE_PIECE_ICONES[$etatPiece]) ?></span>
                 <?php endif; ?>
             </td>
             <?php endif; ?>

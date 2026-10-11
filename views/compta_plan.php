@@ -26,7 +26,7 @@ $flashErr = [
 <?php if ($saved): ?><p class="ok flash">Plan comptable mis à jour.</p><?php endif; ?>
 <?php if ($flagErr && isset($flashErr[$flagErr])): ?><p class="err flash"><?= e($flashErr[$flagErr]) ?></p><?php endif; ?>
 
-<?php $peutEcrirePlan = peut_ecrire('compta'); ?>
+<?php $peutEcrirePlan = peut_ecrire('compta'); $piecesOk = module_accessible('pieces'); ?>
 <?php // Pas de .module-content ici : ce bloc est le fond blanc pleine largeur
       // des pages de LISTE (les écritures, les factures), et des cartes posées
       // dessus ne se détachent de rien. Cette page est une page de cartes, comme
@@ -82,12 +82,27 @@ $flashErr = [
                             <label class="plan-parent plan-fallback">dans
                                 <select name="parent_id"><?= $parentOptions($sens, plan_pid($p['parent_id'] ?? null) ?: null, $pid) ?></select>
                             </label>
+                            <?php // « Pièce attendue » : se règle UNE FOIS ici plutôt
+                                  // qu'écriture par écriture. Les frais de tenue de
+                                  // compte n'ont pas de facture, les cotisations des
+                                  // membres non plus — décocher, et la question ne se
+                                  // repose jamais pour cette catégorie.
+                                  // Seulement sur une feuille : une catégorie à
+                                  // enfants ne reçoit aucune écriture. ?>
+                            <?php if ($piecesOk && !$p['a_enfants']): ?>
+                            <input type="hidden" name="piece_attendue_presente" value="1">
+                            <label class="check plan-piece" title="Les écritures de cette catégorie doivent-elles avoir un justificatif ?"><input type="checkbox" name="piece_attendue" value="1" <?= (int) ($p['piece_attendue'] ?? 1) === 1 ? 'checked' : '' ?>> Pièce attendue</label>
+                            <?php endif; ?>
                             <button type="submit" class="btn ghost btn-sm plan-fallback" title="Enregistrer" aria-label="Enregistrer le parent"><?= icon('save') ?></button>
                         </form>
                         <?php else: ?>
                         <span class="plan-nom"><?= e($p['libelle']) ?></span>
                         <?php endif; ?>
                         <?php if (!$actif): ?><span class="badge warn-badge">archivée</span><?php endif; ?>
+                        <?php if ($piecesOk && !$p['a_enfants'] && (int) ($p['piece_attendue'] ?? 1) === 0): ?>
+                            <span class="piece-etat piece-etat-dispensee" title="Sans pièce attendue"
+                                  aria-label="Sans pièce attendue"><?= icon('minus') ?></span>
+                        <?php endif; ?>
                     </div>
                 </td>
                 <td class="actions nowrap">

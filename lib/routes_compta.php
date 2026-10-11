@@ -316,8 +316,17 @@ function route_compta_plan(): void
                 if ($parent !== null && (in_array($parent, $interdits, true) || !isset($plan[$parent]))) {
                     $parent = plan_pid($plan[$id]['parent_id'] ?? null) ?: null; // rattachement invalide → inchangé
                 }
-                db()->prepare('UPDATE plan_comptes SET libelle = ?, parent_id = ? WHERE id = ?')
-                    ->execute([$libelle, $parent, $id]);
+                // « Pièce attendue » : une case décochée ne s'envoie pas, donc
+                // on écrit toujours 0 ou 1 plutôt que de lire une présence —
+                // sinon la décocher n'aurait aucun effet. Le marqueur caché
+                // distingue le formulaire qui porte la case de ceux qui ne
+                // l'ont pas (une catégorie à enfants n'en a pas : aucune
+                // écriture ne s'y range).
+                $piece = isset($_POST['piece_attendue_presente'])
+                    ? (isset($_POST['piece_attendue']) ? 1 : 0)
+                    : (int) ($plan[$id]['piece_attendue'] ?? 1);
+                db()->prepare('UPDATE plan_comptes SET libelle = ?, parent_id = ?, piece_attendue = ? WHERE id = ?')
+                    ->execute([$libelle, $parent, $piece, $id]);
                 compta_normaliser_sens();
             }
         } elseif ($section === 'move') {
@@ -757,6 +766,33 @@ function route_compta_ecritures(): void
                     }
                     db()->commit();
                 }
+                if (isset($_SESSION['bulk_undo'])) {
+                    $retour['bulk'] = count($ids);
+                }
+            }
+            redirect('compta_ecritures', $retour);
+        } elseif ($section === 'dispenser') {
+            // Dispenser de justificatif, ou retirer la dispense (motif vide).
+            // Le MOTIF fait foi : non vide = dispensée. Une colonne et non
+            // deux, comme origine_lettrage — on ne peut pas se retrouver avec
+            // une dispense sans raison, et c'est la raison qu'on relira dans
+            // six mois.
+            //
+            // Geste GROUPÉ et non bouton de ligne : au bouclement on coche les
+            // cinq lignes de frais bancaires et on les dispense d'un même
+            // motif. Une ligne seule se coche aussi — le mécanisme est le
+            // même, avec son annulation, et il n'a rien fallu ajouter.
+            //
+            // Le cas courant, lui, se règle une fois pour toutes sur la
+            // catégorie (plan_comptes.piece_attendue). Ceci est l'exception.
+            $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+            $motif = trim((string) ($_POST['dispense_motif'] ?? ''));
+            if ($ids) {
+                unset($_SESSION['bulk_undo']);
+                bulk_undo_memoriser('ecritures', $ids, ['piece_dispense_motif'], 'compta_ecritures', $retour);
+                $in = sql_in($ids);
+                db()->prepare("UPDATE ecritures SET piece_dispense_motif = ? WHERE id IN ($in)")
+                    ->execute(array_merge([$motif], $ids));
                 if (isset($_SESSION['bulk_undo'])) {
                     $retour['bulk'] = count($ids);
                 }
