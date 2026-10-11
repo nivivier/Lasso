@@ -41,6 +41,18 @@ function check(string $label, $attendu, $obtenu): void
 }
 
 $pdo = db();
+
+// pieces_suggestions() passe par module_accessible(), donc par les droits de
+// l'utilisateur COURANT : sans session elle rendrait un tableau vide, et les
+// assertions du § 6 passeraient sans rien vérifier. On monte donc un compte
+// qui a tout, comme l'application en a un.
+$pdo->exec("INSERT INTO utilisateurs (id, email, mot_de_passe) VALUES (1, 'test@example.test', 'x')");
+$permStmt = $pdo->prepare('INSERT OR REPLACE INTO utilisateur_permissions (utilisateur_id, module, niveau) VALUES (1, ?, ?)');
+foreach (PERMISSION_MODULES as $m) {
+    $permStmt->execute([$m, 'ecriture']);
+}
+$_SESSION = ['uid' => 1, 'last_activity' => time(), 'login_time' => time()];
+
 // La base neuve est SEMÉE (seed_*, lib/db/schema.php) : on part donc d'un
 // plan comptable et d'écritures qui existent déjà. On nettoie plutôt que de
 // composer avec, pour que les décomptes ci-dessous portent sur des cas connus.
@@ -170,6 +182,57 @@ foreach (PIECE_TYPES as $k => $t) {
     if (trim(icone_chemins($t['icone'])) === '') { $sansTraceType[] = $k . ' → ' . $t['icone']; }
 }
 check('chaque type de pièce a son tracé d\'icône', [], $sansTraceType);
+
+echo "\n6) Les rapprochements proposés\n";
+
+$pdo->exec("DELETE FROM pieces");
+$pdo->exec("DELETE FROM ecritures");
+$ecr(10, ['date_op' => '2026-03-01', 'montant' => -1200.0, 'texte' => 'LOYER MARS']);
+$ecr(11, ['date_op' => '2026-05-01', 'montant' => -1200.0, 'texte' => 'LOYER MAI']);
+$ecr(12, ['date_op' => '2026-03-20', 'montant' => -480.0,  'texte' => 'PAIEMENT SWISSCOM SA']);
+$ecr(13, ['date_op' => '2026-03-21', 'montant' => -999.0,  'texte' => 'AUTRE CHOSE']);
+
+// Une facture de loyer payée le 1er mars. Son écriture du 1er mars est déjà
+// prise : la suivante est à 61 jours, hors fenêtre.
+$pdo->exec("INSERT INTO pieces (id, libelle, tiers, montant, date_payee, mode_paiement, ecriture_id) VALUES (20, 'Déjà liée', 'Régie', -1200, '2026-03-01', 'compte', 10)");
+$pdo->exec("INSERT INTO pieces (id, libelle, tiers, montant, date_payee, mode_paiement) VALUES (21, 'Loyer mars', 'Régie', -1200, '2026-03-01', 'compte')");
+$sugg = pieces_suggestions();
+// ⚠️ LE piège qui a réellement mordu : avec execute([...]), PDO lie la fenêtre
+// en CHAÎNE, et SQLite tient alors tout nombre pour inférieur à tout texte —
+// « 61 <= '45' » est vrai. La fenêtre ne filtrait rien et le loyer de mai se
+// proposait pour la facture de mars.
+check('une écriture hors de la fenêtre de 45 jours n\'est pas proposée', [], array_map(
+    fn ($s) => (int) $s['ecriture']['id'],
+    array_values(array_filter($sugg, fn ($s) => (int) $s['piece']['id'] === 21))
+));
+
+// Le nom retrouvé dans le libellé : c'est lui qui fait la différence entre
+// « probablement » et « sûrement », et qui décide des lignes pré-cochées.
+$pdo->exec("INSERT INTO pieces (id, libelle, tiers, montant, date_payee, mode_paiement) VALUES (22, 'Abonnement', 'Swisscom', -480, '2026-03-18', 'compte')");
+$sugg = pieces_suggestions();
+$pour22 = array_values(array_filter($sugg, fn ($s) => (int) $s['piece']['id'] === 22));
+check('le nom du tiers retrouvé dans le libellé → proposé', 1, count($pour22));
+check('…et signalé comme reconnu par le nom', true, $pour22 ? (bool) $pour22[0]['par_nom'] : false);
+check('…sur la bonne écriture', 12, $pour22 ? (int) $pour22[0]['ecriture']['id'] : 0);
+
+// Un tiers trop court se retrouverait dans la moitié des libellés.
+check('un tiers de moins de trois lettres ne vaut pas reconnaissance', false,
+    pieces_nom_present('AB', ['texte' => 'VIREMENT ABC SARL']));
+check('la casse ne compte pas', true,
+    pieces_nom_present('swisscom', ['texte' => 'PAIEMENT SWISSCOM SA']));
+
+// Une pièce réglée hors du compte n'attend aucune écriture : la proposer
+// serait proposer un rapprochement qui n'a pas lieu d'être.
+$pdo->exec("INSERT INTO pieces (id, libelle, tiers, montant, date_payee, mode_paiement) VALUES (23, 'Espèces', 'Swisscom', -480, '2026-03-18', 'hors_compte')");
+$sugg = pieces_suggestions();
+check('une pièce réglée hors du compte n\'est jamais proposée', [], array_values(array_filter(
+    array_map(fn ($s) => (int) $s['piece']['id'], $sugg), fn ($id) => $id === 23
+)));
+
+// Une écriture ne peut être proposée qu'une fois : valider deux suggestions
+// qui la désignent donnerait deux pièces sur le même paiement.
+$ecrProposees = array_map(fn ($s) => (int) $s['ecriture']['id'], $sugg);
+check('aucune écriture proposée deux fois', count($ecrProposees), count(array_unique($ecrProposees)));
 
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }

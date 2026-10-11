@@ -3,6 +3,7 @@
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 
 $peutEcrire = peut_ecrire('pieces');
+$nbSuggestions = $peutEcrire ? nb_pieces_suggestions() : 0;
 $etatLabels = PIECE_ETATS;
 $typeLabels = array_map(fn ($t) => $t['libelle'], PIECE_TYPES);
 $anneeLabels = [];
@@ -41,11 +42,19 @@ $nbCols = 6;
             . filtre_colonne_actifs_html('pieces', 'annee', $anneeLabels, $annee, $autresAnnee);
         require __DIR__ . '/_filtres_mobile.php';
         ?>
-        <?php if ($peutEcrire): ?>
         <div class="head-actions">
+            <?php // Ce qui mène ailleurs d'abord, l'action mise en évidence
+                  // ensuite (docs/UI.md § 1). Le bouton ne paraît que s'il y a
+                  // quelque chose à rapprocher : un bouton qui mène toujours à
+                  // une page vide finit par ne plus être lu. ?>
+            <?php if ($nbSuggestions > 0): ?>
+            <a class="btn ghost" href="?p=pieces_rapprochements"><?= icon('check') ?>
+                <span class="lbl"> Rapprochements</span> <span class="nav-badge"><?= $nbSuggestions ?></span></a>
+            <?php endif; ?>
+            <?php if ($peutEcrire): ?>
             <a class="btn" href="?p=piece_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle pièce</span></a>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
 
 <div class="table-scroll">

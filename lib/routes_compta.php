@@ -547,7 +547,14 @@ function compta_traiter_fichier_importe(string $contenu, string $nomFichier, boo
     $prefixe = $compteCree
         ? "Compte « " . $compte['libelle'] . " » créé (IBAN " . $parse['iban'] . "). "
         : "Import « " . $compte['libelle'] . " » : ";
-    return ['ok' => $prefixe . "$ins écriture(s) ajoutée(s), $dup doublon(s) ignoré(s)."] + $vide;
+    // Les justificatifs, eux, se PROPOSENT : on dit seulement combien de pièces
+    // trouvent leur écriture, l'écran dédié fait valider. Les lier ici, comme
+    // le fait la facturation juste au-dessus, serait tenable pour une facture
+    // qu'on a soi-même émise (son numéro est unique) et ne l'est pas pour une
+    // facture reçue, qui arrive en double et se répète tous les mois.
+    $nSugg = module_accessible('pieces') ? nb_pieces_suggestions() : 0;
+    $suite = $nSugg > 0 ? " $nSugg pièce(s) trouvent leur écriture." : '';
+    return ['ok' => $prefixe . "$ins écriture(s) ajoutée(s), $dup doublon(s) ignoré(s).$suite"] + $vide;
 }
 
 // Résout la simulation ou l'application d'un import d'écritures depuis

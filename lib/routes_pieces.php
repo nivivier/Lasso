@@ -363,6 +363,50 @@ function route_piece_payee(): void
     redirect('piece', ['id' => $id, 'ok' => 'paiement']);
 }
 
+// Les rapprochements proposés. GET les montre, POST applique ceux qu'on a
+// cochés. Rien n'est stocké : la liste se recalcule à chaque affichage, donc
+// elle ne peut pas proposer un rapprochement devenu impossible.
+function route_pieces_rapprochements(): void
+{
+    require_login();
+    if (!module_accessible('compta')) {
+        redirect('pieces');
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        // Les paires arrivent en « pieceId:ecritureId » : la pièce seule ne
+        // suffirait pas, puisque la suggestion a pu changer entre l'affichage
+        // et la validation. On revérifie donc que la pièce est toujours libre
+        // et l'écriture toujours disponible avant de poser quoi que ce soit.
+        $n = 0;
+        foreach ((array) ($_POST['paires'] ?? []) as $paire) {
+            [$pid, $eid] = array_pad(explode(':', (string) $paire, 2), 2, '');
+            $pid = (int) $pid;
+            $eid = (int) $eid;
+            if (!$pid || !$eid) {
+                continue;
+            }
+            $p = piece_charger($pid);
+            if (!$p || !empty($p['ecriture_id'])) {
+                continue;
+            }
+            $libre = db()->prepare('SELECT COUNT(*) FROM pieces WHERE ecriture_id = ?');
+            $libre->execute([$eid]);
+            if ((int) $libre->fetchColumn() > 0) {
+                continue;
+            }
+            piece_rapprocher($pid, $eid);
+            $n++;
+        }
+        redirect('pieces_rapprochements', $n ? ['ok' => $n] : []);
+    }
+
+    render('pieces_rapprochements', [
+        'suggestions' => pieces_suggestions(),
+        'ok'          => isset($_GET['ok']) ? (int) $_GET['ok'] : null,
+    ], 'Rapprochements proposés');
+}
+
 // Sert le fichier d'une pièce. Il vit hors racine web (data/fichiers/) : c'est
 // cette route, et elle seule, qui décide qui le lit. Ici, une session avec
 // lecture sur le module — pas de jeton, aucun flux extérieur n'y renvoie.

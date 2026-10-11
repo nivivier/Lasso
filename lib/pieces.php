@@ -286,3 +286,130 @@ function piece_supprimer(int $id): void
     db()->prepare('DELETE FROM pieces WHERE id = ?')->execute([$id]);
     fichier_prive_supprimer((string) $p['fichier']);
 }
+
+// ---------------------------------------------------------------------------
+// Les rapprochements PROPOSÉS
+//
+// ⚠️ On propose, on ne pose pas. C'est là que ce module s'écarte
+// délibérément de facturation_suggerer_rapprochements(), qui lie tout seul à
+// l'import : une facture REÇUE peut arriver en double, et deux factures du
+// même montant au même fournisseur sont la règle plutôt que l'exception —
+// un abonnement mensuel en produit douze par an. Un lien faux posé en silence
+// ne se découvre qu'au bouclement, un an plus tard, et il faut alors deviner
+// lequel des deux paiements allait avec laquelle des deux factures.
+//
+// Rien n'est stocké : les suggestions se recalculent à chaque affichage. Une
+// table de suggestions aurait vieilli — une pièce rattachée à la main, une
+// écriture supprimée, et elle proposerait des rapprochements impossibles.
+
+// Fenêtre de rapprochement, en jours autour de la date de référence de la
+// pièce. 45 jours parce que les relevés s'importent une fois par mois : une
+// facture payée le 30 peut n'apparaître qu'à l'import du mois suivant, et la
+// date du prélèvement n'est pas celle de l'échéance.
+const PIECE_FENETRE_JOURS = 45;
+
+// Au plus UNE suggestion par pièce, la meilleure. Proposer deux écritures pour
+// la même pièce obligerait à choisir dans une liste, alors que la pièce n'en
+// prend qu'une : autant ne montrer que celle qui gagne, et laisser la fiche de
+// la pièce pour les cas douteux — elle, montre toutes les candidates.
+//
+// Le montant doit coller AU CENTIME. Un écart, si petit soit-il, veut dire
+// autre chose (des frais, un acompte, une erreur) et mérite qu'on regarde.
+function pieces_suggestions(int $max = 50): array
+{
+    if (!module_accessible('pieces') || !module_accessible('compta')) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        "SELECT p.* FROM pieces p
+          WHERE p.ecriture_id IS NULL AND p.mode_paiement <> 'hors_compte' AND p.montant <> 0
+       ORDER BY COALESCE(NULLIF(p.date_payee,''), NULLIF(p.date_echeance,''), p.date_piece) DESC
+          LIMIT ?"
+    );
+    $stmt->bindValue(1, $max, PDO::PARAM_INT);
+    $stmt->execute();
+    $pieces = $stmt->fetchAll();
+    if (!$pieces) {
+        return [];
+    }
+
+    // Une écriture ne peut être proposée qu'une fois dans la même liste :
+    // valider deux suggestions qui la désignent donnerait deux pièces sur le
+    // même paiement sans que personne ne l'ait voulu.
+    $prises = [];
+    $out = [];
+    $req = db()->prepare(
+        "SELECT e.*, c.libelle AS compte_libelle FROM ecritures e
+           JOIN comptes_bancaires c ON c.id = e.compte_bancaire_id
+          WHERE ABS(e.montant - :montant) < 0.005
+            AND e.fiche_id IS NULL AND e.facture_id IS NULL
+            AND NOT EXISTS (SELECT 1 FROM pieces pz WHERE pz.ecriture_id = e.id)
+            AND ABS(julianday(e.date_op) - julianday(:ref)) <= :fenetre
+       ORDER BY ABS(julianday(e.date_op) - julianday(:ref))"
+    );
+    foreach ($pieces as $p) {
+        $ref = (string) ($p['date_payee'] ?: ($p['date_echeance'] ?: $p['date_piece']));
+        if ($ref === '') {
+            continue;
+        }
+        // ⚠️ bindValue avec PARAM_INT, et surtout pas execute([...]) : un
+        // tableau passé à execute() lie TOUT en chaîne, et SQLite compare
+        // alors un nombre à un texte — or un nombre y est TOUJOURS inférieur à
+        // un texte, quelles que soient leurs valeurs. « 61 <= '45' » est vrai.
+        // La fenêtre ne filtrait donc rien, et le loyer de mai se proposait
+        // pour la facture de mars. Mesuré.
+        $req->bindValue(':montant', (float) $p['montant']);
+        $req->bindValue(':ref', $ref);
+        $req->bindValue(':fenetre', PIECE_FENETRE_JOURS, PDO::PARAM_INT);
+        $req->execute();
+        $candidates = $req->fetchAll();
+        $meilleure = null;
+        $parNom = false;
+        foreach ($candidates as $c) {
+            if (isset($prises[(int) $c['id']])) {
+                continue;
+            }
+            // Le nom du tiers retrouvé dans le libellé fait toute la
+            // différence entre « c'est probablement ça » et « c'est ça » : on
+            // préfère donc une écriture plus lointaine en date mais nommée à
+            // une écriture voisine et muette.
+            $nomTrouve = pieces_nom_present((string) $p['tiers'], $c);
+            if ($meilleure === null || ($nomTrouve && !$parNom)) {
+                $meilleure = $c;
+                $parNom = $nomTrouve;
+            }
+            if ($parNom) {
+                break;
+            }
+        }
+        if ($meilleure !== null) {
+            $prises[(int) $meilleure['id']] = true;
+            $out[] = ['piece' => $p, 'ecriture' => $meilleure, 'par_nom' => $parNom];
+        }
+    }
+    return $out;
+}
+
+// Le tiers de la pièce apparaît-il dans ce que la banque a écrit ? Comparaison
+// insensible à la casse sur les trois champs où un nom peut se trouver — le
+// relevé le met tantôt en contre-partie structurée, tantôt noyé dans le texte.
+function pieces_nom_present(string $tiers, array $ecriture): bool
+{
+    $tiers = mb_strtolower(trim($tiers), 'UTF-8');
+    // Moins de trois lettres, le nom n'en est pas un : « AB » se retrouve dans
+    // la moitié des libellés et ferait passer n'importe quoi pour une
+    // correspondance certaine.
+    if (mb_strlen($tiers, 'UTF-8') < 3) {
+        return false;
+    }
+    $foin = mb_strtolower(
+        (string) ($ecriture['texte'] ?? '') . ' ' . ($ecriture['tiers'] ?? '') . ' ' . ($ecriture['communication'] ?? ''),
+        'UTF-8'
+    );
+    return str_contains($foin, $tiers);
+}
+
+function nb_pieces_suggestions(): int
+{
+    return count(pieces_suggestions());
+}
