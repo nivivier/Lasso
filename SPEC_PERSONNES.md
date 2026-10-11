@@ -1,10 +1,9 @@
 # Spécification — Les personnes
 
-Statut : **cadrage pris, écriture détaillée à venir** (11.10.2026). Les quatre
+Statut : **cadrage pris, écriture détaillée à venir** (11.10.2026). Les
 questions structurantes sont tranchées (§ 5) ; le détail des écrans s'écrira au
-moment d'attaquer le chantier, qui vient après les étapes 1 à 4 de
-`SPEC_PIECES.md`. Ce document existe d'abord pour que ces décisions ne se
-reperdent pas.
+moment d'attaquer le chantier, qui vient après l'étape 5 de `SPEC_PIECES.md`.
+Ce document existe d'abord pour que ces décisions ne se reperdent pas.
 
 ## 1. Le problème
 
@@ -22,49 +21,65 @@ deux contacts, et son historique se coupe en deux. L'utilisateur qui est aussi
 employé est deux fois la même personne.
 
 `structure_contacts` **confond deux choses** : une personne, et son rôle dans
-une structure. C'est aussi ce qui rend la correction abordable — la table **est
-déjà** la table de liaison, elle a son `structure_id`. Il n'y a pas à la
-remplacer, seulement à en sortir ce qui décrit la personne.
+une structure. Elle est déjà, de fait, la table de liaison — elle a son
+`structure_id`. Il n'y a qu'à en sortir ce qui décrit la personne.
 
 ## 2. Le modèle visé
 
 ```
-personnes            prénom, nom, email, téléphone, langue, adresse,
+personnes            prénom, nom, email, téléphone, langue, adresse postale,
                      date_naissance, desinscrit
-structure_contacts   + personne_id    → devient la liaison N↔N,
-                                        et ne garde que le RÔLE
+personne_structures  personne_id + structure_id + rôle, est_booking,
+                     est_administration, actif
+                     → l'ancienne structure_contacts, renommée pour ce qu'elle est
 utilisateurs         + personne_id    0..1 ↔ 1
 employes             + personne_id    0..1 ↔ 1
 ```
 
-## 3. La contrainte dure
+**Le mailing vise la personne** (§ 5). `mailing_file_attente` et
+`mailing_envois` cessent de pointer un rôle pour pointer un être humain : c'est
+à lui qu'on écrit, et c'est lui qui se désinscrit. `evenement_feuille` et
+`structure_message_brouillons`, qui désignent un interlocuteur *dans une
+structure donnée*, suivent le lien.
 
-⚠️ **Les identifiants de `structure_contacts` ne peuvent pas changer.**
+**La désinscription est une propriété de la personne** (§ 5), pas du lien :
+qui se désinscrit ne reçoit plus rien, même en tant que contact d'une autre
+structure. C'est ce qu'on croit demander en cliquant.
 
-Le lien de désinscription des e-mails déjà partis porte `structure_id` +
-`contact_id` + une signature calculée sur les deux
-(`route_desinscription()`, `desinscription_signature()`). Renuméroter, c'est
-transformer tous ces liens en « Lien invalide » — sur des messages envoyés il y
-a des mois, sans aucun moyen de les rattraper. Quatre autres tables pointent ce
-`contact_id` : `mailing_file_attente`, `mailing_envois`,
-`structure_message_brouillons`, `evenement_feuille`.
+## 3. La migration
 
-**Conséquence : migration additive seulement.** Une personne par contact
-existant, aucun regroupement automatique, les `id` préservés. Avec ~2 900
+La contrainte qui aurait tout commandé — les liens de désinscription signés déjà
+partis, qu'une renumérotation aurait transformés en « Lien invalide » — **ne
+s'applique pas** : aucun mailing n'est parti en production. Les identifiants
+peuvent changer, la refonte peut être propre.
+
+Restent quatre tables qui pointent `structure_contacts(id)` :
+`mailing_file_attente`, `mailing_envois`, `structure_message_brouillons`,
+`evenement_feuille`. Les reporter est du travail ordinaire, et
+`tests/migrations_test.php` vérifie déjà `PRAGMA foreign_key_check` sur toute la
+chaîne : une clé cassée ne passerait pas l'intégration continue.
+
+⚠️ Pour reconstruire une table avec un schéma modifié, suivre la règle de
+`CLAUDE.md` : table temporaire `x_new`, copie, `DROP TABLE x`, `ALTER TABLE
+x_new RENAME TO x` — **jamais** `RENAME TO x_old` puis recréation, qui laisse
+des clés étrangères cassées (`migration_21` sert d'exemple).
+
+**Une personne par contact, aucun regroupement automatique** (§ 5). Avec ~2 900
 lignes, des boîtes partagées (`info@…`) et des homonymes, un dédoublonnage
 automatique fabriquerait des fusions fausses et silencieuses — et une fusion
-fausse est bien plus coûteuse qu'un doublon.
+fausse coûte bien plus cher qu'un doublon. Un écran « Doublons probables »
+proposera plus tard des fusions à valider une par une.
 
-⚠️ Pour recréer `structure_contacts` avec un schéma allégé, suivre la règle de
-`CLAUDE.md` : table temporaire `x_new`, copie, `DROP`, `RENAME` — **jamais**
-`RENAME TO x_old` puis recréation, qui laisse des clés étrangères cassées. Les
-quatre tables ci-dessus le vérifieront sans pitié
-(`tests/migrations_test.php`, `PRAGMA foreign_key_check`).
+⚠️ **À mesurer AVANT de lancer la migration** : combien de personnes sont
+aujourd'hui désinscrites d'un côté et joignables de l'autre. Passer la
+désinscription au niveau de la personne les fera toutes basculer en
+« désinscrite », et c'est un changement de comportement qu'il faut avoir
+chiffré, pas découvert.
 
 ## 4. Ce que ça apporte
 
 - Une **quittance** peut être faite à une personne comme à une structure
-  (`SPEC_PIECES.md § 9`).
+  (`SPEC_PIECES.md § 10`).
 - Un employé, un utilisateur et un contact qui sont la même personne le disent.
 - Un contact qui change de structure garde son identité et son historique.
 - L'annuaire devient dédoublonnable, un jour, sans refonte.
@@ -73,19 +88,35 @@ quatre tables ci-dessus le vérifieront sans pitié
 
 | Question | Réponse |
 | --- | --- |
-| Portée de la désinscription | **Par personne, partout.** Le drapeau passe sur `personnes` : qui se désinscrit ne reçoit plus rien, même en tant que contact d'une autre structure. C'est ce qu'on croit demander en cliquant. ⚠️ Changement de comportement à la migration : des gens aujourd'hui désinscrits d'un côté et joignables de l'autre cesseront de l'être — à vérifier avant, pour savoir combien |
-| Doublons de l'annuaire | **Un écran de fusion manuelle, plus tard.** La migration crée une personne par contact, sans rien regrouper. Un écran « Doublons probables » (même e-mail, ou même nom + prénom) proposera des fusions à valider une par une, dans un second temps |
+| Forme de la migration | **Refonte propre** : `personnes` + `personne_structures`, le mailing visant la personne |
+| Portée de la désinscription | **Par personne, partout** |
+| Doublons de l'annuaire | **Un écran de fusion manuelle, plus tard.** Une personne par contact à la migration |
 | Personnes physiques saisies comme structures (les « Freelance ») | **On les laisse où elles sont.** Ces fiches portent déjà des événements, des campagnes, des factures ; les déplacer obligerait tout ce qui pointe une structure à accepter aussi une personne. Une quittance à un freelance se fait à la structure |
-| Ordre des chantiers | **Après les étapes 1 à 4 de `SPEC_PIECES.md`**, avant les quittances |
+| Adresse postale | **Elle monte sur `personnes`.** Une seule adresse, que le certificat de salaire et la quittance lisent au même endroit |
+| Écran et droits | **« Personnes » dans Paramètres, droit `coeur`.** Une personne traverse le booking, les salaires et les comptes : aucun module ne peut en être propriétaire |
+| Historique | **Rattaché à la personne ET à la structure** |
+| Ordre | **Après l'étape 5 de `SPEC_PIECES.md`**, avant les quittances |
 
-## 6. À cadrer au moment d'attaquer
+## 6. Deux points de mise en œuvre déjà connus
 
-- **L'adresse postale** : aujourd'hui sur `employes` seulement. Une quittance en
-  a besoin. Monte-t-elle sur `personnes` (et l'employé la lit de là), ou reste-t-elle
-  où elle est ?
-- Les **écrans** : y a-t-il une liste des personnes, ou n'existent-elles qu'au
-  travers des structures, des employés et des comptes ?
-- Le **module** et les **droits** : `coeur`, `booking`, ou un module à part ? Une
-  personne traverse le booking, les salaires et les comptes — c'est le premier
-  objet du modèle dans ce cas, et `SPEC_PERMISSIONS.md` devra le dire.
-- L'`historique` : suit-il la personne ou le lien personne × structure ?
+**L'adresse et les fiches de salaire.** Déplacer `employes.rue` /
+`npa_localite` est sans danger pour l'historique : une fiche **fige déjà**
+l'adresse de l'employé à l'enregistrement (`fiches.employe_nom`,
+`employe_rue`, `employe_npa`, `employe_avs`). Les fiches existantes lisent leur
+propre copie et ne bougeront pas. Seul le **certificat de salaire** lit
+l'adresse en direct (`views/_certificat_body.php`) : il suivra la relation, ce
+qui ne change pas son comportement actuel.
+
+**L'historique sur deux axes.** La table est déjà polymorphe —
+`entite_type` + `entite_id`. Plutôt que deux lignes pour un même échange,
+ajouter une colonne `personne_id` facultative à côté de la clé existante : une
+entrée, deux axes de lecture, et les entrées actuelles — qui n'ont pas de
+personne — restent valides telles quelles.
+
+## 7. À cadrer au moment d'attaquer
+
+- Le détail des écrans : fiche d'une personne, liste, recherche, rattachements.
+- Ce que devient `recherche_sources()` (`lib/recherche.php`) : une personne
+  devient-elle une entité cherchable de plus ?
+- `SPEC_PERMISSIONS.md` : l'écran Personnes sous `coeur`, et sa place dans
+  `parametres_groupes()`.
