@@ -8,9 +8,12 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calc.php';
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/modules.php';
+require_once __DIR__ . '/lib/fichiers.php';
 require_once __DIR__ . '/lib/recherche.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
+require_once __DIR__ . '/lib/pieces.php';
+require_once __DIR__ . '/lib/routes_pieces.php';
 require_once __DIR__ . '/lib/routes_facturation.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/routes_booking.php';
@@ -133,6 +136,20 @@ ajouter_routes_module($handlers, $routeModules, 'compta', [
     'compta_ecritures_exporter_csv'     => 'route_compta_ecritures_exporter_csv',
     'compta_ecritures_exporter_camt053' => 'route_compta_ecritures_exporter_camt053',
     'compta_ecritures_importer_valider'         => 'route_compta_ecritures_importer_valider',
+]);
+
+// Les justificatifs. Module à part de « compta » exprès : c'est ainsi qu'on
+// donne le DÉPÔT sans la LECTURE des comptes (lib/modules.php § MODULES).
+// piece_rapprocher touche une écriture et revérifie donc module_accessible
+// ('compta') dans la route : le dispatcher ne garde que le module déclaré ici.
+ajouter_routes_module($handlers, $routeModules, 'pieces', [
+    'pieces'            => 'route_pieces',
+    'piece'             => 'route_piece',
+    'piece_form'        => 'route_piece_form',
+    'piece_fichier'     => 'route_piece_fichier',
+    'piece_supprimer'   => 'route_piece_supprimer',
+    'piece_rapprocher'  => 'route_piece_rapprocher',
+    'piece_payee'       => 'route_piece_payee',
 ]);
 
 // Comptes bancaires : partagés entre Comptabilité (relevés, lettrage) et

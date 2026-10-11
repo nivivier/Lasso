@@ -25,6 +25,16 @@ const MODULES = [
         'description' => "Axes, ventilation des écritures, des charges sociales et des fiches de salaire",
         'requires'    => ['compta'],
     ],
+    // Les justificatifs. Module à part et non simple écran de la comptabilité,
+    // pour une seule raison : c'est ainsi qu'on peut donner le DÉPÔT sans la
+    // LECTURE des comptes. Qui photographie ses tickets reçoit l'écriture sur
+    // « pieces » et rien sur « compta » — le dispositif de droits existant
+    // suffit, il n'a pas fallu lui inventer un troisième niveau.
+    'pieces'     => [
+        'label'       => 'Pièces comptables',
+        'description' => 'Factures reçues, tickets, quittances : les justificatifs des écritures',
+        'requires'    => ['compta'],
+    ],
     'facturation' => [
         'label'       => 'Facturation',
         'description' => 'Structures, factures (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
@@ -144,7 +154,7 @@ function route_defaut(): string
 // index.php). Une table de permissions vide pour un utilisateur = aucun
 // accès nulle part ; c'est le premier compte créé (route_installation) qui reçoit
 // tout par défaut, pas les comptes suivants.
-const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'facturation', 'evenements', 'booking', 'fonds', 'mailing'];
+const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'pieces', 'facturation', 'evenements', 'booking', 'fonds', 'mailing'];
 
 // --- Fonctions pures (testées sans base de données, tests/permissions_test.php) ---
 
@@ -384,11 +394,24 @@ function nav_groupes(): array
     }
 
     $analytiqueOk = module_actif('analytique') && peut_lire('analytique');
-    if (module_actif('compta') && peut_lire('compta')) {
-        $onglets = [
-            'compta_ecritures' => ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'],
-            'compta_bilan'     => ['Comptes annuels', ['compta_bilan'], 0, 'book-open'],
-        ];
+    $comptaOk = module_actif('compta') && peut_lire('compta');
+    $piecesOk = module_accessible('pieces');
+    // ⚠️ LE SEUL ENDROIT où un onglet survit à son module parent. Le bandeau
+    // s'ouvre dès qu'on a la comptabilité OU les seules pièces : c'est la
+    // contrepartie du droit de dépôt séparé (voir MODULES ci-dessus) — sans
+    // cela, qui n'a que « pieces » n'aurait aucune porte vers son écran. Les
+    // onglets de la comptabilité, eux, restent derrière sa lecture.
+    if ($comptaOk || $piecesOk) {
+        $onglets = [];
+        if ($comptaOk) {
+            $onglets['compta_ecritures'] = ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'];
+        }
+        if ($piecesOk) {
+            $onglets['pieces'] = ['Pièces', ['pieces', 'piece'], nb_pieces_a_payer(), 'paperclip'];
+        }
+        if ($comptaOk) {
+            $onglets['compta_bilan'] = ['Comptes annuels', ['compta_bilan'], 0, 'book-open'];
+        }
         if ($analytiqueOk) {
             $onglets['compta_analyse'] = ['Analyse', ['compta_analyse', 'compta_analyse_axe', 'compta_axes'], 0, 'layers'];
         }
@@ -405,11 +428,13 @@ function nav_groupes(): array
         // sens hors de lui.
         // 5e élément = les sous-onglets [route => libellé] ; la 2e entrée (les
         // routes) doit les contenir tous, c'est elle qui allume l'onglet.
-        $onglets['compta_plan'] = ['Plan comptable', ['compta_plan', 'compta_comptes', 'compta_regles'], 0, 'rows-3', [
-            'compta_plan'    => 'Produits et charges',
-            'compta_comptes' => 'Comptes bancaires',
-            'compta_regles'  => 'Lettrage automatique',
-        ]];
+        if ($comptaOk) {
+            $onglets['compta_plan'] = ['Plan comptable', ['compta_plan', 'compta_comptes', 'compta_regles'], 0, 'rows-3', [
+                'compta_plan'    => 'Produits et charges',
+                'compta_comptes' => 'Comptes bancaires',
+                'compta_regles'  => 'Lettrage automatique',
+            ]];
+        }
         $g['compta'] = ['Comptabilité', 'banknote', $onglets];
     }
 

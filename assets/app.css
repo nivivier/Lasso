@@ -1946,6 +1946,18 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
     color: var(--primary-d); background: var(--primary-tint); text-decoration: none;
 }
 .dash-card tbody tr.ligne-action { background: var(--amber-tint); }
+/* …et la même classe dans une LISTE pleine page, en plus pâle. Le sens est
+   identique — cette ligne attend un geste (docs/UI.md § 13) —, la densité ne
+   l'est pas : une carte montre trois lignes et doit les faire ressortir, une
+   liste en montre cent, et l'ambre plein y deviendrait le fond de la page.
+   D'où --row-attention, le ton que ?p=compta_ecritures emploie déjà pour une
+   écriture à lettrer : même rôle, même teinte.
+   Posé sur les CELLULES et non sur la rangée, parce que c'est là que les
+   rangées des listes pleine largeur portent leur blanc (voir .module-content) ;
+   sur le <tr>, il passerait dessous sans se voir. Le survol reste plus
+   spécifique et garde la main. */
+.list tbody tr.ligne-action > td { background: var(--row-attention); }
+.list tr.row-link.ligne-action:hover > td { background: var(--amber-tint); }
 
 /* Nombres colorés par gravité dans les tableaux du tableau de bord (carte
    Suisa) — mêmes teintes que les statuts ailleurs dans l'application. Le fond
@@ -5950,3 +5962,30 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    rôle, pas un second nom — d'où un corps plus petit et le poids normal. */
 .fr-print-via { font-weight: 400; font-size: var(--fs-small); }
 
+/* ============================================================================
+   Pièces comptables (?p=pieces, ?p=piece, ?p=piece_form)
+   ========================================================================= */
+/* L'icône du type, au début de la ligne : elle dit d'un coup d'œil ce qu'on
+   regarde — une facture, un ticket, une quittance — là où le mot aurait pris
+   une colonne. Au gris du texte secondaire : elle accompagne l'intitulé, elle
+   ne le concurrence pas. */
+.piece-type, .piece-attache { color: var(--muted); display: inline-flex; vertical-align: -2px; }
+.piece-type .ico, .piece-attache .ico { width: 15px; height: 15px; }
+.piece-attache { margin-left: 5px; }
+
+/* Le fichier joint, sur la fiche : un trombone, le nom d'origine, le poids. */
+.piece-fichier { display: flex; align-items: center; gap: 8px; }
+.piece-fichier .ico { width: 16px; height: 16px; color: var(--muted); }
+
+/* Les deux portes du dépôt — un fichier, ou l'appareil photo — côte à côte sur
+   un écran large, l'une sous l'autre sur un téléphone, où c'est la seconde
+   qu'on vise. */
+.piece-depot { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.piece-photo-apercu { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 12px; }
+.piece-photo-apercu img {
+    max-width: 180px; max-height: 240px;
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+@media (max-width: 800px) {
+    .piece-depot { grid-template-columns: 1fr; }
+}

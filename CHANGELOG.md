@@ -9,6 +9,18 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Les pièces comptables** (`SPEC_PIECES.md`) : un cinquième onglet dans la
+  comptabilité où enregistrer les justificatifs — facture reçue, ticket
+  photographié, document. Une pièce se saisit **avant** tout mouvement
+  bancaire : elle porte son montant, sa date et son échéance, et forme la liste
+  de ce qu'il y a à payer. Elle se marque payée sans attendre l'écriture, qui
+  n'arrive qu'à l'import mensuel du relevé, puis se rattache à celle-ci quand
+  elle paraît. Une pièce réglée en espèces ou depuis un autre compte se classe
+  sans écriture.
+  Sur téléphone, le bouton de dépôt ouvre l'appareil photo ; l'image est
+  réduite par le navigateur avant l'envoi.
+
 ### Corrigé
 - **La carte « Salaire coordonné » touchait le tableau au-dessus d'elle**
   (Paramètres → Lignes du décompte). Elle reprend l'écart que met n'importe

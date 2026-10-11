@@ -16,6 +16,7 @@ function param(string $cle, $defaut = null)
 }
 
 require_once __DIR__ . '/../lib/evenements.php';   // evenement_horaire_texte()
+require_once __DIR__ . '/../lib/fichiers.php';
 require_once __DIR__ . '/../lib/feuille_route.php';
 
 $tests = 0;
@@ -129,13 +130,13 @@ check('élément vide : aucune ligne, pas une ligne vide', [],
     feuille_element_lignes(['type' => 'note', 'remarque' => '']));
 
 echo "\n6) Pièces jointes : taille et nom affichés\n";
-check('kilo-octets', '5 Ko', feuille_taille_texte(5120));
-check('méga-octets', '1,4 Mo', feuille_taille_texte(1468006));
-check('un fichier minuscule ne vaut pas 0 Ko', '1 Ko', feuille_taille_texte(12));
-check('le chemin est retiré du nom', 'facture.pdf', feuille_nom_origine_propre('/etc/passwd/../facture.pdf'));
-check('les guillemets sont retirés (en-tête HTTP)', 'fiche.pdf', feuille_nom_origine_propre('"fiche".pdf'));
-check('un nom vide reste nommé', 'document', feuille_nom_origine_propre(''));
-check('le nom est borné', 120, mb_strlen(feuille_nom_origine_propre(str_repeat('a', 300)), 'UTF-8'));
+check('kilo-octets', '5 Ko', fichier_taille_lisible(5120));
+check('méga-octets', '1,4 Mo', fichier_taille_lisible(1468006));
+check('un fichier minuscule ne vaut pas 0 Ko', '1 Ko', fichier_taille_lisible(12));
+check('le chemin est retiré du nom', 'facture.pdf', fichier_nom_origine_propre('/etc/passwd/../facture.pdf'));
+check('les guillemets sont retirés (en-tête HTTP)', 'fiche.pdf', fichier_nom_origine_propre('"fiche".pdf'));
+check('un nom vide reste nommé', 'document', fichier_nom_origine_propre(''));
+check('le nom est borné', 120, mb_strlen(fichier_nom_origine_propre(str_repeat('a', 300)), 'UTF-8'));
 
 echo "\n7) Types déclarés\n";
 check('cinq types', ['horaire', 'adresse', 'contact', 'fichier', 'note'], array_keys(FEUILLE_TYPES));

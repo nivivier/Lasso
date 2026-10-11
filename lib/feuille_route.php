@@ -57,44 +57,11 @@ const FEUILLE_TYPES = [
 // plutôt qu'imposés : une ligne de déroulé porte le nom qu'on lui donne.
 const FEUILLE_HORAIRES_TYPES = ['Départ', 'Get-in', 'Soundcheck', 'Repas', 'Show'];
 
-// Dossier des pièces jointes : sous data/, et non dans uploads/ comme les logos.
-// C'est toute la différence — uploads/ est délibérément servi par le serveur web,
-// data/ est délibérément refusé (« Require all denied » dans data/.htaccess, et
-// « RedirectMatch 404 ^/data/ » dans le .htaccess racine, qui ne dépend d'aucun
-// fichier du dossier lui-même). Ces pièces-là — réservations d'hôtel, contrats,
-// fiches techniques — portent des noms, des numéros de chambre et des montants :
-// elles ne sont servies que par route_evenement_feuille_fichier(), qui vérifie qui
-// demande.
-//
-// ⚠️ En développement (php -S), .htaccess est ignoré : tout le dossier data/ est
-// alors lisible, base comprise. C'est déjà le cas sans ces fichiers, et ce n'est
-// vrai que là.
-function feuille_fichiers_dir(): string
-{
-    return dirname(__DIR__) . '/data/fichiers';
-}
-
-// Ce qu'on accepte en pièce jointe : extension servie => type MIME réel attendu.
-// La vérification porte sur le CONTENU (finfo), jamais sur le nom du fichier.
-// Assez large pour couvrir ce qu'un organisateur envoie — un PDF le plus
-// souvent, parfois un scan, parfois un document bureautique.
-const FEUILLE_FICHIERS_MIMES = [
-    'application/pdf' => 'pdf',
-    'image/jpeg'      => 'jpg',
-    'image/png'       => 'png',
-    'image/webp'      => 'webp',
-    'image/heic'      => 'heic',
-    'text/plain'      => 'txt',
-    'text/csv'        => 'csv',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'       => 'xlsx',
-    'application/vnd.oasis.opendocument.text'        => 'odt',
-    'application/vnd.oasis.opendocument.spreadsheet' => 'ods',
-];
-
-// 8 Mo : une fiche technique avec ses plans de scène dépasse largement les 2 Mo
-// tolérés pour un logo.
-const FEUILLE_FICHIER_MAX = 8388608;
+// Les pièces jointes d'une feuille de route sont des FICHIERS PRIVÉS ordinaires :
+// data/fichiers/, validation par le contenu, nom de stockage tiré au sort — tout
+// cela vit dans lib/fichiers.php, partagé avec les pièces comptables. Ce module
+// ne garde que ce qui lui est propre : sa route de service, qui accepte en plus
+// du jeton du calendrier de l'équipe (route_evenement_feuille_fichier()).
 
 // Les éléments d'une feuille de route, dans l'ordre. Le contact repris du carnet
 // d'adresses est résolu ici, à la lecture, et non recopié à l'enregistrement :
@@ -274,7 +241,7 @@ function feuille_element_lignes(array $el): array
         case 'fichier':
             $nom = trim((string) ($el['nom_origine'] ?? ''));
             if ($nom !== '') {
-                $lignes[] = $nom . ' (' . feuille_taille_texte((int) $el['taille']) . ')';
+                $lignes[] = $nom . ' (' . fichier_taille_lisible((int) $el['taille']) . ')';
             }
             break;
     }
@@ -282,65 +249,6 @@ function feuille_element_lignes(array $el): array
         $lignes[] = (string) $el['remarque'];
     }
     return $lignes;
-}
-
-// Taille d'un fichier en une expression lisible (« 1,4 Mo »).
-function feuille_taille_texte(int $octets): string
-{
-    if ($octets >= 1048576) {
-        return str_replace('.', ',', (string) round($octets / 1048576, 1)) . ' Mo';
-    }
-    return max(1, (int) round($octets / 1024)) . ' Ko';
-}
-
-// Enregistre le fichier téléversé sous $champ dans data/fichiers/ et retourne
-// [nom stocké, nom d'origine, mime, taille], ou null si aucun fichier n'a été
-// envoyé. Lève une RuntimeException avec un message affichable en cas de refus.
-//
-// Le type est déduit du CONTENU (finfo) et non de l'extension envoyée : c'est le
-// nom du fichier qui ment, jamais ses premiers octets. Le nom stocké est tiré au
-// sort — deux organisateurs envoient « fiche technique.pdf ».
-function feuille_fichier_enregistrer(string $champ): ?array
-{
-    $f = $_FILES[$champ] ?? null;
-    if ($f === null || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-        return null;
-    }
-    if ($f['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException("Échec de l'envoi du fichier (code {$f['error']}).");
-    }
-    if ($f['size'] > FEUILLE_FICHIER_MAX) {
-        throw new RuntimeException('Fichier trop lourd (8 Mo maximum).');
-    }
-    $mime = (string) @finfo_file(finfo_open(FILEINFO_MIME_TYPE), $f['tmp_name']);
-    if (!isset(FEUILLE_FICHIERS_MIMES[$mime])) {
-        throw new RuntimeException('Format non accepté : PDF, image, texte ou document bureautique.');
-    }
-    $dir = feuille_fichiers_dir();
-    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-        throw new RuntimeException("Impossible de créer le dossier des pièces jointes.");
-    }
-    $stocke = 'feuille_' . bin2hex(random_bytes(8)) . '.' . FEUILLE_FICHIERS_MIMES[$mime];
-    if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $stocke)) {
-        throw new RuntimeException("Impossible d'enregistrer le fichier.");
-    }
-    @chmod($dir . '/' . $stocke, 0644);
-    return [
-        'fichier'     => $stocke,
-        'nom_origine' => feuille_nom_origine_propre((string) $f['name']),
-        'mime'        => $mime,
-        'taille'      => (int) $f['size'],
-    ];
-}
-
-// Nom d'origine réduit à ce qui s'affiche sans danger : pas de chemin, pas de
-// caractère de contrôle, 120 caractères au plus. Il ne sert qu'à l'affichage et
-// au téléchargement — le fichier sur le disque porte un nom tiré au sort.
-function feuille_nom_origine_propre(string $nom): string
-{
-    $nom = (string) preg_replace('/[\x00-\x1F\x7F]/u', '', basename($nom));
-    $nom = trim(str_replace(['"', '\\'], '', $nom));
-    return mb_substr($nom !== '' ? $nom : 'document', 0, 120, 'UTF-8');
 }
 
 // Supprime un élément et, s'il portait une pièce jointe, le fichier avec lui —
@@ -353,10 +261,7 @@ function feuille_supprimer(int $id): void
         return;
     }
     db()->prepare('DELETE FROM evenement_feuille WHERE id = ?')->execute([$id]);
-    $fichier = trim((string) ($el['fichier'] ?? ''));
-    if ($fichier !== '') {
-        @unlink(feuille_fichiers_dir() . '/' . basename($fichier));
-    }
+    fichier_prive_supprimer((string) ($el['fichier'] ?? ''));
 }
 
 // ---------------------------------------------- CALENDRIER DE L'ÉQUIPE
@@ -606,7 +511,7 @@ function feuille_ical_description(array $ev): string
     $sections[] = feuille_ical_bloc(FEUILLE_SECTIONS['fichier'], array_map(
         function (array $el): string {
             $nom = trim((string) ($el['nom_origine'] ?? ''));
-            $avecTaille = $nom !== '' ? $nom . ' (' . feuille_taille_texte((int) $el['taille']) . ')' : '';
+            $avecTaille = $nom !== '' ? $nom . ' (' . fichier_taille_lisible((int) $el['taille']) . ')' : '';
             $titre = feuille_element_titre($el);
             $corps = ($nom !== '' && $nom !== $titre) ? $titre . ' : ' . $avecTaille : ($avecTaille ?: $titre);
             $remarque = trim((string) ($el['remarque'] ?? ''));

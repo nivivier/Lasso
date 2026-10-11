@@ -1734,7 +1734,7 @@ function route_evenement_feuille_ajouter(): void
     $fichier = null;
     if ($type === 'fichier') {
         try {
-            $fichier = feuille_fichier_enregistrer('fichier');
+            $fichier = fichier_prive_enregistrer('fichier', 'feuille');
         } catch (RuntimeException $e) {
             if (feuille_reponse_json($e->getMessage())) { return; }
             feuille_retour($evenementId, $e->getMessage(), $type);
@@ -1839,17 +1839,11 @@ function route_evenement_feuille_fichier(): void
     if (!$el || (string) $el['type'] !== 'fichier' || trim((string) $el['fichier']) === '') {
         redirect('evenements');
     }
-    $chemin = feuille_fichiers_dir() . '/' . basename((string) $el['fichier']);
+    $chemin = fichiers_prives_dir() . '/' . basename((string) $el['fichier']);
     if (!is_file($chemin)) {
         redirect('evenement', ['id' => (int) $el['evenement_id'], 'errFeuille' => 'Fichier introuvable sur le serveur.']);
     }
-    header('Content-Type: ' . ((string) $el['mime'] ?: 'application/octet-stream'));
-    header('Content-Disposition: attachment; filename="' . feuille_nom_origine_propre((string) $el['nom_origine']) . '"');
-    header('Content-Length: ' . filesize($chemin));
-    header('X-Content-Type-Options: nosniff');
-    header('Cache-Control: private, no-store');
-    readfile($chemin);
-    exit;
+    fichier_prive_envoyer($chemin, (string) $el['mime'], (string) $el['nom_origine']);
 }
 
 // --- Calendrier de l'équipe -------------------------------------------------

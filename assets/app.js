@@ -2208,3 +2208,59 @@ function lassoInitTagGerer() {
     });
 }
 window.addEventListener('DOMContentLoaded', lassoInitTagGerer);
+
+// Photo d'un justificatif prise au téléphone (?p=piece_form). Le navigateur la
+// RÉDUIT avant l'envoi : 1600px sur le plus grand côté, JPEG qualité 80 — de 3
+// à 5 Mo on tombe à 200-400 Ko, et un ticket de caisse y reste parfaitement
+// lisible, petites lignes comprises. Sans cette réduction, dix ans d'archivage
+// légal pèseraient dans chaque sauvegarde complète, sur un hébergement
+// mutualisé.
+//
+// Le résultat part en data URI dans un champ caché, pas dans le <input file> :
+// c'est le même procédé que le recadrage d'avatar, et le serveur le revalide
+// exactement comme un fichier reçu (piece_photo_enregistrer()) — ce qui arrive
+// d'un navigateur n'est jamais une preuve.
+const LASSO_PHOTO_COTE = 1600;
+const LASSO_PHOTO_QUALITE = 0.8;
+
+function lassoPhotoPiece(racine = document) {
+    racine.querySelectorAll('[data-photo-piece]').forEach(input => {
+        const cible = document.querySelector(input.dataset.photoPiece);
+        if (!cible) return;
+        const apercu = document.getElementById('piece-photo-apercu');
+        const img = document.getElementById('piece-photo-img');
+        const retirer = document.getElementById('piece-photo-retirer');
+
+        const vider = () => {
+            cible.value = '';
+            input.value = '';
+            if (apercu) apercu.hidden = true;
+            if (img) img.removeAttribute('src');
+        };
+        if (retirer) retirer.addEventListener('click', vider);
+
+        input.addEventListener('change', () => {
+            const f = input.files && input.files[0];
+            if (!f) { vider(); return; }
+            const lecteur = new FileReader();
+            lecteur.onload = () => {
+                const source = new Image();
+                source.onload = () => {
+                    // Jamais d'AGRANDISSEMENT : une photo déjà petite reste
+                    // telle quelle, l'étirer n'ajouterait aucune information.
+                    const ratio = Math.min(1, LASSO_PHOTO_COTE / Math.max(source.width, source.height));
+                    const toile = document.createElement('canvas');
+                    toile.width = Math.round(source.width * ratio);
+                    toile.height = Math.round(source.height * ratio);
+                    const ctx = toile.getContext('2d');
+                    ctx.drawImage(source, 0, 0, toile.width, toile.height);
+                    cible.value = toile.toDataURL('image/jpeg', LASSO_PHOTO_QUALITE);
+                    if (img && apercu) { img.src = cible.value; apercu.hidden = false; }
+                };
+                source.src = lecteur.result;
+            };
+            lecteur.readAsDataURL(f);
+        });
+    });
+}
+window.addEventListener('DOMContentLoaded', () => lassoPhotoPiece());

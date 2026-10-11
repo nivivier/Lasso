@@ -124,6 +124,7 @@ function run_migrations(PDO $pdo): void
         96 => 'migration_96', // historique : qui a modifié une note, et quand
         97 => 'migration_97', // brouillon de message : les copies (cc) et copies cachées (cci)
         98 => 'migration_98', // projets : actif/inactif, pour alléger les menus de projet
+        99 => 'migration_99', // pièces comptables : la table, et le justificatif attendu d'une écriture
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3119,6 +3120,98 @@ function migration_94(PDO $pdo): void
 // case « Actifs seulement » les rappelle à l'écran.
 //
 // Actif par défaut : une base existante ne change pas de comportement.
+function migration_99(PDO $pdo): void
+{
+    // Les justificatifs de la comptabilité (SPEC_PIECES.md). Une pièce est une
+    // ENTITÉ, pas une pièce jointe sur une écriture : elle se saisit avant que
+    // le moindre mouvement bancaire existe, et c'est tout son intérêt — une
+    // facture arrive le 3, se paie le 30, et entre les deux elle est déjà la
+    // liste de ce qu'il y a à payer.
+    //
+    // Trois états, et non deux, parce que les relevés n'arrivent qu'une fois
+    // par mois : à payer (date_payee vide), payée mais pas encore rapprochée,
+    // classée (une écriture, ou un paiement hors du compte suivi). Sans cette
+    // distinction, une facture réglée le 30 serait restée « à payer » trois
+    // semaines.
+    $pdo->exec(<<<SQL
+        CREATE TABLE IF NOT EXISTS pieces (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            -- facture_recue | ticket | quittance | autre (PIECE_TYPES, lib/pieces.php)
+            type           TEXT NOT NULL DEFAULT 'facture_recue',
+            -- televersee (un fichier reçu) | emise (un document que Lasso produit)
+            origine        TEXT NOT NULL DEFAULT 'televersee',
+            libelle        TEXT NOT NULL DEFAULT '',
+            tiers          TEXT NOT NULL DEFAULT '',
+            -- SIGNÉ COMME UNE ÉCRITURE : < 0 dépense, > 0 recette. C'est ce qui
+            -- permet de comparer une pièce et son écriture sans conversion.
+            montant        REAL NOT NULL DEFAULT 0,
+            date_piece     TEXT NOT NULL DEFAULT '',
+            date_echeance  TEXT NOT NULL DEFAULT '',
+            date_payee     TEXT NOT NULL DEFAULT '',
+            -- '' tant qu'impayée, puis compte | hors_compte. « hors_compte »
+            -- (espèces, carte privée, autre banque) dit qu'AUCUNE écriture ne
+            -- viendra jamais : c'est lui qui classe la pièce faute d'écriture.
+            mode_paiement  TEXT NOT NULL DEFAULT '',
+            plan_compte_id INTEGER REFERENCES plan_comptes(id) ON DELETE SET NULL,
+            -- Effacer une écriture ne doit pas emporter le justificatif : la
+            -- pièce redevient simplement non rapprochée.
+            ecriture_id    INTEGER REFERENCES ecritures(id) ON DELETE SET NULL,
+            fichier        TEXT NOT NULL DEFAULT '',
+            nom_origine    TEXT NOT NULL DEFAULT '',
+            mime           TEXT NOT NULL DEFAULT '',
+            taille         INTEGER NOT NULL DEFAULT 0,
+            -- Q-2026-001 pour une quittance émise, '' sinon.
+            numero         TEXT NOT NULL DEFAULT '',
+            notes          TEXT NOT NULL DEFAULT '',
+            cree_le        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pieces_ecriture ON pieces(ecriture_id);
+        CREATE INDEX IF NOT EXISTS idx_pieces_echeance ON pieces(date_echeance);
+    SQL);
+
+    // Le justificatif attendu se déclare UNE FOIS, sur la catégorie : les frais
+    // de tenue de compte n'ont pas de facture, les cotisations des membres non
+    // plus. La question ne se repose alors plus ligne par ligne.
+    $cols = array_column($pdo->query('PRAGMA table_info(plan_comptes)')->fetchAll(), 'name');
+    if (!in_array('piece_attendue', $cols, true)) {
+        $pdo->exec('ALTER TABLE plan_comptes ADD COLUMN piece_attendue INTEGER NOT NULL DEFAULT 1');
+    }
+
+    // …et l'exception isolée se note sur l'écriture. NON VIDE = dispensée, et
+    // le texte dit pourquoi : une colonne, pas deux, comme origine_lettrage —
+    // on ne peut pas se retrouver avec une dispense sans raison.
+    $cols = array_column($pdo->query('PRAGMA table_info(ecritures)')->fetchAll(), 'name');
+    if (!in_array('piece_dispense_motif', $cols, true)) {
+        $pdo->exec("ALTER TABLE ecritures ADD COLUMN piece_dispense_motif TEXT NOT NULL DEFAULT ''");
+    }
+
+    // Reprise de l'état de la comptabilité, exactement comme migration_73 l'a
+    // fait pour le mailing — et pour les deux mêmes régressions silencieuses :
+    //   • « modules_actifs » est une liste EXPLICITE une fois enregistrée, donc
+    //     un identifiant qui n'y figure pas est inactif, et l'onglet Pièces
+    //     n'apparaîtrait jamais sans un passage par ?p=modules ;
+    //   • les droits sont par module (absence de ligne = aucun accès), donc
+    //     personne n'y aurait accès, pas même l'administrateur.
+    // Le module naît donc actif et accessible là où la comptabilité l'est — un
+    // « git pull » suffit. Le droit de dépôt séparé se règle ensuite, en
+    // retirant « compta » à qui ne doit que déposer.
+    $st = $pdo->prepare('SELECT valeur FROM parametres WHERE cle = ?');
+    $st->execute(['modules_actifs']);
+    $val = $st->fetchColumn();
+    if ($val !== false) {
+        $ids = array_values(array_filter(array_map('trim', explode(',', (string) $val)), fn ($v) => $v !== ''));
+        if (in_array('compta', $ids, true) && !in_array('pieces', $ids, true)) {
+            $ids[] = 'pieces';
+            $pdo->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+                ->execute(['modules_actifs', implode(',', $ids)]);
+        }
+    }
+    $pdo->exec(
+        "INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau)
+         SELECT utilisateur_id, 'pieces', niveau FROM utilisateur_permissions WHERE module = 'compta'"
+    );
+}
+
 function migration_98(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(projets)')->fetchAll(), 'name');
