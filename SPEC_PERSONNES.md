@@ -1,9 +1,8 @@
 # Spécification — Les personnes
 
-Statut : **cadrage pris, écriture détaillée à venir** (11.10.2026). Les
-questions structurantes sont tranchées (§ 5) ; le détail des écrans s'écrira au
-moment d'attaquer le chantier, qui vient après l'étape 5 de `SPEC_PIECES.md`.
-Ce document existe d'abord pour que ces décisions ne se reperdent pas.
+Statut : **implémenté** (12.10.2026), migration 100. Ce document reste le
+« pourquoi » — en cas de désaccord avec le code livré, c'est le code qui fait
+foi.
 
 ## 1. Le problème
 
@@ -113,10 +112,41 @@ ajouter une colonne `personne_id` facultative à côté de la clé existante : u
 entrée, deux axes de lecture, et les entrées actuelles — qui n'ont pas de
 personne — restent valides telles quelles.
 
-## 7. À cadrer au moment d'attaquer
+## 7. Comment ça a été fait
 
-- Le détail des écrans : fiche d'une personne, liste, recherche, rattachements.
-- Ce que devient `recherche_sources()` (`lib/recherche.php`) : une personne
-  devient-elle une entité cherchable de plus ?
-- `SPEC_PERMISSIONS.md` : l'écran Personnes sous `coeur`, et sa place dans
-  `parametres_groupes()`.
+**Les identifiants ont été PRÉSERVÉS** à la migration : `personnes.id` et
+`personne_structures.id` reprennent `structure_contacts.id`. Renuméroter était
+permis — aucun mailing n'était parti —, mais préserver ne coûtait rien et
+supprime toute une classe d'erreurs de reprise : les quatre tables qui
+pointaient un contact restent justes sans aucune table de correspondance.
+
+⚠️ **Deux constantes font que rien n'a eu à changer dans les vues.**
+`CONTACT_SELECT`/`CONTACT_FROM` et `EMPLOYE_SELECT`/`EMPLOYE_FROM`
+(`lib/personnes.php`) rendent les colonnes sous les noms que le code attendait
+déjà : `$c['prenom']`, `$e['rue']`. Le stockage a changé, la forme lue non —
+sans quoi il aurait fallu reprendre une centaine d'endroits, et un `SELECT *`
+oublié aurait affiché du vide **sans la moindre erreur**. Un SELECT va
+toujours avec son FROM : l'inverse échoue à l'exécution, ce qui est
+préférable.
+
+**La fusion est le geste le plus dangereux du module**, et elle est écrite
+comme tel : la cible garde ses valeurs, une source ne comble que les champs
+vides, la désinscription se propage sans jamais s'annuler, et deux rôles dans
+la même structure n'en font qu'un. « La dernière valeur gagne » aurait fait
+perdre une adresse renseignée au profit d'une fiche vide, en silence.
+
+Mesuré sur les données réelles : 2903 contacts → 2903 personnes + 2903 liens,
+6 employés liés avec leur adresse, zéro clé étrangère cassée.
+
+## 8. Ce qui reste ouvert
+
+- **Le chiffre à relever avant de s'en servir en production** : combien de
+  personnes étaient désinscrites d'un côté et joignables de l'autre. La
+  désinscription vaut désormais pour la personne entière, et ces gens-là ont
+  tous basculé. Le jeu de développement n'en compte qu'une, il ne dit rien de
+  la production.
+- **La recherche unifiée** (`recherche_sources()`) cherche les contacts par
+  leur lien, pas les personnes en tant que telles : une personne sans aucun
+  rattachement est introuvable autrement que par l'écran Personnes.
+- **Les personnes physiques saisies comme structures** (les « Freelance ») sont
+  restées où elles étaient, par décision (§ 5).

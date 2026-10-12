@@ -1,9 +1,8 @@
 # Spécification — Pièces comptables
 
-Statut : **cadrage complet, en attente de validation** (11.10.2026). Les onze
-questions ouvertes ont reçu une réponse (§ 11) ; le plan du § 12 devient la
-suite des commits. Ce document reste le « pourquoi » — en cas de désaccord avec
-le code livré, c'est le code qui fait foi.
+Statut : **implémenté** (12.10.2026), les sept étapes du § 12 livrées. Ce
+document reste le « pourquoi » — en cas de désaccord avec le code livré, c'est
+le code qui fait foi.
 
 ## 1. Objectif
 
@@ -282,7 +281,23 @@ Chaque étape est livrable seule et laisse l'application en état de marche.
 6. **Les personnes** — chantier à part, voir `SPEC_PERSONNES.md`.
 7. **Les quittances** — édition, numérotation, impression.
 
-## 13. Ce qui reste ouvert
+## 13. Ce qu'on a appris en le faisant
+
+- ⚠️ **Un paramètre lié en CHAÎNE change le sens d'une comparaison SQLite.** La
+  fenêtre de 45 jours du rapprochement ne filtrait rien : passée dans le
+  tableau de `execute()`, elle arrivait en texte, et SQLite tient tout nombre
+  pour inférieur à tout texte — « 61 <= '45' » est vrai. `bindValue()` avec
+  `PDO::PARAM_INT` partout où un paramètre est comparé à un nombre.
+- **Un test sans session peut passer en ne vérifiant rien.** Les assertions sur
+  les suggestions appelaient une fonction gardée par `module_accessible()` :
+  sans utilisateur courant, elle rendait un tableau vide, et « aucune
+  suggestion hors fenêtre » était vrai pour la mauvaise raison. Un test qui
+  touche aux droits monte un compte.
+- **Une liste en mini-cartes sans sa grille est cassée, pas dégradée.** Poser
+  `.liste-cartes` ne suffit pas : sans les règles `.cartes-…`, les cellules se
+  superposent (docs/UI.md § 9).
+
+## 14. Ce qui reste ouvert
 
 - **La volumétrie de `data/fichiers/`** sur dix ans d'archivage légal, face au
   quota de l'hébergement mutualisé et au poids de la sauvegarde complète. À

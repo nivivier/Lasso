@@ -24,17 +24,18 @@ au sens des permissions (il l'est déjà partiellement : `MODULE_COEUR` existe d
 
 ## 2. Principe général
 
-- Six portées possibles : les cinq modules existants (`salaires`, `compta`,
-  `analytique`, `facturation`, `evenements`, `booking`, `mailing`) + `coeur`.
+- Une portée par module (`salaires`, `compta`, `analytique`, `pieces`,
+  `facturation`, `evenements`, `booking`, `fonds`, `mailing`) + `coeur`.
 - Pour chaque paire (utilisateur, module), un niveau : **aucun** (implicite, pas de
   droit accordé), **lecture**, ou **écriture**. Écriture inclut lecture (pas besoin de
   deux droits distincts pour un même module).
 - Un module désactivé globalement (`module_actif()` = faux) reste invisible pour tout le
   monde, indépendamment des permissions individuelles — les deux mécanismes se combinent
   (`module actif ET utilisateur autorisé`), ils ne se remplacent pas.
-- Deux modules dépendent d'un autre (`requires`) : `analytique` de `compta`, et
-  `mailing` (« Envois groupés ») de `booking`. La règle ci-dessous vaut pour les
-  deux — `clamp_permissions_dependantes()` suit `MODULES`, sans liste en dur.
+- Trois modules dépendent d'un autre (`requires`) : `analytique` et `pieces` de
+  `compta`, `mailing` (« Envois groupés ») de `booking`. La règle ci-dessous
+  vaut pour tous — `clamp_permissions_dependantes()` suit `MODULES`, sans liste
+  en dur.
 - `analytique` dépend de `compta` (`requires` existant) : logiquement, un droit sur
   `analytique` ne devrait pas dépasser celui sur `compta` (ex. écriture analytique sans
   aucun accès compta n'a pas de sens) — à valider, voir §10.
@@ -50,7 +51,7 @@ dérivé, voir §1). Une seule nouvelle table.
 |---|---|
 | `id` | |
 | `utilisateur_id` | FK → `utilisateurs`, `ON DELETE CASCADE` |
-| `module` | identifiant texte : `coeur`, `salaires`, `compta`, `analytique`, `facturation`, `evenements`, `booking`, `mailing` |
+| `module` | identifiant texte : `coeur`, `salaires`, `compta`, `analytique`, `pieces`, `facturation`, `evenements`, `booking`, `fonds`, `mailing` |
 | `niveau` | `lecture` / `ecriture` |
 | | `UNIQUE(utilisateur_id, module)` |
 
@@ -96,6 +97,33 @@ Absence de ligne pour une paire (utilisateur, module) = aucun accès. Table volo
 `module_actif('compta') || module_actif('facturation')` dans `index.php`). Règle
 proposée : accessible dès que l'utilisateur a écriture sur **au moins un** des deux
 modules — cohérent avec le gate global existant. À confirmer, voir §10.
+
+## 6 bis. Cas particulier — les pièces comptables
+
+`pieces` est un sous-module de `compta` (`requires`), et il existe pour UNE
+raison : pouvoir donner le **dépôt** d'un justificatif sans la **lecture** des
+comptes. Qui photographie ses tickets reçoit l'écriture sur `pieces` et rien
+sur `compta`.
+
+⚠️ **C'est le seul endroit où un onglet survit à son module parent.** Le
+bandeau de la Comptabilité s'ouvre dès qu'on a `compta` **OU** `pieces`
+(`nav_groupes()`, lib/modules.php) ; les autres onglets restent, eux, derrière
+la lecture de `compta`. Sans cette exception, un compte qui n'a que le dépôt
+n'aurait aucune porte vers son écran.
+
+Une conséquence à connaître : `route_piece_rapprocher()` touche une écriture,
+et le dispatcher ne vérifie que le module sous lequel la route est déclarée —
+`pieces`. Elle revérifie donc `module_accessible('compta')` dans son corps.
+C'est l'une des rares exceptions légitimes à « une route ne revérifie jamais
+ses droits » : la route est déclarée sous un module et agit sur un autre.
+
+## 6 ter. Cas particulier — les personnes
+
+L'écran « Personnes » (Paramètres → Application) vit sous `coeur`, c'est-à-dire
+réservé aux administrateurs. Non par prudence, mais parce qu'une personne
+**traverse** le booking, les salaires et les comptes : aucun module ne peut en
+être propriétaire, et la mettre sous l'un d'eux rendrait un employé visible à
+qui n'a que le booking.
 
 ## 7. Impact sur l'architecture existante
 

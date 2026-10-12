@@ -832,26 +832,35 @@ titre et « Fermer » : le « Charger un modèle » de « Contacter »
 
 ## 8. Documents imprimables
 
-Une page `views/*_print.php` rendue par `render_bare()` — sans layout, donc son
-en-tête est à écrire à la main. Trois choses s'oublient systématiquement :
+Une page `views/*_imprimer.php` rendue par `render_bare()` — sans layout, donc
+sans en-tête. **L'enveloppe ne s'écrit pas à la main** : deux partiels la
+portent, et une vue d'impression tient entre eux.
 
 ```php
-<html lang="fr" data-theme="clair">   <!-- une feuille est blanche : encre foncée, quel que soit le thème -->
-    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
+<?php $impTitre = 'Quittance ' . $p['numero'];
+require __DIR__ . '/_impression_debut.php'; ?>
+    …le document…
+<?php require __DIR__ . '/_impression_fin.php'; ?>
 ```
 
-…et le script d'impression, `data-print` n'étant traité que dans `app.js`, que
-ces pages ne chargent pas :
+`_impression_debut.php` pose le thème clair forcé (une feuille est blanche,
+quel que soit l'écran), la feuille de style versionnée, la barre
+`.print-toolbar` avec son bouton, et ouvre `.sheet` ; `_impression_fin.php`
+referme et pose le script d'impression — `data-print` n'étant traité que dans
+`app.js`, que ces pages ne chargent pas. **La vue ne referme pas `.sheet`
+elle-même** : le partiel qui l'ouvre est celui qui la ferme.
 
-```php
-<script nonce="<?= e(csp_nonce()) ?>">
-document.querySelector('[data-print]').addEventListener('click', () => window.print());
-document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
-</script>
-```
+Deux variables facultatives : `$impClasse`, une classe de plus sur la feuille
+(la feuille de route resserre ainsi ses marges), et `$impActions`, du HTML à
+poser dans la barre après « Imprimer » — la feuille de route y met son envoi à
+l'équipe, parce que c'est là qu'on a le document sous les yeux et qu'on décide
+de le diffuser. Quand il contient du PHP, il se construit en tampon
+(`ob_start()` / `ob_get_clean()`), comme `$fmColonnes` pour les filtres
+mobiles.
 
-Structure : `<body class="print-page">` > `.print-toolbar` (masquée à
-l'impression) > `.sheet` (la feuille blanche).
+Ces huit vues écrivaient chacune la même enveloppe, et l'une d'elles avait
+dérivé sans que rien ne le dise : son titre émettait un `&` nu, et son script
+avait perdu l'appel optionnel que les sept autres avaient.
 
 **La barre reste en haut quand le document défile** (`position: sticky`) : c'est
 le seul endroit d'où l'on imprime, télécharge ou referme, et la perdre au
@@ -859,11 +868,11 @@ premier coup de molette obligeait à remonter. Vrai dans la fenêtre d'aperçu
 comme dans un onglet.
 
 **Toutes ne s'impriment pas.** L'aperçu d'export SUISA
-(`evenements_export_suisa_print.php`) utilise la même enveloppe pour montrer ce
+(`evenements_suisa_exporter.php`) reprend la même allure pour montrer ce
 qui partira en CSV : sa barre porte « Télécharger » et « Copier », pas
 « Imprimer » — un tableau de dix-huit colonnes n'est pas fait pour le papier.
-Une page d'impression sans bouton d'impression n'a donc pas besoin du script,
-mais garde le thème clair et la feuille de style versionnée.
+Elle garde donc son enveloppe à elle, sans le bouton ni le script, mais avec le
+thème clair et la feuille de style versionnée.
 
 **Le logo suit le thème À L'ÉCRAN, jamais sur un document.** Une fiche de
 salaire ou une facture consultée en thème sombre montre la variante pour fond
@@ -1089,6 +1098,14 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - ⚠️ **Sur téléphone**, une liste devient des mini-cartes (`.liste-cartes`) : le
   `<thead>` disparaît, les entonnoirs sont repris par `_filtres_mobile.php`.
   Une cellule sans place assignée dans la grille se rangerait par-dessus le nom.
+  **Poser `.liste-cartes` sans écrire la grille de SA famille** (`.cartes-…`)
+  est donc une demi-mesure qui casse l'écran : chaque colonne reçoit son
+  `grid-column`/`grid-row`, et une dernière règle masque tout ce qui n'a pas
+  été placé — c'est ce qui rend l'oubli visible au lieu de le rendre laid.
+  Une cellule qui ne porte qu'un tiret se marque `.carte-vide` et disparaît :
+  dans un tableau le tiret tient la colonne alignée et dit « rien ici », sur
+  une carte il n'y a plus de colonne à tenir et « Échéance — » se lit comme une
+  information alors que c'est une absence.
   **Le panneau n'est pas un agrément : il est la contrepartie obligée du
   `<thead>` masqué.** Une liste en mini-cartes qui porte un entonnoir en
   en-tête et pas de bouton « Filtres » rend ce filtre inatteignable depuis un

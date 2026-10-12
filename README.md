@@ -18,6 +18,7 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Fiches de salaire** | employés, fiches mensuelles, certificats, taux |
 | **Comptabilité** | relevés PostFinance (CSV), plan comptable, lettrage, comptes annuels |
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
+| **Pièces comptables** | factures reçues, tickets photographiés, quittances émises ; rapprochement avec les écritures, archive annuelle (dépend de Comptabilité) |
 | **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
 | **Événements** | dates, projets, déclarations SUISA, exports JSON/iCal |
 | **Booking** | structures, contacts, tags, lieux (carte), message individuel |
@@ -26,6 +27,13 @@ des **droits de lecture/écriture par utilisateur et par module** :
 
 Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
 montrant que ce que le compte a le droit de lire.
+
+Sous tous ces modules, **un annuaire de personnes** : un contact de structure,
+un employé et un compte de connexion peuvent être la même personne, et le
+disent. Une personne peut être rattachée à plusieurs structures avec un rôle
+différent dans chacune. Il se règle dans Paramètres → Application → Personnes,
+réservé aux administrateurs — une personne ne relève d'aucun module en
+particulier.
 
 **Technologie :** PHP 8.3+ et SQLite, sans framework ni étape de compilation.
 Quatre dépendances seulement, **toutes embarquées dans le dépôt** (jamais de CDN) :
@@ -524,7 +532,7 @@ contient tout ce qu'il faut pour repartir :
 | --- | --- |
 | `base.sqlite` | la base entière, instantané cohérent pris par `VACUUM INTO` (indépendant du WAL) |
 | `uploads/` | logos, photos d'employés, icônes de projet, feuilles SUISA |
-| `data/fichiers/` | pièces jointes servies par une route authentifiée |
+| `data/fichiers/` | pièces jointes des feuilles de route et **justificatifs comptables**, servis par une route authentifiée |
 | `SAUVEGARDE.txt` | ce que contient l'archive et la marche à suivre pour la restaurer |
 
 La base seule ne suffirait pas : elle mémorise l'**emplacement** des fichiers
@@ -619,7 +627,7 @@ php tests/run.php
 | `docs/NOMMAGE.md` | avant d'ajouter un écran : comment se nomment une route, une vue, une fonction. `tests/nommage_test.php` vérifie la convention à chaque exécution de la suite |
 | `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
 | `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md`, `SPEC_SUBVENTIONS.md` | le besoin cadré avec l'utilisateur pour ces quatre modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
-| `SPEC_PIECES.md`, `SPEC_PERSONNES.md` | deux chantiers **cadrés mais pas encore écrits** : les justificatifs de la comptabilité, et la personne comme objet à part entière. Ici c'est l'inverse des quatre précédents — rien n'est implémenté, le document fait foi |
+| `SPEC_PIECES.md`, `SPEC_PERSONNES.md` | les justificatifs de la comptabilité, et la personne comme objet à part entière. Livrés ; comme les quatre précédents, en cas de désaccord c'est le code qui fait foi. Chacun se termine par ce qu'on a appris en le faisant |
 
 `docs/UI.md` se met à jour **en même temps** que la convention qu'il décrit :
 c'est ce qui évite de redécider à chaque page.

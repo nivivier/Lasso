@@ -113,10 +113,16 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
 - **Modules & droits** `lib/modules.php` (voir `SPEC_PERMISSIONS.md`) :
   - `MODULES`/`module_actif()` : activation globale par module (salaires/compta/
-    analytique/facturation/evenements/booking/mailing), indépendante des droits
-    ci-dessous. Deux modules en dépendent d'un autre (`requires`) : `analytique`
-    → `compta`, `mailing` (« Envois groupés ») → `booking` ; ils s'affichent
-    décalés sous leur parent dans `?p=modules` et s'éteignent avec lui.
+    analytique/pieces/facturation/evenements/booking/fonds/mailing), indépendante
+    des droits ci-dessous. Trois modules en dépendent d'un autre (`requires`) :
+    `analytique` → `compta`, `pieces` → `compta`, `mailing` (« Envois groupés »)
+    → `booking` ; ils s'affichent décalés sous leur parent dans `?p=modules` et
+    s'éteignent avec lui.
+    ⚠️ `pieces` existe comme module SÉPARÉ pour une seule raison : donner le
+    dépôt d'un justificatif sans la lecture des comptes. C'est aussi **le seul
+    endroit où un onglet survit à son module parent** — le bandeau de la
+    comptabilité s'ouvre avec `compta` OU `pieces` (`nav_groupes()`), sans quoi
+    qui n'a que le dépôt n'aurait aucune porte vers son écran.
   - Droits par utilisateur, table `utilisateur_permissions` (module → lecture/
     écriture, absence de ligne = aucun accès) : `peut_lire()`/`peut_ecrire()`
     (utilisateur courant), `require_lecture()`/`require_ecriture()`.
@@ -158,6 +164,28 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     conditions vont toujours ensemble pour décider d'afficher quelque chose :
     tester `module_actif()` seul laisse fuiter les données d'un module vers un
     compte qui n'y a pas accès.
+- **Pièces comptables** `lib/pieces.php` + `lib/routes_pieces.php`
+  (`SPEC_PIECES.md`) : les justificatifs. Une pièce est une ENTITÉ, pas une
+  pièce jointe — elle se saisit avant que l'écriture existe. **Trois états et
+  non deux** (`piece_etat()`), parce que les relevés s'importent une fois par
+  mois : à payer, payée mais pas rapprochée, classée. Côté écriture,
+  `ecriture_piece_etat()` est la SEULE source de « a-t-elle un justificatif ? »
+  — six écrans la lisent, et une seconde requête finirait par ne plus dire le
+  même nombre. Son pendant SQL `ecriture_piece_etat_sql()` doit dire exactement
+  la même chose ; `tests/pieces_test.php` le vérifie, ainsi que le fait que les
+  états forment une partition exacte.
+- **Personnes** `lib/personnes.php` (`SPEC_PERSONNES.md`) : l'identité d'un
+  contact, d'un employé ou d'un compte. `personne_structures` est le lien N↔N
+  (l'ancienne `structure_contacts`, qui confondait la personne et son rôle).
+  ⚠️ **Lire un contact ou un employé passe par `CONTACT_SELECT`/`CONTACT_FROM`
+  et `EMPLOYE_SELECT`/`EMPLOYE_FROM`** : ces constantes rendent les colonnes
+  d'identité sous les noms que les vues attendent déjà (`$c['prenom']`,
+  `$e['rue']`). Un `SELECT *` sur `employes` ou `personne_structures` compile
+  très bien et rend des noms VIDES, sans la moindre erreur.
+- **Fichiers privés** `lib/fichiers.php` : `data/fichiers/`, hors racine web,
+  validation par le CONTENU (`finfo`), nom de stockage tiré au sort, 8 Mo.
+  Partagé par les feuilles de route et les pièces. ⚠️ Ce fichier ne décide
+  JAMAIS qui a le droit de lire : chaque module garde sa route de service.
 - **Recherche unifiée** `lib/recherche.php` (`?p=recherche`, champ sur le tableau
   de bord) : traverse employés/structures/factures/événements/projets. Seule
   fonctionnalité qui interroge plusieurs modules dans la même requête — chaque
