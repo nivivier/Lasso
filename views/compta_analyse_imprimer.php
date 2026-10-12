@@ -2,18 +2,9 @@
 /** @var int $annee */ /** @var array $axes */ /** @var array $ventilation */
 /** @var array $detailParAxe */ /** @var string $nomEmployeur */
 ?>
-<!DOCTYPE html>
-<html lang="fr" data-theme="clair">
-<head>
-    <meta charset="UTF-8">
-    <title>Comptabilité analytique <?= $annee ? (int) $annee : 'toutes les années' ?><?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
-    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
-</head>
-<body class="print-page">
-    <div class="print-toolbar">
-        <button data-print><?= icon('printer') ?> Imprimer / PDF</button>
-    </div>
-    <div class="sheet">
+<?php $impTitre = 'Comptabilité analytique ' . ($annee ? (int) $annee : 'toutes les années')
+    . ($nomEmployeur !== '' ? ' — ' . $nomEmployeur : '');
+require __DIR__ . '/_impression_debut.php'; ?>
         <div class="compta-print">
             <div class="cp-head">
                 <?php $cpLogo = param_logo('clair'); ?>
@@ -68,13 +59,4 @@
             </table>
             <?php endif; ?>
         </div>
-    </div>
-<?php // « Imprimer / PDF » : data-print n'est traité que dans assets/app.js, et
-      // une page d'impression ne charge pas tout le script de l'application pour
-      // un appel. Sans cette ligne, le bouton ne fait rien. ?>
-<script nonce="<?= e(csp_nonce()) ?>">
-document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
-document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close(); });
-</script>
-</body>
-</html>
+<?php require __DIR__ . '/_impression_fin.php'; ?>

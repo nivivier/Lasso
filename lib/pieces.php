@@ -451,17 +451,14 @@ function pieces_dashboard(int $max = 5): array
 // la clé étrangère, et une structure supprimée ne laisse pas une quittance
 // pointant un identifiant devenu celui de quelqu'un d'autre.
 
-// Numérotation propre, annuelle : Q-2026-001. Série distincte de celle des
+// Numérotation propre, annuelle : Q-2026-001. Série DISTINCTE de celle des
 // factures — le préfixe dit tout de suite de quel document il s'agit, et
-// aucune des deux séries n'a de trou. Même MAX() numérique que
-// facturation_prochain_numero(), et pour la même raison : un tri texte
-// classerait « 2026-999 » après « 2026-1000 » dès la millième quittance.
+// aucune des deux séries n'a de trou. La mécanique, elle, est la même
+// (prochain_numero_annuel(), lib/helpers.php) : le piège du tri lexicographique
+// a été payé une fois en facturation, il n'avait pas à l'être une seconde.
 function quittance_prochain_numero(int $annee): string
 {
-    $prefixe = 'Q-' . $annee . '-';
-    $stmt = db()->prepare('SELECT MAX(CAST(substr(numero, length(?) + 1) AS INTEGER)) FROM pieces WHERE numero LIKE ?');
-    $stmt->execute([$prefixe, $prefixe . '%']);
-    return $prefixe . sprintf('%03d', ((int) $stmt->fetchColumn()) + 1);
+    return prochain_numero_annuel(db(), 'pieces', 'Q', $annee);
 }
 
 // Le bénéficiaire, en un nom et une adresse prêts à imprimer. Une structure ou

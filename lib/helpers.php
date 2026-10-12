@@ -1255,28 +1255,67 @@ function avatar_initiales(string $nom, string $couleur = '', string $photo = '')
 // $prefixe : de quoi reconnaître le fichier dans uploads/ — « avatar » pour la
 // photo d'un employé, « projet » pour l'icône d'un projet. Le reste du
 // traitement est le même, d'où une seule fonction.
-function avatar_photo_enregistrer(string $dataUri, string $prefixe = 'avatar'): string
+// Prochain numéro d'une série ANNUELLE, format « PRÉFIXE-AAAA-NNN » (F-2026-001,
+// Q-2026-001), séquentiel et sans trou.
+//
+// ⚠️ MAX() NUMÉRIQUE (CAST) et non un tri lexicographique sur le numéro
+// complet : un tri texte classerait « 2026-999 » après « 2026-1000 », le
+// caractère '1' venant avant '9' — et donnerait le mauvais dernier numéro dès
+// la millième pièce de l'année. Ce piège a été payé une fois dans la
+// facturation ; il n'a pas à l'être une seconde dans les quittances, d'où
+// cette fonction commune. $table et $prefixe ne viennent JAMAIS de
+// l'utilisateur : ce sont des littéraux du code appelant.
+// $pdo est passé et non pris de db() : tests/facturation_test.php numérote sur
+// une base en mémoire, et c'est une bonne raison de ne pas supposer laquelle.
+function prochain_numero_annuel(PDO $pdo, string $table, string $prefixe, int $annee): string
+{
+    $debut = $prefixe . '-' . $annee . '-';
+    $stmt = $pdo->prepare("SELECT MAX(CAST(substr(numero, length(?) + 1) AS INTEGER)) FROM \"$table\" WHERE numero LIKE ?");
+    $stmt->execute([$debut, $debut . '%']);
+    return $debut . sprintf('%03d', ((int) $stmt->fetchColumn()) + 1);
+}
+
+// Décode une image envoyée en data URI et PROUVE que c'en est une.
+//
+// ⚠️ C'est le garde-fou, et il n'existe qu'ici. Un navigateur qui annonce
+// « data:image/png » n'a rien prouvé du tout : seul getimagesizefromstring()
+// regarde les octets. Deux écrans produisent des images de cette façon — le
+// recadrage d'avatar et la photo d'un justificatif —, et ils envoient vers des
+// dossiers différents, avec des limites différentes ; ce qu'ils partagent,
+// c'est exactement cette vérification-là, et elle ne doit pas exister en deux
+// exemplaires qui pourraient diverger.
+//
+// Rend [binaire, extension, mime]. Lève une RuntimeException affichable sinon.
+function image_data_uri_decoder(string $dataUri, int $maxOctets): array
 {
     if (!preg_match('#^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$#', trim($dataUri), $m)) {
         throw new RuntimeException('Image invalide.');
     }
     $binaire = base64_decode($m[2], true);
-    if ($binaire === false || $binaire === '' || strlen($binaire) > 2 * 1024 * 1024) {
-        throw new RuntimeException('Image invalide ou trop lourde (2 Mo maximum).');
+    if ($binaire === false || $binaire === '') {
+        throw new RuntimeException('Image invalide.');
     }
-    // getimagesizefromstring() : même garde-fou que handle_logo_upload(), la
-    // déclaration « data:image/… » du client ne prouve rien.
+    if (strlen($binaire) > $maxOctets) {
+        throw new RuntimeException('Image trop lourde (' . fichier_taille_lisible($maxOctets) . ' maximum).');
+    }
     $info = @getimagesizefromstring($binaire);
-    $exts = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_WEBP => 'webp'];
+    $exts  = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_WEBP => 'webp'];
+    $mimes = [IMAGETYPE_PNG => 'image/png', IMAGETYPE_JPEG => 'image/jpeg', IMAGETYPE_WEBP => 'image/webp'];
     if ($info === false || !isset($exts[$info[2]])) {
         throw new RuntimeException('Format non supporté (PNG, JPG ou WebP).');
     }
+    return [$binaire, $exts[$info[2]], $mimes[$info[2]]];
+}
+
+function avatar_photo_enregistrer(string $dataUri, string $prefixe = 'avatar'): string
+{
+    [$binaire, $ext] = image_data_uri_decoder($dataUri, 2 * 1024 * 1024);
     $dir = __DIR__ . '/../uploads';
     if (!is_dir($dir)) {
         mkdir($dir, 0775, true);
     }
     $prefixe = preg_match('/^[a-z]+$/', $prefixe) ? $prefixe : 'avatar';
-    $nom = $prefixe . '_' . bin2hex(random_bytes(6)) . '.' . $exts[$info[2]];
+    $nom = $prefixe . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
     if (file_put_contents($dir . '/' . $nom, $binaire) === false) {
         throw new RuntimeException("Impossible d'enregistrer le fichier.");
     }

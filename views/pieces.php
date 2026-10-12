@@ -128,9 +128,12 @@ $nbCols = 6;
                     <span class="row-field-txt"><?= e((string) $p['categorie_nom']) ?></span>
                 <?php endif; ?>
             </td>
-            <td class="col-tiers"><?= $p['tiers'] !== '' ? e((string) $p['tiers']) : '<span class="muted">—</span>' ?></td>
+            <?php // .carte-vide : sur une mini-carte, une cellule qui ne porte
+                  // qu'un tiret s'efface — il n'y a plus de colonne à tenir
+                  // alignée, et l'absence n'a pas à prendre une place. ?>
+            <td class="col-tiers<?= $p['tiers'] === '' ? ' carte-vide' : '' ?>"><?= $p['tiers'] !== '' ? e((string) $p['tiers']) : '<span class="muted">—</span>' ?></td>
             <td class="muted small col-date"><?= $jour($p['date_piece']) !== '' ? e($jour($p['date_piece'])) : '—' ?></td>
-            <td class="muted small col-echeance">
+            <td class="muted small col-echeance<?= $p['date_echeance'] === '' ? ' carte-vide' : '' ?>">
                 <?php if ($p['date_echeance'] !== ''): ?>
                     <?= $retard ? '<strong>' . e($jour($p['date_echeance'])) . '</strong>' : e($jour($p['date_echeance'])) ?>
                 <?php else: ?>—<?php endif; ?>

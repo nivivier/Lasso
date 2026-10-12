@@ -102,18 +102,13 @@ function facturation_sauvegarder_brouillon(
     return $factureId;
 }
 
-// Prochain numéro de facture pour une année civile donnée, format « AAAA-NNN »
-// (ex. 2026-001), séquentiel sans trou dans la séquence.
-// MAX() numérique (CAST) plutôt qu'un tri lexicographique sur le numéro complet :
-// un tri texte classerait "2026-999" après "2026-1000" (le caractère '1' < '9'),
-// donnant le mauvais dernier numéro dès la 1000e facture de l'année.
+// Prochain numéro de facture, « F-2026-001 ». La mécanique est commune aux
+// séries annuelles de l'application (prochain_numero_annuel(), lib/helpers.php) ;
+// ce qui est propre à la facturation, c'est son préfixe et sa table.
+// $pdo traverse : le test de ce module numérote sur une base en mémoire.
 function facturation_prochain_numero(PDO $pdo, int $annee): string
 {
-    $prefixe = 'F-' . $annee . '-';
-    $stmt = $pdo->prepare('SELECT MAX(CAST(substr(numero, length(?) + 1) AS INTEGER)) FROM factures WHERE numero LIKE ?');
-    $stmt->execute([$prefixe, $prefixe . '%']);
-    $dernier = (int) $stmt->fetchColumn();
-    return $prefixe . sprintf('%03d', $dernier + 1);
+    return prochain_numero_annuel($pdo, 'factures', 'F', $annee);
 }
 
 // Référence structurée SCOR (ISO 11649, préfixe RF + somme de contrôle mod97),

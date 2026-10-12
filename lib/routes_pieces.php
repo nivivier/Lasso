@@ -291,22 +291,12 @@ function piece_photo_enregistrer(string $champ): ?array
     if ($data === '') {
         return null;
     }
-    if (!preg_match('~^data:(image/(?:jpeg|png|webp));base64,~', $data, $m)) {
-        throw new RuntimeException('Photo illisible.');
-    }
-    $brut = base64_decode(substr($data, strlen($m[0])), true);
-    if ($brut === false || $brut === '') {
-        throw new RuntimeException('Photo illisible.');
-    }
-    if (strlen($brut) > FICHIER_PRIVE_MAX) {
-        throw new RuntimeException('Photo trop lourde (8 Mo maximum).');
-    }
-    if (@getimagesizefromstring($brut) === false) {
-        throw new RuntimeException("Ce n'est pas une image.");
-    }
-    $mime = (string) $m[1];
-    $ext  = FICHIERS_PRIVES_MIMES[$mime] ?? 'jpg';
-    $dir  = fichiers_prives_dir();
+    // Le décodage et la PREUVE que c'en est une vivent dans
+    // image_data_uri_decoder() (lib/helpers.php), partagés avec le recadrage
+    // d'avatar : la déclaration « data:image/… » du navigateur ne prouve rien,
+    // et cette vérification-là ne doit exister qu'en un exemplaire.
+    [$brut, $ext, $mime] = image_data_uri_decoder($data, FICHIER_PRIVE_MAX);
+    $dir = fichiers_prives_dir();
     if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
         throw new RuntimeException("Impossible de créer le dossier des pièces jointes.");
     }

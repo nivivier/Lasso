@@ -5098,6 +5098,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     }
     .liste-cartes tbody tr:last-child { border-bottom: 0; }
     .liste-cartes tbody tr.inactif { opacity: .62; }
+    /* Une cellule qui ne porte qu'un tiret disparaît de la carte. Dans un
+       TABLEAU le tiret tient la colonne alignée et dit « rien ici » ; sur une
+       carte il n'y a plus de colonne à tenir, et « Échéance — » se lit comme
+       une information alors que c'est une absence. La vue pose la classe, elle
+       seule sait si la cellule est vide. */
+    .liste-cartes tbody td.carte-vide { display: none; }
     /* Les bordures de cellule du tableau n'ont plus de sens en carte. */
     .liste-cartes tbody td {
         border: 0;
@@ -5477,6 +5483,52 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
     .cartes-evenements td.col-mini .evt-mini { border-top: 0; }
     .cartes-evenements td.col-mini .evt-mini-lien { padding: 0; }
     .cartes-evenements tbody tr:not(.mois-sep) td:not(.col-check):not(.col-mini) {
+        display: none;
+    }
+
+    /* --- Pièces : l'intitulé et le montant, puis le tiers, l'échéance et
+       l'état. Même découpe que les factures, qui répondent aux mêmes
+       questions : de quoi s'agit-il, combien, pour quand, où ça en est.
+       ⚠️ TOUTE cellule doit trouver sa place ici : une cellule sans
+       grid-column se range par-dessus le nom (docs/UI.md § 9). La dernière
+       règle du bloc masque donc tout ce qui n'a pas été placé, plutôt que de
+       le laisser flotter — c'est ce qui rend l'oubli visible au lieu de le
+       rendre laid. */
+    .cartes-pieces tbody tr {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .cartes-pieces td.col-nom {
+        grid-column: 1 / 3; grid-row: 1; min-width: 0;
+        font-size: var(--fs-large); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* La catégorie présumée, posée sous l'intitulé par .row-field-txt, n'a pas
+       sa place sur une carte : elle doublerait la hauteur de chaque ligne pour
+       une information de rangement. */
+    .cartes-pieces td.col-nom .row-field-txt { display: none; }
+    .cartes-pieces td.col-montant {
+        grid-column: 3; grid-row: 1; justify-self: end; text-align: right;
+        font-size: var(--fs-big); line-height: 1.2; white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .cartes-pieces td.col-tiers {
+        grid-column: 1; grid-row: 2; justify-self: start;
+        font-size: var(--fs-small); color: var(--muted); white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; max-width: 40vw;
+    }
+    .cartes-pieces td.col-echeance {
+        grid-column: 2; grid-row: 2; justify-self: start; padding-left: 12px;
+        font-size: var(--fs-small); white-space: nowrap; font-variant-numeric: tabular-nums;
+    }
+    /* Le mot devant la date : sans en-tête de colonne, « 31.10.2026 » tout
+       seul ne dit pas de quelle date il s'agit. */
+    .cartes-pieces td.col-echeance::before { content: "Échéance "; color: var(--muted); }
+    .cartes-pieces td.col-etat {
+        grid-column: 3; grid-row: 2; justify-self: end; text-align: right;
+    }
+    /* La DATE de la pièce ne paraît pas : le séparateur de mois la dit déjà,
+       et l'échéance est celle qui appelle un geste. */
+    .cartes-pieces tbody tr:not(.mois-sep) td:not(.col-nom):not(.col-tiers):not(.col-echeance):not(.col-montant):not(.col-etat) {
         display: none;
     }
 

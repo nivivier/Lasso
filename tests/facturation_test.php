@@ -4,6 +4,11 @@
 // + une base SQLite en mémoire pour la numérotation).
 
 require_once __DIR__ . '/../lib/calc.php';
+// helpers.php pour prochain_numero_annuel() : la mécanique des séries
+// annuelles est commune aux factures et aux quittances (le piège du tri
+// lexicographique ne devait pas être payé deux fois). Elle prend son PDO en
+// argument, donc ce test garde sa base en mémoire.
+require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/facturation.php';
 
 $tests = 0;
