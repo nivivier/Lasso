@@ -3241,13 +3241,21 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    après 1200px de défilement. Il faut donc que .table-scroll cesse d'être un
    conteneur de défilement, ce qu'on ne peut se permettre que si le tableau tient
    dans la largeur disponible.
-   Mesuré : la largeur minimale des tableaux les plus larges (salaires 1144px,
-   structures 1039px) tient à partir de 1280px de fenêtre — en dessous, le
+   ⚠️ LE SEUIL SE REMESURE QUAND UN TABLEAU GAGNE UNE COLONNE. Si le tableau
+   ne tient pas, ce n'est plus lui qui défile mais LA PAGE ENTIÈRE — barre
+   d'outils et bandeau compris, qui glissent de côté. C'est bien pire qu'un
+   tableau qui défile dans son cadre, et c'est silencieux : rien ne casse, la
+   page part juste de travers.
+   Il valait 1280px, mesuré quand les tableaux les plus larges demandaient
+   1144px (salaires) et 1039px (structures). Les deux ont grossi depuis — les
+   écritures ont gagné leur colonne « Pièce », les structures leurs étiquettes.
+   Remesuré : à 1280px de fenêtre, les écritures débordaient de 13px et les
+   structures de 56px ; tout tient à partir de 1360px. En dessous, le
    défilement horizontal reste indispensable (régression déjà vécue sur
    ?p=compta_ecritures) et l'en-tête redevient ordinaire.
    .list porte de son côté overflow:hidden pour clipper ses coins arrondis :
    dans ce contexte il n'en a pas, et cet overflow clippait l'en-tête collant. */
-@media (min-width: 1280px) {
+@media (min-width: 1360px) {
     .module-content-inner .table-scroll { overflow-x: visible; }
     .module-content-inner .table-scroll .list { overflow: visible; }
     .module-content-inner .table-scroll .list thead th {
@@ -6035,7 +6043,14 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    justificatif —, donc rien ne s'y affiche quand il manque : l'œil descend la
    colonne et s'arrête sur les trous. L'inverse aurait fait clignoter les
    lignes en ordre, qui sont la majorité. */
-.col-piece { width: 1%; white-space: nowrap; text-align: center; }
+/* Une colonne d'icônes n'a pas besoin du retrait d'une colonne de texte : son
+   contenu fait 16px et son intitulé cinq lettres. Serrée, parce que la place
+   qu'elle prend est enlevée au libellé d'une écriture — et parce qu'au-delà de
+   1280px de fenêtre le tableau cesse de défiler horizontalement (voir la règle
+   de l'en-tête collant) : chaque colonne de plus rapproche du moment où il
+   déborde. */
+.col-piece { width: 1%; white-space: nowrap; text-align: center; padding-left: 6px; padding-right: 6px; }
+.col-piece .col-th { gap: 2px; }
 .piece-etat { display: inline-flex; color: var(--muted); }
 .piece-etat .ico { width: 16px; height: 16px; }
 /* Une dispense n'est pas un justificatif : le tiret se tient en retrait des

@@ -1074,6 +1074,18 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   de la même espèce que les lignes montrées — « et 2 autres à venir » sous les
   seules campagnes en cours. Le total d'un pied de carte porte alors sur TOUT,
   pas sur les lignes visibles : c'est cette ligne qui rend l'écart lisible.
+- ⚠️ **Ajouter une colonne à une liste pleine largeur, c'est remesurer le seuil
+  de l'en-tête collant.** Au-delà d'une largeur de fenêtre donnée (1360px
+  aujourd'hui), `.table-scroll` cesse d'être un conteneur de défilement — c'est
+  la condition pour qu'un `<thead>` puisse coller. Si le tableau ne tient plus,
+  ce n'est donc plus lui qui défile mais **la page entière**, barre d'outils et
+  bandeau compris, qui glissent de côté. Rien ne casse, rien ne s'affiche de
+  travers : la page part juste en biais, et on ne le voit qu'à la largeur
+  précise où ça arrive. Le seuil valait 1280px, mesuré quand les tableaux les
+  plus larges demandaient 1144px ; les écritures ont depuis gagné une colonne
+  et les structures leurs étiquettes, et à 1280px elles débordaient
+  respectivement de 13 et 56px. **Se remesure dans le navigateur, pas se
+  suppose.**
 - **Largeur des colonnes** : un tableau en disposition automatique répartit la
   place entre toutes ses colonnes, y compris celles qui n'en demandent pas.
   Serrer les colonnes courtes sur leur contenu (`width: 1%` + `white-space:
