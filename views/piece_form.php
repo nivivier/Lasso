@@ -1,5 +1,5 @@
 <?php /** @var ?array $p */ /** @var ?array $champs */ /** @var string $err */ /** @var array $categories */
-/** @var ?array $ecrSource */
+/** @var ?array $ecrSource */ /** @var array $beneficiaires */
 
 // Trois sources, dans cet ordre : la saisie qu'on vient de refuser (il ne faut
 // jamais la perdre), la pièce qu'on modifie, l'écriture d'où l'on vient. Cette
@@ -26,6 +26,14 @@ $montant = (float) ($champs['montant'] ?? $p['montant'] ?? $ecrSource['montant']
 $sens    = $montant > 0 ? 'recette' : 'depense';
 $type    = $v('type', 'facture_recue');
 $modePaie = $v('mode_paiement');
+// Le bénéficiaire, dans la forme que porte le sélecteur unique : « s:12 » ou
+// « p:34 ». Un seul champ plutôt que deux menus, qui auraient laissé en
+// remplir deux et posé la question de qui gagne.
+$benefCourant = '';
+if ($p !== null) {
+    if (!empty($p['structure_id'])) { $benefCourant = 's:' . (int) $p['structure_id']; }
+    elseif (!empty($p['personne_id'])) { $benefCourant = 'p:' . (int) $p['personne_id']; }
+}
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -81,6 +89,30 @@ $modePaie = $v('mode_paiement');
             </select>
         </label>
         <label>Date de la pièce <input type="date" name="date_piece" value="<?= e($v('date_piece') ?: date('Y-m-d')) ?>"></label>
+    </div>
+
+    <?php // Le bénéficiaire ne concerne QUE la quittance : c'est le seul type
+          // de pièce que Lasso produit, et le seul qui s'adresse à quelqu'un.
+          // Affiché pour tous mais masqué par le script tant que le type n'est
+          // pas « quittance » — un champ qui apparaît et disparaît au bon
+          // moment vaut mieux qu'un champ toujours là qui ne sert jamais. ?>
+    <div class="piece-champ-quittance mt-16" id="piece-beneficiaire" <?= $type === 'quittance' ? '' : 'hidden' ?>>
+        <label><span>Bénéficiaire <?= info_tip(
+            'À qui la quittance est remise : une structure du carnet, ou une personne. '
+            . "À défaut, le « Tiers » saisi plus haut sert de nom sur le document."
+        ) ?></span>
+            <select name="beneficiaire">
+                <option value="">— Le tiers saisi plus haut —</option>
+                <?php $grpCourant = null; foreach ($beneficiaires as $b): ?>
+                    <?php if ($b['groupe'] !== $grpCourant): $grpCourant = $b['groupe']; ?>
+                        <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
+                        <optgroup label="<?= e($b['groupe']) ?>">
+                    <?php endif; ?>
+                    <option value="<?= e($b['val']) ?>"<?= $benefCourant === $b['val'] ? ' selected' : '' ?>><?= e($b['libelle']) ?></option>
+                <?php endforeach; ?>
+                <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
+            </select>
+        </label>
     </div>
 
     <div class="grid2 mt-16">
@@ -145,3 +177,18 @@ $modePaie = $v('mode_paiement');
     <label class="mt-16">Remarques <textarea name="notes" rows="2"><?= e($v('notes')) ?></textarea></label>
 </form>
 </div></div>
+<?php // Le bénéficiaire suit le type choisi. Sans script le champ reste
+      // visible et fonctionne : il ne sert simplement à rien sur une facture
+      // reçue, et le serveur l'ignore (SPEC_PIECES.md § 10). ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+(() => {
+    const bloc = document.getElementById('piece-beneficiaire');
+    if (!bloc) return;
+    const suivre = () => {
+        const coche = document.querySelector('input[name="type"]:checked');
+        bloc.hidden = !coche || coche.value !== 'quittance';
+    };
+    document.querySelectorAll('input[name="type"]').forEach(r => r.addEventListener('change', suivre));
+    suivre();
+})();
+</script>

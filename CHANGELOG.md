@@ -42,6 +42,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   voisines) sans rien poser : on coche ce qui est juste. Et un bouton
   télécharge les justificatifs d'une année avec leur index, pour le
   bouclement.
+  **Les quittances** : pour l'argent reçu — une vente, une caisse de
+  merchandising, une cotisation —, Lasso produit un document numéroté
+  (`Q-2026-001`), à une structure ou à une personne, imprimable comme les
+  autres documents de l'application.
 
 ### Corrigé
 - **La carte « Salaire coordonné » touchait le tableau au-dessus d'elle**

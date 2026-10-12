@@ -436,3 +436,58 @@ function pieces_dashboard(int $max = 5): array
     $stmt->execute();
     return ['pieces' => $stmt->fetchAll(), 'nb' => $nb];
 }
+
+// ---------------------------------------------------------------------------
+// Les QUITTANCES
+//
+// Une quittance est une pièce que Lasso PRODUIT (origine = 'emise'), sans
+// fichier téléversé. Elle constate après coup — argent reçu d'une vente, d'une
+// caisse de merchandising, d'une cotisation — là où une facture réclame avant.
+// Pas de QR, pas de délai de paiement : réutiliser la facturation aurait dit
+// la chose de travers.
+//
+// Le bénéficiaire est une STRUCTURE ou une PERSONNE, jamais les deux. Deux
+// colonnes nullables plutôt qu'un couple type+id : SQLite sait alors vérifier
+// la clé étrangère, et une structure supprimée ne laisse pas une quittance
+// pointant un identifiant devenu celui de quelqu'un d'autre.
+
+// Numérotation propre, annuelle : Q-2026-001. Série distincte de celle des
+// factures — le préfixe dit tout de suite de quel document il s'agit, et
+// aucune des deux séries n'a de trou. Même MAX() numérique que
+// facturation_prochain_numero(), et pour la même raison : un tri texte
+// classerait « 2026-999 » après « 2026-1000 » dès la millième quittance.
+function quittance_prochain_numero(int $annee): string
+{
+    $prefixe = 'Q-' . $annee . '-';
+    $stmt = db()->prepare('SELECT MAX(CAST(substr(numero, length(?) + 1) AS INTEGER)) FROM pieces WHERE numero LIKE ?');
+    $stmt->execute([$prefixe, $prefixe . '%']);
+    return $prefixe . sprintf('%03d', ((int) $stmt->fetchColumn()) + 1);
+}
+
+// Le bénéficiaire, en un nom et une adresse prêts à imprimer. Une structure ou
+// une personne — ou, à défaut des deux, le tiers saisi à la main sur la pièce,
+// parce qu'on encaisse parfois de quelqu'un qui n'est dans aucun carnet.
+function quittance_beneficiaire(array $p): array
+{
+    if (!empty($p['structure_id'])) {
+        $stmt = db()->prepare('SELECT nom, adresse_rue, adresse_npa, adresse_localite FROM structures WHERE id = ?');
+        $stmt->execute([(int) $p['structure_id']]);
+        if ($s = $stmt->fetch()) {
+            return [
+                'nom'     => (string) $s['nom'],
+                'adresse' => trim((string) $s['adresse_rue']),
+                'localite' => trim((string) $s['adresse_npa'] . ' ' . (string) $s['adresse_localite']),
+            ];
+        }
+    }
+    if (!empty($p['personne_id'])) {
+        if ($pe = personne_charger((int) $p['personne_id'])) {
+            return [
+                'nom'      => personne_nom($pe),
+                'adresse'  => trim((string) $pe['rue']),
+                'localite' => trim((string) $pe['npa_localite']),
+            ];
+        }
+    }
+    return ['nom' => trim((string) ($p['tiers'] ?? '')), 'adresse' => '', 'localite' => ''];
+}

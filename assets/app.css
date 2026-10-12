@@ -6000,6 +6000,11 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    d'un formulaire déjà horizontal. */
 .plan-piece { white-space: nowrap; flex: 0 0 auto; }
 
+/* Le bénéficiaire d'une quittance : un champ qui n'existe que pour UN type de
+   pièce, et qui occupe toute la largeur quand il paraît — c'est un nom et une
+   adresse, pas une valeur courte à ranger dans une grille à deux colonnes. */
+.piece-champ-quittance > label { display: block; }
+
 /* Le fichier joint, sur la fiche : un trombone, le nom d'origine, le poids. */
 .piece-fichier { display: flex; align-items: center; gap: 8px; }
 .piece-fichier .ico { width: 16px; height: 16px; color: var(--muted); }

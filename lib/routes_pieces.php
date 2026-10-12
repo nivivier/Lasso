@@ -175,8 +175,8 @@ function route_piece_form(): void
         }
 
         if ($piece) {
-            $sql = 'UPDATE pieces SET type=?, libelle=?, tiers=?, montant=?, date_piece=?, date_echeance=?,
-                    date_payee=?, mode_paiement=?, plan_compte_id=?, notes=?';
+            $sql = 'UPDATE pieces SET type=?, structure_id=?, personne_id=?, libelle=?, tiers=?, montant=?,
+                    date_piece=?, date_echeance=?, date_payee=?, mode_paiement=?, plan_compte_id=?, notes=?';
             $args = array_values($champs);
             if ($fichier) {
                 // Le fichier remplacé s'en va : rien ne le désignerait plus.
@@ -193,6 +193,14 @@ function route_piece_form(): void
             if ($fichier) {
                 $cols = array_merge($cols, ['fichier', 'nom_origine', 'mime', 'taille']);
                 $args = array_merge($args, array_values($fichier));
+            }
+            // Une quittance est un document que Lasso PRODUIT : elle naît
+            // numérotée, et son numéro ne change plus — c'est ce qui en fait
+            // une pièce comptable référençable.
+            if ($champs['type'] === 'quittance') {
+                $annee = (int) substr($champs['date_piece'] ?: date('Y-m-d'), 0, 4);
+                $cols = array_merge($cols, ['origine', 'numero']);
+                $args = array_merge($args, ['emise', quittance_prochain_numero($annee)]);
             }
             $sql = 'INSERT INTO pieces (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')';
             db()->prepare($sql)->execute($args);
@@ -222,8 +230,16 @@ function piece_champs_postes(): array
     if ($payee === '') {
         $mode = '';
     }
+    // Le bénéficiaire d'une quittance : une structure OU une personne, jamais
+    // les deux. Le champ vient d'un sélecteur unique qui préfixe son choix,
+    // « s:12 » ou « p:34 » — deux menus côte à côte auraient laissé en cocher
+    // deux et posé la question de qui gagne.
+    [$benefType, $benefId] = array_pad(explode(':', (string) ($_POST['beneficiaire'] ?? ''), 2), 2, '');
+    $benefId = (int) $benefId;
     return [
         'type'           => valeur_autorisee((string) ($_POST['type'] ?? ''), array_keys(PIECE_TYPES), 'facture_recue'),
+        'structure_id'   => $benefType === 's' && $benefId ? $benefId : null,
+        'personne_id'    => $benefType === 'p' && $benefId ? $benefId : null,
         'libelle'        => trim((string) ($_POST['libelle'] ?? '')),
         'tiers'          => trim((string) ($_POST['tiers'] ?? '')),
         'montant'        => piece_montant_poste(),
@@ -257,6 +273,10 @@ function piece_form_data(?array $piece, ?array $champs, string $err, ?array $ecr
         // Les feuilles de l'arbre : seules elles sont assignables, comme
         // pour le lettrage d'une écriture (plan_feuilles(), lib/compta.php).
         'categories' => plan_feuilles(compta_plan_actif()),
+        // Les deux carnets, pour le bénéficiaire d'une quittance. Chargés
+        // seulement quand ils servent : 2900 personnes dans un menu qu'on
+        // n'ouvrira pas sont 2900 lignes de trop sur chaque autre pièce.
+        'beneficiaires' => quittance_beneficiaires_options(),
     ];
 }
 
@@ -515,6 +535,42 @@ function pieces_nom_archive(array $p, string $fichier, array &$utilises): string
     }
     $utilises[$nom] = true;
     return $nom;
+}
+
+// Les bénéficiaires possibles d'une quittance : les structures, puis les
+// personnes, préfixées pour tenir dans un seul sélecteur. Le carnet des
+// personnes n'est pas chargé s'il n'y a pas de quoi le lire.
+function quittance_beneficiaires_options(): array
+{
+    $out = [];
+    if (module_accessible('booking') || module_accessible('facturation')) {
+        foreach (db()->query("SELECT id, nom FROM structures WHERE statut <> 'inactif' ORDER BY nom COLLATE NOCASE") as $s) {
+            $out[] = ['val' => 's:' . (int) $s['id'], 'libelle' => (string) $s['nom'], 'groupe' => 'Structures'];
+        }
+    }
+    if (peut_lire('coeur')) {
+        foreach (db()->query("SELECT id, prenom, nom, email FROM personnes ORDER BY nom COLLATE NOCASE, prenom COLLATE NOCASE") as $pe) {
+            $out[] = ['val' => 'p:' . (int) $pe['id'], 'libelle' => personne_nom($pe), 'groupe' => 'Personnes'];
+        }
+    }
+    return $out;
+}
+
+// La quittance imprimable. Un document d'une page, comme les autres
+// impressions de l'application : render_bare(), aucune commande, rien qui ne
+// se retrouve sur le papier.
+function route_quittance_imprimer(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? 0);
+    $p  = $id ? piece_charger($id) : null;
+    if (!$p || (string) $p['type'] !== 'quittance') {
+        redirect('pieces');
+    }
+    render_bare('quittance_imprimer', [
+        'p'            => $p,
+        'beneficiaire' => quittance_beneficiaire($p),
+    ]);
 }
 
 // Sert le fichier d'une pièce. Il vit hors racine web (data/fichiers/) : c'est

@@ -154,6 +154,7 @@ ajouter_routes_module($handlers, $routeModules, 'pieces', [
     'piece_payee'       => 'route_piece_payee',
     'pieces_rapprochements' => 'route_pieces_rapprochements',
     'pieces_archive'    => 'route_pieces_archive',
+    'quittance_imprimer' => 'route_quittance_imprimer',
 ]);
 
 // Comptes bancaires : partagés entre Comptabilité (relevés, lettrage) et

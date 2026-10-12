@@ -126,6 +126,7 @@ function run_migrations(PDO $pdo): void
         98 => 'migration_98', // projets : actif/inactif, pour alléger les menus de projet
         99 => 'migration_99', // pièces comptables : la table, et le justificatif attendu d'une écriture
         100 => 'migration_100', // les personnes : l'identité sort des contacts, des employés et des comptes
+        101 => 'migration_101', // quittances : le bénéficiaire d'une pièce émise
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3148,6 +3149,24 @@ function migration_94(PDO $pdo): void
 // tests/migrations_test.php le vérifie sur toute la chaîne). Reconstruction
 // par x_new + copie + DROP + RENAME, jamais RENAME TO x_old puis recréation —
 // voir docs/DECISIONS.md § Migrations SQLite.
+// Migration 101 : le bénéficiaire d'une quittance (SPEC_PIECES.md § 10).
+//
+// Une quittance se fait à une structure OU à une personne. Deux colonnes
+// nullables plutôt qu'un couple type+id : SQLite peut alors vérifier la clé
+// étrangère, et une fiche supprimée ne laisse pas une quittance pointant un
+// identifiant devenu celui de quelqu'un d'autre. Avec un couple polymorphe,
+// cette erreur-là est silencieuse et indétectable.
+function migration_101(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(pieces)')->fetchAll(), 'name');
+    if (!in_array('structure_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE pieces ADD COLUMN structure_id INTEGER REFERENCES structures(id) ON DELETE SET NULL');
+    }
+    if (!in_array('personne_id', $cols, true)) {
+        $pdo->exec('ALTER TABLE pieces ADD COLUMN personne_id INTEGER REFERENCES personnes(id) ON DELETE SET NULL');
+    }
+}
+
 function migration_100(PDO $pdo): void
 {
     $colonnes = fn (string $t): array => array_column($pdo->query("PRAGMA table_info($t)")->fetchAll(), 'name');

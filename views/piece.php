@@ -31,6 +31,12 @@ $vide = '<span class="muted">—</span>';
         <?php // « Supprimer » n'est pas dans cette barre (docs/UI.md § 1) : il
               // vit au pied de la carte, en mode édition. Ici, ce qui mène
               // ailleurs, puis « Modifier » en dernier. ?>
+        <?php if ((string) $p['type'] === 'quittance'): ?>
+            <?php // Ce qui mène ailleurs avant ce qui agit (docs/UI.md § 1) :
+                  // l'impression ouvre un document, « Modifier » change la
+                  // fiche. ?>
+            <a class="btn ghost" href="?p=quittance_imprimer&id=<?= $id ?>" target="_blank" rel="noopener"><?= icon('printer') ?> <span class="lbl">Imprimer</span></a>
+        <?php endif; ?>
         <?php if (trim((string) $p['fichier']) !== ''): ?>
             <a class="btn ghost" href="?p=piece_fichier&id=<?= $id ?>"><?= icon('download') ?> <span class="lbl">Télécharger</span></a>
         <?php endif; ?>
@@ -58,6 +64,17 @@ $vide = '<span class="muted">—</span>';
             </td></tr>
             <?php if ($p['numero'] !== ''): ?>
             <tr><th>Numéro</th><td><code><?= e((string) $p['numero']) ?></code></td></tr>
+            <?php endif; ?>
+            <?php if ((string) $p['type'] === 'quittance'): $b = quittance_beneficiaire($p); ?>
+            <tr><th>Bénéficiaire</th><td>
+                <?php if (!empty($p['structure_id'])): ?>
+                    <a href="?p=structure&id=<?= (int) $p['structure_id'] ?>"><?= e($b['nom']) ?></a>
+                <?php elseif (!empty($p['personne_id'])): ?>
+                    <a href="?p=personne&id=<?= (int) $p['personne_id'] ?>"><?= e($b['nom']) ?></a>
+                <?php else: ?>
+                    <?= $b['nom'] !== '' ? e($b['nom']) : $vide ?>
+                <?php endif; ?>
+            </td></tr>
             <?php endif; ?>
             <?php if (trim((string) $p['notes']) !== ''): ?>
             <tr><th>Remarques</th><td><?= nl2br(e((string) $p['notes'])) ?></td></tr>
