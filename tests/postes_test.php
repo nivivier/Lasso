@@ -76,7 +76,10 @@ check('avs → ded_avs', 'ded_avs', poste_colonne_montant('avs'));
 check('emp_avs → emp_avs', 'emp_avs', poste_colonne_montant('emp_avs'));
 
 echo "3) Une fiche fige ses lignes, libellé compris\n";
-db()->exec("INSERT INTO employes (id, prenom, nom) VALUES (1, 'Test', 'Postes')");
+// L'identité d'un employé vit sur personnes depuis la migration 100 ; la fiche,
+// elle, en fige sa propre copie et ne dépend d'aucune des deux.
+db()->exec("INSERT INTO personnes (id, prenom, nom) VALUES (1, 'Test', 'Postes')");
+db()->exec('INSERT INTO employes (id, personne_id) VALUES (1, 1)');
 db()->exec("INSERT INTO fiches (id, employe_id, annee, mois, employe_nom, employe_rue, employe_npa,
     employe_avs, canton, procedure, salaire_horaire, nombre_heures, supplement_taux,
     salaire_travail, supplement_montant, salaire_brut, ded_avs, ded_ac, ded_amat, ded_laa,

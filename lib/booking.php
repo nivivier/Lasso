@@ -697,9 +697,9 @@ function structures_contact_reference(array $structureIds): array
     // Contacts actifs de toutes les structures concernées, mères comprises,
     // déjà triés : l'« administration » d'abord, puis l'ordre de création.
     $aChercher = array_values(array_unique(array_merge($ids, array_merge([], ...array_values($meres)))));
-    $stmt = db()->prepare('SELECT * FROM structure_contacts
-                            WHERE actif = 1 AND structure_id IN (' . sql_in($aChercher) . ')
-                            ORDER BY est_administration DESC, id ASC');
+    $stmt = db()->prepare('SELECT ' . CONTACT_SELECT . CONTACT_FROM . '
+                            WHERE cs.actif = 1 AND cs.structure_id IN (' . sql_in($aChercher) . ')
+                            ORDER BY cs.est_administration DESC, cs.id ASC');
     $stmt->execute($aChercher);
     $parStructure = [];
     foreach ($stmt as $c) {
@@ -1126,18 +1126,25 @@ function historique_icone(array $entree): array
 
 // Ajoute une entrée d'historique pour une fiche ($entiteType : 'structure' |
 // 'lieu'). $creeLe permet de dater l'entrée (import) ; sinon = maintenant.
-function journaliser(string $entiteType, int $id, string $type, string $contenu = '', ?string $creeLe = null): void
+//
+// $personneId rattache l'entrée à QUI l'on a écrit, en plus d'à quelle
+// structure. Une colonne de plus et non une seconde ligne : on retrouve ainsi
+// le fil d'une personne qui change de salle, sans dédoubler l'historique d'une
+// structure (SPEC_PERSONNES.md § 6). Les entrées d'avant la migration, qui
+// n'en ont pas, restent valides telles quelles.
+function journaliser(string $entiteType, int $id, string $type, string $contenu = '', ?string $creeLe = null, ?int $personneId = null): void
 {
     if ($id <= 0) {
         return;
     }
     $u = current_user();
+    $uid = $u ? (int) $u['id'] : null;
     if ($creeLe !== null && $creeLe !== '') {
-        db()->prepare('INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id, cree_le) VALUES (?, ?, ?, ?, ?, ?)')
-            ->execute([$entiteType, $id, $type, $contenu, $u ? (int) $u['id'] : null, $creeLe]);
+        db()->prepare('INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id, personne_id, cree_le) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$entiteType, $id, $type, $contenu, $uid, $personneId ?: null, $creeLe]);
     } else {
-        db()->prepare('INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id) VALUES (?, ?, ?, ?, ?)')
-            ->execute([$entiteType, $id, $type, $contenu, $u ? (int) $u['id'] : null]);
+        db()->prepare('INSERT INTO historique (entite_type, entite_id, type, contenu, utilisateur_id, personne_id) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$entiteType, $id, $type, $contenu, $uid, $personneId ?: null]);
     }
 }
 
@@ -1224,7 +1231,7 @@ function structures_colonnes_liste_sql(): string
              WHERE tl.structure_id = s.id ORDER BY SANS_ACCENTS(t.nom)
         )) AS tags_noms,
         (SELECT GROUP_CONCAT(nom, char(30)) FROM (
-            SELECT TRIM(prenom || ' ' || nom) AS nom FROM structure_contacts WHERE structure_id = s.id AND TRIM(prenom || ' ' || nom) <> '' ORDER BY actif DESC, id
+            SELECT TRIM(pe.prenom || ' ' || pe.nom) AS nom FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = s.id AND TRIM(pe.prenom || ' ' || pe.nom) <> '' ORDER BY cs.actif DESC, cs.id
         )) AS contacts_noms,
         " . structure_email_sql() . " AS email_affiche,
         " . structure_formulaire_sql() . " AS formulaire_affiche";
@@ -1243,8 +1250,8 @@ function structures_colonnes_liste_sql(): string
 function structure_email_sql(string $colStructureId = 's.id'): string
 {
     return "COALESCE(
-            (SELECT email FROM structure_contacts WHERE structure_id = $colStructureId AND est_administration = 1 LIMIT 1),
-            (SELECT email FROM structure_contacts WHERE structure_id = $colStructureId AND email <> '' ORDER BY id LIMIT 1)
+            (SELECT pe.email FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = $colStructureId AND cs.est_administration = 1 LIMIT 1),
+            (SELECT pe.email FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = $colStructureId AND pe.email <> '' ORDER BY cs.id LIMIT 1)
         )";
 }
 
@@ -1260,8 +1267,8 @@ function structure_email_sql(string $colStructureId = 's.id'): string
 function structure_formulaire_sql(string $colStructureId = 's.id'): string
 {
     return "COALESCE(
-            (SELECT formulaire_url FROM structure_contacts WHERE structure_id = $colStructureId AND est_administration = 1 AND formulaire_url <> '' LIMIT 1),
-            (SELECT formulaire_url FROM structure_contacts WHERE structure_id = $colStructureId AND formulaire_url <> '' ORDER BY id LIMIT 1),
+            (SELECT cs.formulaire_url FROM personne_structures cs WHERE cs.structure_id = $colStructureId AND cs.est_administration = 1 AND cs.formulaire_url <> '' LIMIT 1),
+            (SELECT cs.formulaire_url FROM personne_structures cs WHERE cs.structure_id = $colStructureId AND cs.formulaire_url <> '' ORDER BY cs.id LIMIT 1),
             ''
         )";
 }
@@ -1712,7 +1719,7 @@ function structures_fusionner(int $idGarde, array $autres): void
     // moitié reprises et des structures fusionnées non supprimées, sans retour
     // arrière possible.
     db()->beginTransaction();
-    foreach (['structure_contacts', 'mailing_envois', 'mailing_file_attente', 'factures'] as $table) {
+    foreach (['personne_structures', 'mailing_envois', 'mailing_file_attente', 'factures'] as $table) {
         db()->prepare("UPDATE $table SET structure_id = ? WHERE structure_id IN ($in)")
             ->execute(array_merge([$idGarde], $autres));
     }
@@ -1962,9 +1969,9 @@ function mailing_destinataires(array $criteres): array
     $destinataires = [];
     foreach ($structures as $s) {
         $stmt = db()->prepare(
-            "SELECT * FROM structure_contacts
-             WHERE structure_id = ? AND actif = 1 AND desinscrit = 0 AND email <> ''
-             ORDER BY id"
+            'SELECT ' . CONTACT_SELECT . CONTACT_FROM . "
+             WHERE cs.structure_id = ? AND cs.actif = 1 AND pe.desinscrit = 0 AND pe.email <> ''
+             ORDER BY cs.id"
         );
         $stmt->execute([(int) $s['id']]);
         $contacts = $stmt->fetchAll();
@@ -2297,9 +2304,9 @@ function ciblage_filtres_vue(array $ciblage, array $saisie, int $id): array
 function structure_contacts_joignables(int $structureId): array
 {
     $stmt = db()->prepare(
-        "SELECT * FROM structure_contacts
-          WHERE structure_id = ? AND actif = 1 AND desinscrit = 0 AND email <> ''
-          ORDER BY est_booking DESC, id"
+        'SELECT ' . CONTACT_SELECT . CONTACT_FROM . "
+          WHERE cs.structure_id = ? AND cs.actif = 1 AND pe.desinscrit = 0 AND pe.email <> ''
+          ORDER BY cs.est_booking DESC, cs.id"
     );
     $stmt->execute([$structureId]);
     return array_values(array_filter($stmt->fetchAll(), fn ($c) => !mailing_email_exclu((string) $c['email'])));
@@ -2726,7 +2733,7 @@ function structures_analyser_import(array $lignes, array $mapping): array
             ];
         }
     }
-    foreach (db()->query("SELECT email, structure_id FROM structure_contacts WHERE email <> ''") as $c) {
+    foreach (db()->query("SELECT pe.email, cs.structure_id FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE pe.email <> ''") as $c) {
         $cle = mb_strtolower(trim((string) $c['email']), 'UTF-8');
         if ($cle !== '' && !isset($indexEmail[$cle])) {
             $indexEmail[$cle] = (int) $c['structure_id'];
@@ -3209,7 +3216,7 @@ function structure_import_attacher_contact(int $structureId, array $d): void
         return;
     }
     if ($d['email_contact'] !== '') {
-        $stmt = db()->prepare('SELECT 1 FROM structure_contacts WHERE structure_id = ? AND email = ? COLLATE NOCASE');
+        $stmt = db()->prepare('SELECT 1' . CONTACT_FROM . ' WHERE cs.structure_id = ? AND pe.email = ? COLLATE NOCASE');
         $stmt->execute([$structureId, $d['email_contact']]);
         if ($stmt->fetchColumn()) {
             return;
@@ -3218,13 +3225,19 @@ function structure_import_attacher_contact(int $structureId, array $d): void
     // Liste « ne pas contacter » : un e-mail exclu peut être (ré)importé comme
     // contact, mais naît désinscrit — l'exclusion n'est jamais contournée.
     $desinscrit = ($d['email_contact'] !== '' && mailing_email_exclu($d['email_contact'])) ? 1 : 0;
-    db()->prepare(
-        'INSERT INTO structure_contacts (structure_id, prenom, nom, role, email, telephone, formulaire_url, langue, desinscrit)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    )->execute([
-        $structureId, $d['prenom'], $d['nom_contact'], $d['role'], $d['email_contact'],
-        $d['telephone'], $d['formulaire_url'], $d['langue'], $desinscrit,
+    $cid = contact_creer($structureId, [
+        'prenom'         => $d['prenom'],
+        'nom'            => $d['nom_contact'],
+        'email'          => $d['email_contact'],
+        'telephone'      => $d['telephone'],
+        'langue'         => $d['langue'],
+        'role'           => $d['role'],
+        'formulaire_url' => $d['formulaire_url'],
     ]);
+    if ($desinscrit) {
+        $c = contact_charger($cid);
+        db()->prepare('UPDATE personnes SET desinscrit = 1 WHERE id = ?')->execute([(int) $c['personne_id']]);
+    }
 }
 
 // Type d'un lieu à l'import : si une catégorie de lieu a été détectée (colonne
@@ -3305,7 +3318,9 @@ function structures_importer_liste_exclusion(array $emails): int
 {
     $n = 0;
     $ins = db()->prepare('INSERT OR IGNORE INTO mailing_exclusions (email) VALUES (?)');
-    $maj = db()->prepare('UPDATE structure_contacts SET desinscrit = 1 WHERE email = ? COLLATE NOCASE');
+    // La désinscription vaut pour la PERSONNE, partout : qui se désinscrit
+    // ne veut plus rien recevoir, pas « plus rien de cette salle-là ».
+    $maj = db()->prepare('UPDATE personnes SET desinscrit = 1 WHERE email = ? COLLATE NOCASE');
     foreach ($emails as $email) {
         $email = trim($email);
         if ($email === '') {

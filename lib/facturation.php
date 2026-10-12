@@ -54,9 +54,7 @@ function structure_contact_creer_depuis_post(int $structureId, string $prefixe):
     if ($prenom === '' && $nom === '' && $email === '' && $telephone === '') {
         return;
     }
-    db()->prepare('INSERT INTO structure_contacts (structure_id, prenom, nom, email, telephone)
-                   VALUES (?, ?, ?, ?, ?)')
-        ->execute([$structureId, $prenom, $nom, $email, $telephone]);
+    contact_creer($structureId, ['prenom' => $prenom, 'nom' => $nom, 'email' => $email, 'telephone' => $telephone]);
 }
 
 // Montant d'une ligne (quantité × prix unitaire), arrondi à 2 décimales.

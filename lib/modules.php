@@ -556,6 +556,10 @@ function parametres_groupes(): array
             'apparence'          => 'Apparence',
             'modules'            => 'Modules',
             'utilisateurs'       => 'Utilisateurs',
+            // Les personnes traversent le booking, les salaires et les
+            // comptes : aucun module ne peut en être propriétaire, et c'est
+            // pourquoi l'écran vit ici, sous « coeur » (SPEC_PERSONNES.md).
+            'personnes'          => 'Personnes',
             'diagnostic'         => 'Serveur',
         ]];
     }

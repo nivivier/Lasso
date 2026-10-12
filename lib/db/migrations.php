@@ -125,6 +125,7 @@ function run_migrations(PDO $pdo): void
         97 => 'migration_97', // brouillon de message : les copies (cc) et copies cachées (cci)
         98 => 'migration_98', // projets : actif/inactif, pour alléger les menus de projet
         99 => 'migration_99', // pièces comptables : la table, et le justificatif attendu d'une écriture
+        100 => 'migration_100', // les personnes : l'identité sort des contacts, des employés et des comptes
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3120,6 +3121,256 @@ function migration_94(PDO $pdo): void
 // case « Actifs seulement » les rappelle à l'écran.
 //
 // Actif par défaut : une base existante ne change pas de comportement.
+// Migration 100 : LES PERSONNES (SPEC_PERSONNES.md).
+//
+// Une personne existait dans trois tables qui ne se parlaient pas :
+// structure_contacts (~2900 lignes), employes, utilisateurs. Le musicien qui
+// joue chez nous et figure dans l'annuaire de booking était deux lignes sans
+// rapport ; le programmateur qui change de salle, deux contacts et un
+// historique coupé en deux.
+//
+// structure_contacts CONFONDAIT deux choses : une personne, et son rôle dans
+// une structure. C'est aussi ce qui rend la correction abordable — elle EST
+// déjà la table de liaison, elle a son structure_id. On n'en sort que
+// l'identité, et elle devient personne_structures, ce qu'elle a toujours été.
+//
+// ⚠️ LES IDENTIFIANTS SONT PRÉSERVÉS, et ce n'est pas un détail : personnes.id
+// et personne_structures.id reprennent structure_contacts.id. Quatre tables
+// pointaient ce contact_id, et les données restent donc justes sans la moindre
+// table de correspondance. On aurait pu renuméroter — aucun mailing n'est parti
+// en production, le lien de désinscription signé n'existe nulle part dans la
+// nature — mais préserver ne coûte rien ici et supprime toute une classe
+// d'erreurs de reprise.
+//
+// ⚠️ Les quatre tables qui pointaient structure_contacts doivent être
+// RECONSTRUITES avant qu'on ne la supprime, sans quoi leurs clés étrangères
+// désignent une table disparue (PRAGMA foreign_key_check le dirait, et
+// tests/migrations_test.php le vérifie sur toute la chaîne). Reconstruction
+// par x_new + copie + DROP + RENAME, jamais RENAME TO x_old puis recréation —
+// voir docs/DECISIONS.md § Migrations SQLite.
+function migration_100(PDO $pdo): void
+{
+    $colonnes = fn (string $t): array => array_column($pdo->query("PRAGMA table_info($t)")->fetchAll(), 'name');
+    if (in_array('personne_id', $colonnes('employes'), true)) {
+        return; // déjà jouée
+    }
+
+    // --- 1. Les personnes --------------------------------------------------
+    // desinscrit monte ici : qui se désinscrit ne veut plus rien recevoir, pas
+    // « plus rien de cette salle-là ». C'est ce qu'on croit demander en
+    // cliquant, et c'est un changement de comportement assumé.
+    $pdo->exec(<<<SQL
+        CREATE TABLE IF NOT EXISTS personnes (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            prenom         TEXT NOT NULL DEFAULT '',
+            nom            TEXT NOT NULL DEFAULT '',
+            email          TEXT NOT NULL DEFAULT '',
+            telephone      TEXT NOT NULL DEFAULT '',
+            langue         TEXT NOT NULL DEFAULT '',
+            rue            TEXT NOT NULL DEFAULT '',
+            npa_localite   TEXT NOT NULL DEFAULT '',
+            date_naissance TEXT NOT NULL DEFAULT '',
+            desinscrit     INTEGER NOT NULL DEFAULT 0,
+            notes          TEXT NOT NULL DEFAULT '',
+            cree_le        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_personnes_nom   ON personnes(nom, prenom);
+        CREATE INDEX IF NOT EXISTS idx_personnes_email ON personnes(email);
+    SQL);
+
+    // Une personne par contact, AUCUN regroupement automatique : avec ~2900
+    // lignes, des boîtes partagées (info@…) et des homonymes, un
+    // dédoublonnage automatique fabriquerait des fusions fausses et muettes —
+    // et une fusion fausse coûte bien plus cher qu'un doublon. Un écran de
+    // fusion manuelle viendra.
+    $pdo->exec(
+        "INSERT INTO personnes (id, prenom, nom, email, telephone, langue, desinscrit, cree_le)
+         SELECT id, prenom, nom, email, telephone, langue, desinscrit, cree_le FROM structure_contacts"
+    );
+
+    // --- 2. Le lien, qui garde les identifiants ----------------------------
+    $pdo->exec(<<<SQL
+        CREATE TABLE IF NOT EXISTS personne_structures (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            personne_id        INTEGER NOT NULL REFERENCES personnes(id) ON DELETE CASCADE,
+            structure_id       INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            role               TEXT NOT NULL DEFAULT '',
+            formulaire_url     TEXT NOT NULL DEFAULT '',
+            est_administration INTEGER NOT NULL DEFAULT 0,
+            est_booking        INTEGER NOT NULL DEFAULT 0,
+            actif              INTEGER NOT NULL DEFAULT 1,
+            cree_le            TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ps_structure ON personne_structures(structure_id);
+        CREATE INDEX IF NOT EXISTS idx_ps_personne  ON personne_structures(personne_id);
+    SQL);
+    $pdo->exec(
+        "INSERT INTO personne_structures
+            (id, personne_id, structure_id, role, formulaire_url, est_administration, est_booking, actif, cree_le)
+         SELECT id, id, structure_id, role, formulaire_url, est_administration, est_booking, actif, cree_le
+           FROM structure_contacts"
+    );
+
+    // --- 3. Les quatre tables qui pointaient les contacts ------------------
+    // Le MAILING vise désormais une personne : c'est à elle qu'on écrit, et
+    // c'est elle qui se désinscrit. Les deux autres désignent un interlocuteur
+    // DANS une structure donnée — elles suivent donc le lien.
+    $pdo->exec(<<<SQL
+        CREATE TABLE mailing_file_attente_new (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            structure_id  INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            personne_id   INTEGER REFERENCES personnes(id) ON DELETE CASCADE,
+            sujet         TEXT NOT NULL DEFAULT '',
+            corps         TEXT NOT NULL DEFAULT '',
+            statut        TEXT NOT NULL DEFAULT 'attente',
+            cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
+            campagne_id   INTEGER,
+            expediteur_id INTEGER REFERENCES mailing_expediteurs(id) ON DELETE SET NULL
+        );
+        INSERT INTO mailing_file_attente_new
+            (id, structure_id, personne_id, sujet, corps, statut, cree_le, campagne_id, expediteur_id)
+        SELECT id, structure_id, contact_id, sujet, corps, statut, cree_le, campagne_id, expediteur_id
+          FROM mailing_file_attente;
+        DROP TABLE mailing_file_attente;
+        ALTER TABLE mailing_file_attente_new RENAME TO mailing_file_attente;
+        CREATE INDEX IF NOT EXISTS idx_mailing_file_attente_statut ON mailing_file_attente(statut);
+
+        CREATE TABLE mailing_envois_new (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            structure_id       INTEGER NOT NULL REFERENCES structures(id) ON DELETE CASCADE,
+            personne_id        INTEGER REFERENCES personnes(id) ON DELETE SET NULL,
+            sujet              TEXT NOT NULL DEFAULT '',
+            destinataire_email TEXT NOT NULL DEFAULT '',
+            succes             INTEGER NOT NULL DEFAULT 0,
+            envoye_le          TEXT NOT NULL DEFAULT (datetime('now')),
+            campagne_id        INTEGER
+        );
+        INSERT INTO mailing_envois_new
+            (id, structure_id, personne_id, sujet, destinataire_email, succes, envoye_le, campagne_id)
+        SELECT id, structure_id, contact_id, sujet, destinataire_email, succes, envoye_le, campagne_id
+          FROM mailing_envois;
+        DROP TABLE mailing_envois;
+        ALTER TABLE mailing_envois_new RENAME TO mailing_envois;
+        CREATE INDEX IF NOT EXISTS idx_mailing_envois_structure ON mailing_envois(structure_id);
+        CREATE INDEX IF NOT EXISTS idx_mailing_envois_envoye_le ON mailing_envois(envoye_le);
+
+        CREATE TABLE structure_message_brouillons_new (
+            structure_id  INTEGER PRIMARY KEY REFERENCES structures(id) ON DELETE CASCADE,
+            contact_id    INTEGER REFERENCES personne_structures(id) ON DELETE SET NULL,
+            expediteur_id INTEGER REFERENCES mailing_expediteurs(id) ON DELETE SET NULL,
+            sujet         TEXT NOT NULL DEFAULT '',
+            corps         TEXT NOT NULL DEFAULT '',
+            maj_le        TEXT NOT NULL DEFAULT (datetime('now')),
+            cc            TEXT NOT NULL DEFAULT '',
+            cci           TEXT NOT NULL DEFAULT ''
+        );
+        INSERT INTO structure_message_brouillons_new
+        SELECT structure_id, contact_id, expediteur_id, sujet, corps, maj_le, cc, cci
+          FROM structure_message_brouillons;
+        DROP TABLE structure_message_brouillons;
+        ALTER TABLE structure_message_brouillons_new RENAME TO structure_message_brouillons;
+    SQL);
+
+    // evenement_feuille : reconstruite colonne pour colonne, en reprenant
+    // l'ordre réel de la table plutôt qu'une liste écrite ici — elle a gagné
+    // des colonnes par migrations successives (code_acces, mime, taille…) et
+    // une liste figée en oublierait une sur une base plus ancienne.
+    $colsFeuille = $colonnes('evenement_feuille');
+    $listeFeuille = implode(', ', $colsFeuille);
+    $pdo->exec(<<<SQL
+        CREATE TABLE evenement_feuille_new (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            evenement_id  INTEGER NOT NULL REFERENCES evenements(id) ON DELETE CASCADE,
+            type          TEXT NOT NULL,
+            ordre         INTEGER NOT NULL DEFAULT 0,
+            libelle       TEXT NOT NULL DEFAULT '',
+            debut         TEXT NOT NULL DEFAULT '',
+            fin           TEXT NOT NULL DEFAULT '',
+            adresse       TEXT NOT NULL DEFAULT '',
+            code_acces    TEXT NOT NULL DEFAULT '',
+            prenom        TEXT NOT NULL DEFAULT '',
+            nom           TEXT NOT NULL DEFAULT '',
+            telephone     TEXT NOT NULL DEFAULT '',
+            email         TEXT NOT NULL DEFAULT '',
+            structure_id  INTEGER REFERENCES structures(id) ON DELETE SET NULL,
+            contact_id    INTEGER REFERENCES personne_structures(id) ON DELETE SET NULL,
+            fichier       TEXT NOT NULL DEFAULT '',
+            nom_origine   TEXT NOT NULL DEFAULT '',
+            mime          TEXT NOT NULL DEFAULT '',
+            taille        INTEGER NOT NULL DEFAULT 0,
+            remarque      TEXT NOT NULL DEFAULT '',
+            cree_le       TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO evenement_feuille_new ($listeFeuille) SELECT $listeFeuille FROM evenement_feuille;
+        DROP TABLE evenement_feuille;
+        ALTER TABLE evenement_feuille_new RENAME TO evenement_feuille;
+        CREATE INDEX IF NOT EXISTS idx_evenement_feuille_evenement ON evenement_feuille(evenement_id, ordre);
+
+        DROP TABLE structure_contacts;
+    SQL);
+
+    // --- 4. Les employés : l'identité sort, le métier reste ----------------
+    // Ce qui part : prénom, nom, e-mail, adresse, date de naissance. Ce qui
+    // reste : le numéro AVS, le canton, la procédure, le taux horaire —
+    // l'EMPLOI, pas la personne.
+    //
+    // ⚠️ Les fiches déjà enregistrées ne bougent pas : elles FIGENT leur copie
+    // (fiches.employe_nom/employe_rue/employe_npa/employe_avs) à
+    // l'enregistrement. Seul le certificat de salaire lit l'adresse en direct,
+    // et il la lira par la relation.
+    $pdo->exec(<<<SQL
+        INSERT INTO personnes (prenom, nom, email, rue, npa_localite, date_naissance)
+        SELECT prenom, nom, email, rue, npa_localite, date_naissance FROM employes ORDER BY id;
+
+        CREATE TABLE employes_new (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            personne_id         INTEGER REFERENCES personnes(id) ON DELETE SET NULL,
+            numero_avs          TEXT NOT NULL DEFAULT '',
+            canton              TEXT NOT NULL DEFAULT 'Genève',
+            procedure           TEXT NOT NULL DEFAULT 'Ordinaire',
+            salaire_horaire     REAL NOT NULL DEFAULT 0,
+            supplement_vacances REAL NOT NULL DEFAULT 0.0833,
+            impot_source_taux   REAL NOT NULL DEFAULT 0,
+            actif               INTEGER NOT NULL DEFAULT 1,
+            avatar_couleur      TEXT NOT NULL DEFAULT '',
+            avatar_photo        TEXT NOT NULL DEFAULT '',
+            cree_le             TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO employes_new
+            (id, personne_id, numero_avs, canton, procedure, salaire_horaire,
+             supplement_vacances, impot_source_taux, actif, avatar_couleur, avatar_photo, cree_le)
+        SELECT e.id,
+               (SELECT p.id FROM personnes p
+                 WHERE p.prenom = e.prenom AND p.nom = e.nom AND p.rue = e.rue
+                   AND p.npa_localite = e.npa_localite AND p.date_naissance = e.date_naissance
+                   AND p.id > (SELECT COALESCE(MAX(id), 0) FROM personne_structures)
+                 ORDER BY p.id LIMIT 1),
+               e.numero_avs, e.canton, e.procedure, e.salaire_horaire,
+               e.supplement_vacances, e.impot_source_taux, e.actif, e.avatar_couleur, e.avatar_photo, e.cree_le
+          FROM employes e;
+        DROP TABLE employes;
+        ALTER TABLE employes_new RENAME TO employes;
+    SQL);
+
+    // --- 5. Les comptes ----------------------------------------------------
+    // Un compte est d'abord un identifiant de connexion ; son porteur est une
+    // personne. prenom/nom restent sur utilisateurs tant que personne_id est
+    // vide — un compte peut exister sans que l'on sache qui le tient.
+    if (!in_array('personne_id', $colonnes('utilisateurs'), true)) {
+        $pdo->exec('ALTER TABLE utilisateurs ADD COLUMN personne_id INTEGER REFERENCES personnes(id) ON DELETE SET NULL');
+    }
+
+    // --- 6. L'historique, sur deux axes ------------------------------------
+    // La table est déjà polymorphe (entite_type + entite_id). Une colonne
+    // facultative de plus, et une entrée se lit depuis la structure comme
+    // depuis la personne — plutôt que deux lignes pour un même échange. Les
+    // entrées existantes, qui n'ont pas de personne, restent valides.
+    if (!in_array('personne_id', $colonnes('historique'), true)) {
+        $pdo->exec('ALTER TABLE historique ADD COLUMN personne_id INTEGER REFERENCES personnes(id) ON DELETE SET NULL');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_historique_personne ON historique(personne_id, cree_le)');
+    }
+}
+
 function migration_99(PDO $pdo): void
 {
     // Les justificatifs de la comptabilité (SPEC_PIECES.md). Une pièce est une

@@ -34,21 +34,29 @@ function route_structure_contact_ajouter(): void
     // (utilisé comme destinataire par défaut de la facturation) — « booking »
     // ne l'est pas (le mailing peut cibler plusieurs contacts à la fois).
     if ($estAdministration) {
-        db()->prepare('UPDATE structure_contacts SET est_administration = 0 WHERE structure_id = ?')->execute([$structureId]);
+        db()->prepare('UPDATE personne_structures SET est_administration = 0 WHERE structure_id = ?')->execute([$structureId]);
     }
+    // ⚠️ Modifier un contact modifie LA PERSONNE : son nom et son adresse
+    // changent partout où elle apparaît, pas seulement dans cette structure.
+    // C'est voulu — c'est la même personne —, et c'est le seul comportement
+    // qui ne mente pas (lib/personnes.php).
+    $nouveau = 0;
     if ($contactId) {
-        db()->prepare('UPDATE structure_contacts SET prenom=:prenom, nom=:nom, role=:role, email=:email,
-                        telephone=:telephone, formulaire_url=:formulaire_url, langue=:langue,
-                        est_administration=:est_administration, est_booking=:est_booking
-                        WHERE id=' . (int) $contactId . ' AND structure_id=:structure_id')->execute($champs);
+        $existant = contact_charger($contactId);
+        if ($existant && (int) $existant['structure_id'] === $structureId) {
+            contact_enregistrer($contactId, $champs);
+        }
     } else {
-        db()->prepare('INSERT INTO structure_contacts (structure_id, prenom, nom, role, email, telephone, formulaire_url, langue, est_administration, est_booking)
-                        VALUES (:structure_id, :prenom, :nom, :role, :email, :telephone, :formulaire_url, :langue, :est_administration, :est_booking)')
-            ->execute($champs);
+        $nouveau = contact_creer($structureId, $champs);
     }
     $nomContact = trim($champs['prenom'] . ' ' . $champs['nom']);
     $nomContact = $nomContact !== '' ? $nomContact : ($champs['email'] !== '' ? $champs['email'] : 'contact');
-    journaliser('structure', $structureId, 'edition', ($contactId ? 'Contact modifié : ' : 'Contact ajouté : ') . $nomContact);
+    // L'entrée est rattachée à la PERSONNE autant qu'à la structure : on
+    // retrouve ainsi le fil de quelqu'un qui change de salle.
+    $c = contact_charger($contactId ?: $nouveau);
+    journaliser('structure', $structureId, 'edition',
+        ($contactId ? 'Contact modifié : ' : 'Contact ajouté : ') . $nomContact,
+        null, $c ? (int) $c['personne_id'] : null);
     redirect('structure', ['id' => $structureId]);
 }
 
@@ -59,14 +67,18 @@ function route_structure_contact_supprimer(): void
         check_csrf();
         $id = (int) ($_POST['id'] ?? 0);
         $structureId = (int) ($_POST['structure_id'] ?? 0);
-        $stmtC = db()->prepare('SELECT prenom, nom, email FROM structure_contacts WHERE id = ? AND structure_id = ?');
-        $stmtC->execute([$id, $structureId]);
-        $row = $stmtC->fetch();
-        db()->prepare('DELETE FROM structure_contacts WHERE id = ? AND structure_id = ?')->execute([$id, $structureId]);
+        $row = contact_charger($id);
+        if ($row && (int) $row['structure_id'] !== $structureId) {
+            $row = null;
+        }
+        if ($row) {
+            contact_supprimer($id);
+        }
         if ($row) {
             $n = trim((string) $row['prenom'] . ' ' . (string) $row['nom']);
             $n = $n !== '' ? $n : ((string) $row['email'] !== '' ? (string) $row['email'] : 'contact');
-            journaliser('structure', $structureId, 'edition', 'Contact supprimé : ' . $n);
+            journaliser('structure', $structureId, 'edition', 'Contact supprimé : ' . $n,
+                null, (int) $row['personne_id']);
         }
         redirect('structure', ['id' => $structureId]);
     }
@@ -1388,9 +1400,9 @@ function route_mailing_exclusions(): void
     }
     $emails = db()->query('SELECT id, email, cree_le FROM mailing_exclusions ORDER BY email')->fetchAll();
     $contacts = db()->query(
-        "SELECT c.email, c.prenom, c.nom, s.id AS structure_id, s.nom AS structure_nom
-         FROM structure_contacts c JOIN structures s ON s.id = c.structure_id
-         WHERE c.desinscrit = 1 AND c.email <> '' ORDER BY c.email"
+        "SELECT pe.email, pe.prenom, pe.nom, s.id AS structure_id, s.nom AS structure_nom
+         FROM personne_structures c JOIN personnes pe ON pe.id = c.personne_id JOIN structures s ON s.id = c.structure_id
+         WHERE pe.desinscrit = 1 AND pe.email <> '' ORDER BY pe.email"
     )->fetchAll();
     // `structures` n'a plus de colonne email depuis migration_84 : l'adresse se
     // lit sur les contacts, par le même fragment que les listes de structures
@@ -1470,7 +1482,7 @@ function route_mailing_traiter(): void
         if (!$item) {
             break;
         }
-        $stmtC = db()->prepare('SELECT * FROM structure_contacts WHERE id = ?');
+        $stmtC = db()->prepare('SELECT ' . CONTACT_SELECT . CONTACT_FROM . ' WHERE cs.id = ?');
         $stmtC->execute([(int) ($item['contact_id'] ?? 0)]);
         $contact = $stmtC->fetch() ?: null;
         // Repli quand la ligne ne vise pas un contact précis : l'adresse qui
@@ -1551,7 +1563,14 @@ function route_desinscription(): void
     }
 
     if ($contactId) {
-        db()->prepare('UPDATE structure_contacts SET desinscrit = 1 WHERE id = ? AND structure_id = ?')->execute([$contactId, $structureId]);
+        // La désinscription vaut pour la PERSONNE, partout : qui clique ne
+        // veut plus rien recevoir, pas « plus rien de cette salle-là »
+        // (SPEC_PERSONNES.md § 5). Le lien reste contrôlé sur la structure —
+        // c'est lui qui est signé dans l'adresse.
+        db()->prepare(
+            'UPDATE personnes SET desinscrit = 1 WHERE id =
+             (SELECT personne_id FROM personne_structures WHERE id = ? AND structure_id = ?)'
+        )->execute([$contactId, $structureId]);
     } else {
         // Ne rétrograde jamais un statut déjà « inactif » (déjà exclu du
         // mailing, rien à faire) — sinon fait toujours passer à

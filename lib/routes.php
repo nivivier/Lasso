@@ -430,23 +430,26 @@ function route_employes(): void
     $where  = ' WHERE 1=1';
     $params = [];
     if ($actif && count($actif) < 2) {
-        $where .= ' AND actif = ?';
+        $where .= ' AND e.actif = ?';
         $params[] = (int) $actif[0];
     }
 
     // Tri de colonne. L'ordre naturel garde les actifs en tête : c'est la
     // liste dont on se sert, et la trier par nom ne doit pas remonter les
     // anciens au milieu tant qu'on ne l'a pas demandé.
+    // ⚠️ Colonnes QUALIFIÉES : l'identité vit sur personnes depuis la
+    // migration 100 et le reste sur employes, donc « nom » tout court ne
+    // désigne plus rien de sûr.
     $tri = tri_colonne('employes', [
-        'nom'     => ['nom COLLATE NOCASE', 'prenom COLLATE NOCASE'],
-        'adresse' => ['npa_localite COLLATE NOCASE', 'rue COLLATE NOCASE'],
-        'email'   => 'email COLLATE NOCASE',
+        'nom'     => ['pe.nom COLLATE NOCASE', 'pe.prenom COLLATE NOCASE'],
+        'adresse' => ['pe.npa_localite COLLATE NOCASE', 'pe.rue COLLATE NOCASE'],
+        'email'   => 'pe.email COLLATE NOCASE',
     ]);
-    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', id' : ' ORDER BY actif DESC, nom, prenom';
+    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', e.id' : ' ORDER BY e.actif DESC, pe.nom, pe.prenom';
 
     // Total « sans recherche » : avec le filtre structuré, mais sans le texte
     // saisi — c'est lui qui décide du mode de pagination (client ou serveur).
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes' . $where);
+    $stmtTot = db()->prepare('SELECT COUNT(*)' . EMPLOYE_FROM . $where);
     $stmtTot->execute($params);
     $totalSansRecherche = (int) $stmtTot->fetchColumn();
     $modeClient = pagination_mode_client($totalSansRecherche);
@@ -455,20 +458,20 @@ function route_employes(): void
         // Mode client (voir pagination_mode_client()) : toutes les lignes,
         // recherche/pagination 100% en JS (lassoListeClient()) — pas de
         // requête LIKE ni de LIMIT ici.
-        $stmt = db()->prepare('SELECT * FROM employes' . $where . $orderBy);
+        $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . $where . $orderBy);
         $stmt->execute($params);
         $employes = $stmt->fetchAll();
         $pgPage  = 1;
         $pgTotal = $totalSansRecherche;
     } else {
-        [$rechSql, $rechParams] = recherche_sql(['nom', 'prenom', 'rue', 'npa_localite', 'email']);
-        $stmtTot = db()->prepare('SELECT COUNT(*) FROM employes' . $where . $rechSql);
+        [$rechSql, $rechParams] = recherche_sql(['pe.nom', 'pe.prenom', 'pe.rue', 'pe.npa_localite', 'pe.email']);
+        $stmtTot = db()->prepare('SELECT COUNT(*)' . EMPLOYE_FROM . $where . $rechSql);
         $stmtTot->execute(array_merge($params, $rechParams));
         $pgTotal = (int) $stmtTot->fetchColumn();
 
         $pgPage = pagination_page();
         [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-        $stmt = db()->prepare('SELECT * FROM employes' . $where . $rechSql . $orderBy . $limitSql);
+        $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . $where . $rechSql . $orderBy . $limitSql);
         $stmt->execute(array_merge($params, $rechParams, $limitParams));
         $employes = $stmt->fetchAll();
     }
@@ -508,7 +511,7 @@ function route_employe(): void
 {
     require_login();
     $id   = (int) ($_GET['id'] ?? 0);
-    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$id]);
     $emp = $stmt->fetch();
     if (!$emp) {
@@ -531,7 +534,7 @@ function route_employe_photo(): void
         redirect('employes');
     }
     check_csrf();
-    $stmt = db()->prepare('SELECT id, prenom, nom, avatar_photo FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT e.id, pe.prenom, pe.nom, e.avatar_photo' . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$id]);
     $emp = $stmt->fetch();
     if (!$emp) {
@@ -572,7 +575,7 @@ function route_employe_form(): void
     $id  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
     $emp = null;
     if ($id) {
-        $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+        $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
         $stmt->execute([$id]);
         $emp = $stmt->fetch();
         if (!$emp) {
@@ -614,19 +617,43 @@ function route_employe_form(): void
         if (!in_array($champs['procedure'], PROCEDURES, true)) {
             $champs['procedure'] = 'Ordinaire';
         }
+        // L'identité d'un côté, l'EMPLOI de l'autre : prénom, nom, adresse et
+        // date de naissance vivent sur personnes depuis la migration 100, le
+        // numéro AVS et le taux horaire restent ici. Enregistrer un employé
+        // écrit donc dans deux tables.
+        //
+        // ⚠️ Les fiches déjà enregistrées ne bougent pas : elles FIGENT leur
+        // copie de l'identité (fiches.employe_nom/employe_rue/employe_npa/
+        // employe_avs). Corriger une adresse ne réécrit aucun historique.
+        $sqlEmploi = 'numero_avs=:numero_avs, canton=:canton, procedure=:procedure,
+                      supplement_vacances=:supplement_vacances,
+                      impot_source_taux=:impot_source_taux, actif=:actif';
+        $emploi = [
+            'numero_avs'          => $champs['numero_avs'],
+            'canton'              => $champs['canton'],
+            'procedure'           => $champs['procedure'],
+            'supplement_vacances' => $champs['supplement_vacances'],
+            'impot_source_taux'   => $champs['impot_source_taux'],
+            'actif'               => $champs['actif'],
+        ];
         if ($id) {
-            $sql = 'UPDATE employes SET prenom=:prenom, nom=:nom, email=:email, rue=:rue, npa_localite=:npa_localite,
-                    numero_avs=:numero_avs, date_naissance=:date_naissance, canton=:canton, procedure=:procedure,
-                    supplement_vacances=:supplement_vacances,
-                    impot_source_taux=:impot_source_taux, actif=:actif WHERE id=:id';
-            $champs['id'] = $id;
-            db()->prepare($sql)->execute($champs);
+            $personneId = (int) ($emp['personne_id'] ?? 0);
+            if ($personneId) {
+                personne_enregistrer($personneId, $champs);
+            } else {
+                // Un employé d'avant la migration qui aurait perdu son lien :
+                // on lui en rend un plutôt que de laisser son nom nulle part.
+                $personneId = personne_creer($champs);
+                db()->prepare('UPDATE employes SET personne_id = ? WHERE id = ?')->execute([$personneId, $id]);
+            }
+            db()->prepare('UPDATE employes SET ' . $sqlEmploi . ' WHERE id=:id')
+                ->execute($emploi + ['id' => $id]);
         } else {
-            $sql = 'INSERT INTO employes (prenom, nom, email, rue, npa_localite, numero_avs, date_naissance, canton, procedure,
-                    supplement_vacances, impot_source_taux, actif)
-                    VALUES (:prenom, :nom, :email, :rue, :npa_localite, :numero_avs, :date_naissance, :canton, :procedure,
-                    :supplement_vacances, :impot_source_taux, :actif)';
-            db()->prepare($sql)->execute($champs);
+            $personneId = personne_creer($champs);
+            db()->prepare(
+                'INSERT INTO employes (personne_id, numero_avs, canton, procedure, supplement_vacances, impot_source_taux, actif)
+                 VALUES (:personne_id, :numero_avs, :canton, :procedure, :supplement_vacances, :impot_source_taux, :actif)'
+            )->execute($emploi + ['personne_id' => $personneId]);
         }
         redirect('employes');
     }
@@ -1462,7 +1489,7 @@ function recalculer_fiche(array $f): array
     $fige  = json_decode((string) $f['taux_json'], true) ?: [];
     // La date de naissance ne fait pas partie de l'instantané de la fiche : les
     // barèmes d'âge la relisent sur l'employé.
-    $st = db()->prepare('SELECT date_naissance FROM employes WHERE id = ?');
+    $st = db()->prepare('SELECT pe.date_naissance' . EMPLOYE_FROM . ' WHERE e.id = ?');
     $st->execute([(int) $f['employe_id']]);
     $emp = [
         'supplement_vacances' => (float) $f['supplement_taux'],
@@ -1837,7 +1864,7 @@ function route_fiches(): void
         // date range donc aussi par état, ce qu'on cherche en cliquant.
         'paiement' => "COALESCE(NULLIF(f.date_paiement, ''), '')",
     ]);
-    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', f.id DESC' : ' ORDER BY f.annee DESC, f.mois DESC, e.nom';
+    $orderBy = $tri['sql'] !== '' ? $tri['sql'] . ', f.id DESC' : ' ORDER BY f.annee DESC, f.mois DESC, pe.nom';
 
     $pgPage   = pagination_page();
     $pgTaille = pagination_taille('fiches_taille');
@@ -1846,15 +1873,16 @@ function route_fiches(): void
     // avatar_* : la pastille d'identité affichée devant le nom (liste des
     // fiches). Elle vit sur l'employé, pas sur la fiche — une fiche fige ses
     // montants, pas l'apparence de la personne.
-    $sql = 'SELECT f.*, e.prenom, e.nom AS emp_nom_actuel, e.avatar_couleur, e.avatar_photo
-            FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where;
+    $sql = 'SELECT f.*, pe.prenom, pe.nom AS emp_nom_actuel, e.avatar_couleur, e.avatar_photo
+            FROM fiches f JOIN employes e ON e.id = f.employe_id
+                 LEFT JOIN personnes pe ON pe.id = e.personne_id' . $where;
     $sql  .= $orderBy;
     $sql  .= $limitSql;
     $stmt  = db()->prepare($sql);
     $stmt->execute(array_merge($params, $limitParams));
     $fiches = $stmt->fetchAll();
     $annees = db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN);
-    $employes = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
+    $employes = db()->query('SELECT e.id, pe.prenom, pe.nom' . EMPLOYE_FROM . ' ORDER BY pe.nom, pe.prenom')->fetchAll();
 
     // Axes par fiche (une seule requête groupée)
     $axesParFiche = [];
@@ -2033,7 +2061,7 @@ function evenements_pour_ligne(): array
 function route_fiche_form(): void
 {
     require_login();
-    $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
+    $employes     = db()->query('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.actif = 1 ORDER BY pe.nom, pe.prenom')->fetchAll();
     $tauxHoraires = db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll();
     $unites       = db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll();
     $axes         = module_actif('analytique')
@@ -2065,7 +2093,7 @@ function route_fiche_form(): void
 
     [$lignes, $heures, $salaireTravail] = lire_lignes_postees();
 
-    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$empId]);
     $emp = $stmt->fetch();
 
@@ -2127,7 +2155,7 @@ function route_fiche(): void
     }
     $modifiable = trim((string) $f['date_paiement']) === '';
     // E-mail de l'employé (destinataire) + expéditeur configuré, pour le bouton d'envoi.
-    $stmt = db()->prepare('SELECT email FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT pe.email' . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([(int) $f['employe_id']]);
     $emailEmploye = trim((string) $stmt->fetchColumn());
     $emailExp     = trim((string) param('employeur_email_expediteur'));
@@ -2221,7 +2249,7 @@ function agreger_rubriques_certificat(array $fiches): array
 // Charge un employé + ses fiches d'une année + les totaux. Renvoie null si employé introuvable.
 function certificat_contexte(int $empId, ?int $annee): ?array
 {
-    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$empId]);
     $emp = $stmt->fetch();
     if (!$emp) {
@@ -2312,12 +2340,12 @@ function build_certificat_xml(int $annee, ?int $employeId): string
     $company->appendChild($staff);
 
     if ($employeId) {
-        $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+        $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
         $stmt->execute([$employeId]);
         $employes = $stmt->fetchAll();
     } else {
-        $stmt = db()->prepare('SELECT DISTINCT e.* FROM employes e
-            JOIN fiches f ON f.employe_id = e.id WHERE f.annee = ? ORDER BY e.nom, e.prenom');
+        $stmt = db()->prepare('SELECT DISTINCT ' . EMPLOYE_SELECT . EMPLOYE_FROM . '
+            JOIN fiches f ON f.employe_id = e.id WHERE f.annee = ? ORDER BY pe.nom, pe.prenom');
         $stmt->execute([$annee]);
         $employes = $stmt->fetchAll();
     }
@@ -2510,7 +2538,7 @@ function route_fiche_modifier(): void
         redirect('fiche', ['id' => $id]); // fiche payée → non modifiable
     }
 
-    $employes     = db()->query('SELECT * FROM employes WHERE actif = 1 ORDER BY nom, prenom')->fetchAll();
+    $employes     = db()->query('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.actif = 1 ORDER BY pe.nom, pe.prenom')->fetchAll();
     $tauxHoraires = db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll();
     $unites       = db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll();
     $axes         = module_actif('analytique')
@@ -2643,7 +2671,7 @@ function route_fiche_envoyer(): void
     }
 
     // Destinataire : e-mail de l'employé. Expéditeur : paramètre configuré.
-    $stmt = db()->prepare('SELECT email FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT pe.email' . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([(int) $f['employe_id']]);
     $destinataire = trim((string) $stmt->fetchColumn());
     $expediteur   = trim((string) param('employeur_email_expediteur'));
@@ -2863,7 +2891,7 @@ function route_cotisations(): void
     $employeId = isset($_GET['employe_id']) ? (int) $_GET['employe_id'] : 0;
     $groupe    = $_GET['groupe'] ?? 'mois'; // annee | semestre | trimestre | mois
 
-    $employes = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
+    $employes = db()->query('SELECT e.id, pe.prenom, pe.nom' . EMPLOYE_FROM . ' ORDER BY pe.nom, pe.prenom')->fetchAll();
     $annees   = db()->query('SELECT DISTINCT annee FROM fiches ORDER BY annee DESC')->fetchAll(PDO::FETCH_COLUMN);
 
     if ($groupe === 'annee') {

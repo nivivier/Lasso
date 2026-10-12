@@ -53,13 +53,13 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
             'liste'   => 'employes',
             'ordre'   => 'ORDER BY tri DESC, titre',
             'sql'     => "SELECT e.id,
-                                 trim(e.prenom || ' ' || e.nom) AS titre,
-                                 CASE WHEN trim(coalesce(e.email,'')) <> '' THEN e.email
-                                      ELSE trim(coalesce(e.npa_localite,'')) END AS sous_titre,
+                                 trim(pe.prenom || ' ' || pe.nom) AS titre,
+                                 CASE WHEN trim(coalesce(pe.email,'')) <> '' THEN pe.email
+                                      ELSE trim(coalesce(pe.npa_localite,'')) END AS sous_titre,
                                  e.actif AS tri,
-                                 trim(coalesce(e.prenom,'') || ' ' || coalesce(e.nom,'') || ' ' ||
-                                      coalesce(e.email,'') || ' ' || coalesce(e.npa_localite,'')) AS texte
-                          FROM employes e",
+                                 trim(coalesce(pe.prenom,'') || ' ' || coalesce(pe.nom,'') || ' ' ||
+                                      coalesce(pe.email,'') || ' ' || coalesce(pe.npa_localite,'')) AS texte
+                          FROM employes e LEFT JOIN personnes pe ON pe.id = e.personne_id",
         ],
         'structures' => [
             'label'   => 'Structures',
@@ -104,10 +104,11 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
                                       CASE WHEN trim(coalesce(c.role,'')) <> ''
                                         THEN ' · ' || c.role ELSE '' END) AS sous_titre,
                                  c.actif AS tri,
-                                 trim(coalesce(c.prenom,'') || ' ' || coalesce(c.nom,'') || ' ' ||
-                                      coalesce(c.email,'') || ' ' || coalesce(c.telephone,'') || ' ' ||
+                                 trim(coalesce(pe.prenom,'') || ' ' || coalesce(pe.nom,'') || ' ' ||
+                                      coalesce(pe.email,'') || ' ' || coalesce(pe.telephone,'') || ' ' ||
                                       coalesce(c.role,'')) AS texte
-                          FROM structure_contacts c
+                          FROM personne_structures c
+                          JOIN personnes pe ON pe.id = c.personne_id
                           LEFT JOIN structures st ON st.id = c.structure_id",
         ],
         'factures' => [

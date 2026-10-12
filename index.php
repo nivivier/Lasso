@@ -9,6 +9,8 @@ require_once __DIR__ . '/lib/calc.php';
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/modules.php';
 require_once __DIR__ . '/lib/fichiers.php';
+require_once __DIR__ . '/lib/personnes.php';
+require_once __DIR__ . '/lib/routes_personnes.php';
 require_once __DIR__ . '/lib/recherche.php';
 require_once __DIR__ . '/lib/routes.php';
 require_once __DIR__ . '/lib/routes_compta.php';
@@ -362,6 +364,13 @@ if (peut_ecrire('coeur')) {
         'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
         'sauvegarde'              => 'route_sauvegarde',
         'dev'                 => 'route_dev',
+        // Les personnes : sous « coeur » parce qu'elles traversent le booking,
+        // les salaires et les comptes — aucun module ne peut en être
+        // propriétaire (SPEC_PERSONNES.md).
+        'personnes'           => 'route_personnes',
+        'personne'            => 'route_personne',
+        'personne_enregistrer' => 'route_personne_enregistrer',
+        'personnes_fusionner'  => 'route_personnes_fusionner',
     ];
 }
 

@@ -69,10 +69,11 @@ const FEUILLE_HORAIRES_TYPES = ['Départ', 'Get-in', 'Soundcheck', 'Repas', 'Sho
 function feuille_elements(int $evenementId): array
 {
     $stmt = db()->prepare(
-        'SELECT f.*, c.prenom AS c_prenom, c.nom AS c_nom, c.role AS c_role,
-                c.telephone AS c_telephone, c.email AS c_email, s.nom AS s_nom
+        'SELECT f.*, pe.prenom AS c_prenom, pe.nom AS c_nom, c.role AS c_role,
+                pe.telephone AS c_telephone, pe.email AS c_email, s.nom AS s_nom
            FROM evenement_feuille f
-           LEFT JOIN structure_contacts c ON c.id = f.contact_id
+           LEFT JOIN personne_structures c ON c.id = f.contact_id
+           LEFT JOIN personnes pe ON pe.id = c.personne_id
            LEFT JOIN structures s ON s.id = f.structure_id
           WHERE f.evenement_id = ?
           ORDER BY f.ordre, f.id'
@@ -695,10 +696,10 @@ function feuille_organisateurs(int $evenementId): array
 
     $tousIds = array_map(fn (array $s): int => (int) $s['id'], $toutes);
     $stmt = db()->prepare(
-        'SELECT id, structure_id, prenom, nom, role, telephone, email
-           FROM structure_contacts
-          WHERE actif = 1 AND structure_id IN (' . sql_in($tousIds) . ')
-          ORDER BY est_administration DESC, nom, prenom'
+        'SELECT cs.id, cs.structure_id, pe.prenom, pe.nom, cs.role, pe.telephone, pe.email'
+         . CONTACT_FROM . '
+          WHERE cs.actif = 1 AND cs.structure_id IN (' . sql_in($tousIds) . ')
+          ORDER BY cs.est_administration DESC, pe.nom, pe.prenom'
     );
     $stmt->execute($tousIds);
     $parStructure = [];
@@ -773,7 +774,7 @@ function feuille_destinataires(int $evenementId): array
         return [[], []];
     }
     $stmt = db()->prepare(
-        'SELECT id, prenom, nom, email FROM employes WHERE id IN (' . sql_in($ids) . ') ORDER BY nom, prenom'
+        'SELECT e.id, pe.prenom, pe.nom, pe.email' . EMPLOYE_FROM . ' WHERE e.id IN (' . sql_in($ids) . ') ORDER BY nom, prenom'
     );
     $stmt->execute($ids);
     $avec = [];

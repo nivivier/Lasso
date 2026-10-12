@@ -79,7 +79,7 @@ function evenement_detacher_prestation(int $evenementId, int $employeId): void
     $stmt->execute([$ficheId]);
     $lignesRestantes = $stmt->fetchAll();
 
-    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$employeId]);
     $emp = $stmt->fetch();
     if (!$emp) {
@@ -510,7 +510,7 @@ function route_evenement(): void
 
     $projetMap = projet_map();
     $projets = projets_pour_selection($projetMap);
-    $employesTous = db()->query('SELECT id, prenom, nom FROM employes ORDER BY nom, prenom')->fetchAll();
+    $employesTous = db()->query('SELECT e.id, pe.prenom, pe.nom' . EMPLOYE_FROM . ' ORDER BY pe.nom, pe.prenom')->fetchAll();
 
     // Sépare « déjà liés » / « disponibles » pour le picker (select + bouton
     // Ajouter, cf. views/evenement.php) — évite d'afficher une case à
@@ -568,10 +568,11 @@ function route_evenement(): void
         $idsStructures = array_map(fn (array $st): int => (int) $st['id'], $structuresLiees);
         if ($idsStructures) {
             $stmtFC = db()->prepare(
-                'SELECT c.id, c.prenom, c.nom, c.role, s.nom AS structure_nom
-                   FROM structure_contacts c JOIN structures s ON s.id = c.structure_id
+                'SELECT c.id, pe.prenom, pe.nom, c.role, s.nom AS structure_nom
+                   FROM personne_structures c JOIN personnes pe ON pe.id = c.personne_id
+                   JOIN structures s ON s.id = c.structure_id
                   WHERE c.actif = 1 AND c.structure_id IN (' . sql_in($idsStructures) . ')
-                  ORDER BY s.nom, c.nom, c.prenom'
+                  ORDER BY s.nom, pe.nom, pe.prenom'
             );
             $stmtFC->execute($idsStructures);
             $feuilleContacts = $stmtFC->fetchAll();
@@ -949,7 +950,7 @@ function route_evenement_employe_lier(): void
     // carte. Deux gabarits selon le mode de la date — en production externe, la
     // ligne n'a que le nom et de quoi le retirer (docs/UI.md § 5).
     if (($_POST['retour'] ?? '') === 'json') {
-        $stmtE = db()->prepare('SELECT id, prenom, nom FROM employes WHERE id = ?');
+        $stmtE = db()->prepare('SELECT e.id, pe.prenom, pe.nom' . EMPLOYE_FROM . ' WHERE e.id = ?');
         $stmtE->execute([$employeId]);
         $emp = $stmtE->fetch();
         if (!$emp || !in_array($employeId, evenement_employe_ids($id), true)) {
@@ -1056,7 +1057,7 @@ function route_evenement_ligne_ajouter(): void
         'axe_analytique_id' => $axeId, 'evenement_id' => $evenementId,
     ];
 
-    $stmt = db()->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$employeId]);
     $emp = $stmt->fetch();
     if (!$emp) {
@@ -1687,7 +1688,7 @@ function feuille_champs_postes(string $type): array
         // périmée. Le rattachement gagne, et la fiche fait foi.
         $contactId = (int) ($_POST['contact_id'] ?? 0);
         if ($contactId > 0) {
-            $stmt = db()->prepare('SELECT structure_id FROM structure_contacts WHERE id = ?');
+            $stmt = db()->prepare('SELECT structure_id FROM personne_structures WHERE id = ?');
             $stmt->execute([$contactId]);
             $structureId = $stmt->fetchColumn();
             if ($structureId !== false) {

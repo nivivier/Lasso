@@ -10,6 +10,19 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Les personnes** (`SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
+  Paramètres → Application. Un contact de structure, un employé et un compte
+  peuvent être la **même personne** — et le sont souvent ; ils le disent
+  maintenant. Une personne peut être rattachée à **plusieurs structures**, avec
+  un rôle différent dans chacune : le programmateur qui change de salle garde
+  son identité et son fil. Corriger un nom ou une adresse le corrige partout.
+  Un écran « Doublons probables » propose des fusions à valider une par une —
+  rien n'est jamais regroupé tout seul.
+  **La désinscription vaut désormais pour la personne, partout** : qui se
+  désinscrit ne reçoit plus rien, même en tant que contact d'une autre
+  structure.
+
+### Ajouté
 - **Les pièces comptables** (`SPEC_PIECES.md`) : un cinquième onglet dans la
   comptabilité où enregistrer les justificatifs — facture reçue, ticket
   photographié, document. Une pièce se saisit **avant** tout mouvement

@@ -48,7 +48,10 @@ $pdo->exec('CREATE TABLE evenement_feuille (
     fichier TEXT NOT NULL DEFAULT \'\', nom_origine TEXT NOT NULL DEFAULT \'\',
     mime TEXT NOT NULL DEFAULT \'\', taille INTEGER NOT NULL DEFAULT 0,
     remarque TEXT NOT NULL DEFAULT \'\', cree_le TEXT NOT NULL DEFAULT \'\')');
-$pdo->exec('CREATE TABLE structure_contacts (id INTEGER PRIMARY KEY, prenom TEXT, nom TEXT, role TEXT, telephone TEXT, email TEXT)');
+// Depuis la migration 100, un contact est un LIEN vers une personne : le
+// double schéma minimal suffit à ce test, qui ne vérifie que la jointure.
+$pdo->exec('CREATE TABLE personne_structures (id INTEGER PRIMARY KEY, personne_id INTEGER, structure_id INTEGER, role TEXT, est_administration INTEGER DEFAULT 0, actif INTEGER DEFAULT 1)');
+$pdo->exec('CREATE TABLE personnes (id INTEGER PRIMARY KEY, prenom TEXT, nom TEXT, telephone TEXT, email TEXT)');
 $pdo->exec('CREATE TABLE structures (id INTEGER PRIMARY KEY, nom TEXT)');
 function db(): PDO
 {

@@ -44,8 +44,8 @@ function facturation_charger(int $id): ?array
                                    -- premier qui a une adresse : même règle que
                                    -- la liste des structures et l'export SUISA.
                                    COALESCE(
-                                       (SELECT email FROM structure_contacts WHERE structure_id = d.id AND est_administration = 1 AND email <> '' LIMIT 1),
-                                       (SELECT email FROM structure_contacts WHERE structure_id = d.id AND email <> '' ORDER BY id LIMIT 1)
+                                       (SELECT pe.email FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = d.id AND cs.est_administration = 1 AND pe.email <> '' LIMIT 1),
+                                       (SELECT pe.email FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = d.id AND pe.email <> '' ORDER BY cs.id LIMIT 1)
                                    ) AS structure_email,
                                    c.libelle AS compte_libelle, c.iban
                             FROM factures f
@@ -816,7 +816,7 @@ function structures_carte_points(string $where, array $params): array
 {
     [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite',
         '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)',
-        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom) || ' ' || email) FROM structure_contacts WHERE structure_id = s.id)"]);
+        "(SELECT GROUP_CONCAT(TRIM(pe.prenom || ' ' || pe.nom) || ' ' || pe.email) FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = s.id)"]);
     $stmt = db()->prepare(
         "SELECT s.id, s.nom, s.categorie, s.adresse_localite AS ville, s.departement_canton, s.adresse_pays AS pays
          FROM structures s" . $where . " AND s.adresse_localite <> ''" . $rechSql . ' ORDER BY s.adresse_localite, s.nom'
@@ -1104,7 +1104,7 @@ function route_structures(): void
     } else {
         [$rechSql, $rechParams] = recherche_sql(['s.nom', 's.adresse_rue', 's.adresse_npa', 's.adresse_localite',
         '(SELECT GROUP_CONCAT(t.nom) FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id WHERE tl.structure_id = s.id)',
-        "(SELECT GROUP_CONCAT(TRIM(prenom || ' ' || nom) || ' ' || email) FROM structure_contacts WHERE structure_id = s.id)"]);
+        "(SELECT GROUP_CONCAT(TRIM(pe.prenom || ' ' || pe.nom) || ' ' || pe.email) FROM personne_structures cs JOIN personnes pe ON pe.id = cs.personne_id WHERE cs.structure_id = s.id)"]);
         $where .= $rechSql;
         $params = array_merge($params, $rechParams);
 
@@ -1228,7 +1228,7 @@ function structure_donnees_crm(int $id): array
             'campagnesStructure' => [], 'campagnesLiees' => [], 'campagnesDispo' => [],
                 'projetsDispo' => [], 'campagneProjets' => []];
     }
-    $stmtContacts = db()->prepare('SELECT * FROM structure_contacts WHERE structure_id = ? ORDER BY actif DESC, id');
+    $stmtContacts = db()->prepare('SELECT ' . CONTACT_SELECT . CONTACT_FROM . ' WHERE cs.structure_id = ? ORDER BY cs.actif DESC, cs.id');
     $stmtContacts->execute([$id]);
 
     // Historique typé FUSIONNÉ (fiche + ses lieux, table historique migr. 52) —
@@ -1269,9 +1269,9 @@ function structure_donnees_crm(int $id): array
         $idsLies = array_column($lieuxLies, 'id');
         $in = sql_in($idsLies);
         $stmtContactsLies = db()->prepare(
-            "SELECT sc.*, s.nom AS structure_nom FROM structure_contacts sc
-             JOIN structures s ON s.id = sc.structure_id
-             WHERE sc.structure_id IN ($in) ORDER BY s.nom, sc.actif DESC, sc.id"
+            'SELECT ' . CONTACT_SELECT . ', s.nom AS structure_nom' . CONTACT_FROM . "
+             JOIN structures s ON s.id = cs.structure_id
+             WHERE cs.structure_id IN ($in) ORDER BY s.nom, cs.actif DESC, cs.id"
         );
         $stmtContactsLies->execute($idsLies);
         $contactsLies = $stmtContactsLies->fetchAll();
@@ -1701,7 +1701,7 @@ function route_structure_fusion(): void
 
     $in = sql_in($ids);
     $stmt = db()->prepare(
-        "SELECT s.*, (SELECT COUNT(*) FROM structure_contacts WHERE structure_id = s.id) AS nb_contacts,
+        "SELECT s.*, (SELECT COUNT(*) FROM personne_structures WHERE structure_id = s.id) AS nb_contacts,
                 (SELECT COUNT(*) FROM historique WHERE entite_type = 'structure' AND entite_id = s.id) AS nb_notes,
                 (SELECT COUNT(*) FROM factures WHERE structure_id = s.id) AS nb_factures,
                 (SELECT COUNT(*) FROM structure_tag_liens WHERE structure_id = s.id) AS nb_tags,

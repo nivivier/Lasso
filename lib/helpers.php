@@ -2652,7 +2652,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
                 return lien_retour('?p=structure&id=' . $id, (string) $nom);
             }
         } elseif ($m[1] === 'employe') {
-            $stmt = db()->prepare('SELECT prenom, nom FROM employes WHERE id = ?');
+            $stmt = db()->prepare('SELECT pe.prenom, pe.nom' . EMPLOYE_FROM . ' WHERE e.id = ?');
             $stmt->execute([$id]);
             $emp = $stmt->fetch();
             if ($emp) {

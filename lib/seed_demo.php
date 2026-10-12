@@ -28,14 +28,17 @@ $employes = [
     ['Marco', 'Rossi', 'Av. de la Praille 5', '1227 Carouge', '756.4444.5555.66', 'Ordinaire', 0.1064, 0, 35],
     ['Sophie', 'Meyer', 'Ch. des Tulipes 8', '1208 Genève', '756.7777.8888.99', 'Ordinaire avec impôt à la source', 0.0833, 0.09, 45],
 ];
+// L'identité d'un côté, l'emploi de l'autre (migration 100).
+$insPers = $pdo->prepare('INSERT INTO personnes (prenom, nom, rue, npa_localite) VALUES (?, ?, ?, ?)');
 $insEmp = $pdo->prepare(
-    'INSERT INTO employes (prenom, nom, rue, npa_localite, numero_avs, canton, procedure, supplement_vacances, impot_source_taux, actif)
-     VALUES (?, ?, ?, ?, ?, "Genève", ?, ?, ?, 1)'
+    'INSERT INTO employes (personne_id, numero_avs, canton, procedure, supplement_vacances, impot_source_taux, actif)
+     VALUES (?, ?, "Genève", ?, ?, ?, 1)'
 );
 $empIds = [];
 $empTaux = [];
 foreach ($employes as $e) {
-    $insEmp->execute([$e[0], $e[1], $e[2], $e[3], $e[4], $e[5], $e[6], $e[7]]);
+    $insPers->execute([$e[0], $e[1], $e[2], $e[3]]);
+    $insEmp->execute([(int) $pdo->lastInsertId(), $e[4], $e[5], $e[6], $e[7]]);
     $empIds[]  = (int) $pdo->lastInsertId();
     $empTaux[] = $e[8]; // taux horaire utilisé pour ses fiches
 }
@@ -46,7 +49,7 @@ $heures = [62, 64, 72, 58, 80];
 $taux2026 = taux_pour_annee($annee);
 
 foreach ($empIds as $i => $empId) {
-    $stmt = $pdo->prepare('SELECT * FROM employes WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
     $stmt->execute([$empId]);
     $emp = $stmt->fetch();
     $emp['salaire_horaire'] = $empTaux[$i];

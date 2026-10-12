@@ -41,10 +41,10 @@ function doublons_detecter(string $type = 'tous'): array
     $grContacts = [];
     if ($type === 'contacts' || $type === 'tous') {
         $grContacts = $grouper(
-            "SELECT c.email || ' (structure ' || c.structure_id || ')' AS libelle, GROUP_CONCAT(c.id) AS ids
-             FROM structure_contacts c
-             WHERE TRIM(c.email) <> ''
-             GROUP BY c.structure_id, TRIM(LOWER(c.email))
+            "SELECT pe.email || ' (structure ' || c.structure_id || ')' AS libelle, GROUP_CONCAT(c.id) AS ids
+             FROM personne_structures c JOIN personnes pe ON pe.id = c.personne_id
+             WHERE TRIM(pe.email) <> ''
+             GROUP BY c.structure_id, TRIM(LOWER(pe.email))
              HAVING COUNT(*) > 1"
         );
         $vus = [];
@@ -52,10 +52,10 @@ function doublons_detecter(string $type = 'tous'): array
             foreach ($g['ids'] as $i) { $vus[$i] = true; }
         }
         foreach ($grouper(
-            "SELECT TRIM(prenom || ' ' || nom) || ' (structure ' || structure_id || ')' AS libelle, GROUP_CONCAT(id) AS ids
-             FROM structure_contacts
-             WHERE TRIM(email) = '' AND TRIM(prenom || nom) <> ''
-             GROUP BY structure_id, TRIM(LOWER(prenom)), TRIM(LOWER(nom)), TRIM(telephone)
+            "SELECT TRIM(pe.prenom || ' ' || pe.nom) || ' (structure ' || c.structure_id || ')' AS libelle, GROUP_CONCAT(c.id) AS ids
+             FROM personne_structures c JOIN personnes pe ON pe.id = c.personne_id
+             WHERE TRIM(pe.email) = '' AND TRIM(pe.prenom || pe.nom) <> ''
+             GROUP BY c.structure_id, TRIM(LOWER(pe.prenom)), TRIM(LOWER(pe.nom)), TRIM(pe.telephone)
              HAVING COUNT(*) > 1"
         ) as $g) {
             if (!array_intersect_key(array_flip($g['ids']), $vus)) {
@@ -101,18 +101,23 @@ function doublons_fusionner_contacts(array $groupes): int
         $garde = array_shift($ids);
         foreach ($ids as $autre) {
             db()->beginTransaction();
-            doublons_completer_champs_vides('structure_contacts', $garde, $autre, ['prenom', 'nom', 'role', 'email', 'telephone', 'formulaire_url', 'langue']);
-            // Drapeaux cumulés : le contact conservé hérite des rôles du doublon.
-            db()->prepare(
-                'UPDATE structure_contacts SET
-                    est_administration = MAX(est_administration, (SELECT est_administration FROM structure_contacts WHERE id = :autre)),
-                    est_booking        = MAX(est_booking,        (SELECT est_booking        FROM structure_contacts WHERE id = :autre)),
-                    desinscrit         = MAX(desinscrit,         (SELECT desinscrit         FROM structure_contacts WHERE id = :autre))
-                 WHERE id = :garde'
-            )->execute([':autre' => $autre, ':garde' => $garde]);
-            db()->prepare('UPDATE mailing_file_attente SET contact_id = ? WHERE contact_id = ?')->execute([$garde, $autre]);
-            db()->prepare('UPDATE mailing_envois SET contact_id = ? WHERE contact_id = ?')->execute([$garde, $autre]);
-            db()->prepare('DELETE FROM structure_contacts WHERE id = ?')->execute([$autre]);
+            // Deux contacts en double dans la MÊME structure : c'est le
+            // rôle qu'on fusionne ici, et la personne par la même occasion —
+            // personnes_fusionner() s'occupe de l'identité, des envois et de
+            // tout ce qui pointait l'autre.
+            $cGarde = contact_charger($garde);
+            $cAutre = contact_charger($autre);
+            if ($cGarde && $cAutre) {
+                doublons_completer_champs_vides('personne_structures', $garde, $autre, ['role', 'formulaire_url']);
+                // Drapeaux cumulés : le rôle conservé hérite de ceux du doublon.
+                db()->prepare(
+                    'UPDATE personne_structures SET
+                        est_administration = MAX(est_administration, (SELECT est_administration FROM personne_structures WHERE id = :autre)),
+                        est_booking        = MAX(est_booking,        (SELECT est_booking        FROM personne_structures WHERE id = :autre))
+                     WHERE id = :garde'
+                )->execute([':autre' => $autre, ':garde' => $garde]);
+                personnes_fusionner((int) $cGarde['personne_id'], [(int) $cAutre['personne_id']]);
+            }
             db()->commit();
             $n++;
         }
@@ -400,9 +405,10 @@ function maj_dates_construire_index(): array
     // leur ville, pour permettre la même discrimination que le rapprochement
     // par nom ci-dessous.
     foreach (db()->query(
-        "SELECT c.email, c.structure_id, s.adresse_localite
-         FROM structure_contacts c JOIN structures s ON s.id = c.structure_id
-         WHERE c.email <> ''"
+        "SELECT pe.email, c.structure_id, s.adresse_localite
+         FROM personne_structures c JOIN personnes pe ON pe.id = c.personne_id
+         JOIN structures s ON s.id = c.structure_id
+         WHERE pe.email <> ''"
     ) as $c) {
         $cle = mb_strtolower(trim((string) $c['email']), 'UTF-8');
         if ($cle === '') { continue; }

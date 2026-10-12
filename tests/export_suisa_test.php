@@ -28,6 +28,7 @@ require_once __DIR__ . '/../lib/calc.php';
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/modules.php';
+require_once __DIR__ . '/../lib/personnes.php';
 require_once __DIR__ . '/../lib/recherche.php';
 require_once __DIR__ . '/../lib/evenements.php';
 require_once __DIR__ . '/../lib/booking.php';
@@ -70,11 +71,17 @@ $sansFacturation = (int) db()->lastInsertId();
 
 // Contacts : la structure « à facturer » en a deux, dont un coché
 // « administration » (le second) ; l'autre structure n'en a qu'un, non coché.
-$insC = db()->prepare('INSERT INTO structure_contacts (structure_id, prenom, nom, email, telephone, est_administration, actif)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)');
-$insC->execute([$avecFacturation, 'Alex', 'Premier', 'alex@salle.test', '+41 22 111 22 33', 0, 1]);
-$insC->execute([$avecFacturation, 'Bruno', 'Administration', 'admin@salle.test', '+41 22 999 88 77', 1, 1]);
-$insC->execute([$sansFacturation, 'Chris', 'Seul', 'chris@asso.test', '+41 24 555 44 33', 0, 1]);
+// Un contact, c'est désormais une PERSONNE et son rattachement à une
+// structure (migration 100) : contact_creer() écrit les deux.
+$insC = function (int $structureId, string $prenom, string $nom, string $email, string $tel, int $admin): void {
+    contact_creer($structureId, [
+        'prenom' => $prenom, 'nom' => $nom, 'email' => $email, 'telephone' => $tel,
+        'est_administration' => $admin, 'actif' => 1,
+    ]);
+};
+$insC($avecFacturation, 'Alex', 'Premier', 'alex@salle.test', '+41 22 111 22 33', 0);
+$insC($avecFacturation, 'Bruno', 'Administration', 'admin@salle.test', '+41 22 999 88 77', 1);
+$insC($sansFacturation, 'Chris', 'Seul', 'chris@asso.test', '+41 24 555 44 33', 0);
 
 // Une salle sans contact propre, rattachée à une association mère qui en a un.
 $insS->execute(['Salle Sans Contact', 'Route Haute 12', '1800', 'Vevey', 'Suisse']);
@@ -83,7 +90,7 @@ $insS->execute(['Association Mère', 'Grand-Rue 1', '1800', 'Vevey', 'Suisse']);
 $mere = (int) db()->lastInsertId();
 db()->prepare('INSERT INTO structure_organisateurs (structure_id, organisateur_id) VALUES (?, ?)')
     ->execute([$salleFille, $mere]);
-$insC->execute([$mere, 'Elodie', 'Mère', 'elodie@mere.test', '+41 21 777 66 55', 0, 1]);
+$insC($mere, 'Elodie', 'Mère', 'elodie@mere.test', '+41 21 777 66 55', 0);
 
 $insE = db()->prepare("INSERT INTO evenements (date, ville, pays, statut) VALUES (?, ?, 'CH', 'confirme')");
 $insE->execute(['2026-05-01', 'Genève']);
