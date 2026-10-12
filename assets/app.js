@@ -2223,6 +2223,18 @@ window.addEventListener('DOMContentLoaded', lassoInitTagGerer);
 const LASSO_PHOTO_COTE = 1600;
 const LASSO_PHOTO_QUALITE = 0.8;
 
+// Réduit une source déjà chargée (image ou vidéo) et rend son data URI.
+// ⚠️ Jamais d'AGRANDISSEMENT : une image déjà petite reste telle quelle,
+// l'étirer n'ajouterait aucune information et ne ferait qu'alourdir.
+function lassoPhotoReduire(source, largeur, hauteur) {
+    const ratio = Math.min(1, LASSO_PHOTO_COTE / Math.max(largeur, hauteur));
+    const toile = document.createElement('canvas');
+    toile.width = Math.round(largeur * ratio);
+    toile.height = Math.round(hauteur * ratio);
+    toile.getContext('2d').drawImage(source, 0, 0, toile.width, toile.height);
+    return toile.toDataURL('image/jpeg', LASSO_PHOTO_QUALITE);
+}
+
 function lassoPhotoPiece(racine = document) {
     racine.querySelectorAll('[data-photo-piece]').forEach(input => {
         const cible = document.querySelector(input.dataset.photoPiece);
@@ -2231,6 +2243,10 @@ function lassoPhotoPiece(racine = document) {
         const img = document.getElementById('piece-photo-img');
         const retirer = document.getElementById('piece-photo-retirer');
 
+        const poser = (dataUri) => {
+            cible.value = dataUri;
+            if (img && apercu) { img.src = dataUri; apercu.hidden = false; }
+        };
         const vider = () => {
             cible.value = '';
             input.value = '';
@@ -2245,22 +2261,95 @@ function lassoPhotoPiece(racine = document) {
             const lecteur = new FileReader();
             lecteur.onload = () => {
                 const source = new Image();
-                source.onload = () => {
-                    // Jamais d'AGRANDISSEMENT : une photo déjà petite reste
-                    // telle quelle, l'étirer n'ajouterait aucune information.
-                    const ratio = Math.min(1, LASSO_PHOTO_COTE / Math.max(source.width, source.height));
-                    const toile = document.createElement('canvas');
-                    toile.width = Math.round(source.width * ratio);
-                    toile.height = Math.round(source.height * ratio);
-                    const ctx = toile.getContext('2d');
-                    ctx.drawImage(source, 0, 0, toile.width, toile.height);
-                    cible.value = toile.toDataURL('image/jpeg', LASSO_PHOTO_QUALITE);
-                    if (img && apercu) { img.src = cible.value; apercu.hidden = false; }
-                };
+                source.onload = () => poser(lassoPhotoReduire(source, source.width, source.height));
                 source.src = lecteur.result;
             };
             lecteur.readAsDataURL(f);
         });
+
+        lassoCameraPiece(input, poser);
     });
+}
+
+// La prise de vue DANS la page, par l'API caméra du navigateur.
+//
+// Pourquoi : sur un téléphone, `capture="environment"` sur un champ de fichier
+// ouvre l'appareil photo — c'est parfait. Sur un ORDINATEUR, le même champ
+// n'ouvre qu'un explorateur de fichiers, et « photographier le ticket » ne
+// photographiait rien du tout. getUserMedia couvre les deux, et sans aucune
+// bibliothèque : un flux vidéo, une toile, et la même réduction qu'ailleurs.
+//
+// Le bouton naît CACHÉ et ce script le montre : là où l'API n'existe pas
+// (vieux navigateur, page servie en clair — elle exige un contexte sûr), le
+// champ de fichier reste la seule porte, et il marche. Un bouton mort vaudrait
+// moins que pas de bouton.
+//
+// ⚠️ Le flux est COUPÉ dès qu'on a l'image ou qu'on renonce, et aussi quand on
+// quitte la page. Sans cela la lampe de la caméra reste allumée sur un
+// formulaire qu'on a cessé de regarder — et c'est le genre de détail qui fait
+// qu'on n'ose plus cliquer sur le bouton.
+function lassoCameraPiece(inputFichier, poser) {
+    const ouvrir = document.getElementById('piece-photo-ouvrir');
+    const panneau = document.getElementById('piece-camera');
+    const flux = document.getElementById('piece-camera-flux');
+    const prendre = document.getElementById('piece-camera-prendre');
+    const fermer = document.getElementById('piece-camera-fermer');
+    const err = document.getElementById('piece-camera-err');
+    if (!ouvrir || !panneau || !flux || !navigator.mediaDevices?.getUserMedia) {
+        return; // le champ de fichier reste la porte
+    }
+
+    let courant = null;
+    const couper = () => {
+        if (courant) { courant.getTracks().forEach(t => t.stop()); courant = null; }
+        flux.srcObject = null;
+        panneau.hidden = true;
+        ouvrir.hidden = false;
+    };
+
+    ouvrir.hidden = false;
+    // Le champ « appareil photo du téléphone » n'a plus lieu d'être : le
+    // bouton fait mieux, et deux portes pour le même geste se discutent.
+    inputFichier.hidden = true;
+
+    ouvrir.addEventListener('click', async () => {
+        if (err) { err.hidden = true; err.textContent = ''; }
+        inputFichier.hidden = true;
+        try {
+            // facingMode « environment » : la caméra arrière sur un téléphone,
+            // la seule disponible sur un ordinateur. On photographie un
+            // papier posé devant soi, pas son propre visage.
+            courant = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1920 } },
+                audio: false,
+            });
+        } catch (e) {
+            // Refus, caméra occupée, pas de caméra : on le DIT, et le champ de
+            // fichier revient — se taire laisserait croire à une panne.
+            // ⚠️ Le PANNEAU reste fermé : ouvrir un cadre vidéo noir et un
+            // bouton « Capturer » au-dessus du message dirait le contraire de
+            // ce que le message annonce.
+            if (err) {
+                err.textContent = e && e.name === 'NotAllowedError'
+                    ? "Accès à la caméra refusé. Vous pouvez joindre un fichier à la place."
+                    : "Aucune caméra disponible. Vous pouvez joindre un fichier à la place.";
+                err.hidden = false;
+            }
+            inputFichier.hidden = false;
+            return;
+        }
+        flux.srcObject = courant;
+        await flux.play().catch(() => {});
+        panneau.hidden = false;
+        ouvrir.hidden = true;
+    });
+
+    prendre?.addEventListener('click', () => {
+        if (!flux.videoWidth) { return; }
+        poser(lassoPhotoReduire(flux, flux.videoWidth, flux.videoHeight));
+        couper();
+    });
+    fermer?.addEventListener('click', couper);
+    window.addEventListener('pagehide', couper);
 }
 window.addEventListener('DOMContentLoaded', () => lassoPhotoPiece());

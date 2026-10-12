@@ -63,8 +63,66 @@ if ($p !== null) {
     </p>
     <?php endif; ?>
 
-    <h3 class="sub no-mt">Ce que c'est</h3>
-    <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce') ?>
+    <h3 class="sub no-mt">Le justificatif <?= info_tip(
+        "La première chose qu'on a sous la main : la facture reçue, le ticket, le document. "
+        . "Le reste se lit dessus."
+    ) ?></h3>
+    <?php if ($id && trim((string) $p['fichier']) !== ''): ?>
+    <p class="muted small">
+        <?= icon('paperclip') ?> <?= e((string) $p['nom_origine']) ?>
+        (<?= e(fichier_taille_lisible((int) $p['taille'])) ?>) — en envoyer un nouveau le remplacera.
+    </p>
+    <?php endif; ?>
+    <div class="piece-depot">
+        <label class="piece-depot-champ"><span>Un fichier (PDF, image, document — 8 Mo max)</span>
+            <input type="file" name="fichier" accept=".pdf,image/*,.txt,.csv,.docx,.xlsx,.odt,.ods">
+        </label>
+        <?php // Prendre une photo. UNE seule porte, et elle s'adapte :
+              //   • si le navigateur sait ouvrir une caméra (getUserMedia),
+              //     la prise de vue se fait DANS la page — ce qui règle le cas
+              //     de l'ordinateur de bureau, où un <input capture> n'ouvrait
+              //     qu'un explorateur de fichiers ;
+              //   • sinon, le champ caché ci-dessous prend le relais et
+              //     déclenche l'appareil photo du téléphone.
+              // Le bouton naît caché et le script le montre : sans JavaScript,
+              // il ne ferait rien, et un bouton mort vaut moins que pas de
+              // bouton. Le champ de fichier, lui, marche toujours. ?>
+        <div class="piece-depot-champ">
+            <span class="lbl-champ">…ou photographier le justificatif</span>
+            <button type="button" class="btn ghost" id="piece-photo-ouvrir" hidden><?= icon('camera') ?> Prendre une photo</button>
+            <input type="file" accept="image/*" capture="environment" id="piece-photo" data-photo-piece="#piece-photo-data">
+        </div>
+        <input type="hidden" name="photo" id="piece-photo-data">
+
+        <?php // La prise de vue : flux vidéo, déclencheur, et rien d'autre.
+              // Elle n'existe dans le document que pendant la prise — le flux
+              // est coupé dès qu'on a l'image ou qu'on renonce, sinon la
+              // lampe de la caméra resterait allumée sur une page qu'on a
+              // quittée des yeux. ?>
+        <div class="piece-camera" id="piece-camera" hidden>
+            <video id="piece-camera-flux" playsinline muted></video>
+            <div class="piece-camera-actions">
+                <button type="button" class="btn" id="piece-camera-prendre"><?= icon('camera') ?> Capturer</button>
+                <button type="button" class="btn ghost" id="piece-camera-fermer"><?= icon('x') ?> Annuler</button>
+            </div>
+        </div>
+        <?php // Le message HORS du panneau : un refus de caméra ne doit pas
+              // ouvrir un cadre vidéo noir surmontant un « Capturer » qui ne
+              // peut rien capturer. On dit ce qui s'est passé, et le champ de
+              // fichier reparaît à côté. ?>
+        <p class="err small piece-camera-err" id="piece-camera-err" hidden></p>
+
+        <div class="piece-photo-apercu" id="piece-photo-apercu" hidden>
+            <img alt="Aperçu de la photo" id="piece-photo-img">
+            <button type="button" class="btn ghost btn-sm" id="piece-photo-retirer"><?= icon('x') ?> Retirer</button>
+        </div>
+    </div>
+
+    <h3 class="sub">Ce que c'est</h3>
+    <?php // Avec LIBELLÉ : quatre feuilles de papier se ressemblent trop pour
+          // qu'une icône seule dise « facture reçue » plutôt que « quittance ».
+          // Le dessin accompagne le mot, il ne le remplace pas. ?>
+    <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce', ['avecLabel' => true]) ?>
 
     <div class="grid2 mt-16">
         <label>Intitulé <input name="libelle" value="<?= e($v('libelle')) ?>" placeholder="ex. Facture Swisscom janvier" autofocus></label>
@@ -146,32 +204,6 @@ if ($p !== null) {
                 <?php endforeach; ?>
             </select>
         </label>
-    </div>
-
-    <h3 class="sub">Le justificatif</h3>
-    <?php if ($id && trim((string) $p['fichier']) !== ''): ?>
-    <p class="muted small">
-        <?= icon('paperclip') ?> <?= e((string) $p['nom_origine']) ?>
-        (<?= e(fichier_taille_lisible((int) $p['taille'])) ?>) — en envoyer un nouveau le remplacera.
-    </p>
-    <?php endif; ?>
-    <div class="piece-depot">
-        <label class="piece-depot-champ"><span>Fichier (PDF, image, document — 8 Mo max)</span>
-            <input type="file" name="fichier" accept=".pdf,image/*,.txt,.csv,.docx,.xlsx,.odt,.ods">
-        </label>
-        <?php // capture="environment" ouvre l'appareil photo sur un téléphone.
-              // Le navigateur réduit l'image à 1600px avant l'envoi
-              // (lassoPhotoPiece), sinon dix ans de tickets à 4 Mo pièce
-              // finiraient dans chaque sauvegarde. Le champ caché porte le
-              // résultat ; le serveur le revalide comme un fichier reçu. ?>
-        <label class="piece-depot-champ piece-depot-photo"><span>…ou photographier le ticket</span>
-            <input type="file" accept="image/*" capture="environment" id="piece-photo" data-photo-piece="#piece-photo-data">
-        </label>
-        <input type="hidden" name="photo" id="piece-photo-data">
-        <div class="piece-photo-apercu" id="piece-photo-apercu" hidden>
-            <img alt="Aperçu de la photo" id="piece-photo-img">
-            <button type="button" class="btn ghost btn-sm" id="piece-photo-retirer"><?= icon('x') ?> Retirer</button>
-        </div>
     </div>
 
     <label class="mt-16">Remarques <textarea name="notes" rows="2"><?= e($v('notes')) ?></textarea></label>

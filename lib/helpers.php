@@ -3256,6 +3256,7 @@ function icone_table(): array
 {
     return [
         'file-text' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+        'camera' => '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
         'paperclip' => '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
         'receipt' => '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
         'file-check' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/>',
@@ -3534,14 +3535,24 @@ function info_tip(string $texte): string
 // (.perm-toggle), mais horizontal. Radios cachés : la valeur est soumise
 // naturellement dans le formulaire, sans JS. $options : [valeur => ['icone' =>
 // nom pour icon(), 'label' => texte accessible/tooltip]], dans l'ordre voulu.
-function icon_picker(string $name, array $options, string $selected, string $ariaLabel = ''): string
+//
+// $opts['avecLabel'] écrit le libellé À CÔTÉ de l'icône au lieu de le réserver
+// à l'infobulle. À poser dès que les choix ne se devinent pas d'un dessin :
+// clair / sombre / automatique se lisent au premier coup d'œil, « facture
+// reçue » et « quittance » non — deux feuilles de papier se ressemblent trop.
+// Hors de ce cas, l'icône seule reste préférable : elle tient dans une barre
+// d'outils.
+function icon_picker(string $name, array $options, string $selected, string $ariaLabel = '', array $opts = []): string
 {
-    $h = '<div class="seg-picker" role="radiogroup"' . ($ariaLabel !== '' ? ' aria-label="' . e($ariaLabel) . '"' : '') . '>';
+    $avecLabel = !empty($opts['avecLabel']);
+    $h = '<div class="seg-picker' . ($avecLabel ? ' seg-picker-label' : '') . '" role="radiogroup"'
+        . ($ariaLabel !== '' ? ' aria-label="' . e($ariaLabel) . '"' : '') . '>';
     foreach ($options as $valeur => $opt) {
         $checked = $selected === $valeur ? ' checked' : '';
         $h .= '<label class="seg-btn" title="' . e($opt['label']) . '">'
             . '<input type="radio" name="' . e($name) . '" value="' . e($valeur) . '" aria-label="' . e($opt['label']) . '"' . $checked . '>'
             . icon($opt['icone'])
+            . ($avecLabel ? '<span class="seg-btn-txt">' . e($opt['label']) . '</span>' : '')
             . '</label>';
     }
     return $h . '</div>';

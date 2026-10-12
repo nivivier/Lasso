@@ -31,8 +31,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   n'arrive qu'à l'import mensuel du relevé, puis se rattache à celle-ci quand
   elle paraît. Une pièce réglée en espèces ou depuis un autre compte se classe
   sans écriture.
-  Sur téléphone, le bouton de dépôt ouvre l'appareil photo ; l'image est
-  réduite par le navigateur avant l'envoi.
+  Le dépôt commence par le justificatif — c'est ce qu'on a sous la main — et
+  propose de **photographier la pièce directement dans la page**, sur ordinateur
+  comme sur téléphone. L'image est réduite par le navigateur avant l'envoi.
   La liste des écritures gagne une colonne « Pièce » et son filtre : on y voit
   d'un coup d'œil ce qui n'a pas de justificatif, et on en dépose un depuis la
   ligne. Les catégories qui n'en attendent jamais — frais bancaires,
