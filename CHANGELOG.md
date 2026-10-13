@@ -21,8 +21,6 @@ puis sont promues sur le canal **stable** en figeant une version.
   **La désinscription vaut désormais pour la personne, partout** : qui se
   désinscrit ne reçoit plus rien, même en tant que contact d'une autre
   structure.
-
-### Ajouté
 - **Les pièces comptables** (`SPEC_PIECES.md`) : un cinquième onglet dans la
   comptabilité où enregistrer les justificatifs — facture reçue, ticket
   photographié, document. Une pièce se saisit **avant** tout mouvement
@@ -48,6 +46,15 @@ puis sont promues sur le canal **stable** en figeant une version.
   merchandising, une cotisation —, Lasso produit un document numéroté
   (`Q-2026-001`), à une structure ou à une personne, imprimable comme les
   autres documents de l'application.
+
+### Modifié
+- **Le tableau de bord se lit plus vite.** Les en-têtes de colonnes qui ne
+  disaient rien de plus que leur contenu — « Statut / Nombre », « Mois /
+  Employé / Net à payer », « Campagne / Avancement » — ont disparu des cartes
+  Suisa, Salaires, Booking et Recherche de fonds. Le total des salaires précise
+  qu'il s'agit du **net**, l'employé porte sa pastille d'identité comme dans la
+  liste des fiches, et les séparateurs de la carte « Prochains événements »
+  vont de bord à bord, comme ceux de n'importe quel tableau de carte.
 
 ### Corrigé
 - **L'import d'un relevé bancaire avait perdu son en-tête** : la page s'ouvrait

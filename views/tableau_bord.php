@@ -206,9 +206,6 @@ $dashTitre = function (string $groupe, string $titre): string {
         <div class="card dash-card">
             <?= $dashTitre('evenements', 'Suisa') ?>
             <table class="list">
-                <thead>
-                    <tr><th>Statut</th><th class="num">Nombre</th></tr>
-                </thead>
                 <tbody>
                     <?php
                     // lien_liste_filtree() et pas une URL écrite à la main : les
@@ -328,17 +325,25 @@ $dashTitre = function (string $groupe, string $titre): string {
                 <p class="muted">Vous êtes à jour.</p>
             <?php else: ?>
             <table class="list">
-                <thead>
-                    <tr><th>Mois</th><th>Employé</th><th class="num">Net à payer</th></tr>
-                </thead>
                 <tbody>
                 <?php // Une fiche du mois courant reste à verser mais n'appelle rien
                       // aujourd'hui : elle ne se détache pas. Celles du mois
                       // précédent et d'avant, si (echeance_etat, route_tableau_bord()). ?>
                 <?php foreach ($aPayerVisibles as $f): ?>
                     <tr class="row-link<?= $dash_action(($f['echeance_etat'] ?? '') !== '') ?>" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
-                        <td class="small"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
-                        <td class="dash-nom"><?= e($f['employe_nom']) ?></td>
+                        <?php // Le mois ne se coupe pas en deux : c'est le nom, juste
+                              // à côté, qui absorbe le manque de place (il se tronque
+                              // avec des points de suite, lui). ?>
+                        <td class="small nowrap"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
+                        <?php // La pastille devant le nom, comme dans la liste des
+                              // fiches : elle vient de l'employé (couleur ou photo),
+                              // pas de la fiche — qui fige ses montants, pas
+                              // l'apparence de la personne. ?>
+                        <td class="dash-nom"><?= avatar_initiales(
+                            (string) $f['employe_nom'],
+                            (string) ($f['avatar_couleur'] ?? ''),
+                            (string) ($f['avatar_photo'] ?? '')
+                        ) ?><?= e($f['employe_nom']) ?></td>
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -349,7 +354,7 @@ $dashTitre = function (string $groupe, string $titre): string {
                           // lignes visibles. Il n'a plus à le préciser : la ligne
                           // « et X autres » juste au-dessus rend l'écart lisible. ?>
                     <tr class="total-row">
-                        <td colspan="2"><strong>Total à verser</strong></td>
+                        <td colspan="2"><strong>Total à verser (net)</strong></td>
                         <?php // Total à l'encre, pas en ambre : l'ambre signale ce qui
                               // attend une action, or un total n'est pas une alerte —
                               // les lignes au-dessus, elles, la portent déjà. ?>
@@ -460,9 +465,6 @@ $dashTitre = function (string $groupe, string $titre): string {
                 <p class="muted">Aucune campagne. <a href="?p=booking_campagne_form">Créez-en une</a> pour suivre un démarchage.</p>
             <?php else: ?>
             <table class="list">
-                <thead>
-                    <tr><th>Campagne</th><th class="nowrap">Avancement</th></tr>
-                </thead>
                 <tbody>
                 <?php // Une campagne ouverte est un démarchage en cours : c'est là
                       // qu'il reste des structures à contacter. ?>
@@ -528,9 +530,6 @@ $dashTitre = function (string $groupe, string $titre): string {
                   // clos, et il reste à rendre des comptes. ?>
             <?php if ($fondsDash['campagnes']): ?>
             <table class="list">
-                <thead>
-                    <tr><th>Campagne</th><th class="nowrap">Avancement</th></tr>
-                </thead>
                 <tbody>
                 <?php foreach ($fondsDash['campagnes'] as $fc): ?>
                     <?php // Une campagne attend un geste tant qu'il lui reste des

@@ -2428,6 +2428,15 @@ button:active, .btn:active { transform: translateY(1px); }
 .small { font-size: var(--fs-small); }
 .tiny { font-size: var(--fs-tiny); }
 .clean-list { list-style: none; margin: 0; padding: 0; }
+/* Dans une carte, une liste de mini-lignes suit la règle des tableaux de carte
+   (voir « .card > table.list » plus haut) : elle déborde du retrait de 26px
+   pour que ses séparateurs aillent de bord à bord, et ce sont les lignes
+   elles-mêmes qui reprennent ce retrait. Un filet arrêté à 26px des bords
+   flotte dans le vide et fait lire deux cadres emboîtés là où il n'y en a
+   qu'un. Les mêmes mini-lignes sur téléphone sont dans une cellule de tableau,
+   pas dans une carte : elles ne sont pas touchées. */
+.card .clean-list { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
+.card .clean-list > .evt-mini { padding-left: var(--card-pad); padding-right: var(--card-pad); }
 /* Cellule de la liste des événements qui porte la mini-ligne : elle n'existe
    que sur téléphone, où la liste passe en cartes (règles .cartes-evenements). */
 .col-mini { display: none; }
@@ -4929,6 +4938,14 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .dash-card table.list td.dash-nom {
     max-width: 1px; width: 100%;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* La pastille d'identité devant un nom qui se tronque : la cellule reste un
+   BLOC — c'est son overflow qui coupe —, et la pastille s'y range comme un
+   caractère. En faire une cellule flex (.col-employe, liste des fiches) rend
+   le text-overflow inopérant : le nom se coupe alors net, sans points de
+   suite. Un peu plus petite qu'ailleurs, à la mesure de ces lignes-ci. */
+.dash-card table.list td.dash-nom .avatar-ini {
+    width: 22px; height: 22px; margin-right: 7px; vertical-align: -7px;
 }
 
 /* Widgets du tableau de bord sur petit écran : les marges généreuses des

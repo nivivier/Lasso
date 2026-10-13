@@ -2831,7 +2831,14 @@ function route_tableau_bord(): void
     // voyage AVEC la fiche : c'est lui qui décide, dans la carte, quelles
     // lignes se détachent sur fond ambre.
     if (module_accessible('salaires')) {
-        foreach (db()->query("SELECT * FROM fiches WHERE trim(date_paiement) = '' ORDER BY annee, mois") as $f) {
+        // avatar_* : la pastille d'identité posée devant le nom, comme dans la
+        // liste des fiches. Elle vit sur l'EMPLOYÉ, pas sur la fiche — qui fige
+        // ses montants, pas l'apparence de la personne. Jointure externe : une
+        // fiche dont l'employé a disparu reste à verser, et doit rester visible.
+        $sqlAPayer = "SELECT f.*, e.avatar_couleur, e.avatar_photo
+                      FROM fiches f LEFT JOIN employes e ON e.id = f.employe_id
+                      WHERE trim(f.date_paiement) = '' ORDER BY f.annee, f.mois";
+        foreach (db()->query($sqlAPayer) as $f) {
             $moisEcoules = ($aujAnnee - (int) $f['annee']) * 12 + ($aujMois - (int) $f['mois']);
             if ($moisEcoules < 0) {
                 continue; // fiche d'un mois à venir
