@@ -1,5 +1,5 @@
 <?php /** @var ?array $p */ /** @var ?array $champs */ /** @var string $err */ /** @var array $categories */
-/** @var ?array $ecrSource */ /** @var array $beneficiaires */
+/** @var ?array $ecrSource */ /** @var array $beneficiaires */ /** @var string $typeDefaut */
 
 // Trois sources, dans cet ordre : la saisie qu'on vient de refuser (il ne faut
 // jamais la perdre), la pièce qu'on modifie, l'écriture d'où l'on vient. Cette
@@ -15,7 +15,6 @@ $v = function (string $cle, $defaut = '') use ($p, $champs, $ecrSource) {
             'date_payee'     => (string) $ecrSource['date_op'],
             'tiers'          => (string) ($ecrSource['tiers'] ?? ''),
             'plan_compte_id' => (string) ($ecrSource['plan_compte_id'] ?? ''),
-            'mode_paiement'  => 'compte',
         ];
         if (isset($depuis[$cle])) { return $depuis[$cle]; }
     }
@@ -24,8 +23,22 @@ $v = function (string $cle, $defaut = '') use ($p, $champs, $ecrSource) {
 $id      = (int) ($p['id'] ?? 0);
 $montant = (float) ($champs['montant'] ?? $p['montant'] ?? $ecrSource['montant'] ?? 0);
 $sens    = $montant > 0 ? 'recette' : 'depense';
-$type    = $v('type', 'facture_recue');
-$modePaie = $v('mode_paiement');
+// Le type est la première question, et elle est déjà répondue : on arrive ici
+// par une entrée du menu « Nouvelle pièce » (pieces_menu_nouvelle_html()).
+// C'est lui qui décide des champs posés — d'où PIECE_TYPES présent tout au
+// long de cette vue, et la même table rendue au script plus bas.
+$type     = $v('type', $typeDefaut);
+$typeInfo = PIECE_TYPES[$type] ?? PIECE_TYPES['autre'];
+
+// Une pièce qui naît payée : le ticket de carte est sorti du compte au moment
+// de l'achat, la quittance constate de l'argent déjà reçu. La date du jour s'y
+// pose d'office — à la CRÉATION seulement : rouvrir une pièce ne doit jamais
+// réécrire ce qu'elle dit.
+$datePayee = $v('date_payee');
+$payeeAuto = $id === 0 && $champs === null && $datePayee === '' && $typeInfo['paye'];
+if ($payeeAuto) { $datePayee = date('Y-m-d'); }
+$horsCompte = $v('mode_paiement') === 'hors_compte';
+
 // Le bénéficiaire, dans la forme que porte le sélecteur unique : « s:12 » ou
 // « p:34 ». Un seul champ plutôt que deux menus, qui auraient laissé en
 // remplir deux et posé la question de qui gagne.
@@ -34,6 +47,10 @@ if ($p !== null) {
     if (!empty($p['structure_id'])) { $benefCourant = 's:' . (int) $p['structure_id']; }
     elseif (!empty($p['personne_id'])) { $benefCourant = 'p:' . (int) $p['personne_id']; }
 }
+// Le repli « Plus de détails » s'ouvre quand il y a quelque chose à y voir :
+// une pièce qu'on modifie, ou une saisie qui vient d'être refusée. Sur une
+// création, il reste fermé — c'est sa raison d'être.
+$plusOuvert = $id > 0 || $err !== '';
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -44,7 +61,7 @@ if ($p !== null) {
 <?php if ($err !== ''): ?><p class="err flash"><?= e($err) ?></p><?php endif; ?>
 
 <div class="page-head">
-    <div class="page-head-title"><h1><?= $id ? 'Modifier la pièce' : 'Nouvelle pièce' ?></h1></div>
+    <div class="page-head-title"><h1><?= $id ? 'Modifier la pièce' : e($typeInfo['nouveau']) ?></h1></div>
     <?= entete_form_actions_html('piece-form', $id ? '?p=piece&id=' . $id : '?p=pieces') ?>
 </div>
 
@@ -63,10 +80,9 @@ if ($p !== null) {
     </p>
     <?php endif; ?>
 
-    <h3 class="sub no-mt">Le justificatif <?= info_tip(
-        "La première chose qu'on a sous la main : la facture reçue, le ticket, le document. "
-        . "Le reste se lit dessus."
-    ) ?></h3>
+    <?php // Premier temps : le document. C'est ce qu'on a sous la main, et tout
+          // le reste se lit dessus. ?>
+    <h3 class="sub no-mt">Le justificatif</h3>
     <?php if ($id && trim((string) $p['fichier']) !== ''): ?>
     <p class="muted small">
         <?= icon('paperclip') ?> <?= e((string) $p['nom_origine']) ?>
@@ -118,29 +134,32 @@ if ($p !== null) {
         </div>
     </div>
 
-    <h3 class="sub">Ce que c'est</h3>
-    <?php // Avec LIBELLÉ : quatre feuilles de papier se ressemblent trop pour
-          // qu'une icône seule dise « facture reçue » plutôt que « quittance ».
-          // Le dessin accompagne le mot, il ne le remplace pas. ?>
-    <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce', ['avecLabel' => true]) ?>
-
-    <div class="grid2 mt-16">
-        <label>Intitulé <input name="libelle" value="<?= e($v('libelle')) ?>" placeholder="ex. Facture Swisscom janvier" autofocus></label>
-        <label>Tiers <input name="tiers" value="<?= e($v('tiers')) ?>" placeholder="ex. Swisscom"></label>
+    <?php // Second temps : les quatre champs qu'on lit sur le document. Tout le
+          // reste attend derrière « Plus de détails » — sur dix pièces déposées,
+          // neuf n'en auront jamais besoin. ?>
+    <h3 class="sub">L'essentiel</h3>
+    <div class="grid2">
+        <?php // Le tiers avant l'intitulé : c'est le nom qu'on lit en haut du
+              // document, et il suffit souvent à nommer la pièce — une pièce
+              // sans intitulé reprend son tiers à l'enregistrement. ?>
+        <label>Tiers <input name="tiers" value="<?= e($v('tiers')) ?>" placeholder="ex. Swisscom" autofocus></label>
+        <label>Intitulé <input name="libelle" value="<?= e($v('libelle')) ?>" placeholder="ex. Facture Swisscom janvier"></label>
     </div>
 
-    <div class="grid3 mt-16">
-        <label><span>Montant <?= info_tip(
-            "Toujours en positif : c'est le SENS, juste à côté, qui dit s'il s'agit d'une dépense ou d'une recette. "
-            . 'Le signe est une propriété du mouvement, pas une subtilité de frappe.'
-        ) ?></span>
+    <div class="grid2 mt-16" id="piece-ligne-montant">
+        <label><span>Montant</span>
             <span class="pct-input">
                 <input name="montant" type="text" inputmode="decimal" required
                        value="<?= $montant != 0.0 ? e(number_format(abs($montant), 2, '.', '')) : '' ?>">
                 <span class="pct-suffix">CHF</span>
             </span>
         </label>
-        <label><span>Sens</span>
+        <?php // Le sens n'est posé que pour « Autre » : une facture reçue est
+              // une dépense, une quittance une recette, et PIECE_TYPES le sait
+              // (piece_montant_poste()). Le demander partout, c'était faire
+              // choisir ce qu'on savait déjà — et ouvrir la porte à une facture
+              // reçue enregistrée en recette. ?>
+        <label id="piece-sens"<?= $typeInfo['sens'] === '' ? '' : ' hidden' ?>><span>Sens</span>
             <select name="sens">
                 <option value="depense"<?= $sens === 'depense' ? ' selected' : '' ?>>Dépense (argent qui sort)</option>
                 <option value="recette"<?= $sens === 'recette' ? ' selected' : '' ?>>Recette (argent qui entre)</option>
@@ -149,78 +168,130 @@ if ($p !== null) {
         <label>Date de la pièce <input type="date" name="date_piece" value="<?= e($v('date_piece') ?: date('Y-m-d')) ?>"></label>
     </div>
 
-    <?php // Le bénéficiaire ne concerne QUE la quittance : c'est le seul type
-          // de pièce que Lasso produit, et le seul qui s'adresse à quelqu'un.
-          // Affiché pour tous mais masqué par le script tant que le type n'est
-          // pas « quittance » — un champ qui apparaît et disparaît au bon
-          // moment vaut mieux qu'un champ toujours là qui ne sert jamais. ?>
-    <div class="piece-champ-quittance mt-16" id="piece-beneficiaire" <?= $type === 'quittance' ? '' : 'hidden' ?>>
-        <label><span>Bénéficiaire <?= info_tip(
-            'À qui la quittance est remise : une structure du carnet, ou une personne. '
-            . "À défaut, le « Tiers » saisi plus haut sert de nom sur le document."
-        ) ?></span>
-            <select name="beneficiaire">
-                <option value="">— Le tiers saisi plus haut —</option>
-                <?php $grpCourant = null; foreach ($beneficiaires as $b): ?>
-                    <?php if ($b['groupe'] !== $grpCourant): $grpCourant = $b['groupe']; ?>
+    <?php // Une pièce qui naît payée le dit : sans cette ligne, « payée
+          // aujourd'hui » se déciderait derrière un repli fermé, et rien ne
+          // dirait pourquoi la pièce ne figure pas dans « à payer ». ?>
+    <p class="muted small mt-8" id="piece-paye-note"<?= $payeeAuto ? '' : ' hidden' ?>>
+        <?= icon('check') ?> Marquée payée aujourd'hui — modifiable ci-dessous.
+    </p>
+
+    <details class="form-plus mt-16" id="piece-plus"<?= $plusOuvert ? ' open' : '' ?>>
+        <summary>Plus de détails</summary>
+        <div class="form-plus-corps">
+            <?php // Le type a été choisi dans le menu : il se change ici, et non
+                  // sur le chemin courant. Avec LIBELLÉ — cinq feuilles de
+                  // papier se ressemblent trop pour qu'une icône seule dise
+                  // « facture reçue » plutôt que « quittance ». ?>
+            <span class="lbl-champ">Type de pièce</span>
+            <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce', ['avecLabel' => true]) ?>
+
+            <div class="grid2 mt-16">
+                <label id="piece-echeance"<?= $typeInfo['echeance'] ? '' : ' hidden' ?>><span>Échéance</span>
+                    <input type="date" name="date_echeance" value="<?= e($v('date_echeance')) ?>"></label>
+                <label><span>Catégorie présumée</span>
+                    <select name="plan_compte_id">
+                        <option value="">— Aucune —</option>
+                        <?php foreach ($categories as $c): ?>
+                        <option value="<?= (int) $c['id'] ?>"<?= (int) $v('plan_compte_id') === (int) $c['id'] ? ' selected' : '' ?>><?= e($c['chemin']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
+
+            <?php // Un seul champ pour deux questions, parce que c'est la même
+                  // donnée : qui est en face. Une quittance a un bénéficiaire,
+                  // une note de frais quelqu'un à rembourser — seul l'intitulé
+                  // change (PIECE_TYPES['tiersPour']). ?>
+            <div class="mt-16" id="piece-beneficiaire"<?= $typeInfo['tiersPour'] !== '' ? '' : ' hidden' ?>>
+                <label><span id="piece-beneficiaire-lbl"><?= e($typeInfo['tiersPour'] ?: 'Bénéficiaire') ?></span>
+                    <select name="beneficiaire">
+                        <option value="">— Le tiers saisi plus haut —</option>
+                        <?php $grpCourant = null; foreach ($beneficiaires as $b): ?>
+                            <?php if ($b['groupe'] !== $grpCourant): $grpCourant = $b['groupe']; ?>
+                                <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
+                                <optgroup label="<?= e($b['groupe']) ?>">
+                            <?php endif; ?>
+                            <option value="<?= e($b['val']) ?>"<?= $benefCourant === $b['val'] ? ' selected' : '' ?>><?= e($b['libelle']) ?></option>
+                        <?php endforeach; ?>
                         <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
-                        <optgroup label="<?= e($b['groupe']) ?>">
-                    <?php endif; ?>
-                    <option value="<?= e($b['val']) ?>"<?= $benefCourant === $b['val'] ? ' selected' : '' ?>><?= e($b['libelle']) ?></option>
-                <?php endforeach; ?>
-                <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
-            </select>
-        </label>
-    </div>
+                    </select>
+                </label>
+            </div>
 
-    <div class="grid2 mt-16">
-        <label><span>Échéance <?= info_tip(
-            "Quand elle doit être payée. C'est elle qui fait apparaître la pièce dans « à payer » et qui la signale "
-            . 'une fois le délai passé. Un ticket de caisse, déjà réglé, n\'en a pas.'
-        ) ?></span><input type="date" name="date_echeance" value="<?= e($v('date_echeance')) ?>"></label>
-        <label><span>Catégorie présumée <?= info_tip(
-            'Pour ranger les pièces entre elles. Rattacher la pièce à une écriture ne classera PAS cette écriture : '
-            . 'le lettrage reste un geste à part.'
-        ) ?></span>
-            <select name="plan_compte_id">
-                <option value="">— Aucune —</option>
-                <?php foreach ($categories as $c): ?>
-                <option value="<?= (int) $c['id'] ?>"<?= (int) $v('plan_compte_id') === (int) $c['id'] ? ' selected' : '' ?>><?= e($c['chemin']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-    </div>
+            <h3 class="sub">Le paiement</h3>
+            <div class="grid2">
+                <label>Payée le <input type="date" name="date_payee" id="piece-date-payee"
+                                       value="<?= e($datePayee) ?>"<?= $payeeAuto ? ' data-auto="1"' : '' ?>></label>
+                <?php // Une case et non un menu de deux lignes : le cas courant
+                      // est le compte suivi, et l'exception se dit mieux cochée.
+                      // Elle porte à conséquence — « hors du compte » veut dire
+                      // qu'aucune écriture ne viendra jamais, et c'est à ce
+                      // titre qu'elle classe la pièce (piece_etat()). ?>
+                <label class="check piece-hors-compte">
+                    <input type="checkbox" name="hors_compte" value="1"<?= $horsCompte ? ' checked' : '' ?>>
+                    Payée hors des comptes suivis (espèces, autre banque…)
+                </label>
+            </div>
 
-    <h3 class="sub">Le paiement <?= info_tip(
-        'Une pièce peut être marquée payée AVANT que son écriture existe : les relevés bancaires ne '
-        . "s'importent qu'une fois par mois. Laisser vide tant qu'elle ne l'est pas."
-    ) ?></h3>
-    <div class="grid2">
-        <label>Payée le <input type="date" name="date_payee" value="<?= e($v('date_payee')) ?>"></label>
-        <label><span>Moyen</span>
-            <select name="mode_paiement">
-                <?php foreach (PIECE_MODES_PAIEMENT as $k => $lib): ?>
-                <option value="<?= e($k) ?>"<?= $modePaie === $k ? ' selected' : '' ?>><?= e($lib) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-    </div>
-
-    <label class="mt-16">Remarques <textarea name="notes" rows="2"><?= e($v('notes')) ?></textarea></label>
+            <label class="mt-16">Remarques <textarea name="notes" rows="2"><?= e($v('notes')) ?></textarea></label>
+        </div>
+    </details>
 </form>
 </div></div>
-<?php // Le bénéficiaire suit le type choisi. Sans script le champ reste
-      // visible et fonctionne : il ne sert simplement à rien sur une facture
-      // reçue, et le serveur l'ignore (SPEC_PIECES.md § 10). ?>
+<?php // Les champs que le type commande. Sans script, tout reste visible et le
+      // formulaire fonctionne : le serveur, lui, tranche de toute façon depuis
+      // PIECE_TYPES (piece_montant_poste(), piece_champs_postes()).
+      //
+      // La table vient du PHP plutôt que d'être recopiée ici : un type ajouté
+      // dans lib/pieces.php ne doit pas obliger à se souvenir de ce fichier. ?>
 <script nonce="<?= e(csp_nonce()) ?>">
 (() => {
-    const bloc = document.getElementById('piece-beneficiaire');
-    if (!bloc) return;
+    const TYPES = <?= json_encode(array_map(fn ($t) => [
+        'echeance'  => (bool) $t['echeance'],
+        'sens'      => $t['sens'],
+        'paye'      => (bool) $t['paye'],
+        'tiersPour' => $t['tiersPour'],
+    ], PIECE_TYPES), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const creation = <?= $id ? 'false' : 'true' ?>;
+    const aujourdhui = <?= json_encode(date('Y-m-d')) ?>;
+
+    const ligne  = document.getElementById('piece-ligne-montant');
+    const sens   = document.getElementById('piece-sens');
+    const ech    = document.getElementById('piece-echeance');
+    const benef  = document.getElementById('piece-beneficiaire');
+    const benefL = document.getElementById('piece-beneficiaire-lbl');
+    const payee  = document.getElementById('piece-date-payee');
+    const note   = document.getElementById('piece-paye-note');
+    if (!ligne || !payee) return;
+
     const suivre = () => {
         const coche = document.querySelector('input[name="type"]:checked');
-        bloc.hidden = !coche || coche.value !== 'quittance';
+        const t = (coche && TYPES[coche.value]) || TYPES.autre;
+
+        // Le sens ne paraît que pour « Autre » ; la rangée passe alors à trois
+        // colonnes, sinon le troisième champ tomberait seul sur une ligne.
+        sens.hidden = t.sens !== '';
+        ligne.classList.toggle('grid3', t.sens === '');
+        ligne.classList.toggle('grid2', t.sens !== '');
+
+        ech.hidden = !t.echeance;
+        benef.hidden = t.tiersPour === '';
+        if (t.tiersPour !== '') { benefL.textContent = t.tiersPour; }
+
+        // « Payée d'office » suit le type tant que la date n'a pas été touchée
+        // à la main (data-auto) : changer d'avis sur le type ne doit pas
+        // laisser derrière soi une date que plus rien ne justifie — ni effacer
+        // une date saisie exprès.
+        if (creation && (payee.value === '' || payee.dataset.auto === '1')) {
+            payee.value = t.paye ? aujourdhui : '';
+            payee.dataset.auto = t.paye ? '1' : '';
+            note.hidden = !t.paye;
+        } else {
+            note.hidden = true;
+        }
     };
     document.querySelectorAll('input[name="type"]').forEach(r => r.addEventListener('change', suivre));
+    payee.addEventListener('input', () => { payee.dataset.auto = ''; note.hidden = true; });
     suivre();
 })();
 </script>

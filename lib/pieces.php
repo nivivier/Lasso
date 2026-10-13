@@ -7,15 +7,75 @@
 // les deux, la pièce est la seule chose qui sache qu'il y a quelque chose à
 // payer.
 
-// Les quatre types, dans l'ordre où le formulaire les propose. « echeance »
-// dit si le type porte une date limite : un ticket de caisse est déjà payé au
-// moment où on le photographie, lui en demander une n'aurait pas de sens.
+// Les cinq types, dans l'ordre où le formulaire les propose. Chacun porte ce
+// que le formulaire doit savoir de lui — le type n'est pas une étiquette, c'est
+// ce qui décide des champs à poser :
+//
+//   echeance  le type porte-t-il une date limite ? Un ticket déjà payé au
+//             moment où on le photographie n'en a pas.
+//   sens      le signe du montant, connu d'avance. Une facture reçue est une
+//             dépense, une quittance une recette : demander « dépense ou
+//             recette ? » sur ces types-là, c'est faire choisir ce qu'on sait
+//             déjà. Seul « autre » laisse la question ouverte ('').
+//   paye      la pièce naît payée : le ticket de carte sort du compte de
+//             l'association au moment de l'achat, la quittance constate de
+//             l'argent déjà reçu. La date du jour s'y pose d'office.
+//   tiersPour à qui la pièce s'adresse, quand elle s'adresse à quelqu'un.
+//             Vide = le champ bénéficiaire ne paraît pas.
+//   nouveau   le titre de la page de création. Écrit en toutes lettres et non
+//             fabriqué par « Nouvelle » + libellé, qui donnerait « Nouvelle
+//             ticket de carte » et « Nouvelle à rembourser ».
+//
+// ⚠️ « Ticket de carte » et « À rembourser » sont deux types et non un seul
+// parce qu'ils ne disent pas la même dette : le premier est déjà sorti du
+// compte, le second est de l'argent que QUELQU'UN a avancé et que
+// l'association lui doit encore. Les confondre, c'est perdre la trace de ce
+// qu'on doit à ses bénévoles.
 const PIECE_TYPES = [
-    'facture_recue' => ['libelle' => 'Facture reçue', 'icone' => 'receipt-swiss-franc', 'echeance' => true],
-    'ticket'        => ['libelle' => 'Ticket / reçu',  'icone' => 'receipt',             'echeance' => false],
-    'quittance'     => ['libelle' => 'Quittance',      'icone' => 'file-check',          'echeance' => false],
-    'autre'         => ['libelle' => 'Autre',          'icone' => 'file-text',           'echeance' => false],
+    'facture_recue' => ['libelle' => 'Facture reçue',  'icone' => 'receipt-swiss-franc', 'echeance' => true,
+                        'sens' => 'depense', 'paye' => false, 'tiersPour' => '',
+                        'nouveau' => 'Nouvelle facture reçue',
+                        'aide' => 'Reçue d\'un fournisseur, à payer avant son échéance.'],
+    'ticket'        => ['libelle' => 'Ticket de carte', 'icone' => 'credit-card',        'echeance' => false,
+                        'sens' => 'depense', 'paye' => true,  'tiersPour' => '',
+                        'nouveau' => 'Nouveau ticket de carte',
+                        'aide' => 'Déjà payé depuis le compte de l\'association.'],
+    'remboursement' => ['libelle' => 'À rembourser',    'icone' => 'hand-coins',         'echeance' => false,
+                        'sens' => 'depense', 'paye' => false, 'tiersPour' => 'À rembourser à',
+                        'nouveau' => 'Nouvelle dépense à rembourser',
+                        'aide' => 'Quelqu\'un a avancé l\'argent : note de frais.'],
+    'quittance'     => ['libelle' => 'Quittance',       'icone' => 'file-check',         'echeance' => false,
+                        'sens' => 'recette', 'paye' => true,  'tiersPour' => 'Bénéficiaire',
+                        'nouveau' => 'Nouvelle quittance',
+                        'aide' => 'Pour de l\'argent reçu : Lasso produit le document.'],
+    'autre'         => ['libelle' => 'Autre',           'icone' => 'file-text',          'echeance' => false,
+                        'sens' => '',        'paye' => false, 'tiersPour' => '',
+                        'nouveau' => 'Nouvelle pièce',
+                        'aide' => 'Tout le reste. C\'est le seul type où le sens se choisit.'],
 ];
+
+// Le menu « Nouvelle pièce » : un type par entrée, pour qu'on arrive sur le
+// formulaire en ayant déjà répondu à sa première question. Rendu ici et non
+// dans chaque vue — la liste des pièces et le tableau de bord ouvrent le MÊME
+// menu, et un second exemplaire aurait fini par ne plus dire la même chose
+// (docs/UI.md § 6).
+function pieces_menu_nouvelle_html(array $bouton = [], array $opts = []): string
+{
+    $entrees = [];
+    foreach (PIECE_TYPES as $cle => $t) {
+        $entrees[] = [
+            'libelle' => $t['libelle'],
+            'icone'   => $t['icone'],
+            'titre'   => $t['aide'],
+            'href'    => '?p=piece_form&type=' . $cle . (isset($opts['depuis']) ? '&depuis=' . rawurlencode((string) $opts['depuis']) : ''),
+        ];
+    }
+    return menu_deroulant_html(
+        $bouton + ['icone' => 'file-plus', 'libelle' => 'Nouvelle pièce', 'plein' => true],
+        $entrees,
+        ['classe' => trim('pieces-creer ' . (string) ($opts['classe'] ?? ''))]
+    );
+}
 
 // Les modes de paiement. '' n'est pas un mode : c'est l'absence de paiement.
 //
@@ -482,10 +542,11 @@ function quittance_prochain_numero(int $annee): string
     return prochain_numero_annuel(db(), 'pieces', 'Q', $annee);
 }
 
-// Le bénéficiaire, en un nom et une adresse prêts à imprimer. Une structure ou
-// une personne — ou, à défaut des deux, le tiers saisi à la main sur la pièce,
-// parce qu'on encaisse parfois de quelqu'un qui n'est dans aucun carnet.
-function quittance_beneficiaire(array $p): array
+// Celui que la pièce désigne, en un nom et une adresse prêts à imprimer : le
+// bénéficiaire d'une quittance, la personne à rembourser d'une note de frais.
+// Une structure ou une personne — ou, à défaut des deux, le tiers saisi à la
+// main, parce qu'on encaisse parfois de quelqu'un qui n'est dans aucun carnet.
+function piece_beneficiaire(array $p): array
 {
     if (!empty($p['structure_id'])) {
         $stmt = db()->prepare('SELECT nom, adresse_rue, adresse_npa, adresse_localite FROM structures WHERE id = ?');

@@ -65,8 +65,11 @@ $vide = '<span class="muted">—</span>';
             <?php if ($p['numero'] !== ''): ?>
             <tr><th>Numéro</th><td><code><?= e((string) $p['numero']) ?></code></td></tr>
             <?php endif; ?>
-            <?php if ((string) $p['type'] === 'quittance'): $b = quittance_beneficiaire($p); ?>
-            <tr><th>Bénéficiaire</th><td>
+            <?php // Le même champ pour deux questions : le bénéficiaire d'une
+                  // quittance, la personne à rembourser d'une note de frais
+                  // (PIECE_TYPES['tiersPour']). ?>
+            <?php if ($typeInfo['tiersPour'] !== ''): $b = piece_beneficiaire($p); ?>
+            <tr><th><?= e($typeInfo['tiersPour']) ?></th><td>
                 <?php if (!empty($p['structure_id'])): ?>
                     <a href="?p=structure&id=<?= (int) $p['structure_id'] ?>"><?= e($b['nom']) ?></a>
                 <?php elseif (!empty($p['personne_id'])): ?>

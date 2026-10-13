@@ -1633,6 +1633,27 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
    lignes. */
 .seg-picker-label { flex-wrap: wrap; max-width: 100%; }
 .seg-picker-label .seg-btn { width: auto; gap: 7px; padding: 0 14px; font-size: var(--fs-basic); font-weight: 500; }
+/* Sur un écran étroit, le repli libre laissait des trous : des boutons de
+   largeurs inégales qui se replient dessinent des rangées dépareillées, et la
+   bande se lit alors comme un tableau cassé. Deux colonnes égales, séparées
+   par le fond qui transparaît dans un écart d'un pixel — un filet entre les
+   cases sans avoir à décider, case par case, laquelle porte une bordure et
+   laquelle n'en porte pas. Un dernier bouton resté seul prend toute la
+   largeur, sinon la case vide à côté de lui se verrait comme un trou. */
+@media (max-width: 700px) {
+    .seg-picker-label {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%; gap: 1px; background: var(--line);
+    }
+    /* Hauteur libre : un libellé de deux mots passe à la ligne dans une
+       colonne étroite, et une hauteur figée l'y aurait tronqué. */
+    .seg-picker-label .seg-btn {
+        border-right: none; justify-content: flex-start;
+        height: auto; min-height: calc(var(--action-height) - 2 * var(--btn-border-w));
+        padding-top: 7px; padding-bottom: 7px; text-align: left;
+    }
+    .seg-picker-label .seg-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 .seg-btn .ico { width: 17px; height: 17px; }
 .seg-btn input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
 .seg-btn:hover { background: var(--surface); text-decoration: none; }
@@ -6133,3 +6154,38 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 @media (max-width: 800px) {
     .piece-depot { grid-template-columns: 1fr; }
 }
+
+/* « Plus de détails » — le repli d'un formulaire dont la plupart des champs ne
+   servent qu'une fois sur dix (le dépôt d'une pièce : échéance, bénéficiaire,
+   catégorie, paiement, remarques). Les champs restent DANS le formulaire et
+   s'envoient repliés : un <details> cache à l'œil, pas au POST.
+   Nommé .form-plus et non .piece-plus : le prochain formulaire qui a trop de
+   champs rares ouvre le même repli plutôt qu'il n'en dessine un second
+   (docs/UI.md § 10). */
+.form-plus > summary {
+    display: inline-flex; align-items: center; gap: 7px; width: max-content;
+    padding: 4px 0; cursor: pointer; list-style: none;
+    font-size: var(--fs-small); font-weight: 600; color: var(--highlight);
+}
+.form-plus > summary::-webkit-details-marker { display: none; }
+/* Le chevron dessiné en bordures plutôt qu'en icône : il tourne, et une icône
+   inline ne tourne pas sans conteneur à elle. */
+.form-plus > summary::before {
+    content: ''; width: 0; height: 0; flex: 0 0 auto;
+    border-left: 5px solid currentColor;
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+    transition: transform .15s ease;
+}
+.form-plus[open] > summary::before { transform: rotate(90deg); }
+.form-plus > summary:hover { color: var(--highlight-d); }
+.form-plus > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+/* Les champs repliés se détachent du formulaire au-dessus d'eux : sans ce
+   filet, l'ouverture du repli ne se lit pas comme une section mais comme des
+   champs qui apparaissent au milieu de rien. */
+.form-plus-corps { margin-top: 14px; padding-top: 18px; border-top: 1px solid var(--line); }
+/* Le premier intitulé du repli ouvre la section : il n'a rien à écarter de
+   plus que le filet juste au-dessus. */
+.form-plus-corps > .lbl-champ:first-child { margin-top: 0; }
+/* La case « hors des comptes suivis » s'aligne sur le champ date d'à côté, pas
+   sur le haut de sa cellule : les deux disent la même chose du paiement. */
+.piece-hors-compte { align-self: end; padding-bottom: 9px; }

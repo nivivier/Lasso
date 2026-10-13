@@ -1157,6 +1157,14 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   c'est la case « Tout », qui coche alors toute la liste — y compris quand on
   clique le libellé du champ ou le vide à côté du bouton. Utiliser
   `<div class="field-group">`, qui a la même apparence sans être un label.
+- **Les champs rares se replient derrière « Plus de détails »** : un
+  `<details class="form-plus">` dont le corps est un `.form-plus-corps`. Les
+  champs restent DANS le formulaire et s'envoient repliés — un `<details>` cache
+  à l'œil, pas au POST. Le repli naît fermé à la création et ouvert dès qu'on
+  modifie quelque chose qui en contient (dépôt d'une pièce,
+  `views/piece_form.php`). La classe est volontairement générique : le prochain
+  formulaire qui a trop de champs rares ouvre le même repli plutôt que d'en
+  dessiner un second à côté.
 - **Un champ dont la valeur est courte n'occupe pas toute la largeur** :
   `.champ-court` (moitié de la largeur, plancher à 155 px) pour une date. Sur une
   carte dont les boutons flottent en superposition (`.card-actions-overlay`),

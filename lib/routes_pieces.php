@@ -148,6 +148,12 @@ function route_piece_form(): void
     // manque, on le dépose depuis là. L'écriture donne ses valeurs de départ —
     // date, montant, contre-partie, catégorie — et le rattachement se fait à
     // l'enregistrement : la saisie se réduit au fichier et à l'intitulé.
+    // Le type vient du menu « Nouvelle pièce » (pieces_menu_nouvelle_html()) :
+    // on arrive donc sur le formulaire la première question déjà répondue, et
+    // c'est lui qui décide des champs posés. Un type absent ou inconnu retombe
+    // sur la facture reçue, de loin le cas le plus courant.
+    $typeUrl = valeur_autorisee((string) ($_GET['type'] ?? ''), array_keys(PIECE_TYPES), 'facture_recue');
+
     $ecrSource = null;
     $ecrId = (int) ($_GET['ecriture_id'] ?? $_POST['ecriture_id'] ?? 0);
     if ($ecrId && !$piece && module_accessible('compta')) {
@@ -170,7 +176,7 @@ function route_piece_form(): void
             $fichier = fichier_prive_enregistrer('fichier', 'piece')
                 ?? piece_photo_enregistrer('photo');
         } catch (RuntimeException $e) {
-            render('piece_form', piece_form_data($piece, $champs, $e->getMessage(), $ecrSource), 'Pièce');
+            render('piece_form', piece_form_data($piece, $champs, $e->getMessage(), $ecrSource, $typeUrl), 'Pièce');
             return;
         }
 
@@ -212,24 +218,22 @@ function route_piece_form(): void
         redirect('piece', ['id' => $id, 'ok' => 1]);
     }
 
-    render('piece_form', piece_form_data($piece, null, '', $ecrSource), $piece ? 'Modifier la pièce' : 'Nouvelle pièce');
+    $titre = $piece ? 'Modifier la pièce' : PIECE_TYPES[$typeUrl]['nouveau'];
+    render('piece_form', piece_form_data($piece, null, '', $ecrSource, $typeUrl), $titre);
 }
 
 // Ce que le formulaire renvoie, nettoyé. L'ordre des clés EST celui des
 // colonnes de l'INSERT/UPDATE ci-dessus : ne pas le changer d'un côté seulement.
 function piece_champs_postes(): array
 {
-    $mode = valeur_autorisee((string) ($_POST['mode_paiement'] ?? ''), array_keys(PIECE_MODES_PAIEMENT), '');
+    $type = valeur_autorisee((string) ($_POST['type'] ?? ''), array_keys(PIECE_TYPES), 'facture_recue');
     $payee = trim((string) ($_POST['date_payee'] ?? ''));
-    // Une date de paiement sans mode ne dit pas si une écriture viendra : on
-    // suppose le compte suivi, qui est le cas courant. Et un mode sans date ne
-    // veut rien dire — la pièce reste à payer.
-    if ($payee !== '' && $mode === '') {
-        $mode = 'compte';
-    }
-    if ($payee === '') {
-        $mode = '';
-    }
+    // Le moyen de paiement se saisit par une CASE « hors des comptes suivis »
+    // et non par un menu de deux lignes : le cas courant est le compte suivi,
+    // et une case cochée dit l'exception mieux qu'un menu qu'il faut ouvrir
+    // pour découvrir qu'il n'offre que ce qu'on savait déjà.
+    // Un mode sans date ne veut rien dire — la pièce reste à payer.
+    $mode = $payee === '' ? '' : (!empty($_POST['hors_compte']) ? 'hors_compte' : 'compte');
     // Le bénéficiaire d'une quittance : une structure OU une personne, jamais
     // les deux. Le champ vient d'un sélecteur unique qui préfixe son choix,
     // « s:12 » ou « p:34 » — deux menus côte à côte auraient laissé en cocher
@@ -237,12 +241,12 @@ function piece_champs_postes(): array
     [$benefType, $benefId] = array_pad(explode(':', (string) ($_POST['beneficiaire'] ?? ''), 2), 2, '');
     $benefId = (int) $benefId;
     return [
-        'type'           => valeur_autorisee((string) ($_POST['type'] ?? ''), array_keys(PIECE_TYPES), 'facture_recue'),
+        'type'           => $type,
         'structure_id'   => $benefType === 's' && $benefId ? $benefId : null,
         'personne_id'    => $benefType === 'p' && $benefId ? $benefId : null,
         'libelle'        => trim((string) ($_POST['libelle'] ?? '')),
         'tiers'          => trim((string) ($_POST['tiers'] ?? '')),
-        'montant'        => piece_montant_poste(),
+        'montant'        => piece_montant_poste($type),
         'date_piece'     => trim((string) ($_POST['date_piece'] ?? '')),
         'date_echeance'  => trim((string) ($_POST['date_echeance'] ?? '')),
         'date_payee'     => $payee,
@@ -252,24 +256,34 @@ function piece_champs_postes(): array
     ];
 }
 
-// Le montant, signé par le SENS choisi plutôt que par un moins saisi à la main.
-// On tape 240.00 et on dit « dépense » : le signe est une propriété du
-// mouvement, pas une subtilité de frappe.
-function piece_montant_poste(): float
+// Le montant, signé par le SENS plutôt que par un moins saisi à la main : on
+// tape 240.00, le signe est une propriété du mouvement.
+//
+// Et ce sens, le TYPE le connaît presque toujours (PIECE_TYPES) : une facture
+// reçue est une dépense, une quittance une recette. Le formulaire ne pose donc
+// la question que pour « autre », seul type dont on ne puisse rien déduire —
+// la poser partout revenait à faire choisir ce qu'on savait déjà, et à laisser
+// la porte ouverte à une facture reçue enregistrée en recette.
+function piece_montant_poste(string $type = 'autre'): float
 {
     $brut = str_replace(["'", "\u{202F}", ' '], '', (string) ($_POST['montant'] ?? '0'));
     $val  = abs((float) $brut);
-    return ($_POST['sens'] ?? 'depense') === 'recette' ? $val : -$val;
+    $sens = (string) (PIECE_TYPES[$type]['sens'] ?? '');
+    if ($sens === '') {
+        $sens = (string) ($_POST['sens'] ?? 'depense');
+    }
+    return $sens === 'recette' ? $val : -$val;
 }
 
 // Les données du formulaire, qu'on arrive dessus ou qu'on y revienne sur erreur.
-function piece_form_data(?array $piece, ?array $champs, string $err, ?array $ecrSource = null): array
+function piece_form_data(?array $piece, ?array $champs, string $err, ?array $ecrSource = null, string $typeDefaut = 'facture_recue'): array
 {
     return [
         'p'          => $piece,
         'champs'     => $champs,
         'err'        => $err,
         'ecrSource'  => $ecrSource,
+        'typeDefaut' => $typeDefaut,
         // Les feuilles de l'arbre : seules elles sont assignables, comme
         // pour le lettrage d'une écriture (plan_feuilles(), lib/compta.php).
         'categories' => plan_feuilles(compta_plan_actif()),
@@ -559,7 +573,7 @@ function route_quittance_imprimer(): void
     }
     render_bare('quittance_imprimer', [
         'p'            => $p,
-        'beneficiaire' => quittance_beneficiaire($p),
+        'beneficiaire' => piece_beneficiaire($p),
     ]);
 }
 

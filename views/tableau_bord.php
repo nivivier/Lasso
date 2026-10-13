@@ -617,9 +617,10 @@ $dashTitre = function (string $groupe, string $titre): string {
     if (module_accessible('facturation') && peut_ecrire('facturation')) {
         $dashCreer[] = ['libelle' => 'Facture', 'icone' => 'file-plus', 'href' => '?p=facture_form'];
     }
-    if (module_accessible('pieces') && peut_ecrire('pieces')) {
-        $dashCreer[] = ['libelle' => 'Pièce comptable', 'icone' => 'paperclip', 'href' => '?p=piece_form'];
-    }
+    // Pas de « Pièce comptable » dans ce menu-ci : déposer un justificatif est
+    // le geste qu'on refait le plus souvent, et il a son propre bouton à côté
+    // du « + » — qui ouvre en plus le choix du type, ce qu'une entrée de menu
+    // ne pouvait pas faire sans menu dans le menu.
     if (module_accessible('evenements') && peut_ecrire('evenements')) {
         $dashCreer[] = ['libelle' => 'Événement', 'icone' => 'calendar-plus', 'href' => '?p=evenement'];
     }
@@ -698,6 +699,19 @@ $dashTitre = function (string $groupe, string $titre): string {
             </script>
         </div>
     </details>
+    <?php endif; ?>
+    <?php // Le trombone : déposer un justificatif, le geste le plus répété de
+          // la comptabilité — une facture arrive, un ticket se photographie. Il
+          // a son propre bouton plutôt qu'une ligne dans le « + », et c'est le
+          // MÊME menu que sur la liste des pièces (docs/UI.md § 6). ?>
+    <?php if (module_accessible('pieces') && peut_ecrire('pieces')): ?>
+    <?= pieces_menu_nouvelle_html(
+        // Fantôme et non plein : le « + » juste à côté est l'action mise en
+        // évidence de cette barre, et deux boutons pleins côte à côte ne se
+        // partagent pas une mise en évidence, ils l'annulent.
+        ['icone' => 'paperclip', 'libelle' => '', 'plein' => false, 'titre' => 'Déposer une pièce comptable…'],
+        ['depuis' => 'dashboard', 'classe' => 'dash-pieces']
+    ) ?>
     <?php endif; ?>
     <?php // Le « + » à droite de tout : c'est le geste qui AJOUTE, pas celui qui
           // range l'écran, et c'est lui qu'on vient chercher le plus souvent. ?>

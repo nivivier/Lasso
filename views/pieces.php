@@ -69,8 +69,13 @@ $nbCols = 6;
             <a class="btn ghost" href="?p=pieces_archive&amp;annee=<?= $anneeArchive ?>"
                title="Les justificatifs de <?= $anneeArchive ?> et leur index, en une archive"><?= icon('download') ?><span class="lbl"> Archive <?= $anneeArchive ?></span></a>
             <?php endif; ?>
+            <?php // Le type se choisit AVANT d'ouvrir le formulaire : c'est
+                  // lui qui décide des champs posés, et il valait mieux le
+                  // demander dans un menu d'une ligne que dans une rangée
+                  // d'icônes à mi-formulaire. Le même menu s'ouvre depuis le
+                  // tableau de bord (pieces_menu_nouvelle_html()). ?>
             <?php if ($peutEcrire): ?>
-            <a class="btn" href="?p=piece_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle pièce</span></a>
+            <?= pieces_menu_nouvelle_html() ?>
             <?php endif; ?>
         </div>
     </div>

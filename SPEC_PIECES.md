@@ -53,7 +53,7 @@ de pouvoir la saisir en avance.
 ```
 pieces
     id
-    type            facture_recue | ticket | quittance | autre
+    type            facture_recue | ticket | remboursement | quittance | autre
     origine         televersee | emise        -- reçue, ou produite par Lasso
     libelle         « Facture Swisscom janvier »
     tiers           fournisseur, ou bénéficiaire pour une quittance
@@ -75,6 +75,22 @@ pieces
 la solde doivent se comparer sans conversion : c'est ce qui rend le
 rapprochement lisible, et c'est la convention déjà en place (`montant > 0`
 crédit, `< 0` débit).
+
+**Le type n'est pas une étiquette, c'est ce qui décide des champs.** Chaque
+entrée de `PIECE_TYPES` porte ce que le formulaire doit savoir d'elle : porte-
+t-elle une échéance, le signe de son montant est-il connu d'avance, naît-elle
+payée, s'adresse-t-elle à quelqu'un. D'où deux conséquences :
+
+- **le sens ne se demande que pour « autre »** — une facture reçue est une
+  dépense, une quittance une recette. Le demander partout, c'était faire
+  choisir ce qu'on savait déjà, et laisser la porte ouverte à une facture
+  enregistrée en recette ;
+- **« Ticket de carte » et « À rembourser » sont deux types et non un seul**,
+  parce qu'ils ne disent pas la même dette. Le ticket est déjà sorti du compte
+  de l'association (il naît payé) ; la note de frais est de l'argent que
+  QUELQU'UN a avancé et que l'association lui doit encore — elle reste donc
+  « à payer », et elle nomme la personne à rembourser. Les confondre, c'était
+  perdre la trace de ce qu'on doit à ses bénévoles.
 
 **Plusieurs pièces pour une écriture, pas l'inverse** (§ 11). Un virement groupé
 qui solde trois factures se modélise ; une facture payée en deux acomptes ne se
@@ -164,6 +180,16 @@ onglet survit à son module parent, et `SPEC_PERMISSIONS.md` devra le dire.
 pagination comme partout. Les filtres qui comptent : *à payer*, *à rapprocher*,
 *classée*, par type, par catégorie. Une échéance dépassée se signale à l'ambre,
 qui dit un geste à faire.
+
+**Le dépôt se fait en deux temps**, et le type est choisi avant d'y entrer : le
+bouton « Nouvelle pièce » de la liste et le trombone du tableau de bord ouvrent
+le MÊME menu, une entrée par type (`pieces_menu_nouvelle_html()`). Le
+formulaire commence alors par le justificatif — c'est ce qu'on a sous la main —,
+puis demande les quatre champs qu'on lit dessus : tiers, intitulé, montant,
+date. Tout le reste (échéance, bénéficiaire, catégorie, paiement, remarques, et
+le type lui-même si l'on change d'avis) attend derrière un repli « Plus de
+détails », fermé à la création, ouvert dès qu'on modifie une pièce existante.
+Sur dix pièces déposées, neuf n'ont jamais besoin de l'ouvrir.
 
 **`?p=piece`** — la fiche : les champs, l'aperçu du fichier, le marquage
 « payée » (date + mode), l'écriture liée ou le bouton pour en choisir une.

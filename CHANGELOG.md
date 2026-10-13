@@ -29,9 +29,20 @@ puis sont promues sur le canal **stable** en figeant une version.
   n'arrive qu'à l'import mensuel du relevé, puis se rattache à celle-ci quand
   elle paraît. Une pièce réglée en espèces ou depuis un autre compte se classe
   sans écriture.
-  Le dépôt commence par le justificatif — c'est ce qu'on a sous la main — et
-  propose de **photographier la pièce directement dans la page**, sur ordinateur
-  comme sur téléphone. L'image est réduite par le navigateur avant l'envoi.
+  **Cinq types, et c'est le type qui décide de ce qu'on demande** : facture
+  reçue, ticket de carte, à rembourser, quittance, autre. Un ticket payé par la
+  carte de l'association naît marqué payé ; une dépense avancée par quelqu'un
+  reste à payer et nomme la personne à rembourser. Le sens du montant n'est
+  demandé que pour « Autre » — une facture reçue est une dépense, une quittance
+  une recette, et l'application n'a pas à le faire choisir.
+  Le dépôt se fait en deux temps, et le type se choisit avant d'entrer : le
+  bouton « Nouvelle pièce » et le **trombone du tableau de bord**, à côté du
+  « + », ouvrent le même menu. Le formulaire commence alors par le justificatif
+  — c'est ce qu'on a sous la main — et propose de **photographier la pièce
+  directement dans la page**, sur ordinateur comme sur téléphone (l'image est
+  réduite par le navigateur avant l'envoi) ; viennent ensuite les quatre champs
+  qu'on lit sur le document — tiers, intitulé, montant, date. Tout le reste
+  attend derrière « Plus de détails ».
   La liste des écritures gagne une colonne « Pièce » et son filtre : on y voit
   d'un coup d'œil ce qui n'a pas de justificatif, on en dépose un depuis la
   ligne, et l'icône mène au justificatif lui-même — la pièce, la facture ou la

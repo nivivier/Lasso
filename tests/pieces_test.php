@@ -24,6 +24,9 @@ require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/modules.php';
 require_once __DIR__ . '/../lib/fichiers.php';
 require_once __DIR__ . '/../lib/pieces.php';
+// Les fonctions de saisie du formulaire (piece_champs_postes(), le signe du
+// montant) vivent avec la route : c'est là que le POST est lu.
+require_once __DIR__ . '/../lib/routes_pieces.php';
 
 $tests = 0;
 $fails = 0;
@@ -257,6 +260,61 @@ check('une pièce manquante n\'a pas de lien', '', ecriture_piece_href($nue, 'ma
 // permissions sont mémoïsées pour la durée d'une requête (c'est leur raison
 // d'être), et l'application écrit puis redirige. Un test en cours de route ne
 // lirait que le cache, et passerait au vert quoi qu'on change.
+
+echo "\n8) Ce que le formulaire renvoie\n";
+
+// ⚠️ Le SENS vient du TYPE et non d'un menu, sauf pour « autre ». Une facture
+// reçue enregistrée en recette fausserait les comptes sans rien signaler, et
+// c'est exactement ce qu'un menu posé sur tous les types rendait possible.
+$poste = function (array $champs): array {
+    $_POST = $champs;
+    return piece_champs_postes();
+};
+
+$c = $poste(['type' => 'facture_recue', 'montant' => '240.00', 'sens' => 'recette']);
+check('une facture reçue est une dépense, même si « recette » est posté', -240.0, $c['montant']);
+$c = $poste(['type' => 'quittance', 'montant' => '80', 'sens' => 'depense']);
+check('une quittance est une recette, même si « dépense » est posté', 80.0, $c['montant']);
+$c = $poste(['type' => 'remboursement', 'montant' => "1'240.50"]);
+check('une note de frais est une dépense', -1240.5, $c['montant']);
+check('…et les apostrophes des milliers ne gênent pas', true, $c['montant'] === -1240.5);
+
+// « Autre » est le seul type qui laisse la question ouverte : là, le menu fait foi.
+check('« autre » en recette', 15.0, $poste(['type' => 'autre', 'montant' => '15', 'sens' => 'recette'])['montant']);
+check('« autre » en dépense', -15.0, $poste(['type' => 'autre', 'montant' => '15', 'sens' => 'depense'])['montant']);
+check('« autre » sans sens posté → dépense', -15.0, $poste(['type' => 'autre', 'montant' => '15'])['montant']);
+
+// Le moyen de paiement vient d'une CASE, plus d'un menu. Les deux invariantes
+// d'avant tiennent : pas de date, pas de mode ; une date sans case = compte.
+check('payée, case décochée → depuis le compte suivi', 'compte',
+    $poste(['type' => 'ticket', 'montant' => '10', 'date_payee' => '2026-03-01'])['mode_paiement']);
+check('payée, case cochée → hors du compte suivi', 'hors_compte',
+    $poste(['type' => 'ticket', 'montant' => '10', 'date_payee' => '2026-03-01', 'hors_compte' => '1'])['mode_paiement']);
+check('pas de date de paiement → aucun mode', '',
+    $poste(['type' => 'ticket', 'montant' => '10', 'hors_compte' => '1'])['mode_paiement']);
+
+// Le type inconnu ne passe pas : il retombe sur le plus courant plutôt que
+// d'entrer en base et de rendre une pièce illisible par PIECE_TYPES.
+check('un type inconnu retombe sur la facture reçue', 'facture_recue',
+    $poste(['type' => 'inexistant', 'montant' => '10'])['type']);
+$_POST = [];
+
+echo "\n9) Chaque type sait ce que le formulaire doit en faire\n";
+
+// Une clé oubliée sur un type ne se verrait qu'à l'usage : un champ qui ne
+// paraît pas, un signe qui ne s'applique pas. Le formulaire et son script
+// lisent ces clés-là, toutes.
+$manques = [];
+foreach (PIECE_TYPES as $cle => $t) {
+    foreach (['libelle', 'icone', 'echeance', 'sens', 'paye', 'tiersPour', 'nouveau', 'aide'] as $k) {
+        if (!array_key_exists($k, $t)) { $manques[] = "$cle.$k"; }
+    }
+    if (!in_array($t['sens'], ['', 'depense', 'recette'], true)) { $manques[] = "$cle.sens = " . $t['sens']; }
+}
+check('aucune clé manquante dans PIECE_TYPES', [], $manques);
+check('un seul type laisse le sens ouvert', ['autre'], array_keys(array_filter(
+    PIECE_TYPES, fn ($t) => $t['sens'] === ''
+)));
 
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }
