@@ -18,7 +18,7 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Fiches de salaire** | employés, fiches mensuelles, certificats, taux |
 | **Comptabilité** | relevés PostFinance (CSV), plan comptable, lettrage, comptes annuels |
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
-| **Pièces comptables** | factures reçues, tickets photographiés, quittances émises ; rapprochement avec les écritures, archive annuelle (dépend de Comptabilité) |
+| **Pièces comptables** | factures reçues, tickets de carte photographiés, dépenses à rembourser, quittances émises ; rapprochement avec les écritures, archive annuelle (dépend de Comptabilité) |
 | **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
 | **Événements** | dates, projets, déclarations SUISA, exports JSON/iCal |
 | **Booking** | structures, contacts, tags, lieux (carte), message individuel |
