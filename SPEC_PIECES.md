@@ -170,10 +170,18 @@ qui dit un geste à faire.
 
 **Dans `?p=compta_ecritures`** — une colonne « Pièce » : l'icône du justificatif
 quand il y en a un (le trombone pour une pièce, les icônes déjà en place pour
-une fiche ou une facture), un tiret discret pour une dispense, et rien de
-cliquable à remplir pour ce qui manque. Plus un filtre de colonne à sentinelles
-(`manquante`, `dispensee`, `presente`), sur la mécanique `filtre_coche()` déjà
-utilisée pour `categorie`.
+une fiche ou une facture), un tiret discret pour une dispense, et rien à
+remplir pour ce qui manque. **L'icône est le lien vers la preuve**
+(`ecriture_piece_href()`) : la pièce, la facture ou la fiche de salaire — c'est
+la seule chose qu'on veuille voir en la montrant. Elle ne devient un lien que
+si le module visé est accessible au compte, sinon le dispatcher refermerait la
+porte qu'on vient d'ouvrir ; et plusieurs pièces sur une écriture ouvrent la
+première, l'infobulle disant qu'il y en a d'autres. C'est aussi pourquoi la
+colonne « Texte » ne répète plus l'icône de la facture ou de la fiche : elle ne
+la porte que lorsque la colonne « Pièce » n'est pas là (module éteint ou compte
+sans accès), pour ne pas priver de ce lien qui ne fait que les comptes.
+Plus un filtre de colonne à sentinelles (`manquante`, `dispensee`, `presente`),
+sur la mécanique `filtre_coche()` déjà utilisée pour `categorie`.
 
 **Pastille** sur l'onglet Pièces : le nombre de pièces à payer, comme
 `nb_ecritures_a_lettrer()` le fait pour Écritures.

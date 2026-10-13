@@ -415,13 +415,19 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             ?>
             <td class="tiers-cell" title="<?= e($ecrTiersTitre) ?>"><?= $ecrTiers !== '' ? e($ecrTiers) : '<span class="muted">—</span>' ?></td>
             <td class="texte-cell" title="<?= e($ecrTitre) ?>">
-                <?php if (!empty($ecr['facture_id'])): ?>
-                    <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
-                <?php endif; ?>
-                <?php // Pendant du lien vers la facture : une écriture peut aussi
-                      // payer une fiche de salaire (route_fiche_paiement()). ?>
-                <?php if (!empty($ecr['fiche_id'])): ?>
-                    <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ecr['fiche_id'], 'compta_ecritures')) ?>" title="Voir la fiche de salaire liée"><?= icon('file-text') ?></a>
+                <?php // Facture émise et fiche de salaire se montrent d'ordinaire
+                      // dans la colonne « Pièce », qui dit la même chose et mène
+                      // au même endroit. Ces deux icônes-ci ne servent donc que
+                      // quand cette colonne n'est pas là — module « Pièces »
+                      // éteint, ou compte sans accès —, sans quoi le lien vers
+                      // la facture disparaîtrait pour qui ne fait que les comptes. ?>
+                <?php if (!$piecesOk): ?>
+                    <?php if (!empty($ecr['facture_id'])): ?>
+                        <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=facture&id=' . (int) $ecr['facture_id'], 'compta_ecritures')) ?>" title="Voir la facture liée"><?= icon('receipt-swiss-franc') ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($ecr['fiche_id'])): ?>
+                        <a class="ecr-facture-lien" href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ecr['fiche_id'], 'compta_ecritures')) ?>" title="Voir la fiche de salaire liée"><?= icon('file-text') ?></a>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <span class="texte-cell-txt" data-summary="<?= e($ecrResume) ?>"><?= e($ecrResume) ?></span>
                 <?php if ($ecrDetails): ?>
@@ -495,11 +501,26 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     // Une dispense motivée dit SA RAISON en infobulle : « sans
                     // pièce attendue » tout court laisserait chercher pourquoi.
                     $motifDispense = trim((string) ($ecr['piece_dispense_motif'] ?? ''));
+                    $nbPieces = (int) ($ecr['nb_pieces'] ?? 0);
                     $titrePiece = ECRITURE_PIECE_LIBELLES[$etatPiece]
                         . ($etatPiece === 'dispensee' && $motifDispense !== '' ? ' — ' . $motifDispense : '');
+                    // Plusieurs pièces pour une écriture : le lien ouvre la
+                    // première, et l'infobulle le dit — « pièce jointe » au
+                    // singulier laisserait croire que l'autre n'existe pas.
+                    $plusieurs = $etatPiece === 'piece' && $nbPieces > 1;
+                    if ($plusieurs) { $titrePiece = $nbPieces . ' pièces jointes'; }
+                    $hrefPiece = ecriture_piece_href($ecr, $etatPiece);
+                    $titreLien = $titrePiece . ($hrefPiece === '' ? ''
+                        : ($plusieurs ? ' — cliquer pour ouvrir la première' : ' — cliquer pour l\'ouvrir'));
                     ?>
-                    <span class="piece-etat piece-etat-<?= e($etatPiece) ?>" title="<?= e($titrePiece) ?>"
-                          aria-label="<?= e($titrePiece) ?>"><?= icon(ECRITURE_PIECE_ICONES[$etatPiece]) ?></span>
+                    <?php if ($hrefPiece !== ''): ?>
+                        <a class="piece-etat piece-etat-<?= e($etatPiece) ?>" title="<?= e($titreLien) ?>"
+                           aria-label="<?= e($titreLien) ?>"
+                           href="<?= e(url_avec_retour($hrefPiece, 'compta_ecritures')) ?>"><?= icon(ECRITURE_PIECE_ICONES[$etatPiece]) ?></a>
+                    <?php else: ?>
+                        <span class="piece-etat piece-etat-<?= e($etatPiece) ?>" title="<?= e($titrePiece) ?>"
+                              aria-label="<?= e($titrePiece) ?>"><?= icon(ECRITURE_PIECE_ICONES[$etatPiece]) ?></span>
+                    <?php endif; ?>
                 <?php endif; ?>
             </td>
             <?php endif; ?>

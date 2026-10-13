@@ -35,8 +35,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   propose de **photographier la pièce directement dans la page**, sur ordinateur
   comme sur téléphone. L'image est réduite par le navigateur avant l'envoi.
   La liste des écritures gagne une colonne « Pièce » et son filtre : on y voit
-  d'un coup d'œil ce qui n'a pas de justificatif, et on en dépose un depuis la
-  ligne. Les catégories qui n'en attendent jamais — frais bancaires,
+  d'un coup d'œil ce qui n'a pas de justificatif, on en dépose un depuis la
+  ligne, et l'icône mène au justificatif lui-même — la pièce, la facture ou la
+  fiche de salaire. Les catégories qui n'en attendent jamais — frais bancaires,
   cotisations — se déclarent une fois dans le plan comptable ; l'exception
   isolée se note sur l'écriture, avec sa raison.
   Un écran propose les rapprochements évidents (même montant au centime, dates

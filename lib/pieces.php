@@ -140,8 +140,29 @@ function ecriture_piece_etat(array $ecr): string
 // Ce que ecriture_piece_etat() attend dans la ligne qu'on lui passe : à joindre
 // à toute requête qui l'appellera. Mis ici pour que la fonction et la requête
 // qui la nourrit ne puissent pas diverger.
+// Avec elles vient l'identifiant de la PREMIÈRE pièce jointe : l'état « pièce »
+// se montre partout comme un lien vers la preuve (ecriture_piece_href()), et
+// une requête qui donnerait l'état sans le lien ferait une icône morte.
 const ECRITURE_PIECE_SELECT = ', (SELECT COUNT(*) FROM pieces pz WHERE pz.ecriture_id = e.id) AS nb_pieces'
+    . ', (SELECT pz.id FROM pieces pz WHERE pz.ecriture_id = e.id ORDER BY pz.id LIMIT 1) AS piece_id'
     . ', (SELECT pc.piece_attendue FROM plan_comptes pc WHERE pc.id = e.plan_compte_id) AS piece_attendue';
+
+// Où mène l'icône de la colonne « Pièce » : vers la preuve elle-même, qui est
+// la seule chose qu'on veuille voir en la montrant. Rend une URL nue — le
+// « depuis » est l'affaire de l'appelant —, ou une chaîne vide quand il n'y a
+// rien à ouvrir : une dispense n'est pas un document, et un module auquel le
+// compte n'a pas accès n'est pas une porte (le dispatcher refuserait, et
+// proposer un lien mort est pire que ne rien proposer).
+function ecriture_piece_href(array $ecr, string $etat): string
+{
+    return match ($etat) {
+        'fiche'   => module_accessible('salaires')    ? '?p=fiche&id=' . (int) $ecr['fiche_id'] : '',
+        'facture' => module_accessible('facturation') ? '?p=facture&id=' . (int) $ecr['facture_id'] : '',
+        'piece'   => module_accessible('pieces') && !empty($ecr['piece_id'])
+            ? '?p=piece&id=' . (int) $ecr['piece_id'] : '',
+        default   => '',
+    };
+}
 
 // Le même calcul en SQL, pour le filtre de colonne et les compteurs. Rend une
 // condition portant sur « e. » (les écritures), à combiner en OR quand

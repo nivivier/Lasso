@@ -234,6 +234,30 @@ check('une pièce réglée hors du compte n\'est jamais proposée', [], array_va
 $ecrProposees = array_map(fn ($s) => (int) $s['ecriture']['id'], $sugg);
 check('aucune écriture proposée deux fois', count($ecrProposees), count(array_unique($ecrProposees)));
 
+echo "\n7) L'icône de la colonne « Pièce » mène à la preuve\n";
+
+// La requête doit rapporter de quoi FAIRE le lien, pas seulement de quoi
+// afficher l'état : sans piece_id, l'icône serait là et ne mènerait nulle part.
+// L'écriture 10 porte la pièce 20, posées au § 6.
+$ligne = $pdo->query('SELECT e.*' . ECRITURE_PIECE_SELECT . ' FROM ecritures e WHERE e.id = 10')->fetch();
+check('l\'écriture de référence est bien là', 'piece', ecriture_piece_etat($ligne ?: []));
+check('ECRITURE_PIECE_SELECT rapporte l\'identifiant de la pièce', 20, (int) $ligne['piece_id']);
+check('une pièce jointe → lien vers la pièce', '?p=piece&id=20', ecriture_piece_href($ligne, 'piece'));
+
+// Une dispense n'est pas un document et une pièce manquante n'en est pas un
+// non plus : il n'y a rien à ouvrir, et une icône cliquable qui ne mène nulle
+// part ment.
+$nue = $pdo->query('SELECT e.*' . ECRITURE_PIECE_SELECT . ' FROM ecritures e WHERE e.id = 13')->fetch();
+check('une dispense n\'a pas de lien', '', ecriture_piece_href($nue, 'dispensee'));
+check('une pièce manquante n\'a pas de lien', '', ecriture_piece_href($nue, 'manquante'));
+
+// Le lien passe aussi par module_accessible() — un module éteint ou un compte
+// sans accès ne doit pas se voir proposer une porte que le dispatcher
+// refermerait. Ce basculement n'est PAS vérifié ici : param() et les
+// permissions sont mémoïsées pour la durée d'une requête (c'est leur raison
+// d'être), et l'application écrit puis redirige. Un test en cours de route ne
+// lirait que le cache, et passerait au vert quoi qu'on change.
+
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }
 

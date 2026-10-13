@@ -6059,6 +6059,12 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .col-piece .col-th { gap: 2px; }
 .piece-etat { display: inline-flex; color: var(--muted); }
 .piece-etat .ico { width: 16px; height: 16px; }
+/* L'icône mène à la preuve quand il y en a une (ecriture_piece_href()). Elle
+   reste discrète au repos — la colonne doit se lire d'un coup d'œil, pas
+   clignoter en bleu sur chaque ligne justifiée — et se colore au survol, comme
+   l'en-tête triable d'à côté. */
+a.piece-etat:hover { color: var(--primary); }
+a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--primary); outline-offset: 2px; border-radius: var(--radius-sm); }
 /* Une dispense n'est pas un justificatif : le tiret se tient en retrait des
    trois icônes qui, elles, désignent une preuve. */
 .piece-etat-dispensee { opacity: .45; }
