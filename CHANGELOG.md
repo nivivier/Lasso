@@ -49,6 +49,10 @@ puis sont promues sur le canal **stable** en figeant une version.
   autres documents de l'application.
 
 ### Corrigé
+- **L'import d'un relevé bancaire avait perdu son en-tête** : la page s'ouvrait
+  sans le nom du module ni ses onglets, seule au milieu de rien. Elle les
+  retrouve, sous l'onglet « Écritures » d'où l'on vient, et ses deux cartes
+  cessent de se toucher.
 - **La carte « Salaire coordonné » touchait le tableau au-dessus d'elle**
   (Paramètres → Lignes du décompte). Elle reprend l'écart que met n'importe
   quelle autre carte posée à la suite d'un bloc.

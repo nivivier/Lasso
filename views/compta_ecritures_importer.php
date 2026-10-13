@@ -1,9 +1,18 @@
 <?php
 /** @var array $comptes */ /** @var array $imports */ /** @var ?array $msg */ /** @var bool $okDel */
 ?>
-<div class="page-head page-head-sub">
-    <?= lien_retour('?p=compta_ecritures', 'Écritures') ?>
-    <h1>Importer</h1>
+<?php // L'import est un écran du module, pas une annexe : il garde son bandeau
+      // et ses onglets, et reste sous l'onglet actif « Écritures » — dont la
+      // liste de routes le contient déjà (nav_groupes(), lib/modules.php).
+      // C'est le même choix que ?p=compta_axes sous « Analyse ». ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
+
+<div class="module-content"><div class="module-content-inner">
+<?= lien_retour_contextuel('?p=compta_ecritures', 'Écritures') ?>
+
+<div class="page-head">
+    <div class="page-head-title"><h1>Importer</h1></div>
 </div>
 <?php if ($okDel): ?><p class="ok flash">Import supprimé.</p><?php endif; ?>
 
@@ -11,7 +20,7 @@
 <p class="err">Vous n'avez pas les droits d'écriture nécessaires pour cette action.</p>
 <?php else: ?>
 <div class="card form">
-    <h2>Importer un relevé bancaire</h2>
+    <h2 class="mt-0">Importer un relevé bancaire</h2>
     <p class="muted small">Téléversez un export PostFinance (CSV) ou un relevé <strong>ISO 20022 camt.053</strong> (XML). Le compte bancaire est reconnu automatiquement par son IBAN — <strong>s'il n'existe pas encore, vous pourrez lui donner un nom</strong> après avoir simulé l'import. Les doublons sont ignorés : vous pouvez réimporter ou ajouter des périodes qui se chevauchent sans risque. Les règles de lettrage sont appliquées automatiquement après l'import.</p>
     <form method="post" action="?p=compta_ecritures_importer" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -29,7 +38,7 @@
 <?php $actionUrl = '?p=compta_ecritures_importer'; require __DIR__ . '/_import_ecritures_preview.php'; ?>
 
 <?php if ($imports): ?>
-<div class="card">
+<div class="card mt-22">
     <h2 class="mt-0">Historique des imports</h2>
     <div class="table-scroll">
     <table class="list">
@@ -69,3 +78,4 @@
 </div>
 <?php endif; ?>
 <?php endif; ?>
+</div></div>
