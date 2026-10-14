@@ -21,11 +21,7 @@ $champ = fn (string $c): string => e((string) ($p[$c] ?? ''));
 
 <div class="card card-editable">
     <div class="card-head-row">
-        <h2 class="mt-0">Identité <?= info_tip(
-            'Ce qui est écrit ici vaut PARTOUT où cette personne apparaît : dans le carnet de chaque '
-            . "structure où elle est contact, sur sa fiche d'employée, sur son compte. C'est tout l'objet "
-            . "de l'annuaire — avant, la même personne portait trois noms qui pouvaient diverger."
-        ) ?></h2>
+        <h2 class="mt-0">Identité</h2>
         <?= carte_actions_html(['form' => 'personne-form', 'quoi' => 'cette personne']) ?>
     </div>
 

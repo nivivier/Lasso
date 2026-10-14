@@ -177,6 +177,36 @@ function personne_est_retenue(int $personneId): bool
     return false;
 }
 
+// Ce qui RETIENT une personne, et par quoi l'annuaire se filtre. Les quatre
+// ne s'excluent pas : une employée est souvent aussi contact d'une structure,
+// et elle a parfois un compte. En cocher deux revient donc à montrer les deux
+// (condition unie en OR, comme les états d'une pièce) — sauf « aucun », qui
+// est par construction le complément des trois autres.
+const PERSONNE_RATTACHEMENTS = [
+    'structure' => 'Contact de structure',
+    'employe'   => 'Employée',
+    'compte'    => 'Compte de connexion',
+    'aucun'     => 'Rattachée à rien',
+];
+
+// La condition SQL d'un rattachement, portant sur « p. » (les personnes).
+// ⚠️ Écrite en EXISTS et non sur les alias nb_structures/est_employe du SELECT :
+// SQLite n'accepte pas un alias de projection dans un WHERE, et la requête de
+// COMPTAGE, qui partage ce filtre, ne les calcule même pas.
+function personne_rattachement_sql(string $cle): string
+{
+    $struct  = 'EXISTS (SELECT 1 FROM personne_structures ps WHERE ps.personne_id = p.id)';
+    $employe = 'EXISTS (SELECT 1 FROM employes e WHERE e.personne_id = p.id)';
+    $compte  = 'EXISTS (SELECT 1 FROM utilisateurs u WHERE u.personne_id = p.id)';
+    return match ($cle) {
+        'structure' => $struct,
+        'employe'   => $employe,
+        'compte'    => $compte,
+        'aucun'     => "NOT $struct AND NOT $employe AND NOT $compte",
+        default     => '1=1',
+    };
+}
+
 // Les doublons probables : même e-mail, ou même prénom + nom. Ne fusionne
 // rien — avec ~2900 personnes, des boîtes partagées (info@…) et des
 // homonymes, un regroupement automatique fabriquerait des fusions fausses et

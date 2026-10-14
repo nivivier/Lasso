@@ -13,16 +13,27 @@ function route_personnes(): void
 {
     require_login();
     $recherche = trim((string) ($_GET['q'] ?? ''));
+    // Le filtre de la colonne « Rattachements », mémorisé en session comme les
+    // autres filtres de colonne (filtre_coche()).
+    $rattachement = filtre_coche('rattachement', 'personnes_rattachement', array_keys(PERSONNE_RATTACHEMENTS));
 
     $total = (int) db()->query('SELECT COUNT(*) FROM personnes')->fetchColumn();
     // Toujours filtrée côté serveur : l'annuaire dépasse largement le seuil
     // de la pagination client, et charger 2900 fiches pour en montrer 50
     // serait absurde.
-    $where = '';
+    $where = ' WHERE 1=1';
     $params = [];
     if ($recherche !== '') {
         [$sql, $params] = recherche_sql(['p.prenom', 'p.nom', 'p.email', 'p.telephone']);
-        $where = ' WHERE 1=1' . $sql;
+        $where .= $sql;
+    }
+    if ($rattachement) {
+        // Unies en OR : cocher « employée » et « compte » montre les deux,
+        // comme partout ailleurs dans l'application.
+        $where .= ' AND (' . implode(' OR ', array_map(
+            fn (string $r) => '(' . personne_rattachement_sql($r) . ')',
+            $rattachement
+        )) . ')';
     }
     // Le tri des colonnes, mémorisé en session comme partout ailleurs
     // (tri_colonne()). « rattachements » trie sur le NOMBRE de structures : la
@@ -79,10 +90,11 @@ function route_personnes(): void
         'personnes' => $personnes,
         'structuresParPersonne' => $structuresParPersonne,
         'recherche' => $recherche,
+        'rattachement' => $rattachement,
         'total'     => $total,
         'tri'       => $tri,
         'pgRoute'   => 'personnes',
-        'pgParams'  => array_filter(['q' => $recherche]),
+        'pgParams'  => array_filter(['q' => $recherche, 'rattachement' => $rattachement]),
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal ?? 0,

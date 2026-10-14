@@ -1,10 +1,11 @@
 <?php /** @var array $personnes */ /** @var array $structuresParPersonne */
-/** @var string $recherche */ /** @var int $total */ /** @var array $tri */
+/** @var string $recherche */ /** @var array $rattachement */ /** @var int $total */ /** @var array $tri */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 
-$triCol = fn (string $cle, string $lib): string => tri_entete_html(
-    'personnes', $cle, $lib, $tri, array_filter(['q' => $recherche])
-);
+// Chaque lien d'en-tête emporte ce que la page porte déjà — la recherche et le
+// filtre —, sinon trier remettrait la liste à zéro.
+$tousFiltres = array_filter(['q' => $recherche, 'rattachement' => $rattachement]);
+$triCol = fn (string $cle, string $lib): string => tri_entete_html('personnes', $cle, $lib, $tri, $tousFiltres);
 ?>
 <?php // L'écran appartient au Carnet d'adresses depuis qu'il existe : bandeau
       // du module et onglets, comme ses voisins Structures et Employés. Il
@@ -24,7 +25,16 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html(
             <input type="hidden" name="p" value="personnes">
             <?= champ_recherche(['id' => 'personnes-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
-        <span class="muted small"><?= $total ?> personne<?= $total > 1 ? 's' : '' ?> dans l'annuaire</span>
+        <?php // Avec un filtre posé, le compte de la page ne dit plus « dans
+              // l'annuaire » mais « sur tant » : sinon on croit l'annuaire
+              // vidé de ce que le filtre écarte. ?>
+        <span class="muted small">
+            <?php if ($rattachement || $recherche !== ''): ?>
+                <?= (int) $pgTotal ?> sur <?= $total ?>
+            <?php else: ?>
+                <?= $total ?> personne<?= $total > 1 ? 's' : '' ?> dans l'annuaire
+            <?php endif; ?>
+        </span>
     </div>
 
     <?php // .table-scroll seul : porté par le même élément que .card, il
@@ -33,10 +43,24 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html(
     <div class="table-scroll">
     <table class="list">
         <thead><tr>
-            <th><?= $triCol('nom', 'Nom') ?></th>
+            <?php // L'effacement des filtres se loge dans le PREMIER en-tête,
+                  // comme sur les autres listes filtrables (?p=pieces,
+                  // ?p=compta_ecritures) — pas dans la barre d'outils, où il
+                  // se serait posé à gauche du champ de recherche. ?>
+            <th class="col-reinit-hote"><?= bouton_reinit_filtres('personnes', ['rattachement'], (bool) $rattachement) ?><?= $triCol('nom', 'Nom') ?></th>
             <th><?= $triCol('email', 'Adresse électronique') ?></th>
             <th><?= $triCol('telephone', 'Téléphone') ?></th>
-            <th><?= $triCol('rattachements', 'Rattachements') ?></th>
+            <th>
+                <span class="col-th">
+                    <?= $triCol('rattachements', 'Rattachements') ?>
+                    <?php // Sans libellé : l'en-tête de colonne le porte déjà, à
+                          // trois millimètres à gauche. Le libellé du sixième
+                          // argument sert au panneau « Filtres » du téléphone,
+                          // où aucun en-tête ne nomme ce qu'on filtre. ?>
+                    <?= filtre_colonne_html('personnes', 'rattachement', PERSONNE_RATTACHEMENTS, $rattachement,
+                            array_filter(['q' => $recherche])) ?>
+                </span>
+            </th>
         </tr></thead>
         <tbody>
         <?php if (!$personnes): ?>
