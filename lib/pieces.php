@@ -61,13 +61,20 @@ const PIECE_TYPES = [
 // (docs/UI.md § 6).
 function pieces_menu_nouvelle_html(array $bouton = [], array $opts = []): string
 {
+    // Ce que le formulaire doit savoir en plus du type : d'où l'on vient
+    // ('depuis'), et l'écriture à laquelle rattacher la pièce ('params'),
+    // quand on dépose depuis la colonne « Pièce » d'une écriture.
+    $suite = isset($opts['depuis']) ? '&depuis=' . rawurlencode((string) $opts['depuis']) : '';
+    foreach ((array) ($opts['params'] ?? []) as $cleP => $valP) {
+        $suite .= '&' . rawurlencode((string) $cleP) . '=' . rawurlencode((string) $valP);
+    }
     $entrees = [];
     foreach (PIECE_TYPES as $cle => $t) {
         $entrees[] = [
             'libelle' => $t['libelle'],
             'icone'   => $t['icone'],
             'titre'   => $t['aide'],
-            'href'    => '?p=piece_form&type=' . $cle . (isset($opts['depuis']) ? '&depuis=' . rawurlencode((string) $opts['depuis']) : ''),
+            'href'    => '?p=piece_form&type=' . $cle . $suite,
         ];
     }
     return menu_deroulant_html(

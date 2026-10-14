@@ -1703,6 +1703,11 @@ select:disabled { cursor: not-allowed; }
 .cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn, .row-field-disp:hover .row-edit-btn,
 .piece-cell:hover .row-edit-btn { opacity: 1; }
 .row-edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--primary); outline-offset: 1px; }
+/* Un .row-edit-btn qui porte un menu déroulant (le trombone de la colonne
+   « Pièce ») reste visible tant que son menu est ouvert : sans cette règle, la
+   souris quitte la cellule pour aller choisir un type et le déclencheur
+   disparaît sous le panneau resté ouvert. */
+.menu-deroulant[open] > summary.row-edit-btn { opacity: 1; }
 .row-edit-btn svg { width: 12px; height: 12px; }
 /* Texte plus compact pour Date et Compte */
 .compta-lettrage td.nowrap { font-size: var(--fs-small); width: 1%; white-space: nowrap; }

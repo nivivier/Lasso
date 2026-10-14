@@ -3760,6 +3760,9 @@ function carte_actions_html(array $opts = []): string
 //
 // $bouton  ['libelle', 'icone', 'titre', 'classe'] — un libellé vide donne un
 //          bouton à l'icône seule ; 'classe' complète « btn ghost ».
+//          'nu' => true pour un déclencheur qui n'est PAS un bouton (une
+//          icône de ligne de tableau, révélée au survol) : seules les classes
+//          données restent, sans « btn ghost » qui s'y opposerait.
 //          'plein' => true pour un bouton de mise en évidence plutôt que
 //          fantôme : un menu qui PROPOSE (le « + » du tableau de bord) n'a pas
 //          le même poids qu'un menu qui règle un détail de la page.
@@ -3801,8 +3804,14 @@ function menu_deroulant_html(array $bouton, array $entrees, array $opts = []): s
     $h = '<details class="menu-deroulant' . (!empty($opts['gauche']) ? ' menu-deroulant-gauche' : '')
        . (!empty($opts['classe']) ? ' ' . e((string) $opts['classe']) : '') . '"'
        . (!empty($opts['id']) ? ' id="' . e((string) $opts['id']) . '"' : '') . '>';
-    $h .= '<summary class="btn' . (empty($bouton['plein']) ? ' ghost' : '') . ($petit ? ' btn-sm' : '') . ($libelle === '' ? ' icon-only' : '')
-        . (!empty($bouton['classe']) ? ' ' . e((string) $bouton['classe']) : '') . '"'
+    // 'nu' : un déclencheur qui n'est pas un bouton. Dans une ligne de tableau,
+    // le menu se porte sur un .row-edit-btn — nu, discret, révélé au survol de
+    // sa cellule —, et les classes de .btn s'y battaient contre les siennes.
+    $classes = !empty($bouton['nu'])
+        ? ''
+        : 'btn' . (empty($bouton['plein']) ? ' ghost' : '') . ($petit ? ' btn-sm' : '') . ($libelle === '' ? ' icon-only' : '');
+    $h .= '<summary class="' . $classes
+        . (!empty($bouton['classe']) ? ($classes !== '' ? ' ' : '') . e((string) $bouton['classe']) : '') . '"'
         . ' title="' . e($titre) . '" aria-label="' . e($titre) . '">'
         . icon((string) ($bouton['icone'] ?? ''))
         . ($libelle !== '' ? ' <span class="lbl">' . $libelleHtml . '</span>' : '')

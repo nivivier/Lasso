@@ -491,10 +491,21 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <?php if ($etatPiece === 'manquante'): ?>
                     <?php if (peut_ecrire('pieces')): ?>
                         <?php // Rien à montrer, mais quelque chose à faire : le
-                              // bouton n'apparaît qu'au survol de la ligne, comme
-                              // les crayons des cellules voisines. ?>
-                        <a class="row-edit-btn piece-lier-btn" title="Joindre une pièce" aria-label="Joindre une pièce à cette écriture"
-                           href="?p=piece_form&amp;ecriture_id=<?= (int) $ecr['id'] ?>"><?= icon('paperclip') ?></a>
+                              // trombone n'apparaît qu'au survol de la ligne,
+                              // comme les crayons des cellules voisines.
+                              //
+                              // Il ouvre le MÊME menu que « Nouvelle pièce » et
+                              // que le trombone du tableau de bord : le type se
+                              // choisit avant d'entrer dans le formulaire, ici
+                              // comme ailleurs. Y mener directement, c'était
+                              // décider « facture reçue » à la place de celui
+                              // qui photographie un ticket. ?>
+                        <?= pieces_menu_nouvelle_html(
+                            ['icone' => 'paperclip', 'libelle' => '', 'nu' => true,
+                             'classe' => 'row-edit-btn piece-lier-btn',
+                             'titre' => 'Joindre une pièce à cette écriture'],
+                            ['depuis' => 'compta_ecritures', 'params' => ['ecriture_id' => (int) $ecr['id']]]
+                        ) ?>
                     <?php endif; ?>
                 <?php else: ?>
                     <?php
