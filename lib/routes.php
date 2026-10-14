@@ -250,8 +250,11 @@ function route_mon_compte(): void
             return;
         }
         $hash = $nouveau !== '' ? hacher_mot_de_passe($nouveau) : $u['mot_de_passe'];
+        // Compte rattaché à une personne : son identité vient du carnet, et le
+        // formulaire ne l'a même pas proposée. On ne la réécrit donc pas.
+        $rattache = (int) ($u['personne_id'] ?? 0) > 0;
         db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, mot_de_passe = ? WHERE id = ?')
-            ->execute([$prenom, $nom, $email, $hash, $u['id']]);
+            ->execute([$rattache ? '' : $prenom, $rattache ? '' : $nom, $email, $hash, $u['id']]);
         redirect('mon_compte', ['ok' => 1]);
     }
     render('mon_compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
@@ -383,10 +386,13 @@ function route_utilisateur_enregistrer(): void
     if ($personneId && !personne_charger($personneId)) {
         $personneId = 0;
     }
+    // Rattaché à une personne, le compte n'a plus d'identité à lui : on VIDE
+    // ses champs plutôt que de laisser deux noms vivre côte à côte et diverger.
+    // C'est ce que la refonte des personnes devait finir (SPEC_PERSONNES.md).
     db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, personne_id = ? WHERE id = ?')
         ->execute([
-            trim((string) ($_POST['prenom'] ?? '')),
-            trim((string) ($_POST['nom'] ?? '')),
+            $personneId ? '' : trim((string) ($_POST['prenom'] ?? '')),
+            $personneId ? '' : trim((string) ($_POST['nom'] ?? '')),
             $email,
             $personneId ?: null,
             $id,

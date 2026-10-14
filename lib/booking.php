@@ -1618,12 +1618,21 @@ function historique_entite(string $entiteType, int $id): array
         return [];
     }
     $stmt = db()->prepare(
+        // ⚠️ coalesce(personne, compte) : un compte rattaché à une personne n'a
+        // plus de prénom/nom à lui (utilisateur_nom()), et l'historique aurait
+        // signé ses notes de l'adresse e-mail.
         "SELECT h.*,
-                u.prenom AS u_prenom, u.nom AS u_nom, u.email AS u_email,
-                m.prenom AS m_prenom, m.nom AS m_nom, m.email AS m_email
+                coalesce(nullif(trim(pu.prenom),''), u.prenom) AS u_prenom,
+                coalesce(nullif(trim(pu.nom),''), u.nom)       AS u_nom,
+                u.email AS u_email,
+                coalesce(nullif(trim(pm.prenom),''), m.prenom) AS m_prenom,
+                coalesce(nullif(trim(pm.nom),''), m.nom)       AS m_nom,
+                m.email AS m_email
          FROM historique h
          LEFT JOIN utilisateurs u ON u.id = h.utilisateur_id
+         LEFT JOIN personnes pu   ON pu.id = u.personne_id
          LEFT JOIN utilisateurs m ON m.id = h.modifie_par
+         LEFT JOIN personnes pm   ON pm.id = m.personne_id
          WHERE h.entite_type = ? AND h.entite_id = ?
          ORDER BY h.cree_le DESC, h.id DESC"
     );

@@ -138,6 +138,22 @@ perdre une adresse renseignée au profit d'une fiche vide, en silence.
 Mesuré sur les données réelles : 2903 contacts → 2903 personnes + 2903 liens,
 6 employés liés avec leur adresse, zéro clé étrangère cassée.
 
+## 9. Le compte de connexion, enfin rattaché
+
+`utilisateurs.personne_id` existait depuis la migration mais **rien ne le
+remplissait** : le lien entre un compte et l'être humain qui s'en sert ne
+pouvait pas se faire. Il se pose dans la ligne d'édition d'un compte
+(`?p=utilisateurs`), par un champ cherchable — un ou deux comptes à rattacher,
+trois mille fiches en face.
+
+⚠️ **Un compte rattaché n'a plus d'identité à lui** : `prenom`/`nom` sont vidés
+à l'enregistrement et les deux champs disparaissent du formulaire, ici comme
+dans « Mon compte ». Une seule source — `utilisateur_nom()` —, et modifier le
+nom dans l'annuaire le change partout, jusqu'à la signature des notes
+d'historique (`historique_entite()` lit la personne avant le compte). Laisser
+les deux vivre côte à côte, c'était exactement ce que cette refonte devait
+finir.
+
 ## 8. Ce qui reste ouvert
 
 - **Le chiffre à relever avant de s'en servir en production** : combien de
@@ -145,8 +161,9 @@ Mesuré sur les données réelles : 2903 contacts → 2903 personnes + 2903 lien
   désinscription vaut désormais pour la personne entière, et ces gens-là ont
   tous basculé. Le jeu de développement n'en compte qu'une, il ne dit rien de
   la production.
-- **La recherche unifiée** (`recherche_sources()`) cherche les contacts par
-  leur lien, pas les personnes en tant que telles : une personne sans aucun
-  rattachement est introuvable autrement que par l'écran Personnes.
+- ~~La recherche unifiée ne cherchait que les contacts par leur lien~~ —
+  **réglé** : la source `personnes` existe, et la source `contacts` a cessé de
+  chercher une colonne que cette refonte avait déplacée (elle mettait la
+  recherche entière en erreur SQL pour tout compte ayant le booking).
 - **Les personnes physiques saisies comme structures** (les « Freelance ») sont
   restées où elles étaient, par décision (§ 5).

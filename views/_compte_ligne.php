@@ -14,20 +14,19 @@
 /** @var array $c */ /** @var array $niveaux */ /** @var int $moi */ /** @var array $personnes */
 $estMoi = (int) $c['id'] === $moi;
 $fid    = 'compte-form-' . (int) $c['id'];
-// Nom affiché : l'identité si elle est renseignée, sinon l'adresse — un compte
-// créé sans prénom ni nom ne doit pas se présenter comme une ligne vide.
-$nomAffiche = trim(trim((string) ($c['prenom'] ?? '')) . ' ' . trim((string) ($c['nom'] ?? '')));
-$nomAffiche = $nomAffiche !== '' ? $nomAffiche : (string) $c['email'];
+// La personne de l'annuaire que ce compte désigne, s'il en désigne une.
+$personneId = (int) ($c['personne_id'] ?? 0);
+$personneNom = '';
+foreach ($personnes as $pe) { if ($pe['id'] === $personneId) { $personneNom = $pe['libelle']; } }
+// Nom affiché : celui de la personne rattachée s'il y en a une, sinon
+// l'identité propre du compte, sinon son adresse (utilisateur_nom()).
+$nomAffiche = utilisateur_nom($c);
 // Droits en lecture : une seule icône par module, celle du niveau accordé.
 // Rien de cliquable — la ligne de lecture se lit, elle ne se modifie pas.
 $niveauIcone = ['' => 'eye-off', 'lecture' => 'eye', 'ecriture' => 'pencil'];
 $niveauTexte = ['' => 'aucun accès', 'lecture' => 'lecture', 'ecriture' => 'écriture'];
 $derniere = trim((string) ($c['derniere_connexion_le'] ?? ''));
 $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
-// La personne de l'annuaire que ce compte désigne, s'il en désigne une.
-$personneId = (int) ($c['personne_id'] ?? 0);
-$personneNom = '';
-foreach ($personnes as $pe) { if ($pe['id'] === $personneId) { $personneNom = $pe['libelle']; } }
 ?>
             <tr class="compte-row">
                 <td>
@@ -66,8 +65,13 @@ foreach ($personnes as $pe) { if ($pe['id'] === $personneId) { $personneNom = $p
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                     </form>
+                    <?php // Rattaché à une personne, le compte n'a plus d'identité
+                          // à lui : elle vient de l'annuaire, et deux champs de
+                          // plus ici, c'était deux noms qui pouvaient diverger. ?>
+                    <?php if ($personneId === 0): ?>
                     <label>Prénom <input form="<?= $fid ?>" name="prenom" value="<?= e((string) ($c['prenom'] ?? '')) ?>" autocomplete="off"></label>
                     <label>Nom <input form="<?= $fid ?>" name="nom" value="<?= e((string) ($c['nom'] ?? '')) ?>" autocomplete="off"></label>
+                    <?php endif; ?>
                     <label>E-mail <input form="<?= $fid ?>" name="email" type="email" value="<?= e((string) $c['email']) ?>" required autocomplete="off"></label>
                     <p class="muted small mb-0">Changer l'adresse invalide les liens de réinitialisation en attente.</p>
                     <label>Nouveau mot de passe

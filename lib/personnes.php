@@ -177,6 +177,26 @@ function personne_est_retenue(int $personneId): bool
     return false;
 }
 
+// Le nom d'un COMPTE de connexion. Rattaché à une personne, c'est elle qui le
+// porte : une seule source, et modifier le nom dans l'annuaire le change
+// partout — c'est tout l'objet du carnet. Sinon, les champs propres du compte,
+// et à défaut son adresse (un compte créé sans identité n'est pas une ligne
+// vide).
+//
+// ⚠️ Un compte rattaché n'a donc plus de prénom/nom à lui : l'enregistrement
+// les vide (route_utilisateur_enregistrer()). Sans cela, les deux identités
+// pouvaient diverger en silence, ce que la refonte des personnes devait
+// justement finir.
+function utilisateur_nom(array $u): string
+{
+    $pid = (int) ($u['personne_id'] ?? 0);
+    if ($pid && ($pe = personne_charger($pid))) {
+        return personne_nom($pe);
+    }
+    $nom = trim(trim((string) ($u['prenom'] ?? '')) . ' ' . trim((string) ($u['nom'] ?? '')));
+    return $nom !== '' ? $nom : trim((string) ($u['email'] ?? ''));
+}
+
 // L'annuaire sous la forme qu'attend un champ cherchable (lassoInitCatSearch) :
 // [id, libellé]. Trié par nom, et plafonné — à 2900 fiches, les écrire toutes
 // dans la page coûte deux cents kilo-octets par champ ; au-delà du plafond, la

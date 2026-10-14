@@ -17,8 +17,11 @@
         <table class="kv-table">
             <tr>
                 <th>Prénom et nom</th>
-                <td><?php $nom = trim(trim((string) ($u['prenom'] ?? '')) . ' ' . trim((string) ($u['nom'] ?? ''))); ?>
-                    <?= $nom !== '' ? e($nom) : '<span class="muted">—</span>' ?></td>
+                <td><?php $nom = utilisateur_nom($u); ?>
+                    <?= $nom !== '' && $nom !== (string) $u['email'] ? e($nom) : '<span class="muted">—</span>' ?>
+                    <?php if ((int) ($u['personne_id'] ?? 0) > 0): ?>
+                        <span class="muted small">— depuis le carnet d'adresses</span>
+                    <?php endif; ?></td>
             </tr>
             <tr><th>E-mail du compte</th><td><?= e($u['email']) ?></td></tr>
             <tr><th>Mot de passe</th><td class="muted">Modifiable ici, en confirmant l'actuel.</td></tr>
@@ -28,6 +31,9 @@
     <form method="post" action="?p=mon_compte" id="compte-form" class="card-edit form" hidden>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
+        <?php // Rattaché à une personne, le nom vient d'elle : le modifier ici
+              // ferait deux identités qui divergent. Il se change sur sa fiche. ?>
+        <?php if ((int) ($u['personne_id'] ?? 0) === 0): ?>
         <div class="grid2">
             <label>Prénom
                 <input type="text" name="prenom" value="<?= e($u['prenom'] ?? '') ?>" autocomplete="given-name">
@@ -36,6 +42,7 @@
                 <input type="text" name="nom" value="<?= e($u['nom'] ?? '') ?>" autocomplete="family-name">
             </label>
         </div>
+        <?php endif; ?>
 
         <label>E-mail du compte
             <input type="email" name="email" value="<?= e($u['email']) ?>" required>
