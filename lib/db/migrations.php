@@ -128,6 +128,7 @@ function run_migrations(PDO $pdo): void
         100 => 'migration_100', // les personnes : l'identité sort des contacts, des employés et des comptes
         101 => 'migration_101', // quittances : le bénéficiaire d'une pièce émise
         102 => 'migration_102', // le carnet d'adresses devient un module à part entière
+        103 => 'migration_103', // doublons de l'annuaire : les suggestions qu'on a écartées
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3157,6 +3158,30 @@ function migration_94(PDO $pdo): void
 // étrangère, et une fiche supprimée ne laisse pas une quittance pointant un
 // identifiant devenu celui de quelqu'un d'autre. Avec un couple polymorphe,
 // cette erreur-là est silencieuse et indétectable.
+function migration_103(PDO $pdo): void
+{
+    // Les suggestions de doublons de l'annuaire qu'on a écartées. Même rôle que
+    // structure_doublons_ignores (migration_69) pour les structures, mais la
+    // clé n'est pas une PAIRE : les personnes se groupent par adresse ou par
+    // nom, et c'est ce GROUPE qu'on écarte.
+    //
+    // ⚠️ On mémorise la CLÉ (« l'équipe », « info@salle.ch »), pas les
+    // identifiants du groupe. L'annuaire grossit à chaque import, et un groupe
+    // repéré par ses membres reviendrait dès qu'une fiche de plus porte le même
+    // nom — c'est-à-dire tout le temps, et précisément pour les clés qui ne
+    // désignent personne (« L'équipe » en compte plus de mille). Écarter dit
+    // donc « ce nom-là n'est pas un doublon », ce qui reste vrai après l'import
+    // suivant.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS personne_doublons_ignores (
+            motif   TEXT NOT NULL,   -- email | nom (voir personnes_doublons())
+            cle     TEXT NOT NULL,   -- la valeur commune, déjà normalisée en minuscules
+            cree_le TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (motif, cle)
+        )
+    ");
+}
+
 function migration_102(PDO $pdo): void
 {
     // Le carnet d'adresses devient un MODULE : structures, personnes, employés.

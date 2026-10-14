@@ -10,6 +10,15 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Un compte de connexion se rattache à une personne de l'annuaire**
+  (Paramètres → Utilisateurs). La colonne « Rattachements » de l'annuaire peut
+  enfin dire « compte », et son nouveau **filtre** — contact de structure,
+  employée, compte, rattachée à rien — s'en sert. L'annuaire se trie aussi par
+  colonne, et nomme les structures de chacun au lieu de compter « 1 structure ».
+- **Les doublons de l'annuaire s'écartent.** « Ce n'est pas un doublon » met une
+  suggestion de côté — et c'est le NOM qui est écarté, pas le groupe : sans
+  quoi elle reviendrait au premier import qui ajoute une fiche de plus. Ce
+  qu'on a écarté reste consultable et se reprend.
 - **Un module « Carnet d'adresses »** : structures, personnes et employés, au
   même endroit. Les structures étaient partagées entre la Facturation et le
   Booking — donc à deux modules et à aucun —, et les deux autres qui s'en

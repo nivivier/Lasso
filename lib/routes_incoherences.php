@@ -35,6 +35,8 @@ function route_incoherences(): void
     $evenementsLieuxLiesN      = null;
     $evenementsLieuxCreesN     = null;
     $evenementsLieuxCreesEvN   = null;
+    $personnesIgnoresN = null;
+    $personnesRepriseN = null;
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -45,7 +47,17 @@ function route_incoherences(): void
         // Format de clé propre à chaque action, voir le filtre correspondant.
         $selection = array_flip(array_map('strval', $_POST['sel'] ?? []));
 
-        if ($action === 'doublons_potentiels_ignorer' || $action === 'doublons_potentiels_reprendre') {
+        if ($action === 'personnes_doublons_ignorer' || $action === 'personnes_doublons_reprendre') {
+            // Ni l'une ni l'autre ne touche à une fiche : elles n'ajoutent ou
+            // ne retirent que des lignes d'exclusion — d'où l'absence de
+            // sauvegarde préalable, contrairement à une fusion.
+            $cles = array_map('strval', $_POST['sel'] ?? []);
+            if ($action === 'personnes_doublons_ignorer') {
+                $personnesIgnoresN = personnes_doublons_ignorer($cles);
+            } else {
+                $personnesRepriseN = personnes_doublons_reprendre($cles);
+            }
+        } elseif ($action === 'doublons_potentiels_ignorer' || $action === 'doublons_potentiels_reprendre') {
             // Ni l'une ni l'autre ne touche aux fiches : elles n'ajoutent ou ne
             // retirent que des lignes d'exclusion, d'où l'absence de sauvegarde
             // préalable — contrairement à la fusion juste en dessous.
@@ -225,6 +237,9 @@ function route_incoherences(): void
         // fusionné d'office — une boîte partagée et deux homonymes se
         // ressemblent autant qu'un vrai doublon (SPEC_PERSONNES.md § 5).
         'personnesDoublons'  => module_accessible('carnet') ? personnes_doublons() : [],
+        'personnesIgnores'   => module_accessible('carnet') ? personnes_doublons_ignores_cles() : [],
+        'personnesIgnoresN'  => $personnesIgnoresN,
+        'personnesRepriseN'  => $personnesRepriseN,
         'personnesFusionN'   => (int) ($_GET['np'] ?? 0),
         'ok'             => $_GET['ok'] ?? null,
         'ns'             => (int) ($_GET['ns'] ?? 0),

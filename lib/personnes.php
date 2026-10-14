@@ -177,6 +177,24 @@ function personne_est_retenue(int $personneId): bool
     return false;
 }
 
+// L'annuaire sous la forme qu'attend un champ cherchable (lassoInitCatSearch) :
+// [id, libellé]. Trié par nom, et plafonné — à 2900 fiches, les écrire toutes
+// dans la page coûte deux cents kilo-octets par champ ; au-delà du plafond, la
+// recherche de l'écran reste le bon chemin.
+function personnes_options(int $max = 3000): array
+{
+    $sql = 'SELECT id, prenom, nom, email FROM personnes
+            ORDER BY nom COLLATE NOCASE, prenom COLLATE NOCASE LIMIT ?';
+    $stmt = db()->prepare($sql);
+    $stmt->bindValue(1, $max, PDO::PARAM_INT);
+    $stmt->execute();
+    $out = [];
+    foreach ($stmt as $pe) {
+        $out[] = ['id' => (int) $pe['id'], 'libelle' => personne_nom($pe)];
+    }
+    return $out;
+}
+
 // Ce qui RETIENT une personne, et par quoi l'annuaire se filtre. Les quatre
 // ne s'excluent pas : une employée est souvent aussi contact d'une structure,
 // et elle a parfois un compte. En cocher deux revient donc à montrer les deux
@@ -214,15 +232,20 @@ function personne_rattachement_sql(string $cle): string
 // fonction ne fait que les MONTRER, une par une, à valider.
 function personnes_doublons(int $max = 100): array
 {
+    // ⚠️ La clé « nom » est trimée EN ENTIER : « prénom || ' ' || nom » laisse
+    // une espace finale quand le nom est vide (les contacts importés sous un
+    // seul mot, « L'équipe »), et cette espace se retrouvait dans le titre du
+    // groupe comme dans la clé qui sert à l'écarter.
     $sql = "SELECT LOWER(TRIM(email)) AS cle, 'email' AS motif, COUNT(*) AS n
               FROM personnes WHERE TRIM(email) <> '' GROUP BY cle HAVING n > 1
             UNION ALL
-            SELECT LOWER(TRIM(prenom) || ' ' || TRIM(nom)) AS cle, 'nom' AS motif, COUNT(*) AS n
+            SELECT LOWER(TRIM(TRIM(prenom) || ' ' || TRIM(nom))) AS cle, 'nom' AS motif, COUNT(*) AS n
               FROM personnes WHERE TRIM(prenom || nom) <> '' GROUP BY cle HAVING n > 1
             ORDER BY n DESC, cle LIMIT ?";
     $stmt = db()->prepare($sql);
     $stmt->bindValue(1, $max, PDO::PARAM_INT);
     $stmt->execute();
+    $ecartees = personnes_doublons_ignores_cles();
     // nb_structures voyage AVEC la fiche : l'écran de fusion le montre pour
     // chaque candidate — c'est ce qui dit laquelle porte le plus de liens, donc
     // laquelle garder. Une requête corrélée plutôt qu'une par ligne dans la
@@ -230,13 +253,71 @@ function personnes_doublons(int $max = 100): array
     $cols = 'p.*, (SELECT COUNT(*) FROM personne_structures ps WHERE ps.personne_id = p.id) AS nb_structures';
     $groupes = [];
     foreach ($stmt as $g) {
+        if (isset($ecartees[personne_doublon_cle((string) $g['motif'], (string) $g['cle'])])) {
+            continue;   // suggestion écartée : « ce nom-là n'est pas un doublon »
+        }
         $q = $g['motif'] === 'email'
             ? db()->prepare("SELECT $cols FROM personnes p WHERE LOWER(TRIM(p.email)) = ? ORDER BY p.id")
-            : db()->prepare("SELECT $cols FROM personnes p WHERE LOWER(TRIM(p.prenom) || ' ' || TRIM(p.nom)) = ? ORDER BY p.id");
+            : db()->prepare("SELECT $cols FROM personnes p WHERE LOWER(TRIM(TRIM(p.prenom) || ' ' || TRIM(p.nom))) = ? ORDER BY p.id");
         $q->execute([$g['cle']]);
         $groupes[] = ['cle' => (string) $g['cle'], 'motif' => (string) $g['motif'], 'personnes' => $q->fetchAll()];
     }
     return $groupes;
+}
+
+// Les suggestions de doublons qu'on a écartées (migration_103). La clé réunit
+// le motif et la valeur en une chaîne : c'est elle qui voyage dans les cases à
+// cocher du formulaire, et le séparateur ne peut pas apparaître dans un motif.
+function personne_doublon_cle(string $motif, string $cle): string
+{
+    return $motif . '|' . $cle;
+}
+
+// [clé => [motif, cle]] — le tableau sert de table de présence dans
+// personnes_doublons(), et de liste à l'écran des suggestions écartées.
+function personnes_doublons_ignores_cles(): array
+{
+    $out = [];
+    foreach (db()->query('SELECT motif, cle FROM personne_doublons_ignores ORDER BY cle') as $r) {
+        $out[personne_doublon_cle((string) $r['motif'], (string) $r['cle'])] =
+            ['motif' => (string) $r['motif'], 'cle' => (string) $r['cle']];
+    }
+    return $out;
+}
+
+// Écarte des suggestions. $cles : les chaînes « motif|valeur » du formulaire.
+// Rend le nombre de suggestions effectivement écartées.
+function personnes_doublons_ignorer(array $cles): int
+{
+    // INSERT OR IGNORE : réécarter ce qui l'est déjà n'est pas une erreur et ne
+    // doit pas rafraîchir la date — même règle que pour les structures.
+    $st = db()->prepare('INSERT OR IGNORE INTO personne_doublons_ignores (motif, cle) VALUES (?, ?)');
+    $n = 0;
+    foreach ($cles as $c) {
+        [$motif, $valeur] = array_pad(explode('|', (string) $c, 2), 2, '');
+        if ($valeur === '' || !in_array($motif, ['email', 'nom'], true)) {
+            continue;
+        }
+        $st->execute([$motif, $valeur]);
+        $n += $st->rowCount();
+    }
+    return $n;
+}
+
+// Remet des suggestions écartées dans la détection.
+function personnes_doublons_reprendre(array $cles): int
+{
+    $st = db()->prepare('DELETE FROM personne_doublons_ignores WHERE motif = ? AND cle = ?');
+    $n = 0;
+    foreach ($cles as $c) {
+        [$motif, $valeur] = array_pad(explode('|', (string) $c, 2), 2, '');
+        if ($valeur === '') {
+            continue;
+        }
+        $st->execute([$motif, $valeur]);
+        $n += $st->rowCount();
+    }
+    return $n;
 }
 
 // Fusionne $sources dans $cible : tout ce qui pointait une source pointe la

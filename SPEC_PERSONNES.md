@@ -89,7 +89,7 @@ chiffré, pas découvert.
 | --- | --- |
 | Forme de la migration | **Refonte propre** : `personnes` + `personne_structures`, le mailing visant la personne |
 | Portée de la désinscription | **Par personne, partout** |
-| Doublons de l'annuaire | **Un écran de fusion manuelle, plus tard.** Une personne par contact à la migration |
+| Doublons de l'annuaire | **Un écran de fusion manuelle, plus tard.** Une personne par contact à la migration. ⚠️ **Fait** : il vit dans `?p=incoherences`, section « Doublons de l'annuaire », avec les autres outils de reprise. Une suggestion s'écarte (« ce n'est pas un doublon ») et se reprend ; ce qu'on écarte est la **clé** — le nom ou l'adresse —, pas le groupe, sans quoi la suggestion reviendrait au premier import qui ajoute une fiche de plus |
 | Personnes physiques saisies comme structures (les « Freelance ») | **On les laisse où elles sont.** Ces fiches portent déjà des événements, des campagnes, des factures ; les déplacer obligerait tout ce qui pointe une structure à accepter aussi une personne. Une quittance à un freelance se fait à la structure |
 | Adresse postale | **Elle monte sur `personnes`.** Une seule adresse, que le certificat de salaire et la quittance lisent au même endroit |
 | Écran et droits | **« Personnes » dans Paramètres, droit `coeur`** — faute de mieux : une personne traverse le booking, les salaires et les comptes, et aucun de ces modules-là ne pouvait en être propriétaire. ⚠️ **Dépassé depuis** : l'écran vit dans le module **Carnet d'adresses** (droit `carnet`), créé pour porter ce qu'aucun autre ne pouvait — voir `CLAUDE.md § Modules & droits` |

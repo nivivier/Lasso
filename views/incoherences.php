@@ -6,6 +6,7 @@
 /** @var int $seuil */ /** @var array $seuils */ /** @var array $potentiels */
 /** @var array $potentielsIgnores */ /** @var ?string $potentielsErr */
 /** @var array $personnesDoublons */ /** @var int $personnesFusionN */
+/** @var array $personnesIgnores */ /** @var ?int $personnesIgnoresN */ /** @var ?int $personnesRepriseN */
 /** @var ?int $potentielsIgnoresN */ /** @var ?int $potentielsRepriseN */
 /** @var array $grandesRegions */ /** @var ?string $grandesRegionsErr */ /** @var ?int $grandesRegionsAppliqueN */
 /** @var array $taxonomieManquantes */ /** @var ?string $taxonomieErr */ /** @var ?int $taxonomieCreesN */
@@ -131,6 +132,13 @@ $lienFiche = function (string $type, int $id): string {
         se valide à la main, en désignant la fiche à garder.
     </p>
 
+    <?php if ($personnesIgnoresN !== null): ?>
+        <p class="ok flash"><?= $personnesIgnoresN ?> suggestion(s) écartée(s).</p>
+    <?php endif; ?>
+    <?php if ($personnesRepriseN !== null): ?>
+        <p class="ok flash"><?= $personnesRepriseN ?> suggestion(s) remise(s) en jeu.</p>
+    <?php endif; ?>
+
     <?php if (!$personnesDoublons): ?>
         <p class="muted">Aucun doublon probable dans l'annuaire.</p>
     <?php else: ?>
@@ -140,7 +148,12 @@ $lienFiche = function (string $type, int $id): string {
           // dérouler en entier rendait la page illisible autant qu'énorme. Dix
           // suffisent à traiter un vrai doublon ; un groupe de mille n'est pas
           // un doublon, c'est une colonne mal remplie. ?>
-    <?php foreach ($personnesDoublons as $g): $pdTotal = count($g['personnes']); $pdFiches = array_slice($g['personnes'], 0, 10); ?>
+    <?php foreach ($personnesDoublons as $gi => $g):
+        $pdTotal  = count($g['personnes']);
+        $pdFiches = array_slice($g['personnes'], 0, 10);
+        $pdCle    = personne_doublon_cle((string) $g['motif'], (string) $g['cle']);
+        $pdFormIgnorer = 'pd-ignorer-' . $gi;
+    ?>
     <div class="card-block">
         <h3 class="sub"><?= e($g['cle']) ?> — <?= $pdTotal ?> fiches, même <?= $g['motif'] === 'email' ? 'adresse électronique' : 'nom' ?></h3>
         <?php if ($pdTotal > count($pdFiches)): ?>
@@ -172,11 +185,54 @@ $lienFiche = function (string $type, int $id): string {
                 </tbody>
             </table>
             </div>
-            <button type="submit" class="btn mt-16"
-                    data-confirm="Fusionner ces fiches ? Les autres disparaîtront, et tout ce qui les désignait pointera celle que vous gardez. Cela ne se défait pas."><?= icon('merge') ?> Fusionner dans la fiche cochée</button>
+            <div class="form-actions mt-16">
+                <?php // « Écarter » d'abord : c'est le geste SANS conséquence sur
+                      // les fiches, et c'est donc lui qu'une validation au clavier
+                      // déclenche — même ordre que pour les structures. Il vit dans
+                      // son propre formulaire : deux <form> ne s'imbriquent pas, et
+                      // son bouton vise le sien par form=. ?>
+                <button type="submit" form="<?= e($pdFormIgnorer) ?>" class="btn ghost"><?= icon('eye-off') ?> Ce n'est pas un doublon</button>
+                <button type="submit"
+                        data-confirm="Fusionner ces fiches ? Les autres disparaîtront, et tout ce qui les désignait pointera celle que vous gardez. Cela ne se défait pas."><?= icon('merge') ?> Fusionner dans la fiche cochée</button>
+            </div>
+        </form>
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" id="<?= e($pdFormIgnorer) ?>">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="personnes_doublons_ignorer">
+            <input type="hidden" name="sel[]" value="<?= e($pdCle) ?>">
         </form>
     </div>
     <?php endforeach; ?>
+    <?php endif; ?>
+
+    <?php // Ce qu'on a écarté reste consultable, et se reprend : écarter n'est
+          // pas supprimer, et un « ce n'est pas un doublon » posé trop vite doit
+          // pouvoir se défaire. ?>
+    <?php if ($personnesIgnores): ?>
+    <details class="mt-22">
+        <summary><?= count($personnesIgnores) ?> suggestion(s) écartée(s)</summary>
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <table class="list">
+                <thead><tr>
+                    <th class="col-check"><input type="checkbox" class="check-all" aria-label="Tout cocher"></th>
+                    <th>Valeur écartée</th><th>Motif</th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ($personnesIgnores as $cleIgn => $ign): ?>
+                    <tr>
+                        <td class="col-check"><input type="checkbox" name="sel[]" value="<?= e($cleIgn) ?>" class="row-check"></td>
+                        <td><?= e($ign['cle']) ?></td>
+                        <td class="muted small"><?= $ign['motif'] === 'email' ? 'adresse électronique' : 'nom' ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <div class="form-actions mt-16">
+                <button type="submit" class="btn ghost" name="action" value="personnes_doublons_reprendre"><?= icon('refresh-cw') ?> Remettre les suggestions cochées</button>
+            </div>
+        </form>
+    </details>
     <?php endif; ?>
 </div>
 <?php endif; ?>
@@ -191,7 +247,8 @@ $lienFiche = function (string $type, int $id): string {
     </p>
 
     <form method="get" class="mb-16">
-        <input type="hidden" name="p" value="dev">
+        <input type="hidden" name="p" value="incoherences">
+        <input type="hidden" name="section" value="<?= e($sec) ?>">
         <label class="d-inline">Type
             <select name="type" data-submit-on-change>
                 <?php foreach ($libellesType as $v => $lib): ?>
@@ -252,7 +309,8 @@ $lienFiche = function (string $type, int $id): string {
     </p>
 
     <form method="get" class="mb-16">
-        <input type="hidden" name="p" value="dev">
+        <input type="hidden" name="p" value="incoherences">
+        <input type="hidden" name="section" value="<?= e($sec) ?>">
         <input type="hidden" name="type" value="<?= e($type) ?>">
         <label class="d-inline">Ressemblance minimale
             <select name="seuil" data-submit-on-change>
