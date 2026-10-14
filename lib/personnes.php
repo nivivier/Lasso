@@ -193,11 +193,16 @@ function personnes_doublons(int $max = 100): array
     $stmt = db()->prepare($sql);
     $stmt->bindValue(1, $max, PDO::PARAM_INT);
     $stmt->execute();
+    // nb_structures voyage AVEC la fiche : l'écran de fusion le montre pour
+    // chaque candidate — c'est ce qui dit laquelle porte le plus de liens, donc
+    // laquelle garder. Une requête corrélée plutôt qu'une par ligne dans la
+    // vue, qui est ce qu'il y avait avant.
+    $cols = 'p.*, (SELECT COUNT(*) FROM personne_structures ps WHERE ps.personne_id = p.id) AS nb_structures';
     $groupes = [];
     foreach ($stmt as $g) {
         $q = $g['motif'] === 'email'
-            ? db()->prepare('SELECT * FROM personnes WHERE LOWER(TRIM(email)) = ? ORDER BY id')
-            : db()->prepare("SELECT * FROM personnes WHERE LOWER(TRIM(prenom) || ' ' || TRIM(nom)) = ? ORDER BY id");
+            ? db()->prepare("SELECT $cols FROM personnes p WHERE LOWER(TRIM(p.email)) = ? ORDER BY p.id")
+            : db()->prepare("SELECT $cols FROM personnes p WHERE LOWER(TRIM(p.prenom) || ' ' || TRIM(p.nom)) = ? ORDER BY p.id");
         $q->execute([$g['cle']]);
         $groupes[] = ['cle' => (string) $g['cle'], 'motif' => (string) $g['motif'], 'personnes' => $q->fetchAll()];
     }

@@ -5,6 +5,7 @@
 /** @var ?int $datesAppliqueN */
 /** @var int $seuil */ /** @var array $seuils */ /** @var array $potentiels */
 /** @var array $potentielsIgnores */ /** @var ?string $potentielsErr */
+/** @var array $personnesDoublons */ /** @var int $personnesFusionN */
 /** @var ?int $potentielsIgnoresN */ /** @var ?int $potentielsRepriseN */
 /** @var array $grandesRegions */ /** @var ?string $grandesRegionsErr */ /** @var ?int $grandesRegionsAppliqueN */
 /** @var array $taxonomieManquantes */ /** @var ?string $taxonomieErr */ /** @var ?int $taxonomieCreesN */
@@ -29,6 +30,7 @@ $nbEvenementsATraiter = count($evenementsLieuxUnivoques) + count($evenementsLieu
 $resumeItems = [
     ['id' => 'doublons-exacts', 'libelle' => 'Doublons exacts', 'n' => $totalGroupes],
     ['id' => 'doublons-potentiels', 'libelle' => 'Doublons potentiels (' . $seuil . ' %)', 'n' => count($potentiels)],
+    ['id' => 'doublons-personnes', 'libelle' => "Doublons de l'annuaire", 'n' => count($personnesDoublons)],
     ['id' => 'grandes-regions', 'libelle' => 'Grandes régions à déduire', 'n' => count($grandesRegions)],
     ['id' => 'taxonomie', 'libelle' => 'Sous-catégories non déclarées', 'n' => count($taxonomieManquantes)],
     ['id' => 'evenements-lieux', 'libelle' => 'Événements sans lieu rattaché', 'n' => $nbEvenementsATraiter],
@@ -47,6 +49,9 @@ $lienFiche = function (string $type, int $id): string {
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 
+<?php if ($ok === 'personnes'): ?>
+    <p class="ok flash"><?= $personnesFusionN ?> fiche(s) de l'annuaire fusionnée(s).</p>
+<?php endif; ?>
 <?php if ($ok === 'doublons'): ?>
     <p class="ok flash">Fusion effectuée : <?= $ns ?> structure(s) et <?= $nc ?> contact(s) en doublon supprimés.</p>
 <?php endif; ?>
@@ -69,6 +74,70 @@ $lienFiche = function (string $type, int $id): string {
         </table>
     <?php endif; ?>
 </div>
+
+<?php // Les doublons de l'ANNUAIRE (personnes). Ils étaient dans ?p=personnes,
+      // en bouton de la barre d'actions : un geste de reprise de données posé
+      // au milieu d'un écran qu'on ouvre tous les jours. Ils rejoignent leurs
+      // pareils — doublons de structures et de contacts, lieux à rattacher. ?>
+<?php if ($personnesDoublons !== [] || module_accessible('carnet')): ?>
+<div class="card" id="doublons-personnes">
+    <h2 class="mt-0">Doublons de l'annuaire</h2>
+    <p class="muted small">
+        Deux fiches de personne avec la même adresse électronique, ou le même nom. ⚠️ Rien n'est
+        fusionné d'office, et rien ne se défait : une boîte partagée (info@salle.ch) et deux
+        homonymes se ressemblent exactement autant qu'un vrai doublon. C'est pourquoi chaque groupe
+        se valide à la main, en désignant la fiche à garder.
+    </p>
+
+    <?php if (!$personnesDoublons): ?>
+        <p class="muted">Aucun doublon probable dans l'annuaire.</p>
+    <?php else: ?>
+    <?php // ⚠️ Un groupe plafonné à dix fiches, et le formulaire ne porte que
+          // celles-là. L'annuaire compte des groupes de plus de mille — « L'équipe »,
+          // « Info », des noms d'import qui ne désignent personne —, et les
+          // dérouler en entier rendait la page illisible autant qu'énorme. Dix
+          // suffisent à traiter un vrai doublon ; un groupe de mille n'est pas
+          // un doublon, c'est une colonne mal remplie. ?>
+    <?php foreach ($personnesDoublons as $g): $pdTotal = count($g['personnes']); $pdFiches = array_slice($g['personnes'], 0, 10); ?>
+    <div class="card-block">
+        <h3 class="sub"><?= e($g['cle']) ?> — <?= $pdTotal ?> fiches, même <?= $g['motif'] === 'email' ? 'adresse électronique' : 'nom' ?></h3>
+        <?php if ($pdTotal > count($pdFiches)): ?>
+        <p class="muted small">Les <?= count($pdFiches) ?> plus anciennes seulement. La fusion ne portera que sur celles-ci.</p>
+        <?php endif; ?>
+        <form method="post" action="?p=personnes_fusionner">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <div class="table-scroll">
+            <table class="list">
+                <thead><tr>
+                    <th class="col-check" title="La fiche à garder">Garder</th>
+                    <th>Nom</th><th>Adresse électronique</th><th>Téléphone</th><th>Rattachements</th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ($pdFiches as $i => $pp): $pid = (int) $pp['id']; ?>
+                    <tr>
+                        <td class="col-check">
+                            <?php // La plus ANCIENNE proposée d'office : c'est
+                                  // elle qui porte l'historique le plus long. ?>
+                            <input type="radio" name="cible" value="<?= $pid ?>" <?= $i === 0 ? 'checked' : '' ?>>
+                            <input type="hidden" name="sources[]" value="<?= $pid ?>">
+                        </td>
+                        <td><a href="?p=personne&id=<?= $pid ?>" class="titre-lien"><?= e(personne_nom($pp)) ?></a></td>
+                        <td class="muted small"><?= e((string) $pp['email']) ?></td>
+                        <td class="muted small"><?= e((string) $pp['telephone']) ?></td>
+                        <td class="muted small"><?= (int) ($pp['nb_structures'] ?? 0) ?> structure(s)</td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            </div>
+            <button type="submit" class="btn mt-16"
+                    data-confirm="Fusionner ces fiches ? Les autres disparaîtront, et tout ce qui les désignait pointera celle que vous gardez. Cela ne se défait pas."><?= icon('merge') ?> Fusionner dans la fiche cochée</button>
+        </form>
+    </div>
+    <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="card" id="doublons-exacts">
     <h2 class="mt-0">Doublons exacts</h2>

@@ -220,6 +220,12 @@ function route_dev(): void
         'potentielsErr'      => $potentielsErr,
         'potentielsIgnoresN' => $potentielsIgnoresN,
         'potentielsRepriseN' => $potentielsRepriseN,
+        // Les doublons de l'ANNUAIRE (personnes), à côté de ceux des
+        // structures et des contacts : même nature, même page. Rien n'y est
+        // fusionné d'office — une boîte partagée et deux homonymes se
+        // ressemblent autant qu'un vrai doublon (SPEC_PERSONNES.md § 5).
+        'personnesDoublons'  => module_accessible('carnet') ? personnes_doublons() : [],
+        'personnesFusionN'   => (int) ($_GET['np'] ?? 0),
         'ok'             => $_GET['ok'] ?? null,
         'ns'             => (int) ($_GET['ns'] ?? 0),
         'nc'             => (int) ($_GET['nc'] ?? 0),

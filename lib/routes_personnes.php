@@ -1,63 +1,55 @@
 <?php
 // Routes de l'annuaire des personnes (SPEC_PERSONNES.md).
 //
-// Écran de PARAMÈTRES, sous « coeur » : une personne traverse le booking, les
-// salaires et les comptes, aucun module ne peut en être propriétaire. C'est
-// aussi d'ici qu'on fusionne les doublons — le dédoublonnage de la migration a
-// été volontairement laissé à faire à la main.
+// Écran du CARNET D'ADRESSES : l'annuaire, et rien d'autre.
+//
+// Le dédoublonnage, lui, vit dans ?p=dev, avec les autres outils de reprise de
+// données (doublons de structures et de contacts, lieux à rattacher…). Ce
+// n'est pas un geste du travail courant : on le fait une fois après une
+// importation, et sa place n'était pas dans la barre d'actions d'un écran
+// qu'on ouvre tous les jours.
 
 function route_personnes(): void
 {
     require_login();
     $recherche = trim((string) ($_GET['q'] ?? ''));
-    $vue = valeur_autorisee((string) ($_GET['vue'] ?? 'liste'), ['liste', 'doublons'], 'liste');
 
-    $personnes = [];
-    $doublons  = [];
     $total = (int) db()->query('SELECT COUNT(*) FROM personnes')->fetchColumn();
-    if ($vue === 'doublons') {
-        $doublons = personnes_doublons();
-    } else {
-        // Toujours filtrée côté serveur : l'annuaire dépasse largement le seuil
-        // de la pagination client, et charger 2900 fiches pour en montrer 50
-        // serait absurde.
-        $where = '';
-        $params = [];
-        if ($recherche !== '') {
-            [$sql, $params] = recherche_sql(['p.prenom', 'p.nom', 'p.email', 'p.telephone']);
-            $where = ' WHERE 1=1' . $sql;
-        }
-        $pgTaille = pagination_taille('personnes_taille');
-        $stmtTot = db()->prepare('SELECT COUNT(*) FROM personnes p' . $where);
-        $stmtTot->execute($params);
-        $pgTotal = (int) $stmtTot->fetchColumn();
-        $pgPage  = pagination_page();
-        [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
-        // Le compte des rattachements en une seule requête corrélée plutôt
-        // qu'une par ligne : à 2900 personnes, la seconde forme se sent.
-        $stmt = db()->prepare(
-            'SELECT p.*,
-                    (SELECT COUNT(*) FROM personne_structures ps WHERE ps.personne_id = p.id) AS nb_structures,
-                    (SELECT COUNT(*) FROM employes e WHERE e.personne_id = p.id) AS est_employe,
-                    (SELECT COUNT(*) FROM utilisateurs u WHERE u.personne_id = p.id) AS est_utilisateur
-               FROM personnes p' . $where . ' ORDER BY p.nom COLLATE NOCASE, p.prenom COLLATE NOCASE' . $limitSql
-        );
-        $stmt->execute(array_merge($params, $limitParams));
-        $personnes = $stmt->fetchAll();
+    // Toujours filtrée côté serveur : l'annuaire dépasse largement le seuil
+    // de la pagination client, et charger 2900 fiches pour en montrer 50
+    // serait absurde.
+    $where = '';
+    $params = [];
+    if ($recherche !== '') {
+        [$sql, $params] = recherche_sql(['p.prenom', 'p.nom', 'p.email', 'p.telephone']);
+        $where = ' WHERE 1=1' . $sql;
     }
+    $pgTaille = pagination_taille('personnes_taille');
+    $stmtTot = db()->prepare('SELECT COUNT(*) FROM personnes p' . $where);
+    $stmtTot->execute($params);
+    $pgTotal = (int) $stmtTot->fetchColumn();
+    $pgPage  = pagination_page();
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+    // Le compte des rattachements en une seule requête corrélée plutôt
+    // qu'une par ligne : à 2900 personnes, la seconde forme se sent.
+    $stmt = db()->prepare(
+        'SELECT p.*,
+                (SELECT COUNT(*) FROM personne_structures ps WHERE ps.personne_id = p.id) AS nb_structures,
+                (SELECT COUNT(*) FROM employes e WHERE e.personne_id = p.id) AS est_employe,
+                (SELECT COUNT(*) FROM utilisateurs u WHERE u.personne_id = p.id) AS est_utilisateur
+           FROM personnes p' . $where . ' ORDER BY p.nom COLLATE NOCASE, p.prenom COLLATE NOCASE' . $limitSql
+    );
+    $stmt->execute(array_merge($params, $limitParams));
+    $personnes = $stmt->fetchAll();
 
     render('personnes', [
         'personnes' => $personnes,
-        'doublons'  => $doublons,
-        'vue'       => $vue,
         'recherche' => $recherche,
         'total'     => $total,
-        'nbDoublons' => $vue === 'doublons' ? count($doublons) : count(personnes_doublons(20)),
-        'ok'        => $_GET['ok'] ?? null,
         'pgRoute'   => 'personnes',
         'pgParams'  => array_filter(['q' => $recherche]),
-        'pgPage'    => $pgPage ?? 1,
-        'pgTaille'  => $pgTaille ?? pagination_taille('personnes_taille'),
+        'pgPage'    => $pgPage,
+        'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal ?? 0,
     ], 'Personnes');
 }
@@ -129,5 +121,7 @@ function route_personnes_fusionner(): void
     $cible = (int) ($_POST['cible'] ?? 0);
     $sources = array_map('intval', (array) ($_POST['sources'] ?? []));
     $n = $cible ? personnes_fusionner($cible, $sources) : 0;
-    redirect('personnes', ['vue' => 'doublons'] + ($n ? ['ok' => $n] : []));
+    // Retour à l'outil d'où l'on vient, et à SA section : la page de reprise
+    // en compte cinq, et revenir en haut obligerait à redescendre.
+    redirect('dev', ($n ? ['ok' => 'personnes', 'np' => $n] : []), 'doublons-personnes');
 }
