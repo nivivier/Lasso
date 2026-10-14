@@ -1,11 +1,24 @@
 <?php
 // Tests de la recherche unifiée. Lancement : php tests/recherche_test.php
-// N'utilise pas la base : on teste la construction de la clause SQL et la
-// DÉCLARATION des sources. recherche_globale() elle-même interroge la base et
-// dépend de la session courante, elle n'est pas couverte ici.
+//
+// Deux moitiés : la construction de la clause et la DÉCLARATION des sources,
+// qui ne demandent pas de base — puis l'EXÉCUTION de chaque requête sur un
+// schéma neuf (§ 6), qui en demande une.
+//
+// ⚠️ Cette seconde moitié existe parce qu'une déclaration bien formée peut
+// très bien ne pas s'exécuter : la source « contacts » a cherché
+// « c.prenom » pendant toute la refonte des personnes (migration_100, qui a
+// déplacé l'identité sur la table personnes), et la recherche ENTIÈRE tombait
+// en erreur SQL pour tout compte ayant le booking. Les tests de déclaration
+// passaient au vert.
+$tmp = sys_get_temp_dir() . '/lasso_recherche_' . bin2hex(random_bytes(6)) . '.sqlite';
+define('APP_DB_PATH', $tmp);
 
+require_once __DIR__ . '/../lib/config.php';
+require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/modules.php';
+require_once __DIR__ . '/../lib/personnes.php';
 require_once __DIR__ . '/../lib/recherche.php';
 
 $tests = 0;
@@ -119,6 +132,38 @@ check('contacts visibles avec « booking »', true,
     recherche_source_visible_pour($src['contacts'], ['booking']));
 check('contacts INVISIBLES avec « facturation » seul', false,
     recherche_source_visible_pour($src['contacts'], ['facturation']));
+
+echo "\n6) Chaque source s'EXÉCUTE vraiment\n";
+
+// db() crée le schéma complet (init_schema + migrations) sur une base neuve :
+// les requêtes sont donc confrontées aux VRAIES tables, colonnes comprises.
+db();
+[$clauseExec, $paramsExec] = recherche_clause('a');
+$casses = [];
+foreach (recherche_sources() as $cle => $source) {
+    // Exactement l'enveloppe de recherche_globale() : la source est une
+    // sous-requête, filtrée sur « texte » et triée sur les alias projetés. Une
+    // colonne inconnue, un alias manquant, une jointure fausse échouent ici.
+    $sql = 'SELECT *, COUNT(*) OVER () AS total_global'
+         . " FROM ({$source['sql']}) WHERE $clauseExec {$source['ordre']} LIMIT 8";
+    try {
+        $stmt = db()->prepare($sql);
+        $stmt->execute($paramsExec);
+        $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        $casses[] = $cle . ' : ' . $e->getMessage();
+    }
+}
+check('aucune source ne tombe en erreur SQL', [], $casses);
+
+// Les deux entités que la recherche ignorait : l'annuaire (2900 fiches, le
+// cœur d'un module entier) et les justificatifs (un module entier aussi).
+foreach (['personnes', 'pieces'] as $attendue) {
+    check("la source « $attendue » est déclarée", true, isset(recherche_sources()[$attendue]));
+}
+
+@unlink($tmp);
+foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

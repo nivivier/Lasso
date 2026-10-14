@@ -98,8 +98,15 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
             'route'   => 'structure',
             'liste'   => 'structures',
             'ordre'   => 'ORDER BY tri DESC, titre',
+            // ⚠️ Le nom vient de « pe » (personnes) et non de « c » : depuis la
+            // refonte des personnes (migration_100), personne_structures ne
+            // porte plus que le RÔLE — l'identité est sur la personne. Cette
+            // requête cherchait encore c.prenom, et la recherche entière
+            // tombait en erreur SQL dès qu'un compte avait le booking.
             'sql'     => "SELECT c.structure_id AS id,
-                                 trim(c.prenom || ' ' || c.nom) AS titre,
+                                 CASE WHEN trim(trim(pe.prenom) || ' ' || trim(pe.nom)) <> ''
+                                      THEN trim(trim(pe.prenom) || ' ' || trim(pe.nom))
+                                      ELSE coalesce(nullif(trim(pe.email),''), 'Sans nom') END AS titre,
                                  trim(coalesce(st.nom,'') ||
                                       CASE WHEN trim(coalesce(c.role,'')) <> ''
                                         THEN ' · ' || c.role ELSE '' END) AS sous_titre,
@@ -179,6 +186,51 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
                                                   JOIN projets sp ON sp.id = cs.projet_id
                                                  WHERE cs.campagne_id = c.id), '')) AS texte
                           FROM fonds_campagnes c",
+        ],
+        // Les PERSONNES elles-mêmes, et pas seulement par leur lien à une
+        // structure (source « contacts » ci-dessus) : une personne sans aucun
+        // rattachement — un employé, un compte, quelqu'un qu'on vient
+        // d'ajouter — était introuvable autrement que par l'écran Personnes.
+        // C'est le point laissé ouvert par SPEC_PERSONNES.md § 8.
+        'personnes' => [
+            'label'   => 'Personnes',
+            'icone'   => 'user',
+            'modules' => ['carnet'],
+            'route'   => 'personne',
+            'liste'   => 'personnes',
+            'ordre'   => 'ORDER BY titre',
+            'sql'     => "SELECT pe.id,
+                                 CASE WHEN trim(trim(pe.prenom) || ' ' || trim(pe.nom)) <> ''
+                                      THEN trim(trim(pe.prenom) || ' ' || trim(pe.nom))
+                                      ELSE coalesce(nullif(trim(pe.email),''), 'Sans nom') END AS titre,
+                                 CASE WHEN trim(coalesce(pe.email,'')) <> '' THEN pe.email
+                                      ELSE trim(coalesce(pe.telephone,'')) END AS sous_titre,
+                                 0 AS tri,
+                                 trim(coalesce(pe.prenom,'') || ' ' || coalesce(pe.nom,'') || ' ' ||
+                                      coalesce(pe.email,'') || ' ' || coalesce(pe.telephone,'')) AS texte
+                          FROM personnes pe",
+        ],
+        // Les justificatifs : on cherche une facture reçue par le nom de son
+        // fournisseur ou une quittance par son numéro, et c'est exactement ce
+        // qu'on tape dans « Rechercher partout ».
+        'pieces' => [
+            'label'   => 'Pièces comptables',
+            'icone'   => 'paperclip',
+            'modules' => ['pieces'],
+            'route'   => 'piece',
+            'liste'   => 'pieces',
+            // Les plus récentes d'abord, comme la liste du module.
+            'ordre'   => 'ORDER BY tri DESC, titre',
+            'sql'     => "SELECT pc.id, pc.libelle AS titre,
+                                 trim(coalesce(pc.tiers,'') ||
+                                      CASE WHEN trim(coalesce(pc.tiers,'')) <> ''
+                                            AND trim(coalesce(pc.numero,'')) <> ''
+                                       THEN ' · ' ELSE '' END ||
+                                      coalesce(pc.numero,'')) AS sous_titre,
+                                 coalesce(nullif(pc.date_piece,''), pc.cree_le) AS tri,
+                                 trim(coalesce(pc.libelle,'') || ' ' || coalesce(pc.tiers,'') || ' ' ||
+                                      coalesce(pc.numero,'') || ' ' || coalesce(pc.notes,'')) AS texte
+                          FROM pieces pc",
         ],
         'projets' => [
             'label'   => $projetsLabel,
