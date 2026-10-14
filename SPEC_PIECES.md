@@ -185,11 +185,20 @@ qui dit un geste à faire.
 bouton « Nouvelle pièce » de la liste et le trombone du tableau de bord ouvrent
 le MÊME menu, une entrée par type (`pieces_menu_nouvelle_html()`). Le
 formulaire commence alors par le justificatif — c'est ce qu'on a sous la main —,
-puis demande les quatre champs qu'on lit dessus : tiers, intitulé, montant,
-date. Tout le reste (échéance, bénéficiaire, catégorie, paiement, remarques, et
-le type lui-même si l'on change d'avis) attend derrière un repli « Plus de
-détails », fermé à la création, ouvert dès qu'on modifie une pièce existante.
-Sur dix pièces déposées, neuf n'ont jamais besoin de l'ouvrir.
+puis demande sur UNE rangée les quatre champs qu'on lit dessus : tiers,
+intitulé, montant, date. Tout le reste (échéance, bénéficiaire, catégorie,
+paiement, remarques) attend derrière un repli « Plus de détails », fermé à la
+création, ouvert dès qu'on modifie une pièce existante. Sur dix pièces
+déposées, neuf n'ont jamais besoin de l'ouvrir.
+
+⚠️ **Le type ne se redemande pas à la création** : il vient d'être choisi dans
+le menu et le titre de la page le dit — il part en champ caché, sans quoi
+`piece_champs_postes()` retomberait sur « facture reçue » et toute quittance en
+serait devenue une. Le sélecteur de type ne reparaît que lorsqu'on MODIFIE une
+pièce, là où il n'y a pas eu de menu : sans lui, corriger un type mal choisi
+obligerait à supprimer la pièce et à redéposer son fichier. C'est aussi la
+seule situation où le script de la page sert — à la création, le serveur a déjà
+rendu les bons champs.
 
 **`?p=piece`** — la fiche : les champs, l'aperçu du fichier, le marquage
 « payée » (date + mode), l'écriture liée ou le bouton pour en choisir une.

@@ -26,9 +26,16 @@ $sens    = $montant > 0 ? 'recette' : 'depense';
 // Le type est la première question, et elle est déjà répondue : on arrive ici
 // par une entrée du menu « Nouvelle pièce » (pieces_menu_nouvelle_html()).
 // C'est lui qui décide des champs posés — d'où PIECE_TYPES présent tout au
-// long de cette vue, et la même table rendue au script plus bas.
+// long de cette vue.
 $type     = $v('type', $typeDefaut);
 $typeInfo = PIECE_TYPES[$type] ?? PIECE_TYPES['autre'];
+// À la CRÉATION, le type ne se redemande pas : il vient d'être choisi dans le
+// menu, le titre de la page le dit, et un champ posé là ne ferait que reposer
+// une question déjà tranchée — il part en champ caché.
+// En MODIFICATION, il n'y a pas eu de menu : le sélecteur reste, sans quoi
+// corriger un type mal choisi obligerait à supprimer la pièce et à redéposer
+// son fichier.
+$typeModifiable = $id > 0;
 
 // Une pièce qui naît payée : le ticket de carte est sorti du compte au moment
 // de l'achat, la quittance constate de l'argent déjà reçu. La date du jour s'y
@@ -71,6 +78,9 @@ $plusOuvert = $id > 0 || $err !== '';
 <form method="post" action="?p=piece_form" id="piece-form" class="card form" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <?php if ($id): ?><input type="hidden" name="id" value="<?= $id ?>"><?php endif; ?>
+    <?php // Sans ce champ, piece_champs_postes() retomberait sur « facture
+          // reçue » et toute quittance déposée en serait devenue une. ?>
+    <?php if (!$typeModifiable): ?><input type="hidden" name="type" value="<?= e($type) ?>"><?php endif; ?>
     <?php if ($depuisEcr): ?>
     <input type="hidden" name="ecriture_id" value="<?= (int) $ecrSource['id'] ?>">
     <p class="muted small mb-16">
@@ -80,9 +90,11 @@ $plusOuvert = $id > 0 || $err !== '';
     </p>
     <?php endif; ?>
 
-    <?php // Premier temps : le document. C'est ce qu'on a sous la main, et tout
-          // le reste se lit dessus. ?>
-    <h3 class="sub no-mt">Le justificatif</h3>
+    <?php // Le document d'abord : c'est ce qu'on a sous la main, et tout le
+          // reste se lit dessus. Sans intertitre — « Le justificatif » au-dessus
+          // d'un champ qui dit déjà « Un fichier » ne faisait que répéter, et
+          // deux titres pour cinq champs pesaient plus que ce qu'ils
+          // annonçaient. ?>
     <?php if ($id && trim((string) $p['fichier']) !== ''): ?>
     <p class="muted small">
         <?= icon('paperclip') ?> <?= e((string) $p['nom_origine']) ?>
@@ -134,20 +146,19 @@ $plusOuvert = $id > 0 || $err !== '';
         </div>
     </div>
 
-    <?php // Second temps : les quatre champs qu'on lit sur le document. Tout le
-          // reste attend derrière « Plus de détails » — sur dix pièces déposées,
-          // neuf n'en auront jamais besoin. ?>
-    <h3 class="sub">L'essentiel</h3>
-    <div class="grid2">
-        <?php // Le tiers avant l'intitulé : c'est le nom qu'on lit en haut du
-              // document, et il suffit souvent à nommer la pièce — une pièce
-              // sans intitulé reprend son tiers à l'enregistrement. ?>
-        <label>Tiers <input name="tiers" value="<?= e($v('tiers')) ?>" placeholder="ex. Swisscom" autofocus></label>
-        <label>Intitulé <input name="libelle" value="<?= e($v('libelle')) ?>" placeholder="ex. Facture Swisscom janvier"></label>
-    </div>
-
-    <div class="grid2 mt-16" id="piece-ligne-montant">
-        <label><span>Montant</span>
+    <?php // Les quatre champs qu'on lit sur le document, sur UNE rangée : ils
+          // sont courts, et empilés ils donnaient quatre lignes pour ce qui en
+          // tient sur une. Chacun déclare sa largeur souhaitée et passe à la
+          // ligne quand la place manque — c'est la largeur de la carte qui
+          // décide, pas un point de rupture codé en dur (docs/UI.md § 10).
+          //
+          // Le tiers avant l'intitulé : c'est le nom qu'on lit en haut du
+          // document, et il suffit souvent à nommer la pièce — une pièce sans
+          // intitulé reprend son tiers à l'enregistrement. ?>
+    <div class="champs-rangee mt-16">
+        <label class="pf-tiers">Tiers <input name="tiers" value="<?= e($v('tiers')) ?>" placeholder="ex. Swisscom" autofocus></label>
+        <label class="pf-libelle">Intitulé <input name="libelle" value="<?= e($v('libelle')) ?>" placeholder="ex. Facture Swisscom janvier"></label>
+        <label class="pf-montant"><span>Montant</span>
             <span class="pct-input">
                 <input name="montant" type="text" inputmode="decimal" required
                        value="<?= $montant != 0.0 ? e(number_format(abs($montant), 2, '.', '')) : '' ?>">
@@ -159,13 +170,17 @@ $plusOuvert = $id > 0 || $err !== '';
               // (piece_montant_poste()). Le demander partout, c'était faire
               // choisir ce qu'on savait déjà — et ouvrir la porte à une facture
               // reçue enregistrée en recette. ?>
-        <label id="piece-sens"<?= $typeInfo['sens'] === '' ? '' : ' hidden' ?>><span>Sens</span>
+        <?php if ($typeInfo['sens'] === '' || $typeModifiable): ?>
+        <label class="pf-sens" id="piece-sens"<?= $typeInfo['sens'] === '' ? '' : ' hidden' ?>><span>Sens</span>
             <select name="sens">
                 <option value="depense"<?= $sens === 'depense' ? ' selected' : '' ?>>Dépense (argent qui sort)</option>
                 <option value="recette"<?= $sens === 'recette' ? ' selected' : '' ?>>Recette (argent qui entre)</option>
             </select>
         </label>
-        <label>Date de la pièce <input type="date" name="date_piece" value="<?= e($v('date_piece') ?: date('Y-m-d')) ?>"></label>
+        <?php endif; ?>
+        <?php // Une date n'a pas de longueur variable : son champ prend la
+              // place de « jj.mm.aaaa » et du calendrier, pas une colonne. ?>
+        <label class="pf-date">Date <input type="date" name="date_piece" value="<?= e($v('date_piece') ?: date('Y-m-d')) ?>"></label>
     </div>
 
     <?php // Une pièce qui naît payée le dit : sans cette ligne, « payée
@@ -178,14 +193,15 @@ $plusOuvert = $id > 0 || $err !== '';
     <details class="form-plus mt-16" id="piece-plus"<?= $plusOuvert ? ' open' : '' ?>>
         <summary>Plus de détails</summary>
         <div class="form-plus-corps">
-            <?php // Le type a été choisi dans le menu : il se change ici, et non
-                  // sur le chemin courant. Avec LIBELLÉ — cinq feuilles de
-                  // papier se ressemblent trop pour qu'une icône seule dise
-                  // « facture reçue » plutôt que « quittance ». ?>
+            <?php // Avec LIBELLÉ : cinq feuilles de papier se ressemblent trop
+                  // pour qu'une icône seule dise « facture reçue » plutôt que
+                  // « quittance ». ?>
+            <?php if ($typeModifiable): ?>
             <span class="lbl-champ">Type de pièce</span>
             <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce', ['avecLabel' => true]) ?>
+            <?php endif; ?>
 
-            <div class="grid2 mt-16">
+            <div class="grid2<?= $typeModifiable ? ' mt-16' : '' ?>">
                 <label id="piece-echeance"<?= $typeInfo['echeance'] ? '' : ' hidden' ?>><span>Échéance</span>
                     <input type="date" name="date_echeance" value="<?= e($v('date_echeance')) ?>"></label>
                 <label><span>Catégorie présumée</span>
@@ -220,8 +236,7 @@ $plusOuvert = $id > 0 || $err !== '';
 
             <h3 class="sub">Le paiement</h3>
             <div class="grid2">
-                <label>Payée le <input type="date" name="date_payee" id="piece-date-payee"
-                                       value="<?= e($datePayee) ?>"<?= $payeeAuto ? ' data-auto="1"' : '' ?>></label>
+                <label>Payée le <input type="date" name="date_payee" value="<?= e($datePayee) ?>"></label>
                 <?php // Une case et non un menu de deux lignes : le cas courant
                       // est le compte suivi, et l'exception se dit mieux cochée.
                       // Elle porte à conséquence — « hors du compte » veut dire
@@ -238,60 +253,41 @@ $plusOuvert = $id > 0 || $err !== '';
     </details>
 </form>
 </div></div>
-<?php // Les champs que le type commande. Sans script, tout reste visible et le
-      // formulaire fonctionne : le serveur, lui, tranche de toute façon depuis
-      // PIECE_TYPES (piece_montant_poste(), piece_champs_postes()).
+<?php // Les champs que le type commande — utile seulement là où le type peut
+      // encore changer, c'est-à-dire quand on MODIFIE une pièce. À la création
+      // il est figé, et le serveur a déjà rendu les bons champs : pas de script
+      // du tout. Sans JavaScript, tout reste visible et le formulaire
+      // fonctionne ; le serveur tranche de toute façon depuis PIECE_TYPES
+      // (piece_montant_poste(), piece_champs_postes()).
       //
       // La table vient du PHP plutôt que d'être recopiée ici : un type ajouté
       // dans lib/pieces.php ne doit pas obliger à se souvenir de ce fichier. ?>
+<?php if ($typeModifiable): ?>
 <script nonce="<?= e(csp_nonce()) ?>">
 (() => {
     const TYPES = <?= json_encode(array_map(fn ($t) => [
         'echeance'  => (bool) $t['echeance'],
         'sens'      => $t['sens'],
-        'paye'      => (bool) $t['paye'],
         'tiersPour' => $t['tiersPour'],
     ], PIECE_TYPES), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
-    const creation = <?= $id ? 'false' : 'true' ?>;
-    const aujourdhui = <?= json_encode(date('Y-m-d')) ?>;
 
-    const ligne  = document.getElementById('piece-ligne-montant');
     const sens   = document.getElementById('piece-sens');
     const ech    = document.getElementById('piece-echeance');
     const benef  = document.getElementById('piece-beneficiaire');
     const benefL = document.getElementById('piece-beneficiaire-lbl');
-    const payee  = document.getElementById('piece-date-payee');
-    const note   = document.getElementById('piece-paye-note');
-    if (!ligne || !payee) return;
+    if (!sens || !ech || !benef) return;
 
     const suivre = () => {
         const coche = document.querySelector('input[name="type"]:checked');
         const t = (coche && TYPES[coche.value]) || TYPES.autre;
-
-        // Le sens ne paraît que pour « Autre » ; la rangée passe alors à trois
-        // colonnes, sinon le troisième champ tomberait seul sur une ligne.
+        // Le sens ne se demande que pour « Autre » : ailleurs le type le sait.
         sens.hidden = t.sens !== '';
-        ligne.classList.toggle('grid3', t.sens === '');
-        ligne.classList.toggle('grid2', t.sens !== '');
-
         ech.hidden = !t.echeance;
         benef.hidden = t.tiersPour === '';
         if (t.tiersPour !== '') { benefL.textContent = t.tiersPour; }
-
-        // « Payée d'office » suit le type tant que la date n'a pas été touchée
-        // à la main (data-auto) : changer d'avis sur le type ne doit pas
-        // laisser derrière soi une date que plus rien ne justifie — ni effacer
-        // une date saisie exprès.
-        if (creation && (payee.value === '' || payee.dataset.auto === '1')) {
-            payee.value = t.paye ? aujourdhui : '';
-            payee.dataset.auto = t.paye ? '1' : '';
-            note.hidden = !t.paye;
-        } else {
-            note.hidden = true;
-        }
     };
     document.querySelectorAll('input[name="type"]').forEach(r => r.addEventListener('change', suivre));
-    payee.addEventListener('input', () => { payee.dataset.auto = ''; note.hidden = true; });
     suivre();
 })();
 </script>
+<?php endif; ?>

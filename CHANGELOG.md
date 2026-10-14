@@ -40,9 +40,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   « + », ouvrent le même menu. Le formulaire commence alors par le justificatif
   — c'est ce qu'on a sous la main — et propose de **photographier la pièce
   directement dans la page**, sur ordinateur comme sur téléphone (l'image est
-  réduite par le navigateur avant l'envoi) ; viennent ensuite les quatre champs
-  qu'on lit sur le document — tiers, intitulé, montant, date. Tout le reste
-  attend derrière « Plus de détails ».
+  réduite par le navigateur avant l'envoi) ; viennent ensuite, sur une seule
+  ligne, les quatre champs qu'on lit sur le document — tiers, intitulé,
+  montant, date. Tout le reste attend derrière « Plus de détails ».
   La liste des écritures gagne une colonne « Pièce » et son filtre : on y voit
   d'un coup d'œil ce qui n'a pas de justificatif, on en dépose un depuis la
   ligne, et l'icône mène au justificatif lui-même — la pièce, la facture ou la
@@ -68,6 +68,9 @@ puis sont promues sur le canal **stable** en figeant une version.
   vont de bord à bord, comme ceux de n'importe quel tableau de carte.
 
 ### Corrigé
+- **Le dépôt d'une pièce et l'écran des rapprochements s'ouvraient sans
+  en-tête** : ni le nom du module, ni ses onglets, ni rien pour dire d'où l'on
+  venait. Ces deux routes manquaient dans la déclaration de l'onglet « Pièces ».
 - **L'import d'un relevé bancaire avait perdu son en-tête** : la page s'ouvrait
   sans le nom du module ni ses onglets, seule au milieu de rien. Elle les
   retrouve, sous l'onglet « Écritures » d'où l'on vient, et ses deux cartes

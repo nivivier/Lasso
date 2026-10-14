@@ -5894,9 +5894,14 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
    rien. Chacun dit sa largeur souhaitée par sa classe et passe à la ligne quand
    la place manque, sans point de rupture codé en dur : c'est la largeur de la
    carte qui décide, pas celle de l'écran. */
-.feuille-form { display: flex; flex-wrap: wrap; gap: 0 12px; align-items: flex-end; margin-top: 10px; }
-.fr-champ { display: block; margin-bottom: 12px; min-width: 0; }
-.fr-champ input, .fr-champ select { width: 100%; }
+/* .champs-rangee est le MÊME mécanisme sous un nom qui ne parle plus d'une
+   feuille de route : le dépôt d'une pièce pose les quatre mêmes sortes de
+   champs courts. Les deux sélecteurs partagent la règle plutôt que de la
+   recopier — c'est un seul geste, pas deux (docs/UI.md § 10). */
+.feuille-form, .champs-rangee { display: flex; flex-wrap: wrap; gap: 0 12px; align-items: flex-end; margin-top: 10px; }
+.fr-champ, .champs-rangee > label { display: block; margin-bottom: 12px; min-width: 0; }
+.fr-champ input, .fr-champ select,
+.champs-rangee > label input, .champs-rangee > label select { width: 100%; }
 .fr-libelle  { flex: 2 1 170px; }
 .fr-heure    { flex: 0 0 108px; }
 .fr-adresse  { flex: 3 1 220px; }
@@ -6154,6 +6159,24 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 @media (max-width: 800px) {
     .piece-depot { grid-template-columns: 1fr; }
 }
+
+/* Les quatre champs du dépôt sur une rangée (.champs-rangee). Les deux premiers
+   s'étirent, les deux derniers ont une longueur connue : un montant tient en
+   « 12'345.60 CHF », une date en « jj.mm.aaaa » plus son calendrier. Leur
+   laisser une colonne entière, c'était de la place prise à l'intitulé, le seul
+   des quatre dont la longueur soit libre.
+   Base des flexibles tenue basse (160 + 180) pour que les quatre tiennent sur
+   une ligne dans une carte de 700px : mesuré, 160+180+145+150 et trois écarts
+   de 12 = 671. */
+.champs-rangee > .pf-tiers   { flex: 2 1 160px; }
+.champs-rangee > .pf-libelle { flex: 3 1 180px; }
+.champs-rangee > .pf-montant { flex: 0 0 145px; }
+.champs-rangee > .pf-sens    { flex: 1 1 190px; }
+.champs-rangee > .pf-date    { flex: 0 0 150px; }
+/* .pct-input est plafonné à 150px pour son usage d'origine (un taux dans un
+   tableau) : ici c'est la cellule qui donne la largeur, et le plafond
+   l'empêcherait de la remplir. */
+.champs-rangee > .pf-montant .pct-input { max-width: none; }
 
 /* « Plus de détails » — le repli d'un formulaire dont la plupart des champs ne
    servent qu'une fois sur dix (le dépôt d'une pièce : échéance, bénéficiaire,

@@ -407,7 +407,12 @@ function nav_groupes(): array
             $onglets['compta_ecritures'] = ['Écritures', ['compta_ecritures', 'compta_ecritures_importer'], nb_ecritures_a_lettrer(), 'banknote'];
         }
         if ($piecesOk) {
-            $onglets['pieces'] = ['Pièces', ['pieces', 'piece'], nb_pieces_a_payer(), 'paperclip'];
+            // ⚠️ TOUTES les routes de l'onglet, formulaire et rapprochements
+            // compris : c'est cette liste qui allume l'onglet ET qui fait
+            // exister le bandeau. Une route oubliée ici s'ouvre sans en-tête —
+            // ni nom de module, ni onglets, ni retour —, et rien ne le
+            // signale. tests/nommage_test.php l'interdit désormais.
+            $onglets['pieces'] = ['Pièces', ['pieces', 'piece', 'piece_form', 'pieces_rapprochements'], nb_pieces_a_payer(), 'paperclip'];
         }
         if ($comptaOk) {
             $onglets['compta_bilan'] = ['Comptes annuels', ['compta_bilan'], 0, 'book-open'];

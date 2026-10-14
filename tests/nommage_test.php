@@ -180,5 +180,37 @@ foreach ($it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rac
 }
 check('aucun fichier de code ne dit plus « spectacle »', [], $restes);
 
+echo "\n9) Toute page à onglets est déclarée dans nav_groupes()\n";
+// ⚠️ Une vue qui requiert _module_tabs.php attend un bandeau : le nom du
+// module, ses onglets, l'onglet courant allumé. Ce bandeau n'existe que si la
+// route figure dans la liste des routes d'un onglet (nav_groupes(),
+// lib/modules.php). Oubliée là-bas, la page s'ouvre NUE — sans titre de module,
+// sans onglets, sans rien pour dire d'où l'on vient —, et rien ne le signale :
+// _module_tabs.php rend alors un libellé vide et une rangée vide, sans erreur.
+// C'est arrivé à ?p=piece_form et ?p=pieces_rapprochements.
+//
+// Vérification VOLONTAIREMENT textuelle : nav_groupes() lit la base (compteurs
+// des pastilles) et les droits du compte courant, que ce fichier ne monte pas.
+// On cherche donc le nom de la route, entre apostrophes, dans le corps de la
+// fonction. Un nom absent n'est à coup sûr dans aucun onglet — ce qui est le
+// défaut qu'on traque ; un nom présent ailleurs que dans une liste de routes
+// passerait, mais ce cas-là n'existe pas (la clé d'un onglet est elle-même une
+// de ses routes).
+$srcModules = file_get_contents($racine . '/lib/modules.php');
+$debutNav = strpos($srcModules, 'function nav_groupes()');
+$finNav   = strpos($srcModules, "\nfunction ", $debutNav + 10);
+$corpsNav = substr($srcModules, $debutNav, $finNav - $debutNav);
+$sansOnglet = [];
+foreach ($vues as $vue) {
+    $src = file_get_contents($racine . '/views/' . $vue . '.php');
+    if (!str_contains($src, '_module_tabs.php')) {
+        continue;
+    }
+    if (!str_contains($corpsNav, "'" . $vue . "'")) {
+        $sansOnglet[] = $vue;
+    }
+}
+check('aucune page à onglets absente de nav_groupes()', [], $sansOnglet);
+
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

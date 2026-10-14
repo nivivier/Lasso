@@ -1141,9 +1141,13 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - **Un formulaire à plusieurs champs** se pose en `.grid2` / `.grid3` — attention,
   `.card-block` les ramène à une colonne (elle vise les sous-sections d'une carte
   étroite). Quand les champs doivent se recomposer selon la largeur réelle plutôt
-  qu'en colonnes fixes, une rangée flex où chacun déclare sa largeur souhaitée
-  (`flex: 3 1 190px` pour une remarque, `0 0 108px` pour une heure) évite tout
-  point de rupture codé en dur.
+  qu'en colonnes fixes, c'est `.champs-rangee` : une rangée flex où chacun
+  déclare sa largeur souhaitée par sa classe (`flex: 3 1 190px` pour une
+  remarque, `0 0 108px` pour une heure, `0 0 150px` pour une date), ce qui évite
+  tout point de rupture codé en dur — c'est la largeur de la CARTE qui décide,
+  pas celle de l'écran. Un champ dont la longueur est connue (une date, un
+  montant) prend une base fixe, un champ de texte libre une base souple qui
+  s'étire. `.feuille-form` est la même rangée sous son nom d'origine.
 - **Pas de paragraphe de description au-dessus d'un champ** : le texte indicatif
   (`placeholder`) dit ce qu'on y met. Le dire deux fois allonge sans apprendre.
   Exception : une contrainte réelle qu'un `placeholder` ne peut pas porter
