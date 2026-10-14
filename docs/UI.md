@@ -1133,6 +1133,23 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   rien à filtrer, ni l'un ni l'autre n'a de raison d'être là —, sauf quand un
   filtre est actif, sinon on ne pourrait plus le retirer.
 
+## 9 bis. Cartes posées côte à côte
+
+Plusieurs cartes sur une page se posent en `.cartes-rangee` : **autant de
+colonnes que la largeur en permet**, et non deux ou trois figées par `.grid2` /
+`.grid3`. Trois cartes courtes s'alignent en plein écran, passent à deux en
+tablette et s'empilent sur téléphone, sans qu'aucun point de rupture ne soit
+écrit.
+
+- `--cartes-min` (290 px par défaut) est la largeur sous laquelle le contenu
+  cesse de se lire ; `--cartes-max` **le nombre de cartes à ranger**, pas un
+  maximum esthétique — `.cartes-rangee-2` quand il n'y en a que deux à aligner.
+- Une carte qui porte un **tableau large** prend la rangée entière :
+  `.carte-pleine`. Elle ne compte alors pas dans `--cartes-max`, sinon la
+  rangée du haut garde une colonne vide à droite pendant que celle du bas va
+  d'un bord à l'autre.
+- `.grid2` reste pour une page dont les cartes vont **toujours** par deux.
+
 ## 10. Formulaires
 
 - **Un formulaire d'édition en ligne** utilise `.inline-edit` : une rangée flex,

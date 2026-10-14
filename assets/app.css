@@ -1880,6 +1880,40 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
    (jamais vrai pour une grille de champs, dont les enfants directs sont des
    <label>/.field-group) — sans effet sur toute grille de champs existante. */
 .grid2:has(> .card), .grid3:has(> .card), .grid4:has(> .card) { row-gap: 22px; }
+/* Des cartes côte à côte TANT QU'IL Y A LA PLACE : autant de colonnes que la
+   largeur en permet, et non un nombre figé par .grid2/.grid3. Trois cartes
+   courtes (?p=piece : la pièce, le paiement, l'écriture) tiennent sur une
+   rangée en plein écran, sur deux en tablette, et s'empilent sur téléphone —
+   sans qu'aucun point de rupture ne soit écrit : 290px est la largeur en
+   dessous de laquelle un tableau clé/valeur cesse de se lire.
+   Pendant de .grid-taux pour les champs, et de .champs-rangee pour une rangée
+   de champs courts. */
+.cartes-rangee {
+    --cartes-min: 290px;   /* sous cette largeur, un tableau clé/valeur ne se lit plus */
+    --cartes-max: 3;       /* jamais plus de colonnes que la rangée n'a de cartes */
+    --cartes-ecart: 18px;
+    display: grid; gap: 22px var(--cartes-ecart);
+    /* min(…, 100%) : sur un téléphone étroit (320px, soit 280px de contenu), un
+       plancher de 290px ferait déborder la page d'une dizaine de pixels —
+       exactement le genre de débordement qui ne se voit qu'en main. */
+    grid-template-columns: repeat(auto-fit, minmax(
+        max(min(var(--cartes-min), 100%), (100% - (var(--cartes-max) - 1) * var(--cartes-ecart)) / var(--cartes-max)),
+        1fr));
+}
+/* Une carte qui porte un tableau large ne se range pas dans une colonne : elle
+   prend la rangée entière, les autres gardant la leur.
+   ⚠️ C'est elle qui oblige au plancher « un tiers de la rangée » ci-dessus :
+   auto-fit ne replie que les colonnes VIDES, et une carte qui les traverse
+   toutes les occupe. Sans ce plancher, une rangée de 1284px se découpait en
+   quatre colonnes de 308px dont la carte large occupait toute la largeur — les
+   deux autres se retrouvaient serrées sur un quart chacune, moitié de rangée
+   vide à leur droite. Mesuré. */
+.cartes-rangee > .carte-pleine { grid-column: 1 / -1; }
+/* Le nombre de colonnes se compte sur les cartes qui en occupent UNE : deux
+   cartes courtes et une large font deux colonnes, pas trois — sinon la rangée
+   du haut garde une colonne vide à droite pendant que la large, dessous, va
+   d'un bord à l'autre. */
+.cartes-rangee-2 { --cartes-max: 2; }
 .field-pair { display: flex; gap: 8px; }
 .field-pair input { flex: 2; min-width: 0; }
 .field-pair select { flex: 1; width: auto; min-width: 0; }

@@ -8,6 +8,15 @@ $retard = piece_en_retard($p);
 $typeInfo = PIECE_TYPES[$p['type']] ?? PIECE_TYPES['autre'];
 $jour = fn (?string $d): string => $d ? date('d.m.Y', strtotime($d)) : '';
 $vide = '<span class="muted">—</span>';
+// Les trois cartes se mettent côte à côte dès que la largeur le permet, SAUF
+// quand « L'écriture » déroule la liste des écritures candidates : cinq
+// colonnes ne se lisent pas dans un tiers de page, et cette carte-là prend
+// alors toute la rangée. La condition reprend exactement la branche de la
+// cascade plus bas qui rend ce tableau — si l'une bouge, l'autre doit suivre.
+$ecrCandidates = !$ecriture
+    && (string) $p['mode_paiement'] !== 'hors_compte'
+    && $peutEcrire
+    && $candidates;
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -45,7 +54,7 @@ $vide = '<span class="muted">—</span>';
     <?php endif; ?>
 </div>
 
-<div class="grid2">
+<div class="cartes-rangee<?= $ecrCandidates ? ' cartes-rangee-2' : '' ?>">
     <div class="card">
         <h2 class="mt-0">La pièce</h2>
         <table class="kv-table">
@@ -138,10 +147,9 @@ $vide = '<span class="muted">—</span>';
             <?php endif; ?>
         <?php endif; ?>
     </div>
-</div>
 
 <?php if (module_accessible('compta')): ?>
-<div class="card mt-22">
+<div class="card<?= $ecrCandidates ? ' carte-pleine' : '' ?>">
     <h2 class="mt-0">L'écriture</h2>
     <?php if ($ecriture): ?>
         <table class="kv-table">
@@ -195,6 +203,7 @@ $vide = '<span class="muted">—</span>';
     <?php endif; ?>
 </div>
 <?php endif; ?>
+</div>
 
 <?php // « Supprimer » n'est pas sur cet écran (docs/UI.md § 1 et § 3) : un geste
       // dont on ne revient pas n'a pas à être à portée de clic quand on ne fait
