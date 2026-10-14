@@ -222,7 +222,7 @@ $plusOuvert = $id > 0 || $err !== '';
               // haut qui sert de nom sur le document. ?>
         <div class="cat-search" data-cat-search data-filtre-groupes data-hydrater data-vider-en-saisie>
             <input type="text" class="cat-search-input" autocomplete="off"
-                   placeholder="Chercher un nom…" aria-label="Chercher un bénéficiaire">
+                   placeholder="Employé, structure, personne…" aria-label="Chercher un bénéficiaire">
             <input type="hidden" name="beneficiaire" class="cat-search-val" value="<?= e($benefCourant) ?>">
             <ul class="cat-search-list" hidden role="listbox">
                 <?php $grpCourant = null; foreach ($beneficiaires as $b): ?>
