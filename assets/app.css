@@ -1109,10 +1109,17 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     border-top: 3px solid var(--primary);
     border-bottom: 1px solid var(--line);
 }
+/* ⚠️ Retrait BAS à zéro, qu'il y ait des onglets ou non : c'est le titre qui
+   porte l'air sous lui (.page-head-title, padding-bottom: 10px), et le
+   bandeau doit faire la même hauteur partout. Un retrait de 20px ici ne
+   s'appliquait qu'aux modules SANS onglets — ils étaient alors plus hauts de
+   vingt pixels que leurs voisins, ce qui se voit en passant de l'un à l'autre
+   (mesuré : 94px contre 74px). Zéro est aussi ce dont la rangée d'onglets a
+   besoin pour coller au filet qu'elle recouvre. */
 .page-head-band .page-head {
     max-width: 1120px;
     margin: 0 0 0 var(--rail-width); /* replique le décalage de .content après le rail */
-    padding: 22px var(--content-pad) 20px;
+    padding: 22px var(--content-pad) 0;
 }
 /* La rangée d'onglets se range À DROITE DU TITRE quand elle y tient, et ne
    descend sur sa propre ligne que si elle n'y tient pas : le bandeau fait
@@ -1150,7 +1157,6 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     box-shadow: none;
     border-radius: 0;
 }
-.page-head-band .page-head:has(.module-tabs) { padding-bottom: 0; }
 /* Zone de contenu pleine largeur SOUS le bandeau d'onglets —
    même mécanique de débordement que .page-head-band (largeur 100vw, marge
    négative = largeur sidebar + padding .content), mais fond plein (pas de
@@ -4134,6 +4140,13 @@ abbr {
        (image de fond personnalisable, Apparence). Largeur à 0 : plus de
        zone du tout à cet endroit, donc plus rien à traverser en transparence. */
     .page-head-band:has(.module-tabs) { border-bottom-width: 0; }
+    /* Un module SANS onglets n'a plus rien à mettre dans son bandeau sur
+       téléphone : son titre y est déjà, dans la barre supérieure, et c'est par
+       là qu'il s'efface ici (.page-head-titre-module). Restait une bande vide
+       de 35px au-dessus du contenu. Le bandeau se réduit donc à son trait
+       d'accent — les 3px de couleur du module, que les autres pages ont aussi
+       tout en haut. */
+    body.titre-dans-barre .page-head-band:not(:has(.module-tabs)) .page-head { padding: 0; }
     /* …mais il manque alors tout court : le bureau a bien son trait sous la
        rangée d'onglets — interrompu sous l'onglet actif, qui s'y raccorde au
        contenu —, et le téléphone n'en avait plus aucun, ni sous les onglets
