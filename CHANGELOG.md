@@ -99,6 +99,13 @@ puis sont promues sur le canal **stable** en figeant une version.
   vont de bord à bord, comme ceux de n'importe quel tableau de carte.
 
 ### Corrigé
+- **La recherche unifiée tombait en erreur** pour tout compte ayant le Booking :
+  elle cherchait une colonne que la refonte des personnes avait déplacée. Elle
+  trouve au passage deux choses qu'elle ignorait : les **personnes** de
+  l'annuaire et les **pièces comptables**.
+- **Le module « Pièces comptables » était inconfigurable.** « Déposer un
+  justificatif sans voir les comptes » — sa seule raison d'être — était refusé
+  en silence à l'enregistrement des droits.
 - **Le dépôt d'une pièce et l'écran des rapprochements s'ouvraient sans
   en-tête** : ni le nom du module, ni ses onglets, ni rien pour dire d'où l'on
   venait. Ces deux routes manquaient dans la déclaration de l'onglet « Pièces ».
