@@ -197,6 +197,45 @@ $plusOuvert = $id > 0 || $err !== '';
         <label class="pf-date">Date <input type="date" name="date_piece" value="<?= e($v('date_piece') ?: date('Y-m-d')) ?>"></label>
     </div>
 
+    <?php // Un seul champ pour deux questions, parce que c'est la même donnée :
+          // qui est en face. Une quittance a un bénéficiaire, une note de frais
+          // quelqu'un à rembourser — seul l'intitulé change
+          // (PIECE_TYPES['tiersPour']).
+          //
+          // Il est ICI et non derrière « Plus de détails » : sur les deux seuls
+          // types qui le posent, c'est une information essentielle — une note
+          // de frais qui ne dit pas à qui l'association doit l'argent ne sert à
+          // rien. Sur les trois autres, le bloc n'existe pas (ou se cache, le
+          // temps qu'on change de type en modification).
+          //
+          // Cherchable et non déroulant : le carnet compte trois mille
+          // personnes, et c'est la mécanique déjà en place pour la catégorie
+          // d'une écriture ou le lieu d'un événement (lassoInitCatSearch(),
+          // initialisée toute seule par data-cat-search). ?>
+    <?php if ($typeInfo['tiersPour'] !== '' || $typeModifiable): ?>
+    <div class="mt-16 piece-benef" id="piece-beneficiaire"<?= $typeInfo['tiersPour'] !== '' ? '' : ' hidden' ?>>
+        <span class="lbl-champ" id="piece-beneficiaire-lbl"><?= e($typeInfo['tiersPour'] ?: 'Bénéficiaire') ?></span>
+        <?php // data-hydrater : en modification, le champ s'ouvre sur le nom
+              // déjà choisi plutôt que vide. data-vider-en-saisie : retaper
+              // quelque chose efface le choix précédent, ce qui est la seule
+              // façon de le RETIRER — à vide, c'est le « Tiers » saisi plus
+              // haut qui sert de nom sur le document. ?>
+        <div class="cat-search" data-cat-search data-filtre-groupes data-hydrater data-vider-en-saisie>
+            <input type="text" class="cat-search-input" autocomplete="off"
+                   placeholder="Chercher un nom…" aria-label="Chercher un bénéficiaire">
+            <input type="hidden" name="beneficiaire" class="cat-search-val" value="<?= e($benefCourant) ?>">
+            <ul class="cat-search-list" hidden role="listbox">
+                <?php $grpCourant = null; foreach ($beneficiaires as $b): ?>
+                    <?php if ($b['groupe'] !== $grpCourant): $grpCourant = $b['groupe']; ?>
+                        <li class="cat-search-group"><?= e($grpCourant) ?></li>
+                    <?php endif; ?>
+                    <li data-val="<?= e($b['val']) ?>"><?= e($b['libelle']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php // Une pièce qui naît payée le dit : sans cette ligne, « payée
           // aujourd'hui » se déciderait derrière un repli fermé, et rien ne
           // dirait pourquoi la pièce ne figure pas dans « à payer ». ?>
@@ -224,26 +263,6 @@ $plusOuvert = $id > 0 || $err !== '';
                         <?php foreach ($categories as $c): ?>
                         <option value="<?= (int) $c['id'] ?>"<?= (int) $v('plan_compte_id') === (int) $c['id'] ? ' selected' : '' ?>><?= e($c['chemin']) ?></option>
                         <?php endforeach; ?>
-                    </select>
-                </label>
-            </div>
-
-            <?php // Un seul champ pour deux questions, parce que c'est la même
-                  // donnée : qui est en face. Une quittance a un bénéficiaire,
-                  // une note de frais quelqu'un à rembourser — seul l'intitulé
-                  // change (PIECE_TYPES['tiersPour']). ?>
-            <div class="mt-16" id="piece-beneficiaire"<?= $typeInfo['tiersPour'] !== '' ? '' : ' hidden' ?>>
-                <label><span id="piece-beneficiaire-lbl"><?= e($typeInfo['tiersPour'] ?: 'Bénéficiaire') ?></span>
-                    <select name="beneficiaire">
-                        <option value="">— Le tiers saisi plus haut —</option>
-                        <?php $grpCourant = null; foreach ($beneficiaires as $b): ?>
-                            <?php if ($b['groupe'] !== $grpCourant): $grpCourant = $b['groupe']; ?>
-                                <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
-                                <optgroup label="<?= e($b['groupe']) ?>">
-                            <?php endif; ?>
-                            <option value="<?= e($b['val']) ?>"<?= $benefCourant === $b['val'] ? ' selected' : '' ?>><?= e($b['libelle']) ?></option>
-                        <?php endforeach; ?>
-                        <?php if ($grpCourant !== null): ?></optgroup><?php endif; ?>
                     </select>
                 </label>
             </div>

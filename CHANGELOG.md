@@ -32,7 +32,8 @@ puis sont promues sur le canal **stable** en figeant une version.
   **Cinq types, et c'est le type qui décide de ce qu'on demande** : facture
   reçue, ticket de carte, à rembourser, quittance, autre. Un ticket payé par la
   carte de l'association naît marqué payé ; une dépense avancée par quelqu'un
-  reste à payer et nomme la personne à rembourser. Le sens du montant n'est
+  reste à payer et nomme la personne à rembourser — un champ cherchable où les
+  employés viennent en tête. Le sens du montant n'est
   demandé que pour « Autre » — une facture reçue est une dépense, une quittance
   une recette, et l'application n'a pas à le faire choisir.
   Le dépôt se fait en deux temps, et le type se choisit avant d'entrer : le

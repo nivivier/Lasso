@@ -191,6 +191,19 @@ paiement, remarques) attend derrière un repli « Plus de détails », fermé à
 création, ouvert dès qu'on modifie une pièce existante. Sur dix pièces
 déposées, neuf n'ont jamais besoin de l'ouvrir.
 
+**Le champ « qui est en face » n'est pas dans le repli.** Sur les deux seuls
+types qui le posent — le bénéficiaire d'une quittance, la personne à rembourser
+d'une note de frais —, c'est une information essentielle : une note de frais qui
+ne dit pas à qui l'association doit l'argent ne sert à rien. Il est **cherchable
+et non déroulant** (`lassoInitCatSearch()`, la mécanique de la catégorie d'une
+écriture), et les **employés y passent devant** : rembourser une avance, c'est
+neuf fois sur dix rembourser l'un d'eux, et ils sont dix là où le carnet en
+compte trois mille. Ce sont des personnes comme les autres (`p:<id>`), sorties
+du lot et nommées — un employé déjà là ne reparaît donc pas sous « Personnes ».
+Chaque groupe reste derrière le droit de lecture de son module : un compte qui
+n'a que la comptabilité n'y découvre ni le carnet d'adresses ni la liste des
+employés, et lui reste le champ « Tiers », qui prend un nom libre.
+
 ⚠️ **Le type ne se redemande pas à la création** : il vient d'être choisi dans
 le menu et le titre de la page le dit — il part en champ caché, sans quoi
 `piece_champs_postes()` retomberait sur « facture reçue » et toute quittance en

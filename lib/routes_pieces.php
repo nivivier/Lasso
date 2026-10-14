@@ -290,7 +290,7 @@ function piece_form_data(?array $piece, ?array $champs, string $err, ?array $ecr
         // Les deux carnets, pour le bénéficiaire d'une quittance. Chargés
         // seulement quand ils servent : 2900 personnes dans un menu qu'on
         // n'ouvrira pas sont 2900 lignes de trop sur chaque autre pièce.
-        'beneficiaires' => quittance_beneficiaires_options(),
+        'beneficiaires' => piece_beneficiaires_options(),
     ];
 }
 
@@ -541,12 +541,37 @@ function pieces_nom_archive(array $p, string $fichier, array &$utilises): string
     return $nom;
 }
 
-// Les bénéficiaires possibles d'une quittance : les structures, puis les
-// personnes, préfixées pour tenir dans un seul sélecteur. Le carnet des
-// personnes n'est pas chargé s'il n'y a pas de quoi le lire.
-function quittance_beneficiaires_options(): array
+// Celui que la pièce désigne : le bénéficiaire d'une quittance, la personne à
+// rembourser d'une note de frais. Trois groupes dans un seul sélecteur, chaque
+// valeur préfixée (« p: » une personne, « s: » une structure).
+//
+// ⚠️ Les EMPLOYÉS d'abord, et c'est tout l'enjeu : rembourser une avance, c'est
+// neuf fois sur dix rembourser l'un d'eux, et ils sont dix là où le carnet en
+// compte trois mille. Ce sont des personnes comme les autres — même valeur
+// « p:<id> » —, simplement sorties du lot et nommées. Un employé déjà listé là
+// ne reparaît donc pas sous « Personnes » : deux lignes identiques dans le même
+// menu feraient hésiter sans rien apporter.
+//
+// Chaque groupe reste derrière le droit de LECTURE de son module
+// (module_accessible(), jamais module_actif() seul) : un compte qui n'a que la
+// comptabilité ne doit pas y découvrir le carnet d'adresses ni la liste des
+// employés. Il lui reste le champ « Tiers », qui prend un nom libre.
+function piece_beneficiaires_options(): array
 {
     $out = [];
+    $deja = [];
+    if (module_accessible('salaires')) {
+        $sql = 'SELECT e.personne_id, pe.prenom, pe.nom' . EMPLOYE_FROM
+             . ' WHERE e.actif = 1 ORDER BY pe.nom COLLATE NOCASE, pe.prenom COLLATE NOCASE';
+        foreach (db()->query($sql) as $em) {
+            $pid = (int) $em['personne_id'];
+            if (!$pid) {
+                continue;   // employé sans identité rattachée : rien à désigner
+            }
+            $deja[$pid] = true;
+            $out[] = ['val' => 'p:' . $pid, 'libelle' => personne_nom($em), 'groupe' => 'Employés'];
+        }
+    }
     if (module_accessible('booking') || module_accessible('facturation')) {
         foreach (db()->query("SELECT id, nom FROM structures WHERE statut <> 'inactif' ORDER BY nom COLLATE NOCASE") as $s) {
             $out[] = ['val' => 's:' . (int) $s['id'], 'libelle' => (string) $s['nom'], 'groupe' => 'Structures'];
@@ -554,6 +579,9 @@ function quittance_beneficiaires_options(): array
     }
     if (peut_lire('coeur')) {
         foreach (db()->query("SELECT id, prenom, nom, email FROM personnes ORDER BY nom COLLATE NOCASE, prenom COLLATE NOCASE") as $pe) {
+            if (isset($deja[(int) $pe['id']])) {
+                continue;
+            }
             $out[] = ['val' => 'p:' . (int) $pe['id'], 'libelle' => personne_nom($pe), 'groupe' => 'Personnes'];
         }
     }

@@ -25,7 +25,9 @@ require_once __DIR__ . '/../lib/modules.php';
 require_once __DIR__ . '/../lib/fichiers.php';
 require_once __DIR__ . '/../lib/pieces.php';
 // Les fonctions de saisie du formulaire (piece_champs_postes(), le signe du
-// montant) vivent avec la route : c'est là que le POST est lu.
+// montant) vivent avec la route : c'est là que le POST est lu. Et les
+// bénéficiaires se lisent par les constantes de lib/personnes.php.
+require_once __DIR__ . '/../lib/personnes.php';
 require_once __DIR__ . '/../lib/routes_pieces.php';
 
 $tests = 0;
@@ -315,6 +317,46 @@ check('aucune clé manquante dans PIECE_TYPES', [], $manques);
 check('un seul type laisse le sens ouvert', ['autre'], array_keys(array_filter(
     PIECE_TYPES, fn ($t) => $t['sens'] === ''
 )));
+
+echo "\n10) À qui la pièce s'adresse\n";
+
+// ⚠️ Les EMPLOYÉS sortent du lot et passent devant : rembourser une avance,
+// c'est neuf fois sur dix rembourser l'un d'eux, et ils sont dix là où le
+// carnet en compte trois mille. Noyés dans « Personnes », il fallait les y
+// chercher par leur nom en sachant déjà comment il s'écrit.
+$pdo->exec("DELETE FROM employes");
+$pdo->exec("INSERT INTO personnes (id, prenom, nom) VALUES (900, 'Jeanne', 'Aubert')");
+$pdo->exec("INSERT INTO personnes (id, prenom, nom) VALUES (901, 'Paul', 'Berger')");
+$pdo->exec("INSERT INTO personnes (id, prenom, nom) VALUES (902, 'Rose', 'Clerc')");
+$pdo->exec("INSERT INTO employes (id, personne_id, actif) VALUES (90, 900, 1)");
+$pdo->exec("INSERT INTO employes (id, personne_id, actif) VALUES (91, 902, 0)");
+$pdo->exec("INSERT INTO employes (id, personne_id, actif) VALUES (92, NULL, 1)");
+
+$options = piece_beneficiaires_options();
+$parGroupe = [];
+foreach ($options as $o) { $parGroupe[$o['groupe']][] = $o['val']; }
+
+check('un employé actif paraît sous « Employés »', ['p:900'], $parGroupe['Employés'] ?? []);
+check('…et c'."'".'est bien sa PERSONNE qu'."'".'on désigne', 'p:900', $options[0]['val'] ?? '');
+check('« Employés » vient en premier', 'Employés', $options[0]['groupe'] ?? '');
+
+// Un employé rendu inactif n'est plus quelqu'un à qui l'association doit de
+// l'argent : il reste dans le carnet, pas dans la liste de tête.
+check('un employé inactif ne paraît pas sous « Employés »', false,
+    in_array('p:902', $parGroupe['Employés'] ?? [], true));
+check('…mais reste joignable comme personne', true,
+    in_array('p:902', $parGroupe['Personnes'] ?? [], true));
+
+// Deux lignes identiques dans le même menu feraient hésiter sans rien apporter.
+check('un employé ne reparaît pas sous « Personnes »', false,
+    in_array('p:900', $parGroupe['Personnes'] ?? [], true));
+check('aucune valeur en double, tous groupes confondus',
+    count($options), count(array_unique(array_column($options, 'val'))));
+
+// Un employé sans identité rattachée ne désigne personne : l'inscrire aurait
+// produit une entrée « p:0 » que piece_champs_postes() aurait jetée en silence.
+check('un employé sans personne est ignoré', false,
+    in_array('p:0', array_column($options, 'val'), true));
 
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }

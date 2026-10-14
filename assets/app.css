@@ -6199,6 +6199,12 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
     .piece-depot { grid-template-columns: 1fr; }
 }
 
+/* Le bénéficiaire : un nom, pas un paragraphe. Plafonné plutôt que fixé à la
+   moitié (.champ-court), parce qu'une moitié de carte sur un téléphone donne
+   un champ de 155px où un nom cherché ne tient pas — ici il prend toute la
+   largeur disponible jusqu'à ce plafond. */
+.piece-benef { max-width: 340px; }
+
 /* Les quatre champs du dépôt sur une rangée (.champs-rangee). Les deux premiers
    s'étirent, les deux derniers ont une longueur connue : un montant tient en
    « 12'345.60 CHF », une date en « jj.mm.aaaa » plus son calendrier. Leur
