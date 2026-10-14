@@ -15,13 +15,14 @@ des **droits de lecture/écriture par utilisateur et par module** :
 
 | Module | Contenu |
 |--------|---------|
+| **Carnet d'adresses** | structures (salles, bailleurs, débiteurs, fournisseurs), personnes et employés — l'identité, partagée par tout le reste. Facturation, Événements, Booking et Recherche de fonds en dépendent |
 | **Fiches de salaire** | employés, fiches mensuelles, certificats, taux |
 | **Comptabilité** | relevés PostFinance (CSV), plan comptable, lettrage, comptes annuels |
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
 | **Pièces comptables** | factures reçues, tickets de carte photographiés, dépenses à rembourser, quittances émises ; rapprochement avec les écritures, archive annuelle (dépend de Comptabilité) |
-| **Facturation** | débiteurs, **QR-factures suisses** (PDF), relances |
+| **Facturation** | **QR-factures suisses** (PDF), relances (dépend du Carnet d'adresses) |
 | **Événements** | dates, projets, déclarations SUISA, exports JSON/iCal |
-| **Booking** | structures, contacts, tags, lieux (carte), message individuel |
+| **Booking** | CRM des structures : contacts, tags, lieux (carte), campagnes, message individuel (dépend du Carnet d'adresses) |
 | **Envois groupés** | campagnes de mailing ciblé (dépend de Booking) |
 | **Recherche de fonds** | campagnes de demandes de subvention : un dossier par bailleur, délais de dépôt et de bilan, jauge en francs, versement rapproché d'une écriture |
 

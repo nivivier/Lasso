@@ -24,7 +24,7 @@ au sens des permissions (il l'est déjà partiellement : `MODULE_COEUR` existe d
 
 ## 2. Principe général
 
-- Une portée par module (`salaires`, `compta`, `analytique`, `pieces`,
+- Une portée par module (`carnet`, `salaires`, `compta`, `analytique`, `pieces`,
   `facturation`, `evenements`, `booking`, `fonds`, `mailing`) + `coeur`.
 - Pour chaque paire (utilisateur, module), un niveau : **aucun** (implicite, pas de
   droit accordé), **lecture**, ou **écriture**. Écriture inclut lecture (pas besoin de
@@ -32,10 +32,13 @@ au sens des permissions (il l'est déjà partiellement : `MODULE_COEUR` existe d
 - Un module désactivé globalement (`module_actif()` = faux) reste invisible pour tout le
   monde, indépendamment des permissions individuelles — les deux mécanismes se combinent
   (`module actif ET utilisateur autorisé`), ils ne se remplacent pas.
-- Trois modules dépendent d'un autre (`requires`) : `analytique` et `pieces` de
-  `compta`, `mailing` (« Envois groupés ») de `booking`. La règle ci-dessous
-  vaut pour tous — `clamp_permissions_dependantes()` suit `MODULES`, sans liste
-  en dur.
+- Sept modules dépendent d'un autre (`requires`) : `analytique` et `pieces` de
+  `compta`, `mailing` (« Envois groupés ») de `booking`, et `facturation`,
+  `evenements`, `booking`, `fonds` du **`carnet`** — les quatre travaillent sur
+  des structures, et le carnet est la seule chose qui les possède. La règle
+  ci-dessous vaut pour tous — `clamp_permissions_dependantes()` suit `MODULES`,
+  sans liste en dur ; on ne peut donc pas écrire plus loin dans la facturation
+  ou le booking que dans le carnet sur lequel ils sont bâtis.
 - `analytique` dépend de `compta` (`requires` existant) : logiquement, un droit sur
   `analytique` ne devrait pas dépasser celui sur `compta` (ex. écriture analytique sans
   aucun accès compta n'a pas de sens) — à valider, voir §10.
@@ -51,7 +54,7 @@ dérivé, voir §1). Une seule nouvelle table.
 |---|---|
 | `id` | |
 | `utilisateur_id` | FK → `utilisateurs`, `ON DELETE CASCADE` |
-| `module` | identifiant texte : `coeur`, `salaires`, `compta`, `analytique`, `pieces`, `facturation`, `evenements`, `booking`, `fonds`, `mailing` |
+| `module` | identifiant texte : `coeur`, `carnet`, `salaires`, `compta`, `analytique`, `pieces`, `facturation`, `evenements`, `booking`, `fonds`, `mailing` |
 | `niveau` | `lecture` / `ecriture` |
 | | `UNIQUE(utilisateur_id, module)` |
 
@@ -117,13 +120,33 @@ et le dispatcher ne vérifie que le module sous lequel la route est déclarée �
 C'est l'une des rares exceptions légitimes à « une route ne revérifie jamais
 ses droits » : la route est déclarée sous un module et agit sur un autre.
 
-## 6 ter. Cas particulier — les personnes
+## 6 ter. Les personnes et les structures — le carnet d'adresses
 
-L'écran « Personnes » (Paramètres → Application) vit sous `coeur`, c'est-à-dire
-réservé aux administrateurs. Non par prudence, mais parce qu'une personne
-**traverse** le booking, les salaires et les comptes : aucun module ne peut en
-être propriétaire, et la mettre sous l'un d'eux rendrait un employé visible à
-qui n'a que le booking.
+L'écran « Personnes » a d'abord vécu sous `coeur` (Paramètres → Application),
+réservé aux administrateurs. Non par prudence, mais faute de propriétaire : une
+personne **traverse** le booking, les salaires et les comptes, et la mettre sous
+l'un d'eux aurait rendu un employé visible à qui n'a que le booking. Les
+structures posaient le même problème sous une autre forme — routées
+« `facturation` OU `booking` », elles étaient à deux modules et donc à aucun, et
+les deux autres qui s'en servent (événements, recherche de fonds) affichaient un
+onglet « Structures » que leurs comptes n'avaient pas le droit d'ouvrir.
+
+**Le module `carnet` est la réponse** : l'identité a son propriétaire, et les
+quatre modules qui s'en servent le `requires`. Trois conséquences à retenir :
+
+1. `?p=structures`, `?p=structure`, `?p=personnes`, `?p=personne` et les fusions
+   sont rattachées au seul `carnet`. Avoir le booking ne donne plus accès aux
+   structures : il faut le carnet, que la dépendance garantit à l'activation et
+   que `migration_102` a accordé à tous ceux qui l'avaient de fait.
+2. Les écrans propres au **CRM** — contacts, notes, tags, lieux, messages,
+   import — restent au `booking`. Ils parlent de démarchage, pas d'identité, et
+   la fiche structure ne les montre qu'avec lui (`$avecAside`,
+   `views/structure.php`). La recherche unifiée suit la même ligne : la source
+   `structures` est sous `carnet`, la source `contacts` sous `booking`.
+3. L'onglet **Employés** figure dans le carnet, mais derrière le droit
+   `salaires` : la fiche d'un employé porte son n° AVS, son taux horaire et son
+   impôt à la source. Déplacer un onglet ne doit jamais élargir qui lit ce qu'il
+   ouvre — c'est une porte de plus vers le même écran, pas une porte plus large.
 
 ## 7. Impact sur l'architecture existante
 

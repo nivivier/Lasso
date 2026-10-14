@@ -5,8 +5,10 @@ $id = (int) $p['id'];
 $vide = '<span class="muted">—</span>';
 $champ = fn (string $c): string => e((string) ($p[$c] ?? ''));
 ?>
-<?php require __DIR__ . '/_param_tabs.php'; ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
 
+<div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=personnes', 'Personnes') ?>
 <?php if ($ok): ?><p class="ok flash">Fiche enregistrée.</p><?php endif; ?>
 
@@ -139,3 +141,4 @@ $champ = fn (string $c): string => e((string) ($p[$c] ?? ''));
     </table>
     <?php endif; ?>
 </div>
+</div></div>

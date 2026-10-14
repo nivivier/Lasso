@@ -10,6 +10,17 @@
 declare(strict_types=1);
 
 const MODULES = [
+    // Le socle : l'identité de tout ce qui n'est pas nous. Quatre modules s'en
+    // servent — on facture une structure, un événement a un organisateur, on
+    // démarche une salle, on demande une subvention à un bailleur —, et c'est
+    // pour cela qu'il est un module à part et non un écran de l'un d'eux :
+    // aucun des quatre ne pouvait en être propriétaire sans que les trois
+    // autres en dépendent.
+    'carnet'     => [
+        'label'       => "Carnet d'adresses",
+        'description' => 'Structures (salles, bailleurs, débiteurs, fournisseurs), personnes et employés. Les quatre modules qui s\'en servent — Facturation, Événements, Booking, Recherche de fonds — en dépendent : les éteindre ne l\'éteint pas, mais l\'éteindre les éteint.',
+        'requires'    => [],
+    ],
     'salaires'   => [
         'label'       => 'Fiches de salaire',
         'description' => 'Employés, fiches de salaire, certificats de salaire, taux',
@@ -37,26 +48,26 @@ const MODULES = [
     ],
     'facturation' => [
         'label'       => 'Facturation',
-        'description' => 'Structures, factures (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
-        'requires'    => [],
+        'description' => 'Factures aux structures du carnet d\'adresses (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
+        'requires'    => ['carnet'],
     ],
     'evenements' => [
         'label'       => 'Événements',
         'description' => 'Dates de concert/projet, suivi SUISA, export public JSON/iCal',
-        'requires'    => [],
+        'requires'    => ['carnet'],
     ],
     'booking' => [
         'label'       => 'Booking',
-        'description' => 'CRM des structures (salles, festivals, médias) : catégorie, contacts, notes, lieux, messages individuels, import CSV. Réutilise les structures (ex-débiteurs) de la Facturation, sans en dépendre.',
-        'requires'    => [],
+        'description' => 'CRM par-dessus le carnet d\'adresses : catégorie, contacts, notes, lieux (carte), campagnes de démarchage, messages individuels, import CSV. Les structures elles-mêmes appartiennent au carnet ; ici on les travaille.',
+        'requires'    => ['carnet'],
     ],
-    // Suivi des demandes de subvention (SPEC_SUBVENTIONS.md). Réutilise les
-    // structures comme la Facturation et le Booking, sans dépendre d'eux : un
-    // bailleur est une structure, et le projet financé un projet.
+    // Suivi des demandes de subvention (SPEC_SUBVENTIONS.md). Un bailleur est une
+    // structure du carnet d'adresses, comme une salle ou un débiteur — d'où la
+    // dépendance, partagée avec la Facturation, les Événements et le Booking.
     'fonds' => [
         'label'       => 'Recherche de fonds',
         'description' => "Demandes de subvention : à qui l'on demande, pour quel projet, combien, où en est le dossier et ce qui a été obtenu. Les bailleurs sont des structures, comme les salles et les débiteurs.",
-        'requires'    => [],
+        'requires'    => ['carnet'],
     ],
     // Sous-module : écrire à plusieurs structures d'un coup. Le booking seul
     // permet déjà d'écrire à UNE structure depuis sa fiche (bouton
@@ -84,6 +95,10 @@ const MODULES = [
 // .param-subtabs a.on, voir assets/app.css) : une teinte trop claire y
 // rendrait le texte illisible.
 const MODULE_COULEURS = [
+    // Ardoise : la seule famille de teintes encore libre, et la bonne pour ce
+    // module-ci — le carnet est le socle des quatre autres, il n'a pas à crier
+    // plus fort qu'eux. 7.03:1 sous texte blanc.
+    'carnet'      => '#445a7a',
     'salaires'    => '#168176', // teal
     'compta'      => '#c25415', // ambre
     'facturation' => '#526be3', // indigo
@@ -154,7 +169,7 @@ function route_defaut(): string
 // index.php). Une table de permissions vide pour un utilisateur = aucun
 // accès nulle part ; c'est le premier compte créé (route_installation) qui reçoit
 // tout par défaut, pas les comptes suivants.
-const PERMISSION_MODULES = ['coeur', 'salaires', 'compta', 'analytique', 'pieces', 'facturation', 'evenements', 'booking', 'fonds', 'mailing'];
+const PERMISSION_MODULES = ['coeur', 'carnet', 'salaires', 'compta', 'analytique', 'pieces', 'facturation', 'evenements', 'booking', 'fonds', 'mailing'];
 
 // --- Fonctions pures (testées sans base de données, tests/permissions_test.php) ---
 
@@ -382,6 +397,25 @@ function nav_groupes(): array
     }
     $g = [];
 
+    // Le carnet d'adresses, en tête : c'est sur lui que les autres sont bâtis.
+    // Trois écrans, une seule matière — qui est qui.
+    if (module_actif('carnet') && peut_lire('carnet')) {
+        $ongletsCarnet = [
+            'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
+            'personnes'  => ['Personnes', ['personnes', 'personne'], 0, 'user'],
+        ];
+        // ⚠️ L'onglet Employés reste derrière le droit SALAIRES, pas le carnet :
+        // la fiche d'un employé porte son n° AVS, son taux horaire et son impôt
+        // à la source. Le déplacer ici ne doit pas élargir qui les lit — c'est
+        // une porte de plus vers le même écran, pas une porte plus large. Il
+        // reste aussi dans le module Salaires, comme « Projets » figure à la
+        // fois dans Événements, Booking et Recherche de fonds.
+        if (module_accessible('salaires')) {
+            $ongletsCarnet['employes'] = ['Employés', ['employes', 'employe_form', 'employe'], 0, 'users'];
+        }
+        $g['carnet'] = ["Carnet d'adresses", 'users', $ongletsCarnet];
+    }
+
     if (module_actif('salaires') && peut_lire('salaires')) {
         $g['salaires'] = ['Salaires', 'file-text', [
             // « Fiches » et non « Fiches de salaire » : le titre du module, à
@@ -444,10 +478,12 @@ function nav_groupes(): array
     }
 
     if (module_actif('facturation') && peut_lire('facturation')) {
-        $g['facturation'] = ['Factures', 'receipt-swiss-franc', [
+        // « Facturation » et non « Factures » : le module qui émet des factures
+        // et celui qui range les factures REÇUES (les pièces comptables) se
+        // lisaient sous le même mot dans le rail.
+        $g['facturation'] = ['Facturation', 'receipt-swiss-franc', [
             'factures' => ['Factures', ['factures', 'facture_form', 'facture'], nb_factures_en_retard(), 'receipt-swiss-franc'],
             'compta_comptes'    => ['Comptes bancaires', ['compta_comptes'], 0, 'landmark'],
-            'structures'        => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
         ]];
     }
 
@@ -464,7 +500,6 @@ function nav_groupes(): array
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
             'evenements' => ['Événements', ['evenements', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
-            'structures'       => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'projets'       => $ongletProjets,
         ]];
     }
@@ -474,7 +509,6 @@ function nav_groupes(): array
         // views/_mailing_tabs.php, retiré) : ses 4 pages deviennent des
         // onglets de premier niveau au même titre que Structures.
         $ongletsBooking = [
-            'structures'         => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             // Campagnes de contact : indépendantes du sous-module « Envois
             // groupés », puisqu'on y démarche structure par structure.
             'booking_campagnes'          => ['Campagnes', ['booking_campagnes', 'booking_campagne', 'booking_campagne_form'], 0, 'target'],
@@ -511,9 +545,6 @@ function nav_groupes(): array
     if (module_actif('fonds') && peut_lire('fonds')) {
         $ongletsFonds = [
             'fonds_campagnes' => ['Campagnes', ['fonds_campagnes', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
-            // Les bailleurs sont des structures : le même écran que le booking
-            // et la facturation, pas une seconde liste à tenir.
-            'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
         ];
         // Ce qu'une campagne finance est un projet, et c'est lui qui porte l'axe
         // analytique de la ventilation (migration_91) : on le règle sans quitter
@@ -561,10 +592,10 @@ function parametres_groupes(): array
             'apparence'          => 'Apparence',
             'modules'            => 'Modules',
             'utilisateurs'       => 'Utilisateurs',
-            // Les personnes traversent le booking, les salaires et les
-            // comptes : aucun module ne peut en être propriétaire, et c'est
-            // pourquoi l'écran vit ici, sous « coeur » (SPEC_PERSONNES.md).
-            'personnes'          => 'Personnes',
+            // Les personnes ne sont plus ici : elles ont leur onglet dans le
+            // Carnet d'adresses, qui est le module qui pouvait enfin les
+            // porter. Elles étaient sous « coeur » faute de mieux — aucun des
+            // modules qui s'en servent ne pouvait se les approprier.
             'diagnostic'         => 'Serveur',
         ]];
     }
@@ -712,7 +743,13 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
     // fonds ne font que les reprendre en onglet. Sans cette table, l'ordre
     // fixe ci-dessous allumerait Booking sur un ?p=projets arrivé sans
     // provenance — depuis le rail, un signet ou la recherche unifiée.
-    $proprietaire = ['projets' => 'evenements', 'projet' => 'evenements'][$route] ?? null;
+    //
+    // Même chose pour les employés : l'onglet figure dans le Carnet d'adresses
+    // ET dans Salaires, mais la fiche d'un employé est une pièce de la paie —
+    // c'est le groupe Salaires qui s'allume quand on y arrive sans provenance.
+    $proprietaire = ['projets' => 'evenements', 'projet' => 'evenements',
+                     'employes' => 'salaires', 'employe' => 'salaires',
+                     'employe_form' => 'salaires'][$route] ?? null;
     if ($proprietaire !== null && in_array($proprietaire, $candidats, true)) {
         return $proprietaire;
     }

@@ -10,6 +10,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Un module « Carnet d'adresses »** : structures, personnes et employés, au
+  même endroit. Les structures étaient partagées entre la Facturation et le
+  Booking — donc à deux modules et à aucun —, et les deux autres qui s'en
+  servent (Événements, Recherche de fonds) affichaient un onglet « Structures »
+  que leurs comptes n'avaient pas le droit d'ouvrir. Les personnes, elles,
+  vivaient dans les Paramètres faute de module qui pût les porter. Elles ont
+  maintenant le leur, et les quatre modules qui s'en servent en dépendent.
+  L'onglet Employés y figure aussi, mais toujours derrière le droit Salaires :
+  une fiche d'employé porte son n° AVS et son taux horaire.
+  Le module **« Factures » devient « Facturation »**, pour ne plus se lire comme
+  les factures *reçues* que range le module Pièces comptables.
 - **Les personnes** (`SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
   Paramètres → Application. Un contact de structure, un employé et un compte
   peuvent être la **même personne** — et le sont souvent ; ils le disent

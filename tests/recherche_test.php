@@ -99,13 +99,17 @@ check('employés INVISIBLES sans « salaires »', false,
 check('aucun module accessible → aucune source visible', false,
     recherche_source_visible_pour($src['employes'], []));
 
-// Entité partagée : un seul des deux modules suffit.
-check('structures visibles avec « facturation » seul', true,
-    recherche_source_visible_pour($src['structures'], ['facturation']));
-check('structures visibles avec « booking » seul', true,
+// Les structures appartiennent au CARNET D'ADRESSES, et à lui seul. Les quatre
+// modules qui s'en servent (facturation, événements, booking, recherche de
+// fonds) le « requires » : avoir l'un d'eux sans le carnet n'arrive pas par
+// l'activation, mais peut arriver par les DROITS — et dans ce cas la recherche
+// ne doit pas rendre ce que la liste refuserait d'ouvrir.
+check('structures visibles avec « carnet »', true,
+    recherche_source_visible_pour($src['structures'], ['carnet']));
+check('structures INVISIBLES avec « booking » seul', false,
     recherche_source_visible_pour($src['structures'], ['booking']));
-check('structures INVISIBLES sans aucun des deux', false,
-    recherche_source_visible_pour($src['structures'], ['salaires', 'compta']));
+check('structures INVISIBLES avec « facturation » seul', false,
+    recherche_source_visible_pour($src['structures'], ['facturation']));
 
 // Les contacts sont plus restreints que les structures qui les portent : la
 // fiche structure ne les montre qu'avec booking (voir $avecAside dans

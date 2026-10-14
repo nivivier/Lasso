@@ -572,7 +572,7 @@ function piece_beneficiaires_options(): array
             $out[] = ['val' => 'p:' . $pid, 'libelle' => personne_nom($em), 'groupe' => 'Employés'];
         }
     }
-    if (module_accessible('booking') || module_accessible('facturation')) {
+    if (module_accessible('carnet')) {
         foreach (db()->query("SELECT id, nom FROM structures WHERE statut <> 'inactif' ORDER BY nom COLLATE NOCASE") as $s) {
             $out[] = ['val' => 's:' . (int) $s['id'], 'libelle' => (string) $s['nom'], 'groupe' => 'Structures'];
         }

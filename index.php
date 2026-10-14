@@ -196,23 +196,34 @@ ajouter_routes_module($handlers, $routeModules, 'facturation', [
     'factures_importer'       => 'route_factures_importer',
 ]);
 
-// Structures (ex-débiteurs) : liste/fiche/suppression partagées entre
-// Facturation et Booking — accessible dès que l'un des deux modules est actif
-// (même logique « OU » que les comptes bancaires ci-dessus), voir
-// SPEC_BOOKING.md §3. Les écrans propres au CRM (notes, tags, lieux, mailing,
-// import) restent réservés au module booking, ci-dessous.
-if (module_actif('facturation') || module_actif('booking')) {
-    $handlers['structures']      = 'route_structures';
-    $handlers['structures_geocoder'] = 'route_structures_geocoder';
-    $handlers['structure']       = 'route_structure';
-    $handlers['structure_renommer'] = 'route_structure_renommer';
-    $handlers['structure_statut'] = 'route_structure_statut';
-    $handlers['structure_supprimer'] = 'route_structure_supprimer';
-    $handlers['structure_fusion'] = 'route_structure_fusion';
-    foreach (['structures', 'structures_geocoder', 'structure', 'structure_renommer', 'structure_statut', 'structure_supprimer', 'structure_fusion'] as $r) {
-        $routeModules[$r] = ['facturation', 'booking'];
-    }
-}
+// Le carnet d'adresses : qui est qui. Les structures (salles, bailleurs,
+// débiteurs, fournisseurs) et les personnes, avec leurs fusions — un seul
+// propriétaire, et c'est tout l'objet du module : quatre modules s'en servent
+// (facturation, événements, booking, recherche de fonds) et aucun ne pouvait
+// en être le propriétaire sans que les trois autres en dépendent. Ils le
+// `requires` donc (lib/modules.php), ce qui garantit qu'un module allumé a
+// toujours son carnet sous lui.
+//
+// ⚠️ Ce qui reste au booking, juste en dessous : les écrans propres au CRM —
+// contacts, notes, tags, lieux, messages, import. Ils parlent de démarchage,
+// et ils vivent dans la fiche structure telle que le booking la dessine. Le
+// carnet prend l'IDENTITÉ : qui existe, et comment on l'appelle.
+ajouter_routes_module($handlers, $routeModules, 'carnet', [
+    'structures'          => 'route_structures',
+    'structures_geocoder' => 'route_structures_geocoder',
+    'structure'           => 'route_structure',
+    'structure_renommer'  => 'route_structure_renommer',
+    'structure_statut'    => 'route_structure_statut',
+    'structure_supprimer' => 'route_structure_supprimer',
+    'structure_fusion'    => 'route_structure_fusion',
+    // Les personnes : l'identité d'un contact, d'un employé ou d'un compte
+    // (SPEC_PERSONNES.md). Elles étaient sous « coeur » faute de module qui
+    // pût les porter sans se les approprier ; le carnet est ce module.
+    'personnes'            => 'route_personnes',
+    'personne'             => 'route_personne',
+    'personne_enregistrer' => 'route_personne_enregistrer',
+    'personnes_fusionner'  => 'route_personnes_fusionner',
+]);
 
 ajouter_routes_module($handlers, $routeModules, 'booking', [
     'structure_contact_ajouter' => 'route_structure_contact_ajouter',
@@ -365,13 +376,6 @@ if (peut_ecrire('coeur')) {
         'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
         'sauvegarde'              => 'route_sauvegarde',
         'dev'                 => 'route_dev',
-        // Les personnes : sous « coeur » parce qu'elles traversent le booking,
-        // les salaires et les comptes — aucun module ne peut en être
-        // propriétaire (SPEC_PERSONNES.md).
-        'personnes'           => 'route_personnes',
-        'personne'            => 'route_personne',
-        'personne_enregistrer' => 'route_personne_enregistrer',
-        'personnes_fusionner'  => 'route_personnes_fusionner',
     ];
 }
 

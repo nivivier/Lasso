@@ -92,7 +92,7 @@ chiffré, pas découvert.
 | Doublons de l'annuaire | **Un écran de fusion manuelle, plus tard.** Une personne par contact à la migration |
 | Personnes physiques saisies comme structures (les « Freelance ») | **On les laisse où elles sont.** Ces fiches portent déjà des événements, des campagnes, des factures ; les déplacer obligerait tout ce qui pointe une structure à accepter aussi une personne. Une quittance à un freelance se fait à la structure |
 | Adresse postale | **Elle monte sur `personnes`.** Une seule adresse, que le certificat de salaire et la quittance lisent au même endroit |
-| Écran et droits | **« Personnes » dans Paramètres, droit `coeur`.** Une personne traverse le booking, les salaires et les comptes : aucun module ne peut en être propriétaire |
+| Écran et droits | **« Personnes » dans Paramètres, droit `coeur`** — faute de mieux : une personne traverse le booking, les salaires et les comptes, et aucun de ces modules-là ne pouvait en être propriétaire. ⚠️ **Dépassé depuis** : l'écran vit dans le module **Carnet d'adresses** (droit `carnet`), créé pour porter ce qu'aucun autre ne pouvait — voir `CLAUDE.md § Modules & droits` |
 | Historique | **Rattaché à la personne ET à la structure** |
 | Ordre | **Après l'étape 5 de `SPEC_PIECES.md`**, avant les quittances |
 

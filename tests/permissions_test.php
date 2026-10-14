@@ -56,6 +56,29 @@ check(
     clamp_permissions_dependantes(['compta' => 'ecriture', 'analytique' => 'lecture'])
 );
 
+// Le carnet d'adresses porte les structures et les personnes ; quatre modules
+// s'en servent et le « requires ». Deux conséquences se vérifient ici, parce
+// qu'aucune des deux ne se voit à l'écran tant qu'un compte limité n'existe pas.
+check(
+    'booking sans carnet → retiré entièrement',
+    ['salaires' => 'lecture'],
+    clamp_permissions_dependantes(['salaires' => 'lecture', 'booking' => 'ecriture'])
+);
+check(
+    'facturation écriture + carnet lecture → ramenée à lecture',
+    ['carnet' => 'lecture', 'facturation' => 'lecture'],
+    clamp_permissions_dependantes(['carnet' => 'lecture', 'facturation' => 'ecriture'])
+);
+// La cascade va jusqu'au bout : mailing dépend de booking, qui dépend du carnet.
+check(
+    'mailing survit à une chaîne complète',
+    ['carnet' => 'ecriture', 'booking' => 'ecriture', 'mailing' => 'ecriture'],
+    clamp_permissions_dependantes(['carnet' => 'ecriture', 'booking' => 'ecriture', 'mailing' => 'ecriture'])
+);
+$dependentsDuCarnet = array_keys(array_filter(MODULES, fn ($m) => in_array('carnet', $m['requires'], true)));
+check('les quatre modules qui se servent des structures dépendent du carnet',
+    ['facturation', 'evenements', 'booking', 'fonds'], $dependentsDuCarnet);
+
 echo "3) PERMISSION_MODULES\n";
 check('coeur listé', true, in_array('coeur', PERMISSION_MODULES, true));
 check('un module par entrée de MODULES + coeur', count(MODULES) + 1, count(PERMISSION_MODULES));

@@ -2,16 +2,21 @@
 /** @var string $recherche */ /** @var int $total */ /** @var int $nbDoublons */ /** @var ?string $ok */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 ?>
-<?php require __DIR__ . '/_param_tabs.php'; ?>
+<?php // L'écran appartient au Carnet d'adresses depuis qu'il existe : bandeau
+      // du module et onglets, comme ses voisins Structures et Employés. Il
+      // vivait dans les Paramètres faute d'un module qui pût le porter. ?>
+<?php require __DIR__ . '/_module_tabs.php'; ?>
+<?php require __DIR__ . '/_page_head_band.php'; ?>
+
+<div class="module-content"><div class="module-content-inner">
 
 <?php if ($ok !== null): ?><p class="ok flash"><?= (int) $ok ?> fiche(s) fusionnée(s).</p><?php endif; ?>
 
-<div class="section-head">
-    <h2 class="mt-0">Personnes <?= info_tip(
-        "Le carnet d'adresses unique : un contact de structure, un employé et un compte peuvent être la MÊME "
-        . 'personne, et le sont souvent. Modifier un nom ou une adresse ici le change partout où cette '
-        . 'personne apparaît.'
-    ) ?></h2>
+<div class="page-head">
+    <div class="page-head-title"><h1>Personnes <?= info_tip(
+        "Un contact de structure, un employé et un compte peuvent être la MÊME personne, et le sont "
+        . 'souvent. Modifier un nom ou une adresse ici le change partout où cette personne apparaît.'
+    ) ?></h1></div>
     <div class="head-actions">
         <?php // Deux vues du même annuaire : la liste, et ce qui s'y est
               // dédoublé. Le second bouton ne paraît que s'il y a quelque
@@ -121,3 +126,4 @@
     <script nonce="<?= e(csp_nonce()) ?>">lassoRechercheServeur(document.getElementById('personnes-search'));</script>
 
 <?php endif; ?>
+</div></div>

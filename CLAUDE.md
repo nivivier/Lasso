@@ -112,12 +112,27 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
 - **Modules & droits** `lib/modules.php` (voir `SPEC_PERMISSIONS.md`) :
-  - `MODULES`/`module_actif()` : activation globale par module (salaires/compta/
-    analytique/pieces/facturation/evenements/booking/fonds/mailing), indépendante
-    des droits ci-dessous. Trois modules en dépendent d'un autre (`requires`) :
-    `analytique` → `compta`, `pieces` → `compta`, `mailing` (« Envois groupés »)
-    → `booking` ; ils s'affichent décalés sous leur parent dans `?p=modules` et
-    s'éteignent avec lui.
+  - `MODULES`/`module_actif()` : activation globale par module (carnet/salaires/
+    compta/analytique/pieces/facturation/evenements/booking/fonds/mailing),
+    indépendante des droits ci-dessous. Sept modules en dépendent d'un autre
+    (`requires`) : `analytique` → `compta`, `pieces` → `compta`, `mailing`
+    (« Envois groupés ») → `booking`, et **`facturation`/`evenements`/`booking`/
+    `fonds` → `carnet`** ; ils s'affichent décalés sous leur parent dans
+    `?p=modules` et s'éteignent avec lui.
+    ⚠️ `carnet` (« Carnet d'adresses ») possède les **structures** et les
+    **personnes**, et lui seul : `?p=structures`, `?p=structure`,
+    `?p=personnes`, `?p=personne` y sont rattachées (`index.php`). C'est la
+    réponse à une question restée ouverte — quatre modules s'en servent, aucun
+    ne pouvait se les approprier sans que les trois autres en dépendent. Les
+    écrans propres au CRM (contacts, notes, tags, lieux, messages, import)
+    restent au `booking` : ils parlent de démarchage, pas d'identité. L'onglet
+    **Employés** y figure aussi, mais derrière le droit `salaires` — la fiche
+    d'un employé porte son n° AVS et son taux horaire.
+    ⚠️ `requires` sert DEUX mécaniques : la cascade d'activation
+    (`set_modules_actifs()`) **et** le plafonnement des droits
+    (`clamp_permissions_dependantes()`), qui ramène un module au niveau de sa
+    dépendance. Un compte ne peut donc pas écrire plus loin dans la facturation
+    ou le booking que dans le carnet sur lequel ils sont bâtis.
     ⚠️ `pieces` existe comme module SÉPARÉ pour une seule raison : donner le
     dépôt d'un justificatif sans la lecture des comptes. C'est aussi **le seul
     endroit où un onglet survit à son module parent** — le bandeau de la

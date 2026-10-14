@@ -127,6 +127,7 @@ function run_migrations(PDO $pdo): void
         99 => 'migration_99', // pièces comptables : la table, et le justificatif attendu d'une écriture
         100 => 'migration_100', // les personnes : l'identité sort des contacts, des employés et des comptes
         101 => 'migration_101', // quittances : le bénéficiaire d'une pièce émise
+        102 => 'migration_102', // le carnet d'adresses devient un module à part entière
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {
@@ -3156,6 +3157,55 @@ function migration_94(PDO $pdo): void
 // étrangère, et une fiche supprimée ne laisse pas une quittance pointant un
 // identifiant devenu celui de quelqu'un d'autre. Avec un couple polymorphe,
 // cette erreur-là est silencieuse et indétectable.
+function migration_102(PDO $pdo): void
+{
+    // Le carnet d'adresses devient un MODULE : structures, personnes, employés.
+    // Rien à migrer dans les données — les tables ne bougent pas —, mais tout à
+    // reprendre du côté des droits, et pour les deux mêmes régressions
+    // silencieuses que migration_73 (mailing) et migration_99 (pièces) :
+    //
+    //   • « modules_actifs » est une liste EXPLICITE une fois enregistrée : un
+    //     identifiant qui n'y figure pas est inactif. Sans cette reprise, le
+    //     carnet naîtrait éteint — et avec lui les quatre modules qui le
+    //     « requires » désormais, qui s'éteindraient au premier passage par
+    //     ?p=modules (set_modules_actifs() retire un module dont la dépendance
+    //     manque). Toute l'installation serait tombée d'un coup.
+    //   • les droits sont par module, et l'absence de ligne vaut aucun accès :
+    //     sans reprise, plus personne n'ouvrirait une structure ni une
+    //     personne, pas même l'administrateur.
+    $st = $pdo->prepare('SELECT valeur FROM parametres WHERE cle = ?');
+    $st->execute(['modules_actifs']);
+    $val = $st->fetchColumn();
+    if ($val !== false) {
+        $ids = array_values(array_filter(array_map('trim', explode(',', (string) $val)), fn ($v) => $v !== ''));
+        // Le carnet s'allume si l'un de ceux qui s'en servent était allumé.
+        $utilisateurs = ['facturation', 'evenements', 'booking', 'fonds'];
+        if (array_intersect($utilisateurs, $ids) && !in_array('carnet', $ids, true)) {
+            $ids[] = 'carnet';
+            $pdo->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+                ->execute(['modules_actifs', implode(',', $ids)]);
+        }
+    }
+
+    // Le droit reçu est LE PLUS FORT de ceux qu'on avait sur les quatre : qui
+    // pouvait créer une structure depuis le booking doit pouvoir continuer. Le
+    // rabattre à « lecture » aurait cassé le geste courant sans rien dire.
+    $pdo->exec(
+        "INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau)
+         SELECT utilisateur_id, 'carnet',
+                CASE WHEN SUM(niveau = 'ecriture') > 0 THEN 'ecriture' ELSE 'lecture' END
+         FROM utilisateur_permissions
+         WHERE module IN ('facturation', 'evenements', 'booking', 'fonds')
+         GROUP BY utilisateur_id"
+    );
+    // Les personnes vivaient sous « coeur » (SPEC_PERSONNES.md) : un
+    // administrateur qui n'aurait aucun des quatre modules garde son carnet.
+    $pdo->exec(
+        "INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau)
+         SELECT utilisateur_id, 'carnet', niveau FROM utilisateur_permissions WHERE module = 'coeur'"
+    );
+}
+
 function migration_101(PDO $pdo): void
 {
     $cols = array_column($pdo->query('PRAGMA table_info(pieces)')->fetchAll(), 'name');
