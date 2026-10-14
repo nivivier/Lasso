@@ -271,7 +271,6 @@ $dashTitre = function (string $groupe, string $titre): string {
         <div class="card dash-card">
             <?= $dashTitre('compta', 'Pièces à payer') ?>
             <table class="list">
-                <thead><tr><th>Échéance</th><th>Pièce</th><th class="num">Montant</th></tr></thead>
                 <tbody>
                 <?php // L'ambre dit UN GESTE À FAIRE : une échéance dépassée en
                       // est un. Une facture dont le délai court n'en est pas
@@ -706,10 +705,9 @@ $dashTitre = function (string $groupe, string $titre): string {
           // MÊME menu que sur la liste des pièces (docs/UI.md § 6). ?>
     <?php if (module_accessible('pieces') && peut_ecrire('pieces')): ?>
     <?= pieces_menu_nouvelle_html(
-        // Fantôme et non plein : le « + » juste à côté est l'action mise en
-        // évidence de cette barre, et deux boutons pleins côte à côte ne se
-        // partagent pas une mise en évidence, ils l'annulent.
-        ['icone' => 'paperclip', 'libelle' => '', 'plein' => false, 'titre' => 'Déposer une pièce comptable…'],
+        // Plein comme le « + » d'à côté : déposer un justificatif est une
+        // action du même ordre que créer, pas un réglage de l'écran.
+        ['icone' => 'paperclip', 'libelle' => '', 'titre' => 'Déposer une pièce comptable…'],
         ['depuis' => 'dashboard', 'classe' => 'dash-pieces']
     ) ?>
     <?php endif; ?>
