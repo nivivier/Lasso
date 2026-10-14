@@ -598,26 +598,42 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 132px; }
 .perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 88px; }
 .perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 78px; }
+/* (la rangée d'édition occupe toute la largeur : voir .compte-edit-cell) */
 /* La ligne d'édition occupe toute la largeur : elle échappe aux largeurs fixes.
    La ligne de création aussi — sa cellule unique est la dernière de sa rangée,
    et hériterait donc des 78px réservés à la colonne des actions. */
 .perm-table .compte-edit-row > td { width: auto; }
 .perm-table #compte-ajout-row > td { width: auto; }
-.perm-col {
-    width: 70px; white-space: normal; overflow-wrap: break-word; text-align: center;
-    -webkit-hyphens: auto; hyphens: auto; /* coupure avec trait d'union plutôt qu'en plein milieu d'un mot */
-}
-.list thead th.perm-col { font-size: var(--fs-tiny); }
-.perm-toggle { display: inline-flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+/* Les droits d'un compte : une ligne par module dans le panneau d'édition, et
+   non une colonne par module dans la liste. À onze modules, la matrice
+   réclamait onze colonnes de 70px dont les en-têtes se chevauchaient hors
+   plein écran — pour deux comptes qu'on règle deux fois l'an. Ici le nom du
+   module est en toutes lettres, le niveau aussi, et le douzième module ne
+   changera rien. */
+.perm-liste td:first-child { width: 100%; }
+.perm-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .perm-btn {
-    display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
-    background: var(--card); border: none; border-bottom: 1px solid var(--line); border-radius: 0; color: var(--muted);
-    cursor: pointer; font-weight: 700; padding: 0; box-shadow: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 30px; padding: 0 11px; white-space: nowrap;
+    background: var(--card); border: none; border-right: 1px solid var(--line); border-radius: 0;
+    color: var(--muted); cursor: pointer; font-size: var(--fs-small); font-weight: 500; box-shadow: none;
 }
-.perm-btn:last-child { border-bottom: none; }
-.perm-btn .ico { width: 12px; height: 12px; }
+.perm-btn:last-of-type { border-right: none; }
+.perm-btn .ico { width: 13px; height: 13px; }
 .perm-btn:hover { background: var(--surface); }
-.perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
+.perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); font-weight: 700; }
+/* Le raccourci « tout mettre sur », dans l'en-tête de la section : il pose les
+   onze lignes d'un coup. */
+.perm-tous { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Le panneau d'édition d'un compte occupe toute la rangée : ses champs
+   d'identité se rangent en grille, le reste coule normalement. */
+.compte-edit-cell { background: var(--surface); vertical-align: top; padding: 18px var(--card-pad) 22px; }
+.compte-edit-cell .compte-edit-identite {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 0 18px; align-items: end;
+}
+.compte-edit-cell .compte-edit-personne { min-width: 0; }
+.compte-edit-actions { display: flex; align-items: center; gap: 8px; }
 
 /* === Page Paramètres : barre d'onglets ===
    Les onglets principaux réutilisent .module-tabs/.module-tab (voir plus bas)
@@ -2578,17 +2594,10 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
    comme sur les axes analytiques ou les lignes du décompte). */
 .compte-identite { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .compte-nom { font-weight: 600; }
-/* La ligne d'édition épouse les colonnes du tableau : les droits restent sous
-   l'en-tête de LEUR module, l'identité tient dans la première colonne, et les
-   boutons se posent tout à droite, sous le crayon qui a ouvert l'édition. */
-.compte-edit-row > td { background: var(--surface); vertical-align: top; padding-top: 10px; padding-bottom: 12px; }
-.compte-edit-identite { display: flex; flex-direction: column; gap: 8px; white-space: normal; }
-.compte-edit-identite label { margin-bottom: 0; display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
+/* Les champs d'identité du panneau d'édition : intitulé en petites capitales
+   au-dessus de son champ, comme dans un formulaire ordinaire. */
+.compte-edit-identite label { margin-bottom: 12px; display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
 .compte-edit-identite input { width: 100%; min-width: 0; }
-/* Sélecteur assez spécifique pour battre « .list th, .list td { text-align:
-   left } », sans quoi les boutons restaient collés au bord gauche de leur
-   cellule fusionnée. */
-.perm-table td.compte-edit-actions { text-align: right; white-space: nowrap; }
 /* Ligne de création d'un compte, dépliée par le bouton de la carte. Elle vit
    dans le tableau, hors d'un .form : ses champs n'héritent donc d'aucune mise
    en forme et la portent eux-mêmes. Une rangée qui s'enroule — sur téléphone,
@@ -2621,37 +2630,31 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
     }
     /* La ligne d'édition prolonge celle qu'elle remplace : elles ne s'affichent
        jamais ensemble, d'où la même boîte. */
-    .perm-table tr.compte-row > td, .perm-table tr.compte-edit-row > td {
+    .perm-table > tbody > tr.compte-row > td, .perm-table > tbody > tr.compte-edit-row > td {
         border: 0; padding: 4px 0; white-space: normal;
     }
     /* Identité en tête du bloc, actions posées en face d'elle. */
-    .perm-table tr.compte-row > td:first-child { padding-right: 46px; font-size: var(--fs-large); }
-    .perm-table td.actions { position: absolute; top: 10px; right: 12px; padding: 0; }
-    /* Un droit par ligne : son module, puis son niveau — à l'écran large c'est
-       la colonne qui nomme le module, ici c'est la cellule. */
-    .perm-table td.perm-col {
-        display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        text-align: left; width: auto; border-top: 1px solid var(--line); padding: 7px 0;
-    }
-    .perm-table td.perm-col::before {
-        content: attr(data-label); font-size: var(--fs-small); font-weight: 600; color: var(--muted);
-    }
+    .perm-table > tbody > tr.compte-row > td:first-child { padding-right: 46px; font-size: var(--fs-large); }
+    /* ⚠️ « > tbody > tr.compte-row > » et non « .perm-table td.actions » : le
+       panneau d'édition contient un SECOND tableau (.perm-liste), dont chaque
+       ligne porte aussi un td.actions. Sans cette borne, les trois boutons de
+       droits de la première ligne partaient se poser en absolu sur le champ
+       e-mail. Vu à l'écran. */
+    .perm-table > tbody > tr.compte-row > td.actions { position: absolute; top: 10px; right: 12px; padding: 0; }
+    /* Le module et son niveau l'un sous l'autre : côte à côte, les trois
+       niveaux en toutes lettres ne tiennent pas dans la largeur d'un
+       téléphone. */
+    .perm-liste td { display: block; width: auto; padding: 6px 0; }
+    .perm-liste tr { display: block; border-top: 1px solid var(--line); padding: 6px 0; }
+    .perm-liste td.actions { text-align: left; }
+    .perm-btn { padding: 0 9px; }
+    .perm-table td[data-label="Droits"]::before,
     .perm-table td[data-label="Dernière connexion"]::before,
     .perm-table td[data-label="Créé le"]::before {
         content: attr(data-label) " : "; font-weight: 600;
     }
-    .perm-table tr.compte-edit-row > td.compte-edit-actions { padding-top: 12px; }
-    /* Les trois niveaux côte à côte : en colonne, ils tripleraient la hauteur
-       de chacune des huit lignes de droits. */
-    .perm-toggle { flex-direction: row; }
+    .compte-edit-cell { padding: 12px 14px 16px; }
 }
-/* Droit en lecture seule : l'icône du niveau accordé, sans cadre ni cible de
-   clic. Le refus se distingue au premier coup d'œil de l'accès accordé. */
-.perm-lecture { display: inline-flex; align-items: center; justify-content: center; }
-.perm-lecture .ico { width: 14px; height: 14px; }
-.perm-lecture.perm-aucun { color: var(--line); }
-.perm-lecture.perm-lecture-niv { color: var(--muted); }
-.perm-lecture.perm-ecriture { color: var(--primary); }
 .mb-8 { margin-bottom: 8px; }
 .mb-16 { margin-bottom: 16px; }
 .mt-16 { margin-top: 16px; }

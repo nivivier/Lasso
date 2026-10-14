@@ -85,6 +85,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   autres documents de l'application.
 
 ### Modifié
+- **Les droits d'un compte ne sont plus une matrice.** Onze colonnes de modules
+  se chevauchaient dès qu'on n'était pas en plein écran. La liste des comptes
+  n'en garde qu'un résumé — « Administration », ou le nombre de modules — et
+  les droits se règlent dans le panneau d'édition, **une ligne par module**,
+  avec son nom et sa description en clair. Un raccourci **« Tout mettre sur »**
+  pose les onze d'un coup : aucun accès, lecture ou écriture.
 - **La page des incohérences se traite une à la fois.** Elle s'appelle
   désormais `?p=incoherences` — c'est ce qu'elle est — et ne déroule plus ses
   sept vérifications bout à bout : elle s'ouvre sur un sommaire d'une page, une

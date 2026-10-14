@@ -191,11 +191,22 @@ quatre modules qui s'en servent le `requires`. Trois conséquences à retenir :
 
 ## 8. UI/UX
 
-- Page **Comptes** (`views/utilisateurs.php`) étendue : pour chaque utilisateur listé, une
-  matrice compacte {module → Aucun / Lecture / Écriture}, `coeur` inclus. Une ligne =
-  un petit formulaire POST, dans l'esprit des éléments déjà « inline » de l'appli.
-- Badge **« Admin »** à côté de l'e-mail si écriture sur `coeur` (en plus du badge
-  « vous » existant).
+- Page **Comptes** (`views/utilisateurs.php`) : une ligne par compte, et les droits
+  dans le panneau que le crayon ouvre.
+  ⚠️ **Ce n'est plus une matrice.** Elle l'a été — une colonne par module, un
+  sélecteur de trois icônes par cellule —, et elle a tenu jusqu'à huit modules.
+  À onze, les onze colonnes de 70 px voyaient leurs en-têtes se chevaucher dès
+  qu'on n'était pas en plein écran, pour deux comptes qu'on règle deux fois
+  l'an. La liste ne porte donc plus qu'un **résumé** (« Administration », ou
+  « N modules » avec le détail en infobulle), et le panneau d'édition pose
+  **une ligne par module** : son nom en toutes lettres, sa description, et les
+  trois niveaux écrits. Cette forme-là ne bougera pas au douzième module.
+- Un raccourci **« Tout mettre sur »** (aucun accès / lecture / écriture) en tête
+  des droits : onze modules au même niveau, c'est onze clics pour un geste qui
+  n'en vaut qu'un. Il ne fait que poser les boutons — rien n'est enregistré
+  avant « Enregistrer », comme pour un clic module par module.
+- Badge **« Administration »** dans la colonne Droits si écriture sur `coeur` (en
+  plus du badge « vous » existant).
 - Message d'erreur explicite si tentative de retirer le dernier accès admin — même
   registre que les erreurs `err=self` / `err=last` déjà en place sur la suppression de
   compte.

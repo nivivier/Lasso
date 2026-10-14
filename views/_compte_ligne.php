@@ -4,10 +4,12 @@
 // page ET par route_utilisateurs() quand un compte vient d'être créé sans recharger
 // (docs/UI.md § 5) — deux exemplaires divergeraient à la première retouche.
 //
-// Le <form> d'édition vit dans la PREMIÈRE cellule de la ligne d'édition, et
-// non hors du tableau : c'est ce qui permet d'insérer un compte entier d'un
-// seul fragment. Les champs des autres colonnes s'y rattachent par form=, ce
-// qui les laisse chacun dans LEUR colonne.
+// ⚠️ Les droits ne sont PLUS une colonne par module. À onze modules, la matrice
+// demandait onze colonnes de 70px : les en-têtes se chevauchaient dès qu'on
+// n'était pas en plein écran, pour deux comptes à régler deux fois l'an. La
+// liste ne porte plus qu'un résumé, et les droits se règlent dans le panneau
+// d'édition, un module par ligne, avec son nom en toutes lettres — ce qui tient
+// à toute largeur et ne bougera pas au douzième module.
 //
 // Attendu de l'appelant : $c (le compte), $niveaux (ses droits), $moi, et
 // $personnes (l'annuaire, pour le rattachement).
@@ -21,10 +23,21 @@ foreach ($personnes as $pe) { if ($pe['id'] === $personneId) { $personneNom = $p
 // Nom affiché : celui de la personne rattachée s'il y en a une, sinon
 // l'identité propre du compte, sinon son adresse (utilisateur_nom()).
 $nomAffiche = utilisateur_nom($c);
-// Droits en lecture : une seule icône par module, celle du niveau accordé.
-// Rien de cliquable — la ligne de lecture se lit, elle ne se modifie pas.
 $niveauIcone = ['' => 'eye-off', 'lecture' => 'eye', 'ecriture' => 'pencil'];
-$niveauTexte = ['' => 'aucun accès', 'lecture' => 'lecture', 'ecriture' => 'écriture'];
+$niveauTexte = ['' => 'Aucun accès', 'lecture' => 'Lecture', 'ecriture' => 'Écriture'];
+$libelleModule = fn (string $m): string => $m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label'];
+$descModule = function (string $m): string {
+    $d = $m === 'coeur' ? MODULE_COEUR['description'] : MODULES[$m]['description'];
+    return mb_strlen($d, 'UTF-8') > 96 ? mb_substr($d, 0, 95, 'UTF-8') . '…' : $d;
+};
+// Le résumé de la ligne de lecture : ce qu'on veut savoir d'un coup d'œil, à
+// savoir « est-ce un administrateur ? » puis « sur combien de modules ? ».
+// Le détail est à un clic, et onze icônes alignées ne le disaient pas mieux.
+$estAdmin = ($niveaux['coeur'] ?? null) === 'ecriture';
+$modulesOuverts = [];
+foreach (PERMISSION_MODULES as $m) {
+    if (($niveaux[$m] ?? '') !== '') { $modulesOuverts[] = $libelleModule($m); }
+}
 $derniere = trim((string) ($c['derniere_connexion_le'] ?? ''));
 $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
 ?>
@@ -33,7 +46,6 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                     <div class="compte-identite">
                         <span class="compte-nom"><?= e($nomAffiche) ?></span>
                         <?php if ($estMoi): ?><span class="badge muted-badge">vous</span><?php endif; ?>
-                        <?php if (($niveaux['coeur'] ?? null) === 'ecriture'): ?><span class="badge ok-badge">admin</span><?php endif; ?>
                     </div>
                     <?php if ($nomAffiche !== (string) $c['email']): ?>
                         <div class="muted small"><?= e($c['email']) ?></div>
@@ -43,12 +55,17 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                             <a href="?p=personne&amp;id=<?= $personneId ?>"><?= e($personneNom) ?></a></div>
                     <?php endif; ?>
                 </td>
-                <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; $lib = $m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']; ?>
-                <td class="perm-col" data-label="<?= e($lib) ?>">
-                    <span class="perm-lecture perm-<?= $val === '' ? 'aucun' : ($val === 'lecture' ? 'lecture-niv' : 'ecriture') ?>"
-                          title="<?= e($lib . ' — ' . $niveauTexte[$val]) ?>"><?= icon($niveauIcone[$val]) ?></span>
+                <td data-label="Droits">
+                    <?php if ($estAdmin): ?>
+                        <span class="badge ok-badge">Administration</span>
+                    <?php elseif (!$modulesOuverts): ?>
+                        <span class="muted small">aucun accès</span>
+                    <?php else: ?>
+                        <span class="muted small" title="<?= e(implode(', ', $modulesOuverts)) ?>">
+                            <?= count($modulesOuverts) ?> module<?= count($modulesOuverts) > 1 ? 's' : '' ?>
+                        </span>
+                    <?php endif; ?>
                 </td>
-                <?php endforeach; ?>
                 <td class="muted small nowrap" data-label="Dernière connexion"><?= $derniere !== '' ? e($derniere) : '<span class="muted">jamais</span>' ?></td>
                 <td class="muted small nowrap" data-label="Créé le"><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
                 <td class="actions nowrap">
@@ -58,69 +75,106 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                 </td>
             </tr>
             <?php // Édition : une ligne pleine largeur, ouverte par le crayon. Rien
-                  // n'est modifiable tant qu'elle est fermée. ?>
+                  // n'est modifiable tant qu'elle est fermée.
+                  //
+                  // Le <form> vit en tête de la cellule et les champs s'y
+                  // rattachent par form= : c'est ce qui permet au bouton
+                  // « Supprimer », qui a le sien, de vivre à côté sans s'y
+                  // imbriquer — deux <form> ne s'emboîtent pas. ?>
             <tr class="compte-edit-row" hidden>
-                <td class="compte-edit-identite">
+                <td colspan="5" class="compte-edit-cell">
                     <form method="post" action="?p=utilisateur_enregistrer" id="<?= e($fid) ?>" autocomplete="off">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                     </form>
-                    <?php // Rattaché à une personne, le compte n'a plus d'identité
-                          // à lui : elle vient de l'annuaire, et deux champs de
-                          // plus ici, c'était deux noms qui pouvaient diverger. ?>
-                    <?php if ($personneId === 0): ?>
-                    <label>Prénom <input form="<?= $fid ?>" name="prenom" value="<?= e((string) ($c['prenom'] ?? '')) ?>" autocomplete="off"></label>
-                    <label>Nom <input form="<?= $fid ?>" name="nom" value="<?= e((string) ($c['nom'] ?? '')) ?>" autocomplete="off"></label>
-                    <?php endif; ?>
-                    <label>E-mail <input form="<?= $fid ?>" name="email" type="email" value="<?= e((string) $c['email']) ?>" required autocomplete="off"></label>
-                    <p class="muted small mb-0">Changer l'adresse invalide les liens de réinitialisation en attente.</p>
-                    <label>Nouveau mot de passe
-                        <input form="<?= $fid ?>" type="password" name="nouveau_mot_de_passe" autocomplete="new-password"
-                               minlength="<?= PASSWORD_MIN ?>" placeholder="laisser vide = inchangé">
-                    </label>
-                    <?php // Le compte et la personne de l'annuaire : c'est ici
-                          // qu'on dit qu'ils sont le même être humain
-                          // (SPEC_PERSONNES.md). Champ cherchable, comme le
-                          // bénéficiaire d'une pièce — l'annuaire compte trois
-                          // mille fiches, un menu déroulant ne s'y parcourt pas. ?>
-                    <span class="lbl-champ">Personne de l'annuaire</span>
-                    <div class="cat-search" data-cat-search data-hydrater data-vider-en-saisie>
-                        <input type="text" class="cat-search-input" autocomplete="off" placeholder="Chercher un nom…"
-                               aria-label="Rattacher ce compte à une personne">
-                        <input form="<?= $fid ?>" type="hidden" name="personne_id" class="cat-search-val"
-                               value="<?= $personneId ?: '' ?>">
-                        <ul class="cat-search-list" hidden role="listbox">
-                            <?php foreach ($personnes as $pe): ?>
-                            <li data-val="<?= (int) $pe['id'] ?>"><?= e($pe['libelle']) ?></li>
+
+                    <div class="compte-edit-identite">
+                        <?php // Rattaché à une personne, le compte n'a plus d'identité
+                              // à lui : elle vient de l'annuaire, et deux champs de
+                              // plus ici, c'était deux noms qui pouvaient diverger. ?>
+                        <?php if ($personneId === 0): ?>
+                        <label>Prénom <input form="<?= $fid ?>" name="prenom" value="<?= e((string) ($c['prenom'] ?? '')) ?>" autocomplete="off"></label>
+                        <label>Nom <input form="<?= $fid ?>" name="nom" value="<?= e((string) ($c['nom'] ?? '')) ?>" autocomplete="off"></label>
+                        <?php endif; ?>
+                        <label>E-mail <input form="<?= $fid ?>" name="email" type="email" value="<?= e((string) $c['email']) ?>" required autocomplete="off"></label>
+                        <label>Nouveau mot de passe
+                            <input form="<?= $fid ?>" type="password" name="nouveau_mot_de_passe" autocomplete="new-password"
+                                   minlength="<?= PASSWORD_MIN ?>" placeholder="laisser vide = inchangé">
+                        </label>
+                        <?php // Le compte et la personne de l'annuaire : c'est ici
+                              // qu'on dit qu'ils sont le même être humain
+                              // (SPEC_PERSONNES.md). Champ cherchable, comme le
+                              // bénéficiaire d'une pièce — l'annuaire compte trois
+                              // mille fiches, un menu déroulant ne s'y parcourt pas. ?>
+                        <div class="compte-edit-personne">
+                            <span class="lbl-champ">Personne de l'annuaire</span>
+                            <div class="cat-search" data-cat-search data-hydrater data-vider-en-saisie>
+                                <input type="text" class="cat-search-input" autocomplete="off" placeholder="Chercher un nom…"
+                                       aria-label="Rattacher ce compte à une personne">
+                                <input form="<?= $fid ?>" type="hidden" name="personne_id" class="cat-search-val"
+                                       value="<?= $personneId ?: '' ?>">
+                                <ul class="cat-search-list" hidden role="listbox">
+                                    <?php foreach ($personnes as $pe): ?>
+                                    <li data-val="<?= (int) $pe['id'] ?>"><?= e($pe['libelle']) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="muted small">Changer l'adresse invalide les liens de réinitialisation en attente.</p>
+
+                    <div class="section-head mt-22">
+                        <h3 class="sub mt-0">Droits</h3>
+                        <?php // Le raccourci : onze modules à mettre au même niveau,
+                              // c'est onze clics pour un geste qui n'en vaut qu'un —
+                              // ouvrir un compte en lecture seule, ou tout rendre à
+                              // un administrateur. Il ne fait que poser les onze
+                              // boutons ; rien n'est enregistré avant « Enregistrer ». ?>
+                        <div class="perm-tous">
+                            <span class="muted small">Tout mettre sur</span>
+                            <?php foreach (['', 'lecture', 'ecriture'] as $niv): ?>
+                            <button type="button" class="btn ghost btn-sm perm-tout" data-val="<?= e($niv) ?>"><?= icon($niveauIcone[$niv]) ?> <?= e($niveauTexte[$niv]) ?></button>
                             <?php endforeach; ?>
-                        </ul>
+                        </div>
                     </div>
-                </td>
-                <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; $lib = $m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']; ?>
-                <td class="perm-col" data-label="<?= e($lib) ?>">
-                    <div class="perm-toggle" role="group" aria-label="<?= e($lib . ' — ' . $c['email']) ?>">
-                        <button type="button" class="perm-btn <?= $val === '' ? 'on' : '' ?>" data-val="" title="Aucun accès (<?= e($lib) ?>)" aria-label="Aucun accès (<?= e($lib) ?>)"><?= icon('eye-off') ?></button>
-                        <button type="button" class="perm-btn <?= $val === 'lecture' ? 'on' : '' ?>" data-val="lecture" title="Lecture (<?= e($lib) ?>)" aria-label="Lecture (<?= e($lib) ?>)"><?= icon('eye') ?></button>
-                        <button type="button" class="perm-btn <?= $val === 'ecriture' ? 'on' : '' ?>" data-val="ecriture" title="Écriture (<?= e($lib) ?>)" aria-label="Écriture (<?= e($lib) ?>)"><?= icon('pencil') ?></button>
-                        <input form="<?= $fid ?>" type="hidden" name="niveaux[<?= e($m) ?>]" value="<?= e($val) ?>">
-                    </div>
-                </td>
-                <?php endforeach; ?>
-                <?php // Enregistrer et Annuler à l'extrême droite de la ligne, sous le
-                      // crayon qui a ouvert l'édition. ?>
-                <td colspan="3" class="compte-edit-actions">
+
+                    <table class="list perm-liste">
+                        <tbody>
+                        <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; $lib = $libelleModule($m); ?>
+                        <tr>
+                            <td>
+                                <strong><?= e($lib) ?></strong>
+                                <div class="muted small"><?= e($descModule($m)) ?></div>
+                            </td>
+                            <td class="actions">
+                                <div class="perm-toggle" role="group" aria-label="<?= e($lib . ' — ' . $c['email']) ?>">
+                                    <?php foreach (['', 'lecture', 'ecriture'] as $niv): ?>
+                                    <button type="button" class="perm-btn <?= $val === $niv ? 'on' : '' ?>" data-val="<?= e($niv) ?>"
+                                            title="<?= e($niveauTexte[$niv] . ' (' . $lib . ')') ?>"><?= icon($niveauIcone[$niv]) ?>
+                                        <span class="perm-btn-txt"><?= e($niveauTexte[$niv]) ?></span></button>
+                                    <?php endforeach; ?>
+                                    <input form="<?= $fid ?>" type="hidden" name="niveaux[<?= e($m) ?>]" value="<?= e($val) ?>">
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+
                     <?php // Enregistrer, supprimer, annuler — l'ordre du geste
                           // (docs/UI.md § 2). Supprimer son propre compte n'est pas
                           // proposé : route_utilisateur_supprimer() le refuserait. ?>
-                    <button type="submit" form="<?= $fid ?>" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
-                    <?php if (!$estMoi): ?>
-                    <form method="post" action="?p=utilisateur_supprimer" class="d-inline"
-                          data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
-                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                        <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer le compte" aria-label="Supprimer le compte"><?= icon('trash') ?></button>
-                    </form>
-                    <?php endif; ?>
-                    <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    <div class="compte-edit-actions mt-16">
+                        <button type="submit" form="<?= $fid ?>" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
+                        <?php if (!$estMoi): ?>
+                        <form method="post" action="?p=utilisateur_supprimer" class="d-inline"
+                              data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
+                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                            <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer le compte" aria-label="Supprimer le compte"><?= icon('trash') ?></button>
+                        </form>
+                        <?php endif; ?>
+                        <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                    </div>
                 </td>
             </tr>

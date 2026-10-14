@@ -40,11 +40,12 @@ $flashErr = [
     <div class="table-scroll">
     <table class="list perm-table">
         <thead>
+            <?php // Cinq colonnes, et non quinze : les droits ne sont plus une
+                  // colonne par module mais un résumé, réglé dans le panneau
+                  // d'édition (views/_compte_ligne.php). ?>
             <tr>
                 <th>Compte</th>
-                <?php foreach (PERMISSION_MODULES as $m): ?>
-                    <th class="perm-col"><?= e($m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']) ?></th>
-                <?php endforeach; ?>
+                <th>Droits</th>
                 <th>Dernière connexion</th>
                 <th>Créé le</th>
                 <th class="actions"></th>
@@ -62,7 +63,7 @@ $flashErr = [
               // de celui des comptes (data-ajout), donc avant cette ligne-ci. ?>
         <tbody>
             <tr id="compte-ajout-row" hidden>
-                <td colspan="<?= 3 + count(PERMISSION_MODULES) ?>">
+                <td colspan="5">
                     <form method="post" action="?p=utilisateurs" autocomplete="off" class="compte-ajout-form"
                           data-ajout="#comptes-corps" data-ajout-message="Compte créé.">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -86,6 +87,13 @@ $flashErr = [
 // vraiment, droits compris.
 // Écouteurs DÉLÉGUÉS, et non posés ligne à ligne : un compte créé sans recharger
 // arrive après eux, et doit avoir son crayon comme les autres (docs/UI.md § 5).
+// Pose un niveau sur UN module : la classe « on » suit le bouton cliqué, la
+// valeur suit dans le champ caché qui part avec le formulaire.
+function poserNiveau(group, val) {
+    if (!group) return;
+    group.querySelectorAll('.perm-btn').forEach(b => b.classList.toggle('on', b.dataset.val === val));
+    group.querySelector('input[type=hidden]').value = val;
+}
 document.addEventListener('click', e => {
     const crayon = e.target.closest('.compte-edit-btn');
     if (crayon) {
@@ -117,10 +125,17 @@ document.addEventListener('click', e => {
     // de la ligne, au clic sur « Enregistrer ».
     const niveau = e.target.closest('.perm-btn');
     if (niveau && !niveau.classList.contains('on')) {
-        const group = niveau.closest('.perm-toggle');
-        group.querySelectorAll('.perm-btn').forEach(b => b.classList.remove('on'));
-        niveau.classList.add('on');
-        group.querySelector('input[type=hidden]').value = niveau.dataset.val;
+        poserNiveau(niveau.closest('.perm-toggle'), niveau.dataset.val);
+    }
+    // Le raccourci : onze modules au même niveau, c'est onze clics pour un
+    // geste qui n'en vaut qu'un (un compte en lecture seule, un administrateur
+    // à qui l'on rend tout). Il ne fait que poser les boutons — rien n'est
+    // enregistré avant « Enregistrer », comme pour un clic module par module.
+    const tout = e.target.closest('.perm-tout');
+    if (tout) {
+        tout.closest('.compte-edit-cell')
+            .querySelectorAll('.perm-toggle')
+            .forEach(group => poserNiveau(group, tout.dataset.val));
     }
 });
 // Le compte créé s'insère à la fin de la liste : la ligne de saisie se referme,
