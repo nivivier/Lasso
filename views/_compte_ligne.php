@@ -9,8 +9,9 @@
 // seul fragment. Les champs des autres colonnes s'y rattachent par form=, ce
 // qui les laisse chacun dans LEUR colonne.
 //
-// Attendu de l'appelant : $c (le compte), $niveaux (ses droits), $moi.
-/** @var array $c */ /** @var array $niveaux */ /** @var int $moi */
+// Attendu de l'appelant : $c (le compte), $niveaux (ses droits), $moi, et
+// $personnes (l'annuaire, pour le rattachement).
+/** @var array $c */ /** @var array $niveaux */ /** @var int $moi */ /** @var array $personnes */
 $estMoi = (int) $c['id'] === $moi;
 $fid    = 'compte-form-' . (int) $c['id'];
 // Nom affiché : l'identité si elle est renseignée, sinon l'adresse — un compte
@@ -23,6 +24,10 @@ $niveauIcone = ['' => 'eye-off', 'lecture' => 'eye', 'ecriture' => 'pencil'];
 $niveauTexte = ['' => 'aucun accès', 'lecture' => 'lecture', 'ecriture' => 'écriture'];
 $derniere = trim((string) ($c['derniere_connexion_le'] ?? ''));
 $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
+// La personne de l'annuaire que ce compte désigne, s'il en désigne une.
+$personneId = (int) ($c['personne_id'] ?? 0);
+$personneNom = '';
+foreach ($personnes as $pe) { if ($pe['id'] === $personneId) { $personneNom = $pe['libelle']; } }
 ?>
             <tr class="compte-row">
                 <td>
@@ -33,6 +38,10 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                     </div>
                     <?php if ($nomAffiche !== (string) $c['email']): ?>
                         <div class="muted small"><?= e($c['email']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($personneNom !== ''): ?>
+                        <div class="muted small"><?= icon('user') ?>
+                            <a href="?p=personne&amp;id=<?= $personneId ?>"><?= e($personneNom) ?></a></div>
                     <?php endif; ?>
                 </td>
                 <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; $lib = $m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']; ?>
@@ -65,6 +74,23 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                         <input form="<?= $fid ?>" type="password" name="nouveau_mot_de_passe" autocomplete="new-password"
                                minlength="<?= PASSWORD_MIN ?>" placeholder="laisser vide = inchangé">
                     </label>
+                    <?php // Le compte et la personne de l'annuaire : c'est ici
+                          // qu'on dit qu'ils sont le même être humain
+                          // (SPEC_PERSONNES.md). Champ cherchable, comme le
+                          // bénéficiaire d'une pièce — l'annuaire compte trois
+                          // mille fiches, un menu déroulant ne s'y parcourt pas. ?>
+                    <span class="lbl-champ">Personne de l'annuaire</span>
+                    <div class="cat-search" data-cat-search data-hydrater data-vider-en-saisie>
+                        <input type="text" class="cat-search-input" autocomplete="off" placeholder="Chercher un nom…"
+                               aria-label="Rattacher ce compte à une personne">
+                        <input form="<?= $fid ?>" type="hidden" name="personne_id" class="cat-search-val"
+                               value="<?= $personneId ?: '' ?>">
+                        <ul class="cat-search-list" hidden role="listbox">
+                            <?php foreach ($personnes as $pe): ?>
+                            <li data-val="<?= (int) $pe['id'] ?>"><?= e($pe['libelle']) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
                 </td>
                 <?php foreach (PERMISSION_MODULES as $m): $val = $niveaux[$m] ?? ''; $lib = $m === 'coeur' ? MODULE_COEUR['label'] : MODULES[$m]['label']; ?>
                 <td class="perm-col" data-label="<?= e($lib) ?>">

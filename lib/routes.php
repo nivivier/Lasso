@@ -291,14 +291,15 @@ function route_utilisateurs(): void
                 ->execute([$email, hacher_mot_de_passe($mdp)]);
             // Le compte est relu en base plutôt que reconstitué de mémoire : la
             // ligne rendue doit dire ce qui existe vraiment, dates comprises.
-            $nouveau = db()->prepare('SELECT id, email, prenom, nom, derniere_connexion_le, cree_le
+            $nouveau = db()->prepare('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le
                                         FROM utilisateurs WHERE id = ?');
             $nouveau->execute([(int) db()->lastInsertId()]);
             $ligne = $nouveau->fetch();
             if (reponse_ajout_json(null, rendre_fragment('_compte_ligne', [
-                'c'       => $ligne,
-                'niveaux' => permissions_utilisateur((int) $ligne['id']),
-                'moi'     => (int) current_user()['id'],
+                'c'         => $ligne,
+                'niveaux'   => permissions_utilisateur((int) $ligne['id']),
+                'moi'       => (int) current_user()['id'],
+                'personnes' => personnes_options(),
             ]))) {
                 return;
             }
@@ -310,7 +311,12 @@ function route_utilisateurs(): void
             return;
         }
     }
-    $comptes = db()->query('SELECT id, email, prenom, nom, derniere_connexion_le, cree_le
+    // personne_id + le nom de la personne rattachée : le compte de connexion est
+    // l'une des trois choses qui peuvent désigner la même personne (un contact,
+    // une employée, un compte — SPEC_PERSONNES.md), et c'est ici qu'on fait le
+    // lien, faute de quoi la colonne « Rattachements » de l'annuaire ne pouvait
+    // jamais dire « compte ».
+    $comptes = db()->query('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le
                             FROM utilisateurs ORDER BY cree_le, id')->fetchAll();
     $permissions = [];
     foreach ($comptes as $c) {
@@ -318,6 +324,7 @@ function route_utilisateurs(): void
     }
     render('utilisateurs', [
         'comptes'     => $comptes,
+        'personnes'   => personnes_options(),
         'permissions' => $permissions,
         'err'         => $err,
         'emailSaisi'  => $emailSaisi,
@@ -369,8 +376,21 @@ function route_utilisateur_enregistrer(): void
     if (!enregistrer_permissions_utilisateur($id, $niveaux)) {
         redirect('utilisateurs', ['err' => 'last_admin']);
     }
-    db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ? WHERE id = ?')
-        ->execute([trim((string) ($_POST['prenom'] ?? '')), trim((string) ($_POST['nom'] ?? '')), $email, $id]);
+    // Le rattachement à une personne de l'annuaire. '' = aucune, et une fiche
+    // qui n'existe pas (ou plus) vaut aucune : la colonne accepte NULL, et
+    // c'est ce qu'on y met plutôt qu'un identifiant mort.
+    $personneId = (int) ($_POST['personne_id'] ?? 0);
+    if ($personneId && !personne_charger($personneId)) {
+        $personneId = 0;
+    }
+    db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, personne_id = ? WHERE id = ?')
+        ->execute([
+            trim((string) ($_POST['prenom'] ?? '')),
+            trim((string) ($_POST['nom'] ?? '')),
+            $email,
+            $personneId ?: null,
+            $id,
+        ]);
     // L'adresse a changé : les liens de réinitialisation en attente ont été
     // envoyés à l'ancienne, ils ne doivent plus ouvrir ce compte.
     if ((string) $ancienEmail !== $email) {
