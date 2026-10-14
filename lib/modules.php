@@ -400,20 +400,16 @@ function nav_groupes(): array
     // Le carnet d'adresses, en tête : c'est sur lui que les autres sont bâtis.
     // Trois écrans, une seule matière — qui est qui.
     if (module_actif('carnet') && peut_lire('carnet')) {
-        $ongletsCarnet = [
+        // ⚠️ Pas d'onglet « Employés » ici : il reste dans Salaires, et là
+        // seulement. Un employé est d'abord une PERSONNE de ce carnet — son
+        // identité y est, et c'est tout l'objet du module —, mais sa fiche
+        // d'employé porte son n° AVS, son taux horaire et son impôt à la
+        // source. La mettre à deux portes, c'était deux endroits où se
+        // demander qui a le droit de l'ouvrir.
+        $g['carnet'] = ["Carnet d'adresses", 'users', [
             'structures' => ['Structures', ['structures', 'structure', 'structure_fusion'], 0, 'house'],
             'personnes'  => ['Personnes', ['personnes', 'personne'], 0, 'user'],
-        ];
-        // ⚠️ L'onglet Employés reste derrière le droit SALAIRES, pas le carnet :
-        // la fiche d'un employé porte son n° AVS, son taux horaire et son impôt
-        // à la source. Le déplacer ici ne doit pas élargir qui les lit — c'est
-        // une porte de plus vers le même écran, pas une porte plus large. Il
-        // reste aussi dans le module Salaires, comme « Projets » figure à la
-        // fois dans Événements, Booking et Recherche de fonds.
-        if (module_accessible('salaires')) {
-            $ongletsCarnet['employes'] = ['Employés', ['employes', 'employe_form', 'employe'], 0, 'users'];
-        }
-        $g['carnet'] = ["Carnet d'adresses", 'users', $ongletsCarnet];
+        ]];
     }
 
     if (module_actif('salaires') && peut_lire('salaires')) {
@@ -729,16 +725,6 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
         if ($groupeDuType !== null && in_array($groupeDuType, $candidats, true)) {
             return $groupeDuType;
         }
-    }
-    // Certaines routes figurent dans PLUSIEURS groupes ; celle-ci dit lequel
-    // les possède, pour qu'on y arrive au bon endroit sans provenance — depuis
-    // le rail, un signet ou la recherche unifiée. L'onglet Employés figure
-    // dans le Carnet d'adresses et dans Salaires, mais la fiche d'un employé
-    // est une pièce de la paie : c'est Salaires qui s'allume.
-    $proprietaire = ['employes' => 'salaires', 'employe' => 'salaires',
-                     'employe_form' => 'salaires'][$route] ?? null;
-    if ($proprietaire !== null && in_array($proprietaire, $candidats, true)) {
-        return $proprietaire;
     }
     foreach (['booking', 'compta', 'facturation', 'evenements'] as $prefere) {
         if (in_array($prefere, $candidats, true)) {
