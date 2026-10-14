@@ -76,12 +76,28 @@ function route_personne(): void
     $stmtE->execute([$id]);
     $stmtU = db()->prepare('SELECT id, email FROM utilisateurs WHERE personne_id = ?');
     $stmtU->execute([$id]);
+    // Les pièces qui la DÉSIGNENT : la quittance qu'on lui a remise, la note de
+    // frais qu'on doit lui rembourser. C'est la seule trace, sur sa fiche, de
+    // ce qui s'est passé en argent entre elle et l'association — et la seule
+    // façon de retrouver une quittance quand on en a le nom mais pas le numéro.
+    // module_accessible() et non module_actif() : l'écran des personnes est au
+    // « coeur », mais les pièces restent derrière leur propre droit de lecture.
+    $pieces = [];
+    if (module_accessible('pieces')) {
+        $stmtP = db()->prepare(
+            "SELECT * FROM pieces WHERE personne_id = ?
+             ORDER BY COALESCE(NULLIF(date_piece,''), cree_le) DESC, id DESC"
+        );
+        $stmtP->execute([$id]);
+        $pieces = $stmtP->fetchAll();
+    }
 
     render('personne', [
         'p'           => $p,
         'structures'  => personne_structures($id),
         'employes'    => $stmtE->fetchAll(),
         'utilisateurs' => $stmtU->fetchAll(),
+        'pieces'      => $pieces,
         'ok'          => isset($_GET['ok']),
     ], personne_nom($p));
 }

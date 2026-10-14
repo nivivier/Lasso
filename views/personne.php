@@ -1,5 +1,5 @@
 <?php /** @var array $p */ /** @var array $structures */ /** @var array $employes */
-/** @var array $utilisateurs */ /** @var bool $ok */
+/** @var array $utilisateurs */ /** @var array $pieces */ /** @var bool $ok */
 
 $id = (int) $p['id'];
 $vide = '<span class="muted">—</span>';
@@ -76,7 +76,7 @@ $champ = fn (string $c): string => e((string) ($p[$c] ?? ''));
       // sont exactement les trois tables qui ne se parlaient pas. ?>
 <div class="card mt-22">
     <h2 class="mt-0">Rattachements</h2>
-    <?php if (!$structures && !$employes && !$utilisateurs): ?>
+    <?php if (!$structures && !$employes && !$utilisateurs && !$pieces): ?>
         <p class="muted">Cette personne n'est rattachée à rien : ni structure, ni emploi, ni compte.</p>
     <?php endif; ?>
 
@@ -115,6 +115,26 @@ $champ = fn (string $c): string => e((string) ($p[$c] ?? ''));
     <table class="kv-table">
         <?php foreach ($utilisateurs as $u): ?>
         <tr><th><a href="?p=utilisateurs">Compte de connexion</a></th><td><?= e((string) $u['email']) ?></td></tr>
+        <?php endforeach; ?>
+    </table>
+    <?php endif; ?>
+
+    <?php // Ce qui s'est passé en argent entre elle et l'association : la
+          // quittance qu'on lui a remise, la note de frais qu'on lui doit. Son
+          // état est celui qu'on lit partout ailleurs (piece_badge_html()), et
+          // le lien mène à la pièce elle-même. ?>
+    <?php if ($pieces): ?>
+    <h3 class="sub">Pièces comptables</h3>
+    <table class="kv-table">
+        <?php foreach ($pieces as $pc): $pcType = PIECE_TYPES[$pc['type']] ?? PIECE_TYPES['autre']; ?>
+        <tr>
+            <th><a href="<?= e(url_avec_retour('?p=piece&id=' . (int) $pc['id'], 'personne', $id)) ?>"><?= e((string) $pc['libelle']) ?></a></th>
+            <td>
+                <span class="muted small"><?= e($pcType['libelle']) ?><?= $pc['numero'] !== '' ? ' · ' . e((string) $pc['numero']) : '' ?></span>
+                <span class="<?= (float) $pc['montant'] < 0 ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $pc['montant']) ?></span>
+                <?= piece_badge_html($pc) ?>
+            </td>
+        </tr>
         <?php endforeach; ?>
     </table>
     <?php endif; ?>

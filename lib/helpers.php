@@ -2681,7 +2681,7 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
     if ($depuis !== '' && isset(nav_groupes()[$depuis])) {
         return lien_retour($avecExtras(url_avec_retour($defautHref, $depuis)), $defautLabel);
     }
-    if (preg_match('/^(facture|evenement|fiche|employe|structure|campagne|fonds_demande):(\d+)$/', $depuis, $m)) {
+    if (preg_match('/^(facture|evenement|fiche|employe|structure|campagne|fonds_demande|personne):(\d+)$/', $depuis, $m)) {
         $id = (int) $m[2];
         if ($m[1] === 'structure') {
             $stmt = db()->prepare('SELECT nom FROM structures WHERE id = ?');
@@ -2711,6 +2711,14 @@ function lien_retour_contextuel(string $defautHref, string $defautLabel): string
             $ev = $stmt->fetch();
             if ($ev) {
                 return lien_retour('?p=evenement&id=' . $id, evenement_label_court($ev));
+            }
+        } elseif ($m[1] === 'personne') {
+            // Arrivé sur une pièce depuis la fiche de celui qu'elle désigne —
+            // la quittance remise, la note de frais à rembourser —, on y
+            // retourne.
+            $pe = personne_charger($id);
+            if ($pe) {
+                return lien_retour('?p=personne&id=' . $id, personne_nom($pe));
             }
         } elseif ($m[1] === 'campagne') {
             // Arrivé sur une structure depuis le suivi d'une campagne, on y
