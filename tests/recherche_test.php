@@ -124,14 +124,15 @@ check('structures INVISIBLES avec « booking » seul', false,
 check('structures INVISIBLES avec « facturation » seul', false,
     recherche_source_visible_pour($src['structures'], ['facturation']));
 
-// Les contacts sont plus restreints que les structures qui les portent : la
-// fiche structure ne les montre qu'avec booking (voir $avecAside dans
-// views/structure.php). Les exposer à un compte « facturation » les
-// rendrait visibles là où la fiche elle-même les cache.
-check('contacts visibles avec « booking »', true,
-    recherche_source_visible_pour($src['contacts'], ['booking']));
-check('contacts INVISIBLES avec « facturation » seul', false,
-    recherche_source_visible_pour($src['contacts'], ['facturation']));
+// ⚠️ Il n'y a PLUS de source « contacts » : un contact de structure est une
+// personne, et deux sources pour le même être humain le faisaient paraître
+// deux fois dans la même page. Ce qu'elle apportait de vrai — le contexte,
+// « Fred — Radio En Construction » — est passé en sous-titre des personnes.
+check('aucune source « contacts » séparée', false, isset($src['contacts']));
+check('les personnes relèvent du carnet', true,
+    recherche_source_visible_pour($src['personnes'], ['carnet']));
+check('…et de lui seul', false,
+    recherche_source_visible_pour($src['personnes'], ['booking', 'facturation']));
 
 echo "\n6) Chaque source s'EXÉCUTE vraiment\n";
 
@@ -161,6 +162,29 @@ check('aucune source ne tombe en erreur SQL', [], $casses);
 foreach (['personnes', 'pieces'] as $attendue) {
     check("la source « $attendue » est déclarée", true, isset(recherche_sources()[$attendue]));
 }
+
+// Une personne, une ligne — quel que soit le nombre de structures où elle est
+// contact. Sans le GROUP BY, celle qui en a trois paraissait trois fois.
+$pdo = db();
+$pdo->exec("INSERT INTO personnes (id, prenom, nom, email) VALUES (900, 'Fred', 'Martin', 'fred@test.ch')");
+$pdo->exec("INSERT INTO structures (id, nom) VALUES (900, 'Radio En Construction'), (901, 'Le Bijou')");
+$pdo->exec("INSERT INTO personne_structures (personne_id, structure_id, role) VALUES (900, 900, 'Programmation'), (900, 901, 'Booking')");
+$src2 = recherche_sources()['personnes'];
+[$cl, $pa] = recherche_clause('fred');
+$st = $pdo->prepare("SELECT * FROM ({$src2['sql']}) WHERE $cl {$src2['ordre']} LIMIT 8");
+$st->execute($pa);
+$lignes = $st->fetchAll();
+check('une personne de deux structures ne sort qu\'une fois', 1, count($lignes));
+check('…et son sous-titre nomme ses structures', true,
+    (bool) ($lignes && str_contains((string) $lignes[0]['sous_titre'], 'Radio En Construction')
+                    && str_contains((string) $lignes[0]['sous_titre'], 'Le Bijou')));
+// La structure est CHERCHABLE : c'est ainsi qu'on retrouve « qui est mon
+// contact chez eux ? », ce que la source « contacts » permettait.
+[$cl2, $pa2] = recherche_clause('radio en construction');
+$st = $pdo->prepare("SELECT * FROM ({$src2['sql']}) WHERE $cl2 {$src2['ordre']} LIMIT 8");
+$st->execute($pa2);
+check('on retrouve une personne par le nom de sa structure', 'Fred Martin',
+    (string) ($st->fetchAll()[0]['titre'] ?? ''));
 
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }

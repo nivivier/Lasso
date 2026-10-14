@@ -1160,6 +1160,13 @@ projets — n'est pas un onglet de module : il vit dans Paramètres → Catégor
 (`parametres_groupes()`). Le bandeau d'un module est fait pour le travail
 courant, et chaque onglet y est une place prise à celui-ci.
 
+⚠️ **Et pas de raccourci depuis un module vers un écran de paramètres.** Le
+booking en a porté un (« Catégories ») : un onglet de module qui ouvre une page
+d'une autre grammaire, avec un autre bandeau et d'autres onglets. Il obligeait
+`nav_groupe_actif()` à un cas particulier pour que ces écrans n'allument pas
+Booking dans le rail quand on y arrivait par les Paramètres. Un pont entre deux
+grammaires coûte toujours plus qu'il ne rapporte.
+
 ## 9 bis. Cartes posées côte à côte
 
 Plusieurs cartes sur une page se posent en `.cartes-rangee` : **autant de

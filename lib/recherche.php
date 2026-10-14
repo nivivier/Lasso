@@ -79,45 +79,6 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
                                       coalesce(s.categorie,'')) AS texte
                           FROM structures s",
         ],
-        // Contacts d'une structure. Deux particularités :
-        //
-        // 1. « booking » seul, alors que les structures elles-mêmes sont
-        //    partagées avec « facturation » — le bloc qui affiche les contacts
-        //    sur la fiche structure est gardé par booking (voir $avecAside dans
-        //    views/structure.php). Élargir à facturation exposerait ici des
-        //    données que la fiche elle-même refuse de montrer.
-        // 2. L'id projeté est celui de la STRUCTURE, pas du contact : un contact
-        //    n'a pas de page à lui, il vit dans la fiche de sa structure — donc
-        //    le résultat doit y mener. Plusieurs contacts d'une même structure
-        //    peuvent ainsi remonter en plusieurs lignes vers la même page, ce
-        //    qui est voulu : chaque ligne montre QUEL contact a matché.
-        'contacts' => [
-            'label'   => 'Contacts',
-            'icone'   => 'user',
-            'modules' => ['booking'],
-            'route'   => 'structure',
-            'liste'   => 'structures',
-            'ordre'   => 'ORDER BY tri DESC, titre',
-            // ⚠️ Le nom vient de « pe » (personnes) et non de « c » : depuis la
-            // refonte des personnes (migration_100), personne_structures ne
-            // porte plus que le RÔLE — l'identité est sur la personne. Cette
-            // requête cherchait encore c.prenom, et la recherche entière
-            // tombait en erreur SQL dès qu'un compte avait le booking.
-            'sql'     => "SELECT c.structure_id AS id,
-                                 CASE WHEN trim(trim(pe.prenom) || ' ' || trim(pe.nom)) <> ''
-                                      THEN trim(trim(pe.prenom) || ' ' || trim(pe.nom))
-                                      ELSE coalesce(nullif(trim(pe.email),''), 'Sans nom') END AS titre,
-                                 trim(coalesce(st.nom,'') ||
-                                      CASE WHEN trim(coalesce(c.role,'')) <> ''
-                                        THEN ' · ' || c.role ELSE '' END) AS sous_titre,
-                                 c.actif AS tri,
-                                 trim(coalesce(pe.prenom,'') || ' ' || coalesce(pe.nom,'') || ' ' ||
-                                      coalesce(pe.email,'') || ' ' || coalesce(pe.telephone,'') || ' ' ||
-                                      coalesce(c.role,'')) AS texte
-                          FROM personne_structures c
-                          JOIN personnes pe ON pe.id = c.personne_id
-                          LEFT JOIN structures st ON st.id = c.structure_id",
-        ],
         'factures' => [
             'label'   => 'Factures',
             'icone'   => 'receipt-swiss-franc',
@@ -192,6 +153,14 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         // rattachement — un employé, un compte, quelqu'un qu'on vient
         // d'ajouter — était introuvable autrement que par l'écran Personnes.
         // C'est le point laissé ouvert par SPEC_PERSONNES.md § 8.
+        // Les personnes, et elles seules : un contact de structure EST une
+        // personne, et deux sources pour le même être humain le faisaient
+        // paraître deux fois dans la même page de résultats — une fois menant à
+        // sa fiche, une fois à celle de sa structure. Ce que la source
+        // « contacts » apportait de vrai, c'est le CONTEXTE : « Fred » ne se
+        // reconnaît pas, « Fred — Radio En Construction » oui. Il passe donc
+        // en sous-titre, et les structures restent cherchables (elles sont
+        // dans « texte »).
         'personnes' => [
             'label'   => 'Personnes',
             'icone'   => 'user',
@@ -199,16 +168,27 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
             'route'   => 'personne',
             'liste'   => 'personnes',
             'ordre'   => 'ORDER BY titre',
+            // GROUP BY : une ligne par personne, quel que soit le nombre de
+            // structures où elle est contact. group_concat() rend NULL quand il
+            // n'y en a aucune — d'où le repli sur l'adresse, puis le téléphone.
             'sql'     => "SELECT pe.id,
                                  CASE WHEN trim(trim(pe.prenom) || ' ' || trim(pe.nom)) <> ''
                                       THEN trim(trim(pe.prenom) || ' ' || trim(pe.nom))
                                       ELSE coalesce(nullif(trim(pe.email),''), 'Sans nom') END AS titre,
-                                 CASE WHEN trim(coalesce(pe.email,'')) <> '' THEN pe.email
-                                      ELSE trim(coalesce(pe.telephone,'')) END AS sous_titre,
+                                 coalesce(
+                                     nullif(group_concat(DISTINCT st.nom), ''),
+                                     nullif(trim(coalesce(pe.email,'')), ''),
+                                     trim(coalesce(pe.telephone,''))
+                                 ) AS sous_titre,
                                  0 AS tri,
                                  trim(coalesce(pe.prenom,'') || ' ' || coalesce(pe.nom,'') || ' ' ||
-                                      coalesce(pe.email,'') || ' ' || coalesce(pe.telephone,'')) AS texte
-                          FROM personnes pe",
+                                      coalesce(pe.email,'') || ' ' || coalesce(pe.telephone,'') || ' ' ||
+                                      coalesce(group_concat(DISTINCT st.nom), '') || ' ' ||
+                                      coalesce(group_concat(DISTINCT ps.role), '')) AS texte
+                          FROM personnes pe
+                          LEFT JOIN personne_structures ps ON ps.personne_id = pe.id
+                          LEFT JOIN structures st          ON st.id = ps.structure_id
+                          GROUP BY pe.id",
         ],
         // Les justificatifs : on cherche une facture reçue par le nom de son
         // fournisseur ou une quittance par son numéro, et c'est exactement ce
