@@ -34,11 +34,25 @@ au sens des permissions (il l'est déjà partiellement : `MODULE_COEUR` existe d
   (`module actif ET utilisateur autorisé`), ils ne se remplacent pas.
 - Sept modules dépendent d'un autre (`requires`) : `analytique` et `pieces` de
   `compta`, `mailing` (« Envois groupés ») de `booking`, et `facturation`,
-  `evenements`, `booking`, `fonds` du **`carnet`** — les quatre travaillent sur
-  des structures, et le carnet est la seule chose qui les possède. La règle
-  ci-dessous vaut pour tous — `clamp_permissions_dependantes()` suit `MODULES`,
-  sans liste en dur ; on ne peut donc pas écrire plus loin dans la facturation
-  ou le booking que dans le carnet sur lequel ils sont bâtis.
+  `evenements`, `booking`, `fonds` du **`carnet`**.
+- ⚠️ **`requires` a deux sens, et un seul concerne les droits.**
+  1. L'**activation** : un module dont la dépendance est éteinte s'éteint aussi
+     (`set_modules_actifs()`). Vrai pour tous, sans exception.
+  2. Le **plafond de droits** : un module ne dépasse pas le niveau de sa
+     dépendance. Vrai seulement d'un **sous-module** — celui qui prolonge les
+     DONNÉES de son parent : l'analytique ventile les écritures de la
+     comptabilité, les envois groupés écrivent aux contacts du booking. Écrire
+     chez l'enfant, c'est écrire chez le parent.
+  Les modules qui ne font que **se servir** de leur dépendance portent
+  `plafonne => false` : les pièces comptables et les quatre qui travaillent sur
+  le carnet. Déposer un justificatif n'est pas tenir les comptes — c'est même
+  toute la raison d'être du module —, et émettre une facture n'est pas écrire
+  le carnet d'adresses.
+  **Ce que cela corrige** : le clamp rabattait « `pieces` = écriture +
+  `compta` = lecture » sur « `pieces` = lecture », en silence et à
+  l'enregistrement. Le compte qui photographie ses tickets ne pouvait rien
+  déposer, et le module séparé — dont c'est l'unique justification — était
+  inconfigurable. `tests/permissions_test.php` l'interdit désormais.
 - `analytique` dépend de `compta` (`requires` existant) : logiquement, un droit sur
   `analytique` ne devrait pas dépasser celui sur `compta` (ex. écriture analytique sans
   aucun accès compta n'a pas de sens) — à valider, voir §10.

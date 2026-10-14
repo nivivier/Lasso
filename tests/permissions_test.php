@@ -56,18 +56,33 @@ check(
     clamp_permissions_dependantes(['compta' => 'ecriture', 'analytique' => 'lecture'])
 );
 
-// Le carnet d'adresses porte les structures et les personnes ; quatre modules
-// s'en servent et le « requires ». Deux conséquences se vérifient ici, parce
-// qu'aucune des deux ne se voit à l'écran tant qu'un compte limité n'existe pas.
+// ⚠️ LE test de cette section. « requires » a deux sens — l'activation et le
+// plafond de droits — et un seul concerne les droits. Un module qui ne fait que
+// SE SERVIR de sa dépendance (plafonne => false) ne doit pas être rabattu :
+// c'est ce rabattement, silencieux et posé à l'enregistrement, qui rendait le
+// module « Pièces » inconfigurable — « déposer sans voir les comptes » est sa
+// seule raison d'être, et il était impossible à accorder.
 check(
-    'booking sans carnet → retiré entièrement',
-    ['salaires' => 'lecture'],
-    clamp_permissions_dependantes(['salaires' => 'lecture', 'booking' => 'ecriture'])
+    'dépôt de pièces SANS lecture des comptes : le droit survit',
+    ['pieces' => 'ecriture'],
+    clamp_permissions_dependantes(['pieces' => 'ecriture'])
 );
 check(
-    'facturation écriture + carnet lecture → ramenée à lecture',
-    ['carnet' => 'lecture', 'facturation' => 'lecture'],
-    clamp_permissions_dependantes(['carnet' => 'lecture', 'facturation' => 'ecriture'])
+    'dépôt de pièces + lecture des comptes : le dépôt reste une écriture',
+    ['compta' => 'lecture', 'pieces' => 'ecriture'],
+    clamp_permissions_dependantes(['compta' => 'lecture', 'pieces' => 'ecriture'])
+);
+check(
+    'écrire dans le booking sans écrire le carnet : permis',
+    ['carnet' => 'lecture', 'booking' => 'ecriture'],
+    clamp_permissions_dependantes(['carnet' => 'lecture', 'booking' => 'ecriture'])
+);
+// Les SOUS-modules, eux, restent plafonnés : ils prolongent les données de leur
+// parent, et écrire chez l'enfant c'est écrire chez le parent.
+check(
+    'envois groupés écriture + booking lecture → ramenés à lecture',
+    ['booking' => 'lecture', 'mailing' => 'lecture'],
+    clamp_permissions_dependantes(['booking' => 'lecture', 'mailing' => 'ecriture'])
 );
 // La cascade va jusqu'au bout : mailing dépend de booking, qui dépend du carnet.
 check(

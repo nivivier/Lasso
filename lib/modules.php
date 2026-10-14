@@ -45,21 +45,25 @@ const MODULES = [
         'label'       => 'Pièces comptables',
         'description' => 'Factures reçues, tickets, quittances : les justificatifs des écritures',
         'requires'    => ['compta'],
+        'plafonne'    => false,
     ],
     'facturation' => [
         'label'       => 'Facturation',
         'description' => 'Factures aux structures du carnet d\'adresses (QR-facture suisse). Le rapprochement automatique des paiements et l\'import de relevés bancaires demandent en plus la Comptabilité, mais le marquage manuel « payée » fonctionne sans.',
         'requires'    => ['carnet'],
+        'plafonne'    => false,
     ],
     'evenements' => [
         'label'       => 'Événements',
         'description' => 'Dates de concert/projet, suivi SUISA, export public JSON/iCal',
         'requires'    => ['carnet'],
+        'plafonne'    => false,
     ],
     'booking' => [
         'label'       => 'Booking',
         'description' => 'CRM par-dessus le carnet d\'adresses : catégorie, contacts, notes, lieux (carte), campagnes de démarchage, messages individuels, import CSV. Les structures elles-mêmes appartiennent au carnet ; ici on les travaille.',
         'requires'    => ['carnet'],
+        'plafonne'    => false,
     ],
     // Suivi des demandes de subvention (SPEC_SUBVENTIONS.md). Un bailleur est une
     // structure du carnet d'adresses, comme une salle ou un débiteur — d'où la
@@ -68,6 +72,7 @@ const MODULES = [
         'label'       => 'Recherche de fonds',
         'description' => "Demandes de subvention : à qui l'on demande, pour quel projet, combien, où en est le dossier et ce qui a été obtenu. Les bailleurs sont des structures, comme les salles et les débiteurs.",
         'requires'    => ['carnet'],
+        'plafonne'    => false,
     ],
     // Sous-module : écrire à plusieurs structures d'un coup. Le booking seul
     // permet déjà d'écrire à UNE structure depuis sa fiche (bouton
@@ -185,14 +190,36 @@ function permission_donne_ecriture(array $niveaux, string $module): bool
     return ($niveaux[$module] ?? null) === 'ecriture';
 }
 
-// Un module dépendant (ex. analytique) ne peut jamais dépasser le niveau de
-// sa dépendance (ex. compta) — même principe que la résolution en cascade de
-// set_modules_actifs() pour l'activation globale. $niveaux : module =>
-// 'lecture'|'ecriture' (absence de clé = aucun droit sur ce module).
+// ⚠️ « requires » a DEUX sens, et un seul des deux concerne les droits.
+//
+//   1. l'ACTIVATION : un module dont la dépendance est éteinte s'éteint aussi
+//      (set_modules_actifs()). Vrai pour tous, sans exception — un module
+//      allumé sans ce sur quoi il est bâti ne marcherait pas.
+//   2. le PLAFOND de droits : un module dépendant ne dépasse pas le niveau de
+//      sa dépendance. Vrai seulement pour un SOUS-MODULE, c'est-à-dire celui
+//      qui prolonge les données de son parent : l'analytique ventile les
+//      écritures de la comptabilité, les envois groupés écrivent aux contacts
+//      du booking. Écrire chez l'enfant, c'est écrire chez le parent.
+//
+// Les modules qui ne font que SE SERVIR de leur dépendance portent
+// « plafonne => false » : les pièces comptables (déposer un justificatif n'est
+// pas tenir les comptes — c'est même toute la raison d'être du module) et les
+// quatre qui travaillent sur le carnet d'adresses (émettre une facture n'est
+// pas écrire le carnet).
+//
+// Sans cette distinction, le clamp rabattait « pieces = écriture + compta =
+// lecture » sur « pieces = lecture », en silence et à l'enregistrement : le
+// compte qui photographie ses tickets ne pouvait rien déposer, et le module
+// séparé ne servait à rien.
+//
+// $niveaux : module => 'lecture'|'ecriture' (absence de clé = aucun droit).
 function clamp_permissions_dependantes(array $niveaux): array
 {
     $rang = ['lecture' => 1, 'ecriture' => 2];
     foreach (MODULES as $id => $def) {
+        if (($def['plafonne'] ?? true) === false) {
+            continue;
+        }
         foreach ($def['requires'] as $req) {
             $niveauModule = $niveaux[$id] ?? null;
             if ($niveauModule === null) {

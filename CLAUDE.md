@@ -128,11 +128,16 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     restent au `booking` : ils parlent de démarchage, pas d'identité. L'onglet
     **Employés** y figure aussi, mais derrière le droit `salaires` — la fiche
     d'un employé porte son n° AVS et son taux horaire.
-    ⚠️ `requires` sert DEUX mécaniques : la cascade d'activation
-    (`set_modules_actifs()`) **et** le plafonnement des droits
-    (`clamp_permissions_dependantes()`), qui ramène un module au niveau de sa
-    dépendance. Un compte ne peut donc pas écrire plus loin dans la facturation
-    ou le booking que dans le carnet sur lequel ils sont bâtis.
+    ⚠️ `requires` sert DEUX mécaniques, et une seule touche aux droits : la
+    cascade d'activation (`set_modules_actifs()`, vraie pour tous) et le
+    plafonnement des droits (`clamp_permissions_dependantes()`), réservé aux
+    **sous-modules** — ceux qui prolongent les données de leur parent
+    (`analytique`, `mailing`). Les autres portent **`plafonne => false`** :
+    déposer une pièce n'est pas tenir les comptes, émettre une facture n'est
+    pas écrire le carnet. Sans cette distinction, le clamp rabattait
+    « pieces = écriture » sur « lecture » dès que `compta` n'était qu'en
+    lecture — en silence, et le module « dépôt sans lecture des comptes »
+    devenait inconfigurable.
     ⚠️ `pieces` existe comme module SÉPARÉ pour une seule raison : donner le
     dépôt d'un justificatif sans la lecture des comptes. C'est aussi **le seul
     endroit où un onglet survit à son module parent** — le bandeau de la
