@@ -55,6 +55,12 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 - **Front controller** `index.php` : charge `lib/config.php`, force HTTPS, en-têtes
   de sécurité, session, puis dispatch `?p=<route>` via une table → fonctions
   `route_*()` dans `lib/routes.php`.
+- **Routes** : `lib/routes.php` garde le tronc commun — authentification,
+  comptes, paramètres de l'employeur, apparence, e-mails, import/export,
+  sauvegarde, tableau de bord, recherche. Chaque module a le sien :
+  `routes_salaires.php`, `routes_compta.php`, `routes_pieces.php`,
+  `routes_facturation.php`, `routes_evenements.php`, `routes_booking.php`,
+  `routes_fonds.php`, `routes_personnes.php`, `routes_incoherences.php`.
 - **Vues** : `render($vue, $data, $titre)` (avec layout) ou `render_bare()` (impression).
   `views/layout.php` enveloppe ; `views/_*_body.php` = corps réutilisés (écran + impression + e-mail).
 - **Conventions d'interface** : `docs/UI.md` — comment l'application modifie une

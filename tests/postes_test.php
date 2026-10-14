@@ -127,6 +127,9 @@ echo "5) Le code d'une ligne suit la famille de sa colonne\n";
 // aligné sur la nature à la création.
 require_once __DIR__ . '/../lib/modules.php';
 require_once __DIR__ . '/../lib/routes.php';
+// enregistrer_poste() vit avec les autres routes du module Salaires depuis que
+// lib/routes.php a été coupé en deux.
+require_once __DIR__ . '/../lib/routes_salaires.php';
 enregistrer_poste(0, ['code' => 'caf', 'libelle' => 'Essai charge', 'sens' => 'charge',
                       'mode' => 'taux', 'base' => 'brut']);
 $cree = db()->query("SELECT code FROM postes_salariaux WHERE libelle = 'Essai charge'")->fetchColumn();

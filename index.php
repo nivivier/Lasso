@@ -13,6 +13,7 @@ require_once __DIR__ . '/lib/personnes.php';
 require_once __DIR__ . '/lib/routes_personnes.php';
 require_once __DIR__ . '/lib/recherche.php';
 require_once __DIR__ . '/lib/routes.php';
+require_once __DIR__ . '/lib/routes_salaires.php';
 require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/pieces.php';
 require_once __DIR__ . '/lib/routes_pieces.php';
