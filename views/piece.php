@@ -196,12 +196,8 @@ $vide = '<span class="muted">—</span>';
 </div>
 <?php endif; ?>
 
-<?php if ($peutEcrire): ?>
-<form method="post" action="?p=piece_supprimer" class="mt-22">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <input type="hidden" name="id" value="<?= $id ?>">
-    <button type="submit" class="btn danger ghost btn-sm"
-            data-confirm="Supprimer cette pièce ? Le fichier joint sera effacé du serveur."><?= icon('trash') ?> Supprimer cette pièce</button>
-</form>
-<?php endif; ?>
+<?php // « Supprimer » n'est pas sur cet écran (docs/UI.md § 1 et § 3) : un geste
+      // dont on ne revient pas n'a pas à être à portée de clic quand on ne fait
+      // que lire. Il vit dans l'en-tête de ?p=piece_form, avec « Enregistrer »,
+      // comme pour une facture ou un employé. ?>
 </div></div>

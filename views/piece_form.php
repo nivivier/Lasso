@@ -69,7 +69,21 @@ $plusOuvert = $id > 0 || $err !== '';
 
 <div class="page-head">
     <div class="page-head-title"><h1><?= $id ? 'Modifier la pièce' : e($typeInfo['nouveau']) ?></h1></div>
-    <?= entete_form_actions_html('piece-form', $id ? '?p=piece&id=' . $id : '?p=pieces') ?>
+    <?php // La suppression vit ICI, sur l'écran qui modifie la pièce, et pas sur
+          // celui qui la consulte (docs/UI.md § 3) — même place que pour une
+          // facture ou un employé. Rien à la création : il n'y a encore rien à
+          // détruire. Le message dit ce qui part AVEC la ligne : le fichier.
+          // Sans droit d'écriture, la route refuserait de toute façon. ?>
+    <?php ob_start(); ?>
+        <?php if ($id): ?>
+        <form method="post" action="?p=piece_supprimer" class="d-inline"
+              data-confirm="Supprimer cette pièce ? Le fichier joint sera effacé du serveur.">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= $id ?>">
+            <button type="submit" class="btn danger icon-only" title="Supprimer" aria-label="Supprimer la pièce"><?= icon('trash') ?></button>
+        </form>
+        <?php endif; ?>
+    <?= entete_form_actions_html('piece-form', $id ? '?p=piece&id=' . $id : '?p=pieces', ['avant' => (string) ob_get_clean()]) ?>
 </div>
 
 <?php // enctype obligatoire : sans lui, $_FILES reste vide et le fichier part
