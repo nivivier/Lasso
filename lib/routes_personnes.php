@@ -24,6 +24,20 @@ function route_personnes(): void
         [$sql, $params] = recherche_sql(['p.prenom', 'p.nom', 'p.email', 'p.telephone']);
         $where = ' WHERE 1=1' . $sql;
     }
+    // Le tri des colonnes, mémorisé en session comme partout ailleurs
+    // (tri_colonne()). « rattachements » trie sur le NOMBRE de structures : la
+    // colonne en montre les noms, mais c'est « qui en a le plus » qu'on y
+    // cherche, pas l'ordre alphabétique de la première.
+    $tri = tri_colonne('personnes', [
+        'nom'        => ['p.nom COLLATE NOCASE', 'p.prenom COLLATE NOCASE'],
+        'email'      => 'p.email COLLATE NOCASE',
+        'telephone'  => 'p.telephone COLLATE NOCASE',
+        'rattachements' => 'nb_structures',
+    ]);
+    $orderBy = $tri['sql'] !== ''
+        ? $tri['sql'] . ', p.id'
+        : ' ORDER BY p.nom COLLATE NOCASE, p.prenom COLLATE NOCASE';
+
     $pgTaille = pagination_taille('personnes_taille');
     $stmtTot = db()->prepare('SELECT COUNT(*) FROM personnes p' . $where);
     $stmtTot->execute($params);
@@ -37,15 +51,36 @@ function route_personnes(): void
                 (SELECT COUNT(*) FROM personne_structures ps WHERE ps.personne_id = p.id) AS nb_structures,
                 (SELECT COUNT(*) FROM employes e WHERE e.personne_id = p.id) AS est_employe,
                 (SELECT COUNT(*) FROM utilisateurs u WHERE u.personne_id = p.id) AS est_utilisateur
-           FROM personnes p' . $where . ' ORDER BY p.nom COLLATE NOCASE, p.prenom COLLATE NOCASE' . $limitSql
+           FROM personnes p' . $where . $orderBy . $limitSql
     );
     $stmt->execute(array_merge($params, $limitParams));
     $personnes = $stmt->fetchAll();
 
+    // Les structures de chaque personne de la PAGE, nommées : la colonne
+    // disait « 1 structure », ce qui demandait d'ouvrir la fiche pour savoir
+    // laquelle. Une seule requête pour les cinquante lignes — une par ligne,
+    // c'est ce qu'on vient de retirer de l'écran de fusion.
+    $structuresParPersonne = [];
+    if ($personnes) {
+        $ids = array_column($personnes, 'id');
+        $stmtS = db()->prepare(
+            'SELECT ps.personne_id, s.id, s.nom
+               FROM personne_structures ps JOIN structures s ON s.id = ps.structure_id
+              WHERE ps.personne_id IN (' . sql_in($ids) . ')
+              ORDER BY s.nom COLLATE NOCASE'
+        );
+        $stmtS->execute(array_map('intval', $ids));
+        foreach ($stmtS as $r) {
+            $structuresParPersonne[(int) $r['personne_id']][] = ['id' => (int) $r['id'], 'nom' => (string) $r['nom']];
+        }
+    }
+
     render('personnes', [
         'personnes' => $personnes,
+        'structuresParPersonne' => $structuresParPersonne,
         'recherche' => $recherche,
         'total'     => $total,
+        'tri'       => $tri,
         'pgRoute'   => 'personnes',
         'pgParams'  => array_filter(['q' => $recherche]),
         'pgPage'    => $pgPage,

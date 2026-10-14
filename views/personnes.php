@@ -1,5 +1,10 @@
-<?php /** @var array $personnes */ /** @var string $recherche */ /** @var int $total */
+<?php /** @var array $personnes */ /** @var array $structuresParPersonne */
+/** @var string $recherche */ /** @var int $total */ /** @var array $tri */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
+
+$triCol = fn (string $cle, string $lib): string => tri_entete_html(
+    'personnes', $cle, $lib, $tri, array_filter(['q' => $recherche])
+);
 ?>
 <?php // L'écran appartient au Carnet d'adresses depuis qu'il existe : bandeau
       // du module et onglets, comme ses voisins Structures et Employés. Il
@@ -22,10 +27,16 @@
         <span class="muted small"><?= $total ?> personne<?= $total > 1 ? 's' : '' ?> dans l'annuaire</span>
     </div>
 
-    <div class="card form table-scroll">
+    <?php // .table-scroll seul : porté par le même élément que .card, il
+          // dessinait un filet et des coins arrondis de chaque côté d'un
+          // tableau qui va déjà de bord à bord (docs/UI.md § 9). ?>
+    <div class="table-scroll">
     <table class="list">
         <thead><tr>
-            <th>Nom</th><th>Adresse électronique</th><th>Téléphone</th><th>Rattachements</th>
+            <th><?= $triCol('nom', 'Nom') ?></th>
+            <th><?= $triCol('email', 'Adresse électronique') ?></th>
+            <th><?= $triCol('telephone', 'Téléphone') ?></th>
+            <th><?= $triCol('rattachements', 'Rattachements') ?></th>
         </tr></thead>
         <tbody>
         <?php if (!$personnes): ?>
@@ -40,15 +51,18 @@
                 <td class="muted small"><?= $pp['email'] !== '' ? e((string) $pp['email']) : '—' ?></td>
                 <td class="muted small"><?= $pp['telephone'] !== '' ? e((string) $pp['telephone']) : '—' ?></td>
                 <td class="muted small">
-                    <?php
-                    // Ce qui la retient, dit en clair : c'est exactement ce que
-                    // le modèle apporte, et qu'aucun écran ne montrait avant.
-                    $att = [];
-                    if ((int) $pp['nb_structures'] > 0) { $att[] = (int) $pp['nb_structures'] . ' structure' . ((int) $pp['nb_structures'] > 1 ? 's' : ''); }
-                    if ((int) $pp['est_employe'] > 0)   { $att[] = 'employée'; }
-                    if ((int) $pp['est_utilisateur'] > 0) { $att[] = 'compte'; }
-                    ?>
-                    <?= $att ? e(implode(' · ', $att)) : '<span class="muted">—</span>' ?>
+                    <?php // Ce qui la retient, NOMMÉ : « 1 structure » obligeait
+                          // à ouvrir la fiche pour savoir laquelle. Les liens
+                          // mènent droit aux structures — c'est le trajet qu'on
+                          // fait depuis cet écran. ?>
+                    <?php $pStructs = $structuresParPersonne[$pid] ?? []; ?>
+                    <?php if (!$pStructs && !(int) $pp['est_employe'] && !(int) $pp['est_utilisateur']): ?>
+                        <span class="muted">—</span>
+                    <?php else: ?>
+                        <?php foreach ($pStructs as $i => $st): ?><?= $i ? ' · ' : '' ?><a href="?p=structure&amp;id=<?= $st['id'] ?>&amp;depuis=personne:<?= $pid ?>"><?= e($st['nom']) ?></a><?php endforeach; ?>
+                        <?php if ((int) $pp['est_employe'] > 0): ?><?= $pStructs ? ' · ' : '' ?><?= badge('Employée', 'ok') ?><?php endif; ?>
+                        <?php if ((int) $pp['est_utilisateur'] > 0): ?> <?= badge('Compte', 'muted') ?><?php endif; ?>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
