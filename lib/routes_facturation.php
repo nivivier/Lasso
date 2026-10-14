@@ -1225,6 +1225,7 @@ function structure_donnees_crm(int $id): array
                 'lieuxLies' => [], 'lieuxDispo' => [],
                 'organisateurDispo' => [], 'categoriesLieu' => [], 'evenementsLies' => [],
                 'contactsJoignables' => [], 'expediteurs' => [], 'modelesMessage' => [], 'brouillon' => null,
+                'personnesCarnet' => [],
             'campagnesStructure' => [], 'campagnesLiees' => [], 'campagnesDispo' => [],
                 'projetsDispo' => [], 'campagneProjets' => []];
     }
@@ -1311,6 +1312,11 @@ function structure_donnees_crm(int $id): array
 
     return [
         'contacts'  => $stmtContacts->fetchAll(),
+        // Le carnet, pour rattacher un contact à une personne qui EXISTE déjà
+        // plutôt que d'en créer une seconde du même nom. Chargé seulement si
+        // l'on peut écrire : sans droit d'écriture, le formulaire d'ajout
+        // n'est pas rendu du tout.
+        'personnesCarnet' => peut_ecrire('booking') ? personnes_options() : [],
         'contactsLies' => $contactsLies,
         'notes'     => $notesHistorique,
         'tags'      => $stmtTags->fetchAll(),

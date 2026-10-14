@@ -47,7 +47,23 @@ function route_structure_contact_ajouter(): void
             contact_enregistrer($contactId, $champs);
         }
     } else {
-        $nouveau = contact_creer($structureId, $champs);
+        // Rattacher une personne DÉJÀ au carnet plutôt que d'en créer une
+        // seconde du même nom : c'est ce qui empêche la même tourneuse de
+        // finir en quatre fiches, une par salle. Son identité est la sienne —
+        // on ne la réécrit pas avec ce que porte ce formulaire-ci.
+        $personneId = (int) ($_POST['personne_id'] ?? 0);
+        if ($personneId && !personne_charger($personneId)) {
+            $personneId = 0;
+        }
+        // Déjà contact de cette structure : on ne double pas la ligne. Le
+        // rôle se change sur celle qui existe.
+        $deja = 0;
+        if ($personneId) {
+            $st = db()->prepare('SELECT id FROM personne_structures WHERE personne_id = ? AND structure_id = ?');
+            $st->execute([$personneId, $structureId]);
+            $deja = (int) ($st->fetchColumn() ?: 0);
+        }
+        $nouveau = $deja ?: contact_creer($structureId, $champs, $personneId ?: null);
     }
     $nomContact = trim($champs['prenom'] . ' ' . $champs['nom']);
     $nomContact = $nomContact !== '' ? $nomContact : ($champs['email'] !== '' ? $champs['email'] : 'contact');

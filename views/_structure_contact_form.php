@@ -48,6 +48,30 @@ if ($cfTitre === '') {
         </div>
     </div>
 
+    <?php // ⚠️ À l'AJOUT seulement : rattacher une personne qui existe déjà.
+          // Sans ce champ, chaque contact créait une personne de plus, et la
+          // même tourneuse finissait en quatre fiches — une par salle — que
+          // l'écran des doublons devait ensuite recoudre. Chercher d'abord,
+          // créer ensuite : le champ vient donc en tête, et les deux suivants
+          // ne servent que s'il reste vide.
+          //
+          // En modification, il n'a pas de sens : la ligne EST déjà celle d'une
+          // personne, et changer laquelle serait une fusion déguisée. ?>
+    <?php if (!$cfEdition && !empty($personnesCarnet)): ?>
+    <div class="cat-search mb-16" data-cat-search data-vider-en-saisie>
+        <span class="lbl-champ">Déjà dans le carnet d'adresses ?</span>
+        <input type="text" class="cat-search-input" autocomplete="off" placeholder="Chercher un nom…"
+               aria-label="Rattacher une personne existante">
+        <input type="hidden" name="personne_id" class="cat-search-val" value="">
+        <ul class="cat-search-list" hidden role="listbox">
+            <?php foreach ($personnesCarnet as $cfPe): ?>
+            <li data-val="<?= (int) $cfPe['id'] ?>"><?= e($cfPe['libelle']) ?></li>
+            <?php endforeach; ?>
+        </ul>
+        <p class="muted small mt-8">Laissé vide, les champs ci-dessous créent une nouvelle personne.</p>
+    </div>
+    <?php endif; ?>
+
     <div class="grid2">
         <label><span>Prénom</span><input name="prenom" value="<?= $cfV('prenom') ?>"></label>
         <label><span>Nom</span><input name="nom" value="<?= $cfV('nom') ?>"></label>
