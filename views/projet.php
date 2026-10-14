@@ -16,8 +16,7 @@ foreach (plan_liste_ordonnee($map) as $r) {
         . e(projet_chemin($rid, $map)) . '</option>';
 }
 ?>
-<?php require __DIR__ . '/_module_tabs.php'; ?>
-<?php require __DIR__ . '/_page_head_band.php'; ?>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php // Contextuel : un projet est une catégorie de la recherche unifiée, donc
       // on doit pouvoir y revenir. Sans ?depuis, retombe sur la liste comme avant. ?>
 <?= lien_retour_contextuel('?p=projets', evenements_terme_projet()) ?>

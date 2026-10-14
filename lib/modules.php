@@ -487,20 +487,16 @@ function nav_groupes(): array
         ]];
     }
 
-    // L'onglet des projets (projets). Il appartient au module Événements —
-    // c'est lui qui les tient —, mais trois modules travaillent dessus : une
-    // campagne de démarchage vise des projets, une campagne de recherche de
-    // fonds en finance un. L'onglet est donc repris dans Booking et dans
-    // Recherche de fonds, à la condition stricte que le module Événements soit
-    // allumé ET lisible : la route `projets` lui est rattachée (index.php),
-    // un compte qui n'y a pas accès se verrait proposer une page refusée.
-    $ongletProjets = [evenements_terme_projet(), ['projets', 'projet'], 0, 'music'];
-    $projetsAccessibles = module_accessible('evenements');
-
+    // Les PROJETS ne sont plus un onglet de module. Ils l'étaient dans trois —
+    // Événements, qui les tient, puis Booking et Recherche de fonds, qui les
+    // reprenaient parce qu'on démarche sur un projet et qu'on en finance un —,
+    // et trois onglets pour un référentiel qu'on règle deux fois l'an, c'était
+    // trois places prises au travail courant. Ils vivent désormais dans
+    // Paramètres → Catégories, avec les pays, les catégories et les tags :
+    // même nature, même endroit (parametres_groupes(), plus bas).
     if (module_actif('evenements') && peut_lire('evenements')) {
         $g['evenements'] = ['Événements', 'calendar', [
             'evenements' => ['Événements', ['evenements', 'evenement'], nb_evenements_suisa_a_faire(), 'calendar'],
-            'projets'       => $ongletProjets,
         ]];
     }
 
@@ -513,11 +509,6 @@ function nav_groupes(): array
             // groupés », puisqu'on y démarche structure par structure.
             'booking_campagnes'          => ['Campagnes', ['booking_campagnes', 'booking_campagne', 'booking_campagne_form'], 0, 'target'],
         ];
-        // Les projets, juste après les campagnes qui les portent : c'est sur eux
-        // qu'on démarche, et l'onglet évite de sortir du module pour les régler.
-        if ($projetsAccessibles) {
-            $ongletsBooking['projets'] = $ongletProjets;
-        }
         // Suivi et Nouvelle campagne appartiennent au sous-module « Envois
         // groupés » : sans lui, le booking garde ses structures, ses modèles de
         // message et sa liste d'exclusion — dont se sert le bouton
@@ -546,12 +537,6 @@ function nav_groupes(): array
         $ongletsFonds = [
             'fonds_campagnes' => ['Campagnes', ['fonds_campagnes', 'fonds_campagne', 'fonds_campagne_form', 'fonds_demande'], 0, 'landmark'],
         ];
-        // Ce qu'une campagne finance est un projet, et c'est lui qui porte l'axe
-        // analytique de la ventilation (migration_91) : on le règle sans quitter
-        // le module.
-        if ($projetsAccessibles) {
-            $ongletsFonds['projets'] = $ongletProjets;
-        }
         $g['fonds'] = ['Recherche de fonds', 'landmark', $ongletsFonds];
     }
 
@@ -636,6 +621,13 @@ function parametres_groupes(): array
     if (module_actif('booking') && peut_lire('booking')) {
         $categories['categories_structures'] = 'Catégories';
         $categories['tags']                  = 'Tags';
+    }
+    // Les projets — ou le mot que l'association a choisi pour eux
+    // (evenements_terme_projet()) : un référentiel comme les autres, qu'on
+    // tient deux fois l'an. La route reste rattachée au module Événements
+    // (index.php) — c'est lui qui les possède —, d'où la condition.
+    if (module_actif('evenements') && peut_lire('evenements')) {
+        $categories['projets'] = evenements_terme_projet();
     }
     $groupes['categories'] = ['Catégories', $categories];
 
@@ -738,17 +730,12 @@ function nav_groupe_actif(array $groupes, string $route, string $depuis = ''): ?
             return $groupeDuType;
         }
     }
-    // Certaines routes partagées ont un groupe PROPRIÉTAIRE sans ambiguïté :
-    // les projets sont tenus par le module Événements, Booking et Recherche de
-    // fonds ne font que les reprendre en onglet. Sans cette table, l'ordre
-    // fixe ci-dessous allumerait Booking sur un ?p=projets arrivé sans
-    // provenance — depuis le rail, un signet ou la recherche unifiée.
-    //
-    // Même chose pour les employés : l'onglet figure dans le Carnet d'adresses
-    // ET dans Salaires, mais la fiche d'un employé est une pièce de la paie —
-    // c'est le groupe Salaires qui s'allume quand on y arrive sans provenance.
-    $proprietaire = ['projets' => 'evenements', 'projet' => 'evenements',
-                     'employes' => 'salaires', 'employe' => 'salaires',
+    // Certaines routes figurent dans PLUSIEURS groupes ; celle-ci dit lequel
+    // les possède, pour qu'on y arrive au bon endroit sans provenance — depuis
+    // le rail, un signet ou la recherche unifiée. L'onglet Employés figure
+    // dans le Carnet d'adresses et dans Salaires, mais la fiche d'un employé
+    // est une pièce de la paie : c'est Salaires qui s'allume.
+    $proprietaire = ['employes' => 'salaires', 'employe' => 'salaires',
                      'employe_form' => 'salaires'][$route] ?? null;
     if ($proprietaire !== null && in_array($proprietaire, $candidats, true)) {
         return $proprietaire;

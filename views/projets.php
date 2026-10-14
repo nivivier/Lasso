@@ -53,15 +53,17 @@ $parentOptions = function (int $excludeId) use ($map): string {
     return $h;
 };
 ?>
-<?php require __DIR__ . '/_module_tabs.php'; ?>
-<?php require __DIR__ . '/_page_head_band.php'; ?>
-<?php // Les projets sont tenus par le module Événements, mais repris en onglet
-      // par Booking et par Recherche de fonds (nav_groupes()). Chaque lien vers
-      // un projet reporte donc le groupe d'où l'on vient : sans lui, ouvrir une
-      // fiche depuis le rail du booking ferait basculer tout l'écran dans
-      // Événements. Même procédé que la liste des structures, partagée elle
-      // aussi par plusieurs modules (views/structures.php). ?>
-<?php $suffixeDepuis = $ntCle !== null ? '&depuis=' . $ntCle : ''; ?>
+<?php // Un référentiel, pas un écran de travail : les projets vivent dans
+      // Paramètres → Catégories, avec les pays, les catégories et les tags.
+      // Ils ont longtemps été un onglet dans trois modules à la fois — celui
+      // qui les tient et les deux qui s'en servent —, ce qui prenait trois
+      // places à ce qu'on fait tous les jours.
+      //
+      // $suffixeDepuis survit, vide : les liens de cette page le reportaient
+      // pour garder le bon groupe de nav allumé. Il n'y a plus de groupe à
+      // garder, mais les liens, eux, sont restés tels quels. ?>
+<?php require __DIR__ . '/_param_tabs.php'; ?>
+<?php $suffixeDepuis = ''; ?>
 
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">

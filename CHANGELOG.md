@@ -21,6 +21,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   une fiche d'employé porte son n° AVS et son taux horaire.
   Le module **« Factures » devient « Facturation »**, pour ne plus se lire comme
   les factures *reçues* que range le module Pièces comptables.
+  Et les **projets** rejoignent Paramètres → Catégories, avec les pays, les
+  catégories et les tags : ils étaient un onglet dans trois modules à la fois,
+  alors qu'on les règle deux fois l'an. Un bandeau de module est fait pour le
+  travail courant ; une rangée qui n'aurait plus qu'un seul onglet ne s'affiche
+  d'ailleurs plus du tout.
 - **Les personnes** (`SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
   Paramètres → Application. Un contact de structure, un employé et un compte
   peuvent être la **même personne** — et le sont souvent ; ils le disent

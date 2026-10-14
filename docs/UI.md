@@ -1133,6 +1133,18 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   rien à filtrer, ni l'un ni l'autre n'a de raison d'être là —, sauf quand un
   filtre est actif, sinon on ne pourrait plus le retirer.
 
+## 9 ter. La rangée d'onglets d'un module
+
+Elle ne paraît **qu'à partir de deux onglets** (`views/_module_tabs_render.php`).
+Un onglet seul ne mène nulle part : il répète le nom du module écrit à deux
+centimètres à gauche et occupe la place d'une navigation qui n'existe pas. La
+pastille qu'il portait reste lisible dans le rail, qui porte la même.
+
+Un **référentiel** — ce qu'on règle deux fois l'an : pays, catégories, tags,
+projets — n'est pas un onglet de module : il vit dans Paramètres → Catégories
+(`parametres_groupes()`). Le bandeau d'un module est fait pour le travail
+courant, et chaque onglet y est une place prise à celui-ci.
+
 ## 9 bis. Cartes posées côte à côte
 
 Plusieurs cartes sur une page se posent en `.cartes-rangee` : **autant de
