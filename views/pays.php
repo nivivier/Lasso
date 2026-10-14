@@ -30,10 +30,7 @@ $paysOptions = function (?int $selected) use ($map): string {
 <?php endif; ?>
 
 <div class="section-head mt-0">
-    <h2 class="mt-0">Pays &amp; régions <?= info_tip("Liste de pays commune à toute l'application (structures, salles/festivals, employeur,
-    événements, factures). Les régions (Normandie, Romandie, Acadie…) sont des sous-entrées d'un pays :
-    glissez une ligne pour la réordonner ou la déplacer. Renommer un pays ou une région met aussi à jour
-    les fiches qui l'utilisent déjà.") ?> </h2>
+    <h2 class="mt-0">Pays &amp; régions</h2>
     <?php if ($peutEcrirePays): ?>
     <button type="button" class="btn ml-auto" data-show="pays-add"><?= icon('plus') ?> Nouveau pays / région</button>
     <?php endif; ?>

@@ -1196,6 +1196,15 @@ tablette et s'empilent sur téléphone, sans qu'aucun point de rupture ne soit
   (`placeholder`) dit ce qu'on y met. Le dire deux fois allonge sans apprendre.
   Exception : une contrainte réelle qu'un `placeholder` ne peut pas porter
   (formats et taille d'un fichier) rejoint l'intitulé du champ.
+- **Un `info_tip()` ne se justifie que s'il change l'action à faire** : une
+  conséquence qu'on ne devinerait pas (« laisser vide = inchangé », « avant
+  cette date aucun message ne part », « montants ANNUELS »), une portée (« ce
+  réglage vaut pour toute l'application »), une variable disponible. Décrire
+  l'écran qu'on a sous les yeux — « une campagne est une sélection de
+  structures… », « description, quantité et prix unitaire » au-dessus de
+  colonnes qui le disent — n'apprend rien et se lit une fois. Le POURQUOI de la
+  conception va dans un commentaire de code ou dans `docs/DECISIONS.md`, jamais
+  à l'écran.
 - **Normaliser plutôt que refuser** quand c'est possible : « 20h30 » devient
   `20:30`, une saisie incompréhensible est vidée. Refuser bloquerait
   l'enregistrement du reste.

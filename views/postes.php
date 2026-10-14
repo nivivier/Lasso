@@ -46,11 +46,12 @@ foreach ($postes as $p) {
 <?php endif; ?>
 
 <div class="year-bar">
+    <?php // Ce qu'on garde de l'ancienne aide : la seule phrase qui change ce
+          // qu'on va faire. Qu'il s'agisse des lignes d'un décompte et qu'elles
+          // se glissent, l'écran le montre. ?>
     <h2 class="mt-0">Lignes du décompte <?= info_tip(
-        "Les lignes qui composent un décompte de salaire, dans l'ordre où elles y apparaissent,
-        et le taux que chacune applique pour l'année choisie. Une fiche déjà enregistrée garde ses
-        propres lignes et ses propres taux, figés à sa création : rien de ce qui se règle ici ne la
-        réécrit. Glissez une ligne pour la déplacer à l'intérieur de sa partie."
+        "Une fiche déjà enregistrée garde ses propres lignes et ses propres taux, figés à sa "
+        . "création : rien de ce qui se règle ici ne la réécrit."
     ) ?></h2>
     <label class="inline">
         <select data-go-on-change="?p=postes&annee=" aria-label="Année des taux">

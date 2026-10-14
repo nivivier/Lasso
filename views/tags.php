@@ -4,9 +4,7 @@
 <?php $peutEcrireTags = peut_ecrire('booking'); ?>
 
 <div class="section-head mt-0">
-    <h2 class="mt-0">Tags<?= info_tip("Tags libres posés sur les structures (« À contacter en cas de tournée »,
-    « Ne pas contacter »…), utilisés dans les filtres et le ciblage des mailings. Renommer un tag le met à jour partout ;
-    le supprimer le retire des fiches qui le portent (les fiches elles-mêmes ne sont pas touchées).") ?></h2>
+    <h2 class="mt-0">Tags</h2>
     <?php if ($peutEcrireTags): ?>
     <button type="button" class="btn ml-auto" data-show="tag-add"><?= icon('plus') ?> Nouveau tag</button>
     <?php endif; ?>

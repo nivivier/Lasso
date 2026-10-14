@@ -19,12 +19,6 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
             <?= champ_recherche(['id' => 'fonds-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true, 'placeholder' => 'Nom de campagne, projet…']) ?>
         </form>
         <div class="head-actions">
-            <?= info_tip(
-                "Une campagne de recherche de fonds est une sélection de bailleurs à solliciter pour un projet,
-                entre deux dates. Chaque bailleur y a son dossier : ce qu'on lui demande, ce qu'il exige, ce
-                qu'il a répondu. La jauge se compte en francs — obtenu, en attente, reste à trouver —, avec un
-                repère à l'objectif minimal, celui sans lequel le projet ne se fait pas."
-            ) ?>
             <?php if (peut_ecrire('fonds')): ?>
             <a class="btn" href="?p=fonds_campagne_form"><?= icon('plus') ?><span class="lbl"> Nouvelle campagne</span></a>
             <?php endif; ?>

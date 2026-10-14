@@ -108,10 +108,8 @@
         <div>
 
         <h3 class="sub no-mt">Fond <?= info_tip(
-            "Les quatre décors sont calculés à partir des couleurs ci-dessus : ils suivent le "
-            . "thème, ne pèsent rien et s'affichent aussi sur les écrans hors session (connexion, "
-            . "mot de passe oublié). L'image personnalisée, elle, ne s'affiche que derrière "
-            . "l'application une fois connecté."
+            "Une image personnalisée ne s'affiche qu'une fois connecté ; les quatre décors, "
+            . "eux, paraissent aussi sur l'écran de connexion."
         ) ?></h3>
         <div class="fond-rangee">
             <?= icon_picker('employeur_fond_decor', [

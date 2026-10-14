@@ -766,7 +766,7 @@ $villeHtmlS = ville_departement_canton_html(
                   // porte aussi les campagnes de recherche de fonds, juste en
                   // dessous. Deux cartes nommées « Campagnes » sur le même écran
                   // ne diraient plus laquelle est laquelle. ?>
-            <h2 class="mt-0">Booking<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Les campagnes de démarchage où cette structure a été retenue, la plus récente d'abord. La réponse se note ici comme depuis la campagne. Sous « Structures liées » figurent les campagnes qui visent son organisateur ou les salles et festivals qu'elle organise : en lecture seule, la réponse y est celle de l'autre structure.") ?></h2>
+            <h2 class="mt-0">Booking<?= $campagnesStructure ? ' (' . count($campagnesStructure) . ')' : '' ?> <?= info_tip("Sous « Structures liées » : les campagnes qui visent son organisateur ou les salles qu'elle organise. En lecture seule — la réponse y est celle de l'autre structure.") ?></h2>
             <?php if ($peutEcrireBooking && $campagnesDispo): ?>
             <div class="head-actions">
                 <?php // Une icône seule, comme les autres en-têtes de cadre de la
@@ -980,8 +980,8 @@ $villeHtmlS = ville_departement_canton_html(
 <div class="card">
     <div class="card-block">
         <h2 class="mt-0">Recherche de fonds<?= $dossiersFonds ? ' (' . count($dossiersFonds) . ')' : '' ?> <?= info_tip(
-            "Les dossiers de subvention déposés chez cette structure, du plus récent au plus ancien. "
-            . "Ce qu'elle exige comme pièces se règle depuis l'un d'eux : c'est elle qui l'exige, pas la campagne."
+            "Ce que ce bailleur exige comme pièces se règle depuis l'un de ses dossiers : "
+            . "c'est lui qui l'exige, pas la campagne."
         ) ?></h2>
         <?php if (!$dossiersFonds): ?>
         <p class="muted mb-0">Aucun dossier de subvention chez cette structure.</p>
@@ -1022,7 +1022,7 @@ $villeHtmlS = ville_departement_canton_html(
       // aligne date, case à cocher et boutons sur une seule rangée. ?>
 <div class="card mt-22" id="historique-detaille">
     <div class="card-head-row">
-        <h2 class="mt-0">Historique détaillé <?= info_tip("Notes libres en flux chronologique. Cocher « prise de contact » alimente la date de dernier contact affichée dans la liste des structures.") ?></h2>
+        <h2 class="mt-0">Historique détaillé <?= info_tip("Cocher « prise de contact » met à jour la date de dernier contact de la liste des structures.") ?></h2>
     </div>
     <?php if ($peutEcrireBooking): ?>
     <?php // Tout sur une rangée tant que la largeur le permet — date, texte,

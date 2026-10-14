@@ -50,11 +50,6 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
         require __DIR__ . '/_filtres_mobile.php';
         ?>
         <div class="head-actions">
-            <?= info_tip(
-                "Une campagne est une sélection de structures à contacter pour un ou plusieurs projets, entre deux dates.
-                On y démarche structure par structure ; la jauge compte les prises de contact déjà consignées, e-mail
-                comme appel noté à la main. Avant la date de début, aucun message ne part."
-            ) ?>
             <?php if (peut_ecrire('booking')): ?>
             <a class="btn" href="?p=booking_campagne_form"><?= icon('plus') ?><span class="lbl"> Nouvelle campagne</span></a>
             <?php endif; ?>

@@ -97,10 +97,7 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
     </div>
 </div>
 
-<h2 class="mt-22">Dossiers <?= info_tip(
-    "Un bailleur par ligne, du délai le plus proche au plus lointain. Le crayon ouvre la ligne pour y noter "
-    . "ce que le bailleur demande, ce qu'on a déposé et ce qu'il a répondu."
-) ?></h2>
+<h2 class="mt-22">Dossiers</h2>
 
 <?php if (!$demandes): ?>
     <p class="muted">Aucun bailleur dans cette campagne.
