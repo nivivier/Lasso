@@ -3,7 +3,7 @@
 //
 // Écran du CARNET D'ADRESSES : l'annuaire, et rien d'autre.
 //
-// Le dédoublonnage, lui, vit dans ?p=dev, avec les autres outils de reprise de
+// Le dédoublonnage, lui, vit dans ?p=incoherences, avec les autres outils de reprise de
 // données (doublons de structures et de contacts, lieux à rattacher…). Ce
 // n'est pas un geste du travail courant : on le fait une fois après une
 // importation, et sa place n'était pas dans la barre d'actions d'un écran
@@ -123,5 +123,5 @@ function route_personnes_fusionner(): void
     $n = $cible ? personnes_fusionner($cible, $sources) : 0;
     // Retour à l'outil d'où l'on vient, et à SA section : la page de reprise
     // en compte cinq, et revenir en haut obligerait à redescendre.
-    redirect('dev', ($n ? ['ok' => 'personnes', 'np' => $n] : []), 'doublons-personnes');
+    redirect('incoherences', ['section' => 'doublons-personnes'] + ($n ? ['ok' => 'personnes', 'np' => $n] : []));
 }

@@ -8,7 +8,7 @@
       // Pas de titre de page : l'onglet « Personnes » du bandeau, à deux
       // centimètres au-dessus, dit déjà où l'on est (docs/UI.md § 9 ter).
       // Pas de bouton « Doublons probables » non plus — le dédoublonnage est
-      // un geste de reprise de données, il vit dans ?p=dev avec ses pareils. ?>
+      // un geste de reprise de données, il vit dans ?p=incoherences avec ses pareils. ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 

@@ -2879,7 +2879,7 @@ function structures_taxonomie_assurer(array $paires): int
 
 // Ce que structures_taxonomie_assurer() créerait, sans rien écrire : clé pliée
 // « idParent|nom sans accents » => ['parent' => id racine, 'nom' => sous-cat,
-// 'categorie' => nom de la racine]. Séparé pour que ?p=dev puisse MONTRER les
+// 'categorie' => nom de la racine]. Séparé pour que ?p=incoherences puisse MONTRER les
 // manques avant de proposer de les combler.
 function structures_taxonomie_a_creer(array $paires): array
 {
@@ -2947,7 +2947,7 @@ function structures_taxonomie_paires_utilisees(): array
 }
 
 // Sous-catégories vues sur des structures mais absentes de la taxonomie — la
-// détection derrière la section « Sous-catégories non déclarées » de ?p=dev.
+// détection derrière la section « Sous-catégories non déclarées » de ?p=incoherences.
 // Chaque entrée : ['cle' => clé stable pour la sélection, 'categorie', 'nom',
 // 'nb' => structures concernées].
 function structures_taxonomie_manquantes(): array
@@ -2969,7 +2969,7 @@ function structures_taxonomie_manquantes(): array
     return $manques;
 }
 
-// Clé d'une paire dans les cases à cocher de ?p=dev. Encodée : un nom de
+// Clé d'une paire dans les cases à cocher de ?p=incoherences. Encodée : un nom de
 // catégorie peut contenir n'importe quel caractère, séparateur compris.
 function structures_taxonomie_cle(string $categorie, string $sous): string
 {

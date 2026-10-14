@@ -1,6 +1,6 @@
 <?php
 // Scripts de maintenance ponctuels, lançables en CLI (scripts/…) ET depuis
-// l'onglet Paramètres → Dev (lib/routes_dev.php). Toute la logique vit ici
+// l'onglet Paramètres → Dev (lib/routes_incoherences.php). Toute la logique vit ici
 // pour que les deux points d'entrée restent en phase ; les scripts CLI et la
 // route web ne font qu'appeler ces fonctions et présenter le résultat.
 

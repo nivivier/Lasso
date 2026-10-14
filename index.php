@@ -25,7 +25,7 @@ require_once __DIR__ . '/lib/sauvegarde.php';
 require_once __DIR__ . '/lib/feuille_route.php';
 require_once __DIR__ . '/lib/geocodage.php';
 require_once __DIR__ . '/lib/dev.php';
-require_once __DIR__ . '/lib/routes_dev.php';
+require_once __DIR__ . '/lib/routes_incoherences.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
 if (FORCE_HTTPS && !is_https() && PHP_SAPI !== 'cli') {
@@ -375,7 +375,7 @@ if (peut_ecrire('coeur')) {
         'apparence'           => 'route_apparence',
         'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
         'sauvegarde'              => 'route_sauvegarde',
-        'dev'                 => 'route_dev',
+        'incoherences'        => 'route_incoherences',
     ];
 }
 

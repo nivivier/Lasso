@@ -1133,6 +1133,21 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   rien à filtrer, ni l'un ni l'autre n'a de raison d'être là —, sauf quand un
   filtre est actif, sinon on ne pourrait plus le retirer.
 
+## 9 quater. Un écran qui porte plusieurs outils
+
+Quand une page rassemble des outils indépendants qu'on n'utilise jamais
+ensemble — les vérifications de `?p=incoherences` —, elle s'ouvre sur un
+**sommaire** plutôt que de les dérouler bout à bout : une ligne par outil, ce
+qu'il a trouvé, et la ligne entière mène à son écran (`.row-link`). Chaque
+écran porte alors son titre de page et un `lien_retour()` vers le sommaire,
+comme n'importe quelle fiche. Le paramètre `?section=` choisit l'écran, un
+identifiant inconnu ramène au sommaire.
+
+Le titre de la carte disparaît sur l'écran de détail : il répéterait le titre
+de page, qui vient du libellé qu'on a cliqué. Et chaque formulaire de l'écran
+poste vers `?section=` : sans cela, enregistrer renverrait au sommaire, où le
+résultat du geste est invisible.
+
 ## 9 ter. La rangée d'onglets d'un module
 
 Elle ne paraît **qu'à partir de deux onglets** (`views/_module_tabs_render.php`).

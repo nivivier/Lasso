@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-function route_dev(): void
+function route_incoherences(): void
 {
     require_login();
 
@@ -39,7 +39,7 @@ function route_dev(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
         $action = $_POST['action'] ?? '';
-        // Identifiants cochés (case « sel[] », voir views/dev.php) — chaque
+        // Identifiants cochés (case « sel[] », voir views/incoherences.php) — chaque
         // action ci-dessous n'applique le changement qu'aux lignes présentes
         // dans cet ensemble, jamais à tout ce qui a été détecté par défaut.
         // Format de clé propre à chaque action, voir le filtre correspondant.
@@ -78,7 +78,7 @@ function route_dev(): void
                     $potentielsErr = 'Échec de la sauvegarde préalable — fusion annulée.';
                 } else {
                     $ns = doublons_potentiels_fusionner($paires);
-                    redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nc' => 0, 'seuil' => $seuil]);
+                    redirect('incoherences', ['section' => 'doublons-potentiels', 'ok' => 'doublons', 'ns' => $ns, 'nc' => 0, 'seuil' => $seuil]);
                     return;
                 }
             }
@@ -97,7 +97,7 @@ function route_dev(): void
                 } else {
                     $ns = doublons_fusionner_structures($gr['structures']);
                     $nc = doublons_fusionner_contacts($gr['contacts']);
-                    redirect('dev', ['ok' => 'doublons', 'ns' => $ns, 'nc' => $nc]);
+                    redirect('incoherences', ['section' => 'doublons-exacts', 'ok' => 'doublons', 'ns' => $ns, 'nc' => $nc]);
                     return;
                 }
             }
@@ -209,7 +209,7 @@ function route_dev(): void
     $evenementsLieuxRepartition = evenements_lieux_repartir(evenements_lieux_detecter());
     $evenementsLieuxAucuneGroupes = evenements_lieux_grouper_aucune($evenementsLieuxRepartition['aucune']);
 
-    render('dev', [
+    render('incoherences', [
         'type'           => $type,
         'doublons'       => doublons_detecter($type),
         'doublonsErr'    => $doublonsErr,

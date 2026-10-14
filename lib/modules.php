@@ -655,7 +655,7 @@ function parametres_groupes(): array
         $donnees['synchronisation'] = 'Synchronisation';
     }
     if (peut_ecrire('coeur')) {
-        $donnees['dev'] = 'Incohérences';
+        $donnees['incoherences'] = 'Incohérences';
     }
     $groupes['donnees'] = ['Données', $donnees, $routesImport];
 

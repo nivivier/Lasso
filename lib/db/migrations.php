@@ -2141,7 +2141,7 @@ function migration_44(PDO $pdo): void
 }
 
 // Migration 69 : table des paires de structures écartées de la détection des
-// doublons POTENTIELS (?p=dev, noms voisins dans le même canton). Sans mémoire,
+// doublons POTENTIELS (?p=incoherences, noms voisins dans le même canton). Sans mémoire,
 // l'outil reproposerait indéfiniment les mêmes rapprochements légitimes — une
 // antenne régionale et sa maison mère, deux salles d'un même lieu.
 // L'unité mémorisée est la PAIRE, pas la fiche : écarter « A ≈ B » ne doit rien

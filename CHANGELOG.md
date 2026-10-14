@@ -76,6 +76,11 @@ puis sont promues sur le canal **stable** en figeant une version.
   autres documents de l'application.
 
 ### Modifié
+- **La page des incohérences se traite une à la fois.** Elle s'appelle
+  désormais `?p=incoherences` — c'est ce qu'elle est — et ne déroule plus ses
+  sept vérifications bout à bout : elle s'ouvre sur un sommaire d'une page, une
+  ligne par vérification avec ce qu'elle a trouvé, et chaque ligne mène à son
+  écran, avec un lien de retour. On en traite une, on revient.
 - **Le tableau de bord se lit plus vite.** Les en-têtes de colonnes qui ne
   disaient rien de plus que leur contenu — « Statut / Nombre », « Mois /
   Employé / Net à payer », « Campagne / Avancement » — ont disparu des cartes

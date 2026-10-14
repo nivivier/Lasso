@@ -27,15 +27,36 @@ foreach (['structures', 'contacts'] as $k) {
 // fichier téléversé — rien à résumer tant qu'aucun n'est fourni).
 $nbEvenementsATraiter = count($evenementsLieuxUnivoques) + count($evenementsLieuxAmbigues)
     + array_sum(array_map(fn ($g) => count($g['evenements']), $evenementsLieuxAucuneGroupes));
+// Le sommaire : une ligne par vérification, et chaque ligne MÈNE à son écran.
+// La page faisait sept cartes bout à bout — quelques centaines de kilo-octets
+// et un défilement sans fin pour traiter une seule anomalie. On ne regarde
+// jamais les sept à la fois : on en traite une.
+//
+// « n » est le nombre trouvé ; null pour un outil qui ne se détecte pas tout
+// seul (la mise à jour des dates attend un fichier — il n'y a rien à compter
+// tant qu'on ne l'a pas fourni).
 $resumeItems = [
-    ['id' => 'doublons-exacts', 'libelle' => 'Doublons exacts', 'n' => $totalGroupes],
-    ['id' => 'doublons-potentiels', 'libelle' => 'Doublons potentiels (' . $seuil . ' %)', 'n' => count($potentiels)],
-    ['id' => 'doublons-personnes', 'libelle' => "Doublons de l'annuaire", 'n' => count($personnesDoublons)],
-    ['id' => 'grandes-regions', 'libelle' => 'Grandes régions à déduire', 'n' => count($grandesRegions)],
-    ['id' => 'taxonomie', 'libelle' => 'Sous-catégories non déclarées', 'n' => count($taxonomieManquantes)],
-    ['id' => 'evenements-lieux', 'libelle' => 'Événements sans lieu rattaché', 'n' => $nbEvenementsATraiter],
+    ['id' => 'doublons-exacts', 'libelle' => 'Doublons exacts', 'n' => $totalGroupes,
+     'quoi' => 'Fiches strictement identiques : structures, lieux, contacts.'],
+    ['id' => 'doublons-potentiels', 'libelle' => 'Doublons potentiels (' . $seuil . ' %)', 'n' => count($potentiels),
+     'quoi' => 'Noms voisins dans la même région — à valider un par un.'],
+    ['id' => 'doublons-personnes', 'libelle' => "Doublons de l'annuaire", 'n' => count($personnesDoublons),
+     'quoi' => 'Deux personnes, même adresse électronique ou même nom.'],
+    ['id' => 'grandes-regions', 'libelle' => 'Grandes régions déduites du département ou du canton', 'n' => count($grandesRegions),
+     'quoi' => 'La grande région se recalcule depuis le département ou le canton.'],
+    ['id' => 'taxonomie', 'libelle' => 'Sous-catégories non déclarées', 'n' => count($taxonomieManquantes),
+     'quoi' => 'Des fiches portent une sous-catégorie absente du référentiel.'],
+    ['id' => 'evenements-lieux', 'libelle' => 'Événements à rattacher à un lieu', 'n' => $nbEvenementsATraiter,
+     'quoi' => 'Une salle écrite à la main, jamais reliée à une fiche de lieu.'],
+    ['id' => 'dates', 'libelle' => 'Mise à jour des dates depuis un CSV', 'n' => null,
+     'quoi' => "Un outil, pas une anomalie : il attend un fichier."],
 ];
-$resumeTotal = array_sum(array_column($resumeItems, 'n'));
+// La section ouverte, ou '' pour le sommaire. Un identifiant inconnu ramène au
+// sommaire plutôt qu'à une page vide.
+$secIds = array_column($resumeItems, 'id');
+$sec = in_array((string) ($_GET['section'] ?? ''), $secIds, true) ? (string) $_GET['section'] : '';
+$secLib = '';
+foreach ($resumeItems as $it) { if ($it['id'] === $sec) { $secLib = $it['libelle']; } }
 
 // Lien vers la fiche d'un id de doublon (structures) — pas de fiche dédiée
 // pour les contacts (gérés depuis la fiche structure), affichés en texte simple.
@@ -56,32 +77,53 @@ $lienFiche = function (string $type, int $id): string {
     <p class="ok flash">Fusion effectuée : <?= $ns ?> structure(s) et <?= $nc ?> contact(s) en doublon supprimés.</p>
 <?php endif; ?>
 
+<?php if ($sec === ''): ?>
+<?php // .card sans retrait supplémentaire : la liste EST tout le contenu de la
+      // carte, et c'est le cas que les règles de .card > table.list traitent
+      // déjà (docs/UI.md § 9). Pas de .card-flush — son padding à zéro fait
+      // sortir le tableau de la carte, qui compense 26px qui n'existent plus. ?>
 <div class="card mb-22">
-    <h2 class="mt-0">Résumé</h2>
-    <?php if ($resumeTotal === 0): ?>
-        <p class="muted">Aucune incohérence détectée pour l'instant.</p>
-    <?php else: ?>
-        <table class="list">
-            <tbody>
-            <?php foreach ($resumeItems as $it): ?>
-                <tr>
-                    <td><?= e($it['libelle']) ?></td>
-                    <td class="muted small"><?= $it['n'] ?> trouvé<?= $it['n'] > 1 ? 's' : '' ?></td>
-                    <td><?php if ($it['n'] > 0): ?><a href="#<?= e($it['id']) ?>" class="btn-sm">Voir</a><?php endif; ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
+    <?php // La ligne entière mène à l'écran, comme partout ailleurs dans
+          // l'application (.row-link, docs/UI.md § 9) : un bouton « Voir » en
+          // bout de ligne serait une cible de moins et un mot de plus. ?>
+    <table class="list">
+        <tbody>
+        <?php foreach ($resumeItems as $it): ?>
+            <tr class="row-link<?= (int) $it['n'] > 0 ? ' ligne-action' : '' ?>" tabindex="0" role="link"
+                data-href="?p=incoherences&section=<?= e($it['id']) ?>">
+                <td>
+                    <strong><?= e($it['libelle']) ?></strong>
+                    <div class="muted small"><?= e($it['quoi']) ?></div>
+                </td>
+                <td class="num nowrap">
+                    <?php if ($it['n'] === null): ?>
+                        <span class="muted small">—</span>
+                    <?php elseif ($it['n'] === 0): ?>
+                        <span class="muted small">rien à traiter</span>
+                    <?php else: ?>
+                        <strong><?= (int) $it['n'] ?></strong> <span class="muted small">à traiter</span>
+                    <?php endif; ?>
+                </td>
+                <td class="actions"><?= icon('chevron-right') ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
 </div>
+<?php else: ?>
+<?= lien_retour('?p=incoherences', 'Incohérences') ?>
+<div class="page-head">
+    <div class="page-head-title"><h1><?= e($secLib) ?></h1></div>
+</div>
+<?php endif; ?>
 
+<?php if ($sec === 'doublons-personnes'): ?>
 <?php // Les doublons de l'ANNUAIRE (personnes). Ils étaient dans ?p=personnes,
       // en bouton de la barre d'actions : un geste de reprise de données posé
       // au milieu d'un écran qu'on ouvre tous les jours. Ils rejoignent leurs
       // pareils — doublons de structures et de contacts, lieux à rattacher. ?>
 <?php if ($personnesDoublons !== [] || module_accessible('carnet')): ?>
 <div class="card" id="doublons-personnes">
-    <h2 class="mt-0">Doublons de l'annuaire</h2>
     <p class="muted small">
         Deux fiches de personne avec la même adresse électronique, ou le même nom. ⚠️ Rien n'est
         fusionné d'office, et rien ne se défait : une boîte partagée (info@salle.ch) et deux
@@ -138,9 +180,10 @@ $lienFiche = function (string $type, int $id): string {
     <?php endif; ?>
 </div>
 <?php endif; ?>
+<?php endif; ?>
 
+<?php if ($sec === 'doublons-exacts'): ?>
 <div class="card" id="doublons-exacts">
-    <h2 class="mt-0">Doublons exacts</h2>
     <p class="muted small">
         Détecte les fiches strictement identiques : structures (nom + localité), lieux (nom + ville + type),
         contacts (même structure + e-mail, ou à défaut nom + téléphone). Dans chaque groupe, la fiche la plus
@@ -184,7 +227,7 @@ $lienFiche = function (string $type, int $id): string {
             <?php endif; ?>
         <?php endforeach; ?>
 
-        <form method="post" action="?p=dev" class="mt-16" id="dev-doublons-form"
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16" id="dev-doublons-form"
               data-confirm="Fusionner les groupes de doublons cochés ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="doublons_fusionner">
@@ -194,9 +237,10 @@ $lienFiche = function (string $type, int $id): string {
         <p class="muted small">Une sauvegarde de la base est faite automatiquement avant la fusion.</p>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if ($sec === 'doublons-potentiels'): ?>
 <div class="card mt-22" id="doublons-potentiels">
-    <h2 class="mt-0">Doublons potentiels</h2>
     <p class="muted small">
         Rapproche les structures dont le <strong>nom se ressemble</strong> à au moins le seuil choisi
         et dont le <strong>département / canton est identique</strong> — les saisies en double sous une
@@ -262,7 +306,7 @@ $lienFiche = function (string $type, int $id): string {
         <?php // Deux boutons, un seul jeu de cases : l'action part du bouton cliqué
               // (formaction), pour ne pas demander de re-cocher entre « ignorer » et
               // « fusionner ». ?>
-        <form method="post" action="?p=dev&amp;seuil=<?= (int) $seuil ?>" class="mt-16" id="dev-potentiels-form">
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>&amp;seuil=<?= (int) $seuil ?>" class="mt-16" id="dev-potentiels-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <?php // Les deux boutons portent chacun leur action, plutôt qu'un champ
                   // caché qu'un name= sur le bouton viendrait recouvrir : ici l'action
@@ -306,7 +350,7 @@ $lienFiche = function (string $type, int $id): string {
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            <form method="post" action="?p=dev&amp;seuil=<?= (int) $seuil ?>" class="mt-16" id="dev-potentiels-reprise-form">
+            <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>&amp;seuil=<?= (int) $seuil ?>" class="mt-16" id="dev-potentiels-reprise-form">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="doublons_potentiels_reprendre">
                 <button type="submit" class="btn ghost"><?= icon('eye') ?> Remettre en jeu les paires cochées</button>
@@ -314,9 +358,10 @@ $lienFiche = function (string $type, int $id): string {
         </details>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if ($sec === 'dates'): ?>
 <div class="card mt-22">
-    <h2 class="mt-0">Mise à jour des dates depuis un CSV</h2>
     <p class="muted small">
         Met à jour uniquement les dates « mise à jour », « dernier contact » et « dernier concert » d'après
         un export CSV, sans toucher au reste des fiches. Rapprochement par e-mail exact, sinon par nom + ville
@@ -330,7 +375,7 @@ $lienFiche = function (string $type, int $id): string {
     <?php endif; ?>
 
     <?php if ($datesEtape === 'upload' || $datesAppliqueN !== null): ?>
-        <form method="post" action="?p=dev" enctype="multipart/form-data">
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" enctype="multipart/form-data">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="dates_analyser">
             <label>Fichier CSV <input type="file" name="fichier" accept=".csv,text/csv" required></label>
@@ -365,7 +410,7 @@ $lienFiche = function (string $type, int $id): string {
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            <form method="post" action="?p=dev" class="mt-16" id="dev-dates-form"
+            <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16" id="dev-dates-form"
                   data-confirm="Enregistrer les écritures cochées ci-dessus ? Une sauvegarde de la base sera faite automatiquement avant.">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="dates_appliquer">
@@ -385,9 +430,10 @@ $lienFiche = function (string $type, int $id): string {
         <?php endif; ?>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if ($sec === 'grandes-regions'): ?>
 <div class="card mt-22" id="grandes-regions">
-    <h2 class="mt-0">Grandes régions déduites du département/canton</h2>
     <p class="muted small">
         Recalcule la grande région (structures, lieux, événements) à partir du département français ou du canton
         suisse déjà renseigné, et compare avec la valeur actuellement enregistrée. Jamais pour les cantons
@@ -422,7 +468,7 @@ $lienFiche = function (string $type, int $id): string {
             </tbody>
         </table>
         </div>
-        <form method="post" action="?p=dev" class="mt-16" id="dev-gr-form"
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16" id="dev-gr-form"
               data-confirm="Mettre à jour les fiches cochées ci-dessus avec la grande région déduite ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="grandes_regions_appliquer">
@@ -431,9 +477,10 @@ $lienFiche = function (string $type, int $id): string {
         <p class="muted small">Une sauvegarde de la base est faite automatiquement avant l'écriture.</p>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if ($sec === 'taxonomie'): ?>
 <div class="card mt-22" id="taxonomie">
-    <h2 class="mt-0">Sous-catégories non déclarées</h2>
     <p class="muted small">
         Sous-catégories portées par des structures (souvent venues d'un import) mais absentes de
         Paramètres → Catégories : elles s'affichent sur les fiches sans figurer dans les listes de
@@ -465,16 +512,17 @@ $lienFiche = function (string $type, int $id): string {
             </tbody>
         </table>
         </div>
-        <form method="post" action="?p=dev" class="mt-16" id="dev-taxo-form">
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16" id="dev-taxo-form">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="taxonomie_declarer">
             <button type="submit"><?= icon('calendar-sync') ?> Déclarer les sous-catégories cochées</button>
         </form>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if ($sec === 'evenements-lieux'): ?>
 <div class="card mt-22" id="evenements-lieux">
-    <h2 class="mt-0">Rattacher les événements à un lieu</h2>
     <p class="muted small">
         Un événement stocke le nom de la salle en texte libre, sans être automatiquement rattaché à une fiche
         lieu de la base. Rapproche par ville (+ département/canton + pays) puis par nom de salle — jamais deviné
@@ -510,7 +558,7 @@ $lienFiche = function (string $type, int $id): string {
             </tbody>
         </table>
         </div>
-        <form method="post" action="?p=dev" class="mt-16" id="dev-evlier-form"
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16" id="dev-evlier-form"
               data-confirm="Rattacher les événements cochés ci-dessus au lieu proposé ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="evenements_lieux_lier">
@@ -574,7 +622,7 @@ $lienFiche = function (string $type, int $id): string {
             </tbody>
         </table>
         </div>
-        <form method="post" action="?p=dev" class="mt-16" id="dev-evcreer-form"
+        <form method="post" action="?p=incoherences&amp;section=<?= e($sec) ?>" class="mt-16" id="dev-evcreer-form"
               data-confirm="Créer une structure+lieu pour chaque salle cochée ci-dessus et y rattacher ses événements ? Une sauvegarde de la base sera faite automatiquement avant.">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="evenements_lieux_creer">
@@ -596,3 +644,5 @@ document.querySelectorAll('.check-all').forEach(function (toutCocher) {
     });
 });
 </script>
+<?php endif; ?>
+
