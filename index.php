@@ -218,7 +218,7 @@ ajouter_routes_module($handlers, $routeModules, 'carnet', [
     'structure_supprimer' => 'route_structure_supprimer',
     'structure_fusion'    => 'route_structure_fusion',
     // Les personnes : l'identité d'un contact, d'un employé ou d'un compte
-    // (SPEC_PERSONNES.md). Elles étaient sous « coeur » faute de module qui
+    // (docs/SPEC_PERSONNES.md). Elles étaient sous « coeur » faute de module qui
     // pût les porter sans se les approprier ; le carnet est ce module.
     'personnes'            => 'route_personnes',
     'personne'             => 'route_personne',
@@ -349,7 +349,7 @@ if (module_actif('booking') || module_actif('evenements')) {
 // Cœur : lecture pour consulter les pages de contenu (informations
 // employeur, e-mails, exports), écriture réservée à l'administration au
 // sens strict (comptes, permissions, modules actifs, mises à jour,
-// sauvegarde complète de la base) — voir SPEC_PERMISSIONS.md §7.
+// sauvegarde complète de la base) — voir docs/SPEC_PERMISSIONS.md §7.
 if (peut_lire('coeur')) {
     $handlers += [
         'employeur'       => 'route_employeur',

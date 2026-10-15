@@ -3,7 +3,7 @@
 // paiement SCOR, statut dérivé) + génération de la facture PDF (QR-facture
 // suisse). S'appuie sur la librairie vendorisée sprain/swiss-qr-bill +
 // tecnickcom/tcpdf (exception actée à la règle « zéro dépendance », voir
-// SPEC_FACTURATION.md §6 — Composer utilisé uniquement en local, vendor/
+// docs/SPEC_FACTURATION.md §6 — Composer utilisé uniquement en local, vendor/
 // commité, aucune commande Composer nécessaire en production).
 
 const FACTURATION_STATUTS = ['brouillon', 'emise', 'payee', 'annulee'];

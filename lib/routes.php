@@ -275,7 +275,7 @@ function route_mon_compte(): void
 
 // -------------------------------------------------------------- COMPTES (admin)
 // Gestion des comptes utilisateurs : liste, création, réinitialisation,
-// suppression, droits par module (voir SPEC_PERMISSIONS.md). Réservé à
+// suppression, droits par module (voir docs/SPEC_PERMISSIONS.md). Réservé à
 // l'écriture cœur (index.php) : un compte avec accès en lecture seule au
 // cœur ne voit même pas cette page.
 function route_utilisateurs(): void
@@ -329,7 +329,7 @@ function route_utilisateurs(): void
     }
     // personne_id + le nom de la personne rattachée : le compte de connexion est
     // l'une des trois choses qui peuvent désigner la même personne (un contact,
-    // une employée, un compte — SPEC_PERSONNES.md), et c'est ici qu'on fait le
+    // une employée, un compte — docs/SPEC_PERSONNES.md), et c'est ici qu'on fait le
     // lien, faute de quoi la colonne « Rattachements » de l'annuaire ne pouvait
     // jamais dire « compte ».
     $comptes = db()->query('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le
@@ -401,7 +401,7 @@ function route_utilisateur_enregistrer(): void
     }
     // Rattaché à une personne, le compte n'a plus d'identité à lui : on VIDE
     // ses champs plutôt que de laisser deux noms vivre côte à côte et diverger.
-    // C'est ce que la refonte des personnes devait finir (SPEC_PERSONNES.md).
+    // C'est ce que la refonte des personnes devait finir (docs/SPEC_PERSONNES.md).
     db()->prepare('UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, personne_id = ? WHERE id = ?')
         ->execute([
             $personneId ? '' : trim((string) ($_POST['prenom'] ?? '')),

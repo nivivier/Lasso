@@ -235,7 +235,7 @@ function route_incoherences(): void
         // Les doublons de l'ANNUAIRE (personnes), à côté de ceux des
         // structures et des contacts : même nature, même page. Rien n'y est
         // fusionné d'office — une boîte partagée et deux homonymes se
-        // ressemblent autant qu'un vrai doublon (SPEC_PERSONNES.md § 5).
+        // ressemblent autant qu'un vrai doublon (docs/SPEC_PERSONNES.md § 5).
         'personnesDoublons'  => module_accessible('carnet') ? personnes_doublons() : [],
         'personnesIgnores'   => module_accessible('carnet') ? personnes_doublons_ignores_cles() : [],
         'personnesIgnoresN'  => $personnesIgnoresN,

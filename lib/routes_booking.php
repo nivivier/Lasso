@@ -1474,7 +1474,7 @@ function route_mailing_envoyer(): void
 // CLAUDE.md) : cette route est déclenchée par le planificateur de tâches de
 // l'hébergeur (URL fetchée périodiquement, sans possibilité de CSRF ni de
 // session) — même carve-out que route_sauvegarde(), protégée par jeton
-// (hash_equals()) plutôt que par check_csrf(). Voir SPEC_BOOKING.md §7/§13.
+// (hash_equals()) plutôt que par check_csrf(). Voir docs/SPEC_BOOKING.md §7/§13.
 function route_mailing_traiter(): void
 {
     $token = (string) param('mailing_traiter_token', '');
@@ -1581,7 +1581,7 @@ function route_desinscription(): void
     if ($contactId) {
         // La désinscription vaut pour la PERSONNE, partout : qui clique ne
         // veut plus rien recevoir, pas « plus rien de cette salle-là »
-        // (SPEC_PERSONNES.md § 5). Le lien reste contrôlé sur la structure —
+        // (docs/SPEC_PERSONNES.md § 5). Le lien reste contrôlé sur la structure —
         // c'est lui qui est signé dans l'adresse.
         db()->prepare(
             'UPDATE personnes SET desinscrit = 1 WHERE id =
@@ -1598,7 +1598,7 @@ function route_desinscription(): void
 
 // ------------------------------------------------------------- IMPORT CSV
 // Déroulé en 3 étapes (upload → correspondance des colonnes → résolution des
-// conflits un par un), voir SPEC_BOOKING.md §8. Le contenu du fichier est
+// conflits un par un), voir docs/SPEC_BOOKING.md §8. Le contenu du fichier est
 // mémorisé en session entre les étapes (lire_fichier_importe(), même
 // mécanisme que les imports existants) — pas besoin de re-téléverser à chaque
 // étape ; seul le mapping choisi doit être reposté (formulaire intermédiaire).

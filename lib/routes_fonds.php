@@ -1,6 +1,6 @@
 <?php
 // Module « Recherche de fonds » — suivi des demandes de subvention.
-// Le besoin et les décisions de conception : SPEC_SUBVENTIONS.md.
+// Le besoin et les décisions de conception : docs/SPEC_SUBVENTIONS.md.
 //
 // Ce que ce module NE fait pas, parce que d'autres le font déjà :
 //   — tenir un carnet d'adresses : un bailleur est une `structure`, avec ses
@@ -389,7 +389,7 @@ function route_fonds_campagne_structure(): void
         } else {
             // INSERT OR IGNORE : l'index unique (campagne_id, structure_id) dit
             // qu'un bailleur n'a qu'un dossier par campagne
-            // (SPEC_SUBVENTIONS.md § 9.4). Un second clic ne doit donc pas
+            // (docs/SPEC_SUBVENTIONS.md § 9.4). Un second clic ne doit donc pas
             // échouer, il ne doit rien faire.
             $ins = db()->prepare('INSERT OR IGNORE INTO fonds_demandes (campagne_id, structure_id) VALUES (?, ?)');
             $ins->execute([$campagneId, $structureId]);

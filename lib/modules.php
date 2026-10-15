@@ -65,7 +65,7 @@ const MODULES = [
         'requires'    => ['carnet'],
         'plafonne'    => false,
     ],
-    // Suivi des demandes de subvention (SPEC_SUBVENTIONS.md). Un bailleur est une
+    // Suivi des demandes de subvention (docs/SPEC_SUBVENTIONS.md). Un bailleur est une
     // structure du carnet d'adresses, comme une salle ou un débiteur — d'où la
     // dépendance, partagée avec la Facturation, les Événements et le Booking.
     'fonds' => [
@@ -165,7 +165,7 @@ function route_defaut(): string
 }
 
 // --------------------------------------------------------------------------
-// Droits par module (lecture/écriture) — voir SPEC_PERMISSIONS.md.
+// Droits par module (lecture/écriture) — voir docs/SPEC_PERMISSIONS.md.
 //
 // « coeur » n'est pas dans MODULES (jamais désactivable globalement, cf.
 // MODULE_COEUR ci-dessus) mais c'est un module comme un autre du point de
@@ -568,7 +568,7 @@ function nav_groupes(): array
 // appartenir à trois (Factures/Événements/Booking) puisque c'est une page
 // partagée : on préfère $depuis s'il désigne un groupe valide contenant la
 // route, sinon on retombe sur un ordre de priorité fixe (Booking d'abord,
-// propriétaire du CRM des structures — voir SPEC_BOOKING.md ; Comptabilité
+// propriétaire du CRM des structures — voir docs/SPEC_BOOKING.md ; Comptabilité
 // avant Facturation pour compta_comptes, également partagée entre ces deux
 // groupes, car les comptes bancaires sont d'abord une notion comptable).
 // Les groupes de la section « Paramètres » : [clé => [libellé, [route => section],

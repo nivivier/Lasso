@@ -3,7 +3,7 @@
 // Fonctions partagées par les routes (lib/routes_booking.php) : dernier contact
 // dérivé, normalisation de nom pour l'import, filtrage des destinataires de
 // mailing (réutilisé par l'aperçu et par la constitution de la file d'attente,
-// voir SPEC_BOOKING.md §6/§7).
+// voir docs/SPEC_BOOKING.md §6/§7).
 
 declare(strict_types=1);
 
@@ -795,7 +795,7 @@ function structure_statut_icone_classe(string $statut): string
     return STRUCTURE_STATUTS_CLASSES_ICONE[$statut] ?? 'muted';
 }
 
-// Catégorie CRM d'une structure (booking), voir SPEC_BOOKING.md §5.
+// Catégorie CRM d'une structure (booking), voir docs/SPEC_BOOKING.md §5.
 // Configurable (Paramètres → Catégories). Une sous-catégorie
 // est nécessairement imbriquée dans une catégorie (structure_categories.parent_id,
 // même principe que projets/groupe-projet — voir lib/evenements.php) : une
@@ -1010,7 +1010,7 @@ function structures_nb_evenements(array $structureIds): array
 // Recalcule et stocke structures.dernier_contact_le (colonne dénormalisée) :
 // MAX() des notes marquées « contact » et des mailings envoyés avec succès.
 // Appelée après chaque ajout de note-contact ou envoi de mailing (jamais à la
-// volée à l'affichage, cf. SPEC_BOOKING.md §6).
+// volée à l'affichage, cf. docs/SPEC_BOOKING.md §6).
 function structure_recalculer_dernier_contact(int $structureId): void
 {
     $stmt = db()->prepare(
@@ -1130,7 +1130,7 @@ function historique_icone(array $entree): array
 // $personneId rattache l'entrée à QUI l'on a écrit, en plus d'à quelle
 // structure. Une colonne de plus et non une seconde ligne : on retrouve ainsi
 // le fil d'une personne qui change de salle, sans dédoubler l'historique d'une
-// structure (SPEC_PERSONNES.md § 6). Les entrées d'avant la migration, qui
+// structure (docs/SPEC_PERSONNES.md § 6). Les entrées d'avant la migration, qui
 // n'en ont pas, restent valides telles quelles.
 function journaliser(string $entiteType, int $id, string $type, string $contenu = '', ?string $creeLe = null, ?int $personneId = null): void
 {
@@ -2403,7 +2403,7 @@ function mailing_personnaliser(string $texte, array $structure, ?array $contact)
 
 // ------------------------------------------------------- IMPORT CSV (carnets d'adresses)
 // Champs importables → libellé affiché dans l'écran de correspondance des
-// colonnes (§8 de SPEC_BOOKING.md). Seul « nom » est obligatoire.
+// colonnes (§8 de docs/SPEC_BOOKING.md). Seul « nom » est obligatoire.
 const STRUCTURE_IMPORT_CHAMPS = [
     'nom'              => 'Nom de la structure',
     'categorie'        => 'Catégorie (organisateur/média/autres/entourage)',

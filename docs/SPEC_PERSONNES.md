@@ -78,7 +78,7 @@ chiffré, pas découvert.
 ## 4. Ce que ça apporte
 
 - Une **quittance** peut être faite à une personne comme à une structure
-  (`SPEC_PIECES.md § 10`).
+  (`docs/SPEC_PIECES.md § 10`).
 - Un employé, un utilisateur et un contact qui sont la même personne le disent.
 - Un contact qui change de structure garde son identité et son historique.
 - L'annuaire devient dédoublonnable, un jour, sans refonte.
@@ -94,7 +94,7 @@ chiffré, pas découvert.
 | Adresse postale | **Elle monte sur `personnes`.** Une seule adresse, que le certificat de salaire et la quittance lisent au même endroit |
 | Écran et droits | **« Personnes » dans Paramètres, droit `coeur`** — faute de mieux : une personne traverse le booking, les salaires et les comptes, et aucun de ces modules-là ne pouvait en être propriétaire. ⚠️ **Dépassé depuis** : l'écran vit dans le module **Carnet d'adresses** (droit `carnet`), créé pour porter ce qu'aucun autre ne pouvait — voir `CLAUDE.md § Modules & droits` |
 | Historique | **Rattaché à la personne ET à la structure** |
-| Ordre | **Après l'étape 5 de `SPEC_PIECES.md`**, avant les quittances |
+| Ordre | **Après l'étape 5 de `docs/SPEC_PIECES.md`**, avant les quittances |
 
 ## 6. Deux points de mise en œuvre déjà connus
 

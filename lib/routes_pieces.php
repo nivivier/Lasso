@@ -1,5 +1,5 @@
 <?php
-// Routes des pièces comptables (SPEC_PIECES.md).
+// Routes des pièces comptables (docs/SPEC_PIECES.md).
 //
 // Le module vit à côté de la comptabilité et non dedans : c'est ce qui permet
 // de donner le dépôt sans la lecture des comptes. Les routes qui touchent une

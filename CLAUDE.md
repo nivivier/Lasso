@@ -124,7 +124,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 - **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non versionné) ;
   constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
-- **Modules & droits** `lib/modules.php` (voir `SPEC_PERMISSIONS.md`) :
+- **Modules & droits** `lib/modules.php` (voir `docs/SPEC_PERMISSIONS.md`) :
   - `MODULES`/`module_actif()` : activation globale par module (carnet/salaires/
     compta/analytique/pieces/facturation/evenements/booking/fonds/mailing),
     indépendante des droits ci-dessous. Sept modules en dépendent d'un autre
@@ -198,7 +198,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     tester `module_actif()` seul laisse fuiter les données d'un module vers un
     compte qui n'y a pas accès.
 - **Pièces comptables** `lib/pieces.php` + `lib/routes_pieces.php`
-  (`SPEC_PIECES.md`) : les justificatifs. Une pièce est une ENTITÉ, pas une
+  (`docs/SPEC_PIECES.md`) : les justificatifs. Une pièce est une ENTITÉ, pas une
   pièce jointe — elle se saisit avant que l'écriture existe. **Trois états et
   non deux** (`piece_etat()`), parce que les relevés s'importent une fois par
   mois : à payer, payée mais pas rapprochée, classée. Côté écriture,
@@ -207,7 +207,7 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   même nombre. Son pendant SQL `ecriture_piece_etat_sql()` doit dire exactement
   la même chose ; `tests/pieces_test.php` le vérifie, ainsi que le fait que les
   états forment une partition exacte.
-- **Personnes** `lib/personnes.php` (`SPEC_PERSONNES.md`) : l'identité d'un
+- **Personnes** `lib/personnes.php` (`docs/SPEC_PERSONNES.md`) : l'identité d'un
   contact, d'un employé ou d'un compte. `personne_structures` est le lien N↔N
   (l'ancienne `structure_contacts`, qui confondait la personne et son rôle).
   ⚠️ **Lire un contact ou un employé passe par `CONTACT_SELECT`/`CONTACT_FROM`

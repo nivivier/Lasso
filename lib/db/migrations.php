@@ -671,7 +671,7 @@ function migration_22(PDO $pdo): void
 // Migration 23 : module événements — spectacles (dont la feuille SUISA
 // pré-remplie en PDF), evenements (statut/visibilité, suivi SUISA), liens
 // many-to-many vers employés et fiches, et colonne evenement_id sur factures
-// (facture créée depuis un événement, cf. SPEC_EVENEMENTS.md).
+// (facture créée depuis un événement, cf. docs/SPEC_EVENEMENTS.md).
 function migration_23(PDO $pdo): void
 {
     $pdo->exec("
@@ -852,7 +852,7 @@ function migration_33(PDO $pdo): void
     }
 }
 
-// Droits par module (lecture/écriture) par utilisateur — voir SPEC_PERMISSIONS.md
+// Droits par module (lecture/écriture) par utilisateur — voir docs/SPEC_PERMISSIONS.md
 // et lib/modules.php (peut_lire()/peut_ecrire()). Absence de ligne pour une paire
 // (utilisateur, module) = aucun accès. « coeur » est un module à part (jamais dans
 // MODULES, voir modules.php) qui recouvre paramètres/apparence/gestion des comptes ;
@@ -929,7 +929,7 @@ function migration_35(PDO $pdo): void
 
 // Module booking : CRM (contacts multiples, lieux/salles-festivals, tags,
 // notes en flux, mailing par file d'attente) + référentiel départements→région
-// (France) pour normaliser structures.region à l'import. Voir SPEC_BOOKING.md.
+// (France) pour normaliser structures.region à l'import. Voir docs/SPEC_BOOKING.md.
 function migration_36(PDO $pdo): void
 {
     $pdo->exec(<<<'SQL'
@@ -1038,7 +1038,7 @@ function migration_36(PDO $pdo): void
 
     // Référentiel départements français → région administrative (source : liste
     // officielle des départements), pour normaliser structures.region à l'import
-    // CSV quand seul un code département est fourni — voir SPEC_BOOKING.md §4/§9.
+    // CSV quand seul un code département est fourni — voir docs/SPEC_BOOKING.md §4/§9.
     if ((int) $pdo->query('SELECT COUNT(*) FROM departements_regions')->fetchColumn() === 0) {
         $departements = [
         ['1', 'Ain', 'Auvergne-Rhône-Alpes'],
@@ -1153,7 +1153,7 @@ function migration_36(PDO $pdo): void
 // Module booking : sous-catégorie (ex. catégorie « média » / sous-catégorie
 // « journaliste »), date de dernière mise à jour importée (distincte de
 // dernier_contact_le, qui reste dérivée), et jauge min/max pour une salle ou
-// un festival — voir SPEC_BOOKING.md et l'analyse du carnet d'adresses fourni.
+// un festival — voir docs/SPEC_BOOKING.md et l'analyse du carnet d'adresses fourni.
 function migration_37(PDO $pdo): void
 {
     $colsStructures = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
@@ -2125,7 +2125,7 @@ function migration_68(PDO $pdo): void
 // Migration 44 : le champ « region » existant devient le « département / canton » ;
 // on ajoute une « grande_region » distincte (Normandie, Romandie, Acadie…) sur les
 // structures et les lieux, et une date de « dernier concert ou diffusion » sur les
-// lieux (booking). Voir SPEC_BOOKING.md.
+// lieux (booking). Voir docs/SPEC_BOOKING.md.
 function migration_44(PDO $pdo): void
 {
     $colsStructures = array_column($pdo->query('PRAGMA table_info(structures)')->fetchAll(), 'name');
@@ -2806,7 +2806,7 @@ function migration_90(PDO $pdo): void
 // date (evenements.axe_analytique_id_defaut) alors que c'est le projet qui le
 // sait : toutes les dates d'une même création se ventilent au même endroit, et
 // le régler à chaque fois était autant d'occasions de se tromper. Le module de
-// recherche de fonds s'appuiera sur le même axe (SPEC_SUBVENTIONS.md § 3 ter) —
+// recherche de fonds s'appuiera sur le même axe (docs/SPEC_SUBVENTIONS.md § 3 ter) —
 // raison de plus pour qu'il n'ait qu'un seul domicile.
 //
 // Report : un projet dont les dates portaient TOUTES le même axe le reçoit. Là
@@ -2840,7 +2840,7 @@ function migration_91(PDO $pdo): void
     try { $pdo->exec('ALTER TABLE evenements DROP COLUMN axe_analytique_id_defaut'); } catch (\Throwable $e) { /* SQLite < 3.35 */ }
 }
 
-// Module « Recherche de fonds » (SPEC_SUBVENTIONS.md) : le suivi des demandes
+// Module « Recherche de fonds » (docs/SPEC_SUBVENTIONS.md) : le suivi des demandes
 // de subvention, bâti sur ce qui existe. Un bailleur est une `structure` — la
 // même fiche que celle du booking et de la facturation, avec ses contacts et
 // son historique —, et le projet financé est un `spectacle`, dont l'axe
@@ -2870,7 +2870,7 @@ function migration_92(PDO $pdo): void
             -- L'axe du projet financé, recopié à la création et modifiable.
             axe_analytique_id INTEGER REFERENCES axes_analytiques(id) ON DELETE SET NULL,
             -- Le dossier externe où vivent toutes les pièces : l'application
-            -- n'en stocke aucune (SPEC_SUBVENTIONS.md § 3 quater).
+            -- n'en stocke aucune (docs/SPEC_SUBVENTIONS.md § 3 quater).
             drive_url         TEXT NOT NULL DEFAULT '',
             -- La sélection de bailleurs, même format que campagnes.criteres.
             criteres          TEXT NOT NULL DEFAULT '',
@@ -3124,7 +3124,7 @@ function migration_94(PDO $pdo): void
 // case « Actifs seulement » les rappelle à l'écran.
 //
 // Actif par défaut : une base existante ne change pas de comportement.
-// Migration 100 : LES PERSONNES (SPEC_PERSONNES.md).
+// Migration 100 : LES PERSONNES (docs/SPEC_PERSONNES.md).
 //
 // Une personne existait dans trois tables qui ne se parlaient pas :
 // structure_contacts (~2900 lignes), employes, utilisateurs. Le musicien qui
@@ -3151,7 +3151,7 @@ function migration_94(PDO $pdo): void
 // tests/migrations_test.php le vérifie sur toute la chaîne). Reconstruction
 // par x_new + copie + DROP + RENAME, jamais RENAME TO x_old puis recréation —
 // voir docs/DECISIONS.md § Migrations SQLite.
-// Migration 101 : le bénéficiaire d'une quittance (SPEC_PIECES.md § 10).
+// Migration 101 : le bénéficiaire d'une quittance (docs/SPEC_PIECES.md § 10).
 //
 // Une quittance se fait à une structure OU à une personne. Deux colonnes
 // nullables plutôt qu'un couple type+id : SQLite peut alors vérifier la clé
@@ -3223,7 +3223,7 @@ function migration_102(PDO $pdo): void
          WHERE module IN ('facturation', 'evenements', 'booking', 'fonds')
          GROUP BY utilisateur_id"
     );
-    // Les personnes vivaient sous « coeur » (SPEC_PERSONNES.md) : un
+    // Les personnes vivaient sous « coeur » (docs/SPEC_PERSONNES.md) : un
     // administrateur qui n'aurait aucun des quatre modules garde son carnet.
     $pdo->exec(
         "INSERT OR IGNORE INTO utilisateur_permissions (utilisateur_id, module, niveau)
@@ -3467,7 +3467,7 @@ function migration_100(PDO $pdo): void
 
 function migration_99(PDO $pdo): void
 {
-    // Les justificatifs de la comptabilité (SPEC_PIECES.md). Une pièce est une
+    // Les justificatifs de la comptabilité (docs/SPEC_PIECES.md). Une pièce est une
     // ENTITÉ, pas une pièce jointe sur une écriture : elle se saisit avant que
     // le moindre mouvement bancaire existe, et c'est tout son intérêt — une
     // facture arrive le 3, se paie le 30, et entre les deux elle est déjà la

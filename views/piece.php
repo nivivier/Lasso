@@ -183,7 +183,7 @@ $estImage  = str_starts_with((string) $p['mime'], 'image/');
     <?php else: ?>
         <?php // Triées par proximité — écart de montant d'abord, puis distance
               // de date : c'est ce qui met la bonne en tête neuf fois sur dix.
-              // Rattacher NE LETTRE PAS l'écriture (SPEC_PIECES.md § 8). ?>
+              // Rattacher NE LETTRE PAS l'écriture (docs/SPEC_PIECES.md § 8). ?>
         <p class="muted small">Les écritures les plus proches en montant et en date. Rattacher ne classe pas l'écriture : le lettrage reste un geste à part.</p>
         <div class="table-scroll mt-16">
         <table class="list">

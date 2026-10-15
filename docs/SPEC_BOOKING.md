@@ -276,7 +276,7 @@ place ailleurs dans l'appli.
 - Envoi individuel par destinataire — **pas d'un seul e-mail avec tous les destinataires
   en copie**.
 - Lien de désinscription en pied de chaque e-mail : URL publique par jeton (même
-  mécanisme que `evenements_json`/`evenements_ical`, §8 de `SPEC_EVENEMENTS.md`) —
+  mécanisme que `evenements_json`/`evenements_ical`, §8 de `docs/SPEC_EVENEMENTS.md`) —
   `hash_equals()` contre un jeton par contact/structure, sans connexion requise, positionne
   `desinscrit = 1` sans confirmation supplémentaire (norme habituelle des liens de
   désabonnement).
@@ -459,12 +459,12 @@ le modèle ci-dessus.
 - **Événements** : `evenements.organisateur_structure_id` (ex-`organisateur_debiteur_id`)
   idem, inchangé fonctionnellement. Les champs `evenements.salle`/`evenements.festival`
   restent **texte libre** en v1 (déjà
-  actés comme hors périmètre dans `SPEC_EVENEMENTS.md` §11) — le nouveau modèle
+  actés comme hors périmètre dans `docs/SPEC_EVENEMENTS.md` §11) — le nouveau modèle
   `lieux`/`structure_lieux` de ce module **n'impose pas** de migration des événements
   existants. Lier `evenements.salle`/`festival` aux nouveaux `lieux` (autocomplétion,
   cohérence des noms) est une évolution naturelle possible mais différée (§11, à
   reconsidérer une fois `booking` en place et éprouvé).
-- **Permissions** (`SPEC_PERMISSIONS.md`, non encore implémenté) : si ce chantier
+- **Permissions** (`docs/SPEC_PERMISSIONS.md`, non encore implémenté) : si ce chantier
   aboutit avant ou après `booking`, ajouter `booking` à la liste des modules à portée de
   droits (`utilisateur_permissions.module`) — aucune dépendance bloquante dans un sens
   ou l'autre, juste à ne pas oublier d'ajouter l'entrée le moment venu.

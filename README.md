@@ -580,8 +580,15 @@ l'accompagnent), décompresser `uploads/` et `data/fichiers/` à la racine du
 projet, puis rouvrir — les migrations éventuelles se jouent seules. C'est la
 procédure écrite dans le `SAUVEGARDE.txt` de chaque archive.
 
-`lib/config.local.php` n'est **pas** dans l'archive : il contient des mots de
-passe et se conserve à part.
+`lib/config.local.php` n'est **pas** dans l'archive : il porte le secret
+d'installation et l'emplacement de la base, et se conserve à part.
+
+> **Une sauvegarde se range comme un document confidentiel.** Elle porte toute
+> la base : salaires nominatifs, carnet d'adresses, et les mots de passe des
+> **boîtes d'envoi** (SMTP) **en clair** — un serveur de messagerie réclame le
+> mot de passe lui-même, pas son empreinte. Les mots de passe des **comptes de
+> connexion**, eux, n'y sont qu'en empreinte bcrypt : ils ne se relisent pas,
+> mais une sauvegarde restaurée rend à chacun le sien.
 
 À conserver régulièrement en lieu sûr.
 
@@ -702,9 +709,9 @@ générateur de pourrir en silence au prochain changement de schéma.
 | `docs/UI.md` | avant d'écrire un écran : comment l'application modifie une ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document |
 | `docs/DECISIONS.md` | avant de toucher au schéma, à l'environnement ou à la CSP : le « pourquoi » des choix structurants et des impasses déjà rencontrées |
 | `docs/NOMMAGE.md` | avant d'ajouter un écran : comment se nomment une route, une vue, une fonction. `tests/nommage_test.php` vérifie la convention à chaque exécution de la suite |
-| `SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
-| `SPEC_BOOKING.md`, `SPEC_EVENEMENTS.md`, `SPEC_FACTURATION.md`, `SPEC_SUBVENTIONS.md` | le besoin cadré avec l'utilisateur pour ces quatre modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
-| `SPEC_PIECES.md`, `SPEC_PERSONNES.md` | les justificatifs de la comptabilité, et la personne comme objet à part entière. Livrés ; comme les quatre précédents, en cas de désaccord c'est le code qui fait foi. Chacun se termine par ce qu'on a appris en le faisant |
+| `docs/SPEC_PERMISSIONS.md` | modules, droits de lecture/écriture, rôle du module `coeur` |
+| `docs/SPEC_BOOKING.md`, `docs/SPEC_EVENEMENTS.md`, `docs/SPEC_FACTURATION.md`, `docs/SPEC_SUBVENTIONS.md` | le besoin cadré avec l'utilisateur pour ces quatre modules : le « pourquoi » d'un modèle de données ou d'une règle métier. Le code y renvoie (`voir docs/SPEC_EVENEMENTS.md §5`), mais l'application a évolué depuis — en cas de désaccord, le code fait foi |
+| `docs/SPEC_PIECES.md`, `docs/SPEC_PERSONNES.md` | les justificatifs de la comptabilité, et la personne comme objet à part entière. Livrés ; comme les quatre précédents, en cas de désaccord c'est le code qui fait foi. Chacun se termine par ce qu'on a appris en le faisant |
 
 `docs/UI.md` se met à jour **en même temps** que la convention qu'il décrit :
 c'est ce qui évite de redécider à chaque page.

@@ -118,7 +118,7 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                         </label>
                         <?php // Le compte et la personne de l'annuaire : c'est ici
                               // qu'on dit qu'ils sont le même être humain
-                              // (SPEC_PERSONNES.md). Champ cherchable, comme le
+                              // (docs/SPEC_PERSONNES.md). Champ cherchable, comme le
                               // bénéficiaire d'une pièce — l'annuaire compte trois
                               // mille fiches, un menu déroulant ne s'y parcourt pas. ?>
                         <div class="compte-edit-personne">

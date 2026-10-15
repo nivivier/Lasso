@@ -2,7 +2,7 @@
 // Handlers de routes du module événements (préfixes « evenement »/« projet »).
 // Inclus depuis index.php après lib/routes.php. S'appuie sur lib/evenements.php.
 // Deux routes (evenements_json / evenements_ical) sont publiques, protégées par
-// jeton — pas de require_login() sur celles-ci (voir SPEC_EVENEMENTS.md §8).
+// jeton — pas de require_login() sur celles-ci (voir docs/SPEC_EVENEMENTS.md §8).
 
 require_once __DIR__ . '/evenements.php';
 

@@ -178,7 +178,7 @@ for ($i = 0; $i < 30; $i++) {
 }
 
 // Les trois comptes de connexion désignent les trois premières personnes :
-// un compte et un être humain, pas deux identités (SPEC_PERSONNES.md).
+// un compte et un être humain, pas deux identités (docs/SPEC_PERSONNES.md).
 foreach ($utilisateurs as $rang => $uid) {
     $pdo->prepare('UPDATE utilisateurs SET personne_id = ?, prenom = "", nom = "" WHERE id = ?')
         ->execute([$personnes[$rang], $uid]);
@@ -257,7 +257,7 @@ $pdo->commit();
 
 // Les contacts : une personne du carnet RATTACHÉE à une structure, avec son
 // rôle. Deux personnes apparaissent exprès dans deux structures — c'est le cas
-// que le carnet existe pour tenir (SPEC_PERSONNES.md).
+// que le carnet existe pour tenir (docs/SPEC_PERSONNES.md).
 $roles = ['Programmation', 'Direction', 'Technique', 'Administration', 'Communication', 'Bénévole'];
 $pdo->beginTransaction();
 foreach ($structures as $i => $sid) {

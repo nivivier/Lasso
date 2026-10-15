@@ -1,5 +1,5 @@
 <?php
-// Pièces comptables — les justificatifs (SPEC_PIECES.md).
+// Pièces comptables — les justificatifs (docs/SPEC_PIECES.md).
 //
 // Une pièce est une ENTITÉ, pas une pièce jointe sur une écriture : elle se
 // saisit avant que le moindre mouvement bancaire existe. Une facture arrive le

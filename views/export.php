@@ -84,8 +84,20 @@ $anneeSansToutes = ['certificats' => true];
         <?php else: ?>
         <p class="muted small mb-0"><?= icon('info') ?> L'archive contient aussi les <strong>fichiers déposés</strong> —
             logos, photos d'employés, icônes, feuilles SUISA, pièces jointes —, que la base ne fait que désigner sans
-            les contenir. Une note de restauration est jointe à l'intérieur. Seul le fichier de
-            <strong>configuration du serveur</strong> en est absent : il contient des mots de passe et se conserve à part.</p>
+            les contenir. Une note de restauration est jointe à l'intérieur. Seul <code>lib/config.local.php</code>,
+            la <strong>configuration du serveur</strong>, en est absent : il porte le secret d'installation et
+            l'emplacement de la base, et se conserve à part.</p>
+        <?php // ⚠️ Dire où sont les secrets, et lesquels. « L'archive ne contient
+              // pas de mot de passe » serait faux : les mots de passe des BOÎTES
+              // D'ENVOI sont en base, et en clair — un serveur SMTP demande le
+              // mot de passe, pas son empreinte. Ceux des COMPTES, eux, n'y sont
+              // qu'en empreinte bcrypt. Les deux sont dans l'archive, et ce
+              // n'est pas la même chose : l'un se rejoue tel quel, l'autre non. ?>
+        <p class="warn small mt-8 mb-0"><?= icon('info') ?> <strong>Une sauvegarde se range comme un document
+            confidentiel.</strong> Elle porte toute la base : salaires nominatifs, carnet d'adresses, et les mots de passe
+            des <strong>boîtes d'envoi</strong> (SMTP) <strong>en clair</strong> — un serveur de messagerie réclame le mot
+            de passe lui-même. Les mots de passe des <strong>comptes de connexion</strong>, eux, n'y figurent qu'en
+            empreinte bcrypt : ils ne se relisent pas, mais la sauvegarde restaurée rend à chacun le sien.</p>
         <?php endif; ?>
         <div class="form-actions">
             <a class="btn" href="?p=sauvegarde"><?= icon('download') ?> Télécharger la sauvegarde</a>

@@ -1,5 +1,5 @@
 <?php
-// Les personnes (SPEC_PERSONNES.md).
+// Les personnes (docs/SPEC_PERSONNES.md).
 //
 // Une personne existait dans trois tables qui ne se parlaient pas : les
 // contacts d'une structure, les employés, les comptes. Elle a maintenant sa

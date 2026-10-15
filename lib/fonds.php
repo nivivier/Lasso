@@ -1,6 +1,6 @@
 <?php
 // Module « Recherche de fonds » — les règles, sans les écrans.
-// Le besoin et les décisions : SPEC_SUBVENTIONS.md. Les routes vivent dans
+// Le besoin et les décisions : docs/SPEC_SUBVENTIONS.md. Les routes vivent dans
 // lib/routes_fonds.php ; ce fichier-ci ne contient que ce qui se décide, de
 // préférence sans toucher la base — c'est ce qui le rend testable
 // (tests/fonds_test.php), comme calc.php l'est pour la paie.
@@ -428,7 +428,7 @@ function fonds_campagnes_groupees(array $campagnes, string $aujourdhui = ''): ar
 // --- Le versement -----------------------------------------------------------
 //
 // Un octroi arrive en une fois : la v1 n'affiche qu'une ligne, même si la table
-// en accepte plusieurs (SPEC_SUBVENTIONS.md § 3). Le jour où l'échelonnement
+// en accepte plusieurs (docs/SPEC_SUBVENTIONS.md § 3). Le jour où l'échelonnement
 // arrive, c'est l'écran qui change, pas le schéma.
 function fonds_versement_de(int $demandeId): ?array
 {
@@ -489,7 +489,7 @@ function fonds_versement_enregistrer(int $demandeId, array $v): void
 // --- La facture au bailleur -------------------------------------------------
 //
 // Certains bailleurs ne versent rien sans facture. Elle n'a rien d'obligatoire
-// (SPEC_SUBVENTIONS.md § 9.11), et quand elle existe c'est une facture
+// (docs/SPEC_SUBVENTIONS.md § 9.11), et quand elle existe c'est une facture
 // ordinaire : le module de facturation la tient, ce module-ci ne fait que la
 // rattacher au dossier (fonds_demandes.facture_id) et lui donner ses valeurs
 // de départ.

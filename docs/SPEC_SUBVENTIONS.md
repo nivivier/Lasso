@@ -35,7 +35,7 @@ Deux différences commandent toute la conception :
 **Un bailleur est donc une `structure`**, pas une table nouvelle : une commune
 qui subventionne peut aussi programmer, et la tenir en double obligerait à
 saisir deux fois la même adresse — c'est exactement l'erreur que la fusion
-`debiteurs` → `structures` a corrigée (voir `SPEC_FACTURATION.md § 3`).
+`debiteurs` → `structures` a corrigée (voir `docs/SPEC_FACTURATION.md § 3`).
 
 ## 3. Ce qui est nouveau
 

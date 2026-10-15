@@ -168,7 +168,8 @@ elseif ($errRestaure !== '') $typeActif = 'sauvegarde';
         <?php endif; ?>
         <?php if (est_admin()): $maxTeleversement = televersement_max(); ?>
         <p class="warn small import-aide" data-for="sauvegarde" hidden><?= icon('info') ?> <strong>Remplace toute la base</strong>
-            par celle de la sauvegarde — employés, fiches, écritures, carnet d'adresses, comptes de connexion et mots de passe compris.
+            par celle de la sauvegarde — employés, fiches, écritures, carnet d'adresses, et <strong>les comptes de connexion</strong>,
+            qui remplacent ceux d'aujourd'hui, chacun avec son propre mot de passe.
             Avant de remplacer quoi que ce soit, l'archive est vérifiée, puis <strong>la base actuelle est mise de côté</strong>
             dans un fichier <code>.sqlite.bak</code> à côté d'elle. Les logos, photos et pièces jointes de l'archive sont
             <strong>ajoutés</strong> aux dossiers existants, jamais substitués. Une sauvegarde plus ancienne est mise à jour

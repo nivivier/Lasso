@@ -174,7 +174,7 @@ Quelqu'un qui photographie ses tickets reçoit le premier sans le second. ⚠️
 régler à l'implémentation** : `nav_groupes()` construit le bandeau de la
 comptabilité depuis `module_accessible('compta')`. L'onglet Pièces doit
 apparaître pour qui n'a que `pieces` — c'est le seul endroit du dispositif où un
-onglet survit à son module parent, et `SPEC_PERMISSIONS.md` devra le dire.
+onglet survit à son module parent, et `docs/SPEC_PERMISSIONS.md` devra le dire.
 
 **`?p=pieces`** — la liste. Barre d'outils, recherche, filtres de colonne et
 pagination comme partout. Les filtres qui comptent : *à payer*, *à rapprocher*,
@@ -311,7 +311,7 @@ de délai de paiement : réutiliser la facturation dirait mal la chose.
   document il s'agit, et aucune des deux séries n'a de trou.
 - **Imprimable** par `render_bare()`, sur le modèle de `facture_rappel_imprimer`.
 - **Le bénéficiaire est une structure OU une personne** — d'où la dépendance à
-  `SPEC_PERSONNES.md`, et la place des quittances après lui dans le plan.
+  `docs/SPEC_PERSONNES.md`, et la place des quittances après lui dans le plan.
 
 ## 11. Ce qui a été tranché
 
@@ -346,7 +346,7 @@ Chaque étape est livrable seule et laisse l'application en état de marche.
 4. **La suggestion à l'import** — l'écran de validation des correspondances.
 5. **L'archive annuelle et les finitions** — ZIP + index CSV, pastille de
    l'onglet, carte du tableau de bord, colonne dans l'export CSV.
-6. **Les personnes** — chantier à part, voir `SPEC_PERSONNES.md`.
+6. **Les personnes** — chantier à part, voir `docs/SPEC_PERSONNES.md`.
 7. **Les quittances** — édition, numérotation, impression.
 
 ## 13. Ce qu'on a appris en le faisant

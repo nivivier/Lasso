@@ -1,7 +1,7 @@
 <?php
 // Handlers de routes du module facturation (préfixes « facturation_ »/« facture_ »)
 // + des structures (ex-débiteurs, partagées avec le module booking, voir
-// SPEC_BOOKING.md §3). Inclus depuis index.php après lib/routes.php. S'appuie
+// docs/SPEC_BOOKING.md §3). Inclus depuis index.php après lib/routes.php. S'appuie
 // sur lib/facturation.php + lib/booking.php (catégories configurables, fiche
 // structure partagée).
 
@@ -601,7 +601,7 @@ function route_facture_rappel_imprimer(): void
 }
 
 // --- Structures (ex-débiteurs) : liste/fiche partagées entre les modules
-// facturation et booking (voir SPEC_BOOKING.md §3) --------------------------
+// facturation et booking (voir docs/SPEC_BOOKING.md §3) --------------------------
 // Filtres de la liste des structures (?p=structures) — factorisé pour être
 // réutilisé par la vue carte (mêmes critères, résultat non paginé, voir
 // structures_carte_points()).

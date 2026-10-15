@@ -152,7 +152,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         // structure (source « contacts » ci-dessus) : une personne sans aucun
         // rattachement — un employé, un compte, quelqu'un qu'on vient
         // d'ajouter — était introuvable autrement que par l'écran Personnes.
-        // C'est le point laissé ouvert par SPEC_PERSONNES.md § 8.
+        // C'est le point laissé ouvert par docs/SPEC_PERSONNES.md § 8.
         // Les personnes, et elles seules : un contact de structure EST une
         // personne, et deux sources pour le même être humain le faisaient
         // paraître deux fois dans la même page de résultats — une fois menant à

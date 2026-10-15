@@ -1,6 +1,6 @@
 <?php
 // Module événements : fonctions pures (statut SUISA dérivé, règles de
-// visibilité/export) — voir SPEC_EVENEMENTS.md.
+// visibilité/export) — voir docs/SPEC_EVENEMENTS.md.
 
 const EVENEMENTS_STATUTS     = ['option', 'confirme', 'annule'];
 const EVENEMENTS_VISIBILITES = ['public', 'prive', 'non_repertorie'];
@@ -47,7 +47,7 @@ function evenement_visibilite_icone(string $visibilite): string
     };
 }
 
-// Statut SUISA dérivé (jamais stocké), voir SPEC_EVENEMENTS.md §5. Calculé par
+// Statut SUISA dérivé (jamais stocké), voir docs/SPEC_EVENEMENTS.md §5. Calculé par
 // ordre de priorité : ne s'applique pas > décompte reçu > à venir > abandonné
 // > manquant > envoyé > à faire. « À venir » : sans décompte, et la date de
 // l'événement n'est pas encore passée — inutile de suivre un envoi/décompte
@@ -822,7 +822,7 @@ function evenement_adresse_texte(array $ev): string
 // --------------------------------------------------------- EXPORT PUBLIC
 // Un événement est exposable (site web / JSON / iCal) si sa visibilité n'est
 // pas « non_repertorie » et que son statut n'est pas « option » (pas encore
-// assez sûr pour être publié) — voir SPEC_EVENEMENTS.md §4.
+// assez sûr pour être publié) — voir docs/SPEC_EVENEMENTS.md §4.
 function evenement_exportable(array $ev): bool
 {
     return (string) $ev['visibilite'] !== 'non_repertorie' && (string) $ev['statut'] !== 'option';

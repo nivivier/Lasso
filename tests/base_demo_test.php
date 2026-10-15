@@ -83,7 +83,7 @@ foreach (['personnes', 'structures', 'personne_structures', 'employes', 'fiches'
 }
 
 // --- 5. Ce que les écrans attendent -----------------------------------------
-// Les trois états d'une pièce (SPEC_PIECES.md) : la démonstration les porte
+// Les trois états d'une pièce (docs/SPEC_PIECES.md) : la démonstration les porte
 // tous, sinon deux colonnes de l'écran des pièces restent vides à jamais.
 require_once $racine . '/lib/pieces.php';
 $etats = [];

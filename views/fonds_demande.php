@@ -124,7 +124,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
       // rien à verser, et la carte ne ferait qu'encombrer.
       //
       // UNE ligne, alors que la table en accepte plusieurs : l'échelonnement
-      // est hors périmètre (SPEC_SUBVENTIONS.md § 7). Le jour où il arrive,
+      // est hors périmètre (docs/SPEC_SUBVENTIONS.md § 7). Le jour où il arrive,
       // c'est cette carte qui change, pas le schéma. ?>
 <?php if ((float) $d['montant_accorde'] > 0): ?>
 <div class="card card-editable mt-22">
@@ -198,7 +198,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
 <?php endif; ?>
 
 <?php // Certains bailleurs ne versent rien sans facture ; d'autres n'en veulent
-      // pas. Elle n'a donc rien d'obligatoire (SPEC_SUBVENTIONS.md § 9.11), et
+      // pas. Elle n'a donc rien d'obligatoire (docs/SPEC_SUBVENTIONS.md § 9.11), et
       // la carte ne paraît qu'une fois l'argent accordé — avant, il n'y a rien
       // à facturer. Le geste est celui des « Factures liées » d'une date :
       // « Créer » ouvre le formulaire de facture, déjà rempli de ce que le

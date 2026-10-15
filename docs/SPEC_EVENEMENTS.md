@@ -278,7 +278,7 @@ statut, lien, lien_texte` — format déjà utilisé pour l'agenda de tournée e
   correspondance, un nouveau projet est créé à la volée avec le nom brut du CSV.
 - **Déduplication** : un événement déjà présent à la même date/ville/salle (comparaison
   insensible à la casse) est ignoré, jamais réécrasé — même logique que l'import
-  historique des factures (§ correspondante dans SPEC_FACTURATION.md).
+  historique des factures (§ correspondante dans docs/SPEC_FACTURATION.md).
 - **Visibilité toujours `non_repertorie`** à l'import, quel que soit le contenu du CSV —
   relecture manuelle obligatoire avant de publier une date importée en masse.
 - **Statut par défaut `confirme`** si la colonne `statut` du CSV est vide ou non reconnue

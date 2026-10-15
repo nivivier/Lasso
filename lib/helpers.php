@@ -3022,7 +3022,7 @@ function smtp_config(): array
 //   2. le profil booking hérité (paramètres smtp_booking_*), pour les
 //      installations qui n'avaient qu'une boîte de mailing ;
 //   3. le profil général (smtp_config()), celui des salaires et des factures.
-// Voir SPEC_BOOKING.md §7.
+// Voir docs/SPEC_BOOKING.md §7.
 function smtp_config_booking(?array $expediteur = null): array
 {
     $general = smtp_config();
@@ -3045,7 +3045,7 @@ function smtp_config_booking(?array $expediteur = null): array
 
 // Envoi d'un mailing booking : contrairement à envoyer_email(), **jamais** de
 // repli sur mail() — le débit d'envoi (délai/plafond configurés) ne peut être
-// maîtrisé que via SMTP, cf. SPEC_BOOKING.md §7. En dev, journalisé comme les
+// maîtrisé que via SMTP, cf. docs/SPEC_BOOKING.md §7. En dev, journalisé comme les
 // autres e-mails plutôt qu'expédié. Retourne [bool succès, string mode].
 // $expediteur : ligne de mailing_expediteurs (la boîte choisie) ou null pour
 // l'expéditeur général — c'est elle qui décide À LA FOIS de l'adresse affichée

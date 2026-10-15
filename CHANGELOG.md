@@ -75,7 +75,7 @@ puis sont promues sur le canal **stable** en figeant une version.
   alors qu'on les règle deux fois l'an. Un bandeau de module est fait pour le
   travail courant ; une rangée qui n'aurait plus qu'un seul onglet ne s'affiche
   d'ailleurs plus du tout.
-- **Les personnes** (`SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
+- **Les personnes** (`docs/SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
   Paramètres → Application. Un contact de structure, un employé et un compte
   peuvent être la **même personne** — et le sont souvent ; ils le disent
   maintenant. Une personne peut être rattachée à **plusieurs structures**, avec
@@ -86,7 +86,7 @@ puis sont promues sur le canal **stable** en figeant une version.
   **La désinscription vaut désormais pour la personne, partout** : qui se
   désinscrit ne reçoit plus rien, même en tant que contact d'une autre
   structure.
-- **Les pièces comptables** (`SPEC_PIECES.md`) : un cinquième onglet dans la
+- **Les pièces comptables** (`docs/SPEC_PIECES.md`) : un cinquième onglet dans la
   comptabilité où enregistrer les justificatifs — facture reçue, ticket
   photographié, document. Une pièce se saisit **avant** tout mouvement
   bancaire : elle porte son montant, sa date et son échéance, et forme la liste
@@ -839,7 +839,7 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [2.9.3] — 2026-09-30
 
 ### Modifié
-- **`SPEC_FACTURATION.md` rejoint le dépôt.** Il en était exclu comme « note de
+- **`docs/SPEC_FACTURATION.md` rejoint le dépôt.** Il en était exclu comme « note de
   spécification locale, pas encore implémentée » alors que le module est en
   service et que le code y renvoie : le renvoi était mort pour quiconque clone
   le dépôt. Les quatre spécifications sont désormais versionnées.

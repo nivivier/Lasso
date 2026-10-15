@@ -1,5 +1,5 @@
 <?php
-// Routes de l'annuaire des personnes (SPEC_PERSONNES.md).
+// Routes de l'annuaire des personnes (docs/SPEC_PERSONNES.md).
 //
 // Écran du CARNET D'ADRESSES : l'annuaire, et rien d'autre.
 //

@@ -22,7 +22,7 @@ $jour = fn (?string $d): string => $d ? date('d.m.Y', strtotime($d)) : '—';
 <?php // On PROPOSE, on ne pose pas : une facture reçue peut arriver en double,
       // et deux factures du même montant au même fournisseur sont la règle
       // plutôt que l'exception. Un lien faux posé en silence ne se découvre
-      // qu'au bouclement (SPEC_PIECES.md § 8). ?>
+      // qu'au bouclement (docs/SPEC_PIECES.md § 8). ?>
 <p class="muted">Montants identiques au centime, dates voisines. Cochez ce qui est juste —
    rien n'est posé tant que vous n'avez pas validé. Rattacher ne classe pas l'écriture : le
    lettrage reste un geste à part.</p>
