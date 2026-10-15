@@ -148,7 +148,7 @@ $bookingOkCreation = module_actif('booking') && peut_lire('booking');
                     </select>
                 </label>
 
-			<label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+			<label><span>Connu via</span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
 
                 <?php if ($bookingOkCreation && peut_ecrire('booking')): ?>
                 <label>Statut
@@ -352,7 +352,7 @@ lassoInitTagSuggest();
                         </select>
                     </label>
 
-                    <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+                    <label><span>Connu via</span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
                 </div>
             </div>
             <fieldset class="fieldset-groupe">
@@ -527,7 +527,7 @@ lassoInitTagSuggest();
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label><span>Connu via <?= info_tip("D'où vient ce contact — un intermédiaire, une recommandation, une source…") ?></span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
+            <label><span>Connu via</span> <input name="via" value="<?= $v('via') ?>" placeholder="ex. Recommandé par…"></label>
             <?php if ($peutEcrireBooking): ?>
             <label><span>Dernier contact <?= info_tip("Rattrapage manuel — sera écrasé par la prochaine prise de contact enregistrée (note ou mailing).") ?></span> <input type="date" name="dernier_contact_le" value="<?= !empty($structure['dernier_contact_le']) ? e(date('Y-m-d', strtotime($structure['dernier_contact_le']))) : '' ?>"></label>
             <?php endif; ?>

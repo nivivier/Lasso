@@ -118,9 +118,17 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   les totaux sont la somme des montants arrondis, jamais recalculés depuis la
   copie figée** (16 fiches sur 38 suivent une règle d'arrondi plus ancienne et
   se décaleraient d'un centime).
-- **Helpers** `lib/helpers.php` : `e()` (échappement), `param()` (paramètres, cachés),
-  `csrf_token()/check_csrf()`, `icon()` (SVG Lucide inline), `chf()`, `pct()`,
-  `param_logo()`, throttle login, etc.
+- **Helpers** `lib/helpers.php` : la porte unique, comme `db.php` l'est pour le
+  schéma. Quatre métiers en sont sortis et sont chargés par lui, **jamais requis
+  directement** : `lib/helpers/session.php` (session, CSRF, anti-force-brute,
+  mot de passe oublié, en-têtes de sécurité et CSP), `lib/helpers/listes.php`
+  (filtres, tri, pagination, recherche), `lib/helpers/geo.php` (pays, régions,
+  cantons, drapeaux), `lib/helpers/icones.php` (`icon()` et le sprite).
+  Restent dans `helpers.php` : `e()`, `param()`, `chf()`, `pct()`, avatars,
+  couleurs et thème, logos, e-mail/SMTP, composants HTML, `render()`.
+  ⚠️ Un fichier de `lib/helpers/` est à DEUX niveaux de la racine : `__DIR__ .
+  '/../data'` y désigne `lib/data/`, pas `data/`. C'est ainsi que les sessions
+  ont atterri hors du dossier protégé le jour du découpage.
 - **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non versionné) ;
   constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
