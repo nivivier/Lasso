@@ -67,7 +67,7 @@ $plusOuvert = $id > 0 || $err !== '';
 
 <?php if ($err !== ''): ?><p class="err flash"><?= e($err) ?></p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <div class="page-head-title"><h1><?= $id ? 'Modifier la pièce' : e($typeInfo['nouveau']) ?></h1></div>
     <?php // La suppression vit ICI, sur l'écran qui modifie la pièce, et pas sur
           // celui qui la consulte (docs/UI.md § 3) — même place que pour une

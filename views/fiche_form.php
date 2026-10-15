@@ -94,7 +94,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
 <?php else: ?>
     <?= lien_retour_contextuel('?p=fiches', 'Fiches de salaire') ?>
 <?php endif; ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1><?= $edit ? 'Modifier la fiche de salaire' : 'Nouvelle fiche de salaire' ?></h1>
     <?php // La suppression vit ici, sur l'écran qui modifie la fiche, et pas sur
           // celui qui la consulte : on ouvre cent fois une fiche pour la lire ou

@@ -17,6 +17,8 @@ foreach (plan_liste_ordonnee($map) as $r) {
 }
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
+
+<div class="module-content"><div class="module-content-inner">
 <?php // Contextuel : un projet est une catégorie de la recherche unifiée, donc
       // on doit pouvoir y revenir. Sans ?depuis, retombe sur la liste comme avant. ?>
 <?= lien_retour_contextuel('?p=projets', evenements_terme_projet()) ?>
@@ -78,3 +80,4 @@ foreach (plan_liste_ordonnee($map) as $r) {
 
 </form>
 <?php endif; ?>
+</div></div>

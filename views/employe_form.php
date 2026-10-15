@@ -5,8 +5,10 @@ $nbFiches = (int) ($nbFiches ?? 0);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
+
+<div class="module-content"><div class="module-content-inner">
 <?= lien_retour($isEdit ? '?p=employe&id=' . (int) $emp['id'] : '?p=employes', $isEdit ? 'Fiche employé' : 'Employés') ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1><?= $isEdit ? 'Modifier l\'employé' : 'Nouvel employé' ?></h1>
     <?php // La suppression vit ici, sur l'écran qui modifie l'employé, et pas sur
           // sa fiche — qu'on ouvre pour consulter ses décomptes. Rien à la
@@ -95,3 +97,4 @@ $nbFiches = (int) ($nbFiches ?? 0);
 
 </form>
 <?php endif; ?>
+</div></div>

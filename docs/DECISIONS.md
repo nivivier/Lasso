@@ -178,18 +178,37 @@ Aucune ne fonctionne sous Nginx, qui ignore les `.htaccess` : en production, la
 base doit être **hors racine web**. Le dossier contient aussi les sauvegardes
 `*.sqlite.bak` (la base entière) et le journal des e-mails.
 
-### CSP : pourquoi `'unsafe-inline'` est encore là
+### CSP : comment `'unsafe-inline'` a quitté `script-src`
 
-Le retirer suppose de passer aux nonces, et un nonce ne couvre **que** les
-balises `<script>`. Or dès qu'un nonce est présent, le navigateur **ignore**
-`'unsafe-inline'` : les 85 gestionnaires inline encore présents dans les vues
-(`onsubmit`, `onclick`, `onchange` — dont les confirmations de suppression)
-cesseraient tous de fonctionner. Le passage au nonce impose donc de les
-réécrire d'abord en `addEventListener`. Tant que ce n'est pas fait, ajouter un
-nonce casserait l'application sans rien sécuriser.
+**L'ordre des opérations était tout le problème.** Un nonce ne couvre **que**
+les balises `<script>` ; or dès qu'un nonce est présent, le navigateur
+**ignore** `'unsafe-inline'`. Les 85 attributs de gestionnaire que portaient
+alors les vues (`onclick`, `onsubmit`, `onchange` — dont les confirmations de
+suppression) auraient donc tous cessé de fonctionner le jour où le nonce serait
+posé, et sans rien signaler. Ajouter le nonce d'abord aurait cassé
+l'application sans rien sécuriser.
 
-Les directives qui ne dépendent pas de ce chantier (`object-src 'none'`,
-`frame-ancestors 'self'`) sont en place.
+Les 85 attributs ont donc été réécrits **d'abord**, en écouteurs délégués
+(`data-confirm`, `data-print`, `data-preview`… dans `assets/app.js`), puis le
+nonce est venu : `csp_nonce()` tire une valeur par requête, mémoïsée pour que
+l'en-tête et les vues voient la même, et `script-src` vaut aujourd'hui
+`'self' 'nonce-…'`. Un script injecté par une faille XSS ne peut pas deviner la
+valeur, donc le navigateur refuse de l'exécuter.
+
+**Ce que ce changement rend possible, et que `tests/csp_test.php` interdit** :
+les deux fautes qui en découlent sont silencieuses à l'écriture — une balise
+`<script>` inline sans nonce ne s'exécute plus, un attribut de gestionnaire non
+plus. Le test les cherche dans le source des vues, pour que l'erreur se voie à
+l'écriture et non en production.
+
+`style-src` garde `'unsafe-inline'` : les attributs `style=` restent utilisés
+(couleur d'accent d'un module, largeur d'une barre) et un nonce ne s'y applique
+pas davantage. Le risque est sans commune mesure avec celui d'un script.
+
+Les autres directives (`object-src 'none'`, `frame-ancestors 'self'`,
+`base-uri 'self'`, `form-action 'self'`) sont en place. ⚠️ `object-src 'none'`
+interdit `<object>`/`<embed>` : l'aperçu d'un justificatif passe par `<img>` et
+`<iframe>` (voir plus haut).
 
 ### Afficher un justificatif dans la page, sans le servir dans l'origine
 

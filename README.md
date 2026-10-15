@@ -21,10 +21,10 @@ des **droits de lecture/écriture par utilisateur et par module** :
 | **Comptabilité analytique** | axes et ventilations (dépend de Comptabilité) |
 | **Pièces comptables** | factures reçues, tickets de carte photographiés, dépenses à rembourser, quittances émises ; rapprochement avec les écritures, archive annuelle (dépend de Comptabilité) |
 | **Facturation** | **QR-factures suisses** (PDF), relances (dépend du Carnet d'adresses) |
-| **Événements** | dates, projets, déclarations SUISA, exports JSON/iCal |
+| **Événements** | dates de concert ou de projet, déclarations SUISA, exports JSON/iCal (dépend du Carnet d'adresses) |
 | **Booking** | CRM des structures : contacts, tags, lieux (carte), campagnes, message individuel (dépend du Carnet d'adresses) |
 | **Envois groupés** | campagnes de mailing ciblé (dépend de Booking) |
-| **Recherche de fonds** | campagnes de demandes de subvention : un dossier par bailleur, délais de dépôt et de bilan, jauge en francs, versement rapproché d'une écriture |
+| **Recherche de fonds** | campagnes de demandes de subvention : un dossier par bailleur, délais de dépôt et de bilan, jauge en francs, versement rapproché d'une écriture (dépend du Carnet d'adresses) |
 
 Une **recherche unifiée** traverse ces modules depuis le tableau de bord, en ne
 montrant que ce que le compte a le droit de lire.

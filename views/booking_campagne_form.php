@@ -39,7 +39,7 @@ $cibF = ciblage_filtres_vue([
 
 <?php if ($err === 'nom'): ?><p class="err flash">Le nom de la campagne est obligatoire.</p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1><?= $id ? 'Modifier la campagne' : 'Nouvelle campagne' ?></h1>
     <?php // Supprimer vit ici, sur l'écran qui modifie la campagne, et pas sur
           // celui qui la suit : c'est là qu'on vient décider de son sort. Rien à

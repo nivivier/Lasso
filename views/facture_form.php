@@ -62,6 +62,8 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 <?php $nouveauStructure = $structureCourant === '__new__'; ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
+
+<div class="module-content"><div class="module-content-inner">
 <?php // Le retour d'un écran de modification, c'est ce qu'on modifiait : la
       // facture elle-même, d'où l'on vient forcément. Le ?depuis= poursuit sa
       // route, pour qu'elle garde de son côté son propre retour contextuel —
@@ -75,7 +77,7 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 <?php else: ?>
     <?= lien_retour_contextuel('?p=factures', 'Facturation') ?>
 <?php endif; ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1><?= $edit ? 'Modifier la facture' : 'Nouvelle facture' ?></h1>
     <?php // La suppression vit ici, sur l'écran qui modifie le brouillon, et pas
           // sur celui qui le consulte. Rien à la création — il n'y a encore rien
@@ -276,3 +278,4 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
 })();
 </script>
 <?php endif; ?>
+</div></div>

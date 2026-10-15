@@ -1,4 +1,6 @@
 <?php /** @var array $emp */ /** @var int $annee */ /** @var array $annees */ /** @var array $fiches */ /** @var array $tot */ ?>
+
+<div class="module-content"><div class="module-content-inner">
 <?= lien_retour('?p=employe&id=' . (int) $emp['id'], $emp['prenom'] . ' ' . $emp['nom']) ?>
 <div class="page-head page-head-bande">
     <div class="page-head-title">
@@ -20,3 +22,4 @@
 <div class="card">
     <?php require __DIR__ . '/_certificat_body.php'; ?>
 </div>
+</div></div>

@@ -47,7 +47,7 @@ $cibF = ciblage_filtres_vue([
 
 <?php if ($err === 'nom'): ?><p class="err flash">Le nom de la campagne est obligatoire.</p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1><?= $id ? 'Modifier la campagne' : 'Nouvelle campagne de recherche de fonds' ?></h1>
     <?php // La suppression vit ICI, sur l'écran de modification, et pas sur le
           // suivi : celui-ci sert à travailler une campagne, on y clique cent
