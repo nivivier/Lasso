@@ -376,6 +376,7 @@ if (peut_ecrire('coeur')) {
         'apparence'           => 'route_apparence',
         'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
         'sauvegarde'              => 'route_sauvegarde',
+        'sauvegarde_restaurer'    => 'route_sauvegarde_restaurer',
         'incoherences'        => 'route_incoherences',
     ];
 }

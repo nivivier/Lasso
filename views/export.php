@@ -61,10 +61,19 @@ $anneeSansToutes = ['certificats' => true];
         <p class="err mb-8">La sauvegarde n'a pas pu être créée — disque plein, droits insuffisants, ou archive impossible à finaliser.
             Le détail est dans le journal d'erreurs du serveur. Rien n'a été téléchargé.</p>
         <?php endif; ?>
+        <?php // ⚠️ La liste des modules se LIT dans MODULES, elle ne se récrit pas
+              // ici. Écrite à la main, elle avait vieilli de trois chantiers : elle
+              // ignorait le carnet d'adresses, les pièces et la recherche de fonds,
+              // et rangeait encore les structures sous la facturation et les projets
+              // sous les événements. Une sauvegarde qui n'annonce pas ce qu'elle
+              // contient inquiète à juste titre, alors qu'elle n'avait rien perdu
+              // (VACUUM INTO copie la base entière, il n'énumère aucune table).
+              //
+              // MODULES au complet, et non modules_actifs() : la phrase dit « quels
+              // que soient les modules activés », et c'est vrai — un module éteint
+              // garde ses tables, et la sauvegarde les emporte. ?>
         <p class="muted small mb-8">Copie intégrale de la base : <strong>toutes les tables</strong>, quels que soient les modules activés —
-            salaires (employés, fiches, taux, unités), comptabilité (écritures, plan comptable, règles, axes analytiques),
-            facturation (factures, structures), événements (événements, projets),
-            booking (lieux, contacts, tags, notes et historique, mailings, ciblages),
+            <?= e(implode(', ', array_column(MODULES, 'label'))) ?>,
             ainsi que les paramètres, les comptes utilisateurs et les catégories (pays, régions, types de lieu).
             À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
         <?php if ($formatSauvegarde === 'sqlite'): ?>

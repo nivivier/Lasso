@@ -123,6 +123,19 @@ function route_connexion(): void
     if (isset($_GET['reinit'])) {
         $msg = 'Mot de passe modifié. Connectez-vous avec le nouveau.';
     }
+    // Retour d'une restauration : c'est le seul endroit où l'on puisse encore
+    // dire ce qui s'est passé — la session vient d'être détruite, et les
+    // comptes ne sont plus les mêmes. Le nom du .bak y figure parce que c'est
+    // la seule chose à retenir si l'on s'est trompé d'archive.
+    if (isset($_GET['restaure'])) {
+        $n = (int) ($_GET['fichiers'] ?? 0);
+        $msg = 'Sauvegarde restaurée' . ($n > 0 ? ' (' . $n . ' fichier(s) déposé(s) remis en place)' : '')
+            . '. Connectez-vous avec un compte de cette sauvegarde.';
+        $avant = basename((string) ($_GET['avant'] ?? ''));
+        if ($avant !== '') {
+            $msg .= ' La base précédente a été conservée sous « ' . $avant .' » à côté de la base.';
+        }
+    }
     render('connexion', ['err' => null, 'info' => $msg, 'email' => ''], 'Connexion');
 }
 
@@ -997,11 +1010,61 @@ function rendre_import(array $vars = []): void
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => null,
         'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
+        // Retour de ?p=sauvegarde_restaurer quand elle a refusé : la
+        // restauration réussie, elle, ne revient jamais ici — elle déconnecte.
+        'errRestaure' => (string) ($_GET['err_restaure'] ?? ''),
+        'motifRestaure' => (string) ($_GET['motif'] ?? ''),
     ], 'Importer');
 }
 
 
 // -------------------------------------------------------------- SAUVEGARDE
+// Restaurer une sauvegarde complète : l'opération la plus destructrice de
+// l'application, et la seule qui remplace la base entière.
+//
+// Trois raisons pour qu'elle vive ici et non dans le formulaire unifié de
+// ?p=import : elle n'appartient à aucun module mais à l'administration
+// (écriture « coeur », comme la sauvegarde) ; elle REMPLACE au lieu d'ajouter,
+// là où tous les autres imports fusionnent ; et elle n'a rien à simuler. Une
+// entrée de plus dans le menu déroulant des types de données aurait rangé « je
+// remplace tout » au milieu de « j'ajoute quelques lignes ».
+//
+// La session tombe à la fin : les comptes de la base restaurée ne sont pas
+// ceux d'avant, et l'identifiant en session ne désigne plus forcément
+// quelqu'un. Se retrouver devant l'écran de connexion est d'ailleurs le signal
+// le plus clair que la base n'est plus la même.
+function route_sauvegarde_restaurer(): void
+{
+    require_login();
+    check_csrf();
+
+    // Le champ du formulaire unifié de ?p=import, partagé par tous les types.
+    $f = $_FILES['fichier'] ?? null;
+    if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
+        // UPLOAD_ERR_INI_SIZE / FORM_SIZE : le fichier dépasse ce que le serveur
+        // accepte. C'est le cas le plus probable sur un hébergement mutualisé,
+        // où une archive complète dépasse vite les quelques mégaoctets par
+        // défaut — d'où un message qui le dit au lieu d'un « échec ».
+        $code = (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE);
+        $trop = in_array($code, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
+        redirect('import', ['err_restaure' => $trop ? 'taille' : 'fichier']);
+    }
+
+    try {
+        $resultat = sauvegarde_restaurer($f['tmp_name']);
+    } catch (Throwable $e) {
+        error_log('Lasso — restauration refusée : ' . $e->getMessage());
+        redirect('import', ['err_restaure' => 'refus', 'motif' => $e->getMessage()]);
+    }
+
+    // Le chemin de la base d'avant voyage par la session… qu'on détruit juste
+    // après. Il part donc dans l'URL de l'écran de connexion, en nom de fichier
+    // seul : c'est une information à recopier, pas un lien.
+    $avant = $resultat['precedente'] ? basename($resultat['precedente']) : '';
+    logout_session();
+    redirect('connexion', ['restaure' => '1', 'fichiers' => (string) $resultat['fichiers'], 'avant' => $avant]);
+}
+
 function route_sauvegarde(): void
 {
     require_login();

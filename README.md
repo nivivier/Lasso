@@ -545,10 +545,40 @@ Le format est un **ZIP** ; sur un hébergement dépourvu de l'extension `zip`, u
 disponible, le téléchargement retombe sur la base seule et la page d'export le
 signale — les fichiers déposés sont alors à copier à part.
 
-**Restaurer** : mettre l'application hors ligne, copier `base.sqlite` à
+### Restaurer
+
+**Paramètres → Importer → type « Sauvegarde complète »** : on dépose l'archive,
+et l'application fait le reste. Réservé à l'**administration** (écriture sur le
+cœur), comme la sauvegarde dont c'est l'inverse.
+
+C'est la seule opération qui **remplace** la base au lieu d'y ajouter — d'où
+trois garde-fous, dans cet ordre :
+
+1. l'archive est **vérifiée avant** que rien ne soit touché (format reconnu à
+   ses premiers octets et non à son nom, base intègre, tables de l'application
+   présentes) : une archive douteuse échoue sans avoir rien remplacé ;
+2. la base actuelle est **mise de côté** dans un `.sqlite.bak` à côté d'elle, et
+   son nom est affiché à la fin — se tromper de fichier reste rattrapable ;
+3. les fichiers déposés de l'archive sont **ajoutés**, le dossier n'est jamais
+   vidé d'abord : une sauvegarde « base seule » n'efface aucun logo. Une archive
+   ne peut écrire que dans `uploads/` et `data/fichiers/`.
+
+Une sauvegarde plus ancienne est mise à jour automatiquement (migrations). La
+session est fermée à la fin : les comptes de la base restaurée ne sont pas
+forcément ceux d'avant, et l'écran de connexion est le signal le plus clair que
+la base a changé.
+
+> Sur un hébergement mutualisé, la limite de téléversement (souvent quelques
+> mégaoctets) peut être inférieure au poids de l'archive. L'écran affiche la
+> limite du serveur et le dit quand elle est dépassée ; dans ce cas, la
+> restauration **à la main** reste possible — et c'est aussi la marche à suivre
+> quand l'application ne s'ouvre plus du tout.
+
+**À la main** : mettre l'application hors ligne, copier `base.sqlite` à
 l'emplacement défini par `APP_DB_PATH` (en supprimant les `-wal`/`-shm` qui
 l'accompagnent), décompresser `uploads/` et `data/fichiers/` à la racine du
-projet, puis rouvrir — les migrations éventuelles se jouent seules.
+projet, puis rouvrir — les migrations éventuelles se jouent seules. C'est la
+procédure écrite dans le `SAUVEGARDE.txt` de chaque archive.
 
 `lib/config.local.php` n'est **pas** dans l'archive : il contient des mots de
 passe et se conserve à part.

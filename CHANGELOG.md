@@ -10,6 +10,26 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Restaurer une sauvegarde complète depuis l'application** (Paramètres →
+  Importer, type « Sauvegarde complète »). Il fallait jusqu'ici un accès FTP au
+  serveur et suivre la note glissée dans l'archive — faisable, mais le jour où
+  l'on restaure est le mauvais jour pour découvrir une procédure. Réservé à
+  l'administration. L'archive est vérifiée **avant** que rien ne soit remplacé,
+  la base actuelle part dans un `.sqlite.bak` dont le nom est affiché à la fin,
+  les fichiers déposés sont ajoutés sans que le dossier soit vidé, et une
+  archive ne peut écrire que dans `uploads/` et `data/fichiers/`. Les trois
+  formats produits par l'export sont acceptés (`.zip`, `.tar.gz`, `.sqlite`), et
+  une sauvegarde plus ancienne est mise à jour par les migrations.
+
+### Corrigé
+- **La description de la sauvegarde ne mentionnait ni le carnet d'adresses, ni
+  les pièces comptables, ni la recherche de fonds** (Paramètres → Exporter), et
+  rangeait encore les structures sous la facturation et les projets sous les
+  événements. La liste des modules, écrite à la main, avait vieilli de trois
+  chantiers. Elle se lit désormais dans la table des modules : elle ne peut plus
+  diverger. Rien n'avait jamais manqué dans la sauvegarde elle-même, qui copie
+  la base entière sans énumérer aucune table — ce qu'un test vérifie maintenant,
+  table par table.
 - **Le justificatif se lit sur la page** (`?p=piece`). Une carte pleine largeur
   affiche la pièce — image ou PDF — assez grand pour y lire un montant et une
   date, là où il fallait jusqu'ici la télécharger, l'ouvrir ailleurs et

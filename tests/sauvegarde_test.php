@@ -124,6 +124,65 @@ check('c\'est bien la base, intègre', 'ok', (string) $replu->query('PRAGMA inte
 unset($replu);
 unlink($cheminSql);
 
+echo "\n7) Une sauvegarde emporte TOUTES les tables, module par module\n";
+// La question qu'on se pose vraiment devant une sauvegarde : « est-ce que tout
+// y est ? » Rien dans le code ne l'affirme explicitement — VACUUM INTO copie la
+// base entière justement parce qu'il n'énumère aucune table —, donc rien ne la
+// vérifiait. Un jour où l'on passerait à une copie table par table, ou à un
+// export partiel, l'oubli d'un module serait silencieux et ne se verrait qu'au
+// moment de restaurer, c'est-à-dire trop tard.
+//
+// La base d'épreuve est une VRAIE base, fabriquée par scripts/base_demo.php :
+// schéma complet et des lignes dans chaque module, donc le test porte sur le
+// schéma du jour et non sur une maquette qui vieillirait à côté.
+$reelle = $racine . '/reelle.sqlite';
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__) . '/scripts/base_demo.php')
+    . ' ' . escapeshellarg($reelle) . ' --sans-scan 2>&1', $sortieGen, $codeGen);
+check('la base d\'épreuve est fabriquée', 0, $codeGen);
+
+$pdo = new PDO('sqlite:' . $reelle, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                                                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+[$cheminTout, ] = sauvegarde_construire('essai', '9.9.9', 'sqlite');
+$copie = new PDO('sqlite:' . $cheminTout, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                                                       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+
+$listeTables = 'SELECT name FROM sqlite_master WHERE type = "table" AND name NOT LIKE "sqlite_%" ORDER BY name';
+$avant = $pdo->query($listeTables)->fetchAll(PDO::FETCH_COLUMN);
+$apres = $copie->query($listeTables)->fetchAll(PDO::FETCH_COLUMN);
+check('aucune table laissée derrière', [], array_values(array_diff($avant, $apres)));
+check('aucune table inventée', [], array_values(array_diff($apres, $avant)));
+
+// Le nombre de lignes, table par table : une table présente mais vidée serait
+// pire qu'une table absente — la restauration réussirait sans rien dire.
+// Les tables absentes sont déjà signalées au-dessus : on les saute, sinon
+// l'échec partirait en erreur fatale au lieu de rendre une liste lisible.
+$ecarts = [];
+foreach (array_intersect($avant, $apres) as $t) {
+    $a = (int) $pdo->query("SELECT COUNT(*) FROM \"$t\"")->fetchColumn();
+    $b = (int) $copie->query("SELECT COUNT(*) FROM \"$t\"")->fetchColumn();
+    if ($a !== $b) {
+        $ecarts[] = "$t ($a → $b)";
+    }
+}
+check('chaque table rend exactement ses lignes', [], $ecarts);
+
+// Nommément, les tables des modules que la description de ?p=export ne citait
+// pas — c'est ce qui avait fait douter, et ce doute a maintenant une réponse
+// qui se vérifie toute seule.
+$vides = [];
+foreach (array_intersect($apres, ['personnes', 'personne_structures', 'structures', 'employes', 'fiches', 'ecritures',
+          'pieces', 'factures', 'evenements', 'projets', 'campagnes',
+          'fonds_campagnes', 'fonds_demandes', 'fonds_versements',
+          'mailing_modeles', 'utilisateurs', 'utilisateur_permissions', 'parametres']) as $t) {
+    if ((int) $copie->query("SELECT COUNT(*) FROM \"$t\"")->fetchColumn() === 0) {
+        $vides[] = $t;
+    }
+}
+check('les tables de chaque module sont peuplées dans la copie', [], $vides);
+
+unset($copie);
+unlink($cheminTout);
+
 // --- Ménage -----------------------------------------------------------------
 $it = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($racine, FilesystemIterator::SKIP_DOTS),
