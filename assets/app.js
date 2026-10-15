@@ -2353,3 +2353,49 @@ function lassoCameraPiece(inputFichier, poser) {
     window.addEventListener('pagehide', couper);
 }
 window.addEventListener('DOMContentLoaded', () => lassoPhotoPiece());
+
+// ---------------------------------------------------------------------------
+//  Recadrage d'image — le noyau commun aux deux écrans qui recadrent.
+//
+//  La photo d'un employé (?p=employe) et l'icône d'un projet (?p=projets)
+//  montent Cropper.js différemment : la première ouvre une zone sous le champ,
+//  la seconde une fenêtre avec ses propres commandes. Ce qui ne DOIT pas
+//  différer, en revanche, c'est la façon de cadrer et la vignette produite —
+//  et c'était écrit deux fois. Passer la vignette à 512 px ou au WebP, c'était
+//  deux endroits à trouver, dont un qu'on oublie.
+//
+//  Ces deux fonctions ne touchent pas à l'interface : chaque écran garde la
+//  sienne, qui n'a rien à voir avec l'autre.
+// ---------------------------------------------------------------------------
+
+// Les options de cadrage. aspectRatio 1 : les deux cibles sont carrées (la
+// pastille d'un employé est ronde, l'icône d'un projet est un carré arrondi).
+// viewMode 1 empêche de sortir le cadre de l'image.
+const LASSO_RECADRAGE_OPTIONS = { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false };
+
+// Ouvre un recadrage sur le fichier choisi. Rend une promesse qui donne le
+// Cropper prêt, ou null si rien n'a été choisi / si la bibliothèque manque.
+function lassoRecadrageOuvrir(fichierInput, img, avant) {
+    const f = fichierInput.files && fichierInput.files[0];
+    if (!f || typeof Cropper === 'undefined') { return Promise.resolve(null); }
+    return new Promise(resolve => {
+        const lecteur = new FileReader();
+        lecteur.onload = e => {
+            img.src = e.target.result;
+            if (avant) { avant(); }
+            resolve(new Cropper(img, LASSO_RECADRAGE_OPTIONS));
+        };
+        lecteur.readAsDataURL(f);
+    });
+}
+
+// La vignette envoyée au serveur, en data URI. 256 px : deux fois la plus
+// grande taille d'affichage, de quoi rester net sur un écran haute densité
+// sans envoyer la photo d'origine. JPEG 0.85 : quelques dizaines de Ko.
+// ⚠️ Le serveur revalide ce qu'il reçoit (avatar_photo_enregistrer()) : ces
+// valeurs décident du poids, jamais de ce qui est accepté.
+function lassoRecadrageVignette(cropper) {
+    if (!cropper) { return ''; }
+    const toile = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
+    return toile ? toile.toDataURL('image/jpeg', 0.85) : '';
+}

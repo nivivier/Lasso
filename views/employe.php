@@ -109,31 +109,20 @@
         fichier.value = '';
     }
 
+    // Le cadrage et la vignette viennent de assets/app.js : ils sont partagés
+    // avec l'icône d'un projet, et ne doivent pas diverger.
     fichier.addEventListener('change', function () {
-        var f = fichier.files && fichier.files[0];
-        if (!f) { return; }
-        var lecteur = new FileReader();
-        lecteur.onload = function (e) {
-            if (cropper) { cropper.destroy(); }
-            img.src = e.target.result;
-            form.hidden = false;
-            // aspectRatio 1 : la pastille est ronde, le cadre doit être carré.
-            // viewMode 1 empêche de sortir le cadre de l'image.
-            cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false });
-        };
-        lecteur.readAsDataURL(f);
+        if (cropper) { cropper.destroy(); cropper = null; }
+        lassoRecadrageOuvrir(fichier, img, function () { form.hidden = false; })
+            .then(function (c) { cropper = c; });
     });
 
     document.getElementById('avatar-crop-annuler').addEventListener('click', fermer);
 
     form.addEventListener('submit', function (e) {
-        if (!cropper) { e.preventDefault(); return; }
-        // 256px : deux fois la plus grande taille d'affichage (la pastille du
-        // titre), de quoi rester net sur un écran haute densité sans envoyer
-        // la photo d'origine. JPEG 0.85 : quelques dizaines de Ko.
-        var toile = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
-        if (!toile) { e.preventDefault(); return; }
-        champ.value = toile.toDataURL('image/jpeg', 0.85);
+        var vignette = lassoRecadrageVignette(cropper);
+        if (vignette === '') { e.preventDefault(); return; }
+        champ.value = vignette;
     });
 })();
 </script>

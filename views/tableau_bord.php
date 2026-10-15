@@ -407,10 +407,10 @@ $dashTitre = function (string $groupe, string $titre): string {
                 return $ech < $ilYaUnMois ? ' facture-retard-long' : ' facture-retard';
             };
             ?>
+            <?php // Pas de ligne d'en-tête : une échéance, un nom et un montant se
+                  // reconnaissent sans qu'on les nomme, et le tableau de bord
+                  // n'en met nulle part ailleurs. ?>
             <table class="list">
-                <thead>
-                    <tr><th>Échéance</th><th>Structure</th><th class="num">Montant</th></tr>
-                </thead>
                 <tbody>
                 <?php // Une facture pas encore échue ne se détache pas : elle suit son
                       // cours. Une facture échue d'hier non plus — le paiement est

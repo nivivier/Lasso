@@ -100,22 +100,9 @@ $sfReinit = bouton_reinit_filtres(
 // pile, le premier devant. Au-delà de trois on s'arrête et on compte le reste :
 // une pile de six ne montrerait plus rien de personne.
 // Sans projet, pas de bloc du tout.
-$iconesPile = array_slice($projetsPastilles, 0, 3);
-$iconesReste = count($projetsPastilles) - count($iconesPile);
 ?>
 <div class="card camp-carte mb-22">
-    <?php if ($iconesPile): ?>
-    <?php // aria-hidden : les projets sont nommés juste à côté, en toutes
-          // lettres. Répéter la pile à la lecture n'ajouterait rien. ?>
-    <div class="camp-icone" aria-hidden="true">
-        <?php foreach ($iconesPile as $i => $pastille): ?>
-        <span class="camp-icone-item" style="z-index:<?= count($iconesPile) - $i ?>"><?= $pastille ?></span>
-        <?php endforeach; ?>
-        <?php if ($iconesReste > 0): ?>
-        <span class="camp-icone-item"><span class="avatar-ini camp-icone-plus">+<?= (int) $iconesReste ?></span></span>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
+    <?php require __DIR__ . '/_campagne_icone_pile.php'; ?>
 
     <div class="camp-corps">
         <div class="camp-projets projet-pastilles"><?= projets_pastilles_html($projets, $projetsPastilles) ?></div>

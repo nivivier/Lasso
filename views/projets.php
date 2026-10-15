@@ -358,20 +358,15 @@ $parentOptions = function (int $excludeId) use ($map): string {
         });
     });
 
+    // Le cadrage et la vignette viennent de assets/app.js : ils sont partagés
+    // avec la photo d'un employé, et ne doivent pas diverger.
     fichier.addEventListener('change', function () {
-        var f = fichier.files && fichier.files[0];
-        if (!f) { return; }
-        var lecteur = new FileReader();
-        lecteur.onload = function (e) {
-            if (cropper) { cropper.destroy(); }
-            img.src = e.target.result;
-            zone.hidden = false;
-            // aspectRatio 1 : la pastille est ronde, le cadre doit être carré.
-            // viewMode 1 empêche de sortir le cadre de l'image.
-            cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false });
-            valider.disabled = false;
-        };
-        lecteur.readAsDataURL(f);
+        if (cropper) { cropper.destroy(); cropper = null; }
+        lassoRecadrageOuvrir(fichier, img, function () { zone.hidden = false; })
+            .then(function (c) {
+                cropper = c;
+                valider.disabled = (c === null);
+            });
     });
 
     form.addEventListener('submit', function (e) {
@@ -380,9 +375,9 @@ $parentOptions = function (int $excludeId) use ($map): string {
         if (!cropper) { e.preventDefault(); return; }
         // 256px, comme la photo d'un employé : deux fois la plus grande taille
         // d'affichage, net sur un écran haute densité sans envoyer l'original.
-        var toile = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingQuality: 'high' });
-        if (!toile) { e.preventDefault(); return; }
-        champ.value = toile.toDataURL('image/jpeg', 0.85);
+        var vignette = lassoRecadrageVignette(cropper);
+        if (vignette === '') { e.preventDefault(); return; }
+        champ.value = vignette;
     });
 
     document.getElementById('projet-image-annuler').addEventListener('click', fermer);
