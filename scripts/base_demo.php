@@ -514,6 +514,35 @@ $fabriquerScan = function (string $titre, string $tiers, float $montant, string 
     return ['fichier' => $nom, 'nom_origine' => 'scan.png', 'mime' => 'image/png',
             'taille' => (int) filesize($dossierFichiers . '/' . $nom)];
 };
+// Le même faux document, mais en PDF : c'est l'autre moitié de ce qu'un
+// fournisseur envoie, et l'aperçu de ?p=piece ne l'affiche pas du tout de la
+// même façon qu'une image (visionneuse du navigateur dans un cadre, contre une
+// balise <img>). Une base de démonstration qui n'aurait que des images ne
+// montrerait donc qu'un des deux chemins.
+$fabriquerPdf = function (string $titre, string $tiers, float $montant, string $date) use ($racine, $dossierFichiers, $sansScan): ?array {
+    if ($sansScan || !is_file($racine . '/vendor/autoload.php')) {
+        return null;
+    }
+    require_once $racine . '/vendor/autoload.php';
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8');
+    $pdf->SetCreator('Lasso — démonstration');
+    $pdf->SetTitle($titre);
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', 'B', 18);
+    $pdf->Cell(0, 14, 'DOCUMENT DE DEMONSTRATION', 0, 1);
+    $pdf->SetFont('helvetica', '', 12);
+    foreach (['', texte_sans_accents($tiers), '', texte_sans_accents($titre),
+              '', 'Montant : CHF ' . number_format($montant, 2, '.', "'"),
+              'Date : ' . $date, '', 'Aucune valeur. Donnees inventees.'] as $l) {
+        $pdf->Cell(0, 8, $l, 0, 1);
+    }
+    $nom = 'demo-piece-' . bin2hex(random_bytes(8)) . '.pdf';
+    $pdf->Output($dossierFichiers . '/' . $nom, 'F');
+    return ['fichier' => $nom, 'nom_origine' => 'justificatif.pdf', 'mime' => 'application/pdf',
+            'taille' => (int) filesize($dossierFichiers . '/' . $nom)];
+};
 
 $piecesSrc = [
     // [type, libellé, tiers, montant, mois, état voulu]
@@ -569,8 +598,13 @@ foreach ($piecesSrc as $i => $ps) {
         $data['origine'] = 'emise';
         $data['numero']  = quittance_prochain_numero($annee);
     }
+    // Une pièce sur deux porte un justificatif, et une sur quatre l'a en PDF :
+    // de quoi rencontrer les trois cas de l'écran — une image, un PDF, rien.
     if ($i % 2 === 0) {
-        $scan = $fabriquerScan($libelle, $tiers !== '' ? $tiers : 'personne du carnet', $montant, $datePiece);
+        $quoi = $tiers !== '' ? $tiers : 'personne du carnet';
+        $scan = $i % 4 === 0
+            ? $fabriquerPdf($libelle, $quoi, $montant, $datePiece)
+            : $fabriquerScan($libelle, $quoi, $montant, $datePiece);
         if ($scan) {
             $data += $scan;
         }

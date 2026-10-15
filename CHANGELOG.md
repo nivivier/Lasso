@@ -10,6 +10,12 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Le justificatif se lit sur la page** (`?p=piece`). Une carte pleine largeur
+  affiche la pièce — image ou PDF — assez grand pour y lire un montant et une
+  date, là où il fallait jusqu'ici la télécharger, l'ouvrir ailleurs et
+  revenir. « Agrandir » la rouvre dans la fenêtre d'aperçu partagée. Les
+  formats qu'un navigateur ne sait pas rendre (`.docx`, HEIC) gardent leur
+  simple lien de téléchargement.
 - **Une base de démonstration, sans aucune donnée réelle**
   (`php scripts/base_demo.php` → `data/demo.sqlite`). Montrer l'application,
   essayer un écran ou chercher un bug demandait jusqu'ici d'ouvrir les vraies

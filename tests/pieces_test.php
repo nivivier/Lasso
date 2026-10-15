@@ -358,6 +358,26 @@ check('aucune valeur en double, tous groupes confondus',
 check('un employé sans personne est ignoré', false,
     in_array('p:0', array_column($options, 'val'), true));
 
+// --- 11. Aperçu d'un justificatif ------------------------------------------
+// L'aperçu de ?p=piece sert le fichier « inline » au lieu de le faire
+// télécharger. Deux invariantes, parce que c'est la seule entorse à la règle
+// « Content-Disposition: attachment, toujours » de lib/fichiers.php :
+//
+//   — on ne peut afficher que ce qu'on accepte de recevoir. Un type présent
+//     dans la liste d'aperçu mais absent de la liste de dépôt serait du code
+//     mort qui donne l'illusion d'une permission ;
+//   — rien d'exécutable. Les formats bureautiques et le HEIC restent dehors :
+//     le premier n'est pas affichable par un navigateur, le second ne l'est
+//     que par Safari.
+$horsDepot = array_values(array_diff(FICHIERS_PRIVES_APERCU, array_keys(FICHIERS_PRIVES_MIMES)));
+check('aucun type affichable qui ne soit pas acceptable au dépôt', [], $horsDepot);
+check('un .docx ne s\'affiche pas', false,
+    fichier_prive_apercu_possible('application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+check('un HEIC ne s\'affiche pas', false, fichier_prive_apercu_possible('image/heic'));
+check('un PDF s\'affiche', true, fichier_prive_apercu_possible('application/pdf'));
+check('un PNG s\'affiche', true, fichier_prive_apercu_possible('image/png'));
+check('un type inconnu ne s\'affiche pas', false, fichier_prive_apercu_possible('text/html'));
+
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }
 

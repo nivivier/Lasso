@@ -191,6 +191,47 @@ nonce casserait l'application sans rien sécuriser.
 Les directives qui ne dépendent pas de ce chantier (`object-src 'none'`,
 `frame-ancestors 'self'`) sont en place.
 
+### Afficher un justificatif dans la page, sans le servir dans l'origine
+
+`lib/fichiers.php` envoyait tout en `Content-Disposition: attachment`, et le
+commentaire disait pourquoi : un PDF ou une image ouverts dans l'onglet
+s'exécuteraient dans l'origine de l'application. Lire le montant d'une facture
+reçue supposait donc de la télécharger, de l'ouvrir dans un autre logiciel et de
+revenir — pour le geste le plus fréquent de `?p=piece`.
+
+L'aperçu lève l'objection avec trois verrous, et il faut les trois : le type est
+reconnu **par le contenu** à l'enregistrement (`finfo`) puis redit en clair avec
+`X-Content-Type-Options: nosniff` (un HTML déguisé ne peut pas être interprété
+comme du HTML) ; seule une liste courte part en ligne, `FICHIERS_PRIVES_APERCU`,
+plus courte que celle du dépôt (ni `.docx`, ni HEIC — ce qu'un navigateur ne
+rend pas de lui-même n'a rien à faire dans un aperçu) ; et la réponse porte
+`Content-Security-Policy: sandbox`, qui place le document dans une origine
+**opaque**, sans script : il ne peut ni lire le cookie de session, ni parler à
+la page qui l'encadre. C'est, en une en-tête, ce qu'un hébergeur obtient avec un
+sous-domaine séparé.
+
+**Le PDF fait exception, et c'est mesuré.** Sous `CSP: sandbox`, Chrome affiche
+l'habillage de sa visionneuse mais ne peint jamais la page — un cadre gris, sans
+message — et, en navigation directe, propose le téléchargement au lieu
+d'ouvrir. Un PDF part donc en ligne sans cette en-tête. Ce qui le protège
+alors : les deux premiers verrous, plus le fait qu'un PDF n'est pas rendu par la
+page mais par la visionneuse du navigateur, dans son propre processus — le
+script éventuellement embarqué n'y atteint ni le DOM de l'application ni son
+cookie.
+
+Deux pièges du côté de la vue (`views/piece.php`) :
+
+- **pas d'attribut `sandbox=` sur le cadre.** Chrome refuse d'afficher un PDF
+  dans un cadre marqué `sandbox` : il le traite comme un téléchargement, puis le
+  bloque (`ERR_BLOCKED_BY_CLIENT`). L'isolement vient de l'en-tête, qui a en
+  prime l'avantage de protéger aussi l'ouverture directe de l'URL ;
+- **le fragment `#view=FitH&navpanes=0`** n'est pas cosmétique : sans lui,
+  Chrome ouvre à 62 % avec le volet des vignettes déplié, et il ne reste presque
+  rien du document dans le cadre.
+
+`object-src 'none'` reste intact : l'aperçu passe par `<img>` et `<iframe>`,
+jamais par `<object>`/`<embed>`.
+
 ### Polices servies depuis le dépôt
 
 Inter était chargée depuis `fonts.googleapis.com`. Trois raisons de l'avoir

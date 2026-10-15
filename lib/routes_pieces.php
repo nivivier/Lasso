@@ -623,5 +623,10 @@ function route_piece_fichier(): void
     if (!is_file($chemin)) {
         redirect('piece', ['id' => $id, 'err' => 'Fichier introuvable sur le serveur.']);
     }
-    fichier_prive_envoyer($chemin, (string) $p['mime'], (string) $p['nom_origine']);
+    // ?apercu=1 : la même route, servie « inline », pour l'aperçu de ?p=piece.
+    // Une route de plus aurait dupliqué le contrôle d'accès ci-dessus — et
+    // c'est ce contrôle qui compte, pas la disposition. fichier_prive_envoyer()
+    // retombe en téléchargement pour un type qu'un navigateur n'affiche pas.
+    fichier_prive_envoyer($chemin, (string) $p['mime'], (string) $p['nom_origine'],
+        ($_GET['apercu'] ?? '') !== '');
 }

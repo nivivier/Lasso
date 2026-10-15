@@ -282,6 +282,18 @@ le remplace pas : elle contient tout, sans tri par année ni lien avec les
 écritures. `lib/sauvegarde.php` construit déjà un ZIP à la volée, le procédé est
 connu.
 
+**L'aperçu** : sur `?p=piece`, une carte pleine largeur affiche le justificatif
+sous les trois autres — une image dans un `<img>`, un PDF dans la visionneuse du
+navigateur. Lire un montant ou une date sur la pièce est le geste le plus
+fréquent de cet écran, et il passait par un téléchargement, donc par un autre
+logiciel et un aller-retour. « Agrandir » rouvre le même fichier dans la fenêtre
+d'aperçu partagée (`docs/UI.md § 7`) plutôt que dans une visionneuse de plus.
+Les formats que le navigateur ne rend pas lui-même (`.docx`, HEIC) n'ont pas
+d'aperçu et gardent leur seule ligne de téléchargement. Comment le fichier est
+servi en ligne sans l'exposer dans l'origine de l'application — et pourquoi le
+PDF y fait exception : `docs/DECISIONS.md § Afficher un justificatif dans la
+page`.
+
 **Suppression** : effacer une pièce efface son fichier (sinon `data/fichiers/`
 accumule ce que plus rien ne désigne — la leçon de `feuille_supprimer()`).
 Effacer une écriture ne touche pas aux pièces : `ON DELETE SET NULL`, elles

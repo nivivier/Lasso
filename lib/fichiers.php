@@ -115,15 +115,61 @@ function fichier_prive_supprimer(string $fichier): void
 // cette fonction ne fait que l'envoi, et c'est pour ça qu'elle ne s'appelle pas
 // « servir ».
 //
-// Content-Disposition: attachment, toujours : un PDF ou une image ouverts dans
-// l'onglet s'exécuteraient dans l'origine de l'application.
-function fichier_prive_envoyer(string $chemin, string $mime, string $nomOrigine): never
+// Ce qu'un navigateur sait AFFICHER lui-même, et que l'on accepte donc de
+// servir en ligne. Volontairement plus court que FICHIERS_PRIVES_MIMES : le
+// HEIC n'est lu que par Safari, et un .docx ne s'ouvre pas sans son logiciel —
+// un aperçu qui tombe en panne une fois sur deux vaut moins que pas d'aperçu.
+const FICHIERS_PRIVES_APERCU = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp',
+                                'text/plain', 'text/csv'];
+
+function fichier_prive_apercu_possible(string $mime): bool
 {
+    return in_array($mime, FICHIERS_PRIVES_APERCU, true);
+}
+
+// Envoie un fichier privé. Deux dispositions, et la seconde est gardée :
+//
+//   $enLigne = false (défaut) — « attachment ». Le téléchargement, point.
+//   $enLigne = true           — « inline », pour qu'un <img> ou un <iframe>
+//                               l'affiche sur la page (aperçu d'un justificatif).
+//
+// Servir en ligne, c'est rendre un document DANS l'origine de l'application —
+// ce que ce fichier refusait jusqu'ici, et pour une bonne raison : un PDF peut
+// porter du script, et il aurait alors la session sous la main. Trois verrous
+// lèvent l'objection, et il faut les trois :
+//
+//   1. le type est reconnu par le CONTENU à l'enregistrement (finfo) et redit
+//      ici en clair, avec nosniff : un fichier HTML déguisé ne peut pas être
+//      interprété comme du HTML ;
+//   2. la liste ci-dessus n'admet que ce que le navigateur rend lui-même ;
+//   3. « Content-Security-Policy: sandbox » met le document dans une origine
+//      OPAQUE, sans script : il ne peut plus ni lire le cookie de session, ni
+//      parler à la page qui l'encadre. C'est ce que fait un hébergeur sérieux
+//      avec un sous-domaine séparé, en une en-tête plutôt qu'en un domaine.
+//
+// ⚠️ SAUF pour le PDF, et c'est mesuré, pas supposé : sous cette en-tête,
+// Chrome affiche l'habillage de sa visionneuse mais ne peint JAMAIS la page —
+// un cadre gris, sans message —, et en navigation directe il propose le
+// téléchargement au lieu d'ouvrir. Un PDF part donc en ligne sans elle. Ce qui
+// le protège alors : les deux verrous ci-dessus, plus le fait que le PDF n'est
+// pas rendu par la page mais par la visionneuse du navigateur, dans son propre
+// processus — le script éventuellement embarqué dans un PDF n'y atteint ni le
+// DOM de l'application ni son cookie.
+//
+// Un type hors liste retombe en « attachment » même si l'appelant demande
+// l'aperçu : la décision se prend ICI, pas dans la route.
+function fichier_prive_envoyer(string $chemin, string $mime, string $nomOrigine, bool $enLigne = false): never
+{
+    $enLigne = $enLigne && fichier_prive_apercu_possible($mime);
     header('Content-Type: ' . ($mime !== '' ? $mime : 'application/octet-stream'));
-    header('Content-Disposition: attachment; filename="' . fichier_nom_origine_propre($nomOrigine) . '"');
+    header(($enLigne ? 'Content-Disposition: inline; filename="' : 'Content-Disposition: attachment; filename="')
+        . fichier_nom_origine_propre($nomOrigine) . '"');
     header('Content-Length: ' . filesize($chemin));
     header('X-Content-Type-Options: nosniff');
     header('Cache-Control: private, no-store');
+    if ($enLigne && $mime !== 'application/pdf') {
+        header('Content-Security-Policy: sandbox');
+    }
     readfile($chemin);
     exit;
 }

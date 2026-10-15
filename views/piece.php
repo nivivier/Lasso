@@ -17,6 +17,14 @@ $ecrCandidates = !$ecriture
     && (string) $p['mode_paiement'] !== 'hors_compte'
     && $peutEcrire
     && $candidates;
+// Le justificatif s'affiche sur la page quand le navigateur sait le rendre
+// (fichier_prive_apercu_possible()) : lire un montant ou une date sur la pièce
+// est le geste le plus fréquent de cet écran, et il passait jusqu'ici par un
+// téléchargement, donc par un autre logiciel et un aller-retour.
+$fichier = trim((string) $p['fichier']);
+$apercu  = $fichier !== '' && fichier_prive_apercu_possible((string) $p['mime']);
+$urlApercu = '?p=piece_fichier&amp;apercu=1&amp;id=' . $id;
+$estImage  = str_starts_with((string) $p['mime'], 'image/');
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -200,6 +208,47 @@ $ecrCandidates = !$ecriture
             </tbody>
         </table>
         </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php if ($apercu): ?>
+<?php // Sur toute la largeur : un justificatif se lit, et un tiers de page ne
+      // se lit pas. La carte vient APRÈS les trois autres — ce qu'on doit
+      // décider (payer, rapprocher) reste en haut, le document est dessous,
+      // assez grand pour qu'on n'ait plus à l'ouvrir ailleurs. ?>
+<div class="card carte-pleine">
+    <div class="section-head mt-0">
+        <h2 class="mt-0">Le justificatif</h2>
+        <?php // « Agrandir » rouvre le même fichier dans la fenêtre d'aperçu
+              // partagée (docs/UI.md § 7) : format feuille, Échap, clic hors
+              // cadre. Une visionneuse de plus n'aurait rien apporté. ?>
+        <div class="head-actions">
+            <a class="btn ghost btn-sm" href="<?= $urlApercu ?>" data-preview target="_blank" rel="noopener"><?= icon('maximize') ?> <span class="lbl">Agrandir</span></a>
+        </div>
+    </div>
+    <?php if ($estImage): ?>
+        <a class="piece-apercu piece-apercu-image" href="<?= $urlApercu ?>" data-preview target="_blank" rel="noopener">
+            <img src="<?= $urlApercu ?>" alt="Justificatif : <?= e((string) $p['nom_origine']) ?>" loading="lazy">
+        </a>
+    <?php else: ?>
+        <?php // ⚠️ PAS d'attribut sandbox= sur ce cadre, et ce n'est pas un
+              // oubli : Chrome refuse d'afficher un PDF dans un cadre marqué
+              // sandbox — il le traite comme un téléchargement, qu'il bloque
+              // ensuite (ERR_BLOCKED_BY_CLIENT), et le cadre reste blanc.
+              // L'isolement vient donc de l'en-tête « CSP: sandbox » que la
+              // réponse porte elle-même (lib/fichiers.php) : origine opaque,
+              // aucun script, et le document est protégé de la même façon pour
+              // qui ouvrirait l'URL directement — ce que l'attribut, lui, ne
+              // couvrait pas. ?>
+        <?php // Le fragment pilote la visionneuse PDF du navigateur (paramètres
+              // d'ouverture normalisés) : largeur ajustée au cadre, volet des
+              // vignettes replié. Sans lui, Chrome ouvre à 62 % avec les
+              // vignettes dépliées — dans un cadre, il ne reste presque rien du
+              // document. Un navigateur qui ne les connaît pas les ignore. ?>
+        <iframe class="piece-apercu piece-apercu-cadre" src="<?= $urlApercu ?>#view=FitH&amp;navpanes=0&amp;toolbar=1"
+                title="Justificatif : <?= e((string) $p['nom_origine']) ?>"
+                referrerpolicy="no-referrer" loading="lazy"></iframe>
     <?php endif; ?>
 </div>
 <?php endif; ?>

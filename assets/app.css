@@ -6235,6 +6235,30 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 .piece-fichier { display: flex; align-items: center; gap: 8px; }
 .piece-fichier .ico { width: 16px; height: 16px; color: var(--muted); }
 
+/* L'aperçu du justificatif sur ?p=piece. Assez grand pour LIRE un montant et
+   une date sans ouvrir le fichier ailleurs : c'est tout l'objet de la carte.
+   La hauteur suit la fenêtre (vh) et non une valeur fixe — un portable 13
+   pouces et un écran de bureau n'ont pas la même idée d'« assez grand » — avec
+   un plafond, au-delà duquel une facture A4 serait plus haute que large et ne
+   tiendrait plus d'un regard. */
+.piece-apercu { display: block; width: 100%; height: min(74vh, 880px); border-radius: var(--radius-sm); }
+/* Le damier : un scan a souvent le fond blanc, et un PNG détouré n'en a aucun.
+   Sans cette surface, l'un se confondait avec la carte et l'autre laissait voir
+   au travers. Elle sert aussi de repère quand l'image ne remplit pas le cadre. */
+.piece-apercu-image {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--line); padding: 10px;
+}
+/* contain : l'image entière, jamais recadrée — sur un justificatif, ce qu'on
+   rogne est justement le total ou la date, en bas de page. */
+.piece-apercu-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.piece-apercu-cadre { border: 1px solid var(--line); background: var(--surface); }
+/* Sur un téléphone, 74 % de la hauteur ne laisse plus voir ce qui suit : on
+   descend à une demi-fenêtre, et « Agrandir » prend le relais pour la lecture. */
+@media (max-width: 760px) {
+    .piece-apercu { height: 52vh; }
+}
+
 /* Les deux portes du dépôt — un fichier, ou l'appareil photo — côte à côte sur
    un écran large, l'une sous l'autre sur un téléphone, où c'est la seconde
    qu'on vise. */
