@@ -3,74 +3,9 @@
 /** @var array $cols */ /** @var array $plan */ /** @var array $sommesParAnnee */
 /** @var array $totauxParAnnee */ /** @var array $chargesParAnnee */ /** @var array $ecritures */
 
-$byParent = plan_enfants($plan);
-$nbCols   = count($cols);
-
-$hasAmount = function (int $id) use (&$hasAmount, $byParent, $sommesParAnnee): bool {
-    $enfants = $byParent[$id] ?? [];
-    if ($enfants) {
-        foreach ($enfants as $child) {
-            if ($hasAmount((int) $child['id'])) return true;
-        }
-        return false;
-    }
-    foreach ($sommesParAnnee as $sums) {
-        if (!empty($sums[$id])) return true;
-    }
-    return false;
-};
-
-$pad = fn(int $p) => 'class="bilan-noeud-pad" style="--depth:' . $p . '"';
-
-$cellules = function (callable $val) use ($cols, $anneeRef, $nbCols): string {
-    $h = ''; $total = 0.0;
-    foreach ($cols as $a) {
-        $cls = (int) $a !== $anneeRef ? ' col-prec' : '';
-        $v = $val((int) $a);
-        $total += $v;
-        $h .= '<td class="num' . $cls . '">' . chf($v) . '</td>';
-    }
-    if ($nbCols > 1) $h .= '<td class="num total-col">' . chf($total) . '</td>';
-    return $h;
-};
-
-$ligneTotale = function (string $libelle, string $cle, string $cls) use ($cols, $totauxParAnnee, $anneeRef, $nbCols): string {
-    $h = '<tr class="' . $cls . '"><td>' . e($libelle) . '</td>';
-    $total = 0.0;
-    foreach ($cols as $a) {
-        $precCls = (int) $a !== $anneeRef ? ' col-prec' : '';
-        $v = (float) ($totauxParAnnee[(int) $a][$cle] ?? 0);
-        $total += $v;
-        $h .= '<td class="num' . $precCls . '">' . chf($v) . '</td>';
-    }
-    if ($nbCols > 1) $h .= '<td class="num total-col">' . chf($total) . '</td>';
-    return $h . '</tr>';
-};
-
-$rendre = function (array $row, int $prof) use (&$rendre, $byParent, $sommesParAnnee, $pad, $cellules, $hasAmount): string {
-    $id = (int) $row['id'];
-    if (!$hasAmount($id)) return '';
-    $enfants = $byParent[$id] ?? [];
-    if ($enfants) {
-        $h = '<tr class="cr-groupe"><td ' . $pad($prof) . '>' . e($row['libelle']) . '</td>'
-           . $cellules(fn(int $a) => plan_sous_total($id, $byParent, $sommesParAnnee[$a] ?? [])) . '</tr>';
-        foreach ($enfants as $child) $h .= $rendre($child, $prof + 1);
-        return $h;
-    }
-    return '<tr class="cr-compte"><td ' . $pad($prof) . '>' . e($row['libelle']) . '</td>'
-         . $cellules(fn(int $a) => (float) ($sommesParAnnee[$a][$id] ?? 0)) . '</tr>';
-};
-
-$blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $rendre, $hasAmount): string {
-    $nodesRacine = array_filter($byParent[0] ?? [], fn($r) => $r['sens'] === $sens);
-    $colspan = $nbCols + 1 + ($nbCols > 1 ? 1 : 0);
-    $h = '<tr class="cr-section"><th colspan="' . $colspan . '">' . e($titre) . '</th></tr>';
-    $hasAny = false;
-    foreach ($nodesRacine as $r) { if ($hasAmount((int) $r['id'])) { $hasAny = true; break; } }
-    if (!$hasAny) return $h . '<tr><td colspan="' . $colspan . '" class="muted small" style="padding-left:16px">—</td></tr>';
-    foreach ($nodesRacine as $r) $h .= $rendre($r, 0);
-    return $h;
-};
+// Le partiel recalcule $nbCols pour lui-même ; le <h2> plus bas en a besoin
+// AVANT, d'où cette ligne gardée ici.
+$nbCols = count($cols);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -98,30 +33,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $nbCols, $ren
 	<a href="?p=compta_analyse_axe_imprimer&axe=<?= (int) $axe['id'] ?>&annee=<?= (int) $annee ?>" class="btn ghost ml-auto" data-preview target="_blank" rel="noopener"><?= icon('eye') ?> Aperçu</a>
 </div>
 
-<div class="table-scroll">
-<table class="list compta-cr">
-    <?php if ($nbCols > 1): ?>
-    <thead>
-        <tr>
-            <th>Catégorie</th>
-            <?php foreach ($cols as $a): ?>
-                <th class="num<?= (int) $a !== $anneeRef ? ' col-prec' : '' ?>"><?= (int) $a ?></th>
-            <?php endforeach; ?>
-            <th class="num total-col">Total</th>
-        </tr>
-    </thead>
-    <?php endif; ?>
-    <tbody>
-        <?= $blocSens('produit', 'Recettes') ?>
-        <?= $ligneTotale('Total des recettes', 'produits', 'cr-total') ?>
-        <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 + ($nbCols > 1 ? 1 : 0) ?>"></td></tr>
-        <?= $blocSens('charge', 'Dépenses') ?>
-        <?= $ligneTotale('Total des dépenses', 'charges', 'cr-total') ?>
-        <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 + ($nbCols > 1 ? 1 : 0) ?>"></td></tr>
-        <?= $ligneTotale('Résultat', 'resultat', 'cr-resultat') ?>
-    </tbody>
-</table>
-</div>
+<?php require __DIR__ . '/_compta_analyse_axe_body.php'; ?>
 
 <?php if ($chargesParAnnee):
     $colsChar    = array_keys($chargesParAnnee);

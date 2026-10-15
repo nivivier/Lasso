@@ -4,64 +4,6 @@
 /** @var array $continuite */ /** @var array $plan */ /** @var array $lignesParCat */
 /** @var array $patrimoine */
 
-$byParent = plan_enfants($plan);
-$nbCols   = count($cols);
-
-// Rendu d'un sens (produit / charge) en arbre, une colonne de montant par année.
-$blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnnee, $lignesParCat, $cols, $nbCols, $annee): string {
-    $pad = fn(int $p) => 'class="bilan-noeud-pad" style="--depth:' . $p . '"';
-    $cellules = function (callable $val) use ($cols, $annee): string {
-        $h = '';
-        foreach ($cols as $a) {
-            $cls = (int) $a !== $annee ? ' col-prec' : '';
-            $h .= '<td class="num' . $cls . '">' . chf($val((int) $a)) . '</td>';
-        }
-        return $h;
-    };
-    $rendre = function (array $row, int $prof) use (&$rendre, $byParent, $sommesParAnnee, $lignesParCat, $pad, $cellules, $cols, $nbCols, $annee): string {
-        $id = (int) $row['id'];
-        $enfants = $byParent[$id] ?? [];
-        if ($enfants) {
-            // Rendre les enfants d'abord ; si tous masqués, masquer le groupe.
-            $childHtml = '';
-            foreach ($enfants as $child) { $childHtml .= $rendre($child, $prof + 1); }
-            if ($childHtml === '') return '';
-            $h = '<tr class="cr-groupe"><td ' . $pad($prof) . '>' . e($row['libelle']) . '</td>'
-               . $cellules(fn(int $a) => plan_sous_total($id, $byParent, $sommesParAnnee[$a] ?? [])) . '</tr>';
-            return $h . $childHtml;
-        }
-        // Feuille inactive sans montant dans l'année sélectionnée → masquée.
-        if (!(int) ($row['actif'] ?? 1) && empty($sommesParAnnee[$annee][$id])) return '';
-        // Feuille : ligne cliquable (le détail concerne l'année sélectionnée).
-        $lignes = $lignesParCat[$id] ?? [];
-        $h = '<tr class="cr-compte cr-clic" data-cat="' . $id . '" tabindex="0" role="button" aria-expanded="false">'
-           . '<td ' . $pad($prof) . '><span class="cr-toggle" aria-hidden="true">' . icon('chevron') . '</span>'
-           . e($row['libelle']) . ' <span class="cr-count">' . count($lignes) . '</span></td>'
-           . $cellules(fn(int $a) => (float) ($sommesParAnnee[$a][$id] ?? 0)) . '</tr>';
-        $det = '';
-        foreach ($lignes as $l) {
-            $neg = (float) $l['montant'] < 0;
-            $det .= '<div class="cr-det-row">'
-                 . '<span class="dt">' . e(date('d.m.Y', strtotime((string) $l['date_op']))) . '</span>'
-                 . '<span class="cpt">' . e($l['compte']) . '</span>'
-                 . '<span class="tx" title="' . e($l['texte']) . '">' . e($l['texte']) . '</span>'
-                 . '<span class="mt ' . ($neg ? 'montant-neg' : 'montant-pos') . '">' . chf((float) $l['montant']) . '</span>'
-                 . '</div>';
-        }
-        $libDet = $nbCols > 1 ? '<div class="muted small mb-0">Détail ' . (int) $annee . ' :</div>' : '';
-        $h .= '<tr class="cr-detail" data-cat="' . $id . '" hidden><td colspan="' . ($nbCols + 1) . '">' . $libDet . $det . '</td></tr>';
-        return $h;
-    };
-    $racines = array_filter($byParent[0] ?? [], fn($r) => $r['sens'] === $sens);
-    $h = '<tr class="cr-section"><th colspan="' . ($nbCols + 1) . '">' . e($titre) . '</th></tr>';
-    if (!$racines) {
-        $h .= '<tr><td colspan="' . ($nbCols + 1) . '" class="muted small">Aucune catégorie.</td></tr>';
-    }
-    foreach ($racines as $r) {
-        $h .= $rendre($r, 0);
-    }
-    return $h;
-};
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
@@ -113,54 +55,7 @@ $blocSens = function (string $sens, string $titre) use ($byParent, $sommesParAnn
         <?php endif; ?>
 
 
-        <h2>État du patrimoine</h2>
-
-        <div class="table-scroll">
-            <table class="list">
-                <thead>
-                    <tr><th>Poste</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>">au 31.12.<?= (int) $a ?></th><?php endforeach; ?></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($patrimoine as $p): ?>
-                    <tr>
-                        <td><?= e($p['libelle']) ?></td>
-                        <?php foreach ($cols as $a): $v = $p['valeurs'][$a] ?? null; ?>
-                            <td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= $v === null ? '<span class="muted">—</span>' : chf((float) $v) ?></td>
-                        <?php endforeach; ?>
-                    </tr>
-                    <?php endforeach; ?>
-                    <tr class="cr-total">
-                        <td>Total du patrimoine</td>
-                        <?php foreach ($cols as $a): ?><td class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= chf(compta_total_patrimoine((int) $a, $patrimoine)) ?></td><?php endforeach; ?>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <h2>Compte de résultat<?= $nbCols > 1 ? '' : ' ' . (int) $annee ?></h2>
-
-        <?php if ($resultat['non_lettrees']['nb'] > 0): ?>
-        <p class="err"><?= (int) $resultat['non_lettrees']['nb'] ?> écriture(s) de <?= (int) $annee ?> non lettrée(s)
-        (<?= chf($resultat['non_lettrees']['montant']) ?> CHF) ne sont pas prises en compte.
-        <a href="?p=compta_ecritures&annee=<?= (int) $annee ?>&categorie=a_lettrer">Les lettrer</a>.</p>
-        <?php endif; ?>
-
-        <div class="table-scroll">
-            <table class="list compta-cr">
-                <?php if ($nbCols > 1): ?>
-                <thead><tr><th>Catégorie</th><?php foreach ($cols as $a): ?><th class="num<?= (int)$a !== $annee ? ' col-prec' : '' ?>"><?= (int) $a ?></th><?php endforeach; ?></tr></thead>
-                <?php endif; ?>
-                <tbody>
-                    <?= $blocSens('produit', 'Recettes') ?>
-                    <?= compta_ligne_total('Total des recettes', 'produits', 'cr-total', $cols, $totauxParAnnee) ?>
-                    <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
-                    <?= $blocSens('charge', 'Dépenses') ?>
-                    <?= compta_ligne_total('Total des dépenses', 'charges', 'cr-total', $cols, $totauxParAnnee) ?>
-                    <tr class="cr-spacer"><td colspan="<?= $nbCols + 1 ?>"></td></tr>
-                    <?= compta_ligne_total('Résultat de l\'année', 'resultat', 'cr-resultat', $cols, $totauxParAnnee) ?>
-                </tbody>
-            </table>
-        </div>
+        <?php require __DIR__ . '/_compta_bilan_body.php'; ?>
     </div>
 
 </div>

@@ -862,6 +862,16 @@ require __DIR__ . '/_impression_debut.php'; ?>
 <?php require __DIR__ . '/_impression_fin.php'; ?>
 ```
 
+⚠️ **Le corps d'un document qui existe à l'écran ET sur le papier s'écrit une
+fois**, dans un `views/_*_body.php` que les deux vues requièrent, avec un
+`$impression` pour les seules différences qui en sont vraiment
+(`_fiche_body.php`, `_certificat_body.php`, `_compta_bilan_body.php`,
+`_compta_analyse_body.php`, `_compta_analyse_axe_body.php`). Les trois de la
+comptabilité ont vécu un temps en double : la feuille imprimée reprenait de 46
+à 72 % des lignes de l'écran, arbre du plan comptable et calcul des sous-totaux
+compris. Deux copies d'un calcul finissent par ne plus dire la même chose, et
+l'écart ne se voit qu'en comparant une feuille à l'écran dont elle sort.
+
 `_impression_debut.php` pose le thème clair forcé (une feuille est blanche,
 quel que soit l'écran), la feuille de style versionnée, la barre
 `.print-toolbar` avec son bouton, et ouvre `.sheet` ; `_impression_fin.php`

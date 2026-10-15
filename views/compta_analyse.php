@@ -55,62 +55,6 @@
 <?php else: ?>
 
     <div class="section-head"></div>
-    <div class="table-scroll">
-    <table class="list compta-cr cr-flat">
-        <thead>
-            <tr>
-                <th>Axe</th>
-                <th>Code</th>
-                <th class="num">Recettes</th>
-                <th class="num">Dépenses</th>
-                <th class="num">Résultat</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php
-        $totProd = 0.0;
-        $totChg  = 0.0;
-        foreach ($ventilation as $v):
-            $res      = $v['resultat'];
-            $totProd += $v['produits'];
-            $totChg  += $v['charges'];
-        ?>
-            <tr class="cr-groupe cr-clic row-link" data-href="?p=compta_analyse_axe&axe=<?= (int) $v['id'] ?>&annee=<?= (int) $annee ?>">
-                <td>
-                    <?= e($v['libelle']) ?>
-                    <?php if (!$v['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
-                </td>
-                <td class="muted small"><?= $v['code'] ? e($v['code']) : '' ?></td>
-                <td class="num <?= $v['produits'] > 0 ? 'montant-pos' : '' ?>">
-                    <?= $v['produits'] != 0 ? chf($v['produits']) : '<span class="muted">—</span>' ?>
-                </td>
-                <td class="num <?= $v['charges'] < 0 ? 'montant-neg' : '' ?>">
-                    <?= $v['charges'] != 0 ? chf($v['charges']) : '<span class="muted">—</span>' ?>
-                </td>
-                <td class="num strong <?= $res > 0 ? 'montant-pos' : ($res < 0 ? 'montant-neg' : '') ?>">
-                    <?= $res != 0 ? chf($res) : '<span class="muted">—</span>' ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-        <tfoot>
-            <tr class="cr-total">
-                <td>Total ventilé</td>
-                <td></td>
-                <td class="num"><?= chf($totProd) ?></td>
-                <td class="num"><?= chf($totChg) ?></td>
-                <td class="num"><?= chf($totProd + $totChg) ?></td>
-            </tr>
-            <?php $nvRes = $nonVentile['resultat']; ?>
-            <tr class="cr-note row-link" data-href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">
-                <td>Écritures non ventilées</td>
-                <td></td>
-                <td class="num <?= $nonVentile['produits'] > 0 ? 'montant-pos' : '' ?>"><?= $nonVentile['produits'] != 0 ? chf($nonVentile['produits']) : '<span class="muted">—</span>' ?></td>
-                <td class="num <?= $nonVentile['charges'] < 0 ? 'montant-neg' : '' ?>"><?= $nonVentile['charges'] != 0 ? chf($nonVentile['charges']) : '<span class="muted">—</span>' ?></td>
-                <td class="num <?= $nvRes > 0 ? 'montant-pos' : ($nvRes < 0 ? 'montant-neg' : '') ?>"><?= $nvRes != 0 ? chf($nvRes) : '<span class="muted">—</span>' ?></td>
-            </tr>
-        </tfoot>
-    </table>
-    </div>
+    <?php require __DIR__ . '/_compta_analyse_body.php'; ?>
 <?php endif; ?>
 </div></div>
