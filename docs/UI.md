@@ -43,6 +43,12 @@ le même balisage sert aussi d'en-tête de SECTION au milieu d'une page
 `.flash` qui s'intercalent entre le lien de retour et le titre sont en position
 fixe, donc hors du flux : elles ne coupent pas la bande.
 
+⚠️ La bande de la barre d'outils annule le retrait du haut du bloc par une
+marge négative : elle est écrite pour une barre qui OUVRE la page. Quand du
+contenu la précède (`?p=booking_campagne` : la carte-jauge, puis la recherche),
+ajouter `.toolbar-suite` à côté de `.toolbar`, sinon la marge négative avale
+l'espace et le blanc vient se coller au bloc du dessus.
+
 **Un onglet peut porter des SOUS-ONGLETS** quand il recouvre deux écrans de la
 même matière — le plan comptable, qui tient les produits et charges d'un côté
 et les comptes bancaires de l'autre. Ils se déclarent en 5ᵉ élément de l'entrée

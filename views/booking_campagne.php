@@ -153,8 +153,12 @@ $iconesReste = count($projetsPastilles) - count($iconesPile);
 
 <?php // Recherche instantanée sur les lignes déjà affichées : une campagne tient
       // dans une page, et filtrer côté serveur ferait perdre l'état des
-      // sélecteurs de réponse à chaque frappe. Même composant qu'ailleurs. ?>
-<div class="toolbar">
+      // sélecteurs de réponse à chaque frappe. Même composant qu'ailleurs.
+      //
+      // toolbar-suite : ici la barre ne commence pas le bloc (la carte-jauge est
+      // au-dessus), il faut donc lui rendre l'espace que sa marge négative
+      // habituelle avale. ?>
+<div class="toolbar toolbar-suite">
     <?= champ_recherche(['id' => 'campagne-search', 'placeholder' => 'Structure, ville, catégorie, tag…']) ?>
     <?php // Sur téléphone la mise en cartes masque le <thead> : ce panneau
           // reprend les entonnoirs qui y sont accrochés. ?>

@@ -1255,6 +1255,15 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     margin: calc(-1 * var(--content-haut)) calc(-1 * var(--content-pad)) 0;
     padding: var(--content-haut) var(--content-pad);
 }
+/* .toolbar-suite : la barre n'OUVRE pas le bloc, elle suit du contenu
+   (?p=booking_campagne : la carte-jauge, puis la recherche). La marge négative
+   ci-dessus annule le retrait du haut du bloc — ce qu'il faut quand la barre
+   est la première chose de la page, mais qui AVALE l'espace sous la carte qui
+   la précède et collait la bande blanche au texte. Classe explicite posée par
+   la vue, et non un :first-child : les bandeaux .flash sont des frères du
+   DOM même s'ils flottent, donc la règle aurait basculé au hasard d'un
+   « Enregistré. » sur les pages de liste. */
+.module-content-inner > .toolbar-suite { margin-top: 0; }
 /* LE HAUT D'UNE FICHE — lien de retour, titre, boutons d'action — sur le même
    blanc que la barre d'outils d'une liste, d'un bord à l'autre, fermé par un
    filet. C'est la même bande, pour la même raison : ce qui dit OÙ l'on est et
