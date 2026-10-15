@@ -32,7 +32,7 @@ $ecrActuelleLabel = $ecrActuelle ? $libelleEcr($ecrActuelle[0]) : '';
 // pour que le lien de retour contextuel survive à un enregistrement.
 $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
 ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1>Fiche · <?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></h1>
     <div class="head-actions">
 

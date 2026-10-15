@@ -25,7 +25,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
 <?php elseif ($ok === 'versement'): ?><p class="ok flash">Versement enregistré.</p>
 <?php elseif ($ok !== null): ?><p class="ok flash">Dossier enregistré.</p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <div class="page-head-title">
         <h1><?= e((string) $d['structure_nom']) ?></h1>
         <?= badge(FONDS_STATUTS[$statut] ?? $statut, FONDS_STATUTS_CLASSES[$statut] ?? 'muted') ?>

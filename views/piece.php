@@ -30,7 +30,7 @@ $ecrCandidates = !$ecriture
 <?php elseif ($ok !== null): ?><p class="ok flash">Pièce enregistrée.</p><?php endif; ?>
 <?php if ($err !== ''): ?><p class="err flash"><?= e($err) ?></p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <div class="page-head-title">
         <h1><?= e((string) $p['libelle']) ?></h1>
         <?= piece_badge_html($p, $etat, $retard) ?>

@@ -20,7 +20,7 @@ foreach (plan_liste_ordonnee($map) as $r) {
 <?php // Contextuel : un projet est une catégorie de la recherche unifiée, donc
       // on doit pouvoir y revenir. Sans ?depuis, retombe sur la liste comme avant. ?>
 <?= lien_retour_contextuel('?p=projets', evenements_terme_projet()) ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1><?= $isEdit ? 'Modifier le ' . e($termeSingulier) : 'Nouveau ' . e($termeSingulier) ?></h1>
     <?php // Cette page EST un formulaire : « Enregistrer » et « Annuler » vivent
           // dans l'en-tête, là où les cartes mettent leur crayon. Sans droit

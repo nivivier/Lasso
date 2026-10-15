@@ -6,7 +6,7 @@
 <?= lien_retour_contextuel('?p=employes', 'Employés') ?>
 <?php if (($_GET['err'] ?? '') === 'fiches'): ?><p class="err">Impossible de supprimer : cet employé a des fiches de salaire.</p><?php endif; ?>
 <?php if (($_GET['err_avatar'] ?? '') !== ''): ?><p class="err"><?= e((string) $_GET['err_avatar']) ?></p><?php endif; ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1 class="titre-avatar">
         <?php // La pastille au format du titre : c'est ici qu'on la règle, autant
               // la voir en grand. Le bouton n'apparaît qu'avec le droit d'écriture. ?>

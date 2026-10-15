@@ -43,7 +43,7 @@ $formulaireUrl = $isEdit && module_actif('booking') && peut_lire('booking')
 
 <div class="module-content"><div class="module-content-inner">
 <?= lien_retour_contextuel('?p=structures', 'Structures') ?>
-<div class="page-head entete-editable">
+<div class="page-head page-head-bande entete-editable">
     <?php // Le nom se modifie SUR PLACE : le titre cède la place à un champ, et
           // les commandes de l'édition apparaissent dans les actions de la page,
           // tout à droite, exactement là où était le crayon (docs/UI.md § 2).

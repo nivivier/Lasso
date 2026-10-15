@@ -85,6 +85,12 @@ puis sont promues sur le canal **stable** en figeant une version.
   autres documents de l'application.
 
 ### Modifié
+- **Le haut d'une fiche est une bande.** Lien de retour, titre et boutons
+  d'action sur fond blanc d'un bord à l'autre, fermés par un filet — la même
+  bande que la barre d'outils d'une liste. Sur les douze écrans de détail :
+  personne, structure, employé, pièce, facture, fiche de salaire, certificat,
+  événement, projet, campagne de booking, campagne et dossier de recherche de
+  fonds.
 - **Les droits d'un compte ne sont plus une matrice.** Onze colonnes de modules
   se chevauchaient dès qu'on n'était pas en plein écran. La liste des comptes
   n'en garde qu'un résumé — « Administration », ou le nombre de modules — et

@@ -1255,6 +1255,36 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
     margin: calc(-1 * var(--content-haut)) calc(-1 * var(--content-pad)) 0;
     padding: var(--content-haut) var(--content-pad);
 }
+/* LE HAUT D'UNE FICHE — lien de retour, titre, boutons d'action — sur le même
+   blanc que la barre d'outils d'une liste, d'un bord à l'autre, fermé par un
+   filet. C'est la même bande, pour la même raison : ce qui dit OÙ l'on est et
+   CE QU'ON PEUT FAIRE se tient ensemble, au-dessus du contenu, et se distingue
+   de lui.
+   ⚠️ La classe se pose dans la vue (.page-head-bande) et non sur tout
+   .page-head : le même balisage sert aussi d'en-tête de SECTION au milieu
+   d'une page (« Fiches de salaire », ?p=employe), qui n'a rien d'une bande.
+   Deux éléments frères forment une seule bande : le lien de retour prend le
+   retrait du haut, le bloc du titre celui du bas et le filet. Les pastilles
+   .flash qui s'intercalent entre eux sont en position fixe, donc hors du flux :
+   elles ne coupent pas la bande. */
+.module-content-inner > .back-link:has(~ .page-head-bande) {
+    display: flex;
+    background: var(--card);
+    margin: calc(-1 * var(--content-haut)) calc(-1 * var(--content-pad)) 0;
+    padding: var(--content-haut) var(--content-pad) 8px;
+}
+.module-content-inner > .page-head-bande {
+    background: var(--card);
+    margin: 0 calc(-1 * var(--content-pad)) 24px;
+    padding: 0 var(--content-pad) 18px;
+    border-bottom: 1px solid var(--line);
+}
+/* Quand le lien de retour est DANS l'en-tête (?p=evenement), la bande n'a pas
+   de frère au-dessus d'elle : elle prend elle-même le retrait du haut. */
+.module-content-inner > .page-head-bande:first-child {
+    margin-top: calc(-1 * var(--content-haut));
+    padding-top: var(--content-haut);
+}
 .module-content-inner > .pagination {
     background: var(--card);
     margin-left: calc(-1 * var(--content-pad));

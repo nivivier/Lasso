@@ -65,7 +65,7 @@ $sfReinit = bouton_reinit_filtres(
 <?php require __DIR__ . '/_bulk_liaison_flash.php'; ?>
 <?php if ($structBloquees): ?><p class="err flash"><?= (int) $structBloquees ?> structure(s) non supprimée(s) : des factures y sont rattachées.</p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <?php // Le badge est À CÔTÉ du <h1>, pas dedans : le titre de page peint son
           // texte en dégradé (background-clip: text), et un enfant niché là-dedans
           // dépend du bon vouloir du moteur de rendu pour son propre fond — d'où

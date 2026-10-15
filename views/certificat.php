@@ -1,6 +1,6 @@
 <?php /** @var array $emp */ /** @var int $annee */ /** @var array $annees */ /** @var array $fiches */ /** @var array $tot */ ?>
 <?= lien_retour('?p=employe&id=' . (int) $emp['id'], $emp['prenom'] . ' ' . $emp['nom']) ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <div class="page-head-title">
         <h1>Certificat de salaire</h1>
         <?php if ($annees): ?>

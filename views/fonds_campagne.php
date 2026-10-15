@@ -21,7 +21,7 @@ $preavisBilan = fonds_preavis_bilan_jours();
 <?php if ($ok === 'demande'): ?><p class="ok flash">Dossier enregistré.</p>
 <?php elseif ($ok === 'retire'): ?><p class="ok flash">Bailleur retiré de la campagne.</p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <div class="page-head-title">
         <h1><?= e((string) $campagne['nom']) ?></h1>
     </div>

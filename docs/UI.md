@@ -30,6 +30,19 @@ d'un document. Rien d'important ne se met en bas.
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
 bouton d'organisation des cartes à sa droite.
 
+**Sur une FICHE, ce haut de page est une bande** : `.page-head-bande` sur le
+`.page-head`, et le lien de retour juste au-dessus la complète. Fond blanc d'un
+bord à l'autre, fermé par un filet — la même bande que la barre d'outils d'une
+liste (`.module-content-inner > .toolbar`), pour la même raison : ce qui dit
+**où l'on est** et **ce qu'on peut faire** se tient ensemble, au-dessus du
+contenu, et se distingue de lui.
+
+⚠️ La classe se pose dans la vue, elle ne s'applique pas à tout `.page-head` :
+le même balisage sert aussi d'en-tête de SECTION au milieu d'une page
+(« Fiches de salaire », `?p=employe`), qui n'a rien d'une bande. Les pastilles
+`.flash` qui s'intercalent entre le lien de retour et le titre sont en position
+fixe, donc hors du flux : elles ne coupent pas la bande.
+
 **Un onglet peut porter des SOUS-ONGLETS** quand il recouvre deux écrans de la
 même matière — le plan comptable, qui tient les produits et charges d'un côté
 et les comptes bancaires de l'autre. Ils se déclarent en 5ᵉ élément de l'entrée

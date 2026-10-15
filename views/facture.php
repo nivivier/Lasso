@@ -41,7 +41,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     case 'pdf':      echo '<p class="err flash">La génération du PDF a échoué (vérifiez l\'IBAN et l\'adresse de la structure).</p>'; break;
 } ?>
 <?= lien_retour_contextuel('?p=factures', 'Facturation') ?>
-<div class="page-head">
+<div class="page-head page-head-bande">
     <h1>Facture <?= $numeroAffiche ?></h1>
     <div class="head-actions">
         <?php if ($brouillon): ?>

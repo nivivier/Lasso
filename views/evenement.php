@@ -72,7 +72,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-<div class="page-head entete-editable">
+<div class="page-head page-head-bande entete-editable">
     <?= lien_retour_contextuel('?p=evenements', 'Événements') ?>
     <?php if ($isEdit): ?>
     <div class="head-actions">

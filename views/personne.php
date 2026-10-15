@@ -12,7 +12,7 @@ $champ = fn (string $c): string => e((string) ($p[$c] ?? ''));
 <?= lien_retour_contextuel('?p=personnes', 'Personnes') ?>
 <?php if ($ok): ?><p class="ok flash">Fiche enregistrée.</p><?php endif; ?>
 
-<div class="page-head">
+<div class="page-head page-head-bande">
     <div class="page-head-title">
         <h1><?= e(personne_nom($p)) ?></h1>
         <?php if ((int) $p['desinscrit'] === 1): ?><?= badge('Désinscrite', 'muted') ?><?php endif; ?>
