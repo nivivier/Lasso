@@ -107,15 +107,19 @@ document.addEventListener('click', e => {
     const croix = e.target.closest('.compte-cancel-btn');
     if (croix) {
         const edition = croix.closest('tr');
-        // Le <form> vit dans la première cellule de la ligne ; ses champs des
-        // autres colonnes s'y rattachent par form=, qui donne son identifiant.
-        const form = document.getElementById(edition.querySelector('[form]').getAttribute('form'));
+        // La ligne porte DEUX formulaires — celui du compte et celui de la
+        // suppression, qui ne peut pas s'imbriquer dedans. D'où la classe :
+        // désigner « le premier » marcherait tant que l'ordre ne bouge pas.
+        const form = edition.querySelector('.compte-form');
         form.reset();
-        // form.reset() rend leur valeur aux champs cachés, pas la classe « on »
-        // aux boutons : on la repose depuis la valeur rétablie.
+        // ⚠️ form.reset() ne rend RIEN aux champs cachés : pour un
+        // input[type=hidden], la propriété `value` et l'attribut `value` sont
+        // le même emplacement, donc poser un niveau a déjà effacé la valeur
+        // d'origine. Annuler laissait les onze droits sur le dernier clic, et
+        // il suffisait d'enregistrer plus tard pour que ça parte en base. Le
+        // niveau du serveur est donc gardé à part, dans data-initial.
         edition.querySelectorAll('.perm-toggle').forEach(group => {
-            const val = group.querySelector('input[type=hidden]').value;
-            group.querySelectorAll('.perm-btn').forEach(b => b.classList.toggle('on', b.dataset.val === val));
+            poserNiveau(group, group.dataset.initial || '');
         });
         edition.hidden = true;
         edition.previousElementSibling.hidden = false;

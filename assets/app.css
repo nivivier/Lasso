@@ -623,8 +623,10 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .perm-btn:hover { background: var(--surface); }
 .perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); font-weight: 700; }
 /* Le raccourci « tout mettre sur », dans l'en-tête de la section : il pose les
-   onze lignes d'un coup. */
-.perm-tous { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+   onze lignes d'un coup. margin-left:auto le pousse à droite, au-dessus de la
+   colonne de boutons qu'il commande — .section-head est une rangée souple sans
+   justify-content, et ce décalage-ci ne regarde qu'elle. */
+.perm-tous { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
 /* Le panneau d'édition d'un compte occupe toute la rangée : ses champs
    d'identité se rangent en grille, le reste coule normalement. */
 .compte-edit-cell { background: var(--surface); vertical-align: top; padding: 18px var(--card-pad) 22px; }
@@ -632,8 +634,12 @@ body.has-sidebar { display: flex; min-height: 100vh; }
     display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
     gap: 0 18px; align-items: end;
 }
+/* Le rattachement à une personne est un <div> et non un <label> — son champ
+   cherchable porte une liste déroulante, qu'un <label> englobant refermerait au
+   premier clic. Il doit donc redire ici ce que le <label> obtient plus bas,
+   sans quoi la troisième colonne portait un intitulé d'une autre taille et son
+   champ ne s'alignait pas sur les deux autres. */
 .compte-edit-cell .compte-edit-personne { min-width: 0; }
-.compte-edit-actions { display: flex; align-items: center; gap: 8px; }
 
 /* === Page Paramètres : barre d'onglets ===
    Les onglets principaux réutilisent .module-tabs/.module-tab (voir plus bas)
@@ -2635,7 +2641,11 @@ a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
 .compte-nom { font-weight: 600; }
 /* Les champs d'identité du panneau d'édition : intitulé en petites capitales
    au-dessus de son champ, comme dans un formulaire ordinaire. */
-.compte-edit-identite label { margin-bottom: 12px; display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
+.compte-edit-identite label,
+.compte-edit-identite .compte-edit-personne { margin-bottom: 12px; display: flex; flex-direction: column; gap: 3px; }
+.compte-edit-identite label,
+.compte-edit-identite .lbl-champ { font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
+.compte-edit-identite .lbl-champ { margin-bottom: 0; }
 .compte-edit-identite input { width: 100%; min-width: 0; }
 /* Ligne de création d'un compte, dépliée par le bouton de la carte. Elle vit
    dans le tableau, hors d'un .form : ses champs n'héritent donc d'aucune mise

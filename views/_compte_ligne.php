@@ -83,10 +83,25 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                   // imbriquer — deux <form> ne s'emboîtent pas. ?>
             <tr class="compte-edit-row" hidden>
                 <td colspan="5" class="compte-edit-cell">
-                    <form method="post" action="?p=utilisateur_enregistrer" id="<?= e($fid) ?>" autocomplete="off">
+                    <form method="post" action="?p=utilisateur_enregistrer" id="<?= e($fid) ?>" class="compte-form" autocomplete="off">
                         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
                     </form>
+
+                    <?php // Enregistrer et annuler en haut à droite, comme tout
+                          // cadre qui s'ouvre à la place d'une ligne de liste
+                          // (docs/UI.md § 2c) : les commandes restent là où
+                          // était la ligne, et la croix à l'emplacement même du
+                          // crayon qui vient de l'ouvrir. Le panneau fait deux
+                          // écrans de haut une fois les onze modules dépliés —
+                          // au pied, « Enregistrer » se cherchait. ?>
+                    <div class="cadre-edit-head">
+                        <span class="cadre-edit-titre"><?= e($nomAffiche) ?></span>
+                        <div class="cadre-edit-actions">
+                            <button type="submit" form="<?= $fid ?>" class="btn btn-sm icon-only" title="Enregistrer" aria-label="Enregistrer"><?= icon('save') ?></button>
+                            <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+                        </div>
+                    </div>
 
                     <div class="compte-edit-identite">
                         <?php // Rattaché à une personne, le compte n'a plus d'identité
@@ -121,7 +136,6 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                             </div>
                         </div>
                     </div>
-                    <p class="muted small">Changer l'adresse invalide les liens de réinitialisation en attente.</p>
 
                     <div class="section-head mt-22">
                         <h3 class="sub mt-0">Droits</h3>
@@ -147,7 +161,17 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                                 <div class="muted small"><?= e($descModule($m)) ?></div>
                             </td>
                             <td class="actions">
-                                <div class="perm-toggle" role="group" aria-label="<?= e($lib . ' — ' . $c['email']) ?>">
+                                <?php // data-initial : le niveau que le SERVEUR a
+                                      // envoyé, pour qu'« Annuler » puisse le
+                                      // rendre. Un champ caché ne sait pas le
+                                      // faire — son attribut value et sa
+                                      // propriété sont la même chose, donc
+                                      // form.reset() n'a rien à restaurer (ce
+                                      // n'est vrai que de type="hidden" ; les
+                                      // champs texte à côté se remettent bien
+                                      // tout seuls). ?>
+                                <div class="perm-toggle" role="group" data-initial="<?= e($val) ?>"
+                                     aria-label="<?= e($lib . ' — ' . $c['email']) ?>">
                                     <?php foreach (['', 'lecture', 'ecriture'] as $niv): ?>
                                     <button type="button" class="perm-btn <?= $val === $niv ? 'on' : '' ?>" data-val="<?= e($niv) ?>"
                                             title="<?= e($niveauTexte[$niv] . ' (' . $lib . ')') ?>"><?= icon($niveauIcone[$niv]) ?>
@@ -161,20 +185,19 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                         </tbody>
                     </table>
 
-                    <?php // Enregistrer, supprimer, annuler — l'ordre du geste
-                          // (docs/UI.md § 2). Supprimer son propre compte n'est pas
-                          // proposé : route_utilisateur_supprimer() le refuserait. ?>
-                    <div class="compte-edit-actions mt-16">
-                        <button type="submit" form="<?= $fid ?>" class="btn btn-sm"><?= icon('save') ?> Enregistrer</button>
-                        <?php if (!$estMoi): ?>
-                        <form method="post" action="?p=utilisateur_supprimer" class="d-inline"
+                    <?php // Supprimer vit au PIED du cadre, à distance des deux
+                          // gestes courants (docs/UI.md § 2c). Supprimer son
+                          // propre compte n'est pas proposé :
+                          // route_utilisateur_supprimer() le refuserait. ?>
+                    <?php if (!$estMoi): ?>
+                    <div class="cadre-edit-pied">
+                        <form method="post" action="?p=utilisateur_supprimer"
                               data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                            <button type="submit" class="btn danger btn-sm icon-only" title="Supprimer le compte" aria-label="Supprimer le compte"><?= icon('trash') ?></button>
+                            <button type="submit" class="btn danger btn-sm"><?= icon('trash') ?> Supprimer le compte</button>
                         </form>
-                        <?php endif; ?>
-                        <button type="button" class="btn ghost btn-sm icon-only compte-cancel-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
                     </div>
+                    <?php endif; ?>
                 </td>
             </tr>

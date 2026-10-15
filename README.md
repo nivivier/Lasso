@@ -638,10 +638,17 @@ deux exécutions donnent exactement la même base.
 Pour y brancher l'application, dans `lib/config.local.php` :
 
 ```php
-define('APP_DB_PATH', __DIR__ . '/../data/demo.sqlite');
+if (!defined('APP_DB_PATH')) define('APP_DB_PATH', __DIR__ . '/../data/demo.sqlite');
 ```
 
-puis commentez cette ligne pour revenir à la vraie base. Les comptes sont
+puis commentez cette ligne pour revenir à la vraie base.
+
+> ⚠️ **La garde `if (!defined(...))` n'est pas décorative.** Chaque fichier de
+> tests pose d'abord sa propre `APP_DB_PATH` (une base temporaire) ; un
+> `define()` nu dans `lib/config.local.php` la redéfinit par-dessus, PHP émet un
+> avertissement au beau milieu de la sortie, et deux tests tombent sans que rien
+> ne soit cassé dans l'application. Même raison pour `APP_ENV` — voir le
+> commentaire en tête de `tests/migrations_test.php`. Les comptes sont
 `admin@`, `tresorier@` et `booking@grand-vent.test`, mot de passe `demo1234`
 (trois jeux de droits différents, pour voir ce que chacun voit).
 

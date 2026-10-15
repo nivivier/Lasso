@@ -19,7 +19,10 @@
 // e-mails : hors racine web, aucune erreur de configuration Apache ne peut les
 // exposer. Un .htaccess de protection est posé automatiquement, mais Nginx
 // l'ignore et il ne remplace pas un emplacement correct.
-// define('APP_DB_PATH', '/home/clients/xxxxxxxx/data/database.sqlite');
+// La garde « if (!defined(...)) » : les fichiers de tests posent d'abord leur
+// propre base temporaire, et un define() nu la redéfinirait par-dessus — PHP
+// émet alors un avertissement en pleine sortie et des tests tombent pour rien.
+// if (!defined('APP_DB_PATH')) define('APP_DB_PATH', '/home/clients/xxxxxxxx/data/database.sqlite');
 
 // --- HTTPS ---------------------------------------------------------------
 // define('FORCE_HTTPS', true);
