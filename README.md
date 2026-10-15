@@ -618,6 +618,45 @@ php tests/run.php
 > Le serveur intégré de PHP ne lit pas les `.htaccess` : en local, les dossiers
 > protégés restent accessibles. Sans incidence en production sous Apache.
 
+### Une base de démonstration (sans aucune donnée réelle)
+
+Pour montrer, essayer ou déboguer l'application sans ouvrir les vraies données —
+ni salaire, ni n° AVS, ni adresse, ni contact :
+
+```bash
+php scripts/base_demo.php
+```
+
+Le script fabrique `data/demo.sqlite` : une association inventée de toutes
+pièces (« Association Grand-Vent »), avec ses personnes, ses structures, ses
+employés et leurs fiches, un an et demi d'écritures, des pièces dans leurs trois
+états, des factures, une saison d'événements, deux campagnes de démarchage et
+des demandes de subvention. Toutes les adresses e-mail sont en `.test`
+(RFC 2606), qui ne peut recevoir aucun message. Le tirage est déterministe :
+deux exécutions donnent exactement la même base.
+
+Pour y brancher l'application, dans `lib/config.local.php` :
+
+```php
+define('APP_DB_PATH', __DIR__ . '/../data/demo.sqlite');
+```
+
+puis commentez cette ligne pour revenir à la vraie base. Les comptes sont
+`admin@`, `tresorier@` et `booking@grand-vent.test`, mot de passe `demo1234`
+(trois jeux de droits différents, pour voir ce que chacun voit).
+
+| option | effet |
+| --- | --- |
+| `php scripts/base_demo.php /chemin/x.sqlite` | écrit ailleurs que dans `data/` |
+| `--ecraser` | refait la base par-dessus une existante |
+| `--sans-scan` | ne fabrique aucun faux justificatif dans `data/fichiers` |
+
+Le script **refuse** d'écrire sur un fichier nommé `database.sqlite`, et refuse
+d'écraser un fichier existant sans `--ecraser` : aucune faute de frappe ne peut
+détruire les vraies données. `tests/base_demo_test.php` le vérifie, en même
+temps qu'il vérifie que la base produite tient debout — c'est ce qui empêche le
+générateur de pourrir en silence au prochain changement de schéma.
+
 ### La documentation du dépôt
 
 | fichier | à lire quand |

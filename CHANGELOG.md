@@ -10,6 +10,20 @@ puis sont promues sur le canal **stable** en figeant une version.
 ## [Non publié]
 
 ### Ajouté
+- **Une base de démonstration, sans aucune donnée réelle**
+  (`php scripts/base_demo.php` → `data/demo.sqlite`). Montrer l'application,
+  essayer un écran ou chercher un bug demandait jusqu'ici d'ouvrir les vraies
+  données — salaires, numéros AVS, adresses, contacts. La base fabriquée
+  invente tout : une association, trente personnes, vingt-six structures, six
+  employés et leurs fiches, un an et demi d'écritures, des pièces dans leurs
+  trois états, des factures, une saison d'événements, deux campagnes de
+  démarchage, des demandes de subvention. Toutes les adresses e-mail sont en
+  `.test`, qui ne peut rien recevoir. Le script refuse d'écrire sur
+  `database.sqlite` et d'écraser un fichier sans qu'on le lui demande ; le
+  tirage est déterministe, donc deux exécutions donnent la même base. Remplace
+  l'ancien `lib/seed_demo.php`, qui ne couvrait que trois employés et leurs
+  fiches, n'était appelé nulle part et ne pouvait écrire que dans la base en
+  cours. Voir `README.md` §8.
 - **Un compte de connexion se rattache à une personne de l'annuaire**
   (Paramètres → Utilisateurs). La colonne « Rattachements » de l'annuaire peut
   enfin dire « compte », et son nouveau **filtre** — contact de structure,

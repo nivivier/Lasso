@@ -42,9 +42,16 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
 
 ## Lancer / tester
 ```bash
-php -S 127.0.0.1:8000   # serveur local (env détecté = dev, via PHP_SAPI cli-server)
-php tests/run.php       # analyse syntaxique de tout le code + toute la suite de tests
+php -S 127.0.0.1:8000     # serveur local (env détecté = dev, via PHP_SAPI cli-server)
+php tests/run.php         # analyse syntaxique de tout le code + toute la suite de tests
+php scripts/base_demo.php # base de DÉMONSTRATION (data/demo.sqlite), que des données inventées
 ```
+**Travailler sur la base de démonstration plutôt que sur la vraie dès que la
+tâche n'exige pas les vraies données** : elle couvre tous les modules, le
+tirage est déterministe (deux exécutions = la même base), et aucune PII n'est
+en jeu. On y branche l'application par `APP_DB_PATH` dans `lib/config.local.php`
+(README §8). Le script refuse d'écrire sur `database.sqlite` et d'écraser un
+fichier sans `--ecraser`.
 Avant de conclure une tâche qui touche au code : **`php tests/run.php`**, qui fait
 à la fois le `php -l` sur l'ensemble du projet et TOUS les fichiers de tests. Il sort
 en code ≠ 0 au moindre échec (c'est la même commande que la CI, voir
