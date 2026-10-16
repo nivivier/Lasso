@@ -1757,22 +1757,9 @@ select:disabled { cursor: not-allowed; }
     padding: 4px 8px !important ; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
     cursor: pointer; transition: border-color .15s, box-shadow .15s;}
 .row-cat-input::placeholder { color: var(--muted); }
-/* Le repos d'une écriture jamais lettrée. Il a EXACTEMENT l'allure du champ
-   qu'il ouvre — mêmes bordure, fond, rembourrage et couleur de texte que le
-   placeholder — parce que c'est le même geste : on clique dedans et on tape.
-   Ce n'est pas le champ lui-même, qui est unique pour toute la page et vient
-   s'y poser au clic (views/_compta_ecritures_panneaux.php) : 235 champs rendus
-   pour un seul utilisé à la fois, c'était un cinquième du poids de l'écran. */
-.row-cat-vide {
-    font: inherit; font-size: var(--fs-basic); color: var(--muted); width: 100%; min-width: 140px;
-    padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
-    background: var(--card); cursor: pointer; text-align: left; box-shadow: none;
-    transition: border-color .15s, box-shadow .15s;
-}
-.row-cat-vide:hover { border-color: var(--primary); }
-.row-cat-vide:focus-visible { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
-/* Le formulaire partagé ne se voit pas : il n'est qu'un porteur de champs
-   cachés, et son seul enfant visible va vivre dans la cellule ouverte. */
+/* Le formulaire de lettrage partagé ne se voit pas : il n'est qu'un porteur de
+   champs cachés, et son seul enfant visible va vivre dans la cellule ouverte
+   (views/_compta_ecritures_panneaux.php). */
 .ecr-cat-form { margin: 0; }
 .row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; }
 /* Préfixe (catégorie parente) affiché au-dessus de l'input — absent si pas de parent */
@@ -3199,13 +3186,19 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .list .actions { text-align: right; }
 .list tr.inactif td { opacity: .5; }
 .badge { font-size: var(--fs-small); background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-weight: 600; white-space: nowrap; border: none; box-shadow: none; }
-/* Le « + » n'est pas une étiquette, c'est une place vide qui en attend une :
-   pas de fond, un contour pointillé. Il cesse ainsi de se lire comme une
-   étiquette de plus au bout de la série — sur une colonne où il apparaît sur
-   les 2959 lignes, il pesait autant que de vraies valeurs. Le pointillé
-   emprunte la même convention que les statuts « inactif » et « ne pas
-   contacter » de la liste, où il dit déjà « pas tout à fait là ». */
-.badge:is(.tag-ajouter-btn, .campagne-ajouter-btn) {
+/* Le « + » n'est pas une valeur, c'est une place vide qui en attend une : pas
+   de fond, un contour pointillé. Il cesse ainsi de se lire comme une étiquette
+   de plus au bout de la série — sur une colonne où il apparaît sur les 2959
+   lignes, il pesait autant que de vraies valeurs. Le pointillé emprunte la même
+   convention que les statuts « inactif » et « ne pas contacter » de la liste,
+   où il dit déjà « pas tout à fait là ».
+   ⚠️ Les trois usages partagent ce dessin parce qu'ils sont LE MÊME GESTE —
+   ajouter une étiquette, rattacher une campagne, lettrer une écriture : la
+   cellule est vide, on clique, un sélecteur s'ouvre. La colonne Catégorie de
+   ?p=compta_ecritures y est venue en dernier ; elle montrait jusque-là un champ
+   de la largeur de la colonne, qui attirait l'œil autant que les catégories
+   déjà posées à côté. */
+.badge:is(.tag-ajouter-btn, .campagne-ajouter-btn, .cat-ajouter-btn) {
     cursor: pointer; margin-left: 6px;
     background: none; color: var(--muted);
     /* Gras : sans fond, un « + » maigre au bout d'une file d'étiquettes pleines
@@ -3217,7 +3210,7 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
        garde exactement la hauteur des étiquettes à côté de lui. */
     padding: 1px 8px;
 }
-.badge:is(.tag-ajouter-btn, .campagne-ajouter-btn):hover {
+.badge:is(.tag-ajouter-btn, .campagne-ajouter-btn, .cat-ajouter-btn):hover {
     background: none; color: var(--highlight-d); border-color: var(--highlight);
 }
 .badge.ok-badge { background: var(--teal-tint); color: var(--teal-d); margin-left: 0; }

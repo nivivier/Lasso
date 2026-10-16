@@ -437,8 +437,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // catégorie courante voyagent en data- : c'est tout ce dont
                   // l'éditeur partagé a besoin pour se brancher.
                   //
-                  // Une ligne jamais lettrée affiche un bouton qui a l'allure du champ
-                  // qu'il ouvre — on la lettre toujours d'un seul clic, sans crayon. ?>
+                  // Une ligne jamais lettrée n'affiche qu'un « + » : le même geste,
+                  // et la même pastille à contour pointillé, que l'ajout d'une
+                  // étiquette sur ?p=structures (.tag-ajouter-btn). Un champ de la
+                  // largeur de la colonne, répété sur toutes les lignes non
+                  // lettrées, pesait visuellement autant que les vraies valeurs à
+                  // côté — alors qu'il n'est qu'une place vide qui en attend une. ?>
             <td class="cat-cell" data-ecr-id="<?= (int) $ecr['id'] ?>" data-cat-val="<?= e($rowCatVal) ?>" data-cat-prefix="<?= e($rowCatPrefix) ?>">
                 <?php if (!peut_ecrire('compta')): ?>
                     <?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?>
@@ -449,7 +453,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <button type="button" class="row-edit-btn" title="Modifier" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
                 </div>
                 <?php else: ?>
-                <button type="button" class="row-cat-vide">— à lettrer —</button>
+                <button type="button" class="badge cat-ajouter-btn" title="Lettrer cette écriture" aria-label="Lettrer cette écriture">+</button>
                 <?php endif; ?>
             </td>
             <?php if ($axes):

@@ -105,7 +105,7 @@
 
     // Ce que la cellule montre au repos : sa ligne de lecture, ou le bouton
     // d'une écriture jamais lettrée. L'un des deux, jamais les deux.
-    const repos = c => c.querySelector('.row-field-disp') || c.querySelector('.row-cat-vide');
+    const repos = c => c.querySelector('.row-field-disp') || c.querySelector('.cat-ajouter-btn');
 
     function ouvrir(cell) {
         if (cellule === cell) return;
@@ -135,7 +135,7 @@
     }
 
     document.addEventListener('click', e => {
-        const btn = e.target.closest('.row-edit-btn:not(.axe-edit-btn):not(.axe-add-btn), .row-cat-vide');
+        const btn = e.target.closest('.row-edit-btn:not(.axe-edit-btn):not(.axe-add-btn), .cat-ajouter-btn');
         const cell = btn && btn.closest('.cat-cell');
         if (cell) { ouvrir(cell); }
     });
@@ -163,15 +163,17 @@
         cell.dataset.catPrefix = prefixe;
 
         let disp = cell.querySelector('.row-field-disp');
-        let vide = cell.querySelector('.row-cat-vide');
+        let vide = cell.querySelector('.cat-ajouter-btn');
         if (val === '') {
-            // Délettrée : retour au bouton d'une ligne jamais lettrée.
+            // Délettrée : retour au « + » d'une ligne jamais lettrée.
             if (disp) { disp.remove(); }
             if (!vide) {
                 vide = document.createElement('button');
                 vide.type = 'button';
-                vide.className = 'row-cat-vide';
-                vide.textContent = '— à lettrer —';
+                vide.className = 'badge cat-ajouter-btn';
+                vide.title = 'Lettrer cette écriture';
+                vide.setAttribute('aria-label', 'Lettrer cette écriture');
+                vide.textContent = '+';
                 cell.appendChild(vide);
             }
         } else {
