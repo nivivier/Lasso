@@ -6224,6 +6224,15 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
 .col-piece .col-th { gap: 2px; }
 .piece-etat { display: inline-flex; color: var(--muted); }
 .piece-etat .ico { width: 16px; height: 16px; }
+/* Le trombone d'une pièce comptable prend la couleur de MISE EN ÉVIDENCE —
+   celle que l'employeur règle dans Apparence, et qui ne suit pas la couleur du
+   module : elle dit « regarde ici » de la même façon sur tout l'écran.
+   Pourquoi celui-là et pas les deux autres icônes de la colonne : la fiche de
+   salaire et la facture émise sont produites PAR l'application, elles existent
+   forcément. Le justificatif, lui, est déposé à la main — c'est le seul dont
+   la présence est une nouvelle, et le seul dont l'absence est une tâche. Dans
+   un écran où l'on cherche ce qui manque, c'est ce contraste qui sert. */
+.piece-etat-piece { color: var(--highlight); }
 /* L'icône mène à la preuve quand il y en a une (ecriture_piece_href()). Elle
    reste discrète au repos — la colonne doit se lire d'un coup d'œil, pas
    clignoter en bleu sur chaque ligne justifiée — et se colore au survol, comme
