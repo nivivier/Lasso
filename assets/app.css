@@ -4235,6 +4235,14 @@ abbr {
         background-repeat: no-repeat;
         background-size: 100% 1px;
         background-position: left bottom;
+        /* ⚠️ Et le bas à ZÉRO, pour la même raison qu'au bureau : l'onglet
+           actif doit TOUCHER le filet qu'il recouvre. Le retrait uniforme de
+           16px posé plus haut l'en éloignait d'autant — une bande vide sous les
+           onglets, et un filet que l'onglet actif ne couvrait plus, donc le
+           raccord au contenu rompu. Sur téléphone, le titre du module vit dans
+           la barre supérieure : la rangée d'onglets est seule dans le bandeau,
+           et ces 16px n'y servaient rien. */
+        padding-bottom: 0;
     }
     .module-content { width: auto; margin: 0 calc(-1 * var(--content-pad)) 20px; }
     /* Retrait HAUT à 24px, pas 16 comme les autres côtés : c'est la distance
