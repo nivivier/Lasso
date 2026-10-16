@@ -76,12 +76,17 @@
     </select>
     <input type="text" class="ecr-champ" data-champ="texte" required aria-label="Description">
     <input type="text" inputmode="decimal" class="ecr-champ ecr-champ-num" data-champ="montant" required aria-label="Montant (+ crédit, − débit)">
-    <?php // Enregistrer, annuler, supprimer — à la place du crayon, dans la
-          // cellule d'actions : c'est là qu'on a cliqué pour ouvrir. ?>
+    <?php // Enregistrer, supprimer, annuler — dans la cellule d'actions, là où
+          // l'on a cliqué pour ouvrir. L'ORDRE est celui de toute
+          // l'application (docs/UI.md § 2d, et carte_actions_html() qui pose
+          // « extra » entre les deux) : enregistrer mis en évidence, la
+          // corbeille rouge que l'édition révèle, et la croix EN DERNIER — à
+          // l'emplacement exact du crayon qui vient de l'ouvrir, pour qu'un
+          // seul endroit ouvre et referme. ?>
     <span class="ecr-edit-actions" data-champ="actions">
-        <button type="button" class="btn btn-sm icon-only ecr-ok-btn" title="Enregistrer" aria-label="Enregistrer l'écriture"><?= icon('check') ?></button>
-        <button type="button" class="btn ghost btn-sm icon-only ecr-annuler-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+        <button type="button" class="btn btn-sm icon-only ecr-ok-btn" title="Enregistrer" aria-label="Enregistrer l'écriture"><?= icon('save') ?></button>
         <button type="button" class="btn danger btn-sm icon-only ecr-suppr-btn" title="Supprimer cette écriture" aria-label="Supprimer cette écriture"><?= icon('trash') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only ecr-annuler-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
     </span>
 </template>
 <?php endif; ?>
