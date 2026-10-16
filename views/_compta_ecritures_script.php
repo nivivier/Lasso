@@ -32,18 +32,8 @@
     }
     if (bulkAction) { bulkAction.addEventListener('change', syncBulkAction); syncBulkAction(); }
 
-    // Crayon → passer en mode édition catégorie (exclut les boutons du panneau axe).
-    document.addEventListener('click', e => {
-        const btn = e.target.closest('.row-edit-btn:not(.axe-edit-btn):not(.axe-add-btn)');
-        if (!btn) return;
-        const disp = btn.closest('.row-field-disp');
-        if (!disp) return;
-        const inp = disp.nextElementSibling;
-        if (!inp) return;
-        disp.hidden = true;
-        inp.hidden = false;
-        inp.querySelector('input[type="text"]')?.focus();
-    });
+    // (Le crayon de la colonne Catégorie est pris en charge par l'éditeur
+    //  partagé, plus bas.)
 
 
 
@@ -74,52 +64,85 @@
 })();
 
 
-// Dropdown partagé — lettrage individuel par ligne
+// Lettrage individuel : UN éditeur pour toute la page, qui se déplace
+//
+// Le formulaire, son jeton, l'identifiant de l'écriture et le champ de saisie
+// vivaient dans CHAQUE ligne — un cinquième du poids de la page pour un
+// éditeur dont un seul sert à la fois. Ils sont désormais uniques
+// (_compta_ecritures_panneaux.php) et viennent se poser dans la cellule
+// ouverte. Le DÉPLACER plutôt que le recréer conserve ses écouteurs, comme
+// pour le formulaire d'étiquette de ?p=structures.
+//
+// La cellule, elle, ne garde que ce qu'elle montre, et dit en data- ce que
+// l'éditeur doit savoir : quelle écriture, quelle catégorie courante.
 (function () {
     const list = document.getElementById('row-cat-list');
-    if (!list) return;
+    const form = document.getElementById('ecr-cat-form');
+    if (!list || !form) return;
+    const inp      = document.getElementById('ecr-cat-inp');
+    const input    = inp.querySelector('.row-cat-input');
+    const hidden   = form.querySelector('.row-cat-val');
+    const idField  = document.getElementById('ecr-cat-id');
+    const prefixEl = inp.querySelector('.cat-prefix');
+
     const items    = Array.from(list.querySelectorAll('li:not(.cat-search-group):not(.cat-search-sens)'));
     const groups   = Array.from(list.querySelectorAll('.cat-search-group'));
     const sensHdrs = Array.from(list.querySelectorAll('.cat-search-sens'));
-    let activeInput = null, activeHidden = null, activeForm = null, activePrefix = null;
+    const tplDisp  = document.getElementById('tpl-cat-disp');
+    let cellule = null;   // la cellule en cours d'édition, s'il y en a une
 
     function filterGroups() {
         groups.forEach(g => { let s = g.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-group') && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } g.hidden = !v; });
         sensHdrs.forEach(h => { let s = h.nextElementSibling, v = false; while (s && !s.classList.contains('cat-search-sens')) { if (!s.hidden) v = true; s = s.nextElementSibling; } h.hidden = !v; });
     }
     function filter(q) { const nq = lassoNorm(q); items.forEach(li => { li.hidden = nq !== '' && !lassoNorm(li.textContent).includes(nq); }); filterGroups(); }
-    function position(input) {
+    function position() {
         const r = input.getBoundingClientRect();
-        list.style.top    = (r.bottom + window.scrollY + 2) + 'px';
-        list.style.left   = r.left + 'px';
-        list.style.width  = Math.max(r.width, 260) + 'px';
-    }
-    function applyLeaf(li) {
-        if (!activeInput) return;
-        const hasVal = li.dataset.val !== '';
-        activeInput.value = hasVal ? li.dataset.leaf : '';
-        if (activePrefix) activePrefix.textContent = hasVal ? (li.dataset.prefix || '') : '';
+        list.style.top   = (r.bottom + window.scrollY + 2) + 'px';
+        list.style.left  = r.left + 'px';
+        list.style.width = Math.max(r.width, 260) + 'px';
     }
 
-    document.querySelectorAll('.row-cat-input').forEach(input => {
-        const form   = input.closest('form');
-        const hidden = form.querySelector('.row-cat-val');
-        const pfx    = form.querySelector('.cat-prefix');
-        input.addEventListener('focus', () => {
-            activeInput = input; activeHidden = hidden; activeForm = form; activePrefix = pfx;
-            input.value = ''; // vider pour la recherche
-            filter(''); list.hidden = false; position(input);
-        });
-        input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(input); });
-        input.addEventListener('blur',  () => {
-            setTimeout(() => {
-                list.hidden = true;
-                const cur = items.find(li => li.dataset.val === (activeHidden?.value ?? ''));
-                if (cur) applyLeaf(cur); else if (activeInput) { activeInput.value = ''; if (activePrefix) activePrefix.textContent = ''; }
-                const inp = input.closest('.row-field-inp');
-                if (inp) { const disp = inp.previousElementSibling; if (disp?.classList.contains('row-field-disp')) { inp.hidden = true; disp.hidden = false; } }
-            }, 150);
-        });
+    // Ce que la cellule montre au repos : sa ligne de lecture, ou le bouton
+    // d'une écriture jamais lettrée. L'un des deux, jamais les deux.
+    const repos = c => c.querySelector('.row-field-disp') || c.querySelector('.row-cat-vide');
+
+    function ouvrir(cell) {
+        if (cellule === cell) return;
+        fermer();
+        cellule = cell;
+        idField.value   = cell.dataset.ecrId || '';
+        hidden.value    = cell.dataset.catVal || '';
+        prefixEl.textContent = cell.dataset.catPrefix || '';
+        const r = repos(cell);
+        if (r) { r.hidden = true; }
+        cell.appendChild(inp);
+        inp.hidden = false;
+        input.value = '';          // vidé pour la recherche
+        input.focus();
+        filter(''); list.hidden = false; position();
+    }
+
+    // L'éditeur rentre chez lui et la cellule retrouve son affichage.
+    function fermer() {
+        if (!cellule) return;
+        const c = cellule;
+        cellule = null;
+        inp.hidden = true;
+        form.appendChild(inp);
+        const r = repos(c);
+        if (r) { r.hidden = false; }
+    }
+
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.row-edit-btn:not(.axe-edit-btn):not(.axe-add-btn), .row-cat-vide');
+        const cell = btn && btn.closest('.cat-cell');
+        if (cell) { ouvrir(cell); }
+    });
+
+    input.addEventListener('input', () => { filter(input.value); list.hidden = false; position(); });
+    input.addEventListener('blur', () => {
+        setTimeout(() => { list.hidden = true; fermer(); }, 150);
     });
 
     // Les valeurs de l'entonnoir « Catégorie » en cours : une ligne qui cesse
@@ -129,49 +152,52 @@
     // aussi sur ses descendants, que le navigateur ne connaît pas, et la ligne
     // y reste alors avec sa nouvelle valeur, ce qui ne ment sur rien.
     const CAT_FILTRE = <?= json_encode(array_values((array) $categorieFilter), JSON_UNESCAPED_UNICODE) ?>;
-    const tplDisp = document.getElementById('tpl-cat-disp');
 
     // Réécrit la cellule après un enregistrement : le libellé choisi, l'état de
-    // la ligne, et son retrait si elle sort du filtre. Rien n'est reconstruit
-    // qui puisse l'être — on déplace et on renseigne.
-    function majCellule(form, li) {
-        const val = li.dataset.val;
+    // la ligne, et son retrait si elle sort du filtre.
+    function majCellule(cell, li) {
+        const val     = li.dataset.val;
         const prefixe = val !== '' ? (li.dataset.prefix || '') : '';
         const feuille = val !== '' ? (li.dataset.leaf || '') : '';
-        let disp = form.querySelector('.row-field-disp');
-        let inp  = form.querySelector('.row-field-inp');
+        cell.dataset.catVal    = val;
+        cell.dataset.catPrefix = prefixe;
+
+        let disp = cell.querySelector('.row-field-disp');
+        let vide = cell.querySelector('.row-cat-vide');
         if (val === '') {
-            // Délettrée : retour au champ nu, celui d'une ligne jamais lettrée.
+            // Délettrée : retour au bouton d'une ligne jamais lettrée.
             if (disp) { disp.remove(); }
-            if (inp) { inp.replaceWith(inp.querySelector('.row-cat-input')); }
-            const champ = form.querySelector('.row-cat-input');
-            if (champ) { champ.value = ''; }
-        } else {
-            if (!disp) {
-                // Première catégorie de cette ligne : elle se dote de sa cellule
-                // de lecture, et son champ passe derrière (gabarit ci-dessus).
-                const champ = form.querySelector('.row-cat-input');
-                inp = document.createElement('div');
-                inp.className = 'row-field-inp';
-                inp.hidden = true;
-                const pfx = document.createElement('div');
-                pfx.className = 'cat-prefix';
-                inp.appendChild(pfx);
-                champ.replaceWith(inp);
-                inp.appendChild(champ);
-                disp = tplDisp.content.firstElementChild.cloneNode(true);
-                form.insertBefore(disp, inp);
+            if (!vide) {
+                vide = document.createElement('button');
+                vide.type = 'button';
+                vide.className = 'row-cat-vide';
+                vide.textContent = '— à lettrer —';
+                cell.appendChild(vide);
             }
-            disp.querySelector('.row-field-prefix').textContent = prefixe;
+        } else {
+            if (vide) { vide.remove(); }
+            if (!disp) {
+                disp = tplDisp.content.firstElementChild.cloneNode(true);
+                cell.appendChild(disp);
+            }
+            // ⚠️ Le <span> du préfixe n'existe pas sur une ligne rendue SANS
+            // préfixe (catégorie racine) : le serveur ne l'écrit que s'il a
+            // quelque chose à y mettre. L'écrire tout droit lançait une erreur
+            // sur null — et la cellule gardait alors l'ancien libellé alors que
+            // la base, elle, avait bien changé. On le crée au besoin, dans
+            // l'ordre du gabarit (préfixe avant feuille).
+            let pfxEl = disp.querySelector('.row-field-prefix');
+            if (!pfxEl) {
+                pfxEl = document.createElement('span');
+                pfxEl.className = 'row-field-prefix';
+                disp.querySelector('.row-field-txt').prepend(pfxEl);
+            }
+            pfxEl.textContent = prefixe;
             disp.querySelector('.row-field-leaf').textContent = feuille;
-            const pfx = inp.querySelector('.cat-prefix');
-            if (pfx) { pfx.textContent = prefixe; }
-            disp.hidden = false;
-            inp.hidden = true;
         }
         // L'état de la ligne : il porte sa couleur de fond (non lettrée,
         // « ne pas lettrer »).
-        const tr = form.closest('tr');
+        const tr = cell.closest('tr');
         tr.classList.toggle('non-lettre', val === '');
         tr.classList.toggle('ecr-ignore', val === 'ignore');
         const etat = val === '' ? 'a_lettrer' : (val === 'ignore' ? 'ignore' : 'categorie');
@@ -181,7 +207,7 @@
         }
     }
 
-    async function enregistrerCategorie(form, li) {
+    async function enregistrerCategorie(cell, li) {
         const fd = new FormData(form);
         fd.append('retour', 'json');
         try {
@@ -194,26 +220,27 @@
             form.submit();
             return;
         }
-        majCellule(form, li);
+        majCellule(cell, li);
     }
 
     items.forEach(li => {
         li.addEventListener('mousedown', e => {
             e.preventDefault();
-            if (!activeHidden || !activeInput || !activeForm) return;
-            activeHidden.value = li.dataset.val;
-            applyLeaf(li);
+            if (!cellule) return;
+            // La cellule est captée MAINTENANT : le blur qui suit la libère
+            // avant que la requête ne revienne.
+            const cell = cellule;
+            hidden.value = li.dataset.val;
             list.hidden = true;
-            // Le formulaire est capté MAINTENANT : le blur qui suit remet
-            // activeForm à null avant que la requête ne revienne.
-            enregistrerCategorie(activeForm, li);
+            fermer();
+            enregistrerCategorie(cell, li);
         });
     });
 
     document.addEventListener('mousedown', e => {
-        if (!list.hidden && !list.contains(e.target) && e.target !== activeInput) list.hidden = true;
+        if (!list.hidden && !list.contains(e.target) && e.target !== input) list.hidden = true;
     });
-    window.addEventListener('scroll', () => { if (!list.hidden && activeInput) position(activeInput); }, { passive: true });
+    window.addEventListener('scroll', () => { if (!list.hidden && cellule) position(); }, { passive: true });
 })();
 
 // Colonne axe analytique : select inline (0 axe), inline edit (1 axe), panneau multi-axe (≥2)
@@ -248,6 +275,13 @@
         });
         return sel;
     }
+
+    // Les sélecteurs d'axe des lignes non ventilées naissent vides et se
+    // remplissent ici : la liste des axes est déjà dans ce script (AXES), la
+    // recopier dans chaque ligne doublait le poids de la colonne pour rien.
+    document.querySelectorAll('.axe-inline-sel[data-vide]').forEach(vide => {
+        vide.replaceWith(buildInlineSel(null));
+    });
 
     function buildPlusBtn(cell) {
         const btn = document.createElement('button');

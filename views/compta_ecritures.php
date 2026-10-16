@@ -321,11 +321,6 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
     <?php else: ?>
     <?php
     $prevMois = null;
-    // Options du select inline pour la colonne axe (construit une fois, réutilisé par toutes les lignes)
-    $axeOptsHtml = '';
-    foreach ($axes as $ax) {
-        $axeOptsHtml .= '<option value="' . (int) $ax['id'] . '">' . e($ax['code'] ?: $ax['libelle']) . '</option>';
-    }
     // Les intertitres de mois n'ont de sens que sur une liste rangée par date :
     // triée par montant ou par contre-partie, le mois change à chaque ligne.
     $moisSepares = $tri['cle'] === '' || $tri['cle'] === 'date';
@@ -435,29 +430,26 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <?php endif; ?>
             </td>
             <td class="num <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
-            <td class="cat-cell">
+            <?php // ⚠️ La cellule ne porte QUE ce qu'elle montre. Le formulaire, le
+                  // jeton, l'identifiant et le champ de saisie vivent en un seul
+                  // exemplaire au pied de la page (_compta_ecritures_panneaux.php) et
+                  // viennent se poser ici au clic. L'identifiant de l'écriture et sa
+                  // catégorie courante voyagent en data- : c'est tout ce dont
+                  // l'éditeur partagé a besoin pour se brancher.
+                  //
+                  // Une ligne jamais lettrée affiche un bouton qui a l'allure du champ
+                  // qu'il ouvre — on la lettre toujours d'un seul clic, sans crayon. ?>
+            <td class="cat-cell" data-ecr-id="<?= (int) $ecr['id'] ?>" data-cat-val="<?= e($rowCatVal) ?>" data-cat-prefix="<?= e($rowCatPrefix) ?>">
                 <?php if (!peut_ecrire('compta')): ?>
                     <?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?>
                     <span><?= $rowCatVal !== '' ? e($rowCatLeaf) : '<span class="muted">— à lettrer —</span>' ?></span>
+                <?php elseif ($rowCatVal !== ''): ?>
+                <div class="row-field-disp">
+                    <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?><span class="row-field-leaf"><?= e($rowCatLeaf) ?></span></span>
+                    <button type="button" class="row-edit-btn" title="Modifier" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
+                </div>
                 <?php else: ?>
-                <form method="post" action="?p=compta_ecritures<?= $qs ?>">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="section" value="lettrer">
-                    <input type="hidden" name="ids[]" value="<?= (int) $ecr['id'] ?>">
-                    <input type="hidden" name="plan_compte_id" class="row-cat-val" value="<?= e($rowCatVal) ?>">
-                    <?php if ($rowCatVal !== ''): ?>
-                    <div class="row-field-disp">
-                        <span class="row-field-txt"><?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?><span class="row-field-leaf"><?= e($rowCatLeaf) ?></span></span>
-                        <button type="button" class="row-edit-btn" title="Modifier" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
-                    </div>
-                    <div class="row-field-inp" hidden>
-                        <div class="cat-prefix"><?= e($rowCatPrefix) ?></div>
-                        <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —" value="<?= e($rowCatLeaf) ?>">
-                    </div>
-                    <?php else: ?>
-                    <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —" value="">
-                    <?php endif; ?>
-                </form>
+                <button type="button" class="row-cat-vide">— à lettrer —</button>
                 <?php endif; ?>
             </td>
             <?php if ($axes):
@@ -473,7 +465,12 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <?php if (!peut_ecrire('analytique')): ?>
                         <span class="axe-disp-txt muted small"><?= $dispTxt !== '' ? $dispTxt : '—' ?></span>
                     <?php elseif ($nVents === 0): ?>
-                        <select class="axe-inline-sel" title="Axe analytique"><option value="">— Axe —</option><?= $axeOptsHtml ?></select>
+                        <?php // Vide : le script le remplit au chargement depuis la liste
+                              // des axes qu'il porte déjà (buildInlineSel). Il était rendu
+                              // ici avec toutes ses options, répétées à chaque ligne non
+                              // ventilée — et il n'a jamais fonctionné sans JavaScript,
+                              // n'ayant ni name ni formulaire. ?>
+                        <select class="axe-inline-sel" data-vide title="Axe analytique"></select>
                         <button type="button" class="row-edit-btn axe-add-btn" title="Ventilation multi-axe" aria-label="Ventiler sur plusieurs axes"><?= icon('plus') ?></button>
                     <?php elseif ($nVents === 1): ?>
                         <span class="axe-disp-txt muted small"><?= $dispTxt ?></span>

@@ -353,6 +353,32 @@ exemplaire unique vit maintenant en bas de page et se déplace dans la cellule
 cliquée. Le déplacer plutôt que le recréer conserve ses écouteurs, posés sur
 l'élément par `lassoInitTagSuggest()`.
 
+**La même chose sur `?p=compta_ecritures`, deux mois plus tard.** La colonne
+Catégorie était restée en arrière : chaque ligne portait son `<form>`, son jeton
+CSRF, l'identifiant de l'écriture et le champ de saisie — 1 125 octets par ligne
+pour un éditeur dont **un seul sert à la fois**. La colonne Axe faisait de même
+avec un `<select>` et toutes ses options, alors que le script de la page portait
+déjà la liste des axes (`AXES`) et savait construire ce `<select>`
+(`buildInlineSel()`).
+
+Les deux sont devenus des singletons : l'éditeur de catégorie **se déplace** dans
+la cellule ouverte et rentre chez lui ensuite, le `<select>` d'axe est bâti au
+chargement. La cellule ne garde que ce qu'elle montre et dit en `data-` ce que
+l'éditeur doit savoir — quelle écriture, quelle catégorie courante.
+
+| `?p=compta_ecritures`, 236 lignes | avant | après |
+|---|---|---|
+| poids de la page | 1 164 623 o | 980 612 o (**−15,8 %**) |
+| octets par ligne | 4 935 | 4 155 |
+| `<form>` | 230 | 11 |
+| `<option>` | 1 342 | 22 |
+| jetons CSRF | 222 | 3 |
+
+⚠️ Rien n'est perdu sans JavaScript : cette colonne ne s'y modifiait **déjà**
+pas — le crayon est un `<button type="button">` et le champ n'avait aucun bouton
+d'envoi. Une écriture jamais lettrée montre désormais un bouton qui a
+exactement l'allure du champ qu'il ouvre, parce que c'est le même geste.
+
 **Résultat**, sur `?p=structures` :
 
 | | avant | après |
