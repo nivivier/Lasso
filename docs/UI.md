@@ -352,6 +352,24 @@ une seconde rangée de détail, placer le curseur.
 Les boutons et leur ordre restent ceux de 2d : enregistrer mis en évidence, la
 croix à la place du crayon.
 
+**Variante, quand la liste est longue** (`?p=compta_ecritures`) : les champs ne
+sont pas rendus dans chaque ligne mais **déplacés** depuis un `<template>`
+unique dans les cellules de la ligne ouverte, qui rendent leur contenu
+d'origine en refermant. Le principe de 2e est le même — deux états dans les
+cellules —, seul le coût change : un éditeur rendu sur mille lignes alourdit la
+page de tout ce que personne ne regarde (`docs/DECISIONS.md § Poids des pages
+de liste`). Et tant qu'à ne pas le rendre : **ce que la ligne affiche DÉJÀ ne se
+recopie pas en `data-`**. La date, le montant et le libellé se relisent dans
+les cellules ; seul ce qui n'y est pas — l'identifiant d'un compte, dont la
+cellule ne montre que le nom — voyage en attribut.
+
+⚠️ **Un champ ne paraît pas deux fois pour un même réglage.** La catégorie et
+l'axe d'une écriture ont chacun leur colonne, qui les enregistre seule :
+l'éditeur de ligne ne les reprend pas. Deux endroits pour un même réglage,
+c'est une chance sur deux d'écraser l'un par l'autre — et c'est arrivé : le
+formulaire d'édition postait un `plan_compte_id` vide, donc modifier une date
+délettrait l'écriture.
+
 ### Les boutons d'une ligne, dans les deux états
 
 **Le crayon est le DERNIER bouton** de la colonne d'actions — tout à droite. Ce

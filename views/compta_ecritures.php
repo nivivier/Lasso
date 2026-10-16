@@ -3,7 +3,7 @@
 /** @var array $categorieFilter */ /** @var array $axeFilter */ /** @var array $sensFiltre */ /** @var array $ecritures */
 /** @var array $pieceFiltre */ /** @var bool $piecesOk */
 /** @var array $ventilationsParEcr */ /** @var array $feuilles */ /** @var array $axes */
-/** @var ?string $rules */ /** @var ?array $editEcr */ /** @var bool $openNew */
+/** @var ?string $rules */ /** @var bool $openNew */
 /** @var ?int $bulkCount */ /** @var bool $okAnnule */ /** @var string $recherche */ /** @var bool $modeClient */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
 /** @var array $categoriesArbre */
@@ -32,8 +32,11 @@ $feuillesSorted = array_values(array_merge(
 ));
 
 // Formulaire écriture manuelle (création ou modification).
-$showForm = $openNew || $editEcr !== null;
-$isEdit   = $editEcr !== null;
+// Ce formulaire ne sert plus qu'à CRÉER : une écriture existante se modifie
+// dans sa ligne (le crayon, voir _compta_ecritures_script.php). Il partait
+// autrefois en tête de page pour les deux, à cinquante lignes de l'écriture
+// qu'il modifiait.
+$showForm = $openNew;
 // http_build_query gère aussi bien les valeurs scalaires que les tableaux
 // (compte[0]=1&compte[1]=2 — reparsable tel quel par PHP), donc pas besoin
 // de distinguer les filtres à valeur unique des filtres multi-valeurs ici.
@@ -128,34 +131,33 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <?php if (peut_ecrire('compta')): ?>
 <!-- Formulaire écriture manuelle -->
 <div class="card form ecr-manuel-form" id="ecr-manuel-form" <?= $showForm ? '' : 'hidden' ?>>
-    <h3 class="form-subtitle"><?= $isEdit ? 'Modifier l\'écriture' : 'Nouvelle écriture manuelle' ?></h3>
+    <h3 class="form-subtitle">Nouvelle écriture manuelle</h3>
     <form method="post" action="?p=compta_ecritures<?= $qs ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="section" value="<?= $isEdit ? 'update' : 'create' ?>">
-        <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= (int) $editEcr['id'] ?>"><?php endif; ?>
+        <input type="hidden" name="section" value="create">
         <div class="grid3">
             <label>Compte
                 <select name="compte_bancaire_id" required>
                     <?php foreach ($comptes as $c): ?>
-                        <option value="<?= (int) $c['id'] ?>" <?= ($isEdit ? (int)$editEcr['compte_bancaire_id'] : $compteDefaut) === (int)$c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
+                        <option value="<?= (int) $c['id'] ?>" <?= $compteDefaut === (int)$c['id'] ? 'selected' : '' ?>><?= e($c['libelle']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
             <label>Date
-                <input type="date" name="date_op" required value="<?= e($isEdit ? $editEcr['date_op'] : date('Y-m-d')) ?>">
+                <input type="date" name="date_op" required value="<?= e(date('Y-m-d')) ?>">
             </label>
             <label>Montant <span class="muted label-hint">(+ crédit, − débit)</span>
-                <input type="number" name="montant" step="0.01" required value="<?= $isEdit ? (float)$editEcr['montant'] : '' ?>" placeholder="ex. -150.00">
+                <input type="number" name="montant" step="0.01" required value="" placeholder="ex. -150.00">
             </label>
         </div>
         <label>Description
-            <input type="text" name="texte" required value="<?= e($isEdit ? $editEcr['texte'] : '') ?>" placeholder="ex. Remboursement frais divers">
+            <input type="text" name="texte" required value="" placeholder="ex. Remboursement frais divers">
         </label>
         <div class="grid2-optional">
         <label>Catégorie <span class="muted label-hint">(optionnel)</span>
-            <?= $catSearchField('plan_compte_id', $isEdit && $editEcr['plan_compte_id'] ? (int)$editEcr['plan_compte_id'] : null, 'Chercher une catégorie…', $isEdit && ($editEcr['origine_lettrage'] ?? '') === 'ignore') ?>
+            <?= $catSearchField('plan_compte_id', null, 'Chercher une catégorie…', false) ?>
         </label>
-        <?php if ($axes && !$isEdit): ?>
+        <?php if ($axes): ?>
         <label>Axe analytique <span class="muted label-hint">(optionnel)</span>
             <select name="axe_analytique_id">
                 <option value="">— Aucun —</option>
@@ -167,20 +169,10 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <?php endif; ?>
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn"><?= icon('check') ?> <?= $isEdit ? 'Enregistrer' : 'Créer l\'écriture' ?></button>
+            <button type="submit" class="btn"><?= icon('check') ?> Créer l'écriture</button>
             <a href="?p=compta_ecritures<?= $qs ?>" class="btn ghost">Annuler</a>
-            <?php if ($isEdit): ?>
-                <button type="submit" form="del-ecr-form" class="btn danger"><?= icon('trash') ?> Supprimer</button>
-            <?php endif; ?>
         </div>
     </form>
-    <?php if ($isEdit): ?>
-    <form id="del-ecr-form" method="post" action="?p=compta_ecritures<?= $qs ?>" data-confirm="Supprimer cette écriture ?" hidden>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="section" value="delete_manual">
-        <input type="hidden" name="id" value="<?= (int) $editEcr['id'] ?>">
-    </form>
-    <?php endif; ?>
 </div>
 <?php endif; ?>
 
@@ -342,10 +334,23 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         $rowCatPrefix = $estIgnore ? '' : ($catPrefixById[$pid] ?? '');
         $rowCatLeaf   = $estIgnore ? 'Ne pas lettrer' : ($catLeafById[$pid] ?? '');
         ?>
-        <tr class="<?= $estNonLettre ? 'non-lettre' : '' ?><?= $estIgnore ? ' ecr-ignore' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>">
+        <?php // Une écriture SAISIE À LA MAIN se modifie sur place : la ligne
+              // porte ses valeurs brutes en data-, et les quatre cellules
+              // modifiables se nomment, pour que l'éditeur sache où poser ses
+              // champs. Une écriture IMPORTÉE n'a rien de tout cela — on ne
+              // retouche pas un relevé de banque. ?>
+        <tr class="<?= $estNonLettre ? 'non-lettre' : '' ?><?= $estIgnore ? ' ecr-ignore' : '' ?><?= $isManuel ? ' ecr-manuelle' : '' ?>"
+            <?php // ⚠️ Deux attributs seulement, et c'est délibéré : la date, le
+                  // montant et le libellé sont DÉJÀ dans les cellules, l'éditeur
+                  // les y relit. Les recopier ici coûtait une centaine
+                  // d'octets par ligne — le libellé à lui seul en faisait
+                  // soixante —, soit le quart de ce qu'on venait de rendre à
+                  // cette page. Le compte, lui, s'affiche par son nom : seul
+                  // son identifiant permet de présélectionner le bon. ?>
+            <?php if ($isManuel && peut_ecrire('compta')): ?>data-ecr-id="<?= (int) $ecr['id'] ?>" data-compte="<?= (int) $ecr['compte_bancaire_id'] ?>"<?php endif; ?>>
             <?php if (peut_ecrire('compta')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
-            <td class="nowrap"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
-            <?php if ($compteColVisible): ?><td class="compte-cell small muted"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
+            <td class="nowrap ecr-c-date"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
+            <?php if ($compteColVisible): ?><td class="compte-cell small muted ecr-c-compte"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <?php
             // Contre-partie et communication : un relevé camt.053 les porte en
             // champs structurés, et elles ne se retrouvent pas forcément dans
@@ -409,7 +414,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             };
             ?>
             <td class="tiers-cell" title="<?= e($ecrTiersTitre) ?>"><?= $ecrTiers !== '' ? e($ecrTiers) : '<span class="muted">—</span>' ?></td>
-            <td class="texte-cell" title="<?= e($ecrTitre) ?>">
+            <td class="texte-cell ecr-c-texte" title="<?= e($ecrTitre) ?>">
                 <?php // Facture émise et fiche de salaire se montrent d'ordinaire
                       // dans la colonne « Pièce », qui dit la même chose et mène
                       // au même endroit. Ces deux icônes-ci ne servent donc que
@@ -429,7 +434,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <span class="ecr-details"><?= e(implode(' · ', $ecrDetails)) ?></span>
                 <?php endif; ?>
             </td>
-            <td class="num <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
+            <td class="num ecr-c-montant <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
             <?php // ⚠️ La cellule ne porte QUE ce qu'elle montre. Le formulaire, le
                   // jeton, l'identifiant et le champ de saisie vivent en un seul
                   // exemplaire au pied de la page (_compta_ecritures_panneaux.php) et
@@ -539,8 +544,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <td class="actions">
                 <?php if (peut_ecrire('compta')): ?>
                 <?php if ($isManuel): ?>
-                    <a class="btn ghost btn-sm icon-only" title="Modifier cette écriture" aria-label="Modifier cette écriture"
-                       href="?p=compta_ecritures<?= $qs ?>&edit=<?= (int) $ecr['id'] ?>"><?= icon('pencil') ?></a>
+                    <?php // Un bouton et non un lien : l'édition s'ouvre DANS la
+                          // ligne, sans recharger. Le formulaire partait en tête
+                          // de page, loin de l'écriture qu'il modifiait, et il
+                          // fallait redescendre la retrouver. ?>
+                    <button type="button" class="btn ghost btn-sm icon-only ecr-edit-btn" title="Modifier cette écriture" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
                 <?php else: ?>
                     <a class="btn ghost btn-sm icon-only" title="Créer une règle depuis cette écriture" aria-label="Créer une règle depuis cette écriture"
                        href="?p=compta_regles&motif=<?= urlencode($ecr['texte']) ?>&compte=<?= (int) $ecr['compte_bancaire_id'] ?>"><?= icon('pencil-sparkles') ?></a>

@@ -54,6 +54,38 @@
 </form>
 <?php endif; ?>
 
+<?php // Les champs de l'édition en ligne d'une écriture manuelle, en un seul
+      // exemplaire : le script les déplace dans les cellules de la ligne
+      // ouverte, une à une, et rend à chacune son contenu en refermant.
+      //
+      // Un gabarit plutôt que des champs rendus dans chaque ligne : le
+      // sélecteur de compte porte toutes ses options, et les recopier sur
+      // chaque ligne aurait repris le poids qu'on vient de rendre à cet écran.
+      //
+      // Pas de champ CATÉGORIE : elle a sa propre colonne, qui l'enregistre
+      // toute seule. L'avoir ici en double, c'était deux endroits pour un même
+      // réglage, et une chance sur deux d'écraser l'un par l'autre.
+      // Pas d'axe non plus, pour la même raison. ?>
+<?php if (peut_ecrire('compta')): ?>
+<template id="tpl-ecr-edit">
+    <input type="date" class="ecr-champ" data-champ="date_op" required aria-label="Date de l'écriture">
+    <select class="ecr-champ" data-champ="compte_bancaire_id" required aria-label="Compte bancaire">
+        <?php foreach ($comptes as $c): ?>
+        <option value="<?= (int) $c['id'] ?>"><?= e($c['libelle']) ?></option>
+        <?php endforeach; ?>
+    </select>
+    <input type="text" class="ecr-champ" data-champ="texte" required aria-label="Description">
+    <input type="text" inputmode="decimal" class="ecr-champ ecr-champ-num" data-champ="montant" required aria-label="Montant (+ crédit, − débit)">
+    <?php // Enregistrer, annuler, supprimer — à la place du crayon, dans la
+          // cellule d'actions : c'est là qu'on a cliqué pour ouvrir. ?>
+    <span class="ecr-edit-actions" data-champ="actions">
+        <button type="button" class="btn btn-sm icon-only ecr-ok-btn" title="Enregistrer" aria-label="Enregistrer l'écriture"><?= icon('check') ?></button>
+        <button type="button" class="btn ghost btn-sm icon-only ecr-annuler-btn" title="Annuler" aria-label="Annuler"><?= icon('x') ?></button>
+        <button type="button" class="btn danger btn-sm icon-only ecr-suppr-btn" title="Supprimer cette écriture" aria-label="Supprimer cette écriture"><?= icon('trash') ?></button>
+    </span>
+</template>
+<?php endif; ?>
+
 <!-- Dropdown partagé pour le lettrage individuel (repositionné par JS) -->
 <ul id="row-cat-list" class="cat-search-list" hidden role="listbox">
     <li data-val="" data-prefix="" data-leaf="">— à lettrer —</li>

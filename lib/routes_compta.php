@@ -693,9 +693,35 @@ function route_compta_ecritures(): void
                     }
                 } else {
                     $id = (int) ($_POST['id'] ?? 0);
-                    db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=? WHERE id=? AND import_id IS NULL')
-                        ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $id]);
+                    // ⚠️ La catégorie ne passe plus par ici depuis l'édition en
+                    // ligne : elle a sa propre colonne, et son propre
+                    // enregistrement (section « lettrer »). Le formulaire de
+                    // création la pose encore, d'où le champ laissé en place —
+                    // mais un POST qui ne l'envoie pas ne doit RIEN y changer,
+                    // sans quoi modifier une date délettrerait l'écriture.
+                    if (array_key_exists('plan_compte_id', $_POST)) {
+                        db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=?, plan_compte_id=?, origine_lettrage=? WHERE id=? AND import_id IS NULL')
+                            ->execute([$cid, $date_op, $texte, $montant, $planId, $origLettrage, $id]);
+                    } else {
+                        db()->prepare('UPDATE ecritures SET compte_bancaire_id=?, date_op=?, texte=?, montant=? WHERE id=? AND import_id IS NULL')
+                            ->execute([$cid, $date_op, $texte, $montant, $id]);
+                    }
                     // Ventilations gérées exclusivement via le panneau multi-axe (compta_ventilation_save).
+                    // L'édition en ligne attend ce que la base a RETENU : le
+                    // montant normalisé, la date telle qu'elle est stockée. La
+                    // ligne se réécrit avec ça, jamais avec ce qui a été tapé.
+                    if (($_POST['retour'] ?? '') === 'json') {
+                        $st = db()->prepare('SELECT e.id, e.date_op, e.texte, e.montant, e.compte_bancaire_id,
+                                                    c.libelle AS compte_libelle
+                                               FROM ecritures e
+                                               LEFT JOIN comptes_bancaires c ON c.id = e.compte_bancaire_id
+                                              WHERE e.id = ?');
+                        $st->execute([$id]);
+                        $ligne = $st->fetch() ?: null;
+                        header('Content-Type: application/json');
+                        echo json_encode(['ok' => $ligne !== null, 'ecriture' => $ligne]);
+                        return;
+                    }
                 }
             }
             redirect('compta_ecritures', $retour);
@@ -703,6 +729,11 @@ function route_compta_ecritures(): void
             $id = (int) ($_POST['id'] ?? 0);
             db()->prepare('DELETE FROM ecritures_ventilations WHERE ecriture_id = ?')->execute([$id]);
             db()->prepare('DELETE FROM ecritures WHERE id=? AND import_id IS NULL')->execute([$id]);
+            if (($_POST['retour'] ?? '') === 'json') {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                return;
+            }
             redirect('compta_ecritures', $retour);
         } elseif ($section === 'lettrer') {
             // Affectation manuelle (une ou plusieurs écritures) à une catégorie.
@@ -811,14 +842,6 @@ function route_compta_ecritures(): void
             redirect('compta_ecritures', $retour + ['rules' => $n]);
         }
         redirect('compta_ecritures', $retour);
-    }
-
-    // Écriture manuelle à éditer (mode ?edit=ID).
-    $editEcr = null;
-    if (isset($_GET['edit'])) {
-        $stmt2 = db()->prepare('SELECT * FROM ecritures WHERE id=? AND import_id IS NULL');
-        $stmt2->execute([(int) $_GET['edit']]);
-        $editEcr = $stmt2->fetch() ?: null;
     }
 
     // Construction de la requête filtrée.
@@ -992,7 +1015,6 @@ function route_compta_ecritures(): void
         'feuilles'           => $feuilles,
         'axes'               => $axes,
         'rules'              => $_GET['rules'] ?? null,
-        'editEcr'            => $editEcr,
         'openNew'         => isset($_GET['new']),
         'bulkCount'       => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'        => ($_GET['ok'] ?? '') === 'annule',

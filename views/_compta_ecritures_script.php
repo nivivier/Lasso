@@ -245,6 +245,198 @@
     window.addEventListener('scroll', () => { if (!list.hidden && cellule) position(); }, { passive: true });
 })();
 
+// Édition en ligne d'une écriture saisie à la main
+//
+// Le crayon ouvrait ?edit=… : la page se rechargeait et le formulaire
+// apparaissait tout en haut du tableau, à cinquante lignes de l'écriture qu'il
+// modifiait. Il s'ouvre maintenant DANS la ligne, chaque champ sous sa
+// colonne, et l'enregistrement se fait sans recharger.
+//
+// Les champs viennent d'un gabarit unique (_compta_ecritures_panneaux.php) et
+// se DÉPLACENT dans les cellules, comme l'éditeur de catégorie juste au-dessus.
+// Chaque cellule rend son contenu d'origine en refermant — il est mis de côté,
+// jamais reconstruit.
+//
+// Ni catégorie ni axe : chacun a sa colonne et son propre enregistrement. Les
+// avoir ici en double, c'était deux endroits pour un même réglage.
+(function () {
+    const tpl = document.getElementById('tpl-ecr-edit');
+    const form = document.getElementById('ecr-cat-form'); // porte le jeton CSRF
+    if (!tpl || !form) return;
+    const CSRF = form.querySelector('input[name="csrf"]').value;
+    const ACTION = form.getAttribute('action');
+
+    // Quelle cellule reçoit quel champ.
+    const CELLULES = {
+        date_op: '.ecr-c-date',
+        compte_bancaire_id: '.ecr-c-compte',
+        texte: '.ecr-c-texte',
+        montant: '.ecr-c-montant',
+        actions: '.actions',
+    };
+
+    let ouverte = null; // { tr, garde: Map(cellule -> HTML d'origine) }
+
+    // Le HTML mis de côté d'une cellule, d'où l'on relit sa valeur : au moment
+    // où l'on remplit les champs, la cellule contient déjà le champ, plus la
+    // valeur. On lit donc la copie, pas le DOM.
+    const texteDe = (garde, tr, sel) => {
+        const cell = tr.querySelector(sel);
+        const d = document.createElement('div');
+        d.innerHTML = garde.get(cell) ?? (cell ? cell.innerHTML : '');
+        return d.textContent.trim();
+    };
+    // « 24.03.2026 » → « 2026-03-24 », le format que l'<input type="date"> veut.
+    const dateIso = (garde, tr) => {
+        const p = texteDe(garde, tr, '.ecr-c-date').split('.');
+        return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : '';
+    };
+    // « -1'945.63 » → « -1945.63 » : on retire l'apostrophe de millier qu'on a
+    // soi-même posée (chf(), lib/helpers.php) et les espaces fines.
+    const montantBrut = (garde, tr) =>
+        texteDe(garde, tr, '.ecr-c-montant').replace(/[\u2019'\u202f\s]/g, '');
+    // Le libellé COMPLET est la première ligne de l'infobulle de sa cellule
+    // (voir $ecrTitre dans la vue) : la cellule, elle, n'en montre qu'un
+    // résumé, et le renvoyer au serveur écraserait le texte d'origine.
+    const texteBrut = tr => {
+        const cell = tr.querySelector('.ecr-c-texte');
+        return cell ? (cell.getAttribute('title') || '').split('\n')[0].trim() : '';
+    };
+
+    function fermer() {
+        if (!ouverte) return;
+        ouverte.garde.forEach((html, cell) => { cell.innerHTML = html; });
+        ouverte.tr.classList.remove('ecr-en-edition');
+        ouverte = null;
+    }
+
+    function ouvrir(tr) {
+        if (ouverte && ouverte.tr === tr) return;
+        fermer();
+        const clone = tpl.content.cloneNode(true);
+        const garde = new Map();
+        for (const [champ, sel] of Object.entries(CELLULES)) {
+            const cell = tr.querySelector(sel);
+            const el = clone.querySelector('[data-champ="' + champ + '"]');
+            // Une colonne masquée (Compte, quand un seul compte existe) n'a pas
+            // de cellule : son champ reste au gabarit et la valeur d'origine
+            // repartira telle quelle à l'enregistrement.
+            if (!cell || !el) continue;
+            garde.set(cell, cell.innerHTML);
+            cell.innerHTML = '';
+            cell.appendChild(el);
+        }
+        // Les valeurs se relisent dans les CELLULES, qui les portent déjà —
+        // les recopier en data- sur chaque ligne coûtait cent octets par
+        // écriture. Seul le compte fait exception : la cellule montre son nom,
+        // et c'est son identifiant qu'il faut pour présélectionner l'option.
+        const champ = c => tr.querySelector('[data-champ="' + c + '"]');
+        if (champ('date_op')) champ('date_op').value = dateIso(garde, tr);
+        if (champ('compte_bancaire_id')) champ('compte_bancaire_id').value = tr.dataset.compte || '';
+        if (champ('texte')) champ('texte').value = texteBrut(tr);
+        if (champ('montant')) champ('montant').value = montantBrut(garde, tr);
+        tr.classList.add('ecr-en-edition');
+        ouverte = { tr, garde };
+        champ('texte')?.focus();
+    }
+
+    // Réécrit la ligne avec ce que la base a retenu, puis referme.
+    function majLigne(tr, ecr) {
+        tr.dataset.compte = String(ecr.compte_bancaire_id);
+        fermer();
+        // L'infobulle porte le libellé complet : elle doit suivre, sinon
+        // rouvrir l'éditeur rendrait l'ancien texte.
+        const cTexte = tr.querySelector('.ecr-c-texte');
+        if (cTexte) {
+            const reste = (cTexte.getAttribute('title') || '').split('\n').slice(1);
+            cTexte.setAttribute('title', [ecr.texte, ...reste].join('\n'));
+        }
+        const d = ecr.date_op.split('-');
+        tr.querySelector('.ecr-c-date').textContent = d[2] + '.' + d[1] + '.' + d[0];
+        const cCompte = tr.querySelector('.ecr-c-compte');
+        if (cCompte) cCompte.textContent = ecr.compte_libelle || '';
+        const txt = tr.querySelector('.texte-cell-txt');
+        if (txt) { txt.textContent = ecr.texte; txt.dataset.summary = ecr.texte; }
+        const cMontant = tr.querySelector('.ecr-c-montant');
+        const neg = Number(ecr.montant) < 0;
+        cMontant.textContent = chfJs(Number(ecr.montant));
+        cMontant.classList.toggle('montant-neg', neg);
+        cMontant.classList.toggle('montant-pos', !neg);
+    }
+
+    // Les francs EXACTEMENT comme le serveur les écrit — chf() (lib/helpers.php)
+    // vaut number_format($v, 2, '.', "\u{202F}") : une espace fine insécable en
+    // séparateur de milliers, et non une apostrophe. Une ligne réécrite après
+    // enregistrement ne doit pas se distinguer de ses voisines.
+    function chfJs(n) {
+        const [ent, dec] = Math.abs(n).toFixed(2).split('.');
+        return (n < 0 ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F') + '.' + dec;
+    }
+
+    async function enregistrer(tr) {
+        const fd = new FormData();
+        fd.append('csrf', CSRF);
+        fd.append('section', 'update');
+        fd.append('id', tr.dataset.ecrId);
+        fd.append('retour', 'json');
+        // La colonne Compte peut être masquée (un seul compte) : son champ n'est
+        // alors pas posé, et c'est la valeur d'origine qui repart.
+        for (const champ of ['date_op', 'compte_bancaire_id', 'texte', 'montant']) {
+            const el = tr.querySelector('[data-champ="' + champ + '"]');
+            fd.append(champ, el ? el.value : (champ === 'compte_bancaire_id' ? (tr.dataset.compte || '') : ''));
+        }
+        try {
+            const data = await fetch(ACTION, { method: 'POST', body: fd }).then(r => r.json());
+            if (!data || !data.ok || !data.ecriture) { location.reload(); return; }
+            majLigne(tr, data.ecriture);
+        } catch (_) {
+            // L'état réel plutôt qu'une ligne réécrite à l'écran et rien en
+            // base (docs/UI.md § 4).
+            location.reload();
+        }
+    }
+
+    async function supprimer(tr) {
+        const fd = new FormData();
+        fd.append('csrf', CSRF);
+        fd.append('section', 'delete_manual');
+        fd.append('id', tr.dataset.ecrId);
+        fd.append('retour', 'json');
+        try {
+            const data = await fetch(ACTION, { method: 'POST', body: fd }).then(r => r.json());
+            if (!data || !data.ok) { location.reload(); return; }
+        } catch (_) { location.reload(); return; }
+        ouverte = null;
+        tr.remove();
+    }
+
+    document.addEventListener('click', e => {
+        const crayon = e.target.closest('.ecr-edit-btn');
+        if (crayon) { ouvrir(crayon.closest('tr')); return; }
+        const ok = e.target.closest('.ecr-ok-btn');
+        if (ok) { enregistrer(ok.closest('tr')); return; }
+        const annuler = e.target.closest('.ecr-annuler-btn');
+        if (annuler) { fermer(); return; }
+        const suppr = e.target.closest('.ecr-suppr-btn');
+        if (suppr) {
+            // ⚠️ confirm() ici, et non data-confirm : l'écouteur partagé
+            // (assets/app.js) et celui-ci vivent tous deux sur `document`, et
+            // son stopPropagation() n'empêche donc pas le second de se
+            // déclencher — la suppression partirait malgré un « Annuler », et
+            // la question serait posée deux fois. data-confirm garde les
+            // formulaires et les liens, pas une suppression en arrière-plan.
+            if (confirm('Supprimer cette écriture ?')) { supprimer(suppr.closest('tr')); }
+        }
+    });
+
+    // Entrée enregistre, Échap referme — dans les champs de l'éditeur seulement.
+    document.addEventListener('keydown', e => {
+        if (!ouverte || !e.target.closest('.ecr-champ')) return;
+        if (e.key === 'Enter') { e.preventDefault(); enregistrer(ouverte.tr); }
+        if (e.key === 'Escape') { e.preventDefault(); fermer(); }
+    });
+})();
+
 // Colonne axe analytique : select inline (0 axe), inline edit (1 axe), panneau multi-axe (≥2)
 (function () {
     const panel     = document.getElementById('axe-panel');

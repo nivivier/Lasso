@@ -1761,6 +1761,27 @@ select:disabled { cursor: not-allowed; }
    champs cachés, et son seul enfant visible va vivre dans la cellule ouverte
    (views/_compta_ecritures_panneaux.php). */
 .ecr-cat-form { margin: 0; }
+
+/* ÉDITION EN LIGNE d'une écriture manuelle. Les champs prennent la place du
+   contenu de leur cellule, et doivent donc tenir dans la COLONNE : largeur
+   pleine, hauteur d'une rangée, pas de marge basse (celle des champs de
+   formulaire décalerait la ligne entière). */
+.ecr-champ {
+    font: inherit; font-size: var(--fs-basic); color: var(--ink);
+    width: 100%; min-width: 0; margin: 0;
+    padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--card);
+}
+.ecr-champ:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* Un montant se lit aligné à droite, en édition comme en lecture. */
+.ecr-champ-num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Les trois commandes à la place du crayon, dans la cellule d'actions : c'est
+   là qu'on a cliqué pour ouvrir. Enregistrer, annuler, supprimer — l'ordre du
+   geste (docs/UI.md § 2). */
+.ecr-edit-actions { display: inline-flex; align-items: center; gap: 4px; }
+/* La ligne ouverte se distingue de ses voisines sans crier : la même teinte
+   que le survol, tenue tant que l'édition dure. */
+tr.ecr-en-edition > td { background: var(--surface); }
 .row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; }
 /* Préfixe (catégorie parente) affiché au-dessus de l'input — absent si pas de parent */
 .cat-prefix { font-size: var(--fs-tiny); line-height: 1.1; color: var(--muted); margin-bottom: 1px; }
