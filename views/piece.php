@@ -22,7 +22,16 @@ $ecrCandidates = !$ecriture
 // est le geste le plus fréquent de cet écran, et il passait jusqu'ici par un
 // téléchargement, donc par un autre logiciel et un aller-retour.
 $fichier = trim((string) $p['fichier']);
-$apercu  = $fichier !== '' && fichier_prive_apercu_possible((string) $p['mime']);
+// ⚠️ L'existence du fichier SUR LE DISQUE fait partie de la condition, et pas
+// seulement son nom en base. data/fichiers/ vit hors du dépôt : une
+// restauration de sauvegarde, une copie du projet sur une autre machine ou un
+// ménage laissent des pièces dont le nom de fichier survit à son contenu.
+// route_piece_fichier() répond alors par une REDIRECTION vers cette page-ci —
+// que le cadre d'aperçu suivait, affichant l'application entière dans sa
+// propre carte « Le justificatif », à son tour avec un cadre dedans, et ainsi
+// de suite jusqu'à la limite du navigateur.
+$fichierPresent = $fichier !== '' && is_file(fichiers_prives_dir() . '/' . basename($fichier));
+$apercu  = $fichierPresent && fichier_prive_apercu_possible((string) $p['mime']);
 $urlApercu = '?p=piece_fichier&amp;apercu=1&amp;id=' . $id;
 $estImage  = str_starts_with((string) $p['mime'], 'image/');
 ?>
@@ -36,7 +45,10 @@ $estImage  = str_starts_with((string) $p['mime'], 'image/');
 <?php elseif ($ok === 'detachee'): ?><p class="ok flash">Pièce détachée de son écriture.</p>
 <?php elseif ($ok === 'paiement'): ?><p class="ok flash">Paiement enregistré.</p>
 <?php elseif ($ok !== null): ?><p class="ok flash">Pièce enregistrée.</p><?php endif; ?>
-<?php if ($err !== ''): ?><p class="err flash"><?= e($err) ?></p><?php endif; ?>
+<?php // Les erreurs arrivent en CODE depuis la route : leur texte vit ici, et
+      // une adresse forgée ne peut donc faire paraître que l'un de ces
+      // messages-là. Même mécanique que ?p=pieces pour l'archive. ?>
+<?php if ($err === 'fichier_absent'): ?><p class="err flash">Le fichier de cette pièce est introuvable sur le serveur.</p><?php endif; ?>
 
 <div class="page-head page-head-bande">
     <div class="page-head-title">
@@ -54,7 +66,7 @@ $estImage  = str_starts_with((string) $p['mime'], 'image/');
                   // fiche. ?>
             <a class="btn ghost" href="?p=quittance_imprimer&id=<?= $id ?>" target="_blank" rel="noopener"><?= icon('printer') ?> <span class="lbl">Imprimer</span></a>
         <?php endif; ?>
-        <?php if (trim((string) $p['fichier']) !== ''): ?>
+        <?php if ($fichierPresent): ?>
             <a class="btn ghost" href="?p=piece_fichier&id=<?= $id ?>"><?= icon('download') ?> <span class="lbl">Télécharger</span></a>
         <?php endif; ?>
         <a class="btn" href="?p=piece_form&id=<?= $id ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
@@ -101,12 +113,18 @@ $estImage  = str_starts_with((string) $p['mime'], 'image/');
             <?php endif; ?>
         </table>
 
-        <?php if (trim((string) $p['fichier']) !== ''): ?>
+        <?php if ($fichierPresent): ?>
         <div class="piece-fichier mt-16">
             <?= icon('paperclip') ?>
             <a href="?p=piece_fichier&id=<?= $id ?>"><?= e((string) $p['nom_origine']) ?></a>
             <span class="muted small"><?= e(fichier_taille_lisible((int) $p['taille'])) ?></span>
         </div>
+        <?php elseif ($fichier !== ''): ?>
+        <?php // Le nom est en base, le fichier n'est plus là. Le dire, et dire
+              // où il devrait être : c'est ce qui distingue une pièce déposée
+              // sans justificatif d'une pièce dont le justificatif s'est
+              // perdu, et seule la seconde demande qu'on redépose. ?>
+        <p class="err small mt-16"><?= icon('paperclip') ?> <?= e((string) $p['nom_origine']) ?> — fichier introuvable sur le serveur<?= $peutEcrire ? '. À redéposer par « Modifier ».' : '.' ?></p>
         <?php elseif ((string) $p['origine'] === 'televersee'): ?>
         <p class="muted small mt-16">Aucun fichier joint.</p>
         <?php endif; ?>

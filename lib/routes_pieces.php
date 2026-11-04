@@ -168,6 +168,7 @@ function route_piece_form(): void
         if ($champs['libelle'] === '') {
             $champs['libelle'] = $champs['tiers'] !== '' ? $champs['tiers'] : 'Pièce sans intitulé';
         }
+        $champs['type'] = piece_type_retenu($piece, $champs['type']);
         try {
             // Deux chemins d'arrivée pour un fichier : le champ classique, et
             // la photo réduite par le navigateur (data URI). Le second est
@@ -184,6 +185,10 @@ function route_piece_form(): void
             $sql = 'UPDATE pieces SET type=?, structure_id=?, personne_id=?, libelle=?, tiers=?, montant=?,
                     date_piece=?, date_echeance=?, date_payee=?, mode_paiement=?, plan_compte_id=?, notes=?';
             $args = array_values($champs);
+            if ($num = piece_numerotation($piece, $champs)) {
+                $sql .= ', origine=?, numero=?';
+                $args = array_merge($args, array_values($num));
+            }
             if ($fichier) {
                 // Le fichier remplacé s'en va : rien ne le désignerait plus.
                 fichier_prive_supprimer((string) $piece['fichier']);
@@ -200,13 +205,9 @@ function route_piece_form(): void
                 $cols = array_merge($cols, ['fichier', 'nom_origine', 'mime', 'taille']);
                 $args = array_merge($args, array_values($fichier));
             }
-            // Une quittance est un document que Lasso PRODUIT : elle naît
-            // numérotée, et son numéro ne change plus — c'est ce qui en fait
-            // une pièce comptable référençable.
-            if ($champs['type'] === 'quittance') {
-                $annee = (int) substr($champs['date_piece'] ?: date('Y-m-d'), 0, 4);
-                $cols = array_merge($cols, ['origine', 'numero']);
-                $args = array_merge($args, ['emise', quittance_prochain_numero($annee)]);
+            if ($num = piece_numerotation(null, $champs)) {
+                $cols = array_merge($cols, array_keys($num));
+                $args = array_merge($args, array_values($num));
             }
             $sql = 'INSERT INTO pieces (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')';
             db()->prepare($sql)->execute($args);
@@ -222,12 +223,55 @@ function route_piece_form(): void
     render('piece_form', piece_form_data($piece, null, '', $ecrSource, $typeUrl), $titre);
 }
 
+// Le type que la pièce AURA, une fois le formulaire pris en compte.
+//
+// ⚠️ Une quittance DÉJÀ NUMÉROTÉE ne change plus de type. Son numéro est tiré
+// d'une série sans trou (quittance_prochain_numero()) et le document a pu
+// partir : lui retirer son type en ferait une pièce ordinaire portant un
+// « Q-2026-003 » que plus rien ne réattribuerait jamais. La vue verrouille déjà
+// le sélecteur ; cette garde existe parce que c'est ici qu'on écrit. Se tromper
+// de type sur une quittance se répare en la supprimant — c'est la dernière de
+// la série, donc sans trou.
+function piece_type_retenu(?array $piece, string $typePoste): string
+{
+    if ($piece && (string) $piece['type'] === 'quittance' && (string) $piece['numero'] !== '') {
+        return 'quittance';
+    }
+    return $typePoste;
+}
+
+// Ce qu'une pièce reçoit en DEVENANT une quittance : son origine et son numéro,
+// ou rien du tout. Rendu comme un couple colonne => valeur, que la création et
+// la modification posent chacune à sa façon.
+//
+// ⚠️ Une seule fonction pour les deux, et c'est tout l'objet : la règle n'était
+// écrite qu'à la création. Une pièce déposée sous un autre type puis corrigée
+// en quittance repartait avec origine='televersee' et un numéro vide — une
+// quittance que Lasso imprimait sans référence, donc inutilisable comme pièce
+// comptable. La condition porte sur le NUMÉRO déjà attribué et non sur le type
+// de départ : c'est lui qui dit si la numérotation a eu lieu.
+function piece_numerotation(?array $piece, array $champs): array
+{
+    if (($champs['type'] ?? '') !== 'quittance' || (string) ($piece['numero'] ?? '') !== '') {
+        return [];
+    }
+    $annee = (int) substr(($champs['date_piece'] ?? '') ?: date('Y-m-d'), 0, 4);
+    return ['origine' => 'emise', 'numero' => quittance_prochain_numero($annee)];
+}
+
 // Ce que le formulaire renvoie, nettoyé. L'ordre des clés EST celui des
 // colonnes de l'INSERT/UPDATE ci-dessus : ne pas le changer d'un côté seulement.
 function piece_champs_postes(): array
 {
     $type = valeur_autorisee((string) ($_POST['type'] ?? ''), array_keys(PIECE_TYPES), 'facture_recue');
-    $payee = trim((string) ($_POST['date_payee'] ?? ''));
+    // Une date qui n'en est pas une devient une absence de date, pas une
+    // valeur qu'on garde telle quelle : piece_etat() lit date_payee comme un
+    // booléen (« payée ou non ») et tout le reste la compare à d'autres dates.
+    // « bientôt » posté à la main rendait la pièce payée et faussait les
+    // comparaisons en silence. date_valide() est la même que partout ailleurs
+    // (lib/helpers.php) : format ET existence du jour.
+    $date = fn (string $cle): string => date_valide($d = trim((string) ($_POST[$cle] ?? ''))) ? $d : '';
+    $payee = $date('date_payee');
     // Le moyen de paiement se saisit par une CASE « hors des comptes suivis »
     // et non par un menu de deux lignes : le cas courant est le compte suivi,
     // et une case cochée dit l'exception mieux qu'un menu qu'il faut ouvrir
@@ -247,8 +291,8 @@ function piece_champs_postes(): array
         'libelle'        => trim((string) ($_POST['libelle'] ?? '')),
         'tiers'          => trim((string) ($_POST['tiers'] ?? '')),
         'montant'        => piece_montant_poste($type),
-        'date_piece'     => trim((string) ($_POST['date_piece'] ?? '')),
-        'date_echeance'  => trim((string) ($_POST['date_echeance'] ?? '')),
+        'date_piece'     => $date('date_piece'),
+        'date_echeance'  => $date('date_echeance'),
         'date_payee'     => $payee,
         'mode_paiement'  => $mode,
         'plan_compte_id' => ((int) ($_POST['plan_compte_id'] ?? 0)) ?: null,
@@ -287,10 +331,23 @@ function piece_form_data(?array $piece, ?array $champs, string $err, ?array $ecr
         // Les feuilles de l'arbre : seules elles sont assignables, comme
         // pour le lettrage d'une écriture (plan_feuilles(), lib/compta.php).
         'categories' => plan_feuilles(compta_plan_actif()),
-        // Les deux carnets, pour le bénéficiaire d'une quittance. Chargés
-        // seulement quand ils servent : 2900 personnes dans un menu qu'on
-        // n'ouvrira pas sont 2900 lignes de trop sur chaque autre pièce.
-        'beneficiaires' => piece_beneficiaires_options(),
+        // Les deux carnets, pour le bénéficiaire d'une quittance ou d'une note
+        // de frais. Chargés seulement quand ils servent — le commentaire le
+        // promettait, l'appel était inconditionnel : trois mille personnes
+        // bâties en mémoire puis jetées à chaque dépôt de ticket, pour un
+        // menu que la vue ne rendait même pas.
+        // Deux cas les demandent : une pièce EXISTANTE (son type peut encore
+        // changer, le menu doit être prêt) et un type qui pose la question dès
+        // l'arrivée (PIECE_TYPES['tiersPour']).
+        // ⚠️ Le type retenu est celui de la SAISIE quand il y en a une, comme
+        // dans la vue ($v('type', $typeDefaut)) : le formulaire poste vers
+        // « ?p=piece_form » sans son &type=, donc après un refus de fichier
+        // $typeDefaut est retombé sur la facture reçue pendant que $champs
+        // porte, lui, le remboursement qu'on saisissait. S'en tenir à
+        // $typeDefaut aurait vidé le menu juste au moment de le réafficher.
+        'beneficiaires' => ($piece !== null
+            || (PIECE_TYPES[$champs['type'] ?? $typeDefaut]['tiersPour'] ?? '') !== '')
+            ? piece_beneficiaires_options() : [],
     ];
 }
 
@@ -379,7 +436,12 @@ function route_piece_payee(): void
         db()->prepare("UPDATE pieces SET date_payee = '', mode_paiement = '', ecriture_id = NULL WHERE id = ?")
             ->execute([$id]);
     } else {
-        $date = trim((string) ($_POST['date_payee'] ?? '')) ?: date('Y-m-d');
+        // Même règle qu'au formulaire : une date illisible n'en est pas une.
+        // Ici elle retombe sur AUJOURD'HUI et non sur le vide — le bouton dit
+        // « Marquer payée », laisser la pièce impayée serait répondre le
+        // contraire de ce qu'on a demandé.
+        $saisie = trim((string) ($_POST['date_payee'] ?? ''));
+        $date = date_valide($saisie) ? $saisie : date('Y-m-d');
         $mode = valeur_autorisee((string) ($_POST['mode_paiement'] ?? ''), array_keys(PIECE_MODES_PAIEMENT), 'compte');
         db()->prepare('UPDATE pieces SET date_payee = ?, mode_paiement = ? WHERE id = ?')
             ->execute([$date, $mode, $id]);
@@ -464,8 +526,13 @@ function route_pieces_archive(): void
         redirect('pieces', ['err' => 'archive_vide']);
     }
 
-    $archive = tempnam(sys_get_temp_dir(), 'pieces_') . '.zip';
-    @unlink($archive);
+    // ⚠️ tempnam() CRÉE le fichier qu'il nomme : lui coller « .zip » donne un
+    // second nom, et supprimer celui-là laissait le premier — un fichier vide
+    // abandonné dans /tmp à chaque archive. On garde donc les deux noms, et
+    // c'est l'original qu'on efface.
+    $reserve = tempnam(sys_get_temp_dir(), 'pieces_');
+    $archive = $reserve . '.zip';
+    @unlink($reserve);
     $zip = new ZipArchive();
     if ($zip->open($archive, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
         redirect('pieces', ['err' => 'archive']);
@@ -577,7 +644,14 @@ function piece_beneficiaires_options(): array
             $out[] = ['val' => 's:' . (int) $s['id'], 'libelle' => (string) $s['nom'], 'groupe' => 'Structures'];
         }
     }
-    if (peut_lire('coeur')) {
+    // ⚠️ « carnet » et non « coeur ». Les personnes ont appartenu au cœur de
+    // l'application faute de module qui pût les porter ; le carnet d'adresses
+    // est ce module depuis qu'il existe (index.php, ?p=personnes). Resté sur
+    // « coeur », ce groupe était réservé aux ADMINISTRATEURS : un trésorier
+    // qui a le carnet voyait les structures et pas les personnes, alors qu'il
+    // les ouvre une par une à côté. C'était le dernier endroit du projet à
+    // garder l'ancien rattachement.
+    if (module_accessible('carnet')) {
         foreach (db()->query("SELECT id, prenom, nom, email FROM personnes ORDER BY nom COLLATE NOCASE, prenom COLLATE NOCASE") as $pe) {
             if (isset($deja[(int) $pe['id']])) {
                 continue;
@@ -620,8 +694,12 @@ function route_piece_fichier(): void
         redirect('pieces');
     }
     $chemin = fichiers_prives_dir() . '/' . basename((string) $p['fichier']);
+    // Un CODE, pas le message lui-même : ce qui transite par l'URL est
+    // réaffiché à l'écran, et une adresse forgée aurait fait paraître le
+    // bandeau rouge de son choix. Le texte vit dans la vue, comme pour
+    // l'archive (?p=pieces, « archive » / « archive_vide »).
     if (!is_file($chemin)) {
-        redirect('piece', ['id' => $id, 'err' => 'Fichier introuvable sur le serveur.']);
+        redirect('piece', ['id' => $id, 'err' => 'fichier_absent']);
     }
     // ?apercu=1 : la même route, servie « inline », pour l'aperçu de ?p=piece.
     // Une route de plus aurait dupliqué le contrôle d'accès ci-dessus — et

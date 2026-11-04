@@ -307,33 +307,6 @@ function pieces_ecritures_rapprochables(array $piece, int $max = 200): array
     return $stmt->fetchAll();
 }
 
-// L'inverse : les pièces qu'on peut accrocher à une écriture. Plusieurs pièces
-// pour une écriture est permis (un virement groupé solde trois factures), donc
-// on ne retire que celles déjà prises par une AUTRE écriture.
-function pieces_rapprochables(array $ecriture, int $max = 200): array
-{
-    $montant = (float) ($ecriture['montant'] ?? 0);
-    $ref     = (string) ($ecriture['date_op'] ?? date('Y-m-d'));
-    $eid     = (int) ($ecriture['id'] ?? 0);
-    $sens    = $montant < 0 ? 'p.montant <= 0' : 'p.montant >= 0';
-
-    $sql = "SELECT p.* FROM pieces p
-             WHERE $sens
-               AND (p.ecriture_id IS NULL OR p.ecriture_id = :eid)
-               AND p.mode_paiement <> 'hors_compte'
-          ORDER BY ABS(p.montant - :montant),
-                   ABS(julianday(COALESCE(NULLIF(p.date_payee,''), NULLIF(p.date_echeance,''), p.date_piece)) - julianday(:ref)),
-                   p.id DESC
-             LIMIT :max";
-    $stmt = db()->prepare($sql);
-    $stmt->bindValue(':eid', $eid, PDO::PARAM_INT);
-    $stmt->bindValue(':montant', $montant);
-    $stmt->bindValue(':ref', $ref);
-    $stmt->bindValue(':max', $max, PDO::PARAM_INT);
-    $stmt->execute();
-    return $stmt->fetchAll();
-}
-
 // Rattache une pièce à une écriture, ou l'en détache ($ecritureId = 0).
 //
 // ⚠️ Rattacher NE LETTRE PAS. La catégorie présumée d'une pièce ne sert qu'à

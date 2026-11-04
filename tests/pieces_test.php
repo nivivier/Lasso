@@ -378,6 +378,95 @@ check('un PDF s\'affiche', true, fichier_prive_apercu_possible('application/pdf'
 check('un PNG s\'affiche', true, fichier_prive_apercu_possible('image/png'));
 check('un type inconnu ne s\'affiche pas', false, fichier_prive_apercu_possible('text/html'));
 
+// --- 12. Les quittances : une série sans trou --------------------------------
+// Une quittance est un document que Lasso PRODUIT : elle naît numérotée, et son
+// numéro ne change plus. Deux règles le tiennent, et toutes deux manquaient —
+// la numérotation n'était écrite qu'à la création, et rien n'empêchait de
+// défaire une quittance déjà numérotée.
+$pdo->exec("DELETE FROM pieces");
+$champsQ = ['type' => 'quittance', 'date_piece' => '2026-05-04'];
+$champsT = ['type' => 'ticket',    'date_piece' => '2026-05-04'];
+
+check('une quittance créée reçoit origine et numéro',
+    ['origine' => 'emise', 'numero' => 'Q-2026-001'], piece_numerotation(null, $champsQ));
+check('une pièce d\'un autre type n\'en reçoit pas', [], piece_numerotation(null, $champsT));
+
+// LE cas qui manquait : le type se change en modifiant la pièce. Sans cette
+// règle, la quittance repartait avec origine='televersee' et un numéro vide —
+// imprimable, mais sans référence, donc inutilisable comme pièce comptable.
+check('devenir une quittance par modification numérote aussi',
+    ['origine' => 'emise', 'numero' => 'Q-2026-001'],
+    piece_numerotation(['type' => 'autre', 'numero' => ''], $champsQ));
+check('une quittance déjà numérotée ne se renumérote pas', [],
+    piece_numerotation(['type' => 'quittance', 'numero' => 'Q-2026-001'], $champsQ));
+
+// Le numéro est tiré d'une série sans trou : lui retirer son type laisserait un
+// « Q-2026-001 » que plus rien ne réattribuerait.
+check('une quittance numérotée ne change plus de type', 'quittance',
+    piece_type_retenu(['type' => 'quittance', 'numero' => 'Q-2026-001'], 'autre'));
+check('…mais une quittance sans numéro le peut encore', 'autre',
+    piece_type_retenu(['type' => 'quittance', 'numero' => ''], 'autre'));
+check('à la création, le type posté fait foi', 'ticket', piece_type_retenu(null, 'ticket'));
+
+// La série se poursuit sur ce qui est EN BASE, création et modification
+// confondues : les deux chemins appellent la même fonction.
+$pdo->exec("INSERT INTO pieces (type, libelle, montant, origine, numero) VALUES ('quittance', 'Q1', 50, 'emise', 'Q-2026-001')");
+check('la série se poursuit après une quittance existante',
+    ['origine' => 'emise', 'numero' => 'Q-2026-002'], piece_numerotation(null, $champsQ));
+$pdo->exec("DELETE FROM pieces");
+
+// --- 13. Les dates se valident -----------------------------------------------
+// piece_etat() lit date_payee comme un booléen (« payée ou non ») et tout le
+// reste la compare à d'autres dates. Une valeur qui n'est pas une date rendait
+// la pièce payée et faussait les comparaisons en silence.
+$_POST = ['type' => 'facture_recue', 'montant' => '10', 'date_payee' => 'bientôt',
+          'date_piece' => '2026-02-30', 'date_echeance' => '2026-03-15'];
+$c = piece_champs_postes();
+check('une date de paiement illisible ne rend pas la pièce payée', '', $c['date_payee']);
+check('…et la pièce reste « à payer »', 'a_payer', piece_etat($c));
+check('un 30 février est refusé, pas « roulé » au 2 mars', '', $c['date_piece']);
+check('une vraie date passe', '2026-03-15', $c['date_echeance']);
+$_POST = [];
+
+// --- 14. L'aperçu exige le fichier SUR LE DISQUE -----------------------------
+// data/fichiers/ vit hors du dépôt : une restauration, une copie du projet ou
+// un ménage laissent des pièces dont le nom de fichier survit à son contenu.
+// route_piece_fichier() répond alors par une redirection vers ?p=piece — que le
+// cadre d'aperçu suivait, affichant l'application entière dans sa propre carte
+// « Le justificatif », à son tour avec un cadre dedans. Le garde-fou est
+// structurel faute de pouvoir rendre la vue ici : ce qui compte est que la
+// condition ne retombe jamais sur le seul nom en base.
+$vuePiece = (string) file_get_contents(__DIR__ . '/../views/piece.php');
+check('la vue vérifie la présence du fichier sur le disque', true,
+    (bool) preg_match('/\$fichierPresent\s*=.*is_file\(/', $vuePiece));
+check('…et c\'est cette vérification qui commande l\'aperçu', true,
+    (bool) preg_match('/\$apercu\s*=\s*\$fichierPresent\b/', $vuePiece));
+// Le cadre ne doit pas davantage pouvoir charger la page qui le contient.
+check('aucune erreur libre ne transite plus par l\'URL', false,
+    str_contains((string) file_get_contents(__DIR__ . '/../lib/routes_pieces.php'),
+                 "'err' => 'Fichier introuvable sur le serveur.'"));
+
+// --- 15. Le bénéficiaire suit le CARNET, pas le droit d'administrateur -------
+// Les personnes ont appartenu au cœur de l'application faute de module qui pût
+// les porter ; le carnet d'adresses est ce module (index.php, ?p=personnes).
+// Resté sur peut_lire('coeur'), le groupe « Personnes » du menu bénéficiaire
+// était réservé aux ADMINISTRATEURS : un trésorier qui a le carnet voyait les
+// structures et pas les personnes, alors qu'il les ouvre une par une à côté.
+//
+// Le test est structurel : permissions_utilisateur_courant() garde ses droits
+// dans un `static`, on ne peut donc pas rejouer la fonction sous un autre
+// compte dans le même processus — et le compte de la section 10 a tout, ce qui
+// est précisément pourquoi elle ne voyait rien.
+$srcPieces = (string) file_get_contents(__DIR__ . '/../lib/routes_pieces.php');
+preg_match('/function piece_beneficiaires_options\(\).*?\n}/s', $srcPieces, $m);
+$srcBenef = $m[0] ?? '';
+check('piece_beneficiaires_options() existe et se relit', true, $srcBenef !== '');
+check('les personnes passent par le carnet', true, str_contains($srcBenef, "module_accessible('carnet')"));
+check('et plus par le droit d\'administrateur', false, str_contains($srcBenef, "peut_lire('coeur')"));
+// Les trois groupes sont derrière module_accessible() et non module_actif() :
+// un module allumé pour l'installation n'est pas un module ouvert à ce compte.
+check('aucun groupe derrière module_actif() seul', false, str_contains($srcBenef, 'module_actif('));
+
 @unlink($tmp);
 foreach (['-wal', '-shm'] as $suf) { @unlink($tmp . $suf); }
 

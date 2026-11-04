@@ -35,7 +35,12 @@ $typeInfo = PIECE_TYPES[$type] ?? PIECE_TYPES['autre'];
 // En MODIFICATION, il n'y a pas eu de menu : le sélecteur reste, sans quoi
 // corriger un type mal choisi obligerait à supprimer la pièce et à redéposer
 // son fichier.
-$typeModifiable = $id > 0;
+// ⚠️ Sauf sur une quittance DÉJÀ NUMÉROTÉE : son numéro vient d'une série sans
+// trou et le document a pu partir. Elle cesse donc d'être transformable, et le
+// type repart en champ caché comme à la création. Même garde côté serveur,
+// dans route_piece_form() — c'est elle qui fait foi.
+$quittanceFigee = $id > 0 && (string) ($p['type'] ?? '') === 'quittance' && (string) ($p['numero'] ?? '') !== '';
+$typeModifiable = $id > 0 && !$quittanceFigee;
 
 // Une pièce qui naît payée : le ticket de carte est sorti du compte au moment
 // de l'achat, la quittance constate de l'argent déjà reçu. La date du jour s'y
@@ -252,9 +257,16 @@ $plusOuvert = $id > 0 || $err !== '';
             <?php if ($typeModifiable): ?>
             <span class="lbl-champ">Type de pièce</span>
             <?= icon_picker('type', array_map(fn ($t) => ['icone' => $t['icone'], 'label' => $t['libelle']], PIECE_TYPES), $type, 'Type de pièce', ['avecLabel' => true]) ?>
+            <?php elseif ($quittanceFigee): ?>
+            <?php // Le sélecteur a disparu : le type doit alors se LIRE, sinon
+                  // rien sur cette page ne dit plus ce qu'on modifie — le titre
+                  // d'une modification est « Modifier la pièce » pour tous les
+                  // types. ?>
+            <span class="lbl-champ">Type de pièce</span>
+            <p class="muted mt-0"><?= icon($typeInfo['icone']) ?> <?= e($typeInfo['libelle']) ?> <code><?= e((string) $p['numero']) ?></code> — une quittance numérotée ne change plus de type.</p>
             <?php endif; ?>
 
-            <div class="grid2<?= $typeModifiable ? ' mt-16' : '' ?>">
+            <div class="grid2<?= $typeModifiable || $quittanceFigee ? ' mt-16' : '' ?>">
                 <label id="piece-echeance"<?= $typeInfo['echeance'] ? '' : ' hidden' ?>><span>Échéance</span>
                     <input type="date" name="date_echeance" value="<?= e($v('date_echeance')) ?>"></label>
                 <label><span>Catégorie présumée</span>

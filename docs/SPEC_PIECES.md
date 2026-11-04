@@ -170,11 +170,18 @@ décidé du regroupement sous « Plan comptable », elle vaut toujours.
 - `pieces` **écriture** — déposer et modifier une pièce ;
 - `compta` **lecture** — voir les écritures.
 
-Quelqu'un qui photographie ses tickets reçoit le premier sans le second. ⚠️ **À
-régler à l'implémentation** : `nav_groupes()` construit le bandeau de la
-comptabilité depuis `module_accessible('compta')`. L'onglet Pièces doit
-apparaître pour qui n'a que `pieces` — c'est le seul endroit du dispositif où un
-onglet survit à son module parent, et `docs/SPEC_PERMISSIONS.md` devra le dire.
+Quelqu'un qui photographie ses tickets reçoit le premier sans le second.
+**Réglé** : `nav_groupes()` ouvre le bandeau de la comptabilité dès qu'on a
+`compta` **ou** `pieces` (`lib/modules.php`), sans quoi qui n'a que le dépôt
+n'aurait aucune porte vers son écran. C'est le seul endroit du dispositif où un
+onglet survit à son module parent, et `docs/SPEC_PERMISSIONS.md` le dit.
+
+⚠️ **Et `pieces` n'est PAS « exactement comme `analytique` »**, contrairement à
+ce que cette section a longtemps affirmé : il porte **`plafonne => false`**.
+Déposer un justificatif n'est pas tenir les comptes. Sans cette distinction, le
+plafonnement des droits dépendants rabattait « `pieces` = écriture » sur
+« lecture » dès que `compta` n'était qu'en lecture — en silence, et le module
+devenait inconfigurable pour la seule chose qui l'a fait naître.
 
 **`?p=pieces`** — la liste. Barre d'outils, recherche, filtres de colonne et
 pagination comme partout. Les filtres qui comptent : *à payer*, *à rapprocher*,
@@ -239,10 +246,18 @@ sur la mécanique `filtre_coche()` déjà utilisée pour `categorie`.
 
 ## 8. Le rapprochement
 
-**Des deux côtés, manuellement.** Depuis une écriture : une fenêtre qui propose
-les pièces non rapprochées, triées par écart de montant puis par distance de
-date. Depuis une pièce : la même chose avec les écritures libres, sur le modèle
-de `fonds_ecritures_rapprochables()`.
+**Depuis une pièce, manuellement** : la fiche d'une pièce non classée liste les
+écritures libres, triées par écart de montant puis par distance de date, sur le
+modèle de `fonds_ecritures_rapprochables()`.
+
+⚠️ **La fenêtre symétrique — depuis une écriture, choisir une pièce existante —
+n'a jamais été construite**, et cette section a longtemps laissé croire le
+contraire. Depuis la colonne « Pièce » d'une écriture, on CRÉE une pièce que le
+rattachement suit (`pieces_menu_nouvelle_html()` avec l'`ecriture_id`) ; pour
+rattacher une pièce déjà déposée, on passe par sa fiche ou par les
+rapprochements proposés. Sa fonction de service, `pieces_rapprochables()`,
+est restée sans appelant jusqu'à sa suppression — si la fenêtre se fait un
+jour, elle est à réécrire, pas à retrouver.
 
 **À l'import d'un relevé : on propose, on ne pose pas** (§ 11). Les
 correspondances — montant au centime, signe cohérent, date dans une fenêtre
@@ -371,5 +386,8 @@ Chaque étape est livrable seule et laisse l'application en état de marche.
   quota de l'hébergement mutualisé et au poids de la sauvegarde complète. À
   mesurer après quelques mois d'usage réel plutôt qu'à supposer maintenant — la
   réduction à 1600 px rend le sujet peu probable, elle ne le ferme pas.
-- **L'onglet Pièces pour qui n'a pas la comptabilité** (§ 7) : le seul point du
-  dispositif de droits où un onglet doit survivre à son module parent.
+- **La fenêtre de rapprochement depuis une écriture** (§ 8) : rattacher une
+  pièce DÉJÀ déposée à une écriture demande aujourd'hui de passer par la fiche
+  de la pièce. À faire si l'usage le réclame — les rapprochements proposés
+  couvrent le cas courant, où la pièce et l'écriture se correspondent au
+  centime.
