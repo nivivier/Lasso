@@ -3249,6 +3249,23 @@ function migration_100(PDO $pdo): void
         return; // déjà jouée
     }
 
+    // ⚠️⚠️ PRAGMA foreign_keys = OFF SUR TOUTE LA MIGRATION, et c'est vital.
+    //
+    // Cette migration recrée `employes` par DROP + RENAME. Or
+    // `fiches.employe_id` porte ON DELETE CASCADE : avec les clés étrangères
+    // actives — et db() les active —, le DROP a emporté EN SILENCE toutes les
+    // fiches de salaire, et derrière elles fiche_postes, fiche_lignes,
+    // evenement_fiches et evenement_employes, tous en cascade eux aussi.
+    // Aucune erreur, aucun avertissement : la table est simplement vide après
+    // la mise à jour. C'est arrivé en production au passage en 3.1.0.
+    //
+    // Le motif x_new + copie + DROP + RENAME était le bon (docs/DECISIONS.md
+    // § Migrations SQLite) ; il lui manquait ce que migration_12 et
+    // migration_21 posent déjà autour du leur. Une recréation de table ne
+    // coupe pas seulement les FK qui POINTENT vers elle au RENAME : elle
+    // déclenche aussi celles qui en DÉPENDENT au DROP.
+    $pdo->exec('PRAGMA foreign_keys = OFF');
+
     // --- 1. Les personnes --------------------------------------------------
     // desinscrit monte ici : qui se désinscrit ne veut plus rien recevoir, pas
     // « plus rien de cette salle-là ». C'est ce qu'on croit demander en
@@ -3463,6 +3480,8 @@ function migration_100(PDO $pdo): void
         $pdo->exec('ALTER TABLE historique ADD COLUMN personne_id INTEGER REFERENCES personnes(id) ON DELETE SET NULL');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_historique_personne ON historique(personne_id, cree_le)');
     }
+
+    $pdo->exec('PRAGMA foreign_keys = ON');
 }
 
 function migration_99(PDO $pdo): void
