@@ -9,6 +9,27 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.1.1] — 2026-11-04
+
+### Corrigé
+- **La mise à jour en 3.1.0 effaçait les fiches de salaire.** ⚠️ Correctif
+  critique : toute installation passée en 3.1.0 doit restaurer sa base
+  d'avant la mise à jour **après** avoir installé cette version — l'ordre
+  compte, le code d'abord, la base ensuite.
+  La migration qui sort l'identité des employés vers la table des personnes
+  recrée la table `employes` ; elle le faisait sans désactiver les clés
+  étrangères, alors que `fiches.employe_id` porte un `ON DELETE CASCADE`. La
+  suppression de l'ancienne table a donc emporté toutes les fiches, et avec
+  elles leurs lignes de décompte, leurs postes figés et leurs liens aux
+  événements. Sans aucune erreur ni avertissement : la table était simplement
+  vide après la mise à jour. Les employés, les écritures comptables, les
+  factures, le carnet d'adresses et les événements n'étaient pas touchés.
+  Une recréation de table ne coupe pas seulement les clés étrangères qui
+  **pointent** vers elle au moment du renommage — elle déclenche aussi celles
+  qui en **dépendent** au moment de la suppression. Les quatre autres
+  migrations qui recréent une table ont été vérifiées : aucune de leurs tables
+  n'est la cible d'une cascade.
+
 ## [3.1.0] — 2026-11-04
 
 ### Ajouté
