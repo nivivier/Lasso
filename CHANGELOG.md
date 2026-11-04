@@ -9,83 +9,9 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
-### Ajouté
-- **Restaurer une sauvegarde complète depuis l'application** (Paramètres →
-  Importer, type « Sauvegarde complète »). Il fallait jusqu'ici un accès FTP au
-  serveur et suivre la note glissée dans l'archive — faisable, mais le jour où
-  l'on restaure est le mauvais jour pour découvrir une procédure. Réservé à
-  l'administration. L'archive est vérifiée **avant** que rien ne soit remplacé,
-  la base actuelle part dans un `.sqlite.bak` dont le nom est affiché à la fin,
-  les fichiers déposés sont ajoutés sans que le dossier soit vidé, et une
-  archive ne peut écrire que dans `uploads/` et `data/fichiers/`. Les trois
-  formats produits par l'export sont acceptés (`.zip`, `.tar.gz`, `.sqlite`), et
-  une sauvegarde plus ancienne est mise à jour par les migrations.
+## [3.1.0] — 2026-11-04
 
-### Corrigé
-- **La description de la sauvegarde ne mentionnait ni le carnet d'adresses, ni
-  les pièces comptables, ni la recherche de fonds** (Paramètres → Exporter), et
-  rangeait encore les structures sous la facturation et les projets sous les
-  événements. La liste des modules, écrite à la main, avait vieilli de trois
-  chantiers. Elle se lit désormais dans la table des modules : elle ne peut plus
-  diverger. Rien n'avait jamais manqué dans la sauvegarde elle-même, qui copie
-  la base entière sans énumérer aucune table — ce qu'un test vérifie maintenant,
-  table par table.
-- **Le justificatif se lit sur la page** (`?p=piece`). Une carte pleine largeur
-  affiche la pièce — image ou PDF — assez grand pour y lire un montant et une
-  date, là où il fallait jusqu'ici la télécharger, l'ouvrir ailleurs et
-  revenir. « Agrandir » la rouvre dans la fenêtre d'aperçu partagée. Les
-  formats qu'un navigateur ne sait pas rendre (`.docx`, HEIC) gardent leur
-  simple lien de téléchargement.
-- **Une base de démonstration, sans aucune donnée réelle**
-  (`php scripts/base_demo.php` → `data/demo.sqlite`). Montrer l'application,
-  essayer un écran ou chercher un bug demandait jusqu'ici d'ouvrir les vraies
-  données — salaires, numéros AVS, adresses, contacts. La base fabriquée
-  invente tout : une association, trente personnes, vingt-six structures, six
-  employés et leurs fiches, un an et demi d'écritures, des pièces dans leurs
-  trois états, des factures, une saison d'événements, deux campagnes de
-  démarchage, des demandes de subvention. Toutes les adresses e-mail sont en
-  `.test`, qui ne peut rien recevoir. Le script refuse d'écrire sur
-  `database.sqlite` et d'écraser un fichier sans qu'on le lui demande ; le
-  tirage est déterministe, donc deux exécutions donnent la même base. Remplace
-  l'ancien `lib/seed_demo.php`, qui ne couvrait que trois employés et leurs
-  fiches, n'était appelé nulle part et ne pouvait écrire que dans la base en
-  cours. Voir `README.md` §8.
-- **Un compte de connexion se rattache à une personne de l'annuaire**
-  (Paramètres → Utilisateurs). La colonne « Rattachements » de l'annuaire peut
-  enfin dire « compte », et son nouveau **filtre** — contact de structure,
-  employée, compte, rattachée à rien — s'en sert. L'annuaire se trie aussi par
-  colonne, et nomme les structures de chacun au lieu de compter « 1 structure ».
-- **Les doublons de l'annuaire s'écartent.** « Ce n'est pas un doublon » met une
-  suggestion de côté — et c'est le NOM qui est écarté, pas le groupe : sans
-  quoi elle reviendrait au premier import qui ajoute une fiche de plus. Ce
-  qu'on a écarté reste consultable et se reprend.
-- **Un module « Carnet d'adresses »** : structures, personnes et employés, au
-  même endroit. Les structures étaient partagées entre la Facturation et le
-  Booking — donc à deux modules et à aucun —, et les deux autres qui s'en
-  servent (Événements, Recherche de fonds) affichaient un onglet « Structures »
-  que leurs comptes n'avaient pas le droit d'ouvrir. Les personnes, elles,
-  vivaient dans les Paramètres faute de module qui pût les porter. Elles ont
-  maintenant le leur, et les quatre modules qui s'en servent en dépendent.
-  L'onglet Employés y figure aussi, mais toujours derrière le droit Salaires :
-  une fiche d'employé porte son n° AVS et son taux horaire.
-  Le module **« Factures » devient « Facturation »**, pour ne plus se lire comme
-  les factures *reçues* que range le module Pièces comptables.
-  Et les **projets** rejoignent Paramètres → Catégories, avec les pays, les
-  catégories et les tags : ils étaient un onglet dans trois modules à la fois,
-  alors qu'on les règle deux fois l'an. Un bandeau de module est fait pour le
-  travail courant ; une rangée qui n'aurait plus qu'un seul onglet ne s'affiche
-  d'ailleurs plus du tout.
-- **Les personnes** (`docs/SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
-  Paramètres → Application. Un contact de structure, un employé et un compte
-  peuvent être la **même personne** — et le sont souvent ; ils le disent
-  maintenant. Une personne peut être rattachée à **plusieurs structures**, avec
-  un rôle différent dans chacune : le programmateur qui change de salle garde
-  son identité et son fil. Corriger un nom ou une adresse le corrige partout.
-  Un écran « Doublons probables » propose des fusions à valider une par une —
-  rien n'est jamais regroupé tout seul.
-  **La désinscription vaut désormais pour la personne, partout** : qui se
-  désinscrit ne reçoit plus rien, même en tant que contact d'une autre
-  structure.
+### Ajouté
 - **Les pièces comptables** (`docs/SPEC_PIECES.md`) : un cinquième onglet dans la
   comptabilité où enregistrer les justificatifs — facture reçue, ticket
   photographié, document. Une pièce se saisit **avant** tout mouvement
@@ -123,6 +49,72 @@ puis sont promues sur le canal **stable** en figeant une version.
   merchandising, une cotisation —, Lasso produit un document numéroté
   (`Q-2026-001`), à une structure ou à une personne, imprimable comme les
   autres documents de l'application.
+- **Un module « Carnet d'adresses »** : structures, personnes et employés, au
+  même endroit. Les structures étaient partagées entre la Facturation et le
+  Booking — donc à deux modules et à aucun —, et les deux autres qui s'en
+  servent (Événements, Recherche de fonds) affichaient un onglet « Structures »
+  que leurs comptes n'avaient pas le droit d'ouvrir. Les personnes, elles,
+  vivaient dans les Paramètres faute de module qui pût les porter. Elles ont
+  maintenant le leur, et les quatre modules qui s'en servent en dépendent.
+  L'onglet Employés y figure aussi, mais toujours derrière le droit Salaires :
+  une fiche d'employé porte son n° AVS et son taux horaire.
+  Le module **« Factures » devient « Facturation »**, pour ne plus se lire comme
+  les factures *reçues* que range le module Pièces comptables.
+  Et les **projets** rejoignent Paramètres → Catégories, avec les pays, les
+  catégories et les tags : ils étaient un onglet dans trois modules à la fois,
+  alors qu'on les règle deux fois l'an. Un bandeau de module est fait pour le
+  travail courant ; une rangée qui n'aurait plus qu'un seul onglet ne s'affiche
+  d'ailleurs plus du tout.
+- **Les personnes** (`docs/SPEC_PERSONNES.md`) : un carnet d'adresses unique, dans
+  Paramètres → Application. Un contact de structure, un employé et un compte
+  peuvent être la **même personne** — et le sont souvent ; ils le disent
+  maintenant. Une personne peut être rattachée à **plusieurs structures**, avec
+  un rôle différent dans chacune : le programmateur qui change de salle garde
+  son identité et son fil. Corriger un nom ou une adresse le corrige partout.
+  Un écran « Doublons probables » propose des fusions à valider une par une —
+  rien n'est jamais regroupé tout seul.
+  **La désinscription vaut désormais pour la personne, partout** : qui se
+  désinscrit ne reçoit plus rien, même en tant que contact d'une autre
+  structure.
+- **Un compte de connexion se rattache à une personne de l'annuaire**
+  (Paramètres → Utilisateurs). La colonne « Rattachements » de l'annuaire peut
+  enfin dire « compte », et son nouveau **filtre** — contact de structure,
+  employée, compte, rattachée à rien — s'en sert. L'annuaire se trie aussi par
+  colonne, et nomme les structures de chacun au lieu de compter « 1 structure ».
+- **Les doublons de l'annuaire s'écartent.** « Ce n'est pas un doublon » met une
+  suggestion de côté — et c'est le NOM qui est écarté, pas le groupe : sans
+  quoi elle reviendrait au premier import qui ajoute une fiche de plus. Ce
+  qu'on a écarté reste consultable et se reprend.
+- **Le justificatif se lit sur la page** (`?p=piece`). Une carte pleine largeur
+  affiche la pièce — image ou PDF — assez grand pour y lire un montant et une
+  date, là où il fallait jusqu'ici la télécharger, l'ouvrir ailleurs et
+  revenir. « Agrandir » la rouvre dans la fenêtre d'aperçu partagée. Les
+  formats qu'un navigateur ne sait pas rendre (`.docx`, HEIC) gardent leur
+  simple lien de téléchargement.
+- **Restaurer une sauvegarde complète depuis l'application** (Paramètres →
+  Importer, type « Sauvegarde complète »). Il fallait jusqu'ici un accès FTP au
+  serveur et suivre la note glissée dans l'archive — faisable, mais le jour où
+  l'on restaure est le mauvais jour pour découvrir une procédure. Réservé à
+  l'administration. L'archive est vérifiée **avant** que rien ne soit remplacé,
+  la base actuelle part dans un `.sqlite.bak` dont le nom est affiché à la fin,
+  les fichiers déposés sont ajoutés sans que le dossier soit vidé, et une
+  archive ne peut écrire que dans `uploads/` et `data/fichiers/`. Les trois
+  formats produits par l'export sont acceptés (`.zip`, `.tar.gz`, `.sqlite`), et
+  une sauvegarde plus ancienne est mise à jour par les migrations.
+- **Une base de démonstration, sans aucune donnée réelle**
+  (`php scripts/base_demo.php` → `data/demo.sqlite`). Montrer l'application,
+  essayer un écran ou chercher un bug demandait jusqu'ici d'ouvrir les vraies
+  données — salaires, numéros AVS, adresses, contacts. La base fabriquée
+  invente tout : une association, trente personnes, vingt-six structures, six
+  employés et leurs fiches, un an et demi d'écritures, des pièces dans leurs
+  trois états, des factures, une saison d'événements, deux campagnes de
+  démarchage, des demandes de subvention. Toutes les adresses e-mail sont en
+  `.test`, qui ne peut rien recevoir. Le script refuse d'écrire sur
+  `database.sqlite` et d'écraser un fichier sans qu'on le lui demande ; le
+  tirage est déterministe, donc deux exécutions donnent la même base. Remplace
+  l'ancien `lib/seed_demo.php`, qui ne couvrait que trois employés et leurs
+  fiches, n'était appelé nulle part et ne pouvait écrire que dans la base en
+  cours. Voir `README.md` §8.
 
 ### Modifié
 - **Le haut d'une fiche est une bande.** Lien de retour, titre et boutons
@@ -155,19 +147,73 @@ puis sont promues sur le canal **stable** en figeant une version.
   elle cherchait une colonne que la refonte des personnes avait déplacée. Elle
   trouve au passage deux choses qu'elle ignorait : les **personnes** de
   l'annuaire et les **pièces comptables**.
-- **Le module « Pièces comptables » était inconfigurable.** « Déposer un
-  justificatif sans voir les comptes » — sa seule raison d'être — était refusé
-  en silence à l'enregistrement des droits.
-- **Le dépôt d'une pièce et l'écran des rapprochements s'ouvraient sans
-  en-tête** : ni le nom du module, ni ses onglets, ni rien pour dire d'où l'on
-  venait. Ces deux routes manquaient dans la déclaration de l'onglet « Pièces ».
+- **Un onglet s'ouvrait sur le vide** (Envois groupés, Paramètres → Employeur).
+  L'onglet actif est dessiné pour se fondre dans une surface blanche qui
+  continue sous lui — sa bordure basse est transparente —, et les pages de
+  liste la fournissent avec leur bloc pleine largeur, les Paramètres à
+  plusieurs sections avec leur rangée de sous-onglets. Les cinq pages qui
+  n'avaient ni l'un ni l'autre laissaient l'onglet donner sur le fond de page.
+  Un rebord blanc se pose désormais tout seul sous la rangée quand rien d'autre
+  ne vient, le trait restant où il est : sous les onglets, interrompu sous
+  l'actif.
+- **L'aperçu d'un justificatif s'emboîtait dans lui-même quand le fichier
+  manquait** (`?p=piece`). La page ne vérifiait que le NOM du fichier en base,
+  pas sa présence sur le disque — or `data/fichiers/` vit hors du dépôt, et une
+  restauration, une copie du projet ou un ménage laissent des pièces dont le
+  nom survit au contenu. La route de service répondait alors par une
+  redirection vers la page elle-même, que le cadre d'aperçu suivait : la fiche
+  entière se réaffichait dans sa propre carte « Le justificatif », avec un
+  cadre dedans, et ainsi de suite. La pièce dit désormais que son fichier est
+  introuvable et invite à le redéposer ; « Télécharger » et l'aperçu
+  disparaissent tant qu'il manque.
 - **L'import d'un relevé bancaire avait perdu son en-tête** : la page s'ouvrait
   sans le nom du module ni ses onglets, seule au milieu de rien. Elle les
   retrouve, sous l'onglet « Écritures » d'où l'on vient, et ses deux cartes
   cessent de se toucher.
+- **Le dépôt d'une pièce et l'écran des rapprochements s'ouvraient sans
+  en-tête** : ni le nom du module, ni ses onglets, ni rien pour dire d'où l'on
+  venait. Ces deux routes manquaient dans la déclaration de l'onglet « Pièces ».
 - **La carte « Salaire coordonné » touchait le tableau au-dessus d'elle**
   (Paramètres → Lignes du décompte). Elle reprend l'écart que met n'importe
   quelle autre carte posée à la suite d'un bloc.
+- **Une quittance pouvait exister sans numéro.** Le numéro — `Q-2026-003`,
+  d'une série annuelle sans trou — n'était posé qu'à la CRÉATION. Une pièce
+  déposée sous un autre type puis corrigée en « quittance » repartait sans lui,
+  et Lasso l'imprimait quand même : un document sans référence, donc
+  inutilisable comme pièce comptable. La règle vaut maintenant des deux côtés,
+  et une quittance **déjà numérotée ne change plus de type** — lui retirer le
+  sien laisserait un numéro que plus rien ne réattribuerait. Le formulaire
+  l'affiche alors en toutes lettres au lieu d'offrir un choix qu'il refuserait.
+- **Le menu « Bénéficiaire » d'une quittance ou d'une note de frais cachait les
+  personnes à qui n'est pas administrateur.** Les personnes appartiennent au
+  carnet d'adresses depuis qu'il existe ; ce menu était resté sur l'ancien
+  rattachement — le seul endroit du projet dans ce cas. Un trésorier qui a le
+  carnet y voyait les structures et pas les personnes, alors qu'il les ouvre
+  une par une à côté.
+- **Le module « Pièces comptables » était inconfigurable.** « Déposer un
+  justificatif sans voir les comptes » — sa seule raison d'être — était refusé
+  en silence à l'enregistrement des droits.
+- **Une date illisible rendait une pièce « payée ».** Les trois dates d'une
+  pièce étaient enregistrées telles qu'elles arrivaient ; or l'état d'une pièce
+  se lit sur la présence d'une date de paiement, et tout le reste compare ces
+  dates entre elles. Un 30 février ou un mot à la place d'une date passaient
+  sans bruit. Elles se valident désormais comme partout ailleurs dans
+  l'application, format et existence du jour compris.
+- **La description de la sauvegarde ne mentionnait ni le carnet d'adresses, ni
+  les pièces comptables, ni la recherche de fonds** (Paramètres → Exporter), et
+  rangeait encore les structures sous la facturation et les projets sous les
+  événements. La liste des modules, écrite à la main, avait vieilli de trois
+  chantiers. Elle se lit désormais dans la table des modules : elle ne peut plus
+  diverger. Rien n'avait jamais manqué dans la sauvegarde elle-même, qui copie
+  la base entière sans énumérer aucune table — ce qu'un test vérifie maintenant,
+  table par table.
+- **Chaque dépôt de pièce construisait l'annuaire entier pour rien.** La liste
+  des bénéficiaires — trois mille personnes sur la vraie base — se chargeait à
+  l'ouverture de n'importe quel formulaire, y compris les trois types qui ne
+  posent pas la question et n'affichent donc pas le menu. Elle ne se charge
+  plus que lorsqu'elle sert. Au passage, l'archive annuelle des justificatifs
+  laissait un fichier vide dans le dossier temporaire du serveur à chaque
+  export.
 
 ## [3.0.11] — 2026-10-10
 
