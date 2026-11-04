@@ -65,6 +65,18 @@ lieu de deux. Rien à déclarer — c'est le comportement de `.page-head-band`. 
 décision se prend sur la largeur réelle, pas sur un seuil : aujourd'hui seule
 la comptabilité, avec ses six onglets, reste sur deux lignes.
 
+**Un onglet s'ouvre TOUJOURS sur du blanc.** L'onglet actif a une bordure basse
+transparente : il est dessiné pour se fondre dans une surface qui continue sous
+lui, et le trait qui souligne la rangée s'interrompt sous lui seul. Trois
+choses jouent ce rôle, dans cet ordre : le bloc pleine largeur d'une page de
+module (`.module-content`), la rangée de sous-onglets (`.param-subtabs`), ou —
+à défaut — un rebord blanc de 14 px posé par la feuille de style sur le
+bandeau lui-même. **Rien à déclarer : le rebord se pose tout seul** quand ni
+l'un ni l'autre ne suit le bandeau (Envois groupés, Paramètres → Employeur).
+Une page à onglets n'a donc jamais à inventer sa propre surface, et en ajouter
+une à la main — remonter la première carte, poser une barre d'actions pour
+l'occasion — referait à côté ce que le bandeau fait déjà.
+
 ### Sur téléphone, la barre supérieure porte le module ET l'action
 
 Sous 800 px le rail se replie et une barre fixe le remplace. Elle tient quatre

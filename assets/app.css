@@ -1240,6 +1240,43 @@ body.fond-courbes, .fond-apercu[data-fond-apercu="courbes"] {
    pour la spécificité : sinon cette règle, moins spécifique, perdait contre
    elle malgré son ordre plus tardif dans la feuille de style. */
 .content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band:has(+ .param-subtabs) { margin-bottom: 0; }
+/* ...et, quand il n'y a NI sous-onglets NI .module-content derrière, un rebord
+   blanc tient ce rôle (?p=mailing, ?p=mailing_modeles, ?p=mailing_exclusions,
+   ?p=mailing_campagne, ?p=employeur). L'onglet actif porte une bordure basse
+   transparente (.module-tab.on, plus bas) : il est fait pour s'ouvrir sur une
+   surface blanche qui continue sous lui. Les pages de module la reçoivent de
+   .module-content, les Paramètres à plusieurs sections de .param-subtabs —
+   ces cinq-là n'avaient rien, et l'onglet donnait directement sur le fond de
+   page. Même recette que .param-subtabs (aplat var(--card) pleine largeur,
+   filet en bas), en version vide.
+   ⚠️ En position absolue SOUS la bordure basse du bandeau, pas en flux : c'est
+   cette bordure qui porte le trait interrompu sous l'onglet actif (débord de
+   -1px de .module-tab, voir le commentaire en @media plus bas). Un ::after en
+   flux se place entre .page-head et cette bordure — le trait se retrouverait
+   alors sous le rebord au lieu de le coiffer, et l'onglet actif n'aurait plus
+   rien à effacer. D'où le décalage de --rebord-trait, l'épaisseur de cette
+   bordure (0 en mobile, où elle est remplacée par un fond sur .page-head). */
+.content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band:not(:has(+ .param-subtabs)) {
+    --rebord-h: 14px;
+    --rebord-trait: 1px;
+    /* Le rebord est hors flux et ne pousse rien devant lui : c'est cette marge
+       qui lui fait sa place, et elle doit donc le compter en entier — son
+       décalage sous la bordure du bandeau, sa hauteur, son propre filet — pour
+       que restent au-dessous les 24px d'air de la règle du dessus. Oublier le
+       filet laissait 23px en mobile contre 24 sur bureau. */
+    margin-bottom: calc(var(--rebord-trait) + var(--rebord-h) + 1px + 24px);
+}
+.content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band:not(:has(+ .param-subtabs))::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    margin-top: var(--rebord-trait);
+    left: 0;
+    right: 0;
+    height: var(--rebord-h);
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+}
 /* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
    (même bug de scrollbar avec 100vw, même correctif, même calcul). */
 /* ⚠️ Pas d'aplat blanc sur le bloc : il est posé morceau par morceau, juste
@@ -4223,6 +4260,17 @@ abbr {
        (image de fond personnalisable, Apparence). Largeur à 0 : plus de
        zone du tout à cet endroit, donc plus rien à traverser en transparence. */
     .page-head-band:has(.module-tabs) { border-bottom-width: 0; }
+    /* Le rebord blanc (voir plus haut) doit suivre les deux conséquences de
+       ce bloc : le bandeau n'est plus sticky ici (position: static), donc il
+       ne sert plus de référence à un enfant positionné — d'où position:
+       relative, posé sans rien déplacer ; et sa bordure basse vaut 0, donc le
+       rebord n'a plus à la franchir (--rebord-trait: 0). La hauteur du rebord
+       ne change pas : c'est la même surface qu'il faut sous l'onglet actif,
+       quelle que soit la largeur de l'écran. */
+    .content:has(.page-head-band .module-tabs):not(:has(> .module-content)) > .page-head-band:not(:has(+ .param-subtabs)) {
+        position: relative;
+        --rebord-trait: 0px;
+    }
     /* Un module SANS onglets n'a plus rien à mettre dans son bandeau sur
        téléphone : son titre y est déjà, dans la barre supérieure, et c'est par
        là qu'il s'efface ici (.page-head-titre-module). Restait une bande vide
