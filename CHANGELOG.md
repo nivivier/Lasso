@@ -9,6 +9,16 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.2] — 2026-11-09
+
+### Corrigé
+- **Le logo du rail déplié occupe enfin la largeur qu'il a.** Il restait
+  plafonné à 82px, mesure héritée du rail étroit d'avant la refonte : dans
+  248px, il s'affichait trois fois plus petit que sa place, perdu au milieu de
+  la colonne. Le plafond est retiré plutôt que relevé — c'est le rail qui borne
+  le logo, et un nombre en dur se serait désaccordé au prochain changement de
+  largeur. Le logo s'aligne maintenant sur le champ de recherche en dessous.
+
 ## [3.2.1] — 2026-11-09
 
 ### Modifié
