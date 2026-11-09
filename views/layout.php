@@ -416,7 +416,12 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
               // posée sur l'un des deux. ?>
         <div class="side-bottom">
             <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-                <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+                <?php // ⚠️ C'est l'IMAGE qui porte le texte, et les mots à côté qui sont
+      // masqués aux lecteurs d'écran : en rail replié il ne reste que le
+      // logo, et il doit se nommer tout seul. L'inverse — un alt vide et le
+      // texte seul — laissait un rail replié dont le dernier élément ne
+      // disait rien. ?>
+<img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="Lasso v<?= e(maj_version_locale()) ?>" class="side-powered-logo"><span class="side-powered-txt" aria-hidden="true"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span></span>
             </a>
             <button class="side-avatar" id="side-avatar-btn" title="Mon compte" aria-label="Mon compte" aria-haspopup="true" aria-expanded="false">
                 <?= e($initiales) ?>
@@ -911,7 +916,12 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
     <?php else: ?><div class="auth-name"><?= e($nomEmployeur) ?></div><?php endif; ?>
     <?php require $contentView; ?>
     <a class="side-powered auth-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-        <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+        <?php // ⚠️ C'est l'IMAGE qui porte le texte, et les mots à côté qui sont
+      // masqués aux lecteurs d'écran : en rail replié il ne reste que le
+      // logo, et il doit se nommer tout seul. L'inverse — un alt vide et le
+      // texte seul — laissait un rail replié dont le dernier élément ne
+      // disait rien. ?>
+<img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="Lasso v<?= e(maj_version_locale()) ?>" class="side-powered-logo"><span class="side-powered-txt" aria-hidden="true"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span></span>
     </a>
 </main>
 <?php endif; ?>

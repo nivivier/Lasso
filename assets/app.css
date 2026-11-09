@@ -888,11 +888,23 @@ body.has-sidebar { display: flex; min-height: 100vh; }
         max-height: calc(100vh - 80px); overflow-y: auto; scrollbar-width: thin;
     }
 
-    /* Le pied : la pastille du compte seule, centrée — le crédit n'a plus la
-       largeur de son nom, et son menu s'ouvre vers la droite plutôt que dans
-       les 68px du rail. */
-    :root.rail-reduit .side-bottom { justify-content: center; }
-    :root.rail-reduit .side-powered { display: none; }
+    /* Le pied, en colonne : la pastille du compte, et tout en bas le seul
+       logo Lasso — le crédit sans ses mots, qui ne tiennent pas dans 68px.
+       column-REVERSE parce que l'ordre du document met le crédit avant la
+       pastille : à l'écran large il est à gauche, en replié il doit être
+       dessous. Un second balisage pour l'y mettre, c'eût été deux crédits à
+       tenir d'accord.
+       Le logo s'y lit seul : son alt porte « Lasso » et le numéro de version
+       (views/layout.php), et il grandit un peu — à 12px, isolé, il n'était
+       plus qu'une tache. */
+    :root.rail-reduit .side-bottom { flex-direction: column-reverse; justify-content: center; gap: 12px; }
+    /* ⚠️ Portées au RAIL : le même crédit vit sur l'écran de connexion
+       (.auth-powered), qui n'a pas de rail — et la classe rail-reduit, elle,
+       est sur <html> et le suit partout. Sans ce .sidebar, se déconnecter
+       avec un rail replié effaçait les mots du crédit sur la page de
+       connexion. */
+    :root.rail-reduit .sidebar .side-powered-txt { display: none; }
+    :root.rail-reduit .sidebar .side-powered-logo { height: 16px; }
     :root.rail-reduit .side-avatar-menu { right: auto; left: 8px; min-width: 230px; }
 }
 

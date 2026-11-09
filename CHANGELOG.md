@@ -9,6 +9,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.3] — 2026-11-09
+
+### Modifié
+- **Le pied du rail replié** : la pastille du compte, et tout en bas le seul
+  logo Lasso, un peu agrandi — les mots « Lasso » et le numéro de version ne
+  tiennent pas dans 68px. Le logo porte désormais le texte lui-même (son `alt`
+  dit « Lasso » et la version), et ce sont les mots à côté qui sont masqués aux
+  lecteurs d'écran : le dernier élément du rail replié se nomme donc tout seul,
+  sans que l'annonce soit doublée en rail déplié. L'écran de connexion, qui
+  réutilise ce crédit mais n'a pas de rail, garde le sien en entier.
+
 ## [3.2.2] — 2026-11-09
 
 ### Corrigé
