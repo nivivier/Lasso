@@ -892,6 +892,23 @@ function param_logo(string $variant): string
 // elle existe, sinon le logo normal du même fond, et seulement ensuite les
 // variantes de l'autre fond : mieux vaut un logo imparfaitement contrasté que
 // pas de logo du tout — même arbitrage que pour le rail (views/layout.php).
+// Variante LARGE pour un affichage qui a de la place (le rail déplié) : le
+// logo normal du bon fond, sinon celui de l'autre, et la version réduite
+// seulement en dernier recours. Exactement l'ordre inverse de
+// logo_petit_variante() ci-dessous — mieux vaut un monogramme qu'un rail sans
+// identité.
+function logo_grand_variante(string $fond): ?string
+{
+    $fond  = $fond === 'sombre' ? 'sombre' : 'clair';
+    $autre = $fond === 'sombre' ? 'clair' : 'sombre';
+    foreach ([$fond, $autre, 'mini_' . $fond, 'mini_' . $autre] as $variant) {
+        if (param_logo($variant) !== '') {
+            return $variant;
+        }
+    }
+    return null;
+}
+
 function logo_petit_variante(string $fond): ?string
 {
     $fond  = $fond === 'sombre' ? 'sombre' : 'clair';

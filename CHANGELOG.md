@@ -9,6 +9,17 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.1] — 2026-11-09
+
+### Modifié
+- **Le logo du rail suit l'état du rail** : le logo large quand il est déplié —
+  il a la place d'une signature —, la version réduite une fois replié, où 68px
+  de large n'en laisseraient lire qu'un trait. Les deux tiennent dans 44px de
+  haut, la mesure du rail : la version réduite y gagne un cran de moins qu'avant
+  (44 au lieu de 52), où elle dépassait tout ce qui l'entoure. Sans version
+  réduite configurée, le logo large reste dans le rail replié, et la page ne
+  s'alourdit d'aucune image.
+
 ## [3.2.0] — 2026-11-09
 
 Une refonte de l'interface, en une dizaine de passes. Rien ne change au calcul

@@ -557,10 +557,16 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 .side-accueil, .mbar-accueil { display: block; text-decoration: none; }
 .side-accueil:hover, .mbar-accueil:hover { opacity: .85; text-decoration: none; }
 .side-logo { width: 100%; max-width: 82px; height: 44px; object-fit: contain; margin: 0 auto; display: block; }
-/* Version réduite du logo (Paramètres → Employeur) : carrée, donc contrainte
-   par la hauteur et non par la largeur du rail — sans quoi elle s'afficherait
-   plus petite que le logo large qu'elle est censée remplacer ici. */
-.side-logo-mini { max-width: 52px; height: 52px; }
+/* 44px de haut PARTOUT, déplié comme replié : c'est la mesure du rail — celle
+   des initiales de repli, à un cheveu de la pastille du compte. La version
+   réduite est carrée, donc bornée aussi en largeur ; à 52 elle dépassait d'un
+   cran tout ce qui l'entoure. */
+.side-logo-petit { max-width: 44px; }
+/* LE JEU de logos, et non l'image : c'est l'enveloppe qui dit « déplié » ou
+   « replié », l'image ne dit que « clair » ou « sombre ». Deux règles display
+   sur le même élément se seraient disputé la propriété, et l'ordre de la
+   feuille aurait tranché au lieu de l'intention. */
+.side-logo-jeu-mini { display: none; }
 .side-name { font-size: var(--fs-small); font-weight: 700; color: var(--ink); word-break: break-word; }
 /* Les initiales ne servent qu'au rail réduit (plus bas) : en rail large, le
    nom entier est là. */
@@ -779,6 +785,11 @@ body.has-sidebar { display: flex; min-height: 100vh; }
        vaut un changement net que deux vitesses. */
     :root.rail-reduit .side-brand { padding: 0 8px 12px; }
     :root.rail-reduit .side-name { display: none; }
+    /* Le jeu réduit prend la place du large — et seulement s'il existe : sans
+       version réduite configurée, le logo large reste, serré dans 52px. Mieux
+       vaut un logo à l'étroit qu'un rail sans identité. */
+    :root.rail-reduit .side-brand:has(.side-logo-jeu-mini) .side-logo-jeu-grand { display: none; }
+    :root.rail-reduit .side-logo-jeu-mini { display: block; }
     :root.rail-reduit .side-initiales {
         display: flex; align-items: center; justify-content: center;
         width: 44px; height: 44px; margin: 0 auto; border-radius: 14px;

@@ -489,9 +489,12 @@ en évidence, elle, ne change jamais d'un module à l'autre.
 
 **Paramètres → Employeur** accepte quatre logos : deux pour les affichages en
 grand (fiches de salaire, factures, e-mails, écran de connexion) sur fond clair
-et sur fond sombre, et deux **versions réduites facultatives** pour les endroits où le logo
-est minuscule — la favicone de l'onglet et la barre latérale, où un logo large se
-réduit à une ligne illisible. Un monogramme carré y reste lisible. Sans elles,
+et sur fond sombre, et deux **versions réduites facultatives** pour les endroits
+où le logo est minuscule — la favicone de l'onglet, la barre supérieure du
+téléphone, et le **rail replié**, large de 68px, où un logo en largeur se réduit
+à une ligne illisible. Un monogramme carré y reste lisible. Le rail déplié, lui,
+montre le logo normal : il a la place d'une signature. Les deux tiennent dans
+44px de haut, la mesure du rail. Sans versions réduites,
 les logos normaux servent partout ; à défaut de tout logo, c'est le nom de
 l'employeur qui s'affiche. La favicone suit le thème du **système**, pas celui
 réglé dans l'application : c'est le navigateur qui dessine l'onglet. Elle tient

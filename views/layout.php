@@ -142,26 +142,48 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
             // qui montre la bonne (.side-logo-clair / .side-logo-sombre) — sans
             // JavaScript ni scintillement.
             //
-            // Le rail est étroit : on y préfère la version réduite du logo
-            // quand elle existe, et logo_petit_variante() gère le repli — la
-            // version réduite du bon fond, sinon le logo normal, sinon les
-            // variantes de l'autre fond. Mieux vaut un logo imparfaitement
-            // contrasté que pas de logo du tout.
-            $vRailClair  = logo_petit_variante('clair');
-            $vRailSombre = logo_petit_variante('sombre');
-            $logoRailClair  = $vRailClair  !== null ? param_logo_src($vRailClair)  : '';
-            $logoRailSombre = $vRailSombre !== null ? param_logo_src($vRailSombre) : $logoRailClair;
-            // Une version réduite est carrée : elle a droit à plus de hauteur
-            // que le logo large, qui lui doit tenir dans la largeur du rail.
-            $clsRailClair  = 'side-logo side-logo-clair'  . (str_starts_with((string) $vRailClair, 'mini_')  ? ' side-logo-mini' : '');
-            $clsRailSombre = 'side-logo side-logo-sombre' . (str_starts_with((string) $vRailSombre, 'mini_') ? ' side-logo-mini' : '');
+            // DEUX JEUX, et le CSS montre celui du moment : le logo large
+            // tant que le rail est déplié — il a la place d'une signature —,
+            // sa version réduite une fois replié, où 52px de large n'en
+            // laisseraient lire qu'un trait. Les deux sont rendus parce que
+            // l'état du rail est une classe posée sur <html> par le script :
+            // le serveur ne le connaît pas, et un logo choisi en JavaScript
+            // scintillerait à chaque page.
+            //
+            // ⚠️ Le jeu réduit n'est rendu QUE s'il apporte une autre image.
+            // Les logos sont inlinés en data URI (une requête de moins à
+            // chaque navigation, voir param_logo_src()) : chaque variante
+            // rendue pèse dans la page, et sans version réduite configurée
+            // les deux jeux seraient le même fichier deux fois.
+            $vGrandClair  = logo_grand_variante('clair');
+            $vGrandSombre = logo_grand_variante('sombre');
+            $vMiniClair   = logo_petit_variante('clair');
+            $vMiniSombre  = logo_petit_variante('sombre');
+            $logoRailClair  = $vGrandClair  !== null ? param_logo_src($vGrandClair)  : '';
+            $logoRailSombre = $vGrandSombre !== null ? param_logo_src($vGrandSombre) : $logoRailClair;
+            $miniDistinct   = $vMiniClair !== $vGrandClair || $vMiniSombre !== $vGrandSombre;
+            $logoMiniClair  = $miniDistinct && $vMiniClair  !== null ? param_logo_src($vMiniClair)  : '';
+            $logoMiniSombre = $miniDistinct && $vMiniSombre !== null ? param_logo_src($vMiniSombre) : $logoMiniClair;
             ?>
             <?php // Le logo du rail est un lien vers le tableau de bord — le
                   // geste qu'on tente d'instinct sur le logo d'une application. ?>
             <a href="?p=tableau_bord" class="side-accueil" title="Tableau de bord" aria-label="Tableau de bord">
             <?php if ($logoRailClair !== ''): ?>
-                <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailClair ?>">
-                <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailSombre ?>">
+                <?php // Deux axes, deux mécaniques, et c'est voulu : le JEU
+                      // (déplié / replié) se montre ou se cache sur son
+                      // enveloppe, la VARIANTE (clair / sombre) sur l'image.
+                      // Sur un seul niveau, les deux règles display se
+                      // disputaient la même propriété. ?>
+                <span class="side-logo-jeu side-logo-jeu-grand">
+                    <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-clair">
+                    <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-sombre">
+                </span>
+                <?php if ($logoMiniClair !== ''): ?>
+                <span class="side-logo-jeu side-logo-jeu-mini">
+                    <img src="<?= e($logoMiniClair) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-petit side-logo-clair">
+                    <img src="<?= e($logoMiniSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="side-logo side-logo-petit side-logo-sombre">
+                </span>
+                <?php endif; ?>
             <?php else: ?>
                 <span class="side-name"><?= e($nomEmployeur) ?></span>
                 <?php // Rail réduit, et pas de logo : le nom ne tient pas dans
