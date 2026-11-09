@@ -86,31 +86,39 @@ const MODULES = [
     ],
 ];
 
-// Couleur d'accent propre à chaque module — remplace --primary/--highlight
-// (normalement personnalisables, Paramètres > Employeur > « Couleur
-// principale ») sur les pages de ce module uniquement : rail (icône active)
-// et interface (boutons, liens, badges, sommes…), pour les distinguer
-// visuellement au premier coup d'œil. Fixe, jamais personnalisable — sinon
-// deux modules pourraient entrer en collision avec la couleur choisie par
-// l'employeur. Login, tableau de bord et Paramètres restent sur la couleur
-// principale de l'employeur (voir module_couleur_css_vars(), lib/helpers.php,
-// et nav_groupe_actif() : ces trois-là ne correspondent à aucun groupe).
-// Contraste texte blanc dessus >= 4.5:1 (WCAG AA) vérifié pour les 5 —
-// utilisées comme fond sous du texte blanc (.pagination-page.on,
-// .param-subtabs a.on, voir assets/app.css) : une teinte trop claire y
-// rendrait le texte illisible.
+// La teinte propre à chaque module. Elle ne vit QUE dans le rail — vignette du
+// module, volet ouvert, capsule de la page affichée — et nulle part ailleurs :
+// repeindre l'accent de toute la page module par module consommait la couleur
+// qui doit dire « c'est ici qu'on agit », et faisait changer de teinte un
+// bouton qui fait pourtant toujours la même chose (docs/UI.md § 13).
+//
+// Deux valeurs par module, et c'est tout ce dont le rail a besoin :
+//   'fond'   la teinte claire — la vignette, le lavis du volet, la capsule ;
+//   'encre'  la même teinte poussée au sombre — le glyphe et le libellé posés
+//            dessus. Le couple passe largement 4,5:1 dans les deux sens.
+//
+// ⚠️ Des pastels, et non les teintes moyennes d'avant : elles n'existent que
+// sur le crème du rail, jamais sur le papier d'une page, et c'est cette
+// séparation des surfaces qui les empêche d'être lues comme des signaux. Une
+// vignette lavande dans la colonne ne peut pas se confondre avec un cartouche
+// ambre dans une liste — ni la valeur ni le contexte ne correspondent. Le jour
+// où l'une d'elles paraît dans une page, la frontière tombe et la confusion
+// revient.
 const MODULE_COULEURS = [
-    // Ardoise : la seule famille de teintes encore libre, et la bonne pour ce
-    // module-ci — le carnet est le socle des quatre autres, il n'a pas à crier
-    // plus fort qu'eux. 7.03:1 sous texte blanc.
-    'carnet'      => '#445a7a',
-    'salaires'    => '#168176', // teal
-    'compta'      => '#c25415', // ambre
-    'facturation' => '#526be3', // indigo
-    'evenements'  => '#e01670', // rose
-    'booking'     => '#855cd5', // violet
-    'fonds'       => '#2f6d2a', // vert — 6.28:1 sous texte blanc
+    'carnet'      => ['fond' => '#7fdaf2', 'encre' => '#06343f'], // ciel
+    'salaires'    => ['fond' => '#8be7b6', 'encre' => '#07361f'], // menthe
+    'compta'      => ['fond' => '#ffc278', 'encre' => '#4a2500'], // abricot
+    'facturation' => ['fond' => '#9db8ff', 'encre' => '#11256b'], // bleuet
+    'evenements'  => ['fond' => '#ffa6c7', 'encre' => '#5c0730'], // blush
+    'booking'     => ['fond' => '#cea3ff', 'encre' => '#3a0c60'], // lilas
+    'fonds'       => ['fond' => '#d7e886', 'encre' => '#2f3a05'], // citron
 ];
+
+// ⚠️ Pas de teinte pour le tableau de bord : sa ligne du rail porte la vignette
+// d'encre, comme les Paramètres (views/layout.php, .nav-volet-encre). Il n'est
+// pas un module — aucun groupe dans nav_groupes() —, et une huitième couleur
+// pour lui faisait du rail huit modules au lieu de sept.
+
 
 // Cœur de l'application : jamais désactivable, listé à titre indicatif dans
 // les paramètres de modules.
@@ -532,13 +540,22 @@ function nav_groupes(): array
             // groupés », puisqu'on y démarche structure par structure.
             'booking_campagnes'          => ['Campagnes', ['booking_campagnes', 'booking_campagne', 'booking_campagne_form'], 0, 'target'],
         ];
-        // Suivi et Nouvelle campagne appartiennent au sous-module « Envois
-        // groupés » : sans lui, le booking garde ses structures, ses modèles de
-        // message et sa liste d'exclusion — dont se sert le bouton
-        // « Contacter » d'une fiche — mais plus le mailing de masse.
+        // Le Suivi appartient au sous-module « Envois groupés » : sans lui, le
+        // booking garde ses structures, ses modèles de message et sa liste
+        // d'exclusion — dont se sert le bouton « Contacter » d'une fiche —
+        // mais plus le mailing de masse.
+        //
+        // ⚠️ ?p=mailing_campagne est rattachée au Suivi et n'a PLUS d'onglet à
+        // elle. Elle en avait un, « Nouvelle campagne », et il tombait dans le
+        // rail juste sous l'onglet « Campagnes » du démarchage, qui a son
+        // propre bouton « Nouvelle campagne » : deux entrées du même nom, pour
+        // deux choses sans rapport — une campagne de démarchage d'un côté, un
+        // envoi groupé de l'autre. Le rail nomme des ÉCRANS, pas des gestes
+        // (docs/UI.md § 1) : l'écran s'ouvre désormais par un bouton du Suivi,
+        // d'où il relève. La route reste ici pour que le rail éclaire Suivi
+        // quand on y est.
         if (module_actif('mailing') && peut_lire('mailing')) {
-            $ongletsBooking['mailing'] = ['Suivi', ['mailing'], 0, 'mail'];
-            $ongletsBooking['mailing_campagne'] = ['Nouvelle campagne', ['mailing_campagne'], 0, 'send'];
+            $ongletsBooking['mailing'] = ['Suivi', ['mailing', 'mailing_campagne'], 0, 'mail'];
         }
         $ongletsBooking['mailing_modeles'] = ['Modèles', ['mailing_modeles'], 0, 'file-text'];
         $ongletsBooking['mailing_exclusions'] = ["Liste d'exclusion", ['mailing_exclusions'], 0, 'mail-x'];

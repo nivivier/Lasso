@@ -2,6 +2,201 @@
 // views/layout.php. Garder ce fichier minimal : une fonction ici doit être
 // utilisée par au moins deux vues, sinon elle reste locale à sa vue.
 
+// ÉTAT DU RAIL — large, ou réduit à ses vignettes (le chevron posé sur le
+// filet de droite, views/layout.php).
+//
+// La classe est posée sur <html> AVANT le premier rendu : ce fichier est chargé
+// dans <head> sans defer, donc il s'exécute avant que le rail ne se peigne. Lue
+// au DOMContentLoaded, elle aurait montré le rail large une fraction de seconde
+// avant de le refermer — à chaque page, puisque chaque clic recharge (pas de
+// SPA).
+//
+// localStorage et non la base : c'est un réglage de poste de travail, comme la
+// position de défilement du rail (sessionStorage, plus bas), pas une préférence
+// du compte qui devrait le suivre d'une machine à l'autre. En navigation privée
+// l'accès peut lever — le rail s'ouvre, et c'est tout.
+const LASSO_RAIL_CLE = 'lasso-rail-reduit';
+try {
+    if (localStorage.getItem(LASSO_RAIL_CLE) === '1') {
+        document.documentElement.classList.add('rail-reduit');
+    }
+} catch (e) {}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const racine = document.documentElement;
+    const rail   = document.getElementById('sidebar');
+    const bouton = document.getElementById('side-reduire');
+    if (!rail || !bouton) return;
+    const estReduit = () => racine.classList.contains('rail-reduit');
+
+    // Le bouton dit ce qu'il FERA, pas l'état où l'on est : c'est ce qu'on lit
+    // dans une infobulle avant de cliquer.
+    const direLEtat = () => {
+        const mot = estReduit() ? 'Déplier le rail' : 'Réduire le rail';
+        bouton.setAttribute('aria-expanded', estReduit() ? 'false' : 'true');
+        bouton.title = mot;
+        bouton.setAttribute('aria-label', mot);
+    };
+    const poser = reduit => {
+        racine.classList.toggle('rail-reduit', reduit);
+        // Les panneaux n'existent qu'en rail réduit : déplier le rail laisse
+        // sinon une épingle posée sur un volet qui ne la montre plus, et qui
+        // ressortirait au repli suivant.
+        document.querySelectorAll('.side-nav .nav-volet').forEach(v => {
+            v.classList.remove('flyout-on', 'flyout-pin');
+        });
+        try { localStorage.setItem(LASSO_RAIL_CLE, reduit ? '1' : '0'); } catch (e) {}
+        direLEtat();
+    };
+    direLEtat();
+    bouton.addEventListener('click', () => poser(!estReduit()));
+
+    // LE PANNEAU D'UN MODULE, en rail réduit. Il sort du rail, donc sa position
+    // verticale ne peut pas être écrite en CSS : elle se calcule à l'entrée du
+    // curseur, depuis la place du volet survolé. Le panneau est un ENFANT du
+    // volet (assets/app.css, .nav-flyout) — c'est ce qui fait que le survol
+    // reste vrai quand le curseur passe du rail au panneau.
+    //
+    // La SORTIE est retardée (délai de grâce) : on vise rarement droit, et un
+    // panneau qui se ferme dès que le curseur mord d'un pixel hors du volet est
+    // un panneau qu'on n'atteint pas. Le délai est annulé si l'on revient —
+    // entrer dans le panneau, qui est un descendant du volet, redéclenche son
+    // « mouseenter ». La bordure gauche transparente du panneau (app.css) fait
+    // le reste : elle couvre le retrait de .side-nav, là où il n'y avait ni
+    // volet ni panneau sous le curseur.
+    //
+    // DEUX états, et il en faut deux : « flyout-on » suit le curseur, et
+    // « flyout-pin » reste quand on a CLIQUÉ la vignette. Sans l'épingle, le
+    // panneau ouvert au clic se refermait dès que la souris s'en allait — or
+    // au doigt il n'y a pas de survol du tout, et c'est le seul moyen
+    // d'atteindre les pages d'un module en rail réduit.
+    // ⚠️ Ctrl/Cmd/Maj/Alt + clic appartient au NAVIGATEUR : nouvel onglet,
+    // nouvelle fenêtre, téléchargement. Les deux gestes ci-dessous détournent
+    // le clic d'un lien du rail ; sans ce filtre ils avalaient aussi ceux-là,
+    // et « ouvrir dans un nouvel onglet » ne marchait plus sur un module ni
+    // sur un onglet qui se déplie — en contradiction avec leurs propres
+    // commentaires, qui promettent que le lien reste un lien.
+    const clicOrdinaire = ev => !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey);
+
+    let fermeture = null;
+    // Le placeur de chaque volet, retenu pour pouvoir le rejouer d'ailleurs :
+    // déplier des sous-pages fait grandir le panneau, qui peut alors passer
+    // sous le bord bas de la fenêtre — il faut le remonter.
+    const placeurs = new WeakMap();
+    const fermerPanneaux = sauf => {
+        document.querySelectorAll('.side-nav .nav-volet').forEach(v => {
+            if (v !== sauf) { v.classList.remove('flyout-on', 'flyout-pin'); }
+        });
+    };
+    document.querySelectorAll('.side-nav .nav-volet').forEach(volet => {
+        const panneau = volet.querySelector('.nav-flyout');
+        if (!panneau) return;
+        const placer = () => {
+            clearTimeout(fermeture);
+            if (!estReduit()) return;
+            // Un seul panneau ouvert : pendant le délai de grâce, celui du
+            // module qu'on vient de quitter recouvrirait le nouveau.
+            fermerPanneaux(volet);
+            volet.classList.add('flyout-on');  // affiché AVANT la mesure : caché, il n'a pas de hauteur
+            const hautRail = rail.getBoundingClientRect().top;
+            const haut = volet.getBoundingClientRect().top - hautRail;
+            // Remonté quand il n'y a plus la place en dessous : les derniers
+            // modules de la colonne ouvraient leur panneau sous le bord bas.
+            const max = window.innerHeight - panneau.offsetHeight - 12 - hautRail;
+            panneau.style.top = Math.max(0, Math.min(haut, max)) + 'px';
+        };
+        const fermerPlusTard = () => {
+            clearTimeout(fermeture);
+            // L'épingle ne tombe pas avec le curseur : elle se retire au clic
+            // suivant, ici ou ailleurs.
+            fermeture = setTimeout(() => volet.classList.remove('flyout-on'), 320);
+        };
+        placeurs.set(volet, placer);
+        volet.addEventListener('mouseenter', placer);
+        volet.addEventListener('focusin', placer);
+        volet.addEventListener('mouseleave', fermerPlusTard);
+        volet.addEventListener('focusout', fermerPlusTard);
+
+        // CLIQUER LA VIGNETTE D'UN MODULE QUI SE DÉPLIE NE NAVIGUE PAS : elle
+        // ouvre ses pages. En rail large, la ligne du module mène à sa
+        // première page et le volet déplié montre les autres — le clic a donc
+        // un sens. En rail réduit il n'y a plus de volet déplié : ce clic
+        // emmenait sur une page qu'on n'avait pas demandée (le Plan comptable
+        // pour la Comptabilité), et les quatre autres restaient hors
+        // d'atteinte sans survol. Un module d'un seul écran, lui, n'a rien à
+        // déplier : son lien reste un lien.
+        const lien  = volet.querySelector('.nav-mod');
+        const pages = volet.querySelector('.nav-pages');
+        if (!lien || !pages) return;
+        lien.addEventListener('click', ev => {
+            if (!estReduit() || !clicOrdinaire(ev)) return;
+            ev.preventDefault();
+            const dejaOuvert = volet.classList.contains('flyout-pin');
+            fermerPanneaux(null);
+            if (!dejaOuvert) {
+                placer();
+                volet.classList.add('flyout-pin');
+            }
+        });
+    });
+
+    // UN ONGLET QUI PORTE DES SOUS-PAGES SE DÉPLIE, il ne navigue pas. Son
+    // href mène à sa première sous-page — « Plan comptable » à « Produits et
+    // charges », « Application » aux « Mises à jour » — et cliquer le nom d'un
+    // GROUPE pour atterrir sur un de ses membres, choisi par le code, n'est
+    // pas ce qu'on a demandé. Le lien reste un lien (ouvrir dans un onglet,
+    // copier, fonctionner sans script), c'est le clic ordinaire qu'on
+    // détourne. Vaut dans les deux rails : le panneau du rail réduit contient
+    // les mêmes .nav-page.
+    document.querySelectorAll('.side-nav .nav-page').forEach(lien => {
+        const sous = lien.nextElementSibling;
+        if (!sous || !sous.classList.contains('nav-sous')) return;
+        lien.addEventListener('click', ev => {
+            if (!clicOrdinaire(ev)) return;
+            ev.preventDefault();
+            // Sans effet visible quand la page est .on ou .deplie : ses
+            // sous-pages sont déjà là, et les replier cacherait celle qu'on
+            // est en train de lire (assets/app.css).
+            lien.classList.toggle('sous-ouvert');
+            // En rail réduit, le panneau vient de changer de hauteur : il peut
+            // avoir besoin de remonter (sa liste, elle, est bornée et défile —
+            // voir .nav-flyout .nav-pages dans assets/app.css).
+            const placer = placeurs.get(lien.closest('.nav-volet'));
+            if (placer) placer();
+            // Et dans les deux rails : ce qu'on vient de déplier doit se voir.
+            // Le rail large défile (.side-nav), le panneau du rail réduit
+            // aussi — déplier le dernier onglet d'un module posait ses
+            // sous-pages sous le bord bas, sans rien dire.
+            if (lien.classList.contains('sous-ouvert')) {
+                sous.lastElementChild?.scrollIntoView({ block: 'nearest' });
+            }
+        });
+    });
+
+    // Refermer une épingle : un clic hors du rail, ou Échap. Un clic DANS le
+    // panneau n'y touche pas — c'est un lien, la page change d'elle-même.
+    document.addEventListener('click', ev => {
+        if (!ev.target.closest('.side-nav .nav-volet')) { fermerPanneaux(null); }
+    });
+    document.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape') { fermerPanneaux(null); }
+    });
+
+    // La loupe du rail réduit ne cherche pas : elle rouvre le rail et donne le
+    // curseur au champ. C'est le même bouton de soumission qu'en rail large —
+    // sans ce détournement, le clic partait chercher une chaîne vide.
+    const loupe = document.querySelector('.side-recherche .search-go');
+    if (loupe) {
+        loupe.addEventListener('click', ev => {
+            if (!estReduit()) return;
+            ev.preventDefault();
+            poser(false);
+            const champ = document.getElementById('recherche-rail');
+            if (champ) champ.focus();
+        });
+    }
+});
+
 // Bandeau « X ligne(s) modifiée(s) — Annuler » affiché après une modification
 // groupée (voir bulk_undo_memoriser()/bulk_undo_appliquer() dans lib/helpers.php,
 // inséré par views/_bulk_undo_flash.php). Le bandeau se masque après 10 s, mais
@@ -22,18 +217,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Onglets/sous-onglets (.module-tabs, .param-subtabs) : en mobile ces bandes
-// défilent horizontalement au lieu de passer à la ligne (voir @media 800px,
-// assets/app.css) — si l'onglet actif n'est pas celui du début (ex. arrivée
-// directe sur un onglet plus loin dans la liste), il doit être visible dès
-// le chargement plutôt que caché hors champ à droite. Sans effet sur bureau
-// (la bande n'y déborde jamais, scrollIntoView n'y fait rien).
-window.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.module-tabs, .param-subtabs').forEach(nav => {
-        const actif = nav.querySelector('.on');
-        if (actif) actif.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    });
-});
+// (Ici vivait le ramène-en-vue de l'onglet actif des bandes .module-tabs /
+// .param-subtabs, qui défilaient horizontalement sur téléphone. Ces rangées
+// ne s'affichent plus à aucune largeur — le rail, tiroir compris, porte toute
+// la navigation : voir .module-tabs dans assets/app.css.)
 
 // Positionne un panneau flottant (position:fixed) sous un élément d'ancrage,
 // aligné à gauche puis clampé pour ne jamais déborder le bord droit du
@@ -111,6 +298,15 @@ function positionnerPanneauFlottant(anchorRect, panel, offsetTop, auDessusSiBeso
 // dizaines de fois par seconde.
 window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.filters-more').forEach(details => {
+        // Le panneau « Filtres » des listes en cartes (.filtres-mobile) n'a rien
+        // à faire ici : son conteneur .filtres-mobile-panneau est en
+        // position:absolute DANS la toolbar, il se place donc tout seul et
+        // flotte par-dessus la liste, fond plein, par choix (assets/app.css).
+        // Lui réserver de la place en dessous décalait la liste — et les deux
+        // volets de la vue ?vue=duo — d'une hauteur en plus, qui n'était même
+        // pas la bonne : querySelector ne voit que la PREMIÈRE moitié du
+        // panneau, pas le panneau entier.
+        if (details.classList.contains('filtres-mobile')) return;
         const body = details.querySelector('.filters-more-body');
         const toolbar = details.closest('.toolbar');
         if (!body || !toolbar) return;
@@ -1517,8 +1713,13 @@ function lassoOrdreListe(opts) {
 // que l'utilisateur est déjà en train de saisir quelque part — sinon taper « / »
 // dans un champ de texte volerait le focus au lieu d'écrire le caractère.
 window.addEventListener('DOMContentLoaded', () => {
+    // Ordre voulu : la recherche unifiée du tableau de bord, puis celle de la
+    // page (la liste affichée), et seulement à défaut celle du rail. Sans
+    // l'exclusion, le champ du rail — présent sur TOUTES les pages et premier
+    // dans le DOM — volait le raccourci à la recherche de la liste.
     const champ = document.getElementById('recherche-globale')
-        || document.querySelector('.recherche-form input[type="search"]');
+        || document.querySelector('.recherche-form:not(.side-recherche) input[type="search"]')
+        || document.querySelector('.side-recherche input[type="search"]');
     if (!champ) return;
     document.addEventListener('keydown', e => {
         if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1527,6 +1728,124 @@ window.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         champ.focus();
         champ.select();
+    });
+});
+
+// Recherche du rail : les réponses s'affichent dans la colonne, sans quitter la
+// page (?p=recherche_suggestions, lib/routes.php). Le formulaire reste un vrai
+// formulaire : Entrée sans sélection ouvre la page de résultats complète, et
+// tout fonctionne encore sans JavaScript.
+//
+// Les titres viennent de la base : ils sont posés en textContent, jamais en
+// innerHTML — une structure nommée « <img onerror=… > » est un nom valide.
+window.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('.side-recherche');
+    if (!form) return;
+    const champ = form.querySelector('input[type="search"]');
+    const min   = parseInt(form.dataset.min || '2', 10);
+    const panneau = document.createElement('div');
+    panneau.className = 'side-resultats';
+    panneau.hidden = true;
+    form.after(panneau);
+
+    let dernier = null, ctrl = null, minuteur = 0, actif = -1;
+    const liens = () => Array.from(panneau.querySelectorAll('a'));
+
+    function fermer() {
+        panneau.hidden = true;
+        panneau.replaceChildren();
+        actif = -1;
+    }
+
+    function surligner(i) {
+        const l = liens();
+        if (!l.length) return;
+        actif = (i + l.length) % l.length;
+        l.forEach((a, k) => a.classList.toggle('on', k === actif));
+        l[actif].scrollIntoView({ block: 'nearest' });
+    }
+
+    function dessiner(data) {
+        panneau.replaceChildren();
+        if (data.tropCourt) { fermer(); return; }
+        actif = -1;
+
+        if (!data.groupes.length) {
+            const vide = document.createElement('p');
+            vide.className = 'side-resultats-vide';
+            vide.textContent = 'Aucun résultat';
+            panneau.appendChild(vide);
+            panneau.hidden = false;
+            return;
+        }
+
+        data.groupes.forEach(groupe => {
+            const titre = document.createElement('p');
+            titre.className = 'side-resultats-groupe';
+            // Le registre des types : une personne, un document, un événement —
+            // la teinte est posée par le CSS d'après cet attribut.
+            titre.dataset.type = groupe.type || '';
+            titre.textContent = groupe.label;
+            const compte = document.createElement('span');
+            compte.textContent = groupe.total;
+            titre.appendChild(compte);
+            panneau.appendChild(titre);
+
+            groupe.resultats.forEach(r => {
+                const a = document.createElement('a');
+                a.href = r.url;
+                a.className = 'side-resultat';
+                const nom = document.createElement('span');
+                nom.className = 'side-resultat-nom';
+                nom.textContent = r.titre;
+                a.appendChild(nom);
+                if (r.sous_titre) {
+                    const sous = document.createElement('span');
+                    sous.className = 'side-resultat-sous';
+                    sous.textContent = r.sous_titre;
+                    a.appendChild(sous);
+                }
+                panneau.appendChild(a);
+            });
+        });
+
+        const tout = document.createElement('a');
+        tout.href = '?p=recherche&q=' + encodeURIComponent(data.q);
+        tout.className = 'side-resultats-tout';
+        tout.textContent = 'Tout voir (' + data.total + ')';
+        panneau.appendChild(tout);
+        panneau.hidden = false;
+    }
+
+    function chercher() {
+        const q = champ.value.trim();
+        if (q === dernier) return;
+        dernier = q;
+        if (q.length < min) { fermer(); return; }
+        if (ctrl) ctrl.abort();
+        ctrl = new AbortController();
+        fetch('?p=recherche_suggestions&q=' + encodeURIComponent(q), { signal: ctrl.signal })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(dessiner)
+            .catch(() => {});   // requête annulée par la frappe suivante, ou réseau coupé
+    }
+
+    champ.addEventListener('input', () => {
+        clearTimeout(minuteur);
+        minuteur = setTimeout(chercher, 180);
+    });
+    champ.addEventListener('focus', () => { if (champ.value.trim().length >= min && !panneau.firstChild) { dernier = null; chercher(); } });
+
+    champ.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { fermer(); return; }
+        if (panneau.hidden) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); surligner(actif + 1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); surligner(actif - 1); }
+        else if (e.key === 'Enter' && actif >= 0) { e.preventDefault(); liens()[actif].click(); }
+    });
+
+    document.addEventListener('click', e => {
+        if (!form.contains(e.target) && !panneau.contains(e.target)) fermer();
     });
 });
 

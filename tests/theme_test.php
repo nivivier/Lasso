@@ -91,12 +91,17 @@ $helpers = (string) file_get_contents($racine . '/lib/helpers.php');
 foreach (['primary_sombre', 'primary_d_sombre', 'primary_tint_sombre', 'brand_sombre'] as $cle) {
     check("couleurs_derivees() produit « $cle »", true, str_contains($helpers, "'$cle'"));
 }
-// Les deux injecteurs (employeur et module) doivent émettre une palette sombre,
-// sinon la couleur claire écrase le thème : ils sont écrits APRÈS la feuille de
-// style et l'emportent donc en cascade.
+// L'injecteur de couleur (celui de l'employeur) doit émettre une palette
+// sombre, sinon la couleur claire écrase le thème : il est écrit APRÈS la
+// feuille de style et l'emporte donc en cascade.
+//
+// Il n'y en avait qu'UN SECOND jusqu'à la refonte de la navigation : celui du
+// module, qui repeignait --primary/--brand page par page. La couleur d'un
+// module ne vit plus que dans le rail (--vignette, views/layout.php), donc il
+// n'y a plus de seconde palette à dédoubler.
 check(
-    'les deux injecteurs passent par css_palette_sombre()',
-    2,
+    'l\'injecteur de couleur passe par css_palette_sombre()',
+    1,
     substr_count($helpers, 'css_palette_sombre([')
 );
 

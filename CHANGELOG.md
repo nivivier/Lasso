@@ -9,6 +9,90 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.0] — 2026-11-09
+
+Une refonte de l'interface, en une dizaine de passes. Rien ne change au calcul
+d'une fiche, à la comptabilité ni aux données : ce sont les écrans qui bougent.
+
+### Modifié
+- **Le rail de navigation porte TOUT** : le module, ses pages, et les
+  sous-pages de la page ouverte. Les deux rangées d'onglets qui doublaient
+  cette navigation en tête de page — celle des modules et celle des sections
+  des Paramètres — ont disparu : le rail les disait déjà, à deux centimètres à
+  gauche. Sur téléphone, le tiroir déplie exactement le même volet, les
+  Paramètres et leurs trois niveaux compris.
+  Le tableau de bord ouvre le rail, les Paramètres le ferment, tous deux en
+  **gris** : ni l'un ni l'autre n'est un module, l'un les regarde tous, l'autre
+  les règle.
+  ⚠️ **Un onglet qui porte des sous-pages se déplie au clic** au lieu d'ouvrir
+  sa première sous-page : cliquer « Plan comptable » montre ses trois écrans,
+  il ne saute plus sur « Produits et charges ». Un petit chevron l'annonce.
+- **Le rail se replie** sur un chevron posé sur son bord droit : il ne reste
+  que les vignettes des modules, et survoler l'une d'elles ouvre un panneau
+  avec le nom du module et ses pages. Au clic, le panneau reste — c'est la
+  seule façon d'y arriver au doigt. La loupe rouvre le rail et donne le curseur
+  au champ plutôt que de chercher à vide. Le choix est retenu **par
+  navigateur** : c'est un réglage de poste de travail, pas une préférence du
+  compte.
+- **La vue deux colonnes gagne cinq écrans** : personnes, employés, fiches de
+  salaire, factures et événements l'offrent désormais comme les structures — la
+  liste en colonne étroite à gauche, la fiche choisie à droite, à partir de
+  1100px de large. La fiche affichée est la VRAIE fiche, le même fichier que la
+  page pleine : les deux ne peuvent pas diverger.
+- **Trois fonds calculés de plus** — *Pois*, *Anneaux*, *Strates* — et surtout
+  **leurs couleurs se choisissent** : sept combinaisons, de la principale et la
+  mise en évidence (ce que faisaient les décors jusqu'ici) à l'encre, au ton
+  sur ton et aux mélanges. Une bascule à pastilles les montre au lieu de les
+  nommer. Aucune n'écrit de couleur : toutes recombinent des teintes déjà
+  dérivées de celles de l'employeur.
+- **La barre d'outils monte sur la ligne du titre** quand elle y tient — la
+  recherche, les filtres et la bascule d'affichage —, et redescend sinon. La
+  décision se mesure dans le navigateur plutôt qu'à un seuil de largeur : une
+  fiche s'affiche aussi dans le volet droit de la vue deux colonnes, dont la
+  largeur n'a rien à voir avec celle de la fenêtre.
+- **Les structures rattachées à une personne** s'affichent en fiches-cartes —
+  statut, ville, drapeau, catégorie, dates, étiquettes — et la carte
+  « Rattachements » se range à droite de l'identité dès que la place le permet.
+  C'est la même mini-fiche que la liste des structures sur téléphone et que la
+  carte « Organisation » d'un événement : une structure se reconnaît d'un écran
+  à l'autre.
+- **Le tableau des employés d'une date se lit avant de se modifier** : nom,
+  « Aucune prestation », crayon. Les champs et la corbeille n'apparaissent
+  qu'en édition, comme partout ailleurs ; l'employé qu'on vient de lier s'ouvre
+  tout seul.
+- **Un envoi groupé se lance depuis Booking → Suivi**, par un bouton. Il avait
+  son propre onglet « Nouvelle campagne » dans le rail, juste sous les
+  campagnes de démarchage et leur bouton du même nom — deux entrées identiques
+  pour deux choses sans rapport.
+- Détails : le pied du rail tient sur une ligne (le crédit à gauche, le compte
+  à droite), la pagination se pose au ras du bas de la page, et le champ
+  « Chercher partout » a repris l'apparence commune des champs de recherche.
+
+### Corrigé
+- **Ouvrir le panneau « Filtres » décalait les deux volets vers le bas** sur
+  tous les écrans en vue deux colonnes.
+- **Un tableau dans une carte débordait de sa carte par la droite** au-delà de
+  1360px de fenêtre — vu sur les employés d'un événement, où une ligne ouverte
+  dépassait de 156px, bouton « Enregistrer » compris.
+- **Ctrl/Cmd + clic sur un module du rail** ouvre de nouveau un onglet : les
+  gestes qui déplient le rail avalaient aussi ceux-là.
+
+### Nettoyé
+- Les rangées d'onglets ne sont plus seulement masquées, elles ne sont plus
+  **rendues** : c'était, sur chacune des 44 pages, un bandeau de navigation
+  envoyé puis effacé par la feuille de style. Un bandeau de page sans titre —
+  sur une fiche, un formulaire — ne rend plus rien du tout.
+- La vue deux colonnes vivait en six exemplaires, un par écran : douze lignes
+  de route et sept de balisage recopiées, dont seuls le nom de la liste et un
+  mot de commentaire changeaient. Elles tiennent maintenant en trois fonctions
+  partagées (`vue_liste()`, `duo_selection()`, `bascule_vue_html()`).
+- Les sept décors de fond partageaient la même boîte, écrite sept fois. Une
+  seule classe `.decor` la porte.
+- `tests/fonds_decor_test.php` vérifie qu'un décor ou une combinaison de
+  couleurs est COMPLET — sa liste, son dessin, sa règle CSS, son entrée dans
+  l'écran Apparence. Il manquait un morceau, et le fond s'affichait nu, sans
+  un mot.
+
 ## [3.1.1] — 2026-11-04
 
 ### Corrigé

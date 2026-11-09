@@ -1227,15 +1227,11 @@ function importer_evenements_csv(string $csv, bool $simule): array
 function evenement_structures_liees(int $evenementId): array
 {
     $stmt = db()->prepare(
-        // tags_noms : même projection que la liste des structures — nom et
-        // couleur par étiquette, séparateurs char(31)/char(30) — pour que les
-        // mini-fiches de la carte « Organisation » les affichent comme ailleurs.
+        // tags_noms : la projection partagée par toutes les mini-fiches
+        // (structure_tags_mini_sql(), lib/booking.php) — celles d'une personne
+        // lisent exactement les mêmes étiquettes, dans le même ordre.
         "SELECT s.*, s.adresse_localite AS ville, s.sous_categorie AS type, es.est_facturation,
-                (SELECT GROUP_CONCAT(paire, char(30)) FROM (
-                    SELECT t.nom || char(31) || COALESCE(t.couleur, '') AS paire
-                      FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
-                     WHERE tl.structure_id = s.id ORDER BY SANS_ACCENTS(t.nom)
-                 )) AS tags_noms
+                " . structure_tags_mini_sql() . " AS tags_noms
            FROM structures s
          JOIN evenement_structures es ON es.structure_id = s.id
          WHERE es.evenement_id = ? ORDER BY es.id"

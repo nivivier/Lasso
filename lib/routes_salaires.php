@@ -93,26 +93,46 @@ function route_employes(): void
         $pgParams['actif']     = $actif;
         $pgParams['actif_set'] = 1;
     }
-    render('employes', ['employes' => $employes, 'derniere' => $derniere, 'recherche' => $recherche,
+    // Trois vues en une : la liste, et « duo » — la liste en colonne étroite
+    // avec la fiche choisie à droite (views/_duo.php). Mémorisée comme sur
+    // ?p=structures : un lien « Employés » sans ?vue= rouvre la dernière.
+    $vue = vue_liste('employes_vue');
+    $duo = duo_selection($vue, $employes, 'employe_donnees_vue');
+
+    render('employes', array_merge($duo, [
+        'vue' => $vue, 'duoSel' => $duo['duoSel'],
+        'employes' => $employes, 'derniere' => $derniere, 'recherche' => $recherche,
         'modeClient' => $modeClient, 'actif' => $actif, 'tri' => $tri,
         'pgRoute' => 'employes', 'pgParams' => $pgParams,
-        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Employés');
+        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal]), 'Employés');
+}
+
+// Les données de la fiche d'un employé : la page pleine (route_employe())
+// comme le volet droit de la vue deux colonnes (route_employes(), ?vue=duo)
+// les lisent ici. Rend null quand l'identifiant ne désigne personne.
+// ⚠️ EMPLOYE_SELECT/EMPLOYE_FROM : l'identité vit sur personnes, un SELECT *
+// rendrait des noms vides (voir CLAUDE.md § Personnes).
+function employe_donnees_vue(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
+    $stmt->execute([$id]);
+    $emp = $stmt->fetch();
+    if (!$emp) {
+        return null;
+    }
+    $stmt = db()->prepare('SELECT * FROM fiches WHERE employe_id = ? ORDER BY annee DESC, mois DESC');
+    $stmt->execute([$id]);
+    return ['emp' => $emp, 'fiches' => $stmt->fetchAll()];
 }
 
 function route_employe(): void
 {
     require_login();
-    $id   = (int) ($_GET['id'] ?? 0);
-    $stmt = db()->prepare('SELECT ' . EMPLOYE_SELECT . EMPLOYE_FROM . ' WHERE e.id = ?');
-    $stmt->execute([$id]);
-    $emp = $stmt->fetch();
-    if (!$emp) {
+    $donnees = employe_donnees_vue((int) ($_GET['id'] ?? 0));
+    if ($donnees === null) {
         redirect('employes');
     }
-    $stmt = db()->prepare('SELECT * FROM fiches WHERE employe_id = ? ORDER BY annee DESC, mois DESC');
-    $stmt->execute([$id]);
-    $fiches = $stmt->fetchAll();
-    render('employe', ['emp' => $emp, 'fiches' => $fiches], $emp['prenom'] . ' ' . $emp['nom']);
+    render('employe', $donnees, $donnees['emp']['prenom'] . ' ' . $donnees['emp']['nom']);
 }
 
 // Pastille d'identité d'un employé (?p=employe) : une couleur choisie dans
@@ -936,12 +956,20 @@ function route_fiches(): void
         }
     }
 
-    render('fiches', ['fiches' => $fiches, 'annee' => $annee, 'annees' => $annees, 'statut' => $statut,
+    // Vue deux colonnes : la fiche choisie (?sel=), à défaut la première de la
+    // liste. Mêmes données que la page pleine — fiche_donnees_vue() — pour que
+    // le volet droit montre la vraie fiche et non un résumé.
+    $vue = vue_liste('fiches_vue');
+    $duo = duo_selection($vue, $fiches, 'fiche_donnees_vue');
+
+    render('fiches', array_merge($duo, [
+        'vue' => $vue, 'duoSel' => $duo['duoSel'],
+        'fiches' => $fiches, 'annee' => $annee, 'annees' => $annees, 'statut' => $statut,
         'employes' => $employes, 'employeId' => $employeId, 'recherche' => $recherche,
         'axesParFiche' => $axesParFiche, 'totaux' => $totaux, 'tri' => $tri,
         'pgRoute' => 'fiches',
         'pgParams' => array_filter(['annee' => $annee, 'statut' => $statut, 'employe_id' => $employeId, 'q' => $recherche]),
-        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal], 'Fiches de salaire');
+        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal]), 'Fiches de salaire');
 }
 
 // Lit les lignes de prestation postées → [lignes, totalHeures, salaireTravail]
@@ -1178,15 +1206,17 @@ function route_fiche_form(): void
     }
 }
 
-function route_fiche(): void
+// Les données de la vue d'une fiche de salaire : la page pleine
+// (route_fiche()) comme le volet droit de la vue deux colonnes
+// (route_fiches(), ?vue=duo) les lisent ici — une seule fiche à tenir.
+// Rend null quand l'identifiant ne désigne aucune fiche.
+function fiche_donnees_vue(int $id): ?array
 {
-    require_login();
-    $id   = (int) ($_GET['id'] ?? 0);
     $stmt = db()->prepare('SELECT * FROM fiches WHERE id = ?');
     $stmt->execute([$id]);
     $f = $stmt->fetch();
     if (!$f) {
-        redirect('fiches');
+        return null;
     }
     $modifiable = trim((string) $f['date_paiement']) === '';
     // E-mail de l'employé (destinataire) + expéditeur configuré, pour le bouton d'envoi.
@@ -1210,12 +1240,23 @@ function route_fiche(): void
         $stmt->execute([$id]);
         $ecrituresLibres = $stmt->fetchAll();
     }
-    render('fiche', [
+    return [
         'f' => $f, 'modifiable' => $modifiable, 'saved' => $_GET['ok'] ?? null,
         'mail' => $_GET['mail'] ?? null,
         'emailEmploye' => $emailEmploye, 'emailExp' => $emailExp,
         'axes' => $axes, 'ecrituresLibres' => $ecrituresLibres,
-    ], 'Fiche ' . mois_nom((int) $f['mois']) . ' ' . $f['annee']);
+    ];
+}
+
+function route_fiche(): void
+{
+    require_login();
+    $donnees = fiche_donnees_vue((int) ($_GET['id'] ?? 0));
+    if ($donnees === null) {
+        redirect('fiches');
+    }
+    $f = $donnees['f'];
+    render('fiche', $donnees, 'Fiche ' . mois_nom((int) $f['mois']) . ' ' . $f['annee']);
 }
 
 // Sauvegarde AJAX de l'axe analytique d'une ligne de fiche (modifiable même après paiement).

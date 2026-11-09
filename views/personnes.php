@@ -6,6 +6,14 @@
 // filtre —, sinon trier remettrait la liste à zéro.
 $tousFiltres = array_filter(['q' => $recherche, 'rattachement' => $rattachement]);
 $triCol = fn (string $cle, string $lib): string => tri_entete_html('personnes', $cle, $lib, $tri, $tousFiltres);
+
+// Liens du sélecteur d'affichage (liste / deux colonnes) : mêmes filtres
+// actifs, seule la vue change — comme ?p=structures.
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['sel']);
+$lienDuo = fn (int $idP): string => '?p=personnes&' . http_build_query($qsSansVue + ['vue' => 'duo', 'sel' => $idP]);
+$vue = $vue ?? 'liste';
+$duoSel = (int) ($duoSel ?? 0);
 ?>
 <?php // L'écran appartient au Carnet d'adresses depuis qu'il existe : bandeau
       // du module et onglets, comme ses voisins Structures et Employés. Il
@@ -20,28 +28,51 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('personnes', 
 
 <div class="module-content"><div class="module-content-inner">
 
-    <div class="toolbar">
+    <div class="toolbar<?= $vue === 'duo' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="personnes">
+            <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <?= champ_recherche(['id' => 'personnes-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php // Avec un filtre posé, le compte de la page ne dit plus « dans
               // l'annuaire » mais « sur tant » : sinon on croit l'annuaire
               // vidé de ce que le filtre écarte. ?>
-        <span class="muted small">
+        <span class="muted small toolbar-compte">
             <?php if ($rattachement || $recherche !== ''): ?>
                 <?= (int) $pgTotal ?> sur <?= $total ?>
             <?php else: ?>
                 <?= $total ?> personne<?= $total > 1 ? 's' : '' ?> dans l'annuaire
             <?php endif; ?>
         </span>
+        <?php // En deux colonnes la liste est en cartes, son <thead> est masqué :
+              // l'entonnoir « Rattachement » doit se retrouver dans le panneau
+              // « Filtres », visible à toute largeur (voir ?p=structures). ?>
+        <?php
+        $fmColonnes = filtre_colonne_html('personnes', 'rattachement', PERSONNE_RATTACHEMENTS, $rattachement,
+            array_filter(['q' => $recherche]), 'Rattachement');
+        $fmActifs = filtre_colonne_actifs_html('personnes', 'rattachement', PERSONNE_RATTACHEMENTS, $rattachement,
+            array_filter(['q' => $recherche]));
+        $fmClasse = $vue === 'duo' ? 'filtres-carte' : '';
+        require __DIR__ . '/_filtres_mobile.php';
+        ?>
+        <div class="head-actions">
+            <?= bascule_vue_html('personnes', $vue, $qsSansVue) ?>
+        </div>
     </div>
 
     <?php // .table-scroll seul : porté par le même élément que .card, il
           // dessinait un filet et des coins arrondis de chaque côté d'un
           // tableau qui va déjà de bord à bord (docs/UI.md § 9). ?>
+    <?php
+    // En deux colonnes, la liste n'est pas réécrite : elle est rendue telle
+    // quelle et CAPTURÉE pour aller dans le volet de gauche (views/_duo.php).
+    if ($vue === 'duo') { ob_start(); }
+    ?>
     <div class="table-scroll">
-    <table class="list">
+    <?php // liste-cartes : la même liste passe en cartes dès qu'elle est à
+          // l'étroit — sur téléphone comme dans la colonne de gauche de la vue
+          // deux colonnes (requête de conteneur, voir assets/app.css). ?>
+    <table class="list liste-cartes cartes-personnes">
         <thead><tr>
             <?php // L'effacement des filtres se loge dans le PREMIER en-tête,
                   // comme sur les autres listes filtrables (?p=pieces,
@@ -66,15 +97,16 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('personnes', 
         <?php if (!$personnes): ?>
             <tr><td colspan="4" class="muted"><?php if ($recherche !== ''): ?>Personne ne correspond à « <?= e($recherche) ?> ».<?php else: ?>L'annuaire est vide.<?php endif; ?></td></tr>
         <?php endif; ?>
-        <?php foreach ($personnes as $pp): $pid = (int) $pp['id']; $href = '?p=personne&id=' . $pid; ?>
-            <tr class="row-link" tabindex="0" role="link" data-href="<?= e($href) ?>">
-                <td>
+        <?php foreach ($personnes as $pp): $pid = (int) $pp['id'];
+            $href = $vue === 'duo' ? $lienDuo($pid) : '?p=personne&id=' . $pid; ?>
+            <tr class="row-link <?= $vue === 'duo' && $pid === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($href) ?>">
+                <td class="col-nom-personne">
                     <a href="<?= e($href) ?>" class="titre-lien"><?= e(personne_nom($pp)) ?></a>
                     <?php if ((int) $pp['desinscrit'] === 1): ?><span class="badge muted-badge">Désinscrite</span><?php endif; ?>
                 </td>
-                <td class="muted small"><?= $pp['email'] !== '' ? e((string) $pp['email']) : '—' ?></td>
-                <td class="muted small"><?= $pp['telephone'] !== '' ? e((string) $pp['telephone']) : '—' ?></td>
-                <td class="muted small">
+                <td class="muted small col-email-personne"><?= $pp['email'] !== '' ? e((string) $pp['email']) : '—' ?></td>
+                <td class="muted small col-tel-personne"><?= $pp['telephone'] !== '' ? e((string) $pp['telephone']) : '—' ?></td>
+                <td class="muted small col-rattachements">
                     <?php // Ce qui la retient, NOMMÉ : « 1 structure » obligeait
                           // à ouvrir la fiche pour savoir laquelle. Les liens
                           // mènent droit aux structures — c'est le trajet qu'on
@@ -94,5 +126,15 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('personnes', 
     </table>
     </div>
     <?php if ($personnes): ?><?php require __DIR__ . '/_pagination.php'; ?><?php endif; ?>
+<?php if ($vue === 'duo'): ?>
+<?php
+$duoListe = ob_get_clean();
+// La fiche de droite est celle de la page pleine : le même partiel, les mêmes
+// données (personne_donnees_vue()).
+$duoFiche = !empty($p) ? '_personne_fiche.php' : '';
+$duoVide  = 'Choisissez une personne dans la liste.';
+require __DIR__ . '/_duo.php';
+?>
+<?php endif; ?>
     <script nonce="<?= e(csp_nonce()) ?>">lassoRechercheServeur(document.getElementById('personnes-search'));</script>
 </div></div>

@@ -24,14 +24,26 @@ $autresEmploye = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $r
 // vraiment imposer un filtre). C'est la session qui fait survivre les
 // entonnoirs au clic sur un en-tête.
 $tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id' => $employeId, 'q' => $recherche]);
+
+// Liens du sélecteur d'affichage (liste / deux colonnes) : mêmes filtres
+// actifs, seule la vue change — comme ?p=structures.
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['sel']);
+$lienDuo = fn (int $idF): string => '?p=fiches&' . http_build_query($qsSansVue + ['vue' => 'duo', 'sel' => $idF]);
+$vue = $vue ?? 'liste';
+$duoSel = (int) ($duoSel ?? 0);
+// ⚠️ La boucle de la liste utilise $f, comme la fiche : elle l'écraserait
+// avant que le volet droit soit rendu. On met la fiche choisie de côté.
+$fChoisie = $f ?? null;
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar">
+    <div class="toolbar<?= $vue === 'duo' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="fiches">
+            <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <?= champ_recherche(['name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php
@@ -48,17 +60,26 @@ $tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id
         $fmActifs = filtre_colonne_actifs_html('fiches', 'annee', $anneeLabels, $annee, $autresAnnee)
             . filtre_colonne_actifs_html('fiches', 'employe_id', $employeLabels, $employeId, $autresEmploye)
             . filtre_colonne_actifs_html('fiches', 'statut', $statutLabels, $statut, $autresStatut);
+        // En deux colonnes la liste est en cartes, son <thead> est masqué : le
+        // panneau « Filtres » reste visible à toute largeur (voir ?p=structures).
+        $fmClasse = $vue === 'duo' ? 'filtres-carte' : '';
         require __DIR__ . '/_filtres_mobile.php';
         ?>
-        <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
+            <?= bascule_vue_html('fiches', $vue, $qsSansVue) ?>
+            <?php if (peut_ecrire('salaires')): ?>
             <a class="btn" href="?p=fiche_form" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
 
 <?php // 7 = Date, Employé, Brut, Net, Paiement, Coût employeur, Envoyée. ?>
 <?php $nbCols = 7 + ($axesParFiche ? 1 : 0); ?>
+<?php
+// En deux colonnes, la liste n'est pas réécrite : elle est rendue telle quelle
+// et CAPTURÉE pour aller dans le volet de gauche (voir views/_duo.php).
+if ($vue === 'duo') { ob_start(); }
+?>
 <div class="table-scroll">
 <table class="list list-wide liste-cartes cartes-fiches">
     <thead>
@@ -113,8 +134,8 @@ $tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id
         if ($anneesSeparees && $anneeCourante !== $anneePrec): $anneePrec = $anneeCourante; ?>
         <tr class="fiche-mois-sep"><td colspan="<?= $nbCols ?>"><?= $anneeCourante ?></td></tr>
     <?php endif; ?>
-        <?php $hrefLigne = '?p=fiche&id=' . (int) $f['id']; ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+        <?php $hrefLigne = $vue === 'duo' ? $lienDuo((int) $f['id']) : '?p=fiche&id=' . (int) $f['id']; ?>
+        <tr class="row-link <?= $vue === 'duo' && (int) $f['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <td class="col-date"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></a></td>
             <td class="col-employe"><?= avatar_initiales((string) $f['employe_nom'], (string) ($f['avatar_couleur'] ?? ''), (string) ($f['avatar_photo'] ?? '')) ?><?= e($f['employe_nom']) ?></td>
             <?php if ($axesParFiche): ?>
@@ -157,4 +178,16 @@ $tousFiltres = array_filter(['statut' => $statut, 'annee' => $annee, 'employe_id
 </table>
 </div>
 <?php if ($fiches): ?><?php require __DIR__ . '/_pagination.php'; ?><?php endif; ?>
+<?php if ($vue === 'duo'): ?>
+<?php
+$duoListe = ob_get_clean();
+// La fiche de droite est celle de la page pleine : le même partiel, les mêmes
+// données (fiche_donnees_vue()). $f a servi de variable de boucle juste
+// au-dessus — on remet la fiche choisie avant de la rendre.
+$f = $fChoisie;
+$duoFiche = $f !== null ? '_fiche_fiche.php' : '';
+$duoVide  = 'Choisissez une fiche dans la liste.';
+require __DIR__ . '/_duo.php';
+?>
+<?php endif; ?>
 </div></div>

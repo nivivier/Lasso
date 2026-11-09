@@ -157,7 +157,15 @@ function route_factures(): void
         $factures = $stmt->fetchAll();
     }
 
-    render('factures', [
+    // Vue deux colonnes : la facture choisie (?sel=), à défaut la première de
+    // la liste. Mêmes données que la page pleine — facture_donnees_vue() —
+    // pour que le volet droit montre la vraie fiche et non un résumé.
+    $vue = vue_liste('factures_vue');
+    $duo = duo_selection($vue, $factures, 'facture_donnees_vue');
+
+    render('factures', array_merge($duo, [
+        'vue'            => $vue,
+        'duoSel'         => $duo['duoSel'],
         'factures'       => $factures,
         'statut'         => $statut,
         'annee'          => $annee,
@@ -171,7 +179,7 @@ function route_factures(): void
         'pgPage'         => $pgPage,
         'pgTaille'       => $pgTaille,
         'pgTotal'        => $pgTotal,
-    ], 'Facturation');
+    ]), 'Facturation');
 }
 
 // Formulaire (brouillon) — création ou modification, tant que non émise.
@@ -330,13 +338,15 @@ function route_facture_form(): void
     redirect('facture', ['id' => $factureId]);
 }
 
-function route_facture(): void
+// Les données d'une facture pour sa fiche — la page pleine (route_facture())
+// comme le volet droit de la vue deux colonnes (route_factures(), ?vue=duo).
+// Rendre null quand elle n'existe pas : à l'appelant de décider s'il redirige
+// ou s'il affiche sa liste sans fiche.
+function facture_donnees_vue(int $id): ?array
 {
-    require_login();
-    $id = (int) ($_GET['id'] ?? 0);
     $facture = facturation_charger($id);
     if (!$facture) {
-        redirect('factures');
+        return null;
     }
     // Écritures créditrices pas encore liées à une facture (+ celle déjà liée
     // à cette facture, le cas échéant) : proposées pour un rapprochement
@@ -355,7 +365,7 @@ function route_facture(): void
     // Liste des événements pour le picker « Événement lié » (lib/routes_evenements.php,
     // toujours chargé — voir index.php — mais n'a de sens que si le module est actif).
     $evenementsListe = module_actif('evenements') ? evenements_pour_selection() : [];
-    render('facture', [
+    return [
         'facture' => $facture,
         'lignes'  => facturation_lignes_de($id),
         'statutEffectif' => facturation_statut_effectif($facture),
@@ -367,7 +377,17 @@ function route_facture(): void
             ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
             : [],
         'saved'   => $_GET['ok'] ?? null,
-    ], 'Facture ' . ($facture['numero'] ?: '(brouillon)'));
+    ];
+}
+
+function route_facture(): void
+{
+    require_login();
+    $donnees = facture_donnees_vue((int) ($_GET['id'] ?? 0));
+    if ($donnees === null) {
+        redirect('factures');
+    }
+    render('facture', $donnees, 'Facture ' . ($donnees['facture']['numero'] ?: '(brouillon)'));
 }
 
 // Marquage manuel « payée » : pour les cas où le rapprochement automatique
@@ -990,7 +1010,10 @@ function route_structures(): void
     $recherche = trim((string) ($_GET['q'] ?? ''));
     // Mémorise la dernière vue utilisée (comme lieux) : un lien « Structures »
     // sans ?vue= explicite (sidebar) rouvre la dernière consultée.
-    $vue = filtre_persistant('vue', 'structures_vue', 'liste') === 'carte' ? 'carte' : 'liste';
+    // Trois vues : la liste, la carte, et « duo » — la liste en colonne étroite
+    // à gauche, la fiche choisie à droite (docs/UI.md § 9). Mémorisée comme les
+    // deux autres : un lien « Structures » sans ?vue= rouvre la dernière.
+    $vue = vue_liste('structures_vue', ['carte']);
     $pgTaille = pagination_taille('structures_taille');
     $f = structures_filtres();
     $where = $f['where'];
@@ -1120,14 +1143,22 @@ function route_structures(): void
         $structures = $stmt->fetchAll();
     }
 
+    // Vue duo : la fiche de la structure choisie, rendue à droite de la liste.
+    // ?sel= la désigne ; à défaut, la première de la liste — arriver sur une
+    // colonne de droite vide n'apprendrait rien. Les données sont exactement
+    // celles de route_structure(), et la mise en page exactement la même
+    // (views/_structure_fiche.php) : une seule fiche à tenir.
+    $duo = duo_selection($vue, $structures, 'structure_donnees_vue');
+
     // Pays / régions / départements de l'entonnoir « Lieu », avec leur effectif.
     // Les villes n'y sont pas : plus de quinze cents, elles arrivent par
     // ?p=structures_lieux quand on ouvre le panneau (filtre_colonne_lieu_html()).
     $lieuxOptions = lieux_options(['pays', 'region', 'dept']);
     $tagsDispo = module_actif('booking') ? db()->query('SELECT t.*, (SELECT COUNT(*) FROM structure_tag_liens l WHERE l.tag_id = t.id) AS nb FROM structure_tags t ORDER BY t.nom')->fetchAll() : [];
 
-    render('structures', [
+    render('structures', array_merge($duo, [
         'vue' => $vue,
+        'duoSel' => $duo['duoSel'],
         'cartePoints' => [],
         'carteVillesManquantes' => 0,
         'structures' => $structures,
@@ -1191,7 +1222,7 @@ function route_structures(): void
         'bulkCount' => isset($_GET['bulk']) ? (int) $_GET['bulk'] : null,
         'okAnnule'  => ($_GET['ok'] ?? '') === 'annule',
         'structBloquees' => isset($_GET['structBloquees']) ? (int) $_GET['structBloquees'] : 0,
-    ], 'Structures');
+    ]), 'Structures');
 }
 
 // Géocode un lot de villes de structures encore manquantes (bouton de la vue
@@ -1358,6 +1389,45 @@ function structure_donnees_crm(int $id): array
     ];
 }
 
+// Les données de la fiche d'une structure, telles que views/_structure_fiche.php
+// les attend. DEUX appelants, et c'est tout l'intérêt : la page pleine
+// (route_structure(), qui passe l'enregistrement AFFICHÉ — celui de la base, ou
+// celui qu'on vient de poster et qui n'a pas pu être enregistré) et le volet
+// droit de la vue deux colonnes. Les deux construisaient la même liste de
+// clés, chacun de son côté.
+function structure_donnees_fiche(array $structure, int $id, ?string $err = null): array
+{
+    $map = structure_categorie_map();
+    return array_merge([
+        'structure' => $structure,
+        'err'       => $err,
+        'categoriesPourSelect'    => structure_categories_pour_select($map),
+        'categorieIdSelectionnee' => structure_categorie_id_pour(
+            (string) ($structure['categorie'] ?? ''),
+            (string) ($structure['sous_categorie'] ?? ''),
+            $map
+        ),
+        // Les dossiers de subvention de ce bailleur. Hors de
+        // structure_donnees_crm(), qui ne répond que du booking et rend la main
+        // dès qu'il est éteint : la recherche de fonds est un module à part,
+        // qui peut vivre sans lui.
+        'dossiersFonds' => ($id && module_accessible('fonds')) ? fonds_dossiers_de_structure($id) : [],
+    ], structure_donnees_crm($id));
+}
+
+// La même, chargée depuis la base : la forme qu'attend duo_selection(), comme
+// employe_donnees_vue() et ses pareilles.
+function structure_donnees_vue(int $id): ?array
+{
+    $stmt = db()->prepare(
+        'SELECT s.*, (SELECT COUNT(*) FROM factures f WHERE f.structure_id = s.id) AS nb_factures
+         FROM structures s WHERE s.id = ?'
+    );
+    $stmt->execute([$id]);
+    $structure = $stmt->fetch();
+    return $structure ? structure_donnees_fiche($structure, $id) : null;
+}
+
 function route_structure(): void
 {
     require_login();
@@ -1375,22 +1445,11 @@ function route_structure(): void
         }
     }
     $renderForm = function (?string $err, array $structureAffichee) use ($id) {
-        $map = structure_categorie_map();
-        render('structure', array_merge(
-            ['structure' => $structureAffichee, 'err' => $err,
-             'categoriesPourSelect' => structure_categories_pour_select($map),
-             'categorieIdSelectionnee' => structure_categorie_id_pour(
-                 (string) ($structureAffichee['categorie'] ?? ''),
-                 (string) ($structureAffichee['sous_categorie'] ?? ''),
-                 $map
-             ),
-             // Les dossiers de subvention de ce bailleur. Hors de
-             // structure_donnees_crm(), qui ne répond que du booking et rend la
-             // main dès qu'il est éteint : la recherche de fonds est un module
-             // à part, qui peut vivre sans lui.
-             'dossiersFonds' => ($id && module_accessible('fonds')) ? fonds_dossiers_de_structure($id) : []],
-            structure_donnees_crm($id)
-        ), $id ? (string) $structureAffichee['nom'] : 'Nouvelle structure');
+        render(
+            'structure',
+            structure_donnees_fiche($structureAffichee, $id, $err),
+            $id ? (string) $structureAffichee['nom'] : 'Nouvelle structure'
+        );
     };
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

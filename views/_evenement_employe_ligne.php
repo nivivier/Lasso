@@ -3,6 +3,15 @@
 // de salaire, son axe, sa durée et son total — en lecture, puis en édition sous
 // le crayon.
 //
+// ⚠️ EN LECTURE MÊME SANS PRESTATION. Une ligne qui n'en avait pas encore
+// naissait tout ouverte — quatre menus déroulants, une corbeille et pas de
+// crayon —, si bien qu'un tableau d'employés fraîchement liés n'était qu'un
+// formulaire. La convention ne distingue pas les deux cas : on lit, le crayon
+// ouvre, la corbeille ne paraît qu'ouverte (docs/UI.md § 2e et § 3). La
+// colonne dit alors « Aucune prestation », et l'employé qu'on vient de lier
+// s'ouvre tout seul — c'est le script qui le fait, à l'insertion
+// (_evenement_script.php), pas le balisage.
+//
 // Sorti de la boucle pour être rendu AUSSI tout seul : quand on lie un employé,
 // la route renvoie cette ligne-là et le script l'insère, sans recharger la page
 // (docs/UI.md § 5).
@@ -53,10 +62,8 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                         }
                     ?>
                         <td class="epf-col-sm epf-col-serre">
-                            <?php if ($ligne): ?>
-                                <span class="epf-disp"><a href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ligne['fiche_id'], 'evenement', $id)) ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a></span>
-                            <?php endif; ?>
-                            <select form="<?= e($formId) ?>" name="fiche_id" class="fiche-select-sm epf-editable"<?= $ligne ? ' hidden' : '' ?>>
+                            <span class="epf-disp"><?php if ($ligne): ?><a href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ligne['fiche_id'], 'evenement', $id)) ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a><?php else: ?><span class="muted">—</span><?php endif; ?></span>
+                            <select form="<?= e($formId) ?>" name="fiche_id" class="fiche-select-sm epf-editable" hidden>
                                 <option value="">— Créer une fiche (<?= e(mois_nom((int) substr($moisEvenement, 5, 2)) . ' ' . substr($moisEvenement, 0, 4)) ?>) —</option>
                                 <?php foreach ($fichesEmp as $f): ?>
                                     <option value="<?= (int) $f['id'] ?>" <?= $ligne && (int) $ligne['fiche_id'] === (int) $f['id'] ? 'selected' : '' ?>><?= e(mois_nom((int) $f['mois']) . ' ' . $f['annee']) ?></option>
@@ -65,21 +72,17 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                         </td>
                         <?php if ($axes): ?>
                         <td class="epf-col-sm epf-col-serre">
-                            <?php if ($ligne): ?>
-                                <span class="epf-disp"><?= e($axeLabel !== '' ? $axeLabel : '—') ?></span>
-                            <?php endif; ?>
-                            <?= str_replace('name="l_axe"', 'form="' . e($formId) . '" name="l_axe"', $axeSelect('l_axe', 'l-axe epf-editable', (int) ($ligne['axe_analytique_id'] ?? ($evenement['axe_projet'] ?? 0)), (bool) $ligne)) ?>
+                            <span class="epf-disp"><?= $axeLabel !== '' ? e($axeLabel) : '<span class="muted">—</span>' ?></span>
+                            <?= str_replace('name="l_axe"', 'form="' . e($formId) . '" name="l_axe"', $axeSelect('l_axe', 'l-axe epf-editable', (int) ($ligne['axe_analytique_id'] ?? ($evenement['axe_projet'] ?? 0)), true)) ?>
                         </td>
                         <?php endif; ?>
                         <td class="epf-col-sm">
                             <div class="epf-duree">
-                                <?php if ($ligne): ?>
-                                    <span class="epf-disp"><?= e($ligne['libelle'] . ' × ' . nombre_court((float) $ligne['quantite']) . ' — ' . chf((float) $ligne['taux_horaire']) . ' CHF/h') ?></span>
-                                <?php endif; ?>
-                                <select form="<?= e($formId) ?>" name="l_unite" class="l-unite epf-editable"<?= $ligne ? ' hidden' : '' ?>><?= preselectionner_option($uniteOpts, $huSel) ?></select>
-                                <input form="<?= e($formId) ?>" name="l_quantite" class="l-qte epf-editable" type="text" inputmode="decimal" placeholder="qté" value="<?= $ligne ? e(nombre_court((float) $ligne['quantite'])) : '' ?>"<?= $ligne ? ' hidden' : '' ?>>
-                                <select form="<?= e($formId) ?>" name="l_taux_choix" class="l-taux-choix epf-editable"<?= $ligne ? ' hidden' : '' ?>><?= preselectionner_option($tauxOpts, $tauxSel) ?></select>
-                                <input form="<?= e($formId) ?>" name="l_taux_manuel" class="l-taux-manuel epf-editable" type="text" inputmode="decimal" placeholder="CHF/h" value="<?= ($ligne && $tauxSel === 'autre') ? e(nombre_court((float) $ligne['taux_horaire'])) : '' ?>"<?= $ligne ? ' hidden' : '' ?>>
+                                <span class="epf-disp"><?= $ligne ? e($ligne['libelle'] . ' × ' . nombre_court((float) $ligne['quantite']) . ' — ' . chf((float) $ligne['taux_horaire']) . ' CHF/h') : '<span class="muted">Aucune prestation</span>' ?></span>
+                                <select form="<?= e($formId) ?>" name="l_unite" class="l-unite epf-editable" hidden><?= preselectionner_option($uniteOpts, $huSel) ?></select>
+                                <input form="<?= e($formId) ?>" name="l_quantite" class="l-qte epf-editable" type="text" inputmode="decimal" placeholder="qté" value="<?= $ligne ? e(nombre_court((float) $ligne['quantite'])) : '' ?>" hidden>
+                                <select form="<?= e($formId) ?>" name="l_taux_choix" class="l-taux-choix epf-editable" hidden><?= preselectionner_option($tauxOpts, $tauxSel) ?></select>
+                                <input form="<?= e($formId) ?>" name="l_taux_manuel" class="l-taux-manuel epf-editable" type="text" inputmode="decimal" placeholder="CHF/h" value="<?= ($ligne && $tauxSel === 'autre') ? e(nombre_court((float) $ligne['taux_horaire'])) : '' ?>" hidden>
                             </div>
                         </td>
                         <td class="num epf-col-serre"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
@@ -91,17 +94,13 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                                 <input type="hidden" name="employe_id" value="<?= $eid ?>">
                             </form>
                             <div class="epf-actions">
-                                <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation"<?= $ligne ? ' hidden' : '' ?>><?= icon('save') ?></button>
-                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_retirer<?= $depuisQs ?>" class="btn danger btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé"<?= $ligne ? ' hidden' : '' ?>><?= icon('trash') ?></button>
-                                <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"<?= $ligne ? '' : ' hidden' ?>><?= icon('pencil') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" class="btn btn-sm icon-only epf-editable" title="Enregistrer la prestation" aria-label="Enregistrer la prestation" hidden><?= icon('save') ?></button>
+                                <button type="submit" form="<?= e($formId) ?>" formaction="?p=evenement_employe_retirer<?= $depuisQs ?>" class="btn danger btn-sm icon-only epf-editable" title="Retirer l'employé" aria-label="Retirer l'employé" hidden><?= icon('trash') ?></button>
+                                <button type="button" form="<?= e($formId) ?>" class="btn ghost btn-sm icon-only epf-edit-btn" title="Modifier" aria-label="Modifier"><?= icon('pencil') ?></button>
                                 <?php // La croix se pose exactement là où était le crayon,
                                       // tout à droite : un seul emplacement pour ouvrir
-                                      // l'édition et pour la refermer. Elle n'a de sens
-                                      // que sur une ligne qui a quelque chose à quitter :
-                                      // une prestation déjà enregistrée. ?>
-                                <?php if ($ligne): ?>
+                                      // l'édition et pour la refermer. ?>
                                 <button type="button" class="btn ghost btn-sm icon-only epf-editable epf-annuler-btn" title="Annuler" aria-label="Annuler" hidden><?= icon('x') ?></button>
-                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </td>

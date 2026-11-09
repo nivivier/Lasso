@@ -86,7 +86,17 @@ function route_personnes(): void
         }
     }
 
-    render('personnes', [
+    // Vue deux colonnes : la personne choisie (?sel=), à défaut la première de
+    // la liste. Mêmes données que la page pleine — personne_donnees_vue().
+    // ⚠️ 'structures' : la fiche entend les structures de CETTE personne, et la
+    // liste n'a pas de clé de ce nom — sans quoi l'une écraserait l'autre dans
+    // le render() ci-dessous.
+    $vue = vue_liste('personnes_vue');
+    $duo = duo_selection($vue, $personnes, 'personne_donnees_vue');
+
+    render('personnes', array_merge($duo, [
+        'vue'       => $vue,
+        'duoSel'    => $duo['duoSel'],
         'personnes' => $personnes,
         'structuresParPersonne' => $structuresParPersonne,
         'recherche' => $recherche,
@@ -98,16 +108,18 @@ function route_personnes(): void
         'pgPage'    => $pgPage,
         'pgTaille'  => $pgTaille,
         'pgTotal'   => $pgTotal ?? 0,
-    ], 'Personnes');
+    ]), 'Personnes');
 }
 
-function route_personne(): void
+// Les données de la fiche d'une personne : la page pleine (route_personne())
+// comme le volet droit de la vue deux colonnes (route_personnes(), ?vue=duo)
+// les lisent ici — une seule fiche à tenir. Rend null quand l'identifiant ne
+// désigne personne. Même procédé que structure/facture/employé.
+function personne_donnees_vue(int $id): ?array
 {
-    require_login();
-    $id = (int) ($_GET['id'] ?? 0);
-    $p  = $id ? personne_charger($id) : null;
+    $p = $id ? personne_charger($id) : null;
     if (!$p) {
-        redirect('personnes');
+        return null;
     }
     // Ce qui la retient : ses structures, son emploi, son compte. C'est tout
     // l'intérêt du modèle — ces trois-là étaient sans rapport.
@@ -131,14 +143,24 @@ function route_personne(): void
         $pieces = $stmtP->fetchAll();
     }
 
-    render('personne', [
+    return [
         'p'           => $p,
         'structures'  => personne_structures($id),
         'employes'    => $stmtE->fetchAll(),
         'utilisateurs' => $stmtU->fetchAll(),
         'pieces'      => $pieces,
         'ok'          => isset($_GET['ok']),
-    ], personne_nom($p));
+    ];
+}
+
+function route_personne(): void
+{
+    require_login();
+    $donnees = personne_donnees_vue((int) ($_GET['id'] ?? 0));
+    if ($donnees === null) {
+        redirect('personnes');
+    }
+    render('personne', $donnees, personne_nom($donnees['p']));
 }
 
 function route_personne_enregistrer(): void

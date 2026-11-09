@@ -1,6 +1,7 @@
 <?php /** @var array $factures */ /** @var array $statut */ /** @var array $annee */ /** @var array $annees */
 /** @var bool $avecEvenements */ /** @var string $recherche */ /** @var bool $modeClient */ /** @var array $tri */
 /** @var string $pgRoute */ /** @var array $pgParams */ /** @var int $pgPage */ /** @var int $pgTaille */ /** @var int $pgTotal */
+/** @var string $vue */ /** @var int $duoSel */
 
 // Filtres de colonne (EXPÉRIMENTAL, même mécanique que ?p=fiches) : Émission
 // (ex-Année) et Paiement (ex-Statut), à la place des 2 <select> de la toolbar.
@@ -12,14 +13,22 @@ $autresAnnee  = array_filter(['statut' => $statut, 'q' => $recherche]);
 // Les liens de tri emportent tous les filtres actifs, comme les entonnoirs.
 $tousFiltres  = array_filter(['statut' => $statut, 'annee' => $annee, 'q' => $recherche]);
 $triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $cle, $lib, $tri, $tousFiltres);
+
+// Liens du sélecteur d'affichage (liste / deux colonnes) : mêmes filtres
+// actifs, seule la vue change — comme ?p=structures.
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['sel']);
+$lienDuo = fn (int $id): string => '?p=factures&' . http_build_query($qsSansVue + ['vue' => 'duo', 'sel' => $id]);
+$duoSel = (int) ($duoSel ?? 0);
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar">
+    <div class="toolbar<?= $vue === 'duo' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="factures">
+            <input type="hidden" name="vue" value="<?= e($vue) ?>">
             <?= champ_recherche(['id' => 'facturation-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
         <?php
@@ -32,16 +41,29 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $
         $fmColonnes = ob_get_clean();
         $fmActifs = filtre_colonne_actifs_html('factures', 'annee', $anneeLabels, $annee, $autresAnnee)
             . filtre_colonne_actifs_html('factures', 'statut', $statutLabels, $statut, $autresStatut);
+        // .filtres-carte : en deux colonnes la liste est en cartes, son <thead>
+        // est masqué — les entonnoirs n'ont plus d'en-tête de colonne où
+        // s'accrocher, le panneau « Filtres » reste donc visible à toute
+        // largeur (même règle qu'en vue carte sur ?p=structures).
+        $fmClasse = $vue === 'duo' ? 'filtres-carte' : '';
         require __DIR__ . '/_filtres_mobile.php';
         ?>
-        <?php if (peut_ecrire('facturation')): ?>
         <div class="head-actions">
+            <?= bascule_vue_html('factures', $vue, $qsSansVue) ?>
+            <?php if (peut_ecrire('facturation')): ?>
             <a class="btn" href="?p=facture_form"><?= icon('file-plus') ?><span class="lbl"> Nouvelle facture</span></a>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
 
 <?php $nbCols = 6 + ($avecEvenements ? 1 : 0); ?>
+<?php
+// En deux colonnes, la liste n'est pas réécrite : elle est rendue telle quelle
+// et CAPTURÉE pour aller dans le volet de gauche (voir views/_duo.php). Elle
+// passe en cartes d'elle-même — les règles des listes en cartes sont des
+// requêtes de conteneur et la colonne est étroite.
+if ($vue === 'duo') { ob_start(); }
+?>
 <div class="table-scroll">
 <table class="list list-wide liste-cartes cartes-factures">
     <thead><tr>
@@ -79,8 +101,13 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $
     ?>
         <tr class="mois-sep"><td colspan="<?= $nbCols ?>"><?= e(mois_nom((int) substr($moisCle, 5, 2)) . ' ' . substr($moisCle, 0, 4)) ?></td></tr>
     <?php endif; ?>
-        <?php $hrefLigne = '?p=facture&id=' . (int) $f['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+        <?php // En deux colonnes, un clic recharge la page avec &sel= : la
+              // fiche s'affiche à droite, la liste reste à gauche. Pas d'AJAX —
+              // la fiche porte ses propres scripts (voir views/_duo.php). ?>
+        <?php $hrefLigne = $vue === 'duo'
+            ? $lienDuo((int) $f['id'])
+            : '?p=facture&id=' . (int) $f['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
+        <tr class="row-link <?= $vue === 'duo' && (int) $f['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <td class="col-numero"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
             <td class="col-structure"><strong><?= e($f['structure_nom']) ?></strong></td>
             <td class="muted small"><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
@@ -101,6 +128,16 @@ $triCol = fn (string $cle, string $lib): string => tri_entete_html('factures', $
 </table>
 </div>
 <?php if ($factures): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
+<?php if ($vue === 'duo'): ?>
+<?php
+$duoListe = ob_get_clean();
+// La fiche de droite est celle de la page pleine, au pixel près : le même
+// partiel, les mêmes données (facture_donnees_vue()).
+$duoFiche = !empty($facture) ? '_facture_fiche.php' : '';
+$duoVide  = 'Choisissez une facture dans la liste.';
+require __DIR__ . '/_duo.php';
+?>
+<?php endif; ?>
 </div></div>
 <script nonce="<?= e(csp_nonce()) ?>">
 <?php if ($modeClient): ?>

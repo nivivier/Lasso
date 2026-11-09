@@ -13,7 +13,15 @@ $termeSingulier = evenements_terme_projet(false);
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
 unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
-$lienVue = fn (string $v) => '?p=evenements&' . http_build_query($qsSansVue + ['vue' => $v]);
+// Vue deux colonnes : le lien d'une ligne recharge la page avec &sel=, la
+// fiche s'affiche à droite (voir views/_duo.php).
+$qsDuo = $qsSansVue;
+unset($qsDuo['sel']);
+$lienDuo = fn (int $idEv): string => '?p=evenements&' . http_build_query($qsDuo + ['vue' => 'duo', 'sel' => $idEv]);
+$duoSel = (int) ($duoSel ?? 0);
+// Sélection groupée : hors de la colonne étroite de la vue deux colonnes, où
+// la liste est en cartes et la barre flottante n'aurait pas sa place.
+$avecCheck = peut_ecrire('evenements') && $vue !== 'duo';
 // Lien pour quitter le filtre « non localisés » (venu de la vue carte) sans
 // perdre les autres filtres actifs — voir views/structures.php.
 $qsSansNonLocalises = $_GET;
@@ -54,7 +62,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <?php $ntBandClasse = $vue === 'carte' ? 'carte-header' : null; require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
+    <div class="toolbar<?= in_array($vue, ['carte', 'duo'], true) ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="evenements">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
@@ -71,7 +79,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         // qu'on ne regarde pas tous les événements. 'vue' => 'carte' n'est
         // reconduit qu'en carte — chaque filtre est un <form> qui ne connaît
         // que ses propres champs.
-        $vueExtraEv = $vue === 'carte' ? ['vue' => 'carte'] : [];
+        $vueExtraEv = in_array($vue, ['carte', 'duo'], true) ? ['vue' => $vue] : [];
         $filtresEv = [
             ['annee', 'Date', $anneeLabels, $annee],
             ['projet_id', $termeSingulier, $projetLabels, $projetId],
@@ -91,14 +99,11 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
         }
         $fmColonnes = ob_get_clean();
         $fmActifs = $actifsFiltresEv;
-        $fmClasse = $vue === 'carte' ? 'filtres-carte' : '';
+        $fmClasse = in_array($vue, ['carte', 'duo'], true) ? 'filtres-carte' : '';
         require __DIR__ . '/_filtres_mobile.php';
         ?>
         <div class="head-actions">
-            <div class="seg-picker" role="radiogroup" aria-label="Affichage">
-                <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste" aria-label="Affichage en liste"><?= icon('rows-3') ?></a>
-                <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte" aria-label="Affichage sur une carte"><?= icon('map') ?></a>
-            </div>
+            <?= bascule_vue_html('evenements', $vue, $qsSansVue, ['liste', 'duo', 'carte']) ?>
             <?php $exportQs = http_build_query([
                 'annee' => $annee, 'statut_suisa' => $statutSuisa, 'projet_id' => $projetId,
                 'statut' => $statut, 'visibilite' => $visibilite, 'pays' => $pays, 'salaries' => $salaries,
@@ -120,7 +125,7 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_evenements_carte.php'; ?>
 <?php else: ?>
-<?php if (peut_ecrire('evenements')): ?>
+<?php if ($avecCheck): ?>
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=evenements">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -197,12 +202,19 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
     </form>
 </div>
 <?php endif; ?>
+<?php
+// En deux colonnes, la liste n'est pas réécrite : elle est rendue telle quelle
+// et CAPTURÉE pour aller dans le volet de gauche (voir views/_duo.php). Elle
+// passe en cartes d'elle-même — les règles des listes en cartes sont des
+// requêtes de conteneur et la colonne est étroite.
+if ($vue === 'duo') { ob_start(); }
+?>
 <div class="table-scroll">
-<table class="list list-wide evenements-liste liste-cartes cartes-evenements<?= peut_ecrire('evenements') ? ' avec-check' : '' ?>">
-    <?php $nbCols = 8 - (peut_ecrire('evenements') ? 0 : 1); ?>
+<table class="list list-wide evenements-liste liste-cartes cartes-evenements<?= $avecCheck ? ' avec-check' : '' ?>">
+    <?php $nbCols = 8 - ($avecCheck ? 0 : 1); ?>
     <thead>
         <tr>
-            <?php if (peut_ecrire('evenements')): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements', ['annee', 'statut', 'statut_suisa', 'projet_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $projetId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
+            <?php if ($avecCheck): ?><th class="col-reinit-hote col-check"><?= bouton_reinit_filtres('evenements', ['annee', 'statut', 'statut_suisa', 'projet_id', 'pays', 'salaries', 'visibilite'], (bool) ($annee || $statut || $statutSuisa || $projetId || $pays || $salaries || $visibilite)) ?><input type="checkbox" id="check-all" aria-label="Tout cocher"></th><?php endif; ?>
             <?php // Chaque en-tête est à la fois triable (le libellé, un lien) et
                   // filtrable (l'entonnoir à côté) : deux gestes distincts sur la
                   // même colonne. Le lien emporte les filtres actifs, d'où
@@ -275,9 +287,11 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
             $drapeau = pays_drapeau((string) $ev['pays']);
             $festivalSalle = implode(', ', array_filter([$ev['festival'], $ev['salle']], fn ($v) => $v !== ''));
         ?>
-        <?php $hrefLigne = '?p=evenement&id=' . (int) $ev['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
-        <tr class="row-link" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <?php if (peut_ecrire('evenements')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
+        <?php $hrefLigne = $vue === 'duo'
+            ? $lienDuo((int) $ev['id'])
+            : '?p=evenement&id=' . (int) $ev['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
+        <tr class="row-link <?= $vue === 'duo' && (int) $ev['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
+            <?php if ($avecCheck): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
             <td class="col-date-ev<?= $estAnnule ? ' text-strike' : '' ?>"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></a></td>
             <td class="small col-projet<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['projet_nom'] ? e($ev['projet_nom']) : '—' ?></td>
             <td class="col-lieu <?= $estAnnule ? 'text-strike' : '' ?>">
@@ -304,6 +318,16 @@ $autresFiltres = autres_filtres_fn($tousFiltres);
 </table>
 </div>
 <?php if ($evenements): ?><?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?><?php endif; ?>
+<?php if ($vue === 'duo'): ?>
+<?php
+$duoListe = ob_get_clean();
+// La fiche de droite est celle de la page pleine, au pixel près : le même
+// partiel, les mêmes données (evenement_donnees_vue()).
+$duoFiche = !empty($evenement) ? '_evenement_fiche.php' : '';
+$duoVide  = 'Choisissez un événement dans la liste.';
+require __DIR__ . '/_duo.php';
+?>
+<?php endif; ?>
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     const bulkBar = document.getElementById('bulk-bar');

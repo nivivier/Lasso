@@ -1,5 +1,5 @@
 <?php
-// Fond calculé de l'application : quatre décors au choix (?p=apparence,
+// Fond calculé de l'application : sept décors au choix (?p=apparence,
 // FONDS_DECOR), rendus ici en SVG en ligne. Sert à la fois aux pages non
 // connectées (.auth-bg, autour de <main class="auth-wrap">) et aux pages
 // connectées (.has-sidebar), tant que le choix n'est pas « image » — dans ce
@@ -18,7 +18,13 @@
 // de la page.
 //
 // $fondDecor est fourni par l'appelant (views/layout.php) : 'maillage',
-// 'vagues', 'grille' ou 'courbes'.
+// 'vagues', 'grille', 'courbes', 'pois', 'anneaux' ou 'strates'.
+//
+// ⚠️ Chaque conteneur porte « decor » EN PLUS de sa classe propre : les sept
+// partagent la même boîte (fixed, pleine fenêtre, derrière tout, insensible au
+// curseur) et le même SVG étiré, et c'est .decor qui le dit — une fois. Sa
+// classe propre ne garde que ses couleurs. Sept copies de la même boîte, c'est
+// sept endroits où la corriger.
 //
 // $fondIdPrefixe préfixe les identifiants SVG (filtres, motifs, masques) : le
 // même décor peut être rendu DEUX fois dans une page — le fond lui-même et son
@@ -32,7 +38,7 @@ $fondIdPrefixe = $fondIdPrefixe ?? '';
 <?php // Quatre taches de couleur très floutées (feGaussianBlur) et un grain
       // fin (feTurbulence) : un champ de couleur plutôt qu'une forme, qui ne
       // se démode pas comme un motif reconnaissable. ?>
-<div class="decor-mesh" aria-hidden="true">
+<div class="decor decor-mesh" aria-hidden="true">
     <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
         <defs>
             <filter id="<?= e($fondIdPrefixe) ?>mesh-flou" x="-30%" y="-30%" width="160%" height="160%">
@@ -55,7 +61,7 @@ $fondIdPrefixe = $fondIdPrefixe ?? '';
 <?php elseif ($fondDecor === 'grille'): ?>
 <?php // Un quadrillage qui s'efface vers les bords (masque en dégradé radial),
       // deux halos diffus et deux axes appuyés qui se croisent au centre. ?>
-<div class="decor-grille" aria-hidden="true">
+<div class="decor decor-grille" aria-hidden="true">
     <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
         <defs>
             <pattern id="<?= e($fondIdPrefixe) ?>gr-carreau" width="48" height="48" patternUnits="userSpaceOnUse">
@@ -88,7 +94,7 @@ $fondIdPrefixe = $fondIdPrefixe ?? '';
       // elle passe à hauteur de carte, et donne son seul repère au décor.
       // Les chemins sont calculés ici plutôt qu'écrits à la main : seize
       // courbes copiées-collées auraient été seize occasions de divergence. ?>
-<div class="decor-courbes" aria-hidden="true">
+<div class="decor decor-courbes" aria-hidden="true">
     <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
         <?php for ($i = 0; $i < 16; $i++): ?>
         <?php
@@ -101,11 +107,85 @@ $fondIdPrefixe = $fondIdPrefixe ?? '';
         <?php endfor; ?>
     </svg>
 </div>
+<?php elseif ($fondDecor === 'pois'): ?>
+<?php // Une trame de points réguliers qui s'efface vers les bords, deux halos
+      // diffus derrière, et six points accentués posés SUR la trame — leurs
+      // coordonnées sont des multiples du pas (42px) plus la moitié : un
+      // accent décalé d'un pixel se verrait comme une faute de frappe. ?>
+<div class="decor decor-pois" aria-hidden="true">
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <pattern id="<?= e($fondIdPrefixe) ?>po-point" width="42" height="42" patternUnits="userSpaceOnUse">
+                <circle class="pois-point" cx="21" cy="21" r="3"/>
+            </pattern>
+            <radialGradient id="<?= e($fondIdPrefixe) ?>po-fondu" cx="50%" cy="38%" r="68%">
+                <stop offset="0%" stop-color="#fff" stop-opacity="1"/>
+                <stop offset="58%" stop-color="#fff" stop-opacity=".45"/>
+                <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+            <mask id="<?= e($fondIdPrefixe) ?>po-masque"><rect width="1200" height="800" fill="url(#<?= e($fondIdPrefixe) ?>po-fondu)"/></mask>
+            <filter id="<?= e($fondIdPrefixe) ?>po-flou" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="130"/>
+            </filter>
+        </defs>
+        <g filter="url(#<?= e($fondIdPrefixe) ?>po-flou)">
+            <ellipse class="pois-halo-1" cx="250" cy="140" rx="380" ry="300"/>
+            <ellipse class="pois-halo-2" cx="980" cy="700" rx="340" ry="260"/>
+        </g>
+        <rect width="1200" height="800" fill="url(#<?= e($fondIdPrefixe) ?>po-point)" mask="url(#<?= e($fondIdPrefixe) ?>po-masque)"/>
+        <g mask="url(#<?= e($fondIdPrefixe) ?>po-masque)">
+            <?php foreach ([[189, 189], [483, 315], [819, 231], [1029, 567], [357, 651], [693, 483]] as [$poX, $poY]): ?>
+            <circle class="pois-accent" cx="<?= $poX ?>" cy="<?= $poY ?>" r="8"/>
+            <?php endforeach; ?>
+        </g>
+    </svg>
+</div>
+<?php elseif ($fondDecor === 'anneaux'): ?>
+<?php // Treize cercles concentriques partant du coin bas gauche, comme une
+      // onde à la surface de l'eau. Le cinquième est accentué : sans lui, un
+      // jeu de cercles réguliers se lit comme une cible. Calculés ici plutôt
+      // qu'écrits à la main, pour la même raison que les courbes. ?>
+<div class="decor decor-anneaux" aria-hidden="true">
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <filter id="<?= e($fondIdPrefixe) ?>an-flou" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="120"/>
+            </filter>
+        </defs>
+        <ellipse class="an-halo" filter="url(#<?= e($fondIdPrefixe) ?>an-flou)" cx="140" cy="740" rx="420" ry="340"/>
+        <?php for ($i = 0; $i < 13; $i++): ?>
+        <?php $anAcc = $i === 4; ?>
+        <circle class="<?= $anAcc ? 'an-accent' : 'an-ligne' ?>" cx="140" cy="740" r="<?= 110 + $i * 96 ?>"
+                fill="none" stroke-width="<?= $anAcc ? '2' : '1.2' ?>"/>
+        <?php endfor; ?>
+    </svg>
+</div>
+<?php elseif ($fondDecor === 'strates'): ?>
+<?php // Cinq bandes de largeurs inégales, inclinées et floutées : des aplats,
+      // là où les courbes et les anneaux tiennent au trait. L'inclinaison est
+      // portée par le groupe et non par chaque bande — cinq rotations
+      // identiques à tenir d'accord, c'était cinq occasions de divergence. ?>
+<div class="decor decor-strates" aria-hidden="true">
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <filter id="<?= e($fondIdPrefixe) ?>st-flou" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="26"/>
+            </filter>
+        </defs>
+        <?php // Les bandes débordent largement (x de -300 à 1500) : une fois
+              // inclinées de 14°, leurs extrémités doivent rester hors cadre. ?>
+        <g filter="url(#<?= e($fondIdPrefixe) ?>st-flou)" transform="rotate(-14 600 400)">
+            <?php foreach ([[-220, 190, 'st-a'], [60, 130, 'st-b'], [300, 220, 'st-a'], [600, 120, 'st-b'], [820, 240, 'st-a']] as [$stY, $stH, $stCls]): ?>
+            <rect class="<?= $stCls ?>" x="-300" y="<?= $stY ?>" width="1800" height="<?= $stH ?>"/>
+            <?php endforeach; ?>
+        </g>
+    </svg>
+</div>
 <?php else: ?>
 <?php // « vagues » : le décor historique de l'application (concept « Fluid Wave
       // Background » fourni par l'utilisateur), conservé comme un choix parmi
       // les autres — c'est ce que voient les installations déjà en service. ?>
-<div class="wave-decor" aria-hidden="true">
+<div class="decor wave-decor" aria-hidden="true">
     <div class="wave-blur one"></div>
     <div class="wave-blur two"></div>
     <svg class="wave-shape wave-shape-1" viewBox="0 0 1600 700" preserveAspectRatio="none"><path d="M0 380 C250 120 520 650 900 380 C1200 160 1450 350 1600 220 L1600 700 L0 700 Z"/></svg>

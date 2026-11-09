@@ -16,7 +16,6 @@
 // (voir views/lieux_liste.php pour le même principe).
 $qsSansVue = $_GET;
 unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['geocode']);
-$lienVue = fn (string $v) => '?p=structures&' . http_build_query($qsSansVue + ['vue' => $v]);
 // Lien pour quitter le filtre « non localisées » (venu de la vue carte) sans
 // perdre les autres filtres actifs — voir views/lieux_liste.php.
 $qsSansNonLocalises = $_GET;
@@ -125,7 +124,7 @@ $montreContacte = $depuisNav !== 'facturation';
           // dans le panneau « Filtres » et n'a donc plus besoin de rétrécir la
           // recherche pour leur faire de la place — contrairement à
           // ?p=evenements, qui les affiche toujours à plat. ?>
-    <div class="toolbar<?= $vue === 'carte' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
+    <div class="toolbar<?= in_array($vue, ['carte', 'duo'], true) ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <form method="get" class="filters">
             <input type="hidden" name="p" value="structures">
             <input type="hidden" name="vue" value="<?= e($vue) ?>">
@@ -200,14 +199,14 @@ $montreContacte = $depuisNav !== 'facturation';
         $fmColonnes = $filtresColonnes;
         $fmActifs = $actifsFiltres;
         $fmExtra = ob_get_clean();
-        $fmClasse = $vue === 'carte' ? 'filtres-carte' : '';
+        // .filtres-carte : le panneau « Filtres » reste visible à toute largeur
+        // là où il n'y a pas d'en-tête de colonne où accrocher les entonnoirs —
+        // la vue carte, et la vue deux colonnes, dont la liste est en cartes.
+        $fmClasse = in_array($vue, ['carte', 'duo'], true) ? 'filtres-carte' : '';
         require __DIR__ . '/_filtres_mobile.php';
         ?>
         <div class="head-actions">
-            <div class="seg-picker" role="radiogroup" aria-label="Affichage">
-                <a href="<?= e($lienVue('liste')) ?>" class="seg-btn <?= $vue === 'liste' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'liste' ? 'true' : 'false' ?>" title="Liste" aria-label="Affichage en liste"><?= icon('rows-3') ?></a>
-                <a href="<?= e($lienVue('carte')) ?>" class="seg-btn <?= $vue === 'carte' ? 'on' : '' ?>" role="radio" aria-checked="<?= $vue === 'carte' ? 'true' : 'false' ?>" title="Carte" aria-label="Affichage sur une carte"><?= icon('map') ?></a>
-            </div>
+            <?= bascule_vue_html('structures', $vue, $qsSansVue, ['liste', 'duo', 'carte']) ?>
             <?php if ($peutEcrireStruct): ?>
             <?php // La provenance suit : créer une structure depuis la recherche
                   // de fonds ne doit pas faire basculer l'écran dans le booking,
@@ -249,6 +248,45 @@ $caRetour = ['retour' => 'structures'];
 
 <?php if ($vue === 'carte'): ?>
     <?php require __DIR__ . '/_structures_carte.php'; ?>
+
+<?php elseif ($vue === 'duo'): ?>
+<?php
+// Deux colonnes : à gauche la liste de la page, telle quelle — elle passe en
+// cartes toute seule, la colonne fait 300px et les règles des listes en cartes
+// sont des requêtes de conteneur. À droite la fiche de celle qu'on a choisie,
+// rendue par le partiel que la fiche pleine page utilise aussi.
+//
+// Un clic recharge la page avec &sel= : pas d'AJAX. Toute l'application
+// fonctionne ainsi, et surtout la fiche porte ses propres scripts (édition en
+// place, carte, fenêtre « Contacter ») — injectée en HTML, elle serait morte.
+$qsDuo = $qsSansVue;
+unset($qsDuo['sel']);
+$lienDuo = fn (int $id): string => '?p=structures&' . http_build_query($qsDuo + ['vue' => 'duo', 'sel' => $id]);
+
+ob_start();
+$stStructures = $structures;
+$stVide = 'Aucune structure ne correspond à cette recherche.';
+$stCheck = null;
+$stReinit = $sfReinit;
+$stFiltres = $sfFiltres;
+$stHref = fn (array $d): string => $lienDuo((int) $d['id']);
+$stSuffixeDepuis = $suffixeDepuis;
+$stTagsActifs = false;
+$stMontreContacte = false;
+$stMontreFactures = false;
+$stMontreEvenements = false;
+$stNbEvenements = [];
+$stColCampagnes = null;
+$stTri = $tri + ['page' => 'structures', 'params' => $sfTousFiltres];
+$stLigneActive = (int) $duoSel;
+require __DIR__ . '/_structures_table.php';
+$duoListe = ob_get_clean();
+
+$duoFiche = !empty($structure) ? '_structure_fiche.php' : '';
+$duoVide  = 'Choisissez une structure dans la liste.';
+require __DIR__ . '/_duo.php';
+?>
+
 <?php else: ?>
 <?php $filtresActifs = $recherche !== '' || $categorieId || $lieu || $tagId || $lieuFiltresActifs || $avecEvenements; ?>
 <?php if ($peutEcrireStruct): ?>

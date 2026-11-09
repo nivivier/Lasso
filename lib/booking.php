@@ -1237,6 +1237,29 @@ function structures_colonnes_liste_sql(): string
         " . structure_formulaire_sql() . " AS formulaire_affiche";
 }
 
+// Les étiquettes d'une structure, en SQL, pour une MINI-FICHE : nom et couleur
+// par étiquette, séparés par char(31), les étiquettes entre elles par char(30)
+// — c'est ce que views/_structure_mini.php sait relire. Deux champs et non
+// trois (la liste y ajoute l'id pour sa croix de retrait) : une mini-fiche ne
+// retire pas d'étiquette, on le fait depuis la fiche de la structure.
+//
+// Fragment partagé plutôt que recopié, comme structure_email_sql() juste en
+// dessous : les mini-fiches d'un événement et celles d'une personne doivent
+// afficher exactement les mêmes étiquettes, dans le même ordre. SANS_ACCENTS()
+// et non COLLATE NOCASE — ce dernier ne replie que l'ASCII, et « À contacter »
+// se retrouverait après « Ne pas contacter ».
+//
+// $colStructureId : l'expression qui désigne la structure dans la requête
+// appelante (« s.id », « structures.id »…), jamais une donnée d'utilisateur.
+function structure_tags_mini_sql(string $colStructureId = 's.id'): string
+{
+    return "(SELECT GROUP_CONCAT(paire, char(30)) FROM (
+                SELECT t.nom || char(31) || COALESCE(t.couleur, '') AS paire
+                  FROM structure_tag_liens tl JOIN structure_tags t ON t.id = tl.tag_id
+                 WHERE tl.structure_id = " . $colStructureId . " ORDER BY SANS_ACCENTS(t.nom)
+            ))";
+}
+
 // L'e-mail qui REPRÉSENTE une structure, en SQL : celui du contact marqué
 // « administration » s'il existe, sinon le premier contact qui en a un.
 // Depuis migration_84, `structures` n'a plus de colonne email — l'adresse vit

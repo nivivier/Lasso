@@ -143,7 +143,9 @@ function route_evenements(): void
     $nonLocalises = ($_GET['non_localises'] ?? '') === '1';
     // Mémorise la dernière vue utilisée (comme lieux/structures) : un lien
     // « Événements » sans ?vue= explicite (sidebar) rouvre la dernière consultée.
-    $vue = filtre_persistant('vue', 'evenements_vue', 'liste') === 'carte' ? 'carte' : 'liste';
+    // Trois vues : la liste, la carte, et « duo » — la liste en colonne étroite
+    // avec la fiche choisie à droite (voir views/_duo.php).
+    $vue = vue_liste('evenements_vue', ['carte']);
 
     // Modification groupée (sélection de lignes + barre flottante, même esprit que
     // le lettrage/l'axe analytique en masse sur les écritures comptables).
@@ -332,8 +334,20 @@ function route_evenements(): void
     $projets = projets_pour_selection($projetMap);
     $projetsFiltre = projets_pour_filtre($projetMap);
 
-    render('evenements', [
+    // Vue deux colonnes : l'événement choisi (?sel=), à défaut le premier de la
+    // liste. Mêmes données que la page pleine — evenement_donnees_vue() — pour
+    // que le volet droit montre la vraie fiche et non un résumé.
+    $duo = duo_selection($vue, $evenements, 'evenement_donnees_vue');
+    if ($duo['duoSel'] !== 0) {
+        // Trois clés que la LISTE pose aussi, et qui ne doivent pas lui être
+        // prises : son titre, ses projets pour l'entonnoir, ses pays.
+        unset($duo['titrePage'], $duo['projets'], $duo['paysDisponibles']);
+        $duo += ['err' => null, 'post' => []];
+    }
+
+    render('evenements', array_merge($duo, [
         'vue' => $vue,
+        'duoSel' => $duo['duoSel'],
         'cartePoints' => [],
         'carteVillesManquantes' => 0,
         'evenements'      => $evenements,
@@ -361,7 +375,7 @@ function route_evenements(): void
         'pgPage'          => $pgPage,
         'pgTaille'        => $pgTaille,
         'pgTotal'         => $pgTotal,
-    ], 'Événements');
+    ]), 'Événements');
 }
 
 // Géocode un lot de villes d'événements encore manquantes (bouton de la vue
@@ -499,13 +513,16 @@ function route_evenements_suisa_exporter_apercu(): void
         evenements_export_suisa_donnees() + ['exportQs' => http_build_query($filtres)]);
 }
 
-function route_evenement(): void
+// Toutes les données de la vue d'un événement, en un seul endroit : la fiche
+// pleine page (route_evenement()) et le volet droit de la vue deux colonnes
+// (route_evenements(), ?vue=duo) les lisent ici — une seule fiche à tenir.
+// Rend null quand l'identifiant ne désigne aucun événement ; $id = 0 prépare
+// le formulaire de création. Même procédé que facture_donnees_vue().
+function evenement_donnees_vue(int $id): ?array
 {
-    require_login();
-    $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
     $evenement = $id ? evenement_charger($id) : null;
     if ($id && !$evenement) {
-        redirect('evenements');
+        return null;
     }
 
     $projetMap = projet_map();
@@ -591,33 +608,43 @@ function route_evenement(): void
         $lieuActuel = $stmtL->fetch() ?: null;
     }
 
-    $renderForm = function (?string $err) use (
-        $evenement, $id, $projets, $projetMap, $employesLies, $employesDispo, $prestations, $fichesParEmploye,
-        $axes, $structuresLiees, $peutLierLieu, $lieuActuel, $feuilleElements, $feuilleContacts
-    ) {
-        render('evenement', [
-            'evenement'      => $evenement,
-            'id'             => $id,
-            'projets'     => $projets,
-            'projetMap'   => $projetMap,
-            'employesLies'   => $employesLies,
-            'employesDispo'  => $employesDispo,
-            'prestations'    => $prestations,
-            'fichesParEmploye' => $fichesParEmploye,
-            'unites'         => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
-            'tauxHoraires'   => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
-            'factures'       => $id ? evenement_factures_liees($id) : [],
-            'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
-            'structuresLiees' => $structuresLiees,
-            'feuilleElements' => $feuilleElements,
-            'feuilleContacts' => $feuilleContacts,
-            'peutLierLieu'   => $peutLierLieu,
-            'lieuActuel'     => $lieuActuel,
-            'paysDisponibles' => evenements_pays_disponibles(),
-            'axes'           => $axes,
-            'err'            => $err,
-            'post'           => $_POST,
-        ], $id ? evenement_titre_page($evenement) : 'Nouvel événement');
+    return [
+        'evenement'      => $evenement,
+        'id'             => $id,
+        'projets'     => $projets,
+        'projetMap'   => $projetMap,
+        'employesLies'   => $employesLies,
+        'employesDispo'  => $employesDispo,
+        'prestations'    => $prestations,
+        'fichesParEmploye' => $fichesParEmploye,
+        'unites'         => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
+        'tauxHoraires'   => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
+        'factures'       => $id ? evenement_factures_liees($id) : [],
+        'facturesDispo'  => ($id && module_actif('facturation')) ? factures_sans_evenement() : [],
+        'structuresLiees' => $structuresLiees,
+        'feuilleElements' => $feuilleElements,
+        'feuilleContacts' => $feuilleContacts,
+        'peutLierLieu'   => $peutLierLieu,
+        'lieuActuel'     => $lieuActuel,
+        'paysDisponibles' => evenements_pays_disponibles(),
+        'axes'           => $axes,
+        'titrePage'      => $id ? evenement_titre_page($evenement) : 'Nouvel événement',
+    ];
+}
+
+function route_evenement(): void
+{
+    require_login();
+    $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
+    $donnees = evenement_donnees_vue($id);
+    if ($donnees === null) {
+        redirect('evenements');
+    }
+    $titrePage = $donnees['titrePage'];
+    unset($donnees['titrePage']);
+
+    $renderForm = function (?string $err) use ($donnees, $titrePage) {
+        render('evenement', $donnees + ['err' => $err, 'post' => $_POST], $titrePage);
     };
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

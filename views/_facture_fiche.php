@@ -1,0 +1,292 @@
+<?php
+// La fiche d'une facture, sans le décor de page : son en-tête (numéro,
+// actions) et son contenu. Sortie de views/facture.php pour que la VUE DEUX
+// COLONNES (?p=factures&vue=duo) rende exactement la même fiche dans sa
+// colonne de droite — une seule fiche à tenir, deux endroits où elle paraît.
+// Même procédé que _structure_fiche.php.
+//
+// L'appelant a déjà fourni les données (route_facture() ou route_factures() en
+// mode duo, toutes deux via facture_donnees_vue()) ; ce fichier ne fait que
+// les mettre en page. Il ne contient NI le lien de retour, NI le bandeau, NI
+// .module-content : chacun des deux appelants les pose à sa façon.
+/** @var array $facture */ /** @var array $lignes */ /** @var string $statutEffectif */
+/** @var array $ecrituresLibres */ /** @var array $evenementsListe */ /** @var array $axes */
+$f = $facture;
+$brouillon = $f['statut'] === 'brouillon';
+$peutAnnuler = !in_array($f['statut'], ['payee', 'annulee'], true);
+$peutEmail = !$brouillon && filter_var($f['structure_email'] ?? '', FILTER_VALIDATE_EMAIL);
+// Colonne « Axe » : affichée dès qu'une ligne en porte un, ET dès qu'on peut en
+// poser un — sinon la première affectation serait impossible, la colonne
+// n'apparaissant qu'une fois l'axe déjà choisi.
+$axesModifiables = $axes && peut_ecrire('facturation');
+$aDesAxes = $axesModifiables || (bool) array_filter($lignes, fn($l) => $l['axe_analytique_id']);
+$axeOpts = $axesModifiables ? options_axes($axes) : '';
+$numeroAffiche = $f['numero'] !== '' ? e($f['numero']) : '(brouillon)';
+
+// Paiement manuel : écriture bancaire à lier (voir route_facture_paiement()).
+$peutPayer = in_array($f['statut'], ['emise', 'payee'], true);
+$libelleEcr = fn(array $e): string => date('d.m.Y', strtotime($e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' CHF — ' . mb_substr((string) $e['texte'], 0, 50);
+$ecritureActuelleId = (int) ($f['ecriture_id'] ?? 0);
+$ecritureActuelle = array_values(array_filter($ecrituresLibres, fn($e) => (int) $e['id'] === $ecritureActuelleId));
+$ecritureActuelleLabel = $ecritureActuelle ? $libelleEcr($ecritureActuelle[0]) : '';
+// Reporté sur les formulaires de cette page qui redirigent vers elle-même,
+// pour que le lien de retour contextuel survive à un enregistrement.
+$depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) : '';
+?>
+<div class="page-head page-head-bande">
+    <h1>Facture <?= $numeroAffiche ?></h1>
+    <div class="head-actions">
+        <?php if ($brouillon): ?>
+            <?php if (peut_ecrire('facturation')): ?>
+            <form method="post" action="?p=facture_emettre<?= $depuisQs ?>" class="d-inline" data-confirm="Émettre cette facture ? Le numéro et la référence de paiement seront figés.">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+                <button type="submit" class="btn"><?= icon('check') ?> <span class="lbl">Émettre</span></button>
+            </form>
+            <?php // « Modifier » ferme le groupe, à droite : c'est le geste qui
+                  // ouvre l'écran d'édition, et c'est là-bas que vit la
+                  // suppression (docs/UI.md § 1). ?>
+            <a class="btn ghost" href="?p=facture_form&id=<?= (int) $f['id'] ?>"><?= icon('pencil') ?> <span class="lbl">Modifier</span></a>
+            <?php // Pas de suppression ici : elle vit sur l'écran de modification,
+                  // avec les autres gestes qui touchent au brouillon lui-même. ?>
+            <?php endif; ?>
+        <?php else: ?>
+            <a class="btn ghost" href="?p=facture_exporter_pdf&id=<?= (int) $f['id'] ?>" data-preview target="_blank" title="Aperçu / PDF"><?= icon('eye') ?> <span class="lbl">PDF</span></a>
+            <?php if ($statutEffectif === 'en_retard'): ?>
+                <a class="btn ghost" href="?p=facture_rappel_imprimer&id=<?= (int) $f['id'] ?>" data-preview target="_blank"><?= icon('mail') ?> <span class="lbl">Lettre de rappel</span></a>
+            <?php endif; ?>
+            <?php if (peut_ecrire('facturation')): ?>
+            <?php if ($peutEmail): ?>
+                <form method="post" action="?p=facture_envoyer<?= $depuisQs ?>" class="d-inline" data-confirm="Envoyer cette facture par e-mail à <?= e($f['structure_email']) ?> ?">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+                    <button type="submit" class="btn" title="Envoyer par e-mail"><?= icon('mail') ?> <span class="lbl">Envoyer</span></button>
+                </form>
+            <?php endif; ?>
+            <?php if ($peutAnnuler): ?>
+                <form method="post" action="?p=facture_annuler<?= $depuisQs ?>" class="d-inline" data-confirm="Annuler cette facture ?">
+                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+                    <button type="submit" class="btn danger">Annuler</button>
+                </form>
+            <?php endif; ?>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="fiche-wrapper">
+<div class="fiche-main">
+<div class="card">
+    <div class="facture-head-row">
+        <?php // À L'ÉCRAN, le logo suit le thème comme partout ailleurs : les deux
+              // variantes sont rendues, le CSS montre celle qui convient au fond
+              // (même mécanique que le rail et la page de connexion). L'aperçu
+              // PDF, lui, garde la variante pour fond clair : sa feuille est
+              // blanche quel que soit le thème — il est composé côté serveur
+              // (lib/facturation.php), hors de portée de ce CSS.
+              //
+              // Repli : sans variante sombre configurée, celle pour fond clair
+              // sert aux deux, comme pour le rail. ?>
+        <?php $logoFactureClair = param_logo('clair') !== '' ? param_logo('clair') : param_logo('sombre'); ?>
+        <?php $logoFactureSombre = param_logo('sombre') !== '' ? param_logo('sombre') : $logoFactureClair; ?>
+        <?php if ($logoFactureClair !== ''): ?>
+            <div class="ps-head">
+                <img src="<?= e($logoFactureClair) ?>" alt="" class="ps-logo ps-logo-clair">
+                <img src="<?= e($logoFactureSombre) ?>" alt="" class="ps-logo ps-logo-sombre">
+            </div>
+        <?php endif; ?>
+        <p class="facture-statut">
+            <?= facturation_badge($f) ?>
+            <?php if (trim((string) ($f['envoyee_le'] ?? '')) !== ''): ?>
+                <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime($f['envoyee_le']))) ?>"><?= icon('check') ?> Envoyée</span>
+            <?php endif; ?>
+        </p>
+    </div>
+    <div class="ps-title">
+        <h2>Facture</h2>
+        <div class="ps-period"><?= $numeroAffiche ?></div>
+    </div>
+    <div class="ps-parties mb-24">
+        <div>
+            <h3>Émise par</h3>
+            <p><strong><?= e(param('employeur_nom')) ?></strong><br>
+                <?= e(param('employeur_rue')) ?><br>
+                <?= e(param('employeur_npa')) ?></p>
+        </div>
+        <div>
+            <h3>Structure</h3>
+            <p><strong><a href="<?= e(url_avec_retour('?p=structure&id=' . (int) $f['structure_id'], 'facture', (int) $f['id'])) ?>"><?= e($f['structure_nom']) ?></a></strong><br>
+                <?= e($f['adresse_rue']) ?><?= $f['adresse_rue'] ? '<br>' : '' ?>
+                <?= e(trim($f['adresse_npa'] . ' ' . $f['adresse_localite'])) ?></p>
+        </div>
+    </div>
+    <p class="muted small">
+        Émission : <?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?><br>
+        Échéance : <?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?><br>
+        Compte : <?= e($f['compte_libelle'] ?? '—') ?><br>
+        <?php if ($f['reference_paiement'] !== ''): ?>Référence : <?= e($f['reference_paiement']) ?><br><?php endif; ?>
+    </p>
+
+    <?php if (trim((string) $f['communication']) !== ''): ?>
+        <p><strong><?= nl2br(e($f['communication'])) ?></strong></p>
+    <?php endif; ?>
+
+    <div class="table-scroll">
+    <table class="list">
+        <thead><tr><th>Description</th><th class="num">Qté</th><th class="num">Prix unit.</th><th class="num">Montant</th><?php if ($aDesAxes): ?><th>Axe</th><?php endif; ?></tr></thead>
+        <tbody>
+        <?php foreach ($lignes as $l): ?>
+            <tr>
+                <td><?= e($l['description']) ?></td>
+                <td class="num"><?= nombre_court((float) $l['quantite']) ?></td>
+                <td class="num"><?= chf((float) $l['prix_unitaire']) ?></td>
+                <td class="num"><?= chf((float) $l['montant']) ?></td>
+                <?php if ($aDesAxes): ?>
+                    <?php // L'axe se change même sur une facture émise : il ne
+                          // figure pas sur le document envoyé au débiteur, c'est
+                          // une donnée de comptabilité analytique. Envoi au
+                          // changement (data-submit-on-change), sans bouton :
+                          // un seul champ, une seule décision. ?>
+                    <td class="muted small col-axe-facture">
+                        <?php if ($axesModifiables): ?>
+                            <?php // data-ajax : l'axe n'engage que sa ligne, et la
+                                  // facture est longue — la recharger entière pour un
+                                  // menu renvoyait en haut de page. ?>
+                            <form method="post" action="?p=facture_ligne_axe_enregistrer" data-ajax="Axe analytique enregistré.">
+                                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
+                                <input type="hidden" name="ligne_id" value="<?= (int) $l['id'] ?>">
+                                <select name="axe_analytique_id" data-submit-on-change title="Axe analytique" aria-label="Axe analytique de la ligne">
+                                    <?= preselectionner_option($axeOpts, (string) ($l['axe_analytique_id'] ?? '')) ?>
+                                </select>
+                            </form>
+                        <?php else: ?>
+                            <?= e($l['axe_code'] ?: $l['axe_libelle'] ?: '—') ?>
+                        <?php endif; ?>
+                    </td>
+                <?php endif; ?>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot><tr><td colspan="3" class="num strong">Total</td><td class="num strong"><?= chf((float) $f['montant_total']) ?></td><?php if ($aDesAxes): ?><td></td><?php endif; ?></tr></tfoot>
+    </table>
+    </div>
+</div>
+</div>
+<?php if (($peutPayer || module_actif('evenements')) && peut_ecrire('facturation')): ?>
+<aside class="fiche-aside facture-aside">
+    <?php if ($peutPayer): ?>
+    <form method="post" action="?p=facture_paiement<?= $depuisQs ?>" class="paiement-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+        <h2>Paiement</h2>
+        <input type="date" name="payee_le" id="payee-le" value="<?= e($f['payee_le']) ?>" class="paiement-date">
+        <?php if ($ecrituresLibres): ?>
+            <div class="ecr-liee-box">
+                <h3 class="sub no-mt">Écriture liée</h3>
+                <div class="cat-search ecr-search">
+                    <input type="text" class="cat-search-input" id="ecriture-recherche" placeholder="— aucune, juste marquer payée —" autocomplete="off" value="<?= e($ecritureActuelleLabel) ?>">
+                    <input type="hidden" name="ecriture_id" id="ecriture-select" value="<?= $ecritureActuelleId ?: '' ?>">
+                    <ul class="cat-search-list" hidden role="listbox">
+                        <li data-val="">— aucune, juste marquer payée —</li>
+                        <?php foreach ($ecrituresLibres as $e):
+                            $libelle = $libelleEcr($e);
+                            $ligneHaut = date('d.m.Y', strtotime($e['date_op'])) . ' — ' . chf((float) $e['montant']) . ' CHF';
+                        ?>
+                            <li data-val="<?= (int) $e['id'] ?>"
+                                data-montant="<?= (float) $e['montant'] ?>"
+                                data-date="<?= e($e['date_op']) ?>"
+                                data-label="<?= e($libelle) ?>"
+                                data-recherche="<?= e(mb_strtolower($libelle, 'UTF-8')) ?>">
+                                <span class="ecr-opt-top"><?= e($ligneHaut) ?></span>
+                                <span class="ecr-opt-texte"><?= e(mb_substr((string) $e['texte'], 0, 90)) ?></span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <label class="check small">
+                    <input type="checkbox" id="ecriture-meme-montant" checked>
+                    Montant exact (<?= chf((float) $f['montant_total']) ?> CHF)
+                </label>
+                <p class="muted small" id="ecriture-compte"></p>
+            </div>
+        <?php endif; ?>
+        <button type="submit" class="btn"><?= icon('check') ?> <?= $f['statut'] === 'payee' ? 'Enregistrer' : 'Marquer comme payée' ?></button>
+    </form>
+    <?php endif; ?>
+    <?php if (module_actif('evenements')):
+        $evenementActuel = null;
+        foreach ($evenementsListe as $ev) {
+            if ((int) $ev['id'] === (int) $f['evenement_id']) { $evenementActuel = $ev; break; }
+        }
+        $evenementLabel = $evenementActuel ? evenement_label_court($evenementActuel) : '';
+    ?>
+        <h2>Événement lié</h2>
+        <?php // Rien de lié : le champ de recherche est offert tout de suite —
+              // il n'y a rien à « modifier », seulement quelque chose à lier, et
+              // le cacher derrière un crayon ajoutait un clic pour rien.
+              // Un événement lié : son nom, et le crayon ouvre le même champ,
+              // pré-rempli, dont la ligne « — aucun — » délie. ?>
+        <?php if ($evenementActuel): ?>
+        <div class="evenement-lie-disp">
+            <a class="muted small" href="<?= e(url_avec_retour('?p=evenement&id=' . (int) $f['evenement_id'], 'facture', (int) $f['id'])) ?>"><?= e($evenementLabel) ?></a>
+            <button type="button" class="row-edit-btn evenement-edit-btn" title="Modifier le lien" aria-label="Modifier l'événement lié"><?= icon('pencil') ?></button>
+        </div>
+        <?php endif; ?>
+        <form method="post" action="?p=facture_evenement_lier<?= $depuisQs ?>" class="linked-add evenement-lie-form"<?= $evenementActuel ? ' hidden' : '' ?>>
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="facture_id" value="<?= (int) $f['id'] ?>">
+            <?php // Champ de recherche et non menu déroulant : la liste porte tous
+                  // les événements, du plus récent au plus ancien. ?>
+            <div class="cat-search evenement-search" data-cat-search data-vider-en-saisie data-texte-vide>
+                <input type="text" class="cat-search-input" autocomplete="off"
+                       placeholder="Rechercher un événement…" value="<?= e($evenementLabel) ?>">
+                <input type="hidden" name="evenement_id" class="cat-search-val" value="<?= (int) $f['evenement_id'] ?: '' ?>">
+                <ul class="cat-search-list" hidden role="listbox">
+                    <li data-val="">— aucun —</li>
+                    <?php foreach ($evenementsListe as $ev): ?>
+                        <li data-val="<?= (int) $ev['id'] ?>"><?= e(evenement_label_court($ev)) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php // Même bouton que la liaison d'une structure à un lieu
+                  // (?p=structure) : l'icône « lien », sans texte, à droite du
+                  // champ — c'est le même geste, il se reconnaît. ?>
+            <button type="submit" class="btn ghost" title="Lier cet événement" aria-label="Lier cet événement"><?= icon('link') ?><span class="lbl"> Lier</span></button>
+        </form>
+    <?php endif; ?>
+</aside>
+<?php endif; ?>
+</div>
+<?php if ($peutPayer && $ecrituresLibres && peut_ecrire('facturation')): ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+(function () {
+    // Composant partagé avec la fiche de salaire (lassoInitRechercheEcriture,
+    // assets/app.js) : c'est le même rapprochement bancaire des deux côtés.
+    lassoInitRechercheEcriture(document.querySelector('.ecr-search'), {
+        hidden:      document.getElementById('ecriture-select'),
+        memeMontant: document.getElementById('ecriture-meme-montant'),
+        compteur:    document.getElementById('ecriture-compte'),
+        dateCible:   document.getElementById('payee-le'),
+        montant:     <?= json_encode(round((float) $f['montant_total'], 2)) ?>,
+    });
+})();
+</script>
+<?php endif; ?>
+<?php if (module_actif('evenements') && peut_ecrire('facturation')): ?>
+<script nonce="<?= e(csp_nonce()) ?>">
+(function () {
+    const wrap = document.querySelector('.evenement-search');
+    if (!wrap) return;
+    const btn = document.querySelector('.evenement-edit-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        document.querySelector('.evenement-lie-disp').hidden = true;
+        const form = document.querySelector('.evenement-lie-form');
+        form.hidden = false;
+        wrap.querySelector('.cat-search-input').focus();
+    });
+})();
+</script>
+<?php endif; ?>

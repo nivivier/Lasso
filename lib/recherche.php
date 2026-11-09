@@ -41,6 +41,10 @@ const RECHERCHE_MIN = 2;
 // vérifiée par tests/recherche_test.php sans base ni session, et lire un
 // paramètre y demanderait une base. recherche_globale(), qui en a une,
 // renseigne les vraies valeurs ; le défaut sert au test.
+// 'type' : le registre sémantique de la chose — personne, document, événement
+// (docs/UI.md § 13). Il ne sert QU'À teinter la marque d'identité dans les
+// suggestions du rail ; l'état d'un enregistrement (à faire, en retard, réglé)
+// se dit ailleurs, avec d'autres teintes, et les deux ne se mélangent pas.
 function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
 {
     [$projetsLabel, $projetLabel] = $termeProjet;
@@ -48,6 +52,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'employes' => [
             'label'   => 'Employés',
             'icone'   => 'users',
+            'type'    => 'personne',
             'modules' => ['salaires'],
             'route'   => 'employe',
             'liste'   => 'employes',
@@ -64,6 +69,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'structures' => [
             'label'   => 'Structures',
             'icone'   => 'house',
+            'type'    => 'personne',
             'modules' => ['carnet'],
             'route'   => 'structure',
             'liste'   => 'structures',
@@ -82,6 +88,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'factures' => [
             'label'   => 'Factures',
             'icone'   => 'receipt-swiss-franc',
+            'type'    => 'document',
             'modules' => ['facturation'],
             'route'   => 'facture',
             'liste'   => 'factures',
@@ -100,6 +107,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'evenements' => [
             'label'   => 'Événements',
             'icone'   => 'calendar',
+            'type'    => 'evenement',
             'modules' => ['evenements'],
             'route'   => 'evenement',
             'liste'   => 'evenements',
@@ -128,6 +136,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'fonds' => [
             'label'   => 'Campagnes de recherche de fonds',
             'icone'   => 'landmark',
+            'type'    => 'document',
             'modules' => ['fonds'],
             'route'   => 'fonds_campagne',
             'liste'   => 'fonds_campagnes',
@@ -164,6 +173,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'personnes' => [
             'label'   => 'Personnes',
             'icone'   => 'user',
+            'type'    => 'personne',
             'modules' => ['carnet'],
             'route'   => 'personne',
             'liste'   => 'personnes',
@@ -196,6 +206,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'pieces' => [
             'label'   => 'Pièces comptables',
             'icone'   => 'paperclip',
+            'type'    => 'document',
             'modules' => ['pieces'],
             'route'   => 'piece',
             'liste'   => 'pieces',
@@ -215,6 +226,7 @@ function recherche_sources(array $termeProjet = ['Projets', 'Projet']): array
         'projets' => [
             'label'   => $projetsLabel,
             'icone'   => 'music',
+            'type'    => 'evenement',
             'modules' => ['evenements'],
             'route'   => 'projet',
             'liste'   => 'projets',
@@ -329,6 +341,7 @@ function recherche_globale(string $q): array
         $out[$cle] = [
             'label'     => $source['label'],
             'icone'     => $source['icone'],
+            'type'      => $source['type'],
             'route'     => $source['route'],
             'liste'     => $source['liste'],
             'total'     => (int) $resultats[0]['total_global'],

@@ -18,12 +18,23 @@ $paramsRecherche = $recherche !== '' ? ['q' => $recherche] : [];
 // lien qui, lui, doit vraiment imposer un filtre). C'est la session qui fait
 // survivre l'entonnoir au clic sur un en-tête, ici comme ailleurs.
 $tousFiltres = array_filter(['actif' => $actif, 'q' => $recherche]);
+
+// Liens du sélecteur d'affichage (liste / deux colonnes) : mêmes filtres
+// actifs, seule la vue change — comme ?p=structures.
+$qsSansVue = $_GET;
+unset($qsSansVue['p'], $qsSansVue['vue'], $qsSansVue['sel']);
+$lienDuo = fn (int $idEmp): string => '?p=employes&' . http_build_query($qsSansVue + ['vue' => 'duo', 'sel' => $idEmp]);
+$vue = $vue ?? 'liste';
+$duoSel = (int) ($duoSel ?? 0);
+// ⚠️ La boucle de la liste utilise $emp, comme la fiche : elle l'écraserait
+// avant que le volet droit soit rendu. On met l'employé choisi de côté.
+$empFiche = $emp ?? null;
 ?>
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
 <div class="module-content"><div class="module-content-inner">
-    <div class="toolbar">
+    <div class="toolbar<?= $vue === 'duo' ? ' toolbar-carte toolbar-carte-panneau' : '' ?>">
         <?php if ($employes || $recherche !== ''): ?>
         <?= champ_recherche(['id' => 'employes-search', 'valeur' => $recherche]) ?>
         <?php endif; ?>
@@ -37,16 +48,25 @@ $tousFiltres = array_filter(['actif' => $actif, 'q' => $recherche]);
         // rien doit rester visible, sinon on ne peut plus le retirer).
         $fmColonnes = filtre_colonne_html('employes', 'actif', $actifLabels, $actif, $paramsRecherche, 'Statut');
         $fmActifs = filtre_colonne_actifs_html('employes', 'actif', $actifLabels, $actif, $paramsRecherche);
+        // En deux colonnes la liste est en cartes, son <thead> est masqué : le
+        // panneau « Filtres » reste visible à toute largeur (voir ?p=structures).
+        $fmClasse = $vue === 'duo' ? 'filtres-carte' : '';
         require __DIR__ . '/_filtres_mobile.php';
         ?>
         <?php endif; ?>
-        <?php if (peut_ecrire('salaires')): ?>
         <div class="head-actions">
+            <?= bascule_vue_html('employes', $vue, $qsSansVue) ?>
+            <?php if (peut_ecrire('salaires')): ?>
             <a class="btn" href="?p=employe_form" title="Nouvel employé"><?= icon('user-plus') ?> <span class="lbl">Nouvel employé</span></a>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
 
+<?php
+// En deux colonnes, la liste n'est pas réécrite : elle est rendue telle quelle
+// et CAPTURÉE pour aller dans le volet de gauche (voir views/_duo.php).
+if ($vue === 'duo') { ob_start(); }
+?>
 <?php if (!$employes): ?>
     <?php if ($recherche !== ''): ?>
         <p class="muted">Aucun employé ne correspond à « <?= e($recherche) ?> ».</p>
@@ -75,7 +95,8 @@ $tousFiltres = array_filter(['actif' => $actif, 'q' => $recherche]);
     </thead>
     <tbody>
     <?php foreach ($employes as $emp): ?>
-        <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?>" tabindex="0" role="link" data-href="?p=employe&id=<?= (int) $emp['id'] ?>">
+        <?php $hrefLigne = $vue === 'duo' ? $lienDuo((int) $emp['id']) : '?p=employe&id=' . (int) $emp['id']; ?>
+        <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?> <?= $vue === 'duo' && (int) $emp['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
             <td class="col-nom-emp">
                 <span class="emp-nom-ligne"><?= avatar_initiales(
                         $emp['prenom'] . ' ' . $emp['nom'],
@@ -106,6 +127,18 @@ $tousFiltres = array_filter(['actif' => $actif, 'q' => $recherche]);
 </table>
 </div>
 <?php require __DIR__ . '/' . ($modeClient ? '_pagination_client.php' : '_pagination.php'); ?>
+<?php endif; ?>
+<?php if ($vue === 'duo'): ?>
+<?php
+$duoListe = ob_get_clean();
+// La fiche de droite est celle de la page pleine : le même partiel, les mêmes
+// données (employe_donnees_vue()). $emp a servi de variable de boucle juste
+// au-dessus — on remet l'employé choisi avant de rendre sa fiche.
+$emp = $empFiche;
+$duoFiche = $emp !== null ? '_employe_fiche.php' : '';
+$duoVide  = 'Choisissez un employé dans la liste.';
+require __DIR__ . '/_duo.php';
+?>
 <?php endif; ?>
 </div></div>
 <script nonce="<?= e(csp_nonce()) ?>">

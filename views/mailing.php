@@ -3,6 +3,21 @@
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
+<?php // Le composeur d'un envoi groupé s'ouvre D'ICI, et de nulle part
+      // ailleurs : il avait son propre onglet dans le rail, « Nouvelle
+      // campagne », qui se lisait comme le bouton du même nom sur les
+      // campagnes de démarchage — deux choses sans rapport. Un geste se pose
+      // dans la page qu'il prolonge, pas dans la navigation (docs/UI.md § 1),
+      // et c'est bien le Suivi qu'il prolonge : on y lit la file d'attente et
+      // l'historique des envois. ?>
+<?php if (peut_ecrire('booking')): ?>
+<div class="page-head">
+    <div class="head-actions ml-auto">
+        <a class="btn" href="?p=mailing_campagne"><?= icon('plus') ?><span class="lbl"> Nouvel envoi groupé</span></a>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if ($ok !== null && $ok !== ''): ?><p class="ok flash"><?= (int) $ok ?> destinataire(s) ajouté(s) à la file d'attente.</p><?php endif; ?>
 
 <div class="card">

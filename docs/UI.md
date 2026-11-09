@@ -26,16 +26,115 @@ Deux règles au-dessus des autres :
 ou `.card-head-row` (carte). C'est vrai du « + » d'une liste comme de l'envoi
 d'un document. Rien d'important ne se met en bas.
 
+**L'en-tête d'un écran se lit sur DEUX ÉTAGES**, et c'est la règle qui tient
+tout le reste :
+
+| | Étage 1 — le bandeau | Étage 2 — la barre |
+|---|---|---|
+| Ce qu'il dit | la PAGE : où l'on est, son nom, ce qu'on peut y créer | ce qu'on VOIT de son contenu |
+| Sur une liste | fil d'Ariane, titre, action principale, « … » | recherche, entonnoirs, compte, bascule Liste/Carte |
+| Sur une fiche | fil d'Ariane, titre, action principale, « … » | l'état de l'enregistrement |
+
+L'étage 1 est **identique sur les deux** : l'action principale est toujours au
+même endroit, qu'on regarde une liste ou un enregistrement. L'étage 2 est un
+bandeau beige arrondi (`.module-content-inner > .toolbar`) qui appartient à ce
+qui le suit, pas à ce qui le précède. ⚠️ **Rien de ce qui filtre ne monte à
+l'étage 1, rien de ce qui agit ne descend à l'étage 2.** La bascule Liste/Carte
+est à l'étage 2 et non avec les actions : elle ne crée rien, elle change ce
+qu'on voit.
+
+**Quand la ligne du titre a la place, l'étage 2 s'y range** — la barre entière
+(recherche, bouton de filtres, bascule de vue) devient une pastille compacte
+posée au milieu du vide entre le titre et les actions (`.page-head-outils`,
+créneau rendu par `_page_head_band.php` et `_param_tabs.php`). L'en-tête tient
+alors sur deux lignes au lieu de trois, ce qui compte surtout en vue carte et
+en vue deux colonnes, où tout ce qui est gagné en haut est rendu au contenu.
+La place manque, la barre redescend telle quelle : ce sont les MÊMES nœuds,
+déplacés par le script de `layout.php`, jamais deux rendus.
+
+⚠️ **C'est MESURÉ, pas décidé par un point de rupture.** La place dépend de la
+longueur du titre (« Correspondance avec les structures » contre « Projets »),
+du nombre de boutons d'action et du contenu de la barre — trois choses qu'une
+media query ignore. Le script pose la barre dans la ligne et regarde deux
+choses : la ligne déborde-t-elle, et la rangée d'actions est-elle passée à deux
+lignes (`.page-head-actions` a `flex-wrap: wrap`, elle se replie avant de faire
+déborder quoi que ce soit). ⚠️ Et il **redescend toujours la barre avant de
+mesurer** : montée, elle occupe elle-même le vide qu'on cherche à mesurer, et
+la réponse serait « ça tient » à toutes les largeurs. Sous 800px elle reste en
+bas, comme les actions.
+
+Sur une fiche, le lien de retour est entré dans le bloc de titre par le script
+de `layout.php` (dans le balisage, c'est un frère — et un `<a>`, donc rien ne
+peut s'y nicher), et `.page-head-bande-range` remet chacun à sa place en
+grille : retour et actions en haut, titre en dessous.
+
+**Sur une liste, les actions montent dans le bandeau** — sur la ligne du
+surtitre, à droite du nom du module (`.page-head-actions`). La vue continue de rendre son
+bloc `.head-actions` dans sa barre d'outils ; c'est le script de
+`views/layout.php` qui l'y remonte au-dessus de 800 px, et qui le redescend en
+dessous, où le bandeau n'a pas la largeur de l'accueillir. Un déplacement et non
+une réécriture des trente vues concernées : le bandeau est rendu AVANT le
+contenu, il ne peut pas connaître des boutons qui n'existent pas encore.
+
+La raison est de fond : une barre d'outils de liste portait deux choses de
+nature différente — ce qui **filtre** ce qu'on voit et ce qui **agit** dessus.
+Séparées, chaque bande n'a plus qu'un seul bloc aligné à droite, et le regard
+sait où chercher. Ce qui filtre ne rejoint les actions sur la ligne du titre
+qu'en bloc et en pastille (voir plus haut) — jamais la recherche seule, qui
+laisserait ses entonnoirs orphelins un étage plus bas.
+
+**Une seule action reste dehors, les autres passent derrière « … ».** Le script
+garde l'action PRINCIPALE — le bouton plein, ou à défaut le dernier du bloc,
+puisque la convention met l'action majeure en fin de rangée — et range le reste
+dans le menu déroulant du bandeau : « Écriture manuelle », « Télécharger les
+archives », « Ventilation des charges »… Deux actions de même poids côte à côte,
+c'est deux fois rien qui se dispute l'œil.
+
+⚠️ Les nœuds sont DÉPLACÉS, écouteurs compris — rien n'est recréé : le
+« + Écriture manuelle » de la comptabilité est un bouton piloté par sa vue, et
+il continue d'ouvrir son formulaire depuis le menu. Seules les classes de bouton
+tombent au passage : dans le panneau, une entrée est une ligne de menu. Un
+`.menu-deroulant` déjà posé par la vue n'est pas déplacé — on n'imbrique pas un
+menu dans un menu.
+
 `.page-head` porte le titre de la page — sauf sur le tableau de bord, où le rail
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
 bouton d'organisation des cartes à sa droite.
 
-**Sur une FICHE, ce haut de page est une bande** : `.page-head-bande` sur le
-`.page-head`, et le lien de retour juste au-dessus la complète. Fond blanc d'un
-bord à l'autre, fermé par un filet — la même bande que la barre d'outils d'une
-liste (`.module-content-inner > .toolbar`), pour la même raison : ce qui dit
-**où l'on est** et **ce qu'on peut faire** se tient ensemble, au-dessus du
-contenu, et se distingue de lui.
+**La recherche unifiée vit dans le rail**, sous le logo (`.side-recherche`) :
+elle traverse tous les modules, elle n'appartient donc à aucune page. Elle était
+jusque-là réservée au tableau de bord, c'est-à-dire atteignable seulement en
+rentrant à l'accueil — le champ du tableau de bord a donc été retiré, deux
+recherches unifiées sur le même écran ne valant pas mieux qu'une.
+
+⚠️ **C'est le champ de recherche de l'application, sans habillage propre** :
+`champ_recherche()`, bordure fine, loupe à droite, comme dans n'importe quelle
+barre d'outils. Il a porté une capsule de 44 px bordée de 2 px, loupe à gauche,
+pour dire « porte d'entrée » plutôt que « filtre ». Deux dessins pour le même
+geste se lisaient comme deux fonctions différentes ; sa place sous le logo
+suffit à le distinguer.
+
+**Elle répond dans la colonne, sans rechargement** : `?p=recherche_suggestions`
+(JSON, lecture seule, rattachée à aucun module comme `?p=recherche`) rend trois
+résultats par source, et le script les pose en panneau flottant par-dessus la
+navigation — intercalés, ils feraient sauter les modules sous le curseur à
+chaque lettre. Flèches pour parcourir, Entrée pour ouvrir, Échap pour fermer ;
+Entrée sans sélection soumet le formulaire et ouvre la page de résultats
+complète. ⚠️ Les titres viennent de la base : ils se posent en `textContent`,
+jamais en `innerHTML`.
+
+⚠️ Le raccourci « / » (`assets/app.js`) l'ignore tant qu'une recherche de page
+existe : sur une liste, « / » doit filtrer la liste, pas ouvrir une recherche
+globale.
+
+**Sur une FICHE, l'en-tête se lit comme celui d'une liste** :
+`.page-head-bande` sur le `.page-head`, le lien de retour juste au-dessus. Ni
+fond ni filet — il appartient à la page, comme le bandeau d'une liste. Le titre
+prend le même cran que celui d'une liste (`--fs-geant`) : un écran n'a qu'un
+titre, et il ne change pas de taille selon qu'on regarde « Structures » ou
+« Salle des Marronniers ». Et le lien de retour EST le fil d'Ariane de la
+fiche : il se dessine donc comme le surtitre d'une liste — petites capitales
+espacées (`.back-link`), et non une phrase grise.
 
 ⚠️ La classe se pose dans la vue, elle ne s'applique pas à tout `.page-head` :
 le même balisage sert aussi d'en-tête de SECTION au milieu d'une page
@@ -232,8 +331,32 @@ qu'un « Modifier » se retrouvait 6 px plus bas qu'un « Contacter » posé à 
 **Une commande ne se cache pas derrière le survol.** Un crayon en `opacity: 0`
 révélé au passage de la souris n'existe pas pour qui ne le cherche pas déjà, et
 pas du tout au clavier ni au doigt. Si une colonne de crayons paraît trop
-présente, c'est le bouton qu'il faut assourdir (`ghost`, gris), pas le faire
+présente, c'est le bouton qu'il faut assourdir (`ghost`), pas le faire
 disparaître.
+
+**Une seule échelle d'arrondis**, et c'est le rail qui la donne : `--radius`
+(20px) pour tout ce qui est une surface — carte, volet d'un module, panneau —,
+`--radius-sm` (12px) pour ce qui se pose dedans — champ, menu, cartouche —, et
+la capsule (`999px`) pour les boutons et les puces. Une carte à 10px posée à
+vingt centimètres du volet du rail lisait comme un autre système.
+
+**Les titres de carte ont la voix des titres de page** : 800, interlettrage
+resserré, encre — un cran plus bas dans l'échelle (`--fs-big`). Un titre de
+carte est le titre d'un bloc, pas une étiquette. Les intertitres d'une section
+(`h3.sub`) gardent leurs petites capitales grises : eux ne nomment pas un bloc,
+ils découpent son contenu.
+
+**Deux formes de bouton, et deux seulement.** Le primaire est une **capsule
+pleine** dans la couleur du module ; le secondaire (`ghost`) est la même capsule
+en **contour d'encre**, transparente, de la même graisse. Un fond blanc bordé de
+gris, l'ancien `ghost`, se lisait comme un champ désactivé à côté d'un primaire
+en couleur. La largeur de bordure ne change pas entre les deux : à 2px, le
+secondaire grandirait d'un pixel et ne s'alignerait plus sur les champs voisins
+(`--action-height`).
+
+**La pagination tient les deux bords** : le réglage « par page » et le compte à
+gauche, la navigation à droite. Centrée, elle se donnait pour le sujet de la fin
+de page.
 
 ## 2. Modifier
 
@@ -1013,14 +1136,62 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   `--content-pad` (celui de la page, qui change en mobile) au lieu de
   `--card-pad`. Un tableau de clé-valeur (`.kv-table`) n'est pas concerné : ce
   n'est pas une liste, il se lit comme du texte et garde le retrait de la carte.
-- ⚠️ **Une bande d'onglets qui défile garde sa marge de gauche.** Les onglets et
-  sous-onglets passent sur une seule ligne défilante sous 800 px, avec un
-  accrochage (`scroll-snap-align: start`). Or `start` aligne sur le début du
-  *scrollport*, qui est le bord de la boîte de REMPLISSAGE : la bande s'accroche
-  et le retrait de gauche passe sous le bord, pastilles collées à l'écran — mais
-  seulement quand la bande déborde, donc invisible sur les sections courtes.
-  `scroll-padding-left` de la même valeur que le retrait décale le scrollport et
-  la marge tient.
+- **Une carte qui liste des ENREGISTREMENTS les met en mini-cartes**, pas en
+  tableau clé-valeur. Le `.kv-table` dit les champs d'UN objet — un libellé,
+  une valeur ; dès que chaque ligne est un objet qu'on va ouvrir, c'est
+  l'idiome de la liste en cartes qui s'applique. Deux gabarits, selon ce qu'on
+  liste :
+  - **Une STRUCTURE : `views/_structure_mini.php`**, toujours, et rien
+    d'autre. C'est la fiche de `?p=structures` en mode cartes, rendue une
+    seule fois pour tous ses lecteurs — l'organisation d'un événement, les
+    rattachements d'une personne : icône de statut, nom, ville avec drapeau et
+    canton, catégorie et les deux dates à droite, étiquettes dessous. Les deux
+    écrans l'avaient écrite chacun de leur côté, et le second oubliait déjà la
+    moitié des champs. Ce que la RELATION ajoute (le rôle, « Booking ») se
+    passe au partiel à part : `$msSousNom`, `$msBadges`, `$msAvantNom`,
+    `$msInactif` — la structure ne les connaît pas. Les étiquettes viennent
+    toutes de `structure_tags_mini_sql()` (`lib/booking.php`) : deux
+    projections divergentes, ce sont deux listes qui finissent par ne plus
+    dire la même chose.
+  - **Autre chose : `.mini-cartes`** — un emploi, un compte, une pièce. Le nom
+    en grand (`.titre-lien`, donc à l'encre), son détail en petit dessous, les
+    pastilles calées à droite, des filets d'un bord à l'autre de la carte. Un
+    détail vide ne s'écrit pas du tout : sur une carte, un tiret se lit comme
+    une information alors qu'il dit une absence (même règle que `.carte-vide`).
+
+  ⚠️ **Ni l'un ni l'autre n'est `.liste-cartes`**, et c'est voulu : cette
+  mécanique-là est une requête de conteneur qui retourne un vrai tableau en
+  cartes sous 700 px, avec case à cocher et colonne de dates hors flux. Ici il
+  n'y a pas de tableau à retourner, et la forme carte vaut à TOUTES les
+  largeurs — dans une fiche, le conteneur fait 1100 px, la bascule ne serait
+  jamais partie.
+- **Deux colonnes inégales dans une fiche** — une carte large, une carte
+  étroite à côté (`?p=personne` : l'identité et les rattachements) —
+  s'obtiennent par `.fiche-colonnes` + `.fiche-col-large` /
+  `.fiche-col-etroite`. ⚠️ En `flex-wrap`, jamais derrière une media query :
+  une fiche s'affiche aussi dans le volet droit de la vue deux colonnes, dont
+  la largeur n'a aucun rapport avec celle de la fenêtre — un seuil en `vw` la
+  coupait en deux dans un volet de 400 px. Les deux colonnes portent
+  `flex-grow` : repliée seule sur sa ligne, l'étroite doit reprendre toute la
+  largeur.
+- **Une page qui finit par sa pagination finit AU RAS.** Le contenu d'un
+  module a 30px de retrait sous lui ; une pagination n'en a aucun
+  (`.module-content-inner:has(> .pagination)`). Elle n'est pas du contenu :
+  c'est la réglette du tableau qu'elle suit, son pied de page. De l'air en
+  dessous la détachait du tableau et la laissait flotter seule au bas de
+  l'écran — ses propres 14px de remplissage suffisent, et le fond blanc de
+  `.module-content` va de toute façon jusqu'au bord de la fenêtre. ⚠️ Le
+  sélecteur ne dit pas `:last-child` : `?p=evenements` ferme son contenu par un
+  `<script>` d'initialisation qui ne s'affiche pas mais compte comme dernier
+  enfant.
+- ⚠️ **Une bande qui défile horizontalement garde sa marge de gauche** —
+  valable pour toute bande à accrochage (`scroll-snap-align: start`), et appris
+  sur les rangées d'onglets du téléphone, depuis retirées. `start` aligne sur le
+  début du *scrollport*, qui est le bord de la boîte de REMPLISSAGE : la bande
+  s'accroche et le retrait de gauche passe sous le bord, pastilles collées à
+  l'écran — mais seulement quand la bande déborde, donc invisible sur les
+  bandes courtes. `scroll-padding-left` de la même valeur que le retrait décale
+  le scrollport et la marge tient.
 - **Le séparateur de groupe d'une liste** — le mois, l'année, l'étape — écrit
   son nom GRAND et MAIGRE, en bas-de-casse, au-dessus d'un filet d'un cheveu :
   c'est l'air au-dessus de lui qui sépare, pas un trait. La rangée est en
@@ -1145,6 +1316,16 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   et les structures leurs étiquettes, et à 1280px elles débordaient
   respectivement de 13 et 56px. **Se remesure dans le navigateur, pas se
   suppose.**
+- ⚠️ **Un tableau DANS UNE CARTE n'est pas concerné : il défile dans son cadre à
+  toutes les largeurs.** La dérogation ci-dessus n'existe que pour libérer
+  l'en-tête collant, qu'une carte n'a pas (son `<thead>` est explicitement
+  `position: static`). Appliquée à une carte, elle laissait le tableau sortir
+  par la droite — vu sur la carte « Employés » de `?p=evenement`, où une ligne
+  ouverte dépassait de 156px, boutons d'enregistrement compris. D'où
+  `.card .table-scroll { overflow-x: auto }`, déclaré après, dans le même seuil.
+- **Les champs d'une ligne ouverte peuvent se replier** quand la carte n'a pas
+  leur largeur (`.epf-duree`, `flex-wrap: wrap`). Une ligne qui déborde coûte
+  son bouton « Enregistrer », hors du cadre ; un pli ne coûte qu'une ligne.
 - **Largeur des colonnes** : un tableau en disposition automatique répartit la
   place entre toutes ses colonnes, y compris celles qui n'en demandent pas.
   Serrer les colonnes courtes sur leur contenu (`width: 1%` + `white-space:
@@ -1207,12 +1388,255 @@ de page, qui vient du libellé qu'on a cliqué. Et chaque formulaire de l'écran
 poste vers `?section=` : sans cela, enregistrer renverrait au sommaire, où le
 résultat du geste est invisible.
 
-## 9 ter. La rangée d'onglets d'un module
+## 9 quinquies. La vue deux colonnes
 
-Elle ne paraît **qu'à partir de deux onglets** (`views/_module_tabs_render.php`).
-Un onglet seul ne mène nulle part : il répète le nom du module écrit à deux
-centimètres à gauche et occupe la place d'une navigation qui n'existe pas. La
-pastille qu'il portait reste lisible dans le rail, qui porte la même.
+Un troisième affichage, à côté de Liste et Carte : **la liste en colonne
+étroite à gauche, la fiche de celle qu'on a choisie à droite**
+(`?p=structures&vue=duo&sel=…`). Elle existe partout où il y a une liste ET une
+fiche : **structures, personnes, employés, fiches de salaire, factures,
+événements**.
+
+Le gabarit des deux volets est commun — `views/_duo.php` : on lui passe la
+liste déjà rendue (`$duoListe`) et le partiel de fiche à requérir
+(`$duoFiche`), il ne connaît ni les colonnes, ni les filtres, ni le contenu
+d'une fiche. Ajouter un module tient donc en quatre gestes, et aucun n'est une
+réécriture :
+
+1. **une fonction de données** — `structure`/`facture`/`evenement`/`employe`/
+   `fiche`/`personne_donnees_vue($id)` dans la route : elle rend exactement ce
+   que la page pleine affiche, et `null` si l'identifiant ne désigne rien. La
+   route de la fiche pleine page l'appelle elle aussi : c'est ce qui garantit
+   que les deux volets montrent la même chose ;
+2. **un partiel de fiche** — `views/_<objet>_fiche.php`, le corps sorti de la
+   page pleine ;
+3. **dans la route de liste**, deux lignes : `vue_liste('<page>_vue')` pour la
+   vue mémorisée (plus `['carte']` quand l'écran en a une), et
+   `duo_selection($vue, $lignes, '<objet>_donnees_vue')` pour l'objet choisi —
+   `?sel=` s'il est dans la page affichée, sinon le premier, et `duoSel` à 0
+   quand il n'y a rien à montrer (`lib/helpers/listes.php`) ;
+4. **dans la vue de liste**, `bascule_vue_html('<route>', $vue, $qsSansVue)`
+   pour le bouton, `ob_start()` avant le tableau, `ob_get_clean()` après la
+   pagination, puis `require _duo.php`.
+
+⚠️ **Ces trois fonctions existent parce que les six écrans les avaient
+copiées.** Douze lignes de route et sept de balisage, six fois, dont seuls le
+nom de la liste et un mot de commentaire changeaient. Un septième écran ne doit
+pas en faire une septième copie : si quelque chose manque au gabarit, c'est le
+gabarit qu'on élargit.
+
+⚠️ Deux pièges, tous deux silencieux : la boucle de la liste et la fiche
+partagent souvent le même nom de variable (`$f` sur les fiches de salaire,
+`$emp` sur les employés) — la boucle l'écrase avant que le volet droit soit
+rendu, il faut la mettre de côté AVANT ; et une liste qui n'est pas en
+`liste-cartes` reste un tableau de quatre colonnes dans 300px (c'est ce qu'il a
+fallu ajouter aux personnes, avec ses règles `.cartes-personnes`).
+
+Trois décisions qui la font tenir :
+
+- **La liste affichée est la VRAIE liste**, celle du téléphone : le même
+  fichier, le même tableau (`views/_structures_table.php` pour les structures,
+  le tableau de la page capturé tel quel ailleurs), avec ses cellules, ses
+  étiquettes et ses entonnoirs. Rien n'est recodé pour la colonne — seuls les liens changent,
+  une ligne ne quitte plus la page, elle change la fiche de droite. Ce qui le
+  permet : les règles des listes en cartes sont passées d'une requête de FENÊTRE
+  à une requête de CONTENEUR (`@container liste`, conteneur `.table-scroll`).
+  Elles valent donc partout où la liste est à l'étroit — un téléphone de 375px
+  ou une colonne de 300px sur un écran de 1500. ⚠️ Le conteneur est
+  `.table-scroll` et non `.module-content-inner` : celui-ci contient aussi la
+  carte des lieux, en `position: fixed`, qu'un conteneur casserait.
+- **La fiche affichée est la VRAIE fiche**, pas une version réduite : le corps
+  d'une fiche vit dans un partiel (`views/_structure_fiche.php`) que la page
+  pleine et la colonne de droite requièrent toutes deux. Une seule fiche à
+  tenir, deux endroits où elle paraît. Le partiel ne contient ni le lien de
+  retour, ni le bandeau, ni `.module-content` : chaque appelant les pose à sa
+  façon — la colonne de droite n'a pas de retour, la liste est à gauche.
+- **Un clic recharge la page**, avec `&sel=`. Pas d'AJAX : toute l'application
+  fonctionne ainsi, et surtout une fiche porte ses propres scripts (édition en
+  place, carte, fenêtre « Contacter ») — injectée en HTML, elle serait morte.
+- **Les filtres passent dans le panneau.** La liste est en cartes, donc sans
+  `<thead>` où accrocher les entonnoirs : la barre d'outils prend la même
+  classe qu'en vue carte (`.filtres-carte`), le bouton « Filtres » reste
+  visible à toute largeur. La sélection groupée, elle, disparaît : une barre
+  flottante de modification en masse n'a rien à faire au-dessus d'une colonne
+  de 300px. ⚠️ Ce panneau-là **flotte** (`.filtres-mobile-panneau`, en
+  `position: absolute` dans la barre d'outils) : il ne réserve PAS sa place en
+  dessous, contrairement à l'entonnoir « Plus de filtres » de la vue liste
+  (`.filters-more`, en `position: fixed`, à qui `assets/app.js` pose un
+  `margin-bottom` sur la barre). Les deux `<details>` portent la classe
+  `.filters-more` ; appliquer la réserve au premier décalait les deux volets
+  vers le bas à chaque ouverture — d'où l'exclusion explicite dans
+  `assets/app.js`.
+- **Au-delà de 1100px seulement.** En dessous, les deux colonnes se marchent
+  dessus : le bouton disparaît de la bascule et la vue s'empile. Là où « deux
+  colonnes » est la seule autre vue — personnes, employés, fiches, factures —
+  c'est la bascule entière qui s'efface (`.seg-picker-duo`) : à une seule
+  position, elle ne bascule plus rien. ⚠️ Le seuil
+  doit être écrit APRÈS les règles `.duo` : à spécificité égale c'est le
+  dernier qui gagne, et un `display: flex` déclaré plus bas annulait le repli.
+
+## 9 ter. La navigation : le rail porte tout, le volet déplie
+
+**Le rail porte les trois niveaux** — module, page, sous-page — et c'est le seul
+endroit où la navigation se décide sur un écran large (`views/layout.php`,
+`.nav-volet` dans `assets/app.css`).
+
+Le dessin tient en une phrase : **le module ouvert est un volet teinté de sa
+couleur qui enveloppe ses pages, et la page affichée est une capsule de la même
+teinte, en plein.** Une seule couleur, deux intensités, et une relation de
+contenance. C'est ce qui a remplacé le filet vertical d'arborescence doublé de
+cadres de sélection : deux langages qui ne se rejoignaient pas — le filet disait
+la structure, le cadre disait la sélection, et rien ne les accordait. Le volet
+dit les deux. Le troisième niveau n'a donc ni filet ni tiret : un simple
+décalage suffit, puisque le volet dit déjà à qui ces écrans appartiennent.
+
+Trois conséquences à respecter :
+
+- **Un module d'un seul écran ne déplie rien.** Sa ligne EST sa page. Même règle
+  qu'au bandeau d'onglets, qui ne s'affichait qu'à partir de deux.
+- **Un onglet qui porte des sous-pages est « déplié », pas « actif »** : lavis de
+  sa teinte (`.nav-page.deplie`), jamais la capsule pleine — sinon deux lignes se
+  disent actives en même temps.
+- ⚠️ **Et son clic DÉPLIE, il ne navigue pas** — dans les deux rails. Son `href`
+  mène à sa première sous-page (« Plan comptable » à « Produits et charges »,
+  « Application » aux « Mises à jour ») : cliquer le nom d'un groupe pour
+  atterrir sur un de ses membres, choisi par le code, n'est pas ce qu'on a
+  demandé. Le lien reste un lien — il s'ouvre dans un onglet, se copie,
+  fonctionne sans script —, c'est le clic ordinaire qui est détourné
+  (`.sous-ouvert`, `assets/app.js`). Un petit chevron le dit, et tourne quand
+  c'est déplié. Les sous-pages sont donc **toujours** rendues, le CSS les
+  repliant tant que la page n'est ni ouverte, ni dépliée, ni ouverte à la main.
+- ⚠️ **Le rail nomme des ÉCRANS, pas des gestes.** « Nouvelle campagne » y a eu
+  son onglet, sous Booking, juste après l'onglet « Campagnes » du démarchage —
+  qui a son propre bouton du même nom. Deux entrées identiques pour deux choses
+  sans rapport : une campagne de démarchage d'un côté, un envoi groupé de
+  l'autre. Un geste se pose dans la page qu'il prolonge (§ 1) ; l'écran, lui,
+  reste rattaché à l'onglet dont il relève, pour que le rail l'éclaire quand on
+  y est — et il porte alors son nom et son retour lui-même, comme toute route
+  secondaire.
+- **Les modules fermés reculent à `opacity: .7`**, pastille comprise. C'est une
+  opacité et non un gris : la vignette garde sa couleur et le libellé reste de
+  l'encre pleine atténuée, qui tient le contraste là où un gris clair le perdait.
+
+**Les deux bouts du rail portent la vignette d'ENCRE** (`.nav-volet-encre`) :
+le tableau de bord en tête, les Paramètres en pied. Ni l'un ni l'autre n'est un
+module — aucun groupe dans `nav_groupes()`, aucune couleur dans
+`MODULE_COULEURS` —, et le gris le dit sans les mettre dehors : l'un les regarde
+tous, l'autre les règle. Le tableau de bord a eu sa teinte lavande ; elle en
+faisait un huitième module, et le rail n'avait plus ni haut ni bas, juste huit
+couleurs. Ces règles ne lisent pas `--vignette` : elles tiennent donc aussi
+quand « une couleur par module » est décoché.
+
+**Les Paramètres sont un volet comme les autres.** Ils ferment le rail, avec
+leurs groupes pour pages et les sections du groupe ouvert pour sous-pages
+(`parametres_groupes()`). Ils vivaient derrière la pastille du compte, où leur
+rangée d'onglets était leur seule navigation ; c'était le dernier écran à obéir
+à une autre grammaire. L'engrenage du bas du
+rail est parti avec : deux portes vers le même endroit, dont une qui ne disait
+pas où elle menait et tenait sa liste de routes à la main.
+
+### Le rail réduit : les vignettes seules, le reste au survol
+
+Un chevron posé **sur le filet de droite**, à hauteur du logo, replie le rail à
+68px : les vignettes des modules, rien d'autre. Le même bouton rouvre, au même
+pixel — c'est la règle de la croix qui referme une ligne en édition (§ 2e).
+
+| | |
+| --- | --- |
+| **Ce qui reste** | les initiales de l'employeur (ou son logo), la loupe, les vignettes, la pastille du compte |
+| **Ce qui part** | les libellés, les chevrons, les pages dépliées, le crédit du pied |
+| **Au survol d'une vignette** | un panneau sort à droite : le nom du module et ses pages — celles d'un module fermé comme celles du module ouvert |
+| **Au CLIC sur une vignette qui se déplie** | le panneau s'ouvre et reste (épinglé) ; la vignette ne mène plus à la première page du module. Un module d'un seul écran, lui, garde son lien |
+| **Dans le panneau** | un onglet à sous-pages se déplie sur place, comme dans le rail large |
+| **La loupe** | ne cherche pas : elle rouvre le rail et donne le curseur au champ. Un seul champ de recherche dans l'application, pas un second dessin pour le même geste |
+| **Mémoire** | `localStorage`, comme la position de défilement du rail : un réglage de poste de travail, pas une préférence du compte |
+
+Quatre décisions tiennent ce dessin, et chacune a sa raison :
+
+- **Tout part de `--rail-width`.** `:root.rail-reduit` le redéfinit à 68px, et
+  tout ce qui se décale du rail suit — le contenu, les bandeaux pleine largeur,
+  la carte des lieux. Aucune de ces règles n'a à connaître l'état replié.
+- **La classe est posée sur `<html>` par `assets/app.js`, chargé dans `<head>`**
+  sans `defer` : elle existe avant le premier rendu. Lue au `DOMContentLoaded`,
+  le rail se serait affiché large une fraction de seconde avant de se refermer —
+  à chaque page, puisque chaque clic recharge.
+- **Le panneau et les pages dépliées sont LE MÊME nœud** (`.nav-flyout`). En
+  rail large il est en `display: contents` : ses pages se posent dans le volet
+  comme avant, son nom reste caché. En rail réduit il devient le panneau
+  flottant. Deux rendus des mêmes liens, c'étaient deux listes à tenir
+  d'accord. ⚠️ Conséquence : les pages de **tous** les modules sont dans le
+  DOM, et c'est le CSS (`.nav-volet:not(.on) .nav-pages`) qui n'affiche que
+  celles du volet ouvert — sans elles, survoler un module fermé n'aurait rien à
+  montrer.
+- **Le clic déplie, il ne navigue pas.** En rail large, la ligne d'un module
+  mène à sa première page et le volet déplié montre les autres : le clic a un
+  sens. En rail réduit il n'y a plus de volet déplié — ce clic emmenait sur une
+  page qu'on n'avait pas demandée (le Plan comptable pour la Comptabilité), et
+  les autres restaient hors d'atteinte sans survol. D'où **deux états** et non
+  un : `.flyout-on` suit le curseur, `.flyout-pin` reste après le clic. Sans
+  l'épingle, le panneau se refermait dès que la souris s'en allait — et au
+  doigt, où il n'y a pas de survol du tout, rien n'était atteignable. Un clic
+  hors du rail ou Échap la retire, comme le dépliage du rail.
+- **Le panneau est un enfant du volet, et le chemin pour l'atteindre est
+  continu.** Enfant, pour que le survol reste vrai quand le curseur passe du
+  rail au panneau. Mais le panneau se place sur le bord du RAIL, tandis que le
+  volet s'arrête 8px avant, sur le retrait de `.side-nav` : entre les deux, une
+  bande qui n'appartenait à personne, où le panneau disparaissait avant qu'on
+  l'atteigne. ⚠️ Et **le clavier passe par le script, pas par `:focus-within`** :
+  cliquer une vignette lui donne le focus, et un panneau affiché sur le focus
+  restait ouvert pendant qu'on allait en survoler un autre — deux panneaux à
+  l'écran, le premier figé. `focusin` ouvre et `focusout` referme, par le même
+  chemin que le survol : un seul panneau à la fois.
+  Deux réponses au trou du curseur, et il faut les deux : **une bande transparente
+  collée au bord gauche du panneau** (`::before`, 12px) qui va mordre dans le
+  volet, et un **délai de grâce de 320ms** à la sortie, annulé si l'on revient.
+  ⚠️ Un pseudo-élément, et non une bordure gauche transparente — essayée
+  d'abord, et elle déforme ce qu'elle entoure : l'ombre part de la boîte de
+  bordure donc 10px trop à gauche, les coins gauches perdent leur arrondi (le
+  rayon se calcule sur cette même boîte) et le fond, rabattu sur la boîte de
+  remplissage, laisse une tranche vide. Un pont ne doit rien changer au
+  dessin. On vise
+  rarement droit ; un panneau qui se ferme au pixel près est un panneau qu'on
+  n'atteint pas. ⚠️ Un seul panneau ouvert à la fois : pendant le délai, celui
+  du module qu'on vient de quitter recouvrirait le nouveau.
+  Sa position verticale est posée par le script à l'entrée du curseur : il est
+  en `position: absolute` dans `.sidebar` et non dans le volet, qui vit dans
+  `.side-nav` — lequel défile, et rognerait tout ce qui dépasse de lui.
+- **Sa hauteur est bornée, et c'est sa LISTE qui défile.** Déplier des
+  sous-pages le fait grandir, et le script a beau le remonter, un panneau plus
+  haut que la fenêtre dépasse quoi qu'on fasse. ⚠️ La borne est sur
+  `.nav-pages`, pas sur `.nav-flyout` : un conteneur de défilement rogne ses
+  enfants en position absolue, et le pont (`::before`) en est un — le panneau
+  deviendrait inatteignable à la souris. Dans les deux rails, ce qu'on vient de
+  déplier est ramené en vue.
+
+**Rien de tout cela sous 800px** : le rail y est un tiroir, qui n'a rien à
+replier. Le bloc entier vit dans un `@media (min-width: 801px)`, et le chevron
+n'y est même pas affiché.
+
+**La rangée d'onglets en tête de page ne s'affiche plus nulle part.**
+`views/_module_tabs_render.php` et la rangée de sous-onglets
+(`.module-subtabs`) sont toujours rendues, mais le CSS les efface à TOUTES les
+largeurs. Au-dessus de 800 px le rail est à l'écran et la rangée répéterait, à
+deux centimètres à droite, le volet déjà déplié ; en dessous le rail est un
+tiroir, et le tiroir déplie le MÊME volet — module, pages et sous-pages
+comprises, les Paramètres et leurs trois niveaux y compris. Elle y restait
+donc par héritage, pas par nécessité. Le balisage et l'aspect de `.module-tab`
+restent en place le jour où un écran hors rail en aurait besoin.
+
+**Le bandeau nomme la page, pas le module** (`views/_page_head_band.php`) : le
+module passe en surtitre (`.page-head-sur`), le `<h1>` prend le nom de la page
+ouverte — et celui de la sous-page quand il y en a une, l'onglet rejoignant
+alors le surtitre.
+
+⚠️ **Sur un écran de DÉTAIL, le bandeau se tait.** Une fiche, un formulaire —
+toute route secondaire d'un onglet — porte déjà son en-tête : le nom de
+l'enregistrement et un retour vers la liste. Un bandeau au-dessus y poserait un
+titre de plus, plus gros que celui de l'enregistrement et disant moins. Il reste
+rendu (`.page-head-band-muet`) mais le CSS l'efface, lui aussi à toutes les
+largeurs — il n'avait plus que cette rangée à porter. Avant que le rail ne porte la navigation, ce `<h1>` disait le
+module et la rangée d'onglets disait la page ; une fois la rangée masquée, la
+page n'avait plus de nom à l'écran. Sur téléphone, surtitre masqué : la barre
+supérieure nomme déjà le module.
 
 Un **référentiel** — ce qu'on règle deux fois l'an : pays, catégories, tags,
 projets — n'est pas un onglet de module : il vit dans Paramètres → Catégories
@@ -1350,43 +1774,66 @@ masque ne gardant que l'alpha du dessin.
 
 ## 13. Couleurs
 
-Les tokens portent le **sens**, jamais la teinte, et se déclinent en `-d`
-(survol) et `-tint` (fond).
+**Deux registres, qui ne partagent jamais une teinte.** Une couleur dit soit ce
+qu'une chose EST, soit où elle EN EST — jamais où l'on se trouve. Le lieu se dit
+par le rail, le fil d'Ariane et le titre de la page ; c'est ce qui libère
+l'ambre, le rouge et le vert pour parler de l'état des choses.
 
-| Token | Sens |
-| --- | --- |
-| `--ok` (teal) | Acquis, confirmé, intéressé |
-| `--danger` | Destructeur, refusé |
-| `--amber` | **Un geste à faire**, et rien d'autre |
-| `--amber-piste` | Le même sens, en fond : la part d'une jauge qui reste à faire |
-| `--rose` | Contact privilégié |
-| `--muted` | Secondaire, en attente d'autrui, déjà traité de notre côté |
-| `--primary` / `--highlight` | Accents, réglés par l'employeur |
+**Quatre états, sur les bords et les aplats.** Chacun a trois valeurs et pas
+une de plus : un ton (texte et bords, ≥ 4,5:1 sur le papier), un lavis (fonds),
+une bordure intermédiaire.
 
-**L'ambre dit un geste qui nous revient** — une fiche à verser, une facture
-échue, une déclaration SUISA, un bailleur à solliciter. Il ne dit pas
-« en attente » : attendre la réponse de quelqu'un n'est pas une tâche, c'est du
-gris (`--muted`). La règle se vérifie vite — si l'utilisateur ne peut rien
-faire de la chose colorée, elle n'est pas ambre.
+| État | Ton | Lavis | Quand |
+|---|---|---|---|
+| Action | `--highlight` | `--highlight-tint` | le geste qui fait avancer, la sélection, le focus clavier |
+| À faire | `--amber` | `--amber-tint` (bord `--amber-bord`) | ce qui attend un geste : à payer, à relancer, brouillon, pas envoyé |
+| Problème | `--danger` | `--danger-tint` (bord `--danger-bord`) | hors délai, incohérent, destructif |
+| Réglé | `--ok` | `--ok-tint` (bord `--ok-bord`) | payé, rapproché, envoyé, validé |
 
-Les mêmes couleurs doivent dire la même chose partout : un sélecteur de réponse,
-les segments d'une jauge et sa légende se peignent depuis la même table
-(`CAMPAGNE_REPONSES_CLASSES_ICONE`, `lib/booking.php`). Une couleur ne porte
-jamais le sens **seule** : une icône ou un libellé l'accompagne.
+**Trois types, sur la marque d'identité seulement** — pastille, avatar, icône,
+puce de décompte. Jamais un bouton, jamais un fond de page : `--personne`
+(employé, contact, structure, lieu), `--document` (facture, fiche, pièce,
+certificat, écriture), `--evenement` (événement, date, échéance).
 
-Dans une jauge, deux registres se répondent : les **segments sont pleins** (ce
-qui est traité), la **piste est pâle** (ce qui ne l'est pas). D'où
-`--amber-piste` plutôt que `--amber` en fond : un ambre plein donnait une barre
-qui semblait remplie, c'est-à-dire l'inverse de ce qu'elle dit.
+Quatre règles tiennent l'ensemble :
 
-Tout écran existe en thème clair **et** sombre : n'écrire aucune couleur en dur,
-toujours un token.
+1. **Le lieu n'a pas de couleur** dans la page. La teinte du module vit dans le
+   rail — vignette, volet, capsule de la page affichée — et nulle part ailleurs.
+   Le titre d'une page est de l'encre, le bandeau n'a pas de fond.
+   `MODULE_COULEURS` (lib/modules.php) donne pour cela un couple `fond`/`encre`
+   par module : un **pastel** et sa version profonde, et non plus une teinte
+   moyenne. Ces pastels n'existent que sur le crème du rail, jamais sur le
+   papier d'une page — c'est cette séparation des surfaces qui les empêche
+   d'être lus comme des signaux à côté de l'ambre et du rouge.
+2. **L'état prend la surface, le type garde la pastille.** Une facture échue :
+   barre et cartouche rouges, pastille toujours violette — c'est encore un
+   document.
+3. **Un seul plein d'action par écran**, le bouton principal ; tout le reste en
+   contour d'encre. Sans cette règle, le bleu cesse de vouloir dire « c'est ici
+   qu'on agit » — c'est pour ça que les sommes brutes ont cessé d'être bleues.
+4. **Deux teintes au maximum par ligne de liste**, un état et un type. Trois, et
+   on retombe sur l'arc-en-ciel qu'on voulait fuir.
 
-**Le gras suffit à désigner ce qui demande un geste.** Sur une ligne déjà
-cliquable en entier, la teinter en plus n'apprend rien : `.list .strong-encre`
-met en gras sans prendre la couleur d'accent — le nom d'une campagne en cours,
-la ligne « À faire » de la carte Suisa. `.list .strong` (gras + teal) reste pour
-les chiffres d'un tableau.
+⚠️ **Un montant ne prend pas de couleur de nature**, seulement celle de son
+état : dû en ambre, échu en rouge, réglé en encre.
+
+⚠️ **Un décor de fond ne nomme jamais une couleur.** Les sept décors
+(`FONDS_DECOR`, `views/_fond_decor.php`) n'en connaissent que deux, `--fond-a`
+et `--fond-b` ; ce que ces deux-là valent est un réglage à part
+(`FONDS_COULEURS`, une bascule à pastilles dans `?p=apparence`) posé par une
+classe `body.fondc-<combo>`. Écrire `var(--primary)` dans la règle d'un décor
+le soustrait à ce choix, en silence et sans que rien ne casse. Les traits de
+STRUCTURE font exception et restent sur `--ink` — le quadrillage de la grille,
+la trame des pois : ils dessinent, ils ne colorent pas. Et aucun combo n'écrit
+de couleur : les sept recombinent des teintes déjà dérivées de celles de
+l'employeur, variante foncée (`-d`) et `--surface` comprises.
+
+**Le thème sombre est le même système, retourné** : une encre CHAUDE
+(`--d-bg: #17150f`), pas un gris bleuté — le clair est passé au papier crème, et
+un sombre violacé en face donnait deux applications différentes selon l'heure.
+Le verre dépoli (rail, cartes du tableau de bord) y devient un voile CLAIR et
+non un voile noir : sur un fond déjà sombre, un voile noir ne détache plus
+rien.
 
 ## 13 bis. Tailles de texte
 

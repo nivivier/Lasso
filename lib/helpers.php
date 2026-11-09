@@ -728,40 +728,6 @@ function couleurs_css_vars(): string
     return '<style>' . $clair . $sombre . $styleFond . '</style>';
 }
 
-// Bloc <style> qui surcharge --primary*/--brand* (voir couleurs_css_vars()
-// ci-dessus) avec la couleur fixe du module actif (MODULE_COULEURS,
-// lib/modules.php) — injecté juste après couleurs_css_vars() (views/layout.php),
-// donc gagne en cascade. $module : clé de nav_groupes()/nav_groupe_actif(),
-// ou null hors d'un module (tableau de bord, Paramètres — pas de surcharge,
-// la couleur principale de l'employeur s'applique normalement).
-// --highlight* (« couleur de mise en évidence », réglage Employeur séparé)
-// n'est volontairement PAS touché : il reste la même partout, quel que soit
-// le module — seuls --primary* (icône active du rail, focus, accents
-// secondaires) et --brand*/--brand-2 (titre de page en dégradé, voir h1 dans
-// app.css) suivent la couleur du module. Le rail lui-même (fond de .sidebar)
-// ne dépend plus de --brand — voir le commentaire sur .sidebar dans app.css —
-// donc cette surcharge ne le fait pas changer de couleur.
-function module_couleur_css_vars(?string $module): string
-{
-    if ($module === null || !isset(MODULE_COULEURS[$module]) || !param_couleurs_modules()) {
-        return '';
-    }
-    $c = couleurs_derivees(MODULE_COULEURS[$module]);
-    // Même dédoublement clair/sombre que couleurs_css_vars() : sans lui, la
-    // couleur du module réintroduirait une teinte quasi blanche en fond des
-    // éléments actifs sur un thème sombre.
-    return '<style>:root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
-        . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
-        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2'] . ';}'
-        . css_palette_sombre([
-            '--primary'      => $c['primary_sombre'],
-            '--primary-d'    => $c['primary_d_sombre'],
-            '--primary-tint' => $c['primary_tint_sombre'],
-            '--brand'        => $c['brand_sombre'],
-            '--brand-2'      => $c['brand_2_sombre'],
-        ])
-        . '</style>';
-}
 
 // Options d'unité de temps pour un <select> de ligne de prestation, encodées
 // "heures|libellé" (valeur) — partagées entre le formulaire de fiche de salaire
@@ -1093,7 +1059,7 @@ function asset_data_uri_mini_calculer(string $fs, string $cheminRelatif, int $ha
     return 'data:image/png;base64,' . base64_encode($data);
 }
 
-// Fonds proposés par ?p=apparence : quatre décors calculés à partir des
+// Fonds proposés par ?p=apparence : sept décors calculés à partir des
 // couleurs de l'employeur (SVG en ligne, views/_fond_decor.php) et l'image
 // personnalisée. Un seul est actif à la fois — d'où un choix, et non une
 // image qui l'emporterait silencieusement sur un décor.
@@ -1102,8 +1068,41 @@ const FONDS_DECOR = [
     'vagues'   => 'Vagues',
     'grille'   => 'Grille',
     'courbes'  => 'Courbes',
+    'pois'     => 'Pois',
+    'anneaux'  => 'Anneaux',
+    'strates'  => 'Strates',
     'image'    => 'Image personnalisée',
 ];
+
+// Les COULEURS d'un décor calculé. Un décor n'en connaît que deux, --fond-a et
+// --fond-b (assets/app.css) ; ce réglage dit à quoi elles renvoient. Le défaut
+// « duo » est ce que faisaient les décors avant d'être réglables, et les
+// installations en service n'y voient donc aucun changement.
+// Rien ici n'est une couleur écrite en dur : les quatre combos recombinent des
+// teintes déjà dérivées de celles de l'employeur (couleurs_derivees()).
+const FONDS_COULEURS = [
+    'duo'                => 'Principale et mise en évidence',
+    'principale'         => 'Principale, en deux nuances',
+    'evidence'           => 'Mise en évidence, en deux nuances',
+    'encre'              => 'Encre, en deux nuances',
+    'encre-principale'   => 'Encre et principale',
+    'surface-principale' => 'Surface et principale',
+    'surface-encre'      => 'Surface et encre',
+];
+
+// Combo sûr : tout ce qui n'est pas dans la liste retombe sur le défaut. Pure
+// (pas de base) pour être testable, comme fond_decor_valide() ci-dessous.
+function fond_couleurs_valide(string $valeur): string
+{
+    return isset(FONDS_COULEURS[$valeur]) ? $valeur : 'duo';
+}
+
+// Combo enregistré. Ne concerne que les décors calculés : une image
+// personnalisée a ses propres couleurs, et ses propres effets.
+function param_fond_couleurs(): string
+{
+    return fond_couleurs_valide((string) param('employeur_fond_couleurs', 'duo'));
+}
 
 // Valeur de fond sûre : tout ce qui n'est pas dans la liste retombe sur le
 // défaut. Pure (pas de base) pour être testable, et appelée aussi bien à
@@ -2023,6 +2022,43 @@ function info_tip(string $texte): string
         . '<span class="info-tip-bulle" role="tooltip">' . e($texte) . '</span></span>';
 }
 
+// BASCULE D'AFFICHAGE d'une liste : liste / deux colonnes / carte. Même dessin
+// que icon_picker() — .seg-picker, .seg-btn — mais des LIENS et non des radios :
+// changer de vue change d'adresse, et doit donc s'ouvrir dans un onglet, se
+// mettre en favori, revenir avec le bouton Précédent.
+//
+// Six écrans l'affichaient, chacun avec sa copie des mêmes sept lignes de
+// balisage ; seul le mot « la fiche choisie » changeait d'un commentaire à
+// l'autre. Ajouter une vue, ou corriger un aria-label, voulait dire six
+// fichiers.
+//
+// $qs : les paramètres à reconduire (filtres, recherche, tri) — SANS « p »,
+// « vue » ni « sel », que cette fonction pose elle-même.
+//
+// ⚠️ La vue « duo » porte .seg-btn-duo : le CSS efface ce bouton sous 1100px,
+// où deux colonnes ne tiennent plus. Un lien effacé reste atteignable au
+// clavier, et c'est voulu — la vue fonctionne, elle est seulement à l'étroit.
+const VUES_LISTE = [
+    'liste' => ['icone' => 'rows-3',    'titre' => 'Liste',          'aria' => 'Affichage en liste'],
+    'duo'   => ['icone' => 'columns-2', 'titre' => 'Liste et fiche', 'aria' => 'Affichage en deux colonnes', 'classe' => 'seg-btn-duo'],
+    'carte' => ['icone' => 'map',       'titre' => 'Carte',          'aria' => 'Affichage sur une carte'],
+];
+
+function bascule_vue_html(string $route, string $vueActive, array $qs, array $vues = ['liste', 'duo']): string
+{
+    $h = '<div class="seg-picker' . (count($vues) < 3 ? ' seg-picker-duo' : '') . '" role="radiogroup" aria-label="Affichage">';
+    foreach ($vues as $vue) {
+        $def = VUES_LISTE[$vue];
+        $on  = $vueActive === $vue;
+        $h .= '<a href="' . e('?p=' . $route . '&' . http_build_query($qs + ['vue' => $vue])) . '"'
+            . ' class="seg-btn' . (isset($def['classe']) ? ' ' . $def['classe'] : '') . ($on ? ' on' : '') . '"'
+            . ' role="radio" aria-checked="' . ($on ? 'true' : 'false') . '"'
+            . ' title="' . e($def['titre']) . '" aria-label="' . e($def['aria']) . '">'
+            . icon($def['icone']) . '</a>';
+    }
+    return $h . '</div>';
+}
+
 // Sélecteur segmenté à icônes (ex. type de structure, visibilité d'un
 // événement) — remplace un <select> par des boutons-icônes connectés dont un
 // seul est actif, exactement le format des droits par module de ?p=utilisateurs
@@ -2043,9 +2079,16 @@ function icon_picker(string $name, array $options, string $selected, string $ari
         . ($ariaLabel !== '' ? ' aria-label="' . e($ariaLabel) . '"' : '') . '>';
     foreach ($options as $valeur => $opt) {
         $checked = $selected === $valeur ? ' checked' : '';
-        $h .= '<label class="seg-btn" title="' . e($opt['label']) . '">'
+        // 'contenu' remplace l'icône quand le choix ne se dessine pas : les
+        // couleurs d'un décor se montrent par deux pastilles (?p=apparence).
+        // Un second composant à côté de celui-ci aurait fallu tenir d'accord
+        // sur la taille des boutons, l'état coché et le focus — c'est
+        // exactement ce que docs/UI.md interdit d'ouvrir.
+        $contenu = (string) ($opt['contenu'] ?? icon((string) $opt['icone']));
+        $classe  = 'seg-btn' . (($opt['classe'] ?? '') !== '' ? ' ' . e((string) $opt['classe']) : '');
+        $h .= '<label class="' . $classe . '" title="' . e($opt['label']) . '">'
             . '<input type="radio" name="' . e($name) . '" value="' . e($valeur) . '" aria-label="' . e($opt['label']) . '"' . $checked . '>'
-            . icon($opt['icone'])
+            . $contenu
             . ($avecLabel ? '<span class="seg-btn-txt">' . e($opt['label']) . '</span>' : '')
             . '</label>';
     }

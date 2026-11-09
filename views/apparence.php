@@ -2,6 +2,11 @@
 <?php // Le choix ENREGISTRÉ, que montre le sélecteur — et non param_fond_decor(),
       // qui répond ce qui s'affiche vraiment (avec son repli si l'image manque). ?>
 <?php $fondChoisi = fond_decor_valide((string) param('employeur_fond_decor', 'maillage')); ?>
+<?php $comboChoisi = param_fond_couleurs(); ?>
+<?php // Les décors calculés, dans l'ordre du sélecteur : la liste sert au
+      // sélecteur ET aux aperçus, qui ne doivent jamais diverger. « image »
+      // n'en est pas un — elle a son propre aperçu, plus bas. ?>
+<?php $fondsCalcules = array_keys(array_diff_key(FONDS_DECOR, ['image' => 1])); ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($saved): ?><p class="ok flash">Apparence enregistrée.</p><?php endif; ?>
 <?php if ($err): ?><p class="err"><?= e($err) ?></p><?php endif; ?>
@@ -43,6 +48,8 @@
                 <th>Fond</th>
                 <td><?= e(FONDS_DECOR[param_fond_decor()]) ?><?php if (param_fond_decor() === 'image'): ?>
                     <span class="muted small"><?= param_fond_clair() ? ' · éclairci' : '' ?><?= param_fond_floute() ? ' · flouté' : '' ?></span>
+                    <?php else: ?>
+                    <span class="muted small"> · <?= e(mb_strtolower(FONDS_COULEURS[param_fond_couleurs()], 'UTF-8')) ?></span>
                     <?php endif; ?></td>
             </tr>
         </table>
@@ -108,7 +115,7 @@
         <div>
 
         <h3 class="sub no-mt">Fond <?= info_tip(
-            "Une image personnalisée ne s'affiche qu'une fois connecté ; les quatre décors, "
+            "Une image personnalisée ne s'affiche qu'une fois connecté ; les décors calculés, "
             . "eux, paraissent aussi sur l'écran de connexion."
         ) ?></h3>
         <div class="fond-rangee">
@@ -117,8 +124,33 @@
                 'vagues'   => ['icone' => 'waves',        'label' => 'Vagues'],
                 'grille'   => ['icone' => 'grid-3x3',     'label' => 'Grille'],
                 'courbes'  => ['icone' => 'chart-spline', 'label' => 'Courbes de niveau'],
+                'pois'     => ['icone' => 'grip',         'label' => 'Pois'],
+                'anneaux'  => ['icone' => 'target',       'label' => 'Anneaux'],
+                'strates'  => ['icone' => 'layers',       'label' => 'Strates'],
                 'image'    => ['icone' => 'image',        'label' => 'Image personnalisée'],
             ], $fondChoisi, 'Fond de l\'application') ?>
+        </div>
+
+        <?php // Les couleurs du décor : la même bascule que le fond juste
+              // au-dessus, mais chaque bouton MONTRE ses deux teintes au lieu
+              // de porter une icône — sept combinaisons de couleurs ne se
+              // nomment pas plus qu'elles ne se dessinent. C'est la classe
+              // fondc-* posée sur le bouton qui colore ses pastilles
+              // (assets/app.css) : rien à tenir d'accord avec les combos.
+              // Masquée avec l'image personnalisée, qui a ses couleurs à elle. ?>
+        <div class="fond-rangee mt-10" id="fond-couleurs-rangee"<?= $fondChoisi === 'image' ? ' hidden' : '' ?>>
+            <span class="muted small">Couleurs du décor</span>
+            <?php
+            $fcOptions = [];
+            foreach (FONDS_COULEURS as $fcCle => $fcLib) {
+                $fcOptions[$fcCle] = [
+                    'label'   => $fcLib,
+                    'classe'  => 'fondc-' . $fcCle,
+                    'contenu' => '<span class="fond-points" aria-hidden="true"><i></i><i></i></span>',
+                ];
+            }
+            ?>
+            <?= icon_picker('employeur_fond_couleurs', $fcOptions, $comboChoisi, 'Couleurs du décor') ?>
         </div>
 
         <?php // Les commandes de l'image, entre le sélecteur et l'aperçu : on
@@ -147,8 +179,11 @@
               // Les cinq sont rendus côté serveur et le script ne fait que les
               // montrer — rien à reconstruire au clic, et l'aperçu est juste
               // avant même que JavaScript ait tourné. ?>
-        <div class="mt-16">
-            <?php foreach (['maillage', 'vagues', 'grille', 'courbes'] as $fdApercu): ?>
+        <?php // Les aperçus portent la classe du combo, comme <body> porte la
+              // sienne : c'est elle qui pose --fond-a/--fond-b, donc changer le
+              // menu au-dessus repeint les vignettes sans rien recharger. ?>
+        <div class="mt-16 fondc-<?= e($comboChoisi) ?>" id="fond-apercus">
+            <?php foreach ($fondsCalcules as $fdApercu): ?>
             <div class="fond-apercu" data-fond-apercu="<?= e($fdApercu) ?>"<?= $fondChoisi === $fdApercu ? '' : ' hidden' ?>>
                 <?php $fondDecor = $fdApercu; $fondIdPrefixe = 'ap-' . $fdApercu . '-'; require __DIR__ . '/_fond_decor.php'; ?>
             </div>
@@ -206,12 +241,27 @@
         if (blocImage) blocImage.hidden = choix !== 'image';
         var actions = document.getElementById('fond-actions');
         if (actions) actions.hidden = choix !== 'image';
+        // Les couleurs ne concernent que les décors calculés.
+        var couleurs = document.getElementById('fond-couleurs-rangee');
+        if (couleurs) couleurs.hidden = choix === 'image';
         document.querySelectorAll('[data-fond-apercu]').forEach(function (vignette) {
             vignette.hidden = vignette.dataset.fondApercu !== choix;
         });
     }
     document.querySelectorAll('input[name="employeur_fond_decor"]').forEach(function (radio) {
         radio.addEventListener('change', function () { montrerFond(this.value); });
+    });
+    // Les couleurs du décor se voient tout de suite : on échange la classe du
+    // combo sur le conteneur des aperçus, exactement celle que <body> portera
+    // une fois enregistré. Rien à redessiner — les décors ne connaissent que
+    // --fond-a/--fond-b, et c'est la classe qui les pose.
+    var listeApercus = document.getElementById('fond-apercus');
+    document.querySelectorAll('input[name="employeur_fond_couleurs"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (listeApercus) {
+                listeApercus.className = listeApercus.className.replace(/\bfondc-\S+/, 'fondc-' + this.value);
+            }
+        });
     });
     // Les deux effets se voient tout de suite sur l'aperçu : ce sont les mêmes
     // filtres que le fond réel (couleurs_css_vars()), le flou en proportion de

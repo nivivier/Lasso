@@ -278,6 +278,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    une feuille de route.
    Les **campagnes de mailing** avec désinscription, elles, envoient en masse
    et forment un sous-module à part (« Envois groupés »), activable séparément.
+   Un envoi groupé se prépare depuis **Booking → Suivi**, bouton « Nouvel envoi
+   groupé » : c'est la page qui montre la file d'attente et l'historique des
+   envois, donc celle d'où l'on en lance un.
    Le lien de désinscription ouvre une page de confirmation avant d'agir : un
    antivirus de messagerie ou l'aperçu de lien d'un client mail suit les URL
    d'un message pour les inspecter, et désinscrirait la structure tout seul.
@@ -465,6 +468,15 @@ un administrateur. Les couleurs principale et de mise en évidence restent celle
 que vous avez choisies : leurs variantes sombres en sont dérivées
 automatiquement, de même que la variante du logo utilisée dans la barre latérale.
 
+**Le rail de navigation se replie**, et cela ne se règle pas ici : un chevron
+posé sur son bord droit le réduit à ses vignettes, et le même bouton le rouvre.
+En rail réduit, survoler une vignette ouvre le nom du module et ses pages dans
+un panneau, et la loupe rouvre le rail plutôt que de chercher. Le choix est
+retenu **par navigateur** — c'est un réglage de poste de travail, pas une
+préférence du compte : deux personnes sur la même installation, ou la même
+personne sur deux machines, peuvent en décider autrement. Sur téléphone, où le
+rail est déjà un tiroir, le chevron ne s'affiche pas.
+
 Elle règle aussi la **densité des tableaux** — *dense*, *normal* ou *large* —,
 c'est-à-dire la hauteur des lignes dans toutes les listes : « dense » en fait
 tenir un quart de plus à l'écran, « large » les aère d'autant. Seul le retrait
@@ -493,7 +505,7 @@ documents, eux, ne suivent rien — l'aperçu imprimable d'une fiche, le PDF d'u
 facture et l'e-mail qui porte une fiche sont sur fond blanc, et gardent la
 variante pour fond clair quel que soit le thème.
 
-**Le fond se choisit** dans la même page, entre quatre décors calculés et une
+**Le fond se choisit** dans la même page, entre sept décors calculés et une
 image personnalisée :
 
 | Fond | Ce que c'est |
@@ -502,14 +514,30 @@ image personnalisée :
 | **Vagues** | Le décor historique de l'application, des vagues SVG superposées. |
 | **Grille** | Un quadrillage fin qui s'efface vers les bords, deux halos diffus. |
 | **Courbes de niveau** | Des lignes parallèles qui ondulent, comme une carte topographique. |
+| **Pois** | Une trame de points réguliers, six d'entre eux accentués. |
+| **Anneaux** | Des cercles concentriques partis du coin bas gauche, comme une onde. |
+| **Strates** | Cinq bandes inclinées et floutées — des aplats, là où les autres tiennent au trait. |
 | **Image personnalisée** | Une image envoyée (2 Mo max), avec deux effets combinables : éclaircie et floutée. |
 
-Les quatre décors sont **calculés** à partir des couleurs ci-dessus (SVG en
+Les sept décors sont **calculés** à partir des couleurs ci-dessus (SVG en
 ligne, aucun fichier à servir) : ils suivent le thème clair/sombre et se posent
 aussi derrière les écrans hors session — connexion, mot de passe oublié.
 L'image personnalisée, elle, ne s'affiche qu'une fois connecté ; ces écrans-là
 gardent alors le décor par défaut. Un aperçu, dans la page, montre le fond
 choisi avant d'enregistrer.
+
+**Et leurs couleurs se choisissent aussi**, sur la bascule à pastilles juste
+en dessous : un décor ne connaît que deux teintes, et ce réglage dit lesquelles.
+
+| Couleurs | Pour quoi faire |
+| --- | --- |
+| **Principale et mise en évidence** (défaut) | Ce que faisaient les décors jusqu'ici. |
+| **Principale** / **Mise en évidence** | Une seule teinte, en deux nuances — un décor qui ne dit qu'une couleur. |
+| **Encre** | Du gris : le décor ne dispute plus rien aux couleurs de l'interface. |
+| **Encre et principale**, **Surface et principale**, **Surface et encre** | Une teinte neutre et une couleur. Avec la surface, le décor passe ton sur ton — le plus discret de tous. |
+
+Aucun de ces combos n'écrit de couleur : ils recombinent des teintes déjà
+dérivées de celles de l'employeur, et suivent donc le thème comme le reste.
 
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
 tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une

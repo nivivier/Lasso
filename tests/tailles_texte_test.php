@@ -1,8 +1,8 @@
 <?php
 // Garde-fou de l'échelle typographique. Lancement : php tests/tailles_texte_test.php
 //
-// Sept tokens portent les tailles de texte de toute l'application
-// (--fs-tiny … --fs-huge, assets/app.css), et AUCUNE règle n'écrit plus un
+// Huit tokens portent les tailles de texte de toute l'application
+// (--fs-tiny … --fs-geant, assets/app.css), et AUCUNE règle n'écrit plus un
 // nombre de pixels. La convention n'était écrite NULLE PART : le code la
 // disait 206 fois contre 32, et c'est dans ces 32 que la dette s'était logée.
 //
@@ -48,7 +48,7 @@ foreach ($m[1] as $i => $nom) {
 
 echo "1) L'échelle existe et elle est complète\n";
 
-check('les sept tokens de taille sont déclarés', [
+check('les huit tokens de taille sont déclarés', [
     '--fs-tiny'   => '9px',
     '--fs-small'  => '11px',
     '--fs-basic'  => '13px',
@@ -56,6 +56,8 @@ check('les sept tokens de taille sont déclarés', [
     '--fs-big'    => '20px',
     '--fs-bigger' => '24px',
     '--fs-huge'   => '32px',
+    // Huitième cran, né du titre de bandeau — voir le commentaire du token.
+    '--fs-geant'  => '44px',
 ], $tokens);
 
 // Un var(--fs-…) mal orthographié est une règle VALIDE qui ne dessine rien :

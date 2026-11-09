@@ -12,6 +12,14 @@
 // cette séparation : la même personne peut être programmatrice ici et
 // trésorière là, et changer de salle sans changer de nom.
 
+// structure_tags_mini_sql() : les étiquettes d'une structure, en SQL, pour la
+// mini-fiche partagée (views/_structure_mini.php). Le fragment vit avec le
+// domaine des structures, comme structure_email_sql(), plutôt que recopié ici
+// — deux projections divergentes, ce sont deux listes d'étiquettes qui
+// finissent par ne plus dire la même chose, sur deux écrans qui montrent la
+// même structure.
+require_once __DIR__ . '/booking.php';
+
 // Ce qu'on lit d'un CONTACT — c'est-à-dire d'un lien, identité comprise. Le
 // reste du code attend les colonnes sous les noms que structure_contacts leur
 // donnait : les alias les lui rendent, et aucun écran n'a eu à changer de
@@ -84,15 +92,46 @@ function personne_nom(array $p): string
 // Les structures auxquelles une personne est rattachée, avec son rôle dans
 // chacune. C'est ce que le N↔N apporte et qu'aucun écran ne pouvait montrer
 // avant : le programmateur qui change de salle garde son fil.
+// Chaque ligne porte le LIEN (role, est_booking, est_administration, actif…)
+// et, sous la clé 'structure', la structure elle-même avec les colonnes dont
+// la mini-fiche partagée a besoin (views/_structure_mini.php).
+//
+// ⚠️ Pas de « s.* » : `personne_structures` et `structures` partagent id,
+// actif et cree_le — PDO ne garde que la dernière colonne de chaque nom, et le
+// lien perdait silencieusement son identifiant et son état. Les colonnes de la
+// structure sont donc préfixées en SQL, puis regroupées sous leurs noms
+// d'origine : la mini-fiche les y lit comme pour un événement, sans rien
+// savoir d'où elles viennent.
+const PERSONNE_STRUCTURE_COLONNES = [
+    'id', 'nom', 'statut', 'adresse_localite', 'adresse_pays', 'departement_canton',
+    'categorie', 'sous_categorie', 'mise_a_jour_le', 'cree_le', 'dernier_contact_le',
+];
+
 function personne_structures(int $personneId): array
 {
+    $cols = implode(', ', array_map(
+        fn (string $c): string => 's.' . $c . ' AS s_' . $c,
+        PERSONNE_STRUCTURE_COLONNES
+    ));
     $stmt = db()->prepare(
-        'SELECT cs.*, s.nom AS structure_nom FROM personne_structures cs
+        'SELECT cs.*, s.nom AS structure_nom, ' . $cols . ', '
+        . structure_tags_mini_sql() . ' AS s_tags_noms
+           FROM personne_structures cs
            JOIN structures s ON s.id = cs.structure_id
           WHERE cs.personne_id = ? ORDER BY s.nom COLLATE NOCASE'
     );
     $stmt->execute([$personneId]);
-    return $stmt->fetchAll();
+    $lignes = $stmt->fetchAll();
+    foreach ($lignes as $i => $ligne) {
+        $structure = [];
+        foreach ($ligne as $cle => $valeur) {
+            if (is_string($cle) && str_starts_with($cle, 's_')) {
+                $structure[substr($cle, 2)] = $valeur;
+            }
+        }
+        $lignes[$i]['structure'] = $structure;
+    }
+    return $lignes;
 }
 
 // ---------------------------------------------------------------------------

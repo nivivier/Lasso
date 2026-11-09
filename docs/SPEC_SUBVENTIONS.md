@@ -270,8 +270,9 @@ demandes, comme elle liste déjà ses factures et ses événements.
 - Nouveau module `fonds` dans `MODULES`, libellé **« Recherche de fonds »**,
   **`requires: []`** : il réutilise les structures comme la Facturation, sans
   dépendre du Booking.
-- Une couleur dans `MODULE_COULEURS` (les cinq prises : teal, ambre, indigo,
-  rose, violet — contraste AA obligatoire sous texte blanc).
+- Une couleur dans `MODULE_COULEURS` — depuis la refonte du rail, un couple
+  `fond`/`encre` : un pastel et sa version profonde, qui ne vivent que dans la
+  colonne de navigation (docs/UI.md § 13).
 - Une entrée dans `PERMISSION_MODULES`, et les routes rattachées par
   `ajouter_routes_module()` : lecture pour un GET, écriture pour un POST.
 - `recherche_sources()` : une recherche unifiée doit trouver une demande par le

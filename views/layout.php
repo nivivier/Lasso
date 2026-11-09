@@ -1,5 +1,12 @@
 <?php /** @var string $pageTitle, $contentView */ $u = current_user(); $cur = $_GET['p'] ?? '';
 $nomEmployeur = param('employeur_nom') ?: 'Fiches de salaire';
+// Les initiales de l'employeur : la pastille du rail réduit quand aucun logo
+// n'est configuré. Deux lettres au plus, prises aux deux premiers mots.
+$motsEmployeur      = preg_split('/\s+/u', trim($nomEmployeur), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+$initialesEmployeur = mb_strtoupper(implode('', array_map(
+    fn (string $m): string => mb_substr($m, 0, 1, 'UTF-8'),
+    array_slice($motsEmployeur, 0, 2)
+)), 'UTF-8');
 $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre');
 // Fond de l'application : un décor calculé (views/_fond_decor.php) ou l'image
 // personnalisée, au choix (?p=apparence, FONDS_DECOR). L'image ne concerne que
@@ -9,8 +16,8 @@ $logoClair = param_logo('clair'); $logoSombre = param_logo('sombre');
 $fondDecor        = param_fond_decor();
 $fondPersonnalise = $fondDecor === 'image';
 $fondDecorAuth    = $fondPersonnalise ? 'maillage' : $fondDecor;
-// Calculés ici (avant <head>, pas seulement pour la boucle du rail plus bas)
-// pour pouvoir injecter module_couleur_css_vars($navActif) dans <head>.
+// Calculés avant <head> : le rail en a besoin, et $navActif sert aussi au
+// titre de la barre supérieure sur téléphone.
 $navGroupes = $u ? nav_groupes() : [];
 $navActif   = $u ? nav_groupe_actif($navGroupes, $cur, (string) ($_GET['depuis'] ?? '')) : null;
 // Le nom du module, affiché dans la barre supérieure sur téléphone. C'est la
@@ -71,11 +78,19 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
     <link rel="icon" href="<?= e(param_logo($favClair)) ?>"<?= $favSombre !== null && $favSombre !== $favClair ? ' media="(prefers-color-scheme: light)"' : '' ?>>
     <?php endif; ?>
     <?= couleurs_css_vars() ?>
-    <?= module_couleur_css_vars($navActif) ?>
+    <?php // Plus de surcharge de --primary/--brand par le module : la couleur
+          // d'un module ne vit QUE dans le rail, où elle est posée vignette par
+          // vignette (--vignette, plus bas). Repeindre l'accent de toute la page
+          // à chaque module consommait la teinte qui doit dire « c'est ici qu'on
+          // agit », et faisait changer de couleur un bouton qui fait pourtant
+          // toujours la même chose (docs/UI.md § 13). ?>
 </head>
 <?php // La classe du décor porte le fond de <body> qui va avec lui : chaque
       // décor a le sien (assets/app.css, section « Décors de fond »). ?>
-<body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?> fond-<?= e($u ? $fondDecor : $fondDecorAuth) ?><?= $mbarTitre !== '' ? ' titre-dans-barre' : '' ?>">
+<?php // fondc-<combo> : les deux teintes du décor (assets/app.css). Posée même
+      // sur les pages hors session — un décor y paraît aussi, et il doit avoir
+      // les mêmes couleurs qu'une fois connecté. ?>
+<body class="<?= $u ? 'has-sidebar' : 'auth-bg' ?> fond-<?= e($u ? $fondDecor : $fondDecorAuth) ?> fondc-<?= e(param_fond_couleurs()) ?><?= $mbarTitre !== '' ? ' titre-dans-barre' : '' ?>">
 <?php if ($u): ?>
 <?php if (!$fondPersonnalise) { require __DIR__ . '/_fond_decor.php'; } ?>
 <?php // Burger AVANT le logo : la navigation est à gauche sur bureau (le rail),
@@ -106,6 +121,18 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
 </header>
 <div class="scrim" id="scrim"></div>
 <aside class="sidebar" id="sidebar">
+    <?php // Replier le rail. Le bouton vit SUR le filet de droite, à hauteur du
+          // logo : un seul emplacement pour fermer et pour rouvrir, au même
+          // pixel, comme la croix qui referme une ligne en édition. Dans le
+          // tiroir du téléphone il n'a rien à replier — le CSS l'y efface.
+          //
+          // L'état est posé sur <html> par assets/app.js, chargé dans <head> :
+          // la classe existe donc avant le premier rendu, et le rail ne
+          // s'affiche jamais large avant de se refermer. ?>
+    <button type="button" class="side-reduire" id="side-reduire" aria-expanded="true" aria-controls="sidebar" title="Réduire le rail" aria-label="Réduire le rail">
+        <span class="side-reduire-fermer"><?= icon('chevron-left') ?></span>
+        <span class="side-reduire-ouvrir"><?= icon('chevron-right') ?></span>
+    </button>
     <div class="side-brand">
         <div class="side-brand-txt">
             <?php
@@ -135,45 +162,207 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
             <?php if ($logoRailClair !== ''): ?>
                 <img src="<?= e($logoRailClair) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailClair ?>">
                 <img src="<?= e($logoRailSombre) ?>" alt="<?= e($nomEmployeur) ?>" class="<?= $clsRailSombre ?>">
-            <?php else: ?><span class="side-name"><?= e($nomEmployeur) ?></span><?php endif; ?>
+            <?php else: ?>
+                <span class="side-name"><?= e($nomEmployeur) ?></span>
+                <?php // Rail réduit, et pas de logo : le nom ne tient pas dans
+                      // 68px, ses initiales si. Sans elles le haut du rail
+                      // était vide — une installation sans logo n'a plus rien
+                      // qui dise chez qui l'on est. ?>
+                <span class="side-initiales" aria-hidden="true"><?= e($initialesEmployeur) ?></span>
+            <?php endif; ?>
             </a>
             <span class="side-sub">Gestion des salaires</span>
         </div>
         <button type="button" class="side-close" id="side-close" title="Fermer" aria-label="Fermer"><?= icon('x') ?></button>
     </div>
+    <?php // La recherche unifiée (?p=recherche) vit sous le logo, dans le rail :
+          // elle traverse tous les modules, elle n'appartient donc à aucune
+          // page. Elle était jusqu'ici réservée au tableau de bord, c'est-à-dire
+          // atteignable seulement en rentrant à l'accueil.
+          //
+          // Les sources interrogées dépendent des droits du compte
+          // (lib/recherche.php) : le champ s'affiche pour tout le monde, les
+          // résultats sont filtrés. ?>
+    <form class="side-recherche recherche-form" method="get" action="" data-min="<?= RECHERCHE_MIN ?>">
+        <input type="hidden" name="p" value="recherche">
+        <?= champ_recherche([
+            'id'          => 'recherche-rail',
+            'name'        => 'q',
+            'classe'      => 'recherche-champ',
+            'placeholder' => 'Chercher partout',
+            'aria'        => "Rechercher dans toute l'application",
+            'submit'      => true,
+        ]) ?>
+    </form>
+    <?php
+    // Le rail porte TOUTE la navigation : un volet par module, et le volet du
+    // module où l'on se trouve déplie ses pages (et les sous-pages de la page
+    // ouverte). La rangée d'onglets en tête de page
+    // (views/_module_tabs_render.php) ne sert plus que sous 800px, où le rail
+    // est un tiroir hors écran — c'est le CSS qui l'efface au-dessus
+    // (docs/UI.md § Navigation).
+    //
+    // --vignette / --vignette-encre : le couple clair/sombre du module
+    // (MODULE_COULEURS, lib/modules.php). Posé ici et non en CSS parce qu'il
+    // vient du PHP ; absent quand « une couleur par module » est décoché — ou
+    // quand le volet n'est pas celui d'un module —, et chaque règle de .nav-*
+    // replie alors sur --primary et sur l'encre.
+    $navVignette = static function (string $cle): string {
+        $teinte = MODULE_COULEURS[$cle] ?? null;
+        if (!param_couleurs_modules() || $teinte === null) {
+            return '';
+        }
+        return ' style="--vignette: ' . e($teinte['fond']) . '; --vignette-encre: ' . e($teinte['encre']) . '"';
+    };
+    ?>
     <nav class="side-nav">
-        <?php // --rail-accent explicite TANT QUE chaque module porte sa couleur :
-              // sans lui, .rail-btn .ico retombe sur --muted et l'icône reste
-              // grise au repos, alors que celles des modules portent toujours
-              // la leur. C'est la couleur principale de l'application, via
-              // --primary-base et NON --primary : cette dernière est réécrite
-              // par module_couleur_css_vars() à la couleur du module courant,
-              // ce qui ferait changer de teinte l'icône du tableau de bord au
-              // fil de la navigation — alors qu'elle doit rester un repère
-              // constant, exactement comme les icônes de module.
-              //
-              // Le réglage décoché, le rail n'a plus de teintes à tenir : il
-              // revient à la convention de toute l'application — gris au repos,
-              // accentué là où l'on est. L'icône du tableau de bord doit alors
-              // grisonner comme les autres quand on n'y est pas, d'où l'absence
-              // d'accent ici aussi. ?>
-        <a href="?p=tableau_bord" class="rail-btn <?= $cur === 'tableau_bord' ? 'on' : '' ?>" title="Tableau de bord"<?= param_couleurs_modules() ? ' style="--rail-accent: var(--primary-base)"' : '' ?>>
-            <?= icon('circle-gauge') ?>
-            <span class="rail-label">Tableau de bord</span>
-        </a>
+        <?php // Vignette d'encre, comme les Paramètres en bas du rail : le
+              // tableau de bord n'est pas un module, il les regarde tous. Une
+              // couleur à lui l'alignait sur les sept, et le rail n'avait plus
+              // de haut ni de bas, juste huit teintes. ?>
+        <div class="nav-volet nav-volet-encre<?= $cur === 'tableau_bord' ? ' on' : '' ?>">
+            <a href="?p=tableau_bord" class="nav-mod" title="Tableau de bord">
+                <span class="nav-vignette"><?= icon('circle-gauge') ?></span>
+                <span class="nav-mod-lbl">Tableau de bord</span>
+                <span class="nav-chevron" aria-hidden="true"></span>
+            </a>
+            <div class="nav-flyout"><span class="nav-flyout-nom">Tableau de bord</span></div>
+        </div>
         <?php foreach ($navGroupes as $navCle => $navG): ?>
-        <?php $navBadge = array_sum(array_column($navG[2], 2)); ?>
-        <?php // &depuis= comme les onglets de module (_module_tabs_render.php) :
-              // ?p=structures appartient à trois groupes (booking, facturation,
-              // événements), et sans ce marqueur le rail y arrivait sans dire d'où,
-              // laissant nav_groupe_actif() deviner — et la liste afficher des
-              // colonnes qui ne concernent pas le module d'où l'on vient. ?>
-        <a href="?p=<?= array_key_first($navG[2]) ?>&depuis=<?= e($navCle) ?>" class="rail-btn <?= $navActif === $navCle ? 'on' : '' ?>" title="<?= e($navG[0]) ?>" <?= param_couleurs_modules() ? ' style="--rail-accent: ' . e(MODULE_COULEURS[$navCle] ?? '') . '"' : '' ?>>
-            <?= icon($navG[1]) ?>
-            <span class="rail-label"><?= e($navG[0]) ?></span>
-            <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
-        </a>
+        <?php
+        $navOuvert  = $navActif === $navCle;
+        $navOnglets = $navG[2];
+        $navBadge   = array_sum(array_column($navOnglets, 2));
+        ?>
+        <div class="nav-volet<?= $navOuvert ? ' on' : '' ?>"<?= $navVignette($navCle) ?>>
+            <?php // &depuis= comme les onglets de module : ?p=structures
+                  // appartient à trois groupes (booking, facturation,
+                  // événements), et sans ce marqueur le rail y arrivait sans
+                  // dire d'où, laissant nav_groupe_actif() deviner — et la
+                  // liste afficher des colonnes qui ne concernent pas le
+                  // module d'où l'on vient. ?>
+            <a href="?p=<?= array_key_first($navOnglets) ?>&depuis=<?= e($navCle) ?>" class="nav-mod" title="<?= e($navG[0]) ?>">
+                <span class="nav-vignette"><?= icon($navG[1]) ?></span>
+                <span class="nav-mod-lbl"><?= e($navG[0]) ?></span>
+                <?php if ($navBadge > 0): ?><span class="nav-badge"><?= $navBadge ?></span><?php endif; ?>
+                <?php // Le chevron garde sa place même quand le module n'a rien à
+                      // déplier : sinon le libellé d'un module sans sous-écrans
+                      // court vingt pixels plus loin que ses voisins, et la
+                      // colonne de droite du rail se met à onduler. ?>
+                <span class="nav-chevron" aria-hidden="true"><?php if (count($navOnglets) > 1) { echo icon($navOuvert ? 'chevron-down' : 'chevron-right'); } ?></span>
+            </a>
+            <?php // LE PANNEAU DU MODULE, et le pli du rail réduit. En rail
+                  // large, .nav-flyout est en display:contents : ses enfants se
+                  // posent dans le volet exactement comme avant, et son nom
+                  // reste caché. En rail réduit, le même nœud devient le
+                  // panneau qui sort au survol de la vignette — un seul rendu,
+                  // deux mises en page. Deux copies des mêmes liens, c'étaient
+                  // deux listes à tenir d'accord.
+                  //
+                  // ⚠️ Les pages de TOUS les modules sont désormais rendues, et
+                  // c'est le CSS qui n'affiche que celles du volet ouvert :
+                  // sans elles dans le DOM, survoler un module fermé n'aurait
+                  // rien à montrer.
+                  //
+                  // Un module d'un seul écran ne déplie rien : la ligne du
+                  // module EST sa page, et une sous-ligne unique répéterait son
+                  // nom. Même règle qu'au bandeau d'onglets, qui ne s'affichait
+                  // qu'à partir de deux. ?>
+            <div class="nav-flyout">
+            <span class="nav-flyout-nom"><?= e($navG[0]) ?></span>
+            <?php if (count($navOnglets) > 1): ?>
+            <div class="nav-pages">
+                <?php foreach ($navOnglets as $navRoute => $navO): ?>
+                <?php
+                $navPageOn = in_array($cur, $navO[1], true);
+                // Une page qui porte des sous-pages reste dans la liste de
+                // routes de SON onglet : sans cette distinction, l'onglet et la
+                // sous-page affichée prenaient tous deux la capsule pleine, et
+                // deux lignes se disaient actives en même temps. L'onglet n'est
+                // alors que « déplié » : même teinte, posée en lavis.
+                $navSousOn = $navPageOn && !empty($navO[4]) && isset($navO[4][$cur]);
+                ?>
+                <?php // ⚠️ Un onglet qui PORTE des sous-pages ne mène nulle
+                      // part : son clic les déplie (assets/app.js). Son href
+                      // reste écrit — c'est un lien, il doit s'ouvrir dans un
+                      // onglet, se copier, marcher sans script — mais au clic
+                      // il ne partait pas déplier, il SAUTAIT sur sa première
+                      // sous-page : cliquer « Plan comptable » ouvrait
+                      // « Produits et charges » sans qu'on ait rien demandé.
+                      // Le chevron dit ce qui va se passer. ?>
+                <a href="?p=<?= e((string) $navRoute) ?>&depuis=<?= e($navCle) ?>" class="nav-page<?= $navSousOn ? ' deplie' : ($navPageOn ? ' on' : '') ?>">
+                    <span class="nav-page-lbl"><?= e($navO[0]) ?></span>
+                    <?php if ((int) $navO[2] > 0): ?><span class="nav-page-badge"><?= (int) $navO[2] ?></span><?php endif; ?>
+                    <?php if (!empty($navO[4])): ?><span class="nav-page-chevron" aria-hidden="true"><?= icon('chevron-right') ?></span><?php endif; ?>
+                </a>
+                <?php // Les sous-pages sont TOUJOURS rendues — le 5e élément de
+                      // l'entrée dans nav_groupes(), [route => libellé]. C'est le
+                      // CSS qui les replie tant que la page n'est ni ouverte ni
+                      // dépliée : sans elles dans le DOM, le clic n'aurait rien
+                      // à déplier. ?>
+                <?php if (!empty($navO[4])): ?>
+                <div class="nav-sous">
+                    <?php foreach ($navO[4] as $navSRoute => $navSLib): ?>
+                    <a href="?p=<?= e((string) $navSRoute) ?>&depuis=<?= e($navCle) ?>" class="nav-sous-page<?= $cur === (string) $navSRoute ? ' on' : '' ?>"><?= e($navSLib) ?></a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            </div>
+        </div>
         <?php endforeach; ?>
+
+        <?php
+        // Les Paramètres ferment le rail, comme un module : même volet, mêmes
+        // pages dépliées. Ils n'en sont pas un (aucun groupe dans
+        // nav_groupes(), pas de couleur dans MODULE_COULEURS) — d'où la
+        // vignette d'encre, qui les distingue des sept autres sans les mettre
+        // à part. Le tableau de bord, en tête, la porte pour la même raison. Ils vivaient derrière la pastille du compte, où leur rangée
+        // d'onglets était leur seule navigation ; depuis que le rail porte
+        // tout, c'était le dernier écran à obéir à une autre grammaire.
+        $ptG       = parametres_groupes();
+        $ptActif   = parametres_groupe_actif($ptG, $cur);
+        $ptOuvert  = $ptActif !== null;
+        ?>
+        <?php if ($ptG): ?>
+        <div class="nav-volet nav-volet-encre<?= $ptOuvert ? ' on' : '' ?>">
+            <a href="?p=<?= e((string) array_key_first($ptG[array_key_first($ptG)][1])) ?>" class="nav-mod" title="Paramètres">
+                <span class="nav-vignette"><?= icon('settings') ?></span>
+                <span class="nav-mod-lbl">Paramètres</span>
+                <span class="nav-chevron" aria-hidden="true"><?= icon($ptOuvert ? 'chevron-down' : 'chevron-right') ?></span>
+            </a>
+            <div class="nav-flyout">
+            <span class="nav-flyout-nom">Paramètres</span>
+            <div class="nav-pages">
+                <?php foreach ($ptG as $ptCle => $ptGroupe): ?>
+                <?php
+                $ptSections = $ptGroupe[1];
+                $ptPageOn   = $ptCle === $ptActif;
+                $ptSousOn   = $ptPageOn && count($ptSections) > 1;
+                ?>
+                <?php // Même règle que les onglets d'un module ci-dessus : un
+                      // groupe à plusieurs sections se déplie au clic, il ne
+                      // mène pas à sa première section. ?>
+                <?php $ptPlusieurs = count($ptSections) > 1; ?>
+                <a href="?p=<?= e((string) array_key_first($ptSections)) ?>" class="nav-page<?= $ptSousOn ? ' deplie' : ($ptPageOn ? ' on' : '') ?>">
+                    <span class="nav-page-lbl"><?= e((string) $ptGroupe[0]) ?></span>
+                    <?php if ($ptPlusieurs): ?><span class="nav-page-chevron" aria-hidden="true"><?= icon('chevron-right') ?></span><?php endif; ?>
+                </a>
+                <?php if ($ptPlusieurs): ?>
+                <div class="nav-sous">
+                    <?php foreach ($ptSections as $ptRoute => $ptLib): ?>
+                    <?php $ptAlias = in_array($cur, (array) ($ptGroupe[2] ?? []), true) && $ptRoute === array_key_first($ptSections); ?>
+                    <a href="?p=<?= e((string) $ptRoute) ?>" class="nav-sous-page<?= $cur === (string) $ptRoute || $ptAlias ? ' on' : '' ?>"><?= e((string) $ptLib) ?></a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </nav>
     <?php
     $prenom = trim((string)($u['prenom'] ?? ''));
@@ -195,16 +384,25 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
               // figurer dans le rail : ce n'est pas un module, et l'y afficher
               // comme les autres lui donnait le même poids visuel qu'un domaine
               // métier. Les deux sont des réglages, pas du contenu. ?>
+        <?php // Une seule ligne : le crédit à gauche, la pastille du compte à
+              // droite. Les deux occupaient deux rangées centrées, et deux
+              // lignes pour deux objets qui ne se répondent pas prenaient au
+              // rail une hauteur que la navigation vaut mieux.
+              //
+              // Le crédit est DANS .side-bottom et non sous lui : c'est la
+              // rangée qui les met à distance (space-between), pas une marge
+              // posée sur l'un des deux. ?>
         <div class="side-bottom">
+            <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
+                <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
+            </a>
             <button class="side-avatar" id="side-avatar-btn" title="Mon compte" aria-label="Mon compte" aria-haspopup="true" aria-expanded="false">
                 <?= e($initiales) ?>
             </button>
-            <?php if (peut_lire('coeur')): ?>
-            <?php $settingsPages = ['employeur', 'emails', 'taux_horaires', 'export', 'import', 'fiches_importer', 'structures_importer', 'utilisateurs', 'modules', 'maj', 'evenements_reglages', 'categories_structures']; ?>
-            <a href="?p=maj" class="side-cog <?= in_array($cur, $settingsPages, true) ? 'on' : '' ?>" title="Paramètres" aria-label="Paramètres">
-                <?= icon('settings') ?>
-            </a>
-            <?php endif; ?>
+            <?php // (Plus d'engrenage ici : les Paramètres ont leur volet dans le
+                  // rail, au-dessus. Deux portes vers le même endroit, dont une
+                  // qui ne dit pas où elle mène, c'était une de trop — et celle
+                  // du bas tenait une liste de routes à jour à la main.) ?>
         </div>
         <div class="side-avatar-menu" id="side-avatar-menu" hidden>
             <div class="side-avatar-id">
@@ -215,9 +413,6 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
             <a href="?p=deconnexion">Déconnexion</a>
         </div>
     </div>
-    <a class="side-powered" href="https://github.com/nivivier/Lasso" target="_blank" rel="noopener">
-        <img src="<?= e(asset_data_uri_mini('assets/lasso.png', 32)) ?>" alt="" class="side-powered-logo"> Lasso <span class="side-version">v<?= e(maj_version_locale()) ?></span>
-    </a>
 </aside>
 <main class="content">
     <?php require $contentView; ?>
@@ -247,24 +442,40 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
 (function () {
     const body = document.body, burger = document.getElementById('burger'),
           close = document.getElementById('side-close'), scrim = document.getElementById('scrim');
+
+    // Le rail garde sa position de défilement d'une page à l'autre. Chaque clic
+    // recharge la page (pas de SPA) : sans ça, qui travaille dans Booking ou
+    // dans les Paramètres — tout en bas de la colonne — remontait au Tableau de
+    // bord à chaque navigation et devait redescendre.
+    //
+    // sessionStorage et non localStorage : la position appartient à cet onglet
+    // et à cette session de travail. En navigation privée l'accès peut lever,
+    // d'où les try/catch — le rail fonctionne sans, il oublie seulement.
+    const railNav = document.querySelector('.side-nav');
+    if (railNav) {
+        const cleRail = 'lasso-rail-defilement';
+        let memorise = null;
+        try { memorise = sessionStorage.getItem(cleRail); } catch (e) {}
+        if (memorise !== null) {
+            railNav.scrollTop = parseInt(memorise, 10) || 0;
+        } else {
+            // Première visite de la session : on montre où l'on est plutôt que
+            // le haut de la colonne — la page ouverte peut être sous la ligne
+            // de flottaison (Paramètres, Recherche de fonds).
+            const actif = railNav.querySelector('.nav-page.on, .nav-sous-page.on, .nav-volet.on');
+            if (actif) { actif.scrollIntoView({ block: 'nearest' }); }
+        }
+        railNav.addEventListener('scroll', () => {
+            try { sessionStorage.setItem(cleRail, String(Math.round(railNav.scrollTop))); } catch (e) {}
+        }, { passive: true });
+    }
     function toggle(open) {
         body.classList.toggle('nav-open', open);
         burger.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
-    // Hauteur du bandeau de page, pour que l'en-tête collant d'un tableau se
-    // pose JUSTE dessous (--hauteur-bandeau, assets/app.css). Mesurée et non
-    // écrite en dur : le bandeau fait une hauteur ou deux selon que la rangée
-    // d'onglets tient à côté du titre, ce qui dépend du nom du module et du
-    // nombre d'onglets — donc des droits du compte. Un ResizeObserver suit les
-    // changements de largeur comme de contenu ; sans script, la valeur de repli
-    // du CSS s'applique et l'en-tête reste utilisable.
-    const bandeau = document.querySelector('.page-head-band');
-    if (bandeau && window.ResizeObserver) {
-        const majBandeau = () => document.documentElement.style.setProperty(
-            '--hauteur-bandeau', Math.round(bandeau.getBoundingClientRect().height) + 'px');
-        majBandeau();
-        new ResizeObserver(majBandeau).observe(bandeau);
-    }
+    // (Plus de mesure du bandeau : il n'est plus collant, donc l'en-tête d'un
+    // tableau se colle au bord de la fenêtre et n'a plus de décalage à
+    // calculer — voir .table-scroll .list thead th dans assets/app.css.)
 
     burger.addEventListener('click', () => toggle(!body.classList.contains('nav-open')));
     close.addEventListener('click', () => toggle(false));
@@ -324,6 +535,156 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
         };
         placer();
         etroit.addEventListener('change', placer);
+    }
+
+    // Les actions de la page remontent dans le bandeau, à droite du surtitre :
+    // c'est là qu'on les cherche, et la barre d'outils d'une liste n'a plus à
+    // porter deux choses de nature différente — ce qui FILTRE ce qu'on voit, et
+    // ce qui AGIT dessus (docs/UI.md § 1).
+    //
+    // Déplacement et non réécriture des trente vues concernées : chacune rend
+    // déjà son bloc .head-actions au même endroit, et le bandeau est rendu
+    // AVANT le contenu — il ne peut pas connaître des boutons qui n'existent pas
+    // encore. L'ancre laissée en place sert au retour sous 800px, où le bandeau
+    // n'a pas la largeur de les accueillir. Ce bloc vient APRÈS celui de la
+    // barre mobile, qui doit repérer l'action principale là où la vue l'a mise.
+    // Même mécanique pour la recherche de la page, qui monte à droite du TITRE
+    // (une ligne plus bas que les actions) : elle appartient à ce qu'on
+    // regarde. Les deux partagent le même interrupteur de largeur.
+    const large = matchMedia('(min-width: 801px)');
+    const remonter = (creneau, bloc) => {
+        if (!creneau || !bloc) return;
+        const ancre = document.createComment('bloc remonté dans le bandeau');
+        bloc.after(ancre);
+        const placer = () => {
+            if (large.matches) { creneau.appendChild(bloc); }
+            else { ancre.parentNode.insertBefore(bloc, ancre); }
+        };
+        placer();
+        large.addEventListener('change', placer);
+    };
+    const blocActions = document.querySelector('.module-content .toolbar > .head-actions');
+    // La bascule Liste/Carte ne monte PAS avec les actions : elle ne crée rien,
+    // elle change ce qu'on voit — c'est l'étage 2 (docs/UI.md § 1). Sortie du
+    // bloc avant son déplacement, elle reste dans la barre d'outils, poussée à
+    // droite par le CSS.
+    const bascule = blocActions?.querySelector('.seg-picker');
+    if (bascule && blocActions) { blocActions.parentNode.appendChild(bascule); }
+    remonter(document.getElementById('page-head-actions'), blocActions);
+
+    // La barre d'outils — recherche, bouton de filtres, bascule de vue —
+    // monte sur la ligne du TITRE, au milieu du vide entre lui et les
+    // actions : l'en-tête perd alors son second étage, et ce qui filtre
+    // reste à portée de ce qu'il filtre. Elle n'y monte que si la ligne la
+    // tient ; sinon elle redescend exactement où la vue l'avait mise.
+    //
+    // MESURÉ, et non décidé par un point de rupture : la place dépend du
+    // titre (« Correspondance avec les structures » contre « Projets »), du
+    // nombre de boutons d'action et du contenu de la barre elle-même — trois
+    // choses qu'une media query ignore. Le test se fait sur la ligne du titre
+    // une fois la barre posée dedans : débordement horizontal, ou rangée
+    // d'actions qui passe à deux lignes (.page-head-actions a flex-wrap:wrap,
+    // elle se replie avant de faire déborder quoi que ce soit).
+    //
+    // ⚠️ La barre est TOUJOURS redescendue avant d'être mesurée : montée, elle
+    // occupe elle-même le vide qu'on cherche à mesurer, et la réponse serait
+    // « ça tient » à toutes les largeurs. Le va-et-vient ne coûte qu'un calcul
+    // de mise en page, jamais un affichage intermédiaire — rien n'est peint
+    // entre les deux dans la même tâche.
+    const creneauOutils = document.getElementById('page-head-outils');
+    // La ligne est déduite du créneau, et non cherchée dans .page-head-band :
+    // les Paramètres rendent le même en-tête par _param_tabs.php, dans une
+    // autre enveloppe.
+    const ligneTitre = creneauOutils && creneauOutils.closest('.page-head-titre-page');
+    const barreOutils = document.querySelector('.module-content > .module-content-inner > .toolbar');
+    if (creneauOutils && ligneTitre && barreOutils) {
+        const ancreOutils = document.createComment('barre d\'outils remontée sur le titre');
+        barreOutils.after(ancreOutils);
+        const actionsLigne = ligneTitre.querySelector('.page-head-actions');
+        const placerOutils = () => {
+            ancreOutils.parentNode.insertBefore(barreOutils, ancreOutils);
+            if (!large.matches) return;
+            const hActions = actionsLigne ? actionsLigne.offsetHeight : 0;
+            creneauOutils.appendChild(barreOutils);
+            const deborde = ligneTitre.scrollWidth > ligneTitre.clientWidth + 1
+                || (actionsLigne && actionsLigne.offsetHeight > hActions);
+            if (deborde) { ancreOutils.parentNode.insertBefore(barreOutils, ancreOutils); }
+        };
+        placerOutils();
+        // Les largeurs ne sont justes qu'une fois les polices chargées : un
+        // titre rendu dans la police de secours est plus étroit, et la barre
+        // serait montée sur une ligne qui ne la tiendra pas.
+        if (document.fonts && document.fonts.ready) { document.fonts.ready.then(placerOutils); }
+        large.addEventListener('change', placerOutils);
+        // Coalescé en requestAnimationFrame, comme le panneau de filtres de
+        // assets/app.js : glisser le bord de la fenêtre déclenche des dizaines
+        // d'événements par seconde, et chacun coûte ici deux mises en page.
+        let rafOutils = false;
+        window.addEventListener('resize', () => {
+            if (rafOutils) return;
+            rafOutils = true;
+            requestAnimationFrame(() => { rafOutils = false; placerOutils(); });
+        });
+    }
+
+    // Une FICHE range son en-tête comme une liste : le lien de retour et les
+    // actions sur la ligne haute, le titre en dessous. Le retour est un frère
+    // du bloc de titre dans le balisage (et un <a>, donc rien ne peut s'y
+    // nicher) : on le fait entrer dans le bloc, et une grille remet chacun à
+    // sa place. Le jour où une vue met déjà son retour à l'intérieur
+    // (?p=evenement), il n'y a rien à faire.
+    const bande = document.querySelector('.module-content-inner > .page-head-bande');
+    if (bande) {
+        const retour = bande.previousElementSibling;
+        if (retour && retour.classList.contains('back-link')) {
+            bande.insertBefore(retour, bande.firstChild);
+        }
+        if (bande.querySelector(':scope > .back-link')) {
+            bande.classList.add('page-head-bande-range');
+        }
+    }
+
+    // Les actions secondaires passent derrière les trois points. Une seule
+    // reste dehors : l'action PRINCIPALE — le bouton plein, ou à défaut le
+    // dernier du bloc, puisque la convention de l'application met l'action
+    // majeure en fin de rangée (docs/UI.md § 1). Deux actions de même poids
+    // côte à côte, c'est deux fois rien qui se dispute l'œil.
+    //
+    // ⚠️ Déplacement des nœuds EUX-MÊMES, écouteurs compris (le « + Écriture
+    // manuelle » de la compta est un bouton piloté par la vue) : rien n'est
+    // recréé, seules les classes de bouton tombent — dans le panneau, une
+    // entrée est une ligne de menu, pas un bouton de plus.
+    const menuPlus = document.getElementById('page-head-plus');
+    const panneauPlus = document.getElementById('page-head-plus-panneau');
+    if (blocActions && menuPlus && panneauPlus) {
+        const depouiller = (el) => {
+            el.classList.remove('btn', 'ghost', 'btn-sm', 'btn-compact', 'icon-only', 'mbar-action');
+            el.querySelectorAll('.btn-compact-break').forEach(br => br.remove());
+        };
+        const enfants = Array.from(blocActions.children);
+        // Un menu déroulant déjà posé par la vue reste dehors : il porte ses
+        // propres entrées, et l'imbriquer dans un second n'aurait pas de sens.
+        const menusVue = enfants.filter(el => el.classList.contains('menu-deroulant'));
+        const deplacables = enfants.filter(el => !el.classList.contains('menu-deroulant'));
+        // L'action principale reste dehors elle aussi : le bouton PLEIN, ou à
+        // défaut le dernier du bloc. ⚠️ Sauf quand la vue a déjà son menu : il
+        // EST l'action principale (« Nouvelle pièce » sur ?p=pieces), et tout
+        // le reste part derrière les trois points — sans cette exception, un
+        // bouton secondaire resté seul se prenait pour le principal et
+        // l'archive de l'année trônait à côté du menu.
+        const plein = deplacables.filter(el =>
+            (el.classList.contains('btn') && !el.classList.contains('ghost')) || el.querySelector('.btn:not(.ghost)')
+        ).pop();
+        const principale = plein || (menusVue.length ? null : deplacables[deplacables.length - 1]);
+        const secondaires = deplacables.filter(el => el !== principale);
+        if (secondaires.length) {
+            secondaires.forEach(el => {
+                depouiller(el);
+                el.querySelectorAll('.btn').forEach(depouiller);
+                panneauPlus.appendChild(el);
+            });
+            menuPlus.hidden = false;
+        }
     }
 
     // Pastille utilisateur : ouvre/ferme le menu au clic, ferme si clic dehors.

@@ -812,6 +812,11 @@ function route_apparence(): void
         if (isset(DENSITES[$densite])) {
             $stmt->execute(['employeur_densite', $densite]);
         }
+        // Couleurs du décor. Écrit AVANT le contrôle du décor plus bas : celui-ci
+        // peut refuser le choix de fond (« image » sans image) et rendre la page
+        // sans rediriger — le combo, lui, n'a aucune raison d'être perdu au
+        // passage.
+        $stmt->execute(['employeur_fond_couleurs', fond_couleurs_valide((string) ($_POST['employeur_fond_couleurs'] ?? ''))]);
         if ($fond !== null) {
             $ancien = param('employeur_fond', '');
             $stmt->execute(['employeur_fond', $fond]);
@@ -1268,6 +1273,49 @@ function route_tableau_bord(): void
 // module. Ce n'est pas un relâchement — c'est recherche_globale() qui filtre
 // source par source sur module_actif() ET peut_lire(), parce qu'une même page
 // couvre plusieurs modules aux droits distincts (voir lib/recherche.php).
+// Les suggestions de la recherche du rail, en JSON. Même moteur que la page de
+// résultats — recherche_globale() filtre déjà source par source selon les
+// droits du compte —, mais une projection réduite : ce que la liste déroulante
+// affiche, et l'adresse à ouvrir. Trois résultats par source au plus : le rail
+// fait 248px, et au-delà la liste cesse d'être lisible d'un coup d'œil.
+//
+// GET et lecture seule, comme ?p=recherche, et rattachée à aucun module pour la
+// même raison : elle traverse les modules, et le filtrage se fait source par
+// source (lib/recherche.php).
+function route_recherche_suggestions(): void
+{
+    require_login();
+    header('Content-Type: application/json; charset=utf-8');
+    $q = trim((string) ($_GET['q'] ?? ''));
+    $groupes = [];
+    $total   = 0;
+    foreach (recherche_globale($q) as $groupe) {
+        $total += (int) $groupe['total'];
+        $lignes = [];
+        foreach (array_slice($groupe['resultats'], 0, 3) as $r) {
+            $lignes[] = [
+                'titre'      => (string) $r['titre'],
+                'sous_titre' => trim((string) $r['sous_titre']),
+                'url'        => url_avec_retour('?p=' . urlencode($groupe['route']) . '&id=' . (int) $r['id'], 'recherche')
+                              . suffixe_retour_liste($q, 0),
+            ];
+        }
+        $groupes[] = [
+            'label'     => (string) $groupe['label'],
+            'type'      => (string) $groupe['type'],
+            'total'     => (int) $groupe['total'],
+            'resultats' => $lignes,
+        ];
+    }
+    echo json_encode([
+        'q'         => $q,
+        'min'       => RECHERCHE_MIN,
+        'tropCourt' => $q !== '' && mb_strlen($q) < RECHERCHE_MIN,
+        'total'     => $total,
+        'groupes'   => $groupes,
+    ], JSON_UNESCAPED_UNICODE);
+}
+
 function route_recherche(): void
 {
     require_login();

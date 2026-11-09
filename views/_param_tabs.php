@@ -60,31 +60,52 @@ $ptSuffixeDepuis = $ptDansModule ? '&depuis=' . rawurlencode($ptDepuis) : '';
 <?php if ($ptDansModule): ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 <?php else: ?>
+<?php // Les Paramètres sont un volet du rail comme les autres depuis qu'il
+      // porte toute la navigation (views/layout.php) : le bandeau se contente
+      // donc de nommer la page — « Paramètres » en surtitre, le groupe en
+      // titre —, et sa rangée d'onglets ne sert plus qu'au téléphone, où le
+      // rail est un tiroir hors écran. ?>
 <div class="page-head-band">
 <div class="page-head">
-    <div class="page-head-title page-head-titre-module">
-        <h1>Paramètres</h1>
+    <?php
+    // Même règle que pour un module : le titre nomme la PAGE ouverte, et ce qui
+    // la contient passe en surtitre. Un groupe d'une seule section ne se répète
+    // pas — « Employeur » suffit, « Paramètres › Employeur / Employeur » non.
+    $ptSur   = 'Paramètres';
+    $ptTitre = $ptGroupeActif !== null ? (string) $ptGroupes[$ptGroupeActif][0] : 'Paramètres';
+    if ($ptGroupeActif !== null && count($ptSectionsActives) > 1) {
+        $ptRouteTitre = in_array($ptCurParam, $ptGroupes[$ptGroupeActif][2] ?? [], true)
+            ? (string) array_key_first($ptSectionsActives)
+            : $ptCurParam;
+        if (isset($ptSectionsActives[$ptRouteTitre])) {
+            $ptSur   = 'Paramètres › ' . $ptTitre;
+            $ptTitre = (string) $ptSectionsActives[$ptRouteTitre];
+        }
+    }
+    ?>
+    <?php // Mêmes places que sur un module : le fil d'Ariane seul sur sa ligne,
+          // le titre et les actions sur la suivante. Le créneau d'actions était
+          // resté sur la ligne du haut, ce qui la faisait grandir à la hauteur
+          // d'un bouton — et tout l'en-tête descendait de quinze pixels sur les
+          // seules pages de réglages qui ont des boutons (Projets, Pays). ?>
+    <div class="page-head-haut">
+        <span class="page-head-sur"><?= e($ptSur) ?></span>
     </div>
-    <nav class="module-tabs">
-        <?php foreach ($ptGroupes as $ptCle => $ptG): ?>
-            <a href="?p=<?= array_key_first($ptG[1]) ?>" class="module-tab <?= $ptGroupeActif === $ptCle ? 'on' : '' ?>"><?= icon($ptIcones[$ptCle] ?? 'settings') ?> <?= e($ptG[0]) ?></a>
-        <?php endforeach; ?>
-    </nav>
+    <div class="page-head-title page-head-titre-page">
+        <h1><?= e($ptTitre) ?></h1>
+        <?php // Créneau de la barre d'outils, comme sur un module (voir
+              // views/_page_head_band.php) : ?p=projets a une recherche, et
+              // elle doit monter ici quand la ligne la tient. ?>
+        <span class="page-head-outils" id="page-head-outils"></span>
+        <span class="page-head-actions" id="page-head-actions"></span>
+        <details class="menu-deroulant page-head-plus" id="page-head-plus" hidden>
+            <summary class="btn ghost icon-only" title="Autres actions" aria-label="Autres actions"><?= icon('dots') ?></summary>
+            <div class="menu-deroulant-panneau" id="page-head-plus-panneau"></div>
+        </details>
+    </div>
 </div>
 </div>
 <?php endif; ?>
-<?php if (count($ptSectionsActives) > 1): ?>
-<?php
-// Une section peut aussi être atteinte par une route-alias (ex. Importer, voir
-// plus haut, que les routes de traitement rendent) : la route à mettre en
-// évidence est alors la toute première section, à laquelle les alias du groupe
-// (3ᵉ élément) sont rattachés par convention. C'est le seul point où cette
-// rangée diffère de celle des modules, et il se règle ICI — le partiel, lui,
-// se contente d'allumer la route qu'on lui désigne.
-$ptAliasesGroupe = $ptGroupes[$ptGroupeActif][2] ?? [];
-$stOnglets = $ptSectionsActives;
-$stActif   = in_array($ptCurParam, $ptAliasesGroupe, true) ? array_key_first($ptSectionsActives) : $ptCurParam;
-$stSuffixe = $ptSuffixeDepuis;
-require __DIR__ . '/_subtabs.php';
-?>
-<?php endif; ?>
+<?php // (Ici vivait la rangée de SOUS-onglets des Paramètres, rendue puis
+      // effacée par le CSS depuis que le rail déplie les sections du groupe
+      // ouvert. Partie avec celle des modules — voir docs/UI.md § 9 ter.) ?>

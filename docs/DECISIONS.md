@@ -464,6 +464,48 @@ d'échelle (beaucoup d'utilisateurs simultanés), pas la recherche de ces 6 ms.
 
 ---
 
+## Interface
+
+### La rangée d'onglets du téléphone, et ce qu'elle emportait
+
+Quand le rail a pris la navigation, la rangée d'onglets en tête de page
+(`.module-tabs`) et celle des sous-onglets (`.module-subtabs`, qui héberge
+aussi `.param-subtabs` des Paramètres) ont été effacées **au-dessus de
+800 px** seulement : sous ce seuil le rail est un tiroir hors écran, et elles
+semblaient y rester la seule navigation de second niveau. C'était faux — le
+tiroir déplie le rail ENTIER, volet du module compris, avec ses pages et ses
+sous-pages (Paramètres et leurs trois niveaux y compris). La rangée n'était
+plus qu'un doublon visible de l'ancienne interface, et elle se lisait comme
+tel. Elle est donc éteinte à toutes les largeurs.
+
+Ce qui est parti avec elle, et qu'il ne faut pas réinventer sans elle :
+
+- **Le défilement horizontal de la bande** sur téléphone (`overflow-x: auto`
+  + `scroll-snap`, masque de fondu en bord droit, et le `scrollIntoView` de
+  `assets/app.js` qui ramenait l'onglet actif en vue). La leçon sur
+  `scroll-padding-left`, elle, est gardée dans `docs/UI.md § 9` : elle vaut
+  pour toute bande à accrochage.
+- **Le filet peint en FOND de `.page-head`** (un `linear-gradient` d'un pixel
+  en bas) plutôt qu'en bordure. Il existait parce qu'un enfant qui défile ne
+  peut plus jamais peindre hors de sa boîte : `overflow-x: auto` force
+  `overflow-y: auto` (règle de la spec — un `overflow-y: visible` posé à côté
+  est ignoré), ce qui rognait le débord de −1px par lequel l'onglet actif
+  « trouait » le trait pour se raccorder au contenu. Seul un fond, peint dans
+  la zone que l'onglet recouvre, y arrivait.
+- **La bordure basse du bandeau mise à zéro** sur téléphone, pour la même
+  raison, et en largeur (pas en couleur) : `.page-head-band` est translucide,
+  une bordure transparente continue de peindre le flou du fond derrière elle.
+
+⚠️ Et un piège au retrait : `body.titre-dans-barre .page-head-band
+:not(:has(.module-tabs)) .page-head { padding: 0 }` mettait un bandeau « sans
+onglets » à plat, parce qu'on le croyait vide — son titre devait s'effacer en
+doublon de la barre supérieure via `.page-head-titre-module`. Or **plus aucune
+vue ne pose cette classe** : le bandeau porte toujours un titre, et la règle
+collait « Événements » au bord gauche de l'écran. Elle a été retirée, pas
+re-conditionnée.
+
+---
+
 ## Tests
 
 ### Pourquoi un lanceur unique

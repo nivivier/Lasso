@@ -57,6 +57,46 @@ function filtre_persistant(string $cleGet, string $cleSession, $defaut)
     return $_SESSION[$cleSession] ?? $defaut;
 }
 
+// --- La vue deux colonnes (?vue=duo) ---------------------------------------
+//
+// Six écrans l'offrent — structures, personnes, employés, fiches, factures,
+// événements — et ils faisaient six fois le même geste, à douze lignes pièce :
+// lire la vue mémorisée, prendre ?sel=, retomber sur la première ligne quand
+// l'identifiant ne figure pas dans la page, charger la fiche. Six copies d'un
+// même geste finissent par ne plus dire la même chose ; en voici une seule.
+// Le gabarit des deux volets, lui, vit dans views/_duo.php.
+
+// La vue d'une liste, mémorisée en session comme ses filtres. Tout ce qui
+// n'est pas « duo » (ni l'un des $autres — « carte », pour les structures et
+// les événements) retombe sur la liste : la valeur vient de l'URL, elle peut
+// dire n'importe quoi.
+function vue_liste(string $cleSession, array $autres = []): string
+{
+    $vue = (string) filtre_persistant('vue', $cleSession, 'liste');
+    return in_array($vue, array_merge(['duo'], $autres), true) ? $vue : 'liste';
+}
+
+// La fiche du volet droit : celle que désigne ?sel=, à défaut la première de
+// la page affichée. $donnees est la fonction qui charge une fiche entière
+// (employe_donnees_vue() et ses pareilles) — la MÊME que la page pleine, pour
+// que les deux volets ne puissent pas diverger.
+//
+// Rend les données de la fiche plus 'duoSel' (0 quand il n'y a rien à
+// montrer : liste vide, ou fiche introuvable — supprimée entre deux clics).
+function duo_selection(string $vue, array $lignes, callable $donnees): array
+{
+    if ($vue !== 'duo' || !$lignes) {
+        return ['duoSel' => 0];
+    }
+    $ids = array_map('intval', array_column($lignes, 'id'));
+    $selId = (int) ($_GET['sel'] ?? 0);
+    if (!in_array($selId, $ids, true)) {
+        $selId = (int) $ids[0];
+    }
+    $fiche = $donnees($selId);
+    return $fiche === null ? ['duoSel' => 0] : $fiche + ['duoSel' => $selId];
+}
+
 // --- Tri par colonne d'une liste -------------------------------------------
 //
 // Six listes le portent : structures, fiches, employés, événements, factures,

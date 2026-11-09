@@ -96,6 +96,20 @@
         if (annul) { epfBascule(annul.closest('tr'), false); }
     });
 
+    // L'employé qu'on vient de lier n'a pas de prestation : sa ligne s'ouvre
+    // d'elle-même, puisque c'est pour la remplir qu'on l'a liée. Elle arrive
+    // en lecture comme les autres (le partiel ne connaît qu'un état), et c'est
+    // ce geste-ci qui l'ouvre — une ligne déjà à l'écran, elle, ne s'ouvre que
+    // sous le crayon.
+    document.addEventListener('lasso:ligne-ajoutee', ev => {
+        const tr = ev.detail;
+        if (!tr?.matches?.('.evenement-employes tbody tr')) return;
+        if (!tr.querySelector('.epf-edit-btn')) return; // lecture seule, ou production externe
+        epfBascule(tr, true);
+        const sel = tr.querySelector('.fiche-select-sm');
+        if (sel) sel.focus();
+    });
+
     // Ne pas revenir en haut de la page après Ajouter un employé / Enregistrer /
     // Retirer (carte Employés) — on restaure la position de défilement au retour.
     const carteEmployes = document.getElementById('carte-employes');

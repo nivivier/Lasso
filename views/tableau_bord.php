@@ -584,25 +584,12 @@ $dashTitre = function (string $groupe, string $titre): string {
 <?php // L'ordre retenu, les cartes masquées en moins. ?>
 <?php $cartesVisibles = dashboard_ordre(array_keys($cartes)); ?>
 <?php if (($_GET['refuse'] ?? null) === '1'): ?><p class="err flash">Accès refusé : vous n'avez pas les droits nécessaires pour cette page.</p><?php endif; ?>
-<?php // Pas de titre ici : le rail dit déjà où l'on est, et la barre de
-      // recherche est ce qu'on vient chercher en arrivant. Elle prend donc la
-      // ligne de l'en-tête, le bouton d'organisation des cartes à sa droite.
-      //
-      // Recherche unifiée : les sources interrogées dépendent des droits du
-      // compte (voir lib/recherche.php) — le champ s'affiche pour tout le
-      // monde, les résultats sont filtrés. Raccourci « / » dans assets/app.js. ?>
-<div class="page-head page-head-recherche">
-    <form class="recherche-form recherche-dash" method="get" action="">
-        <input type="hidden" name="p" value="recherche">
-        <?= champ_recherche([
-            'id'          => 'recherche-globale',
-            'name'        => 'q',
-            'classe'      => 'recherche-champ',
-            'placeholder' => 'Rechercher partout',
-            'aria'        => "Rechercher dans toute l'application",
-            'submit'      => true,
-        ]) ?>
-    </form>
+<?php // Pas de titre ici : le rail dit déjà où l'on est. La recherche unifiée
+      // y est aussi depuis qu'elle répond dans la colonne, sous le logo
+      // (.side-recherche, views/layout.php) : la garder ici en aurait fait deux,
+      // dont l'une n'était atteignable qu'en rentrant à l'accueil. Il ne reste
+      // donc de cette ligne que ce qu'on vient CRÉER depuis l'accueil. ?>
+<div class="page-head page-head-dash">
     <?php
     // Le « + » : ce qu'on vient créer depuis l'accueil. Chaque entrée n'y figure
     // que si son module est accessible ET qu'on a le droit d'y écrire — proposer

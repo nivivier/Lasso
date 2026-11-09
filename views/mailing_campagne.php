@@ -136,6 +136,15 @@ $critHiddenInputs = function (array $criteres): string {
 <?php require __DIR__ . '/_module_tabs.php'; ?>
 <?php require __DIR__ . '/_page_head_band.php'; ?>
 
+<?php // Écran SECONDAIRE du Suivi depuis qu'il n'a plus d'onglet à lui : le
+      // bandeau se tait (docs/UI.md § 1), c'est donc à la page de porter son
+      // nom et son retour. Elle n'en avait ni l'un ni l'autre — son onglet
+      // dans le rail lui tenait lieu de titre. ?>
+<?= lien_retour('?p=mailing', 'Suivi') ?>
+<div class="page-head">
+    <div class="page-head-title"><h1>Nouvel envoi groupé</h1></div>
+</div>
+
 <?php if ($msg === 'test_ok'): ?><p class="ok flash">E-mail de test envoyé.</p>
 <?php elseif ($msg === 'test_ko'): ?><p class="err flash">Échec de l'envoi de test (vérifiez la configuration SMTP dans Paramètres → E-mails).</p>
 <?php elseif ($msg === 'test_vide'): ?><p class="err flash">Renseignez l'adresse de test, le sujet et le corps avant d'envoyer un test.</p>
