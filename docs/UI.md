@@ -158,23 +158,21 @@ lisent partout de la même façon. **À préférer à un onglet de plus** dès q
 deux écrans sont deux faces d'une même chose ; pas pour ranger ensemble ce qui
 n'a en commun que d'être rarement ouvert.
 
-**La rangée d'onglets se range à droite du titre quand elle y tient**, et ne
-descend sur sa propre ligne que sinon : le bandeau fait alors une hauteur au
-lieu de deux. Rien à déclarer — c'est le comportement de `.page-head-band`. La
-décision se prend sur la largeur réelle, pas sur un seuil : aujourd'hui seule
-la comptabilité, avec ses six onglets, reste sur deux lignes.
+⚠️ **Il n'y a plus de rangée d'onglets à l'écran** : le rail porte les trois
+niveaux — module, page, sous-page — et le bandeau se contente de les nommer
+(**§ 9 ter**, qui fait autorité sur la navigation). Les deux paragraphes
+ci-dessus décrivent la DÉCLARATION d'un onglet dans `nav_groupes()`, qui n'a
+pas changé ; leur rendu, lui, est passé au rail.
 
-**Un onglet s'ouvre TOUJOURS sur du blanc.** L'onglet actif a une bordure basse
-transparente : il est dessiné pour se fondre dans une surface qui continue sous
-lui, et le trait qui souligne la rangée s'interrompt sous lui seul. Trois
-choses jouent ce rôle, dans cet ordre : le bloc pleine largeur d'une page de
-module (`.module-content`), la rangée de sous-onglets (`.param-subtabs`), ou —
+**Le bandeau s'ouvre TOUJOURS sur du blanc.** Il est dessiné pour se fondre
+dans une surface qui continue sous lui. Deux choses jouent ce rôle, dans cet
+ordre : le bloc pleine largeur d'une page de module (`.module-content`), ou —
 à défaut — un rebord blanc de 14 px posé par la feuille de style sur le
-bandeau lui-même. **Rien à déclarer : le rebord se pose tout seul** quand ni
-l'un ni l'autre ne suit le bandeau (Envois groupés, Paramètres → Employeur).
-Une page à onglets n'a donc jamais à inventer sa propre surface, et en ajouter
-une à la main — remonter la première carte, poser une barre d'actions pour
-l'occasion — referait à côté ce que le bandeau fait déjà.
+bandeau lui-même. **Rien à déclarer : le rebord se pose tout seul** quand rien
+ne suit le bandeau (Envois groupés, Paramètres → Employeur). Une page n'a donc
+jamais à inventer sa propre surface, et en ajouter une à la main — remonter la
+première carte, poser une barre d'actions pour l'occasion — referait à côté ce
+que le bandeau fait déjà.
 
 ### Sur téléphone, la barre supérieure porte le module ET l'action
 
@@ -1648,10 +1646,10 @@ Quatre décisions tiennent ce dessin, et chacune a sa raison :
 replier. Le bloc entier vit dans un `@media (min-width: 801px)`, et le chevron
 n'y est même pas affiché.
 
-**La rangée d'onglets en tête de page ne s'affiche plus nulle part.**
-`views/_module_tabs_render.php` et la rangée de sous-onglets
-(`.module-subtabs`) sont toujours rendues, mais le CSS les efface à TOUTES les
-largeurs. Au-dessus de 800 px le rail est à l'écran et la rangée répéterait, à
+**La rangée d'onglets en tête de page n'existe plus.** Ni elle ni la rangée de
+sous-onglets ne sont rendues : leurs partiels ont été supprimés, et plus aucune
+vue n'émet de `.module-tab`. Elles ont d'abord été rendues puis effacées par le
+CSS — un état de transition qu'il ne reste rien pour justifier. Au-dessus de 800 px le rail est à l'écran et la rangée répéterait, à
 deux centimètres à droite, le volet déjà déplié ; en dessous le rail est un
 tiroir, et le tiroir déplie le MÊME volet — module, pages et sous-pages
 comprises, les Paramètres et leurs trois niveaux y compris. Elle y restait
@@ -1667,8 +1665,10 @@ alors le surtitre.
 toute route secondaire d'un onglet — porte déjà son en-tête : le nom de
 l'enregistrement et un retour vers la liste. Un bandeau au-dessus y poserait un
 titre de plus, plus gros que celui de l'enregistrement et disant moins. Il reste
-rendu (`.page-head-band-muet`) mais le CSS l'efface, lui aussi à toutes les
-largeurs — il n'avait plus que cette rangée à porter. Avant que le rail ne porte la navigation, ce `<h1>` disait le
+rendu puis effacé par le CSS tant qu'il portait la rangée d'onglets du
+téléphone ; celle-ci partie, il ne rend plus rien du tout — un `return` sec
+dans `views/_page_head_band.php` dès que le titre de page est vide, plutôt
+qu'une paire de `<div>` vides dans chaque réponse. Avant que le rail ne porte la navigation, ce `<h1>` disait le
 module et la rangée d'onglets disait la page ; une fois la rangée masquée, la
 page n'avait plus de nom à l'écran. Sur téléphone, surtitre masqué : la barre
 supérieure nomme déjà le module.

@@ -1793,11 +1793,11 @@ body.fond-strates, .fond-apercu[data-fond-apercu="strates"] { background: var(--
    .module-content. Sans lui, le bandeau donnait directement sur le fond de
    page. Aplat var(--card) pleine largeur, filet en bas.
    ⚠️ En position absolue SOUS la bordure basse du bandeau, pas en flux : un
-   ::after en flux se place entre .page-head et cette bordure — le rebord se
-   retrouverait
-   alors sous le rebord au lieu de le coiffer, et l'onglet actif n'aurait plus
-   rien à effacer. D'où le décalage de --rebord-trait, l'épaisseur de cette
-   bordure (0 en mobile, où elle est remplacée par un fond sur .page-head). */
+   ::after en flux se placerait entre .page-head et cette bordure, qui se
+   retrouverait alors au-dessous du rebord au lieu de le coiffer — le filet
+   passerait sous l'aplat blanc, là où il doit le fermer. D'où le décalage de
+   --rebord-trait, l'épaisseur de cette bordure (0 en mobile, où elle est
+   remplacée par un fond sur .page-head). */
 .content:has(> .page-head-band):not(:has(> .module-content)) > .page-head-band {
     --rebord-h: 14px;
     --rebord-trait: 1px;

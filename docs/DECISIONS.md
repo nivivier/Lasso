@@ -469,8 +469,8 @@ d'échelle (beaucoup d'utilisateurs simultanés), pas la recherche de ces 6 ms.
 ### La rangée d'onglets du téléphone, et ce qu'elle emportait
 
 Quand le rail a pris la navigation, la rangée d'onglets en tête de page
-(`.module-tabs`) et celle des sous-onglets (`.module-subtabs`, qui héberge
-aussi `.param-subtabs` des Paramètres) ont été effacées **au-dessus de
+(`.module-tabs`) et celle des sous-onglets (`.param-subtabs`, partagée avec
+les Paramètres) ont été effacées **au-dessus de
 800 px** seulement : sous ce seuil le rail est un tiroir hors écran, et elles
 semblaient y rester la seule navigation de second niveau. C'était faux — le
 tiroir déplie le rail ENTIER, volet du module compris, avec ses pages et ses
