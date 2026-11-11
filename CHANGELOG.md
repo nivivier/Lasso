@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.5] — 2026-11-11
+
 ### Sécurité
 - **Les scripts de maintenance ne sont plus joignables depuis le web.**
   `scripts/` et `vendor/` ont leur `.htaccess` « Require all denied », et chaque
