@@ -22,6 +22,36 @@ try {
     }
 } catch (e) {}
 
+// Déplie ou replie une boîte EN ANIMANT SA HAUTEUR, et rend la main au CSS une
+// fois arrivée. Partagée par les sous-pages du rail et par la branche d'un
+// entonnoir arborescent : un seul geste à l'écran, une seule recette ici.
+//
+// Une transition part d'une valeur vers une autre, et « auto » n'en est pas
+// une : on mesure donc la hauteur courante, on la fige, on bascule l'état, on
+// pose la hauteur visée, et on efface tout à l'arrivée — sans quoi une boîte
+// restée figée à sa hauteur du moment ne suivrait plus son contenu.
+//
+// ⚠️ Pourquoi pas « grid-template-rows: 0fr → 1fr », qui ne demanderait aucun
+// script : mesuré des deux côtés, cette transition-là reste bloquée à zéro ici,
+// alors que la même règle donne la bonne hauteur dès qu'on lui ôte sa
+// transition. Et pas un max-height non plus : sa vitesse dépendrait du nombre
+// de lignes.
+//
+// $apres : appelé une fois l'animation finie — c'est là, et pas avant, qu'on
+// replace ce qui doit se voir (voir le rail plus bas).
+function lassoPlierAnime(boite, plier, basculer, apres) {
+    boite.style.height = boite.getBoundingClientRect().height + 'px';
+    void boite.offsetHeight;                       // fige le point de départ
+    basculer();
+    boite.style.height = (plier ? 0 : boite.scrollHeight) + 'px';
+    boite.addEventListener('transitionend', function fin(ev) {
+        if (ev.target !== boite || ev.propertyName !== 'height') return;
+        boite.removeEventListener('transitionend', fin);
+        boite.style.height = '';                   // rendue au CSS
+        if (apres) apres();
+    });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     const racine = document.documentElement;
     const rail   = document.getElementById('sidebar');
@@ -91,19 +121,38 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.side-nav .nav-volet').forEach(volet => {
         const panneau = volet.querySelector('.nav-flyout');
         if (!panneau) return;
-        const placer = () => {
+        // $supplement : ce que le panneau VA gagner ou perdre en hauteur, quand
+        // on le replace avant que l'animation ne l'ait changé. Sans lui, on ne
+        // peut replacer qu'APRÈS coup : le panneau grandit d'abord vers le bas,
+        // dépasse, puis remonte — deux mouvements à la suite là où il n'y a
+        // qu'un geste. Avec lui, la remontée part en même temps que le
+        // dépliage et dure autant (transition sur top, assets/app.css).
+        const placer = (supplement = 0) => {
             clearTimeout(fermeture);
             if (!estReduit()) return;
             // Un seul panneau ouvert : pendant le délai de grâce, celui du
             // module qu'on vient de quitter recouvrirait le nouveau.
+            // ⚠️ Déjà ouvert ou pas : c'est ce qui décide si le replacement
+            // GLISSE ou non. Déplier un onglet grandit le panneau, qui doit
+            // alors remonter pour tenir à l'écran — posé sec, ce top-là sautait
+            // juste après l'animation du dépliage, et c'est le saut qu'on
+            // voyait en bas de fenêtre. À la PREMIÈRE ouverture en revanche, il
+            // n'y a rien à glisser : le panneau n'était nulle part, et une
+            // transition le ferait venir d'une position arbitraire.
+            const dejaOuvert = volet.classList.contains('flyout-on');
             fermerPanneaux(volet);
             volet.classList.add('flyout-on');  // affiché AVANT la mesure : caché, il n'a pas de hauteur
+            if (!dejaOuvert) { panneau.style.transition = 'none'; }
             const hautRail = rail.getBoundingClientRect().top;
             const haut = volet.getBoundingClientRect().top - hautRail;
             // Remonté quand il n'y a plus la place en dessous : les derniers
             // modules de la colonne ouvraient leur panneau sous le bord bas.
-            const max = window.innerHeight - panneau.offsetHeight - 12 - hautRail;
+            const max = window.innerHeight - (panneau.offsetHeight + supplement) - 12 - hautRail;
             panneau.style.top = Math.max(0, Math.min(haut, max)) + 'px';
+            if (!dejaOuvert) {
+                void panneau.offsetHeight;      // la position prend effet sans transition…
+                panneau.style.transition = '';  // …puis on rend la main à la feuille de style
+            }
         };
         const fermerPlusTard = () => {
             clearTimeout(fermeture);
@@ -157,19 +206,49 @@ window.addEventListener('DOMContentLoaded', () => {
             // Sans effet visible quand la page est .on ou .deplie : ses
             // sous-pages sont déjà là, et les replier cacherait celle qu'on
             // est en train de lire (assets/app.css).
-            lien.classList.toggle('sous-ouvert');
-            // En rail réduit, le panneau vient de changer de hauteur : il peut
-            // avoir besoin de remonter (sa liste, elle, est bornée et défile —
-            // voir .nav-flyout .nav-pages dans assets/app.css).
-            const placer = placeurs.get(lien.closest('.nav-volet'));
-            if (placer) placer();
-            // Et dans les deux rails : ce qu'on vient de déplier doit se voir.
-            // Le rail large défile (.side-nav), le panneau du rail réduit
-            // aussi — déplier le dernier onglet d'un module posait ses
-            // sous-pages sous le bord bas, sans rien dire.
-            if (lien.classList.contains('sous-ouvert')) {
-                sous.lastElementChild?.scrollIntoView({ block: 'nearest' });
+            // Sans effet visible quand la page est .on ou .deplie : ses
+            // sous-pages sont déjà là, et les replier cacherait celle qu'on
+            // est en train de lire (assets/app.css).
+            const plier = lien.classList.contains('sous-ouvert');
+            // ⚠️ Replacer et faire défiler APRÈS que le dépliage soit fini, pas
+            // pendant : mesurée tout de suite, la boîte fait encore zéro, le
+            // défilement ne trouve rien à montrer — puis la hauteur arrive et
+            // tout se décale sous les yeux. En bas du rail, l'onglet qu'on
+            // venait d'ouvrir remontait d'un coup une fois l'animation finie.
+            // En rail réduit, le panneau va changer de hauteur : on le replace
+            // TOUT DE SUITE, en lui disant de combien, pour que sa remontée et
+            // le dépliage ne fassent qu'un seul mouvement. (Sa liste, elle, est
+            // bornée et défile — voir .nav-flyout .nav-pages dans app.css.)
+            const placerVolet = placeurs.get(lien.closest('.nav-volet'));
+            if (placerVolet) {
+                const h = sous.getBoundingClientRect().height;
+                placerVolet(plier ? -h : sous.scrollHeight - h);
             }
+            const apresDepliage = () => {
+                // Et une fois arrivé, on revérifie : la hauteur est désormais
+                // réelle, la valeur tombe juste et rien ne bouge — c'est un
+                // filet, pas un second placement.
+                if (placerVolet) placerVolet();
+                if (plier) return;                 // rien à montrer de ce qui se referme
+                // Ce qu'on vient de déplier doit se voir. Le rail large défile
+                // (.side-nav), le panneau du rail réduit aussi — déplier le
+                // dernier onglet d'un module posait ses sous-pages sous le bord
+                // bas, sans rien dire.
+                // ⚠️ En GLISSANT, pas d'un coup : le dépliage vient de s'animer,
+                // un défilement sec juste derrière annule ce qu'on gagnait à
+                // l'animer — c'est le saut qu'on voyait en bas de fenêtre. Le
+                // réglage système du mouvement réduit est respecté, comme pour
+                // les animations de la feuille de style.
+                // Le DERNIER LIEN, pas le dernier enfant : celui-ci est la
+                // boîte intérieure, plus haute que la zone visible, et viser
+                // une boîte plus grande qu'elle ne dit plus où s'arrêter.
+                const liens = sous.querySelectorAll('.nav-sous-page');
+                liens[liens.length - 1]?.scrollIntoView({
+                    block: 'nearest',
+                    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                });
+            };
+            lassoPlierAnime(sous, plier, () => lien.classList.toggle('sous-ouvert'), apresDepliage);
         });
     });
 
@@ -1963,6 +2042,62 @@ document.addEventListener('click', e => {
         });
     });
 })();
+
+// ------------------------------------------------ FILTRE DE COLONNE ARBORESCENT
+// Les catégories d'un entonnoir (?p=structures, ?p=compta_ecritures) : une
+// catégorie qui en contient d'autres porte un chevron et se replie, comme un
+// onglet dépliable du rail. filtre_colonne_html() (lib/helpers/listes.php) pose
+// le bouton sur ces rangées et EMBOÎTE leurs descendants dans une branche qui
+// les suit — c'est sa hauteur que le CSS anime.
+//
+// ⚠️ C'est le repli qui est posé par le script, PAS le dépli : une branche est
+// ouverte tant que data-replie n'est pas là. Sans JavaScript la liste reste
+// donc entière, et un plan comptable garde ses sous-catégories atteignables —
+// le chevron est un confort, pas le seul chemin vers elles. L'inverse (replié
+// par défaut en CSS, déplié au clic) les aurait rendues invisibles à qui n'a
+// pas de script, sans rien pour les récupérer.
+//
+// ⚠️ DOMContentLoaded, comme tout ce qui touche au DOM dans ce fichier : il est
+// chargé dans le <head> SANS defer (views/layout.php), donc une IIFE nue s'y
+// exécute avant que la liste existe — et ne trouve rien, sans la moindre
+// erreur.
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.col-filter-options').forEach(liste => {
+        const boutons = [...liste.querySelectorAll('.cat-chevron')];
+        if (!boutons.length) return;
+
+        // Qui commande quoi : le chevron bascule data-replie sur SA rangée, et
+        // c'est le CSS qui referme la branche posée juste après elle. Rien à
+        // masquer ni à recalculer ici — une rangée n'a pas à savoir si un
+        // ancêtre est replié, elle est dedans.
+        // Au premier passage (initial), l'état est posé sec : sinon toutes les
+        // branches s'animeraient au chargement de la page.
+        const etat = (opt, replie, initial) => {
+            const br = opt.nextElementSibling;
+            opt.querySelector(':scope > .cat-chevron').setAttribute('aria-expanded', replie ? 'false' : 'true');
+            const basculer = () => opt.toggleAttribute('data-replie', replie);
+            if (initial || !br) { basculer(); return; }
+            lassoPlierAnime(br, replie, basculer);
+        };
+
+        // Tout se replie au chargement, SAUF ce qui contient une case cochée :
+        // un filtre actif qu'on ne voit pas est un filtre qu'on ne pense pas à
+        // retirer. L'emboîtement fait le reste du travail — une coche profonde
+        // laisse aussi ouverts tous ses ancêtres, chacun la trouvant chez lui.
+        boutons.forEach(btn => {
+            const opt = btn.closest('.col-filter-opt');
+            etat(opt, !opt.nextElementSibling?.querySelector('input:checked'), true);
+        });
+
+        liste.addEventListener('click', ev => {
+            const btn = ev.target.closest('.cat-chevron');
+            if (!btn || !liste.contains(btn)) return;
+            ev.preventDefault();
+            const opt = btn.closest('.col-filter-opt');
+            etat(opt, !opt.hasAttribute('data-replie'), false);
+        });
+    });
+});
 
 // ------------------------------------------------- COMPORTEMENTS DÉCLARATIFS
 // Remplacent les 85 attributs onclick/onsubmit/onchange qui parsemaient les

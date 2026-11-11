@@ -323,11 +323,14 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
                       // dépliée : sans elles dans le DOM, le clic n'aurait rien
                       // à déplier. ?>
                 <?php if (!empty($navO[4])): ?>
-                <div class="nav-sous">
+                <?php // Deux boîtes : la grille porte la hauteur qu'on anime au
+                      // dépliage, l'intérieur le dépassement masqué (assets/app.css).
+                      // Même recette que la branche d'un entonnoir arborescent. ?>
+                <div class="nav-sous"><div class="nav-sous-inner">
                     <?php foreach ($navO[4] as $navSRoute => $navSLib): ?>
                     <a href="?p=<?= e((string) $navSRoute) ?>&depuis=<?= e($navCle) ?>" class="nav-sous-page<?= $cur === (string) $navSRoute ? ' on' : '' ?>"><?= e($navSLib) ?></a>
                     <?php endforeach; ?>
-                </div>
+                </div></div>
                 <?php endif; ?>
                 <?php endforeach; ?>
             </div>
@@ -373,12 +376,12 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
                     <?php if ($ptPlusieurs): ?><span class="nav-page-chevron" aria-hidden="true"><?= icon('chevron-right') ?></span><?php endif; ?>
                 </a>
                 <?php if ($ptPlusieurs): ?>
-                <div class="nav-sous">
+                <div class="nav-sous"><div class="nav-sous-inner">
                     <?php foreach ($ptSections as $ptRoute => $ptLib): ?>
                     <?php $ptAlias = in_array($cur, (array) ($ptGroupe[2] ?? []), true) && $ptRoute === array_key_first($ptSections); ?>
                     <a href="?p=<?= e((string) $ptRoute) ?>" class="nav-sous-page<?= $cur === (string) $ptRoute || $ptAlias ? ' on' : '' ?>"><?= e((string) $ptLib) ?></a>
                     <?php endforeach; ?>
-                </div>
+                </div></div>
                 <?php endif; ?>
                 <?php endforeach; ?>
             </div>

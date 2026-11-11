@@ -540,23 +540,77 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
         . '<label class="col-filter-tout"><input type="checkbox" data-check-tout' . (count($actives) === count($options) ? ' checked' : '') . '> Tout</label>'
         . '<div class="col-filter-sep"></div><div class="col-filter-options">';
     $activesTxt = array_map('strval', $actives);
+    // Libellés arborescents (les catégories de ?p=structures et de
+    // ?p=compta_ecritures) : ils arrivent préfixés d'espaces insécables, deux
+    // par niveau. Traduits en marge interne sur le <label>, ils décalent la
+    // case à cocher EN MÊME TEMPS que son texte ; laissés dans le texte, ils
+    // laissaient la colonne de cases parfaitement droite sous une liste
+    // visiblement en escalier.
+    //
+    // Une passe préalable, parce qu'on a besoin du niveau du SUIVANT : une
+    // option a des enfants quand celle qui la suit est plus profonde — les
+    // options arrivent dans l'ordre d'un parcours en profondeur, et c'est tout
+    // ce qu'il faut savoir pour dessiner l'arbre.
+    $niveaux = [];
+    $libelles = [];
     foreach ($options as $val => $lib) {
-        $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
-        // Libellés arborescents (les catégories de ?p=structures) : ils arrivent
-        // préfixés d'espaces insécables, deux par niveau. Traduits en marge
-        // interne sur le <label>, ils décalent la case à cocher EN MÊME TEMPS
-        // que son texte ; laissés dans le texte, ils laissaient la colonne de
-        // cases parfaitement droite sous une liste visiblement en escalier.
         $niveau = 0;
         if (preg_match('/^\x{00A0}+/u', (string) $lib, $m)) {
             $niveau = intdiv(mb_strlen($m[0]), 2);
             $lib = mb_substr((string) $lib, mb_strlen($m[0]));
         }
-        $case = '<label' . ($niveau > 0 ? ' style="--niv:' . $niveau . '"' : '') . '>'
+        $niveaux[]  = $niveau;
+        $libelles[] = (string) $lib;
+    }
+    $arbo = $niveaux !== [] && max($niveaux) > 0;
+
+    // Les descendants d'une rangée sont EMBOÎTÉS dans une branche à elle, et
+    // non laissés frères dans une liste plate : c'est ce qui permet de déplier
+    // en animant la hauteur du groupe (grid-template-rows, assets/app.css)
+    // plutôt que de faire apparaître les rangées une à une. La pile retient le
+    // niveau de chaque branche ouverte ; on les ferme dès qu'une rangée
+    // revient à ce niveau ou plus haut.
+    $pile = [];
+    $i = 0;
+    foreach ($options as $val => $_libBrut) {
+        $niveau   = $niveaux[$i];
+        $lib      = $libelles[$i];
+        $aEnfants = $arbo && ($niveaux[$i + 1] ?? -1) > $niveau;
+        $i++;
+        while ($pile !== [] && $niveau <= end($pile)) {
+            $h .= '</div>';
+            array_pop($pile);
+        }
+        $checked = in_array((string) $val, $activesTxt, true) ? ' checked' : '';
+        // data-niv sur l'élément de premier rang : c'est lui que le script
+        // parcourt pour replier une branche (lassoFiltreArbo(), assets/app.js).
+        // Posé seulement sur une liste arborescente — ailleurs il n'aurait rien
+        // à dire, et le script n'a rien à y faire.
+        $attrNiv = $arbo ? ' data-niv="' . $niveau . '"' : '';
+        $enveloppe = isset($actionsParOption[$val]) || $aEnfants;
+        $case = '<label' . ($niveau > 0 ? ' style="--niv:' . $niveau . '"' : '')
+              . ($enveloppe ? '' : $attrNiv) . '>'
               . '<input type="checkbox" name="' . e($champ) . '[]" value="' . e((string) $val) . '"' . $checked . '> ' . e($lib) . '</label>';
-        $h .= isset($actionsParOption[$val])
-            ? '<div class="col-filter-opt">' . $case . $actionsParOption[$val] . '</div>'
+        // Le chevron d'une catégorie qui en contient d'autres : même geste que
+        // celui des onglets dépliables du rail (.nav-page-chevron,
+        // views/layout.php) — une seule icône, qui tourne au lieu de changer.
+        // <button> et non <span> : c'est un geste au clavier comme à la souris,
+        // et hors du <label>, sans quoi l'activer cocherait la case.
+        $chevron = $aEnfants
+            ? '<button type="button" class="cat-chevron" aria-expanded="true"'
+                . ' aria-label="Afficher ou masquer les sous-catégories">' . icon('chevron-right') . '</button>'
+            : '';
+        $h .= $enveloppe
+            ? '<div class="col-filter-opt"' . $attrNiv . '>' . $case . ($actionsParOption[$val] ?? '') . $chevron . '</div>'
             : $case;
+        if ($aEnfants) {
+            $h .= '<div class="col-filter-branche">';
+            $pile[] = $niveau;
+        }
+    }
+    while ($pile !== []) {
+        $h .= '</div>';
+        array_pop($pile);
     }
     return $h . '</div><button type="submit" class="col-filter-apply">Appliquer</button></form></details>';
 }

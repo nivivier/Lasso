@@ -707,13 +707,31 @@ body.has-sidebar { display: flex; min-height: 100vh; }
 /* Troisième niveau : ni filet ni tiret, un simple décalage. Le volet dit déjà
    à quel module ces écrans appartiennent, et un second trait vertical ne
    disait pas « plus profond » mais « encore une marge ». */
-.nav-sous { padding: 0 0 4px 16px; }
+/* ⚠️ Le retrait du BAS ne peut vivre sur le conteneur : overflow rogne le
+   CONTENU d'une boîte, jamais son propre remplissage — réduite à une hauteur
+   nulle, elle gardait quand même ses quatre pixels, soit autant de vide sous
+   chaque onglet replié (mesuré : 4px au lieu de 0). Il descend donc sur le
+   dernier lien, où il est du contenu comme le reste et disparaît avec lui.
+   Le retrait de GAUCHE, lui, ne pèse pas sur la hauteur et reste ici. */
+.nav-sous-inner { padding: 0 0 0 16px; }
+.nav-sous-inner > :last-child { margin-bottom: 6px; }
 /* …et il est REPLIÉ tant que sa page n'est ni ouverte (.on), ni dépliée
    (.deplie, une de ses sous-pages est à l'écran), ni ouverte à la main
    (.sous-ouvert, posée au clic par assets/app.js). Les sous-pages sont dans le
    DOM dans tous les cas : c'est ce qui permet au clic de les déplier sans
-   recharger, et au rail réduit de les montrer dans son panneau. */
-.nav-page:not(.on):not(.deplie):not(.sous-ouvert) + .nav-sous { display: none; }
+   recharger, et au rail réduit de les montrer dans son panneau.
+   Le dépliage s'anime en HAUTEUR, et c'est assets/app.js qui la mesure puis la
+   rend à « auto » une fois arrivée (lassoPlierAnime(), partagée avec la branche
+   d'un entonnoir arborescent — une seule recette pour un seul geste).
+   ⚠️ Ni « grid-template-rows: 0fr → 1fr », ni un max-height : la première reste
+   bloquée à zéro ici comme dans l'entonnoir (mesuré des deux côtés : la même
+   règle donne la bonne hauteur dès qu'on lui ôte sa transition), le second
+   donne une vitesse qui dépend du nombre de lignes.
+   ⚠️ visibility remplace ce que display:none faisait pour le clavier : une
+   branche de hauteur nulle reste dans le flux, et sans elle on tabulerait vers
+   des liens invisibles. */
+.nav-sous { overflow: hidden; transition: height .15s ease, visibility .15s; }
+.nav-page:not(.on):not(.deplie):not(.sous-ouvert) + .nav-sous { height: 0; visibility: hidden; }
 /* Le chevron d'un onglet qui se déplie : même rôle que celui d'un module, en
    plus petit, et il tourne au lieu de changer d'icône — une seule icône dans
    le balisage, donc rien à tenir d'accord avec l'état. */
@@ -841,6 +859,15 @@ body.has-sidebar { display: flex; min-height: 100vh; }
         padding: 8px;
         background: var(--card); border: 1px solid var(--line);
         border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
+        /* ⚠️ Le panneau GLISSE quand il se replace. Déplier un onglet le fait
+           grandir, et près du bas de la fenêtre il doit alors remonter pour
+           tenir à l'écran (placer(), assets/app.js, pose ce top en pixels) :
+           posé sec, il sautait juste après l'animation du dépliage. Même durée
+           que le dépliage lui-même, pour que les deux se lisent comme un seul
+           mouvement.
+           La toute PREMIÈRE ouverture est exemptée côté script — le panneau
+           n'était nulle part, il n'a pas à venir d'ailleurs en glissant. */
+        transition: top .15s ease;
     }
     /* ⚠️ LE PONT, et il n'est pas un ornement : une bande transparente collée
        au bord gauche du panneau, qui va mordre dans le volet.
@@ -3844,7 +3871,13 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 /* Options dans un conteneur scrollable dédié (pas tout .col-filter-menu) :
    "Tout" et "Appliquer" restent visibles même quand la liste est longue
    (ex. filtre Employé, un nom par employé). */
-.col-filter-options { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
+/* En flux normal plutôt qu'en flex : la branche dépliable (.col-filter-branche,
+   plus bas) s'anime en hauteur, ce qu'un enfant flex rétrécissable rend
+   imprévisible. L'écart entre rangées passe donc du gap à une marge, qui ne
+   s'applique qu'entre elles — même rendu, mesuré : 31px par rangée et 2px
+   d'écart, comme avec le gap. */
+.col-filter-options { max-height: 220px; overflow-y: auto; }
+.col-filter-options > * + * { margin-top: 2px; }
 .col-filter-menu label {
     /* flex-direction:row (pas juste display:flex) : sur ?p=structures/
        evenements_liste en vue carte, ce <label> est un descendant de
@@ -3922,6 +3955,69 @@ button:disabled:hover, .btn:disabled:hover { background: var(--highlight); borde
 .col-filter-large .col-filter-menu { max-width: 300px; min-width: 260px; }
 .col-filter-large .col-filter-options { padding-right: 16px; }
 .col-filter-opt { display: flex; align-items: center; gap: 4px; border-radius: 6px; }
+/* Le chevron d'une catégorie qui en contient d'autres (filtre_colonne_html()) :
+   même rôle et même geste que celui d'un onglet dépliable du rail
+   (.nav-page-chevron plus haut) — une seule icône dans le balisage, qui tourne
+   au lieu de changer, donc rien à tenir d'accord avec l'état. */
+.cat-chevron {
+    /* ⚠️ Les mêmes valeurs que .nav-page-chevron, sans rien de plus : même
+       opacité fixe, même transition sur la SEULE rotation, ni fond ni coins
+       arrondis — un survol qui pose un aplat ici et rien dans le rail fait
+       deux gestes là où il n'y en a qu'un. Ce qui diffère tient au balisage,
+       pas à l'allure : c'est un <button>, il lui faut donc la remise à zéro
+       d'un bouton, et une boîte de 20px — dans le rail c'est tout le lien qui
+       est cliquable, ici le bouton est seul à l'être et 13px ne se visent pas.
+       L'ICÔNE, elle, fait bien 13px comme là-bas. */
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; padding: 0;
+    /* ⚠️ Détourner un <button> en icône nue oblige à défaire TOUT ce que
+       « button, .btn » lui donne, l'ombre portée comprise (box-shadow:
+       var(--shadow-sm), posée en permanence et non au survol) : c'est elle
+       qu'on voyait flotter sous le chevron, là où le rail n'a rien. Annuler le
+       fond, la bordure et le rayon ne suffit pas — la liste ci-dessous reprend
+       chaque propriété de ce style global qui se verrait ici. */
+    border: 0; border-radius: 0; background: none; box-shadow: none;
+    color: var(--muted); cursor: pointer; opacity: .55;
+    transition: transform .15s ease;
+}
+.cat-chevron .ico { width: 13px; height: 13px; }
+/* ⚠️ Une gouttière à sa droite, et elle n'est pas décorative : la liste défile
+   au-delà de 220px (.col-filter-options) et, sur macOS, sa barre de défilement
+   se dessine PAR-DESSUS le contenu sans rien lui prendre en largeur (mesuré :
+   offsetWidth - clientWidth = 0). Le chevron finissait exactement au bord
+   intérieur, donc sous la barre : visible, mais plus cliquable dès que la liste
+   était assez longue pour défiler — c'est-à-dire précisément quand on a le plus
+   besoin de replier. Posée sur le chevron et non sur la liste : seules les
+   rangées qui en portent un cèdent la place, les autres gardent leur largeur. */
+.cat-chevron { margin-right: 12px; }
+/* ⚠️ Et il faut DÉFAIRE ce que le style global des boutons lui applique, sinon
+   l'homogénéité avec le rail s'arrête au repos : « button:hover » (plus haut)
+   pose l'aplat de mise en évidence et « button:active » un décalage d'un
+   pixel, tous deux plus spécifiques (0,1,1) que la classe seule (0,1,0). Un
+   chevron qui s'allume au survol ici et pas dans le rail, c'est deux gestes
+   pour une même chose. L'ÉTAT ouvert reste prioritaire sur :active, lui
+   (0,2,1), sans quoi cliquer aurait redressé le chevron le temps du clic. */
+.cat-chevron:hover, .cat-chevron:active {
+    background: none; border-color: transparent; box-shadow: none; transform: none;
+}
+/* Le chevron pointe vers le bas tant que la branche est ouverte — et elle
+   l'est par défaut : c'est data-replie, posé par le script, qui referme (voir
+   assets/app.js, et le pourquoi de ce sens-là). */
+.col-filter-opt:not([data-replie]) > .cat-chevron { transform: rotate(90deg); }
+/* La branche des descendants, et son dépliage animé — même recette que les
+   sous-pages du rail (.nav-sous, plus haut) : la hauteur, mesurée puis rendue
+   à « auto » par lassoPlierAnime() (assets/app.js). Le pourquoi de ce choix
+   plutôt que grid-template-rows est écrit là-bas, en un seul endroit.
+   ⚠️ visibility suit, et ce n'est pas décoratif : une branche réduite à une
+   hauteur nulle reste dans le flux, donc ses cases à cocher resteraient
+   accessibles à la tabulation — on tabulerait vers des options invisibles. */
+.col-filter-branche {
+    overflow: hidden;
+    transition: height .15s ease, visibility .15s;
+    margin-top: 2px;
+}
+.col-filter-branche > * + * { margin-top: 2px; }
+.col-filter-opt[data-replie] + .col-filter-branche { height: 0; visibility: hidden; }
 .col-filter-opt > label { flex: 1 1 auto; min-width: 0; }
 .col-filter-opt:hover { background: var(--surface); }
 .col-filter-opt:hover > label { background: none; }

@@ -1245,6 +1245,41 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
 - **Filtres de colonne** : `filtre_colonne_html()`, un entonnoir par colonne,
   mémorisé en session, avec un bouton de remise à zéro quand au moins un est
   actif.
+- **Un entonnoir arborescent se replie.** Quand ses options arrivent indentées
+  — deux espaces insécables par niveau, ce que font les catégories de
+  `?p=structures` et de `?p=compta_ecritures` —, celles qui en contiennent
+  d'autres reçoivent **le chevron des onglets dépliables du rail**, et leur
+  branche est **repliée d'office**. Même icône, même rotation de 90° : un
+  entonnoir de douze catégories ne demande pas un geste différent d'un rail de
+  douze onglets. Rien à déclarer, `filtre_colonne_html()` le voit à
+  l'indentation — mais une branche qui contient une case **cochée** s'ouvre
+  d'elle-même : un filtre actif qu'on ne voit pas est un filtre qu'on ne pense
+  pas à retirer.
+  ⚠️ C'est le **repli** qui est posé par le script, pas le dépli : sans
+  JavaScript la liste reste entière. Un plan comptable replié par une règle de
+  style aurait rendu ses sous-catégories inatteignables — le chevron est un
+  confort, pas le seul chemin vers elles.
+  **Le dépliage s'anime**, ici comme dans le rail, et par la même fonction :
+  `lassoPlierAnime()` mesure la hauteur, l'anime, puis la rend au CSS à
+  l'arrivée pour qu'une branche suive son contenu s'il change. Un seul geste à
+  l'écran, une seule recette dans le code.
+  ⚠️ Ni `grid-template-rows: 0fr → 1fr`, qui n'aurait demandé aucun script —
+  cette transition reste bloquée à zéro aux deux endroits, alors que la même
+  règle donne la bonne hauteur dès qu'on lui ôte sa transition — ni un
+  `max-height`, dont la vitesse dépendrait du nombre de lignes.
+  ⚠️ **Ce qui doit BOUGER avec un dépliage part en même temps que lui ; ce qui
+  doit se VOIR attend qu'il soit fini.** Le panneau d'un module en rail réduit
+  doit remonter quand il grandit près du bas de la fenêtre : on le replace dès
+  le départ, en lui disant de combien il va grandir, et sa remontée dure autant
+  que le dépliage — replacé après coup, il faisait deux mouvements à la suite.
+  Le défilement qui amène une sous-page en vue, lui, attend la fin
+  (`transitionend`, pas un délai fixe) : mesuré trop tôt, il ne trouve rien à
+  montrer.
+  ⚠️ Et le chevron garde **une gouttière à sa droite** : la liste défile
+  au-delà de 220px et, sur macOS, sa barre de défilement se peint par-dessus le
+  contenu sans rien lui prendre en largeur. Collé au bord, le chevron devenait
+  incliquable précisément quand la liste est assez longue pour qu'on ait envie
+  de la replier.
 - **Un bouton d'en-tête de colonne qui agit sur TOUTE la colonne** se range à
   côté du titre, avec la discrétion de l'entonnoir voisin (`.col-th-btn`) : il
   accompagne le titre, il ne le concurrence pas, et il s'allume en couleur
