@@ -9,6 +9,23 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.4] — 2026-11-11
+
+### Modifié
+- **Les catégories d'un entonnoir se replient** (`?p=structures`,
+  `?p=compta_ecritures`). Une catégorie qui en contient d'autres porte le
+  chevron des onglets dépliables du rail, et ses sous-catégories sont repliées
+  d'office : l'entonnoir des structures passe de dix lignes à quatre, et on
+  voit ses quatre familles d'un coup d'œil au lieu de faire défiler une liste
+  où rien ne distinguait un parent de ses enfants. Une branche qui contient une
+  case déjà cochée reste ouverte — un filtre actif qu'on ne voit pas est un
+  filtre qu'on ne pense pas à retirer. Sans JavaScript, la liste reste entière.
+- **Les sous-éléments se déplient en glissant**, dans l'entonnoir comme dans le
+  rail de gauche, où ils paraissaient jusqu'ici d'un bloc. En rail réduit, le
+  panneau d'un module près du bas de la fenêtre remonte **pendant** qu'il
+  grandit, et non plus d'un coup une fois les sous-pages arrivées : déplier un
+  onglet y faisait deux mouvements à la suite là où il n'y a qu'un geste.
+
 ## [3.2.3] — 2026-11-09
 
 ### Modifié
