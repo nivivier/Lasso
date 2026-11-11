@@ -178,6 +178,51 @@ Aucune ne fonctionne sous Nginx, qui ignore les `.htaccess` : en production, la
 base doit être **hors racine web**. Le dossier contient aussi les sauvegardes
 `*.sqlite.bak` (la base entière) et le journal des e-mails.
 
+Ces copies automatiques sont limitées aux `SAUVEGARDES_AUTO_MAX` plus récentes
+(`sauvegardes_auto_purger()`, appelée par `sauvegarder_base()`). Jusqu'en
+novembre 2026, elles s'accumulaient sans limite : une par mise à jour, import,
+fusion ou recalcul, chacune avec toute la base.
+
+### Scripts de maintenance : deux verrous, parce que `$argv` peut venir de l'URL
+
+**Invariante.** Tout fichier de `scripts/` commence par
+`if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }`, avant tout
+chargement et tout usage de ses arguments. `scripts/` et `vendor/` portent en
+plus un `.htaccess` « Require all denied ». `tests/exposition_web_test.php`
+vérifie les deux.
+
+**Pourquoi.** L'audit de novembre 2026 a trouvé trois scripts sans garde dans
+un dossier ouvert au web. Sous PHP-CGI avec `register_argc_argv` actif, la
+chaîne de requête remplit `$argv` : `…/scripts/doublons.php?--appliquer` aurait
+fusionné les structures de la base de production. Le `.htaccess` seul ne
+suffit pas, puisque Nginx l'ignore ; la garde seule laisserait servir des
+fichiers que personne n'a à ouvrir depuis un navigateur.
+
+### Mise à jour par archive : tout ou rien, et un manifeste
+
+**Invariante.** `maj_installer_arbre()` copie de côté tout fichier qu'elle va
+écraser ou supprimer **avant** d'en toucher un seul. Au premier échec, elle
+défait ce qu'elle a fait, puis relance l'exception. Elle ne supprime que les
+fichiers listés dans le manifeste de l'installation précédente
+(`maj_manifeste.json`) et absents de la nouvelle archive, et jamais un chemin
+de `maj_chemin_protege()`.
+
+**Pourquoi.** L'ancienne `maj_copier_arbre()` recopiait l'archive par-dessus
+l'application. Une coupure en route laissait un mélange de deux versions,
+alors que seule la base avait été sauvegardée. Et un fichier supprimé en amont
+restait sur le serveur, toujours exécutable.
+
+Pourquoi un manifeste plutôt qu'une comparaison avec le disque : le disque
+contient aussi des fichiers que l'archive ne connaît pas et qu'il faut garder
+(configuration locale, fichiers posés à la main, restes d'un déploiement par
+git). Seul ce qu'une mise à jour a installé peut être retiré par la suivante.
+La première mise à jour par archive ne supprime donc rien.
+
+La sauvegarde préalable de la base passe par `sauvegarder_base()`
+(`VACUUM INTO`) et non plus par `copy()`. En mode WAL, le fichier principal
+seul peut manquer des transactions encore dans le journal. Si cette sauvegarde
+échoue, on n'installe rien.
+
 ### CSP : comment `'unsafe-inline'` a quitté `script-src`
 
 **L'ordre des opérations était tout le problème.** Un nonce ne couvre **que**

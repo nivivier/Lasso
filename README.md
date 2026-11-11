@@ -144,10 +144,17 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
   disponible sur le canal choisi ; **Paramètres → Serveur** donne le diagnostic
   `exec()`/`git`, les versions de PHP et de SQLite, l'état d'OPcache, la durée de
   vie des sessions (§7) et le réglage du seuil de recherche ci-dessous.
+- Le canal par défaut est **stable** : une installation qu'on n'a pas réglée ne
+  suit pas la branche de développement.
 - **Mise à jour en un clic** depuis cette page (`maj_executer()`, `lib/maj.php`) :
-  sauvegarde de la base, téléchargement de l'archive de la branche du canal,
-  extraction, puis migrations au premier chargement. `lib/config.local.php`,
-  `data/` et `uploads/` sont préservés (non versionnés).
+  sauvegarde de la base (abandon si elle échoue), téléchargement de l'archive de
+  la branche du canal, extraction, puis installation **en tout ou rien** : chaque
+  fichier remplacé est d'abord copié de côté, et au premier échec le code est
+  remis dans son état d'avant. Les fichiers **retirés du dépôt** sont supprimés
+  du serveur, d'après la liste des fichiers installés la fois précédente
+  (`maj_manifeste.json`, à côté de la base) — la toute première mise à jour par
+  archive n'en supprime donc aucun. Migrations au premier chargement.
+  `lib/config.local.php`, `data/` et `uploads/` ne sont jamais touchés.
   Deux conditions : le serveur doit savoir décompresser une archive
   (`maj_archive_possible()`), et la mise à jour web ne doit pas avoir été
   désactivée par `define('ALLOW_WEB_UPDATE', false)` dans `lib/config.local.php`.
@@ -621,7 +628,17 @@ d'installation et l'emplacement de la base, et se conserve à part.
 > connexion**, eux, n'y sont qu'en empreinte bcrypt : ils ne se relisent pas,
 > mais une sauvegarde restaurée rend à chacun le sien.
 
-À conserver régulièrement en lieu sûr.
+À conserver régulièrement en lieu sûr. Quand le dernier téléchargement remonte à
+plus de 30 jours (`SAUVEGARDE_RAPPEL_JOURS`), ou qu'aucun n'a été enregistré, le
+tableau de bord le rappelle aux administrateurs.
+
+**Copies automatiques.** Avant une mise à jour, un import, une fusion de
+doublons, un recalcul de fiches ou une restauration, l'application copie la base
+dans un `.sqlite.bak` à côté d'elle (`sauvegarder_base()`). Seules les **10 plus
+récentes** sont gardées (`SAUVEGARDES_AUTO_MAX`, réglable dans
+`lib/config.local.php`) : chacune est une copie intégrale de la base. Elles
+restent sur le serveur et disparaissent avec lui — elles ne remplacent pas la
+sauvegarde complète.
 
 ---
 
@@ -653,7 +670,9 @@ d'installation et l'emplacement de la base, et se conserve à part.
   l'apparition.
 - **Écran d'installation** protégé par `SETUP_SECRET`.
 - **Base de données hors racine web** (via `APP_DB_PATH`). En complément,
-  `.htaccess` refuse l'accès direct : `data/` et `lib/` en entier, l'exécution de
+  `.htaccess` refuse l'accès direct : `data/`, `lib/`, `views/`, `tests/`,
+  `scripts/` et `vendor/` en entier (les scripts de maintenance refusent en
+  outre de tourner hors ligne de commande), l'exécution de
   tout script dans `uploads/`, les fichiers `.sqlite`/`.log`/`.bak`/`.md`, les
   fichiers commençant par un point, ainsi que `composer.json`/`.lock` et
   `config.local.php`. Le `data/.htaccess` est versionné **et** recréé par

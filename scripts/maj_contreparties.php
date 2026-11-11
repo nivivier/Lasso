@@ -31,6 +31,15 @@
  * défaut, la base configurée (APP_DB_PATH) est utilisée.
  */
 
+// Script en ligne de commande UNIQUEMENT. scripts/.htaccess le bloque déjà
+// côté web, mais un hébergement sans .htaccess (nginx, mauvais AllowOverride)
+// le servirait : et sous PHP-CGI avec register_argc_argv, la chaîne de
+// requête devient la liste des arguments — « ?--appliquer » écrirait alors sur la vraie base.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 // --db=… doit être pris en compte AVANT le chargement de la config (qui fixe
 // APP_DB_PATH si la constante n'est pas déjà définie).
 foreach (array_slice($argv, 1) as $a) {

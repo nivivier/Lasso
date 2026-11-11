@@ -1,9 +1,10 @@
 <?php
 // ============================================================================
-//  Versionnage & mises à jour de l'application.
-//  Phase 1-2 : numéro de version (fichier VERSION), canaux (branches git),
-//  détection « à jour / mise à jour disponible » et diagnostic exec/git.
-//  L'exécution de la mise à jour (phase 3) n'est pas encore implémentée.
+//  Versionnage & mises à jour de l'application : numéro de version (fichier
+//  VERSION), canaux (branches git), détection « à jour / mise à jour
+//  disponible », diagnostic exec/git, et mise à jour par archive depuis
+//  l'écran Mises à jour (maj_executer()). En production, `git pull` reste la
+//  voie recommandée (README §4) ; l'archive sert aux hébergements sans git.
 // ============================================================================
 
 const MAJ_REPO   = 'nivivier/Lasso';
@@ -17,11 +18,14 @@ function maj_version_locale(): string
     return is_file($f) ? (trim((string) file_get_contents($f)) ?: '0.0.0') : '0.0.0';
 }
 
-// Canal suivi (préférence stockée en base ; défaut « test »).
+// Canal suivi (préférence stockée en base). Défaut « stable » : une
+// installation que personne n'a réglée ne doit pas suivre la branche de
+// développement — « test » se choisit, il ne s'hérite pas.
+const MAJ_CANAL_DEFAUT = 'stable';
 function maj_canal(): string
 {
-    $c = (string) param('maj_canal', 'test');
-    return isset(MAJ_CANAUX[$c]) ? $c : 'test';
+    $c = (string) param('maj_canal', MAJ_CANAL_DEFAUT);
+    return isset(MAJ_CANAUX[$c]) ? $c : MAJ_CANAL_DEFAUT;
 }
 
 function maj_branche(string $canal): string
@@ -312,25 +316,139 @@ function maj_rmdir_recursif(string $dir): void
     @rmdir($dir);
 }
 
-// Copie récursive de $src sur $dst (écrase les fichiers, crée les dossiers manquants).
-// Les fichiers non versionnés (data/, uploads/, config.local.php) n'étant pas dans
-// l'archive, ils ne sont jamais touchés.
-function maj_copier_arbre(string $src, string $dst): void
+// Liste des fichiers d'un arbre, en chemins relatifs (séparateur « / »), triée.
+function maj_lister_fichiers(string $racine): array
 {
-    foreach (scandir($src) as $it) {
-        if ($it === '.' || $it === '..') {
+    $liste = [];
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($racine, FilesystemIterator::SKIP_DOTS));
+    foreach ($it as $f) {
+        if ($f->isFile()) {
+            $liste[] = str_replace('\\', '/', substr($f->getPathname(), strlen($racine) + 1));
+        }
+    }
+    sort($liste);
+    return $liste;
+}
+
+// Chemins qu'une mise à jour ne SUPPRIME jamais, même s'ils figuraient dans un
+// manifeste : les données, les fichiers déposés, la configuration locale, git.
+// Ils ne sont normalement dans aucun manifeste (l'archive n'en contient pas) —
+// cette liste est le second verrou, pour qu'un manifeste corrompu ou forgé ne
+// puisse pas atteindre la base.
+function maj_chemin_protege(string $rel): bool
+{
+    foreach (['data/', 'uploads/', '.git/'] as $prefixe) {
+        if (str_starts_with($rel, $prefixe)) {
+            return true;
+        }
+    }
+    return $rel === 'lib/config.local.php' || $rel === '.git'
+        || str_contains($rel, '..') || str_starts_with($rel, '/');
+}
+
+// Manifeste : la liste des fichiers installés par la dernière mise à jour par
+// archive. C'est lui qui dit quels fichiers ont disparu du dépôt depuis — sans
+// lui, un fichier supprimé en amont (une ancienne route, un script retiré)
+// resterait sur le serveur, toujours exécutable. Une installation qui n'en a
+// pas encore (déployée par git, ou mise à jour avant son introduction) ne
+// supprime rien la première fois : on ne sait pas distinguer ses fichiers de
+// code de ceux qu'on aurait posés à la main.
+function maj_manifeste_path(): string
+{
+    return dirname(APP_DB_PATH) . '/maj_manifeste.json';
+}
+function maj_manifeste_lire(): ?array
+{
+    if (!is_file(maj_manifeste_path())) {
+        return null;
+    }
+    $d = json_decode((string) @file_get_contents(maj_manifeste_path()), true);
+    return is_array($d) ? array_values(array_filter($d, 'is_string')) : null;
+}
+
+// Installe l'arbre $source sur $app, en tout ou rien :
+//   1. copie de secours de chaque fichier qui va être écrasé ou supprimé ;
+//   2. écriture des nouveaux fichiers, puis suppression des fichiers qui
+//      étaient dans $ancienManifeste et ne sont plus dans l'archive ;
+//   3. au premier échec de l'étape 2, chaque fichier déjà touché est remis
+//      dans son état d'avant (restauré depuis la copie, ou retiré s'il était
+//      nouveau), puis l'exception repart.
+// Une copie fichier par fichier ne peut pas être atomique ; ce retour arrière
+// est ce qui évite qu'une coupure en plein milieu laisse un mélange de deux
+// versions — l'état que l'ancienne copie directe produisait.
+// Renvoie le nouveau manifeste et le nombre de fichiers supprimés.
+function maj_installer_arbre(string $source, string $app, ?array $ancienManifeste, string $secours): array
+{
+    $nouveaux = maj_lister_fichiers($source);
+    $aSupprimer = [];
+    if ($ancienManifeste !== null) {
+        $aSupprimer = array_values(array_filter(
+            array_diff($ancienManifeste, $nouveaux),
+            fn (string $rel) => !maj_chemin_protege($rel) && is_file("$app/$rel")
+        ));
+    }
+
+    // 1) Copie de secours — avant de toucher à quoi que ce soit.
+    $sauves = [];
+    foreach (array_merge($nouveaux, $aSupprimer) as $rel) {
+        if (!is_file("$app/$rel")) {
             continue;
         }
-        $s = "$src/$it";
-        $d = "$dst/$it";
-        if (is_dir($s)) {
-            if (!is_dir($d) && !@mkdir($d, 0775, true) && !is_dir($d)) {
-                throw new RuntimeException("Dossier non créable : $it");
-            }
-            maj_copier_arbre($s, $d);
-        } elseif (!@copy($s, $d)) {
-            throw new RuntimeException("Copie impossible : $it");
+        $dest = "$secours/$rel";
+        if ((!is_dir(dirname($dest)) && !@mkdir(dirname($dest), 0775, true) && !is_dir(dirname($dest)))
+            || !@copy("$app/$rel", $dest)) {
+            throw new RuntimeException("Copie de secours impossible : $rel — rien n'a été modifié.");
         }
+        $sauves[$rel] = true;
+    }
+
+    // 2) Application, en notant chaque fichier touché.
+    $touches = [];
+    try {
+        foreach ($nouveaux as $rel) {
+            $d = "$app/$rel";
+            if (!is_dir(dirname($d)) && !@mkdir(dirname($d), 0775, true) && !is_dir(dirname($d))) {
+                throw new RuntimeException('Dossier non créable : ' . dirname($rel));
+            }
+            $touches[] = $rel;
+            if (!@copy("$source/$rel", $d)) {
+                throw new RuntimeException("Copie impossible : $rel");
+            }
+        }
+        foreach ($aSupprimer as $rel) {
+            $touches[] = $rel;
+            if (!@unlink("$app/$rel")) {
+                throw new RuntimeException("Suppression impossible : $rel");
+            }
+            maj_retirer_dossiers_vides(dirname("$app/$rel"), $app);
+        }
+    } catch (Throwable $e) {
+        // 3) Retour arrière, du dernier fichier touché au premier.
+        $restes = [];
+        foreach (array_reverse($touches) as $rel) {
+            $d = "$app/$rel";
+            if (isset($sauves[$rel])) {
+                if ((!is_dir(dirname($d)) && !@mkdir(dirname($d), 0775, true)) || !@copy("$secours/$rel", $d)) {
+                    $restes[] = $rel;
+                }
+            } elseif (is_file($d) && !@unlink($d)) {
+                $restes[] = $rel;
+            }
+        }
+        throw new RuntimeException($e->getMessage() . ($restes
+            ? ' — retour arrière INCOMPLET (' . count($restes) . ' fichier(s), dont ' . $restes[0] . ') : '
+              . "restaurez le code par git ou depuis une archive de la version précédente."
+            : ' — le code a été remis dans son état d\'avant la mise à jour.'), 0, $e);
+    }
+    return ['manifeste' => $nouveaux, 'supprimes' => count($aSupprimer)];
+}
+
+// Retire les dossiers devenus vides en remontant jusqu'à $racine (exclue).
+function maj_retirer_dossiers_vides(string $dir, string $racine): void
+{
+    while (strlen($dir) > strlen($racine) && str_starts_with($dir, $racine . '/')
+        && is_dir($dir) && count(scandir($dir)) === 2 && @rmdir($dir)) {
+        $dir = dirname($dir);
     }
 }
 
@@ -344,10 +462,14 @@ function maj_executer(string $canal): array
     $base     = dirname(APP_DB_PATH) . '/maj_tmp_' . bin2hex(random_bytes(4));
     $zip      = $base . '.zip';
     $ext      = $base . '_x';
+    $secours  = $base . '_secours';
     try {
-        // 1) Sauvegarde de la base.
-        if (is_file(APP_DB_PATH)) {
-            @copy(APP_DB_PATH, preg_replace('/\.sqlite$/', '', APP_DB_PATH) . '_maj_' . date('Ymd_His') . '.sqlite.bak');
+        // 1) Sauvegarde de la base — par sauvegarder_base() (VACUUM INTO) et
+        //    non par copy() : la base est en WAL, et une copie du seul fichier
+        //    principal peut manquer des transactions encore dans le journal.
+        //    Sans filet, on n'y va pas.
+        if (is_file(APP_DB_PATH) && sauvegarder_base('maj') === null) {
+            throw new RuntimeException("La base n'a pas pu être sauvegardée — mise à jour abandonnée, rien n'a été modifié.");
         }
         // 2) Téléchargement de l'archive du canal (dépôt public).
         if (!@mkdir($ext, 0775, true) && !is_dir($ext)) {
@@ -377,8 +499,10 @@ function maj_executer(string $canal): array
         if (!is_file("$racine/VERSION") || !is_file("$racine/index.php")) {
             throw new RuntimeException('Archive incomplète (VERSION/index.php absents).');
         }
-        // 6) Remplacement des fichiers de code.
-        maj_copier_arbre($racine, $app);
+        // 6) Remplacement des fichiers de code, avec retour arrière en cas
+        //    d'échec, puis mémorisation du manifeste pour la prochaine fois.
+        $installe = maj_installer_arbre($racine, $app, maj_manifeste_lire(), $secours);
+        @file_put_contents(maj_manifeste_path(), json_encode($installe['manifeste'], JSON_UNESCAPED_UNICODE));
         $nouvelle = trim((string) @file_get_contents("$app/VERSION")) ?: '?';
         // 7) État installé : l'archive ne met pas .git à jour, on enregistre le
         //    commit réellement installé (= tête du canal) pour la détection.
@@ -392,7 +516,8 @@ function maj_executer(string $canal): array
         if (function_exists('opcache_reset')) {
             @opcache_reset();
         }
-        maj_log("OK canal=$canal $ancienne ($shaAvant) -> $nouvelle ($shaApres) (" . (current_user()['email'] ?? '?') . ')');
+        maj_log("OK canal=$canal $ancienne ($shaAvant) -> $nouvelle ($shaApres), "
+            . $installe['supprimes'] . ' fichier(s) retiré(s) (' . (current_user()['email'] ?? '?') . ')');
         return ['ok' => true, 'ancienne' => $ancienne, 'nouvelle' => $nouvelle, 'canal' => $canal,
                 'sha_avant' => $shaAvant, 'sha_apres' => $shaApres !== null ? substr($shaApres, 0, 7) : null];
     } catch (Throwable $e) {
@@ -401,6 +526,7 @@ function maj_executer(string $canal): array
     } finally {
         @unlink($zip);
         maj_rmdir_recursif($ext);
+        maj_rmdir_recursif($secours);
     }
 }
 
@@ -422,7 +548,7 @@ function route_maj(): void
             redirect('maj', ['verifier' => 1]); // la version locale vient de changer : re-vérifier tout de suite
         }
         // Sinon : changement de canal (préférence).
-        $c = (string) ($_POST['canal'] ?? 'test');
+        $c = (string) ($_POST['canal'] ?? MAJ_CANAL_DEFAUT);
         if (isset(MAJ_CANAUX[$c])) {
             db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
                 ->execute(['maj_canal', $c]);

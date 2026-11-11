@@ -85,6 +85,14 @@ if (!defined('LOGIN_WINDOW'))       define('LOGIN_WINDOW', 900);     // …par f
 if (!defined('RESET_TTL'))          define('RESET_TTL', 3600);       // 1 h
 if (!defined('RESET_MAX_PAR_HEURE')) define('RESET_MAX_PAR_HEURE', 5);
 
+// Sauvegardes : nombre de copies automatiques (*.sqlite.bak, faites avant une
+// mise à jour, un import, une fusion, une restauration…) gardées à côté de la
+// base — les plus anciennes sont supprimées au-delà, chacune contenant toute la
+// base. Et délai au-delà duquel le tableau de bord rappelle aux administrateurs
+// de télécharger une sauvegarde complète, la seule qui quitte le serveur.
+if (!defined('SAUVEGARDES_AUTO_MAX'))    define('SAUVEGARDES_AUTO_MAX', 10);
+if (!defined('SAUVEGARDE_RAPPEL_JOURS')) define('SAUVEGARDE_RAPPEL_JOURS', 30);
+
 // APP_URL : adresse publique du site, utilisée pour fabriquer le lien de
 // réinitialisation envoyé par e-mail. À définir en production dans
 // lib/config.local.php :

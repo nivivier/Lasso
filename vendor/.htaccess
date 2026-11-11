@@ -1,0 +1,4 @@
+# Bibliothèques Composer (QR-facture) : chargées par PHP, jamais servies par
+# le web. Elles embarquent des scripts d'exemple et des outils qui n'ont rien
+# à faire en ligne.
+Require all denied

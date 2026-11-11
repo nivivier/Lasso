@@ -462,3 +462,23 @@ function televersement_max(): int
     $valeurs = array_filter([$lire('upload_max_filesize'), $lire('post_max_size')]);
     return $valeurs ? min($valeurs) : 0;
 }
+
+// Rappel de sauvegarde pour le tableau de bord. La sauvegarde complète est la
+// seule copie qui quitte le serveur — les .bak automatiques dorment à côté de
+// la base et disparaissent avec lui. Or rien ne la déclenche : elle n'existe
+// que si quelqu'un pense à la télécharger. D'où ce rappel, quand le dernier
+// téléchargement remonte à plus de SAUVEGARDE_RAPPEL_JOURS jours.
+//
+// $derniereLe : date « AAAA-MM-JJ HH:MM:SS » du dernier téléchargement, vide
+// s'il n'y en a jamais eu (ou pas depuis que l'application le note).
+// Renvoie null (rien à rappeler) ou ['jours' => N|null] — null = jamais.
+function sauvegarde_rappel(string $derniereLe, ?int $maintenant = null): ?array
+{
+    $maintenant ??= time();
+    $t = $derniereLe !== '' ? strtotime($derniereLe) : false;
+    if ($t === false) {
+        return ['jours' => null];
+    }
+    $jours = intdiv(max(0, $maintenant - $t), 86400);
+    return $jours > (int) SAUVEGARDE_RAPPEL_JOURS ? ['jours' => $jours] : null;
+}

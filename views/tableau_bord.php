@@ -4,6 +4,7 @@
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaEnvoye */ /** @var int $suisaManquant */
 /** @var array $campagnesDash */ /** @var int $campagnesAVenir */ /** @var array $fondsDash */
+/** @var ?array $rappelSauvegarde */
 
 // Une carte du tableau de bord met en valeur ce qui ATTEND UN GESTE : la ligne
 // se détache sur un fond ambre très clair (.ligne-action). C'est la seule
@@ -707,6 +708,15 @@ $dashTitre = function (string $groupe, string $titre): string {
     ) ?>
 </div>
 
+
+<?php if (!empty($rappelSauvegarde)): ?>
+    <p class="warn"><?= icon('info') ?>
+        <?= $rappelSauvegarde['jours'] === null
+            ? 'Aucun téléchargement de sauvegarde n\'est enregistré.'
+            : 'Dernière sauvegarde téléchargée il y a ' . (int) $rappelSauvegarde['jours'] . ' jours.' ?>
+        Elle est la seule copie des données qui quitte le serveur.
+        <a href="?p=export">Télécharger une sauvegarde</a></p>
+<?php endif; ?>
 
 <?php if (!$cartes): ?>
     <p class="muted">Aucun module actif n'alimente le tableau de bord pour l'instant. Active

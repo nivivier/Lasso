@@ -91,10 +91,39 @@ function sauvegarder_base(string $etiquette): ?string
         . '_' . $etiquette . '_' . date('Ymd_His') . '.sqlite.bak';
     try {
         db()->exec('VACUUM INTO ' . db()->quote($chemin));
-        return is_file($chemin) ? $chemin : null;
     } catch (\Throwable $e) {
         return null;
     }
+    if (!is_file($chemin)) {
+        return null;
+    }
+    sauvegardes_auto_purger($chemin);
+    return $chemin;
+}
+
+// Ne garde que les SAUVEGARDES_AUTO_MAX copies automatiques les plus récentes
+// de la base (celles de sauvegarder_base(), même préfixe, même dossier). Sans
+// cette purge elles s'accumulaient sans fin : chacune est une copie intégrale
+// — salaires, n° AVS, empreintes de mots de passe — et toutes grignotent le
+// quota disque d'un hébergement mutualisé. $garder (celle qu'on vient de
+// créer) n'est jamais supprimée, quel que soit son rang : elle compte dans le
+// plafond, et ce sont les autres qui lui cèdent la place.
+function sauvegardes_auto_purger(string $garder = ''): int
+{
+    $max = max(1, (int) SAUVEGARDES_AUTO_MAX);
+    $fichiers = glob(dirname(APP_DB_PATH) . '/' . basename(APP_DB_PATH, '.sqlite') . '_*.sqlite.bak') ?: [];
+    $autres = array_values(array_filter($fichiers, fn ($f) => $f !== $garder));
+    $place = count($autres) < count($fichiers) ? $max - 1 : $max;
+    // Le nom porte la date (…_AAAAMMJJ_HHMMSS.sqlite.bak) mais après une
+    // étiquette de longueur variable : on trie sur la date de modification.
+    usort($autres, fn ($a, $b) => filemtime($b) <=> filemtime($a) ?: strcmp($b, $a));
+    $supprimes = 0;
+    foreach (array_slice($autres, $place) as $f) {
+        if (@unlink($f)) {
+            $supprimes++;
+        }
+    }
+    return $supprimes;
 }
 
 // Paramètres applicatifs (table parametres).

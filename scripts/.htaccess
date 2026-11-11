@@ -1,0 +1,3 @@
+# Scripts de maintenance en ligne de commande : jamais servis par le web.
+# Chacun porte aussi sa garde PHP_SAPI (tests/exposition_web_test.php).
+Require all denied

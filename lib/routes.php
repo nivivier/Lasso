@@ -1086,6 +1086,11 @@ function route_sauvegarde(): void
         error_log('Lasso — sauvegarde impossible : ' . $e->getMessage());
         redirect('export', ['err' => 'sauvegarde']);
     }
+    // Date du dernier téléchargement : c'est elle que le tableau de bord
+    // compare à SAUVEGARDE_RAPPEL_JOURS. Notée quand l'archive part, faute de
+    // pouvoir savoir si le navigateur l'a bien reçue jusqu'au bout.
+    db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+        ->execute(['sauvegarde_telechargee_le', date('Y-m-d H:i:s')]);
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $nom . '"');
     header('Content-Length: ' . filesize($tmp));
@@ -1264,6 +1269,9 @@ function route_tableau_bord(): void
         'prochainsEvenements' => $prochainsEvenements, 'suisaAFaire' => $suisaAFaire, 'suisaEnvoye' => $suisaEnvoye, 'suisaManquant' => $suisaManquant,
         'campagnesDash' => $campagnesDash, 'campagnesAVenir' => $campagnesAVenir,
         'fondsDash' => $fondsDash,
+        // Réservé aux administrateurs : eux seuls peuvent télécharger la
+        // sauvegarde (route du cœur en écriture), le rappel ne parle qu'à eux.
+        'rappelSauvegarde' => est_admin() ? sauvegarde_rappel((string) param('sauvegarde_telechargee_le', '')) : null,
     ], 'Tableau de bord');
 }
 

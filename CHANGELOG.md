@@ -9,6 +9,35 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Sécurité
+- **Les scripts de maintenance ne sont plus joignables depuis le web.**
+  `scripts/` et `vendor/` ont leur `.htaccess` « Require all denied », et chaque
+  script refuse de tourner hors ligne de commande. Sous PHP-CGI, la chaîne de
+  requête peut devenir la liste des arguments d'un script :
+  `…/scripts/doublons.php?--appliquer` aurait fusionné les structures de la
+  vraie base.
+
+### Modifié
+- **La mise à jour en un clic se fait en tout ou rien.** Chaque fichier
+  remplacé est d'abord copié de côté. Si l'installation échoue en route, le
+  code est remis dans son état d'avant, au lieu de rester un mélange de deux
+  versions.
+- **La mise à jour supprime les fichiers retirés du dépôt.** Avant, une
+  ancienne route ou un script supprimé en amont restait sur le serveur.
+- **La sauvegarde faite avant une mise à jour est fiable.** Elle passait par
+  une copie du fichier, qui peut manquer des données encore dans le journal
+  de la base. Si cette sauvegarde échoue, la mise à jour est abandonnée.
+- **Le canal par défaut est « stable »** : une installation qu'on n'a jamais
+  réglée ne suit plus la branche de développement.
+- **Seules les 10 copies automatiques les plus récentes sont gardées**
+  (`SAUVEGARDES_AUTO_MAX`). Les `.sqlite.bak` faits avant une mise à jour, un
+  import ou une fusion s'accumulaient sans limite, chacun avec toute la base.
+
+### Ajouté
+- **Rappel de sauvegarde sur le tableau de bord**, pour les administrateurs,
+  quand aucune sauvegarde complète n'a été téléchargée depuis plus de 30 jours.
+  C'est la seule copie des données qui quitte le serveur.
+
 ## [3.2.4] — 2026-11-11
 
 ### Modifié
