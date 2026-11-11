@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.2.6] — 2026-11-11
+
 ### Modifié
 - **`lib/booking.php` est découpé** comme l'avait été `lib/helpers.php` :
   campagnes, mailing et import CSV vivent dans `lib/booking/`, chargés par lui
