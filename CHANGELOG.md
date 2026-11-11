@@ -9,6 +9,26 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **`lib/booking.php` est découpé** comme l'avait été `lib/helpers.php` :
+  campagnes, mailing et import CSV vivent dans `lib/booking/`, chargés par lui
+  seul (3 378 → 1 251 lignes). Déplacement de blocs entiers, sans changer une
+  ligne de code : quinze pages rendues avant et après sont identiques à l'octet.
+- **Plus aucun `!important` dans la feuille de style**, hors `[hidden]` : chaque
+  règle qui en portait répète désormais la spécificité qu'elle doit battre.
+  Styles calculés identiques sur 27 pages, à deux largeurs.
+- **`docs/UI.md` s'ouvre sur la liste de vérification** avant livraison, suivie
+  d'un tableau « je veux… → section ».
+
+### Ajouté
+- **Le JavaScript est vérifié par la suite de tests** (`tests/javascript_test.php`) :
+  `assets/*.js` et les 65 blocs `<script>` des vues sont compilés par un vrai
+  moteur, et `alert()` est refusé. Jusqu'ici, une faute de syntaxe ne se voyait
+  qu'à l'usage, sur l'écran concerné.
+- `tests/css_test.php` (un seul `!important`, couleurs en dur plafonnées) et
+  `tests/decoupage_test.php` (les sous-fichiers de `lib/helpers/` et
+  `lib/booking/` ne se chargent que par leur porte).
+
 ## [3.2.5] — 2026-11-11
 
 ### Sécurité

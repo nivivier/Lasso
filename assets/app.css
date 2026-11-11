@@ -2474,9 +2474,19 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
 /* Sélecteur segmenté à icônes (icon_picker(), lib/helpers.php) : boutons
    connectés dont un seul est actif — même format que les droits par module de
    ?p=utilisateurs (.perm-toggle), mais horizontal. */
-.seg-picker { display: inline-flex; flex-direction: row !important; width: max-content; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+/* Les règles préfixées « :is(.form, .filters) » répondent à celle des libellés
+   de formulaire (« .form label, .filters label », 0,1,1, qui empile en
+   colonne) : une seule classe ne l'emporterait pas. Elles remplacent les
+   !important d'autrefois — un !important ne se surcharge plus, et le masquage
+   de « deux colonnes » en dessous de 1100px avait dû en poser un second.
+   ⚠️ Le préfixe ne porte QUE les propriétés disputées : posé sur la règle
+   entière, il passerait aussi devant les variantes (.seg-picker-label .seg-btn,
+   .cout-toggle .check), qui comptent sur l'ordre du fichier pour l'emporter. */
+:is(.form, .filters) .seg-picker { flex-direction: row; }
+:is(.form, .filters) .seg-picker .seg-btn { display: inline-flex; flex-direction: row; }
+.seg-picker { display: inline-flex; flex-direction: row; width: max-content; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
 .seg-picker .seg-btn {
-    display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center;
+    display: inline-flex; flex-direction: row; align-items: center; justify-content: center;
     width: 46px;
     /* --action-height (voir :root) calque la hauteur totale de button/.btn.
        .seg-btn n'a pas sa propre bordure haut/bas (seulement une bordure
@@ -2489,12 +2499,10 @@ input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--
 }
 .seg-btn:last-child { border-right: none; }
 /* La troisième position de la bascule — « deux colonnes » — n'existe qu'au
-   large : en dessous de 1100px les deux colonnes se marchent dessus.
-   ⚠️ !important, à contrecœur : .seg-picker .seg-btn pose son display en
-   !important (pour résister aux .seg-picker posés dans des grilles), et rien
-   d'autre ne peut l'effacer. */
+   large : en dessous de 1100px les deux colonnes se marchent dessus. Même
+   spécificité que la règle des boutons, et placée après elle. */
 @media (max-width: 1099px) {
-    .seg-picker .seg-btn-duo { display: none !important; }
+    .seg-picker .seg-btn-duo, :is(.form, .filters) .seg-picker .seg-btn-duo { display: none; }
     /* Une bascule qui ne propose plus que « liste » ne bascule rien : les
        écrans dont la seule autre vue est « deux colonnes » (personnes,
        employés, fiches, factures) la retirent entièrement. Ceux qui ont aussi
@@ -2582,8 +2590,10 @@ select::-ms-expand { display: none; }
 select:disabled { cursor: not-allowed; }
 .filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
 /* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
-.row-cat-input { font: inherit; font-size: var(--fs-basic); color: var(--ink); width: 100%; min-width: 140px;
-    padding: 4px 8px !important ; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
+/* Le :not() répète celui de la règle générale des champs (0,2,1), comme
+   .cadre-edit plus bas : sinon ses 10px de marge interne l'emportent. */
+.row-cat-input:not([type="checkbox"]):not([type="radio"]) { font: inherit; font-size: var(--fs-basic); color: var(--ink); width: 100%; min-width: 140px;
+    padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
     cursor: pointer; transition: border-color .15s, box-shadow .15s;}
 .row-cat-input::placeholder { color: var(--muted); }
 /* Le formulaire de lettrage partagé ne se voit pas : il n'est qu'un porteur de
@@ -3141,7 +3151,9 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:f
 .form .pct-input input:focus { box-shadow: none; }
 .pct-suffix { display: flex; align-items: center; padding: 0 11px 0 8px; background: var(--surface);
     border-left: 1px solid var(--line); color: var(--muted); font-size: var(--fs-basic); font-weight: 600; }
-.check { display: flex; flex-direction: row !important; align-items: center; gap: 9px; font-weight: 500; color: var(--ink); }
+/* Préfixe :is(.form, .filters) : voir .seg-picker. */
+:is(.form, .filters) .check { flex-direction: row; }
+.check { display: flex; flex-direction: row; align-items: center; gap: 9px; font-weight: 500; color: var(--ink); }
 .check input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .form-actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
 .linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
@@ -4801,7 +4813,6 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
     display: flex; align-items: stretch; justify-content: center;
     padding: 32px 24px;
 }
-#preview-modal[hidden] { display: none !important; }
 #preview-modal-inner {
     position: relative;
     border-radius: var(--radius);
@@ -5439,7 +5450,9 @@ abbr {
 .dnd-on .plan-row.editing .plan-edit-btn { display: none; }
 .plan-table tr.plan-groupe input[name="libelle"],
 .plan-table tr.plan-groupe input[name="nom"] { font-weight: 700; color: var(--ink); }
-.plan-parent { flex: 0 0 auto; flex-direction: row !important; align-items: center; gap: 5px; margin-bottom: 0 !important; font-size: var(--fs-small); color: var(--muted); font-weight: 500; }
+/* Préfixe :is(.form, .filters) : voir .seg-picker. */
+:is(.form, .filters) .plan-parent { flex-direction: row; margin-bottom: 0; }
+.plan-parent { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 5px; margin-bottom: 0; font-size: var(--fs-small); color: var(--muted); font-weight: 500; }
 .plan-parent select { margin-bottom: 0; max-width: 15rem; }
 .plan-edit { flex: 1 1 auto; gap: 8px; }
 .plan-table .btn-sm { padding: 3px 7px; }

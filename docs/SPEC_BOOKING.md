@@ -490,7 +490,8 @@ le modèle ci-dessus.
 
 ## 12. Structure de code envisagée
 
-- `lib/booking.php` — fonctions pures : calcul de `dernier_contact_le`, correspondance
+- `lib/booking.php` (+ `lib/booking/campagnes.php`, `mailing.php`, `import.php`,
+  chargés par lui seul) — fonctions pures : calcul de `dernier_contact_le`, correspondance
   structure/contact à l'import (normalisation de nom), filtrage des destinataires de
   mailing (réutilisé par l'aperçu et la constitution de la file d'attente — une seule
   implémentation, pas deux divergentes, même principe que le filtrage JSON/iCal des

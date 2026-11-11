@@ -559,6 +559,9 @@ token le jour où on l'écrit, et plus la même le jour où le token bouge ; une
 taille entre deux crans ne se distingue sur aucune capture, et c'est par elle
 que l'échelle se dissout. Si le besoin est réel, il devient un cran.
 `tests/tailles_texte_test.php` refuse les deux, en `px` comme en `em`.
+`tests/css_test.php` n'admet qu'un `!important`, celui de `[hidden]`, et
+plafonne les couleurs écrites en dur hors tokens (blanc sur fond coloré, papier
+des documents imprimés, ombres) : le plafond peut baisser, jamais monter.
 
 ---
 
@@ -701,6 +704,11 @@ Lancer l'analyse syntaxique de tout le projet **et** toute la suite de tests
 ```bash
 php tests/run.php
 ```
+
+Le JavaScript y passe aussi : `tests/javascript_test.php` fait compiler
+`assets/*.js` et chaque `<script>` des vues par un vrai moteur — Node s'il est
+installé (c'est le cas sur la CI), sinon JavaScriptCore via `osascript` sur un
+Mac. Sans moteur, le test l'annonce (« ignoré ») ; en CI, il échoue.
 
 > Le serveur intégré de PHP ne lit pas les `.htaccess` : en local, les dossiers
 > protégés restent accessibles. Sans incidence en production sous Apache.

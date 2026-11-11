@@ -130,6 +130,10 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   cantons, drapeaux), `lib/helpers/icones.php` (`icon()` et le sprite).
   Restent dans `helpers.php` : `e()`, `param()`, `chf()`, `pct()`, avatars,
   couleurs et thème, logos, e-mail/SMTP, composants HTML, `render()`.
+  Même découpage pour **`lib/booking.php`**, porte de `lib/booking/campagnes.php`
+  (démarchage, carte du tableau de bord, ciblage), `mailing.php` (éligibilité,
+  expéditeurs, message individuel, exclusions) et `import.php` (CSV). Les deux
+  portes sont vérifiées par `tests/decoupage_test.php`.
   ⚠️ Un fichier de `lib/helpers/` est à DEUX niveaux de la racine : `__DIR__ .
   '/../data'` y désigne `lib/data/`, pas `data/`. C'est ainsi que les sessions
   ont atterri hors du dossier protégé le jour du découpage.

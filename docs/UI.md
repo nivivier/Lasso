@@ -18,6 +18,55 @@ Deux règles au-dessus des autres :
    reste utilisable : les formulaires partent, les pages se rechargent. Le
    script évite un aller-retour, il ne crée jamais la seule voie possible.
 
+## Avant de livrer un écran
+
+La liste courte, en tête parce que c'est elle qu'on relit. Le détail de chaque
+point est dans la section citée.
+
+- [ ] `php tests/run.php` passe. Il vérifie aussi ce qu'on oubliait :
+      la syntaxe du JavaScript des vues et de `assets/` (`javascript_test`),
+      aucun `alert()` (§ 11), aucun `!important` hors `[hidden]` et pas de
+      couleur en dur supplémentaire (`css_test`), aucune taille de texte en
+      pixels (`tailles_texte_test`).
+- [ ] L'écran rendu **sans JavaScript** reste utilisable.
+- [ ] Testé à **375 px** de large : rien ne déborde, aucune ligne inutilement
+      coupée en deux.
+- [ ] Une liste qui passe en mini-cartes a sa grille `.cartes-…` et son bouton
+      « Filtres » (§ 9) : le `<thead>` masqué emporte sinon ses entonnoirs.
+- [ ] Thème **sombre** vérifié.
+- [ ] Couleurs (§ 13) et tailles de texte (§ 13 bis) : toujours un token.
+- [ ] Chaque bouton en icône seule a `title` **et** `aria-label` ; chaque champ
+      sans libellé visible (case de ligne, champ en ligne) a son `aria-label`.
+- [ ] Le `<title>` de l'onglet reprend le titre de la page (§ 11).
+- [ ] Aucun bouton d'enregistrement au pied d'une carte ou d'une page : il est en
+      haut à droite, rendu par `carte_actions_html()` (§ 2a) ou
+      `entete_form_actions_html()` (§ 1), jamais réécrit à la main.
+- [ ] Aucun `<label>` n'enveloppe un groupe de cases à cocher (il en coche la
+      première au moindre clic dans le libellé).
+- [ ] Aucune action destructrice sans `data-confirm`, ni hors mode édition.
+- [ ] Les tailles et positions sont **mesurées** dans le navigateur, pas
+      supposées : `getBoundingClientRect()` dit ce qu'une capture d'écran laisse
+      croire.
+
+## Où chercher
+
+| Je veux… | Section |
+| --- | --- |
+| placer un bouton, l'action principale, le retour | § 1 |
+| modifier une carte, une section, une ligne | § 2 |
+| supprimer | § 3 |
+| réordonner | § 4 |
+| ajouter, rattacher une étiquette | § 5 |
+| un menu déroulant | § 6 |
+| une fenêtre (modale) | § 7 |
+| un document imprimable, l'envoyer par e-mail | § 8, 8 bis |
+| une liste : filtres, tri, mini-cartes sur téléphone | § 9 |
+| le rail, le volet, plusieurs outils sur un écran, deux colonnes | § 9 bis à quinquies |
+| un formulaire | § 10 |
+| un message de retour, le titre de l'onglet | § 11 |
+| une icône, une couleur, une taille de texte | § 12, 13, 13 bis |
+| un comportement par attribut (`data-…`) | § 14 |
+
 ---
 
 ## 1. Où vivent les actions
@@ -1965,27 +2014,3 @@ module), ou un libellé repris ailleurs dans la page (renommer une étiquette).
 | `data-ajax="<message>"` | Sur le **formulaire** : l'envoi part en arrière-plan au lieu de recharger la page ; le message s'affiche en pastille flottante |
 | `data-submit-form="<id>"` | Envoie le formulaire désigné |
 | `data-go-on-change="<préfixe>"` | Navigue vers préfixe + valeur |
-
-## 15. Ce qui se vérifie avant de livrer un écran
-
-- [ ] `php tests/run.php` passe.
-- [ ] L'écran rendu **sans JavaScript** reste utilisable.
-- [ ] Testé à **375 px** de large : rien ne déborde, aucune ligne inutilement
-      coupée en deux.
-- [ ] Une liste qui passe en mini-cartes a son bouton « Filtres » (§ 9) : le
-      `<thead>` masqué emporte sinon ses entonnoirs, et le filtre devient
-      inatteignable sur téléphone sans que rien ne le signale.
-- [ ] Thème **sombre** vérifié.
-- [ ] Aucune couleur (§ 13) ni **taille de texte** (§ 13 bis) écrite en dur :
-      toujours un token. `tests/tailles_texte_test.php` le vérifie pour les
-      tailles.
-- [ ] Chaque bouton en icône seule a `title` **et** `aria-label`.
-- [ ] Aucun bouton d'enregistrement au pied d'une carte ou d'une page : il est en
-      haut à droite, rendu par `carte_actions_html()` (§ 2a) ou
-      `entete_form_actions_html()` (§ 1), jamais réécrit à la main.
-- [ ] Aucun `<label>` n'enveloppe un groupe de cases à cocher (il en coche la
-      première au moindre clic dans le libellé).
-- [ ] Aucune action destructrice sans `data-confirm`, ni hors mode édition.
-- [ ] Les tailles et positions sont **mesurées** dans le navigateur, pas
-      supposées : `getBoundingClientRect()` dit ce qu'une capture d'écran laisse
-      croire.
