@@ -86,6 +86,10 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   à la configuration d'environnement ou à la CSP.** Convention : un commentaire dans
   le code énonce l'invariante à respecter ; le récit historique va dans ce fichier,
   pour qu'il ne vieillisse pas au milieu du code.
+- **Lasso face au marché** : `docs/MARCHE.md` — comparatif daté avec Heeds,
+  Bob Booking, Orfeo, Crésus, Office Maker, ClubDesk, Webling, bexio, et ce
+  qui manque à Lasso. **À relire quand on choisit le prochain chantier** ;
+  les colonnes des concurrents viennent de sources publiques, à revérifier.
 - **DB** `lib/db.php` : `db()` (PDO singleton, WAL) + `param()`. Schéma dans
   `lib/db/schema.php` (`init_schema()`, `seed_*()`), migrations dans
   `lib/db/migrations.php` — les deux chargés par `db.php`, jamais requis directement.
