@@ -398,6 +398,19 @@ exemplaire unique vit maintenant en bas de page et se déplace dans la cellule
 cliquée. Le déplacer plutôt que le recréer conserve ses écouteurs, posés sur
 l'élément par `lassoInitTagSuggest()`.
 
+**Le menu « Joindre une pièce » des écritures.** Même constat sur
+`?p=compta_ecritures` : le menu des types de pièce, rendu dans chaque ligne sans
+justificatif, pesait ~1 570 octets par ligne — 40 % d'une page d'un mégaoctet.
+Chaque ligne ne porte plus qu'un lien `data-pieces-menu` vers le formulaire de
+pièce (ce qu'il fait sans script), et un `<template id="tpl-pieces-ecriture">`
+unique est cloné au clic, l'identifiant de l'écriture substitué à
+`__ECRITURE__`. Cloner plutôt que déplacer, cette fois : le menu n'a pas
+d'écouteur à conserver, et deux lignes peuvent l'avoir ouvert l'une après
+l'autre. Mesuré sur la base de démonstration : 1 050 161 → 829 961 octets.
+⚠️ L'écouteur est déclaré **après** celui de `LASSO_MENUS`, qui ferme tout menu
+ouvert hors duquel on a cliqué : dans l'autre ordre, il refermerait aussitôt le
+menu qu'on vient de poser.
+
 **La même chose sur `?p=compta_ecritures`, deux mois plus tard.** La colonne
 Catégorie était restée en arrière : chaque ligne portait son `<form>`, son jeton
 CSRF, l'identifiant de l'écriture et le champ de saisie — 1 125 octets par ligne

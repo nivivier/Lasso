@@ -280,7 +280,7 @@ $dashTitre = function (string $groupe, string $titre): string {
                     <tr class="row-link<?= $dash_action(piece_en_retard($pc)) ?>" tabindex="0" role="link"
                         data-href="?p=piece&id=<?= (int) $pc['id'] ?>&depuis=dashboard">
                         <td class="small"><?= $pc['date_echeance'] !== '' ? e(date('d.m.Y', strtotime((string) $pc['date_echeance']))) : '<span class="muted">—</span>' ?></td>
-                        <td class="dash-nom"><?= e((string) $pc['libelle']) ?></td>
+                        <td class="dash-nom" title="<?= e((string) $pc['libelle']) ?>"><?= e((string) $pc['libelle']) ?></td>
                         <td class="num strong"><?= chf(abs((float) $pc['montant'])) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -339,7 +339,8 @@ $dashTitre = function (string $groupe, string $titre): string {
                               // fiches : elle vient de l'employé (couleur ou photo),
                               // pas de la fiche — qui fige ses montants, pas
                               // l'apparence de la personne. ?>
-                        <td class="dash-nom"><?= avatar_initiales(
+                        <?php // Le nom se tronque (.dash-nom) : le title le rend entier au survol. ?>
+                        <td class="dash-nom" title="<?= e($f['employe_nom']) ?>"><?= avatar_initiales(
                             (string) $f['employe_nom'],
                             (string) ($f['avatar_couleur'] ?? ''),
                             (string) ($f['avatar_photo'] ?? '')
@@ -424,7 +425,7 @@ $dashTitre = function (string $groupe, string $titre): string {
                     <tr class="row-link<?= $dash_action($cl === ' facture-retard-long') ?>" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
                         title="<?= e(facturation_statut_effectif($fac) === 'en_retard' ? 'Échéance dépassée' : 'Émise, pas encore échue') ?>">
                         <td class="small<?= $cl ?>"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
-                        <td class="dash-nom"><?= e($fac['structure_nom']) ?></td>
+                        <td class="dash-nom" title="<?= e($fac['structure_nom']) ?>"><?= e($fac['structure_nom']) ?></td>
                         <td class="num strong<?= $cl ?>"><?= chf((float) $fac['montant_total']) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -567,7 +568,7 @@ $dashTitre = function (string $groupe, string $titre): string {
                     <?php $enRetard = (string) $b['date_limite_bilan'] < date('Y-m-d'); ?>
                     <tr class="row-link<?= $dash_action(true) ?>" tabindex="0" role="link"
                         data-href="?p=fonds_demande&id=<?= (int) $b['id'] ?>">
-                        <td class="dash-nom"><?= e((string) $b['structure_nom']) ?>
+                        <td class="dash-nom" title="<?= e((string) $b['structure_nom']) ?>"><?= e((string) $b['structure_nom']) ?>
                             <div class="muted small"><?= e((string) $b['campagne_nom']) ?></div></td>
                         <td class="num small<?= $enRetard ? ' num-retard' : '' ?>">
                             <?= e(date('d.m.Y', strtotime((string) $b['date_limite_bilan']))) ?></td>

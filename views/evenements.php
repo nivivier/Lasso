@@ -291,7 +291,7 @@ if ($vue === 'duo') { ob_start(); }
             ? $lienDuo((int) $ev['id'])
             : '?p=evenement&id=' . (int) $ev['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
         <tr class="row-link <?= $vue === 'duo' && (int) $ev['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <?php if ($avecCheck): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
+            <?php if ($avecCheck): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ev['id'] ?>" form="bulkform" class="row-check" aria-label="Sélectionner l'événement du <?= e(date('d.m.Y', strtotime($ev['date']))) ?><?= $ev['ville'] !== '' ? ', ' . e((string) $ev['ville']) : '' ?>"></td><?php endif; ?>
             <td class="col-date-ev<?= $estAnnule ? ' text-strike' : '' ?>"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(date('d.m.Y', strtotime($ev['date']))) ?></a></td>
             <td class="small col-projet<?= $estAnnule ? ' text-strike' : '' ?>"><?= $ev['projet_nom'] ? e($ev['projet_nom']) : '—' ?></td>
             <td class="col-lieu <?= $estAnnule ? 'text-strike' : '' ?>">

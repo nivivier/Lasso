@@ -204,7 +204,7 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
               // ailleurs sur l'écran — la vue deux colonnes s'en sert pour
               // marquer celle dont la fiche est à droite. ?>
         <tr class="<?= $stLigneCliquable ? 'row-link ' : '' ?><?= (int) ($stLigneActive ?? 0) === (int) $d['id'] ? 'ligne-active ' : '' ?><?= $d['statut'] === 'inactif' ? 'inactif' : '' ?>" data-statut="<?= e((string) $d['statut']) ?>"<?= $stLigneCliquable ? ' tabindex="0" role="link"' : '' ?>>
-            <?php if ($stCheck): ?><td class="col-check"><input type="checkbox" name="<?= e($stCheck['name']) ?>" value="<?= (int) $d['id'] ?>" form="<?= e($stCheck['form']) ?>" class="<?= e($stCheck['classe']) ?>"<?= isset($stCheck['coche']) && ($stCheck['coche'])($d) ? ' checked' : '' ?>></td><?php endif; ?>
+            <?php if ($stCheck): ?><td class="col-check"><input type="checkbox" name="<?= e($stCheck['name']) ?>" value="<?= (int) $d['id'] ?>" form="<?= e($stCheck['form']) ?>" class="<?= e($stCheck['classe']) ?>" aria-label="Sélectionner <?= e((string) $d['nom']) ?>"<?= isset($stCheck['coche']) && ($stCheck['coche'])($d) ? ' checked' : '' ?>></td><?php endif; ?>
             <td class="col-statut"><span class="<?= e(structure_statut_icone_classe((string) $d['statut'])) ?>" title="<?= e(structure_statut_libelle((string) $d['statut'])) ?>"></span></td>
             <td class="col-nom">
                 <strong><?php if ($hrefLigne !== ''): ?><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e($d['nom']) ?></a><?php else: ?><?= e($d['nom']) ?><?php endif; ?></strong>

@@ -87,7 +87,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         $items .= '<li data-val="' . $fid . '">' . e($f['chemin']) . '</li>';
     }
     return '<div class="cat-search form-cat-search" data-cat-search data-filtre-groupes>'
-         . '<input type="text" class="cat-search-input" placeholder="' . e($placeholder) . '" autocomplete="off" value="' . e($initChemin) . '">'
+         . '<input type="text" class="cat-search-input" aria-label="Catégorie" placeholder="' . e($placeholder) . '" autocomplete="off" value="' . e($initChemin) . '">'
          . '<input type="hidden" name="' . e($name) . '" class="cat-search-val" value="' . e($hiddenVal) . '">'
          . '<ul class="cat-search-list" hidden role="listbox"><li data-val="">— Sans catégorie —</li>'
          . '<li data-val="ignore">Ne pas lettrer</li>' . $items . '</ul>'
@@ -102,6 +102,19 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
       // reçoit sa catégorie sans recharger la page, c'est d'ici que sa cellule
       // de lecture est tirée : le balisage reste écrit une fois.
       // Hors de la boucle : un gabarit par page, pas un par ligne. ?>
+<?php if ($piecesOk && peut_ecrire('pieces')): ?>
+<?php // Le menu « Joindre une pièce », UNE fois pour toute la page : le script
+      // le clone dans la cellule cliquée et y remplace __ECRITURE__ par
+      // l'écriture visée (voir data-pieces-menu, assets/app.js). ?>
+<template id="tpl-pieces-ecriture">
+    <?= pieces_menu_nouvelle_html(
+        ['icone' => 'paperclip', 'libelle' => '', 'nu' => true,
+         'classe' => 'row-edit-btn piece-lier-btn',
+         'titre' => 'Joindre une pièce à cette écriture'],
+        ['depuis' => 'compta_ecritures', 'params' => ['ecriture_id' => '__ECRITURE__']]
+    ) ?>
+</template>
+<?php endif; ?>
 <?php if (peut_ecrire('compta')): ?>
 <template id="tpl-cat-disp">
     <div class="row-field-disp">
@@ -119,6 +132,26 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <input type="hidden" name="p" value="compta_ecritures">
             <?= champ_recherche(['id' => 'compta-search', 'name' => 'q', 'valeur' => $recherche, 'submit' => true]) ?>
         </form>
+        <?php
+        // Les mêmes filtres qu'en en-tête de colonne, avec leur libellé : en
+        // cartes, le <thead> est masqué et ses entonnoirs avec lui (?p=fiches).
+        ob_start(); ?>
+            <?= filtre_colonne_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee'), 'Année') ?>
+            <?php if ($compteColVisible): ?><?= filtre_colonne_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte'), 'Compte') ?><?php endif; ?>
+            <?= filtre_colonne_html('compta_ecritures', 'sens', $sensLabels, $sensFiltre, $autresFiltres('sens'), 'Sens') ?>
+            <?= filtre_colonne_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie'), 'Catégorie') ?>
+            <?php if ($axes): ?><?= filtre_colonne_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe'), 'Axe') ?><?php endif; ?>
+            <?php if ($piecesOk): ?><?= filtre_colonne_html('compta_ecritures', 'piece', $pieceLabels, $pieceFiltre, $autresFiltres('piece'), 'Pièce') ?><?php endif; ?>
+        <?php
+        $fmColonnes = ob_get_clean();
+        $fmActifs = filtre_colonne_actifs_html('compta_ecritures', 'annee', $anneeLabels, $annee, $autresFiltres('annee'))
+            . ($compteColVisible ? filtre_colonne_actifs_html('compta_ecritures', 'compte', $compteLabels, $compteId, $autresFiltres('compte')) : '')
+            . filtre_colonne_actifs_html('compta_ecritures', 'sens', $sensLabels, $sensFiltre, $autresFiltres('sens'))
+            . filtre_colonne_actifs_html('compta_ecritures', 'categorie', $categorieLabels, $categorieFilter, $autresFiltres('categorie'))
+            . ($axes ? filtre_colonne_actifs_html('compta_ecritures', 'axe', $axeLabels, $axeFilter, $autresFiltres('axe')) : '')
+            . ($piecesOk ? filtre_colonne_actifs_html('compta_ecritures', 'piece', $pieceLabels, $pieceFiltre, $autresFiltres('piece')) : '');
+        require __DIR__ . '/_filtres_mobile.php';
+        ?>
         <?php if (peut_ecrire('compta')): ?>
         <div class="head-actions">
             <button type="button" id="btn-new-ecr" class="btn ghost btn-compact"><?= icon('plus') ?> Écriture<br class="btn-compact-break"> manuelle</button>
@@ -184,7 +217,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <div class="bulk-bar" id="bulk-bar" hidden>
     <form method="post" id="bulkform" action="?p=compta_ecritures<?= $qs ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <select name="section" id="bulk-action" class="inline-year-select">
+        <select name="section" id="bulk-action" class="inline-year-select" aria-label="Action sur la sélection">
             <option value="">— Choisir une action —</option>
             <option value="lettrer">Modifier la catégorie</option>
             <?php if ($axes): ?><option value="axer">Modifier l'axe</option><?php endif; ?>
@@ -193,7 +226,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 
         <span class="bulk-field" data-for="lettrer" hidden>
             <div class="cat-search bulk-cat-search" data-cat-search data-filtre-groupes data-hydrater data-texte-vide>
-                <input type="text" class="cat-search-input" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
+                <input type="text" class="cat-search-input" aria-label="Nouvelle catégorie" placeholder="Catégorie ou retirer le lettrage…" autocomplete="off">
                 <input type="hidden" name="plan_compte_id" class="cat-search-val" value="">
                 <ul class="cat-search-list" hidden role="listbox">
                     <li data-val="">— Retirer le lettrage —</li>
@@ -208,7 +241,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </span>
         <?php if ($axes): ?>
         <span class="bulk-field" data-for="axer" hidden>
-            <select name="axe_analytique_id" class="inline-year-select">
+            <select name="axe_analytique_id" class="inline-year-select" aria-label="Nouvel axe analytique">
                 <option value="">— Retirer —</option>
                 <?php foreach ($axes as $ax): ?>
                     <option value="<?= (int) $ax['id'] ?>"><?= e($axeLabel($ax)) ?></option>
@@ -221,7 +254,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         <?php // Le motif FAIT FOI : vide, la dispense se retire. D'où l'absence
               // de « required » — on efface en effaçant, sans second bouton. ?>
         <span class="bulk-field" data-for="dispenser" hidden>
-            <input type="text" name="dispense_motif" class="bulk-motif"
+            <input type="text" name="dispense_motif" class="bulk-motif" aria-label="Motif de la dispense de pièce"
                    placeholder="Pourquoi pas de pièce ? (vide = retirer la dispense)">
         </span>
         <?php endif; ?>
@@ -231,7 +264,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <?php endif; ?>
 
 <div class="table-scroll">
-<table class="list compta-lettrage">
+<?php // Sur téléphone (ou dans toute colonne de moins de 700 px), la liste se
+      // relit en cartes : mêmes cellules, replacées (.cartes-ecritures,
+      // assets/app.css). Le <thead> disparaît alors, et ses entonnoirs avec
+      // lui : ils sont repris par le panneau « Filtres » de la barre d'outils. ?>
+<table class="list compta-lettrage liste-cartes cartes-ecritures<?= peut_ecrire('compta') ? ' avec-check' : '' ?>">
     <?php // 7 = case + Date + Contre-partie + Texte + Montant + Catégorie + actions ?>
     <?php $nbCols = 7 + ($compteColVisible ? 1 : 0) + ($axes ? 1 : 0) + ($piecesOk ? 1 : 0) - (peut_ecrire('compta') ? 0 : 1); ?>
     <thead>
@@ -348,7 +385,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // cette page. Le compte, lui, s'affiche par son nom : seul
                   // son identifiant permet de présélectionner le bon. ?>
             <?php if ($isManuel && peut_ecrire('compta')): ?>data-ecr-id="<?= (int) $ecr['id'] ?>" data-compte="<?= (int) $ecr['compte_bancaire_id'] ?>"<?php endif; ?>>
-            <?php if (peut_ecrire('compta')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check"></td><?php endif; ?>
+            <?php if (peut_ecrire('compta')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check" aria-label="Sélectionner l'écriture du <?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?>, <?= e(chf((float) $ecr['montant'])) ?>"></td><?php endif; ?>
             <td class="nowrap ecr-c-date"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteColVisible): ?><td class="compte-cell small muted ecr-c-compte"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <?php
@@ -496,22 +533,17 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <td class="col-piece piece-cell">
                 <?php if ($etatPiece === 'manquante'): ?>
                     <?php if (peut_ecrire('pieces')): ?>
-                        <?php // Rien à montrer, mais quelque chose à faire : le
-                              // trombone n'apparaît qu'au survol de la ligne,
-                              // comme les crayons des cellules voisines.
-                              //
-                              // Il ouvre le MÊME menu que « Nouvelle pièce » et
-                              // que le trombone du tableau de bord : le type se
-                              // choisit avant d'entrer dans le formulaire, ici
-                              // comme ailleurs. Y mener directement, c'était
-                              // décider « facture reçue » à la place de celui
-                              // qui photographie un ticket. ?>
-                        <?= pieces_menu_nouvelle_html(
-                            ['icone' => 'paperclip', 'libelle' => '', 'nu' => true,
-                             'classe' => 'row-edit-btn piece-lier-btn',
-                             'titre' => 'Joindre une pièce à cette écriture'],
-                            ['depuis' => 'compta_ecritures', 'params' => ['ecriture_id' => (int) $ecr['id']]]
-                        ) ?>
+                        <?php // Un LIEN par ligne, et non le menu des cinq types : ce
+                              // menu pesait 1,5 Ko par écriture, soit 40 % de la
+                              // page, pour un seul ouvert à la fois. Le script le
+                              // substitue au lien au clic, depuis le gabarit unique
+                              // posé sous le tableau (tpl-pieces-ecriture). Sans
+                              // script, le lien ouvre le formulaire en type
+                              // « Autre », le seul dont le sens se choisit : la
+                              // pièce se dépose quand même. ?>
+                        <a class="row-edit-btn piece-lier-btn" data-pieces-menu
+                           href="?p=piece_form&amp;type=autre&amp;depuis=compta_ecritures&amp;ecriture_id=<?= (int) $ecr['id'] ?>"
+                           title="Joindre une pièce à cette écriture" aria-label="Joindre une pièce à cette écriture"><?= icon('paperclip') ?></a>
                     <?php endif; ?>
                 <?php else: ?>
                     <?php

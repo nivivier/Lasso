@@ -37,6 +37,27 @@ puis sont promues sur le canal **stable** en figeant une version.
 - **Rappel de sauvegarde sur le tableau de bord**, pour les administrateurs,
   quand aucune sauvegarde complète n'a été téléchargée depuis plus de 30 jours.
   C'est la seule copie des données qui quitte le serveur.
+- **Les écritures se lisent en cartes sur téléphone**, avec le panneau de
+  filtres des autres listes, au lieu d'un tableau à faire défiler de côté.
+
+### Corrigé
+- **Rail replié : le panneau d'un module s'ouvrait trop bas au survol**
+  (il était juste au clic). Le survol passait l'événement à la fonction de
+  placement, qui le prenait pour un décalage en pixels.
+- **Les erreurs ne s'affichent plus dans une boîte d'alerte du navigateur** :
+  ventilation suggérée, fusion de structures, étiquettes et modification d'une
+  cellule utilisent le message flottant des autres écrans.
+- **L'onglet du navigateur porte le même titre que la page** sur douze écrans
+  (« Comptabilité — Écritures », « Facturation — Factures »…).
+- **Accessibilité** : les cases à cocher des listes, les champs des actions
+  groupées et les champs d'étiquette ont un nom lisible par un lecteur d'écran ;
+  les noms tronqués du tableau de bord se lisent en entier au survol.
+- **La page des écritures pèse un cinquième de moins** : le menu « Joindre une
+  pièce » n'est plus recopié dans chaque ligne, il est posé au clic.
+- **Le message de la sauvegarde complète** (`?p=export`) est plus court et
+  rangé en liste : ce qu'elle contient, ce qui n'y est pas, pourquoi la garder
+  confidentielle. L'avertissement de confidentialité s'affiche aussi quand le
+  serveur ne produit que la base seule.
 
 ## [3.2.4] — 2026-11-11
 

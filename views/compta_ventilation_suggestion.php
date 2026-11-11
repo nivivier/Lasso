@@ -212,7 +212,7 @@ $_axesJson   = json_encode(array_values(array_map(
         if (data?.ok) {
             window.location.href = '?p=compta_ecritures';
         } else {
-            alert('Erreur lors de l\'enregistrement. Veuillez réessayer.');
+            lassoToast('L\u2019enregistrement a échoué. Réessayez.', 'err');
             btn.disabled = false;
         }
     });
@@ -233,14 +233,14 @@ $_axesJson   = json_encode(array_values(array_map(
         const aF = document.getElementById('annee-fin').value;
         const mF = document.getElementById('mois-fin').value;
         const t  = getType();
-        if (!t) { alert('Veuillez choisir le type de charge (OCAS, LAA ou LPP).'); return; }
+        if (!t) { lassoToast('Choisissez le type de charge (OCAS, LAA ou LPP).', 'warn'); return; }
 
         const btn = document.getElementById('btn-calculer');
         btn.disabled = true;
         try {
             const url = `?p=compta_ventilation_suggestion_apercu&annee_debut=${aD}&mois_debut=${mD}&annee_fin=${aF}&mois_fin=${mF}&type=${t}`;
             const data = await fetch(url).then(r => r.json()).catch(() => null);
-            if (!data?.ok) { alert('Erreur lors du calcul. Vérifiez la période.'); return; }
+            if (!data?.ok) { lassoToast('Le calcul a échoué. Vérifiez la période.', 'err'); return; }
             renderSuggestion(data.suggestions);
         } finally {
             btn.disabled = false;

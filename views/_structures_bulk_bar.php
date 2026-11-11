@@ -61,28 +61,28 @@ $bbCampagnes = $bbCampagnes ?? [];
         </select>
 
         <span class="bulk-field" data-for="categorie" hidden>
-            <select name="bulk_categorie_id" class="inline-year-select">
+            <select name="bulk_categorie_id" class="inline-year-select" aria-label="Nouvelle catégorie">
                 <?php foreach ($bbCategories as $cat): ?>
                     <option value="<?= (int) $cat['id'] ?>"><?= str_repeat("\u{00A0}\u{00A0}", $cat['profondeur']) ?><?= e($cat['nom']) ?></option>
                 <?php endforeach; ?>
             </select>
         </span>
         <span class="bulk-field" data-for="ville" hidden>
-            <input type="text" name="bulk_ville" class="inline-year-select" placeholder="Nouvelle ville">
+            <input type="text" name="bulk_ville" class="inline-year-select" aria-label="Nouvelle ville" placeholder="Nouvelle ville">
         </span>
         <span class="bulk-field" data-for="departement_canton" hidden>
-            <input type="text" name="bulk_departement_canton" class="inline-year-select" placeholder="Nouveau département / canton">
+            <input type="text" name="bulk_departement_canton" class="inline-year-select" aria-label="Nouveau département ou canton" placeholder="Nouveau département / canton">
         </span>
         <span class="bulk-field" data-for="pays" hidden>
-            <select name="bulk_pays" class="inline-year-select"><?= pays_options_nom('') ?></select>
+            <select name="bulk_pays" class="inline-year-select" aria-label="Nouveau pays"><?= pays_options_nom('') ?></select>
         </span>
         <span class="bulk-field" data-for="via" hidden>
-            <input type="text" name="bulk_via" class="inline-year-select" placeholder="Nouveau « via »">
+            <input type="text" name="bulk_via" class="inline-year-select" aria-label="Nouveau « via »" placeholder="Nouveau « via »">
         </span>
         <?php if ($bbTagsDispo || module_actif('booking')): ?>
         <span class="bulk-field" data-for="tag_ajouter" hidden>
             <div class="cat-search tag-search">
-                <input type="text" name="bulk_tag_ajouter" class="cat-search-input inline-year-select"
+                <input type="text" name="bulk_tag_ajouter" class="cat-search-input inline-year-select" aria-label="Tag à ajouter"
                        placeholder="Tag à ajouter" autocomplete="off">
                 <ul class="cat-search-list" hidden role="listbox">
                     <?php foreach ($bbTagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
@@ -90,7 +90,7 @@ $bbCampagnes = $bbCampagnes ?? [];
             </div>
         </span>
         <span class="bulk-field" data-for="tag_retirer" hidden>
-            <select name="bulk_tag_retirer" class="inline-year-select">
+            <select name="bulk_tag_retirer" class="inline-year-select" aria-label="Tag à retirer">
                 <?php foreach ($bbTagsDispo as $t): ?>
                     <option value="<?= (int) $t['id'] ?>"><?= e($t['nom']) ?></option>
                 <?php endforeach; ?>
@@ -112,7 +112,7 @@ $bbCampagnes = $bbCampagnes ?? [];
         <?php endforeach; ?>
         <?php endif; ?>
         <span class="bulk-field" data-for="statut" hidden>
-            <select name="bulk_statut" class="inline-year-select">
+            <select name="bulk_statut" class="inline-year-select" aria-label="Nouveau statut">
                 <?php foreach (STRUCTURE_STATUTS as $s): ?>
                     <option value="<?= e($s) ?>"><?= e(structure_statut_libelle($s)) ?></option>
                 <?php endforeach; ?>

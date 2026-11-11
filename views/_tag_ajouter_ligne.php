@@ -24,7 +24,7 @@ $taRetour = $taRetour ?? [];
     <input type="hidden" name="structure_id" value="">
     <?= hidden_inputs_html($taRetour) ?>
     <div class="cat-search tag-search">
-        <input type="text" name="nom" class="cat-search-input" placeholder="Tag…" autocomplete="off">
+        <input type="text" name="nom" class="cat-search-input" aria-label="Tag à ajouter" placeholder="Tag…" autocomplete="off">
         <ul class="cat-search-list" hidden role="listbox">
             <?php foreach ($taTags as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
         </ul>

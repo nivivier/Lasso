@@ -347,7 +347,7 @@ function route_utilisateurs(): void
         'ok'          => $_GET['ok'] ?? null,
         'flagErr'     => $_GET['err'] ?? null,
         'moi'         => (int) current_user()['id'],
-    ], 'Paramètres — Comptes');
+    ], 'Paramètres — Utilisateurs');
 }
 
 // Édition d'un compte depuis ?p=utilisateurs : identité, adresse de connexion, et
@@ -906,7 +906,7 @@ function route_emails(): void
         // hébergeurs), et le refuser rendait la configuration impossible.
         if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
             || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))) {
-            render('emails', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'E-mails');
+            render('emails', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'E-mails — Envois généraux');
             return;
         }
         $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
@@ -920,7 +920,7 @@ function route_emails(): void
         }
         redirect('emails', ['ok' => 1]);
     }
-    render('emails', ['saved' => isset($_GET['ok']), 'err' => null], 'E-mails');
+    render('emails', ['saved' => isset($_GET['ok']), 'err' => null], 'E-mails — Envois généraux');
 }
 
 // Envois pour le booking : les boîtes d'expédition des campagnes (chacune avec
@@ -943,7 +943,7 @@ function route_emails_booking(): void
                     'saved' => null,
                     'err' => 'Adresse d\'expéditeur invalide : « ' . $email . ' ».',
                     'expediteurs' => mailing_expediteurs(),
-                ], 'E-mails — Booking');
+                ], 'E-mails — Envois pour le booking');
                 return;
             }
             emails_enregistrer_expediteur((int) ($_POST['id'] ?? 0), $ligne);
@@ -966,7 +966,7 @@ function route_emails_booking(): void
         'saved' => isset($_GET['ok']),
         'err' => null,
         'expediteurs' => mailing_expediteurs(),
-    ], 'E-mails — Booking');
+    ], 'E-mails — Envois pour le booking');
 }
 
 

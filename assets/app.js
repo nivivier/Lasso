@@ -161,8 +161,13 @@ window.addEventListener('DOMContentLoaded', () => {
             fermeture = setTimeout(() => volet.classList.remove('flyout-on'), 320);
         };
         placeurs.set(volet, placer);
-        volet.addEventListener('mouseenter', placer);
-        volet.addEventListener('focusin', placer);
+        // ⚠️ Enveloppé, et non `addEventListener('mouseenter', placer)` : un
+        // écouteur reçoit l'ÉVÉNEMENT en premier argument, qui prenait alors
+        // la place de « supplement ». La hauteur devenait NaN, le top était
+        // ignoré, et au survol le panneau retombait sous la vignette — alors
+        // qu'au clic, qui appelle placer() sans argument, il était juste.
+        volet.addEventListener('mouseenter', () => placer());
+        volet.addEventListener('focusin', () => placer());
         volet.addEventListener('mouseleave', fermerPlusTard);
         volet.addEventListener('focusout', fermerPlusTard);
 
@@ -428,6 +433,32 @@ document.addEventListener('click', e => {
     document.querySelectorAll(LASSO_MENUS).forEach(details => {
         if (!details.contains(e.target)) { details.open = false; }
     });
+});
+
+// Un menu PARTAGÉ, rendu une fois par page dans un <template> et posé à la
+// demande : la colonne « Pièce » de ?p=compta_ecritures, où chaque ligne ne
+// porte qu'un lien (data-pieces-menu) au lieu du menu complet — 1,5 Ko de
+// moins par écriture. Au clic, le lien est remplacé par une copie du menu,
+// l'identifiant de l'écriture substitué dans ses adresses, puis ouvert.
+// Sans script, le lien mène au formulaire de pièce : rien n'est perdu.
+// ⚠️ Déclaré APRÈS l'écouteur ci-dessus, et ce n'est pas un hasard : celui-là
+// ferme tout menu ouvert dont le clic n'a pas eu lieu à l'intérieur. Passé
+// après nous, il refermerait aussitôt le menu qu'on vient d'ouvrir — le clic
+// a eu lieu sur le lien, qui n'est plus dans le document.
+document.addEventListener('click', e => {
+    const lien = e.target.closest('a[data-pieces-menu]');
+    const tpl = document.getElementById('tpl-pieces-ecriture');
+    if (!lien || !tpl || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+    const id = new URL(lien.href, location.href).searchParams.get('ecriture_id');
+    const menu = tpl.content.firstElementChild?.cloneNode(true);
+    if (!id || !menu) { return; }
+    e.preventDefault();
+    menu.querySelectorAll('a[href*="__ECRITURE__"]').forEach(a => {
+        a.setAttribute('href', a.getAttribute('href').replace('__ECRITURE__', encodeURIComponent(id)));
+    });
+    lien.replaceWith(menu);
+    menu.open = true;
+    menu.querySelector('summary')?.focus();
 });
 // Repositionne le menu en position:fixed à l'ouverture, calculée depuis le
 // bouton entonnoir : .table-scroll a overflow-x:auto, ce qui force
@@ -1159,7 +1190,7 @@ function lassoInitBulkBar() {
             // l'efface. L'ajout, lui, ne détruit rien — il ne demande rien.
             e.preventDefault();
         } else if (sectionInput.value === 'fusionner' && n < 2) {
-            alert('Sélectionnez au moins deux structures à fusionner.');
+            lassoToast('Sélectionnez au moins deux structures à fusionner.', 'warn');
             e.preventDefault();
         }
     });
@@ -2256,8 +2287,10 @@ async function lassoMajCellule(cellule, route, donnees, csrf) {
     const data = await fetch(route, { method: 'POST', body: fd })
         .then(r => r.json()).catch(() => null);
     if (!data || !data.ok) {
-        alert('L\u2019enregistrement a échoué.');
-        location.reload();
+        // Rechargement différé : la pastille doit rester lisible avant que la
+        // page ne revienne à l'état réel de la base.
+        lassoToast('L\u2019enregistrement a échoué.', 'err');
+        setTimeout(() => location.reload(), 1500);
         return;
     }
     cellule.innerHTML = data.html;
@@ -2603,7 +2636,7 @@ function lassoInitTagGerer() {
         const data = await fetch('?p=structure_tag_gerer', { method: 'POST', body: fd })
             .then(r => r.json()).catch(() => null);
         if (!data || !data.ok) {
-            alert((data && data.erreur) || 'L\u2019opération a échoué.');
+            lassoToast((data && data.erreur) || 'L\u2019opération a échoué.', 'err');
             return;
         }
         // Rechargement plutôt que mise à jour sur place : le nom d'une étiquette

@@ -179,7 +179,7 @@ function route_factures(): void
         'pgPage'         => $pgPage,
         'pgTaille'       => $pgTaille,
         'pgTotal'        => $pgTotal,
-    ]), 'Facturation');
+    ]), 'Facturation — Factures');
 }
 
 // Formulaire (brouillon) — création ou modification, tant que non émise.

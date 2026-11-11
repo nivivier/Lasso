@@ -1770,6 +1770,17 @@ que d'afficher depuis le POST : un rechargement ne doit pas rejouer l'action.
 `redirect()` accepte une **ancre** — sur une fiche longue, revenir en haut
 oblige à redescendre.
 
+**Côté script, `lassoToast(texte, classe)`** pose la même pastille `.flash`
+(classe `ok`, `err` ou `warn`). **Jamais `alert()`** : la boîte du navigateur
+bloque la page, ne ressemble à rien d'autre dans l'application, et sur une
+erreur d'enregistrement on préfère montrer le message PUIS recharger (la ligne
+revient à l'état réel de la base). `confirm()` reste admis : c'est ce que fait
+`data-confirm` (§ 14), et une question qui attend une réponse doit bloquer.
+
+**Le `<title>` de l'onglet reprend le titre de la page** (le `h1`, précédé du
+module quand il l'est à l'écran : « Comptabilité — Écritures »). Deux noms pour
+le même écran, et l'onglet ou l'historique ne se retrouvent plus.
+
 ## 12. Icônes
 
 `icon('nom')` — Lucide, chemins recopiés à la main dans `icone_table()`

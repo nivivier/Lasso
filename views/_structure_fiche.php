@@ -408,7 +408,7 @@ lassoInitTagSuggest();
               // deux balisages, deux réponses, d'où ce marqueur. ?>
         <input type="hidden" name="cible" value="fiche">
         <div class="cat-search tag-search">
-            <input type="text" name="nom" class="cat-search-input" placeholder="Ajouter un tag…" autocomplete="off">
+            <input type="text" name="nom" class="cat-search-input" aria-label="Tag à ajouter" placeholder="Ajouter un tag…" autocomplete="off">
             <ul class="cat-search-list" hidden role="listbox">
                 <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
             </ul>

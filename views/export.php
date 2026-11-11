@@ -61,44 +61,38 @@ $anneeSansToutes = ['certificats' => true];
         <p class="err mb-8">La sauvegarde n'a pas pu être créée — disque plein, droits insuffisants, ou archive impossible à finaliser.
             Le détail est dans le journal d'erreurs du serveur. Rien n'a été téléchargé.</p>
         <?php endif; ?>
-        <?php // ⚠️ La liste des modules se LIT dans MODULES, elle ne se récrit pas
-              // ici. Écrite à la main, elle avait vieilli de trois chantiers : elle
-              // ignorait le carnet d'adresses, les pièces et la recherche de fonds,
-              // et rangeait encore les structures sous la facturation et les projets
-              // sous les événements. Une sauvegarde qui n'annonce pas ce qu'elle
-              // contient inquiète à juste titre, alors qu'elle n'avait rien perdu
-              // (VACUUM INTO copie la base entière, il n'énumère aucune table).
+        <?php // Trois questions, dans l'ordre où on se les pose : à quoi ça sert,
+              // qu'est-ce qu'il y a dedans, qu'est-ce qui manque. Le détail
+              // technique (pourquoi la base ne contient pas les fichiers, ce
+              // qu'est une empreinte bcrypt) reste ici et dans le README §6.
               //
-              // MODULES au complet, et non modules_actifs() : la phrase dit « quels
-              // que soient les modules activés », et c'est vrai — un module éteint
-              // garde ses tables, et la sauvegarde les emporte. ?>
-        <p class="muted small mb-8">Copie intégrale de la base : <strong>toutes les tables</strong>, quels que soient les modules activés —
-            <?= e(implode(', ', array_column(MODULES, 'label'))) ?>,
-            ainsi que les paramètres, les comptes utilisateurs et les catégories (pays, régions, types de lieu).
-            À conserver régulièrement en lieu sûr — c'est ta sauvegarde.</p>
+              // « Tous les modules, même désactivés » : vrai, un module éteint
+              // garde ses tables et VACUUM INTO copie la base entière sans en
+              // énumérer aucune. Pas de liste des modules : écrite à la main,
+              // elle avait vieilli de trois chantiers.
+              //
+              // ⚠️ L'avertissement de confidentialité vaut pour les DEUX formats,
+              // il est donc hors du if. Il nomme les secrets : les mots de passe
+              // des boîtes d'envoi sont en base EN CLAIR (un serveur SMTP réclame
+              // le mot de passe, pas son empreinte) ; ceux des comptes n'y sont
+              // qu'en empreinte bcrypt. Dire « aucun mot de passe » serait faux. ?>
+        <p class="small mb-8">Une copie complète de Lasso, à télécharger régulièrement et à garder en lieu sûr.</p>
+        <ul class="small mb-8">
+            <li><strong>Toute la base</strong> : tous les modules, même désactivés, les paramètres et les comptes.</li>
+            <?php if ($formatSauvegarde !== 'sqlite'): ?>
+            <li><strong>Les fichiers déposés</strong> : logos, photos, icônes, feuilles SUISA, pièces jointes.</li>
+            <li>Une note expliquant comment restaurer.</li>
+            <?php endif; ?>
+        </ul>
         <?php if ($formatSauvegarde === 'sqlite'): ?>
-        <p class="warn small mb-0"><?= icon('info') ?> Ce serveur ne sait produire ni archive ZIP ni archive TAR
-            (extensions <code>zip</code> et <code>phar</code> absentes) : le téléchargement ne contient que la base.
-            Les <strong>fichiers déposés</strong> — logos, photos, icônes, pièces jointes — sont à sauvegarder à part,
-            en copiant les dossiers <code>uploads/</code> et <code>data/fichiers/</code>.</p>
+        <p class="warn small mb-8"><?= icon('info') ?> <strong>Les fichiers déposés n'y sont pas</strong> (ce serveur
+            ne sait pas créer d'archive) : copiez à part les dossiers <code>uploads/</code> et <code>data/fichiers/</code>.</p>
         <?php else: ?>
-        <p class="muted small mb-0"><?= icon('info') ?> L'archive contient aussi les <strong>fichiers déposés</strong> —
-            logos, photos d'employés, icônes, feuilles SUISA, pièces jointes —, que la base ne fait que désigner sans
-            les contenir. Une note de restauration est jointe à l'intérieur. Seul <code>lib/config.local.php</code>,
-            la <strong>configuration du serveur</strong>, en est absent : il porte le secret d'installation et
-            l'emplacement de la base, et se conserve à part.</p>
-        <?php // ⚠️ Dire où sont les secrets, et lesquels. « L'archive ne contient
-              // pas de mot de passe » serait faux : les mots de passe des BOÎTES
-              // D'ENVOI sont en base, et en clair — un serveur SMTP demande le
-              // mot de passe, pas son empreinte. Ceux des COMPTES, eux, n'y sont
-              // qu'en empreinte bcrypt. Les deux sont dans l'archive, et ce
-              // n'est pas la même chose : l'un se rejoue tel quel, l'autre non. ?>
-        <p class="warn small mt-8 mb-0"><?= icon('info') ?> <strong>Une sauvegarde se range comme un document
-            confidentiel.</strong> Elle porte toute la base : salaires nominatifs, carnet d'adresses, et les mots de passe
-            des <strong>boîtes d'envoi</strong> (SMTP) <strong>en clair</strong> — un serveur de messagerie réclame le mot
-            de passe lui-même. Les mots de passe des <strong>comptes de connexion</strong>, eux, n'y figurent qu'en
-            empreinte bcrypt : ils ne se relisent pas, mais la sauvegarde restaurée rend à chacun le sien.</p>
+        <p class="muted small mb-8">Seule la configuration du serveur, <code>lib/config.local.php</code>, n'y est pas : conservez-la à part.</p>
         <?php endif; ?>
+        <p class="warn small mb-0"><?= icon('info') ?> <strong>À traiter comme un document confidentiel</strong> :
+            elle contient les salaires, les adresses et les mots de passe des boîtes d'envoi en clair.
+            Les mots de passe de connexion, eux, n'y sont pas lisibles.</p>
         <div class="form-actions">
             <a class="btn" href="?p=sauvegarde"><?= icon('download') ?> Télécharger la sauvegarde</a>
         </div>

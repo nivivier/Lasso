@@ -49,7 +49,7 @@
     <input type="hidden" name="plan_compte_id" class="row-cat-val" value="">
     <div class="row-field-inp" id="ecr-cat-inp">
         <div class="cat-prefix"></div>
-        <input type="text" class="row-cat-input" autocomplete="off" placeholder="— à lettrer —" value="">
+        <input type="text" class="row-cat-input" aria-label="Catégorie de l'écriture" autocomplete="off" placeholder="— à lettrer —" value="">
     </div>
 </form>
 <?php endif; ?>

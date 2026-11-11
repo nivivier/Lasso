@@ -339,7 +339,7 @@ function route_taux_horaires(): void
         'saved'        => isset($_GET['ok']),
         'tauxHoraires' => db()->query('SELECT * FROM taux_horaires ORDER BY montant')->fetchAll(),
         'unites'       => db()->query('SELECT * FROM unites ORDER BY heures')->fetchAll(),
-    ], 'Salaires horaires');
+    ], 'Salaires horaires et unités');
 }
 
 // Import de fiches de salaire depuis un fichier JSON (format d'export, type

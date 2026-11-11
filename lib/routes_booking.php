@@ -1141,7 +1141,7 @@ function route_mailing(): void
         'traiterUrl' => peut_ecrire('booking') ? '?p=mailing_traiter&token=' . mailing_traiter_token() : '',
         'campagnes' => $campagnes,
         'ok' => $_GET['ok'] ?? null,
-    ], 'Mailing — Aperçu');
+    ], 'Envois groupés — Suivi');
 }
 
 // Onglet « Nouvelle campagne » : ciblage + message + prévisualisation + test.

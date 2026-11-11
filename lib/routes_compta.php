@@ -430,7 +430,7 @@ function route_compta_plan(): void
         'ecrCounts' => $ecrCounts,
         'saved'     => isset($_GET['ok']),
         'flagErr'   => $_GET['err'] ?? null,
-    ], 'Comptabilité — Plan comptable');
+    ], 'Comptabilité — Produits et charges');
 }
 
 // --- Comptes bancaires ------------------------------------------------------
@@ -1023,7 +1023,7 @@ function route_compta_ecritures(): void
         'pgRoute' => 'compta_ecritures',
         'pgParams' => array_filter(['compte' => $compteId, 'annee' => $annee, 'categorie' => $categorieFilter, 'axe' => $axeFilter, 'sens' => $sensFiltre, 'piece' => $pieceFiltre, 'q' => $recherche]),
         'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
-    ], 'Comptabilité — Lettrage');
+    ], 'Comptabilité — Écritures');
 }
 
 // --- Règles de lettrage -----------------------------------------------------
@@ -1166,7 +1166,7 @@ function route_compta_regles(): void
         'prefillCompte' => $prefillCompte,
         'saved'         => isset($_GET['ok']),
         'test'          => isset($_GET['test']) ? (int) $_GET['test'] : null,
-    ], 'Comptabilité — Règles');
+    ], 'Comptabilité — Lettrage automatique');
 }
 
 // Écritures non lettrées (id, compte, texte, montant) — pour l'aperçu d'impact.
@@ -1418,7 +1418,7 @@ function route_compta_analyse(): void
     require_login();
     // Pas de param → toutes les années (0) plutôt que la plus récente.
     $annee = isset($_GET['annee']) ? (int) $_GET['annee'] : 0;
-    render('compta_analyse', compta_analyse_data($annee), 'Comptabilité analytique');
+    render('compta_analyse', compta_analyse_data($annee), 'Comptabilité — Analyse');
 }
 
 function route_compta_analyse_axe(): void
@@ -1629,7 +1629,7 @@ function route_compta_bilan(): void
             }
         }
     }
-    render('compta_bilan', compta_bilan_data($annee, $nbPrec), 'Comptabilité — Bilan & résultat');
+    render('compta_bilan', compta_bilan_data($annee, $nbPrec), 'Comptabilité — Comptes annuels');
 }
 
 // Ligne de total d'un tableau de bilan (une cellule par colonne d'année).

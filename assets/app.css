@@ -5046,13 +5046,26 @@ abbr {
            sombre, ce qui donnerait ici une barre claire sous du texte blanc. */
     }
     .mbar-logo { width: auto; height: 28px; }
+    /* Sans logo, le NOM de l'employeur tient lieu de marque : sur une seule
+       ligne, et c'est lui qui cède la place le premier, et presque seul (flex-shrink 20). Il
+       passait sur deux lignes et rognait le nom du module — or c'est le
+       module qui dit où l'on est, la marque ne fait que ramener à l'accueil. */
+    .mbar-accueil { min-width: 0; flex: 0 20 auto; }
+    .mbar-accueil .mbar-name {
+        display: block; font-size: var(--fs-basic); line-height: 1.2;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     /* Version réduite (carrée) : bornée en hauteur, pas en largeur. */
     .mbar-logo-mini { width: auto; height: 28px; }
     /* Le nom du module. Un filet le sépare de la marque : sans lui, « Souka
        Événements » se lit comme un seul groupe de mots. Il cède la largeur
        avant l'action — un titre tronqué reste lisible, un bouton rogné non. */
+    /* Il ne rétrécit pas tant que la marque peut céder (flex-shrink 0), mais
+       ne dépasse jamais 55 % de la barre : au-delà il se tronque, et l'action
+       garde sa place. Avec un simple flex-shrink 1, il perdait sa dernière
+       lettre même à côté d'un nom d'employeur qui pouvait encore céder. */
     .mbar-titre {
-        min-width: 0; flex: 0 1 auto;
+        min-width: 0; flex: 0 0 auto; max-width: 55%;
         padding-left: 12px; border-left: 1px solid var(--line);
         color: var(--ink); font-weight: 800; font-size: var(--fs-large); line-height: 1.1;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -6175,8 +6188,8 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
        elle collait au bord de l'écran la première colonne des tableaux restés
        des tableaux — la comptabilité, notamment. Les lignes de séparation en
        sont exclues : leur libellé n'est pas placé par la grille. */
-    .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep) > :first-child,
-    .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep) > :last-child { padding-left: 0; padding-right: 0; }
+    .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep):not(.ecr-mois-sep) > :first-child,
+    .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep):not(.ecr-mois-sep) > :last-child { padding-left: 0; padding-right: 0; }
     /* Rien ici sur .table-scroll : ce conteneur porte le défilement horizontal
        de TOUS les tableaux, y compris ceux qui restent des tableaux sur
        téléphone — la comptabilité en particulier. Une règle globale
@@ -6704,11 +6717,72 @@ tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
         display: none;
     }
 
-    /* Séparateurs de mois (factures, événements) : ce ne sont pas des fiches. */
-    .liste-cartes tbody tr.mois-sep {
+    /* --- Écritures : qui et combien en tête, puis le libellé et la date, puis
+       ce qu'on en fait (catégorie, pièce, règle), enfin l'axe et le compte.
+       Quatre pistes : la case, le contenu, puis deux colonnes étroites à
+       droite. La 3e ne reçoit que l'icône de pièce : le nom du compte, posé
+       là, l'élargissait au détriment de la catégorie.
+       ⚠️ Les cellules qui portent un champ — catégorie, axe, et en édition
+       d'une écriture manuelle la date, le compte, le texte et le montant —
+       sont PLACÉES, jamais masquées : une cellule masquée emporterait son
+       champ (docs/UI.md § 4). Seule la dernière règle masque, et elle ne
+       vise que ce qui n'aurait pas été placé ici. */
+    .cartes-ecritures tbody tr {
+        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr) auto auto;
+        row-gap: 4px;
+        align-items: center;
+        min-height: 0;
+    }
+    .cartes-ecritures.avec-check tbody tr { --carte-check: 22px; }
+    .cartes-ecritures td.col-check {
+        grid-column: 1; grid-row: 1; display: flex; padding-top: 0;
+    }
+    .cartes-ecritures td.col-check input { margin: 0; }
+    /* Le fond de la ligne (écriture manuelle, à lettrer, ignorée) est porté
+       par les CELLULES dans le tableau ; en carte elles ne se touchent plus et
+       dessinaient autant de pavés. Il passe donc sur la ligne. */
+    .cartes-ecritures.compta-lettrage tbody tr td,
+    .cartes-ecritures.compta-lettrage tbody tr:not(.ecr-mois-sep):hover td { background: none; }
+    .cartes-ecritures tbody tr.ecr-manuelle { background: var(--row-manuelle); }
+    .cartes-ecritures tbody tr.non-lettre { background: var(--row-attention); }
+    .cartes-ecritures tbody tr.ecr-ignore { background: var(--row-ignore); }
+    .cartes-ecritures td.tiers-cell {
+        grid-column: 2 / 4; grid-row: 1; max-width: none; min-width: 0;
+        font-size: var(--fs-basic); font-weight: 600; color: var(--ink);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-ecritures td.ecr-c-montant {
+        grid-column: 4; grid-row: 1; justify-self: end; text-align: right;
+        font-weight: 600; white-space: nowrap;
+    }
+    .cartes-ecritures td.ecr-c-texte {
+        grid-column: 2 / 4; grid-row: 2; max-width: none; min-width: 0;
+    }
+    .cartes-ecritures td.ecr-c-compte {
+        grid-column: 3 / 5; grid-row: 4; justify-self: end; text-align: right; white-space: nowrap;
+    }
+    .cartes-ecritures td.ecr-c-date {
+        grid-column: 4; grid-row: 2; justify-self: end; text-align: right;
+        width: auto; color: var(--muted);
+    }
+    .cartes-ecritures td.cat-cell { grid-column: 2; grid-row: 3; min-width: 0; }
+    .cartes-ecritures td.cat-cell select { width: 100%; max-width: none; }
+    .cartes-ecritures td.piece-cell { grid-column: 3; grid-row: 3; justify-self: end; }
+    .cartes-ecritures td.actions { grid-column: 4; grid-row: 3; justify-self: end; }
+    .cartes-ecritures td.axe-cell { grid-column: 2; grid-row: 4; min-width: 0; }
+    /* Le menu d'axe vide se remplit au chargement ; sans largeur propre il se
+       réduisait à une pastille, faute de colonne pour la lui donner. */
+    .cartes-ecritures td.axe-cell .axe-inline-sel { min-width: 140px; max-width: 100%; }
+    .cartes-ecritures tbody tr:not(.ecr-mois-sep) td:not(.col-check):not(.tiers-cell):not(.ecr-c-montant):not(.ecr-c-texte):not(.ecr-c-compte):not(.ecr-c-date):not(.cat-cell):not(.piece-cell):not(.actions):not(.axe-cell) {
+        display: none;
+    }
+
+    /* Séparateurs de mois (factures, événements, écritures) : ce ne sont pas
+       des fiches. */
+    .liste-cartes tbody tr:is(.mois-sep, .ecr-mois-sep) {
         display: block; padding: 0; border-bottom: 0; min-height: 0;
     }
-    .liste-cartes tbody tr.mois-sep td {
+    .liste-cartes tbody tr:is(.mois-sep, .ecr-mois-sep) td {
         display: block; padding-left: var(--content-pad); padding-right: var(--content-pad);
     }
 }

@@ -74,7 +74,7 @@ function route_fonds_campagnes(): void
         'vide'      => !$campagnes,
         'nbTotal'   => count($toutes),
         'recherche' => $recherche,
-    ], 'Recherche de fonds');
+    ], 'Recherche de fonds — Campagnes');
 }
 
 function fonds_campagne_charger(int $id): ?array
